@@ -26,7 +26,7 @@ internal class JavaScriptCommandKernel(
             dependsOn(install, runtime.install, component.prerequisites)
             workingDirectory.set(directory)
             executable.set(workspace.tools.pnpm.map { it.asFile.absolutePath })
-            environment.put("PATH", workspace.tools.path)
+            environment.putAll(workspace.tools.environment)
             this.arguments.set(arguments.toList())
             toolVersion.set("pnpm ${ToolchainVersions.Pnpm} / node ${ToolchainVersions.Node}")
             sourceFiles.from(project.fileTree(directory) {

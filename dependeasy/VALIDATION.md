@@ -1,12 +1,94 @@
 # Build modernization qualification — 11 October 2026
 
-Scope: Dependeasy, Reaktor, BestBuds, and Manna. The migration and build sweep below
-are implemented and qualified to the stated limits. Current follow-up changes
-are still being qualified. BestBuds has failing product suites;
-credentialed releases remain unqualified.
-A successful artifact build does not establish that every product suite passes.
+Scope: Dependeasy, Reaktor, BestBuds, and Manna. The latest unfiltered BestBuds-led
+composite succeeds: all 55 module build lifecycles, 446 main Hangar flows and 14
+separate qualification flows pass. Selected XML reports contain 4,857 test cases,
+zero failures/errors and 30 existing skips. Report reuse is distinguished below.
+Unsigned iOS Debug/Release app builds and native Build execution have earlier,
+separate qualifications. Credentialed releases, AGP's modern KMP/native boundary,
+pinned mobile crypto final links and the complete Manna Kotlin migration remain
+unfinished. Passing builds do not establish signing or physical-device behavior.
 
-## Current follow-up qualification
+## BestBuds-led full scan and fixes
+
+The final command from BestBuds is `./gradlew buildAll buildGraph --continue --scan
+--profile --init-script ../.remote-dev/scan-profile-init.gradle
+-Dcodex.scan.termsApproved=yes -Pbestbuds.devTools=false`. The normal wrapper chooses
+this Mac based on available CPU/memory. The run succeeds in 44m02s of wall time;
+Gradle reports 43m56s, 6,579 actionable tasks, 408 executed, two from cache and
+6,169 up-to-date. All three declared buildAll entrypoints and 55 module lifecycles
+complete. [Final scan](https://gradle.com/s/qkiiz6hozpnis).
+
+The 957 selected XML reports contain 4,857 cases, zero failures/errors and 30
+existing skips. Fresh execution covers 1,497 cases in 297 reports; 3,360 cases in
+660 reports are reused from up-to-date tasks. All 475 engine tests and the complete
+446-flow Hangar run are fresh. All 14 separate surface qualification flows pass.
+Manna's 760 API and 796 browser/edge Vitest tests are outside the XML total; both
+tasks are up-to-date here after their preserved fresh passing qualifications. All
+three pnpm locks and monitored source/bootstrap inputs remain unchanged.
+
+This follows two failed completed scans and two interrupted attempts. Corrections
+retain the flow coverage, deadlines, performance limits and behavioral assertions:
+compact/deduplicated graph export and its declared consumer input; row-aware
+timeline selection and empty rows for negative clock origins; correct warm-cache
+producer outcomes; whole-minute review fixtures with deterministic midnight cases;
+and alternating, paired table measurements. Existing Agent/background-connection
+owners also preserve dismissed errors and pending approvals. The final Build and
+62-step timeline flows pass in the unfiltered suite.
+
+Manna's optimized simulator-framework link exhausted the old 8 GiB Gradle heap.
+The roots now own a 12 GiB Gradle maximum and retain an 8 GiB Kotlin compiler
+maximum. The routing wrapper no longer overrides their checked-in budgets; other
+projects retain their existing defaults. Actual JVM flags confirm the new budget,
+the failed link passes in a focused 4m20s run and the complete composite then passes.
+Native optimizations, three workers and load routing remain enabled.
+
+Same-input graph comparison preserves all 12,420 unique task/dependency definitions
+while reducing 12,240,426 bytes to 4,204,915 bytes, a 65.65% reduction. Each measured
+FlexBuffer Android ABI retains seven compile/link commands instead of fourteen
+Ninja commands after removing six unnecessary scans and one collation command.
+These are size/command-count improvements, not controlled build-time speedups.
+
+The local profile records 1.971s configuring projects and 2,541.41s in Hangar tests;
+the main flow case takes 2,104.397s. Parallel task/transform durations are accumulated
+work rather than a wall-time critical path. The warm final run cannot establish a
+speedup against earlier runs with different source/cache states. The full-run table
+comparison passes unchanged relative/absolute policies: paired wheel ratio 0.854,
+PageDown ratio 0.851 and wheel median p95 3.2ms. Raw rounds and the existing
+reference-dependent absolute key policy are retained in the evidence.
+
+[HLD and domain report](/Users/ovd/dev/.remote-dev/composite-scan-20261011/REPORT.md)
+and [machine-readable summary](/Users/ovd/dev/.remote-dev/composite-scan-20261011/final-summary.json)
+are local artifacts. Logs, saved HTML profiles, selected XML, comparisons, input
+checks and interrupted-run diagnostics are under
+`/Users/ovd/dev/.remote-dev/composite-scan-20261011`. Later results in this section
+supersede older statements below that desktop flow qualification remained pending.
+
+## Earlier completed results
+
+| Scope | Qualified result | Evidence |
+| --- | --- | --- |
+| Hangar distribution | Packaged app, actual loopback MCP and packaged database runtime pass | `20261011-022204-bestbuds` |
+| Native Build UI | Build label, project frames, dependency inspector, 109 operations; Reaktor check starts and reaches succeeded/exit 0 | `hangar-native-build-tab-9/launch.json`; `20261011-022836-bestbuds` |
+| Build graph | 3,355 nodes, 7,560 wires, 230 graphs, zero findings | Native inspection 9 |
+| BestBuds engine | 473 tests in 147 fresh suites pass; layout benchmark median 182.6 ms for the 3,350-task fixture | `20261011-015846-bestbuds` |
+| Catalog owner | 10 fresh tests pass after explicit verification targets are classified in Build | `20261011-022204-bestbuds` |
+| Reaktor full build | 2,693 tests in 484 fresh suites; zero failures/errors, 18 skips | `20261010-210626-reaktor` |
+| BestBuds Android and browser | Debug/release APKs, release AAB and production browser artifacts pass | `20261011-005950-bestbuds`; web transfer `20261011-015113-bestbuds` |
+| BestBuds actual iOS app | Debug and Release device-SDK apps, notification extension, exact SwiftPM dependencies and direct Kotlin links pass, signing disabled | `ios-actual-xcode-qualification-6.json` |
+| Manna browser/API | All 796 browser/edge and 758 API tests, TypeScript checks and production Vite build pass under the shared pnpm command policy | `composite-pnpm-policy-web-12.log` |
+| pnpm command boundary | 51 existing owner tests, the new command-boundary regression and 11 JavaScript kernel tests pass; component, nested Node and Kotlin paths share one environment | `dependeasy-pnpm-command-boundary-2-results/`; `dependeasy-pnpm-command-boundary-3.log`; `composite-pnpm-policy-web-12.log` |
+| Reaktor docs deployment | Pinned Wrangler dry run and existing deployReaktor flow pass; live public docs 200, private route 302 to sign-in, internal private asset route 404 | `docs-pinned-deploy-12.log`; `docs-deploy-live-verification-12.json` |
+| Composite and IDE | BestBuds/Manna/Reaktor share one framework model; standalone Manna metadata and composite web follow-up pass | `bestbuds-intellij-composite-model.json`; `20261011-014535-manna`; `20261011-015113-bestbuds` |
+
+The evidence files and run receipts live under
+`/Users/ovd/dev/.remote-dev/build-layer-migration-20261009` and `.remote-dev/logs`.
+The sections below retain the qualification history, including failures and work
+that was pending at the time. Later completed receipts supersede those pending
+statements. Signed releases, AGP's new native/KMP
+producer boundary and the complete Manna Kotlin migration remain unfinished.
+
+## Earlier follow-up qualification
 
 The current Reaktor full build passes with AGP 9.1.1 (`declarative-reaktor-full-build-5.log`,
 receipt `20261010-210626-reaktor`): 4,813 tasks in 30m 44s, including 3,992 executed,
@@ -67,9 +149,15 @@ generation and the packaged desktop MCP probe also complete. Evidence:
 `20261010-234506-bestbuds-fresh-test-results.json`. The prototype
 deployment inventory still expected the removed alias; that fixture now follows
 the current package inventory and retains surviving mutation/approval checks.
-Artifact qualification 7 and focused repair run 4 qualify subsequent changes;
-neither is claimed successful while pending. Earlier queued attempts were canceled
-before synchronization and do not provide qualification evidence.
+Artifact qualification 7 passes with receipt `20261011-005950-bestbuds`: 2,405 tasks
+in 24m 44s, including 1,733 executed, 423 from cache and 249 up-to-date. Hangar's
+runnable distribution, Android debug/release APKs and release AAB, both device iOS
+frameworks, the Kotlin browser app, website, current docs and generated adapters
+complete. Transfer succeeds with 92,868 copied paths. This artifact-only run
+freshly executes no Gradle test suites; transferred reports are reused. Evidence:
+`20261011-005950-bestbuds-fresh-test-results.json`. The actual unsigned Xcode app
+build and focused repair run 4 remain pending. Earlier queued attempts were
+canceled before synchronization and do not provide qualification evidence.
 Shared tooling now also reads named Gradle workspace targets from the declared
 report. It retains the wrapper execution binding and seals the report alongside
 build definitions. Unsupported schemas, platforms and command-bearing reports
@@ -80,7 +168,14 @@ The fixture now checks the canonical path. Shared tooling, Compose Flow and
 Blueprint owner qualification 2 passes with receipt `20261011-005728-reaktor`:
 226 tasks in 1m 25s and a successful transfer of 27,069 paths. Its 58 fresh suites
 contain 228 tests, zero failures or errors and one skip. Reused reports are excluded.
-Evidence: `20261011-005728-reaktor-fresh-test-results.json`. Root
+Evidence: `20261011-005728-reaktor-fresh-test-results.json`.
+The subsequent composite adapter admits included owners through the generated
+layout report and executes qualified paths through the BestBuds wrapper. It seals
+that layout alongside the graph, deduplicates diamond declarations and omits
+conflicts or unknown owners. Owner qualification 3 and the consumer cache
+regression remain pending. `buildGraph` now depends on the layout metadata task;
+the diamond fixture checks this relationship and configuration-cache reuse.
+Root
 Gradle properties no longer repeat unused Ktor/serialization/publication pins
 or obsolete KMP warning flags. The dangling `maestro:prototype` alias is removed.
 Qualification 4 started before these last edits; qualification 5 synchronizes them.
@@ -127,6 +222,16 @@ geometry but measures a viewport-bounded header and draws the full frame body
 outside it. The large-frame pixel regression passes in owner qualification 2,
 including a distant card and a full frame background while the header is offscreen.
 The real Build selection flow remains pending in focused repair run 4.
+
+The direct-definition admission regression now observes automatic foreground-run
+drawer opening instead of toggling Runs after a separate snapshot check. The
+definition rejection, event and zero-process-start assertions remain; focused
+repair run 4 qualifies this fixture correction.
+
+The remaining 35 tracked Webpack configuration fragments are removed after
+checking their identical generated contents. Current libraries emit ESM and the
+Vite browser adapter does not consume them. Generated Kotlin package manifests
+have no Webpack entries. Evidence: `obsolete-webpack-fragments-removal.json`.
 
 The actual BestBuds website qualification passes with receipt
 `20261011-004710-bestbuds`: 368 tasks in 1m 12s, including Kotlin producers,
@@ -794,3 +899,197 @@ remain. Current generation writes to `dist/client/docs`. Fresh regeneration is
 pending in `declarative-docs-output-cleanup-1.log`; evidence for the bounded cleanup
 is `legacy-docs-output-cleanup.json`. These are logical file sizes, not physical
 APFS allocation measurements.
+
+## Pending qualifications after native inspection
+
+The artifact-7 packaged app opens the renamed Build pane and its Operations,
+Targets, Runs and Live tabs. Native inspection shows the generated declaration
+source with 3,355 nodes and 7,560 wires. That distribution predates the composite
+execution adapter. It also exposes project scopes flattened into one map frame
+and duplicate-provider findings inferred from explicitly bound task result ports.
+The feature kernel now groups a Build source by project scope and its diagnostic
+projection omits that inapplicable inference while retaining cycle checks. The
+project-frame/edge-preservation and cycle regressions await qualification. Native
+keyboard filtering did not visibly update the field; no operation was run during
+this inspection. Evidence: `hangar-native-build-tab-7/launch.json`.
+
+Focused repair run 4 encounters a new `OutOfMemoryError` while the surface sweep
+allocates one large contact sheet with all story images still retained. Its existing
+512 MiB heap is unchanged. The report now streams all declared cells into pages of
+four environment rows, with the same pixel, unique-ID, naming and keyboard-focus
+assertions and full finding/count aggregation. The focused surface qualification
+and subsequent full engine suite remain pending.
+
+## Follow-up receipts after focused run 4
+
+`20261011-012852-bestbuds` finishes with exit 1 after 11m 41s of Gradle work.
+Fresh XML covers 480 tests in 150 suites, with two failures and no skips: the
+surface contact-sheet heap exhaustion and the aggregated YAML flow test. All
+selected Build flows, the direct-task post-approval seal regression and the
+production catalog checks pass. The sole failing selected flow is
+`F-CLOUD-15-deploy-view`: step 12 expects `app-service` on screen after clearing
+its filter. Steps 7–10 already qualify filter selection, the referenced row and
+analytics exclusion. The cleared list now contains many declared workloads and
+virtualizes that row off screen. The fixture now observes the cleared selection
+and navigates to both rows through existing stable-ID scrolling; exact recheck 5
+is pending. It retains every filter, inspector and deploy-order assertion.
+
+`20261011-014112-reaktor` passes the diamond BuildLayout TestKit fixture (one fresh
+test). Both `buildGraph --configuration-cache` calls also produce the layout
+report; the second call reuses the configuration cache. The fixture verifies
+included-build deduplication and declared custom JavaScript artifact families.
+The worker receipt records `web` and copies 5,991 paths. This adapter fixture does
+not replace the pending actual BestBuds custom-web transfer qualification.
+
+The removed prototype's generated-only directories are deleted on both Macs,
+after checking that no source remains outside build/dependency directories.
+Removed logical bytes: local 66,635,528; worker 121,968,210. These figures are
+logical directory sizes, not measured physical APFS savings. Original source
+backup and qualification snapshots remain preserved. Evidence:
+`prototype-generated-cleanup.json`.
+
+Actual BestBuds unsigned iOS Debug app qualification 6 passes with Xcode 26.6,
+the committed SwiftPM resolutions, direct Kotlin app framework and notification
+extension. `hangar-bestbuds-xcode-debug-6.log` ends with `BUILD SUCCEEDED`.
+This checks the device SDK app link and embedded extension, not just framework
+production. No simulator, signing, archive export, installation or deployment
+is implied. The Release app check is running separately.
+
+Manna standalone metadata qualification 23 passes (`20261011-014535-manna`):
+`projects buildGraph reportBuildLayout --configuration-cache` takes 19s, stores
+its configuration cache and transfers ten metadata paths from the two owning
+repositories. The empty Gradle `appWeb` project is absent; its root-owned web
+component and package remain. BestBuds composite qualification is pending in
+the declared-web transfer run.
+
+Current static audit (`current-build-layer-static-audit.json`): 60 consumer
+Gradle files contain 2,347 lines, with exactly one Dependeasy block each. The
+Dependeasy bootstrap build is counted separately. Shared Kotlin implementation
+has 162 files and 6,640 lines, with a maximum of 181 lines per file. No tracked
+CocoaPods file, npm/Yarn lockfile or version TOML is found in these three repos.
+These are source inventory measurements, not cyclomatic-complexity measurements.
+
+Composite target adapter qualification 3 passes (`20261011-014620-reaktor`):
+20s of Gradle work, six fresh tests in the GradleBuildTargets owner suite, no
+failures/errors/skips, and successful JVM transfer of 26,922 paths. Qualified
+wrapper paths, both diamond ordering cases, conflicting/unknown owners, platform
+and effect gates, layout-report changes and included build-definition changes
+retain their existing admission/seal behavior. The combined catalog cache,
+latest graph layout and packaged runtime remain in qualification 8.
+
+Surface qualification 5 passes: receipt `20261011-014738-bestbuds`, 358 tasks in
+2m 1s, exit 0 and a successful JVM-family transfer of 43,029 paths. The one fresh
+surface test renders all 846 cells with zero findings and zero known exceptions.
+Contact sheets now use bounded pages within the unchanged 512 MiB heap; no cell
+assertion or layout deadline is skipped. Evidence:
+`20261011-014738-bestbuds-fresh-test-results.json`. Reused suites are excluded;
+the complete engine rerun remains pending in qualification 8.
+
+Declared web transfer qualification 2 passes: receipt `20261011-015113-bestbuds`,
+371 tasks in 2m 41s, exit 0 and a successful web-family transfer of 52,961 paths
+across Reaktor, BestBuds and participating Manna. The authored `buildBestbudsWeb`
+target is classified through Gradle's generated task-family map; `buildGraph`,
+`:Manna:buildGraph` and `:Manna:projects` retain that scope. BestBuds' resulting
+snapshot has 34,925 regular file paths, 939,108,953 summed logical bytes and
+no desktop app, native framework, native compiler cache or Xcode output directories.
+These are logical file sizes within this snapshot, not physical APFS disk usage.
+Current Vite production generation
+and composite ownership pass; transferred test reports are reused. Evidence:
+`declared-web-transfer-2-inventory.json` and
+`20261011-015113-bestbuds-fresh-test-results.json`. These are scope and logical-size
+observations, not controlled build-speed or physical APFS savings measurements.
+
+Cloud flow qualification 5 passes: receipt `20261011-015616-bestbuds`, 362 tasks
+in 51s, exit 0 and a successful JVM-family transfer of 43,026 paths. The exact
+`F-CLOUD-15-deploy-view` flow preserves referenced-filter isolation and restoration,
+workload visibility, inspector and deploy-order checks; it scrolls the declared
+virtualized list before requesting offscreen rows. No production filter, deadline
+or assertion is changed. Evidence: `20261011-015616-bestbuds-fresh-test-results.json`.
+This focused pass does not qualify the unrelated failing flows from full run 5.
+
+Composite runtime qualification 8 passes: receipt `20261011-015846-bestbuds`,
+411 tasks in 6m 33s, exit 0 and a successful full-family transfer of 92,274 paths.
+Its 148 fresh suites contain 483 tests, zero failures/errors/skips: the full engine
+suite contributes 473 cases and the catalog cache/binding owner contributes ten.
+The complete 846-cell surface sweep passes within its unchanged heap. The 3,350-task
+Build layout fixture passes its unchanged 10-second budget across three measured
+iterations: median 182.6 ms, worst 213.0 ms. The packaged desktop runtime dependency
+check and actual loopback MCP probe (port 62854) pass. Transferred Reaktor/Manna
+suites are reused. Evidence: `20261011-015846-bestbuds-fresh-test-results.json` and
+`bestbuds/modules/engine/build/reports/performance/hangar-build-layout.json`.
+
+Native artifact-8 inspection uses a disposable launcher copy and explicit owned
+state/database paths. It opens the Build pane on the BestBuds composite workspace,
+shows project grouping, 3,355 declaration nodes, 7,560 wires, 230 graph scopes and
+zero findings. Native text input finds and selects `bestbuds:buildBestbudsWeb`;
+Operations exposes the available `Manna:webArtifacts` entrypoint. The persisted
+catalog includes all admitted Reaktor targets, but named verification targets
+remain classified under Testing and are absent from Build's Operations view.
+That classification is corrected with a regression retaining ordinary module
+checks under Testing and the declared target's original effect/binding. Packaged
+qualification 9 is pending. Inspection starts no operation, stops only its owned
+PID 74860, and retains the isolated runtime evidence in
+`hangar-native-build-tab-8/launch.json`. This supersedes the earlier artifact-7
+keyboard-filter and state-isolation limitations without qualifying the new correction.
+
+Actual BestBuds unsigned iOS Release app qualification 6 passes too:
+`hangar-bestbuds-xcode-release-6.log` ends with `BUILD SUCCEEDED`. Its worker
+framework phases pass with receipts `20261011-020925-reaktor` (23s, 6,845 copied
+paths) and `20261011-021038-bestbuds` (10m 6s, 11,447 copied Apple-family paths).
+The final app embeds `NotificationService.appex`; the Release executable contains
+the statically linked Kotlin framework. The active generated build flags disable
+developer tooling. Debug and Release app paths, hashes and their embedded extensions
+are recorded in `ios-actual-xcode-qualification-6.json`. Signing, archive export,
+installation and physical-device behavior remain outside these unsigned app checks.
+
+Final tracked-source wiring audit finds no current CocoaPods integration in the
+owned Gradle/Xcode/CMake layer. Historical navigation views still mention the
+former integration. Obsolete npm command help is corrected in 12 owned helpers;
+six shell helpers and four Node helpers parse successfully, with no behavior
+or execution body changed. Upstream WebDriverAgent and before-state evidence retain
+their original commands. The optional Firebase MCP runtime launcher still uses
+an unpinned npx command and remains a separate unqualified runtime-tooling boundary.
+Evidence: `final-tool-wiring-audit.json`.
+
+Native packaged catalog and execution qualification 9 pass. Receipt
+`20261011-022204-bestbuds` completes 406 Gradle tasks in 1m 19s and transfers
+92,295 paths without a copy error. Its one fresh catalog suite contains 10 tests
+with no failures, errors or skips; existing Reaktor/Manna reports are reused.
+The actual loopback MCP probe (port 62936) and packaged database runtime pass.
+A fresh owned native launch retains the Build label, project frames, zero findings
+and the web target's declared bundle dependency. Its Operations panel contains
+109 operations and finds `reaktor:frameworkChecks` as LocalEphemeral. Clicking its
+existing Run control invokes the BestBuds wrapper with `:reaktor:frameworkChecks`;
+receipt `20261011-022836-bestbuds` passes 212 tasks in 26s and transfers successfully.
+Thirteen fresh Reaktor suites contain 62 tests, zero failures/errors/skips.
+The native Runs row reaches `succeeded`, and the owned control-plane receipt records
+exit 0 with exactly one qualification run. Only the owned PID 83380 is stopped;
+the user's running Hangar and its histories are preserved. Evidence:
+`hangar-native-build-tab-9/launch.json` and both fresh-test-result reports.
+
+The shared JavaScript command environment now makes pnpm run/exec refuse stale
+dependencies; frozen pnpmInstall and explicit pnpmLock own installation and updates.
+Owner qualification 2 passes all 51 existing tests and all 11 JavaScript kernel
+tests. Its new regression initially reused the nested script's receipt because
+the fixture omitted its consumed manifest. Declaring that input preserves
+configuration-cache reuse and both refusal assertions; focused qualification 3
+passes in 9s, including explicit lock repair. No production policy was weakened.
+
+The normal wrappers choose this Mac for the latest web runs based on available
+CPU and memory. Combined qualification 11 exposes one machine-dependent Manna
+fixture: the ignored personal baby-data import is absent on the worker. The
+fixture loader now excludes that import while preserving every permission
+assertion and the local file. Combined qualification 12 passes in 1m 43s,
+428 tasks (71 executed, 357 up-to-date): Reaktor docs, BestBuds web/browser,
+Manna production Vite, all 796 browser tests, all 758 API tests and type checks.
+All three locks remain unchanged. These elapsed times describe different warm
+builds, not a controlled performance comparison. Evidence:
+`composite-pnpm-policy-web-12.log`, `dependeasy-pnpm-command-boundary-2-results/`,
+`dependeasy-pnpm-command-boundary-3.log`, `pnpm-policy-and-local-fixture-qualification.json`.
+
+The existing deployReaktor flow rebuilds both documentation surfaces and deploys
+successfully with pinned pnpm 12.10.1 and Wrangler 4.148.0, after a successful dry
+run. Version: `0003e1df-f08a-40a6-80f8-777ea190265a`. Live HEAD checks return 200
+for public docs, 302 to sign-in with private/no-store caching for the private
+Hangar design, and 404 for direct access to its internal private asset path.
+Evidence: `docs-pinned-deploy-12.log`, `docs-deploy-live-verification-12.json`.

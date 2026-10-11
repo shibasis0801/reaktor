@@ -9,15 +9,7 @@ import org.gradle.kotlin.dsl.register
 
 class JavaScriptTools private constructor(private val project: Project) {
     private val cache = project.gradle.gradleUserHomeDir.resolve("dependeasy/tools")
-    private val platform = when {
-        System.getProperty("os.name").contains("Mac") -> "darwin"
-        System.getProperty("os.name").contains("Linux") -> "linux"
-        else -> error("Dependeasy JavaScript tools require macOS or Linux")
-    } + "-" + when (System.getProperty("os.arch")) {
-        "aarch64", "arm64" -> "arm64"
-        "amd64", "x86_64" -> "x64"
-        else -> error("Unsupported JavaScript tool architecture")
-    }
+    private val platform = toolPlatform()
     private fun setup(name: String, version: String, download: String, entry: String): TaskProvider<InstallTool> =
         project.tasks.register<InstallTool>("${name}Setup") {
             group = "dependeasy"
@@ -36,6 +28,9 @@ class JavaScriptTools private constructor(private val project: Project) {
     val path: Provider<String> = node.zip(pnpm) { node, pnpm ->
         listOf(node.asFile.parent, pnpm.asFile.parent, System.getenv("PATH"))
             .joinToString(java.io.File.pathSeparator)
+    }
+    internal val environment: Provider<Map<String, String>> = path.map {
+        mapOf("PATH" to it, "PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN" to "error")
     }
     val export: TaskProvider<Sync> = project.tasks.register<Sync>("javascriptToolchain") {
         group = "dependeasy"

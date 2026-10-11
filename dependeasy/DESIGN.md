@@ -44,6 +44,13 @@ flowchart TD
 
 ## Domains and status
 
+Final source-audit follow-up: authored command help must describe the current pnpm
+commands. Budget: update obsolete npm usage text in the existing Keploy, CompanyOS
+and Manna import helpers, and remove the unpinned alternate profiler launcher hint.
+No execution body, product behavior, tool, dependency or API changes. Preserve
+vendored driver sources and historical evidence; optional MCP provider launchers
+are a separate runtime-tooling boundary, not build configuration.
+
 Native kernel consolidation uses the existing CMake task and platform types. Its
 budget is internal dependency/tool preparation functions, with no new public API,
 stored state or dependency. Acceptance is the owner input and composition tests,
@@ -109,6 +116,30 @@ authority for both mobile and standalone CMake declarations.
   authored workflows while preserving their product checks.
 
 ## Hangar build workspace follow-up
+
+Composite execution acceptance: the Build operations catalog must expose named
+build/check targets from BestBuds, Reaktor and Manna through the BestBuds wrapper.
+Native qualification finds that named verification targets retain the ordinary
+module-check classification and therefore appear only under Testing. Keep these
+explicit Dependeasy workspace entrypoints in Build alongside their artifact targets;
+ordinary discovered module tests/checks still belong to Testing. Budget: one catalog
+classification branch and its existing cache/binding regression. Preserve the shared
+execution binding, effect, platform gate and definition seal; add no state, declaration,
+runner or API. Requalify the owner suite, packaged app and native target search,
+then launch the existing Reaktor framework check from Build and observe its real
+Gradle result through an owned runtime. This uses the existing declaration and
+runner, with no new verification target or effect override.
+Use the existing generated build-layout map to admit included-build identities;
+unknown owners and arbitrary nested task paths remain unavailable. Deduplicate
+diamond declarations and reject conflicting definitions, retain platform gates,
+and seal the layout report with the graph and existing composite source definitions.
+Budget: extend the existing bounded report adapter and shared discovery seal, with
+owner tests for qualified wrapper paths, diamond ownership and definition changes.
+No new runner, task declaration, public API, stored state or dependency.
+Exporting `buildGraph` also produces the existing layout report, so the same
+command works through a local IntelliJ build as through the worker. Qualify this
+task relationship with the diamond metadata fixture and configuration-cache reuse;
+reading either report still performs no compilation or installation.
 
 Acceptance: the former Deploy tab is labeled Build, opens the generated Dependeasy
 graph, retains the existing task runner and artifact/release views, and qualifies
@@ -386,3 +417,87 @@ Large graph rendering acceptance: focusing a task inside a 126,112 × 178,993 wo
 Worker transfer scope acceptance: a custom JavaScript entrypoint must transfer web outputs and required metadata without copying native frameworks or desktop caches. The website qualification took 1m 12s to build but copied 92,848 paths because the transport did not recognize its authored task name. Dependeasy will declare JavaScript entrypoint families in the existing build-layout report; the worker consumes this generated metadata and records the chosen family in its receipt. Retain conservative full transfers for unknown or mixed targets and backwards compatibility for older receipts. Budget: one task-family map in the existing report, internal registration by the JavaScript API, and a bounded transport reader. No new consumer DSL, version source, build scheduler or dependency. Qualify custom task names, configuration-cache reuse and mixed/unknown transfer selection.
 Artifact traversal also skips the existing downloaded native-source cache (`.github_modules`) and Xcode DerivedData: their outputs belong to the consuming Gradle build directories. These caches are neither source declarations nor transfer artifacts.
 Build navigation consistency: the existing Run-menu action opens the Build pane, so its label and internal callback name must say Build. Preserve its semantic/persisted route identity and navigation-only behavior; remove the unused deployment-busy parameter. The menu contract and existing mode-opening flow qualify the rename, with no execution or approval behavior added.
+
+Definition-seal UI qualification: after approving the foreground direct task, observe the workbench's automatic Runs drawer opening. The old helper checks a snapshot and later toggles Runs, so it can close the drawer after the foreground-run effect opens it. Budget: replace that helper call in this regression with the existing visible-drawer assertion. Preserve the exact rejection message, failed status, event evidence, one admission attempt and zero process starts; add no retry, sleep, timeout, product state or approval exception.
+
+Build header qualification retains the existing selected-operation cancellation
+contract: Stop is enabled while the selected k3s read runs and disabled after the
+selected desktop build succeeds, even while the earlier read remains active.
+Correct the stale flow expectation and check both states. No product cancellation
+behavior, deadline, fixture executor or approval rule changes.
+
+Bundler removal acceptance: retire the 35 tracked, identical generated `webpack.config.d/99-prod-sanity.js` fragments in Reaktor and BestBuds. Current libraries emit ESM and the browser uses Dependeasy's Vite API with minification disabled; no owner writes or consumes these fragments. Verify exact generated contents before removing them, and keep custom source untouched. Budget: deletion only; no replacement bundler, package, version pin or consumer API. The current production web build qualifies the active Vite path.
+
+Manna web ownership acceptance: `targets/appWeb` has no Gradle build file or Gradle-task consumers; its root JavaScript component already owns its producers, checks and bundle. Remove the empty Gradle project include and document the real root build contract, preserving its package, files, URLs and standalone/composite entrypoints. Budget: one include removal and current target documentation; no plugin, task alias or backend change. Qualify standalone/composite graph export and the existing production web build.
+
+Surface report memory acceptance: the full Lab sweep must retain every cell's
+pixel, unique-ID, accessible-name and keyboard-focus checks within its existing
+512 MiB test heap. Qualification 4 exhausts that heap when it retains all cells
+for a story and then allocates one second, large contact sheet. Stream the existing
+cell declarations into contact sheets of four environment rows, release each page
+before the next, and keep findings/counts aggregated for the complete sweep.
+Budget: the existing test orchestration and one private page-size constant; no
+product API, skipped cells, weaker assertions, larger heap or longer deadline.
+The first page retains the story filename, with numbered subsequent pages. Qualify
+the complete surface sweep and the engine suite.
+
+Build graph domain acceptance: native inspection shows that generated project scopes
+reach the outline but the application feature heuristic flattens every build task
+into one frame. The shared feature kernel must group a Build source by its declared
+project scope, preserving every task and dependency edge, deterministic order and
+the workspace layout budget. Generic `result` ports have explicit task bindings;
+they must not be reported as ambiguous dependency-injection providers. Retain cycle
+and missing-dependency analysis. Budget: one Build-source branch in the existing
+feature kernel and duplicate-provider analysis, with project-frame and diagnostic
+regressions in the build graph owner suite. No new graph format, state, scheduler,
+public API, hidden tasks or relaxed layout budget.
+
+Prototype cleanup acceptance: the removed design prototype leaves only an ignored generated build directory. Confirm that it has no tracked source and contains only `build`, then remove that exact directory on both Macs so later artifact transfers cannot restore it. Preserve the existing source backup and qualification snapshots. Budget: generated-output deletion only; no transport behavior, product API or cache eviction policy.
+
+Cloud deploy flow acceptance: the referenced filter passes and isolates `app-service`; clearing it restores 43 declared workloads, so that row is legitimately outside the virtualized viewport. Observe the unselected chip and scroll by existing stable row IDs before asserting the referenced row and returning to the analytics row. Preserve the filter, inspector and deploy-order checks. Budget: fixture navigation only; no production filter change, assertion removal, timeout increase or retry. Qualify the exact failed flow.
+
+Interop documentation acceptance: replace the stale hello-only/source-path description with the implemented module API, mobile ownership contract and qualified bidirectional checks. Separate the current synchronous JSON bridge from the older, unimplemented FlexBuffer frame/stream proposal. Budget: documentation only; no API, protocol, runtime behavior or new claim beyond retained qualification evidence.
+
+Packaged Build inspection acceptance: launch a fresh Hangar distribution with its own database and control-plane state, preserving the user's running app and histories. APFS-clone the app into the qualification directory and add explicit existing JVM properties to that copy's launcher configuration; create the owned runtime directory outside the workspace with owner-only permissions. Verify the Build label, project frames, graph counts and declared target discovery without starting product operations. Budget: disposable qualification fixtures and evidence only; no production launcher setting, runtime path behavior, new API or dependency. Terminate only the owned process after inspection.
+
+Android plugin boundary: AGP 9.1.1's new KMP library API has no `externalNativeBuild` or prefab configuration. The current legacy opt-ins therefore remain a real migration limit, rather than flags to delete without replacement. The next native migration separates Android CMake/AAR producers from the single-variant KMP libraries, preserves module-owned `src/androidMain/cpp`, and consumes those AARs through `androidMain`. Dependeasy should own the producer mechanics and settings identity; the consumer declaration should retain one native/interop block. Enable the existing host/device tests explicitly under their new source-set names and qualify publication, JNI packaging, prefab, KSP, Compose and Android release consumers before removing the root opt-ins. This follows the [Android plugin's native-build boundary](https://developer.android.com/kotlin/multiplatform/plugin); it is not implemented or qualified by the current artifact sweep.
+
+Manna orientation acceptance: replace the root README's nonexistent module and incomplete setup description with the actual shared-domain, native app, web/API and composite build ownership. Update only the current-contract paragraph in AGENTS.md with the recorded qualifications, retaining all reporting and product instructions and the explicitly historical baseline. Budget: documentation only; no product capability claim, API, source deletion or build behavior change.
+
+Native Build execution acceptance: after the rebuilt isolated app exposes the existing Reaktor frameworkChecks verification target in Build, start that exact LocalEphemeral operation through its existing Run control. Confirm the sealed Gradle binding remains the BestBuds wrapper plus :reaktor:frameworkChecks, observe the terminal result in Runs, and retain the owned run receipt. Budget: qualification only, one existing local verification operation, no new target, effect override, approval change, production launcher configuration or product API. Keep the user app and state untouched.
+
+Reproducible JavaScript command acceptance: pnpm's default verification may run an implicit mutable install before run/exec; an actual global version inspection rewrote the clean lock. Keep installation owned by pnpmInstall (frozen) and pnpmLock (explicit updates). Shared verified toolchain environment must make all component, Node-script and Kotlin pnpm executions refuse outdated dependencies rather than resolving them. Budget: one internal computed environment provider consumed by existing execution paths, one owner regression that bypasses installation and verifies refusal plus an unchanged lock, and the real web pipelines. No public API, workspace option, dependency, retry, installation bypass or resolver.
+
+Command-boundary fixture correction: the nested Node script consumes the web manifest, so declare that input with the existing sourceFiles property. Without it Gradle correctly reuses the earlier task receipt and never invokes pnpm. Budget: fixture input declaration only; retain configuration-cache reuse, both refusal assertions and explicit lock repair. Production execution policy and API remain unchanged.
+
+Local Manna web qualification found a machine-dependent fixture: memoryD1 loads the git-ignored 0006_seed_baby_data.sql personal import on this Mac, while the worker has only schema migrations. Exclude that existing private import in the fixture loader. Budget: one existing filter and an ownership comment, no new API, migration manifest, option, dependency, product database change or weakened assertion. Acceptance: the unchanged complete signup/permission suite and all browser tests through the Gradle-owned web build, with the local import preserved.
+
+Composite scan acceptance: `:reaktor:build` and `:Manna:build` select only their root lifecycles. Add lazy module lifecycle selection to the existing BuildTarget, and compose one `buildAll` target in each existing workspace block. BestBuds joins the three full module scopes and existing production artifact/check targets. Export actual selected module task references, including tasks registered later; projects without the lifecycle contribute nothing. Budget: one composable public method, three target declarations and an owner TestKit regression. No scheduler, plugin application loop, lifecycle replacement, skipped checks or relaxed deadline. Qualify lazy selection, configuration-cache reuse, graph ownership and a full BestBuds composite scan.
+
+Pulumi SDK acceptance: the baseline scan fails because the local ambient CLI is 3.213.0 and lacks `gen-sdk --server`, while the worker CLI is 3.267.0. SDK generation must use one Kotlin-pinned, checksum-verified 3.268.0 executable through the existing InstallTool, without changing the provider or global installation. Budget: one version constant, four host checksums, one internal setup function and a host-selection helper shared with the JavaScript installer. No dependency, public tool option, alternate command or download mechanism. Qualify installation, actual Grafana Java generation/compilation and subsequent task reuse.
+
+CMake scan acceptance: the baseline Ninja graph contains six module scanners and one collation command for each six-source FlexBuffer Android ABI. Ordinary header-based C++ needs neither. Default CMAKE_CXX_SCAN_FOR_MODULES to OFF only when the caller has not specified it; explicit module file sets retain CMake's scanning rules. Remove forced verbose output from the shared CMake kernel and Android arguments. Budget: one conditional default and two deletions; no consumer flag, compiler standard change or runtime change. Qualify native/mobile builds, preserve header tracking, and retain before/after Ninja graphs. Report command reduction separately from build wall time; the broader final scan is not directly comparable to the partial baseline scope.
+
+Credential-check acceptance: both existing checks must participate in the full composite build. BestBuds' tracked config directory is an explicit owner exception, while private material outside it and GitHub token literals remain rejected. PipelinePlugin owns repository setup, so checks must not require a redundant consumer declaration. Budget: optional pathspecs in the existing shared scan, two check corrections, two build target dependencies and owner regressions for strict/exempt scanning and automatic repository setup. Preserve runtime credential markers, private-import checks and every config file. No new public Kotlin API, dependency, stored policy or credential migration.
+
+Full-scan Hangar acceptance: reproduce all 43 failed flows against the current kernel and UI contracts, then qualify the complete unfiltered desktop suite and BestBuds buildAll composite. Retain stable automatic source intent, truthful provenance and remote health, real navigation findings, cancellation receipts, keyboard actions, clipping and viewport checks. Budget: existing flow navigation and assertions updated for implemented contracts; corrections in existing owners only where focused evidence proves a defect, with owner regressions. No new public API, configuration flag, dependency, state schema, skipped flow, relaxed assertion, longer deadline or retry. Kernel topology changes must not be hidden to recover obsolete counts or findings.
+
+Composite graph export acceptance: BestBuds currently serializes the exact same Reaktor graph both directly and inside Manna. Emit each included build definition once, preserving all unique descendants, task ownership, dependencies, standalone Manna expansion and schema. Qualify a diamond composite with configuration-cache reuse and compare the actual exported task identities and byte size. Budget: private traversal in the existing export task and its existing TestKit owner; no public API, schema, configuration, state or dependency.
+
+Automatic connection qualification: returning to Data currently runs automatic connection checks as foreground operations, clearing a pending deployment approval and replacing the selected manual receipt. Reuse the control plane's existing quiet request path for the automatic batch while retaining foreground semantics for explicit checks. Budget: internal visibility for the existing quiet request overload and one private parameter distinguishing the two existing callers; no public API, persisted field, schema, dependency or retry. Qualify pending-plan and selection retention, explicit check selection, three-slot admission and cancellation, and the live-read flow.
+
+Composite export size acceptance: the complete deduplicated workspace document is 8.7 MB and fails Hangar's existing 8 MiB admission limit. Compact serialization preserves the exact parsed document while reducing it to about 4.2 MB. Budget: remove pretty-printing in the existing BuildGraphTask and extend its existing diamond regression; no limit increase, truncation, schema, configuration, dependency or API. Qualify actual exporter bytes, canonical definitions, configuration-cache reuse and the real Build flow.
+
+Build graph consumer acceptance: Hangar tests read the root workspace export but do not declare its producer. Use the existing workspace graph TaskProvider as a Test input inside the current dependeasy block so clean IDE/Gradle builds generate it first and graph changes invalidate the consumer. Budget: one input declaration and the existing module-lifecycle TestKit fixture; no new task, API, adapter, scheduler or guessed path. Qualify automatic producer selection, no execution cycle, configuration-cache reuse and the full composite.
+
+Timeline hit acceptance: overlapping network calls are drawn in different rows, but clicking a row currently chooses by horizontal distance across all calls. The full timeline flow selects /circles rather than the timed-out request beneath the pointer. Budget: row-aware selection in the existing TimelineTab, one internal pure selector and a derived pointer snapshot of the already-published row mapping, plus an owner regression. No persisted state, public API, flag, dependency, deadline, retry or weaker flow assertion. Qualify overlapping bars, shifted time ranges, absent rows and the unchanged complete replay/brush/selection flow.
+
+Timeline clock qualification: the focused screenshot reveals that early fixture history has negative monotonic timestamps. Empty packed rows initialized to zero incorrectly appear occupied, placing every overlap in row zero. Extend the existing owner budget by one initializer using Long.MIN_VALUE, and qualify the row packing and hit selector together for negative, zero and positive clock origins. Preserve real clock advancement, the pointer coordinates, all flow assertions and existing packing complexity; remove the temporary diagnostic screenshot step after inspection.
+
+Warm-cache fixture acceptance: the full Dependeasy suite correctly restores the module fixture's graph producer from the shared build cache, but its assertion requires fresh execution. Accept SUCCESS or FROM_CACHE while retaining the existing parsed graph, producer selection, consumer receipts and configuration-cache assertions; additionally assert the producer is up-to-date on repetition. Budget: existing TestKit assertions only; no cache disabling, production behavior, API, flag, dependency or task change. Qualify the complete Dependeasy suite against the warm cache.
+
+Weekly-review fixture acceptance: fractional-minute fixture endpoints cross midnight during the full API suite, so the daily whole-minute totals sum to 29 while the unbroken session is 30. Align the fixture clock to minute boundaries and exercise the unchanged review projection across midnight in UTC and Asia/Kolkata. Budget: the existing private fixture clock, two private fixture arguments for deterministic boundary cases and two owner regressions; no production rounding, schema, clock, public API, dependency or weaker total assertion. Qualify the complete API suite and its two type checks.
+
+Table comparison acceptance: the full engine report measures load rising from 10.12 to 13.47 across three rounds. The candidate always runs second; a ratio of independent medians then compares different rounds. Alternate order through one private pairing helper reused by wheel and key measurements, and take the median of candidate/reference ratios within the actual measured pairs. Retain three rounds, 600 measured wheel frames, warm-up, the 1.1 relative limit, absolute 120/60 Hz budgets, navigation, scroll distance and zero-rebuild assertions, and report every raw round plus the normalized comparison. Budget: existing benchmark orchestration and derived statistics only; no production hot-path change, retry, skipped check, new option, dependency, larger budget or deadline. Qualify the existing collection/perceptual parity owners, then the unfiltered engine and composite suites.
+
+Composite native-memory acceptance: Manna's Release simulator-framework link exhausts the 8 GiB Gradle heap in Kotlin/Native devirtualization analysis. The load-routing wrapper also overwrites repository JVM properties, creating a second authority. Raise the three roots' Gradle maximum heap to 12 GiB and let their checked-in Gradle properties supply both Gradle and Kotlin budgets on either Mac. Retain other projects' current defaults, command-line overrides, three workers, load routing and Kotlin's 8 GiB compiler budget. Budget: bootstrap properties, removal of duplicate wrapper defaults and matching operational documentation only; no native optimizer disabling, cache eviction, retry policy, dependency, task or public API. Qualify the failed Release framework link and then the unfiltered BestBuds composite scan, recording memory and routing evidence.

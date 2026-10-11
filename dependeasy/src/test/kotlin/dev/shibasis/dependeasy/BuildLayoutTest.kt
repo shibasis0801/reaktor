@@ -31,8 +31,9 @@ class BuildLayoutTest {
             build.resolve("build.gradle.kts").writeText("")
         }
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
-            .withArguments("reportBuildLayout", "--configuration-cache", "--stacktrace").build()
+            .withArguments("buildGraph", "--configuration-cache", "--stacktrace").build()
         run()
+        assertTrue(directory.resolve("build/dependeasy/build-graph.json").isFile)
         val report = Json.parseToJsonElement(directory.resolve("build/dependeasy/build-layout.json").readText()).jsonObject
         assertEquals(1, report.getValue("schemaVersion").jsonPrimitive.int)
         assertEquals(mapOf("product" to ".", "framework" to "framework", "Other" to "other"),

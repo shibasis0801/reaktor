@@ -49,6 +49,12 @@ open class ContainerNode(
         return true
     }
 
+    override fun close() {
+        graphs.toList().filter { it.parentGraph === graph }.forEach { it.close() }
+        graphs.clear()
+        super.close()
+    }
+
     override fun toString(): String {
         return "${super.toString()} [Container] children=${graphs.size} active=${activeGraphIndex.value}"
     }

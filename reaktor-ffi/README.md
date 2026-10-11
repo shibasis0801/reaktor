@@ -1,61 +1,82 @@
 # reaktor-ffi
 
-> **Stability: Experimental prototype** — native hello paths are verified; a
-> versioned production typed frame/stream transport is not implemented.
+Kotlin, C++ and TypeScript share an owned mobile interop runtime. Dependeasy wires
+C++ exports, the pnpm/Vite TypeScript bundle, generated Kotlin sources, Android JNI
+and Apple cinterop into the module build.
 
-`reaktor-ffi` contains Kotlin/C++ bridge scaffolding, Android FBJNI and Darwin
-cinterop integration, and Hermes proof paths. Source status was refreshed on
-4 October 2026 against the [canonical FFI guide](https://reaktor.build/docs/reaktor-ffi).
+## Build declaration
 
-## What exists today
+```kotlin
+plugins { id("dev.shibasis.dependeasy.library") }
 
-| Surface | Current state |
-| --- | --- |
-| Android JNI / Hermes | Native integration and hello/dev verification paths; not a production typed RPC protocol |
-| Darwin cinterop / Hermes | Native integration and hello/dev verification paths |
-| JVM / JavaScript | Stub bridge actuals |
-| `Invokable` | Sync ByteArray → Long and async ByteArray → Flow<Long> interfaces |
-| `FlexPayload` | FlexBuffer vector alias and module/function/sequence accessors; typed `argument<T>` is TODO |
-| `ByteBufferTransport` | All transport methods TODO |
-| Frame v1, HELLO/fingerprints, typed results, stream credits | Proposed in the guide; unimplemented |
+dependeasy {
+    interop {
+        cppModule("api/Diagnostics.hpp", "reaktor::interop::diagnostics")
+        typescript()
+    }
+    module("dev.shibasis.reaktor.ffi") {
+        common { dependencies { api(project(":reaktor-core")); api(project(":reaktor-flexbuffer")) } }
+        android {}
+        apple {}
+        web {}
+        jvm {}
+    }
+}
+```
 
-The BestBuds `/dev` native verification and Maestro hello checks demonstrate native
-startup and C++ bytes decoded in Kotlin. They do not qualify arbitrary payload
-marshaling, stream cancellation/backpressure, cross-language buffer lifetime or
-production RPC stability.
+The C++ installer accepts `reaktor::interop::Runtime&` and registers its operations.
+Owned C++ and TypeScript follow Kotlin source sets: `src/commonMain/{cpp,typescript}`,
+`src/androidMain/cpp`, `src/iosMain/cinterop`, and `src/commonTest/{cpp,typescript}`.
+There is no separate root `cpp` or `ts` source tree.
 
-## Legacy payload sketch
+## Runtime API and kernel
 
-The current vector accessors interpret field 0 as module name, field 1 as function
-name, field 2 as sequence number (`-1` for sync), and arguments from field 3 onward.
-The typed argument helper is TODO. This sketch is not the proposed versioned frame
-contract and must not be adopted as a persistent or independently deployed ABI.
+```kotlin
+InteropRuntime.mobile().use { runtime ->
+    runtime.kotlin.module("app") {
+        function<String, String>("echo") { it }
+    }
+    val hello = runtime.typescript.module("reaktor.diagnostics")
+        .function<Unit, String>("hello")
+    println(hello(Unit))
+}
+```
 
-## Performance and ownership
+`runtime.native` and `runtime.typescript` provide the same typed import API. Kotlin
+exports use serialization codecs. TypeScript exports use `exportModule(name,
+operations)` and import native/Kotlin operations through `native.module(name)`.
+C++ uses `Runtime.exportFunction`, `callNative` and `callTypeScript`, with optional
+explicit codecs. Small APIs orchestrate calls; separate kernels own dispatch,
+serialization boundaries, Hermes execution and native handles.
 
-The [October codec review](https://reaktor.build/docs/flexbuffer-performance-review)
-measures host/browser/physical-mobile codec operations and reproduces four unresolved
-FlexBuffer correctness defects. It does not measure FFI hop latency or show superiority
-to MethodChannel/JSI. Fix codec semantics, validation, layout checks and lifetime
-contracts before typed trunk rollout. Borrowed builders expire on reuse; asynchronous
-consumers need explicit ownership transfer or copying.
+Calls are synchronous JSON requests and responses. One runtime belongs to its
+creating thread. Nested callbacks retain that ownership; cross-thread calls fail.
+Android retains JNI callback names through R8. Apple uses owned C ABI results,
+releases each result and disposes its stable Kotlin reference on close. Close is
+idempotent in the mobile adapters; failed bundle initialization closes its runtime.
 
-The [complete mutable-memory book](https://reaktor.build/docs/flatbuffers-flexbuffers-mutable-memory)
-is design input for handles, slabs, cells and immutable snapshots. LiveFlex and the
-guide's refcounted frames/batch arenas are proposals, not existing module features.
+`InteropRuntime.using(factory)` accepts another `InteropKernel`. JVM FFM and
+JavaScript Wasm can implement that boundary later. Their mobile factory actuals
+currently report unsupported platforms; they do not provide a working native bridge.
 
-## Important source
+## Qualification and limits
 
-- `cpp/droid/AndroidInvokable.*`: Android bridge scaffolding.
-- `cpp/darwin/DarwinInvokable.h`: Darwin bridge surface.
-- Common/platform `NativeBridge` files: native entry points and JVM/JS stubs.
-- `src/commonMain/.../payload/FlexPayload.kt`: legacy vector accessors and typed-argument TODO.
-- `src/commonMain/.../transport/Transport.kt`: transport skeleton.
+Host tests exercise C++ → TypeScript → C++, TypeScript → Kotlin-host callbacks,
+C++ → host callbacks, Unicode/nested/null JSON, typed codecs, duplicate exports,
+missing operations, thread checks and C ABI result ownership. Current native
+qualification also builds three Android ABIs, both Apple SDKs and the TypeScript
+bundle. Kotlin/C++/TypeScript interop passed on the connected Android phone. See
+[Dependeasy validation](../dependeasy/VALIDATION.md) for exact runs and evidence.
 
-## Dependencies and next gates
+These checks qualify the implemented synchronous bridge. They do not establish
+stream backpressure, zero-copy payloads, independently versioned RPC, production
+latency or physical iOS behavior. TypeScript's local collector API is separate from
+cross-language streaming.
 
-`reaktor-core`, `reaktor-flexbuffer`, FBJNI and Hermes Android 0.81.4; Darwin links
-Hermes/JSI through its native build. Follow the canonical guide for proposed service
-codegen, frame protocol, C ABI, graph integration and acceptance gates. Measure actual
-end-to-end cold/warm and tail latency, copies, allocations and release behavior per
-trunk after a concrete implementation exists.
+## Older FlexBuffer transport proposal
+
+`NativeBridge`, `payload/FlexPayload.kt` and `transport/Transport.kt` retain the
+older vector/transport sketch. Typed argument access and transport methods remain
+unfinished. The proposed versioned frame protocol, fingerprints, stream credits
+and buffer-lifetime contract are additional work. Do not use this sketch as a
+persistent or independently deployed ABI or confuse it with the module API above.

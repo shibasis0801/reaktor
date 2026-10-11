@@ -27,26 +27,37 @@ class BuildTarget internal constructor(private val project: Project, val name: S
     fun pnpm(script: String) = command("pnpm", "run", script)
     fun fastlane(platform: String, lane: String) { runner = "fastlane"; command("./fastlane/run.sh", platform, lane) }
     internal val dependencies = mutableListOf<Any>()
-    private val references = mutableListOf<() -> JsonObject>()
+    private val references = mutableListOf<() -> List<JsonObject>>()
+
+    fun modules(vararg lifecycles: String) {
+        require(lifecycles.isNotEmpty() && lifecycles.all { it.isNotBlank() && ':' !in it }) {
+            "Use module lifecycle names, such as build or check"
+        }
+        project.subprojects.forEach { child ->
+            val selected = child.tasks.matching { it.name in lifecycles }
+            dependencies.add(selected)
+            references.add { selected.map(::reference) }
+        }
+    }
 
     fun tasks(vararg paths: String) {
         paths.forEach { path ->
             require(path.startsWith(":")) { "Use an absolute Gradle task path: $path" }
             dependencies.add(path)
-            references.add { reference(project.rootProject.name, path) }
+            references.add { listOf(reference(project.rootProject.name, path)) }
         }
     }
 
     fun included(build: String, vararg paths: String) {
         paths.forEach { path ->
             dependencies.add(project.gradle.includedBuild(build).task(path))
-            references.add { reference(build, path) }
+            references.add { listOf(reference(build, path)) }
         }
     }
 
     fun task(provider: TaskProvider<out Task>) {
         dependencies.add(provider)
-        references.add { provider.get().let { reference(it.project.rootProject.name, it.path) } }
+        references.add { listOf(reference(provider.get())) }
     }
 
     internal fun json(): String = buildJsonObject {
@@ -66,8 +77,10 @@ class BuildTarget internal constructor(private val project: Project, val name: S
         workerDirectory?.let { put("workerDirectory", it) }
         putJsonArray("bindings") { bindings.sorted().forEach { add(it) } }
         putJsonArray("environments") { environments.forEach { add(it) } }
-        putJsonArray("requires") { references.forEach { add(it()) } }
+        putJsonArray("requires") { references.flatMap { it() }.forEach { add(it) } }
     }.toString()
+
+    private fun reference(task: Task) = reference(task.project.rootProject.name, task.path)
 
     private fun reference(build: String, path: String) = buildJsonObject {
         put("build", build); put("task", path)

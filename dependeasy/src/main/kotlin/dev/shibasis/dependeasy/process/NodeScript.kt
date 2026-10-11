@@ -13,7 +13,7 @@ internal fun Project.nodeScript(name: String, script: Any, configure: CommandTas
         dependsOn(tools.nodeSetup)
         workingDirectory.set(rootProject.projectDir)
         executable.set(tools.node.map { it.asFile.absolutePath })
-        environment.put("PATH", tools.path)
+        environment.putAll(tools.environment)
         toolVersion.set("node ${ToolchainVersions.Node}")
         arguments.set(listOf(source.absolutePath))
         sourceFiles.from(source)

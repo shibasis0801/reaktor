@@ -77,7 +77,6 @@ sealed class CmakePlatform(
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DANDROID_PLATFORM=android-$minSdk",
                 "-DANDROID=true",
-                "-DCMAKE_VERBOSE_MAKEFILE=1",
                 "-DCMAKE_MAKE_PROGRAM=$ninjaPath",
             )
         }

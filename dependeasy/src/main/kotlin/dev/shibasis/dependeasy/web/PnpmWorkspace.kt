@@ -27,7 +27,7 @@ class PnpmWorkspace private constructor(private val project: Project) {
             dependsOn(tools.nodeSetup, tools.pnpmSetup)
             workingDirectory.set(directory)
             executable.set(tools.pnpm.map { it.asFile.absolutePath })
-            environment.put("PATH", tools.path)
+            environment.putAll(tools.environment)
             arguments.set(args.toList())
             toolVersion.set("pnpm ${ToolchainVersions.Pnpm} / node ${ToolchainVersions.Node}")
             sourceFiles.from(manifests, linkedPackageInputs(manifests.files))

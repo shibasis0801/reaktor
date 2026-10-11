@@ -44,6 +44,48 @@ class GradleBuildTargetsTest {
     }
 
     @Test
+    fun compositeTargetsUseQualifiedWrapperPathsAndDeduplicateDiamondOwnership() = fixture { root ->
+        val framework = document("framework", listOf(target("checks", owner = "framework", effect = "verify")))
+        val product = document("product", listOf(target("artifacts", owner = "product")), listOf(framework))
+        val unknown = document("unowned", listOf(target("artifacts", owner = "unowned")))
+        val layout = layout(root)
+        for (included in listOf(listOf(framework, product, unknown), listOf(product, framework, unknown))) {
+            report(root).writeText(document("fixture", listOf(target("artifacts")), included))
+            val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+            val declared = workspace.catalog.tasks.filter { it.id.value.startsWith("dependeasy:") }
+            assertEquals(setOf("dependeasy:artifacts", "dependeasy:framework:checks", "dependeasy:product:artifacts"),
+                declared.map { it.id.value }.toSet())
+            assertEquals(3, declared.size)
+            val prepared = workspace.prepare(TaskInvocation(TaskId("dependeasy:product:artifacts")))
+            assertEquals(listOf(root.resolve(wrapperName).canonicalPath, ":product:artifacts"), prepared.request.argv)
+            assertTrue(layout.canonicalFile in assertNotNull(prepared.request.definitionSeal).files)
+        }
+        val conflict = document("framework", listOf(target("checks", owner = "framework", effect = "build")))
+        report(root).writeText(document("fixture", listOf(target("artifacts")), listOf(framework, conflict, product)))
+        assertEquals(setOf(":artifacts", ":product:artifacts"), GradleBuildTargets.read(root).map { it.task }.toSet())
+    }
+
+    @Test
+    fun compositeLayoutAndIncludedBuildDefinitionsRemainSealed() = fixture { root ->
+        val shared = root.resolve("shared").apply { mkdirs() }
+        val definition = shared.resolve("build.gradle.kts").apply { writeText("// Included definition\n") }
+        root.resolve("settings.gradle.kts").appendText("includeBuild(\"shared\")\n")
+        val layout = layout(root)
+        val framework = document("framework", listOf(target("checks", owner = "framework", effect = "verify")))
+        report(root).writeText(document("fixture", emptyList(), listOf(framework)))
+        val invocation = TaskInvocation(TaskId("dependeasy:framework:checks"))
+        val prepared = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(invocation)
+        layout.appendText("\n ")
+        SupervisedProcessExecutor().use { executor ->
+            assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) }
+        }
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        workspace.prepare(invocation)
+        definition.appendText("// Changed definition\n")
+        assertFailsWith<IllegalStateException> { workspace.prepare(invocation) }
+    }
+
+    @Test
     fun reportsCannotIntroduceCommandsRemoteAliasesOrNestedTaskPaths() = fixture { root ->
         report(root, target("androidArtifacts"), target("deployWorker", effect = "deploy"),
             target("external", kind = "external"), target("unsafe", command = "[\"sh\",\"-c\",\"echo unsafe\"]"),
@@ -76,10 +118,20 @@ class GradleBuildTargetsTest {
     }
 
     private fun target(name: String, effect: String = "build", kind: String = "gradle",
-        runner: String = "gradle", platform: String = "portable", command: String = "[]") = """{
-        "id":"fixture:$name","task":":$name","kind":"$kind","runner":"$runner",
+        runner: String = "gradle", platform: String = "portable", command: String = "[]", owner: String = "fixture") = """{
+        "id":"$owner:$name","task":":$name","kind":"$kind","runner":"$runner",
         "platform":"$platform","effect":"$effect","command":$command,"commands":[],"recipes":[]
     }"""
+
+    private fun document(owner: String, targets: List<String>, included: List<String> = emptyList()) = """
+        {"schemaVersion":1,"kind":"workspace","state":"declared","id":"$owner",
+         "targets":[${targets.joinToString(",")}],"includedBuilds":[${included.joinToString(",")}]}
+    """.trimIndent()
+
+    private fun layout(root: File) = root.resolve(GradleBuildTargets.Layout).apply {
+        parentFile.mkdirs()
+        writeText("""{"schemaVersion":1,"builds":{"fixture":".","framework":"shared","product":"product"}}""")
+    }
 
     private fun report(root: File, vararg targets: String): File = root.resolve(GradleBuildTargets.Report).apply {
         parentFile.mkdirs()

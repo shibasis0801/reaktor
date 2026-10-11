@@ -65,7 +65,7 @@ private fun islandClientHosts(island: JsonObject): List<String> {
         val attributes = (node as? JsonObject)?.get("attributes") as? JsonObject ?: return@mapNotNull null
         if (attributes["role"]?.jsonPrimitive?.contentOrNull != "client") return@mapNotNull null
         val uri = runCatching { URI(attributes["baseUrl"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null) }.getOrNull()
-        uri?.host?.takeIf { uri.scheme == "https" && uri.userInfo == null && uri.port == -1 && it.matches(IslandHost) }
+        uri?.host?.takeIf { uri.scheme == "https" && uri.userInfo == null && uri.port == -1 && it.matches(IslandHost) && !it.endsWith(".internal") && !it.endsWith(".object") }
     }
     return direct + (island["objects"] as? JsonArray).orEmpty().flatMap { (it as? JsonObject)?.let(::islandClientHosts).orEmpty() }
 }

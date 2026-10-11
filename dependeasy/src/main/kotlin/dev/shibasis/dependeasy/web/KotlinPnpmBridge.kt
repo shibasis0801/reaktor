@@ -68,7 +68,7 @@ internal fun installKotlinPnpmBridge(project: Project) {
             }
         }
         val execution = project.objects.newInstance(PnpmExecution::class.java,
-            metadata.packageManager, workspace.directory, workspace.tools.pnpm.map { it.asFile.absolutePath }, workspace.tools.path)
+            metadata.packageManager, workspace.directory, workspace.tools.pnpm.map { it.asFile.absolutePath }, workspace.tools.environment)
         val bridge = object : NpmApiExtension<NpmEnvironment, PnpmExecution> {
             override val name = "pnpm"
             override val packageManager = execution
@@ -105,7 +105,7 @@ abstract class PnpmExecution @Inject constructor(
     private val metadata: Npm,
     private val workspace: File,
     private val executable: Provider<String>,
-    private val path: Provider<String>,
+    private val runtimeEnvironment: Provider<Map<String, String>>,
 ) : NpmApiExecution<NpmEnvironment> {
     @get:Inject abstract val execOperations: ExecOperations
     override fun preparedFiles(nodeJs: NodeJsEnvironment): Collection<File> = metadata.preparedFiles(nodeJs)
@@ -124,7 +124,7 @@ abstract class PnpmExecution @Inject constructor(
     override fun packageManagerExec(logger: Logger, nodeJs: NodeJsEnvironment, environment: NpmEnvironment,
         dir: Provider<File>, description: String, args: List<String>) {
         val command = listOf(executable.get()) + args
-        val runtimePath = path.get()
-        execOperations.exec { workingDir(dir.get()); commandLine(command); this.environment(mapOf("PATH" to runtimePath)) }
+        val values = runtimeEnvironment.get()
+        execOperations.exec { workingDir(dir.get()); commandLine(command); this.environment(values) }
     }
 }

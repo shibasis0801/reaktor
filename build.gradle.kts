@@ -3,6 +3,11 @@ plugins { id("dev.shibasis.dependeasy.pipeline") }
 dependeasy {
     buildTooling()
     workspace {
+        artifacts("buildAll", ":checkBuildTooling", ":webPackageChecks", ":mobileInteropChecks") {
+            modules("build")
+            included("dependeasy", ":test")
+            macos()
+        }
         verify("webPackageChecks", ":reaktor-core:buildCoreTypeScript", ":reaktor-ui:buildUiTypeScript",
             ":reaktor-graph-port:checkGraphPortTypeScript", ":reaktor-mcp:checkMcpTypeScript",
             ":reaktor-performance:checkPerformanceTypeScript", ":reaktor-web:testWebBridge")

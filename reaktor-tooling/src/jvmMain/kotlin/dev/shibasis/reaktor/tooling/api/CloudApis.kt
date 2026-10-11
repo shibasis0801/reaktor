@@ -76,7 +76,9 @@ class CloudApis(
     suspend fun call(key: String, arguments: JsonObject): ApiResponse {
         val operation = operation(key)
         val request = operation.request(withDefaults(operation, arguments))
-        val first = send(request, credentials(operation.api, googleAccount))
+        val first = if (operation.api == "cloudflare") CloudflareLogin.forWorkspace(workspace).authenticated(
+            { token -> send(request, mapOf("Authorization" to "Bearer $token")) }, { it.status == 401 })
+        else send(request, credentials(operation.api, googleAccount))
         if (!operation.api.startsWith("gcp:") || first.status != 403 || operation.effect != ApiEffect.Read || adc()) return first
         return (googleAccounts() - setOfNotNull(googleAccount)).firstNotNullOfOrNull { account ->
             send(request, credentials(operation.api, account)).takeIf { it.ok }?.also { googleAccount = account }
@@ -118,6 +120,9 @@ class CloudApis(
     }
 
     fun googleProject(): String? = System.getenv("GOOGLE_CLOUD_PROJECT")?.takeIf { it.isNotBlank() }
+        ?: File(workspace, "cloud/k3s/ssh.sh").takeIf { it.isFile }?.let {
+            Regex("PROJECT_ID=\"([a-z][a-z0-9-]{4,28}[a-z0-9])\"").find(it.readText())?.groupValues?.get(1)
+        }
         ?: runCatching { command(listOf(gcloud(), "config", "get-value", "project")).trim().takeIf { it.isNotEmpty() && it != "(unset)" } }.getOrNull()
 
     suspend fun credentials(api: String, account: String? = googleAccount): Map<String, String> = when {
@@ -160,7 +165,9 @@ class CloudApis(
         "${home.path}/google-cloud-sdk/bin", "/opt/homebrew/share/google-cloud-sdk/bin")).map { File(it, "gcloud") }.firstOrNull { it.canExecute() }?.path ?: "gcloud"
 
     private fun command(argv: List<String>): String {
-        val process = ProcessBuilder(argv).redirectErrorStream(false).start()
+        val process = ProcessBuilder(argv).redirectErrorStream(false).apply {
+            if (argv.first().substringAfterLast('/') == "gcloud") environment().putAll(dev.shibasis.reaktor.tooling.cloud.CloudInventoryReads.gcloudEnvironment())
+        }.start()
         process.outputStream.close()
         val out = process.inputStream.bufferedReader().readText()
         if (!process.waitFor(60, TimeUnit.SECONDS)) { process.destroyForcibly(); throw CloudApiFailure("${argv.first()} timed out") }

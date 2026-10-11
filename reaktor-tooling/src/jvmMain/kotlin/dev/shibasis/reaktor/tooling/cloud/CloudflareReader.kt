@@ -143,13 +143,16 @@ class CloudflareReader(
     }
 
     private suspend fun call(token: String, path: String, body: String? = null): JsonElement {
-        val request = HttpRequest.newBuilder(URI.create(base + path))
-            .header("Authorization", "Bearer $token")
-            .header("Content-Type", "application/json")
-            .timeout(Duration.ofSeconds(30))
-            .let { if (body == null) it.GET() else it.POST(HttpRequest.BodyPublishers.ofString(body)) }
-            .build()
-        val response = http.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
+        suspend fun send(value: String): HttpResponse<String> {
+            val request = HttpRequest.newBuilder(URI.create(base + path))
+                .header("Authorization", "Bearer $value")
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(30))
+                .let { if (body == null) it.GET() else it.POST(HttpRequest.BodyPublishers.ofString(body)) }
+                .build()
+            return http.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
+        }
+        val response = if (credentials is CloudflareLogin) credentials.authenticated(::send) { it.statusCode() == 401 } else send(token)
         val parsed = runCatching { cloudJson.parseToJsonElement(response.body()) }.getOrNull()
         if (response.statusCode() !in 200..299) {
             val reason = parsed.objects("errors").firstOrNull()?.text("message") ?: "HTTP ${response.statusCode()}"

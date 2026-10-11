@@ -37,7 +37,7 @@ class IslandJvmClientTest {
         }
         assertEquals(64, count)
         assertEquals(64, result.size)
-        for (url in listOf("http://other.fixture.test", "https://user:password@other.fixture.test", "https://other.fixture.test:8443")) {
+        for (url in listOf("http://other.fixture.test", "https://user:password@other.fixture.test", "https://other.fixture.test:8443", "https://notification.internal", "https://durable.object")) {
             assertEquals(1, readIslandShapes(listOf("root.fixture.test")) { shape(url) }.size)
         }
         val notIsland = readIslandShapes(listOf("root.fixture.test")) { Json.parseToJsonElement("{}") }.single()

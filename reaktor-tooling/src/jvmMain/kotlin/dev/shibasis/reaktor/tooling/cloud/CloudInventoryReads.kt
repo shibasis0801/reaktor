@@ -18,6 +18,11 @@ object CloudInventoryReads {
             .map { File(it, name) }
             .firstOrNull { it.isFile && it.canExecute() }?.absolutePath
 
+    internal fun gcloudEnvironment(): Map<String, String> = System.getenv("CLOUDSDK_PYTHON")?.takeIf { it.isNotBlank() }
+        ?.let { mapOf("CLOUDSDK_PYTHON" to it) }
+        ?: listOf("python3.13", "python3.12", "python3.11", "python3.10").firstNotNullOfOrNull(::tool)
+            ?.let { mapOf("CLOUDSDK_PYTHON" to it) }.orEmpty()
+
     suspend fun execute(operation: InfrastructureOperation.CloudInventoryRead): String {
         val readings = read(operation)
         return cloudJson.encodeToString(ListSerializer(CloudReading.serializer()), readings)
@@ -36,9 +41,7 @@ object CloudInventoryReads {
         val workspace = File(operation.workspace)
         return buildList {
             operation.cloudflareAccount?.let { account ->
-                val token = System.getenv("CLOUDFLARE_API_TOKEN")?.takeIf { it.isNotBlank() }
-                val credentials = token?.let(::CloudflareApiToken) ?: WranglerLogin(refresh = { refreshWrangler(workspace) })
-                add(CloudflareReader(account, credentials))
+                add(CloudflareReader(account, CloudflareLogin.forWorkspace(workspace)))
             }
             operation.googleProject?.let { project ->
                 val gcloud = tool("gcloud") ?: "gcloud"
@@ -59,7 +62,7 @@ object CloudInventoryReads {
     }
 
     private suspend fun signedInAccounts(gcloud: String): List<String> = runCatching {
-        CommandLine.run(listOf(gcloud, "auth", "list", "--format=value(account)"), 60)
+        CommandLine.run(listOf(gcloud, "auth", "list", "--format=value(account)"), 60, gcloudEnvironment())
             .lines().map { it.trim() }.filter { "@" in it }
     }.getOrDefault(emptyList())
 }

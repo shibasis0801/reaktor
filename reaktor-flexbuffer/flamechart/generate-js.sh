@@ -160,7 +160,6 @@ if [ -n "$CPUPROFILE" ]; then
     fi
     echo "[JS] CPU profile: $OUTPUT_DIR/js-flamechart.cpuprofile"
     echo "[JS] Open in Chrome DevTools: DevTools → Performance → Load profile..."
-    echo "[JS] Or use: npx speedscope $OUTPUT_DIR/js-flamechart.cpuprofile"
 else
     echo "[JS] WARNING: CPU profile not generated."
 fi

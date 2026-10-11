@@ -1,6 +1,6 @@
 # Reaktor code and agent system HLD
 
-Proposed architecture, consolidated 9 October and updated 10 October 2026 for A2A and the build-completion start condition. `reaktor-code` and `reaktor-conductor` are shared capability and tool packages, with executable tools, recipes, scripts and Kotlin integrations. Together they form one graph-native engineering system that Claude, Codex, CLI, automation and Hangar can use with consistent semantics. Agents can use MCP, shell commands or programmatic helpers as the work requires. Conductor supplies A2A peer communication through adapters to the native harnesses. The purpose is more accepted work within existing subscription allowances through precise context, deterministic transformations, reusable evidence and durable continuation.
+Architecture reconciled on 11 October 2026 with the verified invocation/startup slice. The user has confirmed that the build layer is complete and directed this work toward coding and agentic ROI; existing build facts and check execution are consumed infrastructure. `reaktor-code` and `reaktor-conductor` are shared capability and tool packages, with executable tools, recipes, scripts and Kotlin integrations. Together they form one graph-native engineering system that Claude, Codex, CLI, automation and Hangar can use with consistent semantics. Agents can use MCP, shell commands or programmatic helpers as the work requires. Conductor's A2A peer projection and Claude Agent SDK adapter remain planned; existing native control uses Codex App Server and Claude Code CLI. The purpose is more accepted work within existing subscription allowances through precise context, deterministic transformations, reusable evidence and durable continuation. Completed foundations and remaining integration gates are distinguished below; this is not a claim that the full proposed operation surface has shipped.
 
 The first complete deliverable is a real change queried, planned, applied and verified through this system, then continued in the other native harness without repeating settled investigation. The [single execution plan](engineering-tools-plan.md) supplies sequencing and economics. The [CLI, Dependeasy and Hangar HLD](cli-kernel-hld.md) defines the terminal redesign and authoritative build/kernel integration. Operation names and wire examples below are proposed contracts, not shipped APIs.
 
@@ -12,47 +12,95 @@ The initial design work retained focused integration and CLI audits as historica
 
 ## System structure and module ownership
 
-Arrows in this diagram represent requests and results, rather than module imports.
+This is the target coding/agent architecture. Arrows represent requests and data flow, not module imports. Specialist providers and recipes are selected by capability, source freshness, correctness and total cost, and qualified before adoption. Existing native adapters remain distinct from planned SDK/A2A integration; the complete operation surface, source-validated reuse and unified attachment remain implementation work.
 
 ```mermaid
 flowchart TB
-    Agents["Native Codex and Claude"] --> CLI["reaktor-cli<br/>Shell and bounded JSON"]
-    Agents --> MCP["MCP projections"]
-    Agents --> Clients["Typed clients and executable helpers"]
-    Agents <--> Harnesses["Conductor native-session adapters<br/>Codex App Server and Claude Code CLI<br/>Claude Agent SDK after qualification"]
-    Harnesses <--> A2A["A2A projection in Conductor<br/>Peer discovery, messages and task updates"]
-    Automation["CI and deterministic scripts"] --> CLI
-    Automation --> Clients
-    Hangar["Hangar UI, MCP client and read server"] --> Clients
-    Hangar --> MCP
+    Agents["Native Codex and Claude"] --> MCP["MCP<br/>Small discoverable tool surface"]
+    Agents --> CLI["reaktor-cli<br/>Shell commands and bounded JSON"]
+    Agents --> Helpers["Typed clients and executable helpers"]
+    Hangar["Hangar and Reaktor+ consumers"] --> MCP
+    Hangar --> Helpers
 
-    CLI --> Kernel["Shared workspace kernel owner<br/>Capabilities, scope, authority, plans and runs"]
     MCP --> Kernel
-    Clients --> Kernel
-    A2A <--> Kernel
+    CLI --> Kernel
+    Helpers --> Kernel
+    Kernel["Graph-native workspace kernel<br/>Shared contracts, scope and authority<br/>Plans, runs, artifacts and retry identity"]
 
-    Kernel --> Code["reaktor-code<br/>Queries, impact, codemods and guards"]
-    Kernel --> Conductor["reaktor-conductor<br/>Context, continuation, usage and peer coordination"]
-    Code --> Providers["Qualified syntax, LSP, semantic and SCIP providers"]
-    Code -.->|on demand| Deep["Optional isolated Joern and FFI analysis"]
-    Conductor --> Code
-    Conductor --> Harnesses
-    Conductor --> Tooling["reaktor-tooling<br/>Generic processes, transports, MCP and A2A mechanics"]
-    A2A -.->|reuse transport| Tooling
-    Code -.->|host launches owned tool| Tooling
-    Hangar -.->|optional observations| Conductor
+    subgraph CodeLayer["reaktor-code — owned code tools and Kotlin integrations"]
+        Code["Scoped code API<br/>Search, outline, references and impact<br/>Choose the cheapest qualified provider"]
+        Syntax["rg and syntax / ast-grep<br/>Text and structural queries"]
+        LSP["LSP<br/>Live navigation and diagnostics"]
+        SCIP["SCIP<br/>Reusable symbol/reference indexes"]
+        Kotlin["Kotlin Analysis API<br/>Compiler-resolved symbols and types"]
+        Joern["Joern — optional<br/>Deep control/data-flow questions"]
+        Graphify["Graphify ideas<br/>Scoped subgraphs and code/doc links<br/>Optional qualified import"]
+        Recipes["Codemods and architecture guards<br/>ast-grep / language codemods<br/>OpenRewrite / Kotlin PSI when needed<br/>Dry-run, exact plan and idempotent apply"]
+        Code --> Syntax
+        Code --> LSP
+        Code --> SCIP
+        Code --> Kotlin
+        Code -.->|question needs deeper analysis| Joern
+        Code -.->|navigation gap justifies it| Graphify
+        Code --> Recipes
+    end
 
-    Declarations["Reaktor, BestBuds and Manna<br/>Declarative intent, targets and dependencies"] --> Dependeasy["Dependeasy: all shared build tooling<br/>Toolchains, generation, compilation, bundling,<br/>packaging, build checks and CI/local-worker policy"]
-    Dependeasy -->|versioned build and artifact facts| Kernel
-    Kernel -->|declared build or check operation| Dependeasy
-    Dependeasy -.->|reuse generic mechanics| Tooling
-    Dependeasy --> Engines["Gradle and specialist engines<br/>Kotlin, pnpm, Vite, CMake, SwiftPM and Xcode"]
-    Engines --> Execution["Configured Mac and worker execution<br/>Device and UI checks on Mac"]
+    subgraph AgentLayer["reaktor-conductor — owned agent tools and Kotlin integrations"]
+        Conductor["Task and native-session owner<br/>Continuation, budgets and recovery"]
+        Context["Bounded task context<br/>Relevant code and check evidence<br/>Decisions, failed attempts and next action"]
+        Native["Existing native adapters<br/>Codex App Server / Claude Code CLI"]
+        SDK["Claude Agent SDK — planned<br/>Qualify authentication and billing"]
+        A2A["A2A — planned<br/>Selective Claude ↔ Codex questions/handoffs<br/>Durable deduplication and exchange limits"]
+        Metrics["ROI accounting<br/>Accepted work and total parent/child usage<br/>Repeated reads, repair and human effort"]
+        Conductor --> Context
+        Conductor --> Native
+        Conductor -.-> SDK
+        Conductor -.-> A2A
+        A2A -.->|admitted peer delivery| Native
+        Context -->|focused prompt| Native
+        Conductor --> Metrics
+        Metrics -.->|measured policy tuning| Conductor
+    end
 
-    Kernel --> Evidence["Existing scoped stores<br/>Linked runs, receipts, artifacts and checkpoints"]
-    Conductor --> Evidence
-    Execution --> Evidence
+    Kernel --> Code
+    Kernel --> Conductor
+    Context -->|retrieve only relevant facts| Code
+    Native <--> Agents
+
+    Facts["Source facts over existing graph identities<br/>Content digests, compilation and provider coverage<br/>Incremental invalidation; explicit uncertainty"]
+    Code <--> Facts
+    Evidence["Linked existing evidence stores<br/>Decisions, checkpoints, findings and check receipts<br/>Reuse only with valid inputs and freshness"]
+    Context <--> Evidence
+    Kernel --> Evidence
+    Recipes --> Checks["Existing check execution<br/>Verify the exact candidate and required coverage"]
+    Checks --> Evidence
+
+    Tooling["reaktor-tooling<br/>Process supervision, transports and MCP mechanics<br/>Cancellation and bounded artifact delivery"]
+    Kernel -->|host launches code-owned tools| Tooling
+    Conductor --> Tooling
+    A2A -.->|generic transport| Tooling
 ```
+
+### Cohesive tool selection
+
+The common operations own source scope, provenance, freshness, budgets and returned references. Engines supply qualified facts or candidate edits beneath those operations; agents do not assemble unrelated tool-specific graphs or mutation workflows. Preserve existing graph identity and linked artifact/evidence owners. Select a cheaper provider only when it satisfies the question's required evidence; unresolved semantics remain unresolved.
+
+| Mechanism | Selected role | Adoption boundary |
+|---|---|---|
+| Existing `rg`, syntax and [ast-grep](https://ast-grep.github.io/guide/rewrite-code.html) | Cheap text/structural lookup and deterministic syntax recipes | Syntax matches do not establish symbol identity, overload selection or behavior. |
+| Existing LSP | Current-document navigation and diagnostics | Advertise actual server/compilation support; do not require a live IDE for every agent query. |
+| [SCIP](https://sourcegraph.com/docs/code-navigation) | Portable persistent definition/reference facts that can be shared across matching inputs | Qualify the emitting indexer and compilation. SCIP is an interchange protocol, not a compiler or a complete flow analyzer. |
+| [Kotlin Analysis API](https://kotlin.github.io/analysis-api/fundamentals.html) | Kotlin symbol/type/call resolution for semantic queries and rewrite preconditions | Pin compatible Kotlin integration; qualify KMP compilations separately. Keep PSI/session objects within their valid analysis lifetime; export revision-bound facts. |
+| [OpenRewrite](https://docs.openrewrite.org/authoring-recipes/writing-kotlin-recipes) / Kotlin PSI | Typed, format-preserving recipes when repeated JVM/Kotlin changes justify the setup | Pilot one actual recipe, artifact access, parser/runtime compatibility and required attribution. Do not assume universal KMP support or replace simple edits with a heavyweight recipe run. |
+| [Joern](https://docs.joern.io/code-property-graph/) | Optional scoped control/data-flow investigation | Admit a specific question and supported frontend under CPU, memory, time and output budgets. No automatic full-tree CPG rebuild on every edit. |
+| [Graphify](https://github.com/Graphify-Labs/graphify) | Adopt scoped graph traversal, subsystem grouping and code-to-document links; optional provider/export import for a measured gap | Its documented code extraction is local AST analysis; document/media semantic passes can consume model work. Preserve extracted/inferred provenance, qualify joins and freshness, and do not claim its benchmark savings for Reaktor. No second authoritative graph or always-on model summarization is required. |
+| MCP and A2A | MCP projects code/task operations; A2A projects bounded peer communication through native adapters | Share domain state below both protocols. Discovery and notifications do not start model turns. Count recipient work and reconcile uncertain delivery. |
+
+A coding task follows one path: attach outcome → retrieve bounded current evidence → query the needed facts → produce an exact change plan → apply under existing authority → verify the candidate → retain decisions and the next action. A peer is consulted only when its expected contribution justifies the added model work. Stable prefixes, deferred optional tool discovery, cached immutable facts and resumable native sessions reduce repeated context; controlled accepted-task measurements decide whether each optimization stays.
+
+The [first-slice receipt](/Users/ovd/dev/.remote-dev/engineering-tools-invocation-20261010.json) qualifies shared graph-owned handlers for native local invocation and MCP, retained-run replay, installed CLI startup and copied worker-delivered Conductor packaging. The same 25 focused tests pass on Mac and M1; the copied package uses the declared Java 25 graph-host runtime and makes no model calls. Legacy/SSH MCP compatibility remains explicit. Strong operation input manifests, aggregate read bounds, complete continuity assets and unified live CLI/Hangar attachment remain open.
+
+The [11 October build report](/Users/ovd/dev/.remote-dev/composite-scan-20261011/REPORT.md) qualifies the BestBuds-led composite across all three products/frameworks: 55 module build lifecycles, 446 main Hangar flows and 14 qualification flows pass. Its [summary](/Users/ovd/dev/.remote-dev/composite-scan-20261011/final-summary.json) distinguishes 1,497 fresh XML cases from 3,360 reused cases, with zero failures/errors and 30 existing skips overall. These build receipts supersede the earlier engine/desktop failure snapshot to that scope. They do not establish agent token savings, SDK/A2A support or one live owner shared by all clients. Current concurrent Hangar/system-graph changes require their own completed evidence.
 
 | Owner | Responsibility | Boundary |
 |---|---|---|
@@ -105,9 +153,9 @@ MCP is one projection of the capability system. Shared domain behavior and polic
 
 An agent can query through MCP, compose a deterministic batch in a script, apply a retained plan through CLI and await the same run through another surface. Cross-surface request replay resolves to the same execution when workspace, operation, authenticated caller and request ID match. Transport selection does not create another task, relax authority or change input validity. Direct shell edits are observed changes, not automatically trusted plan receipts; capture the resulting candidate and check it normally.
 
-Today `AgentWorkspaceConnection.call` serializes MCP `tools/call`, including for the workspace CLI. The migration must extract shared invocation below that handler and route CLI/typed calls to it independently. Preserve the current bridge as a compatibility adapter while this happens. Do not build a second executor, force CLI through MCP, or introduce a universal gateway/new network protocol merely to support another surface. Non-MCP invocation still uses explicit workspace ownership and authenticated authority where a connection is involved.
+`AgentWorkspaceConnection.call` now uses the authenticated native `/operations` path when a local owner advertises invocation version 1. Native and MCP requests execute the same graph-owned handlers and retained workspace runs. Older owners and SSH connections retain explicit MCP `tools/call` compatibility; unsupported advertised native versions reject instead of silently falling back. This completes the first shared-dispatch slice, not the full redesigned operation schema or unified kernel/Hangar ownership. Extend that owner rather than adding a second executor. Non-MCP invocation preserves explicit workspace ownership and authenticated authority.
 
-The current framework CLI, BestBuds kernel CLI and Conductor CLI are separate surfaces. Redesign the supported `reaktor` command as a small workspace-kernel client, with stable verbs over declared targets and retained task/run references. Dependeasy supplies build/artifact/check mappings; CLI and Hangar consume them. Its current schema-v1 `BuildPlan` export has `state=declared`, with prerequisites, target leaves and toolchain declarations. This supports declaration discovery; it does not establish qualified execution, complete source identity, artifact provenance or safe check reuse. The [CLI integration contract](cli-kernel-hld.md#dependeasy-integration-contract) keeps that distinction explicit while the build owner qualifies the final export. Their current shared kernel implementation does not imply shared live operational state. Normal clients must attach to an authoritative workspace owner rather than opening independent kernels or sharing persistence files. The dedicated CLI HLD supplies migration and acceptance; no new task-name heuristics belong in this agent layer.
+The current framework CLI, BestBuds kernel CLI and Conductor CLI remain separate surfaces. Framework CLI root help/version/bare invocation now bypasses discovery; stable capability verbs and retirement of legacy task guessing remain planned. Dependeasy supplies build/artifact/check declarations. Its current schema-v1 workspace export has `state=declared`; the companion layout export supplies included-build ownership for the BestBuds/Reaktor/Manna composite. Shared scopes are deduplicated, lazy module lifecycle selection preserves later registrations, and Hangar's Build view tracks the export producer. These facts support declaration discovery; they do not establish qualified execution, complete source identity, artifact provenance or safe check reuse. The [CLI integration contract](cli-kernel-hld.md#dependeasy-integration-contract) preserves this distinction. Shared kernel implementation does not imply shared live operational state. Normal clients must attach to an authoritative workspace owner rather than opening independent kernels or sharing persistence files. The dedicated CLI HLD supplies migration and acceptance; no new task-name heuristics belong in this agent layer.
 
 Batching is deterministic client composition of the existing operations, with retained references and explicit stop/continue behavior. It is not an all-powerful free-form agent command. Ordinary `rg`, file tools and build commands remain useful where they already answer the question cheaply.
 
@@ -149,7 +197,7 @@ Two source-audited routing gaps are implementation gates. The kernel bridge vali
 
 Built-in providers currently declare themselves self-governed, so door authority and result gates defer to each host. Verify host enforcement of aggregate result bounds and effect-specific access rather than assuming the door always applies them. A seat/run label is attribution, not an authenticated principal. Keep discovery compact, offer useful capability profiles and defer specialist startup until needed; an agent need not load every desktop/devtools schema for a source query.
 
-The [integration audit](/Users/ovd/dev/tmp/code-agent-integration-audit-20261009.json) records live Hangar reads and focused worker checks. These validate existing integration paths; shared non-MCP dispatch, tool asset packaging, native cross-harness continuation and token savings remain implementation/adoption work.
+The [integration audit](/Users/ovd/dev/tmp/code-agent-integration-audit-20261009.json) retains historical live Hangar reads and focused worker checks. Shared non-MCP workspace dispatch is now qualified by the first-slice receipt, and the newer composite report qualifies the existing Hangar Build view and recorded flows. Unified live owner attachment, complete tool-asset packaging, native cross-harness continuation/A2A and token savings remain implementation/adoption work. Historical selection and door findings above are scoped to their audit, not automatically attributed to every later dirty source state.
 
 ## Shared domain model
 
@@ -448,7 +496,7 @@ Shadow later composes the same plan, run, receipt and artifact primitives. Place
 
 The existing foundation passed 144 worker tests across 24 suites, plus CLI/routing fixtures; see the [test report](/Users/ovd/dev/tmp/token-roi-further-tests-20261009.json). Those tests do not establish that the proposed API is implemented or that token savings have been achieved.
 
-The [single execution plan](engineering-tools-plan.md#delivery-sequence) owns delivery order, provider qualification, economic measurement and product rollout. Its first operation connects continuity, bounded context, strong inputs and retained verification through shared non-MCP dispatch, then proves both native clients, A2A exchanges and Hangar. SCIP/Joern expansion and Shadow require demonstrated need and their own acceptance gates. Reaktor, BestBuds and Manna are the active rollout; other repositories remain deferred until all three meet the build owner's stability gate. The declarative common path and typed backend/native/custom-task exceptions share one artifact graph; pnpm/Vite and SwiftPM/direct Xcode cutovers remove replaced paths after qualification. The 10 October completion handoff is recorded in that plan; the first shared invocation slice is underway. A2A and unified Hangar ownership remain implementation gates.
+The [single execution plan](engineering-tools-plan.md#delivery-sequence) owns delivery order, provider qualification, economic measurement and product rollout. Shared non-MCP invocation and CLI root startup are verified; the rest of Gate 1 establishes strong inputs, aggregate bounds and durable continuity before the first complete query/plan/apply/check task. Gate 3 proves both native clients, A2A exchanges and unified Hangar ownership. Claude Agent SDK admission retains its separate authentication/billing and conformance checks. SCIP/Joern expansion and Shadow require demonstrated need and their own acceptance gates. Reaktor, BestBuds and Manna are the active rollout; other repositories remain deferred pending the build owner's full stability/release gate. The 11 October composite pass is current build qualification to its documented scope, not completion of signed/device, native-integration or ROI acceptance. The declarative common path and typed backend/native/custom-task exceptions share one artifact graph; pnpm/Vite and SwiftPM/direct Xcode cutovers remove replaced paths after qualification.
 
 ## Implementation anchors
 

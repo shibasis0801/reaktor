@@ -190,6 +190,9 @@ existing product credential property names remain supported.
   Run `./gradlew pnpmLock` to update it with the pinned tools after generating
   Kotlin package metadata. Ordinary builds keep frozen installation; this explicit
   task updates the lockfile without installing packages or running lifecycle scripts.
+  Component commands, Kotlin's pnpm bridge and Node scripts inherit the same
+  verified toolchain environment. pnpm `run` and `exec` refuse stale dependencies
+  instead of installing implicitly; custom Node scripts must declare the files they consume.
 * Swift packages build with automatic resolution disabled. Resolve dependencies
   explicitly and commit `Package.resolved` before building a package with dependencies.
 * CMake uses a distinct build directory for each declared target/configuration.

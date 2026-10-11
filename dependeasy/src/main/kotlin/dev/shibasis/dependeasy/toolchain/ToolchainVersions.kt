@@ -48,4 +48,5 @@ object ToolchainVersions {
     const val NodeMinimum = "22.12.0"
     const val Pnpm = "12.10.1"
     const val Dagger = "0.21.8"
+    const val Pulumi = "3.268.0"
 }

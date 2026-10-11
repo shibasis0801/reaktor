@@ -91,7 +91,10 @@ kotlin {
 }
 java { targetCompatibility = JavaVersion.VERSION_21 }
 
-tasks.test { useJUnitPlatform() }
+tasks.test {
+    useJUnitPlatform()
+    inputs.dir("checks")
+}
 
 tasks.named<Jar>("jar") {
     archiveFileName.set("dependeasy.jar")

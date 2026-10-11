@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.tooling.cloud
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.future.await
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonArray
@@ -124,18 +126,33 @@ data class AiReading(
     val failures: Map<String, String>,
 )
 
-class CloudflareLogin(val source: String, private val credentials: CloudflareCredentials) : CloudflareCredentials by credentials {
+class CloudflareLogin(source: String, private val credentials: CloudflareCredentials, private val recovery: CloudflareCredentials? = null) : CloudflareCredentials by credentials {
+    var source: String = source
+        private set
+    private val lock = Mutex()
+    private var recovered: String? = null
+
+    suspend fun <T> authenticated(request: suspend (String) -> T, unauthorized: (T) -> Boolean): T {
+        val first = request(recovered ?: credentials.token())
+        if (!unauthorized(first) || recovery == null) return first
+        val token = lock.withLock {
+            recovered ?: recovery.token().also { recovered = it; source = "Wrangler sign-in" }
+        }
+        return request(token)
+    }
+
     companion object {
         const val TokenFile: String = "config/cloudflare.token"
 
         fun forWorkspace(root: File): CloudflareLogin {
+            val wrangler = WranglerLogin(refresh = { CloudInventoryReads.refreshWrangler(root) })
             System.getenv("CLOUDFLARE_API_TOKEN")?.takeIf { it.isNotBlank() }
                 ?.let { return CloudflareLogin("CLOUDFLARE_API_TOKEN", CloudflareApiToken(it)) }
             listOf(TokenFile, "config/mcp/cloudflare.token").firstNotNullOfOrNull { path ->
                 File(root, path).takeIf(File::isFile)?.readLines()?.map(String::trim)?.firstOrNull { it.isNotEmpty() && !it.startsWith("#") }
-                    ?.let { CloudflareLogin(path, CloudflareApiToken(it)) }
+                    ?.let { CloudflareLogin(path, CloudflareApiToken(it), wrangler) }
             }?.let { return it }
-            return CloudflareLogin("Wrangler sign-in", WranglerLogin(refresh = { CloudInventoryReads.refreshWrangler(root) }))
+            return CloudflareLogin("Wrangler sign-in", wrangler)
         }
     }
 }
@@ -335,14 +352,17 @@ class CloudflareAi(
     private class Response(val body: JsonObject, val headers: Map<String, String>)
 
     private suspend fun call(method: String, path: String, body: JsonElement? = null, headers: Map<String, String> = emptyMap(), timeoutSeconds: Long = 30): Response {
-        val request = HttpRequest.newBuilder(URI.create(base + path))
-            .header("Authorization", "Bearer ${credentials.token()}")
-            .header("Content-Type", "application/json")
-            .timeout(Duration.ofSeconds(timeoutSeconds))
-            .apply { headers.forEach { (name, value) -> header(name, value) } }
-            .method(method, body?.let { HttpRequest.BodyPublishers.ofString(it.toString()) } ?: HttpRequest.BodyPublishers.noBody())
-            .build()
-        val response = http.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
+        suspend fun send(token: String): HttpResponse<String> {
+            val request = HttpRequest.newBuilder(URI.create(base + path))
+                .header("Authorization", "Bearer $token")
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(timeoutSeconds))
+                .apply { headers.forEach { (name, value) -> header(name, value) } }
+                .method(method, body?.let { HttpRequest.BodyPublishers.ofString(it.toString()) } ?: HttpRequest.BodyPublishers.noBody())
+                .build()
+            return http.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
+        }
+        val response = if (credentials is CloudflareLogin) credentials.authenticated(::send) { it.statusCode() == 401 } else send(credentials.token())
         val parsed = runCatching { cloudJson.parseToJsonElement(response.body()) as? JsonObject }.getOrNull()
         if (response.statusCode() !in 200..299) {
             val reason = parsed.objects("errors").firstOrNull()?.text("message") ?: parsed?.obj("error")?.text("message") ?: "HTTP ${response.statusCode()}"

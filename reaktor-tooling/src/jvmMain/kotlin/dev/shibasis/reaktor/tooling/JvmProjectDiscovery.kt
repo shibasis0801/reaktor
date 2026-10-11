@@ -467,11 +467,12 @@ private class TaskCatalogBuilder(
     }
 
     private val declaredGradleDefinitionSeal = lazy {
-        val report = root.resolve(GradleBuildTargets.Report).canonicalFile
-        val expected = mapOf(report to declarationDigest(report))
+        val reports = listOf(GradleBuildTargets.Report, GradleBuildTargets.Layout)
+            .map { root.resolve(it).canonicalFile }.filter { it in declarationsText }
+        val expected = reports.associateWith(::declarationDigest)
         checkDeclarations(expected)
         val base = gradleDefinitionSeal.value
-        ProcessDefinitionSeal.capture(base.files + report, base.directories).also { checkDeclarations(expected) }
+        ProcessDefinitionSeal.capture(base.files + reports, base.directories).also { checkDeclarations(expected) }
     }
 
     fun npmTask(

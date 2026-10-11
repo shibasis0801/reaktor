@@ -2,6 +2,8 @@ package dev.shibasis.dependeasy.codegen
 
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.dag.BuildPipeline
+import dev.shibasis.dependeasy.toolchain.ToolchainVersions
+import dev.shibasis.dependeasy.toolchain.pulumiTool
 import org.gradle.api.Project
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.compile.JavaCompile
@@ -12,12 +14,14 @@ import org.gradle.kotlin.dsl.register
 
 internal fun Project.pulumiSdk(name: String, version: String, server: String) = run {
     val prefix = name.replaceFirstChar(Char::uppercaseChar)
+    val tool = pulumiTool()
     val generate = tasks.register<PulumiSdkTask>("gen${prefix}Sdk") {
+        dependsOn(tool)
         providerName.set(name)
         providerVersion.set(version)
         this.server.set(server)
-        executable.set("pulumi")
-        toolVersion.set(providers.exec { commandLine("pulumi", "version") }.standardOutput.asText.map(String::trim))
+        executable.set(tool.flatMap { it.destination }.map { it.file("pulumi").asFile.absolutePath })
+        toolVersion.set(ToolchainVersions.Pulumi)
         outputDirectory.set(layout.buildDirectory.dir("dependeasy/$name-sdk"))
     }
     val classpath = configurations.create("${name}SdkClasspath") { isCanBeConsumed = false }

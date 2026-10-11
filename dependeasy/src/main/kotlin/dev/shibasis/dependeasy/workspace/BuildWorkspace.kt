@@ -14,6 +14,7 @@ class BuildWorkspace internal constructor(private val project: Project) {
     val graph = project.tasks.register<BuildGraphTask>("buildGraph") {
         group = "dependeasy"
         description = "Export declared build targets and pipelines without executing their tools"
+        dependsOn(project.tasks.named("reportBuildLayout"))
         buildName.set(project.name)
         this.targets.convention(emptyList())
         // Resolve while configuring the selected graph task, before execution holds build locks.

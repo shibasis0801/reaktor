@@ -6,7 +6,6 @@ import kotlinx.coroutines.future.await
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -24,10 +23,7 @@ class GoogleCloudReader(
     private val console = "https://console.cloud.google.com"
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
 
-    private val environment: Map<String, String> = listOf("python3.13", "python3.12", "python3.11", "python3.10")
-        .flatMap { listOf("/opt/homebrew/bin/$it", "/usr/local/bin/$it", "/usr/bin/$it") }
-        .firstOrNull { File(it).canExecute() }
-        ?.let { mapOf("CLOUDSDK_PYTHON" to it) }.orEmpty()
+    private val environment = CloudInventoryReads.gcloudEnvironment()
 
     private suspend fun token(account: String?): String {
         val cached = tokens[account.orEmpty()]

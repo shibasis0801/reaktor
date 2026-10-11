@@ -1,10 +1,10 @@
 # Reaktor CLI, Dependeasy and Hangar HLD
 
-Proposed redesign, 9 October 2026. `reaktor` becomes the small terminal and agent-shell projection of the workspace kernel. Dependeasy declares what can be built and the artifacts/checks it produces. The kernel binds that model to workspace identity, policy, execution and receipts. Hangar, CLI and agent tools use those same capabilities. The broader [code/agent HLD](code-agent-hld.md) defines source tools, task continuation, result bounds and cross-surface semantics; this document specifies the terminal/build integration.
+Redesign reconciled on 11 October 2026. `reaktor` becomes the small terminal and agent-shell projection of the workspace kernel. Dependeasy declares what can be built and the artifacts/checks it produces. The kernel binds that model to workspace identity, policy, execution and receipts. Hangar, CLI and agent tools use those same capabilities. Shared native/MCP workspace invocation and root CLI startup are verified; unified live CLI/Hangar attachment and the remaining command redesign are planned. The broader [code/agent HLD](code-agent-hld.md) defines source tools, task continuation, result bounds, native adapters and A2A; this document specifies the terminal/build integration.
 
-The user authorized coordination with the Codex chat **Plan build system upgrades** (`01a11fbf-f50a-7360-8e69-be364d5ca6d6`). Its updated [build-layer HLD](/Users/ovd/dev/.remote-dev/build-layer-audit-20261009/findings-and-hld.json) requires all shared build tooling inside Dependeasy, pnpm-only owned JS installs, Vite-only owned bundling, and SwiftPM/direct Xcode Apple integration. Active rollout is Reaktor, BestBuds and Manna; other repositories wait until all three are stable. The [Dependeasy README](../dependeasy/README.md) and [qualification](../dependeasy/VALIDATION.md) retain earlier lazy DAG/typed-artifact, npm, native and Apple evidence plus known failures. That earlier evidence does not qualify the new pnpm reference pipeline. Consume the concrete APIs and receipts the build owner supplies as implementation lands. The integration boundary is versioned plan/target/artifact facts and execution receipts through shared kernel operations, without competing CLI build configuration.
+The user authorized coordination with the Codex chat **Plan build system upgrades** (`01a11fbf-f50a-7360-8e69-be364d5ca6d6`). All shared build tooling belongs to Dependeasy, with pnpm-only owned JS installs, Vite-owned bundling and SwiftPM/direct Xcode Apple integration. The [11 October composite report](/Users/ovd/dev/.remote-dev/composite-scan-20261011/REPORT.md) supplies current qualification: BestBuds is the composite entrypoint for Reaktor and Manna; all 55 selected module build lifecycles, 446 Hangar main flows and 14 qualification flows pass. The [Dependeasy design](../dependeasy/DESIGN.md), [README](../dependeasy/README.md) and [qualification](../dependeasy/VALIDATION.md) retain the APIs, domain ownership and remaining limits. Other repositories remain deferred pending full stability/release qualification. The integration boundary is versioned declaration/target/artifact facts and separately retained execution evidence, without competing CLI build configuration or treating a declared graph as a check receipt.
 
-The [single execution plan](engineering-tools-plan.md) owns sequencing, the build-upgrade prerequisite and acceptance gates. This HLD is an architecture reference. The build chat's 10 October completion handoff satisfied the user's start condition. The first framework invocation and CLI startup slice is underway; final contracts, receipts, remaining product failures and file ownership are recorded in the plan.
+The [single execution plan](engineering-tools-plan.md) owns sequencing, the build-upgrade prerequisite and acceptance gates. This HLD is an architecture reference. The build chat's 10 October completion handoff satisfied the user's start condition. The first framework invocation and CLI startup slice is verified; strong-input receipts, complete continuity and unified live ownership remain open. The plan records historical failures and current qualification separately.
 
 ## What exists and why the old CLI should be replaced
 
@@ -20,25 +20,26 @@ The [single execution plan](engineering-tools-plan.md) owns sequencing, the buil
 
 The legacy audit counted 21 Kotlin files and 3,146 lines; these are diagnostics, not size targets. Its installed distribution had 234 jars totaling 123,445,620 bytes. One installed `reaktor --help` probe from BestBuds exceeded 25 seconds and was terminated; its cause was not established. Audited source initialized workspace discovery before help/version parsing. The first implementation slice now handles root help/version/bare invocation before discovery and terminal initialization. The rebuilt distribution's outside-repository smoke passes: first help probe 0.609 seconds, subsequent new JVM processes 0.062–0.073 seconds, no stderr or workspace files. These are warm-filesystem observations, not a dropped-cache cold benchmark or proof of the old timeout's cause. The new distribution still has 256 jars/143,041,351 bytes; dependency trimming and non-root discovery replacement remain open. [Smoke receipt](/Users/ovd/dev/.remote-dev/engineering-tools-cli-help-20261010.json).
 
-The [CLI audit](/Users/ovd/dev/tmp/cli-redesign-audit-20261009.json) retains scope and verification evidence. That earlier audit is a historical snapshot. The current consolidation changes four planning documents, adds no runtime API, flag, stored schema, dependency or module, and leaves the build owner's implementation files untouched.
+The [CLI audit](/Users/ovd/dev/tmp/cli-redesign-audit-20261009.json) retains the historical snapshot. The first slice subsequently changed invocation/startup and aligned the standalone CLI build with Dependeasy. This 11 October reconciliation changes documentation only; it adds no runtime API, flag, state, dependency or module and leaves concurrent build/Hangar implementation files untouched.
 
 ## One build model and one operation owner
 
 ```mermaid
 flowchart TB
-    Declarations["Reaktor, BestBuds and Manna declarations"] --> Dependeasy["Dependeasy: all shared build tooling"]
-    Dependeasy --> Export["Versioned target, artifact and execution facts"]
+    Declarations["BestBuds-led Reaktor and Manna composite<br/>Declarative modules and targets"] --> Dependeasy["Dependeasy: shared build owner"]
+    Dependeasy --> Export["Schema-1 declaration and ownership exports<br/>build-graph.json and build-layout.json"]
     Export --> Kernel["Authoritative workspace kernel"]
-    CLI["reaktor CLI"] --> Kernel
-    Hangar["Hangar UI and MCP projections"] --> Kernel
-    Agents["Claude and Codex: shell, MCP, helpers"] --> Kernel
+    Export --> Hangar["Hangar Build view and MCP projections"]
+    CLI["reaktor CLI<br/>Root startup fixed; redesign planned"] -.->|unified attachment: planned| Kernel
+    Hangar -.->|unified live attachment: planned| Kernel
+    Agents["Claude and Codex: shell, MCP, helpers"] -->|shared workspace invocation| Kernel
     Kernel -->|declared build or check request| Dependeasy
     Dependeasy --> Build["Gradle and Dependeasy local-worker policy"]
     Build --> Engines["Kotlin / pnpm / Vite / CMake / SwiftPM / Xcode"]
     Dependeasy -.->|reuse generic process and transport| Tooling["reaktor-tooling"]
     Kernel --> Code["reaktor-code tools"]
     Kernel --> Conductor["reaktor-conductor tasks and continuity"]
-    Kernel --> Receipts["Linked existing runs, evidence and artifacts"]
+    Kernel --> Receipts["Linked existing runs, receipts and artifacts<br/>Execution evidence is separate from declarations"]
     Build --> Receipts
     Hangar --> Desktop["Optional selection and runtime observations"]
 ```
@@ -58,7 +59,7 @@ Arrows show capability/data flow, not imports. Dependeasy remains a Gradle plugi
 
 The closed BestBuds kernel currently contains product catalog and recipes. A reusable framework CLI must not import BestBuds to operate across Reaktor+. Start by making it a client of the existing workspace host. Extract generic kernel contracts/mechanisms into an appropriate existing Reaktor owner only when another product needs them; keep product catalogs in product composition. Avoid relocating the whole kernel, a new universal runtime module or a dependency from code back to tooling/Conductor.
 
-The build owner's bounded pnpm compatibility in [JvmProjectDiscovery](../reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/JvmProjectDiscovery.kt) is qualified by six passing [seal tests](../reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.JvmProjectDiscoverySealTest.xml) and a [successful log](/Users/ovd/dev/.remote-dev/build-layer-migration-20261009/pnpm-task-discovery-qualified.log). Stable legacy task IDs and command/effect/closure behavior are retained. This planning pass inspected the targeted receipts; BestBuds production catalog/MCP qualification is still pending. This remains transitional discovery compatibility; the redesigned CLI delegates to Dependeasy declarations and execution capabilities. Retire replaced inference at qualified cutover rather than extending it into a competing build catalog.
+The build owner's earlier bounded pnpm compatibility in [JvmProjectDiscovery](../reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/JvmProjectDiscovery.kt) was qualified by six passing seal-test cases, retained in a [successful log](/Users/ovd/dev/.remote-dev/build-layer-migration-20261009/pnpm-task-discovery-qualified.log). Stable legacy task IDs and command/effect/closure behavior were retained. BestBuds production catalog/MCP qualification was pending at that earlier audit; the current declaration adapter, Hangar Build view and composite qualification are recorded above. This remains transitional discovery compatibility; the redesigned CLI delegates to Dependeasy declarations and execution capabilities. The unified CLI/Hangar attachment remains planned. Retire replaced inference at qualified cutover rather than extending it into a competing build catalog.
 
 ## Dependeasy integration contract
 

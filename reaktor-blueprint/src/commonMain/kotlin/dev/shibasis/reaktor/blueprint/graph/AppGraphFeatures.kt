@@ -10,6 +10,9 @@ object AppGraphFeatures {
     private const val HubHops = 4
 
     fun of(graph: AppGraph): List<Feature> {
+        if (graph.source == GraphSource.Build) return graph.nodes.values.groupBy { it.scope }
+            .map { (scope, members) -> Feature(scope, if (scope == graph.root.id) graph.root.label else graph.scopeLabel(scope), members) }
+            .sortedBy { it.key }
         val islandOf = graph.nodes.values.associate { it.id to graph.island(it.scope) }
         val app = graph.nodes.values.filter { islandOf[it.id] == null }
         val islands = graph.nodes.values.filter { islandOf[it.id] != null }.groupBy { islandOf.getValue(it.id)!! }

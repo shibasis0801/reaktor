@@ -15,6 +15,8 @@ import dev.shibasis.reaktor.graph.navigation.NavigationCapabilityImpl
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.navigation.BackStackEntry
 import dev.shibasis.reaktor.graph.navigation.Push
+import dev.shibasis.reaktor.graph.navigation.Back
+import dev.shibasis.reaktor.graph.navigation.Pop
 import dev.shibasis.reaktor.graph.core.node.ActorNode
 import dev.shibasis.reaktor.graph.core.node.ActorSupervisorStrategy
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
@@ -85,7 +87,29 @@ open class Graph(
                     navigationImpl.dispatch(navCommand)
                 }
             }
-            else -> navigationImpl.dispatch(navCommand)
+            is Back<*> -> {
+                val edge = backStack.top.value?.edge
+                navigationImpl.dispatch(navCommand)
+                if (edge?.isCrossGraph == true) restoreSourceGraph(edge.sourceGraph)
+            }
+        }
+    }
+
+    private fun restoreSourceGraph(source: Graph) {
+        if (parentGraph != null) {
+            parentGraph.restoreSourceGraph(source)
+            return
+        }
+        containerPathTo(source)?.forEach { (container, child) ->
+            val owner = container.graph
+            val entries = owner.backStack.entries.value
+            val previous = entries.indexOfLast { it.edge.end == container.route }
+            if (previous >= 0) {
+                repeat(entries.lastIndex - previous) { owner.navigationImpl.dispatch(Pop) }
+            } else {
+                owner.pushContainerEntry(container, Payload())
+            }
+            container.activate(child)
         }
     }
 
@@ -97,6 +121,10 @@ open class Graph(
         }
 
         val destGraph = navCommand.entry.edge.destinationGraph
+        if (destGraph === this) {
+            navigationImpl.dispatch(navCommand)
+            return
+        }
         val path = containerPathTo(destGraph)
         if (path == null) {
             Logger.w("Cross-graph navigation failed: no container found for graph '${destGraph.label}' (${destGraph.id}).")
@@ -207,7 +235,11 @@ inline fun <reified Functionality : Any> Node.exposePort(port: ProviderPort<Func
     )
 }
 
-fun Graph.autoWire() {
+fun Graph.autoWire(vararg dependencies: Graph) {
+    val dependencyProviders = dependencies
+        .flatMap { graph -> graph.nodes.flatMap { node -> node.providerPorts.flattenedValues() } }
+        .distinct()
+        .groupBy { it.type }
     val localProviders = nodes
         .flatMap { node -> node.providerPorts.flattenedValues() }
         .groupBy { it.type }
@@ -221,6 +253,29 @@ fun Graph.autoWire() {
                 else localCandidates.find { it.key.key.isEmpty() }
             } else {
                 localCandidates.find { it.key == consumer.key }
+            }
+
+            if (match == null) {
+                val candidates = dependencyProviders[consumer.type].orEmpty()
+                val matching = if (consumer.key.key.isEmpty() && candidates.size == 1) candidates
+                    else candidates.filter { it.key == consumer.key }
+                require(matching.size <= 1) {
+                    "Graph '$label' has ambiguous dependency providers for key='${consumer.key.key}' type='${consumer.type.type}'"
+                }
+                match = matching.singleOrNull()
+            }
+
+            var ancestor = parentGraph
+            while (match == null && ancestor != null) {
+                val candidates = ancestor.nodes.flatMap { it.providerPorts.flattenedValues() }
+                    .filter { it.type == consumer.type }
+                val matching = if (consumer.key.key.isEmpty() && candidates.size == 1) candidates
+                    else candidates.filter { it.key == consumer.key }
+                require(matching.size <= 1) {
+                    "Graph '$label' has ambiguous ancestor providers for key='${consumer.key.key}' type='${consumer.type.type}'"
+                }
+                match = matching.singleOrNull()
+                ancestor = ancestor.parentGraph
             }
 
             if (match == null) {

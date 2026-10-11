@@ -35,12 +35,19 @@ abstract class BuildGraphTask : DefaultTask() {
             }
             putJsonArray("plans") { plans.files.map { Json.parseToJsonElement(it.readText()).jsonObject }
                 .sortedBy { it.getValue("id").jsonPrimitive.content }.forEach(::add) }
-            putJsonArray("includedBuilds") { includedGraphs.files.map { Json.parseToJsonElement(it.readText()).jsonObject }
-                .sortedBy { it.getValue("id").jsonPrimitive.content }.forEach(::add) }
+            putJsonArray("includedBuilds") {
+                val included = includedGraphs.files.map { Json.parseToJsonElement(it.readText()).jsonObject }
+                    .sortedBy { it.getValue("id").jsonPrimitive.content }
+                val seen = (included.map { it.getValue("id").jsonPrimitive.content } + buildName.get()).toMutableSet()
+                fun unique(graph: JsonObject): JsonObject = JsonObject(graph + ("includedBuilds" to JsonArray(
+                    graph["includedBuilds"]?.jsonArray.orEmpty().map { it.jsonObject }
+                        .filter { seen.add(it.getValue("id").jsonPrimitive.content) }.map(::unique))))
+                included.forEach { add(unique(it)) }
+            }
         }
         outputFile.get().asFile.apply {
             parentFile.mkdirs()
-            writeText(Json { prettyPrint = true }.encodeToString(JsonObject.serializer(), graph) + "\n")
+            writeText(graph.toString() + "\n")
         }
     }
 }

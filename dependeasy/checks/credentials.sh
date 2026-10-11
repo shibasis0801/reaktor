@@ -1,7 +1,10 @@
 # Shared scan primitive. Product scripts choose their own tracked-path policy.
 reject_tracked_credential_literal() {
-    if git -c grep.threads=2 grep -I --quiet --extended-regexp "$2" -- .; then
-        echo "credential containment smoke failed: $1" >&2
+    scan_label="$1"
+    scan_pattern="$2"
+    shift 2
+    if git -c grep.threads=2 grep -I --quiet --extended-regexp "$scan_pattern" -- . "$@"; then
+        echo "credential containment smoke failed: $scan_label" >&2
         exit 1
     else
         scan_status=$?
