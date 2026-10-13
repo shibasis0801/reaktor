@@ -5,7 +5,7 @@ dependeasy {
     module("dev.shibasis.reaktor.surface.compose") {
         common {
             dependencies {
-                api(project(":reaktor-surface"))
+                api(projects.reaktorSurface)
                 api(Versions.Compose.Runtime)
                 api(Versions.Compose.Foundation)
                 api(Versions.Compose.Ui)

@@ -12,7 +12,7 @@ dependeasy {
             dependencies {
                 // reaktor-io brings reaktor-core (serialization/coroutines/framework/StatusCode) and the
                 // Ktor client (`http`) used by the generic Service client. The service layer is graph-neutral.
-                api(project(":reaktor-io"))
+                api(projects.reaktorIo)
             }
             testDependencies {
                 implementation(Versions.Kotlin.KtorMock)

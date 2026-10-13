@@ -6,9 +6,9 @@ dependeasy {
     module("dev.shibasis.reaktor.blueprint") {
         common {
             dependencies {
-                api(project(":compose-flow"))
-                api(project(":reaktor-ui"))
-                api(project(":reaktor-graph-runtime"))
+                api(projects.composeFlow)
+                api(projects.reaktorUi)
+                api(projects.reaktorGraphRuntime)
                 api(Versions.Compose.Runtime)
                 api(Versions.Compose.Foundation)
                 api(Versions.Compose.Material3)

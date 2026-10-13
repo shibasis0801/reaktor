@@ -10,6 +10,7 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 
 /** CMake produces archives and headers; cinterop consumes their generated definition. */
 internal fun Project.registerDarwinInterop(
@@ -42,9 +43,11 @@ internal fun Project.registerDarwinInterop(
             includeDirs(*includeDirectories.toTypedArray())
         }
     }
-    tasks.named("cinteropReaktor$targetName").configure {
-        dependsOn(definition)
-        inputs.files(definition.flatMap(GenerateNativeDefTask::staticLibraries))
-            .withPropertyName("nativeStaticLibraries").withPathSensitivity(PathSensitivity.RELATIVE)
+    tasks.withType(CInteropProcess::class.java).configureEach {
+        if (konanTarget == target.konanTarget && settings.definitionFile.get().asFile == definition.get().outputFile.get().asFile) {
+            dependsOn(definition)
+            inputs.files(definition.flatMap(GenerateNativeDefTask::staticLibraries))
+                .withPropertyName("nativeStaticLibraries").withPathSensitivity(PathSensitivity.RELATIVE)
+        }
     }
 }

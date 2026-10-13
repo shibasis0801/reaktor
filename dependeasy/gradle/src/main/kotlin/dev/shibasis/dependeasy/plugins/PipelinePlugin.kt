@@ -12,7 +12,11 @@ class PipelinePlugin : Plugin<Project> {
             DependeasyExtension.create(project)
         }
         if (project == project.rootProject) {
-            dev.shibasis.dependeasy.settings.NativeBootstrap(project).register()
+            dev.shibasis.dependeasy.handles.Reaktor.check(project)
+            dev.shibasis.dependeasy.settings.NativeBootstrap(project).also {
+                project.extensions.add("nativeTools", it)
+                it.register()
+            }
             dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
             dev.shibasis.dependeasy.repositories.dependencyRepositories(project) {}
             physicalDevicesOnly(project)

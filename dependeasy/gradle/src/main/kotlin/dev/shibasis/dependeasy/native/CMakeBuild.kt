@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.native
 
+import dev.shibasis.dependeasy.model.ToolHandle
+import dev.shibasis.dependeasy.settings.nativeTools
 import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import org.gradle.api.Project
@@ -15,16 +17,17 @@ class CMakeBuild internal constructor(private val project: Project, private val 
     var generator: String = "Ninja"
     val arguments = mutableListOf<String>()
     val inputs = mutableListOf<Any>()
-    private val sourceLibraries = linkedMapOf<String, String>()
+    private val sourceLibraries = linkedMapOf<ToolHandle, String>()
 
-    fun sourceLibrary(name: String, includeVariable: String) { sourceLibraries[name] = includeVariable }
+    fun sourceLibrary(tool: ToolHandle, includeVariable: String) { sourceLibraries[tool] = includeVariable }
 
     internal fun register(): TaskProvider<KotlinCMakeTask> = project.tasks.register<KotlinCMakeTask>("${name}CMake") {
         group = "dependeasy"
         sourceDirectory.set(project.file(this@CMakeBuild.source))
         sourceFiles.from(project.cmakeSources(project.file(this@CMakeBuild.source)), project.cmakeKernelSources(), this@CMakeBuild.inputs)
-        sourceLibraries.forEach { (name, variable) ->
-            dependsOn(project.rootProject.tasks.named("prepare${name.replaceFirstChar(Char::uppercaseChar)}Source"))
+        sourceLibraries.forEach { (tool, variable) ->
+            val name = tool.name
+            dependsOn(project.nativeTools.sourceTasks.getValue(tool))
             val directory = project.rootDir.resolve(".github_modules/$name")
             sourceFiles.from(project.fileTree(directory) { exclude(".git/**", "build/**", "debug/**") })
             configureArguments.add("-D$variable=${directory.resolve("include").absolutePath}")

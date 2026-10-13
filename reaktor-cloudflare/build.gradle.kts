@@ -6,12 +6,12 @@ dependeasy {
     module("dev.shibasis.reaktor.cloudflare") {
         common {
             dependencies {
-                api(project(":reaktor-auth-core"))
-                api(project(":reaktor-core"))
-                api(project(":reaktor-service"))
-                api(project(":reaktor-graph-runtime"))
-                api(project(":reaktor-io"))
-                api(project(":reaktor-secrets"))
+                api(projects.reaktorAuthCore)
+                api(projects.reaktorCore)
+                api(projects.reaktorService)
+                api(projects.reaktorGraphRuntime)
+                api(projects.reaktorIo)
+                api(projects.reaktorSecrets)
             }
         }
         android {}
@@ -24,7 +24,7 @@ dependeasy {
                 api(npm("postgres", Versions.Web.Postgres))
             }
             testDependencies {
-                implementation(project(":reaktor-work"))
+                implementation(projects.reaktorWork)
                 implementation(npm("miniflare", Versions.Web.Miniflare))
             }
         }

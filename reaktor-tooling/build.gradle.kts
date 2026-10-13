@@ -8,7 +8,7 @@ dependeasy {
     module("dev.shibasis.reaktor.tooling") {
         common {
             dependencies {
-                api(project(":reaktor-code"))
+                api(projects.reaktorCode)
                 commonCoroutines()
                 commonSerialization(protobuf = false)
             }
@@ -20,7 +20,7 @@ dependeasy {
         jvm {
             bytecode = 21
             dependencies {
-                api(project(":reaktor-mcp"))
+                api(projects.reaktorMcp)
                 api("dev.shibasis.dependeasy:model:${dev.shibasis.dependeasy.publishing.PublicationDefaults.Version}")
                 implementation(Versions.Tooling.SnakeYaml)
                 implementation(Versions.Tooling.Lsp)
@@ -34,7 +34,7 @@ dependeasy {
                 implementation(Versions.Tooling.Adb)
                 // The idb companion's gRPC service, so Apple targets need only the companion binary
                 // rather than the Python client on top of it.
-                api(project(":reaktor-idb"))
+                api(projects.reaktorIdb)
             }
             testDependencies {
                 implementation(Versions.Data.MockWebServer)

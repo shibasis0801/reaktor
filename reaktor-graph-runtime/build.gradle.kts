@@ -6,9 +6,9 @@ dependeasy {
     module("dev.shibasis.reaktor.graph.runtime") {
         common {
             dependencies {
-                api(project(":reaktor-graph-port"))
-                api(project(":reaktor-service"))
-                api(project(":reaktor-db"))
+                api(projects.reaktorGraphPort)
+                api(projects.reaktorService)
+                api(projects.reaktorDb)
                 api(Versions.Data.Koin)
             }
         }

@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.bootstrap.publishBootstrapOutputs
 import dev.shibasis.dependeasy.toolchain.BuildLibraries
 import dev.shibasis.dependeasy.toolchain.GradlePlugins
 
@@ -37,3 +38,5 @@ gradlePlugin {
         implementationClass = "dev.shibasis.dependeasy.plugins.SettingsPlugin"
     }
 }
+
+publishBootstrapOutputs()

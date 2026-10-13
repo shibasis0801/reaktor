@@ -43,7 +43,7 @@ abstract class ExportBuildModelTask : DefaultTask() {
         val declarations = declarationFiles.files.filter { it.isFile }.map {
             DeclarationInput(own, it.relativeTo(root).invariantSeparatorsPath, BuildModelReader.digest(it))
         } + included.flatMap { it.declarations }
-        val model = BuildModel(producer = Producer(version = version.get()), builds = builds,
+        val declared = BuildModel(producer = Producer(version = version.get()), builds = builds,
             declarations = declarations.distinct().sortedWith(compareBy({ it.build }, { it.path })),
             nodes = (nodes.get().map(BuildModelReader::decodeNode) + included.flatMap { it.nodes }).groupBy { it.id }.map { (id, copies) ->
                 val facts = copies.map { it.copy(label = it.id.name, declaredAt = null, inputs = emptyList(), outputs = emptyList(), additionalDeclarations = emptyList()) }.distinct()
@@ -54,6 +54,10 @@ abstract class ExportBuildModelTask : DefaultTask() {
             }.sortedBy { it.id.toString() },
             edges = (edges.get().map { BuildModelReader.json.decodeFromString<Edge>(it) } + included.flatMap { it.edges }).distinct().sortedBy { it.toString() },
             omissions = (omissions.get().map { BuildModelReader.json.decodeFromString<Omission>(it) } + included.flatMap { it.omissions }).distinct().sortedBy { it.toString() })
+        val identities = declared.nodes.map { it.id }.toSet()
+        val model = declared.copy(omissions = (declared.omissions + declared.edges.filter { it.to !in identities }.map {
+            Omission(it.from, "Referenced producer has no declaration model", it.to.toString())
+        }).distinct().sortedBy { it.toString() })
         val text = BuildModelReader.encode(model)
         BuildModelReader.decode(text)
         outputFile.get().asFile.apply { parentFile.mkdirs(); writeText(text) }

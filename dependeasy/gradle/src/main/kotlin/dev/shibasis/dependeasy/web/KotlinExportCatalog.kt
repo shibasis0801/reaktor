@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.web
 
+import dev.shibasis.dependeasy.tasks.registeredTask
 import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -14,7 +15,6 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
-import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.gradle.work.DisableCachingByDefault
 
@@ -38,13 +38,12 @@ internal fun Project.kotlinExportCatalog(directory: File): TaskProvider<KotlinEx
     val name = "reportKotlinExports"
     val path = directory.relativeTo(root.rootDir).invariantSeparatorsPath
     require(path != "." && path.split('/').none { it == ".." }) { "Kotlin exports must stay within the workspace" }
-    val catalog = if (name in root.tasks.names) root.tasks.named<KotlinExportCatalog>(name)
-    else root.tasks.register<KotlinExportCatalog>(name) {
+    val catalog = root.registeredTask(KotlinExportCatalog::class.java) { root.tasks.register<KotlinExportCatalog>(name) {
         group = "dependeasy"
         description = "Describe compiler-owned package exports for IDE and worker artifact transfer"
         directories.convention(emptyList())
         outputFile.set(root.layout.buildDirectory.file("dependeasy/kotlin-exports.json"))
-    }
+    } }
     catalog.configure { directories.add(path) }
     return catalog
 }

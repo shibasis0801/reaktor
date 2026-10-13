@@ -4,7 +4,7 @@ dependeasy {
     module("dev.shibasis.reaktor.sensors") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
+                api(projects.reaktorCore)
             }
         }
         android {}

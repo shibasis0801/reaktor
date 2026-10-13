@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.toolchain
 
+import dev.shibasis.dependeasy.tasks.registeredTask
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
@@ -26,9 +27,8 @@ abstract class GenerateCMakeToolchain : DefaultTask() {
 internal fun Project.cmakeToolchainContract(): TaskProvider<GenerateCMakeToolchain> {
     val root = rootProject
     val name = "generateCMakeToolchain"
-    return if (name in root.tasks.names) root.tasks.named(name, GenerateCMakeToolchain::class.java)
-    else root.tasks.register(name, GenerateCMakeToolchain::class.java) {
+    return root.registeredTask(GenerateCMakeToolchain::class.java) { root.tasks.register(name, GenerateCMakeToolchain::class.java) {
         cppStandard.set(ToolchainVersions.CppStandard.toInt())
         contract.set(root.layout.buildDirectory.file("dependeasy/contracts/toolchain.cmake"))
-    }
+    } }
 }

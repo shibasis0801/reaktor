@@ -9,12 +9,12 @@ dependeasy {
     module("dev.shibasis.reaktor.auth") {
         common {
             dependencies {
-                api(project(":reaktor-auth-core"))
-                api(project(":reaktor-ui"))
-                api(project(":reaktor-graph"))
-                api(project(":reaktor-service"))
-                api(project(":reaktor-db"))
-                api(project(":reaktor-io"))
+                api(projects.reaktorAuthCore)
+                api(projects.reaktorUi)
+                api(projects.reaktorGraph)
+                api(projects.reaktorService)
+                api(projects.reaktorDb)
+                api(projects.reaktorIo)
                 api(Versions.Data.Jwt)
             }
         }
@@ -32,8 +32,8 @@ dependeasy {
 
         jvm {
             dependencies {
-                api(project(":reaktor-security"))
-                api(project(":reaktor-tooling"))
+                api(projects.reaktorSecurity)
+                api(projects.reaktorTooling)
                 api(Versions.Server.OAuth)
                 api(Versions.Server.Security)
                 api(Versions.Data.Exposed)

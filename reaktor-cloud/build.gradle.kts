@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.configuration.FrameworkOptions
 import dev.shibasis.dependeasy.Versions
 
 plugins { id("dev.shibasis.dependeasy.library") }
@@ -7,9 +8,9 @@ dependeasy {
     module("dev.shibasis.reaktor.cloud") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
-                api(project(":reaktor-graph"))
-                api(project(":reaktor-tooling"))
+                api(projects.reaktorCore)
+                api(projects.reaktorGraph)
+                api(projects.reaktorTooling)
             }
         }
         android {}
@@ -31,6 +32,6 @@ dependeasy {
     jvmEntryPoint("cloudToolE2e", "dev.shibasis.reaktor.cloud.CloudToolE2eKt", compilation = "e2e", verify = true)
     jvmEntryPoint("run", "dev.shibasis.reaktor.cloud.observability.MainKt")
     jvmEntryPoint("verifyWrangler", "dev.shibasis.reaktor.cloud.WranglerVerifyKt") {
-        args(providers.gradleProperty("wranglerPath").orElse(rootDir.absolutePath).get())
+        args(option(FrameworkOptions.WranglerDirectory).map { it.ifBlank { rootDir.absolutePath } }.get())
     }
 }

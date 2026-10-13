@@ -6,6 +6,10 @@ import dev.shibasis.dependeasy.workspace.declareArtifactFamily
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.dag.BuildPipeline
+import dev.shibasis.dependeasy.tasks.registeredTask
 
 /** Common commands are declarative; arbitrary package commands keep the same input/output contract. */
 class JavaScriptComponent internal constructor(private val project: Project, private val name: String, directory: Any) {
@@ -24,23 +28,23 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
               bundle: TaskProvider<CommandTask> = vite(),
               typecheck: TaskProvider<out org.gradle.api.Task> = types(*projects),
               checks: List<TaskProvider<out org.gradle.api.Task>> = emptyList(),
-              generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): TaskProvider<org.gradle.api.Task> {
+              generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): NodeHandle {
         bundle.configure { dependsOn(generators); sourceFiles.from(generators) }
+        var result: TaskProvider<out org.gradle.api.Task>? = null
         DependeasyExtension.get(project).dag(name) {
             val prerequisites = checks.map { node(it) }
             val types = node(typecheck).after(*prerequisites.toTypedArray())
-            target(target, node(bundle).after(types, *generators.map { node(it) }.toTypedArray()))
+            result = target(target, node(bundle).after(types, *generators.map { node(it) }.toTypedArray()))
         }
         project.declareArtifactFamily(target, "web")
-        return project.tasks.named(target)
+        return project.node(checkNotNull(result), OutputKind.BrowserBundle)
     }
 
-    fun kotlinLibraries(vararg modules: String, build: String? = null) {
-        val producers = modules.map { module ->
-            val task = ":${module.removePrefix(":")}:exportKotlinLibrary"
-            if (build == null) task else project.gradle.includedBuild(build).task(task)
-        }
+    fun kotlinLibraries(vararg outputs: OutputHandle) {
+        require(outputs.all { it.kind == OutputKind.KotlinJsLibrary })
+        val producers = outputs.map(project::outputFiles)
         kotlinExports.configure { dependsOn(producers) }
+        sourceInputs.addAll(producers)
         prerequisites.add(kotlinExports)
     }
 
@@ -62,8 +66,9 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     fun deploy(config: String = "wrangler.json", vararg producers: Any): TaskProvider<CommandTask> =
         command("deploy", null, "exec", "wrangler", "deploy", "--config", config).also {
             it.configure {
-                dependsOn(*producers)
-                sourceFiles.from(*producers)
+                val tasks = producers.map { if (it is NodeHandle) checkNotNull(it.task) else it }
+                dependsOn(tasks)
+                sourceFiles.from(tasks)
                 backend.set("wrangler")
                 outputs.upToDateWhen { false }
             }
@@ -71,19 +76,30 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
 
     /** A typecheck and optional checks form one Gradle verification entrypoint. */
     fun verify(target: String, vararg projects: String, checks: List<TaskProvider<out org.gradle.api.Task>> = emptyList(),
-               generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): TaskProvider<org.gradle.api.Task> {
+               generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): NodeHandle {
         val types = types(*projects, generators = generators)
+        var result: TaskProvider<out org.gradle.api.Task>? = null
         DependeasyExtension.get(project).dag(name) {
             val typecheck = node(types)
             val leaves = checks.map { node(it).after(typecheck) }.ifEmpty { listOf(typecheck) }
-            target(target, *leaves.toTypedArray())
+            result = target(target, *leaves.toTypedArray())
         }
         project.declareArtifactFamily(target, "web")
-        return project.tasks.named(target).also(::verificationConsumer)
+        return project.node(checkNotNull(result), OutputKind.VerificationResults).also {
+            verificationConsumer(checkNotNull(it.task))
+
+        }
     }
 
-    private fun verificationConsumer(task: TaskProvider<org.gradle.api.Task>) {
-        project.tasks.matching { it.name == "check" }.configureEach { dependsOn(task) }
+    private fun verificationConsumer(task: TaskProvider<out org.gradle.api.Task>) {
+        val completed = project.registeredTask(dev.shibasis.dependeasy.workspace.WorkspaceTargetTask::class.java, "typeScriptVerification") {
+            val aggregate = project.tasks.register<dev.shibasis.dependeasy.workspace.WorkspaceTargetTask>("completeTypeScriptChecks")
+            project.publishOutput(OutputKind.VerificationResults, aggregate.flatMap { it.completionManifest },
+                Verification.TypeScript, producer = aggregate)
+            aggregate
+        }
+        completed.configure { dependsOn(task) }
+        project.tasks.matching { it.name == org.gradle.language.base.plugins.LifecycleBasePlugin.CHECK_TASK_NAME }.configureEach { dependsOn(task) }
     }
 
     /** Escape hatch with the same toolchain and incremental contract as common commands. */
@@ -91,14 +107,16 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         commandKernel.command(stage, output, *arguments)
 
     /** Emit a package and make it available to this module's Kotlin/JS compilations. */
-    fun library(target: String, config: String, output: String, kotlin: Boolean = false): TaskProvider<org.gradle.api.Task> {
+    fun library(target: String, config: String, output: String, kotlin: Boolean = false): NodeHandle {
         val compile = command("compile", output, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
             "--project", config).also { it.configure { sourceFiles.from(runtime.sources) } }
-        DependeasyExtension.get(project).dag(name) { target(target, node(compile)) }
+        val pipeline = BuildPipeline(project, name)
+        val result = pipeline.target(target, pipeline.node(compile))
+        pipeline.report()
         project.declareArtifactFamily(target, "web")
-        return project.tasks.named(target).also {
-            if (kotlin) project.javascriptLibraryConsumer(it)
-            verificationConsumer(it)
+        return project.node(result, OutputKind.VerificationResults).also {
+            if (kotlin) project.javascriptLibraryConsumer(checkNotNull(it.task))
+            verificationConsumer(checkNotNull(it.task))
         }
     }
 }

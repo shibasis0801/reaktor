@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.verification
 
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
@@ -19,9 +21,11 @@ abstract class DependencyBoundary : DefaultTask() {
     @get:Input abstract val groupFragments: ListProperty<String>
     @get:Input abstract val modules: ListProperty<String>
     @get:Input abstract val moduleSuffix: Property<String>
+    @get:OutputFile abstract val resultFile: RegularFileProperty
     @get:Input abstract val reason: Property<String>
 
     init {
+        resultFile.convention(project.layout.buildDirectory.file("dependeasy/checks/$name.txt"))
         groupPrefixes.convention(emptyList())
         groupFragments.convention(emptyList())
         modules.convention(emptyList())
@@ -40,6 +44,7 @@ abstract class DependencyBoundary : DefaultTask() {
                 module.removeSuffix(moduleSuffix.get()) in modules.get()
         }
         check(forbidden.isEmpty()) { "${reason.get()}: ${forbidden.joinToString()}" }
+        resultFile.get().asFile.apply { parentFile.mkdirs(); writeText("verified\n") }
     }
 }
 
@@ -54,5 +59,5 @@ internal fun Project.dependencyBoundary(
                 .map { it.moduleVersion.id.toString() }.distinct().sorted()
         })
         policy()
-    }.also { boundary -> tasks.matching { it.name == "check" }.configureEach { dependsOn(boundary) } }
+    }.also { boundary -> tasks.matching { it.name == LifecycleBasePlugin.CHECK_TASK_NAME }.configureEach { dependsOn(boundary) } }
 }

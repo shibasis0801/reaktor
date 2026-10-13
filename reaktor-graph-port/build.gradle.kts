@@ -1,16 +1,17 @@
+import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.Versions
 plugins { id("dev.shibasis.dependeasy.library") }
 
 dependeasy {
     javascript("graphPortTypeScript") {
-        kotlinLibraries("reaktor-graph-port")
+        kotlinLibraries(kotlinJsLibrary(Reaktor.GraphPort))
         verify("checkGraphPortTypeScript", "ts/tsconfig.json")
     }
     module("dev.shibasis.reaktor.graph.port") {
         common {
             dependencies {
                 api(Versions.Kotlin.AtomicFu)
-                api(project(":reaktor-core"))
+                api(projects.reaktorCore)
             }
         }
         android {}

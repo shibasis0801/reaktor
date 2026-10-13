@@ -1,6 +1,9 @@
 package dev.shibasis.dependeasy.benchmark
 
 import dev.shibasis.dependeasy.native.CMakeBuild
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
@@ -15,7 +18,8 @@ internal class CppBenchmarkKernel(private val project: Project) {
     fun install(name: String, property: String, configure: CMakeBuild.() -> Unit) =
         CMakeBuild(project, name).apply { source = "src/commonBenchmark/cpp"; target = name }
             .apply(configure).register().also { compiler ->
-                project.tasks.named("jvmTest", Test::class.java).configure {
+                project.extensions.getByType(KotlinMultiplatformExtension::class.java).targets.withType(KotlinJvmTarget::class.java)
+                    .single().testRuns.getByName(KotlinCompilation.TEST_COMPILATION_NAME).executionTask.configure {
                     dependsOn(compiler)
                     jvmArgumentProviders.add(CppReferenceArguments(property, compiler.flatMap { it.buildDirectory }.map { it.file(name) }))
                 }

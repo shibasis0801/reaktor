@@ -1,14 +1,15 @@
 package dev.shibasis.dependeasy.plugins
 
-import dev.shibasis.dependeasy.tasks.generateDocumentation
 import dev.shibasis.dependeasy.tasks.ArtifactSizeReport
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.plugins.ExtensionAware
-import org.gradle.api.tasks.Copy
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import dev.shibasis.dependeasy.native.configureNativeCompiler
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.model.*
 
 internal inline fun <reified T : Any> Any.getExtension(name: String): T? =
     (this as ExtensionAware).extensions.getByName(name) as T?
@@ -41,11 +42,10 @@ class LibraryPlugin: Plugin<Project> {
         tasks.apply {
             register<ArtifactSizeReport>("buildReleaseBinaries") {
                 group = "dependeasy"
-                dependsOn("assembleRelease")
-                artifacts.from(layout.buildDirectory.file("outputs/aar/${project.name}-release.aar"))
+                val module = project.dependencies.project(mapOf("path" to project.path)) as ProjectDependency
+                artifacts.from(project.outputFiles(project.output(module, OutputKind.AndroidLibrary, Build.Release)))
                 report.set(layout.buildDirectory.file("reports/dependeasy/artifact-sizes.csv"))
             }
-            register<Copy>("generateDocumentation") { generateDocumentation() }
         }
 
         val extension = DependeasyExtension.create(this)

@@ -12,10 +12,10 @@ dependeasy {
     module("dev.shibasis.reaktor.devtools") {
         common {
             dependencies {
-                api(project(":reaktor-service"))
-                api(project(":reaktor-work"))
-                api(project(":reaktor-performance"))
-                api(project(":reaktor-graph-port"))
+                api(projects.reaktorService)
+                api(projects.reaktorWork)
+                api(projects.reaktorPerformance)
+                api(projects.reaktorGraphPort)
                 api(Versions.Compose.Runtime)
                 api(Versions.Compose.Ui)
                 commonCoroutines()

@@ -9,6 +9,8 @@ plugins {
     id("dev.shibasis.dependeasy.settings")
 }
 
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 //include(":reaktor-react") // will fix later
 
 

@@ -12,8 +12,8 @@ dependeasy {
     module("dev.shibasis.reaktor.navigation") {
         common {
             dependencies {
-                api(project(":reaktor-graph-runtime"))
-                api(project(":reaktor-ui"))
+                api(projects.reaktorGraphRuntime)
+                api(projects.reaktorUi)
                 arrow()
             }
         }

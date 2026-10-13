@@ -64,6 +64,7 @@ data class Node(
     val workerDirectory: String? = null,
     val bindings: List<String> = emptyList(),
     val environments: List<String> = emptyList(),
+    val requirements: List<OptionRequirement> = emptyList(),
 )
 
 @Serializable

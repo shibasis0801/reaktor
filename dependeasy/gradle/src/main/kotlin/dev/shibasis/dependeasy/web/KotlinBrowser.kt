@@ -1,5 +1,11 @@
 package dev.shibasis.dependeasy.web
 
+import dev.shibasis.dependeasy.handles.publishOutput
+import dev.shibasis.dependeasy.model.OutputKind
+import org.gradle.language.base.plugins.LifecycleBasePlugin
+import org.jetbrains.kotlin.gradle.targets.js.ir.Executable
+import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsBinaryMode
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack
 import dev.shibasis.dependeasy.plugins.DependeasyExtension
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
@@ -19,7 +25,7 @@ class KotlinBrowser internal constructor(private val project: Project) {
         val extension = project.extensions.getByType<KotlinMultiplatformExtension>()
         extension.js {
             useEsModules()
-            browser { testTask { enabled = false } }
+            browser { testTask { enabled = false; setDependsOn(emptyList<Any>()) } }
             binaries.executable()
             compilations.configureEach {
                 packageJson {
@@ -33,20 +39,24 @@ class KotlinBrowser internal constructor(private val project: Project) {
         }
         val component = DependeasyExtension.get(project).javascript("browser", ".")
         val bundle = component.vite(output)
-        bundle.configure {
-            dependsOn("jsProductionExecutableCompileSync", guards)
-            sourceFiles.from(project.rootProject.layout.buildDirectory.dir("js/packages/$moduleName/kotlin"))
-            sourceFiles.from(project.layout.buildDirectory.dir("processedResources/js/main"))
+        bundle.configure { dependsOn(guards) }
+        extension.js {
+            compilations.getByName("main").binaries.withType(Executable::class.java).configureEach {
+                if (mode == KotlinJsBinaryMode.PRODUCTION) {
+                    val sync = linkSyncTask
+                    bundle.configure {
+                        dependsOn(sync)
+                        sourceFiles.from(sync.map { it.destinationDirectory.get() })
+                    }
+                }
+            }
         }
-        project.tasks.matching { it.name.contains("Webpack") }.configureEach {
+        project.tasks.withType(KotlinWebpack::class.java).configureEach {
             enabled = false
             setDependsOn(emptyList<Any>())
         }
-        project.tasks.named("jsBrowserDistribution").configure {
-            enabled = false
-            setDependsOn(listOf(bundle))
-        }
-        project.tasks.named("assemble").configure { dependsOn(bundle) }
+        project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).configure { dependsOn(bundle) }
+        project.publishOutput(OutputKind.BrowserBundle, project.layout.projectDirectory.dir(output), producer = bundle)
         return bundle
     }
 }

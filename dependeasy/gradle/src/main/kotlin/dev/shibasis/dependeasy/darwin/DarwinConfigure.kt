@@ -24,7 +24,7 @@ fun KotlinMultiplatformExtension.darwin(configuration: DarwinConfigure.() -> Uni
     val native = project.nativeConfigurationOrNull
     val dependencies = native?.takeIf { it.isEnabled }?.let { project.nativeProjectDependencies() }.orEmpty()
     val builds = listOf("iphoneos", "iphonesimulator").associateWith(project::darwinCmake)
-    if (builds.values.all { it != null }) project.tasks.named("build") { dependsOn(builds.values) }
+    if (builds.values.all { it != null }) project.tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.BUILD_TASK_NAME) { dependsOn(builds.values) }
 
     listOf(iosSimulatorArm64(), iosArm64()).forEach { target ->
         val sdk = if (target.name.lowercase().contains("simulator")) "iphonesimulator" else "iphoneos"

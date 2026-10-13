@@ -28,7 +28,7 @@ internal class ProtobufKernel(private val project: Project, private val entry: S
         }
         project.extensions.getByType<JavaPluginExtension>().sourceSets.getByName("main").java
             .srcDir(generation.flatMap { it.destination })
-        project.tasks.matching { it.name == "compileKotlin" }.configureEach { dependsOn(generation) }
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach { dependsOn(generation) }
     }
 
     private fun classifier(): String {

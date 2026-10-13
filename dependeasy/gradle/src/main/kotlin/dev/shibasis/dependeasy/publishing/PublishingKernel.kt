@@ -1,5 +1,10 @@
 package dev.shibasis.dependeasy.publishing
 
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.workspace.WorkspaceTargetTask
+import org.gradle.api.publish.maven.tasks.PublishToMavenLocal
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
 import org.gradle.api.publish.PublishingExtension
@@ -11,7 +16,6 @@ internal class PublishingKernel(
     private val group: String,
     private val version: Provider<String>,
     private val repositories: List<PublicationRepository>,
-    private val builds: List<String>,
 ) {
     fun install() {
         require(project == project.rootProject) { "Declare publications at the workspace root" }
@@ -33,16 +37,23 @@ internal class PublishingKernel(
                 }
             }
         }
-        aggregate("publishToGithubPackages", "publish")
-        aggregate("publishToMavenLocal", "publishToMavenLocal")
+        aggregate("publishToGithubPackages", Publication.Remote, PublishToMavenRepository::class.java)
+        aggregate("publishToMavenLocal", Publication.Local, PublishToMavenLocal::class.java)
     }
 
-    private fun aggregate(name: String, task: String) {
+    private fun aggregate(name: String, destination: Publication, type: Class<out org.gradle.api.Task>) {
+        val outputs = project.subprojects.map { module ->
+            val completed = module.tasks.register<WorkspaceTargetTask>("complete${destination.name}Publication") {
+                dependsOn(module.tasks.withType(type))
+            }
+            module.publishOutput(OutputKind.PublishedModules, completed.flatMap { it.completionManifest }, destination, producer = completed)
+            project.resolve(OutputHandle(project.dependencies.project(mapOf("path" to module.path)),
+                project.name, module.path, OutputKind.PublishedModules, listOf(destination.name)))
+        }
         project.tasks.register(name) {
             group = "publishing"
-            description = "Publish the workspace and declared included builds"
-            dependsOn(project.subprojects.map { "${it.path}:$task" })
-            dependsOn(builds.map { project.gradle.includedBuild(it).task(":$task") })
+            description = "Publish the workspace modules"
+            dependsOn(outputs)
         }
     }
 }

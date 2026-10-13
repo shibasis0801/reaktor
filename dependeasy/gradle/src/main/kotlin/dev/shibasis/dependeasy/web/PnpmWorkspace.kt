@@ -3,6 +3,8 @@ package dev.shibasis.dependeasy.web
 import dev.shibasis.dependeasy.process.CommandTask
 import dev.shibasis.dependeasy.toolchain.JavaScriptTools
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
+import dev.shibasis.dependeasy.handles.publishOutput
+import dev.shibasis.dependeasy.model.OutputKind
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import java.io.File
@@ -48,6 +50,11 @@ class PnpmWorkspace private constructor(private val project: Project) {
             outputFiles.from(directory.resolve("pnpm-lock.yaml"))
             outputs.upToDateWhen { false }
         }
+    }
+
+    init {
+        project.publishOutput(OutputKind.JavaScriptInstallation,
+            directory.resolve("node_modules/.modules.yaml"), producer = install)
     }
 
     companion object {

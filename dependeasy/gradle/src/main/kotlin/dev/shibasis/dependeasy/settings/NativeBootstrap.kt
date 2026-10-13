@@ -1,5 +1,8 @@
 package dev.shibasis.dependeasy.settings
 
+import dev.shibasis.dependeasy.handles.Tools
+import dev.shibasis.dependeasy.model.ToolHandle
+import org.gradle.api.tasks.TaskProvider
 import dev.shibasis.dependeasy.dag.BuildPipeline
 import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
 import dev.shibasis.dependeasy.tasks.CmakePlatform
@@ -9,10 +12,14 @@ import dev.shibasis.dependeasy.toolchain.NativeSources
 
 /** Registers optional native preparation. Settings evaluation performs no I/O or builds. */
 internal class NativeBootstrap(private val project: Project) {
+    val sourceTasks = linkedMapOf<ToolHandle, TaskProvider<GitSourceTask>>()
+    lateinit var hermesCompiler: TaskProvider<KotlinCMakeTask>
+        private set
     fun register() = with(project) {
         if (!rootDir.resolve("dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/NativeSources.kt").isFile) return@with
         val pipeline = BuildPipeline(this, "nativeTools")
-        val sources = mapOf("flatbuffers" to NativeSources.flatbuffers, "hermes" to NativeSources.hermes).mapValues { (name, source) ->
+        val sources = mapOf(Tools.Flatbuffers to NativeSources.flatbuffers, Tools.Hermes to NativeSources.hermes).mapValues { (tool, source) ->
+            val name = tool.name
             tasks.register<GitSourceTask>("prepare${name.replaceFirstChar(Char::uppercaseChar)}Source") {
                 group = "dependeasy"
                 repository.set(source.first)
@@ -20,7 +27,8 @@ internal class NativeBootstrap(private val project: Project) {
                 checkout.set(layout.projectDirectory.dir(".github_modules/$name"))
             }
         }
-        val hermes = sources.getValue("hermes")
+        sourceTasks.putAll(sources)
+        val hermes = sources.getValue(Tools.Hermes)
         val compiler = tasks.register<KotlinCMakeTask>("buildHermesHostCompiler") {
             group = "dependeasy"
             dependsOn(hermes)
@@ -54,6 +62,9 @@ internal class NativeBootstrap(private val project: Project) {
                 "-DHERMES_ENABLE_TEST_SUITE=OFF", "-DHERMES_ENABLE_DEBUGGER=OFF",
             ))
         }
-        pipeline.target("prepareNativeTools", pipeline.node(compiler).after(pipeline.node(hermes)), pipeline.node(sources.getValue("flatbuffers")))
+        hermesCompiler = compiler
+        pipeline.target("prepareNativeTools", pipeline.node(compiler).after(pipeline.node(hermes)), pipeline.node(sources.getValue(Tools.Flatbuffers)))
     }
 }
+
+internal val Project.nativeTools get() = rootProject.extensions.getByType(NativeBootstrap::class.java)

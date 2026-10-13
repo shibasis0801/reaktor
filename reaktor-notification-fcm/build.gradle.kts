@@ -16,7 +16,7 @@ dependeasy {
     module("dev.shibasis.reaktor.notification.fcm") {
         common {
             dependencies {
-                api(project(":reaktor-notification"))
+                api(projects.reaktorNotification)
                 commonCoroutines()
             }
         }

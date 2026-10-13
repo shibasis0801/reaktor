@@ -31,7 +31,7 @@ internal fun Project.springDefaults() {
 }
 
 internal fun Project.springImage(image: String, configuration: BootBuildImage.() -> Unit) =
-    tasks.named("bootBuildImage", BootBuildImage::class.java) {
+    tasks.withType(BootBuildImage::class.java).configureEach {
         builder.set(ToolchainVersions.BuildpackBuilder)
         runImage.set(ToolchainVersions.BuildpackRunImage)
         pullPolicy.set(PullPolicy.IF_NOT_PRESENT)

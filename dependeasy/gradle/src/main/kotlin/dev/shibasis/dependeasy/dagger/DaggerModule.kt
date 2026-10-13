@@ -9,13 +9,18 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.register
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.model.OutputKind
 
 class DaggerModule internal constructor(private val project: Project, private val targets: Map<String, BuildTarget>) {
     var className = project.name.replaceFirstChar(Char::uppercaseChar)
     var browserImage = "mcr.microsoft.com/playwright:v1.64.0-noble"
     val gradleProperties = linkedMapOf<String, String>()
 
-    internal fun register(directory: Any): org.gradle.api.tasks.TaskProvider<GenerateDaggerTask> {
+    fun <T : Any> option(option: BuildOption<T>, value: T) { gradleProperties[option.name] = value.toString() }
+
+    internal fun register(directory: Any): NodeHandle {
         fun generation(name: String, output: Any, config: Any) = project.tasks.register<GenerateDaggerTask>(name) {
             group = "code generation"
             moduleName.set(className)
@@ -39,15 +44,15 @@ class DaggerModule internal constructor(private val project: Project, private va
                         "build-tools/${ToolchainVersions.AndroidBuildTools}", "ndk/${ToolchainVersions.Ndk}", "cmake/${ToolchainVersions.Cmake}"),
                 ),
             )))
-            declarations.set(targets.values.map { BuildModelReader.encode(it.model()) })
-            edges.set(targets.values.flatMap { it.edges() }.map { BuildModelReader.json.encodeToString(it) })
+            declarations.set(project.provider { targets.values.map { BuildModelReader.encode(it.model()) } })
+            edges.set(project.provider { targets.values.flatMap { it.edges() }.map { BuildModelReader.json.encodeToString(it) } })
             runtimeSource.set(project.rootDir.resolve("../reaktor/dependeasy/dagger/runtime.ts"))
             outputDirectory.set(project.file(output))
         }
         val reference = generation("generateDaggerReference", project.layout.buildDirectory.dir("dependeasy/dagger-reference/src"),
             project.layout.buildDirectory.file("dependeasy/dagger-reference/dagger.json"))
         val generated = generation("generateDagger", project.file(directory).resolve("src"), "dagger.json")
-        project.tasks.register<VerifyDaggerTask>("verifyDagger") {
+        val verification = project.tasks.register<VerifyDaggerTask>("verifyDagger") {
             group = "verification"
             mustRunAfter(generated)
             expected.set(reference.flatMap { it.outputDirectory })
@@ -55,6 +60,6 @@ class DaggerModule internal constructor(private val project: Project, private va
             expectedConfiguration.set(reference.flatMap { it.moduleConfiguration })
             actualConfiguration.set(project.layout.projectDirectory.file("dagger.json"))
         }
-        return generated
+        return project.node(verification, OutputKind.VerificationResults)
     }
 }

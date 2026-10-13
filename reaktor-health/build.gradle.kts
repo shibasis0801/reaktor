@@ -9,7 +9,7 @@ dependeasy {
     module("dev.shibasis.reaktor.health") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
+                api(projects.reaktorCore)
                 commonCoroutines()
             }
         }

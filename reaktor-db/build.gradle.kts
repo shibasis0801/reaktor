@@ -6,7 +6,7 @@ dependeasy {
     module("dev.shibasis.reaktor.db") {
         common {
             dependencies {
-                api(project(":reaktor-io"))
+                api(projects.reaktorIo)
                 api(Versions.Data.SqlDelight)
                 api(Versions.Data.Apollo)
             }
@@ -36,7 +36,7 @@ dependeasy {
             dependencies {
                 implementation(Versions.Data.SqlDelightJdbc)
                 implementation(Versions.Data.SqlDelightSQLite)
-                api(project(":reaktor-service"))
+                api(projects.reaktorService)
                 api(Versions.Data.Neo4j)
                 implementation(Versions.Kotlin.CoroutinesJdk8)
                 // Exposed/Postgres for the service DB helpers (ExposedAdapter/CrudRepository).
@@ -56,14 +56,4 @@ dependeasy {
         }
     }
 
-    // The React facade consumes the compiler's ES module, alongside the shipped worker resource.
-    tasks.named("jsBrowserProductionLibraryDistribution") {
-        doLast {
-            copy {
-                from(layout.buildDirectory.dir("compileSync/js/main/productionLibrary/kotlin"))
-                into(layout.projectDirectory.dir("ts/export"))
-                include("reaktor-reaktor-db.*")
-            }
-        }
-    }
 }

@@ -24,12 +24,12 @@ class StableRuntimeTest {
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
             plugins { java; id("dev.shibasis.dependeasy.pipeline") }
-            tasks.register<JavaExec>("launch") {
+            val launch = tasks.register<JavaExec>("launch") {
                 classpath = files(tasks.jar) + configurations.runtimeClasspath.get()
                 mainClass.set("Fixture")
                 args(providers.gradleProperty("fixtureFail").get())
             }
-            dependeasy.stableRuntime("launch", layout.buildDirectory.dir("runtime").get().asFile)
+            dependeasy.stableRuntime(launch, layout.buildDirectory.dir("runtime").get().asFile)
         """.trimIndent())
         val leases = directory.resolve("build/runtime/launches")
         assertContains(runner().build().output, "fixture launched")

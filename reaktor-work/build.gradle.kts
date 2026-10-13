@@ -5,9 +5,9 @@ dependeasy {
     module("dev.shibasis.reaktor.work") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
-                api(project(":reaktor-graph-runtime"))
-                api(project(":reaktor-auth-core"))
+                api(projects.reaktorCore)
+                api(projects.reaktorGraphRuntime)
+                api(projects.reaktorAuthCore)
             }
             testDependencies {
                 implementation(Versions.Kotlin.CoroutinesTest)

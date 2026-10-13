@@ -23,14 +23,12 @@ internal class ProfileKernel(private val project: Project, private val declarati
         project.tasks.register<JavaExec>(declaration.name) {
             group = "benchmark"
             description = "Profile ${declaration.mainClass}"
-            dependsOn("jvmMainClasses")
             javaLauncher.set(project.extensions.getByType<JavaToolchainService>().launcherFor {
                 languageVersion.set(JavaLanguageVersion.of(ToolchainVersions.Java))
             })
             mainClass.set(declaration.mainClass)
             classpath = project.files(main.output.allOutputs, main.runtimeDependencyFiles)
             if (declaration.fixtures) {
-                dependsOn("jvmTestClasses")
                 val test = target.compilations.getByName("test")
                 classpath += project.files(test.output.allOutputs, test.runtimeDependencyFiles)
             }

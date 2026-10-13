@@ -40,24 +40,22 @@ internal class JvmBenchmarkKernel(private val project: Project, private val work
             }
         }
         project.tasks.withType(Jar::class.java).configureEach {
-            if (name == "jvmBenchmarkBenchmarkJar") exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+            if (archiveClassifier.orNull == "JMH") exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
         }
         allocations()
     }
 
     private fun allocations() {
         val report = project.layout.buildDirectory.file("reports/benchmarks/jvm-jmh-gc.json")
-        val jar = project.layout.buildDirectory.dir("benchmarks/jvmBenchmark/jars").map { directory ->
-            project.fileTree(directory).matching { include("*-JMH.jar") }.singleFile
-        }
+        val jarTasks = project.tasks.withType(Jar::class.java).matching { it.archiveClassifier.orNull == "JMH" }
+        val jars = project.files(jarTasks.map { it.archiveFile }).builtBy(jarTasks)
         project.tasks.register<JavaExec>(workload.allocationTask) {
             group = "benchmark"
             description = "Run JMH with its allocation profiler"
-            dependsOn("jvmBenchmarkBenchmarkJar")
             javaLauncher.set(project.extensions.getByType<JavaToolchainService>().launcherFor {
                 languageVersion.set(JavaLanguageVersion.of(ToolchainVersions.Java))
             })
-            classpath = project.files(jar)
+            classpath = jars
             mainClass.set("org.openjdk.jmh.Main")
             jvmArgs("-Xms1g", "-Xmx1g")
             args(workload.pattern, "-f", workload.forks, "-wi", workload.warmups, "-i", workload.iterations,

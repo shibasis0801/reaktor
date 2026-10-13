@@ -22,9 +22,9 @@ dependeasy {
     kotlin {
         common {
             dependencies = {
-                api(project(":reaktor-core"))
-                api(project(":reaktor-io"))
-                api(project(":flatinvoker-core"))
+                api(projects.reaktorCore)
+                api(projects.reaktorIo)
+                api(projects.flatinvokerCore)
             }
         }
 

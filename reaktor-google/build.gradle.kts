@@ -11,8 +11,8 @@ dependeasy {
     module("dev.shibasis.reaktor.google") {
         common {
             dependencies {
-                api(project(":reaktor-auth"))
-                api(project(":reaktor-work"))
+                api(projects.reaktorAuth)
+                api(projects.reaktorWork)
             }
         }
         android {}
@@ -27,7 +27,7 @@ dependeasy {
                 implementation(Versions.Google.Drive)
                 implementation(Versions.Google.YouTube)
                 api(Versions.Google.Auth)
-                implementation(project(":reaktor-crypto"))
+                implementation(projects.reaktorCrypto)
             }
             testDependencies {
                 implementation(Versions.Data.MockWebServer)

@@ -7,7 +7,7 @@ dependeasy {
     module("dev.shibasis.reaktor.location") {
         common {
             dependencies {
-                api(project(":reaktor-ui"))
+                api(projects.reaktorUi)
             }
         }
 

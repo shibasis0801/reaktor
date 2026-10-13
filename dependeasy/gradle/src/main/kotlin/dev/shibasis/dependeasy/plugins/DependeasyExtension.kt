@@ -7,6 +7,7 @@ import dev.shibasis.dependeasy.native.CMakeBuild
 import dev.shibasis.dependeasy.dag.BuildPipeline
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.web.KotlinBrowser
+import dev.shibasis.dependeasy.web.kotlinNodeTests
 import dev.shibasis.dependeasy.darwin.SwiftPackagePipeline
 import dev.shibasis.dependeasy.darwin.appleLibrary
 import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
@@ -20,9 +21,10 @@ import dev.shibasis.dependeasy.codegen.pulumiSdk
 import dev.shibasis.dependeasy.process.CommandTask
 import dev.shibasis.dependeasy.process.nodeScript
 import dev.shibasis.dependeasy.process.command
-import dev.shibasis.dependeasy.configuration.localProperty
+import dev.shibasis.dependeasy.configuration.option
+import dev.shibasis.dependeasy.handles.moduleOutputs
+import dev.shibasis.dependeasy.model.BuildOption
 import dev.shibasis.dependeasy.configuration.releaseProperty
-import dev.shibasis.dependeasy.web.kotlinNodeTests
 import dev.shibasis.dependeasy.desktop.stableRuntime
 import dev.shibasis.dependeasy.provenance.SourceIdentityTask
 import dev.shibasis.dependeasy.provenance.identityResources
@@ -62,7 +64,7 @@ open class DependeasyExtension internal constructor(
         dev.shibasis.dependeasy.publishing.Publications(project).apply(configuration).also { it.install() }
     fun module(namespace: String, configure: dev.shibasis.dependeasy.module.MultiplatformModule.() -> Unit) =
         dev.shibasis.dependeasy.module.MultiplatformModule(project, namespace).apply(configure)
-    fun compose(stability: Any? = null, reports: String? = null) =
+    fun compose(stability: Any? = null, reports: BuildOption<Boolean>? = null) =
         project.composeConfiguration(stability, reports)
     fun androidApplication(id: String, configuration: com.android.build.api.dsl.ApplicationExtension.() -> Unit = {}) =
         project.androidApplication(id, configuration)
@@ -74,12 +76,18 @@ open class DependeasyExtension internal constructor(
     fun jvmClasspath(name: String, output: String, compilation: String = "test") =
         project.jvmClasspath(name, output, compilation)
     fun testClasses(vararg patterns: String) = project.testClasses(patterns)
-    fun localProperty(name: String) = project.localProperty(name)
-    fun releaseProperty(name: String) = project.releaseProperty(name)
-    fun kotlinNodeTests(vararg imports: Any) = project.kotlinNodeTests(*imports)
+    fun <T : Any> option(option: BuildOption<T>) = project.option(option)
+    fun releaseProperty(option: BuildOption<Boolean>) = project.releaseProperty(option)
     fun dependencyBoundary(name: String, configuration: String = "jvmRuntimeClasspath", policy: DependencyBoundary.() -> Unit) =
         project.dependencyBoundary(name, configuration, policy)
-    fun stableRuntime(task: String = "run", directory: Any) = project.stableRuntime(task, project.file(directory))
+    fun kotlinNodeTests(vararg imports: Any) = project.kotlinNodeTests(*imports)
+    fun stableRuntime(task: TaskProvider<out org.gradle.api.tasks.JavaExec>? = null, directory: Any) {
+        val location = project.file(directory)
+        if (task != null) project.stableRuntime(task, location)
+        else project.afterEvaluate {
+            project.stableRuntime(project.tasks.named(org.gradle.api.plugins.ApplicationPlugin.TASK_RUN_NAME, org.gradle.api.tasks.JavaExec::class.java), location)
+        }
+    }
 
     fun sourceIdentity(name: String, fileName: String, configuration: SourceIdentityTask.() -> Unit): TaskProvider<SourceIdentityTask> =
         project.tasks.register<SourceIdentityTask>(name) {
@@ -175,7 +183,7 @@ open class DependeasyExtension internal constructor(
         @JvmStatic
         fun create(project: Project): DependeasyExtension =
             project.extensions.findByType(DependeasyExtension::class.java)
-                ?: project.extensions.create("dependeasy", DependeasyExtension::class.java, project)
+                ?: project.extensions.create("dependeasy", DependeasyExtension::class.java, project).also { project.moduleOutputs() }
 
         @JvmStatic
         fun get(project: Project) = project.extensions.getByName("dependeasy") as DependeasyExtension

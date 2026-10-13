@@ -1,5 +1,8 @@
 package dev.shibasis.dependeasy.plugins
 
+import dev.shibasis.dependeasy.configuration.FrameworkOptions
+import dev.shibasis.dependeasy.configuration.resolve
+import dev.shibasis.dependeasy.model.OptionSource
 import dev.shibasis.dependeasy.android.configureAndroidPublishing
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -34,8 +37,8 @@ class ApplicationPlugin: Plugin<Project> {
      * is the honest signal. `reaktor.crashlytics=true|false` overrides in either direction.
      */
     private fun Project.wantsCrashlytics(): Boolean {
-        providers.gradleProperty("reaktor.crashlytics").orNull
-            ?.let { return it.toBoolean() }
+        val requested = resolve(FrameworkOptions.Crashlytics).get()
+        if (requested.evidence.source != OptionSource.Default) return requested.value
         // The two places the Google Services plugin looks: beside the module, and under a
         // variant's source set.
         return file("google-services.json").exists() ||

@@ -1,5 +1,8 @@
 package dev.shibasis.dependeasy.desktop
 
+import dev.shibasis.dependeasy.handles.output
+import dev.shibasis.dependeasy.handles.outputFiles
+import dev.shibasis.dependeasy.model.OutputKind
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.module.jvmExecution
 import org.gradle.api.Project
@@ -56,7 +59,7 @@ internal fun Project.packagedRuntimeTest(name: String, main: String, compilation
     }
     tasks.register<PackagedRuntimeTest>(name) {
         group = "verification"
-        dependsOn("createDistributable", execution.classes)
+        dependsOn(outputFiles(output(project.dependencies.project(mapOf("path" to project.path)) as org.gradle.api.artifacts.ProjectDependency, OutputKind.JvmDistribution)), execution.classes)
         mainClass.set(main)
         javaLauncher.set(launcher)
         probeClasspath.from(execution.output)

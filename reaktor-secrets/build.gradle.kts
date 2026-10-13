@@ -8,8 +8,8 @@ dependeasy {
     module("dev.shibasis.reaktor.secrets") {
         common {
             dependencies {
-                api(project(":reaktor-auth-core"))
-                api(project(":reaktor-core"))
+                api(projects.reaktorAuthCore)
+                api(projects.reaktorCore)
                 commonCoroutines()
                 commonSerialization(protobuf = false)
             }

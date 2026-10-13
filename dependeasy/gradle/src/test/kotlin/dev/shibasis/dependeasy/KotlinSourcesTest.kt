@@ -16,7 +16,7 @@ class KotlinSourcesTest {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"sourcesFixture\"")
         directory.resolve("build.gradle.kts").writeText("""
             plugins { id("dev.shibasis.dependeasy.pipeline") }
-            val fixtureEnabled = dependeasy.localProperty("enabled").map(String::toBoolean)
+            val fixtureEnabled = dependeasy.option(dev.shibasis.dependeasy.model.BuildOption.boolean("enabled"))
             dependeasy.kotlinObject("generateFlags", "fixture", "Flags") {
                 boolean("enabled", fixtureEnabled)
                 string("label", provider { "fixture" })

@@ -1,8 +1,12 @@
+import dev.shibasis.dependeasy.bootstrap.BootstrapLifecycle
+import dev.shibasis.dependeasy.bootstrap.bootstrapAttribute
 import dev.shibasis.dependeasy.bootstrap.VerifyBytecode
 import dev.shibasis.dependeasy.publishing.PublicationDefaults
 import dev.shibasis.dependeasy.toolchain.GradlePlugins
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
-import org.gradle.jvm.tasks.Jar
+import org.gradle.language.base.plugins.LifecycleBasePlugin
+import org.gradle.api.publish.plugins.PublishingPlugin
+import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 
 plugins {
     base
@@ -10,7 +14,7 @@ plugins {
 }
 
 group = "${PublicationDefaults.Group}.dependeasy"
-version = providers.gradleProperty("reaktorVersion").orElse(PublicationDefaults.Version).get()
+version = providers.gradleProperty(PublicationDefaults.VersionOptionName).orElse(PublicationDefaults.Version).get()
 
 subprojects {
     group = rootProject.group
@@ -45,13 +49,43 @@ subprojects {
     }
 }
 
-val verifyBytecode = tasks.register<VerifyBytecode>("verifyBytecode") {
-    jars.from(subprojects.map { it.tasks.named<Jar>("jar").flatMap { jar -> jar.archiveFile } })
+fun lifecycleInputs(lifecycle: BootstrapLifecycle, modules: List<Project> = subprojects.toList()): Configuration {
+    val name = lifecycle.task
+    return configurations.create("bootstrap${name.replaceFirstChar(Char::uppercase)}") {
+        isCanBeConsumed = false
+        isTransitive = false
+        attributes.attribute(bootstrapAttribute, name)
+        modules.forEach { dependencies.add(project.dependencies.project(mapOf("path" to it.path))) }
+    }
 }
-tasks.named("check") {
-    dependsOn(verifyBytecode, subprojects.map { "${it.path}:check" })
+val bytecodeJars = configurations.create("bootstrapJars") {
+    isCanBeConsumed = false
+    isTransitive = false
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+    }
+    subprojects.forEach { dependencies.add(project.dependencies.project(mapOf("path" to it.path))) }
 }
-tasks.named("assemble") { dependsOn(subprojects.map { "${it.path}:assemble" }) }
-tasks.register("test") { dependsOn(project(":gradle").tasks.named("test")) }
-tasks.register("publishToMavenLocal") { dependsOn(subprojects.map { "${it.path}:publishToMavenLocal" }) }
-tasks.register("publish") { dependsOn(subprojects.map { "${it.path}:publish" }) }
+val verifyBytecode = tasks.register<VerifyBytecode>("verifyBytecode") { jars.from(bytecodeJars) }
+val checks = lifecycleInputs(BootstrapLifecycle.Check)
+val assembly = lifecycleInputs(BootstrapLifecycle.Assemble)
+tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(verifyBytecode, checks) }
+tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(assembly) }
+val pluginTests = tasks.register(JavaPlugin.TEST_TASK_NAME) {
+    val result = layout.buildDirectory.file("dependeasy/plugin-tests.txt")
+    dependsOn(lifecycleInputs(BootstrapLifecycle.Test, listOf(project(projects.gradle.path))))
+    outputs.file(result)
+    doLast { result.get().asFile.apply { parentFile.mkdirs(); writeText("verified\n") } }
+}
+configurations.create("pluginVerification") {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+    attributes.attribute(Attribute.of("dependeasy.output", String::class.java), "VerificationResults:Plugin")
+    outgoing.artifact(layout.buildDirectory.file("dependeasy/plugin-tests.txt")) { builtBy(pluginTests) }
+}
+val localPublication = lifecycleInputs(BootstrapLifecycle.LocalPublication)
+val remotePublication = lifecycleInputs(BootstrapLifecycle.RemotePublication)
+tasks.register(MavenPublishPlugin.PUBLISH_LOCAL_LIFECYCLE_TASK_NAME) { dependsOn(localPublication) }
+tasks.register(PublishingPlugin.PUBLISH_LIFECYCLE_TASK_NAME) { dependsOn(remotePublication) }

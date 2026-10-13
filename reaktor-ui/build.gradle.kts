@@ -16,11 +16,11 @@ dependeasy {
     module("dev.shibasis.reaktor.ui") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
-                api(project(":reaktor-code"))
-                api(project(":reaktor-io"))
-                api(project(":reaktor-web"))
-                api(project(":reaktor-surface-compose"))
+                api(projects.reaktorCore)
+                api(projects.reaktorCode)
+                api(projects.reaktorIo)
+                api(projects.reaktorWeb)
+                api(projects.reaktorSurfaceCompose)
                 api(Versions.Compose.Runtime)
                 api(Versions.Compose.Foundation)
                 api(Versions.Compose.Material3)
@@ -67,7 +67,7 @@ dependeasy {
                 api(Versions.Compose.Desktop)
             }
             testDependencies {
-                implementation(project(":reaktor-performance"))
+                implementation(projects.reaktorPerformance)
             }
         }
     }

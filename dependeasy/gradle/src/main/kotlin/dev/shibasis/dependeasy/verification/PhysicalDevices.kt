@@ -1,18 +1,36 @@
 package dev.shibasis.dependeasy.verification
 
 import org.gradle.api.Project
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithSimulatorTests
 import org.jetbrains.kotlin.gradle.testing.internal.KotlinTestReport
 import org.gradle.api.tasks.testing.AbstractTestTask
 
 /** Device installation and UI checks run on the UI host; builds never boot simulators. */
 internal fun physicalDevicesOnly(project: Project) {
-    val simulatorTarget = Regex("iosSimulatorArm64|iosX64|tvosSimulatorArm64|watchosSimulatorArm64", RegexOption.IGNORE_CASE)
     project.allprojects.forEach { child ->
-        child.tasks.configureEach {
-            if (simulatorTarget.containsMatchIn(name) && name.contains("Test", ignoreCase = true)) {
-                enabled = false
-                setDependsOn(emptyList<Any>())
-            }
+        child.tasks.withType(KotlinNativeSimulatorTest::class.java).configureEach {
+            enabled = false
+            setDependsOn(emptyList<Any>())
+        }
+        child.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+            child.extensions.getByType(KotlinMultiplatformExtension::class.java).targets
+                .withType(KotlinNativeTargetWithSimulatorTests::class.java).configureEach {
+                    compilations.configureEach {
+                        if (name == KotlinCompilation.TEST_COMPILATION_NAME) compileTaskProvider.configure {
+                            enabled = false
+                            setDependsOn(emptyList<Any>())
+                        }
+                    }
+                    binaries.configureEach {
+                        if (compilation.name == KotlinCompilation.TEST_COMPILATION_NAME) linkTaskProvider.configure {
+                            enabled = false
+                            setDependsOn(emptyList<Any>())
+                        }
+                    }
+                }
         }
         child.afterEvaluate {
             tasks.withType(KotlinTestReport::class.java).configureEach {
@@ -27,11 +45,9 @@ internal fun physicalDevicesOnly(project: Project) {
     }
     project.gradle.projectsEvaluated {
         project.allprojects.forEach { child ->
-            child.tasks.configureEach {
-                if (simulatorTarget.containsMatchIn(name) && name.contains("Test", ignoreCase = true)) {
-                    enabled = false
-                    setDependsOn(emptyList<Any>())
-                }
+            child.tasks.withType(KotlinNativeSimulatorTest::class.java).configureEach {
+                enabled = false
+                setDependsOn(emptyList<Any>())
             }
         }
     }

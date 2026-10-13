@@ -1,3 +1,6 @@
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.configuration.FrameworkOptions
 import dev.shibasis.dependeasy.Versions
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
@@ -7,7 +10,7 @@ dependeasy {
     module("dev.shibasis.reaktor.web") {
         common {
             dependencies {
-                api(project(":reaktor-graph-runtime"))
+                api(projects.reaktorGraphRuntime)
             }
         }
 
@@ -35,7 +38,8 @@ dependeasy {
     val testBridge = bridge.check().also { it.configure { dependsOn(compileBridge) } }
     tasks.register("installWebBridge") { dependsOn(bridge.install) }
     tasks.register("compileWebBridge") { dependsOn(compileBridge) }
-    tasks.register("testWebBridge") { dependsOn(testBridge) }
+    val testedBridge = tasks.register("testWebBridge", dev.shibasis.dependeasy.workspace.WorkspaceTargetTask::class.java) { dependsOn(testBridge) }
+    publishOutput(OutputKind.VerificationResults, testedBridge.flatMap { it.completionManifest }, Verification.WebBridge, producer = testedBridge)
     kotlinTemplate("WebBridgeAssets") {
         namespace = "dev.shibasis.reaktor.web"
         from(compileBridge)
@@ -46,7 +50,7 @@ dependeasy {
     jvmEntryPoint("desktopWebViewProbe", "dev.shibasis.reaktor.web.DesktopWebViewProbeKt", compilation = "test") {
         jvmArgs("--enable-native-access=ALL-UNNAMED")
     }
-    if (providers.gradleProperty("reaktor.web.deviceProbe").orNull == "true") {
+    if (option(FrameworkOptions.DeviceProbe).get()) {
         (kotlin.targets.getByName("iosArm64") as KotlinNativeTarget).apply {
             binaries.framework("webViewProbe", listOf(NativeBuildType.DEBUG)) {
                 baseName = "ReaktorWebProbe"

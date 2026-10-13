@@ -6,7 +6,7 @@ import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
-internal fun Project.javascriptLibraryConsumer(library: TaskProvider<Task>) {
+internal fun Project.javascriptLibraryConsumer(library: TaskProvider<out Task>) {
     extensions.getByType(KotlinMultiplatformExtension::class.java).targets.configureEach {
         if (platformType == KotlinPlatformType.js) compilations.configureEach {
             compileTaskProvider.configure { dependsOn(library) }

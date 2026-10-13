@@ -1,25 +1,26 @@
+import dev.shibasis.dependeasy.handles.Tools
 import dev.shibasis.dependeasy.Versions
 plugins { id("dev.shibasis.dependeasy.library") }
 
 dependeasy {
     nativeLibrary { includeDirs(rootProject.file(".github_modules/flatbuffers/include")) }
     module("dev.shibasis.reaktor.flexbuffer") {
-        common { dependencies { api(project(":reaktor-core")) } }
+        common { dependencies { api(projects.reaktorCore) } }
         android {
             dependencies {
-                api(project(":reaktor-io"))
+                api(projects.reaktorIo)
                 implementation(Versions.Native.Flatbuffers)
             }
         }
         jvm {}; web {}; apple {}
     }
-    kotlinProcessor(project(":reaktor-compiler")) {
+    kotlinProcessor(projects.reaktorCompiler) {
         option("reaktor.flexcoder.registrar.package", "dev.shibasis.reaktor.flexbuffer.generated")
         option("reaktor.flexcoder.registrar.object", "ReaktorFlexbufferCoders")
     }
     benchmarks {
         cpp("flexbuffer_bench", property = "flexbuffer.reference") {
-            sourceLibrary("flatbuffers", includeVariable = "FLATBUFFERS_INCLUDE_DIR")
+            sourceLibrary(Tools.Flatbuffers, includeVariable = "FLATBUFFERS_INCLUDE_DIR")
         }
         jvm(".*FlexBufferJmhBenchmark.*")
         apple("dev.shibasis.reaktor.flexbuffer.bench.iosBenchMain")

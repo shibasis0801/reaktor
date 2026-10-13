@@ -7,7 +7,7 @@ dependeasy {
     module("dev.shibasis.reaktor.performance") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
+                api(projects.reaktorCore)
                 commonSerialization()
             }
         }

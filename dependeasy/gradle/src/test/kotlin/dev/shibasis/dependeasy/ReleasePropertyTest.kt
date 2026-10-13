@@ -13,7 +13,7 @@ class ReleasePropertyTest {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"fixture\"")
         directory.resolve("build.gradle.kts").writeText("""
             plugins { id("dev.shibasis.dependeasy.pipeline") }
-            val devToolsEnabled = dependeasy.releaseProperty("bestbuds.devTools").map(String::toBoolean)
+            val devToolsEnabled = dependeasy.releaseProperty(dev.shibasis.dependeasy.model.BuildOption.boolean("bestbuds.devTools"))
             dependeasy.kotlinObject("generateFlags", "fixture", "Flags") {
                 boolean("devToolsEnabled", devToolsEnabled)
                 text("fixture", rootProject.file("fixture.json"), devToolsEnabled)

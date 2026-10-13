@@ -1,5 +1,9 @@
 package dev.shibasis.dependeasy.interop
 
+import dev.shibasis.dependeasy.handles.publishOutput
+import dev.shibasis.dependeasy.model.OutputKind
+import dev.shibasis.dependeasy.model.Verification
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 import dev.shibasis.dependeasy.codegen.KotlinObjectTask
 import dev.shibasis.dependeasy.plugins.DependeasyExtension
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
@@ -20,11 +24,11 @@ internal class InteropBuildKernel(private val project: Project, private val name
         val types = typescript.types()
         val bundle = typescript.vite()
         val checks = typescript.check()
-        val verification = "${name}TypeScriptVerify"
+        var verification: org.gradle.api.tasks.TaskProvider<out org.gradle.api.Task>? = null
         extension.dag("${name}TypeScript") {
             val typecheck = node(types)
             val production = node(bundle).after(typecheck)
-            target(verification, node(checks).after(production))
+            verification = target("${this@InteropBuildKernel.name}TypeScriptVerify", node(checks).after(production))
         }
         val source = project.layout.projectDirectory.file(project.file(directory).resolve("dist/${declaration.bundle}")
             .relativeTo(project.projectDir).invariantSeparatorsPath)
@@ -39,7 +43,9 @@ internal class InteropBuildKernel(private val project: Project, private val name
         project.extensions.getByType<KotlinMultiplatformExtension>().sourceSets.matching {
             it.name == "androidMain" || it.name == "iosMain"
         }.all { kotlin.srcDir(generation.flatMap { it.outputDirectory }) }
-        project.tasks.named("check") { dependsOn(verification) }
+        val checked = checkNotNull(verification)
+        project.publishOutput(OutputKind.VerificationResults, project.files(checked), Verification.InteropTypeScript, producer = checked)
+        project.tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME).configure { dependsOn(checked) }
         if (declaration.hostTests) project.interopHostTests(name, source.asFile, bundle)
     }
 

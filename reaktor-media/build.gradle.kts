@@ -8,9 +8,9 @@ dependeasy {
     module("dev.shibasis.reaktor.media") {
         common {
             dependencies {
-                api(project(":reaktor-service"))
-                api(project(":reaktor-ui"))
-                api(project(":reaktor-io"))
+                api(projects.reaktorService)
+                api(projects.reaktorUi)
+                api(projects.reaktorIo)
                 api(Versions.Compose.Coil)
                 api(Versions.Compose.CoilKtor)
             }

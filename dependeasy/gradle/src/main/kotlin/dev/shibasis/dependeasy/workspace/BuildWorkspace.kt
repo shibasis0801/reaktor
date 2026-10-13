@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.workspace
 
+import dev.shibasis.dependeasy.web.PnpmWorkspace
 import dev.shibasis.dependeasy.dag.BuildPipeline
 import dev.shibasis.dependeasy.dagger.DaggerModule
 import dev.shibasis.dependeasy.cloudflare.WorkerFleet
@@ -10,9 +11,13 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
+import dev.shibasis.dependeasy.handles.*
 
 class BuildWorkspace internal constructor(private val project: Project) {
     private val targets = linkedMapOf<String, BuildTarget>()
+    private val declaredTasks = linkedSetOf<NodeId>()
+    private val taskReferences = linkedSetOf<NodeId>()
+    private val pipelines = mutableListOf<BuildPipeline>()
     val graph = project.tasks.register<ExportBuildModelTask>("exportBuildModel") {
         group = "dependeasy"
         description = "Export declared build nodes, source sites and kernels without executing producers"
@@ -34,20 +39,26 @@ class BuildWorkspace internal constructor(private val project: Project) {
         remoteHostsFile.set(project.layout.buildDirectory.file("dependeasy/remote/hosts.json"))
     }
 
-    fun target(name: String, configure: BuildTarget.() -> Unit): TaskProvider<out Task> {
+    fun target(name: String, role: Workspace? = null, configure: BuildTarget.() -> Unit): NodeHandle {
         require(name.matches(Regex("[a-z][A-Za-z0-9]*"))) { "Use a camelCase target name: $name" }
         require(name !in targets) { "Duplicate build target: $name" }
         val target = BuildTarget(project, name, project.declarationSite()).apply(configure)
         require(target.invocation.isEmpty() && target.recipes.isEmpty()) { "Declare external invocations with external()" }
         add(target)
-        return project.tasks.register(name, WorkspaceTargetTask::class.java) {
+        val task = project.tasks.register(name, WorkspaceTargetTask::class.java) {
             group = "dependeasy"
-            dependsOn(target.dependencies)
+            dependsOn(project.provider { target.dependencies() })
+            mustRunAfter(target.ordering)
+            requirements.set(project.provider { target.requirements.map { BuildModelReader.json.encodeToString(it.get()) } })
         }
+        val handle = NodeHandle(NodeId(project.rootProject.name, project.path, name), task, outputKinds = target::outputKinds) { target.model().invocation }
+        if (role != null) project.publishRole(role, handle, task.flatMap { it.completionManifest })
+        return handle
     }
 
     private fun add(target: BuildTarget) {
         targets[target.name] = target
+        declaredTasks.add(NodeId(project.name, project.path, target.name))
         graph.configure {
             nodes.add(project.provider { BuildModelReader.encode(target.model()) })
             edges.addAll(project.provider { target.edges().map { BuildModelReader.json.encodeToString(it) } })
@@ -55,29 +66,36 @@ class BuildWorkspace internal constructor(private val project: Project) {
         }
     }
 
-    fun external(name: String, configure: BuildTarget.() -> Unit) {
+    fun external(name: String, configure: BuildTarget.() -> Unit): NodeHandle {
         require(name !in targets) { "Duplicate build target: $name" }
         val target = BuildTarget(project, name, project.declarationSite()).apply(configure)
         require(target.invocation.isNotEmpty() || target.recipes.isNotEmpty()) { "External target '$name' needs a command or recipe" }
         add(target)
+        return NodeHandle(NodeId(project.name, project.path, name), null, outputKinds = target::outputKinds) { target.model().invocation }
     }
 
-    fun verify(name: String, vararg paths: String, configure: BuildTarget.() -> Unit = {}) =
-        target(name) { effect = "verify"; tasks(*paths); configure() }
+    fun verify(name: String, role: Workspace? = null, configure: BuildTarget.() -> Unit = {}) =
+        target(name, role) { effect = Effect.Verify; configure() }
 
-    fun artifacts(name: String, vararg paths: String, configure: BuildTarget.() -> Unit = {}) =
-        target(name) { tasks(*paths); configure() }
+    fun artifacts(name: String, role: Workspace? = null, configure: BuildTarget.() -> Unit = {}) =
+        target(name, role) { exposesOutputs = true; configure() }
+
+    fun release(name: String, role: Workspace? = null, configure: BuildTarget.() -> Unit) = target(name, role, configure)
+    fun browserCheck(name: String, configure: BuildTarget.() -> Unit) = external(name) { effect = Effect.Verify; runner = Runner.Browser; configure() }
+
+    internal fun configure(node: NodeHandle, configuration: BuildTarget.() -> Unit) {
+        val target = targets.getValue(node.name).apply(configuration)
+        node.task?.configure { setDependsOn(listOf(project.provider { target.dependencies() })); mustRunAfter(target.ordering) }
+    }
 
     fun dagger(directory: Any = ".dagger", configure: DaggerModule.() -> Unit = {}) =
         DaggerModule(project, targets).apply(configure).register(directory)
 
     fun workers(configure: WorkerFleet.() -> Unit) = WorkerFleet(project).apply(configure).register(this)
 
-    fun includedBuild(name: String) {
-        val build = project.gradle.includedBuild(name)
+    fun includedBuild(handle: BuildHandle) {
         graph.configure {
-            includedModels.from(project.files(build.projectDir.resolve(BuildModelReader.RelativePath))
-                .builtBy(build.task(":exportBuildModel")))
+            includedModels.from(project.resolve(OutputHandle(handle.coordinate, handle.name, ":", OutputKind.DeclaredBuildModel, emptyList())))
         }
     }
 
@@ -91,10 +109,11 @@ class BuildWorkspace internal constructor(private val project: Project) {
         outputFile.set(file)
     }.also { generation ->
         graph.configure { mustRunAfter(generation) }
-        project.tasks.matching { it.name == "pnpmInstall" }.configureEach { dependsOn(generation) }
+        PnpmWorkspace.get(project).install.configure { dependsOn(generation) }
     }
 
     internal fun include(pipeline: BuildPipeline) {
+        pipelines.add(pipeline)
         graph.configure {
             nodes.addAll(project.provider { pipeline.modelNodes().map(BuildModelReader::encode) })
             edges.addAll(project.provider { pipeline.modelEdges().map { BuildModelReader.json.encodeToString(it) } })
@@ -102,11 +121,32 @@ class BuildWorkspace internal constructor(private val project: Project) {
         }
     }
 
+    internal fun reference(owner: Project, task: TaskProvider<out Task>, kind: OutputKind?) {
+        val id = NodeId(owner.rootProject.name, owner.path, task.name)
+        if (!taskReferences.add(id)) return
+        val site = owner.declarationSite()
+        graph.configure {
+            nodes.addAll(project.provider {
+                if (id in declaredTasks || pipelines.any { pipeline -> pipeline.modelNodes().any { it.id == id } }) emptyList() else {
+                    val producer = task.get()
+                    listOf(BuildModelReader.encode(Node(id, NodeKind.Kernel, task.name,
+                        if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
+                        HostRequirement(kind?.platform ?: HostPlatform.Portable), site, kernelRef(producer),
+                        Invocation.Gradle(listOf(producer.path)), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
+                        artifactFamily = kind?.family)))
+                }
+            })
+        }
+    }
+
     companion object {
         internal fun get(project: Project): BuildWorkspace {
             val root = project.rootProject
             return root.extensions.findByType(BuildWorkspace::class.java)
-                ?: BuildWorkspace(root).also { root.extensions.add("buildWorkspace", it) }
+                ?: BuildWorkspace(root).also {
+                    root.extensions.add("buildWorkspace", it)
+                    root.publishOutput(OutputKind.DeclaredBuildModel, it.graph.flatMap { task -> task.outputFile }, producer = it.graph)
+                }
         }
     }
 }

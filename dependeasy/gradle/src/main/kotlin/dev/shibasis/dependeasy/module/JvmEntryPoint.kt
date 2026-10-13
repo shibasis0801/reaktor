@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.module
 
 import dev.shibasis.dependeasy.Versions
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.TaskProvider
@@ -22,5 +23,5 @@ internal fun Project.jvmEntryPoint(name: String, main: String, compilation: Stri
         classpath = execution.classpath
         dependsOn(execution.classes)
         configuration()
-    }.also { task -> if (verify) tasks.named("check") { dependsOn(task) } }
+    }.also { task -> if (verify) tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(task) } }
 }

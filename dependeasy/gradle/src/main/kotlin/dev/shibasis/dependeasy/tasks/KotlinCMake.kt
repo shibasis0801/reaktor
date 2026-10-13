@@ -1,5 +1,8 @@
 package dev.shibasis.dependeasy.tasks
 
+import dev.shibasis.dependeasy.handles.publishOutput
+import dev.shibasis.dependeasy.model.Apple
+import dev.shibasis.dependeasy.model.OutputKind
 import dev.shibasis.dependeasy.dag.BuildPipeline
 import dev.shibasis.dependeasy.native.cmakeKernelSources
 import dev.shibasis.dependeasy.native.cmakeSources
@@ -9,12 +12,15 @@ import dev.shibasis.dependeasy.native.nativeProjectDependencies
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
-import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 
 fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>? {
     val taskName = "${platform.taskPrefix}CMake"
-    if (taskName in tasks.names) return tasks.named<KotlinCMakeTask>(taskName)
+    val key = KotlinCMakeTask::class.java.name
+    @Suppress("UNCHECKED_CAST")
+    val registered = if (extensions.extraProperties.has(key)) extensions.extraProperties.get(key) as MutableMap<String, TaskProvider<KotlinCMakeTask>>
+        else linkedMapOf<String, TaskProvider<KotlinCMakeTask>>().also { extensions.extraProperties.set(key, it) }
+    registered[platform.variant]?.let { return it }
     val native = nativeConfigurationOrNull?.takeIf { it.isEnabled } ?: return null
     val nativeDependencies = nativeProjectDependencies()
     val dependencyTasks = nativeDependencies.mapNotNull { dependency ->
@@ -39,6 +45,15 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
         includeNativeDependencies(nativeDependencies, dependencyTasks, platform)
         includePrefabs(prefabTasks)
         includeToolSources(project, native.resolvedCmakeLists, nativeDependencies, platform)
+    }
+    registered[platform.variant] = buildTask
+    if (platform is CmakePlatform.Darwin) {
+        val apple = when (platform.sdk) {
+            "iphoneos" -> Apple.IosArm64
+            "iphonesimulator" -> Apple.IosSimulatorArm64
+            else -> error("Unsupported Apple SDK ${platform.sdk}")
+        }
+        publishOutput(OutputKind.NativeLibrary, buildTask.flatMap { it.buildDirectory }, apple, producer = buildTask)
     }
     val pipeline = BuildPipeline(this, "${platform.taskPrefix}Native")
     val inputs = prefabTasks.map { pipeline.node(it.second) } + dependencyTasks.map { (dependency, task) ->

@@ -1,5 +1,8 @@
 package dev.shibasis.dependeasy.tasks
 
+import dev.shibasis.dependeasy.handles.Tools
+import dev.shibasis.dependeasy.handles.Reaktor
+import dev.shibasis.dependeasy.settings.nativeTools
 import dev.shibasis.dependeasy.native.NativeProjectDependency
 import org.gradle.api.Project
 import java.io.File
@@ -12,17 +15,18 @@ internal fun KotlinCMakeTask.includeToolSources(
 ) {
     val cmakeText = cmakeLists.readText()
     val sourceNames = buildList {
-        if (cmakeText.contains("flatbuffers", ignoreCase = true) || dependencies.any { "flexbuffer" in it.project.name }) add("flatbuffers")
-        if (cmakeText.contains("hermes", ignoreCase = true)) add("hermes")
+        if (cmakeText.contains(Tools.Flatbuffers.name, ignoreCase = true) || dependencies.any { it.project.path == Reaktor.Flexbuffer.path }) add(Tools.Flatbuffers)
+        if (cmakeText.contains(Tools.Hermes.name, ignoreCase = true)) add(Tools.Hermes)
     }
-    sourceNames.forEach { name ->
-        project.rootProject.tasks.findByName("prepare${name.replaceFirstChar(Char::uppercaseChar)}Source")?.let { dependsOn(it) }
+    sourceNames.forEach { tool ->
+        val name = tool.name
+        project.nativeTools.sourceTasks[tool]?.let { dependsOn(it) }
         sourceFiles.from(project.rootProject.fileTree(".github_modules/$name") {
             exclude(".git/**", "debug/**", "build/**")
         })
     }
-    if (platform is CmakePlatform.Darwin && "hermes" in sourceNames) {
-        dependsOn(project.rootProject.tasks.named("buildHermesHostCompiler"))
+    if (platform is CmakePlatform.Darwin && Tools.Hermes in sourceNames) {
+        dependsOn(project.nativeTools.hermesCompiler)
         configureArguments.add("-DHERMES_BUILD_DIR=${project.rootProject.layout.buildDirectory.dir("dependeasy/tools/hermes").get().asFile.absolutePath}")
     }
 }

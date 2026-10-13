@@ -39,8 +39,12 @@ class BuildLayoutTest {
         assertEquals(2, report.schema)
         assertEquals(mapOf("product" to ".", "framework" to "framework", "Other" to "other"),
             report.builds)
-        assertEquals(mapOf(":produceSite" to "web", ":validateContract" to "web", ":emitPackage" to "web"),
-            report.taskFamilies)
+        val expected = mapOf(":produceSite" to "web", ":validateContract" to "web", ":emitPackage" to "web")
+        assertEquals(expected, report.taskFamilies.filterKeys { it in expected })
+        val model = BuildModelReader.read(directory)
+        model.nodes.filter { it.artifactFamily != null }.forEach { node ->
+            assertEquals(node.artifactFamily, report.taskFamilies[node.id.project.trimEnd(':') + ":" + node.id.name])
+        }
         assertContains(run().output, "Reusing configuration cache")
     }
 }

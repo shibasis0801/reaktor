@@ -87,12 +87,13 @@ class BackendPipelineTest {
                 "packages/tool":{"name":"fixture-tool","version":"1.0.0"}}}
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 val tool = javascript("tool", "packages/tool")
                 dag("workspace") { target("installWorkspace", node(tool.install)) }
                 workspace {
-                    target("shipTool") { tasks(":installWorkspace"); worker = "fixture" }
+                    target("shipTool") { includes(node(tool.install)); worker = "fixture" }
                     packageScripts()
                 }
             }
@@ -252,27 +253,33 @@ class BackendPipelineTest {
         assertEquals("second", directory.resolve("web/dist/result.txt").readText())
     }
     @Test fun `Kotlin exports follow install without creating an installation cycle`() {
-        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"producerFixture\"\ninclude(\"library\")")
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"producerFixture\"\nenableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\")\ninclude(\"library\")")
         directory.resolve("package.json").writeText("""{"name":"producer-fixture","private":true}""")
         val source = directory.resolve("library/src/producer.js").apply {
             parentFile.mkdirs(); writeText("export const value = 42;\n")
         }
         directory.resolve("library/build.gradle.kts").writeText("""
-            tasks.register<Sync>("exportKotlinLibrary") {
-                dependsOn(":pnpmInstall")
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            val installation = dependeasy.javascript("producer").install
+            val exports = tasks.register<Sync>("exportKotlinLibrary") {
+                dependsOn(installation)
                 from("src/producer.js")
                 into(layout.buildDirectory.dir("producer"))
             }
+            publishOutput(OutputKind.KotlinJsLibrary, exports.map { it.destinationDir }, producer = exports)
         """.trimIndent())
         directory.resolve("verify.mjs").writeText("""
             import { readFileSync } from 'node:fs';
             if (!readFileSync('library/build/producer/producer.js', 'utf8').includes('export const value')) throw new Error('Missing producer');
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 val consumer = javascript("consumer") {
-                    kotlinLibraries("library")
+                    kotlinLibraries(kotlinJsLibrary(projects.library))
                     sources("verify.mjs", "library/build/producer/producer.js")
                 }
                 dag("exports") { target("verifyExports", node(consumer.command("verify", null, "exec", "node", "verify.mjs"))) }

@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.bootstrap.publishBootstrapOutputs
 import dev.shibasis.dependeasy.toolchain.BuildLibraries
 
 plugins { `kotlin-dsl`; `maven-publish` }
@@ -6,12 +7,12 @@ kotlin.sourceSets.main { kotlin.exclude("dev/shibasis/dependeasy/toolchain/Build
 val fixtureToolchain = configurations.create("fixtureToolchain")
 
 dependencies {
-    compileOnly(project(path = ":toolchain", configuration = "runtimeElements"))
-    implementation(project(":model"))
+    compileOnly(project(path = projects.toolchain.path, configuration = "runtimeElements"))
+    implementation(projects.model)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${BuildLibraries.Serialization}")
     implementation("org.yaml:snakeyaml:${BuildLibraries.SnakeYaml}")
-    testImplementation(project(path = ":toolchain", configuration = "runtimeElements"))
-    fixtureToolchain(project(path = ":toolchain", configuration = "runtimeElements"))
+    testImplementation(project(path = projects.toolchain.path, configuration = "runtimeElements"))
+    fixtureToolchain(project(path = projects.toolchain.path, configuration = "runtimeElements"))
     testImplementation(gradleTestKit())
     testImplementation(kotlin("test-junit5", embeddedKotlinVersion))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -42,3 +43,5 @@ tasks.test {
     workingDir(rootDir)
     inputs.dir(rootProject.file("checks"))
 }
+
+publishBootstrapOutputs()

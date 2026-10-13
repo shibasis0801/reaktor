@@ -8,6 +8,7 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.provider.Provider
 import org.gradle.api.services.BuildService
 import org.gradle.api.services.BuildServiceParameters
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.JavaExec
 import java.io.File
 import java.io.Serializable
@@ -26,12 +27,12 @@ abstract class RuntimeLeaseService : BuildService<RuntimeLeaseService.Parameters
     @Synchronized override fun close() { leases.values.forEach(RuntimeLease::close); leases.clear() }
 }
 
-internal fun Project.stableRuntime(task: String, directory: File) {
-    val lease = gradle.sharedServices.registerIfAbsent("$path:$task:runtime", RuntimeLeaseService::class.java) {
+internal fun Project.stableRuntime(task: TaskProvider<out JavaExec>, directory: File) {
+    val lease = gradle.sharedServices.registerIfAbsent("$path:${task.name}:runtime", RuntimeLeaseService::class.java) {
         parameters.directory.set(directory)
         parameters.downloadedArtifacts.set(gradle.gradleUserHomeDir.resolve("caches"))
     }
-    tasks.withType(JavaExec::class.java).matching { it.name == task }.configureEach {
+    task.configure {
         usesService(lease)
         doFirst(RetainClasspath(lease, objects.fileCollection()))
         doLast(ReleaseClasspath(lease))

@@ -1,14 +1,18 @@
 package dev.shibasis.dependeasy.web
 
 
+import dev.shibasis.dependeasy.handles.publishOutput
+import dev.shibasis.dependeasy.model.OutputKind
+import dev.shibasis.dependeasy.model.Verification
+import org.gradle.language.base.plugins.LifecycleBasePlugin
+import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsBinaryMode
+import org.jetbrains.kotlin.gradle.targets.js.ir.Library
+import org.jetbrains.kotlin.gradle.targets.js.npm.PublicPackageJsonTask
 import dev.shibasis.dependeasy.common.Configuration
 import org.gradle.api.Project
-import org.gradle.api.tasks.AbstractCopyTask
-import org.gradle.api.tasks.Sync
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.invoke
-import org.gradle.kotlin.dsl.named
 import org.gradle.language.jvm.tasks.ProcessResources
 import org.jetbrains.kotlin.gradle.dsl.JsSourceMapEmbedMode
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -70,9 +74,7 @@ fun KotlinMultiplatformExtension.web(
 
             testTask {
                 enabled = false
-            }
-            project.tasks.named { it == "checkComposeUiTestConfigurationForJs" }.configureEach {
-                enabled = false
+                setDependsOn(emptyList<Any>())
             }
 
         }
@@ -83,8 +85,11 @@ fun KotlinMultiplatformExtension.web(
             customizePackage?.invoke(this)
         }
         if (!project.pluginManager.hasPlugin("org.jetbrains.compose")) {
-            project.tasks.named<ProcessResources>(compilations["test"].processResourcesTaskName) {
-                from(project.skikoRuntime(compilations["test"])) { exclude("META-INF/**") }
+            val testCompilation = compilations["test"]
+            project.tasks.withType(ProcessResources::class.java).configureEach {
+                if (destinationDir == testCompilation.output.resourcesDir) {
+                    from(project.skikoRuntime(testCompilation)) { exclude("META-INF/**") }
+                }
             }
         }
 
@@ -96,28 +101,37 @@ fun KotlinMultiplatformExtension.web(
             doLast(context)
             outputs.upToDateWhen { context.matches() }
         }
-        project.tasks.withType(AbstractCopyTask::class.java).configureEach {
-            if (name.startsWith("jsBrowser") && name.endsWith("LibraryDistribution")) {
-                into(project.layout.buildDirectory.dir("dist/js/browser/$name"))
-            }
+        val mainCompilation = compilations["main"]
+        val packageJson = project.tasks.withType(PublicPackageJsonTask::class.java).matching {
+            it.compilationDisambiguatedName.get() == mainCompilation.disambiguatedName
         }
-        val production = project.tasks.named { it.startsWith("jsBrowser") && it.endsWith("ProductionLibraryDistribution") }
         val catalog = project.kotlinExportCatalog(project.file(configure.exportDirectory))
         val exports = project.tasks.register<KotlinPackageExport>("exportKotlinLibrary") {
             group = "dependeasy"
-            sourceFiles.from(production)
+            sourceFiles.from(packageJson.map { it.packageJsonFile })
+            dependsOn(packageJson)
             destination.set(project.layout.projectDirectory.dir(configure.exportDirectory))
-            dependencyDirectory.set(compilations["main"].npmProject.dir.map { it.dir("node_modules") })
+            dependencyDirectory.set(mainCompilation.npmProject.dir.map { it.dir("node_modules") })
             finalizedBy(catalog, configure.manifests)
         }
-        production.configureEach { finalizedBy(exports) }
-        configure.manifests.forEach { manifest -> manifest.configure { dependsOn(exports) } }
-    }
-    // KGP's subtarget distribution DSL changes every binary, including browser binaries.
-    project.tasks.withType(AbstractCopyTask::class.java).configureEach {
-        if (name.startsWith("jsNode") && name.endsWith("LibraryDistribution")) {
-            into(project.layout.buildDirectory.dir("dist/js/node/$name"))
+        mainCompilation.binaries.withType(Library::class.java).configureEach {
+            if (mode == KotlinJsBinaryMode.PRODUCTION) {
+                val sync = linkSyncTask
+                exports.configure { sourceFiles.from(sync.map { it.destinationDirectory.get() }); dependsOn(sync) }
+            }
+            distribution.outputDirectory.set(project.layout.buildDirectory.dir("dist/js/library/$name"))
         }
+        project.publishOutput(OutputKind.KotlinJsLibrary, exports.flatMap { it.destination }, producer = exports)
+        nodejs {
+            testRuns.configureEach {
+                if (name == org.jetbrains.kotlin.gradle.plugin.KotlinCompilation.TEST_COMPILATION_NAME) {
+                    project.publishOutput(OutputKind.VerificationResults, executionTask.map { it.reports.junitXml.outputLocation.get() },
+                        Verification.JavaScript, producer = executionTask)
+                }
+            }
+        }
+        project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).configure { dependsOn(exports) }
+        configure.manifests.forEach { manifest -> manifest.configure { dependsOn(exports) } }
     }
 
     sourceSets {

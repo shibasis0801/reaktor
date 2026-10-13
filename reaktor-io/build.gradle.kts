@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.configuration.FrameworkOptions
 import dev.shibasis.dependeasy.Versions
 import com.codingfeline.buildkonfig.compiler.FieldSpec
 import com.codingfeline.buildkonfig.gradle.BuildKonfigTask
@@ -16,7 +17,7 @@ dependeasy {
     module("dev.shibasis.reaktor.io") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
+                api(projects.reaktorCore)
                 api(Versions.Kotlin.Io)
             }
             testDependencies {
@@ -42,8 +43,8 @@ dependeasy {
 
 
     dependencies {
-        add("kspCommonMainMetadata", project(":reaktor-compiler"))
-        add("kspJs", project(":reaktor-compiler"))
+        add("kspCommonMainMetadata", projects.reaktorCompiler)
+        add("kspJs", projects.reaktorCompiler)
     }
 
     buildkonfig {
@@ -51,11 +52,11 @@ dependeasy {
         objectName = "BuildKonfig"
 
         defaultConfigs {
-            buildConfigField(FieldSpec.Type.STRING, "SERVER", providers.gradleProperty("reaktor.server.host").orElse("0.0.0.0").get())
+            buildConfigField(FieldSpec.Type.STRING, "SERVER", option(FrameworkOptions.ServerHost).get())
         }
     }
 
-    tasks.getByName("build").dependsOn(tasks.withType<BuildKonfigTask>())
+    tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.BUILD_TASK_NAME) { dependsOn(tasks.withType<BuildKonfigTask>()) }
 
     testClasses("**/*Test.class")
 }

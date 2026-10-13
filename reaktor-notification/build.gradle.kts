@@ -9,9 +9,9 @@ dependeasy {
     module("dev.shibasis.reaktor.notification") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
-                api(project(":reaktor-graph"))
-                api(project(":reaktor-ui"))
+                api(projects.reaktorCore)
+                api(projects.reaktorGraph)
+                api(projects.reaktorUi)
                 commonCoroutines()
                 commonSerialization()
             }
@@ -21,7 +21,7 @@ dependeasy {
 
         web {
             dependencies {
-                api(project(":reaktor-cloudflare"))
+                api(projects.reaktorCloudflare)
             }
         }
         jvm {}

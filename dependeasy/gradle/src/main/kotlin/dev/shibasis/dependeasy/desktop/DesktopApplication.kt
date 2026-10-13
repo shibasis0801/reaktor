@@ -1,5 +1,11 @@
 package dev.shibasis.dependeasy.desktop
 
+import dev.shibasis.dependeasy.configuration.FrameworkOptions
+import dev.shibasis.dependeasy.configuration.resolve
+import dev.shibasis.dependeasy.handles.publishOutput
+import dev.shibasis.dependeasy.model.OutputKind
+import dev.shibasis.dependeasy.model.OptionSource
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import dev.shibasis.dependeasy.Versions
 import org.gradle.api.Project
 import org.gradle.jvm.tasks.Jar
@@ -15,7 +21,7 @@ import org.jetbrains.compose.desktop.application.tasks.AbstractJPackageTask
 
 internal fun Project.desktopApplication(main: String, configuration: JvmApplication.() -> Unit) {
     val mac = System.getProperty("os.name").lowercase().contains("mac")
-    val sharing = providers.gradleProperty("reaktor.desktop.cds")
+    val sharing = resolve(FrameworkOptions.DesktopClassSharing)
     val application = extensions.getByType<ComposeExtension>().extensions.getByType<DesktopExtension>().application
     application.apply {
         mainClass = main
@@ -27,25 +33,28 @@ internal fun Project.desktopApplication(main: String, configuration: JvmApplicat
             "--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
         configuration()
         if (mac) jvmArgs("-Xdock:name=${nativeDistributions.packageName}")
-        if (sharing.orNull.toBoolean()) {
+        if (sharing.get().let { it.evidence.source != OptionSource.Default && it.value }) {
             val args = sharedClassArchive(jvmArgs, "${System.getProperty("user.home")}/.reaktor/cds", project.name)
             jvmArgs.clear()
             jvmArgs.addAll(args)
         }
     }
     tasks.withType<Jar>().configureEach {
-        if (name.contains("UberJar")) {
-            isZip64 = true
-            exclude("META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA", "META-INF/*.EC")
-        }
+        isZip64 = true
+        exclude("META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA", "META-INF/*.EC")
     }
     tasks.withType<AbstractJLinkTask>().configureEach {
-        retainJavaLauncher(javaHome, destinationDir, sharing.orElse("true").map(String::toBoolean))
+        retainJavaLauncher(javaHome, destinationDir, sharing.map { it.value })
     }
-    // Compose assigns launcher arguments in its own afterEvaluate callback.
+    val mainDistribution = application.nativeDistributions.outputBaseDir.dir("main/app")
+    val distributable = tasks.withType(AbstractJPackageTask::class.java).matching {
+        it.targetFormat == TargetFormat.AppImage && it.destinationDir.get().asFile == mainDistribution.get().asFile
+    }
+    val output = files(mainDistribution).builtBy(distributable)
+    publishOutput(OutputKind.JvmDistribution, output)
     afterEvaluate {
         tasks.withType<AbstractJPackageTask>().configureEach {
-            if (sharing.orElse("true").get().toBoolean()) {
+            if (sharing.get().value) {
                 val base = launcherJvmArgs.get()
                 val home = if (System.getProperty("os.name").startsWith("Windows")) "\$USERPROFILE" else "\$HOME"
                 launcherJvmArgs.set(files.elements.map { entries ->

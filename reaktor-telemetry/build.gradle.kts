@@ -7,9 +7,9 @@ dependeasy {
     module("dev.shibasis.reaktor.telemetry") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
+                api(projects.reaktorCore)
                 commonNetworking()
-                api(project(":reaktor-graph-runtime"))
+                api(projects.reaktorGraphRuntime)
                 api(Versions.Telemetry.Api)
                 api(Versions.Telemetry.Noop)
                 implementation(Versions.Telemetry.Implementation)

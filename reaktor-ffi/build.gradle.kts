@@ -8,8 +8,8 @@ dependeasy {
     module("dev.shibasis.reaktor.ffi") {
         common {
             dependencies {
-                api(project(":reaktor-core"))
-                api(project(":reaktor-flexbuffer"))
+                api(projects.reaktorCore)
+                api(projects.reaktorFlexbuffer)
             }
         }
         android {}
@@ -19,5 +19,5 @@ dependeasy {
     }
 
 
-    dependencies { add("kspCommonMainMetadata", project(":reaktor-compiler")) }
+    dependencies { add("kspCommonMainMetadata", projects.reaktorCompiler) }
 }

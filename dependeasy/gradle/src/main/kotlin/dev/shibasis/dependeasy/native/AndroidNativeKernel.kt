@@ -5,7 +5,6 @@ import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.tasks.droidCmake
 import dev.shibasis.dependeasy.tasks.registerPrefabTask
 import org.gradle.api.Project
-import org.gradle.api.tasks.Sync
 import org.gradle.kotlin.dsl.register
 
 /** Packages declared native outputs and the runtime from the compiler's own NDK. */
@@ -21,7 +20,7 @@ internal fun Project.configureAndroidNative() {
     val external = native.android.resolvedPrefabs.filter { it.runtimeDependency != it.dependencyNotation }
         .map { it to registerPrefabTask(it) }
     val output = layout.buildDirectory.dir("dependeasy/jniLibs")
-    val libraries = tasks.register<Sync>("copyNativeLibs") {
+    val libraries = tasks.register<NativeLibrariesTask>("copyNativeLibs") {
         dependsOn(builds)
         Versions.architectures.forEach { abi ->
             from(nativeBuildDirectory("android/$abi")) { include("*.so"); into(abi) }
@@ -32,14 +31,12 @@ internal fun Project.configureAndroidNative() {
                 }
             }
         }
-        into(output)
+        generatedDirectory.set(output)
     }
-    tasks.matching {
-        it.name != "copyNativeLibs" && (it.name.contains("JniLib", true) ||
-            it.name.contains("NativeLib", true) || it.name.contains("DebugSymbols", true))
-    }.configureEach { dependsOn(libraries) }
-    extensions.findByType(LibraryExtension::class.java)?.sourceSets?.getByName("main")?.jniLibs
-        ?.setSrcDirs(listOf(output.get().asFile))
+    extensions.getByType(com.android.build.api.variant.LibraryAndroidComponentsExtension::class.java).onVariants { variant ->
+        checkNotNull(variant.sources.jniLibs) { "Android native sources are unavailable for ${variant.name}" }
+            .addGeneratedSourceDirectory(libraries, NativeLibrariesTask::generatedDirectory)
+    }
 }
 
 private fun androidTriple(abi: String): String = when (abi) {

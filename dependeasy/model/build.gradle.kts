@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.bootstrap.publishBootstrapOutputs
 import dev.shibasis.dependeasy.toolchain.BuildLibraries
 
 plugins {
@@ -15,3 +16,5 @@ dependencies {
 
 publishing { publications.create<MavenPublication>("model") { from(components["java"]) } }
 tasks.test { useJUnitPlatform() }
+
+publishBootstrapOutputs()

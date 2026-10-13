@@ -25,7 +25,7 @@ dependeasy {
         common {
             dependencies {
                 commonCoroutines()
-                api(project(":reaktor-core"))
+                api(projects.reaktorCore)
             }
         }
 
@@ -37,5 +37,5 @@ dependeasy {
         }
         web {}
     }
-    kotlinProcessor(project(":reaktor-compiler"))
+    kotlinProcessor(projects.reaktorCompiler)
 }
