@@ -329,6 +329,31 @@ Two assertions are worth keeping beside the pictures, because pictures do not fa
 - **Click through from the empty state.** Start with nothing, tap what the empty state offers, and
   assert where you land. Entry points that live under a list do not exist when the list is empty.
 
+**Anything loaded off the drawing thread needs more than two frames.** A picture decodes on another
+dispatcher, so frame two shows the space left for it. Render until two frames in a row are
+identical instead of guessing a delay:
+
+```kotlin
+var last: ByteArray? = null
+for (frame in 1..60) {
+    Thread.sleep(50)
+    val now = scene.render(frame * 16_000_000L).peekPixels()!!.buffer.bytes
+    if (frame > 6 && last != null && now.contentEquals(last)) break
+    last = now
+}
+```
+
+**Make the content checkable, then check it.** "Is the photograph the right way up" is not a
+question a build can answer about a photograph. It can about a picture made in the test with a red
+band along its top and a blue one down its left: after drawing, find each colour's bounding box and
+assert which is wide and which is tall. Then take the orientation note out of the file and watch the
+assertion fail — a check that cannot fail was never checking.
+
+**The gap before it loads is a screen too.** On a loaded emulator a twelve-megapixel photograph
+took seconds to open, and the first screenshot was an empty viewer that looked exactly like a
+failure. A fast machine hides that state; a slow phone lives in it. Give it something — the small
+copy already decoded for the list, or a word.
+
 This is the shared layout, not Android's font metrics. It replaces staring at a phone for most of
 it and not for the last check.
 
