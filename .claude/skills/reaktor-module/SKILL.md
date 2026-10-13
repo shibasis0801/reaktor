@@ -14,14 +14,14 @@ Work down this ladder. Stop at the first answer.
 
 ## 1. Does an existing module already own it?
 
-Thirty-one modules exist. Check before building. This map is a starting point for the search, not
+Thirty-two modules exist. Check before building. This map is a starting point for the search, not
 a specification — open the module and read its sources before depending on what its name implies.
 
 | Concern | Modules |
 |---|---|
 | Graph, nodes, ports, navigation | `reaktor-core`, `reaktor-graph`, `reaktor-graph-port`, `reaktor-compiler` |
 | Reactive plumbing | `reaktor-flow`, `compose-flow` |
-| Files, storage, serialization | `reaktor-io`, `reaktor-db`, `reaktor-flexbuffer`, `reaktor-ffi` |
+| Files, storage, serialization | `reaktor-io`, `reaktor-db`, `reaktor-flexbuffer`, `reaktor-ffi`, `reaktor-pdf` |
 | UI and feedback | `reaktor-ui`, `reaktor-tactile`, `reaktor-media` |
 | Device capabilities | `reaktor-notification`, `reaktor-notification-fcm`, `reaktor-location`, `reaktor-sensors`, `reaktor-health`, `reaktor-work`, `reaktor-performance` |
 | Identity and secrets | `reaktor-auth`, `reaktor-crypto`, `reaktor-secrets`, `reaktor-security` |
@@ -216,6 +216,29 @@ Build every target before claiming it works:
 ```bash
 ./gradlew :reaktor-<name>:build
 ```
+
+**An npm package is imported the way this build emits modules, which is as ES modules.**
+`@JsModule("pkg")` on an `external val` compiles to a *default* import, and a package that only
+has named exports fails at load with `does not provide an export named 'default'` — in the test
+runner, not the compiler. Put the declarations in a file of their own and annotate the file; each
+external declaration is then a named import:
+
+```kotlin
+@file:JsModule("pdfjs-dist/legacy/build/pdf.mjs")
+package dev.shibasis.reaktor.pdf
+
+internal external fun getDocument(source: dynamic): dynamic
+```
+
+A new npm dependency also changes the yarn lock of **every build that includes this one**. The
+app's build fails with `Lock file was changed` until `./gradlew kotlinUpgradeYarnLock` is run
+there, and the updated lock is committed in both repositories.
+
+**When a capability is an interface and a slot, a missing platform is a missing class, not a
+broken build.** `reaktor-pdf` has no iOS reader and still compiles for iOS, because nothing in
+common code `expect`s one. That is the right shape when absence is ordinary — but it also means
+nothing tells you a platform was skipped, so the module's own table of who reads what has to say
+"not written" out loud.
 
 **And run the suites on every target, not the fast one.** `commonMain` compiles against a different
 regex engine on Kotlin/JS, and the difference is not a compile error — it is a `SyntaxError` thrown

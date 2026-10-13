@@ -266,6 +266,20 @@ The checks worth running at least once per app:
   links had *copy*, and a file had its name. Every transfer test passed, because each ended when
   the bytes arrived. And compose something of every kind from *inside* the app — if the only
   composer is a text field, the app sends text, whatever its share sheet accepts.
+- **Then do the wrong thing, and look for the way back.** Send something to the wrong place, keep
+  what you did not mean to, type into the wrong field — and undo it using only the screen. Cairn
+  could forget a drop in its store and had a handler for it on the screen, and no gesture led to
+  either; a file dropped by mistake stayed in the feed for a week. It was found by dropping the
+  wrong file while testing something else. A dead parameter is the tell: grep the handlers a
+  screen is given (`onForget`, `onDelete`, `onUndo`) and check each is called by something.
+- **Read a real file, not only the one you wrote.** A fixture built in the test proves the path
+  works and says nothing about what real writers produce. A PDF printed by a browser showed two
+  paragraph mistakes in its first reading that a hand-built one could not contain. Keep a test
+  that takes a path from the environment, does nothing without it, and writes out what the app
+  makes of the file — so the next odd file is one command, not an afternoon.
+- **Driving a device by tapping: read the screen between taps.** A second tap sent "in case the
+  first missed" lands on whatever the first one opened. Dump the hierarchy
+  (`adb shell uiautomator dump`), find the thing by its text, tap once, dump again.
 - **Every shell, opened and used.** The web shell draws with the one font it ships. Anything typed
   outside Latin-1 — `←`, `▸`, `✕`, `☐` — is a missing-glyph box there and fine everywhere else,
   so a back button can be an empty rectangle on one target of three. Draw such marks instead of
