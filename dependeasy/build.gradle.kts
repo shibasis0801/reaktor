@@ -1,115 +1,57 @@
+import dev.shibasis.dependeasy.bootstrap.VerifyBytecode
+import dev.shibasis.dependeasy.publishing.PublicationDefaults
+import dev.shibasis.dependeasy.toolchain.GradlePlugins
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.gradle.jvm.tasks.Jar
 
 plugins {
-    id("java-gradle-plugin")
-    id("maven-publish")
-    id("org.jetbrains.kotlin.jvm")
-    id("org.jetbrains.kotlin.plugin.sam.with.receiver")
+    base
+    `kotlin-dsl` apply false
 }
 
-fun kotlinConstants(path: String) = Regex("const val (\\w+) = (?:\"([^\"]+)\"|(\\d+))")
-    .findAll(file(path).readText())
-    .associate { it.groupValues[1] to it.groupValues[2].ifEmpty { it.groupValues[3] } }
-val toolchains = kotlinConstants("src/main/kotlin/dev/shibasis/dependeasy/toolchain/ToolchainVersions.kt")
-val libraryVersions = kotlinConstants("src/main/kotlin/dev/shibasis/dependeasy/Versions.kt")
-val toolingLibraries = kotlinConstants("src/main/kotlin/dev/shibasis/dependeasy/versions/ToolingLibraries.kt")
-val publicationDefaults = kotlinConstants("src/main/kotlin/dev/shibasis/dependeasy/publishing/PublicationDefaults.kt")
-val kotlinVersion = toolchains.getValue("Kotlin")
+group = "${PublicationDefaults.Group}.dependeasy"
+version = providers.gradleProperty("reaktorVersion").orElse(PublicationDefaults.Version).get()
 
-repositories {
-    google()
-    mavenCentral()
-    maven(url = "https://plugins.gradle.org/m2/")
-}
-
-dependencies {
-    implementation(gradleKotlinDsl())
-    testImplementation(kotlin("test-junit5"))
-    testImplementation(gradleTestKit())
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    // Align Version of all Kotlin components
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
-    implementation("com.android.tools.build:gradle:${toolchains.getValue("Agp")}") {
-        exclude(group = "org.apache.commons", module = "commons-compress")
+subprojects {
+    group = rootProject.group
+    version = rootProject.version
+    repositories {
+        google()
+        mavenCentral()
+        maven(url = "https://plugins.gradle.org/m2/")
     }
-    implementation(toolingLibraries.getValue("CommonsCompress"))
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-    implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")
-    implementation("org.jetbrains.kotlin:kotlin-allopen:$kotlinVersion")
-    implementation("org.springframework.boot:spring-boot-gradle-plugin:${toolchains.getValue("SpringBoot")}")
-    implementation("org.springframework.boot:spring-boot-buildpack-platform:${toolchains.getValue("SpringBoot")}")
-    implementation("org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlinVersion")
-    implementation("org.jetbrains.compose:compose-gradle-plugin:${toolchains.getValue("Compose")}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${libraryVersions.getValue("Serialization")}")
-    implementation("org.yaml:snakeyaml:${toolchains.getValue("SnakeYaml")}")
-    implementation("com.google.firebase:firebase-crashlytics-gradle:${toolchains.getValue("Crashlytics")}")
-    implementation("com.google.gms:google-services:${toolchains.getValue("GoogleServices")}")
-    implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:${toolchains.getValue("BuildKonfig")}")
-    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:${toolchains.getValue("Ksp")}")
-    implementation("org.jetbrains.kotlinx:kotlinx-benchmark-plugin:${toolchains.getValue("KotlinBenchmark")}")
-
-}
-
-gradlePlugin {
-    mapOf(
-        "compose-library" to "ComposeLibraryPlugin",
-        "compose-application" to "ComposeApplicationPlugin",
-        "browser" to "BrowserPlugin",
-        "compose-jvm" to "ComposeJvmPlugin",
-        "jvm" to "JvmPlugin",
-        "spring-application" to "SpringApplicationPlugin",
-    ).forEach { (name, implementation) ->
-        plugins.create(name) {
-            id = "dev.shibasis.dependeasy.$name"
-            implementationClass = "dev.shibasis.dependeasy.plugins.$implementation"
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        extensions.configure<KotlinJvmProjectExtension> {
+            jvmToolchain(GradlePlugins.CompilerJava)
+            compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(GradlePlugins.BytecodeJava.toString()))
         }
+        extensions.configure<JavaPluginExtension> {
+            targetCompatibility = JavaVersion.toVersion(GradlePlugins.BytecodeJava)
+            withSourcesJar()
+        }
+        tasks.withType<JavaCompile>().configureEach { options.release.set(GradlePlugins.BytecodeJava) }
     }
-    plugins.create("pipeline") {
-        id = "dev.shibasis.dependeasy.pipeline"
-        implementationClass = "dev.shibasis.dependeasy.plugins.PipelinePlugin"
-    }
-    plugins.create("library") {
-        id = "dev.shibasis.dependeasy.library"
-        implementationClass = "dev.shibasis.dependeasy.plugins.LibraryPlugin"
-    }
-
-    plugins.create("application") {
-        id = "dev.shibasis.dependeasy.application"
-        implementationClass = "dev.shibasis.dependeasy.plugins.ApplicationPlugin"
-    }
-
-    plugins.create("settings") {
-        id = "dev.shibasis.dependeasy.settings"
-        implementationClass = "dev.shibasis.dependeasy.plugins.SettingsPlugin"
-    }
-}
-
-samWithReceiver { annotation("org.gradle.api.HasImplicitReceiver") }
-kotlin {
-    jvmToolchain(toolchains.getValue("Java").toInt())
-    // Gradle consumers may run on 21; the build compiler and product JVMs use 25.
-    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-}
-java { targetCompatibility = JavaVersion.VERSION_21 }
-
-tasks.test {
-    useJUnitPlatform()
-    inputs.dir("checks")
-}
-
-tasks.named<Jar>("jar") {
-    archiveFileName.set("dependeasy.jar")
-}
-
-// Bootstrap: this build cannot apply the plugin that it is compiling.
-group = publicationDefaults.getValue("Group")
-version = providers.gradleProperty("reaktorVersion").orElse(publicationDefaults.getValue("Version")).get()
-publishing {
-    repositories.maven {
-        name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/${publicationDefaults.getValue("Repository")}")
-        credentials {
-            username = providers.environmentVariable("USERNAME").orNull
-            password = providers.environmentVariable("TOKEN").orNull
+    plugins.withId("maven-publish") {
+        extensions.configure<PublishingExtension> {
+            repositories.maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/${PublicationDefaults.Repository}")
+                credentials {
+                    username = providers.environmentVariable("USERNAME").orNull
+                    password = providers.environmentVariable("TOKEN").orNull
+                }
+            }
         }
     }
 }
+
+val verifyBytecode = tasks.register<VerifyBytecode>("verifyBytecode") {
+    jars.from(subprojects.map { it.tasks.named<Jar>("jar").flatMap { jar -> jar.archiveFile } })
+}
+tasks.named("check") {
+    dependsOn(verifyBytecode, subprojects.map { "${it.path}:check" })
+}
+tasks.named("assemble") { dependsOn(subprojects.map { "${it.path}:assemble" }) }
+tasks.register("test") { dependsOn(project(":gradle").tasks.named("test")) }
+tasks.register("publishToMavenLocal") { dependsOn(subprojects.map { "${it.path}:publishToMavenLocal" }) }
+tasks.register("publish") { dependsOn(subprojects.map { "${it.path}:publish" }) }
