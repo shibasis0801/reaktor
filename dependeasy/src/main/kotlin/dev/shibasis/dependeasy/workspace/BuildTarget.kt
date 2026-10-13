@@ -5,6 +5,8 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 
+enum class BuildHost { Local, Worker }
+
 class BuildTarget internal constructor(private val project: Project, val name: String) {
     var platform = "portable"
     var effect = "build"
@@ -12,6 +14,13 @@ class BuildTarget internal constructor(private val project: Project, val name: S
     var output: String? = null
     var worker: String? = null
     var workerDirectory: String? = null
+    var executionHost: BuildHost? = null
+    var artifactFamily: String? = null
+        set(value) {
+            require(value == null || value in setOf("jvm", "web", "android", "apple", "verification"))
+            field = value
+            value?.let { project.declareArtifactFamily(name, it) }
+        }
     val bindings = mutableListOf<String>()
     val environments = mutableListOf<String>()
     fun macos() { platform = "macos" }
@@ -72,6 +81,8 @@ class BuildTarget internal constructor(private val project: Project, val name: S
         put("platform", platform)
         put("effect", effect)
         put("runner", runner)
+        executionHost?.let { put("executionHost", it.name.lowercase()) }
+        artifactFamily?.let { put("artifactFamily", it) }
         output?.let { put("output", it) }
         worker?.let { put("worker", it) }
         workerDirectory?.let { put("workerDirectory", it) }

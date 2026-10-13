@@ -71,6 +71,7 @@ object Versions {
     const val Apollo = "4.4.3"
     const val Exposed = "1.0.0-beta-2"
     const val OkHttp = "4.12.0"
+    const val Tomlj = "1.1.1"
     const val WorkManager = "2.9.0"
     const val Quartz = "2.5.1"
     const val Ktor = "3.1.0"

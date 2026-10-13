@@ -1,1 +1,1 @@
-import '../dependeasy/javascript/cli/typecheck.ts';
+import './cli/typecheck.ts';

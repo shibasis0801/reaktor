@@ -67,8 +67,10 @@ class BuildWorkspaceTest {
             dependeasy {
                 dag("native") { node(foreign, "child-native") }
                 workspace {
-                    target("verify") { task(foreign); effect = "verify" }
+                    target("verify") { task(foreign); effect = "verify"; executionHost = dev.shibasis.dependeasy.workspace.BuildHost.Worker; artifactFamily = "verification" }
                     target("apple") { tasks(":verify"); platform = "macos" }
+                    target("desktop") { tasks(":verify"); executionHost = dev.shibasis.dependeasy.workspace.BuildHost.Local }
+                    target("distributed") { tasks(":verify", ":desktop") }
                     target("deployChat") { tasks(":verify"); effect = "deploy"; worker = "chat"; workerDirectory = "targets/chatServer"; environments.addAll(listOf("dev", "prod")) }
                     target("publishWeb") { tasks(":verify"); effect = "deploy" }
                     target("publishPreview") { tasks(":verify"); effect = "deploy"; environments.add("preview") }
@@ -88,6 +90,11 @@ class BuildWorkspaceTest {
         val exported = run("buildGraph", "generateDagger", "generatePackageScripts", "verifyDagger")
         assertNull(exported.task(":child:compileNative"))
         val graph = Json.parseToJsonElement(directory.resolve("build/dependeasy/build-graph.json").readText()).jsonObject
+        assertEquals("worker", graph.getValue("targets").jsonArray.single {
+            it.jsonObject.getValue("id").jsonPrimitive.content == "fixture:verify"
+        }.jsonObject.getValue("executionHost").jsonPrimitive.content)
+        val layout = Json.parseToJsonElement(directory.resolve("build/dependeasy/build-layout.json").readText()).jsonObject
+        assertEquals("verification", layout.getValue("taskFamilies").jsonObject.getValue(":verify").jsonPrimitive.content)
         val node = graph.getValue("plans").jsonArray.single().jsonObject.getValue("nodes").jsonArray.single().jsonObject
         assertEquals(":child:compileNative", node.getValue("task").jsonPrimitive.content)
         assertTrue(graph.getValue("gradleTasks").jsonArray.any { it.jsonObject.getValue("task").jsonPrimitive.content == ":child:compileNative" })
@@ -96,6 +103,9 @@ class BuildWorkspaceTest {
         val generated = directory.resolve(".dagger/src/index.ts").readText()
         assertContains(generated, "async verify(")
         assertFalse("async apple(" in generated)
+        assertFalse("async desktop(" in generated)
+        assertFalse("async distributed(" in generated)
+        assertTrue(graph.getValue("targets").jsonArray.any { it.jsonObject.getValue("id").jsonPrimitive.content == "fixture:desktop" })
         assertTrue(generated.indexOf("withSecretVariable") < generated.indexOf("withExec", generated.indexOf("async deployChat")))
         assertContains(generated, "checkedEnvironment(targetEnv, [\"dev\",\"prod\"])")
         assertContains(generated, "async publishWeb(cloudflareApiToken: Secret)")

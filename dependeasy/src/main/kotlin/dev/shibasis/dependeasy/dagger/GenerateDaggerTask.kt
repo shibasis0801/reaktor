@@ -23,8 +23,19 @@ abstract class GenerateDaggerTask : DefaultTask() {
     @get:OutputFile abstract val moduleConfiguration: RegularFileProperty
 
     @TaskAction fun generate() {
-        val targets = declarations.get().map { Json.parseToJsonElement(it).jsonObject }
-            .filter { it.text("platform") in setOf("portable", "linux") }
+        val declared = declarations.get().map { Json.parseToJsonElement(it).jsonObject }
+        var targets = declared
+            .filter { it.text("platform") in setOf("portable", "linux") && it["executionHost"]?.jsonPrimitive?.content != "local" }
+        do {
+            val excluded = declared.filterNot { it in targets }.map { it.text("id") }.toSet()
+            val previousSize = targets.size
+            targets = targets.filter { target ->
+                target.getValue("requires").jsonArray.none { reference ->
+                    val ref = reference.jsonObject
+                    "${ref.text("build")}${ref.text("task")}" in excluded
+                }
+            }
+        } while (targets.size != previousSize)
         val methods = targets.map { target ->
             val name = target.text("task").removePrefix(":")
             val recipes = target.getValue("recipes").jsonArray.map { it.jsonPrimitive.content }

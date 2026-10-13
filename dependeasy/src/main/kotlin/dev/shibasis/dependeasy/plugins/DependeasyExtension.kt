@@ -21,6 +21,7 @@ import dev.shibasis.dependeasy.process.CommandTask
 import dev.shibasis.dependeasy.process.nodeScript
 import dev.shibasis.dependeasy.process.command
 import dev.shibasis.dependeasy.configuration.localProperty
+import dev.shibasis.dependeasy.configuration.releaseProperty
 import dev.shibasis.dependeasy.web.kotlinNodeTests
 import dev.shibasis.dependeasy.desktop.stableRuntime
 import dev.shibasis.dependeasy.provenance.SourceIdentityTask
@@ -74,6 +75,7 @@ open class DependeasyExtension internal constructor(
         project.jvmClasspath(name, output, compilation)
     fun testClasses(vararg patterns: String) = project.testClasses(patterns)
     fun localProperty(name: String) = project.localProperty(name)
+    fun releaseProperty(name: String) = project.releaseProperty(name)
     fun kotlinNodeTests(vararg imports: Any) = project.kotlinNodeTests(*imports)
     fun dependencyBoundary(name: String, configuration: String = "jvmRuntimeClasspath", policy: DependencyBoundary.() -> Unit) =
         project.dependencyBoundary(name, configuration, policy)
