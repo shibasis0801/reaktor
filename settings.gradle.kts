@@ -55,3 +55,5 @@ include(":reaktor-conductor")
 include(":reaktor-cloud")
 
 include(":reaktor-apple-export")
+
+includeBuild("dependeasy")

@@ -4,6 +4,7 @@ import dev.shibasis.dependeasy.workspace.BuildTarget
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.model.DaggerToolchainContract
 import dev.shibasis.dependeasy.model.AndroidSdkContract
+import dev.shibasis.dependeasy.model.BuildModelReader
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import org.gradle.api.Project
@@ -38,7 +39,8 @@ class DaggerModule internal constructor(private val project: Project, private va
                         "build-tools/${ToolchainVersions.AndroidBuildTools}", "ndk/${ToolchainVersions.Ndk}", "cmake/${ToolchainVersions.Cmake}"),
                 ),
             )))
-            declarations.set(targets.values.map { it.json() })
+            declarations.set(targets.values.map { BuildModelReader.encode(it.model()) })
+            edges.set(targets.values.flatMap { it.edges() }.map { BuildModelReader.json.encodeToString(it) })
             runtimeSource.set(project.rootDir.resolve("../reaktor/dependeasy/dagger/runtime.ts"))
             outputDirectory.set(project.file(output))
         }

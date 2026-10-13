@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy
 
 import kotlinx.serialization.json.*
+import dev.shibasis.dependeasy.model.*
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -31,15 +32,15 @@ class BuildLayoutTest {
             build.resolve("build.gradle.kts").writeText("")
         }
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
-            .withArguments("buildGraph", "--configuration-cache", "--stacktrace").build()
+            .withArguments("exportBuildModel", "--configuration-cache", "--stacktrace").build()
         run()
-        assertTrue(directory.resolve("build/dependeasy/build-graph.json").isFile)
-        val report = Json.parseToJsonElement(directory.resolve("build/dependeasy/build-layout.json").readText()).jsonObject
-        assertEquals(1, report.getValue("schemaVersion").jsonPrimitive.int)
+        assertTrue(directory.resolve(BuildModelReader.RelativePath).isFile)
+        val report = Json.decodeFromString<RemoteHostsContract>(directory.resolve("build/dependeasy/remote/hosts.json").readText())
+        assertEquals(2, report.schema)
         assertEquals(mapOf("product" to ".", "framework" to "framework", "Other" to "other"),
-            report.getValue("builds").jsonObject.mapValues { it.value.jsonPrimitive.content })
+            report.builds)
         assertEquals(mapOf(":produceSite" to "web", ":validateContract" to "web", ":emitPackage" to "web"),
-            report.getValue("taskFamilies").jsonObject.mapValues { it.value.jsonPrimitive.content })
+            report.taskFamilies)
         assertContains(run().output, "Reusing configuration cache")
     }
 }

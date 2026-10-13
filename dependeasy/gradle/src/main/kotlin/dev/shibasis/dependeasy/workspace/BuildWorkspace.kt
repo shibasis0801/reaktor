@@ -1,51 +1,65 @@
 package dev.shibasis.dependeasy.workspace
 
-import dev.shibasis.dependeasy.dag.PipelineReport
+import dev.shibasis.dependeasy.dag.BuildPipeline
 import dev.shibasis.dependeasy.dagger.DaggerModule
 import dev.shibasis.dependeasy.cloudflare.WorkerFleet
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.publishing.PublicationDefaults
+import kotlinx.serialization.encodeToString
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 
 class BuildWorkspace internal constructor(private val project: Project) {
-    init { project.reportBuildLayout() }
     private val targets = linkedMapOf<String, BuildTarget>()
-    val graph = project.tasks.register<BuildGraphTask>("buildGraph") {
+    val graph = project.tasks.register<ExportBuildModelTask>("exportBuildModel") {
         group = "dependeasy"
-        description = "Export declared build targets and pipelines without executing their tools"
-        dependsOn(project.tasks.named("reportBuildLayout"))
+        description = "Export declared build nodes, source sites and kernels without executing producers"
         buildName.set(project.name)
-        this.targets.convention(emptyList())
-        // Resolve while configuring the selected graph task, before execution holds build locks.
-        gradleTasks.set(gradleTaskGraph(project,
-            this@BuildWorkspace.targets.filterValues { it.invocation.isEmpty() && it.recipes.isEmpty() }.keys))
+        version.set(PublicationDefaults.Version)
+        nodes.convention(emptyList())
+        edges.convention(emptyList())
+        omissions.convention(emptyList())
+        taskFamilies.convention(emptyMap())
         workspaceDirectory.set(project.layout.projectDirectory)
-        packageManifests.from(dev.shibasis.dependeasy.web.workspaceManifests(project).matching {
-            exclude("**/build/**", "**/ts/export/**", "**/worker/app-kt/**", "**/worker/mcp-kt/**")
+        directories.set(mapOf(project.name to ".") + project.gradle.includedBuilds.associate {
+            it.name to it.projectDir.canonicalFile.relativeTo(project.rootDir.canonicalFile).invariantSeparatorsPath
         })
-        outputFile.set(project.layout.buildDirectory.file("dependeasy/build-graph.json"))
+        declarationFiles.from(project.fileTree(project.rootDir) {
+            include("**/*.gradle.kts", "**/gradle.properties")
+            exclude("**/build/**", "**/.gradle/**", "**/.github_modules/**", "**/node_modules/**", "dependeasy/**")
+        }.files)
+        outputFile.set(project.layout.buildDirectory.file(BuildModelReader.RelativePath.removePrefix("build/")))
+        remoteHostsFile.set(project.layout.buildDirectory.file("dependeasy/remote/hosts.json"))
     }
 
-    fun target(name: String, configure: BuildTarget.() -> Unit): TaskProvider<Task> {
+    fun target(name: String, configure: BuildTarget.() -> Unit): TaskProvider<out Task> {
         require(name.matches(Regex("[a-z][A-Za-z0-9]*"))) { "Use a camelCase target name: $name" }
         require(name !in targets) { "Duplicate build target: $name" }
-        val target = BuildTarget(project, name).apply(configure)
-        require(target.invocation.isEmpty() && target.recipes.isEmpty()) { "Declare external invocations with external() so they cannot recursively execute Gradle" }
-        targets[name] = target
-        graph.configure { this.targets.add(project.provider { target.json() }) }
-        return project.tasks.register(name) {
+        val target = BuildTarget(project, name, project.declarationSite()).apply(configure)
+        require(target.invocation.isEmpty() && target.recipes.isEmpty()) { "Declare external invocations with external()" }
+        add(target)
+        return project.tasks.register(name, WorkspaceTargetTask::class.java) {
             group = "dependeasy"
             dependsOn(target.dependencies)
         }
     }
 
+    private fun add(target: BuildTarget) {
+        targets[target.name] = target
+        graph.configure {
+            nodes.add(project.provider { BuildModelReader.encode(target.model()) })
+            edges.addAll(project.provider { target.edges().map { BuildModelReader.json.encodeToString(it) } })
+            omissions.addAll(project.provider { target.omissions().map { BuildModelReader.json.encodeToString(it) } })
+        }
+    }
+
     fun external(name: String, configure: BuildTarget.() -> Unit) {
         require(name !in targets) { "Duplicate build target: $name" }
-        val target = BuildTarget(project, name).apply(configure)
+        val target = BuildTarget(project, name, project.declarationSite()).apply(configure)
         require(target.invocation.isNotEmpty() || target.recipes.isNotEmpty()) { "External target '$name' needs a command or recipe" }
-        targets[name] = target
-        graph.configure { this.targets.add(project.provider { target.json() }) }
+        add(target)
     }
 
     fun verify(name: String, vararg paths: String, configure: BuildTarget.() -> Unit = {}) =
@@ -62,8 +76,8 @@ class BuildWorkspace internal constructor(private val project: Project) {
     fun includedBuild(name: String) {
         val build = project.gradle.includedBuild(name)
         graph.configure {
-            includedGraphs.from(project.files(build.projectDir.resolve("build/dependeasy/build-graph.json"))
-                .builtBy(build.task(":buildGraph")))
+            includedModels.from(project.files(build.projectDir.resolve(BuildModelReader.RelativePath))
+                .builtBy(build.task(":exportBuildModel")))
         }
     }
 
@@ -73,16 +87,19 @@ class BuildWorkspace internal constructor(private val project: Project) {
         val generated = this@BuildWorkspace.targets.filterValues { it.worker != null }.mapValues { ":${it.key}" }
         manifest.set(project.providers.fileContents(file).asText.map { authoredManifest(it, generated.keys) })
         aliases.set(generated)
-        targets.set(generated.keys.associateWith { this@BuildWorkspace.targets.getValue(it).json() })
+        targets.set(generated.keys.associateWith { BuildModelReader.encode(this@BuildWorkspace.targets.getValue(it).model()) })
         outputFile.set(file)
-        generatedFile.set(project.layout.buildDirectory.file("dependeasy/generated-package-scripts.json"))
     }.also { generation ->
         graph.configure { mustRunAfter(generation) }
         project.tasks.matching { it.name == "pnpmInstall" }.configureEach { dependsOn(generation) }
     }
 
-    internal fun include(report: TaskProvider<PipelineReport>) {
-        graph.configure { plans.from(report.flatMap { it.outputFile }) }
+    internal fun include(pipeline: BuildPipeline) {
+        graph.configure {
+            nodes.addAll(project.provider { pipeline.modelNodes().map(BuildModelReader::encode) })
+            edges.addAll(project.provider { pipeline.modelEdges().map { BuildModelReader.json.encodeToString(it) } })
+            omissions.addAll(project.provider { pipeline.modelOmissions().map { BuildModelReader.json.encodeToString(it) } })
+        }
     }
 
     companion object {
@@ -92,4 +109,9 @@ class BuildWorkspace internal constructor(private val project: Project) {
                 ?: BuildWorkspace(root).also { root.extensions.add("buildWorkspace", it) }
         }
     }
+}
+
+internal fun Project.declareArtifactFamily(task: String, family: String) {
+    val taskPath = path.trimEnd(':') + ":" + task
+    BuildWorkspace.get(this).graph.configure { taskFamilies.put(taskPath, family) }
 }

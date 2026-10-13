@@ -20,6 +20,7 @@ class BuildNode internal constructor(
         artifacts.forEach { artifact ->
             val producer = pipeline.node(artifact.producer, artifact.id)
             after(producer)
+            pipeline.consume(this, producer, artifact)
             task.configure { inputs.files(artifact.location).withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE) }
         }
     }

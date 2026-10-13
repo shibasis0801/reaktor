@@ -19,6 +19,5 @@ dependeasy {
     }
     publishing {
         githubPackages()
-        includedBuild("dependeasy")
     }
 }

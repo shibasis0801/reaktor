@@ -21,6 +21,7 @@ dependeasy {
             bytecode = 21
             dependencies {
                 api(project(":reaktor-mcp"))
+                api("dev.shibasis.dependeasy:model:${dev.shibasis.dependeasy.publishing.PublicationDefaults.Version}")
                 implementation(Versions.Tooling.SnakeYaml)
                 implementation(Versions.Tooling.Lsp)
                 implementation(Versions.Tooling.KubernetesClient)

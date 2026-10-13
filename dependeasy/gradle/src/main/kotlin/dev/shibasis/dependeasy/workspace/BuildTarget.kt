@@ -1,13 +1,13 @@
 package dev.shibasis.dependeasy.workspace
 
-import kotlinx.serialization.json.*
+import dev.shibasis.dependeasy.model.*
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 
 enum class BuildHost { Local, Worker }
 
-class BuildTarget internal constructor(private val project: Project, val name: String) {
+class BuildTarget internal constructor(private val project: Project, val name: String, private val site: SourceSite?) {
     var platform = "portable"
     var effect = "build"
     var runner = "gradle"
@@ -19,7 +19,6 @@ class BuildTarget internal constructor(private val project: Project, val name: S
         set(value) {
             require(value == null || value in setOf("jvm", "web", "android", "apple", "verification"))
             field = value
-            value?.let { project.declareArtifactFamily(name, it) }
         }
     val bindings = mutableListOf<String>()
     val environments = mutableListOf<String>()
@@ -36,16 +35,14 @@ class BuildTarget internal constructor(private val project: Project, val name: S
     fun pnpm(script: String) = command("pnpm", "run", script)
     fun fastlane(platform: String, lane: String) { runner = "fastlane"; command("./fastlane/run.sh", platform, lane) }
     internal val dependencies = mutableListOf<Any>()
-    private val references = mutableListOf<() -> List<JsonObject>>()
+    private val references = mutableListOf<() -> List<NodeId>>()
 
     fun modules(vararg lifecycles: String) {
-        require(lifecycles.isNotEmpty() && lifecycles.all { it.isNotBlank() && ':' !in it }) {
-            "Use module lifecycle names, such as build or check"
-        }
+        require(lifecycles.isNotEmpty() && lifecycles.all { it.isNotBlank() && ':' !in it })
         project.subprojects.forEach { child ->
             val selected = child.tasks.matching { it.name in lifecycles }
             dependencies.add(selected)
-            references.add { selected.map(::reference) }
+            references.add { selected.map { NodeId.task(it.project.rootProject.name, it.path) } }
         }
     }
 
@@ -53,47 +50,39 @@ class BuildTarget internal constructor(private val project: Project, val name: S
         paths.forEach { path ->
             require(path.startsWith(":")) { "Use an absolute Gradle task path: $path" }
             dependencies.add(path)
-            references.add { listOf(reference(project.rootProject.name, path)) }
+            references.add { listOf(NodeId.task(project.rootProject.name, path)) }
         }
     }
 
     fun included(build: String, vararg paths: String) {
         paths.forEach { path ->
             dependencies.add(project.gradle.includedBuild(build).task(path))
-            references.add { listOf(reference(build, path)) }
+            references.add { listOf(NodeId.task(build, path)) }
         }
     }
 
     fun task(provider: TaskProvider<out Task>) {
         dependencies.add(provider)
-        references.add { listOf(reference(provider.get())) }
+        references.add { provider.get().let { listOf(NodeId.task(it.project.rootProject.name, it.path)) } }
     }
 
-    internal fun json(): String = buildJsonObject {
-        put("id", "${project.rootProject.name}:${name}")
-        put("kind", if (invocation.isEmpty() && recipes.isEmpty()) "gradle" else "external")
-        putJsonArray("recipes") { recipes.forEach { add(it) } }
-        putJsonArray("command") { invocation.forEach { add(it) } }
-        putJsonArray("commands") { (listOf(invocation.toList()) + subsequentCommands).filter { it.isNotEmpty() }.forEach { command ->
-            add(buildJsonArray { command.forEach { add(it) } })
-        } }
-        put("task", ":$name")
-        put("platform", platform)
-        put("effect", effect)
-        put("runner", runner)
-        executionHost?.let { put("executionHost", it.name.lowercase()) }
-        artifactFamily?.let { put("artifactFamily", it) }
-        output?.let { put("output", it) }
-        worker?.let { put("worker", it) }
-        workerDirectory?.let { put("workerDirectory", it) }
-        putJsonArray("bindings") { bindings.sorted().forEach { add(it) } }
-        putJsonArray("environments") { environments.forEach { add(it) } }
-        putJsonArray("requires") { references.flatMap { it() }.forEach { add(it) } }
-    }.toString()
+    internal fun model(): Node = Node(
+        id = NodeId(project.rootProject.name, project.path, name),
+        kind = if (invocation.isEmpty() && recipes.isEmpty()) NodeKind.Target else NodeKind.External,
+        label = name,
+        effect = Effect.entries.single { it.name.equals(effect, ignoreCase = true) },
+        host = HostRequirement(HostPlatform.entries.single { it.name.equals(platform, ignoreCase = true) },
+            executionHost?.let { ExecutionHost.valueOf(it.name) }),
+        declaredAt = site,
+        kernel = kernelRef(project, WorkspaceTargetTask::class.java),
+        invocation = if (invocation.isEmpty() && recipes.isEmpty()) Invocation.Gradle(listOf(":$name"))
+            else Invocation.Command((listOf(invocation.toList()) + subsequentCommands).filter { it.isNotEmpty() }, recipes.toList()),
+        outputs = output?.let { listOf(FileSet(listOf(it), artifactFamily)) }.orEmpty(),
+        runner = runner, artifactFamily = artifactFamily, worker = worker, workerDirectory = workerDirectory,
+        bindings = bindings.sorted(), environments = environments.toList())
 
-    private fun reference(task: Task) = reference(task.project.rootProject.name, task.path)
-
-    private fun reference(build: String, path: String) = buildJsonObject {
-        put("build", build); put("task", path)
-    }
+    internal fun edges(): List<Edge> = references.flatMap { it() }.distinct().map { Edge.Includes(model().id, it) }
+    internal fun omissions(): List<Omission> = edges().map { Omission(model().id, "foreign task path", it.to.toString()) } +
+        listOf(Omission(model().id, "Inputs and foreign task outputs are not declared by the current DSL")) +
+        if (site == null) listOf(Omission(model().id, "DSL call has no build-script stack location")) else emptyList()
 }

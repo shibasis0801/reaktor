@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.workspace
 
 import kotlinx.serialization.json.*
+import dev.shibasis.dependeasy.model.BuildModelReader
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
@@ -13,7 +14,6 @@ abstract class PackageScriptsTask : DefaultTask() {
     @get:Input abstract val aliases: MapProperty<String, String>
     @get:Input abstract val targets: MapProperty<String, String>
     @get:OutputFile abstract val outputFile: RegularFileProperty
-    @get:OutputFile abstract val generatedFile: RegularFileProperty
 
     @TaskAction fun write() {
         val base = Json.parseToJsonElement(manifest.get()).jsonObject
@@ -25,20 +25,21 @@ abstract class PackageScriptsTask : DefaultTask() {
         val metadata = buildJsonObject {
             putJsonArray("generatedScripts") { aliases.get().keys.sorted().forEach { add(it) } }
             putJsonObject("generatedTargets") {
-                val fields = setOf("task", "effect", "worker", "workerDirectory", "environments")
-                targets.get().toSortedMap().forEach { (alias, declaration) ->
-                    put(alias, JsonObject(Json.parseToJsonElement(declaration).jsonObject.filterKeys { it in fields }))
+                                targets.get().toSortedMap().forEach { (alias, declaration) ->
+                    val node = BuildModelReader.decodeNode(declaration)
+                    put(alias, buildJsonObject {
+                        put("task", node.id.project.trimEnd(':') + ":" + node.id.name)
+                        put("effect", node.effect.name.lowercase())
+                        node.worker?.let { put("worker", it) }
+                        node.workerDirectory?.let { put("workerDirectory", it) }
+                        putJsonArray("environments") { node.environments.forEach { add(it) } }
+                    })
                 }
             }
         }
         root["dependeasy"] = JsonObject(base["dependeasy"]?.jsonObject.orEmpty() + metadata)
         outputFile.get().asFile.writeText(Json { prettyPrint = true }.encodeToString(JsonObject.serializer(), JsonObject(root)) + "\n")
-        generatedFile.get().asFile.apply {
-            parentFile.mkdirs()
-            writeText(buildJsonObject {
-                put("schemaVersion", 1); put("scripts", generatedScripts); put("metadata", metadata)
-            }.toString() + "\n")
-        }
+
     }
 }
 

@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.tooling
 
-import dev.shibasis.reaktor.tooling.delivery.GradleBuildTargets
+import dev.shibasis.reaktor.tooling.delivery.BuildDeclarations
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -288,11 +288,13 @@ class JvmProjectDiscovery(
                 )
             }
         }
-        GradleBuildTargets.read(root) { file ->
-            declarationsText.getOrPut(file.canonicalFile) { file.readText() }
+        BuildDeclarations.read(root).also {
+            val report = root.resolve(BuildDeclarations.Report).canonicalFile
+            if (report.isFile) declarationsText[report] = report.readText()
         }.forEach { target ->
-            taskBuilder.gradleTask("dependeasy${target.task}", target.task.removePrefix(":"), target.task, null,
-                GradleBuildTargets.Report, target.kind, target)
+            taskBuilder.gradleTask(target.node.id.toString(), target.node.label, target.task, null,
+                target.node.declaredAt?.let { "${it.build}/${it.file}:${it.line}" } ?: BuildDeclarations.Report,
+                target.kind, target)
         }
         return DiscoveredJvmWorkspace(
             catalog = ToolingCatalog(
@@ -467,7 +469,7 @@ private class TaskCatalogBuilder(
     }
 
     private val declaredGradleDefinitionSeal = lazy {
-        val reports = listOf(GradleBuildTargets.Report, GradleBuildTargets.Layout)
+        val reports = listOf(BuildDeclarations.Report, BuildDeclarations.Layout)
             .map { root.resolve(it).canonicalFile }.filter { it in declarationsText }
         val expected = reports.associateWith(::declarationDigest)
         checkDeclarations(expected)
@@ -548,7 +550,7 @@ private class TaskCatalogBuilder(
         targetId: String?,
         provenancePath: String,
         explicitKind: TaskKind,
-        declaration: GradleBuildTargets.Target? = null,
+        declaration: BuildDeclarations.Target? = null,
     ) {
         val wrapper = File(root, if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew")
         if (!wrapper.isFile) return
@@ -562,8 +564,11 @@ private class TaskCatalogBuilder(
             targetId = targetId,
             safety = safetyFor(if (declaration == null) gradleTask else "$explicitKind $gradleTask", gradleTask),
             provenance = TaskProvenance(if (declaration == null) "gradle-settings" else "dependeasy", provenancePath),
-            attributes = mapOf("gradleTask" to gradleTask),
+            attributes = mapOf("gradleTask" to gradleTask) + declaration?.node?.let { node ->
+                mapOf("buildNode" to dev.shibasis.dependeasy.model.BuildModelReader.encode(node))
+            }.orEmpty(),
             unavailableReason = declaration?.unavailableReason,
+            environments = declaration?.node?.environments.orEmpty().toSet(),
         )
         bindings[taskId] = JvmTaskBinding(
             argv = listOf(wrapper.absolutePath, gradleTask),
