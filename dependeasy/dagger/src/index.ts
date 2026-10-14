@@ -30,7 +30,7 @@ export class BuildRuntime {
   async toolchain(): Promise<Container> {
     const contract = await this.contract()
     const container = dag
-      .container({ platform: "linux/amd64" as Platform })
+      .container({ platform: this.environment.DEPE_CONTAINER_PLATFORM as Platform })
       .from(contract.javaImage)
       .withExec([
         "sh",
@@ -52,6 +52,8 @@ export class BuildRuntime {
   private async contract(): Promise<ToolchainContract> {
     const contract = this.toolchainContract
     if (contract.schemaVersion !== 1) throw new Error("Unsupported Dependeasy toolchain schema")
+    if (!["linux/amd64", "linux/arm64"].includes(this.environment.DEPE_CONTAINER_PLATFORM))
+      throw new Error("Unsupported or missing Dependeasy container platform")
     return contract
   }
 
@@ -97,13 +99,15 @@ export class BuildRuntime {
 
   async workspace(): Promise<Container> {
     const contract = await this.contract()
+    const prepared = await this.androidToolchain()
+    const platform = await prepared.platform()
     return this.useLocalGradleDistribution(
-      (await this.androidToolchain())
+      prepared
         .withDirectory("/work/reaktor", this.reaktor)
         .withDirectory(`/work/${this.buildName}`, this.source)
         .withMountedCache(
           "/work/reaktor/build/dependeasy/tools/hermes",
-          dag.cacheVolume("reaktor-hermes-host-linux-amd64"),
+          dag.cacheVolume(`reaktor-hermes-host-${platform}`),
         ),
       contract.gradleArchive,
     ).withWorkdir(`/work/${this.buildName}`)
@@ -119,7 +123,7 @@ export class BuildRuntime {
     const prepared = (await this.workspace()).withExec([
       "./gradlew", "javascriptToolchain", "pnpmInstall", "--console=plain",
     ])
-    const browser = dag.container({ platform: "linux/amd64" as Platform }).from(image)
+    const browser = dag.container({ platform: this.environment.DEPE_CONTAINER_PLATFORM as Platform }).from(image)
       .withDirectory("/work", prepared.directory("/work"))
       .withDirectory("/opt/java/openjdk", prepared.directory("/opt/java/openjdk"))
       .withDirectory("/opt/gradle-dist", prepared.directory("/opt/gradle-dist"))
