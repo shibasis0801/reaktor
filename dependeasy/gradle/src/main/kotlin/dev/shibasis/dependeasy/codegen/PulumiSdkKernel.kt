@@ -38,6 +38,11 @@ internal fun Project.pulumiSdk(name: String, version: String, server: String) = 
         destinationDirectory.set(layout.buildDirectory.dir("dependeasy/$name-sdk-classes"))
         options.release.set(Versions.SDK.AndroidJava.asInt)
         options.encoding = "UTF-8"
+        options.isFork = true
+        options.forkOptions.memoryMaximumSize = "1024m"
+        options.forkOptions.jvmArgs = listOf(
+            "-XX:MaxMetaspaceSize=256m", "-XX:ReservedCodeCacheSize=32m", "-XX:+UseSerialGC"
+        )
     }
     val jar = tasks.register<Jar>("${name}SdkJar") {
         archiveBaseName.set("$name-sdk")

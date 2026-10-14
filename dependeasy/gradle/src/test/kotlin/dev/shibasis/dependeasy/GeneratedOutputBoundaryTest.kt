@@ -15,6 +15,50 @@ class GeneratedOutputBoundaryTest {
     private fun runner(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
         .withPluginClasspath().withArguments(*tasks, "--configuration-cache", "--stacktrace")
 
+    @Test fun `SDK compilation uses a bounded worker and retains generated metadata`() {
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"sdkFixture\"")
+        directory.resolve("gradle.properties").writeText("org.gradle.jvmargs=-Xmx384m -XX:MaxMetaspaceSize=384m\n")
+        directory.resolve("generator").apply {
+            writeText("""
+                #!/bin/sh
+                while [ "${'$'}#" -gt 0 ]; do
+                  if [ "${'$'}1" = --out ]; then
+                    shift
+                    mkdir -p "${'$'}1/java/src/main/java/sdk"
+                    printf 'package sdk; public class Fixture {}' > "${'$'}1/java/src/main/java/sdk/Fixture.java"
+                    break
+                  fi
+                  shift
+                done
+            """.trimIndent() + "\n")
+            setExecutable(true)
+        }
+        directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.codegen.PulumiSdkTask
+            import dev.shibasis.dependeasy.toolchain.InstallTool
+            plugins { java; id("dev.shibasis.dependeasy.pipeline") }
+            dependeasy { pulumiSdk("fixture", "1", "example.invalid") }
+            tasks.withType<InstallTool>().configureEach { enabled = false }
+            tasks.named<PulumiSdkTask>("genFixtureSdk") {
+                executable.set(layout.projectDirectory.file("generator").asFile.absolutePath)
+            }
+            tasks.named<JavaCompile>("compileFixtureSdk") { classpath = files() }
+        """.trimIndent())
+        val first = runner("fixtureSdkJar", "--info").build()
+        assertEquals(TaskOutcome.SUCCESS, first.task(":compileFixtureSdk")?.outcome)
+        assertContains(first.output, "Gradle Worker Daemon")
+        assertContains(first.output, "-Xmx1024m")
+        val jar = directory.resolve("build/libs").listFiles()!!.single { it.extension == "jar" }
+        java.util.jar.JarFile(jar).use {
+            assertNotNull(it.getJarEntry("sdk/Fixture.class"))
+            assertEquals("1", it.getInputStream(it.getJarEntry("com/pulumi/fixture/version.txt")).reader().readText())
+        }
+        val repeated = runner("fixtureSdkJar").build()
+        assertContains(repeated.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":compileFixtureSdk")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":fixtureSdkJar")?.outcome)
+    }
+
     @Test fun `SDK generation and prefab extraction clear only children of owned outputs`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"boundaryFixture\"")
         directory.resolve("preserved.txt").writeText("source")
