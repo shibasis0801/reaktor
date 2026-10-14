@@ -14,9 +14,12 @@ import io.ktor.websocket.close
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 sealed class ConnectionState {
     data object Idle: ConnectionState()
@@ -27,11 +30,35 @@ sealed class ConnectionState {
     data class Failed(val exception: Exception): ConnectionState()
 }
 
+/**
+ * How a socket finds out that it has stopped working.
+ *
+ * A connection can die without closing. A NAT that forgets an idle mapping, a phone that changed
+ * networks, an emulator's address translation: the far end is gone, nothing arrives to say so, and
+ * the socket goes on reporting `Open`. Everything sent into it is lost and nothing comes out, for
+ * as long as the app runs.
+ *
+ * With a heartbeat the socket sends [message] every [interval] while it is open, and if it has
+ * received nothing at all — the reply, or anything else — for [silence], it drops the connection
+ * and reconnects through its [ReconnectionStrategy]. What [message] is, and what the server answers
+ * it with, is the app's protocol; the socket only needs some frame to come back.
+ */
+data class Heartbeat(
+    val interval: Duration,
+    val silence: Duration,
+    val message: suspend () -> String,
+)
+
 data class WebSocketOptions(
     val connectionTimeout: Duration = 4.seconds,
     val eager: Boolean = true,
-    val receiverReplay: Int = 0
+    val receiverReplay: Int = 0,
+    /** Off by default. A socket meant to stay open for a long time wants one; see [Heartbeat]. */
+    val heartbeat: Heartbeat? = null,
 )
+
+/** Why a socket that never closed was dropped. */
+class SilentConnection(silence: Duration) : RuntimeException("Nothing heard for $silence")
 typealias UrlProvider = suspend () -> String
 
 open class WebSocket(
@@ -57,6 +84,44 @@ open class WebSocket(
     val sender = Sender(this)
     val receiver = Receiver(this)
 
+    private var lastHeard = TimeSource.Monotonic.markNow()
+
+    /** Called for every frame that arrives. Anything at all counts as the far end being there. */
+    internal fun heard() {
+        lastHeard = TimeSource.Monotonic.markNow()
+    }
+
+    init {
+        options.heartbeat?.let { beat -> launch { keepAlive(beat) } }
+    }
+
+    private suspend fun keepAlive(beat: Heartbeat) {
+        while (true) {
+            delay(beat.interval)
+            val open = connection.value as? ConnectionState.Open ?: continue
+            if (lastHeard.elapsedNow() > beat.silence) {
+                Logger.w { "Reaktor:WebSocket — nothing heard for ${beat.silence}; dropping the connection." }
+                drop(open, SilentConnection(beat.silence))
+            } else {
+                sender.send(beat.message())
+            }
+        }
+    }
+
+    /**
+     * Abandons [open] and reconnects, if it is still the current connection.
+     *
+     * Not [disconnect]: that is a decision to stop, and leaves the socket `Closed`. And not a polite
+     * close either — on a connection that has silently died, a close frame waits for an answer that
+     * will never come.
+     */
+    private suspend fun drop(open: ConnectionState.Open, why: Exception) = withContext {
+        if (connection.value !== open) return@withContext
+        connection.value = ConnectionState.Failed(why)
+        runCatching { open.session.cancel() }
+        reconnect(why)
+    }
+
     suspend fun connect() = withContext {
         if (connection.value is ConnectionState.Open ||
             connection.value is ConnectionState.Connecting) {
@@ -67,12 +132,15 @@ open class WebSocket(
         val url = urlProvider()
         connection.value = ConnectionState.Connecting(url)
         try {
-            connection.value = ConnectionState.Open(
-                httpClient.webSocketSession(url) {
-                    timeout {
-                        requestTimeoutMillis = options.connectionTimeout.inWholeMilliseconds
-                    }
-                })
+            val session = httpClient.webSocketSession(url) {
+                timeout {
+                    requestTimeoutMillis = options.connectionTimeout.inWholeMilliseconds
+                }
+            }
+            // Before the state says Open, so a heartbeat that looks at once does not see the
+            // silence of the previous connection and drop this one.
+            heard()
+            connection.value = ConnectionState.Open(session)
             reconnectionStrategy.reset()
         } catch (e: Exception) {
             connection.value = ConnectionState.Failed(e)

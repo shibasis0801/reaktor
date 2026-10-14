@@ -18,6 +18,7 @@ class Receiver(
             launch {
                 try {
                     for (frame in incoming) {
+                        webSocket.heard()
                         when (frame) {
                             is Frame.Text -> textFrames.emit(frame)
                             is Frame.Binary -> binaryFrames.emit(frame)
@@ -26,9 +27,11 @@ class Receiver(
                         }
                     }
                 } catch (e: ClosedReceiveChannelException) {
-                    webSocket.reconnect(e)
+                    // Only if this is still the connection in use. One the heartbeat dropped has
+                    // already been replaced, and reconnecting from here as well would race it.
+                    if (webSocket.state.value === state) webSocket.reconnect(e)
                 } catch (e: Throwable) {
-                    webSocket.reconnect(e, CloseReason(
+                    if (webSocket.state.value === state) webSocket.reconnect(e, CloseReason(
                         CloseReason.Codes.INTERNAL_ERROR,
                         e.message ?: "throw from Connection:Receiver"
                     ))
