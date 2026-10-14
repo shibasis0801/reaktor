@@ -22,17 +22,19 @@ class AppleContractsTest {
         write("host.json", BuildModelReader.json.encodeToString(host))
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.darwin.*
+            import dev.shibasis.dependeasy.handles.node
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val declarationJson = providers.fileContents(layout.projectDirectory.file("host.json")).asText
             val generate = tasks.register<XcodeHostTask>("generate") {
                 declaration.set(declarationJson); rootPath.set("../.."); kotlinTask.set("frameworks")
-                versionName.set("5.2"); buildNumber.set(31); destination.set(layout.projectDirectory.dir("config"))
-                contract.set(layout.buildDirectory.file("host.json")); signingInclude.set("Signing.local.xcconfig")
+                versionName.set(providers.gradleProperty("version").orElse("5.2")); buildNumber.set(providers.gradleProperty("number").map(String::toInt).orElse(31)); destination.set(layout.projectDirectory.dir("config"))
+                contract.set(layout.buildDirectory.file("host.json")); signingInclude.set("../build/Signing.local.xcconfig")
             }
+            node(generate)
             tasks.register<VerifyXcodeHost>("verify") {
                 declaration.set(declarationJson); rootPath.set("../.."); wrapper.set("gradlew"); kotlinTask.set("frameworks")
                 versionName.set("5.2"); buildNumber.set(31); destination.set(layout.projectDirectory.dir("config"))
-                resolvedPackages.set(layout.projectDirectory.file("pins.json")); signingInclude.set("Signing.local.xcconfig")
+                resolvedPackages.set(layout.projectDirectory.file("pins.json")); signingInclude.set("../build/Signing.local.xcconfig")
                 mustRunAfter(generate)
             }
             tasks.register<ReleasePlanTask>("release") {
@@ -54,8 +56,13 @@ class AppleContractsTest {
         prepare()
         assertEquals(TaskOutcome.SUCCESS, runner("generate", "verify").build().task(":verify")?.outcome)
         val settings = directory.resolve("config/iosApp-Release.xcconfig").readText()
-        assertContains(settings, "MARKETING_VERSION = 5.2")
-        assertContains(settings, "CURRENT_PROJECT_VERSION = 31")
+        assertFalse(settings.contains("MARKETING_VERSION ="))
+        assertFalse(settings.contains("CURRENT_PROJECT_VERSION ="))
+        assertContains(settings, "#include? \"../build/Version.local.xcconfig\"")
+        assertContains(settings, "-PbestbudsVersionName=\$(MARKETING_VERSION)")
+        assertContains(settings, "-PbestbudsVersionCode=\$(CURRENT_PROJECT_VERSION)")
+        val versions = directory.resolve("build/Version.local.xcconfig")
+        assertEquals("MARKETING_VERSION = 5.2\nCURRENT_PROJECT_VERSION = 31\n", versions.readText())
         assertContains(settings, "-Pbestbuds.devTools=false")
         assertContains(settings, "REAKTOR_BG_TASK_0 = fixture.work")
         assertContains(settings, "UNLOCALIZED_RESOURCES_FOLDER_PATH = iosApp.app")
@@ -65,6 +72,12 @@ class AppleContractsTest {
         val repeat = runner("generate", "verify").build()
         assertContains(repeat.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":generate")?.outcome)
+        runner("generate", "verify", "-Pversion=6.0", "-Pnumber=32").build()
+        assertEquals(settings, directory.resolve("config/iosApp-Release.xcconfig").readText())
+        assertEquals("MARKETING_VERSION = 6.0\nCURRENT_PROJECT_VERSION = 32\n", versions.readText())
+        versions.delete()
+        assertEquals(TaskOutcome.SUCCESS, runner("generate", "verify", "-Pversion=6.0", "-Pnumber=32").build().task(":generate")?.outcome)
+        assertTrue(versions.isFile)
         directory.resolve("config/iosApp-Release.xcconfig").appendText("DRIFT = YES\n")
         assertContains(runner("verify").buildAndFail().output, "Xcode host settings drifted")
     }

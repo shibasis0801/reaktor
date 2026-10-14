@@ -113,6 +113,7 @@ class AppleHost internal constructor(private val project: Project, private val d
                 receipt.set(project.layout.projectDirectory.file("tmp/fastlane/ios/ipa/crashlytics-symbols.json"))
             }
             release.configure {
+                dependsOn(generate)
                 product.set(project.name); host.set(contract); versionName.set(versionValue); buildNumber.set(numberValue)
                 xcodeDirectory.set(directory); xcodeProject.set("$target.xcodeproj"); scheme.set(target)
                 webTask.set(web?.task?.get()?.path.orEmpty())
