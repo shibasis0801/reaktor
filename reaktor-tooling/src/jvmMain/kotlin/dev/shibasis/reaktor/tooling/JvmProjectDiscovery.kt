@@ -180,10 +180,6 @@ internal data class JvmTaskBinding(
     val timeoutMillis: Long? = null,
 )
 
-/**
- * Reads package.json, Gradle settings, and target folders already present in a Reaktor workspace.
- * It deliberately does not introduce another manifest or execute project code during discovery.
- */
 class JvmProjectDiscovery(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : WorkspaceDiscoveryPort {
@@ -208,7 +204,11 @@ class JvmProjectDiscovery(
             declarationsText.getOrPut(file.canonicalFile) { file.readText() }
         }
         val declarations = reaktor.targetDeclarations()
-        val gradleModules = parseGradleModules(root)
+        val gradleModules = if (root.resolve(BuildDeclarations.Report).isFile) {
+            val model = dev.shibasis.dependeasy.model.BuildModelReader.read(root)
+            val main = model.builds.single { it.directory == "." }.name
+            model.nodes.filter { it.id.build == main && it.id.project != ":" }.map { it.id.project.trim(':') }.distinct()
+        } else emptyList()
         val targetNames = targetNames(root, workspaces, declarations, gradleModules)
         val workspace = ToolingWorkspace(
             id = WorkspaceId("workspace-${sha256(root.canonicalFile.absolutePath).take(24)}"),
@@ -283,19 +283,6 @@ class JvmProjectDiscovery(
                 }
             }
         }
-        gradleModules.sorted().forEach { module ->
-            val target = targets.firstOrNull { it.name == module.substringAfterLast(':') }
-            listOf("build", "test", "check").forEach { action ->
-                taskBuilder.gradleTask(
-                    id = "gradle/$module/$action",
-                    label = "$module: $action",
-                    gradleTask = ":${module.trim(':')}:$action",
-                    targetId = target?.id,
-                    provenancePath = "settings.gradle.kts",
-                    explicitKind = action.toTaskKind(),
-                )
-            }
-        }
         BuildDeclarations.read(root).also {
             val report = root.resolve(BuildDeclarations.Report).canonicalFile
             if (report.isFile) declarationsText[report] = report.readText()
@@ -333,24 +320,6 @@ class JvmProjectDiscovery(
         internal fun parseObject(file: File): JsonObject? {
             if (!file.isFile || file.length() > 1_048_576) return null
             return runCatching { Json.parseToJsonElement(file.readText()).jsonObject }.getOrNull()
-        }
-
-        private fun parseGradleModules(root: File): List<String> {
-            val settings = File(root, "settings.gradle.kts").takeIf(File::isFile)
-                ?: File(root, "settings.gradle").takeIf(File::isFile)
-                ?: return emptyList()
-            if (settings.length() > 1_048_576) return emptyList()
-            val text = settings.readText()
-            val modules = mutableListOf<String>()
-            Regex("""\binclude\(([^)]*)\)""").findAll(text).forEach { match ->
-                Regex(""""(:[^"]+)"""").findAll(match.groupValues[1]).forEach {
-                    modules += it.groupValues[1].trimStart(':')
-                }
-            }
-            Regex("""includeWithPath\(\s*"([^"]+)"""").findAll(text).forEach {
-                modules += it.groupValues[1]
-            }
-            return modules.distinct()
         }
 
         private fun targetNames(
@@ -502,13 +471,6 @@ private class TaskCatalogBuilder(
         val safety = safetyFor(script, expandedBody)
         val words = "$script $expandedBody".lowercase()
         val blockedReason = when {
-            "fastlane" in words && FASTLANE_PUBLISH_WORDS.any(words::contains) ->
-                "Production distribution is disabled until its app artifact/source closure is sealed"
-            "fastlane" in words && !File(root, "fastlane").isDirectory ->
-                "Fastlane definitions are not available for exact execution sealing"
-            ("karate" in words || Regex("(?:^|[:/\\s])k6(?:[:/\\s]|${'$'})").containsMatchIn(words)) &&
-                TEST_DIRECTORY_PATH.findAll(expandedBody).none { File(workingDirectory, it.groupValues[1]).isDirectory } ->
-                "Remote harness flow/config closure could not be bounded"
             "wrangler deploy" in words && definitionFile.parentFile == root && PackageScriptCommands.workspaces(expandedBody).isEmpty() ->
                 "Worker deploy target could not be resolved to a bounded workspace"
             else -> null
@@ -570,7 +532,7 @@ private class TaskCatalogBuilder(
             kind = explicitKind,
             provider = "gradle",
             targetId = targetId,
-            safety = safetyFor(if (declaration == null) gradleTask else "$explicitKind $gradleTask", gradleTask),
+            safety = declaration?.let { SafetyPolicy(it.safety) } ?: safetyFor(gradleTask, gradleTask),
             provenance = TaskProvenance(if (declaration == null) "gradle-settings" else "dependeasy", provenancePath),
             attributes = mapOf("gradleTask" to gradleTask) + declaration?.node?.let { node ->
                 mapOf("buildNode" to dev.shibasis.dependeasy.model.BuildModelReader.encode(node))
@@ -604,24 +566,15 @@ private class TaskCatalogBuilder(
     private fun safetyFor(name: String, body: String): SafetyPolicy {
         val words = "$name $body".lowercase()
         val tokens = Regex("[a-z0-9_-]+").findAll(words).map { it.value }.toSet()
-        val deviceTask = "maestro" in words || "xcrun simctl" in words || "adb " in words
-        val remoteHarness = "karate" in words || Regex("(?:^|[:/\\s])k6(?:[:/\\s]|$)").containsMatchIn(words)
-        val productionTarget = listOf(
-            ":prod", ":live", "app_env=prod", "target_env=prod", " app_env prod", " target_env prod",
-        ).any(words::contains)
-        val developmentTarget = listOf(
-            ":dev", "app_env=dev", "target_env=dev", " app_env dev", " target_env dev",
-        ).any(words::contains)
+        val deviceTask = "xcrun simctl" in words || "adb " in words
         val safety = when {
             DESTRUCTIVE_WORDS.any(words::contains) -> SafetyClass.Destructive
             MIGRATION_WORDS.any(words::contains) -> SafetyClass.DataMigration
             CREDENTIAL_WORDS.any(words::contains) -> SafetyClass.CredentialWrite
-            productionTarget && (deviceTask || remoteHarness) -> SafetyClass.UnknownRemoteEffect
             deviceTask -> SafetyClass.DeviceWrite
-            remoteHarness && developmentTarget -> SafetyClass.NonProductionWrite
-            remoteHarness -> SafetyClass.UnknownRemoteEffect
             REMOTE_WRITE_WORDS.any(words::contains) -> SafetyClass.ProductionReversibleWrite
             REMOTE_UNKNOWN_WORDS.any(words::contains) -> SafetyClass.UnknownRemoteEffect
+            LITERAL_DEFINITION_PATH.containsMatchIn(body) && "node" in tokens -> SafetyClass.UnknownRemoteEffect
             READ_PHRASES.any(words::contains) || READ_TOKENS.any(tokens::contains) -> SafetyClass.ReadOnly
             LOCAL_EPHEMERAL_WORDS.any(words::contains) -> SafetyClass.LocalEphemeral
             LOCAL_ARTIFACT_WORDS.any(words::contains) -> SafetyClass.LocalArtifactWrite
@@ -740,50 +693,6 @@ private class TaskCatalogBuilder(
             }
 
         val words = "$script $expandedBody".lowercase()
-        if ("fastlane" in words) {
-            val fastlaneDirectory = File(root, "fastlane")
-            if (!fastlaneDirectory.isDirectory) {
-                blockedReason = "Fastlane definitions are not available for exact execution sealing"
-            } else {
-                addDirectory(fastlaneDirectory)
-                listOf(
-                    "fastlane/run.sh", "fastlane/Fastfile", "Gemfile", "Gemfile.lock",
-                    "targets/appDarwin/Gemfile", "targets/appDarwin/Gemfile.lock",
-                ).forEach { addFile(File(root, it)) }
-                addDirectory(File(root, "config"), setOf(".env"))
-            }
-            if (FASTLANE_PUBLISH_WORDS.any(words::contains)) {
-                blockedReason = "Production distribution is disabled until its app artifact/source closure is sealed"
-            }
-        }
-
-        if ("maestro" in words) {
-            val definitionText = buildString {
-                append(expandedBody)
-                File(root, "fastlane/Fastfile").takeIf(File::isFile)?.let { append('\n').append(text(it)) }
-            }
-            TEST_DIRECTORY_PATH.findAll(definitionText).forEach { match ->
-                resolveLiteral(workingDirectory, match.groupValues[1])?.let {
-                    addDirectory(it, TEST_DEFINITION_SUFFIXES)
-                }
-            }
-            listOf("../reaktor/tools/maestro", "tools/maestro").map { File(root, it) }
-                .firstOrNull(File::isDirectory)
-                ?.let { addDirectory(it, SCRIPT_DEFINITION_SUFFIXES) }
-                ?: run { blockedReason = blockedReason ?: "Maestro runner definitions are unavailable" }
-        }
-
-        if ("karate" in words || Regex("(?:^|[:/\\s])k6(?:[:/\\s]|${'$'})").containsMatchIn(words)) {
-            listOf("karate", "k6").forEach { family ->
-                listOf("../reaktor/tools/$family", "tools/$family").map { File(root, it) }
-                    .firstOrNull(File::isDirectory)
-                    ?.let { addDirectory(it, SCRIPT_DEFINITION_SUFFIXES) }
-            }
-            if (directories.none { it.directory.path.contains("${File.separator}tests${File.separator}") }) {
-                blockedReason = blockedReason ?: "Remote harness flow/config closure could not be bounded"
-            }
-        }
-
         val workerDeploy = "wrangler deploy" in words || ("deploy" in words && workspacePackages.isNotEmpty())
         if (workerDeploy) {
             if (workspacePackages.isEmpty() && packageFile.parentFile != root) workspacePackages += packageFile
@@ -923,9 +832,6 @@ private class TaskCatalogBuilder(
         private val READ_PHRASES = listOf("--version", "stack ls")
         private val LOCAL_EPHEMERAL_WORDS = listOf(" dev", "serve", "watch", "vite", "localhost", "node -e")
         private val LOCAL_ARTIFACT_WORDS = listOf("build", "compile", "assemble", "bundle", "package", "generate", "tsc", "gradlew", "vitest", "jest")
-        private val FASTLANE_PUBLISH_WORDS = listOf(
-            " distribute", " firebase", "play_internal", "play_production", "testflight_", "appstore_", " release_",
-        )
         private val ROOT_DEPENDENCY_FILES = listOf(
             "package.json", "package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".npmrc", "yarn.lock",
         )

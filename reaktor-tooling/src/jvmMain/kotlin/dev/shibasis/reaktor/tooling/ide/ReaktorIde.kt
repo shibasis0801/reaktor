@@ -15,6 +15,17 @@ object ReaktorIde {
             .firstOrNull(::runProcess)
     }
 
+    fun openClass(workspace: File, qualifiedName: String) {
+        val uri = classUri(workspace, qualifiedName)
+        runProcess(listOf(if (ProcessIdeEnvironment.isMac) "open" else "xdg-open", uri))
+    }
+
+    internal fun classUri(workspace: File, qualifiedName: String): String {
+        require(qualifiedName.split('.').all { it.isNotBlank() && it.all { c -> c.isLetterOrDigit() || c == '_' || c == '$' } })
+        fun encode(value: String) = java.net.URLEncoder.encode(value, Charsets.UTF_8)
+        return "jetbrains://idea/navigate/reference?project=${encode(workspace.name)}&fqn=${encode(qualifiedName)}"
+    }
+
     internal fun commandPlan(
         file: File,
         line: Int,

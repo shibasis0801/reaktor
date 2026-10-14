@@ -3,7 +3,8 @@ package dev.shibasis.dependeasy.model
 import java.io.File
 import java.security.MessageDigest
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.*
+import java.nio.file.Files
 
 object BuildModelReader {
     const val RelativePath = "build/dependeasy/model.json"
@@ -43,6 +44,133 @@ object BuildModelReader {
     }
 
     fun node(root: File, id: String): Node = read(root).nodes.single { it.id.toString() == id }
+    fun nodeDetails(root: File, id: String, collection: String? = null, offset: Int = 0, limit: Int = 10): JsonObject {
+        require(offset >= 0 && limit in 1..10)
+        val model = read(root)
+        val selected = model.nodes.single { it.id.toString() == id }
+        val details = buildJsonObject {
+            put("truth", "source")
+            put("node", json.encodeToJsonElement(Node.serializer(), selected))
+            put("effectiveHost", json.encodeToJsonElement(HostRequirement.serializer(), model.requiredHost(selected.id)))
+            put("edges", buildJsonArray { model.edges.filter { it.from == selected.id || it.to == selected.id }
+                .forEach { add(json.encodeToJsonElement(Edge.serializer(), it)) } })
+            put("omissions", buildJsonArray { model.omissions.filter { it.node == null || it.node == selected.id }
+                .forEach { add(json.encodeToJsonElement(Omission.serializer(), it)) } })
+        }
+        val collections = mutableListOf<JsonElement>()
+        fun bounded(value: JsonElement, path: String): JsonElement = when (value) {
+            is JsonObject -> JsonObject(value.mapValues { (key, child) -> bounded(child, "$path/${key.replace("~", "~0").replace("/", "~1")}") })
+            is JsonArray -> {
+                if (value.size > limit) collections += buildJsonObject {
+                    put("path", path); put("total", value.size); put("nextOffset", limit)
+                }
+                JsonArray(value.take(limit).mapIndexed { index, child -> bounded(child, "$path/$index") })
+            }
+            else -> value
+        }
+        if (collection == null) {
+            require(offset == 0) { "An offset requires a collection path" }
+            val page = bounded(details, "").jsonObject
+            return JsonObject(page + ("collections" to JsonArray(collections)))
+        }
+        require(collection.startsWith('/')) { "Expected a JSON pointer from collections" }
+        val value = collection.drop(1).split('/').fold(details as JsonElement) { parent, part ->
+            val key = part.replace("~1", "/").replace("~0", "~")
+            when (parent) {
+                is JsonObject -> parent.getValue(key)
+                is JsonArray -> parent[key.toInt()]
+                else -> error("Collection path has no child")
+            }
+        }
+        require(value is JsonArray) { "Collection path must select an array" }
+        val items = value.drop(offset).take(limit).mapIndexed { index, child -> bounded(child, "$collection/${offset + index}") }
+        return buildJsonObject {
+            put("truth", "source"); put("nodeId", id); put("collection", collection)
+            put("offset", offset); put("total", value.size); put("items", JsonArray(items))
+            put("collections", JsonArray(collections))
+            if (offset + limit < value.size) put("nextOffset", offset + limit)
+        }
+    }
+
+    fun modelPage(root: File, view: String = "nodes", offset: Int = 0, limit: Int = 5): JsonObject {
+        require(offset >= 0 && limit in 1..10)
+        val model = read(root)
+        val values = when (view) {
+            "nodes" -> model.nodes.map { node ->
+                val encoded = json.encodeToJsonElement(Node.serializer(), node).jsonObject
+                JsonObject(encoded.filterKeys { it in setOf("id", "kind", "title", "label", "effect", "host", "declaredAt") })
+            }
+            "edges" -> model.edges.map { json.encodeToJsonElement(Edge.serializer(), it) }
+            else -> error("Expected nodes or edges")
+        }
+        return buildJsonObject {
+            put("truth", "source"); put("schema", model.schema)
+            put("producer", json.encodeToJsonElement(Producer.serializer(), model.producer))
+            put("builds", buildJsonArray { model.builds.forEach { add(json.encodeToJsonElement(BuildIdentity.serializer(), it)) } })
+            put("view", view); put("offset", offset); put("total", values.size)
+            put(view, JsonArray(values.drop(offset).take(limit)))
+            if (offset + limit < values.size) put("nextOffset", offset + limit)
+        }
+    }
+
+    fun retainedPlan(root: File, id: String): GradlePlan? {
+        val node = node(root, id)
+        val digest = digest(root.resolve(RelativePath))
+        return artifactFiles(root.resolve(GradleProtocol.PlanDirectory)).sortedByDescending(File::lastModified)
+            .map(::readPlan).firstOrNull { it.node == node.id && it.modelDigest == digest }
+    }
+
+    fun planPage(plan: GradlePlan, offset: Int = 0, limit: Int = 10): JsonObject {
+        require(offset >= 0 && limit in 1..20)
+        val encoded = json.encodeToJsonElement(GradlePlan.serializer(), plan).jsonObject
+        return buildJsonObject {
+            encoded.filterKeys { it != "tasks" }.forEach { (key, value) -> put(key, value) }
+            put("offset", offset); put("totalTasks", plan.tasks.size)
+            put("tasks", buildJsonArray { plan.tasks.drop(offset).take(limit).forEach {
+                add(json.encodeToJsonElement(PlannedGradleTask.serializer(), it)) } })
+            if (offset + limit < plan.tasks.size) put("nextOffset", offset + limit)
+        }
+    }
+
+    fun receipts(root: File, id: String): List<Pair<File, RunReceipt>> {
+        val model = read(root)
+        val node = model.nodes.single { it.id.toString() == id }
+        val taskIds = (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { NodeId.task(node.id.build, it) }.toSet()
+        return model.builds.flatMap { build -> artifactFiles(root.resolve(build.directory).resolve(GradleProtocol.ReceiptDirectory)) }
+            .distinctBy(File::getCanonicalPath).map { it to readReceipt(it) }
+            .filter { (_, receipt) -> node.id in receipt.requestedNodes || receipt.tasks.any { it.task in taskIds } }
+            .sortedByDescending { it.second.finishedAtEpochMillis }
+    }
+
+    fun receiptPage(root: File, id: String, run: String? = null, offset: Int = 0, limit: Int = 10): JsonObject {
+        require(offset >= 0 && limit in 1..20)
+        val records = receipts(root, id)
+        val selected = if (run == null) records.firstOrNull() else records.firstOrNull { it.second.run == run }
+        return buildJsonObject {
+            put("node", id); put("truth", if (selected == null) "unavailable" else "recorded"); put("totalRuns", records.size)
+            put("runs", buildJsonArray { records.take(20).forEach { (file, receipt) -> add(buildJsonObject {
+                put("run", receipt.run); put("status", receipt.status.name); put("finishedAtEpochMillis", receipt.finishedAtEpochMillis)
+                put("path", file.absolutePath); put("dryRun", receipt.dryRun)
+            }) } })
+            if (selected == null) { put("omission", if (run == null) "No retained receipt" else "Requested receipt is unavailable"); return@buildJsonObject }
+            val receipt = selected.second
+            val encoded = json.encodeToJsonElement(RunReceipt.serializer(), receipt).jsonObject
+            put("receipt", buildJsonObject {
+                encoded.filterKeys { it != "tasks" }.forEach { (key, value) -> put(key, value) }
+                put("offset", offset); put("totalTasks", receipt.tasks.size)
+                put("tasks", buildJsonArray { receipt.tasks.drop(offset).take(limit).forEach {
+                    add(json.encodeToJsonElement(TaskObservation.serializer(), it)) } })
+                if (offset + limit < receipt.tasks.size) put("nextOffset", offset + limit)
+            })
+            put("path", selected.first.absolutePath); put("sha256", digest(selected.first))
+            put("matchesCurrentModel", receipt.modelDigest == digest(root.resolve(RelativePath)))
+        }
+    }
+
+    private fun artifactFiles(directory: File): List<File> = directory.listFiles().orEmpty().filter {
+        it.isFile && it.extension == "json" && !Files.isSymbolicLink(it.toPath()) && it.canonicalFile.parentFile == directory.canonicalFile
+    }.map(File::getCanonicalFile)
+
     fun encode(model: BuildModel): String = json.encodeToString(model) + "\n"
     fun encode(node: Node): String = json.encodeToString(node)
     fun decodeNode(text: String): Node = json.decodeFromString(text)
@@ -55,6 +183,10 @@ object BuildModelReader {
     fun readReceipt(file: File): RunReceipt = json.decodeFromString<RunReceipt>(boundedText(file)).also {
         require(it.schema == 1) { "Unsupported Gradle receipt schema" }
         require(it.finishedAtEpochMillis >= it.startedAtEpochMillis) { "Invalid receipt duration" }
+    }
+    fun readPipeline(file: File): DaggerPipelineContract = json.decodeFromString<DaggerPipelineContract>(boundedText(file)).also {
+        require(it.schema == 1) { "Unsupported Dagger pipeline schema" }
+        require(it.targets.map { node -> node.id }.distinct().size == it.targets.size) { "Duplicate pipeline target" }
     }
     fun readRequest(file: File): GradleRequest = json.decodeFromString<GradleRequest>(boundedText(file)).also {
         require(it.schema == 1) { "Unsupported Gradle request schema" }

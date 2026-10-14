@@ -32,6 +32,22 @@ class BuildDeclarationsTest {
         assertEquals(TaskProvenance("dependeasy", "fixture/build.gradle.kts:1"), task.provenance)
     }
 
+    @Test fun typedPrerequisitesCarryPhysicalHostAndWriteAuthorityWithoutTaskNameInference() = fixture { root ->
+        val device = node("innocentName", Effect.Verify).copy(host = HostRequirement(execution = ExecutionHost.Local),
+            kernel = KernelRef("fixture.Device", spec = KernelSpec.DeviceFlow("android", "fixture.app", "fixture:app", listOf("flow.yaml"),
+                "contract.json", emptyList(), ToolRef("runner", "1"))))
+        val parent = node("checks", Effect.Verify)
+        val model = BuildModel(producer = Producer(version = "fixture"), builds = listOf(BuildIdentity("fixture", ".")), nodes = listOf(parent, device),
+            edges = listOf(Edge.Includes(parent.id, device.id)))
+        root.resolve(BuildDeclarations.Report).apply { parentFile.mkdirs(); writeText(BuildModelReader.encode(model)) }
+        val declared = BuildDeclarations.read(root).single { it.node.id == parent.id }
+        assertEquals(ExecutionHost.Local, declared.host.execution)
+        assertEquals(SafetyClass.DeviceWrite, declared.safety)
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        assertEquals(SafetyClass.DeviceWrite, workspace.catalog.tasks.single { it.id.value == "fixture:checks" }.safety.classification)
+        assertTrue(workspace.catalog.tasks.none { it.provenance.source == "gradle-settings" })
+    }
+
     @Test fun changedDeclarationsAreRejectedBeforePlanningAndExecution() = fixture { root ->
         report(root, node("artifacts"))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))

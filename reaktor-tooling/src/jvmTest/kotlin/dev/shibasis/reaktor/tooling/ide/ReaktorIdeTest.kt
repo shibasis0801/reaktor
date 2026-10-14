@@ -9,6 +9,12 @@ import kotlin.test.assertTrue
 
 class ReaktorIdeTest {
 
+    @Test fun externalKernelClassUsesTheExistingProjectAndExactQualifiedName() {
+        assertEquals("jetbrains://idea/navigate/reference?project=bestbuds&fqn=org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest",
+            ReaktorIde.classUri(File("/workspace/bestbuds"), "org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest"))
+        kotlin.test.assertFailsWith<IllegalArgumentException> { ReaktorIde.classUri(File("bestbuds"), "bad&value") }
+    }
+
     @Test
     fun runningAndroidStudioBeatsInstalledIdea() {
         val plan = ReaktorIde.commandPlan(

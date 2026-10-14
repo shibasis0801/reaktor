@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.tooling
 
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+import dev.shibasis.dependeasy.model.*
 
 import java.io.File
 import java.nio.file.Files
@@ -20,7 +21,7 @@ class JvmProjectDiscoverySealTest {
     fun gradleTasksShareOneCompleteDiscoverySealWhileProvenanceStaysTaskSpecific() = fixture { root, included ->
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         val declared = workspace.prepare(TaskInvocation(TaskId("target/app/build")))
-        val module = workspace.prepare(TaskInvocation(TaskId("gradle/module0/build")))
+        val module = workspace.prepare(TaskInvocation(TaskId("target/other/build")))
         val first = assertNotNull(declared.request.definitionSeal)
         val second = assertNotNull(module.request.definitionSeal)
 
@@ -31,7 +32,7 @@ class JvmProjectDiscoverySealTest {
             "Distinct provenance paths must still bind distinct plans")
         assertEquals("package.json#reaktor.targets.app.build",
             workspace.catalog.tasks.first { it.id == declared.plan.taskId }.provenance.path)
-        assertEquals("settings.gradle.kts", workspace.catalog.tasks.first { it.id == module.plan.taskId }.provenance.path)
+        assertEquals("package.json#reaktor.targets.other.build", workspace.catalog.tasks.first { it.id == module.plan.taskId }.provenance.path)
 
         val expected = ProcessDefinitionSeal.capture(
             files = listOf(File(root, wrapperName), File(root, "settings.gradle.kts"),
@@ -46,7 +47,7 @@ class JvmProjectDiscoverySealTest {
     fun laterDiscoveryAndBothExecutionGatesRecaptureChangedDefinitions() = fixture { root, included ->
         val discovery = JvmProjectDiscovery()
         val first = assertNotNull(discovery.discoverWorkspace(root))
-        val invocation = TaskInvocation(TaskId("gradle/module0/build"))
+        val invocation = TaskInvocation(TaskId("target/other/build"))
         val prepared = first.prepare(invocation)
         val oldSeal = assertNotNull(prepared.request.definitionSeal)
         File(included, "added.gradle.kts").writeText("// New included-build member\n")
@@ -127,7 +128,7 @@ class JvmProjectDiscoverySealTest {
         val prepared = workspace.prepare(TaskInvocation(TaskId("npm/check"), arguments = listOf("--verbose")))
         assertEquals(listOf(executable.canonicalPath, "run", "check", "--verbose"), prepared.request.argv)
         assertTrue(prepared.request.environment.getValue("PATH").startsWith(executable.canonicalFile.parent))
-        assertEquals(SafetyClass.NonProductionWrite, prepared.plan.safety.classification)
+        assertEquals(SafetyClass.UnknownRemoteEffect, prepared.plan.safety.classification)
         assertTrue(prepared.request.definitionSeal!!.files.any { it.name == "check.mjs" })
     }
 
@@ -231,7 +232,7 @@ class JvmProjectDiscoverySealTest {
         try {
             val root = File(parent, "workspace").apply { mkdirs() }
             val included = File(parent, "included").apply { mkdirs() }
-            File(root, "package.json").writeText("""{"name":"seal-fixture","reaktor":{"targets":{"app":{"gradle":":module0","build":"build"}}}}""")
+            File(root, "package.json").writeText("""{"name":"seal-fixture","reaktor":{"targets":{"app":{"gradle":":module0","build":"build"},"other":{"gradle":":module0","build":"build"}}}}""")
             File(root, wrapperName).writeText("fixture wrapper; tests never execute this file\n")
             File(root, "settings.gradle.kts").writeText(
                 "includeBuild(\"../included\")\n" + (0 until modules).joinToString("\n") { "include(\":module$it\")" },
@@ -240,6 +241,11 @@ class JvmProjectDiscoverySealTest {
             File(root, "gradle.properties").writeText("fixture=true\n")
             File(root, "buildSrc/Rules.kt").apply { parentFile.mkdirs(); writeText("// Fixture build logic\n") }
             File(included, "build.gradle.kts").writeText("// Fixture included build\n")
+            root.resolve(BuildModelReader.RelativePath).apply {
+                parentFile.mkdirs()
+                writeText(BuildModelReader.encode(BuildModel(producer = Producer(version = "fixture"),
+                    builds = listOf(BuildIdentity("seal-fixture", "."), BuildIdentity("included", "../included")), nodes = emptyList())))
+            }
             block(root, included)
         } finally { parent.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
