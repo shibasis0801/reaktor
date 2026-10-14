@@ -39,10 +39,14 @@ fun<T : HttpClientEngineConfig> HttpClientConfig<T>.middleware() {
     install(Logging) {
         logger = object: Logger {
             override fun log(message: String) {
-                co.touchlab.kermit.Logger.i("Reaktor:HttpClient") { message }
+                co.touchlab.kermit.Logger.i("Reaktor:HttpClient") { redactSecrets(message) }
             }
         }
-        level = LogLevel.ALL
+        // Which request, and how it went — never what was in it. This was ALL, which logged every
+        // body in both directions: the token a server hands a device when it signs up, whatever a
+        // user typed, and every upload, a megabyte of ciphertext at a time, as text. A log is
+        // read by whoever has a bug report or a cable, and is not where any of that belongs.
+        level = LogLevel.INFO
         sanitizeHeader { header -> header == HttpHeaders.Authorization }
     }
     install(WebSockets) {
@@ -106,3 +110,17 @@ suspend fun HttpClient.Get(
 }
 
 
+/**
+ * [message] with the value of any credential-shaped query parameter replaced.
+ *
+ * A WebSocket cannot carry an `Authorization` header from a browser, so a token rides in the URL —
+ * and the URL is the one thing request logging always prints. Header sanitising does not reach it.
+ */
+fun redactSecrets(message: String): String = SECRET_PARAMETER.replace(message) { match ->
+    match.groupValues[1] + "REDACTED"
+}
+
+private val SECRET_PARAMETER = Regex(
+    "([?&](?:token|access_token|refresh_token|id_token|api_key|apikey|key|secret|password|sig|signature)=)[^&\\s#]+",
+    RegexOption.IGNORE_CASE,
+)
