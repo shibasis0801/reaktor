@@ -131,4 +131,36 @@ class BuildWorkspaceTest {
         assertContains(model.nodes.map { it.id }, NodeId("library", ":", "compile"))
         assertTrue(model.edges.any { it.to == NodeId("library", ":", "outputWorkspaceCompletionVerify") })
     }
+
+    @Test fun `file declarations survive configuration cache without becoming resolved inputs`() {
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"fixture\"")
+        directory.resolve("source.txt").writeText("source")
+        directory.resolve("sources").mkdir()
+        directory.resolve("sources/entry.ts").writeText("export const value = 1")
+        directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.process.ProcessTask
+            import dev.shibasis.dependeasy.handles.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            val compiler = tasks.register<ProcessTask>("compiler") {
+                workingDirectory.set(layout.projectDirectory)
+                executable.set("/bin/sh"); toolVersion.set("fixture")
+                arguments.set(listOf("-c", "mkdir -p build; printf compiled > build/compiled.txt"))
+                sourceFiles.from(files(file("source.txt")), fileTree("sources") { include("**/*.ts") })
+                outputFiles.from(layout.buildDirectory.file("compiled.txt"))
+            }
+            dependeasy.workspace { verify("checks") { includes(node(compiler)) } }
+        """.trimIndent())
+        fun run(cache: Boolean = true, compile: Boolean = false) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments(*(if (compile) arrayOf("compiler", "exportBuildModel") else arrayOf("exportBuildModel")), if (cache) "--configuration-cache" else "--no-configuration-cache", "--rerun-tasks", "--stacktrace").build()
+        assertNull(run(false).task(":compiler"))
+        val model = directory.resolve(BuildModelReader.RelativePath).readText()
+        assertNull(run().task(":compiler"))
+        assertEquals(model, directory.resolve(BuildModelReader.RelativePath).readText())
+        val repeated = run()
+        assertNull(repeated.task(":compiler"))
+        assertContains(repeated.output, "Reusing configuration cache")
+        assertEquals(model, directory.resolve(BuildModelReader.RelativePath).readText())
+        assertNotNull(run(compile = true).task(":compiler"))
+        assertEquals(model, directory.resolve(BuildModelReader.RelativePath).readText())
+    }
 }

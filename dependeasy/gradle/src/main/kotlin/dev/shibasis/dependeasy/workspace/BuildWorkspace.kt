@@ -55,6 +55,9 @@ class BuildWorkspace internal constructor(private val project: Project) {
         nodes.convention(emptyList())
         edges.convention(emptyList())
         omissions.convention(emptyList())
+        nodes.finalizeValueOnRead()
+        edges.finalizeValueOnRead()
+        omissions.finalizeValueOnRead()
         taskFamilies.convention(emptyMap())
         workspaceDirectory.set(project.layout.projectDirectory)
         directories.set(mapOf(project.name to ".") + project.gradle.includedBuilds.associate {
