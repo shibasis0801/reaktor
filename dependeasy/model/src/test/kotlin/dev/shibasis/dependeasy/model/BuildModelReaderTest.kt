@@ -89,9 +89,33 @@ class BuildModelReaderTest {
         input.writeText("other")
         input.setLastModified(time)
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+        val details = BuildModelReader.nodeDetails(root, node.id.toString())
+        assertEquals("stale", details.getValue("truth").jsonPrimitive.content)
+        assertTrue(details.getValue("stale").jsonPrimitive.boolean)
+        assertEquals(listOf("fixture:build.gradle.kts"), details.getValue("changedDeclarations").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals("stale", BuildModelReader.modelPage(root).getValue("truth").jsonPrimitive.content)
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.retainedPlan(root, node.id.toString()) }
+        assertEquals("unavailable", BuildModelReader.receiptPage(root, node.id.toString()).getValue("truth").jsonPrimitive.content)
         input.writeText("first")
         input.setLastModified(time + 1000)
         assertEquals(node, BuildModelReader.node(root, node.id.toString()))
+    }
+
+    @Test fun `stale changed declarations are paged without weakening path validation`() {
+        val files = (0..16).map { index -> root.resolve("input$index.gradle.kts").apply { writeText("before") } }
+        val inputs = files.map { DeclarationInput("fixture", it.name, BuildModelReader.digest(it)) }
+        val output = root.resolve(BuildModelReader.RelativePath).apply { parentFile.mkdirs() }
+        output.writeText(BuildModelReader.encode(model().copy(declarations = inputs)))
+        files.forEach { it.writeText("after") }
+        val details = BuildModelReader.nodeDetails(root, node.id.toString())
+        assertEquals(10, details.getValue("changedDeclarations").jsonArray.size)
+        assertTrue(details.getValue("collections").jsonArray.any { it.jsonObject["path"]?.jsonPrimitive?.content == "/changedDeclarations" })
+        val tail = BuildModelReader.nodeDetails(root, node.id.toString(), "/changedDeclarations", 10)
+        assertEquals(7, tail.getValue("items").jsonArray.size)
+        assertEquals("stale", tail.getValue("truth").jsonPrimitive.content)
+        output.writeText(BuildModelReader.encode(model().copy(declarations = listOf(inputs.first().copy(path = "../outside")))))
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.nodeDetails(root, node.id.toString()) }
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.modelPage(root) }
     }
 
     @Test fun `node identities preserve separators and round trip`() {

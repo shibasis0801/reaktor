@@ -24,13 +24,29 @@ object BuildModelReader {
     }
 
     fun read(root: File): BuildModel {
+        val model = declaredModel(root)
+        val stale = changedDeclarations(root, model)
+        require(stale.isEmpty()) { "Build model is stale: ${stale.size} declaration inputs changed; rerun exportBuildModel" }
+        return model
+    }
+
+    private fun declaredModel(root: File): BuildModel {
         val file = root.resolve(RelativePath)
         require(file.isFile) { "Run ./gradlew exportBuildModel in this workspace" }
         val bytes = file.inputStream().use { it.readNBytes(MaxBytes + 1) }
         require(bytes.size <= MaxBytes) { "Build model exceeds $MaxBytes bytes" }
         val model = decode(bytes.toString(Charsets.UTF_8))
         val directories = model.builds.associate { it.name to root.resolve(it.directory).canonicalFile }
-        val stale = model.declarations.filter { input ->
+        model.declarations.forEach { input ->
+            val owner = directories.getValue(input.build)
+            require(owner.resolve(input.path).canonicalFile.toPath().startsWith(owner.toPath())) { "Declaration escapes its build" }
+        }
+        return model
+    }
+
+    private fun changedDeclarations(root: File, model: BuildModel): List<DeclarationInput> {
+        val directories = model.builds.associate { it.name to root.resolve(it.directory).canonicalFile }
+        return model.declarations.filter { input ->
             val owner = directories.getValue(input.build)
             val declaration = owner.resolve(input.path).canonicalFile
             require(declaration.toPath().startsWith(owner.toPath())) { "Declaration escapes its build" }
@@ -39,17 +55,18 @@ object BuildModelReader {
                 DeclarationInputKind.Membership -> BuildDeclarationInputs.membership(declaration) != input.sha256
             }
         }
-        require(stale.isEmpty()) { "Build model is stale: ${stale.size} declaration inputs changed; rerun exportBuildModel" }
-        return model
     }
 
     fun node(root: File, id: String): Node = read(root).nodes.single { it.id.toString() == id }
     fun nodeDetails(root: File, id: String, collection: String? = null, offset: Int = 0, limit: Int = 10): JsonObject {
         require(offset >= 0 && limit in 1..10)
-        val model = read(root)
+        val model = declaredModel(root)
+        val changed = changedDeclarations(root, model)
         val selected = model.nodes.single { it.id.toString() == id }
         val details = buildJsonObject {
-            put("truth", "source")
+            put("truth", if (changed.isEmpty()) "source" else "stale")
+            put("stale", changed.isNotEmpty())
+            put("changedDeclarations", buildJsonArray { changed.forEach { add("${it.build}:${it.path}") } })
             put("node", json.encodeToJsonElement(Node.serializer(), selected))
             put("effectiveHost", json.encodeToJsonElement(HostRequirement.serializer(), model.requiredHost(selected.id)))
             put("edges", buildJsonArray { model.edges.filter { it.from == selected.id || it.to == selected.id }
@@ -85,7 +102,8 @@ object BuildModelReader {
         require(value is JsonArray) { "Collection path must select an array" }
         val items = value.drop(offset).take(limit).mapIndexed { index, child -> bounded(child, "$collection/${offset + index}") }
         return buildJsonObject {
-            put("truth", "source"); put("nodeId", id); put("collection", collection)
+            put("truth", if (changed.isEmpty()) "source" else "stale"); put("stale", changed.isNotEmpty())
+            put("nodeId", id); put("collection", collection)
             put("offset", offset); put("total", value.size); put("items", JsonArray(items))
             put("collections", JsonArray(collections))
             if (offset + limit < value.size) put("nextOffset", offset + limit)
@@ -94,7 +112,8 @@ object BuildModelReader {
 
     fun modelPage(root: File, view: String = "nodes", offset: Int = 0, limit: Int = 5): JsonObject {
         require(offset >= 0 && limit in 1..10)
-        val model = read(root)
+        val model = declaredModel(root)
+        val changed = changedDeclarations(root, model)
         val values = when (view) {
             "nodes" -> model.nodes.map { node ->
                 val encoded = json.encodeToJsonElement(Node.serializer(), node).jsonObject
@@ -104,7 +123,10 @@ object BuildModelReader {
             else -> error("Expected nodes or edges")
         }
         return buildJsonObject {
-            put("truth", "source"); put("schema", model.schema)
+            put("truth", if (changed.isEmpty()) "source" else "stale"); put("schema", model.schema)
+            put("stale", changed.isNotEmpty()); put("changedDeclarationCount", changed.size)
+            put("changedDeclarations", buildJsonArray { changed.take(limit).forEach { add("${it.build}:${it.path}") } })
+            if (changed.size > limit) put("omission", "Read nodeDetails collection /changedDeclarations for all changed declaration inputs")
             put("producer", json.encodeToJsonElement(Producer.serializer(), model.producer))
             put("builds", buildJsonArray { model.builds.forEach { add(json.encodeToJsonElement(BuildIdentity.serializer(), it)) } })
             put("view", view); put("offset", offset); put("total", values.size)
@@ -135,7 +157,7 @@ object BuildModelReader {
     }
 
     fun receipts(root: File, id: String): List<Pair<File, RunReceipt>> {
-        val model = read(root)
+        val model = declaredModel(root)
         val node = model.nodes.single { it.id.toString() == id }
         val taskIds = (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { NodeId.task(node.id.build, it) }.toSet()
         return model.builds.flatMap { build -> artifactFiles(root.resolve(build.directory).resolve(GradleProtocol.ReceiptDirectory)) }
@@ -165,7 +187,7 @@ object BuildModelReader {
                 if (offset + limit < receipt.tasks.size) put("nextOffset", offset + limit)
             })
             put("path", selected.first.absolutePath); put("sha256", digest(selected.first))
-            put("matchesCurrentModel", receipt.modelDigest == digest(root.resolve(RelativePath)))
+            put("matchesCurrentModel", receipt.modelDigest == digest(root.resolve(RelativePath)) && changedDeclarations(root, declaredModel(root)).isEmpty())
         }
     }
 
