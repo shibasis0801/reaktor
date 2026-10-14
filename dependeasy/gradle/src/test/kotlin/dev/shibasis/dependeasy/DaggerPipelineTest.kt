@@ -18,19 +18,26 @@ class DaggerPipelineTest {
         val local = node("local", HostRequirement(execution = ExecutionHost.Local))
         val parent = node("parent")
         val pr = node("pr")
+        val android = node("android").copy(outputs = listOf(FileSet(listOf("app.aab"), OutputKind.AndroidBundle.name)))
+        val androidParent = node("androidParent")
         val task = project.tasks.create("generate", GenerateDaggerTask::class.java).apply {
             buildName.set("fixture"); engineVersion.set("0.21.8"); browserImage.set("fixture-browser")
             gradleProperties.set(mapOf("fixture.option" to "false"))
+            executionEnvironment.set(mapOf("DEPE_CONTAINER_PLATFORM" to "linux/arm64"))
             toolchainContract.set(BuildModelReader.json.encodeToString(DaggerToolchainContract(javaImage = "fixture-jdk", gradleUrl = "fixture", gradleSha256 = "0".repeat(64), gradleArchive = "fixture",
                 androidSdk = AndroidSdkContract(directory = "fixture", commandLineTools = "fixture", downloadUrl = "fixture", sha256 = "0".repeat(64), packages = emptyList()))))
-            declarations.set(listOf(local, parent, pr).map(BuildModelReader::encode))
-            edges.set(listOf(BuildModelReader.json.encodeToString<Edge>(Edge.Includes(parent.id, local.id))))
+            declarations.set(listOf(local, parent, pr, android, androidParent).map(BuildModelReader::encode))
+            edges.set(listOf(Edge.Includes(parent.id, local.id), Edge.Includes(androidParent.id, android.id))
+                .map { BuildModelReader.json.encodeToString<Edge>(it) })
             outputFile.set(root.resolve("dagger/pipeline.json"))
         }
         task.generate()
         val pipeline = BuildModelReader.json.decodeFromString<DaggerPipelineContract>(task.outputFile.get().asFile.readText())
-        assertEquals(listOf(pr.id), pipeline.targets.map { it.id })
-        assertEquals(mapOf("ORG_GRADLE_PROJECT_fixture.option" to "false"), pipeline.environment)
+        assertEquals(listOf(android.id, androidParent.id, pr.id), pipeline.targets.map { it.id })
+        assertEquals("false", pipeline.environment["ORG_GRADLE_PROJECT_fixture.option"])
+        assertEquals("linux/arm64", pipeline.environment["DEPE_CONTAINER_PLATFORM"])
+        assertEquals(mapOf(android.id.toString() to "linux/amd64", androidParent.id.toString() to "linux/amd64"),
+            BuildModelReader.json.decodeFromString<Map<String, String>>(pipeline.environment.getValue("DEPE_CONTAINER_PLATFORM_OVERRIDES")))
         assertEquals(setOf("pipeline.json"), root.resolve("dagger").list()!!.toSet())
         val verify = project.tasks.create("verify", VerifyDaggerTask::class.java).apply {
             expected.set(task.outputFile); actual.set(root.resolve("pipeline-copy.json"))

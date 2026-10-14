@@ -35,8 +35,21 @@ abstract class GenerateDaggerTask : DefaultTask() {
                 declarations = emptyList(), nodes = declared, edges = edges.get().map { BuildModelReader.json.decodeFromString<Edge>(it) })
         val targets = declared.map { it.copy(host = model.requiredHost(it.id)) }
             .filter { it.host.platform != HostPlatform.Macos && it.host.execution != ExecutionHost.Local && it.invocation is Invocation.Gradle }
+        val nodes = model.nodes.associateBy { it.id }
+        val prerequisites = model.edges.filter { it !is Edge.After }.groupBy { it.from }
+        val androidOutputs = setOf(OutputKind.AndroidApk, OutputKind.AndroidBundle, OutputKind.AndroidLibrary, OutputKind.AndroidInstrumentedTests)
+            .map { it.name }.toSet()
+        fun requiresAndroid(id: NodeId, visited: Set<NodeId> = emptySet()): Boolean {
+            if (id in visited) return false
+            val node = nodes[id] ?: return false
+            return (node.inputs + node.outputs).any { it.kind in androidOutputs } ||
+                prerequisites[id].orEmpty().any { requiresAndroid(it.to, visited + id) }
+        }
+        val platforms = targets.filter { requiresAndroid(it.id) }.associate { it.id.toString() to "linux/amd64" }.toSortedMap()
+        val platformEnvironment = if (platforms.isEmpty()) emptyMap() else
+            mapOf("DEPE_CONTAINER_PLATFORM_OVERRIDES" to BuildModelReader.json.encodeToString<Map<String, String>>(platforms))
         val contract = DaggerPipelineContract(build = buildName.get(), engineVersion = engineVersion.get(), browserImage = browserImage.get(),
-            environment = executionEnvironment.get() + gradleProperties.get().mapKeys { "ORG_GRADLE_PROJECT_${it.key}" },
+            environment = executionEnvironment.get() + platformEnvironment + gradleProperties.get().mapKeys { "ORG_GRADLE_PROJECT_${it.key}" },
             toolchain = BuildModelReader.json.decodeFromString(toolchainContract.get()), targets = targets.sortedBy { it.id.toString() })
         outputFile.get().asFile.apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(contract) + "\n") }
         if (sharedDirectory.isPresent) sharedMetadata.get().forEach { (name, contents) ->

@@ -35,7 +35,7 @@ export class BuildRuntime {
       .withExec([
         "sh",
         "-c",
-        "apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates unzip cmake build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libarchive-tools && ln -s /usr/bin/bsdtar /usr/local/bin/tar && " +
+        "apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates unzip cmake build-essential pkg-config sqlite3 libgtk-3-dev libwebkit2gtk-4.1-dev libarchive-tools && ln -s /usr/bin/bsdtar /usr/local/bin/tar && " +
           "rm -rf /var/lib/apt/lists/*",
       ])
       .withExec([
@@ -92,7 +92,7 @@ export class BuildRuntime {
       ])
       .withEnvVariable(
         "PATH",
-        `${sdk.directory}/platform-tools:$PATH`,
+        `$PATH:${sdk.directory}/platform-tools`,
         { expand: true },
       )
   }
@@ -181,7 +181,11 @@ export class Dependeasy {
     if (!node) throw new Error(`Unknown or unavailable container target '${target}'; use list`)
     if (node.host.platform === "Macos" || node.host.execution === "Local" || !node.invocation.tasks?.length)
       throw new Error("This target requires a physical host")
-    const runtime = new BuildRuntime(this.source, this.reaktor, pipeline.toolchain, pipeline.build, pipeline.environment)
+    const { DEPE_CONTAINER_PLATFORM_OVERRIDES, ...environment } = pipeline.environment
+    const platforms: Record<string, string> = JSON.parse(DEPE_CONTAINER_PLATFORM_OVERRIDES ?? "{}")
+    const id = node.id.build + node.id.project.replace(/:$/, "") + ":" + node.id.name
+    environment.DEPE_CONTAINER_PLATFORM = platforms[id] ?? environment.DEPE_CONTAINER_PLATFORM
+    const runtime = new BuildRuntime(this.source, this.reaktor, pipeline.toolchain, pipeline.build, environment)
     let container = await (node.runner === "browser" ? runtime.browserWorkspace(pipeline.browserImage) : runtime.workspace())
     if (node.effect === "Deploy") {
       if (!cloudflareApiToken) throw new Error("Deploy requires cloudflare-api-token")
