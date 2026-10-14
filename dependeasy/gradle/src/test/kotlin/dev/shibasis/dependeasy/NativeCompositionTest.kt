@@ -134,4 +134,52 @@ class NativeCompositionTest {
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":sampleCMake")?.outcome)
     }
 
+
+    @Test fun `Apple native imports resolve a declared OpenSSL prefix with cache reuse`() {
+        if (!System.getProperty("os.name").contains("Mac", ignoreCase = true)) return
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"appleOpenSsl\"")
+        val prefix = directory.resolve("openssl fixture")
+        prefix.resolve("include/openssl").mkdirs()
+        prefix.resolve("include/openssl/ssl.h").writeText("#pragma once\n")
+        prefix.resolve("include/openssl/opensslv.h").writeText("#define OPENSSL_VERSION_NUMBER 0x1010111fL\n")
+        prefix.resolve("lib").mkdirs()
+        prefix.resolve("lib/libcrypto.a").writeText("!<arch>\n")
+        prefix.resolve("lib/libssl.a").writeText("!<arch>\n")
+        directory.resolve("src/commonMain/cpp").mkdirs()
+        directory.resolve("src/commonMain/cpp/main.cpp").writeText("int fixture() { return 42; }\n")
+        directory.resolve("CMakeLists.txt").writeText("""
+            cmake_minimum_required(VERSION ${'$'}{DEPE_CMAKE_MINIMUM})
+            project(sample LANGUAGES CXX)
+            find_package(OpenSSL REQUIRED)
+            add_library(sample STATIC src/commonMain/cpp/main.cpp)
+            target_include_directories(sample PRIVATE ${'$'}{OPENSSL_INCLUDE_DIR})
+            target_link_libraries(sample PUBLIC OpenSSL::Crypto OpenSSL::SSL)
+        """.trimIndent())
+        directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.native.Native
+            import dev.shibasis.dependeasy.native.NativePlatform
+            import dev.shibasis.dependeasy.tasks.CmakePlatform
+            import dev.shibasis.dependeasy.tasks.kotlinCmake
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            dependeasy {
+                nativeLibrary {
+                    libraryName = "sample"
+                    platforms(NativePlatform.Darwin)
+                    dependencies(Native.OpenSslCrypto, Native.OpenSslSsl)
+                }
+            }
+            kotlinCmake(CmakePlatform.Darwin("iphoneos"))
+        """.trimIndent())
+        fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withEnvironment(System.getenv() + ("OPENSSL_ROOT_DIR" to prefix.absolutePath))
+            .withArguments("iphoneosCMake", "--configuration-cache", "--stacktrace").build()
+        val first = run()
+        assertEquals(TaskOutcome.SUCCESS, first.task(":iphoneosCMake")?.outcome)
+        assertContains(first.output, "Found OpenSSL")
+        assertTrue(directory.resolve("build/dependeasy/native/iphoneos/libsample.a").isFile)
+        val repeated = run()
+        assertContains(repeated.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":iphoneosCMake")?.outcome)
+    }
+
 }

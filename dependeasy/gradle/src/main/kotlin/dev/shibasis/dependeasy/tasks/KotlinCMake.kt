@@ -57,7 +57,10 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
             val hermes = sourceDependencies.any { it.recipe == "hermes" }
             val foundation = sourceDependencies.any { it.recipe == "foundation" }
             BuildModelReader.json.encodeToString(NativeContract(library = libraryName, platform = platform.variant,
-                settings = settings + (hostOpenSsl?.let { mapOf("OPENSSL_ROOT_DIR" to it.absolutePath) }.orEmpty()) + mapOf("CMAKE_CXX_STANDARD" to ToolchainVersions.CppStandard, "CMAKE_CXX_EXTENSIONS" to "OFF"),
+                settings = settings + (hostOpenSsl?.let {
+                    mapOf("OPENSSL_ROOT_DIR" to it.absolutePath) +
+                        if (platform is CmakePlatform.Darwin) mapOf("CMAKE_FIND_ROOT_PATH" to it.absolutePath) else emptyMap()
+                }.orEmpty()) + mapOf("CMAKE_CXX_STANDARD" to ToolchainVersions.CppStandard, "CMAKE_CXX_EXTENSIONS" to "OFF"),
                 includeDirectories = includes,
                 linkLibraries = (if(platform is CmakePlatform.Android) listOf("android", "log") else emptyList()) +
                     (if(hermes) if(platform is CmakePlatform.Android) listOf("jsi") else listOf("hermesvm", "jsi") else emptyList()) +
