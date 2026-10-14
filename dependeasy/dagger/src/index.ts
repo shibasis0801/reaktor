@@ -35,7 +35,7 @@ export class BuildRuntime {
       .withExec([
         "sh",
         "-c",
-        "apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates unzip cmake build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev && " +
+        "apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates unzip cmake build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libarchive-tools && ln -s /usr/bin/bsdtar /usr/local/bin/tar && " +
           "rm -rf /var/lib/apt/lists/*",
       ])
       .withExec([
