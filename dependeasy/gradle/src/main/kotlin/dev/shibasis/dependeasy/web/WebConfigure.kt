@@ -25,10 +25,10 @@ import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
 
 class WebConfiguration internal constructor(private val project: Project): Configuration<KotlinJsTargetDsl>() {
     var moduleName: String? = null
-    var exportDirectory: String = "ts/export"
-    internal val manifests = mutableListOf<org.gradle.api.tasks.TaskProvider<dev.shibasis.dependeasy.process.CommandTask>>()
+    val exportDirectory: String = "build/" + KotlinPackageExport.RelativeDirectory
+    internal val manifests = mutableListOf<org.gradle.api.tasks.TaskProvider<out dev.shibasis.dependeasy.process.ProcessTask>>()
 
-    fun manifest(name: String, script: Any, output: Any, vararg inputs: Any) =
+    fun manifest(name: String, script: Any, output: Any, vararg inputs: Any): org.gradle.api.tasks.TaskProvider<NodeGenerator> =
         project.exportManifest(name, script, output, { exportDirectory }, inputs).also(manifests::add)
 
     internal var packageJsonCustomizer: (PackageJson.() -> Unit)? = null
@@ -95,12 +95,6 @@ fun KotlinMultiplatformExtension.web(
 
         configure.targetModifier(this)
 
-        val context = PackageDependencyContext(compilations["main"].npmProject.dir.get().asFile.resolve("node_modules"),
-            project.file(configure.exportDirectory))
-        PnpmWorkspace.get(project).install.configure {
-            doLast(context)
-            outputs.upToDateWhen { context.matches() }
-        }
         val mainCompilation = compilations["main"]
         val packageJson = project.tasks.withType(PublicPackageJsonTask::class.java).matching {
             it.compilationDisambiguatedName.get() == mainCompilation.disambiguatedName
@@ -110,7 +104,7 @@ fun KotlinMultiplatformExtension.web(
             group = "dependeasy"
             sourceFiles.from(packageJson.map { it.packageJsonFile })
             dependsOn(packageJson)
-            destination.set(project.layout.projectDirectory.dir(configure.exportDirectory))
+            destination.set(project.layout.buildDirectory.dir(KotlinPackageExport.RelativeDirectory))
             dependencyDirectory.set(mainCompilation.npmProject.dir.map { it.dir("node_modules") })
             finalizedBy(catalog, configure.manifests)
         }
@@ -136,7 +130,6 @@ fun KotlinMultiplatformExtension.web(
 
     sourceSets {
         jsMain {
-            kotlin.srcDir("ts/import")
             configure.sourceSetModifier(this)
             dependencies {
                 configure.dependencies(this)

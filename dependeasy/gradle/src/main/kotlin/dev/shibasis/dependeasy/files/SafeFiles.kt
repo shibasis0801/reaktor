@@ -40,3 +40,14 @@ fun File.deleteTreeSafely(within: File): Boolean {
     })
     return !Files.exists(actual, NOFOLLOW_LINKS)
 }
+
+internal fun File.clearChildrenSafely() {
+    val boundary = toPath().toAbsolutePath().normalize()
+    require(boundary.parent != null) { "Refusing to clear filesystem root $boundary" }
+    for (ancestor in generateSequence(boundary) { it.parent }) {
+        val systemAlias = ancestor in setOf(Path.of("/var"), Path.of("/tmp")) &&
+            runCatching { ancestor.toRealPath() == Path.of("/private").resolve(ancestor.fileName) }.getOrDefault(false)
+        require(!Files.isSymbolicLink(ancestor) || systemAlias) { "Refusing to clear through symbolic link $ancestor" }
+    }
+    listFiles()?.forEach { it.deleteTreeSafely(within = this) }
+}

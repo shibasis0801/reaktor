@@ -1,6 +1,6 @@
 package dev.shibasis.dependeasy.web
 
-import dev.shibasis.dependeasy.process.CommandTask
+import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.plugins.DependeasyExtension
 import dev.shibasis.dependeasy.workspace.declareArtifactFamily
 import org.gradle.api.Project
@@ -25,7 +25,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     fun sources(vararg files: Any) { sourceInputs.addAll(files) }
 
     fun build(target: String, vararg projects: String,
-              bundle: TaskProvider<CommandTask> = vite(),
+              bundle: TaskProvider<out ProcessTask> = vite(),
               typecheck: TaskProvider<out org.gradle.api.Task> = types(*projects),
               checks: List<TaskProvider<out org.gradle.api.Task>> = emptyList(),
               generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): NodeHandle {
@@ -48,28 +48,31 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         prerequisites.add(kotlinExports)
     }
 
-    fun script(script: String, output: String): TaskProvider<CommandTask> = command(script, output, "run", script)
-    fun vite(output: String = "dist"): TaskProvider<CommandTask> = command("bundle", output, "exec", "vite", "build").also {
+    fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
+    fun vite(output: String = "dist"): TaskProvider<ViteBundle> = commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build").also {
         it.configure { sourceFiles.from(runtime.sources) }
     }
-    fun types(vararg projects: String, generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): TaskProvider<CommandTask> =
-        command("types", null, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
+    fun types(vararg projects: String, generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): TaskProvider<TypeScriptCheck> =
+        commandKernel.register(TypeScriptCheck::class.java, "types", null, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
             "--projects", *(projects.toList().ifEmpty { listOf("tsconfig.json") }).toTypedArray()).also {
-            it.configure { dependsOn(generators); sourceFiles.from(runtime.sources, generators) }
+            it.configure { adapter.set(runtime.file("cli/typecheck.ts")); this.projects.set(projects.toList().ifEmpty { listOf("tsconfig.json") }); dependsOn(generators); sourceFiles.from(runtime.sources, generators) }
         }
-    fun workerTypes(config: String = "wrangler.json", output: String = "worker-configuration.d.ts"): TaskProvider<CommandTask> =
-        commandKernel.command("workerTypes", null, "exec", "wrangler", "types", output, "--config", config, fileOutput = output)
-            .also { it.configure { backend.set("wrangler") } }
-    fun check(script: String = "test"): TaskProvider<CommandTask> = command("check", null, "run", script)
-    fun bindings(config: String, output: String): TaskProvider<CommandTask> = command("bindings", output, "exec", "karakum", "--config", config)
+    fun workerTypes(config: String = "wrangler.json", output: String = "worker-configuration.d.ts"): TaskProvider<WorkerTypes> =
+        commandKernel.register(WorkerTypes::class.java, "workerTypes", null, "exec", "wrangler", "types", output, "--config", config, fileOutput = output)
+            .also { it.configure { configuration.set(config); declarations.set(directory.resolve(output)); outputFiles.setFrom(emptyList<Any>()) } }
+    fun check(script: String = "test"): TaskProvider<PackageCommand> = command("check", null, "run", script).also { it.configure { executionEffect.set(Effect.Verify) } }
+    fun bindings(config: String, output: String): TaskProvider<KarakumBindings> =
+        commandKernel.register(KarakumBindings::class.java, "bindings", output, "exec", "karakum", "--config", config).also {
+            it.configure { configuration.set(config) }
+        }
 
-    fun deploy(config: String = "wrangler.json", vararg producers: Any): TaskProvider<CommandTask> =
-        command("deploy", null, "exec", "wrangler", "deploy", "--config", config).also {
+    fun deploy(config: String = "wrangler.json", vararg producers: Any): TaskProvider<WranglerDeploy> =
+        commandKernel.register(WranglerDeploy::class.java, "deploy", null, "exec", "wrangler", "deploy", "--config", config).also {
             it.configure {
                 val tasks = producers.map { if (it is NodeHandle) checkNotNull(it.task) else it }
                 dependsOn(tasks)
                 sourceFiles.from(tasks)
-                backend.set("wrangler")
+                configuration.set(config)
                 outputs.upToDateWhen { false }
             }
         }
@@ -103,13 +106,13 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     }
 
     /** Escape hatch with the same toolchain and incremental contract as common commands. */
-    fun command(stage: String, output: String?, vararg arguments: String): TaskProvider<CommandTask> =
-        commandKernel.command(stage, output, *arguments)
+    fun command(name: String, output: String?, vararg arguments: String): TaskProvider<PackageCommand> =
+        commandKernel.register(PackageCommand::class.java, name, output, *arguments)
 
     /** Emit a package and make it available to this module's Kotlin/JS compilations. */
     fun library(target: String, config: String, output: String, kotlin: Boolean = false): NodeHandle {
-        val compile = command("compile", output, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
-            "--project", config).also { it.configure { sourceFiles.from(runtime.sources) } }
+        val compile = commandKernel.register(TypeScriptCheck::class.java, "compile", output, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
+            "--project", config).also { it.configure { adapter.set(runtime.file("cli/typecheck.ts")); emit.set(true); projects.set(listOf(config)); sourceFiles.from(runtime.sources) } }
         val pipeline = BuildPipeline(project, name)
         val result = pipeline.target(target, pipeline.node(compile))
         pipeline.report()

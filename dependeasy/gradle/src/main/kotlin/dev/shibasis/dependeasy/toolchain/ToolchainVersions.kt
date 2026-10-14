@@ -32,6 +32,7 @@ object ToolchainVersions {
     const val AndroidCommandLineToolsSha256 = "0877a1d048fe4a24efe2eff536ca4223f7adeb58648bb81909d33c446918cfa8"
     const val Ndk = "30.0.16248370"
     const val Cmake = "4.0.3"
+    const val Ninja = "1.13.1"
     const val CppStandard = "23"
     const val HermesAndroid = "0.82.1"
     const val HermesRevision = "265ef62ff3eb7289d17e366664ac0da82303e101"

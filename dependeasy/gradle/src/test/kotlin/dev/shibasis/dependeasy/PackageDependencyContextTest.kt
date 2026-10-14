@@ -43,7 +43,7 @@ class PackageDependencyContextTest {
         Files.createSymbolicLink(dangling, directory.resolve("uninstalled-package").toPath())
         try {
             assertContains(run().output, "42")
-            val link = directory.resolve("exported/node_modules").toPath()
+            val link = directory.resolve("node_modules").toPath()
             assertTrue(Files.isSymbolicLink(link))
             val repeat = run()
             assertContains(repeat.output, "Reusing configuration cache")

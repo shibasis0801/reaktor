@@ -26,7 +26,6 @@
   },
   "scripts": {
     "build": "node ../../tools/typecheck.mjs -b",
-    "postbuild": "karakum --config karakum.config.json",
     "dev": "node ../../tools/typecheck.mjs -b --watch",
     "clean": "rm -rf dist"
   },

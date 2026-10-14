@@ -1,6 +1,6 @@
 package dev.shibasis.dependeasy.web
 
-import dev.shibasis.dependeasy.process.CommandTask
+import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.toolchain.JavaScriptTools
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.handles.publishOutput
@@ -22,7 +22,7 @@ class PnpmWorkspace private constructor(private val project: Project) {
             .sortedBy { it.invariantSeparatorsPath.contains("/build/") }
             .mapNotNull { file -> Json.parseToJsonElement(file.readText()).jsonObject["name"]?.jsonPrimitive?.content?.let { it to file.parentFile } }
             .groupBy({ it.first }, { it.second }).mapValues { it.value.first() }
-    private fun <T : CommandTask> command(name: String, detail: String, type: Class<T>, vararg args: String): TaskProvider<T> =
+    private fun <T : ProcessTask> command(name: String, detail: String, type: Class<T>, vararg args: String): TaskProvider<T> =
         project.tasks.register(name, type) {
             group = "dependeasy"
             description = detail
@@ -32,7 +32,9 @@ class PnpmWorkspace private constructor(private val project: Project) {
             environment.putAll(tools.environment)
             arguments.set(args.toList())
             toolVersion.set("pnpm ${ToolchainVersions.Pnpm} / node ${ToolchainVersions.Node}")
-            sourceFiles.from(manifests, linkedPackageInputs(manifests.files))
+            sourceFiles.from(manifests, linkedPackageInputs(manifests.files).filterNot {
+                it.invariantSeparatorsPath.contains("/${KotlinPackageExport.RelativeDirectory}/")
+            })
             sourceFiles.from(directory.resolve("pnpm-lock.yaml"), directory.resolve("pnpm-workspace.yaml"), directory.resolve(".npmrc"))
         }
     val install = command("pnpmInstall", "Install the repository workspace from its frozen pnpm lockfile",
@@ -45,7 +47,7 @@ class PnpmWorkspace private constructor(private val project: Project) {
         }
     }
     val updateLockfile = command("pnpmLock", "Explicitly update the workspace lockfile after Kotlin package metadata",
-        CommandTask::class.java, "install", "--lockfile-only", "--ignore-scripts").also {
+        PnpmLock::class.java, "install", "--lockfile-only", "--ignore-scripts").also {
         it.configure {
             outputFiles.from(directory.resolve("pnpm-lock.yaml"))
             outputs.upToDateWhen { false }
@@ -53,6 +55,11 @@ class PnpmWorkspace private constructor(private val project: Project) {
     }
 
     init {
+        val model = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
+        model.reference(project, install, OutputKind.JavaScriptInstallation)
+        model.reference(project, updateLockfile, null)
+        model.reference(project, tools.nodeSetup, null)
+        model.reference(project, tools.pnpmSetup, null)
         project.publishOutput(OutputKind.JavaScriptInstallation,
             directory.resolve("node_modules/.modules.yaml"), producer = install)
     }

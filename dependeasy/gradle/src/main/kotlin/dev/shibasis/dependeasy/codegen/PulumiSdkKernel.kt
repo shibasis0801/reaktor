@@ -20,7 +20,7 @@ internal fun Project.pulumiSdk(name: String, version: String, server: String) = 
         providerName.set(name)
         providerVersion.set(version)
         this.server.set(server)
-        executable.set(tool.flatMap { it.destination }.map { it.file("pulumi").asFile.absolutePath })
+        executable.set(tool.map { it.destination.get().file("pulumi").asFile.absolutePath })
         toolVersion.set(ToolchainVersions.Pulumi)
         outputDirectory.set(layout.buildDirectory.dir("dependeasy/$name-sdk"))
     }

@@ -31,10 +31,9 @@ class BuildWorkspace internal constructor(private val project: Project) {
         directories.set(mapOf(project.name to ".") + project.gradle.includedBuilds.associate {
             it.name to it.projectDir.canonicalFile.relativeTo(project.rootDir.canonicalFile).invariantSeparatorsPath
         })
-        declarationFiles.from(project.fileTree(project.rootDir) {
-            include("**/*.gradle.kts", "**/gradle.properties")
-            exclude("**/build/**", "**/.gradle/**", "**/.github_modules/**", "**/node_modules/**", "dependeasy/**")
-        }.files)
+        declarationFiles.from(project.providers.of(BuildDeclarationFiles::class.java) {
+            parameters.root.set(project.rootProject.layout.projectDirectory)
+        })
         outputFile.set(project.layout.buildDirectory.file(BuildModelReader.RelativePath.removePrefix("build/")))
         remoteHostsFile.set(project.layout.buildDirectory.file("dependeasy/remote/hosts.json"))
     }
@@ -129,10 +128,11 @@ class BuildWorkspace internal constructor(private val project: Project) {
             nodes.addAll(project.provider {
                 if (id in declaredTasks || pipelines.any { pipeline -> pipeline.modelNodes().any { it.id == id } }) emptyList() else {
                     val producer = task.get()
+                    val typed = producer as? dev.shibasis.dependeasy.process.KernelSpecOwner
                     listOf(BuildModelReader.encode(Node(id, NodeKind.Kernel, task.name,
-                        if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
-                        HostRequirement(kind?.platform ?: HostPlatform.Portable), site, kernelRef(producer),
-                        Invocation.Gradle(listOf(producer.path)), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
+                        typed?.kernelEffect ?: if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
+                        typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), site, kernelRef(producer),
+                        Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
                         artifactFamily = kind?.family)))
                 }
             })

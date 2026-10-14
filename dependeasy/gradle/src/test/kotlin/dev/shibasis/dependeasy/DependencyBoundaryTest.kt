@@ -9,7 +9,7 @@ class DependencyBoundaryTest {
     @TempDir lateinit var directory: File
 
     private fun runner(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
-        .withPluginClasspath().withArguments(*tasks, "--configuration-cache", "--stacktrace")
+        .withPluginClasspath().withArguments(*tasks, "--configuration-cache", "--no-watch-fs", "--stacktrace")
 
     @Test fun `boundaries stay lazy and preserve resolved project policies across cache reuse`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"boundaryFixture\"\ninclude(\":renderer-jvm\")")

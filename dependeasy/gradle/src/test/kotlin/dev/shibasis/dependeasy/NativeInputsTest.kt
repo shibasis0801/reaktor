@@ -27,7 +27,7 @@ class NativeInputsTest {
         val project = ProjectBuilder.builder().withProjectDir(directory).build()
         val task = project.tasks.register("nativeFixture", KotlinCMakeTask::class.java).get()
         task.cmakeExecutable.set(executable.absolutePath)
-        assertEquals("cmake version fixture", task.toolVersion.get())
+        assertContains(task.toolVersion.get(), "cmake 4.0.3")
     }
 
     @Test fun `source-set native builds track module CMake fragments and vendored headers`() {

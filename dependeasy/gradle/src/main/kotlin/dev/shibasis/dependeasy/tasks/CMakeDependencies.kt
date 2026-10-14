@@ -11,7 +11,8 @@ internal fun KotlinCMakeTask.includeNativeDependencies(
 ) {
     dependsOn(tasks.map { it.second })
     tasks.forEach { (_, task) ->
-        sourceFiles.from(task.flatMap { it.buildDirectory }.map { directory ->
+        sourceFiles.from(task.map { producer ->
+            val directory = producer.buildDirectory.get()
             directory.asFileTree.matching { include("**/*.a", "**/*.so") }
         })
     }

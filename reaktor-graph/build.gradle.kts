@@ -9,6 +9,9 @@ import org.gradle.api.tasks.testing.Test
 plugins { id("dev.shibasis.dependeasy.compose-library") }
 
 dependeasy {
+    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
+    dag("bindings") { target("generateBindings", node(bindings)) }
+
     module("dev.shibasis.reaktor.navigation") {
         common {
             dependencies {
@@ -21,6 +24,7 @@ dependeasy {
         apple {}
 
         web {
+            sourceSetModifier { kotlin.srcDir(bindings) }
             dependencies {
                 api(Versions.Compose.NavigationEvent)
             }

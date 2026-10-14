@@ -1,6 +1,6 @@
 package dev.shibasis.dependeasy.codegen
 
-import dev.shibasis.dependeasy.files.deleteTreeSafely
+import dev.shibasis.dependeasy.files.clearChildrenSafely
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
@@ -21,7 +21,7 @@ abstract class PulumiSdkTask : DefaultTask() {
 
     @TaskAction fun generate() {
         val output = outputDirectory.get().asFile
-        output.deleteTreeSafely(within = output.parentFile)
+        output.clearChildrenSafely()
         execOperations.exec {
             executable = this@PulumiSdkTask.executable.get()
             args("package", "gen-sdk", providerName.get(), "--language", "java",

@@ -14,10 +14,10 @@ class IncrementalPipelineTest {
         directory.resolve("source.txt").writeText("first")
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.dag.artifact
-            import dev.shibasis.dependeasy.process.CommandTask
+            import dev.shibasis.dependeasy.process.ProcessTask
             import dev.shibasis.dependeasy.plugins.DependeasyExtension
             plugins { id("dev.shibasis.dependeasy.pipeline") }
-            val copy = tasks.register<CommandTask>("copySource") {
+            val copy = tasks.register<ProcessTask>("copySource") {
                 workingDirectory.set(layout.projectDirectory)
                 executable.set("/bin/cp")
                 toolVersion.set("system")
@@ -25,7 +25,7 @@ class IncrementalPipelineTest {
                 sourceFiles.from("source.txt")
                 outputFiles.from("result.txt")
             }
-            val compile = tasks.register<CommandTask>("compileArtifact") {
+            val compile = tasks.register<ProcessTask>("compileArtifact") {
                 workingDirectory.set(layout.projectDirectory)
                 executable.set("/bin/cp")
                 toolVersion.set("system")

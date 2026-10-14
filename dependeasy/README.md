@@ -14,18 +14,18 @@ Shared modules apply one plugin bundle and declare their platforms and dependenc
 ```kotlin
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.common.apiReaktor
+import dev.shibasis.dependeasy.handles.*
 
 plugins { id("dev.shibasis.dependeasy.compose-library") }
 
 dependeasy {
     module("example.shared") {
         common {
-            dependencies { apiReaktor("ui", "auth") }
+            dependencies { apiReaktor(Reaktor.Ui, Reaktor.Auth) }
             testDependencies { implementation(Versions.Kotlin.KtorMock) }
         }
         web {
             moduleName = "example-kt"
-            exportDirectory = "example-kt"
         }
         android {}
         apple {}
@@ -316,8 +316,8 @@ Kotlin exports participate in a JavaScript component's producer dependencies:
 ```kotlin
 dependeasy {
     javascript("web", "targets/web") {
-        kotlinLibraries("app")
-        kotlinLibraries("reaktor-auth", "reaktor-graph", build = "reaktor")
+        kotlinLibraries(kotlinJsLibrary(projects.app))
+        kotlinLibraries(kotlinJsLibrary(Reaktor.Auth), kotlinJsLibrary(Reaktor.Graph))
     }
 }
 ```
@@ -330,9 +330,10 @@ artifact producers in the generated build-layout report. Worker transfers consum
 that declaration, including for custom task names; no product-specific transport
 configuration is needed.
 
-Set `exportDirectory = "product-kt"` inside `web { }` when the browser library
-has a product-owned export directory. Node distributions use separate build outputs,
-so unrelated consumers do not acquire undeclared dependencies on Node copying.
+Kotlin/JS exports are owned outputs under each module’s
+`build/dependeasy/kotlin/library`. JavaScript consumers use the `KotlinJsLibrary`
+variant, which carries its producer and file inputs. Node distributions use separate
+build outputs.
 
 Headless modules can declare their runtime boundary without repeating resolution
 and verification code:

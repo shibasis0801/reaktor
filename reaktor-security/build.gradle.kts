@@ -4,6 +4,9 @@ import dev.shibasis.dependeasy.common.commonCoroutines
 plugins { id("dev.shibasis.dependeasy.library") }
 
 dependeasy {
+    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
+    dag("bindings") { target("generateBindings", node(bindings)) }
+
     androidNative {
         prefab(
             cmakeVariable = "OPENSSL_CRYPTO_PREFAB_DIR",
@@ -35,7 +38,7 @@ dependeasy {
         jvm {
             dependencies { implementation(Versions.Native.Jna) }
         }
-        web {}
+        web { sourceSetModifier { kotlin.srcDir(bindings) } }
     }
     kotlinProcessor(projects.reaktorCompiler)
 }

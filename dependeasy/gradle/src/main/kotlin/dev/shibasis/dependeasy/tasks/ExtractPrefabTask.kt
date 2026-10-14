@@ -1,6 +1,6 @@
 package dev.shibasis.dependeasy.tasks
 
-import dev.shibasis.dependeasy.files.deleteTreeSafely
+import dev.shibasis.dependeasy.files.clearChildrenSafely
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -18,7 +18,7 @@ abstract class ExtractPrefabTask : DefaultTask() {
     @TaskAction fun extract() {
         val aar = archiveFiles.singleFile
         val output = outputDirectory.get().asFile
-        output.deleteTreeSafely(within = output.parentFile)
+        output.clearChildrenSafely()
         output.mkdirs()
         val prefix = "prefab/modules/${moduleName.get()}/"
         var count = 0

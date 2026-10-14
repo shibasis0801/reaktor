@@ -28,7 +28,8 @@ internal fun KotlinCMakeTask.includePrefabs(
     dependsOn(prefabs.map { it.second })
     prefabs.forEach { (prefab, task) ->
         sourceFiles.from(task.flatMap { it.outputDirectory })
-        configureArguments.add(task.flatMap { it.outputDirectory }.map { directory ->
+        configureArguments.add(task.map { producer ->
+            val directory = producer.outputDirectory.get()
             "-D${prefab.cmakeVariable}=${directory.asFile.absolutePath}"
         })
     }

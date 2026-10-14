@@ -140,6 +140,9 @@ class BackendPipelineTest {
         directory.resolve("cpp/value.h").writeText("constexpr int value = 2;\n")
         assertEquals(TaskOutcome.SUCCESS, run("nativeBuild").task(":sampleCMake")?.outcome)
         assertTrue(directory.resolve("build/dependeasy/native/sample/Release/libsample.a").isFile)
+        assertTrue(directory.resolve("build/dependeasy/native/sample/Release/libsample.a").delete())
+        assertEquals(TaskOutcome.SUCCESS, run("nativeBuild").task(":sampleCMake")?.outcome)
+        assertTrue(directory.resolve("build/dependeasy/native/sample/Release/libsample.a").isFile)
     }
 
     @Test fun `pnpm tracks nested local manifests before installation`() {

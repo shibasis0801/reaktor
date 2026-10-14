@@ -3,6 +3,9 @@ import dev.shibasis.dependeasy.Versions
 plugins { id("dev.shibasis.dependeasy.library") }
 
 dependeasy {
+    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
+    dag("bindings") { target("generateBindings", node(bindings)) }
+
     module("dev.shibasis.reaktor.cloudflare") {
         common {
             dependencies {
@@ -18,6 +21,7 @@ dependeasy {
         apple {}
 
         web {
+            sourceSetModifier { kotlin.srcDir(bindings) }
             dependencies {
                 api(npm("hono", Versions.Web.Hono))
                 api(npm("partyserver", Versions.Web.PartyServer))

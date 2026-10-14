@@ -20,7 +20,7 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.work.DisableCachingByDefault
 
 @DisableCachingByDefault(because = "Prints a launch command with paths from this checkout")
-abstract class JvmCommandTask : DefaultTask() {
+abstract class JvmProcessTask : DefaultTask() {
     @get:Classpath abstract val classpath: ConfigurableFileCollection
     @get:Input abstract val executable: Property<String>
     @get:Input abstract val mainClass: Property<String>
@@ -43,12 +43,12 @@ abstract class JvmCommandTask : DefaultTask() {
     private fun quote(value: String) = "'${value.replace("'", "'\"'\"'")}'"
 }
 
-internal fun Project.jvmCommand(name: String, main: String, compilation: String, arguments: Provider<List<String>>): org.gradle.api.tasks.TaskProvider<JvmCommandTask> {
+internal fun Project.jvmCommand(name: String, main: String, compilation: String, arguments: Provider<List<String>>): org.gradle.api.tasks.TaskProvider<JvmProcessTask> {
     val execution = jvmExecution(compilation)
     val launcher = extensions.getByType<JavaToolchainService>().launcherFor {
         languageVersion.set(JavaLanguageVersion.of(Versions.SDK.Java.asInt))
     }
-    return tasks.register<JvmCommandTask>(name) {
+    return tasks.register<JvmProcessTask>(name) {
         group = "application"
         dependsOn(execution.classes)
         classpath.from(execution.classpath)

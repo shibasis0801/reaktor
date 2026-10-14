@@ -338,7 +338,7 @@ Reaktor is a composite Gradle build and provides its own internal plugins from `
 Important build characteristics:
 - Kotlin Multiplatform is the default for all modules
 - native dependencies such as Hermes and FlatBuffers are bootstrapped into `.github_modules`
-- generated JS exports live under `*/ts/export`
+- generated JS exports live under `*/build/dependeasy/kotlin/library`
 - consumer repos such as BestBuds use `includeBuild("../reaktor")`
 - KSP is used for compile-time code generation
 

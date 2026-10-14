@@ -1,5 +1,8 @@
 package dev.shibasis.dependeasy.tasks
 
+import dev.shibasis.dependeasy.process.KernelSpecOwner
+import dev.shibasis.dependeasy.model.KernelSpec
+import dev.shibasis.dependeasy.model.ToolRef
 import org.gradle.work.DisableCachingByDefault
 import dev.shibasis.dependeasy.files.deleteTreeSafely
 import dev.shibasis.dependeasy.native.CMakeLibraries
@@ -24,7 +27,9 @@ import org.gradle.process.ExecOperations
 import javax.inject.Inject
 
 @DisableCachingByDefault(because = "CMake build trees contain absolute host paths; use incremental local builds")
-abstract class KotlinCMakeTask : DefaultTask() {
+abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
+    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.CMakeBuild(sourceDirectory.get().asFile.absolutePath, buildDirectory.get().asFile.absolutePath, cmakeExecutable.get(), generator.get(), configuration.get(), buildTarget.get(), configureArguments.get(), environment.get().keys.sorted(), ToolRef("cmake", toolVersion.get()), toolchainContract.get().asFile.absolutePath, ninjaExecutable.get(), parallelism.get())
+
     @get:Inject
     abstract val providers: org.gradle.api.provider.ProviderFactory
 
@@ -55,6 +60,13 @@ abstract class KotlinCMakeTask : DefaultTask() {
     abstract val cmakeExecutable: Property<String>
 
     @get:Input
+    abstract val ninjaExecutable: Property<String>
+
+    @get:Input
+    abstract val executionPlatform: Property<dev.shibasis.dependeasy.model.HostPlatform>
+    @get:Internal override val kernelHost: dev.shibasis.dependeasy.model.HostRequirement get() = dev.shibasis.dependeasy.model.HostRequirement(executionPlatform.get())
+
+    @get:Input
     abstract val generator: Property<String>
 
     @get:Input
@@ -76,22 +88,27 @@ abstract class KotlinCMakeTask : DefaultTask() {
     abstract val toolVersion: Property<String>
 
     init {
+        val tools = dev.shibasis.dependeasy.toolchain.NativeBuildTools.get(project)
+        dependsOn(tools.cmake.installation, tools.ninja.installation)
+        cmakeExecutable.convention(tools.cmake.executable.map { it.asFile.absolutePath })
+        executionPlatform.convention(dev.shibasis.dependeasy.model.HostPlatform.Portable)
+        generator.convention("Ninja")
+        ninjaExecutable.convention(tools.ninja.executable.map { it.asFile.absolutePath })
+        inputs.files(tools.cmake.executable, tools.ninja.executable)
         toolchainContract.convention(project.cmakeToolchainContract().flatMap { it.contract })
         staticLibrariesManifest.convention(buildDirectory.file(CMakeLibraries.MANIFEST))
         environment.convention(emptyMap())
         configuration.convention("Release")
         configureArguments.convention(emptyList())
         parallelism.convention(providers.environmentVariable("CMAKE_BUILD_PARALLEL_LEVEL").map { it.toInt() }.orElse(3))
-        toolVersion.convention(cmakeExecutable.flatMap { executable ->
-            providers.exec { commandLine(executable, "--version") }.standardOutput.asText
-        }.map { it.lineSequence().first() })
+        toolVersion.convention("cmake ${tools.cmake.handle.version} / ninja ${tools.ninja.handle.version}")
     }
 
     @TaskAction
     fun build() {
         val sourceDir = sourceDirectory.get().asFile
         val buildDir = buildDirectory.get().asFile
-        val configuration = listOf(sourceIdentity, generator.get(), cmakeExecutable.get(), toolVersion.get(), environment.get().toSortedMap().toString(), toolchainContract.get().asFile.readText()) + configureArguments.get()
+        val configuration = listOf(sourceIdentity, generator.get(), cmakeExecutable.get(), ninjaExecutable.get(), toolVersion.get(), environment.get().toSortedMap().toString(), toolchainContract.get().asFile.readText()) + configureArguments.get()
         val serializedConfiguration = configuration.joinToString("\n")
         val configured = buildDir.resolve("configure-arguments.txt")
         if (!configured.isFile || configured.readText() != serializedConfiguration) {
@@ -111,6 +128,7 @@ abstract class KotlinCMakeTask : DefaultTask() {
                 "-S", sourceDir.absolutePath,
                 "-B", buildDir.absolutePath,
                 "-G", generator.get(),
+                "-DCMAKE_MAKE_PROGRAM=${ninjaExecutable.get()}",
             )
             args(configureArguments.get())
         }

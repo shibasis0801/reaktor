@@ -25,8 +25,8 @@ frames, and reusable collection logic should live here.
   not load the Kotlin runtime on the critical path.
 - `ReaktorWebVitals.install()`: Kotlin/JS export for hosts that already have the
   Kotlin module graph loaded.
-- `tools/size-report.mjs`: Node utility for producing report JSON from build
-  artifacts and gzip-compressed sizes.
+- Dependeasy `ArtifactSizeReport`: the Gradle task for artifact bytes, gzip,
+  Brotli and declared budget metrics. It consumes build outputs and writes JSON.
 - `ReaktorLighthouse`: the standard Lighthouse surface in commonMain — category
   taxonomy, the durable `lighthouse.*` metric-name identities, the recommended
   "good" budget set (`ReaktorLighthouseBudgets`), and a pure `lighthouseReport(...)`
@@ -113,11 +113,14 @@ Playwright or CDP script.
 | `ts/src/session.ts` | Turns a set of runs into one `ReaktorSessionReport` (medians with p25/p75 and min/max per step and metric, React component table, layer summaries) and writes a before/after markdown table. |
 | `ts/src/bundle.ts` | Splits a build into what the first page load fetches and what loads later, by package, using the source maps. |
 
+Build size reports come from the typed `ArtifactSizeReport` task. BestBuds runs
+its declared `bestbudsWebBundleBudget` check against that report. The `ts/src/bundle.ts`
+source-map and import analysis functions remain available to profiling tools.
+
 Command-line tools:
 
 ```
 node tools/static-server.mjs --dist dist --port 4300 --immutable   # serve a build with brotli and immutable assets
-node tools/bundle-report.mjs --dist dist --target app --out bundle.json
 node tools/trace-report.mjs --trace run.json --target app --maps dist/assets --out trace.json
 node tools/session-report.mjs --runs runs/after --target app --label after \
   --compare before.json --rows rows.json --out after.json

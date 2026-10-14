@@ -44,7 +44,7 @@ class LibraryPlugin: Plugin<Project> {
                 group = "dependeasy"
                 val module = project.dependencies.project(mapOf("path" to project.path)) as ProjectDependency
                 artifacts.from(project.outputFiles(project.output(module, OutputKind.AndroidLibrary, Build.Release)))
-                report.set(layout.buildDirectory.file("reports/dependeasy/artifact-sizes.csv"))
+                report.set(layout.buildDirectory.file("reports/dependeasy/artifact-sizes.json"))
             }
         }
 

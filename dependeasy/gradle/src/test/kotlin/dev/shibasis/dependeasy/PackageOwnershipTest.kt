@@ -30,7 +30,7 @@ class PackageOwnershipTest {
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val exported = tasks.register<KotlinPackageExport>("exportKotlinLibrary") {
                 sourceFiles.from("compiled")
-                destination.set(layout.projectDirectory.dir("ts/export"))
+                destination.set(layout.projectDirectory.dir("build/dependeasy/kotlin/library"))
                 dependencyDirectory.set(layout.projectDirectory.dir("node_modules"))
             }
             dependeasy {
@@ -56,6 +56,6 @@ class PackageOwnershipTest {
         assertEquals(TaskOutcome.SUCCESS, changed.task(":exportKotlinLibrary")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, changed.task(":authoredCheck")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, changed.task(":sampleCMake")?.outcome)
-        assertContains(directory.resolve("ts/export/index.mjs").readText(), "value = 2")
+        assertContains(directory.resolve("build/dependeasy/kotlin/library/index.mjs").readText(), "value = 2")
     }
 }

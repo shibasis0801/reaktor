@@ -37,7 +37,7 @@ data class BuildModel(
 @Serializable data class SourceSite(val build: String, val file: String, val line: Int) {
     init { require(line > 0 && file.isNotBlank()) }
 }
-@Serializable data class KernelRef(val className: String, val source: SourceSite? = null)
+@Serializable data class KernelRef(val className: String, val source: SourceSite? = null, val spec: KernelSpec? = null)
 @Serializable enum class NodeKind { Target, Kernel, External }
 @Serializable enum class Effect { Verify, Build, Develop, Deploy }
 @Serializable enum class HostPlatform { Portable, Macos, Linux }
@@ -73,7 +73,9 @@ sealed interface Invocation {
     @Serializable data class Command(val commands: List<List<String>>, val recipes: List<String> = emptyList()) : Invocation
 }
 
-@Serializable data class FileSet(val paths: List<String>, val kind: String? = null)
+@Serializable data class FileSet(val paths: List<String>, val kind: String? = null, val declarations: List<FileInput> = emptyList())
+@Serializable data class FileInput(val kind: FileInputKind, val identity: String, val includes: List<String> = emptyList(), val excludes: List<String> = emptyList())
+@Serializable enum class FileInputKind { File, Tree, Configuration, Producer, Provider, Collection }
 @Serializable data class ToolRef(val name: String, val version: String)
 @Serializable data class Omission(val node: NodeId?, val reason: String, val reference: String? = null)
 

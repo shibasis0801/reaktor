@@ -4,6 +4,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import dev.shibasis.dependeasy.files.deleteTreeSafely
 import kotlin.test.*
 
 class GitSourceTaskTest {
@@ -42,6 +43,9 @@ class GitSourceTaskTest {
         val checkout = project.resolve(".sources/library")
         assertEquals(revision, git(checkout, "rev-parse", "HEAD"))
         assertEquals(TaskOutcome.UP_TO_DATE, runner().build().task(":prepareSource")?.outcome)
+        checkout.deleteTreeSafely(within = project)
+        assertEquals(TaskOutcome.SUCCESS, runner().build().task(":prepareSource")?.outcome)
+        assertEquals(revision, git(checkout, "rev-parse", "HEAD"))
         checkout.resolve("source.h").writeText("local work\n")
         assertContains(runner().buildAndFail().output, "has local edits")
         assertEquals("local work\n", checkout.resolve("source.h").readText())

@@ -13,7 +13,7 @@ import kotlin.test.*
 class KotlinExportCatalogTest {
     @TempDir lateinit var directory: File
 
-    @Test fun `custom exports are discoverable without compiling or installing backend tools`() {
+    @Test fun `owned exports are discoverable without compiling or installing tools`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"catalogFixture\"\ninclude(\"library\")")
         directory.resolve("build.gradle.kts").writeText("plugins { id(\"dev.shibasis.dependeasy.pipeline\") }")
         directory.resolve("library/build.gradle.kts").apply {
@@ -21,7 +21,7 @@ class KotlinExportCatalogTest {
             writeText("""
                 import dev.shibasis.dependeasy.web.web
                 plugins { id("org.jetbrains.kotlin.multiplatform") }
-                kotlin { web { exportDirectory = "custom/generated" } }
+                kotlin { web { } }
             """.trimIndent())
         }
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
@@ -31,7 +31,7 @@ class KotlinExportCatalogTest {
         assertNull(first.task(":pnpmInstall"))
         assertNull(first.task(":library:exportKotlinLibrary"))
         val metadata = Json.parseToJsonElement(directory.resolve("build/dependeasy/kotlin-exports.json").readText()).jsonObject
-        assertEquals(listOf("library/custom/generated"), metadata.getValue("directories").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(listOf("library/build/dependeasy/kotlin/library"), metadata.getValue("directories").jsonArray.map { it.jsonPrimitive.content })
         val repeated = run()
         assertContains(repeated.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":reportKotlinExports")?.outcome)

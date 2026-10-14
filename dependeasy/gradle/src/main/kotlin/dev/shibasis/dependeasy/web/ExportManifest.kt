@@ -4,7 +4,7 @@ import dev.shibasis.dependeasy.process.nodeScript
 import org.gradle.api.Project
 
 internal fun Project.exportManifest(name: String, script: Any, output: Any,
-                                   directory: () -> String, inputs: Array<out Any>) =
+                                   directory: () -> String, inputs: Array<out Any>): org.gradle.api.tasks.TaskProvider<NodeGenerator> =
     nodeScript(name, script) {
         val runtime = JavaScriptRuntime(project)
         dependsOn(runtime.install)

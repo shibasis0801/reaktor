@@ -40,19 +40,11 @@ internal class NativeBootstrap(private val project: Project) {
             generator.set("Ninja")
             buildTarget.set("hermesc")
             val mac = providers.systemProperty("os.name").get().contains("Mac", ignoreCase = true)
-            val cmake = if (mac) CmakePlatform.Darwin("macosx").cmakeExecutable else "cmake"
-            cmakeExecutable.set(cmake)
-            val compilerCommand = if (mac) listOf("xcrun", "--sdk", "macosx", "clang++", "--version")
-                else listOf("c++", "--version")
-            toolVersion.set(providers.exec { commandLine(cmake, "--version") }.standardOutput.asText
-                .zip(providers.exec {
-                    commandLine(compilerCommand)
-                }.standardOutput.asText) { cmake, compiler -> "${cmake.trim()} / ${compiler.trim()}" })
+            toolVersion.set(dev.shibasis.dependeasy.toolchain.NativeBuildTools.get(project).let {
+                "cmake ${it.cmake.handle.version} / ninja ${it.ninja.handle.version}"
+            })
             if (mac) {
-                val ninja = listOf("/opt/homebrew/bin/ninja", "/usr/local/bin/ninja")
-                    .firstOrNull { file(it).canExecute() } ?: "ninja"
-                configureArguments.add("-DCMAKE_MAKE_PROGRAM=$ninja")
-                val sdk = providers.exec { commandLine("xcrun", "--sdk", "macosx", "--show-sdk-path") }.standardOutput.asText.map { it.trim() }
+                val sdk = providers.exec { commandLine("/usr/bin/xcrun", "--sdk", "macosx", "--show-sdk-path") }.standardOutput.asText.map { it.trim() }
                 environment.put("SDKROOT", sdk)
                 configureArguments.add(sdk.map { "-DCMAKE_OSX_SYSROOT=$it" })
                 configureArguments.add("-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0")
@@ -64,6 +56,7 @@ internal class NativeBootstrap(private val project: Project) {
         }
         hermesCompiler = compiler
         pipeline.target("prepareNativeTools", pipeline.node(compiler).after(pipeline.node(hermes)), pipeline.node(sources.getValue(Tools.Flatbuffers)))
+        pipeline.report()
     }
 }
 

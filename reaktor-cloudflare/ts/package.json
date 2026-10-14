@@ -4,8 +4,6 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "prebuild": "node scripts/link-self.mjs",
-    "postbuild": "karakum --config karakum.config.json",
     "build": "node ../../tools/typecheck.mjs -b"
   },
   "dependencies": {

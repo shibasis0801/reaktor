@@ -8,6 +8,9 @@ plugins {
 }
 
 dependeasy {
+    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
+    dag("bindings") { target("generateBindings", node(bindings)) }
+
     module("dev.shibasis.reaktor.google") {
         common {
             dependencies {
@@ -17,7 +20,7 @@ dependeasy {
         }
         android {}
         apple {}
-        web {}
+        web { sourceSetModifier { kotlin.srcDir(bindings) } }
 
         jvm {
             dependencies {

@@ -1,6 +1,6 @@
 package dev.shibasis.dependeasy.web
 
-import dev.shibasis.dependeasy.process.CommandTask
+import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
@@ -15,14 +15,13 @@ internal class JavaScriptCommandKernel(
     private val workspace = PnpmWorkspace.get(project)
     private val runtime = JavaScriptRuntime(project)
     private val install = workspace.install
-    fun command(stage: String, output: String?, vararg arguments: String, fileOutput: String? = null): TaskProvider<CommandTask> {
+    fun <T : ProcessTask> register(type: Class<T>, suffix: String, output: String?, vararg arguments: String, fileOutput: String? = null): TaskProvider<T> {
         output?.let { component.generatedOutputs.add("$it/**") }
         fileOutput?.let(component.generatedOutputs::add)
-        val taskName = name + stage.split(Regex("[^A-Za-z0-9]+"))
+        val taskName = name + suffix.split(Regex("[^A-Za-z0-9]+"))
             .joinToString("") { it.replaceFirstChar(Char::uppercaseChar) }
-        return project.tasks.register<CommandTask>(taskName) {
+        return project.tasks.register(taskName, type) {
             group = "dependeasy"
-            backend.set(when (stage) { "bundle" -> "vite"; "types" -> "typescript"; "bindings" -> "karakum"; else -> "pnpm" })
             dependsOn(install, runtime.install, component.prerequisites)
             workingDirectory.set(directory)
             executable.set(workspace.tools.pnpm.map { it.asFile.absolutePath })
@@ -47,6 +46,6 @@ internal class JavaScriptCommandKernel(
             if (fileOutput != null) outputFiles.from(directory.resolve(fileOutput))
             else if (output != null) outputDirectories.from(directory.resolve(output))
             else receiptFile.set(project.layout.buildDirectory.file("dependeasy/checks/$taskName.properties"))
-        }
+        }.also { dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project).reference(project, it, null) }
     }
 }

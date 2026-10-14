@@ -10,6 +10,7 @@ import dev.shibasis.dependeasy.workspace.kernelRef
 import dev.shibasis.dependeasy.workspace.WorkspaceTargetTask
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.workspace.declaredFileInputs
 
 /** Declaration only: Gradle remains the scheduler and incremental build engine. */
 class BuildPipeline internal constructor(private val project: Project, val name: String) {
@@ -71,15 +72,19 @@ class BuildPipeline internal constructor(private val project: Project, val name:
 
     internal fun modelNodes(): List<Node> = nodes.values.map { node ->
         val task = node.task.get()
-        Node(identity(node), NodeKind.Kernel, node.id, Effect.Build, HostRequirement(), sites[node.id], kernelRef(task),
+        Node(identity(node), NodeKind.Kernel, node.id, (task as? dev.shibasis.dependeasy.process.KernelSpecOwner)?.kernelEffect ?: Effect.Build, (task as? dev.shibasis.dependeasy.process.KernelSpecOwner)?.kernelHost ?: HostRequirement(), sites[node.id], kernelRef(task),
             Invocation.Gradle(listOf(task.path)),
-            inputs = consumed.filter { it.first === node }.map { FileSet(listOf(it.third.location.get().asFile.relativeTo(project.rootDir).invariantSeparatorsPath)) },
-            outputs = consumed.filter { it.second === node }.map { FileSet(listOf(it.third.location.get().asFile.relativeTo(project.rootDir).invariantSeparatorsPath)) },
-            tools = listOf(ToolRef("kotlin", ToolchainVersions.Kotlin), ToolRef("node", ToolchainVersions.Node),
-                ToolRef("pnpm", ToolchainVersions.Pnpm), ToolRef("typescript", ToolchainVersions.TypeScript),
-                ToolRef("karakum", ToolchainVersions.Karakum), ToolRef("cmake", ToolchainVersions.Cmake), ToolRef("swift.minimum", ToolchainVersions.Swift)))
-    } + targets.map { (name, _) -> Node(NodeId(project.rootProject.name, project.path, name), NodeKind.Target, name,
-        Effect.Build, HostRequirement(), targetSites[name], kernelRef(project, WorkspaceTargetTask::class.java),
+            inputs = task.declaredFileInputs() + consumed.filter { it.first === node }.map { FileSet(listOf(it.third.location.get().asFile.relativeTo(project.rootDir).invariantSeparatorsPath)) },
+            outputs = listOf(FileSet(task.outputs.files.files.map { it.relativeTo(project.rootDir).invariantSeparatorsPath }.sorted())) + consumed.filter { it.second === node }.map { FileSet(listOf(it.third.location.get().asFile.relativeTo(project.rootDir).invariantSeparatorsPath)) },
+            tools = emptyList())
+    } + targets.map { (name, leaves) ->
+        val kernels = leaves.mapNotNull { nodes.getValue(it).task.get() as? dev.shibasis.dependeasy.process.KernelSpecOwner }
+        val effects = kernels.map { it.kernelEffect }
+        val effect = if (Effect.Deploy in effects) Effect.Deploy else if (kernels.size == leaves.size && effects.all { it == Effect.Verify }) Effect.Verify else Effect.Build
+        val platforms = kernels.map { it.kernelHost.platform }.filter { it != HostPlatform.Portable }.distinct()
+        require(platforms.size <= 1) { "Pipeline target $name requires incompatible host platforms" }
+        Node(NodeId(project.rootProject.name, project.path, name), NodeKind.Target, name,
+        effect, HostRequirement(platforms.singleOrNull() ?: HostPlatform.Portable), targetSites[name], kernelRef(project, WorkspaceTargetTask::class.java),
         Invocation.Gradle(listOf(project.path.trimEnd(':') + ":" + name))) }
 
     internal fun modelEdges(): List<Edge> = nodes.values.flatMap { node ->
@@ -90,7 +95,7 @@ class BuildPipeline internal constructor(private val project: Project, val name:
     internal fun modelOmissions(): List<Omission> = modelNodes().flatMap { node ->
         listOfNotNull(if (node.declaredAt == null) Omission(node.id, "DSL call has no build-script stack location") else null,
             if (node.kernel?.source == null) Omission(node.id, "Foreign kernel source is unavailable") else null,
-            Omission(node.id, "Foreign task inputs, effect and host requirements await typed kernels"))
+            if (node.kind == NodeKind.Kernel && node.kernel?.spec == null) Omission(node.id, "Foreign task inputs, effect and host requirements await typed kernels") else null)
     }
 
     fun describe(): List<String> = nodes.keys.map { task ->

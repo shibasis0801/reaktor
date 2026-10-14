@@ -6,9 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "prebuild": "node scripts/link-self.mjs",
-    "build": "node ../../tools/typecheck.mjs -b",
-    "postbuild": "karakum --config karakum.config.json"
+    "build": "node ../../tools/typecheck.mjs -b"
   },
   "dependencies": {
     "reaktor-reaktor-security": "workspace:*"

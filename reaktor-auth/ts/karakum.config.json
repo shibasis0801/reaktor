@@ -1,5 +1,6 @@
 {
   "input": "karakum.ts",
   "output": "import",
-  "libraryName": "dev-shibasis-reaktor-auth-karakum"
+  "libraryName": "dev-shibasis-reaktor-auth-karakum",
+  "inputResolutionStrategy": "plain"
 }

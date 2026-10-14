@@ -3,6 +3,9 @@ import dev.shibasis.dependeasy.Versions
 plugins { id("dev.shibasis.dependeasy.library") }
 
 dependeasy {
+    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
+    dag("bindings") { target("generateBindings", node(bindings)) }
+
     module("dev.shibasis.reaktor.db") {
         common {
             dependencies {
@@ -13,6 +16,7 @@ dependeasy {
         }
 
         web {
+            sourceSetModifier { kotlin.srcDir(bindings) }
             dependencies {
                 api(Versions.Data.SqlDelightWeb)
                 api(npm("@sqlite.org/sqlite-wasm", Versions.SQLiteWasm))

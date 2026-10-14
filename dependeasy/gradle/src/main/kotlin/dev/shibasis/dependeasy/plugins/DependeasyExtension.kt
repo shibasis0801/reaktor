@@ -18,7 +18,7 @@ import dev.shibasis.dependeasy.codegen.KotlinObjectTask
 import dev.shibasis.dependeasy.codegen.kotlinObject
 import dev.shibasis.dependeasy.codegen.sourceRevision
 import dev.shibasis.dependeasy.codegen.pulumiSdk
-import dev.shibasis.dependeasy.process.CommandTask
+import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.process.nodeScript
 import dev.shibasis.dependeasy.process.command
 import dev.shibasis.dependeasy.configuration.option
@@ -130,11 +130,13 @@ open class DependeasyExtension internal constructor(
 
     fun jvmDistribution(name: String, main: String, executable: String) = project.jvmDistribution(name, main, executable)
 
-    fun nodeScript(name: String, script: Any, configuration: CommandTask.() -> Unit): TaskProvider<CommandTask> =
+    fun nodeScript(name: String, script: Any, configuration: ProcessTask.() -> Unit): TaskProvider<dev.shibasis.dependeasy.web.NodeGenerator> =
         project.nodeScript(name, script, configuration)
 
-    fun command(name: String, executable: String, vararg arguments: String,
-                 configuration: CommandTask.() -> Unit = {}) = project.command(name, executable, arguments, configuration)
+    val tools get() = dev.shibasis.dependeasy.toolchain.NativeBuildTools.get(project)
+
+    fun command(name: String, tool: dev.shibasis.dependeasy.toolchain.InstalledTool, vararg arguments: String,
+                 configuration: ProcessTask.() -> Unit = {}) = project.command(name, tool, arguments, configuration)
 
     fun dependencyRepositories(configuration: RepositoryHandler.() -> Unit = {}) =
         dev.shibasis.dependeasy.repositories.dependencyRepositories(project, configuration)

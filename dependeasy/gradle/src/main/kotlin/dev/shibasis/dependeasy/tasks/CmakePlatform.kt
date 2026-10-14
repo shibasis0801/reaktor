@@ -8,21 +8,20 @@ sealed class CmakePlatform(
     val variant: String,
     val generator: String,
     val taskPrefix: String,
-    val cmakeExecutable: String = "cmake",
 ) {
     abstract fun flags(project: Project): Provider<List<String>>
 
-    open fun identity(project: Project): Provider<String> = project.providers.exec {
-        commandLine(cmakeExecutable, "--version")
-    }.standardOutput.asText.map { it.trim() }
+    open fun identity(project: Project): Provider<String> {
+        val tools = dev.shibasis.dependeasy.toolchain.NativeBuildTools.get(project)
+        val identity = "cmake ${tools.cmake.handle.version} / ninja ${tools.ninja.handle.version}"
+        return project.provider { identity }
+    }
 
     class Darwin(val sdk: String) : CmakePlatform(
         variant = sdk,
         generator = "Ninja",
         taskPrefix = sdk,
-        cmakeExecutable = listOf("/opt/homebrew/bin/cmake", "/usr/local/bin/cmake", "cmake").first {
-            java.io.File(it).exists() || it == "cmake"
-        }
+
     ) {
         override fun flags(project: Project): Provider<List<String>> {
             return project.xcrunFind("clang").zip(project.xcrunFind("clang++")) { cCompiler, cxxCompiler ->
@@ -30,9 +29,6 @@ sealed class CmakePlatform(
                     "-DCMAKE_BUILD_TYPE=Release",
                     "-Dsdk=$sdk",
                     "-DiOS=true",
-                    "-DCMAKE_MAKE_PROGRAM=${listOf("/opt/homebrew/bin/ninja", "/usr/local/bin/ninja", "ninja").first {
-                        java.io.File(it).exists() || it == "ninja"
-                    }}",
                     "-DCMAKE_C_COMPILER=$cCompiler",
                     "-DCMAKE_CXX_COMPILER=$cxxCompiler",
                 )
@@ -41,14 +37,14 @@ sealed class CmakePlatform(
 
         override fun identity(project: Project): Provider<String> = super.identity(project)
             .zip(project.providers.exec {
-                commandLine("xcrun", "--sdk", sdk, "clang++", "--version")
+                commandLine("/usr/bin/xcrun", "--sdk", sdk, "clang++", "--version")
             }.standardOutput.asText) { cmake, compiler -> "$cmake / ${compiler.trim()}" }
             .zip(project.providers.exec {
-                commandLine("xcrun", "--sdk", sdk, "--show-sdk-version")
+                commandLine("/usr/bin/xcrun", "--sdk", sdk, "--show-sdk-version")
             }.standardOutput.asText) { tools, version -> "$tools / $sdk ${version.trim()}" }
 
         private fun Project.xcrunFind(tool: String): Provider<String> = providers.exec {
-            commandLine("xcrun", "--sdk", sdk, "--find", tool)
+            commandLine("/usr/bin/xcrun", "--sdk", sdk, "--find", tool)
         }.standardOutput.asText.map { it.trim() }
     }
 
@@ -63,7 +59,6 @@ sealed class CmakePlatform(
         variant = "android/$abi",
         generator = "Ninja",
         taskPrefix = "android_$abi",
-        cmakeExecutable = cmakePath,
     ) {
         override fun identity(project: Project): Provider<String> = super.identity(project)
             .zip(project.providers.fileContents(project.layout.projectDirectory.file("$ndkDir/source.properties")).asText) { cmake, ndk -> "$cmake / ${ndk.trim()}" }
@@ -77,7 +72,6 @@ sealed class CmakePlatform(
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DANDROID_PLATFORM=android-$minSdk",
                 "-DANDROID=true",
-                "-DCMAKE_MAKE_PROGRAM=$ninjaPath",
             )
         }
     }

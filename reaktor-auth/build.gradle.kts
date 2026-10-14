@@ -6,6 +6,9 @@ import org.gradle.api.tasks.Exec
 plugins { id("dev.shibasis.dependeasy.compose-library") }
 
 dependeasy {
+    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
+    dag("bindings") { target("generateBindings", node(bindings)) }
+
     module("dev.shibasis.reaktor.auth") {
         common {
             dependencies {
@@ -18,7 +21,7 @@ dependeasy {
                 api(Versions.Data.Jwt)
             }
         }
-        web {}
+        web { sourceSetModifier { kotlin.srcDir(bindings) } }
 
         android {
             dependencies {
