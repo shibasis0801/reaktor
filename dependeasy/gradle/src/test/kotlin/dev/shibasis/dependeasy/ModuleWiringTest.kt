@@ -12,6 +12,34 @@ import kotlin.test.assertNull
 class ModuleWiringTest {
     @TempDir lateinit var directory: File
 
+    @Test fun `disabled simulator binaries do not prepare test resources while frameworks retain theirs`() {
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"physicalOnlyFixture\"")
+        directory.resolve("src/commonMain/composeResources/files").mkdirs()
+        directory.resolve("src/commonMain/composeResources/files/main.txt").writeText("framework resource")
+        directory.resolve("src/commonTest/composeResources/files").mkdirs()
+        directory.resolve("src/commonTest/composeResources/files/test.txt").writeText("unused simulator resource")
+        directory.resolve("build.gradle.kts").writeText("""
+            plugins {
+                id("dev.shibasis.dependeasy.pipeline")
+                id("org.jetbrains.kotlin.multiplatform")
+                id("org.jetbrains.compose")
+                id("org.jetbrains.kotlin.plugin.compose")
+            }
+            kotlin { iosSimulatorArm64 { binaries.framework() } }
+        """.trimIndent())
+        fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("linkDebugTestIosSimulatorArm64", "linkDebugFrameworkIosSimulatorArm64",
+                "--dry-run", "--configuration-cache", "--console=plain", "--stacktrace").build()
+        val first = run()
+        assertContains(first.output, "linkDebugFrameworkIosSimulatorArm64")
+        assertContains(first.output, "assembleIosSimulatorArm64MainResources")
+        kotlin.test.assertFalse(first.output.contains("TestResources"), first.output)
+        kotlin.test.assertFalse(first.output.contains("copyTestComposeResources"), first.output)
+        val repeated = run()
+        assertContains(repeated.output, "Reusing configuration cache")
+        kotlin.test.assertFalse(repeated.output.contains("TestResources"), repeated.output)
+    }
+
     @Test fun `JVM entry points share ordinary source sets and produce safely quoted commands`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"executionFixture\"")
         directory.resolve("build.gradle.kts").writeText("""

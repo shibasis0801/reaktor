@@ -49,6 +49,17 @@ internal fun physicalDevicesOnly(project: Project) {
                 enabled = false
                 setDependsOn(emptyList<Any>())
             }
+            // Compose attaches test-resource producers after the native binaries are declared.
+            // Clear those late prerequisites too; main/framework resources stay attached.
+            child.extensions.findByType(KotlinMultiplatformExtension::class.java)?.targets
+                ?.withType(KotlinNativeTargetWithSimulatorTests::class.java)?.forEach { target ->
+                    target.compilations.filter { it.name == KotlinCompilation.TEST_COMPILATION_NAME }.forEach {
+                        it.compileTaskProvider.configure { setDependsOn(emptyList<Any>()) }
+                    }
+                    target.binaries.filter { it.compilation.name == KotlinCompilation.TEST_COMPILATION_NAME }.forEach {
+                        it.linkTaskProvider.configure { setDependsOn(emptyList<Any>()) }
+                    }
+                }
         }
     }
 }
