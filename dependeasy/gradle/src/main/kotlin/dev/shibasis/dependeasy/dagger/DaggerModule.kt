@@ -29,7 +29,7 @@ class DaggerModule internal constructor(private val project: Project, private va
             browserImage.set(this@DaggerModule.browserImage)
             gradleProperties.set(this@DaggerModule.gradleProperties)
             executionEnvironment.set(mapOf(
-                "GRADLE_OPTS" to "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs='-Xmx1024m -XX:MaxMetaspaceSize=768m -XX:ReservedCodeCacheSize=128m' -Dorg.gradle.workers.max=1 -Dorg.gradle.vfs.watch=false -Dorg.gradle.project.kotlin.compiler.execution.strategy=in-process -Dorg.gradle.project.kotlin.daemon.jvmargs=-Xmx1024m",
+                "GRADLE_OPTS" to "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs='-Xmx1024m -XX:MaxMetaspaceSize=768m -XX:ReservedCodeCacheSize=128m -XX:+UseSerialGC' -Dorg.gradle.workers.max=1 -Dorg.gradle.vfs.watch=false -Dorg.gradle.project.kotlin.compiler.execution.strategy=in-process -Dorg.gradle.project.kotlin.daemon.jvmargs=-Xmx1024m -Dorg.gradle.project.kotlin.mpp.commonizerJvmArgs='-Xmx512m -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC'",
                 "NODE_OPTIONS" to "--max-old-space-size=384",
                 "PNPM_CONFIG_NETWORK_CONCURRENCY" to "4",
                 "PNPM_CONFIG_CHILD_CONCURRENCY" to "1",
