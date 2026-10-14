@@ -28,6 +28,14 @@ interface ConcurrencyCapability: Capability {
 }
 
 
+/**
+ * A scope and a dispatcher, owned together.
+ *
+ * Pass a dispatcher **by name**: `ConcurrencyCapabilityImpl(coroutineDispatcher = d)`. The first
+ * parameter is a parent context, a `CoroutineDispatcher` is a context too, and one passed there is
+ * silently replaced by [coroutineDispatcher]'s default. `WebSocket` did exactly that and ran on the
+ * whole default pool for as long as it existed.
+ */
 class ConcurrencyCapabilityImpl(
     context: CoroutineContext? = null,
     override val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Default

@@ -32,6 +32,15 @@ kotlin {
     darwin {}
     server {}
     useNetworking()
+
+    sourceSets {
+        // A real WebSocket server for the client to talk to: the races these tests are about live
+        // between a socket opening and the first frame, and a fake has neither.
+        jvmTest.dependencies {
+            implementation("io.ktor:ktor-server-cio:${dev.shibasis.dependeasy.Version.Ktor}")
+            implementation("io.ktor:ktor-server-websockets:${dev.shibasis.dependeasy.Version.Ktor}")
+        }
+    }
 }
 
 android {

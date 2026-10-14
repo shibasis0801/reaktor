@@ -41,7 +41,12 @@ open class WebSocket(
     // A single-threaded dispatcher is created from this.
     dispatcher: CoroutineDispatcher = Dispatchers.Async,
     val httpClient: HttpClient = http
-): ConcurrencyCapability by ConcurrencyCapabilityImpl(dispatcher.limitedParallelism(1)) {
+): ConcurrencyCapability by ConcurrencyCapabilityImpl(
+    // Named. The first parameter is a context, and a dispatcher passed there positionally is
+    // overridden by the default one — which is how every socket ran on the whole default pool, with
+    // connect, close and both listeners free to interleave, while this said it was single-threaded.
+    coroutineDispatcher = dispatcher.limitedParallelism(1),
+) {
     private val connection = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val state: StateFlow<ConnectionState> = connection
 
