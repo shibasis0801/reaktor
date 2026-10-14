@@ -7,6 +7,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 import org.gradle.process.ExecOperations
 import org.gradle.work.DisableCachingByDefault
+import java.io.File
 import javax.inject.Inject
 
 @DisableCachingByDefault(because = "Pulumi generated SDK relocatability has not been qualified")
@@ -24,6 +25,7 @@ abstract class PulumiSdkTask : DefaultTask() {
         output.clearChildrenSafely()
         execOperations.exec {
             executable = this@PulumiSdkTask.executable.get()
+            environment("PATH", File(executable).parent + File.pathSeparator + System.getenv("PATH").orEmpty())
             args("package", "gen-sdk", providerName.get(), "--language", "java",
                 "--version", providerVersion.get(), "--server", server.get(), "--out", output.absolutePath,
                 "--non-interactive")

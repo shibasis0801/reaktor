@@ -18,8 +18,8 @@ internal fun Project.pulumiTool(): TaskProvider<InstallTool> = rootProject.run {
         group = "dependeasy"
         url.set("https://github.com/pulumi/pulumi/releases/download/v$version/pulumi-v$version-$platform.tar.gz")
         checksum.set(checksums.getValue(platform))
-        archiveEntry.set("pulumi/pulumi")
+        archivePrefix.set("pulumi/")
         binaryName.set("pulumi")
-        destination.set(gradle.gradleUserHomeDir.resolve("dependeasy/tools/pulumi/$version/$platform/bin"))
+        destination.set(gradle.gradleUserHomeDir.resolve("dependeasy/tools/pulumi/$version/$platform/distribution"))
     } }
 }
