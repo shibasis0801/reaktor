@@ -18,7 +18,6 @@ internal class InteropBuildKernel(private val project: Project, private val name
         project.nativeExports(name, declaration.nativeInstallers)
         val directory = declaration.typescriptDirectory ?: return
         val extension = DependeasyExtension.get(project)
-        extension.androidNative { fbjni(); hermes(ToolchainVersions.HermesAndroid) }
         val typescript = JavaScriptComponent(project, "${name}TypeScript", directory)
         typescript.sources("src/commonMain/typescript")
         val types = typescript.types()

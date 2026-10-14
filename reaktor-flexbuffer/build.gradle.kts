@@ -1,9 +1,16 @@
+import dev.shibasis.dependeasy.native.*
+import dev.shibasis.dependeasy.native.NativePlatform
+import dev.shibasis.dependeasy.handles.Reaktor
 import dev.shibasis.dependeasy.handles.Tools
 import dev.shibasis.dependeasy.Versions
 plugins { id("dev.shibasis.dependeasy.library") }
 
 dependeasy {
-    nativeLibrary { includeDirs(rootProject.file(".github_modules/flatbuffers/include")) }
+    nativeLibrary {
+        platforms(NativePlatform.Android, NativePlatform.Darwin, NativePlatform.Host)
+        abis(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64)
+        dependencies(Native.Flatbuffers, Native.Foundation)
+    }
     module("dev.shibasis.reaktor.flexbuffer") {
         common { dependencies { api(projects.reaktorCore) } }
         android {

@@ -32,7 +32,7 @@ sealed interface KernelSpec {
     @Serializable data class Process(val execution: ProcessExecution) : KernelSpec
     @Serializable data class CMakeBuild(val source: String, val output: String, val executable: String,
         val generator: String, val configuration: String, val target: String, val arguments: List<String>,
-        val environmentKeys: List<String>, val tool: ToolRef, val contract: String, val ninjaExecutable: String, val parallelism: Int) : KernelSpec
+        val environmentKeys: List<String>, val tool: ToolRef, val contract: String, val ninjaExecutable: String, val parallelism: Int, val nativeContract: String? = null) : KernelSpec
     @Serializable data class GitSource(val repository: String, val revision: String, val checkout: String, val tool: ToolRef) : KernelSpec
     @Serializable data class InstallTool(val source: String, val checksum: String?, val executable: String, val installation: String, val format: String, val archiveEntry: String?, val archivePrefix: String?) : KernelSpec
     @Serializable data class ArtifactSize(val inputs: List<String>, val report: String, val metrics: List<SizeMetric>, val budgets: List<SizeBudget>, val tool: ToolRef, val fileInputs: List<FileInput> = emptyList()) : KernelSpec

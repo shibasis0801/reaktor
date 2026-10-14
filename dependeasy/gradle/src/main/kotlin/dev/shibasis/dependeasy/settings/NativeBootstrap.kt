@@ -8,7 +8,7 @@ import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
 import dev.shibasis.dependeasy.tasks.CmakePlatform
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.register
-import dev.shibasis.dependeasy.toolchain.NativeSources
+import dev.shibasis.dependeasy.native.Native
 
 /** Registers optional native preparation. Settings evaluation performs no I/O or builds. */
 internal class NativeBootstrap(private val project: Project) {
@@ -18,12 +18,12 @@ internal class NativeBootstrap(private val project: Project) {
     fun register() = with(project) {
         if (!rootDir.resolve("dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/NativeSources.kt").isFile) return@with
         val pipeline = BuildPipeline(this, "nativeTools")
-        val sources = mapOf(Tools.Flatbuffers to NativeSources.flatbuffers, Tools.Hermes to NativeSources.hermes).mapValues { (tool, source) ->
+        val sources = Native.sources.associate { it.source!! to it }.mapValues { (tool, source) ->
             val name = tool.name
             tasks.register<GitSourceTask>("prepare${name.replaceFirstChar(Char::uppercaseChar)}Source") {
                 group = "dependeasy"
-                repository.set(source.first)
-                revision.set(source.second)
+                repository.set(source.repository)
+                revision.set(source.revision)
                 checkout.set(layout.projectDirectory.dir(".github_modules/$name"))
             }
         }
@@ -33,9 +33,7 @@ internal class NativeBootstrap(private val project: Project) {
             group = "dependeasy"
             dependsOn(hermes)
             sourceDirectory.set(hermes.flatMap { it.checkout })
-            sourceFiles.from(fileTree(".github_modules/hermes") {
-                exclude(".git/**", "debug/**", "build/**")
-            })
+            sourceFiles.from(hermes.flatMap { it.checkout }.map { it.asFileTree.matching { exclude(".git/**", "debug/**", "build/**") } })
             buildDirectory.set(layout.buildDirectory.dir("dependeasy/tools/hermes"))
             generator.set("Ninja")
             buildTarget.set("hermesc")
@@ -47,7 +45,7 @@ internal class NativeBootstrap(private val project: Project) {
                 val sdk = providers.exec { commandLine("/usr/bin/xcrun", "--sdk", "macosx", "--show-sdk-path") }.standardOutput.asText.map { it.trim() }
                 environment.put("SDKROOT", sdk)
                 configureArguments.add(sdk.map { "-DCMAKE_OSX_SYSROOT=$it" })
-                configureArguments.add("-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0")
+                configureArguments.add("-DCMAKE_OSX_DEPLOYMENT_TARGET=${dev.shibasis.dependeasy.Versions.SDK.targetMacos}")
             }
             configureArguments.addAll(listOf(
                 "-DCMAKE_BUILD_TYPE=Release", "-DHERMES_BUILD_APPLE_FRAMEWORK=OFF",

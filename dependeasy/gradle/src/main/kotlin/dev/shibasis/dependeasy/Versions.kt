@@ -59,6 +59,7 @@ object Versions {
     const val SQLiteWasm = "3.53.4-build2"
     const val Pagefind = "1.5.2"
     object WebView {
+        const val WebKitGtkApi = "4.1"
         const val AndroidTestRunner = "1.7.0"
         const val AndroidTestJUnit = "1.3.0"
         const val WindowsSDK = "1.0.3537.50"

@@ -18,6 +18,7 @@ internal fun Project.registerPrefabTask(
         group = "reaktor"
         archiveFiles.from(aar)
         moduleName.set(prefab.moduleName)
+        expectedChecksum.set(prefab.checksum)
         outputDirectory.set(layout.buildDirectory.dir("dependeasy/prefab/${prefab.moduleName}"))
     } }
 }
@@ -28,9 +29,7 @@ internal fun KotlinCMakeTask.includePrefabs(
     dependsOn(prefabs.map { it.second })
     prefabs.forEach { (prefab, task) ->
         sourceFiles.from(task.flatMap { it.outputDirectory })
-        configureArguments.add(task.map { producer ->
-            val directory = producer.outputDirectory.get()
-            "-D${prefab.cmakeVariable}=${directory.asFile.absolutePath}"
-        })
+        prefabDirectories.put(prefab.cmakeVariable, task.flatMap { it.outputDirectory }.map { it.asFile.absolutePath })
+        prefabTargets.put(prefab.cmakeVariable, prefab.target)
     }
 }

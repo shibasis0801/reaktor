@@ -1,24 +1,46 @@
 package dev.shibasis.dependeasy.native
 
 import dev.shibasis.dependeasy.plugins.DependeasyExtension
+import dev.shibasis.dependeasy.settings.nativeTools
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import java.io.File
 
-open class NativeConfiguration internal constructor(
+open class NativeLibrary internal constructor(
     private val project: Project,
 ) {
     var enabled: Boolean? = null
     var sourceDirectory: Any? = null
     var cmakeLists: Any? = null
     var libraryName: String? = null
+    private val libraries = linkedSetOf<NativeDependency>()
+    private val nativeModules = linkedSetOf<dev.shibasis.dependeasy.model.ModuleHandle>()
+    private var supportedPlatforms = NativePlatform.entries.toSet()
+    private var supportedAbis = NativeAbi.defaults
+
+    fun dependencies(vararg dependencies: NativeDependency) { libraries.addAll(dependencies) }
+    fun modules(vararg modules: dev.shibasis.dependeasy.model.ModuleHandle) { nativeModules.addAll(modules) }
+    fun platforms(vararg platforms: NativePlatform) { supportedPlatforms = platforms.toSet() }
+    fun abis(vararg abis: NativeAbi) { supportedAbis = abis.toList() }
+    internal val resolvedDependencies get() = libraries.toList()
+    internal val resolvedModules get() = nativeModules.toList()
+    internal val resolvedAbis get() = supportedAbis.map { it.androidName }
+    internal fun supports(platform: dev.shibasis.dependeasy.tasks.CmakePlatform) = when (platform) {
+        is dev.shibasis.dependeasy.tasks.CmakePlatform.Android -> NativePlatform.Android in supportedPlatforms && platform.abi in resolvedAbis
+        is dev.shibasis.dependeasy.tasks.CmakePlatform.Darwin -> NativePlatform.Darwin in supportedPlatforms
+        is dev.shibasis.dependeasy.tasks.CmakePlatform.Host -> NativePlatform.Host in supportedPlatforms
+    }
     private val publicHeaders = mutableListOf<Any>()
 
     /** Public include roots are shared by CMake consumers and Kotlin cinterop. */
     fun includeDirs(vararg directories: Any) { publicHeaders.addAll(directories) }
 
     internal val resolvedIncludeDirs: List<String>
-        get() = (legacyIncludeDirs + sourceSetIncludeDirs + publicHeaders.map(project::file))
+        get() = (legacyIncludeDirs + sourceSetIncludeDirs + publicHeaders.map(project::file) +
+            libraries.flatMap { dependency -> dependency.source?.let { tool ->
+                val directory = project.nativeTools.sourceTasks.getValue(tool).get().checkout.get().asFile
+                dependency.includeRoots.map(directory::resolve)
+            }.orEmpty() })
             .map { it.absolutePath }.distinct()
 
     private val legacyIncludeDirs: List<File>
@@ -41,7 +63,6 @@ open class NativeConfiguration internal constructor(
 
     internal val resolvedLibraryName: String
         get() = libraryName
-            ?: parseProjectName(resolvedCmakeLists)
             ?: project.name
                 .split('-', '_')
                 .filter(String::isNotBlank)
@@ -52,14 +73,9 @@ open class NativeConfiguration internal constructor(
     internal val isEnabled: Boolean
         get() = enabled ?: resolvedCmakeLists.exists()
 
-    private fun parseProjectName(cmakeLists: File): String? {
-        if (!cmakeLists.exists()) return null
-        return Regex("""project\s*\(\s*([A-Za-z0-9_]+)""")
-            .find(cmakeLists.readText())
-            ?.groupValues
-            ?.getOrNull(1)
-    }
 }
+
+typealias NativeConfiguration = NativeLibrary
 
 val Project.dependeasyExtensionOrNull: DependeasyExtension?
     get() = extensions.findByType(DependeasyExtension::class.java)

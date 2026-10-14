@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION ${DEPE_CMAKE_MINIMUM})
 include("../dependeasy/cmake/api.cmake")
 reaktor_platform()
-project(ReaktorFFI LANGUAGES C CXX)
+project(${DEPE_NATIVE_TARGET} LANGUAGES C CXX)
 reaktor_configuration()
-reaktor_library(ReaktorFFI HERMES FBJNI)
+reaktor_library(${PROJECT_NAME})
 
 if(NOT ANDROID AND NOT iOS)
     add_executable(interopHostTest src/commonTest/cpp/RuntimeTest.cpp)

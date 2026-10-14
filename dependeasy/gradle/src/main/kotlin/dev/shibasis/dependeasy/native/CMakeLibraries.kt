@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.native
 
+import dev.shibasis.dependeasy.model.NativeContract
 import java.io.File
 import kotlinx.serialization.json.*
 
@@ -28,6 +29,8 @@ internal object CMakeLibraries {
         val byId = targets.associateBy { it.text("id") }
         val root = targets.singleOrNull { it.text("name") == target }
             ?: error("CMake target '$target' is unavailable")
+        val rootNode = read(reply.resolve(root.text("jsonFile")))
+        val rootArtifact = rootNode.entries("artifacts").singleOrNull()?.let { build.resolve(it.text("path")).canonicalPath }
         val pending = ArrayDeque<String>().apply { add(root.text("id")) }
         val visited = mutableSetOf<String>()
         val libraries = mutableSetOf<String>()
@@ -46,9 +49,19 @@ internal object CMakeLibraries {
         }
         val manifest = buildJsonObject {
             put("schemaVersion", 1); put("target", target); put("configuration", configuration)
+            put("kind", rootNode.text("type")); rootArtifact?.let { put("artifact", it) }
             putJsonArray("libraries") { libraries.sorted().forEach { add(it) } }
         }
         build.resolve(MANIFEST).writeText(Json.encodeToString(manifest) + "\n")
+    }
+
+    fun primary(manifest: File): NativeContract.Library {
+        val value = read(manifest)
+        require(value.getValue("schemaVersion").jsonPrimitive.int == 1) { "Unsupported native library manifest" }
+        val kind = when(value.text("kind")) { "STATIC_LIBRARY" -> "STATIC"; "SHARED_LIBRARY" -> "SHARED"; else -> error("Native dependency is not a library") }
+        val artifact = File(value.text("artifact"))
+        require(artifact.isFile) { "Native dependency artifact is missing: $artifact" }
+        return NativeContract.Library(value.text("target"), kind, artifact.path)
     }
 
     fun archives(manifest: File): List<File> {

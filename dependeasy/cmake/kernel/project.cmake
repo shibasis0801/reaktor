@@ -36,12 +36,9 @@ function(init)
     set(darwin ${darwin} PARENT_SCOPE)
     set(main ${main} PARENT_SCOPE)
 
-    if(ANDROID)
-        add_link_options(
-                "-Wl,-z,max-page-size=16384"
-                "-Wl,-z,common-page-size=16384"
-        )
+    if(NOT DEPE_NATIVE_SCHEMA EQUAL 1 OR NOT DEPE_NATIVE_CONTRACT)
+        message(FATAL_ERROR "A generated Dependeasy native contract is required")
     endif()
-
-    fi_auto_dependencies()
+    set(DEPE_NATIVE_CONFIGURE_TARGETS TRUE)
+    include("${DEPE_NATIVE_CONTRACT}")
 endfunction()

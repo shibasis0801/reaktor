@@ -12,7 +12,9 @@ data class AndroidPrefabConfiguration(
     val moduleName: String,
     val runtimeDependency: String = dependencyNotation,
     val runtimeExcludes: List<Pair<String, String>> = emptyList(),
-)
+    val target: String = moduleName,
+    val checksum: String = "",
+) : java.io.Serializable
 
 open class AndroidNativeConfiguration internal constructor() {
     private val prefabConfigurations = linkedMapOf<String, AndroidPrefabConfiguration>()
@@ -23,6 +25,8 @@ open class AndroidNativeConfiguration internal constructor() {
         moduleName: String,
         runtimeDependency: String = dependencyNotation,
         runtimeExcludes: List<Pair<String, String>> = emptyList(),
+        target: String = moduleName,
+        checksum: String = "",
     ) {
         prefabConfigurations[cmakeVariable] = AndroidPrefabConfiguration(
             cmakeVariable = cmakeVariable,
@@ -30,6 +34,7 @@ open class AndroidNativeConfiguration internal constructor() {
             moduleName = moduleName,
             runtimeDependency = runtimeDependency,
             runtimeExcludes = runtimeExcludes,
+            target = target, checksum = checksum,
         )
     }
 
@@ -39,6 +44,7 @@ open class AndroidNativeConfiguration internal constructor() {
             dependencyNotation = dependency,
             moduleName = "fbjni",
             runtimeDependency = Versions.Native.FbjniJava,
+            target = Native.Fbjni.prefab!!.target, checksum = if(dependency == Versions.Native.Fbjni) Native.Fbjni.checksum else "",
         )
     }
 
@@ -48,6 +54,7 @@ open class AndroidNativeConfiguration internal constructor() {
             dependencyNotation = "com.facebook.react:hermes-android:$version",
             moduleName = module,
             runtimeExcludes = listOf("com.facebook.fbjni" to "fbjni"),
+            target = Native.Hermes.prefab!!.target, checksum = if(version == dev.shibasis.dependeasy.toolchain.ToolchainVersions.HermesAndroid) Native.Hermes.prefab!!.checksum else "",
         )
     }
 
@@ -56,4 +63,8 @@ open class AndroidNativeConfiguration internal constructor() {
 
     internal val usesFbjni: Boolean
         get() = prefabConfigurations.containsKey("FBJNI_PREFAB_DIR")
+
+    internal fun declare(dependencies: List<NativeDependency>) {
+        dependencies.mapNotNull { it.prefab }.forEach { prefabConfigurations[it.cmakeVariable] = it }
+    }
 }

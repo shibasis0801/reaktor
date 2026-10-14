@@ -1,32 +1,31 @@
 package dev.shibasis.dependeasy.tasks
 
-import dev.shibasis.dependeasy.handles.Tools
-import dev.shibasis.dependeasy.handles.Reaktor
+import dev.shibasis.dependeasy.model.NativeContract
+import dev.shibasis.dependeasy.native.NativeDependency
 import dev.shibasis.dependeasy.settings.nativeTools
-import dev.shibasis.dependeasy.native.NativeProjectDependency
 import org.gradle.api.Project
-import java.io.File
 
-internal fun KotlinCMakeTask.includeToolSources(
-    project: Project,
-    cmakeLists: File,
-    dependencies: List<NativeProjectDependency>,
-    platform: CmakePlatform,
-) {
-    val cmakeText = cmakeLists.readText()
-    val sourceNames = buildList {
-        if (cmakeText.contains(Tools.Flatbuffers.name, ignoreCase = true) || dependencies.any { it.project.path == Reaktor.Flexbuffer.path }) add(Tools.Flatbuffers)
-        if (cmakeText.contains(Tools.Hermes.name, ignoreCase = true)) add(Tools.Hermes)
+internal fun KotlinCMakeTask.includeToolSources(project: Project, dependencies: List<NativeDependency>, platform: CmakePlatform) {
+    dependencies.mapNotNull { it.source }.distinct().forEach { tool ->
+        val source = project.nativeTools.sourceTasks.getValue(tool)
+        dependsOn(source)
+        sourceFiles.from(source.flatMap { it.checkout }.map { it.asFileTree.matching { exclude(".git/**", "debug/**", "build/**") } })
     }
-    sourceNames.forEach { tool ->
-        val name = tool.name
-        project.nativeTools.sourceTasks[tool]?.let { dependsOn(it) }
-        sourceFiles.from(project.rootProject.fileTree(".github_modules/$name") {
-            exclude(".git/**", "debug/**", "build/**")
-        })
-    }
-    if (platform is CmakePlatform.Darwin && Tools.Hermes in sourceNames) {
+    if(platform !is CmakePlatform.Android && dependencies.any { it.recipe == "hermes" }) {
         dependsOn(project.nativeTools.hermesCompiler)
-        configureArguments.add("-DHERMES_BUILD_DIR=${project.rootProject.layout.buildDirectory.dir("dependeasy/tools/hermes").get().asFile.absolutePath}")
+        sourceFiles.from(project.nativeTools.hermesCompiler.flatMap { it.buildDirectory }.map { it.file("ImportHostCompilers.cmake") })
     }
 }
+
+internal fun Project.nativeSourceContracts(dependencies: List<NativeDependency>, platform: CmakePlatform, settings: Map<String, String>): List<NativeContract.Source> = dependencies.distinctBy { it.name }.map { dependency ->
+    val directory = dependency.source?.let { nativeTools.sourceTasks.getValue(it).get().checkout.get().asFile.absolutePath }.orEmpty()
+    val compiler = if(dependency.recipe == "hermes" && platform !is CmakePlatform.Android)
+        nativeTools.hermesCompiler.get().buildDirectory.get().file("ImportHostCompilers.cmake").asFile.absolutePath else ""
+    NativeContract.Source(dependency.name, dependency.repository,
+        if(dependency.recipe == "foundation") settings.getValue("DEPE_SDK_VERSION") else dependency.revision,
+        if(dependency.recipe == "foundation") settings.getValue("DEPE_SDK_METADATA_SHA256") else dependency.checksum,
+        dependency.checksumAlgorithm, dependency.recipe, directory, compiler)
+} + if(platform is CmakePlatform.Android) dependencies.filter { it.source != null && it.prefab != null }.map { dependency ->
+    val prefab = dependency.prefab!!
+    NativeContract.Source("${dependency.name}-prefab", "maven:${prefab.dependencyNotation}", prefab.dependencyNotation.substringAfterLast(':'), prefab.checksum, "sha256", "prefab")
+} else emptyList()

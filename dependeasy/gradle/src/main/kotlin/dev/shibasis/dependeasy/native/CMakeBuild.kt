@@ -1,6 +1,8 @@
 package dev.shibasis.dependeasy.native
 
 import dev.shibasis.dependeasy.model.ToolHandle
+import dev.shibasis.dependeasy.model.NativeContract
+import dev.shibasis.dependeasy.model.BuildModelReader
 import dev.shibasis.dependeasy.settings.nativeTools
 import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
@@ -26,11 +28,9 @@ class CMakeBuild internal constructor(private val project: Project, private val 
         sourceDirectory.set(project.file(this@CMakeBuild.source))
         sourceFiles.from(project.cmakeSources(project.file(this@CMakeBuild.source)), project.cmakeKernelSources(), this@CMakeBuild.inputs)
         sourceLibraries.forEach { (tool, variable) ->
-            val name = tool.name
-            dependsOn(project.nativeTools.sourceTasks.getValue(tool))
-            val directory = project.rootDir.resolve(".github_modules/$name")
-            sourceFiles.from(project.fileTree(directory) { exclude(".git/**", "build/**", "debug/**") })
-            configureArguments.add("-D$variable=${directory.resolve("include").absolutePath}")
+            val producer = project.nativeTools.sourceTasks.getValue(tool)
+            dependsOn(producer)
+            sourceFiles.from(producer.flatMap { it.checkout }.map { it.asFileTree.matching { exclude(".git/**", "build/**", "debug/**") } })
         }
         buildDirectory.set(project.layout.buildDirectory.dir("dependeasy/native/${this@CMakeBuild.name}/${this@CMakeBuild.configuration}"))
         dependsOn(this@CMakeBuild.tool.installation)
@@ -38,7 +38,15 @@ class CMakeBuild internal constructor(private val project: Project, private val 
         this.generator.set(this@CMakeBuild.generator)
         this.configuration.set(this@CMakeBuild.configuration)
         buildTarget.set(this@CMakeBuild.target)
-        configureArguments.addAll(listOf("-DCMAKE_BUILD_TYPE=${this@CMakeBuild.configuration}", "-DCMAKE_CXX_STANDARD=${ToolchainVersions.CppStandard}", "-DCMAKE_CXX_EXTENSIONS=OFF") + this@CMakeBuild.arguments)
+        val settings = mapOf("CMAKE_BUILD_TYPE" to this@CMakeBuild.configuration, "CMAKE_CXX_STANDARD" to ToolchainVersions.CppStandard, "CMAKE_CXX_EXTENSIONS" to "OFF") +
+            sourceLibraries.map { (tool, variable) -> variable to project.nativeTools.sourceTasks.getValue(tool).get().checkout.get().asFile.resolve("include").absolutePath }
+        nativeContract.set(BuildModelReader.json.encodeToString(NativeContract(library = this@CMakeBuild.target, platform = "host", settings = settings,
+            sources = sourceLibraries.keys.map { tool ->
+                val dependency = Native.sources.single { it.source == tool }
+                NativeContract.Source(dependency.name, dependency.repository, dependency.revision, dependency.checksum, dependency.checksumAlgorithm, dependency.recipe,
+                    project.nativeTools.sourceTasks.getValue(tool).get().checkout.get().asFile.absolutePath)
+            })))
+        configureArguments.addAll(this@CMakeBuild.arguments)
         toolVersion.set("${this@CMakeBuild.tool.handle.name} ${this@CMakeBuild.tool.handle.version}")
     }
 }

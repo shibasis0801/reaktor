@@ -12,11 +12,19 @@ import java.util.zip.ZipFile
 abstract class ExtractPrefabTask : DefaultTask() {
     @get:InputFiles @get:PathSensitive(PathSensitivity.NONE)
     abstract val archiveFiles: ConfigurableFileCollection
+    @get:Input abstract val expectedChecksum: Property<String>
     @get:Input abstract val moduleName: Property<String>
     @get:OutputDirectory abstract val outputDirectory: DirectoryProperty
 
+    init { expectedChecksum.convention("") }
+
     @TaskAction fun extract() {
         val aar = archiveFiles.singleFile
+        if (expectedChecksum.get().isNotEmpty()) {
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            aar.inputStream().use { input -> val buffer = ByteArray(65536); while(true) { val count = input.read(buffer); if(count < 0) break; digest.update(buffer, 0, count) } }
+            require(digest.digest().joinToString("") { "%02x".format(it) } == expectedChecksum.get()) { "Native AAR checksum mismatch" }
+        }
         val output = outputDirectory.get().asFile
         output.clearChildrenSafely()
         output.mkdirs()

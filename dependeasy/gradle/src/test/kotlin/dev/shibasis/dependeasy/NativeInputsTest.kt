@@ -54,7 +54,8 @@ class NativeInputsTest {
             assertFalse(bundle in inputs, "Vite output is not a CMake input")
             assertFalse(typescript in inputs, "CMake tracks native source sets only")
             assertFalse(versions in inputs, "Unrelated language versions must not invalidate native builds")
-            assertContains(compile.get().configureArguments.get(), "-DCMAKE_CXX_STANDARD=${ToolchainVersions.CppStandard}")
+            val contract = dev.shibasis.dependeasy.model.BuildModelReader.json.decodeFromString<dev.shibasis.dependeasy.model.NativeContract>(compile.get().nativeContract.get())
+            assertEquals(ToolchainVersions.CppStandard, contract.settings["CMAKE_CXX_STANDARD"])
         }
     }
 

@@ -2,7 +2,7 @@ package dev.shibasis.dependeasy.plugins
 
 import dev.shibasis.dependeasy.native.AndroidNativeConfiguration
 import dev.shibasis.dependeasy.native.DarwinNativeConfiguration
-import dev.shibasis.dependeasy.native.NativeConfiguration
+import dev.shibasis.dependeasy.native.NativeLibrary
 import dev.shibasis.dependeasy.native.CMakeBuild
 import dev.shibasis.dependeasy.dag.BuildPipeline
 import dev.shibasis.dependeasy.web.JavaScriptComponent
@@ -56,7 +56,7 @@ open class DependeasyExtension internal constructor(
         "kotlin.time.ExperimentalTime"
     )
 
-    internal val native = NativeConfiguration(project)
+    internal val native = NativeLibrary(project)
 
     fun sourceRevision() = project.sourceRevision()
     fun workspace(configuration: BuildWorkspace.() -> Unit) = BuildWorkspace.get(project).apply(configuration)
@@ -141,7 +141,7 @@ open class DependeasyExtension internal constructor(
     fun dependencyRepositories(configuration: RepositoryHandler.() -> Unit = {}) =
         dev.shibasis.dependeasy.repositories.dependencyRepositories(project, configuration)
 
-    fun nativeLibrary(configuration: NativeConfiguration.() -> Unit) { native.apply(configuration) }
+    fun nativeLibrary(configuration: NativeLibrary.() -> Unit) { native.apply(configuration) }
 
     fun androidNative(configuration: AndroidNativeConfiguration.() -> Unit) {
         native.android.apply(configuration)

@@ -10,19 +10,20 @@ import org.gradle.kotlin.dsl.register
 /** Packages declared native outputs and the runtime from the compiler's own NDK. */
 internal fun Project.configureAndroidNative() {
     val native = nativeConfigurationOrNull?.takeIf { it.isEnabled } ?: return
+    native.android.declare(native.resolvedDependencies)
     val sdk = providers.environmentVariable("ANDROID_HOME").orElse(providers.environmentVariable("ANDROID_SDK_ROOT"))
         .orNull ?: rootProject.file("local.properties").takeIf { it.isFile }?.let { file ->
             java.util.Properties().apply { file.reader().use(::load) }.getProperty("sdk.dir")
         } ?: error("Android SDK is required for native compilation")
     val host = if (providers.systemProperty("os.name").get().contains("Mac", true)) "darwin-x86_64" else "linux-x86_64"
     val runtime = file("$sdk/ndk/${Versions.SDK.ndkVersion}/toolchains/llvm/prebuilt/$host/sysroot/usr/lib")
-    val builds = Versions.architectures.mapNotNull { abi -> droidCmake(abi, sdk) }
+    val builds = native.resolvedAbis.mapNotNull { abi -> droidCmake(abi, sdk) }
     val external = native.android.resolvedPrefabs.filter { it.runtimeDependency != it.dependencyNotation }
         .map { it to registerPrefabTask(it) }
     val output = layout.buildDirectory.dir("dependeasy/jniLibs")
     val libraries = tasks.register<NativeLibrariesTask>("copyNativeLibs") {
         dependsOn(builds)
-        Versions.architectures.forEach { abi ->
+        native.resolvedAbis.forEach { abi ->
             from(nativeBuildDirectory("android/$abi")) { include("*.so"); into(abi) }
             from(runtime.resolve("${androidTriple(abi)}/libc++_shared.so")) { into(abi) }
             external.forEach { (_, prefab) ->

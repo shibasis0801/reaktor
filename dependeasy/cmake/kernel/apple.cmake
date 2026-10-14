@@ -1,23 +1,5 @@
 function(setup_ios)
-    if(NOT DEFINED sdk)
-        set(sdk iphonesimulator)
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS" OR NOT CMAKE_OSX_SYSROOT OR NOT CMAKE_OSX_DEPLOYMENT_TARGET OR NOT CMAKE_OSX_ARCHITECTURES)
+        message(FATAL_ERROR "The generated native contract must declare the Apple platform before project()")
     endif()
-    execute_process(
-            COMMAND xcrun --sdk ${sdk} --show-sdk-path
-            OUTPUT_VARIABLE IOS_SDK_PATH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    set(CMAKE_SYSTEM_NAME iOS CACHE INTERNAL "")
-    set(CMAKE_OSX_SYSROOT "${IOS_SDK_PATH}" CACHE INTERNAL "iOS SDK path")
-    if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE INTERNAL "iOS deployment target")
-    endif()
-    message(STATUS "iOS SDK path: ${CMAKE_OSX_SYSROOT}")
-
-    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE INTERNAL "")
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE INTERNAL "")
-    set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO" CACHE INTERNAL "")
-    set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO" CACHE INTERNAL "")
-    set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "" CACHE INTERNAL "")
 endfunction()

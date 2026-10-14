@@ -94,4 +94,44 @@ class NativeCompositionTest {
         assertContains(warm.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, warm.task(":sampleCMake")?.outcome)
     }
+    @Test fun `a changed native contract reconfigures and rebuilds with cache reuse`() {
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"nativeContract\"")
+        directory.resolve("cpp").mkdirs()
+        directory.resolve("cpp/main.cpp").writeText("#include <cstdio>\nint main() { std::printf(\"%d\", FIXTURE_VALUE); }\n")
+        directory.resolve("cpp/CMakeLists.txt").writeText("""
+            cmake_minimum_required(VERSION ${'$'}{DEPE_CMAKE_MINIMUM})
+            project(sample LANGUAGES CXX)
+            add_executable(sample main.cpp)
+            target_compile_definitions(sample PRIVATE FIXTURE_VALUE=${'$'}{FIXTURE_VALUE})
+        """.trimIndent())
+        directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.model.NativeContract
+            import dev.shibasis.dependeasy.model.BuildModelReader
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            dependeasy {
+                val compile = cmake("sample") { source = "cpp" }
+                val value = providers.gradleProperty("fixtureValue").orElse("42")
+                val contract = BuildModelReader.json.encodeToString(NativeContract(
+                    library = "sample", platform = "host", settings = mapOf("FIXTURE_VALUE" to value.get())))
+                compile.configure { nativeContract.set(contract) }
+                dag("native") { target("nativeBuild", node(compile)) }
+            }
+        """.trimIndent())
+        fun run(value: Int) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("nativeBuild", "-PfixtureValue=$value", "--configuration-cache", "--stacktrace").build()
+        fun result(): String {
+            val process = ProcessBuilder(directory.resolve("build/dependeasy/native/sample/Release/sample").path).start()
+            val value = process.inputStream.bufferedReader().readText()
+            assertEquals(0, process.waitFor())
+            return value
+        }
+        assertEquals(TaskOutcome.SUCCESS, run(42).task(":sampleCMake")?.outcome)
+        assertEquals("42", result())
+        assertEquals(TaskOutcome.SUCCESS, run(43).task(":sampleCMake")?.outcome)
+        assertEquals("43", result())
+        val repeated = run(43)
+        assertContains(repeated.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":sampleCMake")?.outcome)
+    }
+
 }

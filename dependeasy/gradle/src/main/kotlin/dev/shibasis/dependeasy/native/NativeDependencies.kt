@@ -17,19 +17,8 @@ fun Project.nativeProjectDependencies(): List<NativeProjectDependency> {
     val result = mutableListOf<NativeProjectDependency>()
 
     fun collect(current: Project) {
-        current.configurations
-            .asSequence()
-            .filterNot {
-                val name = it.name.lowercase()
-                "test" in name || "ksp" in name || "metadata" in name || "lint" in name
-            }
-            .flatMap { configuration ->
-                configuration.dependencies
-                    .withType(ProjectDependency::class.java)
-                    .asSequence()
-                    .map { dependency -> current.project(dependency.path) }
-            }
-            .distinctBy(Project::getPath)
+        current.nativeConfigurationOrNull?.resolvedModules.orEmpty()
+            .map { module -> current.project(module.path) }
             .forEach { dependencyProject ->
                 if (!visited.add(dependencyProject.path)) return@forEach
                 current.evaluationDependsOn(dependencyProject.path)
