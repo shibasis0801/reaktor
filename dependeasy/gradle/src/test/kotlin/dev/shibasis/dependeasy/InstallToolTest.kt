@@ -63,6 +63,22 @@ class InstallToolTest {
         assertEquals(setOf("tool", ".lock"), previous.parentFile.list()!!.toSet())
     }
 
+    @Test fun `raw jars are checksum qualified and a corrupt download is rejected`() {
+        val bytes = "standalone jar fixture".toByteArray()
+        val source = directory.resolve("fixture.jar").apply { writeBytes(bytes) }
+        val task = task(bytes).apply {
+            format.set(dev.shibasis.dependeasy.toolchain.ToolArchive.RawFile)
+            url.set(source.toURI().toString()); binaryName.set("fixture.jar")
+        }
+        task.install()
+        assertContentEquals(bytes, directory.resolve("tools/fixture.jar").readBytes())
+        task.install()
+        directory.resolve("tools/.sha256").delete()
+        source.writeText("tampered")
+        assertFailsWith<IllegalStateException> { task.install() }
+        assertContentEquals(bytes, directory.resolve("tools/fixture.jar").readBytes())
+    }
+
     private fun task(bytes: ByteArray): InstallTool = ProjectBuilder.builder().build()
         .tasks.create("qualifiedTool", InstallTool::class.java).apply {
             checksum.set(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) })

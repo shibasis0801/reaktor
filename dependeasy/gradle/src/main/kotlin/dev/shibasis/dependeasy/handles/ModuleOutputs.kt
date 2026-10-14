@@ -74,6 +74,13 @@ internal fun Project.moduleOutputs() {
     pluginManager.withPlugin("com.android.application") {
         extensions.getByType<ApplicationAndroidComponentsExtension>().onVariants { variant ->
             val build = Build.entries.singleOrNull { it.name.equals(variant.buildType, true) }
+            val installation = "install" + variant.name.replaceFirstChar(Char::uppercaseChar)
+            afterEvaluate {
+                listOf(installation, installation + "AndroidTest").filter { it in tasks.names }.forEach { name ->
+                    dev.shibasis.dependeasy.workspace.BuildWorkspace.get(this).reference(this, tasks.named(name), null,
+                        HostRequirement(execution = ExecutionHost.Local))
+                }
+            }
             if (build != null) {
                 publishOutput(OutputKind.AndroidApk, variant.artifacts.get(SingleArtifact.APK), build)
                 publishOutput(OutputKind.AndroidBundle, variant.artifacts.get(SingleArtifact.BUNDLE), build)
@@ -86,6 +93,13 @@ internal fun Project.moduleOutputs() {
     pluginManager.withPlugin("com.android.library") {
         extensions.getByType<LibraryAndroidComponentsExtension>().onVariants { variant ->
             val build = Build.entries.singleOrNull { it.name.equals(variant.buildType, true) }
+            val installation = "install" + variant.name.replaceFirstChar(Char::uppercaseChar)
+            afterEvaluate {
+                listOf(installation, installation + "AndroidTest").filter { it in tasks.names }.forEach { name ->
+                    dev.shibasis.dependeasy.workspace.BuildWorkspace.get(this).reference(this, tasks.named(name), null,
+                        HostRequirement(execution = ExecutionHost.Local))
+                }
+            }
             if (build != null) {
                 publishOutput(OutputKind.AndroidLibrary, variant.artifacts.get(SingleArtifact.AAR), build)
                 variant.androidTest?.let { tests ->

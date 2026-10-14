@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "build": "node ../../tools/typecheck.mjs -b"
+    "build": "node ../../dependeasy/javascript/typecheck.mjs -b"
   },
   "dependencies": {
     "react": "^19.2.6",

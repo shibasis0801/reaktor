@@ -25,8 +25,8 @@
     }
   },
   "scripts": {
-    "build": "node ../../tools/typecheck.mjs -b",
-    "dev": "node ../../tools/typecheck.mjs -b --watch",
+    "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
+    "dev": "node ../../dependeasy/javascript/typecheck.mjs -b --watch",
     "clean": "rm -rf dist"
   },
   "dependencies": {

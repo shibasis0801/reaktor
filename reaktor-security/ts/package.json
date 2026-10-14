@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ../../tools/typecheck.mjs -b"
+    "build": "node ../../dependeasy/javascript/typecheck.mjs -b"
   },
   "dependencies": {
     "reaktor-reaktor-security": "workspace:*"

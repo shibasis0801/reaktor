@@ -10,6 +10,7 @@ plugins {
 dependencies {
     implementation(kotlin("stdlib", embeddedKotlinVersion))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${BuildLibraries.Serialization}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${BuildLibraries.Coroutines}")
     testImplementation(kotlin("test-junit5", embeddedKotlinVersion))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

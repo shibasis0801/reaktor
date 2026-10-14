@@ -1,4 +1,4 @@
-import { dag, CacheSharingMode, Container, Directory, File, Platform } from "@dagger.io/dagger"
+import { dag, CacheSharingMode, Container, Directory, Platform, Secret, argument, object, func } from "@dagger.io/dagger"
 
 export const SOURCE_IGNORES = [
   "**/node_modules", "**/build", "**/build-*", "**/dist", "**/.gradle", "**/.kotlin",
@@ -25,13 +25,11 @@ export function checkedEnvironment(value: string, allowed: readonly string[]): s
 }
 
 export class BuildRuntime {
-  constructor(private source: Directory, private reaktor: Directory, private contractFile: File, private buildName: string,
+  constructor(private source: Directory, private reaktor: Directory, private toolchainContract: ToolchainContract, private buildName: string,
     private environment: Record<string, string>) {}
-  /** Build JDK and verified Gradle distribution; Dependeasy installs JavaScript tools. */
   async toolchain(): Promise<Container> {
     const contract = await this.contract()
     const container = dag
-      // The pinned Android command-line tools and NDK contain Linux x86-64 executables.
       .container({ platform: "linux/amd64" as Platform })
       .from(contract.javaImage)
       .withExec([
@@ -52,25 +50,15 @@ export class BuildRuntime {
   }
 
   private async contract(): Promise<ToolchainContract> {
-    const contract: ToolchainContract = JSON.parse(await this.contractFile.contents())
+    const contract = this.toolchainContract
     if (contract.schemaVersion !== 1) throw new Error("Unsupported Dependeasy toolchain schema")
     return contract
   }
 
   private runtimeEnvironment(container: Container): Container {
-    // CI shares an 8 GiB Docker VM; one compiler heap keeps concurrent tasks bounded.
-    const configured = container
-      .withEnvVariable("GRADLE_OPTS", "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs='-Xmx2g -XX:MaxMetaspaceSize=768m -XX:ReservedCodeCacheSize=128m' -Dorg.gradle.workers.max=1 -Dorg.gradle.vfs.watch=false -Dorg.gradle.project.kotlin.compiler.execution.strategy=in-process")
-      .withEnvVariable("NODE_OPTIONS", "--max-old-space-size=384")
-    return Object.entries(this.environment).reduce((current, [key, value]) => current.withEnvVariable(key, value), configured)
+    return Object.entries(this.environment).reduce((current, [key, value]) => current.withEnvVariable(key, value), container)
   }
 
-  /**
-   * Points both repos' wrappers at the pre-seeded distribution.
-   *
-   * Rewrites the mounted copies only — the checked-in files are untouched, so `./gradlew` stays
-   * the canonical entrypoint everywhere and a developer's local wrapper still resolves normally.
-   */
   private useLocalGradleDistribution(ctr: Container, archive: string): Container {
     return ctr.withExec([
       "sh",
@@ -84,15 +72,10 @@ export class BuildRuntime {
     ])
   }
 
-  /**
-   * toolchain + Android SDK/NDK/CMake. The KMP composite build needs the Android SDK
-   * present just to CONFIGURE the Android library variants, even for JVM/JS-only tasks.
-   */
   async androidToolchain(): Promise<Container> {
     const sdk = (await this.contract()).androidSdk
     return (await this.toolchain())
       .withExec(["apt-get", "update"])
-      // Native compilation is task-scoped; configuration no longer builds Hermes.
       .withExec([
         "sh", "-ec",
         "apt-get install -y --no-install-recommends ninja-build && " +
@@ -112,7 +95,6 @@ export class BuildRuntime {
       )
   }
 
-  /** Android toolchain + both repos as siblings; workdir = bestbuds. The single source of the layout. */
   async workspace(): Promise<Container> {
     const contract = await this.contract()
     return this.useLocalGradleDistribution(
@@ -150,5 +132,58 @@ export class BuildRuntime {
       .withEnvVariable("PATH", `/work/${this.buildName}/build/dependeasy/tools/javascript/bin:/opt/java/openjdk/bin:$PATH`, { expand: true })
       .withWorkdir(`/work/${this.buildName}`)
     return this.runtimeEnvironment(browser)
+  }
+}
+
+type Pipeline = {
+  schema: number
+  build: string
+  engineVersion: string
+  browserImage: string
+  environment: Record<string, string>
+  toolchain: ToolchainContract
+  targets: Array<{
+    id: { build: string, project: string, name: string }
+    effect: string
+    host: { platform: string, execution?: string | null }
+    invocation: { type: string, tasks: string[] }
+    environments: string[]
+    runner: string
+  }>
+}
+
+@object()
+export class Dependeasy {
+  source: Directory
+  reaktor: Directory
+  constructor(@argument({ ignore: SOURCE_IGNORES }) source: Directory, @argument({ ignore: SOURCE_IGNORES }) reaktor: Directory) {
+    this.source = source
+    this.reaktor = reaktor
+  }
+  private async pipeline(): Promise<Pipeline> {
+    const value: Pipeline = JSON.parse(await this.source.file("dagger/pipeline.json").contents())
+    if (value.schema !== 1 || !/^[a-zA-Z0-9_-]+$/.test(value.build)) throw new Error("Unsupported Dependeasy pipeline")
+    return value
+  }
+  @func()
+  async list(): Promise<string[]> {
+    return (await this.pipeline()).targets.map(node => node.id.build + node.id.project.replace(/:$/, "") + ":" + node.id.name)
+  }
+  @func()
+  async run(target: string, targetEnv: string = "prod", cloudflareApiToken?: Secret): Promise<string> {
+    const pipeline = await this.pipeline()
+    const node = pipeline.targets.find(item => item.id.build + item.id.project.replace(/:$/, "") + ":" + item.id.name === target ||
+      item.id.project === ":" && item.id.name === target)
+    if (!node) throw new Error(`Unknown or unavailable container target '${target}'; use list`)
+    if (node.host.platform === "Macos" || node.host.execution === "Local" || !node.invocation.tasks?.length)
+      throw new Error("This target requires a physical host")
+    const runtime = new BuildRuntime(this.source, this.reaktor, pipeline.toolchain, pipeline.build, pipeline.environment)
+    let container = await (node.runner === "browser" ? runtime.browserWorkspace(pipeline.browserImage) : runtime.workspace())
+    if (node.effect === "Deploy") {
+      if (!cloudflareApiToken) throw new Error("Deploy requires cloudflare-api-token")
+      container = container.withSecretVariable("CLOUDFLARE_API_TOKEN", cloudflareApiToken)
+        .withEnvVariable("TARGET_ENV", checkedEnvironment(targetEnv, node.environments))
+    }
+    return container.withExec(["./gradlew", ...node.invocation.tasks, "--console=plain"]).stdout()
   }
 }

@@ -83,6 +83,7 @@ abstract class InstallTool : DefaultTask(), KernelSpecOwner {
                     }
                     var found = false
                     when (format.get()) {
+                        ToolArchive.RawFile -> { Files.copy(archive, executable, StandardCopyOption.REPLACE_EXISTING); found = true }
                         ToolArchive.TarGzip -> TarArchiveInputStream(GZIPInputStream(Files.newInputStream(archive))).use { tar ->
                             while (true) {
                                 val entry = tar.nextEntry ?: break
@@ -123,4 +124,4 @@ abstract class InstallTool : DefaultTask(), KernelSpecOwner {
     }
 }
 
-enum class ToolArchive { TarGzip, Zip }
+enum class ToolArchive { TarGzip, Zip, RawFile }

@@ -128,4 +128,28 @@ class WebContractsTest {
         assertFalse("retired" in local)
         assertEquals(TaskOutcome.UP_TO_DATE, run("generatePackageScripts").task(":generatePackageScripts")?.outcome)
     }
+    @Test fun `local model export does not enable an undeclared worker environment`() {
+        write("base.json", "{}")
+        write("targets/worker/index.ts", "export default {}")
+        write("package.json", """{"name":"fixture"}""")
+        write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts"}""")
+        write("targets/worker/wrangler.dev.json", """{"name":"fixture-worker-dev","main":"index.ts"}""")
+        write("wrangler.json", "{}")
+        prepare("""
+            dependeasy.workspace {
+                workers {
+                    environments.addAll(listOf(dev.shibasis.dependeasy.model.Environment("dev"), dev.shibasis.dependeasy.model.Environment("prod")))
+                    worker("worker", "targets/worker")
+                }
+            }
+        """.trimIndent())
+        directory.resolve("build.gradle.kts").appendText("\ntasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach { baseConfiguration.set(layout.projectDirectory.file(\"base.json\")) }\n")
+        run("exportBuildModel", "-Pdependeasy.environment=local")
+        val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        assertTrue(model.nodes.any { it.id.name == "deployWorker" })
+        val rejected = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("deployWorker", "-Pdependeasy.environment=local", "--configuration-cache", "--stacktrace").buildAndFail()
+        assertContains(rejected.output, "Worker deployment has no environment 'local'")
+    }
+
 }

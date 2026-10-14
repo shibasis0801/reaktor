@@ -52,6 +52,7 @@ data class BuildOption<T : Any>(val name: String, val type: OptionType, val defa
 data class Environment(val name: String) : JavaSerializable
 data class LaneHandle(val platform: String, val name: String) : JavaSerializable
 object IosLane {
+    val BuildDebug = LaneHandle("ios", "build_debug")
     val BuildRelease = LaneHandle("ios", "build_release")
     val TestflightInternal = LaneHandle("ios", "testflight_internal")
 }

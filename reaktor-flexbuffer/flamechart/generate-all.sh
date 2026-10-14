@@ -47,11 +47,6 @@ run_android() {
     echo ""
 }
 
-run_native() {
-    echo "━━━ [Native] Kotlin/Native (iOS simulator) flamechart ━━"
-    bash "$SCRIPT_DIR/generate-native.sh"
-    echo ""
-}
 
 run_js() {
     echo "━━━ [JS] V8/Node.js flamechart ━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -62,17 +57,15 @@ run_js() {
 case "$TARGET" in
     jvm)     run_jvm ;;
     android) run_android ;;
-    native)  run_native ;;
     js)      run_js ;;
     all)
         run_jvm
         run_android
-        run_native
         run_js
         ;;
     *)
         echo "Unknown target: $TARGET"
-        echo "Usage: $0 [jvm|android|native|js|all]"
+        echo "Usage: $0 [jvm|android|js|all]"
         exit 1
         ;;
 esac

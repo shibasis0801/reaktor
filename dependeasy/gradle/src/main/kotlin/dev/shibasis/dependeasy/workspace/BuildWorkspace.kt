@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.workspace
 
+import dev.shibasis.dependeasy.verification.karateSuite
+import dev.shibasis.dependeasy.verification.k6Suite
 import dev.shibasis.dependeasy.web.PnpmWorkspace
 import dev.shibasis.dependeasy.dag.BuildPipeline
 import dev.shibasis.dependeasy.dagger.DaggerModule
@@ -17,11 +19,12 @@ class BuildWorkspace internal constructor(private val project: Project) {
     private val targets = linkedMapOf<String, BuildTarget>()
     private val declaredTasks = linkedSetOf<NodeId>()
     private val taskReferences = linkedSetOf<NodeId>()
+    private val taskHostRequirements = linkedMapOf<NodeId, HostRequirement>()
     private val pipelines = mutableListOf<BuildPipeline>()
     private val scriptAliases = linkedMapOf<String, MutableMap<String, String>>()
     private var scriptGeneration: TaskProvider<PackageScriptsTask>? = null
 
-    internal fun packageAlias(directory: java.io.File, alias: String, command: String) {
+    fun packageAlias(directory: java.io.File, alias: String, command: String) {
         val file = directory.resolve("package.json")
         if (!file.isFile) return
         val path = file.relativeTo(project.rootDir).invariantSeparatorsPath
@@ -35,6 +38,14 @@ class BuildWorkspace internal constructor(private val project: Project) {
                 generatedFiles.from(file)
             }
         }
+    }
+    fun packageAlias(directory: java.io.File, alias: String, node: NodeHandle, before: String = "") {
+        val command = when (val invocation = node.invocation()) {
+            is Invocation.Gradle -> listOf(listOf("./gradlew") + invocation.tasks)
+            is Invocation.Command -> { require(invocation.recipes.isEmpty()); invocation.commands }
+            else -> error("Node has no executable alias: ${node.id}")
+        }.joinToString(" && ") { arguments -> arguments.joinToString(" ", transform = ::shellToken) }
+        packageAlias(directory, alias, before + command)
     }
     val graph = project.tasks.register<ExportBuildModelTask>(GradleProtocol.ExportTask) {
         group = "dependeasy"
@@ -57,8 +68,10 @@ class BuildWorkspace internal constructor(private val project: Project) {
     }
     init {
         project.objects.newInstance(GradleReceiptRegistration::class.java).register(project)
+        graph.configure { taskFamilies.put(":" + GradleProtocol.ExportTask, "metadata") }
         for ((name, planning) in listOf(GradleProtocol.PlanTask to true, GradleProtocol.RunTask to false)) {
             val root = project.layout.projectDirectory
+            graph.configure { taskFamilies.put(":" + name, "metadata") }
             project.tasks.register<GradleInvocationTask>(name) {
                 group = "dependeasy"
                 rootDirectory.set(root)
@@ -117,6 +130,15 @@ class BuildWorkspace internal constructor(private val project: Project) {
     fun verify(name: String, role: Workspace? = null, configure: BuildTarget.() -> Unit = {}) =
         target(name, role) { effect = Effect.Verify; configure() }
 
+    fun deviceFlows(name: String, configuration: dev.shibasis.dependeasy.verification.DeviceFlows.() -> Unit) =
+        dev.shibasis.dependeasy.verification.DeviceFlows(project, name).apply(configuration).register()
+
+    fun karateSuite(name: String, directory: String, config: String, tags: List<String> = emptyList(), environmentFiles: List<String> = emptyList()) =
+        project.karateSuite(name, directory, config, tags, environmentFiles)
+
+    fun k6Suite(name: String, script: String, environmentFiles: List<String> = emptyList()) =
+        project.k6Suite(name, script, environmentFiles)
+
     fun artifacts(name: String, role: Workspace? = null, configure: BuildTarget.() -> Unit = {}) =
         target(name, role) { exposesOutputs = true; configure() }
 
@@ -161,7 +183,7 @@ class BuildWorkspace internal constructor(private val project: Project) {
         }
     }.also { generation ->
         scriptGeneration = generation
-        graph.configure { mustRunAfter(generation) }
+        graph.configure { mustRunAfter(generation); taskFamilies.put(":" + generation.name, "metadata") }
         PnpmWorkspace.get(project).install.configure { dependsOn(generation) }
     }
 
@@ -174,8 +196,9 @@ class BuildWorkspace internal constructor(private val project: Project) {
         }
     }
 
-    internal fun reference(owner: Project, task: TaskProvider<out Task>, kind: OutputKind?) {
+    internal fun reference(owner: Project, task: TaskProvider<out Task>, kind: OutputKind?, host: HostRequirement? = null) {
         val id = NodeId(owner.rootProject.name, owner.path, task.name)
+        host?.let { taskHostRequirements[id] = it }
         if (!taskReferences.add(id)) return
         val site = owner.declarationSite()
         graph.configure {
@@ -185,7 +208,7 @@ class BuildWorkspace internal constructor(private val project: Project) {
                     val typed = producer as? dev.shibasis.dependeasy.process.KernelSpecOwner
                     listOf(BuildModelReader.encode(Node(id, NodeKind.Kernel, task.name,
                         typed?.kernelEffect ?: if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
-                        typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), site, kernelRef(producer),
+                        taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), site, kernelRef(producer),
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
                         artifactFamily = kind?.family)))
                 }

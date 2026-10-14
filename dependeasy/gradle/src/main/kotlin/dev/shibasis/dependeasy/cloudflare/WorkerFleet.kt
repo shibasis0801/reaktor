@@ -17,6 +17,12 @@ class WorkerFleet internal constructor(private val project: Project) {
     val prerequisites = mutableListOf<NodeHandle>()
     val environments = mutableListOf<Environment>()
     fun include(vararg names: String) { names.forEach { worker(it, "targets/${it}Server") } }
+    private var suiteConfig: String? = null
+    private var suiteEnvironmentFiles: Map<String, String> = emptyMap()
+    val verification = linkedMapOf<String, NodeHandle>()
+    fun karate(configDirectory: String, environmentFiles: Map<String, String> = emptyMap()) {
+        suiteConfig = configDirectory; suiteEnvironmentFiles = environmentFiles
+    }
     var release: NodeHandle? = null
         private set
     fun worker(name: String, directory: Any, vararg prerequisites: NodeHandle, release: Boolean = false) {
@@ -59,11 +65,13 @@ class WorkerFleet internal constructor(private val project: Project) {
             val paths = configurations.mapValues { project.rootProject.file(it.value).relativeTo(directory).invariantSeparatorsPath }
             val selected = project.providers.gradleProperty("dependeasy.environment")
                 .orElse(project.providers.environmentVariable("TARGET_ENV")).orElse(environments.last().name)
-                .map { value -> require(value in configurations) { "$name has no environment '$value'" }; value }
+                .map { value -> value.takeIf { it in configurations } ?: environments.last().name }
             val component = extension.javascript("${name}Worker", directory)
             val command = component.deploy(producers = arrayOf(generate))
             command.configure {
                 configuration.set(selected.map { value -> paths.getValue(value) })
+                requestedEnvironment.set(project.providers.gradleProperty("dependeasy.environment").orElse(project.providers.environmentVariable("TARGET_ENV")))
+                allowedEnvironments.set(configurations.keys.toList())
                 sourceFiles.from(generate.map { it.finalConfigurations })
                 arguments.add("--minify")
             }
@@ -93,6 +101,36 @@ class WorkerFleet internal constructor(private val project: Project) {
                 val suffix = if (environment == environments.last().name) "" else environment.replaceFirstChar(Char::uppercaseChar)
                 workspace.packageAlias(project.rootDir, "deploy${name.replaceFirstChar(Char::uppercaseChar)}$suffix", "./gradlew ${project.path.trimEnd(':')}:${worker.node.name} -Pdependeasy.environment=$environment")
                 workspace.packageAlias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}$suffix", "./gradlew ${project.path.trimEnd(':')}:${logs.name} -Pdependeasy.environment=$environment")
+            }
+        }
+        suiteConfig?.let { config ->
+            val groups = linkedMapOf<String, MutableList<NodeHandle>>()
+            records.forEach { worker ->
+                val target = project.file(worker.directory).name
+                val directory = "tests/$target/karate"
+                if (!project.file(directory).isDirectory) return@forEach
+                val modes = linkedMapOf("auth" to emptyList<String>(), "smoke" to listOf("@smoke"))
+                if (project.file("$directory/behaviour.feature").isFile) modes["behaviour"] = listOf("@behaviour")
+                if (project.file("$directory/public.feature").isFile) modes["public"] = emptyList()
+                worker.configurations.keys.forEach { environment ->
+                    modes.forEach { (mode, tags) ->
+                        val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
+                        val suite = workspace.karateSuite(name, if (mode == "public") "$directory/public.feature" else directory, config, tags,
+                            listOfNotNull(suiteEnvironmentFiles[environment]))
+                        val suffix = if (environment == environments.last().name) "" else ":$environment"
+                        val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
+                        workspace.packageAlias(project.rootDir, alias + suffix, "./gradlew :$name")
+                        if (mode == "auth") workspace.packageAlias(project.rootDir, "test:$target:karate$suffix", "./gradlew :$name")
+                        groups.getOrPut("$mode:$environment") { mutableListOf() }.add(suite)
+                    }
+                }
+            }
+            groups.forEach { (selection, suites) ->
+                val (mode, environment) = selection.split(':')
+                val name = "workerKarate" + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
+                verification[selection] = workspace.verify(name) { includes(*suites.toTypedArray()) }
+                val suffix = (if (mode == "auth") "" else ":$mode") + if (environment == environments.last().name) "" else ":$environment"
+                workspace.packageAlias(project.rootDir, "test:workers:karate$suffix", "./gradlew :$name")
             }
         }
         workers.keys.forEach { name ->

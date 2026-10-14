@@ -1,0 +1,1 @@
+{"compilerOptions":{"experimentalDecorators":true,"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","strict":true,"skipLibCheck":true,"esModuleInterop":true,"paths":{"@dagger.io/dagger":["./sdk/index.ts"],"@dagger.io/dagger/telemetry":["./sdk/telemetry.ts"]}}}

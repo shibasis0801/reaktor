@@ -1,1 +1,0 @@
-../dependeasy/javascript/typecheck.mjs

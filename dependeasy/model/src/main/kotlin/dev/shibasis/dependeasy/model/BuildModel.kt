@@ -118,3 +118,18 @@ data class RunReceipt(
         "DEVELOPER_DIR", "PLATFORM_NAME", "BUILT_PRODUCTS_DIR", "UNLOCALIZED_RESOURCES_FOLDER_PATH", "EXPANDED_CODE_SIGN_IDENTITY",
         "CODE_SIGNING_ALLOWED", "KOTLIN_FRAMEWORK_BUILD_TYPE", "BESTBUDS_GRADLE_ARGS", "ACTION", "DWARF_DSYM_FOLDER_PATH",
         "ENABLE_USER_SCRIPT_SANDBOXING", "PROJECT_FILE_PATH"))
+
+fun BuildModel.requiredHost(id: NodeId): HostRequirement {
+    val byId = nodes.associateBy { it.id }
+    val prerequisites = edges.filter { it !is Edge.After }.groupBy { it.from }
+    fun resolve(node: NodeId, visited: Set<NodeId>): HostRequirement {
+        val own = byId[node]?.host ?: HostRequirement()
+        if (node in visited) return own
+        val inherited = prerequisites[node].orEmpty().map { resolve(it.to, visited + node) }
+        return HostRequirement(
+            if (own.platform == HostPlatform.Macos || inherited.any { it.platform == HostPlatform.Macos }) HostPlatform.Macos else own.platform,
+            if (own.execution == ExecutionHost.Local || inherited.any { it.execution == ExecutionHost.Local }) ExecutionHost.Local else own.execution,
+        )
+    }
+    return resolve(id, emptySet())
+}

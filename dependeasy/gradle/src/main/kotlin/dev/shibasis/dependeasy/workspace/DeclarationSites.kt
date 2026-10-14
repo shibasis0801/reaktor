@@ -25,6 +25,9 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         arguments = value.arguments.map(::path), inputs = value.inputs.map(::path), outputs = value.outputs.map(::path),
         fileInputs = value.fileInputs.map { it.copy(identity = path(it.identity)) })
     return when (this) {
+        is KernelSpec.DeviceFlow -> copy(flows = flows.map(::path), contract = path(contract))
+        is KernelSpec.KarateSuite -> copy(execution = execution(execution), suites = suites.map(::path))
+        is KernelSpec.K6Suite -> copy(execution = execution(execution), script = path(script))
         is KernelSpec.XcodeHost -> copy(files = files.map(::path))
         is KernelSpec.ReleasePlan -> copy(output = path(output))
         is KernelSpec.DarwinArchive -> copy(ipa = path(ipa), archive = path(archive))

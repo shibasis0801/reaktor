@@ -46,6 +46,7 @@ abstract class ProcessTask : DefaultTask(), KernelSpecOwner {
     }
 
     protected open fun commandArguments(): List<String> = arguments.get()
+    protected open fun executionEnvironment(): Map<String, String> = environment.get()
 
     protected fun executionSpec(command: List<String> = commandArguments()) = ProcessExecution(
         workingDirectory.get().asFile.absolutePath, executable.get(), command,
@@ -58,6 +59,10 @@ abstract class ProcessTask : DefaultTask(), KernelSpecOwner {
 
     @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.Process(executionSpec())
 
-    @TaskAction fun run() = CommandTask.run(execOperations, workingDirectory.get().asFile, executable.get(),
-        commandArguments(), environment.get(), toolVersion.get(), receiptFile.orNull?.asFile)
+    @TaskAction fun run() {
+        outputFiles.files.forEach { it.parentFile.mkdirs() }
+        outputDirectories.files.forEach { it.mkdirs() }
+        CommandTask.run(execOperations, workingDirectory.get().asFile, executable.get(),
+            commandArguments(), executionEnvironment(), toolVersion.get(), receiptFile.orNull?.asFile)
+    }
 }

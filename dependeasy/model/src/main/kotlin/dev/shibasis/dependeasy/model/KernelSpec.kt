@@ -16,6 +16,11 @@ data class ProcessExecution(
 
 @Serializable
 sealed interface KernelSpec {
+    @Serializable data class DeviceFlow(val platform: String, val applicationId: String, val appOutput: String, val flows: List<String>,
+        val contract: String, val environmentKeys: List<String>, val tool: ToolRef, val installApplication: Boolean = false,
+        val uninstallOnSignatureMismatch: Boolean = false, val artifacts: String = "on-failure") : KernelSpec
+    @Serializable data class KarateSuite(val execution: ProcessExecution, val suites: List<String>, val tags: List<String>) : KernelSpec
+    @Serializable data class K6Suite(val execution: ProcessExecution, val script: String) : KernelSpec
     @Serializable data class XcodeHost(val host: AppleHostContract, val checking: Boolean, val files: List<String>) : KernelSpec
     @Serializable data class ReleasePlan(val product: String, val versionName: String, val buildNumber: Int, val output: String) : KernelSpec
     @Serializable data class DarwinArchive(val bundleId: String, val ipa: String, val archive: String, val verification: Boolean) : KernelSpec

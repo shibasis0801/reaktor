@@ -7,6 +7,7 @@ group = Reaktor.build.group
 dependeasy {
     val tooling = buildTooling()
     workspace {
+        dagger()
         val webPackages = verify("webPackageChecks") {
             consumes(verification(Reaktor.Core, Verification.TypeScript), verification(Reaktor.Ui, Verification.TypeScript),
                 verification(Reaktor.GraphPort, Verification.TypeScript), verification(Reaktor.Mcp, Verification.TypeScript),

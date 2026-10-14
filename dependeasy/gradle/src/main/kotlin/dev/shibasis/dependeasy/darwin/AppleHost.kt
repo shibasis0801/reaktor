@@ -43,6 +43,12 @@ class AppleHost internal constructor(private val project: Project, private val d
         dependsOn(project.outputFiles(project.appleXcodeFramework(application)))
     }
 
+    fun applicationFile(build: Build): org.gradle.api.provider.Provider<org.gradle.api.file.RegularFile> =
+        project.layout.file(release.flatMap { it.output }.map { file ->
+            val plan = BuildModelReader.json.decodeFromString<ReleasePlan>(file.asFile.readText())
+            project.file(plan.artifacts.getValue("ios${build.name}App"))
+        })
+
     internal fun install() {
         listOf(generate, verify, release, signing).forEach { project.node(it, OutputKind.GeneratedContract) }
         project.node(frameworks, OutputKind.AppleXcodeFramework)
