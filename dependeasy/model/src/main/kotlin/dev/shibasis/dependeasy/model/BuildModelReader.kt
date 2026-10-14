@@ -117,7 +117,9 @@ object BuildModelReader {
         val node = node(root, id)
         val digest = digest(root.resolve(RelativePath))
         return artifactFiles(root.resolve(GradleProtocol.PlanDirectory)).sortedByDescending(File::lastModified)
-            .map(::readPlan).firstOrNull { it.node == node.id && it.modelDigest == digest }
+            .asSequence().map { json.parseToJsonElement(boundedText(it)).jsonObject }
+            .firstOrNull { it["node"] == json.encodeToJsonElement(NodeId.serializer(), node.id) && it["modelDigest"] == JsonPrimitive(digest) }
+            ?.let { validatePlan(json.decodeFromJsonElement<GradlePlan>(it)) }
     }
 
     fun planPage(plan: GradlePlan, offset: Int = 0, limit: Int = 10): JsonObject {
@@ -174,7 +176,8 @@ object BuildModelReader {
     fun encode(model: BuildModel): String = json.encodeToString(model) + "\n"
     fun encode(node: Node): String = json.encodeToString(node)
     fun decodeNode(text: String): Node = json.decodeFromString(text)
-    fun readPlan(file: File): GradlePlan = json.decodeFromString<GradlePlan>(boundedText(file)).also {
+    fun readPlan(file: File): GradlePlan = validatePlan(json.decodeFromString<GradlePlan>(boundedText(file)))
+    private fun validatePlan(plan: GradlePlan): GradlePlan = plan.also {
         require(it.schema == 1) { "Unsupported Gradle plan schema" }
         require(it.tasks.map { task -> task.id }.distinct().size == it.tasks.size) { "Duplicate planned task" }
         val selected = it.tasks.map { task -> task.id }.toSet()

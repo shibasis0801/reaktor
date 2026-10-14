@@ -28,6 +28,9 @@ class BuildModelReaderTest {
         val plan = GradlePlan(node = app.id, modelDigest = BuildModelReader.digest(file), requestDigest = "request",
             contextDigest = "context", invocation = listOf(":app:jvmTest"), configuredMillis = 321, tasks = tasks)
         root.resolve(GradleProtocol.PlanDirectory + "/plan.json").apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(plan)) }
+        val invalid = plan.copy(tasks = listOf(tasks.last()))
+        root.resolve(GradleProtocol.PlanDirectory + "/stale.json").writeText(BuildModelReader.json.encodeToString(invalid.copy(modelDigest = "outdated")))
+        root.resolve(GradleProtocol.PlanDirectory + "/legacy.json").writeText("""{"schemaVersion":1,"id":"web"}""")
         assertEquals(plan, BuildModelReader.retainedPlan(root, app.id.toString()))
         assertEquals(10, BuildModelReader.planPage(plan).getValue("nextOffset").jsonPrimitive.int)
         val receipt = RunReceipt(run = "observed", build = "fixture", requestedNodes = listOf(node.id), requestedTasks = listOf(":checks"),
@@ -45,6 +48,9 @@ class BuildModelReaderTest {
         assertEquals("unavailable", BuildModelReader.receiptPage(root, app.id.toString(), "absent").getValue("truth").jsonPrimitive.content)
         assertFailsWith<IllegalArgumentException> { BuildModelReader.modelPage(root, limit = 0) }
         assertFailsWith<IllegalArgumentException> { BuildModelReader.planPage(plan, offset = -1) }
+        file.writeText(BuildModelReader.encode(declared))
+        root.resolve(GradleProtocol.PlanDirectory + "/plan.json").writeText(BuildModelReader.json.encodeToString(invalid))
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.retainedPlan(root, app.id.toString()) }
     }
 
     @Test fun `large input collections remain reachable through bounded node pages`() {
