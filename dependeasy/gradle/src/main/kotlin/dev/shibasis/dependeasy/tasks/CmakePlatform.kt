@@ -13,7 +13,6 @@ sealed class CmakePlatform(val variant: String, val generator: String, val taskP
     }
     class Darwin(val sdk: String) : CmakePlatform(sdk, "Ninja", sdk) {
         override fun settings(project: Project): Provider<Map<String, String>> = appleSettings(project, sdk, Versions.SDK.targetDarwin, "iOS")
-        override fun identity(project: Project): Provider<String> = super.identity(project).zip(settings(project)) { tools, values -> "$tools / $sdk ${values.getValue("DEPE_SDK_VERSION")} / ${values.getValue("CMAKE_CXX_COMPILER")}" }
     }
     class Host : CmakePlatform("host", "Ninja", "host") {
         override fun settings(project: Project): Provider<Map<String, String>> = if(project.providers.systemProperty("os.name").get().contains("Mac", true))

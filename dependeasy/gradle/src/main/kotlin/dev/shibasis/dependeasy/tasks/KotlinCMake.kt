@@ -45,6 +45,9 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
         generator.set(platform.generator)
         toolVersion.set(platform.identity(project))
         buildTarget.set(native.resolvedLibraryName)
+        val contractPath = "dependeasy/cmake/${native.resolvedLibraryName}-${platform.variant.replace('/', '-')}"
+        nativeContractFile.set(project.layout.buildDirectory.file("$contractPath.cmake"))
+        nativeModelFile.set(project.layout.buildDirectory.file("$contractPath.json"))
         val hostOpenSsl = if(platform !is CmakePlatform.Android && native.resolvedDependencies.any { it.name.startsWith("openssl-") })
             project.providers.environmentVariable("OPENSSL_ROOT_DIR").orNull?.let { java.io.File(it) }
                 ?: listOf(java.io.File("/opt/homebrew/opt/openssl"), java.io.File("/usr/local/opt/openssl")).firstOrNull { it.isDirectory }

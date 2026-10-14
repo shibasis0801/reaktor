@@ -59,6 +59,22 @@ class NativeInputsTest {
         }
     }
 
+    @Test fun `Apple model metadata does not resolve execution SDK settings`() {
+        directory.resolve("CMakeLists.txt").writeText("project(Fixture LANGUAGES CXX)")
+        val project = ProjectBuilder.builder().withProjectDir(directory).build()
+        DependeasyExtension.create(project)
+        val task = checkNotNull(project.kotlinCmake(CmakePlatform.Darwin("iphoneos"))).get()
+        task.nativeContract.set(project.provider { error("SDK settings require the execution host") })
+        val kernel = dev.shibasis.dependeasy.workspace.kernelRef(task)
+        val spec = kotlin.test.assertIs<dev.shibasis.dependeasy.model.KernelSpec.CMakeBuild>(kernel.spec)
+        assertEquals(dev.shibasis.dependeasy.model.HostPlatform.Macos, task.kernelHost.platform)
+        assertContains(spec.tool.version, "cmake ${ToolchainVersions.Cmake}")
+        assertEquals("build/dependeasy/cmake/${task.buildTarget.get()}-iphoneos.json", spec.nativeContract)
+        assertContains(task.outputs.files.files, task.nativeModelFile.get().asFile)
+        val failure = kotlin.test.assertFails { task.nativeContract.get() }
+        assertEquals("SDK settings require the execution host", failure.cause?.message)
+    }
+
     @Test fun `prefab content is a tracked input with its producer`() {
         val project = ProjectBuilder.builder().withProjectDir(directory).build()
         val header = directory.resolve("prefab/include/fixture.h").apply {
