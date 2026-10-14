@@ -16,13 +16,30 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     private val directory = project.file(directory)
     private val workspace = PnpmWorkspace.get(project)
     private val runtime = JavaScriptRuntime(project)
+    val contract = project.tasks.register<WebContractTask>("${name}WebContract") {
+        group = "code generation"
+        component.set(this@JavaScriptComponent.name)
+        this.directory.set(this@JavaScriptComponent.directory)
+        baseConfiguration.set(runtime.file("tsconfig/base.json"))
+        packageManifests.from(linkedPackageInputs(listOf(this@JavaScriptComponent.directory.resolve("package.json")))
+            .filter { it.parentFile != this@JavaScriptComponent.directory.canonicalFile })
+        mustRunAfter(project.rootProject.tasks.withType(dev.shibasis.dependeasy.workspace.PackageScriptsTask::class.java))
+        contract.set(project.layout.buildDirectory.file("dependeasy/web/${this@JavaScriptComponent.name}.json"))
+        typeScriptConfiguration.set(project.layout.buildDirectory.file("dependeasy/web/${this@JavaScriptComponent.name}.tsconfig.json"))
+    }
+    private val buildScriptTasks = mutableSetOf<String>()
     internal val sourceInputs = mutableListOf<Any>()
     internal val generatedOutputs = linkedSetOf<String>()
     private val commandKernel = JavaScriptCommandKernel(project, name, this.directory, this)
     val install = workspace.install
-    internal val prerequisites = mutableListOf<Any>()
+    internal val prerequisites = mutableListOf<Any>(contract)
     private val kotlinExports by lazy { project.tasks.register("${name}Kotlin") { group = "dependeasy" } }
     fun sources(vararg files: Any) { sourceInputs.addAll(files) }
+    fun typeScriptPaths(vararg paths: Pair<String, List<String>>) { contract.configure { typeScriptPaths.putAll(paths.toMap()) } }
+    fun assets(vararg paths: Pair<String, Any>) {
+        val root = directory
+        contract.configure { assets.putAll(paths.associate { it.first to project.file(it.second).relativeTo(root).invariantSeparatorsPath }) }
+    }
 
     fun build(target: String, vararg projects: String,
               bundle: TaskProvider<out ProcessTask> = vite(),
@@ -37,6 +54,11 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
             result = target(target, node(bundle).after(types, *generators.map { node(it) }.toTypedArray()))
         }
         project.declareArtifactFamily(target, "web")
+        val build = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
+        val path = project.path.trimEnd(':') + ":" + target
+        val wrapper = project.rootDir.resolve("gradlew").relativeTo(directory).invariantSeparatorsPath
+        build.packageAlias(project.rootDir, target, "./gradlew $path")
+        if (bundle.name !in buildScriptTasks) build.packageAlias(directory, "build", "$wrapper $path")
         return project.node(checkNotNull(result), OutputKind.BrowserBundle)
     }
 
@@ -46,6 +68,10 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         kotlinExports.configure { dependsOn(producers) }
         sourceInputs.addAll(producers)
         prerequisites.add(kotlinExports)
+        contract.configure {
+            dependsOn(producers)
+            manifests.from(producers.map { files -> files.elements.map { locations -> locations.map { it.asFile.resolve("package.json") } } })
+        }
     }
 
     fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
@@ -67,7 +93,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         }
 
     fun deploy(config: String = "wrangler.json", vararg producers: Any): TaskProvider<WranglerDeploy> =
-        commandKernel.register(WranglerDeploy::class.java, "deploy", null, "exec", "wrangler", "deploy", "--config", config).also {
+        commandKernel.register(WranglerDeploy::class.java, "deploy", null).also {
             it.configure {
                 val tasks = producers.map { if (it is NodeHandle) checkNotNull(it.task) else it }
                 dependsOn(tasks)
@@ -107,7 +133,9 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
 
     /** Escape hatch with the same toolchain and incremental contract as common commands. */
     fun command(name: String, output: String?, vararg arguments: String): TaskProvider<PackageCommand> =
-        commandKernel.register(PackageCommand::class.java, name, output, *arguments)
+        commandKernel.register(PackageCommand::class.java, name, output, *arguments).also {
+            if (arguments.take(2) == listOf("run", "build")) buildScriptTasks.add(it.name)
+        }
 
     /** Emit a package and make it available to this module's Kotlin/JS compilations. */
     fun library(target: String, config: String, output: String, kotlin: Boolean = false): NodeHandle {

@@ -38,12 +38,21 @@ class KotlinBrowser internal constructor(private val project: Project) {
             compilerOptions.freeCompilerArgs.add("-Xir-per-file")
         }
         val component = DependeasyExtension.get(project).javascript("browser", ".")
+        val root = project.projectDir
+        component.contract.configure {
+            moduleName.set(this@KotlinBrowser.moduleName)
+            resources.set(extension.js().compilations.getByName("main").output.resourcesDir.relativeTo(root).invariantSeparatorsPath)
+        }
         val bundle = component.vite(output)
         bundle.configure { dependsOn(guards) }
         extension.js {
             compilations.getByName("main").binaries.withType(Executable::class.java).configureEach {
                 if (mode == KotlinJsBinaryMode.PRODUCTION) {
                     val sync = linkSyncTask
+                    component.contract.configure {
+                        dependsOn(sync)
+                        kotlinDirectory.set(sync.map { it.destinationDirectory.get().relativeTo(root).invariantSeparatorsPath })
+                    }
                     bundle.configure {
                         dependsOn(sync)
                         sourceFiles.from(sync.map { it.destinationDirectory.get() })

@@ -17,6 +17,8 @@ class BackendPipelineTest {
         val root = directory.resolve("package.json")
         if (!root.exists()) root.writeText("""{"name":"fixture-root","private":true}""")
         directory.resolve("pnpm-workspace.yaml").writeText("packages:\n  - '$pattern'\n")
+        directory.resolve("contract-base.json").writeText("{}")
+        directory.resolve("build.gradle.kts").appendText("\ntasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach { baseConfiguration.set(layout.projectDirectory.file(\"contract-base.json\")) }\n")
         run("pnpmLock")
     }
 
@@ -261,6 +263,7 @@ class BackendPipelineTest {
         val source = directory.resolve("library/src/producer.js").apply {
             parentFile.mkdirs(); writeText("export const value = 42;\n")
         }
+        directory.resolve("library/src/package.json").writeText("""{"name":"fixture-producer","main":"producer.js"}""")
         directory.resolve("library/build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
@@ -268,7 +271,7 @@ class BackendPipelineTest {
             val installation = dependeasy.javascript("producer").install
             val exports = tasks.register<Sync>("exportKotlinLibrary") {
                 dependsOn(installation)
-                from("src/producer.js")
+                from("src/producer.js", "src/package.json")
                 into(layout.buildDirectory.dir("producer"))
             }
             publishOutput(OutputKind.KotlinJsLibrary, exports.map { it.destinationDir }, producer = exports)

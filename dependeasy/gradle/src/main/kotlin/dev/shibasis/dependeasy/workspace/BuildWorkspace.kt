@@ -18,6 +18,24 @@ class BuildWorkspace internal constructor(private val project: Project) {
     private val declaredTasks = linkedSetOf<NodeId>()
     private val taskReferences = linkedSetOf<NodeId>()
     private val pipelines = mutableListOf<BuildPipeline>()
+    private val scriptAliases = linkedMapOf<String, MutableMap<String, String>>()
+    private var scriptGeneration: TaskProvider<PackageScriptsTask>? = null
+
+    internal fun packageAlias(directory: java.io.File, alias: String, command: String) {
+        val file = directory.resolve("package.json")
+        if (!file.isFile) return
+        val path = file.relativeTo(project.rootDir).invariantSeparatorsPath
+        val aliases = scriptAliases.getOrPut(path) { linkedMapOf() }
+        aliases[alias] = command
+        scriptGeneration?.configure {
+            if (path == "package.json") extraAliases.putAll(aliases)
+            else {
+                additionalAliases.put(path, BuildModelReader.json.encodeToString(aliases.toMap()))
+                additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { authoredManifest(it, aliases.keys) })
+                generatedFiles.from(file)
+            }
+        }
+    }
     val graph = project.tasks.register<ExportBuildModelTask>(GradleProtocol.ExportTask) {
         group = "dependeasy"
         description = "Export declared build nodes, source sites and kernels without executing producers"
@@ -58,9 +76,13 @@ class BuildWorkspace internal constructor(private val project: Project) {
     }
 
     fun target(name: String, role: Workspace? = null, configure: BuildTarget.() -> Unit): NodeHandle {
+        return declaredTarget(name, project.declarationSite(), role, configure)
+    }
+
+    internal fun declaredTarget(name: String, site: SourceSite?, role: Workspace? = null, configure: BuildTarget.() -> Unit): NodeHandle {
         require(name.matches(Regex("[a-z][A-Za-z0-9]*"))) { "Use a camelCase target name: $name" }
         require(name !in targets) { "Duplicate build target: $name" }
-        val target = BuildTarget(project, name, project.declarationSite()).apply(configure)
+        val target = BuildTarget(project, name, site).apply(configure)
         require(target.invocation.isEmpty() && target.recipes.isEmpty()) { "Declare external invocations with external()" }
         add(target)
         val task = project.tasks.register(name, WorkspaceTargetTask::class.java) {
@@ -120,12 +142,25 @@ class BuildWorkspace internal constructor(private val project: Project) {
     fun packageScripts() = project.tasks.register<PackageScriptsTask>("generatePackageScripts") {
         group = "code generation"
         val file = project.layout.projectDirectory.file("package.json")
-        val generated = this@BuildWorkspace.targets.filterValues { it.worker != null }.mapValues { ":${it.key}" }
+        val generated = this@BuildWorkspace.targets.filterValues { it.worker != null || it.invocation.isNotEmpty() }.mapValues { ":${it.key}" }
         manifest.set(project.providers.fileContents(file).asText.map { authoredManifest(it, generated.keys) })
         aliases.set(generated)
         targets.set(generated.keys.associateWith { BuildModelReader.encode(this@BuildWorkspace.targets.getValue(it).model()) })
         outputFile.set(file)
+        rootDirectory.set(project.layout.projectDirectory)
+        extraAliases.putAll(scriptAliases["package.json"].orEmpty())
+        targets.get().forEach { (alias, declaration) ->
+            val invocation = BuildModelReader.decodeNode(declaration).invocation
+            if (invocation is Invocation.Command && invocation.commands.isNotEmpty())
+                extraAliases.put(alias, invocation.commands.joinToString(" && ") { tokens -> tokens.joinToString(" ") { shellToken(it) } })
+        }
+        scriptAliases.filterKeys { it != "package.json" }.forEach { (path, aliases) ->
+            additionalAliases.put(path, BuildModelReader.json.encodeToString(aliases.toMap()))
+            additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { authoredManifest(it, aliases.keys) })
+            generatedFiles.from(project.file(path))
+        }
     }.also { generation ->
+        scriptGeneration = generation
         graph.configure { mustRunAfter(generation) }
         PnpmWorkspace.get(project).install.configure { dependsOn(generation) }
     }
@@ -169,6 +204,8 @@ class BuildWorkspace internal constructor(private val project: Project) {
         }
     }
 }
+
+private fun shellToken(value: String) = "'" + value.replace("'", "'\\''") + "'"
 
 internal fun Project.declareArtifactFamily(task: String, family: String) {
     val taskPath = path.trimEnd(':') + ":" + task

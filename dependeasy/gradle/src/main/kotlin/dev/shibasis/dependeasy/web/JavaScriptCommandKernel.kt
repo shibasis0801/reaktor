@@ -36,6 +36,7 @@ internal class JavaScriptCommandKernel(
                 exclude(component.generatedOutputs)
             })
             sourceFiles.from(workspace.directory.resolve("pnpm-lock.yaml"), component.sourceInputs)
+            sourceFiles.from(component.contract.flatMap { it.contract }, component.contract.flatMap { it.typeScriptConfiguration })
             val linked = linkedPackageInputs(listOf(directory.resolve("package.json")))
             sourceFiles.from(linked)
             linked.filter { it.name == "package.json" && it.parentFile != directory }.forEach { manifest ->
@@ -46,6 +47,15 @@ internal class JavaScriptCommandKernel(
             if (fileOutput != null) outputFiles.from(directory.resolve(fileOutput))
             else if (output != null) outputDirectories.from(directory.resolve(output))
             else receiptFile.set(project.layout.buildDirectory.file("dependeasy/checks/$taskName.properties"))
-        }.also { dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project).reference(project, it, null) }
+        }.also {
+            val build = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
+            build.reference(project, it, null)
+            if (type != PackageCommand::class.java) {
+                val wrapper = project.rootDir.resolve("gradlew").relativeTo(directory).invariantSeparatorsPath
+                val command = "${if (wrapper.startsWith(".")) wrapper else "./$wrapper"} ${project.path.trimEnd(':')}:$taskName"
+                build.packageAlias(directory, if (type == TypeScriptCheck::class.java && suffix == "types") "typecheck" else suffix, command)
+                build.packageAlias(project.rootDir, taskName, "./gradlew ${project.path.trimEnd(':')}:$taskName")
+            }
+        }
     }
 }

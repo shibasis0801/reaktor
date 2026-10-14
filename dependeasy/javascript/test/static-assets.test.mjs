@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { staticAssets, reactDevtools } from '../api/vite.ts';
+import { join, resolve } from 'node:path';
+import { staticAssets, reactDevtools, webContract } from '../api/vite.ts';
 
 async function fixture(action) {
   const root = await mkdtemp(join(tmpdir(), 'dependeasy-assets-'));
@@ -61,3 +61,17 @@ test('DevTools is opt-in and adds the declared backend before its connection boo
   assert.equal(tags[0].injectTo, 'head-prepend');
   assert.match(tags[1].children, /port: 8098/);
 });
+
+
+test('web contract resolves Kotlin outputs and assets from its own location', () => fixture(async root => {
+  const file = join(root, 'build', 'web.json');
+  await mkdir(join(root, 'build'));
+  await writeFile(file, JSON.stringify({schema: 1, component: 'site', directory: '..', aliases: {'fixture-kotlin': '../library/main.mjs'}, assets: {'parser.wasm': '../vendor/parser.wasm'}, kotlinDirectory: '../library', resources: '../resources', moduleName: 'fixture-kotlin'}));
+  const contract = webContract(file);
+  assert.equal(contract.aliases['fixture-kotlin'], resolve(root, 'library/main.mjs'));
+  assert.equal(contract.assets['parser.wasm'], resolve(root, 'vendor/parser.wasm'));
+  assert.equal(contract.kotlinDirectory, resolve(root, 'library'));
+  assert.equal(contract.resources, resolve(root, 'resources'));
+  await writeFile(file, JSON.stringify({schema: 99}));
+  assert.throws(() => webContract(file), /Unsupported web contract/);
+}));

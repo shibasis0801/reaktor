@@ -55,6 +55,7 @@ class PnpmWorkspace private constructor(private val project: Project) {
     }
 
     init {
+        install.configure { mustRunAfter(updateLockfile) }
         val model = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
         model.reference(project, install, OutputKind.JavaScriptInstallation)
         model.reference(project, updateLockfile, null)

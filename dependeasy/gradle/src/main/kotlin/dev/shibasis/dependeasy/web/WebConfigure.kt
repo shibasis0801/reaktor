@@ -115,6 +115,15 @@ fun KotlinMultiplatformExtension.web(
             }
             distribution.outputDirectory.set(project.layout.buildDirectory.dir("dist/js/library/$name"))
         }
+        project.tasks.register<WebContractTask>("libraryWebContract") {
+            group = "code generation"
+            component.set("library")
+            directory.set(project.layout.projectDirectory)
+            manifests.from(exports.flatMap { it.destination }.map { it.file("package.json") })
+            baseConfiguration.set(JavaScriptRuntime(project).file("tsconfig/base.json"))
+            contract.set(project.layout.buildDirectory.file("dependeasy/web/library.json"))
+            typeScriptConfiguration.set(project.layout.buildDirectory.file("dependeasy/web/library.tsconfig.json"))
+        }
         project.publishOutput(OutputKind.KotlinJsLibrary, exports.flatMap { it.destination }, producer = exports)
         nodejs {
             testRuns.configureEach {
