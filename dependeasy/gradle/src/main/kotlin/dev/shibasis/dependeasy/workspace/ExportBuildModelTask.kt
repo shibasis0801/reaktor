@@ -26,6 +26,13 @@ abstract class ExportBuildModelTask : DefaultTask() {
     @get:OutputFile abstract val outputFile: RegularFileProperty
     @get:OutputFile abstract val remoteHostsFile: RegularFileProperty
 
+    private fun legacyFiles() = listOf("build-graph.json", "build-layout.json").map { outputFile.get().asFile.parentFile.resolve(it) }
+
+    init {
+        outputs.upToDateWhen { legacyFiles().none { it.exists() } }
+        outputs.doNotCacheIf("Schema-1 exports must be removed") { legacyFiles().any { it.exists() } }
+    }
+
     @TaskAction fun write() {
         val root = workspaceDirectory.get().asFile
         val own = buildName.get()
@@ -66,5 +73,6 @@ abstract class ExportBuildModelTask : DefaultTask() {
             taskFamilies = (taskFamilies.get() + model.nodes.filter { it.id.build == own && it.artifactFamily != null }.associate {
                 (it.id.project.trimEnd(':') + ":" + it.id.name) to requireNotNull(it.artifactFamily) }).toSortedMap())
         remoteHostsFile.get().asFile.apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(routing) + "\n") }
+        legacyFiles().filter { it.exists() }.forEach { require(it.delete()) { "Cannot remove obsolete export: $it" } }
     }
 }

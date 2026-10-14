@@ -75,8 +75,14 @@ class BuildWorkspaceTest {
         """.trimIndent())
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
             .withArguments("exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        val legacy = listOf("build-graph.json", "build-layout.json").map { directory.resolve("build/dependeasy/$it") }
+        fun oldExports() = legacy.forEach { it.parentFile.mkdirs(); it.writeText("""{"schema":1}""") }
+        oldExports()
+        val unrelated = directory.resolve("build/dependeasy/other.json").apply { writeText("keep") }
         val first = run()
         assertNull(first.task(":producer"))
+        assertTrue(legacy.none { it.exists() })
+        assertEquals("keep", unrelated.readText())
         val text = directory.resolve(BuildModelReader.RelativePath).readText()
         val model = BuildModelReader.read(directory)
         val check = model.nodes.single { it.id.name == "checks" }
@@ -87,6 +93,10 @@ class BuildWorkspaceTest {
         assertEquals(ExecutionHost.Local, model.nodes.single { it.id.name == "desktop" }.host.execution)
         assertEquals(listOf(":checks"), (check.invocation as Invocation.Gradle).tasks)
         assertContains(run().output, "Reusing configuration cache")
+        assertEquals(text, directory.resolve(BuildModelReader.RelativePath).readText())
+        oldExports()
+        assertContains(run().output, "Reusing configuration cache")
+        assertTrue(legacy.none { it.exists() })
         assertEquals(text, directory.resolve(BuildModelReader.RelativePath).readText())
         directory.resolve("build.gradle.kts").appendText("\n")
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(directory) }
