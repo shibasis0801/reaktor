@@ -9,6 +9,21 @@ import kotlin.test.*
 class BuildWorkspaceTest {
     @TempDir lateinit var directory: File
 
+    @Test fun `declaration inputs exclude agent worktrees and linked directories`(@TempDir external: File) {
+        external.resolve("build.gradle.kts").writeText("error(\"Unrelated checkout\")")
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"fixture\"")
+        directory.resolve("build.gradle.kts").writeText("plugins { id(\"dev.shibasis.dependeasy.pipeline\") }")
+        val agent = directory.resolve(".claude/worktrees").apply { mkdirs() }
+        java.nio.file.Files.createSymbolicLink(agent.resolve("checkout").toPath(), external.toPath())
+        java.nio.file.Files.createSymbolicLink(directory.resolve("linkedCheckout").toPath(), external.toPath())
+        fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("exportBuildModel", "--configuration-cache").build()
+        run()
+        val model = BuildModelReader.read(directory)
+        assertEquals(setOf("settings.gradle.kts", "build.gradle.kts"), model.declarations.map { it.path }.toSet())
+        assertContains(run().output, "Reusing configuration cache")
+    }
+
     @Test fun `export records owned output producers without running foreign compiler dependencies`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"fixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\":client\", \"library\")")
         listOf("client", "library").forEach { name ->
