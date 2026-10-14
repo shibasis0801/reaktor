@@ -31,7 +31,8 @@ class DiscoveredJvmWorkspace internal constructor(
 
     override suspend fun plan(invocation: TaskInvocation): TaskPlan = prepare(invocation).plan
 
-    fun prepare(invocation: TaskInvocation): PreparedProcessExecution {
+    fun prepare(invocation: TaskInvocation, environment: Map<String, String> = emptyMap(),
+                sensitiveEnvironmentKeys: Set<String> = emptySet()): PreparedProcessExecution {
         val task = tasksById[invocation.taskId]
             ?: throw IllegalArgumentException("Unknown task '${invocation.taskId.value}'")
         task.unavailableReason?.let { reason ->
@@ -48,8 +49,14 @@ class DiscoveredJvmWorkspace internal constructor(
             .mapNotNull { invocation.inputs[it.name] }
             .toSet()
         val argumentSecrets = invocation.arguments.sensitiveArgumentValues()
-        val redactions = binding.redactions + inputSecrets + argumentSecrets
-        val argv = binding.argv + invocation.arguments
+        val resolvedEnvironment = binding.environment + environment
+        val resolvedSensitiveKeys = binding.sensitiveEnvironmentKeys + sensitiveEnvironmentKeys
+        val redactions = binding.redactions + inputSecrets + argumentSecrets + resolvedSensitiveKeys.mapNotNull(resolvedEnvironment::get)
+        val gradle = task.attributes["buildNode"]?.let { encoded ->
+            GradleBuildPlanner().prepare(binding.workingDirectory, binding.argv.first(),
+                dev.shibasis.dependeasy.model.BuildModelReader.decodeNode(encoded), invocation.arguments, definitionSeal, redactions, resolvedEnvironment, resolvedSensitiveKeys)
+        }
+        val argv = gradle?.argv ?: (binding.argv + invocation.arguments)
         val invocationSafety = invocation.arguments.additionalSafety()
         val effectiveSafety = invocationSafety?.let { added ->
             val classification = maxSafety(task.safety.classification, added)
@@ -66,8 +73,8 @@ class DiscoveredJvmWorkspace internal constructor(
             taskId = task.id,
             safety = effectiveSafety,
             invocation = invocation.redacted(task, argumentSecrets),
-            environment = binding.environment,
-            sensitiveEnvironmentKeys = binding.sensitiveEnvironmentKeys,
+            environment = resolvedEnvironment,
+            sensitiveEnvironmentKeys = resolvedSensitiveKeys,
             redactions = redactions,
             timeoutMillis = binding.timeoutMillis,
             nowEpochMillis = clock(),
@@ -76,8 +83,9 @@ class DiscoveredJvmWorkspace internal constructor(
                 task.provenance.source,
                 task.provenance.path.orEmpty(),
                 definitionSeal.digest,
-            ),
-            definitionSeal = definitionSeal,
+            ) + gradle?.facts.orEmpty(),
+            artifacts = gradle?.artifacts.orEmpty(),
+            definitionSeal = gradle?.seal ?: definitionSeal,
         )
         return PreparedProcessExecution(
             plan = request.plan,
@@ -571,7 +579,7 @@ private class TaskCatalogBuilder(
             environments = declaration?.node?.environments.orEmpty().toSet(),
         )
         bindings[taskId] = JvmTaskBinding(
-            argv = listOf(wrapper.absolutePath, gradleTask),
+            argv = listOf(wrapper.absolutePath) + (declaration?.tasks ?: listOf(gradleTask)),
             workingDirectory = root,
             definitionSeal = if (declaration == null) gradleDefinitionSeal else declaredGradleDefinitionSeal,
         )

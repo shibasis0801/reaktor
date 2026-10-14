@@ -33,7 +33,10 @@ object BuildModelReader {
             val owner = directories.getValue(input.build)
             val declaration = owner.resolve(input.path).canonicalFile
             require(declaration.toPath().startsWith(owner.toPath())) { "Declaration escapes its build" }
-            !declaration.isFile || digest(declaration) != input.sha256
+            when (input.kind) {
+                DeclarationInputKind.File -> !declaration.isFile || digest(declaration) != input.sha256
+                DeclarationInputKind.Membership -> BuildDeclarationInputs.membership(declaration) != input.sha256
+            }
         }
         require(stale.isEmpty()) { "Build model is stale: ${stale.size} declaration inputs changed; rerun exportBuildModel" }
         return model
@@ -43,6 +46,29 @@ object BuildModelReader {
     fun encode(model: BuildModel): String = json.encodeToString(model) + "\n"
     fun encode(node: Node): String = json.encodeToString(node)
     fun decodeNode(text: String): Node = json.decodeFromString(text)
+    fun readPlan(file: File): GradlePlan = json.decodeFromString<GradlePlan>(boundedText(file)).also {
+        require(it.schema == 1) { "Unsupported Gradle plan schema" }
+        require(it.tasks.map { task -> task.id }.distinct().size == it.tasks.size) { "Duplicate planned task" }
+        val selected = it.tasks.map { task -> task.id }.toSet()
+        require(it.tasks.all { task -> task.dependencies.all(selected::contains) }) { "Unknown planned dependency" }
+    }
+    fun readReceipt(file: File): RunReceipt = json.decodeFromString<RunReceipt>(boundedText(file)).also {
+        require(it.schema == 1) { "Unsupported Gradle receipt schema" }
+        require(it.finishedAtEpochMillis >= it.startedAtEpochMillis) { "Invalid receipt duration" }
+    }
+    fun readRequest(file: File): GradleRequest = json.decodeFromString<GradleRequest>(boundedText(file)).also {
+        require(it.schema == 1) { "Unsupported Gradle request schema" }
+    }
+    fun readRunResult(file: File): GradleRunResult = json.decodeFromString<GradleRunResult>(boundedText(file)).also {
+        require(it.schema == 1) { "Unsupported Gradle run-result schema" }
+    }
+    private fun boundedText(file: File): String = file.inputStream().use {
+        val bytes = it.readNBytes(MaxBytes + 1)
+        require(bytes.size <= MaxBytes) { "Build artifact exceeds $MaxBytes bytes" }
+        bytes.toString(Charsets.UTF_8)
+    }
+    fun digest(text: String): String = MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
     fun digest(file: File): String {
         val hash = MessageDigest.getInstance("SHA-256")
         file.inputStream().use { stream ->

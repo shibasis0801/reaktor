@@ -7,7 +7,8 @@ import java.io.File
 internal object BuildDeclarations {
     const val Report = BuildModelReader.RelativePath
     const val Layout = "build/dependeasy/remote/hosts.json"
-    data class Target(val node: Node, val task: String, val kind: TaskKind) {
+    data class Target(val node: Node, val tasks: List<String>, val kind: TaskKind) {
+        val task: String get() = tasks.firstOrNull().orEmpty()
         val unavailableReason: String? get() {
             val host = System.getProperty("os.name").lowercase()
             return when {
@@ -24,8 +25,10 @@ internal object BuildDeclarations {
         val model = BuildModelReader.read(root)
         val rootBuild = model.builds.single { it.directory == "." }.name
         return model.nodes.map { node ->
-            val path = node.id.project.trimEnd(':') + ":" + node.id.name
-            Target(node, (if (node.id.build == rootBuild) "" else ":${node.id.build}") + path,
+            val tasks = (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map {
+                (if (node.id.build == rootBuild) "" else ":${node.id.build}") + it
+            }
+            Target(node, tasks,
                 when (node.effect) {
                     Effect.Verify -> TaskKind.Check
                     Effect.Build -> TaskKind.Build

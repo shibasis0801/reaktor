@@ -33,7 +33,8 @@ data class BuildModel(
 
 @Serializable data class Producer(val name: String = "dependeasy", val version: String)
 @Serializable data class BuildIdentity(val name: String, val directory: String)
-@Serializable data class DeclarationInput(val build: String, val path: String, val sha256: String)
+@Serializable data class DeclarationInput(val build: String, val path: String, val sha256: String, val kind: DeclarationInputKind = DeclarationInputKind.File)
+@Serializable enum class DeclarationInputKind { File, Membership }
 @Serializable data class SourceSite(val build: String, val file: String, val line: Int) {
     init { require(line > 0 && file.isNotBlank()) }
 }
@@ -90,13 +91,25 @@ sealed interface Edge {
 
 @Serializable
 data class RunReceipt(
+    val schema: Int = 1,
     val run: String,
-    val node: NodeId,
-    val startedAt: String,
-    val finishedAt: String?,
-    val status: String,
+    val build: String,
+    val requestedNodes: List<NodeId>,
+    val requestedTasks: List<String>,
+    val startedAtEpochMillis: Long,
+    val finishedAtEpochMillis: Long,
+    val status: ReceiptStatus,
     val tasks: List<TaskObservation> = emptyList(),
+    val dryRun: Boolean = false,
+    val modelDigest: String? = null,
+    val modelOmission: String? = null,
+    val failures: List<String> = emptyList(),
+    val requestDigest: String? = null,
+    val operationRunId: String? = null,
 )
-@Serializable data class TaskObservation(val task: String, val outcome: String)
+@Serializable enum class ReceiptStatus { Succeeded, Failed }
+@Serializable enum class TaskOutcome { Executed, UpToDate, FromCache, Skipped, Failed }
+@Serializable data class TaskObservation(val task: NodeId, val outcome: TaskOutcome, val startedAtEpochMillis: Long,
+    val durationMillis: Long, val failures: List<String> = emptyList())
 
 @Serializable data class RemoteHostsContract(val schema: Int = 2, val builds: Map<String, String>, val taskFamilies: Map<String, String>)

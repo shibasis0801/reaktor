@@ -11,13 +11,20 @@ class BuildDeclarationsTest {
     @Test fun declarationsRetainTheirIdentityFactsAndSealedWrapperBinding() = fixture { root ->
         report(root, node("artifacts"), node("checks", Effect.Verify))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        val build = workspace.prepare(TaskInvocation(TaskId("fixture:artifacts")))
+        val build = workspace.prepare(TaskInvocation(TaskId("fixture:artifacts")),
+            environment = mapOf("REAKTOR_ENVIRONMENT" to "fixture-local", "FIXTURE_SECRET" to "private-fixture"),
+            sensitiveEnvironmentKeys = setOf("FIXTURE_SECRET"))
+        assertEquals("fixture-local", root.resolve("build/planning-environment.txt").readText())
+        assertEquals("fixture-local", build.request.environment["REAKTOR_ENVIRONMENT"])
+        assertEquals("private-fixture", build.request.environment["FIXTURE_SECRET"])
+        assertContains(build.request.sensitiveEnvironmentKeys, "FIXTURE_SECRET")
         val check = workspace.prepare(TaskInvocation(TaskId("fixture:checks")))
-        assertEquals(listOf(root.resolve(wrapperName).canonicalPath, ":artifacts"), build.request.argv)
+        assertEquals(root.resolve(wrapperName).canonicalPath, build.request.argv.first())
+        assertEquals(GradleProtocol.RunTask, build.request.argv[1])
         assertEquals(SafetyClass.LocalArtifactWrite, build.plan.safety.classification)
         assertEquals(SafetyClass.ReadOnly, check.plan.safety.classification)
         val definition = assertNotNull(build.request.definitionSeal)
-        assertSame(definition.files, check.request.definitionSeal?.files)
+        assertTrue(definition.files.containsAll(check.request.definitionSeal!!.files.filter { "/contracts/" !in it.path && "/plans/" !in it.path }))
         assertTrue(root.resolve(BuildDeclarations.Report).canonicalFile in definition.files)
         val task = workspace.catalog.tasks.single { it.id == build.plan.taskId }
         assertEquals(TaskKind.Build, task.kind)
@@ -46,8 +53,7 @@ class BuildDeclarationsTest {
         val targets = BuildDeclarations.read(root)
         assertEquals(5, targets.size)
         assertEquals(setOf(TaskKind.Build, TaskKind.Check, TaskKind.Develop, TaskKind.Deploy), targets.map { it.kind }.toSet())
-        assertEquals(listOf(root.resolve(wrapperName).canonicalPath, ":library:checks"),
-            workspace.prepare(TaskInvocation(TaskId("library:checks"))).request.argv)
+        assertEquals(listOf(":library:checks"), BuildDeclarations.read(root).single { it.node.id.build == "library" }.tasks)
         assertNotNull(workspace.catalog.tasks.single { it.id.value == "fixture:external" }.unavailableReason)
         val deploy = workspace.prepare(TaskInvocation(TaskId("fixture:deploy")))
         assertEquals(SafetyClass.ProductionReversibleWrite, deploy.plan.safety.classification)
@@ -85,7 +91,26 @@ class BuildDeclarationsTest {
         val root = Files.createTempDirectory("reaktor-build-declarations").toFile()
         try {
             root.resolve("package.json").writeText("""{"name":"fixture","reaktor":{}}""")
-            root.resolve(wrapperName).writeText("fixture wrapper; never executed\n")
+            root.resolve(wrapperName).apply {
+                writeText("""
+                    #!/usr/bin/env python3
+                    import hashlib,json,os,sys
+                    from pathlib import Path
+                    root=Path(__file__).parent
+                    request=Path(next(arg.split('=',1)[1] for arg in sys.argv if arg.startswith('-Pdependeasy.gradleRequest=')))
+                    value=json.loads(request.read_text())
+                    digest=hashlib.sha256(request.read_bytes()).hexdigest()
+                    node=value['node'];task=':'+node['name']
+                    if node['build']!='fixture':task=':'+node['build']+task
+                    result={'schema':1,'node':node,'modelDigest':value['modelDigest'],'requestDigest':digest,
+                      'contextDigest':'fixture-context','invocation':[task],'configuredMillis':3,
+                      'tasks':[{'id':node,'dependencies':[]}]}
+                    target=root/'build/dependeasy/plans'/(digest+'.json');target.parent.mkdir(parents=True,exist_ok=True)
+                    target.write_text(json.dumps(result))
+                    (root/'build/planning-environment.txt').write_text(os.environ.get('REAKTOR_ENVIRONMENT','absent'))
+                """.trimIndent() + "\n")
+                setExecutable(true)
+            }
             root.resolve("settings.gradle.kts").writeText("rootProject.name = \"fixture\"\nincludeBuild(\"library\")\n")
             root.resolve("build.gradle.kts").writeText("\n")
             root.resolve("library").mkdir()

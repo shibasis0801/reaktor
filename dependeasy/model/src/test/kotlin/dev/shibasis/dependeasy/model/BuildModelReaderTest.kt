@@ -36,4 +36,33 @@ class BuildModelReaderTest {
         assertEquals(3, values.map(NodeId::parse).toSet().size)
         assertEquals(model(), BuildModelReader.decode(BuildModelReader.encode(model())))
     }
+
+    @Test fun `membership and compiled build logic invalidate declared facts`() {
+        root.resolve("build.gradle.kts").writeText("plugins {}")
+        val implementation = root.resolve("dependeasy/gradle/src/main/kotlin/Kernel.kt").apply {
+            parentFile.mkdirs(); writeText("class Kernel")
+        }
+        val rootImplementation = root.resolve("buildSrc/src/main/kotlin/Handles.kt").apply {
+            parentFile.mkdirs(); writeText("class Handles")
+        }
+        fun export() {
+            val files = BuildDeclarationInputs.files(root).map {
+                DeclarationInput("fixture", it.relativeTo(root).invariantSeparatorsPath, BuildModelReader.digest(it))
+            }
+            root.resolve(BuildModelReader.RelativePath).apply {
+                parentFile.mkdirs(); writeText(BuildModelReader.encode(model().copy(declarations = files +
+                    DeclarationInput("fixture", ".", BuildDeclarationInputs.membership(root), DeclarationInputKind.Membership))))
+            }
+        }
+        export()
+        BuildModelReader.read(root)
+        implementation.writeText("class Kernel { fun changed() = true }")
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+        export()
+        rootImplementation.writeText("class Handles { fun changed() = true }")
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+        export()
+        root.resolve("new/build.gradle.kts").apply { parentFile.mkdirs(); writeText("plugins {}") }
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+    }
 }

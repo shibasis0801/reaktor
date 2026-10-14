@@ -42,7 +42,7 @@ abstract class ExportBuildModelTask : DefaultTask() {
         }.sortedBy { it.name }
         val declarations = declarationFiles.files.filter { it.isFile }.map {
             DeclarationInput(own, it.relativeTo(root).invariantSeparatorsPath, BuildModelReader.digest(it))
-        } + included.flatMap { it.declarations }
+        } + DeclarationInput(own, ".", BuildDeclarationInputs.membership(root), DeclarationInputKind.Membership) + included.flatMap { it.declarations }
         val declared = BuildModel(producer = Producer(version = version.get()), builds = builds,
             declarations = declarations.distinct().sortedWith(compareBy({ it.build }, { it.path })),
             nodes = (nodes.get().map(BuildModelReader::decodeNode) + included.flatMap { it.nodes }).groupBy { it.id }.map { (id, copies) ->

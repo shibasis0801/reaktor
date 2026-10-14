@@ -18,7 +18,7 @@ class BuildWorkspace internal constructor(private val project: Project) {
     private val declaredTasks = linkedSetOf<NodeId>()
     private val taskReferences = linkedSetOf<NodeId>()
     private val pipelines = mutableListOf<BuildPipeline>()
-    val graph = project.tasks.register<ExportBuildModelTask>("exportBuildModel") {
+    val graph = project.tasks.register<ExportBuildModelTask>(GradleProtocol.ExportTask) {
         group = "dependeasy"
         description = "Export declared build nodes, source sites and kernels without executing producers"
         buildName.set(project.name)
@@ -36,6 +36,25 @@ class BuildWorkspace internal constructor(private val project: Project) {
         })
         outputFile.set(project.layout.buildDirectory.file(BuildModelReader.RelativePath.removePrefix("build/")))
         remoteHostsFile.set(project.layout.buildDirectory.file("dependeasy/remote/hosts.json"))
+    }
+    init {
+        project.objects.newInstance(GradleReceiptRegistration::class.java).register(project)
+        for ((name, planning) in listOf(GradleProtocol.PlanTask to true, GradleProtocol.RunTask to false)) {
+            val root = project.layout.projectDirectory
+            project.tasks.register<GradleInvocationTask>(name) {
+                group = "dependeasy"
+                rootDirectory.set(root)
+                gradleHome.set(project.gradle.gradleHomeDir)
+                gradleUserHome.set(project.gradle.gradleUserHomeDir)
+                requestFile.set(project.providers.gradleProperty(GradleProtocol.RequestOption).map { root.file(it) })
+                modelFile.set(graph.flatMap { it.outputFile })
+                this.planning.set(planning)
+                maxWorkers.set(project.gradle.startParameter.maxWorkerCount)
+                initScripts.from(project.gradle.startParameter.initScripts)
+                outputDirectory.set(project.layout.buildDirectory.dir(
+                    (if (planning) GradleProtocol.PlanDirectory else GradleProtocol.ResultDirectory).removePrefix("build/")))
+            }
+        }
     }
 
     fun target(name: String, role: Workspace? = null, configure: BuildTarget.() -> Unit): NodeHandle {

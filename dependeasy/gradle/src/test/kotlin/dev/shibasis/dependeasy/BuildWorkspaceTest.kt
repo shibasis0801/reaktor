@@ -20,7 +20,7 @@ class BuildWorkspaceTest {
             .withArguments("exportBuildModel", "--configuration-cache").build()
         run()
         val model = BuildModelReader.read(directory)
-        assertEquals(setOf("settings.gradle.kts", "build.gradle.kts"), model.declarations.map { it.path }.toSet())
+        assertEquals(setOf("settings.gradle.kts", "build.gradle.kts"), model.declarations.filter { it.kind == DeclarationInputKind.File }.map { it.path }.toSet())
         assertContains(run().output, "Reusing configuration cache")
     }
 

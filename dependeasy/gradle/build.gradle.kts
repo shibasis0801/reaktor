@@ -5,10 +5,12 @@ plugins { `kotlin-dsl`; `maven-publish` }
 
 kotlin.sourceSets.main { kotlin.exclude("dev/shibasis/dependeasy/toolchain/BuildLibraries.kt") }
 val fixtureToolchain = configurations.create("fixtureToolchain")
+repositories.maven(BuildLibraries.GradleToolingRepository) { content { includeModule("org.gradle", "gradle-tooling-api") } }
 
 dependencies {
     compileOnly(project(path = projects.toolchain.path, configuration = "runtimeElements"))
     implementation(projects.model)
+    implementation("org.gradle:gradle-tooling-api:${gradle.gradleVersion}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${BuildLibraries.Serialization}")
     implementation("org.yaml:snakeyaml:${BuildLibraries.SnakeYaml}")
     testImplementation(project(path = projects.toolchain.path, configuration = "runtimeElements"))

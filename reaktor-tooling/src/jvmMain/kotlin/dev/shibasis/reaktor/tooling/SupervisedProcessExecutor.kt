@@ -1,5 +1,9 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.dependeasy.model.BuildModelReader
+import dev.shibasis.dependeasy.model.GradleProtocol
+import dev.shibasis.dependeasy.model.GradleTaskProgress
+
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -276,6 +280,8 @@ class SupervisedProcessExecutor(
                 .redirectErrorStream(false)
             processBuilder.environment().clear()
             processBuilder.environment().putAll(request.environment)
+            val gradle = request.plan.artifacts.any { it.kind == "gradle-result" }
+            if (gradle) processBuilder.environment()[GradleProtocol.OperationRunVariable] = queuedRun.id.value
             val process = processBuilder.start()
             processReference.set(process)
             // Supervised runs are non-interactive. Nothing can write to the child's stdin (the
@@ -295,7 +301,7 @@ class SupervisedProcessExecutor(
             val processScope = CoroutineScope(currentCoroutineContext())
             outputJobs = listOf(
                 stream(process.inputStream, OutputChannel.Stdout, redactor, processScope, queuedRun.id, ::emit,
-                    request.captureStdoutChars) { captureFailure.compareAndSet(null, it) },
+                    request.captureStdoutChars, gradleProgress = gradle) { captureFailure.compareAndSet(null, it) },
                 stream(process.errorStream, OutputChannel.Stderr, redactor, processScope, queuedRun.id, ::emit),
             )
 
@@ -308,9 +314,17 @@ class SupervisedProcessExecutor(
             }
             joinReaders(outputJobs)
             captureFailure.get()?.let { error(it) }
+            val artifacts = GradleReceiptEvidence.collect(request, queuedRun.id)
+            check(exitCode != 0 || !request.plan.artifacts.any { it.kind == "gradle-result" && it.required } || artifacts.isNotEmpty()) {
+                "Gradle succeeded without a correlated run receipt"
+            }
+            for (artifact in artifacts) emit { sequenceNumber, timestamp ->
+                RunEvent.ArtifactProduced(queuedRun.id, sequenceNumber, timestamp, artifact)
+            }
             val status = if (exitCode == 0) RunStatus.Succeeded else RunStatus.Failed
             finalRun = running.copy(
                 status = status,
+                artifacts = artifacts,
                 finishedAtEpochMillis = clock(),
                 exitCode = exitCode,
                 failure = if (exitCode == 0) null else RunFailure(
@@ -382,6 +396,7 @@ class SupervisedProcessExecutor(
         runId: RunId,
         emit: suspend (((Long, Long) -> RunEvent)) -> Unit,
         captureLimit: Int? = null,
+        gradleProgress: Boolean = false,
         onCaptureFailure: (String) -> Unit = {},
     ): Job = outputScope.launch(Dispatchers.IO) {
         try {
@@ -407,6 +422,14 @@ class SupervisedProcessExecutor(
                     val suffix = if (truncated) " …[truncated]" else ""
                     val available = (MAX_OUTPUT_LINE_CHARS - suffix.length).coerceAtLeast(0)
                     val text = line.take(available).toString() + suffix
+                    if (gradleProgress && text.startsWith(GradleProtocol.ProgressPrefix)) {
+                        val progress = BuildModelReader.json.decodeFromString<GradleTaskProgress>(text.removePrefix(GradleProtocol.ProgressPrefix))
+                        require(progress.schema == 1)
+                        emit { sequence, timestamp -> RunEvent.Progress(runId, sequence, timestamp,
+                            redactor.redact(progress.task + ": " + (progress.outcome?.name ?: "Started"))) }
+                        line.clear(); truncated = false
+                        return
+                    }
                     emit { sequence, timestamp ->
                         RunEvent.Output(
                             runId,
