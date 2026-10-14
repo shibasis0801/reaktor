@@ -12,13 +12,15 @@ import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.*
 
 class WorkerFleet internal constructor(private val project: Project) {
-    private data class Declaration(val directory: File, val prerequisites: List<NodeHandle>, val site: SourceSite?)
+    private data class Declaration(val directory: File, val prerequisites: List<NodeHandle>, val site: SourceSite?, val release: Boolean)
     private val workers = linkedMapOf<String, Declaration>()
     val prerequisites = mutableListOf<NodeHandle>()
     val environments = mutableListOf<Environment>()
     fun include(vararg names: String) { names.forEach { worker(it, "targets/${it}Server") } }
-    fun worker(name: String, directory: Any, vararg prerequisites: NodeHandle) {
-        require(workers.put(name, Declaration(project.file(directory), prerequisites.toList(), project.declarationSite())) == null) { "Duplicate worker: $name" }
+    var release: NodeHandle? = null
+        private set
+    fun worker(name: String, directory: Any, vararg prerequisites: NodeHandle, release: Boolean = false) {
+        require(workers.put(name, Declaration(project.file(directory), prerequisites.toList(), project.declarationSite(), release)) == null) { "Duplicate worker: $name" }
     }
 
     internal fun register(workspace: BuildWorkspace) {
@@ -78,6 +80,10 @@ class WorkerFleet internal constructor(private val project: Project) {
                 this.environments.addAll(this@WorkerFleet.environments.filter { it.name in configurations })
                 includes(project.node(command)); includes(*prerequisites.toTypedArray(), *declaration.prerequisites.toTypedArray())
                 this.bindings.addAll(bindings)
+            }
+            if (declaration.release) {
+                require(release == null) { "Declare one release web target" }
+                release = nodes.getValue(name)
             }
             val wrapper = project.rootDir.resolve("gradlew").relativeTo(directory).invariantSeparatorsPath
             workspace.packageAlias(directory, "deploy", "$wrapper ${project.path.trimEnd(':')}:${worker.node.name}")

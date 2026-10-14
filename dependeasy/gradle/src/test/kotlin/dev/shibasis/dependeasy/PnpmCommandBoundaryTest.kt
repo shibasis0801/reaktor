@@ -13,6 +13,7 @@ class PnpmCommandBoundaryTest {
         .withPluginClasspath().withArguments(*tasks, "--configuration-cache", "--stacktrace")
 
     @Test fun `component and nested Node commands cannot implicitly rewrite an outdated lock`() {
+        directory.resolve("base.json").writeText(File("javascript/tsconfig/base.json").readText())
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"commandBoundary\"")
         directory.resolve("package.json").writeText("""{"name":"fixture-root","private":true}""")
         directory.resolve("pnpm-workspace.yaml").writeText("packages: ['web', 'other']\n")
@@ -34,6 +35,9 @@ class PnpmCommandBoundaryTest {
                     dependsOn("pnpmInstall")
                     sourceFiles.from("web/package.json")
                 }
+            }
+            tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
+                baseConfiguration.set(layout.projectDirectory.file("base.json"))
             }
         """.trimIndent())
         runner("pnpmLock").build()

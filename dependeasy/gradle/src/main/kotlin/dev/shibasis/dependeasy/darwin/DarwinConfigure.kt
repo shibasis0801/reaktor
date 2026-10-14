@@ -33,6 +33,7 @@ fun KotlinMultiplatformExtension.darwin(configuration: DarwinConfigure.() -> Uni
         native?.takeIf { it.darwin.isConfigured }?.let {
             project.registerDarwinInterop(target, sdk, it, dependencies, build)
         }
+        target.binaries.configureEach { freeCompilerArgs += "-Xoverride-konan-properties=minVersion.ios=${dev.shibasis.dependeasy.Versions.SDK.targetDarwin}" }
         options.targetModifier(target)
         target.compilations.getByName("main").cinterops { options.cinterops(this) }
     }

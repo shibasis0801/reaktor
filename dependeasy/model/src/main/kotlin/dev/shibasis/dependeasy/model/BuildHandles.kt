@@ -17,7 +17,7 @@ enum class Build { Debug, Release }
 enum class Apple { IosArm64, IosSimulatorArm64 }
 enum class Verification { Jvm, JavaScript, TypeScript, InteropTypeScript, InteropHost, WebBridge, Hangar, Window, KernelBoundary, Plugin }
 enum class OutputKind(val family: String, val platform: HostPlatform = HostPlatform.Portable) {
-    KotlinJsLibrary("web"), AppleFramework("apple", HostPlatform.Macos), AndroidApk("android"),
+    GeneratedContract("metadata"), KotlinJsLibrary("web"), AppleXcodeFramework("apple", HostPlatform.Macos), AppleFramework("apple", HostPlatform.Macos), AndroidApk("android"),
     AndroidBundle("android"), AndroidLibrary("android"), AndroidInstrumentedTests("android"),
     JvmDistribution("jvm"), WorkerBundle("web"), VerificationResults("verification"),
     ModuleBuild("verification"), NativeLibrary("apple", HostPlatform.Macos), AppleCompilation("apple", HostPlatform.Macos),
@@ -29,6 +29,7 @@ enum class Runner { Gradle, Pnpm, Fastlane, Browser, K6, Karate }
 @Serializable enum class OptionSource { CommandLine, SystemProperty, UserGradleProperties, RootGradleProperties, Environment, LocalProperties, Default, XcodeRelease }
 
 data class BuildOption<T : Any>(val name: String, val type: OptionType, val default: T,
+    val environment: String? = null,
     val resolutionOrder: List<OptionSource> = listOf(OptionSource.CommandLine, OptionSource.SystemProperty,
         OptionSource.UserGradleProperties, OptionSource.RootGradleProperties, OptionSource.Environment,
         OptionSource.LocalProperties, OptionSource.Default)) : JavaSerializable {
@@ -39,8 +40,8 @@ data class BuildOption<T : Any>(val name: String, val type: OptionType, val defa
     } as T
     companion object {
         fun boolean(name: String, default: Boolean = false) = BuildOption(name, OptionType.Boolean, default)
-        fun string(name: String, default: String = "") = BuildOption(name, OptionType.String, default)
-        fun integer(name: String, default: Int) = BuildOption(name, OptionType.Integer, default)
+        fun string(name: String, default: String = "", environment: String? = null) = BuildOption(name, OptionType.String, default, environment)
+        fun integer(name: String, default: Int, environment: String? = null) = BuildOption(name, OptionType.Integer, default, environment)
     }
 }
 

@@ -16,6 +16,10 @@ data class ProcessExecution(
 
 @Serializable
 sealed interface KernelSpec {
+    @Serializable data class XcodeHost(val host: AppleHostContract, val checking: Boolean, val files: List<String>) : KernelSpec
+    @Serializable data class ReleasePlan(val product: String, val versionName: String, val buildNumber: Int, val output: String) : KernelSpec
+    @Serializable data class DarwinArchive(val bundleId: String, val ipa: String, val archive: String, val verification: Boolean) : KernelSpec
+    @Serializable data class SigningXcconfig(val request: String, val config: String, val exportOptions: String?) : KernelSpec
     @Serializable data class PnpmInstall(val execution: ProcessExecution, val manifests: List<String>) : KernelSpec
     @Serializable data class PnpmLock(val execution: ProcessExecution) : KernelSpec
     @Serializable data class TypeScriptCheck(val execution: ProcessExecution, val projects: List<String>) : KernelSpec

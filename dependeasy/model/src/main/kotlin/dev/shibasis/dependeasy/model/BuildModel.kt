@@ -112,4 +112,9 @@ data class RunReceipt(
 @Serializable data class TaskObservation(val task: NodeId, val outcome: TaskOutcome, val startedAtEpochMillis: Long,
     val durationMillis: Long, val failures: List<String> = emptyList())
 
-@Serializable data class RemoteHostsContract(val schema: Int = 2, val builds: Map<String, String>, val taskFamilies: Map<String, String>)
+@Serializable data class RemoteHostsContract(val schema: Int = 2, val builds: Map<String, String>, val taskFamilies: Map<String, String>,
+    val taskHosts: Map<String, HostRequirement> = emptyMap(),
+    val xcodeEnvironment: List<String> = listOf("SDK_NAME", "CONFIGURATION", "ARCHS", "CURRENT_ARCH", "TARGET_BUILD_DIR", "FRAMEWORKS_FOLDER_PATH",
+        "DEVELOPER_DIR", "PLATFORM_NAME", "BUILT_PRODUCTS_DIR", "UNLOCALIZED_RESOURCES_FOLDER_PATH", "EXPANDED_CODE_SIGN_IDENTITY",
+        "CODE_SIGNING_ALLOWED", "KOTLIN_FRAMEWORK_BUILD_TYPE", "BESTBUDS_GRADLE_ARGS", "ACTION", "DWARF_DSYM_FOLDER_PATH",
+        "ENABLE_USER_SCRIPT_SANDBOXING", "PROJECT_FILE_PATH"))

@@ -23,7 +23,9 @@ object Versions {
         const val ndkVersion = ToolchainVersions.Ndk
         const val CMake = ToolchainVersions.Cmake
 
-        const val targetDarwin = "13"
+        const val targetDarwin = "16.0"
+        const val targetMacos = "13.0"
+        const val Swift = "6.0"
 
         const val Kotlin = ToolchainVersions.Kotlin
         const val SpringBoot = ToolchainVersions.SpringBoot
@@ -84,7 +86,9 @@ object Versions {
 
     // Cloud
     const val Firebase = "33.1.1"
-    const val FirebaseDarwin = "11.0"
+    const val FirebaseDarwin = "11.0.0"
+    const val AppAuthDarwin = "1.7.6"
+    const val GtmAppAuthDarwin = "4.1.1"
 
     // Android Camera
     const val CameraX = "1.5.2"

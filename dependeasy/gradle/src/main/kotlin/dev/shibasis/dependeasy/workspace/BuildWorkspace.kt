@@ -131,7 +131,7 @@ class BuildWorkspace internal constructor(private val project: Project) {
     fun dagger(directory: Any = ".dagger", configure: DaggerModule.() -> Unit = {}) =
         DaggerModule(project, targets).apply(configure).register(directory)
 
-    fun workers(configure: WorkerFleet.() -> Unit) = WorkerFleet(project).apply(configure).register(this)
+    fun workers(configure: WorkerFleet.() -> Unit) = WorkerFleet(project).apply(configure).also { it.register(this) }
 
     fun includedBuild(handle: BuildHandle) {
         graph.configure {

@@ -11,6 +11,8 @@ fun KotlinMultiplatformExtension.appleFramework(
     exports: List<Any> = emptyList(),
     transitiveExport: Boolean = false,
 ) {
+    val flags = listOf("-lsqlite3", "-lc++", "-framework", "CoreLocation")
+    project.extensions.add("dependeasyAppleFramework", AppleFrameworkDeclaration(name, exports, flags))
     val xcframework = project.XCFramework(name)
     val frameworkName = name
     val release = project.tasks.withType(org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFrameworkTask::class.java).matching {
@@ -27,7 +29,7 @@ fun KotlinMultiplatformExtension.appleFramework(
             isStatic = true
             this.transitiveExport = transitiveExport
             exports.forEach { export(if (it is dev.shibasis.dependeasy.model.ModuleHandle) it.coordinate else it) }
-            linkerOpts("-lsqlite3", "-framework", "CoreLocation")
+            linkerOpts(flags)
             binaryOption("bundleId", "${project.group}.${project.name}".replace('-', '.'))
             xcframework.add(this)
         }

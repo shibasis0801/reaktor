@@ -63,6 +63,14 @@ internal fun Project.moduleOutputs() {
             }
         }
     }
+    afterEvaluate {
+        if (extensions.findByType(dev.shibasis.dependeasy.darwin.AppleFrameworkDeclaration::class.java) != null) {
+            val embedded = tasks.register<WorkspaceTargetTask>("completeXcodeFramework") {
+                dependsOn(tasks.named("embedAndSignAppleFrameworkForXcode"))
+            }
+            publishOutput(OutputKind.AppleXcodeFramework, embedded.flatMap { it.completionManifest }, producer = embedded)
+        }
+    }
     pluginManager.withPlugin("com.android.application") {
         extensions.getByType<ApplicationAndroidComponentsExtension>().onVariants { variant ->
             val build = Build.entries.singleOrNull { it.name.equals(variant.buildType, true) }

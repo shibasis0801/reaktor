@@ -62,6 +62,7 @@ abstract class ExportBuildModelTask : DefaultTask() {
         BuildModelReader.decode(text)
         outputFile.get().asFile.apply { parentFile.mkdirs(); writeText(text) }
         val routing = RemoteHostsContract(builds = builds.associate { it.name to it.directory }.toSortedMap(),
+            taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to it.host }.toSortedMap(),
             taskFamilies = (taskFamilies.get() + model.nodes.filter { it.id.build == own && it.artifactFamily != null }.associate {
                 (it.id.project.trimEnd(':') + ":" + it.id.name) to requireNotNull(it.artifactFamily) }).toSortedMap())
         remoteHostsFile.get().asFile.apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(routing) + "\n") }

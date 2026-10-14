@@ -1,5 +1,5 @@
 plugins { id("dev.shibasis.dependeasy.pipeline") }
 
 dependeasy {
-    appleLibrary("ReaktorNotifications", extensionSafe = true)
+    appleLibrary(dev.shibasis.dependeasy.handles.Reaktor.NotificationFramework.name, extensionSafe = true)
 }

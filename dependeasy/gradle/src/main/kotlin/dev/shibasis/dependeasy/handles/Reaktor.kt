@@ -24,6 +24,7 @@ object Reaktor {
     val Notification = ModuleHandle(build, "reaktor-notification")
     val NotificationFcm = ModuleHandle(build, "reaktor-notification-fcm")
     val NotificationService = ModuleHandle(build, "reaktor-notification-service")
+    val NotificationFramework = dev.shibasis.dependeasy.darwin.AppleFrameworkSpec(NotificationService, "ReaktorNotifications")
     val GraphPort = ModuleHandle(build, "reaktor-graph-port")
     val GraphRuntime = ModuleHandle(build, "reaktor-graph-runtime")
     val Graph = ModuleHandle(build, "reaktor-graph")

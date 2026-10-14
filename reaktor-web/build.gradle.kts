@@ -28,7 +28,7 @@ dependeasy {
 
     desktopNative("desktopWebViewNative") {
         target = "ReaktorWebView"
-        define("CMAKE_OSX_DEPLOYMENT_TARGET", "${Versions.SDK.targetDarwin}.0")
+        define("CMAKE_OSX_DEPLOYMENT_TARGET", Versions.SDK.targetMacos)
         define("REAKTOR_WEBVIEW_WINDOWS_SDK", Versions.WebView.WindowsSDK)
         define("REAKTOR_WEBVIEW_COMMIT", Versions.WebView.commit)
         define("REAKTOR_WEBVIEW_SHA256", Versions.WebView.archiveSha256)

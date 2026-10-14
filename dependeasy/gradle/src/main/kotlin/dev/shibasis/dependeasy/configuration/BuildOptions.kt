@@ -22,7 +22,7 @@ fun <T : Any> Project.resolve(option: BuildOption<T>): Provider<ResolvedOption<T
             OptionSource.SystemProperty -> providers.systemProperty("org.gradle.project.${option.name}").map { parsed(it, source) }
             OptionSource.UserGradleProperties -> propertyFile(gradle.gradleUserHomeDir.resolve("gradle.properties").absolutePath, source)
             OptionSource.RootGradleProperties -> propertyFile("gradle.properties", source)
-            OptionSource.Environment -> providers.environmentVariable("ORG_GRADLE_PROJECT_${option.name}").map { parsed(it, source) }
+            OptionSource.Environment -> providers.environmentVariable(option.environment ?: "ORG_GRADLE_PROJECT_${option.name}").map { parsed(it, source) }
             OptionSource.LocalProperties -> propertyFile("local.properties", source)
             OptionSource.Default -> providers.provider { ResolvedOption(option.default,
                 OptionValue(option.name, option.type, option.default.toString(), source)) }

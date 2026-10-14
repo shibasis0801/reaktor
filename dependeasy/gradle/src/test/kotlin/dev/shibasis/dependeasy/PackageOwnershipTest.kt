@@ -13,6 +13,7 @@ class PackageOwnershipTest {
         fun write(path: String, text: String) = directory.resolve(path).apply {
             parentFile.mkdirs(); writeText(text)
         }
+        write("base.json", File("javascript/tsconfig/base.json").readText())
         write("settings.gradle.kts", "rootProject.name = \"ownershipFixture\"")
         write("package.json", """{"name":"ownership-fixture","private":true}""")
         write("pnpm-workspace.yaml", "packages: []\n")
@@ -38,6 +39,9 @@ class PackageOwnershipTest {
                     "exec", "node", "src/commonMain/typescript/check.mjs")
                 val native = cmake("sample") { source = "." }
                 dag("all") { target("allBuilds", node(exported), node(authored), node(native)) }
+            }
+            tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
+                baseConfiguration.set(layout.projectDirectory.file("base.json"))
             }
         """.trimIndent())
         fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
