@@ -160,14 +160,15 @@ private fun SafetyClass.riskRank(): Int = when (this) {
     SafetyClass.ReadOnly -> 0
     SafetyClass.LocalEphemeral -> 1
     SafetyClass.LocalArtifactWrite -> 2
+    SafetyClass.SourceWrite -> 4
     SafetyClass.LiveRead -> 3
-    SafetyClass.DeviceWrite -> 4
-    SafetyClass.NonProductionWrite -> 5
-    SafetyClass.ProductionReversibleWrite -> 6
-    SafetyClass.CredentialWrite -> 7
-    SafetyClass.DataMigration -> 8
-    SafetyClass.Destructive -> 9
-    SafetyClass.UnknownRemoteEffect -> 10
+    SafetyClass.DeviceWrite -> 5
+    SafetyClass.NonProductionWrite -> 6
+    SafetyClass.ProductionReversibleWrite -> 7
+    SafetyClass.CredentialWrite -> 8
+    SafetyClass.DataMigration -> 9
+    SafetyClass.Destructive -> 10
+    SafetyClass.UnknownRemoteEffect -> 11
 }
 
 internal data class JvmTaskBinding(

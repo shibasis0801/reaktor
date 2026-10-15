@@ -152,6 +152,7 @@ enum class SafetyClass(val requiresApproval: Boolean) {
     ReadOnly(false),
     LocalEphemeral(false),
     LocalArtifactWrite(false),
+    SourceWrite(true),
     DeviceWrite(true),
     LiveRead(false),
     NonProductionWrite(true),
