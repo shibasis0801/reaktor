@@ -21,6 +21,7 @@ data class GraphShape(
     val nodes: List<NodeShape>,
     val wires: List<WireShape>,
     val routes: List<RouteShape>,
+    val definitionDigest: String = "",
 )
 
 @Serializable
@@ -34,6 +35,7 @@ data class ScopeShape(
     val container: String? = null,
     val active: Boolean = true,
     val backStack: List<String> = emptyList(),
+    val definitionId: String = "",
 )
 
 @JsExport
@@ -53,6 +55,7 @@ data class NodeShape(
     val ports: List<PortShape> = emptyList(),
     val attributes: Map<String, String> = emptyMap(),
     val operations: List<OperationDescriptor> = emptyList(),
+    val definitionId: String = "",
 )
 
 @Serializable
@@ -66,6 +69,7 @@ data class PortShape(
     val wiring: PortWiring,
     val connections: Int = 0,
     val internal: Boolean = false,
+    val definitionId: String = "",
 )
 
 @Serializable
@@ -75,6 +79,7 @@ data class WireShape(
     val provider: String,
     val providerPort: String,
     val type: String,
+    val definitionId: String = "",
 )
 
 @Serializable

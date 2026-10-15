@@ -30,6 +30,13 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
     }))
     val runSchema = objectSchema(mapOf("runId" to stringSchema("Exact run id")), listOf("runId"))
     val tools = listOf(
+        McpTool("agent_peer_exchange", "A2A 1.0 JSON-RPC projection for bounded native Codex/Claude peer questions and retained task reads. SendMessage consumes native model usage; optional parentRunId binds the eight-question delegation budget.",
+            objectSchema(mapOf("provider" to enumSchema("Native peer", listOf("Codex", "ClaudeCode")), "version" to enumSchema("A2A protocol version", listOf("1.0")),
+                "request" to buildJsonObject { put("type", "object"); put("additionalProperties", true) }), listOf("provider", "version", "request")),
+            readOnly = false, idempotent = false, destructive = true, openWorld = true) { args ->
+            require(args.keys == setOf("provider", "version", "request"))
+            runBlocking { workspace.peer.exchange(dev.shibasis.reaktor.conductor.RuntimeKind.valueOf(args.string("provider")), args.getValue("request").toString(), args.string("version")) }
+        },
         McpTool("agent_workspace_info", "Read this workspace's configured providers and session capabilities.", emptyObjectSchema(), true, true) {
             AgentWorkspaceJson.encodeToJsonElement(AgentWorkspaceInfo.serializer(), workspace.info())
         },
@@ -59,6 +66,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
                 "provider" to enumSchema("Provider configured by this workspace", workspace.info().providers.map { it.name }),
                 "prompt" to stringSchema("Task, at most 100000 characters"),
                 "threadId" to stringSchema("Optional existing Reaktor conversation id"),
+                "parentRunId" to stringSchema("Optional parent run for one-level read-only peer delegation; at most eight children"),
                 "model" to stringSchema("Optional model override; omitted uses provider configuration"),
                 "effort" to stringSchema("Native reasoning effort; omitted preserves provider defaults"),
                 "transport" to enumSchema("Automatic uses interactive Single and batch collaboration", listOf("Automatic", "Interactive", "Batch")),
@@ -81,6 +89,15 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             result(workspace.submit(ConductorJson.decodeFromJsonElement(AgentSubmission.serializer(), it)))
         },
         McpTool("agent_run", "Read bounded output, status, usage and provider identity for one run.", runSchema, true, true) { result(workspace.get(it.string("runId"))) },
+        McpTool("agent_children", "Read bounded peer task summaries with individually reported usage and remaining delegation capacity. Missing usage stays unknown.", runSchema, true, true) {
+            val children = workspace.children(it.string("runId"))
+            buildJsonObject {
+                put("children", tasks(AgentTasksPage(0, children)).jsonObject.getValue("runs"))
+                put("remainingQuestions", (8 - children.size).coerceAtLeast(0))
+                put("usageReported", children.count { child -> child.usage != null })
+                put("usageUnknown", children.count { child -> child.usage == null })
+            }
+        },
         McpTool("agent_entitlements", "Read local entitlement scheduling policies. Remaining subscription quota is unknown; policy is not a provider usage observation.", objectSchema(emptyMap()), true, true) {
             buildJsonObject { putJsonArray("entitlements") { Entitlement.entries.forEach { add(AgentWorkspaceJson.encodeToJsonElement(EntitlementAdmission.serializer(), workspace.entitlements.get(it))) } } }
         },
@@ -160,5 +177,14 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
                 it["before"]?.jsonPrimitive?.int, it.long("limit", 20).toInt()))
         },
     ) + agentEvidenceTools(workspace) + agentWorkflowTools(workspace) + agentContextTools(workspace) + agentMemoryTools(workspace) + extraTools
-    return tools
+    return tools + listOf(McpTool("agent_operation_schema", "Read the exact schema and effect annotations for a workspace operation without invoking it.",
+        objectSchema(mapOf("operation" to stringSchema("Exact native operation name")), listOf("operation")), true, true) { args ->
+        require(args.keys == setOf("operation"))
+        val definition = tools.singleOrNull { it.name == args.string("operation") } ?: error("Unknown workspace operation")
+        buildJsonObject {
+            put("inputSchema", definition.inputSchema); put("description", definition.description)
+            put("readOnly", definition.readOnly); put("idempotent", definition.idempotent)
+            put("destructive", definition.destructive); put("openWorld", definition.openWorld)
+        }
+    })
 }

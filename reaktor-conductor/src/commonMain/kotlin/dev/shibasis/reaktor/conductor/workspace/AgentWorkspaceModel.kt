@@ -93,6 +93,7 @@ data class AgentSubmission(
      * operator sanctioning a set of verifications, not the model gaining a shell.
      */
     val allowedChecks: List<String> = emptyList(),
+    val parentRunId: String? = null,
 )
 
 @Serializable
@@ -136,6 +137,7 @@ data class AgentRunRecord(
     val workflow: WorkflowDefinition? = null,
     val workflowProgress: WorkflowProgress? = null,
     val forkedFrom: String? = null,
+    val parentRunId: String? = null,
     val isolation: AgentIsolation = AgentIsolation.Shared,
     val workingDirectory: String? = null,
     val councilHybrid: Boolean = false,

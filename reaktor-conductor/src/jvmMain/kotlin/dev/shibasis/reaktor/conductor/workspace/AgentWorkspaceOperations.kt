@@ -8,11 +8,12 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 import org.koin.dsl.koinApplication
 
-internal class AgentWorkspaceOperations(workspace: AgentWorkspace, tools: List<McpTool>) : McpMessageHandler, AutoCloseable {
+internal class AgentWorkspaceOperations(private val workspace: AgentWorkspace, tools: List<McpTool>, owner: Graph? = null, projection: Set<String>? = null) : McpMessageHandler, AutoCloseable {
     private val root = workspace.info().workspaceRoot
-    private val dependencies = koinApplication {}
-    private val graph = Graph(dependencyAdapter = KoinDependencyAdapter(dependencies))
-    private val node = ToolNode(graph, tools.map { tool ->
+    var endpointUrl: String? = null
+    private val dependencies = if (owner == null) koinApplication {} else null
+    private val graph = owner ?: Graph(dependencyAdapter = KoinDependencyAdapter(requireNotNull(dependencies)))
+    val node = ToolNode(graph, tools.map { tool ->
         Tool(ToolDefinition(tool.name, tool.description, tool.inputSchema,
             readOnly = tool.readOnly, idempotent = tool.idempotent, destructive = tool.destructive, openWorld = tool.openWorld)) { arguments ->
             val value = tool.execute(arguments)
@@ -24,9 +25,28 @@ internal class AgentWorkspaceOperations(workspace: AgentWorkspace, tools: List<M
         }
     }).also(graph::attach)
     private val adapter = McpAdapter(node, "reaktor-agent-workspace", "1.0.0",
-        "Authenticated local workspace agent control. Source records, provider sessions and retrieved context are distinct. Do not resubmit an uncertain action automatically; inspect the saved run and workspace first.")
+        "Authenticated local workspace agent control. Source records, provider sessions and retrieved context are distinct. Do not resubmit an uncertain action automatically; inspect the saved run and workspace first.", projection = projection)
 
     override fun handle(body: String): JsonElement? = runBlocking { adapter.handle(body) }
+
+    fun peerPost(path: String, body: String, headers: Map<String, List<String>>): LoopbackHttpResponse? {
+        val provider = peerProvider(path) ?: return null
+        return LoopbackHttpResponse(runBlocking { workspace.peer.exchange(provider, body, headers["a2a-version"]?.singleOrNull()) })
+    }
+
+    fun read(path: String, query: Map<String, String>): LoopbackHttpResponse? {
+        if (!path.endsWith("/.well-known/agent-card.json") || query.isNotEmpty()) return null
+        val prefix = path.removeSuffix("/.well-known/agent-card.json")
+        val provider = peerProvider(prefix) ?: return null
+        if (provider !in workspace.info().providers) return null
+        return LoopbackHttpResponse(workspace.peer.card(provider, requireNotNull(endpointUrl) + prefix))
+    }
+
+    private fun peerProvider(path: String) = when (path) {
+        "/a2a/codex" -> dev.shibasis.reaktor.conductor.RuntimeKind.Codex
+        "/a2a/claude" -> dev.shibasis.reaktor.conductor.RuntimeKind.ClaudeCode
+        else -> null
+    }
 
     fun post(path: String, body: String): LoopbackHttpResponse? {
         if (path != "/operations") return null
@@ -48,6 +68,7 @@ internal class AgentWorkspaceOperations(workspace: AgentWorkspace, tools: List<M
     }
 
     override fun close() {
-        try { graph.close() } finally { dependencies.close() }
+        try { adapter.close(); graph.detach(node) }
+        finally { if (dependencies != null) try { graph.close() } finally { dependencies.close() } }
     }
 }

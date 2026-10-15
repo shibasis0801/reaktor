@@ -1,6 +1,10 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+import dev.shibasis.dependeasy.model.BuildModel
+import dev.shibasis.dependeasy.model.BuildModelReader
+import dev.shibasis.dependeasy.model.BuildIdentity
+import dev.shibasis.dependeasy.model.Producer
 
 import dev.shibasis.reaktor.conductor.*
 import java.io.File
@@ -80,6 +84,11 @@ class AgentEvidenceTest {
                 File(directory, "Source.kt").writeText("initial")
             }
             File(root, "settings.gradle.kts").writeText("includeBuild(\"../framework\")\n")
+            root.resolve(BuildModelReader.RelativePath).apply {
+                parentFile.mkdirs()
+                writeText(BuildModelReader.encode(BuildModel(producer = Producer(version = "fixture"),
+                    builds = listOf(BuildIdentity("app", "."), BuildIdentity("framework", "../framework")), nodes = emptyList())))
+            }
             listOf(root, dependency).forEach {
                 git(it, "add", ".")
                 git(it, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "fixture")

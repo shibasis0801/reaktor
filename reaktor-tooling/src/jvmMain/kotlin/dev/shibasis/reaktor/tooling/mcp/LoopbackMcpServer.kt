@@ -45,6 +45,7 @@ class LoopbackMcpServer private constructor(
             mcp: () -> McpMessageHandler,
             bearerToken: String? = null,
             post: (path: String, body: String) -> LoopbackHttpResponse?,
+            postWithHeaders: ((path: String, body: String, headers: Map<String, List<String>>) -> LoopbackHttpResponse?)? = null,
             read: (path: String, query: Map<String, String>) -> LoopbackHttpResponse? = { _, _ -> null },
         ): LoopbackMcpServer {
             require(port in 0..65535) { "Invalid port" }
@@ -57,7 +58,7 @@ class LoopbackMcpServer private constructor(
                 server.executor = executor
                 server.createContext("/") { exchange ->
                     exchange.use { request ->
-                        try { request.respond(mcp, read, post, bearerToken) }
+                        try { request.respond(mcp, read, post, bearerToken, postWithHeaders) }
                         catch (_: Exception) { runCatching { request.send(500, error("Request failed")) } }
                     }
                 }
@@ -74,10 +75,11 @@ class LoopbackMcpServer private constructor(
             read: (String, Map<String, String>) -> LoopbackHttpResponse?,
             post: (String, String) -> LoopbackHttpResponse?,
             bearerToken: String?,
+            postWithHeaders: ((String, String, Map<String, List<String>>) -> LoopbackHttpResponse?)?,
         ) {
             responseHeaders.set("Cache-Control", "no-store")
             responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Mcp-Protocol-Version, Mcp-Session-Id, Authorization")
+            responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Mcp-Protocol-Version, Mcp-Session-Id, Authorization, A2A-Version")
             responseHeaders.set("Access-Control-Expose-Headers", "Mcp-Protocol-Version, Mcp-Session-Id")
             val host = requestHeaders["Host"]?.singleOrNull()
             val origin = requestHeaders["Origin"]?.singleOrNull()
@@ -120,7 +122,8 @@ class LoopbackMcpServer private constructor(
                 requestMethod == "POST" -> {
                     val body = requestBody.readNBytes(1_048_577)
                     if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
-                    val response = post(requestURI.path, body.decodeToString())
+                    val response = postWithHeaders?.invoke(requestURI.path, body.decodeToString(), requestHeaders.entries.associate { it.key.lowercase() to it.value.toList() })
+                        ?: post(requestURI.path, body.decodeToString())
                     send(response?.status ?: 404, response?.body ?: error("Not found"))
                 }
                 else -> send(404, error("Not found"))

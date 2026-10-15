@@ -129,8 +129,8 @@ class AgentBundleTest {
             val original = "[mcp_servers.reaktor]\ncommand = \"operator-owned\"\n"
             tb.codexConfig.writeText(original)
             tb.claudeProjectConfig.writeText("""{"mcpServers":{"reaktor":{"command":"operator-owned"}},"setting":true}""")
-            AgentBundle.install(ta, AgentBundle.launchCommand(a, listOf("java")))
-            val collided = AgentBundle.install(tb, AgentBundle.launchCommand(b, listOf("java")))
+            AgentBundle.install(ta, listOf("java", "workspace", "mcp", "--dir", a.canonicalPath))
+            val collided = AgentBundle.install(tb, listOf("java", "workspace", "mcp", "--dir", b.canonicalPath))
             assertTrue(ta.codexConfig.readText().contains(a.canonicalPath))
             // With one entry there is nothing else of ours to add: a name the operator already owns stays exactly theirs.
             assertEquals(original, tb.codexConfig.readText())

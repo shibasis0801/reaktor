@@ -110,6 +110,7 @@ class ReaktorMcpServer(
     internal suspend fun handleAsync(
         body: String,
         definitions: List<ToolDefinition>,
+        advertisedDefinitions: List<ToolDefinition> = definitions,
         execute: suspend (String, JsonObject) -> ToolResult,
     ): JsonElement? {
         val parsed = runCatching { Json.parseToJsonElement(body) }.getOrNull()
@@ -120,7 +121,7 @@ class ReaktorMcpServer(
             if (method != "tools/list" && method != "tools/call") return handleSingle(message)
             val id = request["id"]?.takeUnless { it is JsonNull } ?: return null
             if (method == "tools/list") return rpcResult(id, buildJsonObject {
-                putJsonArray("tools") { definitions.forEach { add(it.mcpValue()) } }
+                putJsonArray("tools") { advertisedDefinitions.forEach { add(it.mcpValue()) } }
             })
             val params = request["params"] as? JsonObject
             val name = (params?.get("name") as? JsonPrimitive)?.contentOrNull

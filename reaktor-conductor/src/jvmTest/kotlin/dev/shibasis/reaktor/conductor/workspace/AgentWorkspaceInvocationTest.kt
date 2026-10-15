@@ -19,6 +19,32 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.*
 
 class AgentWorkspaceInvocationTest {
+    @Test fun nativeWorkspaceOnlyInjectsTheHostSuppliedMcpCommand() {
+        val root = Files.createTempDirectory("conductor-host-bridge").toRealPath()
+        try {
+            for (command in listOf(null, listOf("fixture-bridge", "--workspace", root.toString()))) {
+                val directory = root.resolve(if (command == null) "standalone" else "hosted")
+                AgentWorkspaceConnection.open(root.toFile(), directory, discover = { ProviderCapability(it) },
+                    harnessMcpCommand = command).use {
+                    val config = directory.resolve("harness-mcp.json")
+                    if (command == null) assertFalse(Files.exists(config)) else {
+                        val server = ConductorJson.parseToJsonElement(Files.readString(config)).jsonObject
+                            .getValue("mcpServers").jsonObject.getValue("reaktor").jsonObject
+                        assertEquals(command.first(), server.getValue("command").jsonPrimitive.content)
+                        assertEquals(command.drop(1), server.getValue("args").jsonArray.map { it.jsonPrimitive.content })
+                    }
+                }
+            }
+        } finally { root.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun remoteTypedClientSelectsCompatibilityBridgeAndQuotesPaths() {
+        val command = AgentRemoteWorkspace(AgentRemoteProfile("m1-worker", "/tmp/workspace's source", "/opt/reaktor tools/agent")).command()
+        assertEquals("m1-worker", command[command.lastIndex - 1])
+        assertEquals("'/opt/reaktor tools/agent' 'mcp' '--plain' '--dir' '/tmp/workspace'\"'\"'s source'", command.last())
+        assertFailsWith<IllegalArgumentException> { AgentRemoteWorkspace(AgentRemoteProfile("-oProxyCommand=bad", "/tmp/root", "/bin/agent")) }
+    }
+
     @Test fun nativeClientWorksWithoutMcpAndSharesDeduplicationWithMcp() = runBlocking {
         fixture { root, directory, workspace, operations, calls ->
             val token = "n".repeat(32)

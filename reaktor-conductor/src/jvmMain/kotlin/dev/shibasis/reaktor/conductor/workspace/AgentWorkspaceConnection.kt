@@ -171,6 +171,9 @@ class AgentWorkspaceConnection private constructor(
                  extraTools: (AgentWorkspace) -> List<dev.shibasis.reaktor.mcp.McpTool> = { emptyList() },
                  workflowCheck: (suspend (String, String, WorkflowStage) -> WorkflowCheckResult)? = null,
                  externalBusy: () -> Boolean = { false },
+                 graphOwner: dev.shibasis.reaktor.graph.core.Graph? = null,
+                 mcpProjection: Set<String>? = null,
+                 bindOperations: (dev.shibasis.reaktor.mcp.ToolNode) -> AutoCloseable = { AutoCloseable {} },
                  // Injectable so a test states a capability instead of probing whichever CLIs the host has.
                  discover: (RuntimeKind) -> ProviderCapability = CliCapabilities::probe,
                  /**
@@ -180,8 +183,11 @@ class AgentWorkspaceConnection private constructor(
                   * surface here meant to be reachable from outside the machine, and it should exist
                   * only while somebody is deliberately letting ChatGPT drive.
                   */
-                 hybridConnector: Boolean = false): AgentWorkspaceConnection {
+                 hybridConnector: Boolean = false,
+                 kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
+                 harnessMcpCommand: List<String>? = null): AgentWorkspaceConnection {
             require(root.isDirectory)
+            require(harnessMcpCommand == null || harnessMcpCommand.isNotEmpty()) { "Harness MCP command needs an executable" }
             privateDirectory(directory)
             val discovery = directory.resolve("connection.json")
             val channel = FileChannel.open(directory.resolve("owner.lock"), CREATE, WRITE)
@@ -203,6 +209,7 @@ class AgentWorkspaceConnection private constructor(
             var workspace: AgentWorkspace? = null
             var server: LoopbackMcpServer? = null
             var operations: AgentWorkspaceOperations? = null
+            var operationBinding: AutoCloseable? = null
             val runtimeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             try {
                 val binding = directory.resolve("workspace-root")
@@ -214,18 +221,20 @@ class AgentWorkspaceConnection private constructor(
                 else Files.deleteIfExists(graphDiscovery)
                 val batch = if (runtimes == null) AgentRuntimes.batch(SupervisedProcessExecutor().also { executor = it }) else emptyMap()
                 val configured = runtimes ?: AgentRuntimes.interactive(runtimeScope)
-                val mcpConfig = if (runtimes == null) directory.resolve("harness-mcp.json").also { path ->
-                    // One server: the door reaches the kernel through graph-connection.json, which is written just above.
-                    val command = AgentBundle.launchCommand(root, null) + listOf("--seat", "spawned")
+                val mcpConfig = if (runtimes == null && harnessMcpCommand != null) directory.resolve("harness-mcp.json").also { path ->
+                    val command = harnessMcpCommand
                     atomicWrite(path, buildJsonObject { putJsonObject("mcpServers") {
                         putJsonObject(AgentBundle.SERVER_NAME) { put("command", command.first()); put("args", JsonArray(command.drop(1).map(::JsonPrimitive))) }
                     } }.toString())
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
-                    harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy).also { workspace = it }
-                val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace))).also { operations = it }
+                    harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead).also { workspace = it }
+                val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace)), graphOwner, mcpProjection).also { operations = it }
+                operationBinding = bindOperations(registry.node)
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
-                val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token, post = registry::post).also { server = it }
+                val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token, post = registry::post,
+                    read = registry::read, postWithHeaders = registry::peerPost).also { server = it }
+                registry.endpointUrl = "http://127.0.0.1:${hostedServer.port()}"
                 val endpoint = AgentEndpoint(workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token, invocationVersion = 1)
                 atomicWrite(discovery, ConductorJson.encodeToString(AgentEndpoint.serializer(), endpoint))
                 // Off unless the caller says otherwise. Opening a workspace must never publish it.
@@ -250,13 +259,13 @@ class AgentWorkspaceConnection private constructor(
                 hostedWorkspace.recoverInBackground()
                 return AgentWorkspaceConnection(endpoint, discovery, true, hybridConnector = connector, closeOwner = {
                     try { connector?.close() }
-                    finally { try { hostedServer.close(); registry.close() }
+                    finally { try { hostedServer.close(); operationBinding?.close(); registry.close() }
                     finally { try { if (background) hostedWorkspace.suspendAndClose() else hostedWorkspace.close() }
                     finally { try { runtimeScope.cancel(); executor?.close(); Files.deleteIfExists(discovery); Files.deleteIfExists(graphDiscovery) }
                     finally { ownerLock.release(); channel.close() } } } }
                 })
             } catch (failure: Throwable) {
-                try { server?.close(); operations?.close(); workspace?.close(); runtimeScope.cancel(); executor?.close() }
+                try { server?.close(); operationBinding?.close(); operations?.close(); workspace?.close(); runtimeScope.cancel(); executor?.close() }
                 finally { ownerLock.release(); channel.close() }
                 throw failure
             }

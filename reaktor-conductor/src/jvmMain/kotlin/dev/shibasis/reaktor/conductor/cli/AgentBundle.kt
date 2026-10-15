@@ -48,20 +48,6 @@ object AgentBundle {
         return if (directory < 0) command else command.filterIndexed { index, _ -> index != directory && index != directory + 1 }
     }
 
-    fun launchCommand(root: File, override: List<String>?): List<String> {
-        if (override != null) {
-            require(override.isNotEmpty()) { "A launch command needs at least an executable" }
-            return override + listOf("workspace", "mcp", "--dir", root.canonicalPath)
-        }
-        val javaName = if (System.getProperty("os.name").lowercase().contains("win")) "java.exe" else "java"
-        val executable = File(System.getProperty("java.home"), "bin/$javaName").also {
-            require(it.canExecute()) { "This runtime has no Java launcher; configure a service launch command" }
-        }.absolutePath
-        val classpath = System.getProperty("java.class.path") ?: error("No classpath to reuse; pass --command")
-        return listOf(executable, "-cp", classpath, "dev.shibasis.reaktor.conductor.cli.ConductorCliKt",
-            "workspace", "mcp", "--dir", root.canonicalPath)
-    }
-
     /**
      * One entry per harness. The kernel used to need a second one; it is a provider behind this
      * server now, so an earlier install's `reaktor-graph` entry is retired here, if it is still ours.

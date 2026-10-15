@@ -20,7 +20,7 @@ fun ThreadDocument.usageSummary(): UsageSummary {
     return summarizeUsage(events.filter { it.author is Author.Agent }.map { it.usage })
 }
 
-internal fun summarizeUsage(turns: List<AgentUsage?>): UsageSummary {
+fun summarizeUsage(turns: List<AgentUsage?>): UsageSummary {
     fun metric(value: (AgentUsage) -> Long?): UsageMetric {
         val values = turns.map { it?.takeIf { usage -> usage.scope != UsageScope.ProviderSessionTotal }?.let(value)?.takeIf { number -> number >= 0 } }
         return UsageMetric(values.filterNotNull().sum(), values.count { it == null })

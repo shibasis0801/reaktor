@@ -32,3 +32,18 @@ data class ContextEntry(
     val text: String,
     val reason: String,
 )
+
+/** Packs complete evidence entries without truncating their identity or JSON envelope. */
+fun ContextPacket.bounded(maxChars: Int): ContextPacket? {
+    require(maxChars >= 0)
+    val unique = entries.distinct()
+    var packet = copy(entries = emptyList(), omittedEntries = omittedEntries + entries.size,
+        partial = false, notices = notices.take(12).map { it.take(240) })
+    fun fits(value: ContextPacket) = ConductorJson.encodeToString(ContextPacket.serializer(), value).length <= maxChars
+    if (!fits(packet)) return null
+    for (entry in unique) {
+        val candidate = packet.copy(entries = packet.entries + entry, omittedEntries = packet.omittedEntries - 1)
+        if (fits(candidate)) packet = candidate
+    }
+    return packet.copy(partial = partial || packet.omittedEntries > omittedEntries || packet.notices != notices)
+}

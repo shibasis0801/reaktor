@@ -18,7 +18,7 @@ internal class AgentRemoteWorkspace(private val profile: AgentRemoteProfile) {
     fun command(): List<String> {
         fun quote(value: String) = "'" + value.replace("'", "'\"'\"'") + "'"
         return listOf("ssh", "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=2",
-            profile.host, listOf(profile.launcher, "mcp", "--dir", profile.workspaceRoot).joinToString(" ", transform = ::quote))
+            profile.host, listOf(profile.launcher, "mcp", "--plain", "--dir", profile.workspaceRoot).joinToString(" ", transform = ::quote))
     }
     fun exchange(message: String): JsonElement? {
         val output = Files.createTempFile("reaktor-remote-", ".out")

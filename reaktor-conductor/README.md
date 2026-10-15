@@ -1,14 +1,14 @@
 # Conductor: conversation and bounded context
 
-Conductor runs native Codex, Claude Code and Gemini harnesses over a Reaktor conversation. The CLI now defaults to one-agent `ask`. Protocols remain explicitly selectable.
+Conductor runs native Codex, Claude Code and Gemini harnesses over a Reaktor conversation. Protocol implementations and native adapters remain open source. Product CLI and MCP composition now live in BestBuds `:kernel`; the product launcher defaults to one-agent `ask`. Protocols remain explicitly selectable.
 
 ## Continue a saved task
 
-From the Reaktor checkout:
+From the BestBuds checkout:
 
 ```sh
-./gradlew :reaktor-conductor:conduct --args='--dry --prompt "Create the first workflow" --thread /tmp/reaktor-thread.json'
-./gradlew :reaktor-conductor:conduct --args='--dry --prompt "Continue with persistence" --thread /tmp/reaktor-thread.json'
+./gradlew :kernel:conduct --args='--dry --prompt "Create the first workflow" --thread /tmp/reaktor-thread.json'
+./gradlew :kernel:conduct --args='--dry --prompt "Continue with persistence" --thread /tmp/reaktor-thread.json'
 ```
 
 `--dry` uses Echo and makes no model request. Remove it and choose your own `--roster` for actual harness use. A file lock excludes another writer; atomic file replacement checkpoints the prompt, provider identity when started, and completed round results. IDs survive a fresh process. Failure events make the CLI exit nonzero. This standalone protocol command reconstructs bounded canonical context; the workspace service below additionally enables qualified native provider continuation.
@@ -19,20 +19,22 @@ Usage summaries report inclusive input, cached input, fresh input (including cac
 
 ## Shared workspace host and desktop Chat
 
+The reusable host accepts an optional `harnessMcpCommand`. BestBuds supplies its private launcher; an open-source-only host runs native providers without that optional bridge and does not emit a command for a closed-source main class. `AgentBackgroundService.connect` and `upgrade` require a host-supplied command; launcher construction lives with the product host.
+
 `AgentWorkspace` is the headless execution owner for graph task protocols and canonical conversation evidence; it has no Compose dependency. `AgentWorkspaceConnection` supplies one process owner per canonical workspace and authenticated operation access for the desktop, CLI and external clients. New local owners advertise native invocation version 1; typed calls and `workspace call` use that path without an MCP envelope. MCP projects the same graph-owned handlers and retained run state. Older owners and SSH connections retain MCP compatibility; an unsupported advertised native version fails explicitly. BestBuds' optional `KernelAgentsNode` projects the workspace into the kernel; the desktop Agent pane consumes that port.
 
-The graph workspace host requires Dependeasy's declared Java runtime, currently Java 25. Generated launchers resolve that toolchain. Conductor's own Java 21 bytecode target does not attest Java 21 compatibility of the transitive graph runtime. `agentDist` produces a jar-based distribution; rebuild it after source changes before installing a new launcher. The [engineering tools plan](../plans/engineering-tools-plan.md) tracks strong-input continuity, unified Hangar ownership and native A2A integration, which remain separate delivery gates.
+The graph workspace host requires Dependeasy's declared Java runtime, currently Java 25. Generated launchers resolve that toolchain. Conductor's own Java 21 bytecode target does not attest Java 21 compatibility of the transitive graph runtime. BestBuds `:kernel:agentDist` produces a jar-based distribution; rebuild it after source changes before installing a new launcher. The [engineering tools plan](../plans/engineering-tools-plan.md) tracks strong-input continuity, unified Hangar ownership and native A2A integration, which remain separate delivery gates.
 
 That describes the current implementation. The [13 September agent-layer plan](experiments/graph-agent-layer-2026-09-13.md) makes the graph the primary owner of tasks, provider sessions, context and operations. The former requirement to build a separate graph-agnostic surface is superseded; existing harnesses and APIs remain useful migration components.
 
 Build the launcher once after source changes, then start the owner:
 
 ```sh
-reaktor-conductor/tools/agent-workspace --build help
-reaktor-conductor/tools/agent-workspace start --dir /Users/ovd/dev/bestbuds
+modules/kernel/tools/agent-workspace --build help
+modules/kernel/tools/agent-workspace start --dir /Users/ovd/dev/bestbuds
 ```
 
-Opening the desktop Chat pane starts or attaches to the same owner. A second `serve` reports the existing owner. The desktop now connects to a macOS launchd service with its own headless kernel; closing the pane or desktop only detaches the UI. `workspace start` and the MCP bridge also start or attach to a supervised owner. Explicit `serve` remains a foreground owner whose exit ends its processes. Existing foreground owners are attached to without interrupting their work; stop them before switching to background supervision. `serve --dry` exposes only Echo for offline qualification.
+Opening the desktop Chat pane attaches to the existing workspace owner or borrows the mounted kernel graph for a new owner. A second `serve` reports the existing owner. CLI and stdio task launches use the supervised background kernel service and survive client exit; a workspace created inside the desktop follows that kernel lifetime. `workspace start` and the MCP bridge also start or attach to a supervised owner. Explicit `serve` remains a foreground owner whose exit ends its processes. Existing foreground owners are attached to without interrupting their work; stop them before switching to background supervision. `serve --dry` exposes only Echo for offline qualification.
 
 The core conversation tools are: `agent_workspace_info`, `agent_runs`, `agent_submit`, `agent_run`, `agent_wait`, `agent_cancel`, and `agent_transcript`. A submission contains `requestId`, `provider` (`Codex`, `ClaudeCode`, or `ChatGptGemini`; `Gemini` is also available to tool clients), `prompt`, optional `threadId`, optional `model`, `allowWrites`, and optional `ContextPacket` as `context`. Retries of the same request ID and identical input return the saved run; changed input fails. A new request ID starts a new turn.
 
@@ -45,8 +47,8 @@ Save this JSON and call `agent-workspace submit --dir <workspace> --request <fil
 Attach external clients over the stdio bridge (no credential copied into configuration):
 
 ```sh
-codex mcp add reaktor-agents -- /Users/ovd/dev/reaktor/reaktor-conductor/tools/agent-workspace mcp --dir /Users/ovd/dev/bestbuds
-claude mcp add --scope local reaktor-agents -- /Users/ovd/dev/reaktor/reaktor-conductor/tools/agent-workspace mcp --dir /Users/ovd/dev/bestbuds
+codex mcp add reaktor-agents -- /Users/ovd/dev/bestbuds/modules/kernel/tools/agent-workspace mcp --dir /Users/ovd/dev/bestbuds
+claude mcp add --scope local reaktor-agents -- /Users/ovd/dev/bestbuds/modules/kernel/tools/agent-workspace mcp --dir /Users/ovd/dev/bestbuds
 ```
 
 Run the Claude registration from the intended project. These are optional installation commands; building this module does not change provider configuration. The bridge requires a running owner and emits JSON-RPC only on stdout. It negotiates MCP 2025-06-18 (used by the qualified Codex CLI) and 2025-11-25. An actual external Codex call to `agent_workspace_info` passed through this bridge. It never starts a short-lived owner that would disappear immediately after a submission.

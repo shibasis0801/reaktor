@@ -22,6 +22,8 @@ The host supplies task policy, workspace context, credentials and any approvals.
 
 MCP's transport-independent protocol remains in `reaktor-mcp`. Tooling wraps HTTP on loopback, validates Host and Origin, bounds request bodies, and owns its server lifetime. Read-tool definitions and redaction remain host responsibilities. Close the returned server and any process executor when their owning session ends.
 
+`LoopbackMcpServer` can also pass request headers to a host-owned POST projection, allowing Conductor to enforce A2A version negotiation behind the same authenticated owner. `SafetyClass.SourceWrite` explicitly represents reviewed source changes; the product host supplies approval and receipt policy. Product CLI and MCP composition live in BestBuds, while these reusable transports and safety contracts stay open source.
+
 ```sh
 ./gradlew :reaktor-tooling:jvmTest
 ./gradlew :reaktor-tooling:verifyToolingBoundary

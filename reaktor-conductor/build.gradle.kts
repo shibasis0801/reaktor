@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import dev.shibasis.dependeasy.common.commonCoroutines
 import dev.shibasis.dependeasy.common.commonSerialization
 import dev.shibasis.dependeasy.verification.classpathProperty
@@ -26,11 +28,6 @@ dependeasy {
             }
         }
     }
-    val main = "dev.shibasis.reaktor.conductor.cli.ConductorCliKt"
-    jvmEntryPoint("conduct", main)
-    jvmLauncher("prepareAgentLauncher", main, "agent-launcher", provider { listOf("workspace") })
-    jvmDistribution("agentDist", main, "reaktor-agent")
-
     kotlin.jvm().testRuns.getByName(KotlinCompilation.TEST_COMPILATION_NAME).executionTask.configure {
         val compilation = kotlin.jvm().compilations.getByName("test")
         inputs.property("serviceTest", providers.environmentVariable("REAKTOR_AGENT_SERVICE_TEST").getOrElse("0"))

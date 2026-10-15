@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonElement
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -39,6 +41,7 @@ class AgentWorkspace(
      * than the quota — [HybridPlanner] never gets write grants either way.
      */
     private val plannerRuntime: RuntimeKind? = null,
+    private val kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
 ) : AutoCloseable {
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
@@ -61,6 +64,17 @@ class AgentWorkspace(
         evidence.recordCandidate(get(runId).threadId, candidate)
     }
     val entitlements = AgentEntitlements(directory.resolve("entitlements"))
+    internal suspend fun readKernel(name: String, arguments: JsonObject): JsonElement =
+        requireNotNull(kernelRead) { "This host has no kernel check reader" }.invoke(name, arguments)
+    internal fun submission(id: String): AgentSubmission = synchronized(lock) {
+        val saved = get(id)
+        val file = directory.resolve("requests/$id.json")
+        require(Files.size(file) <= 1_048_576)
+        ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(file)).also { request ->
+            require(digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request)) == saved.requestFingerprint)
+        }
+    }
+    internal val peer by lazy { AgentA2aWorkspace(this) }
     private fun requireEntitlements(request: AgentSubmission) = entitlements.requireAdmitted(request.workflow?.participants?.map { it.runtime }
         ?: (listOfNotNull(request.provider, request.partner?.provider) + if (request.councilHybrid) listOf(RuntimeKind.ChatGptGemini) else emptyList()))
     private val runtimes = withHybrid(runtimes)
@@ -121,7 +135,11 @@ class AgentWorkspace(
 
     fun drain(enabled: Boolean): Int = synchronized(lock) { draining = enabled; active.size + if (externalBusy()) 1 else 0 }
     fun acceptsWork(): Boolean = synchronized(lock) { !closed && !draining }
-    fun <T> admitOperation(action: () -> T): T = synchronized(lock) { check(acceptsWork()) { "Workspace is draining" }; action() }
+    fun <T> admitOperation(requireIdle: Boolean = false, action: () -> T): T = synchronized(lock) {
+        check(acceptsWork()) { "Workspace is draining" }
+        if (requireIdle) check(active.isEmpty() && !externalBusy()) { "Wait for active workspace work before applying" }
+        action()
+    }
     fun applyWorktree(id: String, patch: String, revision: String): AgentWorktreeReview = synchronized(lock) {
         require(active.isEmpty() && !externalBusy()) { "Wait for active workspace work before applying" }
         worktrees.apply(id, patch, revision)
@@ -297,6 +315,15 @@ class AgentWorkspace(
 
     fun submit(request: AgentSubmission): AgentRunRecord = admit(request)
 
+    fun children(parentRunId: String): List<AgentRunRecord> = synchronized(lock) {
+        get(parentRunId)
+        Files.list(directory.resolve("runs")).use { paths -> paths
+            .filter { it.fileName.toString().matches(Regex("[a-f0-9]{64}\\.json")) }
+            .map { load(it.fileName.toString().removeSuffix(".json")) }
+            .filter { it?.parentRunId == parentRunId }.toList().filterNotNull().sortedBy { it.startedAt }
+        }
+    }
+
     private fun admit(request: AgentSubmission, seed: ProtocolCheckpoint? = null, forkedFrom: String? = null): AgentRunRecord = synchronized(lock) {
         check(!closed) { "Workspace is closed" }
         check(!draining) { "Workspace is draining for a service upgrade" }
@@ -339,6 +366,12 @@ class AgentWorkspace(
             require(it.requestFingerprint == fingerprint) { "Request id already belongs to a different submission" }
             return@synchronized recover(it)
         }
+        request.parentRunId?.let { parentId ->
+            val parent = get(parentId)
+            require(parent.provider != request.provider && !request.allowWrites) { "Peer delegation requires another provider and read-only execution" }
+            require(parent.parentRunId == null) { "Peer questions cannot recursively delegate" }
+            require(children(parentId).size < 8) { "Peer exchange budget exhausted" }
+        }
         val slots = if (request.councilHybrid) 3 else if (request.collaboration == AgentCollaboration.Single) 1 else 2
         requireEntitlements(request)
         require(active.keys.sumOf { if (records[it]?.councilHybrid == true) 3 else if (records[it]?.collaboration == AgentCollaboration.Single) 1 else 2 } + slots <= maxActive) {
@@ -359,6 +392,7 @@ class AgentWorkspace(
             collaboration = request.collaboration, partner = request.partner, councilHybrid = request.councilHybrid,
             workflow = request.workflow, workflowProgress = seed?.workflow, forkedFrom = forkedFrom, isolation = request.isolation,
             context = request.context,
+            parentRunId = request.parentRunId,
             transport = if (useBatch(request)) AgentTransport.Batch else if ((runtimes[request.provider] as? InteractiveAgentRuntime)?.interactive?.usable == true) AgentTransport.Interactive else AgentTransport.Batch,
             effort = request.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none)
         atomicWrite(directory.resolve("requests/$id.json"), ConductorJson.encodeToString(AgentSubmission.serializer(), request))
@@ -591,7 +625,7 @@ class AgentWorkspace(
                         prior.findings.filter { it.resolvedByCandidate == null }.take(10).map { ContextEntry(it.id, "finding", it.title,
                             it.detail.take(600), "Unresolved finding from ${it.participant} on ${it.candidateId}") },
                     omittedEntries = (supplied?.omittedEntries ?: 0) + maxOf(0, (supplied?.entries?.size ?: 0) - 20),
-                    notices = candidate.notices + supplied?.notices.orEmpty()).bounded()
+                    notices = candidate.notices + supplied?.notices.orEmpty()).bounded(22000)
                 update(initial.id, true) { it.copy(context = context, candidateId = candidate.id) }
                 val agentId = AgentId(request.provider.name.lowercase())
                 fun spec(provider: RuntimeKind, model: String?, effort: NativeEffort?) = AgentSpec(
@@ -717,15 +751,6 @@ class AgentWorkspace(
 
     private fun useBatch(request: AgentSubmission): Boolean = batchRuntimes.isNotEmpty() &&
         (request.transport == AgentTransport.Batch || (request.transport == AgentTransport.Automatic && request.collaboration != AgentCollaboration.Single))
-
-    private fun ContextPacket.bounded(): ContextPacket {
-        var packet = copy(notices = notices.take(12).map { it.take(240) },
-            partial = partial || notices.size > 12 || notices.any { it.length > 240 })
-        while (ConductorJson.encodeToString(ContextPacket.serializer(), packet).length > 22000 && packet.entries.isNotEmpty()) {
-            packet = packet.copy(entries = packet.entries.dropLast(1), omittedEntries = packet.omittedEntries + 1, partial = true)
-        }
-        return packet
-    }
 
     private fun update(id: String, persistNow: Boolean, change: (AgentRunRecord) -> AgentRunRecord) = synchronized(lock) {
         val current = records.getValue(id)

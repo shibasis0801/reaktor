@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.conductor.workspace
 
-import dev.shibasis.reaktor.conductor.cli.AgentBundle
 import java.io.File
 import java.nio.channels.FileChannel
 import java.nio.file.Files
@@ -10,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 /** The OS owns the service; every desktop/CLI connection is only a client. */
 object AgentBackgroundService {
-    @Synchronized fun connect(root: File, command: List<String> = command(root), directory: Path = AgentWorkspaceConnection.defaultDirectory(root)): AgentWorkspaceConnection {
+    @Synchronized fun connect(root: File, command: List<String>, directory: Path = AgentWorkspaceConnection.defaultDirectory(root)): AgentWorkspaceConnection {
         runCatching { AgentWorkspaceConnection.open(root, directory, allowStart = false) }.getOrNull()?.let { return it }
         privateDirectory(directory)
         if (!Files.exists(directory.resolve("service.log"))) atomicWrite(directory.resolve("service.log"), "")
@@ -47,11 +46,6 @@ object AgentBackgroundService {
         error("Background service did not publish its endpoint. Inspect ${directory.resolve("service.log")}")
     }
 
-    fun command(root: File): List<String> = AgentBundle.launchCommand(root, null).toMutableList().apply {
-        this[indexOfLast { it == "workspace" } + 1] = "serve"
-        add("--background")
-    }
-
     fun label(root: File) = "build.reaktor.agents.${digest(root.canonicalPath).take(24)}"
 
     fun stop(root: File): String {
@@ -63,7 +57,7 @@ object AgentBackgroundService {
         return "Background service stopped; unfinished tasks remain checkpointed. It can recover them on the next start or macOS login."
     }
 
-    suspend fun upgrade(root: File, command: List<String> = command(root), directory: Path = AgentWorkspaceConnection.defaultDirectory(root)): AgentWorkspaceConnection {
+    suspend fun upgrade(root: File, command: List<String>, directory: Path = AgentWorkspaceConnection.defaultDirectory(root)): AgentWorkspaceConnection {
         val image = snapshotServiceCommand(command, directory)
         val client = AgentWorkspaceConnection.open(root, directory, allowStart = false)
         try {
