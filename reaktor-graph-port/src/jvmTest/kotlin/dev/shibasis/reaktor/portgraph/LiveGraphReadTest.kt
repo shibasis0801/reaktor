@@ -14,6 +14,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -84,6 +85,34 @@ class LiveGraphReadTest {
             pool.shutdownNow()
         }
         return Race(failures.toList(), observed.toList())
+    }
+
+    @Test
+    fun emittingEventsWhileConnectionWaitersCancelNeverThrows() {
+        val node = PortCapabilityImpl()
+        val port = node.registerConsumer<Contract>(Key("waiting"), Type("Contract"))
+        val event = PortEvent.Created(port)
+        val delivered = AtomicInteger()
+        val changes = AtomicInteger()
+        val waiter: (PortEvent) -> Unit = { delivered.incrementAndGet() }
+
+        val race = race(
+            read = { node.emit(event); changes.get() },
+            write = {
+                repeat(10_000) {
+                    node.addPortEventListener(waiter)
+                    node.removePortEventListener(waiter)
+                    changes.incrementAndGet()
+                }
+            },
+        )
+
+        assertTrue(race.overlapped, "events never overlapped waiter cancellation")
+        assertTrue(race.failures.isEmpty(), "event delivery failed: ${race.failures.firstOrNull()}")
+        assertTrue(delivered.get() > 0, "events never reached a waiting listener")
+        val before = delivered.get()
+        node.emit(event)
+        assertEquals(before, delivered.get(), "cancelled listeners must be removed")
     }
 
     @Test
