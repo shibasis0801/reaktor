@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.codegen
 
+import dev.shibasis.dependeasy.model.SourceSetRef
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
@@ -11,8 +12,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 /** Authored Kotlin stays in a template; the kernel embeds declared binary inputs. */
 class KotlinTemplate internal constructor(private val project: Project, private val name: String) {
     var namespace: String = ""
-    var sourceSet: String = "commonMain"
-    var template: Any = "src/$sourceSet/kotlin/$name.kt.template"
+    var sourceSet: SourceSetRef = SourceSetRef.CommonMain
+    var template: Any = "src/${sourceSet.name}/kotlin/$name.kt.template"
     private val assets = linkedMapOf<String, Any>()
     private val producers = mutableListOf<TaskProvider<out Task>>()
 
@@ -31,12 +32,12 @@ class KotlinTemplate internal constructor(private val project: Project, private 
             outputDirectory.set(project.layout.buildDirectory.dir("generated/dependeasy/$name/kotlin"))
         }
         project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
-            project.extensions.getByType<KotlinMultiplatformExtension>().sourceSets.named(sourceSet) {
+            project.extensions.getByType<KotlinMultiplatformExtension>().sourceSets.named(sourceSet.name) {
                 kotlin.srcDir(task.flatMap { it.outputDirectory })
             }
         }
         project.pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-            project.extensions.getByType<KotlinJvmProjectExtension>().sourceSets.named(if (sourceSet == "commonMain") "main" else sourceSet) {
+            project.extensions.getByType<KotlinJvmProjectExtension>().sourceSets.named(if (sourceSet == SourceSetRef.CommonMain) SourceSetRef.Main.name else sourceSet.name) {
                 kotlin.srcDir(task.flatMap { it.outputDirectory })
             }
         }

@@ -1,7 +1,9 @@
 package dev.shibasis.dependeasy.codegen
 
 import dev.shibasis.dependeasy.Versions
-import dev.shibasis.dependeasy.dag.BuildPipeline
+import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.handles.node
+import dev.shibasis.dependeasy.model.NodeKind
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.toolchain.pulumiTool
 import org.gradle.api.Project
@@ -49,9 +51,7 @@ internal fun Project.pulumiSdk(name: String, version: String, server: String) = 
         from(compile.flatMap { it.destinationDirectory })
         from(generate.flatMap { it.outputDirectory }.map { it.dir("resources") })
     }
-    BuildPipeline(this, "${name}Sdk").apply {
-        target("build${prefix}Sdk", node(jar).after(node(compile).after(node(generate))))
-        report()
-    }
+    BuildWorkspace.get(this).aggregate(this, "build${prefix}Sdk", NodeKind.ArtifactSet,
+        listOf(node(jar).after(node(compile).after(node(generate)))))
     jar
 }

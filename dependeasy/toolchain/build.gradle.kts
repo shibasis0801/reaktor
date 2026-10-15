@@ -4,14 +4,7 @@ import dev.shibasis.dependeasy.toolchain.GradlePlugins
 
 plugins { `kotlin-dsl`; `maven-publish` }
 
-kotlin.sourceSets.main {
-    kotlin.srcDir("../gradle/src/main/kotlin")
-    kotlin.include("dev/shibasis/dependeasy/plugins/SettingsPlugin.kt",
-        "dev/shibasis/dependeasy/settings/PluginToolchains.kt",
-        "dev/shibasis/dependeasy/utils/IncludeProjects.kt",
-        "dev/shibasis/dependeasy/toolchain/GradlePlugins.kt",
-        "dev/shibasis/dependeasy/toolchain/BuildLibraries.kt")
-}
+kotlin.sourceSets.main { kotlin.srcDir("../bootstrap/src/main/kotlin") }
 
 dependencies {
     implementation("com.android.tools.build:gradle:${GradlePlugins.Agp}") {

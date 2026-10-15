@@ -1,7 +1,8 @@
 package dev.shibasis.dependeasy.web
 
 import dev.shibasis.dependeasy.tasks.registeredTask
-import dev.shibasis.dependeasy.workspace.declareArtifactFamily
+import dev.shibasis.dependeasy.handles.node
+import dev.shibasis.dependeasy.model.OutputKind
 import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -45,7 +46,7 @@ internal fun Project.kotlinExportCatalog(directory: File): TaskProvider<KotlinEx
         directories.convention(emptyList())
         outputFile.set(root.layout.buildDirectory.file("dependeasy/kotlin-exports.json"))
     } }
-    root.declareArtifactFamily(catalog.name, "metadata")
+    root.node(catalog, OutputKind.GeneratedContract)
     catalog.configure { directories.add(path) }
     return catalog
 }

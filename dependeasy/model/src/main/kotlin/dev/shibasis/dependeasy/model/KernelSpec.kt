@@ -16,6 +16,15 @@ data class ProcessExecution(
 
 @Serializable
 sealed interface KernelSpec {
+    @Serializable data class WorkspaceNode(val id: NodeId, val kind: NodeKind, val run: Run,
+        val includes: List<NodeId>, val consumes: List<NodeId>, val after: List<NodeId>,
+        val requirements: List<OptionRequirement>, val effect: Effect = when (kind) {
+            NodeKind.Verification, NodeKind.External -> Effect.Verify
+            NodeKind.Deploy, NodeKind.Release -> Effect.Deploy
+            else -> Effect.Build
+        }, val runner: Runner = Runner.Gradle, val worker: WorkerRef? = null,
+        val environments: List<Environment> = emptyList(), val bindings: List<ServiceRef> = emptyList()) : KernelSpec
+    @Serializable data class ExternalCommand(val call: ExternalCall, val removal: String) : KernelSpec
     @Serializable data class DeviceFlow(val platform: String, val applicationId: String, val appOutput: String, val flows: List<String>,
         val contract: String, val environmentKeys: List<String>, val tool: ToolRef, val installApplication: Boolean = false,
         val uninstallOnSignatureMismatch: Boolean = false, val artifacts: String = "on-failure") : KernelSpec

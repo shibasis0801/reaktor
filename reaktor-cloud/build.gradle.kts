@@ -29,7 +29,7 @@ dependeasy {
         }
 
     }
-    jvmEntryPoint("cloudToolE2e", "dev.shibasis.reaktor.cloud.CloudToolE2eKt", compilation = "e2e", verify = true)
+    jvmEntryPoint("cloudToolE2e", "dev.shibasis.reaktor.cloud.CloudToolE2eKt", compilation = dev.shibasis.dependeasy.model.CompilationRef("e2e"), verify = true)
     jvmEntryPoint("run", "dev.shibasis.reaktor.cloud.observability.MainKt")
     jvmEntryPoint("verifyWrangler", "dev.shibasis.reaktor.cloud.WranglerVerifyKt") {
         args(option(FrameworkOptions.WranglerDirectory).map { it.ifBlank { rootDir.absolutePath } }.get())

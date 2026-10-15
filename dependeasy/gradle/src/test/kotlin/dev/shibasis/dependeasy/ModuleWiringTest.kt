@@ -48,8 +48,8 @@ class ModuleWiringTest {
             dependeasy {
                 jvm(bytecode = 21)
                 val values = providers.gradleProperty("value").map { listOf(it) }
-                jvmEntryPoint("probe", "fixture.ProbeKt", "probe", verify = true) { arguments(values) }
-                jvmCommand("probeCommand", "fixture.ProbeKt", values, "probe")
+                jvmEntryPoint("probe", "fixture.ProbeKt", dev.shibasis.dependeasy.model.CompilationRef("probe"), verify = true) { arguments(values) }
+                jvmCommand("probeCommand", "fixture.ProbeKt", values, dev.shibasis.dependeasy.model.CompilationRef("probe"))
             }
         """.trimIndent())
         directory.resolve("src/main/kotlin").mkdirs()

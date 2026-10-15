@@ -111,7 +111,7 @@ class WebContractsTest {
                 workspace {
                     workers {
                         environments.addAll(listOf(Environment("dev"), Environment("prod")))
-                        worker("worker", "targets/worker")
+                        worker(dev.shibasis.dependeasy.model.WorkerRef("worker", "targets/worker"))
                     }
                     packageScripts()
                 }
@@ -139,7 +139,7 @@ class WebContractsTest {
             dependeasy.workspace {
                 workers {
                     environments.addAll(listOf(dev.shibasis.dependeasy.model.Environment("dev"), dev.shibasis.dependeasy.model.Environment("prod")))
-                    worker("worker", "targets/worker")
+                    worker(dev.shibasis.dependeasy.model.WorkerRef("worker", "targets/worker"))
                 }
             }
         """.trimIndent())

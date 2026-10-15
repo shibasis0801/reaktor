@@ -10,7 +10,7 @@ class BackendPipelineTest {
     @TempDir lateinit var directory: File
 
     private fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
-        .withPluginClasspath().withArguments(*tasks, "--configuration-cache", "--stacktrace").build()
+        .withPluginClasspath().withArguments(*tasks, "--configuration-cache", "--no-watch-fs", "--stacktrace").build()
 
 
     private fun prepareLock(pattern: String) {
@@ -29,6 +29,7 @@ class BackendPipelineTest {
             writeText("""{"name":"fixture-tool","private":true,"dependencies":{"is-number":"7.0.0"}}""")
         }
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy { javascript("tool", "packages/tool") }
         """.trimIndent())
@@ -53,6 +54,7 @@ class BackendPipelineTest {
             parentFile.mkdirs(); writeText("""{"name":"fixture-first","private":true}""")
         }
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy { javascript("first", "packages/first") }
         """.trimIndent())
@@ -93,9 +95,10 @@ class BackendPipelineTest {
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 val tool = javascript("tool", "packages/tool")
-                dag("workspace") { target("installWorkspace", node(tool.install)) }
+                workspace { val installWorkspace by artifacts { include(node(tool.install)) } }
                 workspace {
-                    target("shipTool") { includes(node(tool.install)); worker = "fixture" }
+                    val shipTool by artifacts { include(node(tool.install)) }
+                    alias("shipTool", shipTool)
                     packageScripts()
                 }
             }
@@ -127,10 +130,11 @@ class BackendPipelineTest {
         directory.resolve("cpp/value.h").writeText("constexpr int value = 1;\n")
         directory.resolve("cpp/sample.cpp").writeText("#include \"value.h\"\nextern \"C\" int sample() { return value; }\n")
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 val library = cmake("sample") { source = "cpp" }
-                dag("native") { target("nativeBuild", node(library)) }
+                workspace { val nativeBuild by artifacts { include(node(library)) } }
             }
         """.trimIndent())
         assertNull(run("help").task(":sampleCMake"))
@@ -160,10 +164,11 @@ class BackendPipelineTest {
         val generated = directory.resolve("vendor/library/generated/package.json")
         generated.writeText("""{"name":"generated-library","version":"1.0.0"}""")
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 val web = javascript("linked", "web")
-                dag("linked") { target("installLinked", node(web.install)) }
+                workspace { val installLinked by artifacts { include(node(web.install)) } }
             }
         """.trimIndent())
         prepareLock("web")
@@ -190,10 +195,11 @@ class BackendPipelineTest {
         val source = directory.resolve("swift/Sources/Sample/Sample.swift")
         source.writeText("public func value() -> Int { 1 }\n")
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 val packageBuild = swiftPackage("sample", "swift").build()
-                dag("swift") { target("swiftBuild", node(packageBuild)) }
+                workspace { val swiftBuild by artifacts { include(node(packageBuild)) } }
             }
         """.trimIndent())
         assertNull(run("help").task(":sampleSwiftBuild"))
@@ -225,11 +231,12 @@ class BackendPipelineTest {
         val source = directory.resolve("web/source.txt")
         source.writeText("first")
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 val web = javascript("sample", "web")
                 web.build("webBuild", bundle = web.script("bundle:assets", "dist"),
-                    typecheck = web.command("types", null, "run", "typecheck"),
+                    typecheck = web.check("typecheck"),
                     generators = listOf(web.script("generate:assets", "public/generated")))
             }
         """.trimIndent())
@@ -237,29 +244,30 @@ class BackendPipelineTest {
         prepareLock("web")
         val initial = run("webBuild")
         assertEquals(TaskOutcome.SUCCESS, initial.task(":sampleGenerateAssets")?.outcome)
-        assertEquals(TaskOutcome.SUCCESS, initial.task(":sampleTypes")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, initial.task(":sampleCheck")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, initial.task(":sampleBundleAssets")?.outcome)
         val repeat = run("webBuild")
         assertContains(repeat.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":sampleGenerateAssets")?.outcome, repeat.output)
-        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":sampleTypes")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":sampleCheck")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":sampleBundleAssets")?.outcome)
         source.writeText("second")
         val changed = run("webBuild")
         assertEquals(TaskOutcome.UP_TO_DATE, changed.task(":pnpmInstall")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, changed.task(":sampleGenerateAssets")?.outcome)
-        assertEquals(TaskOutcome.SUCCESS, changed.task(":sampleTypes")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, changed.task(":sampleCheck")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, changed.task(":sampleBundleAssets")?.outcome)
         assertEquals("second", directory.resolve("web/dist/result.txt").readText())
         assertTrue(directory.resolve("web/public/generated/asset.txt").delete())
         val recovered = run("webBuild")
-        assertEquals(TaskOutcome.SUCCESS, recovered.task(":sampleGenerateAssets")?.outcome)
-        assertEquals(TaskOutcome.UP_TO_DATE, recovered.task(":sampleTypes")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, recovered.task(":sampleGenerateAssets")?.outcome, recovered.output)
+        assertEquals(TaskOutcome.UP_TO_DATE, recovered.task(":sampleCheck")?.outcome)
+        assertEquals("second", directory.resolve("web/public/generated/asset.txt").readText())
         assertEquals("second", directory.resolve("web/dist/result.txt").readText())
     }
     @Test fun `Kotlin exports follow install without creating an installation cycle`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"producerFixture\"\nenableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\")\ninclude(\"library\")")
-        directory.resolve("package.json").writeText("""{"name":"producer-fixture","private":true}""")
+        directory.resolve("package.json").writeText("""{"name":"producer-fixture","private":true,"scripts":{"verify":"node verify.mjs"}}""")
         val source = directory.resolve("library/src/producer.js").apply {
             parentFile.mkdirs(); writeText("export const value = 42;\n")
         }
@@ -267,6 +275,7 @@ class BackendPipelineTest {
         directory.resolve("library/build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val installation = dependeasy.javascript("producer").install
             val exports = tasks.register<Sync>("exportKotlinLibrary") {
@@ -288,18 +297,18 @@ class BackendPipelineTest {
                     kotlinLibraries(kotlinJsLibrary(projects.library))
                     sources("verify.mjs", "library/build/producer/producer.js")
                 }
-                dag("exports") { target("verifyExports", node(consumer.command("verify", null, "exec", "node", "verify.mjs"))) }
+                workspace { val verifyExports by artifacts { include(node(consumer.check("verify"))) } }
             }
         """.trimIndent())
         prepareLock("library")
         val first = run("verifyExports")
         assertEquals(TaskOutcome.SUCCESS, first.task(":library:exportKotlinLibrary")?.outcome)
-        assertEquals(TaskOutcome.SUCCESS, first.task(":consumerVerify")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, first.task(":consumerCheck")?.outcome)
         val repeated = run("verifyExports")
         assertContains(repeated.output, "Reusing configuration cache")
-        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":consumerVerify")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":consumerCheck")?.outcome)
         source.writeText("export const value = 43;\n")
-        assertEquals(TaskOutcome.SUCCESS, run("verifyExports").task(":consumerVerify")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, run("verifyExports").task(":consumerCheck")?.outcome)
     }
 
 }

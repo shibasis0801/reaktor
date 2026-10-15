@@ -2,6 +2,7 @@ package dev.shibasis.dependeasy.model
 
 import java.io.Serializable as JavaSerializable
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 data class BuildHandle(val name: String, val group: String, val module: String = name) : JavaSerializable {
     val coordinate get() = "$group:$module"
@@ -21,10 +22,17 @@ enum class OutputKind(val family: String, val platform: HostPlatform = HostPlatf
     AndroidBundle("android"), AndroidLibrary("android"), AndroidInstrumentedTests("android"),
     JvmDistribution("jvm"), WorkerBundle("web"), VerificationResults("verification"),
     ModuleBuild("verification"), NativeLibrary("apple", HostPlatform.Macos), AppleCompilation("apple", HostPlatform.Macos),
-    BrowserBundle("web"), JavaScriptInstallation("web"), PublishedModules("publication"), WorkspaceCompletion("verification"), DeclaredBuildModel("verification")
+    DatabaseMigration("database"), BrowserBundle("web"), JavaScriptInstallation("web"), PublishedModules("publication"), WorkspaceCompletion("verification"), DeclaredBuildModel("verification")
 }
 enum class Publication { Local, Remote }
-enum class Runner { Gradle, Pnpm, Fastlane, Browser, K6, Karate }
+@Serializable enum class Runner {
+    @SerialName("gradle") Gradle,
+    @SerialName("pnpm") Pnpm,
+    @SerialName("fastlane") Fastlane,
+    @SerialName("browser") Browser,
+    @SerialName("k6") K6,
+    @SerialName("karate") Karate, @SerialName("shell") Shell,
+}
 @Serializable enum class OptionType { Boolean, String, Integer }
 @Serializable enum class OptionSource { CommandLine, SystemProperty, UserGradleProperties, RootGradleProperties, Environment, LocalProperties, Default, XcodeRelease }
 
@@ -49,8 +57,19 @@ data class BuildOption<T : Any>(val name: String, val type: OptionType, val defa
     val source: OptionSource, val file: String? = null)
 @Serializable data class OptionRequirement(val option: OptionValue, val expected: String)
 
-data class Environment(val name: String) : JavaSerializable
-data class LaneHandle(val platform: String, val name: String) : JavaSerializable
+class OptionArgument<T : Any> internal constructor(val option: BuildOption<T>, val value: T)
+fun <T : Any> BuildOption<T>.argument(value: T) = OptionArgument(this, value)
+
+@Serializable @JvmInline value class Environment(val name: String) : JavaSerializable
+@Serializable data class WorkerRef(val name: String, val directory: String) : JavaSerializable
+@Serializable @JvmInline value class ServiceRef(val name: String) : JavaSerializable
+@Serializable data class LaneHandle(val platform: String, val name: String) : JavaSerializable
+@Serializable data class PackageScript(val name: String, val directory: String = ".") : JavaSerializable
+@Serializable sealed interface ExternalCall {
+    @Serializable data class Fastlane(val lane: LaneHandle) : ExternalCall
+    @Serializable data class Package(val script: PackageScript) : ExternalCall
+    @Serializable data class BashScript(val path: String) : ExternalCall
+}
 object IosLane {
     val BuildDebug = LaneHandle("ios", "build_debug")
     val BuildRelease = LaneHandle("ios", "build_release")
@@ -59,3 +78,32 @@ object IosLane {
 object AndroidLane { val BuildRelease = LaneHandle("android", "build_release") }
 
 data class ToolHandle(val name: String, val version: String) : JavaSerializable
+
+@Serializable
+@JvmInline
+value class CompilationRef(val name: String) : JavaSerializable {
+    companion object {
+        val Main = CompilationRef("main")
+        val Test = CompilationRef("test")
+    }
+}
+
+@Serializable
+@JvmInline
+value class SourceSetRef(val name: String) : JavaSerializable {
+    companion object {
+        val Main = SourceSetRef("main")
+        val CommonMain = SourceSetRef("commonMain")
+        val Test = SourceSetRef("test")
+    }
+}
+
+@Serializable
+@JvmInline
+value class ConfigurationRef(val name: String) : JavaSerializable {
+    companion object {
+        val JvmRuntimeClasspath = ConfigurationRef("jvmRuntimeClasspath")
+        val RuntimeClasspath = ConfigurationRef("runtimeClasspath")
+        val JavaScriptCompileClasspath = ConfigurationRef("jsCompileClasspath")
+    }
+}

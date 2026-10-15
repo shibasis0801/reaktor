@@ -7,9 +7,24 @@ import dev.shibasis.dependeasy.model.SourceSite
 import org.gradle.api.Project
 import org.gradle.api.Task
 
-internal fun Project.declarationSite(): SourceSite? = Throwable().stackTrace
-    .firstOrNull { it.fileName?.endsWith(".gradle.kts") == true && it.lineNumber > 0 }
-    ?.let { SourceSite(rootProject.name, buildFile.relativeTo(rootDir).invariantSeparatorsPath, it.lineNumber) }
+internal fun Project.declarationSite(): SourceSite? {
+    val frames = Throwable().stackTrace
+    frames.firstOrNull { it.fileName?.endsWith(".gradle.kts") == true && it.lineNumber > 0 }?.let {
+        return SourceSite(rootProject.name, buildFile.relativeTo(rootDir).invariantSeparatorsPath, it.lineNumber)
+    }
+    val owners = listOf(rootDir) + gradle.includedBuilds.map { it.projectDir }
+    return frames.firstNotNullOfOrNull { frame ->
+        if (frame.lineNumber <= 0 || frame.fileName?.endsWith(".kt") != true ||
+            frame.className.startsWith("dev.shibasis.dependeasy.workspace.")) null
+        else owners.firstNotNullOfOrNull { owner ->
+            val source = owner.resolve("dependeasy/gradle/src/main/kotlin/" +
+                frame.className.substringBeforeLast('.').replace('.', '/') + "/" + frame.fileName)
+            source.takeIf { it.isFile }?.let {
+                SourceSite(owner.name, it.relativeTo(owner).invariantSeparatorsPath, frame.lineNumber)
+            }
+        }
+    }
+}
 
 internal fun kernelRef(task: Task): KernelRef {
     val type = generateSequence<Class<*>>(task.javaClass) { it.superclass }
@@ -25,6 +40,8 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         arguments = value.arguments.map(::path), inputs = value.inputs.map(::path), outputs = value.outputs.map(::path),
         fileInputs = value.fileInputs.map { it.copy(identity = path(it.identity)) })
     return when (this) {
+        is KernelSpec.WorkspaceNode -> this
+        is KernelSpec.ExternalCommand -> this
         is KernelSpec.DeviceFlow -> copy(flows = flows.map(::path), contract = path(contract))
         is KernelSpec.KarateSuite -> copy(execution = execution(execution), suites = suites.map(::path))
         is KernelSpec.K6Suite -> copy(execution = execution(execution), script = path(script))
@@ -53,9 +70,11 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
 internal fun kernelRef(project: Project, type: Class<*>): KernelRef {
     val sourceOwner = (listOf(project.rootDir) + project.gradle.includedBuilds.map { it.projectDir })
         .firstOrNull { it.resolve("dependeasy/gradle/src/main/kotlin").isDirectory }
-    val source = sourceOwner?.resolve("dependeasy/gradle/src/main/kotlin/" + type.name.replace('.', '/') + ".kt")
+    val source = sourceOwner?.let { owner -> listOf("gradle", "model").map {
+        owner.resolve("dependeasy/$it/src/main/kotlin/" + type.name.replace('.', '/') + ".kt")
+    }.firstOrNull { it.isFile } }
     val line = source?.takeIf { it.isFile }?.readLines()?.indexOfFirst {
-        Regex("\\bclass\\s+" + Regex.escape(type.simpleName) + "\\b").containsMatchIn(it)
+        Regex("\\b(?:class|object)\\s+" + Regex.escape(type.simpleName) + "\\b").containsMatchIn(it)
     }?.takeIf { it >= 0 }?.plus(1)
     return KernelRef(type.name, if (sourceOwner != null && source != null && line != null) SourceSite(sourceOwner.name,
         source.relativeTo(sourceOwner).invariantSeparatorsPath, line) else null)

@@ -1,10 +1,12 @@
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.Versions
 
 plugins { id("dev.shibasis.dependeasy.library") }
 
 dependeasy {
     val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
-    dag("bindings") { target("generateBindings", node(bindings)) }
+    workspace { val generateBindings by artifacts { include(node(bindings)) } }
 
     module("dev.shibasis.reaktor.cloudflare") {
         common {
@@ -42,7 +44,7 @@ dependeasy {
     }
 
 
-    dependencyBoundary("verifyCloudflareRuntimeBoundary", "jsCompileClasspath") {
+    dependencyBoundary("verifyCloudflareRuntimeBoundary", ConfigurationRef.JavaScriptCompileClasspath) {
         moduleSuffix.set("-js")
         forbidGroupPrefixes("androidx.compose", "org.jetbrains.compose", "org.jetbrains.skiko", "ai.bestbuds")
         forbidModules("reaktor-auth", "reaktor-graph", "reaktor-ui", "engine", "kernel")

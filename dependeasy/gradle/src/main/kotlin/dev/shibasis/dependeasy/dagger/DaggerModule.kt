@@ -14,13 +14,12 @@ import dev.shibasis.dependeasy.model.BuildOption
 import dev.shibasis.dependeasy.model.OutputKind
 
 class DaggerModule internal constructor(private val project: Project, private val targets: Map<String, BuildTarget>) {
-    var className = project.name.replaceFirstChar(Char::uppercaseChar)
     var browserImage = "mcr.microsoft.com/playwright:v1.64.0-noble"
-    val gradleProperties = linkedMapOf<String, String>()
+    private val gradleProperties = linkedMapOf<String, String>()
 
     fun <T : Any> option(option: BuildOption<T>, value: T) { gradleProperties[option.name] = value.toString() }
 
-    internal fun register(directory: Any): NodeHandle {
+    internal fun register(): NodeHandle {
         dev.shibasis.dependeasy.toolchain.VerificationTools.get(project).dagger
         fun generation(name: String, output: Any) = project.tasks.register<GenerateDaggerTask>(name) {
             group = "code generation"
@@ -88,10 +87,7 @@ class DaggerModule internal constructor(private val project: Project, private va
             expected.set(reference.flatMap { it.outputFile })
             actual.set(generated.flatMap { it.outputFile })
         }
-        dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project).graph.configure {
-            taskFamilies.put(":" + generated.name, "metadata")
-            taskFamilies.put(":" + verification.name, "metadata")
-        }
+        project.node(generated, OutputKind.GeneratedContract)
         return project.node(verification, OutputKind.VerificationResults)
     }
 }

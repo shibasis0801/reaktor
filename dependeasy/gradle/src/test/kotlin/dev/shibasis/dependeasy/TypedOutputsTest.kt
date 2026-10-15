@@ -39,7 +39,7 @@ class TypedOutputsTest {
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             group = "fixture"
-            dependeasy.workspace { verify("checks", role = Workspace.Verify) }
+            dependeasy.workspace { val checks by verify(role = Workspace.Verify) }
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.handles.*
@@ -47,13 +47,13 @@ class TypedOutputsTest {
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy.workspace {
                 val other = BuildHandle("other", "fixture")
-                includedBuild(other)
-                verify("checks") {
-                    consumes(verification(projects.library, Verification.TypeScript))
-                    includes(other, Workspace.Verify)
+                val framework = include(other)
+                val checks by verify {
+                    include(verification(projects.library, Verification.TypeScript))
+                    include(framework.verify)
                 }
-                val apple = artifacts("apple") { consumes(appleFramework(projects.library, Apple.IosArm64, Build.Debug)) }
-                artifacts("appleIncluded") { includes(apple) }
+                val apple by artifacts { outputs(appleFramework(projects.library, Apple.IosArm64, Build.Debug)) }
+                val appleIncluded by artifacts { include(apple) }
             }
         """.trimIndent())
     }

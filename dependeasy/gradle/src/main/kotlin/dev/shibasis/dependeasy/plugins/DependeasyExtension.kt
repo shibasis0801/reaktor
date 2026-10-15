@@ -4,7 +4,6 @@ import dev.shibasis.dependeasy.native.AndroidNativeConfiguration
 import dev.shibasis.dependeasy.native.DarwinNativeConfiguration
 import dev.shibasis.dependeasy.native.NativeLibrary
 import dev.shibasis.dependeasy.native.CMakeBuild
-import dev.shibasis.dependeasy.dag.BuildPipeline
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.web.KotlinBrowser
 import dev.shibasis.dependeasy.web.kotlinNodeTests
@@ -20,10 +19,11 @@ import dev.shibasis.dependeasy.codegen.sourceRevision
 import dev.shibasis.dependeasy.codegen.pulumiSdk
 import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.process.nodeScript
-import dev.shibasis.dependeasy.process.command
 import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.handles.moduleOutputs
 import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.model.CompilationRef
+import dev.shibasis.dependeasy.model.ConfigurationRef
 import dev.shibasis.dependeasy.configuration.releaseProperty
 import dev.shibasis.dependeasy.desktop.stableRuntime
 import dev.shibasis.dependeasy.provenance.SourceIdentityTask
@@ -32,6 +32,7 @@ import dev.shibasis.dependeasy.verification.DependencyBoundary
 import dev.shibasis.dependeasy.verification.dependencyBoundary
 import org.gradle.kotlin.dsl.register
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.workspace.WorkspaceScope
 import dev.shibasis.dependeasy.compose.composeConfiguration
 import dev.shibasis.dependeasy.module.jvmConfiguration
 import dev.shibasis.dependeasy.module.jvmClasspath
@@ -59,7 +60,7 @@ open class DependeasyExtension internal constructor(
     internal val native = NativeLibrary(project)
 
     fun sourceRevision() = project.sourceRevision()
-    fun workspace(configuration: BuildWorkspace.() -> Unit) = BuildWorkspace.get(project).apply(configuration)
+    fun workspace(configuration: WorkspaceScope.() -> Unit) = WorkspaceScope(project, BuildWorkspace.get(project)).apply(configuration)
     fun publishing(configuration: dev.shibasis.dependeasy.publishing.Publications.() -> Unit) =
         dev.shibasis.dependeasy.publishing.Publications(project).apply(configuration).also { it.install() }
     fun module(namespace: String, configure: dev.shibasis.dependeasy.module.MultiplatformModule.() -> Unit) =
@@ -73,13 +74,13 @@ open class DependeasyExtension internal constructor(
     fun jvm(bytecode: Int = dev.shibasis.dependeasy.Versions.SDK.Java.asInt,
             configuration: dev.shibasis.dependeasy.module.JvmModule.() -> Unit = {}) =
         dev.shibasis.dependeasy.module.JvmModule(project, bytecode).apply(configuration)
-    fun jvmClasspath(name: String, output: String, compilation: String = "test") =
-        project.jvmClasspath(name, output, compilation)
+    fun jvmClasspath(name: String, output: String, compilation: CompilationRef = CompilationRef.Test) =
+        project.jvmClasspath(name, output, compilation.name)
     fun testClasses(vararg patterns: String) = project.testClasses(patterns)
     fun <T : Any> option(option: BuildOption<T>) = project.option(option)
     fun releaseProperty(option: BuildOption<Boolean>) = project.releaseProperty(option)
-    fun dependencyBoundary(name: String, configuration: String = "jvmRuntimeClasspath", policy: DependencyBoundary.() -> Unit) =
-        project.dependencyBoundary(name, configuration, policy)
+    fun dependencyBoundary(name: String, configuration: ConfigurationRef = ConfigurationRef.JvmRuntimeClasspath, policy: DependencyBoundary.() -> Unit) =
+        project.dependencyBoundary(name, configuration.name, policy)
     fun kotlinNodeTests(vararg imports: Any) = project.kotlinNodeTests(*imports)
     fun stableRuntime(task: TaskProvider<out org.gradle.api.tasks.JavaExec>? = null, directory: Any) {
         val location = project.file(directory)
@@ -111,16 +112,16 @@ open class DependeasyExtension internal constructor(
     fun desktopApplication(main: String, configuration: org.jetbrains.compose.desktop.application.dsl.JvmApplication.() -> Unit) =
         project.desktopApplication(main, configuration)
 
-    fun packagedRuntimeTest(name: String, main: String, compilation: String,
+    fun packagedRuntimeTest(name: String, main: String, compilation: CompilationRef,
                             configuration: dev.shibasis.dependeasy.desktop.PackagedRuntimeTest.() -> Unit) =
-        project.packagedRuntimeTest(name, main, compilation, configuration)
+        project.packagedRuntimeTest(name, main, compilation.name, configuration)
 
-    fun jvmEntryPoint(name: String, main: String, compilation: String = "main", verify: Boolean = false,
+    fun jvmEntryPoint(name: String, main: String, compilation: CompilationRef = CompilationRef.Main, verify: Boolean = false,
                       configuration: org.gradle.api.tasks.JavaExec.() -> Unit = {}) =
-        project.jvmEntryPoint(name, main, compilation, verify, configuration)
+        project.jvmEntryPoint(name, main, compilation.name, verify, configuration)
 
     fun jvmCommand(name: String, main: String, arguments: org.gradle.api.provider.Provider<List<String>>,
-                   compilation: String = "main") = project.jvmCommand(name, main, compilation, arguments)
+                   compilation: CompilationRef = CompilationRef.Main) = project.jvmCommand(name, main, compilation.name, arguments)
 
     fun jvmLauncher(name: String, main: String, output: String,
                     arguments: org.gradle.api.provider.Provider<List<String>> = project.provider { emptyList() }) =
@@ -134,9 +135,6 @@ open class DependeasyExtension internal constructor(
         project.nodeScript(name, script, configuration)
 
     val tools get() = dev.shibasis.dependeasy.toolchain.NativeBuildTools.get(project)
-
-    fun command(name: String, tool: dev.shibasis.dependeasy.toolchain.InstalledTool, vararg arguments: String,
-                 configuration: ProcessTask.() -> Unit = {}) = project.command(name, tool, arguments, configuration)
 
     fun dependencyRepositories(configuration: RepositoryHandler.() -> Unit = {}) =
         dev.shibasis.dependeasy.repositories.dependencyRepositories(project, configuration)
@@ -153,9 +151,6 @@ open class DependeasyExtension internal constructor(
 
     fun cmake(name: String, configuration: CMakeBuild.() -> Unit): TaskProvider<KotlinCMakeTask> =
         CMakeBuild(project, name).apply(configuration).register()
-
-    fun dag(name: String, configuration: BuildPipeline.() -> Unit): BuildPipeline =
-        BuildPipeline(project, name).apply(configuration).also { it.report() }
 
     fun javascript(name: String, directory: Any = ".", configuration: JavaScriptComponent.() -> Unit = {}): JavaScriptComponent =
         JavaScriptComponent(project, name, directory).apply(configuration)

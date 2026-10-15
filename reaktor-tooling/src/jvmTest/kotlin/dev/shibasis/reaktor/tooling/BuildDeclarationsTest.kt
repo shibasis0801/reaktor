@@ -83,7 +83,7 @@ class BuildDeclarationsTest {
         assertNotNull(workspace.catalog.tasks.single { it.id.value == "fixture:native" }.unavailableReason)
         assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(TaskId("fixture:native"))) }
         val valid = file.readText()
-        file.writeText(valid.replace("\"schema\":2", "\"schema\":1"))
+        file.writeText(BuildModelReader.encode(BuildModelReader.decode(valid).copy(schema = 1)))
         assertFailsWith<IllegalArgumentException> { BuildDeclarations.read(root) }
         file.writeText("malformed")
         assertFails { BuildDeclarations.read(root) }

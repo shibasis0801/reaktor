@@ -3,7 +3,6 @@ import dev.shibasis.dependeasy.toolchain.BuildLibraries
 
 plugins { `kotlin-dsl`; `maven-publish` }
 
-kotlin.sourceSets.main { kotlin.exclude("dev/shibasis/dependeasy/toolchain/BuildLibraries.kt") }
 val fixtureToolchain = configurations.create("fixtureToolchain")
 repositories.maven(BuildLibraries.GradleToolingRepository) { content { includeModule("org.gradle", "gradle-tooling-api") } }
 
@@ -29,6 +28,7 @@ gradlePlugin {
         "jvm" to "JvmPlugin",
         "spring-application" to "SpringApplicationPlugin",
         "pipeline" to "PipelinePlugin",
+        "workspace" to "WorkspacePlugin",
         "library" to "LibraryPlugin",
         "application" to "ApplicationPlugin",
     ).forEach { (name, implementation) ->

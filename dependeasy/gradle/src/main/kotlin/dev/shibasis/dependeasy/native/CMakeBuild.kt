@@ -17,7 +17,6 @@ class CMakeBuild internal constructor(private val project: Project, private val 
     var configuration: String = "Release"
     var tool: dev.shibasis.dependeasy.toolchain.InstalledTool = dev.shibasis.dependeasy.toolchain.NativeBuildTools.get(project).cmake
     var generator: String = "Ninja"
-    val arguments = mutableListOf<String>()
     val inputs = mutableListOf<Any>()
     private val sourceLibraries = linkedMapOf<ToolHandle, String>()
 
@@ -46,7 +45,6 @@ class CMakeBuild internal constructor(private val project: Project, private val 
                 NativeContract.Source(dependency.name, dependency.repository, dependency.revision, dependency.checksum, dependency.checksumAlgorithm, dependency.recipe,
                     project.nativeTools.sourceTasks.getValue(tool).get().checkout.get().asFile.absolutePath)
             })))
-        configureArguments.addAll(this@CMakeBuild.arguments)
         toolVersion.set("${this@CMakeBuild.tool.handle.name} ${this@CMakeBuild.tool.handle.version}")
     }
 }

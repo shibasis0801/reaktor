@@ -33,7 +33,7 @@ class VerificationSuitesTest {
                 script.set(layout.projectDirectory.file("suite/input.js")); environmentFiles.from(file("environment.env"))
                 sourceFiles.from(file("suite/input.js")); outputFiles.from(layout.buildDirectory.file("reports/k6/summary.json"))
             }
-            dependeasy.workspace { verify("suites") { includes(node(karate), node(k6)) } }
+            dependeasy.workspace { val suites by verify { include(node(karate), node(k6)) } }
         """.trimIndent())
         fun run() = GradleRunner.create().withProjectDir(root).withPluginClasspath().withArguments("suites", "exportBuildModel", "--configuration-cache").build()
         run()
@@ -50,6 +50,7 @@ class VerificationSuitesTest {
     @Test fun `signature replacement requires opt in and local host propagates to its target`() {
         write("settings.gradle.kts", "rootProject.name = \"physicalFixture\"")
         write("flow.yaml", "appId: fixture.app\n---\n- launchApp\n")
+        write("unused.yaml", "appId: fixture.app\n---\n- launchApp\n")
         write("app.apk", "fixture")
         write("runner", """
             #!/usr/bin/env python3
@@ -76,15 +77,15 @@ class VerificationSuitesTest {
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val flow = tasks.register<DeviceFlow>("flow") {
-                workingDirectory.set(layout.projectDirectory); platform.set("android"); applicationId.set("fixture.app")
+                workingDirectory.set(layout.projectDirectory); platform.set(DevicePlatform.Android); applicationId.set("fixture.app")
                 appOutput.set("physicalFixture:app:outputAndroidApkDebug"); appFile.set(layout.projectDirectory.file("app.apk"))
                 runner.set(layout.projectDirectory.file("runner")); runnerVersion.set("1.1.27"); adbExecutable.set(layout.projectDirectory.file("adb"))
-                flowFiles.from(file("flow.yaml")); flowPaths.set(listOf(file("flow.yaml").absolutePath))
+                declaredFlowPaths.set(listOf(file("flow.yaml").absolutePath, file("unused.yaml").absolutePath))
                 reportDirectory.set(layout.buildDirectory.dir("reports/flow")); contractFile.set(layout.buildDirectory.file("dependeasy/device/flow.json"))
                 installApplication.set(true)
                 uninstallOnSignatureMismatch.set(providers.gradleProperty("allowUninstall").map(String::toBooleanStrict).orElse(false))
             }
-            dependeasy.workspace { verify("phoneCheck") { includes(node(flow, OutputKind.VerificationResults)) } }
+            dependeasy.workspace { val phoneCheck by verify { include(node(flow, OutputKind.VerificationResults)) } }
         """.trimIndent())
         fun runner(vararg args: String) = GradleRunner.create().withProjectDir(root).withPluginClasspath()
             .withArguments(*args, "--configuration-cache", "--stacktrace")
@@ -95,9 +96,51 @@ class VerificationSuitesTest {
         assertContains(denied.output, "signature replacement requires")
         assertFalse(root.resolve("uninstalled").exists())
         assertFalse(root.resolve("flow-ran").exists())
-        runner("phoneCheck", "-PallowUninstall=true").build()
+        fun selected() = runner("flow", "--platform", "android", "--flow", "flow", "--artifacts", "always", "-PallowUninstall=true").build()
+        selected()
         assertEquals("explicit", root.resolve("uninstalled").readText())
         assertEquals("passed", root.resolve("flow-ran").readText())
+        val contract = BuildModelReader.json.decodeFromString<DeviceFlowContract>(root.resolve("build/dependeasy/device/flow.json").readText())
+        assertEquals("android", contract.platform)
+        assertEquals("always", contract.artifacts)
+        assertEquals(listOf(root.resolve("flow.yaml").canonicalPath), contract.flows)
+        assertContains(selected().output, "Reusing configuration cache")
+        val invalid = runner("flow", "--flow", "undeclared", "-PallowUninstall=true").buildAndFail()
+        assertContains(invalid.output, "Select exactly one declared flow: undeclared")
+    }
+
+    @Test fun `device task options select platform owned inputs before execution`() {
+        write("settings.gradle.kts", "rootProject.name = \"deviceOptions\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\":app\")")
+        write("app/build.gradle.kts", "plugins { java }")
+        write("android/login.yaml", "appId: fixture.android\n---\n- launchApp\n")
+        write("ios/login.yaml", "appId: fixture.ios\n---\n- launchApp\n")
+        write("ios/unused.yaml", "appId: fixture.ios\n---\n- launchApp\n")
+        write("build.gradle.kts", """
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            dependeasy.workspace {
+                val flows by deviceFlows {
+                    application = androidApk(projects.app, Build.Debug)
+                    applications[DevicePlatform.Ios] = appleXcodeFramework(projects.app)
+                    applicationId = "fixture.app"
+                    directories.putAll(mapOf(DevicePlatform.Android to "android", DevicePlatform.Ios to "ios"))
+                    selectedFlows.putAll(mapOf(DevicePlatform.Android to listOf("login.yaml"), DevicePlatform.Ios to listOf("login.yaml", "unused.yaml")))
+                }
+            }
+        """.trimIndent())
+        fun run() = GradleRunner.create().withProjectDir(root).withPluginClasspath()
+            .withArguments("flows", "--platform", "ios", "--flow", "login", "--artifacts", "always", "-x", "flows", "exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        val first = run()
+        assertNull(first.task(":flows"))
+        val model = BuildModelReader.read(root)
+        val spec = assertIs<KernelSpec.DeviceFlow>(model.nodes.single { it.id.name == "flows" }.kernel?.spec)
+        assertEquals("ios", spec.platform)
+        assertEquals("deviceOptions:app:outputAppleXcodeFramework", spec.appOutput)
+        assertEquals(listOf("ios/login.yaml"), spec.flows)
+        assertEquals("always", spec.artifacts)
+        assertFalse(root.resolve("build/dependeasy/device/flows.json").exists())
+        assertContains(run().output, "Reusing configuration cache")
     }
 
     @Test fun `pinned Karate and k6 execute real HTTP suites`() {
@@ -135,9 +178,9 @@ class VerificationSuitesTest {
             write("build.gradle.kts", """
                 plugins { id("dev.shibasis.dependeasy.pipeline") }
                 dependeasy.workspace {
-                    val karate = karateSuite("realKarate", "suite/input.feature", "config", emptyList(), emptyList())
-                    val k6 = k6Suite("realK6", "suite/input.js", emptyList())
-                    verify("qualification") { includes(karate, k6) }
+                    val realKarate by karateSuite("suite/input.feature", "config")
+                    val realK6 by k6Suite("suite/input.js")
+                    val qualification by verify { include(realKarate, realK6) }
                 }
             """.trimIndent())
             GradleRunner.create().withProjectDir(root).withPluginClasspath()

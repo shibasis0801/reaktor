@@ -10,6 +10,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.file.*
 import org.gradle.api.provider.*
 import org.gradle.api.tasks.*
+import org.gradle.api.tasks.options.Option
 import org.gradle.process.ExecOperations
 import org.gradle.work.DisableCachingByDefault
 import javax.inject.Inject
@@ -18,13 +19,17 @@ import javax.inject.Inject
 abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
     @get:Inject abstract val execOperations: ExecOperations
     @get:Internal abstract val workingDirectory: DirectoryProperty
-    @get:Input abstract val platform: Property<String>
+    @get:Input @get:Option(option = "platform", description = "Physical device platform")
+    abstract val platform: Property<DevicePlatform>
     @get:Input abstract val applicationId: Property<String>
     @get:Input abstract val appOutput: Property<String>
     @get:Internal abstract val appFile: RegularFileProperty
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val applicationOutputs: ConfigurableFileCollection
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val flowFiles: ConfigurableFileCollection
     @get:Input abstract val flowPaths: ListProperty<String>
+    @get:Input abstract val declaredFlowPaths: ListProperty<String>
+    @get:Input @get:Option(option = "flow", description = "One declared flow file or its name without the extension")
+    abstract val selectedFlow: Property<String>
     @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val runner: RegularFileProperty
     @get:Input abstract val runnerVersion: Property<String>
     @get:LocalState abstract val runnerWorkspace: DirectoryProperty
@@ -38,23 +43,33 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
     @get:Input abstract val installApplication: Property<Boolean>
     @get:Input abstract val hook: ListProperty<String>
     @get:Input abstract val processPrefix: ListProperty<String>
-    @get:Input abstract val artifacts: Property<String>
+    @get:Input @get:Option(option = "artifacts", description = "Artifact capture policy")
+    abstract val artifacts: Property<ArtifactPolicy>
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val hookFiles: ConfigurableFileCollection
     @get:OutputDirectory abstract val reportDirectory: DirectoryProperty
     @get:OutputFile abstract val contractFile: RegularFileProperty
     init {
         runnerWorkspace.convention(project.layout.projectDirectory.dir("tmp/dependeasy/device/$name/runner"))
         environment.convention(emptyMap()); hook.convention(emptyList()); processPrefix.convention(emptyList()); installApplication.convention(false)
-        artifacts.convention("on-failure"); uninstallOnSignatureMismatch.convention(false); outputs.upToDateWhen { false }
+        platform.convention(DevicePlatform.Android)
+        selectedFlow.convention("")
+        declaredFlowPaths.convention(emptyList())
+        flowPaths.convention(declaredFlowPaths.zip(selectedFlow) { declared, selected ->
+            if (selected.isEmpty()) declared else declared.filter {
+                val file = java.io.File(it)
+                file.name == selected || file.nameWithoutExtension == selected
+            }.also { require(it.size == 1) { "Select exactly one declared flow: $selected" } }
+        })
+        flowFiles.from(flowPaths.map { paths -> paths.map { java.io.File(it) } })
+        artifacts.convention(ArtifactPolicy.OnFailure); uninstallOnSignatureMismatch.convention(false); outputs.upToDateWhen { false }
     }
     @get:Internal override val kernelEffect get() = Effect.Verify
     @get:Internal override val kernelHost get() = HostRequirement(execution = ExecutionHost.Local)
-    @get:Internal override val kernelSpec get() = KernelSpec.DeviceFlow(platform.get(), applicationId.get(), appOutput.get(),
-        flowPaths.get(), contractFile.get().asFile.absolutePath, (readEnvironment(environmentFiles.files).keys + environment.get().keys).sorted(), ToolRef("maestro-runner", runnerVersion.get()), installApplication.get(), uninstallOnSignatureMismatch.get(), artifacts.get())
+    @get:Internal override val kernelSpec get() = KernelSpec.DeviceFlow(platform.get().value, applicationId.get(), appOutput.get(),
+        flowPaths.get(), contractFile.get().asFile.absolutePath, (readEnvironment(environmentFiles.files).keys + environment.get().keys).sorted(), ToolRef("maestro-runner", runnerVersion.get()), installApplication.get(), uninstallOnSignatureMismatch.get(), artifacts.get().value)
     @TaskAction fun run() {
-        require(artifacts.get() in setOf("on-failure", "always", "never")) { "Unsupported artifact capture mode" }
         val root = workingDirectory.get().asFile
-        val developerToolsDirectory = if (platform.get() == "ios") {
+        val developerToolsDirectory = if (platform.get() == DevicePlatform.Ios) {
             val output = java.io.ByteArrayOutputStream()
             execOperations.exec { commandLine("/usr/bin/xcrun", "--find", "xcodebuild"); standardOutput = output }
             val executable = java.io.File(output.toString().trim())
@@ -62,10 +77,10 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
             executable.parent
         } else null
         var engine = MaestroRunner(runner.get().asFile.absolutePath, root, developerToolsDirectory)
-        val device = selectPhysicalDevice(engine.physicalDevicesBlocking(platform.get()), platform.get(), serial.orNull)
+        val device = selectPhysicalDevice(engine.physicalDevicesBlocking(platform.get().value), platform.get().value, serial.orNull)
         val values = readEnvironment(environmentFiles.files) + environment.get()
         var executable = runner.get().asFile
-        if (platform.get() == "ios" && hook.get().isNotEmpty()) {
+        if (platform.get() == DevicePlatform.Ios && hook.get().isNotEmpty()) {
             val source = executable.parentFile.parentFile
             val destination = runnerWorkspace.get().asFile
             val stamp = source.resolve(".sha256").readText() + "\n" + developerToolsDirectory.orEmpty()
@@ -80,10 +95,10 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
             executable = destination.resolve(executable.relativeTo(source).path)
             engine = MaestroRunner(executable.absolutePath, root, developerToolsDirectory)
         }
-        var contract = DeviceFlowContract(platform = platform.get(), applicationId = applicationId.get(), appOutput = appOutput.get(),
+        var contract = DeviceFlowContract(platform = platform.get().value, applicationId = applicationId.get(), appOutput = appOutput.get(),
             appFile = appFile.orNull?.asFile?.absolutePath, flows = flowPaths.get(), runner = executable.absolutePath,
             reportDirectory = reportDirectory.get().asFile.absolutePath, team = team.orNull, wdaBundleId = wdaBundleId.orNull,
-            serial = device.id, environmentKeys = values.keys.sorted(), uninstallOnSignatureMismatch = uninstallOnSignatureMismatch.get(), processPrefix = processPrefix.get(), artifacts = artifacts.get())
+            serial = device.id, environmentKeys = values.keys.sorted(), uninstallOnSignatureMismatch = uninstallOnSignatureMismatch.get(), processPrefix = processPrefix.get(), artifacts = artifacts.get().value)
         fun writeContract() = contractFile.get().asFile.apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(contract)) }
         fun productHook(phase: String, succeeded: Boolean = true) {
             if (hook.get().isEmpty()) return
@@ -100,7 +115,7 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
         var success = false
         try {
             if (installApplication.get()) {
-                if (platform.get() == "android" && contract.appFile == null) {
+                if (platform.get() == DevicePlatform.Android && contract.appFile == null) {
                     val directory = applicationOutputs.files.single()
                     val metadata = BuildModelReader.json.parseToJsonElement(directory.resolve("output-metadata.json").readText()).jsonObject
                     require(metadata.getValue("applicationId").jsonPrimitive.content == applicationId.get()) { "Declared APK belongs to a different application" }
@@ -111,7 +126,7 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
                 }
                 val app = requireNotNull(contract.appFile) { "Build the declared app output before installation" }
                 require(java.io.File(app).exists()) { "Missing declared app output: $app" }
-                if (platform.get() == "android") {
+                if (platform.get() == DevicePlatform.Android) {
                     val adb = adbExecutable.orNull?.asFile?.absolutePath ?: CommandRunner.locate("adb") ?: System.getenv("ANDROID_HOME")?.let { "$it/platform-tools/adb" }
                         ?: System.getProperty("user.home") + "/Library/Android/sdk/platform-tools/adb"
                     val output = java.io.ByteArrayOutputStream()

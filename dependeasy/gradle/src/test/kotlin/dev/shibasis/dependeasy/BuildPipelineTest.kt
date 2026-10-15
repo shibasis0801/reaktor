@@ -1,41 +1,49 @@
 package dev.shibasis.dependeasy
 
-import dev.shibasis.dependeasy.dag.BuildPipeline
+import dev.shibasis.dependeasy.handles.node
+import dev.shibasis.dependeasy.model.NodeKind
+import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.*
 
 class BuildPipelineTest {
-    @Test fun `cycles fail while declaring the pipeline`() {
+    @Test fun `cycles fail while declaring kernel dependencies`() {
         val project = ProjectBuilder.builder().build()
-        val pipeline = BuildPipeline(project, "native")
-        val source = pipeline.node(project.tasks.register("source"))
-        val build = pipeline.node(project.tasks.register("compile")).after(source)
+        val source = project.node(project.tasks.register("source"))
+        val build = project.node(project.tasks.register("compile")).after(source)
         assertFailsWith<GradleException> { source.after(build) }
     }
 
     @Test fun `declarations keep tasks lazy and unrelated entrypoints isolated`() {
         val project = ProjectBuilder.builder().build()
         var realized = false
-        val pipeline = BuildPipeline(project, "web")
-        val install = pipeline.node(project.tasks.register("install") { realized = true })
-        val bundle = pipeline.node(project.tasks.register("bundle")).after(install)
-        val target = pipeline.target("webBuild", bundle)
+        val install = project.node(project.tasks.register("install") { realized = true })
+        val bundle = project.node(project.tasks.register("bundle")).after(install)
+        val target = BuildWorkspace.get(project).aggregate(project, "webBuild", NodeKind.ArtifactSet, listOf(bundle))
         assertFalse(realized)
-        assertEquals(listOf("install <-", "bundle <- install"), pipeline.describe())
-        assertEquals(setOf("bundle"), target.get().taskDependencies.getDependencies(target.get()).map { it.name }.toSet())
+        val task = requireNotNull(target.task).get()
+        assertEquals(setOf("bundle"), task.taskDependencies.getDependencies(task).map { it.name }.toSet())
     }
-    @Test fun `node identities cannot silently replace a producer`() {
+
+    @Test fun `kernel identities retain the owning project without a second name`() {
         val project = ProjectBuilder.builder().build()
-        val pipeline = BuildPipeline(project, "native")
-        pipeline.node(project.tasks.register("first"), "producer")
-        assertFailsWith<IllegalArgumentException> { pipeline.node(project.tasks.register("second"), "producer") }
+        val child = ProjectBuilder.builder().withParent(project).withName("child").build()
+        val rootNode = project.node(project.tasks.register("compile"))
+        val childNode = child.node(child.tasks.register("compile"))
+        assertNotEquals(rootNode.id, childNode.id)
+        val root = BuildWorkspace.get(project).aggregate(project, "artifacts", NodeKind.ArtifactSet, listOf(rootNode))
+        val nested = BuildWorkspace.get(child).aggregate(child, "artifacts", NodeKind.ArtifactSet, listOf(childNode))
+        assertEquals(":artifacts", requireNotNull(root.task).get().path)
+        assertEquals(":child:artifacts", requireNotNull(nested.task).get().path)
     }
-    @Test fun `targets reject nodes from another pipeline`() {
-        val project = ProjectBuilder.builder().build()
-        val first = BuildPipeline(project, "first")
-        val second = BuildPipeline(project, "second")
-        val foreign = first.node(project.tasks.register("compile"))
-        assertFailsWith<IllegalArgumentException> { second.target("buildForeign", foreign) }
+
+    @Test fun `kernel dependencies across builds require declared outputs`() {
+        val first = ProjectBuilder.builder().withName("first").build()
+        val second = ProjectBuilder.builder().withName("second").build()
+        val foreign = first.node(first.tasks.register("compile"))
+        assertFailsWith<IllegalArgumentException> {
+            BuildWorkspace.get(second).aggregate(second, "buildForeign", NodeKind.ArtifactSet, listOf(foreign))
+        }
     }
 }

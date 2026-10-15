@@ -539,7 +539,7 @@ private class TaskCatalogBuilder(
                 mapOf("buildNode" to dev.shibasis.dependeasy.model.BuildModelReader.encode(node))
             }.orEmpty(),
             unavailableReason = declaration?.unavailableReason,
-            environments = declaration?.node?.environments.orEmpty().toSet(),
+            environments = declaration?.node?.environments.orEmpty().map { it.name }.toSet(),
         )
         bindings[taskId] = JvmTaskBinding(
             argv = listOf(wrapper.absolutePath) + (declaration?.tasks ?: listOf(gradleTask)),

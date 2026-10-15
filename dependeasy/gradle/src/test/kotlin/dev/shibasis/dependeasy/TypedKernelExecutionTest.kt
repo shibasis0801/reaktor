@@ -29,6 +29,7 @@ class TypedKernelExecutionTest {
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.process.ProcessTask
             import dev.shibasis.dependeasy.web.*
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             fun ProcessTask.fixture(directory: String) {
                 workingDirectory.set(layout.projectDirectory.dir(directory))
@@ -47,14 +48,16 @@ class TypedKernelExecutionTest {
             }
             val deploy = tasks.register<WranglerDeploy>("deploy") { fixture("deploy"); configuration.set("config.json"); deploymentEnvironment.set("dev") }
             val generator = tasks.register<NodeGenerator>("generator") { fixture("generator"); script.set(layout.projectDirectory.file("generator/generate.mjs")) }
-            dependeasy { dag("fixture") { target("allKernels", node(typescript), node(vite), node(bindings), node(worker), node(deploy), node(generator)) } }
+            dependeasy { workspace { val allKernels by artifacts { include(node(typescript), node(vite), node(bindings), node(worker), node(deploy), node(generator)) } } }
         """.trimIndent())
         val names = arrayOf("typescript", "vite", "bindings", "worker", "deploy", "generator")
         val first = run(*names, "exportBuildModel")
         names.forEach { assertEquals(TaskOutcome.SUCCESS, first.task(":$it")?.outcome) }
         val model = dev.shibasis.dependeasy.model.BuildModelReader.decode(directory.resolve("build/dependeasy/model.json").readText())
         val specs = model.nodes.mapNotNull { it.kernel?.spec }
-        assertEquals(6, specs.size)
+        assertEquals(7, specs.size)
+        assertEquals(dev.shibasis.dependeasy.model.NodeKind.ArtifactSet, model.nodes.single { it.id.name == "allKernels" }.kind)
+        assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode })
         assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.TypeScriptCheck && it.execution.directory == "typescript" })
         assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.WranglerDeploy && it.environment == "dev" })
         val repeated = run(*names, "exportBuildModel")
@@ -82,6 +85,7 @@ class TypedKernelExecutionTest {
             import dev.shibasis.dependeasy.toolchain.InstallTool
             import dev.shibasis.dependeasy.tasks.ArtifactSizeReport
             import dev.shibasis.dependeasy.model.*
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             tasks.register<InstallTool>("installFixture") {
                 sdkBinary.set(layout.projectDirectory.file("sdk"))

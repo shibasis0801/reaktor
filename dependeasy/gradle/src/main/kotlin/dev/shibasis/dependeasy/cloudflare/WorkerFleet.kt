@@ -11,22 +11,26 @@ import java.io.File
 import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.*
 
+enum class WorkerVerification { Auth, Smoke, Behaviour, Public }
+
 class WorkerFleet internal constructor(private val project: Project) {
     private data class Declaration(val directory: File, val prerequisites: List<NodeHandle>, val site: SourceSite?, val release: Boolean)
     private val workers = linkedMapOf<String, Declaration>()
+    private val environmentOption = BuildOption.string("dependeasy.environment", environment = "TARGET_ENV")
     val prerequisites = mutableListOf<NodeHandle>()
     val environments = mutableListOf<Environment>()
-    fun include(vararg names: String) { names.forEach { worker(it, "targets/${it}Server") } }
     private var suiteConfig: String? = null
-    private var suiteEnvironmentFiles: Map<String, String> = emptyMap()
-    val verification = linkedMapOf<String, NodeHandle>()
-    fun karate(configDirectory: String, environmentFiles: Map<String, String> = emptyMap()) {
+    private var suiteEnvironmentFiles: Map<Environment, String> = emptyMap()
+    private val verification = linkedMapOf<Pair<WorkerVerification, Environment>, NodeHandle>()
+    fun verification(mode: WorkerVerification, environment: Environment): NodeHandle = verification.getValue(mode to environment)
+    fun karate(configDirectory: String, environmentFiles: Map<Environment, String> = emptyMap()) {
         suiteConfig = configDirectory; suiteEnvironmentFiles = environmentFiles
     }
     var release: NodeHandle? = null
         private set
-    fun worker(name: String, directory: Any, vararg prerequisites: NodeHandle, release: Boolean = false) {
-        require(workers.put(name, Declaration(project.file(directory), prerequisites.toList(), project.declarationSite(), release)) == null) { "Duplicate worker: $name" }
+    fun worker(ref: WorkerRef, vararg prerequisites: NodeHandle, release: Boolean = false) {
+        require(!File(ref.directory).isAbsolute) { "Worker directories must be relative" }
+        require(workers.put(ref.name, Declaration(project.file(ref.directory), prerequisites.toList(), project.declarationSite(), release)) == null) { "Duplicate worker: ${ref.name}" }
     }
 
     internal fun register(workspace: BuildWorkspace) {
@@ -82,25 +86,26 @@ class WorkerFleet internal constructor(private val project: Project) {
                 outputs.upToDateWhen { false }
             }
             val bindings = configs.getValue(name)["services"]?.jsonArray.orEmpty().map { it.jsonObject.getValue("service").jsonPrimitive.content }
-            nodes[name] = workspace.declaredTarget(worker.node.name, declaration.site) {
-                effect = Effect.Deploy; host = HostRequirement(HostPlatform.Linux); this.worker = name
-                workerDirectory = project.relativePath(directory)
-                this.environments.addAll(this@WorkerFleet.environments.filter { it.name in configurations })
-                includes(project.node(command)); includes(*prerequisites.toTypedArray(), *declaration.prerequisites.toTypedArray())
-                this.bindings.addAll(bindings)
-            }
+            val dependencies = listOf(project.node(command)) + prerequisites + declaration.prerequisites
+            val spec = KernelSpec.WorkspaceNode(worker.node, NodeKind.Deploy, Run.onLinux().onWorker(),
+                dependencies.map { it.id }, emptyList(), emptyList(), emptyList(),
+                worker = WorkerRef(name, project.relativePath(directory)),
+                environments = this@WorkerFleet.environments.filter { it.name in configurations }, bindings = bindings.map(::ServiceRef))
+            nodes[name] = workspace.emit(project, spec, WorkspaceCompletion, declaration.site, null, dependencies, emptyList(), emptyList())
             if (declaration.release) {
                 require(release == null) { "Declare one release web target" }
                 release = nodes.getValue(name)
             }
-            val wrapper = project.rootDir.resolve("gradlew").relativeTo(directory).invariantSeparatorsPath
-            workspace.packageAlias(directory, "deploy", "$wrapper ${project.path.trimEnd(':')}:${worker.node.name}")
-            workspace.packageAlias(directory, "logs", "$wrapper ${project.path.trimEnd(':')}:${logs.name}")
-            workspace.packageAlias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}", "./gradlew ${project.path.trimEnd(':')}:${logs.name}")
+            val deploy = nodes.getValue(name)
+            val tail = project.node(logs)
+            workspace.alias(directory, "deploy", deploy)
+            workspace.alias(directory, "logs", tail)
+            workspace.alias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}", tail)
             worker.configurations.keys.forEach { environment ->
                 val suffix = if (environment == environments.last().name) "" else environment.replaceFirstChar(Char::uppercaseChar)
-                workspace.packageAlias(project.rootDir, "deploy${name.replaceFirstChar(Char::uppercaseChar)}$suffix", "./gradlew ${project.path.trimEnd(':')}:${worker.node.name} -Pdependeasy.environment=$environment")
-                workspace.packageAlias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}$suffix", "./gradlew ${project.path.trimEnd(':')}:${logs.name} -Pdependeasy.environment=$environment")
+                val settings = listOf(environmentOption.argument(environment))
+                workspace.alias(project.rootDir, "deploy${name.replaceFirstChar(Char::uppercaseChar)}$suffix", deploy, settings = settings)
+                workspace.alias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}$suffix", tail, settings = settings)
             }
         }
         suiteConfig?.let { config ->
@@ -116,11 +121,11 @@ class WorkerFleet internal constructor(private val project: Project) {
                     modes.forEach { (mode, tags) ->
                         val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
                         val suite = workspace.karateSuite(name, if (mode == "public") "$directory/public.feature" else directory, config, tags,
-                            listOfNotNull(suiteEnvironmentFiles[environment]))
+                            listOfNotNull(suiteEnvironmentFiles[Environment(environment)]))
                         val suffix = if (environment == environments.last().name) "" else ":$environment"
                         val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
-                        workspace.packageAlias(project.rootDir, alias + suffix, "./gradlew :$name")
-                        if (mode == "auth") workspace.packageAlias(project.rootDir, "test:$target:karate$suffix", "./gradlew :$name")
+                        workspace.alias(project.rootDir, alias + suffix, suite)
+                        if (mode == "auth") workspace.alias(project.rootDir, "test:$target:karate$suffix", suite)
                         groups.getOrPut("$mode:$environment") { mutableListOf() }.add(suite)
                     }
                 }
@@ -128,9 +133,10 @@ class WorkerFleet internal constructor(private val project: Project) {
             groups.forEach { (selection, suites) ->
                 val (mode, environment) = selection.split(':')
                 val name = "workerKarate" + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
-                verification[selection] = workspace.verify(name) { includes(*suites.toTypedArray()) }
+                val suite = workspace.aggregate(project, name, NodeKind.Verification, suites)
+                verification[WorkerVerification.entries.single { it.name.equals(mode, true) } to Environment(environment)] = suite
                 val suffix = (if (mode == "auth") "" else ":$mode") + if (environment == environments.last().name) "" else ":$environment"
-                workspace.packageAlias(project.rootDir, "test:workers:karate$suffix", "./gradlew :$name")
+                workspace.alias(project.rootDir, "test:workers:karate$suffix", suite)
             }
         }
         workers.keys.forEach { name ->
@@ -139,10 +145,6 @@ class WorkerFleet internal constructor(private val project: Project) {
                 includes(*bindings.mapNotNull(names::get).filter { it != name }.map(nodes::getValue).toTypedArray())
             }
         }
-        workspace.target("deployWorkers") {
-            effect = Effect.Deploy; host = HostRequirement(HostPlatform.Linux)
-            this.environments.addAll(this@WorkerFleet.environments)
-            includes(*nodes.values.toTypedArray())
-        }
+        workspace.aggregate(project, "deployWorkers", NodeKind.Deploy, nodes.values.toList(), Run.onLinux().onWorker())
     }
 }

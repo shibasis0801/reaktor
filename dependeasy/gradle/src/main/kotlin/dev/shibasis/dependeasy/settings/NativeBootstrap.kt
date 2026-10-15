@@ -3,7 +3,9 @@ package dev.shibasis.dependeasy.settings
 import dev.shibasis.dependeasy.handles.Tools
 import dev.shibasis.dependeasy.model.ToolHandle
 import org.gradle.api.tasks.TaskProvider
-import dev.shibasis.dependeasy.dag.BuildPipeline
+import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.handles.node
+import dev.shibasis.dependeasy.model.NodeKind
 import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
 import dev.shibasis.dependeasy.tasks.CmakePlatform
 import org.gradle.api.Project
@@ -17,7 +19,6 @@ internal class NativeBootstrap(private val project: Project) {
         private set
     fun register() = with(project) {
         if (!rootDir.resolve("dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/NativeSources.kt").isFile) return@with
-        val pipeline = BuildPipeline(this, "nativeTools")
         val sources = Native.sources.associate { it.source!! to it }.mapValues { (tool, source) ->
             val name = tool.name
             tasks.register<GitSourceTask>("prepare${name.replaceFirstChar(Char::uppercaseChar)}Source") {
@@ -53,8 +54,8 @@ internal class NativeBootstrap(private val project: Project) {
             ))
         }
         hermesCompiler = compiler
-        pipeline.target("prepareNativeTools", pipeline.node(compiler).after(pipeline.node(hermes)), pipeline.node(sources.getValue(Tools.Flatbuffers)))
-        pipeline.report()
+        BuildWorkspace.get(this).aggregate(this, "prepareNativeTools", NodeKind.ArtifactSet,
+            listOf(node(compiler).after(node(hermes)), node(sources.getValue(Tools.Flatbuffers))))
     }
 }
 

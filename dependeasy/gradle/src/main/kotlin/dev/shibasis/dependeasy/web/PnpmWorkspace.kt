@@ -1,7 +1,6 @@
 package dev.shibasis.dependeasy.web
 
 import dev.shibasis.dependeasy.process.ProcessTask
-import dev.shibasis.dependeasy.workspace.declareArtifactFamily
 import dev.shibasis.dependeasy.toolchain.JavaScriptTools
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.handles.publishOutput
@@ -59,8 +58,7 @@ class PnpmWorkspace private constructor(private val project: Project) {
         install.configure { mustRunAfter(updateLockfile) }
         val model = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
         model.reference(project, install, OutputKind.JavaScriptInstallation)
-        model.reference(project, updateLockfile, null)
-        project.declareArtifactFamily(updateLockfile.name, "metadata")
+        model.reference(project, updateLockfile, OutputKind.GeneratedContract)
         model.reference(project, tools.nodeSetup, null)
         model.reference(project, tools.pnpmSetup, null)
         project.publishOutput(OutputKind.JavaScriptInstallation,

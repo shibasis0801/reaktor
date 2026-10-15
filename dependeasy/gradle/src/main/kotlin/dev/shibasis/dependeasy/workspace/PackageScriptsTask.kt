@@ -41,9 +41,8 @@ abstract class PackageScriptsTask : DefaultTask() {
                     put(alias, buildJsonObject {
                         put("task", node.id.project.trimEnd(':') + ":" + node.id.name)
                         put("effect", node.effect.name.lowercase())
-                        node.worker?.let { put("worker", it) }
-                        node.workerDirectory?.let { put("workerDirectory", it) }
-                        putJsonArray("environments") { node.environments.forEach { add(it) } }
+                        node.worker?.let { put("worker", it.name); put("workerDirectory", it.directory) }
+                        putJsonArray("environments") { node.environments.forEach { add(it.name) } }
                     })
                 }
             }

@@ -13,9 +13,10 @@ class IncrementalPipelineTest {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"fixture\"".replace("\\", ""))
         directory.resolve("source.txt").writeText("first")
         directory.resolve("build.gradle.kts").writeText("""
-            import dev.shibasis.dependeasy.dag.artifact
+            import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.process.ProcessTask
             import dev.shibasis.dependeasy.plugins.DependeasyExtension
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val copy = tasks.register<ProcessTask>("copySource") {
                 workingDirectory.set(layout.projectDirectory)
@@ -32,9 +33,9 @@ class IncrementalPipelineTest {
                 arguments.set(listOf("result.txt", "compiled.txt"))
                 outputFiles.from("compiled.txt")
             }
-            val generated = copy.artifact { layout.projectDirectory.file("result.txt").let { file -> providers.provider { file } } }
+            val generated = artifact(copy) { layout.projectDirectory.file("result.txt").let { file -> providers.provider { file } } }
             extensions.configure<DependeasyExtension> {
-                dag("copy") { target("copyBuild", node(compile).consumes(generated)) }
+                workspace { val copyBuild by artifacts { include(node(compile).consumes(generated)) } }
             }
         """.trimIndent())
         fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)

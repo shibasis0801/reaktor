@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.web
 
 import dev.shibasis.dependeasy.process.ProcessTask
+import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
@@ -51,10 +52,9 @@ internal class JavaScriptCommandKernel(
             val build = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
             build.reference(project, it, null)
             if (type != PackageCommand::class.java) {
-                val wrapper = project.rootDir.resolve("gradlew").relativeTo(directory).invariantSeparatorsPath
-                val command = "${if (wrapper.startsWith(".")) wrapper else "./$wrapper"} ${project.path.trimEnd(':')}:$taskName"
-                build.packageAlias(directory, if (type == TypeScriptCheck::class.java && suffix == "types") "typecheck" else suffix, command)
-                build.packageAlias(project.rootDir, taskName, "./gradlew ${project.path.trimEnd(':')}:$taskName")
+                val node = project.node(it)
+                build.alias(directory, if (type == TypeScriptCheck::class.java && suffix == "types") "typecheck" else suffix, node)
+                build.alias(project.rootDir, taskName, node)
             }
         }
     }

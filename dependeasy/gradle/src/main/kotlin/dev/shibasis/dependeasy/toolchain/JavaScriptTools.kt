@@ -1,7 +1,8 @@
 package dev.shibasis.dependeasy.toolchain
 
 import org.gradle.api.Project
-import dev.shibasis.dependeasy.workspace.declareArtifactFamily
+import dev.shibasis.dependeasy.handles.node
+import dev.shibasis.dependeasy.model.OutputKind
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
@@ -41,7 +42,7 @@ class JavaScriptTools private constructor(private val project: Project) {
         into(project.layout.buildDirectory.dir("dependeasy/tools/javascript/bin"))
     }
 
-    init { project.declareArtifactFamily(export.name, "metadata") }
+    init { project.node(export, OutputKind.GeneratedContract) }
 
     companion object {
         fun get(project: Project): JavaScriptTools = project.rootProject.run {

@@ -48,7 +48,7 @@ dependeasy {
         base64("client", "js/dist/index.js")
     }
     jvmClasspath("jvmDesktopWebViewProbeClasspath", "reports/webview/probe-classpath.txt")
-    jvmEntryPoint("desktopWebViewProbe", "dev.shibasis.reaktor.web.DesktopWebViewProbeKt", compilation = "test") {
+    jvmEntryPoint("desktopWebViewProbe", "dev.shibasis.reaktor.web.DesktopWebViewProbeKt", compilation = dev.shibasis.dependeasy.model.CompilationRef.Test) {
         jvmArgs("--enable-native-access=ALL-UNNAMED")
     }
     if (option(FrameworkOptions.DeviceProbe).get()) {

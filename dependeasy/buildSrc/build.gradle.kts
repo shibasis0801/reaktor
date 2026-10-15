@@ -5,13 +5,7 @@ repositories { gradlePluginPortal(); google(); mavenCentral() }
 kotlin {
     jvmToolchain(25)
     compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-    sourceSets.main {
-        kotlin.srcDir("../toolchain/src/main/kotlin")
-        kotlin.srcDir("../gradle/src/main/kotlin")
-        kotlin.include("dev/shibasis/dependeasy/bootstrap/**", "dev/shibasis/dependeasy/toolchain/GradlePlugins.kt",
-            "dev/shibasis/dependeasy/toolchain/BuildLibraries.kt",
-            "dev/shibasis/dependeasy/publishing/PublicationDefaults.kt")
-    }
+    sourceSets.main { kotlin.srcDir("../bootstrap/src/main/kotlin") }
 }
 java { targetCompatibility = JavaVersion.VERSION_21 }
 

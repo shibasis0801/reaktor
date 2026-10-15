@@ -22,8 +22,8 @@ class GradlePlanningTest {
             val privateToken = providers.gradleProperty("fixtureToken")
             val failed = tasks.register("failed") { doLast { throw GradleException("fixtureToken=" + privateToken.get()) } }
             dependeasy.workspace {
-                verify("checks") { includes(node(copied)) }
-                verify("failureChecks") { includes(node(failed)) }
+                val checks by verify { include(node(copied)) }
+                val failureChecks by verify { include(node(failed)) }
             }
         """.trimIndent())
     }

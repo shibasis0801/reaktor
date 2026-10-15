@@ -18,7 +18,6 @@ abstract class ExportBuildModelTask : DefaultTask() {
     @get:Input abstract val nodes: ListProperty<String>
     @get:Input abstract val edges: ListProperty<String>
     @get:Input abstract val omissions: ListProperty<String>
-    @get:Input abstract val taskFamilies: MapProperty<String, String>
     @get:Input abstract val directories: MapProperty<String, String>
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val declarationFiles: ConfigurableFileCollection
     @get:InputFiles @get:PathSensitive(PathSensitivity.NONE) abstract val includedModels: ConfigurableFileCollection
@@ -70,8 +69,8 @@ abstract class ExportBuildModelTask : DefaultTask() {
         outputFile.get().asFile.apply { parentFile.mkdirs(); writeText(text) }
         val routing = RemoteHostsContract(builds = builds.associate { it.name to it.directory }.toSortedMap(),
             taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to model.requiredHost(it.id) }.toSortedMap(),
-            taskFamilies = (taskFamilies.get() + model.nodes.filter { it.id.build == own && it.artifactFamily != null }.associate {
-                (it.id.project.trimEnd(':') + ":" + it.id.name) to requireNotNull(it.artifactFamily) }).toSortedMap())
+            taskFamilies = model.nodes.filter { it.id.build == own && it.artifactFamily != null }.associate {
+                (it.id.project.trimEnd(':') + ":" + it.id.name) to requireNotNull(it.artifactFamily) }.toSortedMap())
         remoteHostsFile.get().asFile.apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(routing) + "\n") }
         legacyFiles().filter { it.exists() }.forEach { require(it.delete()) { "Cannot remove obsolete export: $it" } }
     }

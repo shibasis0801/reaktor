@@ -75,7 +75,11 @@ class BuildModelReaderTest {
     }
 
     @Test fun `schema size and duplicate identities fail closed`() {
-        assertFailsWith<IllegalArgumentException> { BuildModelReader.decode(BuildModelReader.encode(model().copy(schema = 1))) }
+        val obsolete = BuildModelReader.json.parseToJsonElement(BuildModelReader.encode(model().copy(schema = 2))).jsonObject
+        val failure = assertFailsWith<IllegalArgumentException> {
+            BuildModelReader.decode(JsonObject(obsolete + ("nodes" to JsonArray(listOf(buildJsonObject { put("worker", "legacy") })))).toString())
+        }
+        assertTrue(failure.message.orEmpty().contains("exportBuildModel"))
         assertFailsWith<IllegalArgumentException> { BuildModelReader.decode(" ".repeat(BuildModelReader.MaxBytes + 1)) }
         assertFailsWith<IllegalArgumentException> { BuildModelReader.decode(BuildModelReader.encode(model().copy(nodes = listOf(node, node)))) }
     }
@@ -133,6 +137,9 @@ class BuildModelReaderTest {
         val rootImplementation = root.resolve("buildSrc/src/main/kotlin/Handles.kt").apply {
             parentFile.mkdirs(); writeText("class Handles")
         }
+        val bootstrap = root.resolve("dependeasy/bootstrap/src/main/kotlin/Versions.kt").apply {
+            parentFile.mkdirs(); writeText("object Versions")
+        }
         fun export() {
             val files = BuildDeclarationInputs.files(root).map {
                 DeclarationInput("fixture", it.relativeTo(root).invariantSeparatorsPath, BuildModelReader.digest(it))
@@ -148,6 +155,9 @@ class BuildModelReaderTest {
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
         export()
         rootImplementation.writeText("class Handles { fun changed() = true }")
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+        export()
+        bootstrap.writeText("object Versions { const val Changed = true }")
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
         export()
         root.resolve("new/build.gradle.kts").apply { parentFile.mkdirs(); writeText("plugins {}") }

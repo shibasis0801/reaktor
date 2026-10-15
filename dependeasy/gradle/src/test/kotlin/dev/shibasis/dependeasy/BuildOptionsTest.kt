@@ -17,7 +17,7 @@ class BuildOptionsTest {
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val feature = BuildOption.boolean("fixture.feature")
             val producer = tasks.register<dev.shibasis.dependeasy.workspace.WorkspaceTargetTask>("producer")
-            dependeasy.workspace { verify("checks") { includes(node(producer)); require(feature, true) } }
+            dependeasy.workspace { val checks by verify { include(node(producer)); require(feature, true) } }
         """.trimIndent())
     }
     private fun run(vararg arguments: String) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()

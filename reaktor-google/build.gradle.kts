@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.dependencies.useKoin
 
@@ -9,7 +10,7 @@ plugins {
 
 dependeasy {
     val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
-    dag("bindings") { target("generateBindings", node(bindings)) }
+    workspace { val generateBindings by artifacts { include(node(bindings)) } }
 
     module("dev.shibasis.reaktor.google") {
         common {

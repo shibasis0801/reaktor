@@ -13,8 +13,10 @@ object BuildModelReader {
 
     fun decode(text: String): BuildModel {
         require(text.toByteArray(Charsets.UTF_8).size <= MaxBytes) { "Build model exceeds $MaxBytes bytes" }
-        val model = json.decodeFromString<BuildModel>(text)
-        require(model.schema == 2) { "Unsupported build model schema ${model.schema}; exportBuildModel must be rerun" }
+        val document = json.parseToJsonElement(text).jsonObject
+        val schema = document["schema"]?.jsonPrimitive?.intOrNull
+        require(schema == 3) { "Unsupported build model schema $schema; exportBuildModel must be rerun" }
+        val model = json.decodeFromJsonElement<BuildModel>(document)
         require(model.builds.map { it.name }.distinct().size == model.builds.size) { "Duplicate build identity" }
         require(model.nodes.map { it.id }.distinct().size == model.nodes.size) { "Duplicate build node identity" }
         val builds = model.builds.map { it.name }.toSet()

@@ -19,7 +19,7 @@ class DependencyBoundaryTest {
         build.writeText("""
             plugins { java; id("dev.shibasis.dependeasy.pipeline") }
             dependencies { runtimeOnly(project(":renderer-jvm")) }
-            dependeasy.dependencyBoundary("verifyBoundary", "runtimeClasspath") {
+            dependeasy.dependencyBoundary("verifyBoundary", dev.shibasis.dependeasy.model.ConfigurationRef.RuntimeClasspath) {
                 forbidGroupPrefixes("gui")
                 forbidModules("engine")
                 reason.set("Headless fixture acquired a renderer")

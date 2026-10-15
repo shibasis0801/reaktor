@@ -1,7 +1,6 @@
 package dev.shibasis.dependeasy.toolchain
 
 import org.gradle.api.Project
-import dev.shibasis.dependeasy.workspace.declareArtifactFamily
 import org.gradle.kotlin.dsl.register
 import dev.shibasis.dependeasy.model.ToolHandle
 
@@ -16,9 +15,8 @@ class VerificationTools private constructor(private val project: Project) {
             destination.set(directory)
         }
         val workspace = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
-        workspace.reference(project, task, null, if (name == "maestroRunner")
+        workspace.reference(project, task, dev.shibasis.dependeasy.model.OutputKind.GeneratedContract, if (name == "maestroRunner")
             dev.shibasis.dependeasy.model.HostRequirement(execution = dev.shibasis.dependeasy.model.ExecutionHost.Local) else null)
-        project.declareArtifactFamily(task.name, "metadata")
         return InstalledTool(ToolHandle(name, version), project.objects.fileProperty().fileValue(directory.resolve(binary)), task, project.provider { emptyMap() })
     }
     val dagger: InstalledTool by lazy { install("dagger", ToolchainVersions.Dagger,

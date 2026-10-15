@@ -20,6 +20,7 @@ class NativeCompositionTest {
             add_executable(sample src/commonMain/cpp/main.cpp)
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val bundle = tasks.register("bundle") {
                 val output = layout.projectDirectory.dir("dist")
@@ -28,7 +29,7 @@ class NativeCompositionTest {
             }
             dependeasy {
                 val compile = cmake("sample") { source = "." }
-                dag("native") { target("nativeBuild", node(compile), node(bundle)) }
+                workspace { val nativeBuild by artifacts { include(node(compile), node(bundle)) } }
             }
         """.trimIndent())
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
@@ -63,11 +64,12 @@ class NativeCompositionTest {
             target_compile_definitions(sample PRIVATE REAKTOR_INTEROP_EXPORTS_HEADER="${'$'}{REAKTOR_INTEROP_EXPORTS_HEADER}")
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 interop { cppModule("Exports.hpp", "fixture::install") }
                 val compile = cmake("sample") { source = "cpp" }
-                dag("native") { target("nativeBuild", node(compile)) }
+                workspace { val nativeBuild by artifacts { include(node(compile)) } }
             }
         """.trimIndent())
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
@@ -107,6 +109,7 @@ class NativeCompositionTest {
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.model.NativeContract
             import dev.shibasis.dependeasy.model.BuildModelReader
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 val compile = cmake("sample") { source = "cpp" }
@@ -114,7 +117,7 @@ class NativeCompositionTest {
                 val contract = BuildModelReader.json.encodeToString(NativeContract(
                     library = "sample", platform = "host", settings = mapOf("FIXTURE_VALUE" to value.get())))
                 compile.configure { nativeContract.set(contract) }
-                dag("native") { target("nativeBuild", node(compile)) }
+                workspace { val nativeBuild by artifacts { include(node(compile)) } }
             }
         """.trimIndent())
         fun run(value: Int) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
@@ -160,6 +163,7 @@ class NativeCompositionTest {
             import dev.shibasis.dependeasy.native.NativePlatform
             import dev.shibasis.dependeasy.tasks.CmakePlatform
             import dev.shibasis.dependeasy.tasks.kotlinCmake
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 nativeLibrary {

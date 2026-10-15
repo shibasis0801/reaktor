@@ -30,7 +30,7 @@ class PnpmCommandBoundaryTest {
         directory.resolve("build.gradle.kts").writeText("""
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
-                javascript("web", "web").command("check", null, "run", "check")
+                javascript("web", "web").check("check")
                 nodeScript("nestedCheck", file("nested.mjs")) {
                     dependsOn("pnpmInstall")
                     sourceFiles.from("web/package.json")

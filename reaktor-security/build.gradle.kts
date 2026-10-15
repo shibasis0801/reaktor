@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.native.*
 import dev.shibasis.dependeasy.native.NativePlatform
 import dev.shibasis.dependeasy.handles.Reaktor
@@ -13,7 +14,7 @@ dependeasy {
         dependencies(Native.OpenSslCrypto, Native.OpenSslSsl)
     }
     val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
-    dag("bindings") { target("generateBindings", node(bindings)) }
+    workspace { val generateBindings by artifacts { include(node(bindings)) } }
 
     darwinNative {
         packageName = "dev.shibasis.reaktor.security.native"

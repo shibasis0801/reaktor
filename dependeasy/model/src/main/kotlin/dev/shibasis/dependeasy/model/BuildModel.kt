@@ -22,7 +22,7 @@ data class NodeId(val build: String, val project: String, val name: String) {
 
 @Serializable
 data class BuildModel(
-    val schema: Int = 2,
+    val schema: Int = 3,
     val producer: Producer,
     val builds: List<BuildIdentity>,
     val declarations: List<DeclarationInput> = emptyList(),
@@ -39,7 +39,7 @@ data class BuildModel(
     init { require(line > 0 && file.isNotBlank()) }
 }
 @Serializable data class KernelRef(val className: String, val source: SourceSite? = null, val spec: KernelSpec? = null)
-@Serializable enum class NodeKind { Target, Kernel, External }
+@Serializable enum class NodeKind { Target, Kernel, Verification, ArtifactSet, Release, Deploy, External }
 @Serializable enum class Effect { Verify, Build, Develop, Deploy }
 @Serializable enum class HostPlatform { Portable, Macos, Linux }
 @Serializable enum class ExecutionHost { Local, Worker }
@@ -59,12 +59,11 @@ data class Node(
     val outputs: List<FileSet> = emptyList(),
     val tools: List<ToolRef> = emptyList(),
     val additionalDeclarations: List<SourceSite> = emptyList(),
-    val runner: String = "gradle",
+    val runner: Runner = Runner.Gradle,
     val artifactFamily: String? = null,
-    val worker: String? = null,
-    val workerDirectory: String? = null,
-    val bindings: List<String> = emptyList(),
-    val environments: List<String> = emptyList(),
+    val worker: WorkerRef? = null,
+    val bindings: List<ServiceRef> = emptyList(),
+    val environments: List<Environment> = emptyList(),
     val requirements: List<OptionRequirement> = emptyList(),
 )
 
@@ -121,7 +120,7 @@ data class RunReceipt(
 
 fun BuildModel.requiredHost(id: NodeId): HostRequirement {
     val byId = nodes.associateBy { it.id }
-    val prerequisites = edges.filter { it !is Edge.After }.groupBy { it.from }
+    val prerequisites = edges.groupBy { it.from }
     fun resolve(node: NodeId, visited: Set<NodeId>): HostRequirement {
         val own = byId[node]?.host ?: HostRequirement()
         if (node in visited) return own

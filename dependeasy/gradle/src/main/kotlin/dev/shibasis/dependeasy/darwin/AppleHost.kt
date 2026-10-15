@@ -29,17 +29,17 @@ class AppleHost internal constructor(private val project: Project, private val d
     var developmentTools: BuildOption<Boolean>? = null
     var android: ProjectDependency? = null
     var web: dev.shibasis.dependeasy.handles.NodeHandle? = null
-    val archiveCheck = project.tasks.register<DarwinArchiveCheck>("darwinArchiveCheck")
-    val symbolUploadCheck = project.tasks.register<DarwinArchiveCheck>("verifyDarwinSymbolUpload")
-    val signing = project.tasks.register<SigningXcconfigTask>("generateSigningXcconfig") {
+    internal val archiveCheck = project.tasks.register<DarwinArchiveCheck>("darwinArchiveCheck")
+    internal val symbolUploadCheck = project.tasks.register<DarwinArchiveCheck>("verifyDarwinSymbolUpload")
+    internal val signing = project.tasks.register<SigningXcconfigTask>("generateSigningXcconfig") {
         request.set(project.layout.buildDirectory.file("dependeasy/apple/signing-request.json"))
         config.set(project.layout.buildDirectory.file("dependeasy/apple/Signing.local.xcconfig"))
         exportOptions.set(project.layout.projectDirectory.file("tmp/fastlane/ios/ExportOptions.generated.plist"))
     }
-    val generate = project.tasks.register<XcodeHostTask>("generateXcodeHost")
-    val verify = project.tasks.register<VerifyXcodeHost>("verifyXcodeHost")
-    val release = project.tasks.register<ReleasePlanTask>("generateReleasePlan")
-    val frameworks = project.tasks.register<WorkspaceTargetTask>("embedAppleFrameworksForXcode") {
+    internal val generate = project.tasks.register<XcodeHostTask>("generateXcodeHost")
+    internal val verify = project.tasks.register<VerifyXcodeHost>("verifyXcodeHost")
+    internal val release = project.tasks.register<ReleasePlanTask>("generateReleasePlan")
+    internal val frameworks = project.tasks.register<WorkspaceTargetTask>("embedAppleFrameworksForXcode") {
         dependsOn(project.outputFiles(project.appleXcodeFramework(application)))
     }
 

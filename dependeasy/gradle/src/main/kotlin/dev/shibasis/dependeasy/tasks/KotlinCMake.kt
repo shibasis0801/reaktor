@@ -5,7 +5,7 @@ import dev.shibasis.dependeasy.model.Apple
 import dev.shibasis.dependeasy.model.NativeContract
 import dev.shibasis.dependeasy.model.BuildModelReader
 import dev.shibasis.dependeasy.model.OutputKind
-import dev.shibasis.dependeasy.dag.BuildPipeline
+import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.native.cmakeKernelSources
 import dev.shibasis.dependeasy.native.cmakeSources
 import dev.shibasis.dependeasy.native.nativeBuildDirectory
@@ -85,11 +85,7 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
         }
         publishOutput(OutputKind.NativeLibrary, buildTask.flatMap { it.buildDirectory }, apple, producer = buildTask)
     }
-    val pipeline = BuildPipeline(this, "${platform.taskPrefix}Native")
-    val inputs = prefabTasks.map { pipeline.node(it.second) } + dependencyTasks.map { (dependency, task) ->
-        pipeline.node(task, "${dependency.project.path}:${task.name}")
-    }
-    pipeline.node(buildTask).after(*inputs.toTypedArray())
-    pipeline.report()
+    val inputs = prefabTasks.map { node(it.second) } + dependencyTasks.map { (dependency, task) -> dependency.project.node(task) }
+    node(buildTask).after(*inputs.toTypedArray())
     return buildTask
 }

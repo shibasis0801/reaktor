@@ -5,7 +5,9 @@ import dev.shibasis.dependeasy.model.OutputKind
 import dev.shibasis.dependeasy.model.Verification
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import dev.shibasis.dependeasy.codegen.KotlinObjectTask
-import dev.shibasis.dependeasy.plugins.DependeasyExtension
+import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.handles.node
+import dev.shibasis.dependeasy.model.NodeKind
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import org.gradle.api.Project
@@ -17,18 +19,14 @@ internal class InteropBuildKernel(private val project: Project, private val name
     fun install() {
         project.nativeExports(name, declaration.nativeInstallers)
         val directory = declaration.typescriptDirectory ?: return
-        val extension = DependeasyExtension.get(project)
         val typescript = JavaScriptComponent(project, "${name}TypeScript", directory)
         typescript.sources("src/commonMain/typescript")
         val types = typescript.types()
         val bundle = typescript.vite()
         val checks = typescript.check()
-        var verification: org.gradle.api.tasks.TaskProvider<out org.gradle.api.Task>? = null
-        extension.dag("${name}TypeScript") {
-            val typecheck = node(types)
-            val production = node(bundle).after(typecheck)
-            verification = target("${this@InteropBuildKernel.name}TypeScriptVerify", node(checks).after(production))
-        }
+        val production = project.node(bundle).after(project.node(types))
+        val verification = BuildWorkspace.get(project).aggregate(project, "${name}TypeScriptVerify", NodeKind.Verification,
+            listOf(project.node(checks).after(production)))
         val source = project.layout.projectDirectory.file(project.file(directory).resolve("dist/${declaration.bundle}")
             .relativeTo(project.projectDir).invariantSeparatorsPath)
         val generation = project.tasks.register<KotlinObjectTask>("generate${name.replaceFirstChar(Char::uppercaseChar)}TypeScriptBundle") {
@@ -42,7 +40,7 @@ internal class InteropBuildKernel(private val project: Project, private val name
         project.extensions.getByType<KotlinMultiplatformExtension>().sourceSets.matching {
             it.name == "androidMain" || it.name == "iosMain"
         }.all { kotlin.srcDir(generation.flatMap { it.outputDirectory }) }
-        val checked = checkNotNull(verification)
+        val checked = requireNotNull(verification.task)
         project.publishOutput(OutputKind.VerificationResults, project.files(checked), Verification.InteropTypeScript, producer = checked)
         project.tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME).configure { dependsOn(checked) }
         if (declaration.hostTests) project.interopHostTests(name, source.asFile, bundle)
