@@ -106,6 +106,93 @@ class HarnessSessionsTest {
         assertEquals(latest.path, codex.single().transcript)
     }
 
+    @Test fun aRunningClaudeSessionTakesItsStateAndNameFromTheLiveRegistry() {
+        val ws = workspace.path
+        claude("-in-workspace", "c5", ws, now - 600_000,
+            """{"type":"user","cwd":"$ws","sessionId":"c5","entrypoint":"cli","timestamp":"2026-10-02T06:00:00Z","message":{"role":"user","content":"Port the board"}}""")
+        registry(111, "c5", ws, "busy", "Board port", "claude-desktop")
+        registry(222, "c1", ws, "idle", "Ignored when the transcript is titled", "cli")
+        registry(333, "c9", workspace.parentFile.path, "idle", "Planning the week", "claude-desktop")
+        registry(444, "c3", ws, "busy", "Dead process", "cli")
+        File(home, ".claude/sessions/111.0123.key").writeText("never read")
+        val sessions = HarnessSessions.read(workspace, home, now, processes(alive = setOf(111, 222, 333))).associateBy { it.id }
+
+        assertEquals(HarnessActivity.Working, sessions.getValue("c5").activity)
+        assertEquals("Board port", sessions.getValue("c5").title)
+        assertEquals("claude-desktop", sessions.getValue("c5").origin)
+        assertEquals(111L, sessions.getValue("c5").pid)
+        assertEquals(HarnessActivity.Waiting, sessions.getValue("c1").activity)
+        assertEquals("Hangar agent pane", sessions.getValue("c1").title)
+        assertEquals("Planning the week", sessions.getValue("c9").title)
+        assertEquals(HarnessActivity.Waiting, sessions.getValue("c9").activity)
+        assertEquals("", sessions.getValue("c9").transcript)
+        assertEquals(null, sessions["c3"])
+    }
+
+    @Test fun aClaudeSessionOutsideTheRegistryIsWorkingOnlyWhileItsTranscriptMoves() {
+        val sessions = HarnessSessions.read(workspace, home, now, processes()).associateBy { it.id }
+        assertEquals(HarnessActivity.Working, sessions.getValue("c1").activity)
+        File(home, ".claude/projects/-in-workspace/c1.jsonl").setLastModified(now - 600_000)
+        assertEquals(HarnessActivity.Ended, HarnessSessions.read(workspace, home, now, processes()).first { it.id == "c1" }.activity)
+    }
+
+    @Test fun aCodexThreadIsWorkingInATurnWaitingWhenOpenAndEndedWhenClosed() {
+        val transcript = File(home, ".codex/sessions/2026/10/01/rollout-2026-10-01T10-00-00-x1.jsonl")
+        fun state(open: Boolean, modified: Long = now - 600_000): HarnessActivity {
+            transcript.setLastModified(modified)
+            return HarnessSessions.read(workspace, home, now, processes(open = if (open) setOf(transcript.path) else emptySet()))
+                .first { it.id == "x1" }.activity
+        }
+        assertEquals(HarnessActivity.Ended, state(open = false))
+        assertEquals(HarnessActivity.Waiting, state(open = true))
+        transcript.appendText("""{"timestamp":"2026-10-02T06:59:00Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}""" + "\n")
+        assertEquals(HarnessActivity.Working, state(open = true))
+        assertEquals(HarnessActivity.Working, state(open = false, modified = now - 30_000))
+        assertEquals(HarnessActivity.Ended, state(open = false))
+        transcript.appendText("""{"timestamp":"2026-10-02T06:59:10Z","type":"event_msg","payload":{"type":"exec_approval_request","call_id":"a1"}}""" + "\n" +
+            """{"timestamp":"2026-10-02T06:59:11Z","type":"event_msg","payload":{"type":"token_count","info":{}}}""" + "\n")
+        assertEquals(HarnessActivity.NeedsYou, state(open = true))
+        transcript.appendText("""{"timestamp":"2026-10-02T06:59:30Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t2"}}""" + "\n")
+        assertEquals(HarnessActivity.Waiting, state(open = true))
+    }
+
+    @Test fun aTimelineReadsPromptsRepliesAndToolsFromEitherHarness() {
+        val ws = workspace.path
+        claude("-in-workspace", "c6", ws, now - 10_000,
+            """{"type":"user","cwd":"$ws","sessionId":"c6","timestamp":"2026-10-02T06:00:00Z","message":{"role":"user","content":"<command-name>/clear</command-name>"}}""",
+            """{"type":"user","cwd":"$ws","sessionId":"c6","timestamp":"2026-10-02T06:00:01Z","message":{"role":"user","content":[{"type":"text","text":"Add the board"}]}}""",
+            """{"type":"assistant","sessionId":"c6","timestamp":"2026-10-02T06:00:05Z","message":{"content":[{"type":"thinking","thinking":"hidden"},{"type":"text","text":"Reading the pane first."},{"type":"tool_use","name":"Edit","input":{"file_path":"$ws/modules/engine/Board.kt"}}]}}""",
+            """{"type":"user","sessionId":"c6","timestamp":"2026-10-02T06:00:06Z","message":{"role":"user","content":[{"type":"tool_result","content":"ok"}]}}""",
+            """{"type":"assistant","sessionId":"c6","isSidechain":true,"timestamp":"2026-10-02T06:00:07Z","message":{"content":[{"type":"text","text":"Subagent chatter"}]}}""")
+        val claude = HarnessSessions.read(workspace, home, now, processes()).first { it.id == "c6" }
+        val entries = HarnessSessions.timeline(claude, workspace).entries
+        assertEquals(listOf(HarnessEntryKind.Prompt, HarnessEntryKind.Reply, HarnessEntryKind.Tool), entries.map { it.kind })
+        assertEquals("Add the board", entries[0].text)
+        assertEquals("modules/engine/Board.kt", entries[2].file)
+
+        val codex = HarnessSessions.read(workspace, home, now, processes()).first { it.id == "x1" }
+        File(codex.transcript).appendText(listOf(
+            """{"timestamp":"2026-10-02T06:59:00Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"Ship it"}]}}}""",
+            """{"timestamp":"2026-10-02T06:59:05Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"AgentMessage","content":[{"type":"Text","text":"Shipping."}]}}}""",
+            """{"timestamp":"2026-10-02T06:59:06Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"CommandExecution","command":["/bin/zsh"],"parsed_cmd":[{"type":"unknown","cmd":"./gradlew pr"}]}}}""",
+        ).joinToString("\n", postfix = "\n"))
+        val timeline = HarnessSessions.timeline(codex, workspace).entries
+        assertEquals("Ship it", timeline.first { it.kind == HarnessEntryKind.Prompt }.text)
+        assertEquals("Shipping.", timeline.first { it.kind == HarnessEntryKind.Reply }.text)
+        assertEquals("./gradlew pr", timeline.last().detail)
+        assertEquals("targets/botServer/wrangler.json", timeline.first { it.text == "edit" }.file)
+    }
+
+    private fun processes(alive: Set<Long> = emptySet(), open: Set<String> = emptySet()) = object : HarnessProcesses {
+        override fun alive(pid: Long) = pid in alive
+        override fun openTranscripts() = open
+    }
+
+    private fun registry(pid: Long, session: String, cwd: String, status: String, name: String, entrypoint: String) {
+        File(home, ".claude/sessions/$pid.json").apply { parentFile.mkdirs() }.writeText(
+            """{"pid":$pid,"sessionId":"$session","cwd":"$cwd","startedAt":"${now - 3_600_000}","version":"2.1.295","kind":"interactive","entrypoint":"$entrypoint","name":"$name","status":"$status","statusUpdatedAt":"${now - 5_000}"}""")
+    }
+
     private fun claude(project: String, id: String, cwd: String, modified: Long, vararg lines: String) {
         File(home, ".claude/projects/$project/$id.jsonl").apply { parentFile.mkdirs() }.apply {
             writeText(lines.joinToString("\n", postfix = "\n"))

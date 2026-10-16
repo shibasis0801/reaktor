@@ -19,7 +19,7 @@ object AgentBackgroundService {
                 return@install
             }
             val label = label(root)
-            val domain = "gui/${run(listOf("/usr/bin/id", "-u")).second.trim()}"
+            val domain = "gui/${uid()}"
             val agents = Path.of(System.getProperty("user.home"), "Library", "LaunchAgents")
             Files.createDirectories(agents)
             val plist = agents.resolve("$label.plist")
@@ -48,10 +48,15 @@ object AgentBackgroundService {
 
     fun label(root: File) = "build.reaktor.agents.${digest(root.canonicalPath).take(24)}"
 
+    private fun uid(): Int {
+        val probe = Files.createTempFile("reaktor-uid", ".probe")
+        return try { Files.getAttribute(probe, "unix:uid") as Int } finally { Files.deleteIfExists(probe) }
+    }
+
     fun stop(root: File): String {
         if (!System.getProperty("os.name").lowercase().contains("mac")) return PlatformAgentService.stop(root)
         val label = label(root)
-        val domain = "gui/${run(listOf("/usr/bin/id", "-u")).second.trim()}"
+        val domain = "gui/${uid()}"
         val result = run(listOf("/bin/launchctl", "bootout", "$domain/$label"))
         check(result.first == 0) { "Could not stop background service: ${result.second.take(500)}" }
         return "Background service stopped; unfinished tasks remain checkpointed. It can recover them on the next start or macOS login."

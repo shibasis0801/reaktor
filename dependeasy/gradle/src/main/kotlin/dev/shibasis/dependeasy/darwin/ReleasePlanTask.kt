@@ -24,7 +24,11 @@ abstract class ReleasePlanTask : DefaultTask(), KernelSpecOwner {
     @get:InputFiles @get:PathSensitive(PathSensitivity.NONE) abstract val apkMetadata: ConfigurableFileCollection
     @get:Internal abstract val artifactsLoader: Property<com.android.build.api.variant.BuiltArtifactsLoader>
     @get:Internal abstract val rootDirectory: DirectoryProperty
-    @get:Input abstract val webTask: Property<String>
+    @get:Input abstract val webWorker: Property<String>
+    @get:Optional @get:InputFile @get:PathSensitive(PathSensitivity.RELATIVE) abstract val workerFleet: RegularFileProperty
+    @get:Input abstract val archiveCheckTask: Property<String>
+    @get:Input abstract val symbolUploadCheckTask: Property<String>
+    @get:Input abstract val signingTask: Property<String>
     @get:OutputFile abstract val output: RegularFileProperty
     init { androidArtifacts.convention(emptyMap()); androidTasks.convention(emptyMap()); apkDirectories.convention(emptyMap()); rootDirectory.set(project.rootProject.layout.projectDirectory) }
     @TaskAction fun write() {
@@ -70,10 +74,15 @@ abstract class ReleasePlanTask : DefaultTask(), KernelSpecOwner {
             commands[key] = ReleaseCommand(".", listOf("./gradlew", path) + versionArgs +
                 if (key.contains("Release")) listOf("-Pdependeasy.publishCrashlytics=true", "-P${apple.developmentToolsOption}=false", "--console=plain") else listOf("--console=plain"))
         }
-        if (webTask.get().isNotBlank()) commands["webDeploy"] = ReleaseCommand(".", listOf("./gradlew", webTask.get(), "-P${apple.developmentToolsOption}=false") + versionArgs + "--console=plain")
-        commands["iosArchiveCheck"] = ReleaseCommand(".", listOf("./gradlew", "darwinArchiveCheck", "--console=plain") + versionArgs)
-        commands["iosSymbolUploadCheck"] = ReleaseCommand(".", listOf("./gradlew", "verifyDarwinSymbolUpload", "--console=plain") + versionArgs)
-        commands["iosSigning"] = ReleaseCommand(".", listOf("./gradlew", "generateSigningXcconfig", "--console=plain") + versionArgs)
+        if (webWorker.get().isNotBlank()) {
+            val fleet = BuildModelReader.json.decodeFromString<WorkerFleetContract>(workerFleet.get().asFile.readText())
+            val worker = fleet.workers.single { it.name == webWorker.get() }
+            val task = worker.node.project.trimEnd(':') + ":" + worker.node.name
+            commands["webDeploy"] = ReleaseCommand(".", listOf("./gradlew", task, "-P${apple.developmentToolsOption}=false") + versionArgs + "--console=plain")
+        }
+        commands["iosArchiveCheck"] = ReleaseCommand(".", listOf("./gradlew", archiveCheckTask.get(), "--console=plain") + versionArgs)
+        commands["iosSymbolUploadCheck"] = ReleaseCommand(".", listOf("./gradlew", symbolUploadCheckTask.get(), "--console=plain") + versionArgs)
+        commands["iosSigning"] = ReleaseCommand(".", listOf("./gradlew", signingTask.get(), "--console=plain") + versionArgs)
         val plan = ReleasePlan(product = product.get(), versionName = versionName.get(), buildNumber = buildNumber.get(),
             bundleId = apple.targets.first().bundleId, extensionBundleId = apple.targets.drop(1).firstOrNull()?.bundleId,
             team = apple.team, artifacts = artifacts, commands = commands)

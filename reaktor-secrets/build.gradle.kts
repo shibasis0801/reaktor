@@ -1,27 +1,19 @@
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.common.commonCoroutines
 import dev.shibasis.dependeasy.common.commonSerialization
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
 
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    module("dev.shibasis.reaktor.secrets") {
+library(namespace = "dev.shibasis.reaktor.secrets", targets = Targets.All) {
+    dependencies {
         common {
-            dependencies {
-                api(projects.reaktorAuthCore)
-                api(projects.reaktorCore)
-                commonCoroutines()
-                commonSerialization(protobuf = false)
-            }
+            api(projects.reaktorAuthCore)
+            api(projects.reaktorCore)
+            commonCoroutines()
+            commonSerialization(protobuf = false)
         }
-        android {}
-        apple {}
-        web {}
-
-        jvm {
-            dependencies {
-                api(Versions.Google.Auth)
-            }
-        }
+        jvm { api(Versions.Google.Auth) }
     }
 }

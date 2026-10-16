@@ -31,6 +31,9 @@ class DoorCredentials(
             is DoorCredential.SecretFile -> fromFile(credential) to 60L
             is DoorCredential.Keychain -> run(listOf("/usr/bin/security", "find-generic-password", "-s", credential.service, "-a", credential.account, "-w"), credential,
                 "store it once with: security add-generic-password -s ${credential.service} -a ${credential.account} -w") to 300L
+            is DoorCredential.Google -> try {
+                kotlinx.coroutines.runBlocking { dev.shibasis.reaktor.tooling.cloud.GoogleSignIn(home, ambient).token(credential.account) }
+            } catch (absent: dev.shibasis.reaktor.tooling.cloud.GoogleSignInRequired) { missing(credential, absent.message.orEmpty()) } to 300L
         }
         held[credential] = Held(value, System.currentTimeMillis() + seconds * 1000)
         return value

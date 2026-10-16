@@ -28,6 +28,7 @@ dependeasy {
                 implementation(Versions.Google.Auth)
                 implementation(Versions.Data.Postgres)
                 implementation(Versions.Data.Neo4j)
+                implementation(Versions.Data.SQLiteJdbc)
                 // Google's own client for the adb server protocol, coroutines-native. Replaces
                 // shelling out to the `adb` binary: device tracking, shellV2, sync and forwarding are
                 // all streaming operations that a one-shot argv grammar cannot express.

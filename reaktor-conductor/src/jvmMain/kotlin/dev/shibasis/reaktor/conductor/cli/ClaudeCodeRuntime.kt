@@ -70,7 +70,10 @@ internal fun claudeArgv(request: AgentRequest, binary: String = "claude"): List<
     }
 
     val tools = request.agent.tools
-    if (!tools.allowWrites) {
+    if (tools.allowWrites) {
+        add("--permission-mode")
+        add("bypassPermissions")
+    } else {
         // Restricts these built-in editors; Bash/MCP permissions still belong to the harness.
         add("--disallowedTools")
         addAll(listOf("Write", "Edit", "NotebookEdit"))

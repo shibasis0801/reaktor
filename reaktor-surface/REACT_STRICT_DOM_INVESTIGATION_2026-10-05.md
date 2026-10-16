@@ -1,5 +1,9 @@
 # React Strict DOM in Reaktor Surface
 
+> Historical investigation. The October 16 user direction supersedes its RSD
+> decision: Surface now uses Kotlin/JS React with ordinary React DOM. See
+> [the current React DOM realization](REACT_DOM.md).
+
 Investigation dated 5 October 2026, using `m1-worker` for builds, package probes and upstream source analysis. Primary Reaktor source: `f2df0db8c697d97efedecebff9f1df9f4333bd89`. The review also covers the newer Claude-recovery continuation at `2e9dc2820b9c74682cd074c84d3782f98873600e`, with BestBuds at `a25939f633c183d60d251a44367dacb79807c6fe`, in `/Users/ovd/dev/tmp/hangar-completion/`. This investigation adds documentation and isolated experiments; it changes no production source, dependencies or public APIs.
 
 ## Decision

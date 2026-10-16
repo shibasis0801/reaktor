@@ -61,6 +61,15 @@ class BuildDeclarationsTest {
         assertFailsWith<IllegalArgumentException> { BuildDeclarations.read(root) }
     }
 
+    @Test fun aStaleModelKeepsTheWorkspaceDiscoverableButWithholdsItsBuildTasks() = fixture { root ->
+        report(root, node("artifacts"))
+        root.resolve("build.gradle.kts").appendText("\n")
+        assertFailsWith<IllegalArgumentException> { BuildDeclarations.read(root) }
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        assertTrue(workspace.catalog.tasks.none { "buildNode" in it.attributes })
+        assertEquals("fixture", workspace.catalog.workspace.name)
+    }
+
     @Test fun compositeOwnershipAndEveryEffectRemainVisible() = fixture { root ->
         report(root, node("artifacts"), node("checks", Effect.Verify, "library"),
             node("serve", Effect.Develop), node("deploy", Effect.Deploy),

@@ -44,6 +44,8 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
             DatabaseProvider.Postgres -> postgres(op, query, environment, timeoutMillis, bound?.parameters)
             DatabaseProvider.Memgraph -> memgraph(op, query, environment, timeoutMillis)
             DatabaseProvider.ClickHouse -> clickhouse(op, query, environment, timeoutMillis)
+            DatabaseProvider.D1 -> D1JvmClient(session).read(op, query)
+            DatabaseProvider.SQLite -> SQLiteJvmClient(session).read(op, query, timeoutMillis)
         } } catch (failure: Exception) {
             if (query == null || resultFile == null || op.resultFormat != DatabaseResultFormat.QueryReceipt) throw failure
             val detail = when (failure) {
@@ -51,6 +53,7 @@ class DatabaseJvmClient(private val session: InfrastructureSession) {
                 is org.postgresql.util.PSQLException -> QueryError(failure.sqlState ?: "postgres_error", failure.serverErrorMessage?.message ?: "PostgreSQL query failed", failure.serverErrorMessage?.position?.takeIf { it > 0 })
                 is org.neo4j.driver.exceptions.Neo4jException -> QueryError(failure.code(), failure.message.orEmpty().take(4096))
                 is ProviderHttpFailure -> QueryError("http_${failure.status}", failure.privateBody.take(4096))
+                is java.sql.SQLException -> QueryError("sqlite_${failure.errorCode}", failure.message.orEmpty().take(4096))
                 else -> throw failure
             }
             QueryReceipt(provider = op.engine.name, columns = emptyList(), rows = emptyList(), error = detail.copy(message =
@@ -296,7 +299,7 @@ private fun jsonValue(value: Any?): JsonElement = when (value) {
     else -> JsonPrimitive(value.toString())
 }
 
-private class QueryClock {
+internal class QueryClock {
     private val started = System.nanoTime()
     private var connectedAt = started
     private var executedAt = started

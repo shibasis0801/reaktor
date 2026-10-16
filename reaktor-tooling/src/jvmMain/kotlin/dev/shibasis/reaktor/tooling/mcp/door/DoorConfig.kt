@@ -151,7 +151,7 @@ sealed interface DoorCredential {
     @Serializable @SerialName("env")
     data class Env(val name: String, override val whenMissing: String? = null) : DoorCredential
 
-    /** A tool that already holds the sign-in, such as `gh auth token` or `gcloud auth print-access-token`. */
+    /** A tool that already holds the sign-in, such as `gh auth token`. */
     @Serializable @SerialName("command")
     data class Command(val command: List<String>, val cacheSeconds: Long = 300, override val whenMissing: String? = null) : DoorCredential
 
@@ -166,6 +166,9 @@ sealed interface DoorCredential {
     /** macOS keychain, generic password. Store one with `security add-generic-password -s <service> -a <account> -w`. */
     @Serializable @SerialName("keychain")
     data class Keychain(val service: String, val account: String, override val whenMissing: String? = null) : DoorCredential
+
+    @Serializable @SerialName("google")
+    data class Google(val account: String? = null, override val whenMissing: String? = null) : DoorCredential
 }
 
 /** What a child may see of this process. Everything else, credentials included, stays here. */

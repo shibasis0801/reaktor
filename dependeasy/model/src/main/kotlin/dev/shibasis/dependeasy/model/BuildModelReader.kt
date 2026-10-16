@@ -32,6 +32,8 @@ object BuildModelReader {
         return model
     }
 
+    fun readAllowingStale(root: File): BuildModel = declaredModel(root)
+
     private fun declaredModel(root: File): BuildModel {
         val file = root.resolve(RelativePath)
         require(file.isFile) { "Run ./gradlew exportBuildModel in this workspace" }

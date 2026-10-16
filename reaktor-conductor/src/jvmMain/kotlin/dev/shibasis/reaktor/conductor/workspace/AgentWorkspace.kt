@@ -377,10 +377,6 @@ class AgentWorkspace(
         require(active.keys.sumOf { if (records[it]?.councilHybrid == true) 3 else if (records[it]?.collaboration == AgentCollaboration.Single) 1 else 2 } + slots <= maxActive) {
             "Agent capacity is busy; wait for an active run"
         }
-        require(active.keys.none { records[it]?.allowWrites == true && records[it]?.isolation == AgentIsolation.Shared } &&
-            (!request.allowWrites || request.isolation == AgentIsolation.Worktree || active.isEmpty())) {
-            "Workspace edits require exclusive agent execution"
-        }
         val threadId = request.threadId ?: UUID.randomUUID().toString()
         val path = threadPath(threadId)
         require(request.threadId == null || Files.exists(path)) { "Conversation not found in this workspace" }

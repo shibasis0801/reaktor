@@ -1,13 +1,8 @@
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
+
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    module("dev.shibasis.reaktor.sensors") {
-        common {
-            dependencies {
-                api(projects.reaktorCore)
-            }
-        }
-        android {}
-        apple {}
-    }
+library(namespace = "dev.shibasis.reaktor.sensors", targets = Targets.Android + Targets.Apple) {
+    dependencies { common { api(projects.reaktorCore) } }
 }

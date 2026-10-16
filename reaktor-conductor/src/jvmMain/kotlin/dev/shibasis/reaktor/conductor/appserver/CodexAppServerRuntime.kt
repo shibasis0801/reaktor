@@ -1,7 +1,9 @@
 package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.cli.codexApprovals
 import dev.shibasis.reaktor.conductor.cli.codexMcpArgs
+import dev.shibasis.reaktor.conductor.cli.codexSandbox
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
@@ -138,17 +140,15 @@ private class CodexAppServerSession(
             rpc.request("thread/resume", buildJsonObject {
                 put("threadId", resume.sessionId)
                 put("cwd", request.workingDirectory)
-                put("sandbox", if (request.agent.tools.allowWrites) "workspace-write" else "read-only")
-                put("approvalPolicy", "on-request")
+                put("sandbox", request.agent.tools.codexSandbox())
+                put("approvalPolicy", request.agent.tools.codexApprovals())
                 request.agent.model?.let { put("model", it) }
             })
         } else {
             rpc.request("thread/start", buildJsonObject {
                 put("cwd", request.workingDirectory)
-                put("sandbox", if (request.agent.tools.allowWrites) "workspace-write" else "read-only")
-                // Approvals are surfaced to policy rather than auto-answered, so the server is told
-                // to ask. `never` would silently narrow what the harness is allowed to attempt.
-                put("approvalPolicy", "on-request")
+                put("sandbox", request.agent.tools.codexSandbox())
+                put("approvalPolicy", request.agent.tools.codexApprovals())
                 request.agent.model?.let { put("model", it) }
                 request.agent.effort?.let { put("config", buildJsonObject { put("model_reasoning_effort", it.value) }) }
             })

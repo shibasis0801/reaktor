@@ -353,7 +353,7 @@ class AgentWorkspaceTest {
                 val first = owner.submit(AgentSubmission("1", harness.kind, "BLOCK_UNTIL_CANCEL"))
                 withTimeout(10000) { harness.started.await() }
                 assertFailsWith<IllegalStateException> { owner.submit(AgentSubmission("same-thread", harness.kind, "busy", first.threadId)) }
-                assertFailsWith<IllegalStateException> { owner.submit(AgentSubmission("writer", harness.kind, "edit", allowWrites = true)) }
+                assertEquals(AgentRunStatus.Completed, terminal(owner, owner.submit(AgentSubmission("writer", harness.kind, "edit", allowWrites = true))).status)
                 assertEquals(AgentRunStatus.Interrupted, owner.cancel(first.id).status)
                 val second = terminal(owner, owner.submit(AgentSubmission("2", harness.kind, "fresh conversation")))
                 assertEquals(AgentRunStatus.Interrupted, owner.cancel(first.id).status)

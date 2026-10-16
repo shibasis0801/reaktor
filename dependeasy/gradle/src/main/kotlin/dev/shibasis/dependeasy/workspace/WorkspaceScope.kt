@@ -4,6 +4,7 @@ import dev.shibasis.dependeasy.configuration.resolve
 import dev.shibasis.dependeasy.handles.NodeHandle
 import dev.shibasis.dependeasy.handles.OutputHandle
 import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.verification.devicePreparation
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import kotlin.properties.ReadOnlyProperty
@@ -29,10 +30,8 @@ class WorkspaceScope internal constructor(private val project: Project, private 
 
     fun packageScripts() = workspace.packageScripts()
 
-    fun workers(content: dev.shibasis.dependeasy.cloudflare.WorkerFleet.() -> Unit) = workspace.workers(content)
 
-    fun deviceFlows(content: dev.shibasis.dependeasy.verification.DeviceFlows.() -> Unit) =
-        NodeDeclaration { name -> dev.shibasis.dependeasy.verification.DeviceFlows(project, name).apply(content).register() }
+    fun prepare(hook: DeviceHook) = NodeDeclaration { name -> project.devicePreparation(name, hook) }
 
     fun external(call: ExternalCall, removal: String, run: Run = Run.Default,
         runner: Runner = when (call) { is ExternalCall.Fastlane -> Runner.Fastlane; is ExternalCall.Package -> Runner.Pnpm; is ExternalCall.BashScript -> Runner.Shell }, content: ExternalSpec.() -> Unit = {}): NodeDeclaration {

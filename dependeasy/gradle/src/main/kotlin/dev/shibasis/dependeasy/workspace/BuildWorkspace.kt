@@ -1,8 +1,6 @@
 package dev.shibasis.dependeasy.workspace
 
-import dev.shibasis.dependeasy.verification.karateSuite
 import dev.shibasis.dependeasy.web.PnpmWorkspace
-import dev.shibasis.dependeasy.cloudflare.WorkerFleet
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.publishing.PublicationDefaults
 import kotlinx.serialization.encodeToString
@@ -154,7 +152,9 @@ internal class BuildWorkspace(private val project: Project) {
                 spec.run.timeoutMillis?.let { timeout.set(java.time.Duration.ofMillis(it)) }
             }
         }
-        val handle = NodeHandle(id, task, outputKinds = target::outputKinds, owner = owner) { target.model().invocation }
+        val handle = NodeHandle(id, task, outputKinds = target::outputKinds, owner = owner) {
+            Invocation.Gradle(listOf(owner.path.trimEnd(':') + ":" + name))
+        }
         if (role != null) owner.publishRole(role, handle, task.flatMap { it.completionManifest })
         return handle
     }
@@ -163,7 +163,7 @@ internal class BuildWorkspace(private val project: Project) {
         targets[target.id.toString()] = target
         declaredTasks.add(target.id)
         graph.configure {
-            nodes.add(project.provider { BuildModelReader.encode(target.model().let { node ->
+            nodes.add(project.provider { BuildModelReader.encode(target.model(project).let { node ->
                 (taskArtifactFamilies[node.id] ?: taskOutputKinds[node.id]?.family)?.let { node.copy(artifactFamily = it) } ?: node
             }) })
             edges.addAll(project.provider { target.edges().map { BuildModelReader.json.encodeToString(it) } })
@@ -171,15 +171,10 @@ internal class BuildWorkspace(private val project: Project) {
         }
     }
 
-    fun karateSuite(name: String, directory: String, config: String, tags: List<String> = emptyList(), environmentFiles: List<String> = emptyList()) =
-        project.karateSuite(name, directory, config, tags, environmentFiles)
-
     internal fun configure(node: NodeHandle, configuration: BuildTarget.() -> Unit) {
         val target = targets.getValue(node.id.toString()).apply(configuration)
         node.task?.configure { setDependsOn(listOf(project.provider { target.dependencies() })); mustRunAfter(target.ordering) }
     }
-
-    fun workers(configure: WorkerFleet.() -> Unit) = WorkerFleet(project).apply(configure).also { it.register(this) }
 
     fun includedBuild(handle: BuildHandle) {
         graph.configure {
@@ -194,7 +189,7 @@ internal class BuildWorkspace(private val project: Project) {
         val generatedNames = generated.keys.toSet()
         manifest.set(project.providers.fileContents(file).asText.map { authoredManifest(it, generatedNames) })
         aliases.set(generated.mapValues { it.value.id.project.trimEnd(':') + ":" + it.value.name })
-        targets.set(generated.mapValues { BuildModelReader.encode(it.value.model()) })
+        targets.set(generated.mapValues { BuildModelReader.encode(it.value.model(project)) })
         outputFile.set(file)
         rootDirectory.set(project.layout.projectDirectory)
         extraAliases.putAll(scriptAliases["package.json"].orEmpty())
@@ -208,6 +203,7 @@ internal class BuildWorkspace(private val project: Project) {
         graph.configure { mustRunAfter(generation) }
         reference(project, generation, OutputKind.GeneratedContract)
         PnpmWorkspace.get(project).install.configure { dependsOn(generation) }
+        PnpmWorkspace.get(project).updateLockfile.configure { dependsOn(generation) }
     }
 
     internal fun connect(node: NodeHandle, dependencies: List<NodeHandle>) {

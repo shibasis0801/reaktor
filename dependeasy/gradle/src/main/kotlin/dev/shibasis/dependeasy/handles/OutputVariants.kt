@@ -17,7 +17,7 @@ fun Project.publishOutput(kind: OutputKind, location: Any, vararg qualifiers: En
 }
 
 internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer: TaskProvider<out Task>? = null) {
-    val site = declarationSite()
+    val declared = declarationSite()
     val files = files(location).also { if (producer != null) it.builtBy(producer) }
     configurations.create(handle.nodeId.name) {
         isCanBeConsumed = true
@@ -27,6 +27,7 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
     }
     BuildWorkspace.get(this).graph.configure {
         nodes.add(provider {
+            val site = this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared
             val tasks = files.buildDependencies.getDependencies(null).sortedBy { it.path }
             require(tasks.isNotEmpty()) { "Output ${handle.nodeId} has no producer" }
             require(tasks.all { it.project.path == this@publishOutput.path && it.project.rootDir == this@publishOutput.rootDir }) { "Publish outputs in their owning project: ${handle.nodeId}; found ${tasks.map { it.project.path }}" }
@@ -37,6 +38,7 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
                 artifactFamily = handle.kind.family))
         })
         omissions.addAll(provider {
+            val site = this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared
             val tasks = files.buildDependencies.getDependencies(null)
             listOfNotNull(if (tasks.size != 1) Omission(handle.nodeId, "Output has multiple Gradle producers", tasks.map { it.path }.sorted().joinToString(", ")) else null,
                 if (site == null) Omission(handle.nodeId, "Output is declared by its owning plugin") else null)

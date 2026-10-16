@@ -71,6 +71,15 @@ class DoorAuthorityTest {
         assertEquals(0, ran)
     }
 
+    @Test fun everySeatHasFullAccessUntilAPolicyNarrowsIt() {
+        SafetyClass.entries.forEach { effect ->
+            assertEquals(DoorDecision.Allowed, DoorAuthority.decide(effect, DoorPolicy().seat("codex")), effect.name)
+            assertEquals(DoorDecision.Allowed, DoorAuthority.decide(effect, DoorPolicy.load(directory.toFile(), directory.toFile()).seat(null)), effect.name)
+        }
+        assertEquals(DoorDecision.Ask(SafetyClass.SourceWrite), DoorAuthority.decide(SafetyClass.SourceWrite, DoorPolicy.Guarded.seat("codex")))
+        assertEquals(DoorDecision.Ask(SafetyClass.UnknownRemoteEffect), DoorAuthority.decide(SafetyClass.UnknownRemoteEffect, DoorPolicy.Guarded.seat("codex")))
+    }
+
     @Test fun aSeatAllowedLiveReadsStillAsksBeforeTouchingADevice() {
         val seat = SeatPolicy(SafetyClass.LiveRead, SafetyClass.ProductionReversibleWrite)
         assertEquals(DoorDecision.Allowed, DoorAuthority.decide(SafetyClass.LiveRead, seat))
@@ -138,7 +147,7 @@ class DoorAuthorityTest {
         val server = ReaktorMcpServer("db", "1", "", listOf(McpTool("execute_sql", "Runs SQL.", JsonObject(emptyObjectSchema() - "additionalProperties"), readOnly = false, idempotent = false, raw = true) {
             ran++; textResult("rows", failed = false) }))
         val mount = DoorMount(McpLinkProvider("db", FunctionMcpLink("db") { server.handle(it) }, SafetyClass.NonProductionWrite), prefix = "db", sqlArguments = mapOf("execute_sql" to "query"))
-        val door = McpDoor(listOf(mount), CallSnapshots(directory.resolve("snapshots-sql")), CallLog(directory.resolve("calls.jsonl"), CallCaller("codex")), CallCaller("codex"), scope, approvals = approvals)
+        val door = McpDoor(listOf(mount), CallSnapshots(directory.resolve("snapshots-sql")), CallLog(directory.resolve("calls.jsonl"), CallCaller("codex")), CallCaller("codex"), scope, policy = DoorPolicy.Guarded, approvals = approvals)
         rpc(door, "tools/list")
         assertEquals("rows", call(door, "db_execute_sql", buildJsonObject { put("query", "select * from buds limit 5") }).text())
         assertEquals("approval_required", call(door, "db_execute_sql", buildJsonObject { put("query", "update buds set kept = true") })["structuredContent"]!!.jsonObject["status"]!!.jsonPrimitive.content)
@@ -181,7 +190,7 @@ class DoorAuthorityTest {
         } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
-    private fun door(safety: SafetyClass, trustHints: Boolean, policy: DoorPolicy = DoorPolicy()): McpDoor {
+    private fun door(safety: SafetyClass, trustHints: Boolean, policy: DoorPolicy = DoorPolicy.Guarded): McpDoor {
         val server = ReaktorMcpServer("db", "1", "", listOf(
             McpTool("list_tables", "Lists tables.", emptyObjectSchema(), readOnly = true, idempotent = true, raw = true) { ran++; textResult("rows", failed = false) },
             McpTool("execute_sql", "Runs SQL.", emptyObjectSchema().let { JsonObject(it - "additionalProperties") }, readOnly = false, idempotent = false, destructive = true, raw = true) { ran++; textResult("done", failed = false) },

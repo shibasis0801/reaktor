@@ -2,6 +2,7 @@ package dev.shibasis.dependeasy.handles
 
 import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.variant.ApplicationVariant
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.workspace.WorkspaceTargetTask
@@ -19,6 +20,10 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import org.jetbrains.kotlin.konan.target.KonanTarget
+
+internal class AndroidApplicationOutputs {
+    val variants = mutableListOf<ApplicationVariant>()
+}
 
 internal fun Project.moduleOutputs() {
     pluginManager.withPlugin("base") {
@@ -72,7 +77,10 @@ internal fun Project.moduleOutputs() {
         }
     }
     pluginManager.withPlugin("com.android.application") {
+        val outputs = AndroidApplicationOutputs()
+        extensions.add("dependeasyAndroidApplicationOutputs", outputs)
         extensions.getByType<ApplicationAndroidComponentsExtension>().onVariants { variant ->
+            outputs.variants.add(variant)
             val build = Build.entries.singleOrNull { it.name.equals(variant.buildType, true) }
             val installation = "install" + variant.name.replaceFirstChar(Char::uppercaseChar)
             afterEvaluate {

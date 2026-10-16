@@ -20,6 +20,8 @@ class AppleContractsTest {
         write("settings.gradle.kts", "rootProject.name = \"appleFixture\"")
         write("pins.json", """{"pins":[{"identity":"appauth-ios","state":{"version":"1.7.6"}}]}""")
         write("host.json", BuildModelReader.json.encodeToString(host))
+        write("fleet.json", BuildModelReader.json.encodeToString(WorkerFleetContract(workers = listOf(
+            WorkerDeployable("web", NodeId("appleFixture", ":workers", "deployWeb"), "targets/web", emptyMap(), emptyMap())))))
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.darwin.*
             import dev.shibasis.dependeasy.handles.node
@@ -40,7 +42,11 @@ class AppleContractsTest {
             tasks.register<ReleasePlanTask>("release") {
                 product.set("fixture"); host.set(declarationJson); versionName.set("5.2"); buildNumber.set(31)
                 xcodeDirectory.set("targets/apple"); xcodeProject.set("iosApp.xcodeproj"); scheme.set("iosApp")
-                webTask.set(":web"); androidTasks.put("androidRelease", ":android:assembleRelease")
+                webWorker.set("web"); workerFleet.set(layout.projectDirectory.file("fleet.json"))
+                archiveCheckTask.set(":apple:darwinArchiveCheck")
+                symbolUploadCheckTask.set(":apple:verifyDarwinSymbolUpload")
+                signingTask.set(":apple:generateSigningXcconfig")
+                androidTasks.put("androidRelease", ":android:assembleRelease")
                 output.set(layout.buildDirectory.file("release.json"))
             }
             tasks.register<SigningXcconfigTask>("signing") {
@@ -104,6 +110,89 @@ class AppleContractsTest {
         assertFalse(plan.commands.getValue("iosDebug").environment.getValue("BESTBUDS_GRADLE_ARGS").contains("devTools"))
         assertFalse(plan.commands.getValue("iosExport").tokens.contains("-derivedDataPath"))
         assertContains(plan.commands.getValue("androidRelease").tokens, "-PbestbudsVersionCode=31")
+        assertEquals(":workers:deployWeb", plan.commands.getValue("webDeploy").tokens[1])
+        assertEquals(":apple:darwinArchiveCheck", plan.commands.getValue("iosArchiveCheck").tokens[1])
+        assertEquals(":apple:verifyDarwinSymbolUpload", plan.commands.getValue("iosSymbolUploadCheck").tokens[1])
+        assertEquals(":apple:generateSigningXcconfig", plan.commands.getValue("iosSigning").tokens[1])
+    }
+
+    @Test fun `Apple component consumes an evaluated Android owner without building apps or deploying`() {
+        write("gradle.properties", "org.gradle.parallel=true\nandroid.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true")
+        write("settings.gradle.kts", """
+            rootProject.name = "appleFixture"
+            enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+            include("app", "android", "apple")
+            project(":apple").projectDir = file("targets/apple")
+        """.trimIndent())
+        write("fleet.json", BuildModelReader.json.encodeToString(WorkerFleetContract(workers = listOf(
+            WorkerDeployable("web", NodeId("appleFixture", ":workers", "deployWeb"), "targets/web", emptyMap(), emptyMap())))))
+        write("build.gradle.kts", """
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.workspace") }
+            val fleet = tasks.register<Copy>("fixtureFleet") {
+                from("fleet.json"); into(layout.buildDirectory.dir("fleet"))
+            }
+            publishOutput(OutputKind.GeneratedContract, fleet.map { it.destinationDir.resolve("fleet.json") }, Contract.WorkerFleet, producer = fleet)
+            tasks.register<Copy>("releaseInput") {
+                from(outputFiles(output(projects.apple, OutputKind.GeneratedContract, Contract.AppleRelease)))
+                into(layout.buildDirectory.dir("release-input"))
+            }
+        """.trimIndent())
+        write("app/build.gradle.kts", """
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            dependeasy { appleLibrary("Fixture") }
+        """.trimIndent())
+        write("android/src/main/AndroidManifest.xml", "<manifest />")
+        write("android/build.gradle.kts", """
+            plugins { id("dev.shibasis.dependeasy.application"); id("dev.shibasis.dependeasy.pipeline") }
+            dependeasy.androidApplication("dev.fixture.app")
+        """.trimIndent())
+        write("targets/apple/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.appleApp
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.apple-app") }
+            check(project(":android").state.executed)
+            appleApp(application = projects.app, android = projects.android,
+                entryPoint = "Fixture.start()", bundleId = "fixture.app", team = "fixture-team",
+                web = WorkerRef("web", "targets/web"), fleet = output(projects.appleFixture, OutputKind.GeneratedContract, Contract.WorkerFleet))
+        """.trimIndent())
+        write("targets/apple/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+            """{"pins":[{"identity":"appauth-ios","state":{"version":"${Versions.AppAuthDarwin}"}},{"identity":"gtmappauth","state":{"version":"${Versions.GtmAppAuthDarwin}"}}]}""")
+        val first = runner("releaseInput", ":apple:verifyXcodeHost", "exportBuildModel").build()
+        assertEquals(TaskOutcome.SUCCESS, first.task(":apple:generateReleasePlan")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, first.task(":releaseInput")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, first.task(":fixtureFleet")?.outcome)
+        assertTrue(first.tasks.none { it.path.contains("linkDebugFramework") || it.path.endsWith(":deployWeb") || it.path.startsWith(":android:") })
+        assertEquals(directory.resolve("build/dependeasy/release/appleFixture.json").readText(),
+            directory.resolve("build/release-input/appleFixture.json").readText())
+        val plan = BuildModelReader.json.decodeFromString<ReleasePlan>(directory.resolve("build/dependeasy/release/appleFixture.json").readText())
+        assertEquals("appleFixture", plan.product)
+        assertEquals(":apple:generateSigningXcconfig", plan.commands.getValue("iosSigning").tokens[1])
+        assertEquals(":workers:deployWeb", plan.commands.getValue("webDeploy").tokens[1])
+        assertEquals(":android:assembleDebug", plan.commands.getValue("androidDebug").tokens[1])
+        assertEquals(":android:bundleRelease", plan.commands.getValue("androidReleaseBundle").tokens[1])
+        assertEquals("android/build/outputs/apk/debug", plan.artifacts.getValue("androidDebugApkDirectory"))
+        assertContains(directory.resolve("config/apple-host/iosApp-Debug.xcconfig").readText(), "REAKTOR_KOTLIN_TASK = :apple:embedAppleFrameworksForXcode")
+        val model = BuildModelReader.read(directory)
+        assertTrue(model.nodes.any { it.id == NodeId("appleFixture", ":apple", "outputGeneratedContractAppleRelease") })
+        assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("appleFixture", ":apple", "generateReleasePlan") &&
+            it.to == NodeId("appleFixture", ":", "outputGeneratedContractWorkerFleet") })
+        assertTrue(model.nodes.none { it.id.project == ":" && it.id.name == "generateReleasePlan" })
+        assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("appleFixture", ":apple", "generateReleasePlan") &&
+            it.to == NodeId("appleFixture", ":android", "outputAndroidApkDebug") })
+        Apple.entries.forEach { target ->
+            assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("appleFixture", ":apple", "assembleApple") &&
+                it.to == NodeId("appleFixture", ":app", "outputAppleFramework${target.name}Release") })
+        }
+        assertContains(runner("releaseInput", ":apple:verifyXcodeHost", "exportBuildModel").build().output, "Reusing configuration cache")
+        val assembly = runner(":apple:assemble", "--dry-run").build().output
+        assertContains(assembly, ":app:linkReleaseFrameworkIosArm64 SKIPPED")
+        assertContains(assembly, ":app:linkReleaseFrameworkIosSimulatorArm64 SKIPPED")
+        assertFalse(assembly.contains("embedAndSign"))
+        assertFalse(assembly.contains("embedAppleFrameworksForXcode"))
+        assertContains(runner(":apple:assemble", "--dry-run").build().output, "Reusing configuration cache")
     }
     @Test fun `signing settings escape XML and reject setting injection`() {
         val request = buildJsonObject {

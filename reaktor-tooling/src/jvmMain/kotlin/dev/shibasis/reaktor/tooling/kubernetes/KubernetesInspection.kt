@@ -17,21 +17,6 @@ data class KubernetesObservedObject(
 }
 
 object KubernetesInspection {
-    private val identity = Regex("[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?")
-
-    fun command(executable: String, kubeconfig: String, namespace: String,
-        action: KubernetesReadAction, resourceName: String = ""): List<String> {
-        require(namespace.length <= 63 && identity.matches(namespace)) { "Enter a Kubernetes namespace" }
-        if (action != KubernetesReadAction.Inventory) require(resourceName.length <= 253 && identity.matches(resourceName)) {
-            "Select an exact resource name"
-        }
-        return listOf(executable, "--kubeconfig", kubeconfig, "--namespace", namespace, "--request-timeout=15s") + when (action) {
-            KubernetesReadAction.Inventory -> listOf("get", "pods,deployments,statefulsets,daemonsets,services,ingresses,jobs,cronjobs,endpoints", "-o", "json")
-            KubernetesReadAction.Events -> listOf("get", "events", "--field-selector=involvedObject.name=$resourceName", "-o", "json")
-            KubernetesReadAction.Logs -> listOf("logs", "pod/$resourceName", "--all-containers=true", "--tail=300", "--limit-bytes=262144", "--timestamps=true")
-        }
-    }
-
     /** Explicit status projection: literal environment values and secret content are excluded. */
     fun inventory(output: String): List<KubernetesObservedObject> {
         require(output.length <= 8 * 1024 * 1024) { "Kubernetes inventory exceeds 8 MiB" }

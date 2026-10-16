@@ -206,7 +206,7 @@ class JvmProjectDiscovery(
         }
         val declarations = reaktor.targetDeclarations()
         val gradleModules = if (root.resolve(BuildDeclarations.Report).isFile) {
-            val model = dev.shibasis.dependeasy.model.BuildModelReader.read(root)
+            val model = dev.shibasis.dependeasy.model.BuildModelReader.readAllowingStale(root)
             val main = model.builds.single { it.directory == "." }.name
             model.nodes.filter { it.id.build == main && it.id.project != ":" }.map { it.id.project.trim(':') }.distinct()
         } else emptyList()
@@ -284,7 +284,7 @@ class JvmProjectDiscovery(
                 }
             }
         }
-        BuildDeclarations.read(root).also {
+        runCatching { BuildDeclarations.read(root) }.getOrDefault(emptyList()).also {
             val report = root.resolve(BuildDeclarations.Report).canonicalFile
             if (report.isFile) declarationsText[report] = report.readText()
         }.forEach { target ->

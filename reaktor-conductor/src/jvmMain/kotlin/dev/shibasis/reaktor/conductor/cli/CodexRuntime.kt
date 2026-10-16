@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.conductor.EffortRecord
 import dev.shibasis.reaktor.conductor.ReasoningFidelity
 import dev.shibasis.reaktor.conductor.ProviderSession
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.ToolPolicy
 import dev.shibasis.reaktor.conductor.UsageScope
 import dev.shibasis.reaktor.conductor.appserver.codexActivity
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
@@ -63,7 +64,7 @@ internal fun codexArgv(request: AgentRequest, binary: String = "codex"): List<St
     add("-C")
     add(request.workingDirectory)
     add("-s")
-    add(if (request.agent.tools.allowWrites) "workspace-write" else "read-only")
+    add(request.agent.tools.codexSandbox())
     // `exec` has no effort flag; the config key is the supported route and, like the other
     // global overrides, it has to precede the subcommand. Verified against 0.154.0.
     request.agent.effort?.let { add("-c"); add("model_reasoning_effort=" + it.value) }
@@ -189,3 +190,7 @@ class CodexEventParser(
         )
     }
 }
+
+internal fun ToolPolicy.codexSandbox() = if (allowWrites) "danger-full-access" else "read-only"
+
+internal fun ToolPolicy.codexApprovals() = if (allowWrites) "never" else "on-request"

@@ -13,7 +13,7 @@ object BuildDeclarationInputs {
         }.filter { file ->
             val path = file.relativeTo(root).invariantSeparatorsPath
             val implementation = path.startsWith("buildSrc/src/main/") || path.startsWith("dependeasy/") &&
-                listOf("gradle", "model", "toolchain", "buildSrc", "bootstrap").any { path.startsWith("dependeasy/$it/src/main/") }
+                listOf("gradle", "model", "options", "toolchain", "buildSrc", "bootstrap").any { path.startsWith("dependeasy/$it/src/main/") }
             file.isFile && file.canonicalFile.toPath().startsWith(boundary) &&
                 (file.name.endsWith(".gradle.kts") || file.name in setOf("gradle.properties", "local.properties") ||
                     implementation && file.extension == "kt")

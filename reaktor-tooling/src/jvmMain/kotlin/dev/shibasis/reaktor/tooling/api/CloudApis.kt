@@ -1,8 +1,9 @@
 package dev.shibasis.reaktor.tooling.api
 
-import com.google.auth.oauth2.GoogleCredentials
 import dev.shibasis.reaktor.tooling.cloud.CloudflareAccounts
 import dev.shibasis.reaktor.tooling.cloud.CloudflareLogin
+import dev.shibasis.reaktor.tooling.cloud.GoogleSignIn
+import dev.shibasis.reaktor.tooling.cloud.GoogleSignInRequired
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.sync.Mutex
@@ -21,7 +22,6 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.security.MessageDigest
 import java.time.Duration
-import java.util.concurrent.TimeUnit
 
 @Serializable
 data class ApiResponse(val status: Int, val body: JsonElement?, val text: String, val millis: Long) {
@@ -47,6 +47,7 @@ class CloudApis(
     private val loaded = HashMap<String, ApiSurface>()
     private val lock = Mutex()
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).followRedirects(HttpClient.Redirect.NORMAL).build()
+    private val google = GoogleSignIn(home)
 
     suspend fun surface(name: String, refresh: Boolean = false): ApiSurface = lock.withLock {
         if (!refresh) loaded[name]?.let { return@withLock it }
@@ -79,7 +80,7 @@ class CloudApis(
         val first = if (operation.api == "cloudflare") CloudflareLogin.forWorkspace(workspace).authenticated(
             { token -> send(request, mapOf("Authorization" to "Bearer $token")) }, { it.status == 401 })
         else send(request, credentials(operation.api, googleAccount))
-        if (!operation.api.startsWith("gcp:") || first.status != 403 || operation.effect != ApiEffect.Read || adc()) return first
+        if (!operation.api.startsWith("gcp:") || first.status != 403 || operation.effect != ApiEffect.Read || google.hasApplicationDefault()) return first
         return (googleAccounts() - setOfNotNull(googleAccount)).firstNotNullOfOrNull { account ->
             send(request, credentials(operation.api, account)).takeIf { it.ok }?.also { googleAccount = account }
         } ?: first
@@ -100,9 +101,7 @@ class CloudApis(
     var googleAccount: String? = System.getenv("GOOGLE_CLOUD_ACCOUNT")?.takeIf { it.isNotBlank() }
         private set
 
-    fun googleAccounts(): List<String> = runCatching {
-        command(listOf(gcloud(), "auth", "list", "--format=value(account)")).lines().map(String::trim).filter { "@" in it }
-    }.getOrDefault(emptyList())
+    fun googleAccounts(): List<String> = google.accounts()
 
     fun withDefaults(operation: ApiOperation, arguments: JsonObject): JsonObject {
         val defaults = buildMap<String, String> {
@@ -123,7 +122,7 @@ class CloudApis(
         ?: File(workspace, "cloud/k3s/ssh.sh").takeIf { it.isFile }?.let {
             Regex("PROJECT_ID=\"([a-z][a-z0-9-]{4,28}[a-z0-9])\"").find(it.readText())?.groupValues?.get(1)
         }
-        ?: runCatching { command(listOf(gcloud(), "config", "get-value", "project")).trim().takeIf { it.isNotEmpty() && it != "(unset)" } }.getOrNull()
+        ?: google.project()
 
     suspend fun credentials(api: String, account: String? = googleAccount): Map<String, String> = when {
         api == "cloudflare" -> mapOf("Authorization" to "Bearer ${CloudflareLogin.forWorkspace(workspace).token()}")
@@ -136,7 +135,7 @@ class CloudApis(
     fun signIn(api: String): String = when {
         api == "cloudflare" -> CloudflareLogin.forWorkspace(workspace).source
         api == "supabase" -> if (supabaseToken() == null) "none: set SUPABASE_ACCESS_TOKEN or save a personal access token as config/supabase.token" else "personal access token"
-        api.startsWith("gcp:") -> googleAccount ?: if (adc()) "application default credentials" else "the active gcloud account"
+        api.startsWith("gcp:") -> google.describe(googleAccount)
         else -> "none"
     }
 
@@ -151,29 +150,8 @@ class CloudApis(
         ?: listOf("config/supabase.token", "config/mcp/supabase.token").map { File(workspace, it) }.firstOrNull(File::isFile)
             ?.readLines()?.map(String::trim)?.firstOrNull { it.isNotEmpty() && !it.startsWith("#") }
 
-    private fun adc(): Boolean = System.getenv("GOOGLE_APPLICATION_CREDENTIALS") != null || File(home, ".config/gcloud/application_default_credentials.json").isFile
-
-    private suspend fun googleToken(account: String?): String = withContext(Dispatchers.IO) {
-        if (adc()) runCatching {
-            GoogleCredentials.getApplicationDefault().createScoped(listOf("https://www.googleapis.com/auth/cloud-platform")).apply { refreshIfExpired() }.accessToken.tokenValue
-        }.getOrNull()?.let { return@withContext it }
-        command(listOf(gcloud(), "auth", "print-access-token") + listOfNotNull(account?.let { "--account=$it" })).trim().takeIf { it.isNotEmpty() }
-            ?: throw CloudApiFailure("Google Cloud needs a sign-in: run gcloud auth login, or gcloud auth application-default login")
-    }
-
-    private fun gcloud(): String = (System.getenv("PATH").orEmpty().split(File.pathSeparator) + listOf("/opt/homebrew/bin", "/usr/local/bin",
-        "${home.path}/google-cloud-sdk/bin", "/opt/homebrew/share/google-cloud-sdk/bin")).map { File(it, "gcloud") }.firstOrNull { it.canExecute() }?.path ?: "gcloud"
-
-    private fun command(argv: List<String>): String {
-        val process = ProcessBuilder(argv).redirectErrorStream(false).apply {
-            if (argv.first().substringAfterLast('/') == "gcloud") environment().putAll(dev.shibasis.reaktor.tooling.cloud.CloudInventoryReads.gcloudEnvironment())
-        }.start()
-        process.outputStream.close()
-        val out = process.inputStream.bufferedReader().readText()
-        if (!process.waitFor(60, TimeUnit.SECONDS)) { process.destroyForcibly(); throw CloudApiFailure("${argv.first()} timed out") }
-        if (process.exitValue() != 0) throw CloudApiFailure("${argv.joinToString(" ")} failed: ${process.errorStream.bufferedReader().readText().take(300)}")
-        return out
-    }
+    private suspend fun googleToken(account: String?): String =
+        try { google.token(account) } catch (missing: GoogleSignInRequired) { throw CloudApiFailure(missing.message.orEmpty()) }
 
     companion object {
         const val RefreshMillis: Long = 7 * 86_400_000L

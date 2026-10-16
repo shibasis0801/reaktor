@@ -67,6 +67,7 @@ class NativeExecutionRequest private constructor(
                 is InfrastructureOperation.SpanRead -> listOf("Service spans", operation.database, "${operation.windowMinutes} min", "limit=${operation.limit}")
                 is InfrastructureOperation.CloudflareAiCall -> listOfNotNull("Cloudflare AI", operation.action, operation.gateway, operation.model)
                 is InfrastructureOperation.CloudApiCall -> listOf("Cloud API", operation.operation, operation.arguments.take(200))
+                is InfrastructureOperation.HttpRead -> listOf("HTTP GET", operation.url, "limit=${operation.maxBytes}")
                 is InfrastructureOperation.CloudInventoryRead -> listOfNotNull(
                     "Cloud inventory",
                     operation.cloudflareAccount?.let { "Cloudflare $it" },
@@ -140,6 +141,11 @@ class JvmInfrastructureExecutor {
                             }
                             is InfrastructureOperation.CloudApiCall -> kotlinx.coroutines.runBlocking {
                                 dev.shibasis.reaktor.tooling.api.CloudApis.execute(op)
+                            }
+                            is InfrastructureOperation.HttpRead -> {
+                                val uri = java.net.URI(op.url)
+                                require(uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null) { "HTTP reads need a plain https URL" }
+                                BoundedHttp(session).request(uri, headers = mapOf("Accept" to op.accept), maxBytes = op.maxBytes)
                             }
                             // Device work runs on the same virtual thread as every other native
                             // operation, so a hung adb call is cancelled by the same timeout.

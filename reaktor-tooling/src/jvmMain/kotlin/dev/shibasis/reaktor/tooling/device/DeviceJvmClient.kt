@@ -55,6 +55,7 @@ class DeviceJvmClient {
         val transport = DeviceTransport.entries.firstOrNull { it.name == operation.transport }
             ?: error("Unknown transport '${operation.transport}'")
         val backend = DeviceBackends.of(transport)
+        if (operation.action == "discover") return dev.shibasis.reaktor.tooling.DeviceTools.inventory(backend.list())
         val device = backend.list().firstOrNull { it.id == operation.deviceId }
             ?: error("${operation.deviceName.ifBlank { operation.deviceId }} is no longer attached")
         return backend.session(device).use { session -> session.run(operation) }

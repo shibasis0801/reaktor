@@ -2,11 +2,12 @@ import dev.shibasis.dependeasy.bootstrap.publishBootstrapOutputs
 import dev.shibasis.dependeasy.toolchain.BuildLibraries
 import dev.shibasis.dependeasy.toolchain.GradlePlugins
 
-plugins { `kotlin-dsl`; `maven-publish` }
+plugins { `kotlin-dsl`; `java-library`; `maven-publish` }
 
 kotlin.sourceSets.main { kotlin.srcDir("../bootstrap/src/main/kotlin") }
 
 dependencies {
+    api(projects.options)
     implementation("com.android.tools.build:gradle:${GradlePlugins.Agp}") {
         exclude(group = "org.apache.commons", module = "commons-compress")
     }

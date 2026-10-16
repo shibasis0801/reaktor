@@ -86,6 +86,14 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         }
     }
 
+    fun kotlinRuntime(output: OutputHandle) {
+        kotlinLibraries(output)
+        val files = project.outputFiles(output)
+        contract.configure {
+            runtimeManifest.set(project.layout.file(files.elements.map { it.single().asFile.resolve("package.json") }))
+        }
+    }
+
     fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
     fun vite(output: String = "dist"): TaskProvider<ViteBundle> = commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build").also {
         it.configure { sourceFiles.from(runtime.sources) }
@@ -122,9 +130,8 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         val typecheck = project.node(types)
         val leaves = checks.map { project.node(it).after(typecheck) }.ifEmpty { listOf(typecheck) }
         val result = BuildWorkspace.get(project).aggregate(project, target, NodeKind.Verification, leaves)
-        return project.node(requireNotNull(result.task), OutputKind.BrowserBundle).also {
+        return result.also {
             verificationConsumer(checkNotNull(it.task))
-
         }
     }
 

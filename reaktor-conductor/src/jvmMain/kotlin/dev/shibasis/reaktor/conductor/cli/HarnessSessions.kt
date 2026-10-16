@@ -12,8 +12,12 @@ import java.io.RandomAccessFile
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 data class HarnessStep(val at: Long?, val tool: String, val detail: String?, val door: Boolean, val file: String? = null)
+
+enum class HarnessActivity { NeedsYou, Working, Waiting, Ended }
 
 data class HarnessSession(
     val runtime: RuntimeKind,
@@ -30,9 +34,12 @@ data class HarnessSession(
     val tokens: Long?,
     val steps: List<HarnessStep>,
     val transcript: String,
+    val files: List<String> = steps.mapNotNull { it.file }.distinct(),
+    val activity: HarnessActivity = HarnessActivity.Ended,
+    val status: String? = null,
+    val pid: Long? = null,
 ) {
     val doorCalls: Int get() = steps.count { it.door }
-    val files: List<String> get() = steps.mapNotNull { it.file }.distinct()
 
     fun live(now: Long): Boolean = now - lastActiveAt <= LiveMillis
 
@@ -46,52 +53,182 @@ data class HarnessSession(
     }
 }
 
+enum class HarnessEntryKind { Prompt, Reply, Tool, Note }
+
+data class HarnessEntry(val at: Long?, val kind: HarnessEntryKind, val text: String, val detail: String? = null, val file: String? = null)
+
+data class HarnessTimeline(val entries: List<HarnessEntry>, val partial: Boolean)
+
+interface HarnessProcesses {
+    fun alive(pid: Long): Boolean
+
+    fun openTranscripts(): Set<String>?
+
+    object System : HarnessProcesses {
+        private const val OpenMillis = 5_000L
+
+        @Volatile
+        private var open: Pair<Long, Set<String>?>? = null
+
+        override fun alive(pid: Long): Boolean = ProcessHandle.of(pid).map { it.isAlive }.orElse(false)
+
+        override fun openTranscripts(): Set<String>? {
+            val now = java.lang.System.currentTimeMillis()
+            open?.takeIf { now - it.first < OpenMillis }?.let { return it.second }
+            return listOpen().also { open = now to it }
+        }
+
+        private fun listOpen(): Set<String>? = runCatching {
+            val codex = ProcessHandle.allProcesses()
+                .filter { process -> process.info().command().orElse("").substringAfterLast('/').startsWith("codex") }
+                .map { it.pid() }.toList()
+            if (codex.isEmpty()) return@runCatching emptySet<String>()
+            val lsof = ProcessBuilder("lsof", "-n", "-P", "-Fn", "-p", codex.joinToString(","))
+                .redirectError(ProcessBuilder.Redirect.DISCARD).start()
+            val names = lsof.inputStream.bufferedReader().readLines()
+            lsof.waitFor(5, TimeUnit.SECONDS)
+            names.filter { it.startsWith("n") && it.endsWith(".jsonl") }.map { it.drop(1) }.toSet()
+        }.getOrNull()
+    }
+}
+
 object HarnessSessions {
     private const val WindowMillis = 72 * 3_600_000L
     private const val HeadBytes = 256 * 1024
     private const val TailBytes = 768 * 1024
+    private const val TimelineBytes = 4 * 1024 * 1024
     private const val StepsKept = 40
+    private const val EntriesKept = 400
+    private const val EntryChars = 16_000
+    private const val ParsedKept = 2_048
+    private val ApprovalEvents = setOf("exec_approval_request", "apply_patch_approval_request", "request_user_input")
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
-    fun read(workspace: File, home: File = File(System.getProperty("user.home")), now: Long = System.currentTimeMillis()): List<HarnessSession> {
+    fun read(
+        workspace: File,
+        home: File = File(System.getProperty("user.home")),
+        now: Long = System.currentTimeMillis(),
+        processes: HarnessProcesses = HarnessProcesses.System,
+    ): List<HarnessSession> {
         val root = workspace.canonicalPath
         val since = now - WindowMillis
-        return (claude(home, since, root) + codex(home, since, now, root)).sortedByDescending { it.lastActiveAt }.distinctBy { it.runtime to it.id }
+        return (claude(home, since, now, root, processes) + codex(home, since, now, root, processes.openTranscripts()))
+            .sortedByDescending { it.lastActiveAt }.distinctBy { it.runtime to it.id }
     }
 
-    private fun claude(home: File, since: Long, root: String): List<HarnessSession> =
-        File(home, ".claude/projects").listFiles().orEmpty().filter(File::isDirectory)
-            .flatMap { project -> project.listFiles { file -> file.extension == "jsonl" && file.lastModified() >= since }.orEmpty().toList() }
-            .mapNotNull { file -> runCatching { claudeSession(file, root) }.getOrNull() }
+    fun stamp(home: File = File(System.getProperty("user.home")), now: Long = System.currentTimeMillis()): Long {
+        val since = now - WindowMillis
+        val registry = File(home, ".claude/sessions").listFiles { file -> file.isFile && file.extension == "json" }.orEmpty().toList()
+        return (registry + claudeFiles(home, since) + codexFiles(home, since, now))
+            .sumOf { file -> (file.path.hashCode() * 31L + file.lastModified()) * 31L + file.length() }
+    }
 
-    private fun claudeSession(file: File, root: String): HarnessSession? {
-        val head = records(file, fromEnd = false)
-        val tail = records(file, fromEnd = true)
+    fun timeline(session: HarnessSession, workspace: File): HarnessTimeline {
+        val file = File(session.transcript)
+        if (session.transcript.isBlank() || !file.isFile) return HarnessTimeline(emptyList(), false)
+        val root = workspace.canonicalPath
+        val records = records(file, fromEnd = true, TimelineBytes)
+        val entries = when (session.runtime) {
+            RuntimeKind.Codex -> records.flatMap { codexEntries(it, root) }
+            else -> records.flatMap { claudeEntries(it, root) }
+        }
+        return HarnessTimeline(entries.takeLast(EntriesKept), file.length() > TimelineBytes || entries.size > EntriesKept)
+    }
+
+    private class ClaudeLive(
+        val pid: Long, val sessionId: String, val cwd: String, val status: String?, val name: String?,
+        val entrypoint: String?, val version: String?, val startedAt: Long?, val updatedAt: Long?,
+    ) {
+        val activity get() = when (status) {
+            null, "idle" -> HarnessActivity.Waiting
+            else -> HarnessActivity.Working
+        }
+    }
+
+    private fun claudeLive(home: File, root: String, processes: HarnessProcesses): Map<String, ClaudeLive> =
+        File(home, ".claude/sessions").listFiles { file -> file.isFile && file.extension == "json" }.orEmpty().mapNotNull { file ->
+            val entry = runCatching { json.parseToJsonElement(file.readText()) as? JsonObject }.getOrNull() ?: return@mapNotNull null
+            val pid = entry.text("pid")?.toLongOrNull() ?: return@mapNotNull null
+            val cwd = entry.text("cwd") ?: return@mapNotNull null
+            val sessionId = entry.text("sessionId") ?: return@mapNotNull null
+            if (!related(cwd, root) || !processes.alive(pid)) return@mapNotNull null
+            ClaudeLive(pid, sessionId, cwd, entry.text("status"), entry.text("name"), entry.text("entrypoint"), entry.text("version"),
+                entry.text("startedAt")?.toLongOrNull(), (entry.text("statusUpdatedAt") ?: entry.text("updatedAt"))?.toLongOrNull())
+        }.associateBy { it.sessionId }
+
+    private fun claude(home: File, since: Long, now: Long, root: String, processes: HarnessProcesses): List<HarnessSession> {
+        val live = claudeLive(home, root, processes)
+        val read = claudeFiles(home, since).mapNotNull { file -> runCatching { claudeSession(file, root, live, now) }.getOrNull() }
+        val seen = read.map { it.id }.toSet()
+        return read + live.values.filter { it.sessionId !in seen }.map { entry ->
+            HarnessSession(
+                runtime = RuntimeKind.ClaudeCode,
+                id = entry.sessionId,
+                title = entry.name ?: "Untitled session",
+                directory = entry.cwd,
+                startedAt = entry.startedAt,
+                lastActiveAt = entry.updatedAt ?: entry.startedAt ?: now,
+                origin = entry.entrypoint,
+                version = entry.version,
+                branch = null,
+                model = null,
+                effort = null,
+                tokens = null,
+                steps = emptyList(),
+                transcript = "",
+                activity = entry.activity,
+                status = entry.status,
+                pid = entry.pid,
+            )
+        }
+    }
+
+    private class ClaudeParsed(val session: HarnessSession, val customTitle: String?, val prompt: String?)
+
+    private fun claudeSession(file: File, root: String, live: Map<String, ClaudeLive>, now: Long): HarnessSession? {
+        val base = parsed(file, root) { claudeParse(file, root) } ?: return null
+        val running = live[base.session.id]
+        return base.session.copy(
+            title = (base.customTitle ?: running?.name ?: base.prompt ?: "Untitled session").oneLine(),
+            origin = running?.entrypoint ?: base.session.origin,
+            activity = running?.activity ?: if (now - base.session.lastActiveAt <= HarnessSession.LiveMillis) HarnessActivity.Working else HarnessActivity.Ended,
+            status = running?.status,
+            pid = running?.pid,
+        )
+    }
+
+    private fun claudeParse(file: File, root: String): ClaudeParsed? {
+        val head = records(file, fromEnd = false, HeadBytes)
+        val tail = records(file, fromEnd = true, TailBytes)
         val meta = head.firstOrNull { it.string("cwd") != null } ?: tail.firstOrNull { it.string("cwd") != null } ?: return null
         val directory = meta.string("cwd") ?: return null
         if (!related(directory, root)) return null
-        val title = (head + tail).lastOrNull { it.string("type") == "custom-title" }?.string("customTitle")
-            ?: head.firstNotNullOfOrNull(::claudePrompt) ?: "Untitled session"
+        val id = tail.asReversed().firstNotNullOfOrNull { it.string("sessionId") } ?: file.nameWithoutExtension
         val steps = tail.filter { it.string("type") == "assistant" }.flatMap { record ->
             val at = instant(record.string("timestamp"))
             (record.nested("message")?.get("content") as? JsonArray).orEmpty()
                 .mapNotNull { block -> (block as? JsonObject)?.takeIf { it.string("type") == "tool_use" }?.let { claudeStep(it, at, root) } }
-        }.takeLast(StepsKept)
-        return HarnessSession(
-            runtime = RuntimeKind.ClaudeCode,
-            id = tail.asReversed().firstNotNullOfOrNull { it.string("sessionId") } ?: file.nameWithoutExtension,
-            title = title.oneLine(),
-            directory = directory,
-            startedAt = instant(meta.string("timestamp")),
-            lastActiveAt = file.lastModified(),
-            origin = meta.string("entrypoint"),
-            version = meta.string("version"),
-            branch = meta.string("gitBranch"),
-            model = tail.mapNotNull { record -> record.takeIf { it.string("type") == "assistant" }?.nested("message")?.string("model") }.lastOrNull { it != "<synthetic>" },
-            effort = null,
-            tokens = null,
-            steps = steps,
-            transcript = file.path,
+        }
+        return ClaudeParsed(
+            HarnessSession(
+                runtime = RuntimeKind.ClaudeCode,
+                id = id,
+                title = "",
+                directory = directory,
+                startedAt = instant(meta.string("timestamp")),
+                lastActiveAt = file.lastModified(),
+                origin = meta.string("entrypoint"),
+                version = meta.string("version"),
+                branch = meta.string("gitBranch"),
+                model = tail.mapNotNull { record -> record.takeIf { it.string("type") == "assistant" }?.nested("message")?.string("model") }.lastOrNull { it != "<synthetic>" },
+                effort = null,
+                tokens = null,
+                steps = steps.takeLast(StepsKept),
+                transcript = file.path,
+                files = steps.mapNotNull { it.file }.distinct(),
+            ),
+            customTitle = (head + tail).lastOrNull { it.string("type") == "custom-title" }?.string("customTitle"),
+            prompt = head.firstNotNullOfOrNull(::claudePrompt),
         )
     }
 
@@ -113,20 +250,59 @@ object HarnessSessions {
         return HarnessStep(at, name.toolLabel(), detail?.oneLine(), name.startsWith("mcp__reaktor__"), path?.takeIf { edits }?.relativeTo(root))
     }
 
-    private fun codex(home: File, since: Long, now: Long, root: String): List<HarnessSession> {
-        val sessions = File(home, ".codex/sessions")
-        val titles = File(home, ".codex/session_index.jsonl").takeIf(File::isFile)?.readLines().orEmpty()
-            .mapNotNull(::parse).mapNotNull { entry -> entry.string("id")?.let { id -> entry.string("thread_name")?.let { id to it } } }.toMap()
-        val today = LocalDate.ofInstant(Instant.ofEpochMilli(now), ZoneId.systemDefault())
-        return (0L..14L).map { today.minusDays(it) }
-            .flatMap { day -> File(sessions, "%04d/%02d/%02d".format(day.year, day.monthValue, day.dayOfMonth))
-                .listFiles { file -> file.extension == "jsonl" && file.lastModified() >= since }.orEmpty().toList() }
-            .mapNotNull { file -> runCatching { codexSession(file, titles, root) }.getOrNull() }
+    private fun claudeEntries(record: JsonObject, root: String): List<HarnessEntry> {
+        if (record.text("isSidechain") == "true") return emptyList()
+        val at = instant(record.string("timestamp"))
+        return when (record.string("type")) {
+            "user" -> listOfNotNull(claudePrompt(record)?.let { HarnessEntry(at, HarnessEntryKind.Prompt, it.take(EntryChars)) })
+            "assistant" -> (record.nested("message")?.get("content") as? JsonArray).orEmpty().mapNotNull { element ->
+                val block = element as? JsonObject ?: return@mapNotNull null
+                when (block.string("type")) {
+                    "text" -> block.string("text")?.trim()?.takeIf(String::isNotEmpty)?.let { HarnessEntry(at, HarnessEntryKind.Reply, it.take(EntryChars)) }
+                    "tool_use" -> claudeStep(block, at, root).let { HarnessEntry(at, HarnessEntryKind.Tool, it.tool, it.detail, it.file) }
+                    else -> null
+                }
+            }
+            else -> emptyList()
+        }
     }
 
-    private fun codexSession(file: File, titles: Map<String, String>, root: String): HarnessSession? {
-        val head = records(file, fromEnd = false)
-        val tail = records(file, fromEnd = true)
+    private fun codex(home: File, since: Long, now: Long, root: String, open: Set<String>?): List<HarnessSession> {
+        val titles = File(home, ".codex/session_index.jsonl").takeIf(File::isFile)?.readLines().orEmpty()
+            .mapNotNull(::parse).mapNotNull { entry -> entry.string("id")?.let { id -> entry.string("thread_name")?.let { id to it } } }.toMap()
+        return codexFiles(home, since, now).mapNotNull { file -> runCatching { codexSession(file, titles, root, open, now) }.getOrNull() }
+    }
+
+    private fun codexFiles(home: File, since: Long, now: Long): List<File> {
+        val today = LocalDate.ofInstant(Instant.ofEpochMilli(now), ZoneId.systemDefault())
+        return (0L..14L).map { today.minusDays(it) }
+            .flatMap { day -> File(home, ".codex/sessions/%04d/%02d/%02d".format(day.year, day.monthValue, day.dayOfMonth))
+                .listFiles { file -> file.extension == "jsonl" && file.lastModified() >= since }.orEmpty().toList() }
+    }
+
+    private fun claudeFiles(home: File, since: Long): List<File> =
+        File(home, ".claude/projects").listFiles().orEmpty().filter(File::isDirectory)
+            .flatMap { project -> project.listFiles { file -> file.extension == "jsonl" && file.lastModified() >= since }.orEmpty().toList() }
+
+    private class CodexParsed(val session: HarnessSession, val prompt: String?, val turning: Boolean, val asking: Boolean)
+
+    private fun codexSession(file: File, titles: Map<String, String>, root: String, open: Set<String>?, now: Long): HarnessSession? {
+        val base = parsed(file, root) { codexParse(file, root) } ?: return null
+        val held = open?.contains(file.path)
+        val recent = now - base.session.lastActiveAt <= HarnessSession.LiveMillis
+        return base.session.copy(
+            title = (titles[base.session.id] ?: base.prompt ?: "Untitled session").oneLine(),
+            activity = when {
+                base.turning && (held == true || recent) -> if (base.asking) HarnessActivity.NeedsYou else HarnessActivity.Working
+                !base.turning && held == true -> HarnessActivity.Waiting
+                else -> HarnessActivity.Ended
+            },
+        )
+    }
+
+    private fun codexParse(file: File, root: String): CodexParsed? {
+        val head = records(file, fromEnd = false, HeadBytes)
+        val tail = records(file, fromEnd = true, TailBytes)
         val meta = head.firstOrNull { it.string("type") == "session_meta" }?.nested("payload") ?: return null
         val directory = meta.string("cwd") ?: return null
         val context = (head + tail).lastOrNull { it.string("type") == "turn_context" }?.nested("payload")
@@ -134,45 +310,69 @@ object HarnessSessions {
         if (roots.none { related(it, root) }) return null
         val id = meta.string("id") ?: file.nameWithoutExtension
         val items = (head + tail).filter { it.string("type") == "event_msg" && it.nested("payload")?.string("type") == "item_completed" }
-        val title = titles[id] ?: items.firstNotNullOfOrNull { record ->
-            record.nested("payload")?.nested("item")?.takeIf { it.string("type") == "UserMessage" }?.let(::codexText)
-        } ?: "Untitled session"
         val steps = tail.filter { it.string("type") == "event_msg" && it.nested("payload")?.string("type") == "item_completed" }
             .flatMap { record -> codexSteps(record.nested("payload")?.nested("item"), instant(record.string("timestamp")), root) }
-            .takeLast(StepsKept)
         val usage = tail.lastOrNull { it.string("type") == "event_msg" && it.nested("payload")?.string("type") == "token_count" }
             ?.nested("payload")?.nested("info")?.nested("total_token_usage")
-        return HarnessSession(
-            runtime = RuntimeKind.Codex,
-            id = id,
-            title = title.oneLine(),
-            directory = directory,
-            startedAt = instant(meta.string("timestamp")),
-            lastActiveAt = file.lastModified(),
-            origin = meta.string("originator"),
-            version = meta.string("cli_version"),
-            branch = null,
-            model = context?.string("model"),
-            effort = context?.string("effort"),
-            tokens = usage?.long("total_tokens"),
-            steps = steps,
-            transcript = file.path,
+        val events = tail.filter { it.string("type") == "event_msg" }.mapNotNull { it.nested("payload")?.string("type") }
+            .filter { it != "token_count" && it != "thread_settings_applied" }
+        return CodexParsed(
+            HarnessSession(
+                runtime = RuntimeKind.Codex,
+                id = id,
+                title = "",
+                directory = directory,
+                startedAt = instant(meta.string("timestamp")),
+                lastActiveAt = file.lastModified(),
+                origin = meta.string("originator"),
+                version = meta.string("cli_version"),
+                branch = null,
+                model = context?.string("model"),
+                effort = context?.string("effort"),
+                tokens = usage?.long("total_tokens"),
+                steps = steps.takeLast(StepsKept),
+                transcript = file.path,
+                files = steps.mapNotNull { it.file }.distinct(),
+            ),
+            prompt = items.firstNotNullOfOrNull { record ->
+                record.nested("payload")?.nested("item")?.takeIf { it.string("type") == "UserMessage" }?.let(::codexText)
+            },
+            turning = events.indexOfLast { it == "task_started" } > events.indexOfLast { it == "task_complete" || it == "turn_aborted" },
+            asking = events.lastOrNull() in ApprovalEvents,
         )
     }
 
     private fun codexText(item: JsonObject): String? = (item["content"] as? JsonArray).orEmpty()
         .firstNotNullOfOrNull { block -> (block as? JsonObject)?.string("text") }?.trim()?.takeUnless { it.isEmpty() || it.startsWith("<") }
 
+    private fun codexCommand(item: JsonObject): String? =
+        (item["parsed_cmd"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.string("cmd") }.joinToString(" && ").takeIf(String::isNotBlank)
+            ?: ((item["command"] as? JsonArray)?.lastOrNull() as? JsonPrimitive)?.contentOrNull
+
     private fun codexSteps(item: JsonObject?, at: Long?, root: String): List<HarnessStep> = when (item?.string("type")) {
         "McpToolCall" -> listOf(HarnessStep(at, "${item.string("server")} · ${item.string("tool")}", null, item.string("server") == "reaktor"))
-        "CommandExecution" -> listOf(HarnessStep(at, "shell", ((item["command"] as? JsonArray)?.lastOrNull() as? JsonPrimitive)?.contentOrNull?.oneLine(), false))
+        "CommandExecution" -> listOf(HarnessStep(at, "shell", codexCommand(item)?.oneLine(), false))
         "FileChange" -> item.nested("changes")?.keys.orEmpty().map { path -> HarnessStep(at, "edit", path.relativeTo(root), false, path.relativeTo(root)) }
         else -> emptyList()
     }
 
-    private fun records(file: File, fromEnd: Boolean): List<JsonObject> = RandomAccessFile(file, "r").use { raf ->
+    private fun codexEntries(record: JsonObject, root: String): List<HarnessEntry> {
+        if (record.string("type") != "event_msg") return emptyList()
+        val payload = record.nested("payload") ?: return emptyList()
+        if (payload.string("type") != "item_completed") return emptyList()
+        val item = payload.nested("item") ?: return emptyList()
+        val at = instant(record.string("timestamp"))
+        return when (item.string("type")) {
+            "UserMessage" -> listOfNotNull(codexText(item)?.let { HarnessEntry(at, HarnessEntryKind.Prompt, it.take(EntryChars)) })
+            "AgentMessage" -> listOfNotNull(codexText(item)?.let { HarnessEntry(at, HarnessEntryKind.Reply, it.take(EntryChars)) })
+            "ContextCompaction" -> listOf(HarnessEntry(at, HarnessEntryKind.Note, "Context compacted"))
+            else -> codexSteps(item, at, root).map { HarnessEntry(at, HarnessEntryKind.Tool, it.tool, it.detail, it.file) }
+        }
+    }
+
+    private fun records(file: File, fromEnd: Boolean, limit: Int): List<JsonObject> = RandomAccessFile(file, "r").use { raf ->
         val length = raf.length()
-        val size = minOf(length, (if (fromEnd) TailBytes else HeadBytes).toLong()).toInt()
+        val size = minOf(length, limit.toLong()).toInt()
         val start = if (fromEnd) length - size else 0L
         val bytes = ByteArray(size).also { raf.seek(start); raf.readFully(it) }
         val lines = bytes.decodeToString().split('\n')
@@ -182,6 +382,22 @@ object HarnessSessions {
             else -> lines
         }
         whole.mapNotNull(::parse)
+    }
+
+    private class Parsed(val modified: Long, val length: Long, val value: Any?)
+
+    private val parsedFiles = ConcurrentHashMap<String, Parsed>()
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : Any> parsed(file: File, root: String, parse: () -> T?): T? {
+        val key = "$root\u0000${file.path}"
+        val modified = file.lastModified()
+        val length = file.length()
+        parsedFiles[key]?.takeIf { it.modified == modified && it.length == length }?.let { return it.value as T? }
+        val value = parse()
+        if (parsedFiles.size >= ParsedKept) parsedFiles.clear()
+        parsedFiles[key] = Parsed(modified, length, value)
+        return value
     }
 
     private fun parse(line: String): JsonObject? = line.takeIf { it.isNotBlank() }?.let { runCatching { json.parseToJsonElement(it) as? JsonObject }.getOrNull() }
@@ -200,6 +416,8 @@ object HarnessSessions {
     private fun String.toolLabel(): String = if (startsWith("mcp__")) removePrefix("mcp__").split("__", limit = 2).joinToString(" · ") else this
 
     private fun JsonObject.string(key: String): String? = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
+
+    private fun JsonObject.text(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
 
     private fun JsonObject.long(key: String): Long? = (this[key] as? JsonPrimitive)?.contentOrNull?.toLongOrNull()
 

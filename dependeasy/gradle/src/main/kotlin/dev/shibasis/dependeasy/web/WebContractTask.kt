@@ -15,6 +15,7 @@ abstract class WebContractTask : DefaultTask() {
     @get:Internal abstract val directory: DirectoryProperty
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val manifests: ConfigurableFileCollection
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val packageManifests: ConfigurableFileCollection
+    @get:InputFile @get:Optional @get:PathSensitive(PathSensitivity.RELATIVE) abstract val runtimeManifest: RegularFileProperty
     @get:Input abstract val typeScriptPaths: MapProperty<String, List<String>>
     @get:Input abstract val assets: MapProperty<String, String>
     @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val baseConfiguration: RegularFileProperty
@@ -56,6 +57,18 @@ abstract class WebContractTask : DefaultTask() {
             val name = metadata.getValue("name").jsonPrimitive.content
             aliases[name] = aliases.getValue(producer)
             types[producer]?.let { types[name] = it }
+        }
+        runtimeManifest.orNull?.asFile?.let { file ->
+            val metadata = Json.parseToJsonElement(file.readText()).jsonObject
+            val runtimeName = metadata.getValue("name").jsonPrimitive.content
+            require(runtimeName in producers) { "The browser runtime must be a declared Kotlin producer: $runtimeName" }
+            val entry = relative(file.parentFile.resolve(metadata.getValue("main").jsonPrimitive.content))
+            val declarations = relative(file.parentFile.resolve(metadata.getValue("types").jsonPrimitive.content))
+            aliases.keys.toList().forEach { name ->
+                aliases[name] = entry
+                types[name] = listOf(declarations)
+                types["$name/*"] = listOf(relative(file.parentFile.resolve("*")))
+            }
         }
         typeScriptPaths.get().forEach { (key, paths) -> types[key] = paths.map { relative(directory.get().asFile.resolve(it)) } }
         val root = directory.get().asFile

@@ -15,24 +15,13 @@ import java.time.Instant
 
 class GoogleCloudReader(
     private val project: String,
-    private val gcloud: String = "gcloud",
-    private val accounts: suspend () -> List<String> = { emptyList() },
+    private val signIn: GoogleSignIn = GoogleSignIn(),
+    private val accounts: suspend () -> List<String> = { signIn.accounts() },
     private val clock: () -> Long = System::currentTimeMillis,
     override val id: String = "gcp",
 ) : CloudProvider {
     private val console = "https://console.cloud.google.com"
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
-
-    private val environment = CloudInventoryReads.gcloudEnvironment()
-
-    private suspend fun token(account: String?): String {
-        val cached = tokens[account.orEmpty()]
-        if (cached != null && cached.second > clock()) return cached.first
-        val value = CommandLine.run(listOf(gcloud, "auth", "print-access-token") + listOfNotNull(account?.let { "--account=$it" }), 60, environment).trim()
-        require(value.isNotBlank()) { "gcloud returned no access token" }
-        tokens[account.orEmpty()] = value to clock() + 45 * 60_000L
-        return value
-    }
 
     private suspend fun get(token: String, url: String): JsonElement {
         val request = HttpRequest.newBuilder(URI.create(url)).header("Authorization", "Bearer $token").timeout(Duration.ofSeconds(30)).GET().build()
@@ -83,7 +72,7 @@ class GoogleCloudReader(
                 if (!permission(failure)) break
             }
         }
-        throw CloudReadFailure(last?.message ?: "No gcloud account can read project $project")
+        throw CloudReadFailure(last?.message ?: "No Google sign-in can read project $project")
     }
 
     private fun permission(failure: Exception): Boolean = failure.message.orEmpty().let { message ->
@@ -91,7 +80,7 @@ class GoogleCloudReader(
     }
 
     private suspend fun readAs(signedIn: String?, started: Long): CloudReading = coroutineScope {
-        val token = token(signedIn)
+        val token = signIn.token(signedIn)
         val compute = "https://compute.googleapis.com/compute/v1/projects/$project"
         val instances = async { list(token, "$compute/aggregated/instances", "items") }
         val disks = async { list(token, "$compute/aggregated/disks", "items") }
@@ -132,7 +121,6 @@ class GoogleCloudReader(
     }
 }
 
-private val tokens = java.util.concurrent.ConcurrentHashMap<String, Pair<String, Long>>()
 private val working = java.util.concurrent.ConcurrentHashMap<String, String>()
 
 internal class GoogleCloudInventoryBuilder(private val project: String, private val console: String, private val readAt: Long) {

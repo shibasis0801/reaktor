@@ -15,6 +15,9 @@ import java.net.Socket
 import java.nio.file.Files
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.*
 
 class KubernetesJvmClientTest {
@@ -140,6 +143,29 @@ class KubernetesJvmClientTest {
         assertEquals("300", log.queryParameter("tailLines"))
         assertEquals("true", log.queryParameter("timestamps"))
         assertEquals("worker", log.queryParameter("container"))
+    }
+
+    @Test fun inexactResourceNamesAreRejectedBeforeAnyRequest() = fixture { server, client, _ ->
+        for (name in listOf("--all", "api;sh", "api/name", "api\nother")) assertFails { client.inspect("reaktor", "Events", name) }
+        assertFails { client.inspect("Reaktor", "Inventory", "") }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test fun clusterInventoryNamesEachKindAndMetricsCarryTheBearerToken() = fixture { server, client, _ ->
+        val kinds = listOf("Node", "Pod", "Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "CronJob", "Job", "Service", "PersistentVolumeClaim", "PersistentVolume")
+        kinds.forEach { kind ->
+            val spec = if (kind == "CronJob") ",\"spec\":{\"schedule\":\"* * * * *\",\"jobTemplate\":{\"spec\":{\"template\":{\"spec\":{\"containers\":[],\"restartPolicy\":\"Never\"}}}}}" else ""
+            server.enqueue(json("""{"kind":"${kind}List","items":[{"metadata":{"name":"${kind.lowercase()}-1","namespace":"reaktor"}$spec}]}"""))
+        }
+        val inventory = client.cluster()
+        assertEquals(kinds, inventory.getValue("items").jsonArray.map { it.jsonObject.getValue("kind").jsonPrimitive.content })
+        repeat(kinds.size) { assertNotNull(server.takeRequest(5, TimeUnit.SECONDS)) }
+        server.enqueue(json("""{"kind":"PodMetricsList","items":[]}"""))
+        client.metrics("pods")
+        val request = assertNotNull(server.takeRequest(5, TimeUnit.SECONDS))
+        assertEquals("/apis/metrics.k8s.io/v1beta1/pods", request.requestUrl!!.encodedPath)
+        assertEquals("Bearer fixture-token", request.getHeader("Authorization"))
+        assertFails { client.metrics("secrets") }
     }
 
     private fun enqueueService(server: MockWebServer, target: String) {

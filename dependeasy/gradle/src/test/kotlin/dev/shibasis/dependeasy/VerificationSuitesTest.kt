@@ -110,37 +110,97 @@ class VerificationSuitesTest {
     }
 
     @Test fun `device task options select platform owned inputs before execution`() {
-        write("settings.gradle.kts", "rootProject.name = \"deviceOptions\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\":app\")")
-        write("app/build.gradle.kts", "plugins { java }")
+        write("settings.gradle.kts", """rootProject.name = "deviceOptions"; enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS"); include("app", "apple", "phones")""")
+        write("package.json", """{"name":"device-options","private":true}""")
+        write("app/build.gradle.kts", """
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { java }
+            val apk = tasks.register("apk") { outputs.dir(layout.buildDirectory.dir("apk")) }
+            publishOutput(OutputKind.AndroidApk, layout.buildDirectory.dir("apk"), Build.Debug, producer = apk)
+        """.trimIndent())
+        write("apple/build.gradle.kts", """
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { java }
+            val release = tasks.register("release") { outputs.file(layout.buildDirectory.file("release.json")) }
+            publishOutput(OutputKind.GeneratedContract, layout.buildDirectory.file("release.json"), Contract.AppleRelease, producer = release)
+        """.trimIndent())
         write("android/login.yaml", "appId: fixture.android\n---\n- launchApp\n")
         write("ios/login.yaml", "appId: fixture.ios\n---\n- launchApp\n")
         write("ios/unused.yaml", "appId: fixture.ios\n---\n- launchApp\n")
+        write("prepare.py", "from pathlib import Path\nPath('prepared').write_text('ready')\n")
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy.workspace {
-                val flows by deviceFlows {
-                    application = androidApk(projects.app, Build.Debug)
-                    applications[DevicePlatform.Ios] = appleXcodeFramework(projects.app)
-                    applicationId = "fixture.app"
-                    directories.putAll(mapOf(DevicePlatform.Android to "android", DevicePlatform.Ios to "ios"))
-                    selectedFlows.putAll(mapOf(DevicePlatform.Android to listOf("login.yaml"), DevicePlatform.Ios to listOf("login.yaml", "unused.yaml")))
-                }
+                val prepared by prepare(DeviceHook.PythonDevice("prepare.py"))
+                val phoneChecks by verify(projects.phones)
+                packageScripts()
             }
         """.trimIndent())
-        fun run() = GradleRunner.create().withProjectDir(root).withPluginClasspath()
-            .withArguments("flows", "--platform", "ios", "--flow", "login", "--artifacts", "always", "-x", "flows", "exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        write("phones/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.deviceTests
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.device-tests") }
+            deviceTests(mapOf(DevicePlatform.Android to androidApk(projects.app, Build.Debug),
+                DevicePlatform.Ios to output(projects.apple, OutputKind.GeneratedContract, Contract.AppleRelease)), "fixture.app") {
+                val flows by suite(DeviceSuite(mapOf(
+                    DevicePlatform.Android to DeviceFlowSelection("android", files = listOf("login.yaml")),
+                    DevicePlatform.Ios to DeviceFlowSelection("ios", exclude = listOf("unused.yaml"))),
+                    optionalEnvironmentFiles = listOf("device.local.env")))
+                alias("test:phones", flows, DeviceOptions(DevicePlatform.Ios, "login", ArtifactPolicy.Always))
+            }
+        """.trimIndent())
+        fun runner(flow: String) = GradleRunner.create().withProjectDir(root).withPluginClasspath()
+            .withArguments(listOf(":phones:flows", "--platform", "ios") +
+                (if (flow.isBlank()) emptyList() else listOf("--flow", flow)) +
+                listOf("--artifacts", "always", "-x", ":phones:flows", "exportBuildModel", "generatePackageScripts", "--configuration-cache", "--stacktrace"))
+        fun run(flow: String = "login") = runner(flow).build()
+        fun spec(): KernelSpec.DeviceFlow = assertIs(BuildModelReader.read(root).nodes.single { it.id.project == ":phones" && it.id.name == "flows" }.kernel?.spec)
+        GradleRunner.create().withProjectDir(root).withPluginClasspath()
+            .withArguments("generatePackageScripts", "--configuration-cache", "--stacktrace").build()
+        val generatedManifest = root.resolve("package.json").readText()
         val first = run()
-        assertNull(first.task(":flows"))
+        assertEquals(generatedManifest, root.resolve("package.json").readText())
+        assertNull(first.task(":phones:flows"))
+        assertNull(first.task(":app:apk"))
+        assertNull(first.task(":apple:release"))
+        assertEquals("ios", spec().platform)
+        assertEquals("deviceOptions:apple:outputGeneratedContractAppleRelease", spec().appOutput)
+        assertEquals(listOf("ios/login.yaml"), spec().flows)
+        assertEquals("always", spec().artifacts)
         val model = BuildModelReader.read(root)
-        val spec = assertIs<KernelSpec.DeviceFlow>(model.nodes.single { it.id.name == "flows" }.kernel?.spec)
-        assertEquals("ios", spec.platform)
-        assertEquals("deviceOptions:app:outputAppleXcodeFramework", spec.appOutput)
-        assertEquals(listOf("ios/login.yaml"), spec.flows)
-        assertEquals("always", spec.artifacts)
-        assertFalse(root.resolve("build/dependeasy/device/flows.json").exists())
+        assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("deviceOptions", ":phones", "flows") && it.to == NodeId("deviceOptions", ":apple", "outputGeneratedContractAppleRelease") })
+        assertTrue(model.edges.any { it is Edge.After && it.from == NodeId("deviceOptions", ":phones", "flows") && it.to == NodeId("deviceOptions", ":", "maestroRunnerSetup") })
+        assertEquals(ExecutionHost.Local, model.requiredHost(NodeId("deviceOptions", ":", "phoneChecks")).execution)
+        assertFalse(root.resolve("phones/build/dependeasy/device/flows.json").exists())
+        assertContains(root.resolve("package.json").readText(), ":phones:flows --platform ios --flow login --artifacts Always")
         assertContains(run().output, "Reusing configuration cache")
+        run("")
+        assertContains(run("").output, "Reusing configuration cache")
+        write("ios/extra.yaml", "appId: fixture.ios\n---\n- launchApp\n")
+        run("")
+        assertEquals(listOf("ios/extra.yaml", "ios/login.yaml"), spec().flows)
+        write("device.local.env", "PRIVATE_FIXTURE_TOKEN=never-in-public-model\n")
+        run("")
+        assertContains(spec().environmentKeys, "PRIVATE_FIXTURE_TOKEN")
+        assertFalse(root.resolve("build/dependeasy/model.json").readText().contains("never-in-public-model"))
+        root.resolve("device.local.env").delete()
+        run("")
+        assertFalse("PRIVATE_FIXTURE_TOKEN" in spec().environmentKeys)
+        assertContains(runner("undeclared").buildAndFail().output, "Select exactly one declared flow: undeclared")
+        fun prepare() = GradleRunner.create().withProjectDir(root).withPluginClasspath()
+            .withArguments("prepared", "exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        prepare()
+        assertEquals("ready", root.resolve("prepared").readText())
+        assertContains(root.resolve("build/dependeasy/device/prepared-preparation.txt").readText(), "result=success")
+        val prepared = BuildModelReader.read(root).nodes.single { it.id.name == "prepared" }
+        assertIs<KernelSpec.Process>(prepared.kernel?.spec)
+        assertEquals(HostRequirement(HostPlatform.Macos, ExecutionHost.Local), prepared.host)
+        assertContains(prepare().output, "Reusing configuration cache")
     }
 
     @Test fun `pinned Karate and k6 execute real HTTP suites`() {

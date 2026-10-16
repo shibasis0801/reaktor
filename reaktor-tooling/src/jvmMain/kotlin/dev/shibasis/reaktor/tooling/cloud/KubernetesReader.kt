@@ -1,27 +1,28 @@
 package dev.shibasis.reaktor.tooling.cloud
 
+import dev.shibasis.reaktor.tooling.infra.InfrastructureSession
+import dev.shibasis.reaktor.tooling.infra.KubernetesJvmClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import java.io.File
 
 class KubernetesReader(
     private val kubeconfig: File,
-    private val kubectl: String = "kubectl",
     private val clock: () -> Long = System::currentTimeMillis,
     override val id: String = "kubernetes",
 ) : CloudProvider {
-    private val kinds = "nodes,pods,deployments,statefulsets,daemonsets,cronjobs,jobs,replicasets,services,persistentvolumeclaims,persistentvolumes"
-
-    override suspend fun read(): CloudReading = coroutineScope {
+    override suspend fun read(): CloudReading = withContext(Dispatchers.IO) { InfrastructureSession().use { session -> coroutineScope {
         val started = clock()
         require(kubeconfig.isFile) { "The cluster configuration ${kubeconfig.path} is missing" }
-        fun command(vararg args: String) = listOf(kubectl, "--kubeconfig", kubeconfig.absolutePath, "--request-timeout=20s") + args
-        val objects = async { CommandLine.json(command("get", kinds, "--all-namespaces", "-o", "json"), 45) }
-        val podUsage = async { runCatching { CommandLine.json(command("get", "--raw", "/apis/metrics.k8s.io/v1beta1/pods"), 30) }.getOrNull() }
-        val nodeUsage = async { runCatching { CommandLine.json(command("get", "--raw", "/apis/metrics.k8s.io/v1beta1/nodes"), 30) }.getOrNull() }
-        val events = async { runCatching { CommandLine.json(command("get", "events", "--all-namespaces", "-o", "json"), 30) }.getOrNull() }
+        val client = KubernetesJvmClient(kubeconfig, session)
+        val objects = async { client.cluster() }
+        val podUsage = async { runCatching { client.metrics("pods") }.getOrNull() }
+        val nodeUsage = async { runCatching { client.metrics("nodes") }.getOrNull() }
+        val events = async { runCatching { client.events() }.getOrNull() }
         val builder = KubernetesInventoryBuilder(clock(), kubeconfig.name)
         builder.read(objects.await(), podUsage.await(), nodeUsage.await(), events.await())
         val finished = clock()
@@ -37,7 +38,7 @@ class KubernetesReader(
             changes = builder.changes(),
             source = "cluster in ${kubeconfig.path}",
         )
-    }
+    } } }
 }
 
 internal class KubernetesInventoryBuilder(private val readAt: Long, private val sourceName: String) {

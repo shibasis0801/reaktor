@@ -64,11 +64,11 @@ internal class BuildTarget(private val project: Project, val name: String, priva
         return dependencies
     }
 
-    internal fun model(): Node {
+    internal fun model(consumer: Project): Node {
         val kinds = outputKinds()
         val platform = if (kinds.any { it.platform == HostPlatform.Macos }) HostPlatform.Macos else host.platform
         val family = kinds.map { it.family }.distinct().singleOrNull()
-        val files = outputs.map { FileSet(project.resolve(it).paths(project), it.kind.name) }
+        val files = outputs.map { FileSet(consumer.resolve(it).paths(consumer), it.kind.name) }
         return Node(id, requireNotNull(declaration).kind,
             name, effect, host.copy(platform = platform), site,
             kernelRef(project, WorkspaceCompletion::class.java).copy(spec = declaration),

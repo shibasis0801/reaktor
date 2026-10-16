@@ -1,10 +1,8 @@
 package dev.shibasis.reaktor.tooling.infra
 
-import com.google.auth.oauth2.GoogleCredentials
-import dev.shibasis.reaktor.tooling.cloud.CloudInventoryReads
-import dev.shibasis.reaktor.tooling.cloud.CommandLine
+import dev.shibasis.reaktor.tooling.cloud.GoogleSignIn
+import dev.shibasis.reaktor.tooling.cloud.GoogleSignInRequired
 import dev.shibasis.reaktor.tooling.database.*
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 import java.io.File
 import java.net.URI
@@ -32,18 +30,9 @@ internal class PubSubJvmClient(private val session: InfrastructureSession) {
                 "Recent application observations from one receiver process or Worker isolate; history is bounded and may reset. Refresh can reach another instance.",
                 "No subscription pull, acknowledgment, seek, or delivery change was performed."))
         }
-        val file = File(connection.credentialFile)
-        val token = if (file.isFile) {
-            require(file.length() in 1..65_536) { "Google credential file is empty or exceeds limit" }
-            val credentials = file.inputStream().use { GoogleCredentials.fromStream(it) }
-                .createScoped(listOf("https://www.googleapis.com/auth/pubsub", "https://www.googleapis.com/auth/monitoring.read"))
-            credentials.refreshIfExpired()
-            requireNotNull(credentials.accessToken?.tokenValue) { "Google authentication failed" }
-        } else runBlocking {
-            val gcloud = requireNotNull(CloudInventoryReads.tool("gcloud")) { "Google credentials and gcloud sign-in are unavailable" }
-            CommandLine.run(listOf(gcloud, "auth", "print-access-token"), 30, CloudInventoryReads.gcloudEnvironment())
-                .trim().also { require(it.isNotBlank()) { "Google authentication failed" } }
-        }
+        val file = File(connection.credentialFile).takeIf(File::isFile) ?: GoogleSignIn().credentialFile()
+            ?: throw GoogleSignInRequired("Google credentials are unavailable: sign in with gcloud auth login, or gcloud auth application-default login")
+        val token = GoogleSignIn.token(file, listOf("https://www.googleapis.com/auth/pubsub", "https://www.googleapis.com/auth/monitoring.read"))
         val headers = mapOf("Authorization" to "Bearer $token", "Accept" to "application/json")
         val params = linkedMapOf("pageSize" to limit.toString())
         query.pageToken?.let { params["pageToken"] = it }

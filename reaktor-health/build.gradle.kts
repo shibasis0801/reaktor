@@ -1,24 +1,16 @@
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.common.commonCoroutines
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
 
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    // Both targets are real here, unlike reaktor-sensors: a health store is the only way to see a
-    // watch's data, and every platform that has watches has one.
-    module("dev.shibasis.reaktor.health") {
+library(namespace = "dev.shibasis.reaktor.health", targets = Targets.Android + Targets.Apple) {
+    dependencies {
         common {
-            dependencies {
-                api(projects.reaktorCore)
-                commonCoroutines()
-            }
+            api(projects.reaktorCore)
+            commonCoroutines()
         }
-
-        android {
-            dependencies {
-                implementation(Versions.Android.HealthConnect)
-            }
-        }
-        apple {}
+        android { implementation(Versions.Android.HealthConnect) }
     }
 }

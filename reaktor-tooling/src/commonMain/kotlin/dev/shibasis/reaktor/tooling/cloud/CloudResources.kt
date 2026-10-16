@@ -88,8 +88,8 @@ val CloudKind.workload: Boolean
 enum class CloudSource(val label: String, val observed: Boolean) {
     Repository("repository", false),
     CloudflareApi("Cloudflare API", true),
-    GoogleCloudApi("gcloud", true),
-    KubernetesApi("kubectl", true),
+    GoogleCloudApi("Google Cloud API", true),
+    KubernetesApi("Kubernetes API", true),
     Inferred("inferred", false),
 }
 

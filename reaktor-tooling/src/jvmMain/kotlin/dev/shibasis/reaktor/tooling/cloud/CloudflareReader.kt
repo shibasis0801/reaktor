@@ -6,6 +6,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
@@ -30,24 +31,68 @@ class CloudflareApiToken(private val value: String) : CloudflareCredentials {
 
 class WranglerLogin(
     private val config: File = defaultConfig(),
-    private val refresh: suspend () -> Unit,
+    private val tokenUrl: String = System.getenv("WRANGLER_TOKEN_URL")?.takeIf(String::isNotBlank) ?: "https://dash.cloudflare.com/oauth2/token",
+    private val clientId: String = System.getenv("WRANGLER_CLIENT_ID")?.takeIf(String::isNotBlank) ?: ClientId,
+    private val clock: () -> Long = System::currentTimeMillis,
 ) : CloudflareCredentials {
     override suspend fun token(): String {
-        val current = read()
-        if (current != null && current.second > System.currentTimeMillis() + 60_000) return current.first
-        refresh()
-        return read()?.first ?: throw CloudflareFailure("Wrangler is not signed in. Run `npx wrangler login` once.")
+        fresh()?.let { return it }
+        return refresh() ?: throw CloudflareFailure("Wrangler is not signed in. Run `npx wrangler login` once.")
     }
+
+    private suspend fun fresh(): String? = read()?.takeIf { it.second > clock() + 60_000 }?.first
 
     private suspend fun read(): Pair<String, Long>? = withContext(Dispatchers.IO) {
         if (!config.isFile) return@withContext null
         val text = config.readText()
-        val token = Regex("""oauth_token\s*=\s*"([^"]+)"""").find(text)?.groupValues?.get(1) ?: return@withContext null
-        val expires = Regex("""expiration_time\s*=\s*"([^"]+)"""").find(text)?.groupValues?.get(1)?.let(::instantMillis) ?: 0L
-        token to expires
+        val token = value(text, "oauth_token") ?: return@withContext null
+        token to (value(text, "expiration_time")?.let(::instantMillis) ?: 0L)
+    }
+
+    private suspend fun refresh(): String? = Refreshing.withLock {
+        fresh()?.let { return@withLock it }
+        withContext(Dispatchers.IO) {
+            val text = config.takeIf(File::isFile)?.readText() ?: return@withContext null
+            val stored = value(text, "refresh_token") ?: return@withContext null
+            val form = listOf("grant_type" to "refresh_token", "refresh_token" to stored, "client_id" to clientId)
+                .joinToString("&") { (key, value) -> "$key=${java.net.URLEncoder.encode(value, Charsets.UTF_8)}" }
+            val request = HttpRequest.newBuilder(URI.create(tokenUrl)).timeout(Duration.ofSeconds(30))
+                .header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form)).build()
+            val response = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build().sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
+            val body = runCatching { cloudJson.parseToJsonElement(response.body()) }.getOrNull()
+            if (response.statusCode() !in 200..299) throw CloudflareFailure(
+                "Wrangler sign-in could not be renewed (${body.text("error") ?: "HTTP ${response.statusCode()}"}). Run `npx wrangler login` once.")
+            val access = body.text("access_token")?.takeIf(String::isNotBlank) ?: throw CloudflareFailure("Wrangler sign-in renewal returned no access token")
+            val expiry = Instant.ofEpochMilli(clock() + (body.long("expires_in") ?: 3600L) * 1000).toString()
+            write(text, mapOf("oauth_token" to access, "expiration_time" to expiry, "refresh_token" to (body.text("refresh_token") ?: stored)))
+            access
+        }
+    }
+
+    private fun write(text: String, values: Map<String, String>) {
+        val updated = values.entries.fold(text) { current, (key, value) ->
+            val line = Regex("""(?m)^$key\s*=\s*"[^"]*"""")
+            val replacement = "$key = \"$value\""
+            if (line.containsMatchIn(current)) line.replace(current, Regex.escapeReplacement(replacement)) else current.trimEnd() + "\n" + replacement + "\n"
+        }
+        val directory = config.absoluteFile.parentFile.toPath()
+        val staged = java.nio.file.Files.createTempFile(directory, ".${config.name}", ".tmp",
+            java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------")))
+        try {
+            java.nio.file.Files.writeString(staged, updated)
+            java.nio.file.Files.move(staged, config.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        } finally {
+            java.nio.file.Files.deleteIfExists(staged)
+        }
     }
 
     companion object {
+        const val ClientId: String = "54d11594-84e4-41aa-b438-e81b8fa78ee7"
+        private val Refreshing = kotlinx.coroutines.sync.Mutex()
+
+        private fun value(text: String, key: String): String? =
+            Regex("""(?m)^$key\s*=\s*"([^"]+)"""").find(text)?.groupValues?.get(1)?.takeIf(String::isNotBlank)
+
         fun defaultConfig(): File {
             val home = System.getProperty("user.home")
             return listOf(

@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.tooling.ide
 
+import java.awt.Desktop
 import java.io.File
+import java.net.URI
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -11,14 +13,18 @@ import java.util.concurrent.TimeUnit
 object ReaktorIde {
 
     fun open(file: File, line: Int) {
-        commandPlan(file.absoluteFile, line, ProcessIdeEnvironment)
-            .firstOrNull(::runProcess)
+        val plan = commandPlan(file.absoluteFile, line, ProcessIdeEnvironment)
+        if (plan.dropLast(1).firstOrNull(::runProcess) == null && !desktop(Desktop.Action.OPEN) { it.open(file.absoluteFile) }) runProcess(plan.last())
     }
 
     fun openClass(workspace: File, qualifiedName: String) {
         val uri = classUri(workspace, qualifiedName)
-        runProcess(listOf(if (ProcessIdeEnvironment.isMac) "open" else "xdg-open", uri))
+        if (!desktop(Desktop.Action.BROWSE) { it.browse(URI(uri)) }) runProcess(listOf(if (ProcessIdeEnvironment.isMac) "open" else "xdg-open", uri))
     }
+
+    private fun desktop(action: Desktop.Action, use: (Desktop) -> Unit): Boolean = runCatching {
+        Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(action) && run { use(Desktop.getDesktop()); true }
+    }.getOrDefault(false)
 
     internal fun classUri(workspace: File, qualifiedName: String): String {
         require(qualifiedName.split('.').all { it.isNotBlank() && it.all { c -> c.isLetterOrDigit() || c == '_' || c == '$' } })

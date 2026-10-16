@@ -47,7 +47,7 @@ internal class DaggerModule(private val project: Project, private val targets: M
                 ),
             )))
             modelFile.set(dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project).graph.flatMap { it.outputFile })
-            declarations.set(project.provider { targets.values.map { BuildModelReader.encode(it.model()) } })
+            declarations.set(project.provider { targets.values.map { BuildModelReader.encode(it.model(project)) } })
             edges.set(project.provider { targets.values.flatMap { it.edges() }.map { BuildModelReader.json.encodeToString(it) } })
             outputFile.set(project.file(output))
         }

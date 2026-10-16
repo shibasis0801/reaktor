@@ -132,12 +132,53 @@ class KubernetesJvmClient(kubeconfig: File, private val session: InfrastructureS
         return session.own(KubernetesTunnel(client, namespace, requireNotNull(pod.metadata?.name), targetPort))
     }
 
+    fun cluster(): JsonObject {
+        val apps = AppsV1Api(client)
+        val batch = BatchV1Api(client)
+        val lists = listOf<Triple<String, String, () -> Any>>(
+            Triple("Node", "v1") { core.listNode().limit(ClusterLimit + 1).execute() },
+            Triple("Pod", "v1") { core.listPodForAllNamespaces().limit(ClusterLimit + 1).execute() },
+            Triple("Deployment", "apps/v1") { apps.listDeploymentForAllNamespaces().limit(ClusterLimit + 1).execute() },
+            Triple("StatefulSet", "apps/v1") { apps.listStatefulSetForAllNamespaces().limit(ClusterLimit + 1).execute() },
+            Triple("DaemonSet", "apps/v1") { apps.listDaemonSetForAllNamespaces().limit(ClusterLimit + 1).execute() },
+            Triple("ReplicaSet", "apps/v1") { apps.listReplicaSetForAllNamespaces().limit(ClusterLimit + 1).execute() },
+            Triple("CronJob", "batch/v1") { batch.listCronJobForAllNamespaces().limit(ClusterLimit + 1).execute() },
+            Triple("Job", "batch/v1") { batch.listJobForAllNamespaces().limit(ClusterLimit + 1).execute() },
+            Triple("Service", "v1") { core.listServiceForAllNamespaces().limit(ClusterLimit + 1).execute() },
+            Triple("PersistentVolumeClaim", "v1") { core.listPersistentVolumeClaimForAllNamespaces().limit(ClusterLimit + 1).execute() },
+            Triple("PersistentVolume", "v1") { core.listPersistentVolume().limit(ClusterLimit + 1).execute() },
+        )
+        val items = lists.flatMap { (kind, apiVersion, read) ->
+            boundedItems(read(), ClusterLimit).map { JsonObject(it.jsonObject + mapOf("kind" to JsonPrimitive(kind), "apiVersion" to JsonPrimitive(apiVersion))) }
+        }
+        return buildJsonObject { put("items", JsonArray(items)) }
+    }
+
+    fun events(): JsonObject {
+        val items = boundedItems(core.listEventForAllNamespaces().limit(ClusterLimit + 1).execute(), ClusterLimit)
+        return buildJsonObject { put("items", JsonArray(items.map { JsonObject(it.jsonObject + mapOf("kind" to JsonPrimitive("Event"), "apiVersion" to JsonPrimitive("v1"))) })) }
+    }
+
+    fun metrics(kind: String): JsonElement {
+        require(kind in setOf("pods", "nodes"))
+        val call = client.buildCall(client.basePath, "/apis/metrics.k8s.io/v1beta1/$kind", "GET", emptyList(), emptyList(), null,
+            mutableMapOf("Accept" to "application/json"), mutableMapOf(), mutableMapOf(), arrayOf("BearerToken"), null)
+        return call.execute().use { response ->
+            check(response.isSuccessful) { "Kubernetes metrics answered HTTP ${response.code}" }
+            val body = requireNotNull(response.body).byteStream().readNBytes(8_388_609)
+            require(body.size <= 8_388_608) { "Kubernetes metrics exceed 8 MiB" }
+            Json.parseToJsonElement(body.toString(Charsets.UTF_8))
+        }
+    }
+
     fun secret(namespace: String, name: String, key: String, maxBytes: Int = 32_768): ByteArray {
         val secret = core.readNamespacedSecret(name, namespace).execute()
         return requireNotNull(secret.data?.get(key)) { "Selected credential key is unavailable" }
             .also { require(it.size <= maxBytes) { "Credential exceeds size limit" } }
     }
 }
+
+private const val ClusterLimit = 5_000
 
 private fun boundedItems(page: Any, limit: Int): JsonArray {
     val json = Json.parseToJsonElement(JSON.serialize(page)).jsonObject

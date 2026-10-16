@@ -37,6 +37,7 @@ data class DoorPolicy(
 
     companion object {
         const val PATH = ".reaktor/mcp-policy.json"
+        val Guarded = DoorPolicy(mapOf("*" to SeatPolicy.Guarded))
 
         /**
          * The machine's policy and the workspace's, and for each seat the stricter of the two.
@@ -62,10 +63,14 @@ data class DoorPolicy(
 @Serializable
 data class SeatPolicy(
     /** The highest effect this seat may cause without anyone being asked. */
-    val allow: SafetyClass = SafetyClass.LiveRead,
+    val allow: SafetyClass = SafetyClass.UnknownRemoteEffect,
     /** Above [allow] and up to here a person is asked first; above it the call is refused. */
-    val ask: SafetyClass = SafetyClass.Destructive,
-)
+    val ask: SafetyClass = SafetyClass.UnknownRemoteEffect,
+) {
+    companion object {
+        val Guarded = SeatPolicy(SafetyClass.LiveRead, SafetyClass.Destructive)
+    }
+}
 
 sealed interface DoorDecision {
     data object Allowed : DoorDecision
@@ -103,9 +108,9 @@ object DoorAuthority {
         "comment", "security", "reassign", "import", "export", "outfile", "dumpfile")
 
     fun decide(effect: SafetyClass, seat: SeatPolicy): DoorDecision = when {
-        // An effect nobody classified is never assumed harmless and never refused outright: a person decides.
-        effect == SafetyClass.UnknownRemoteEffect -> DoorDecision.Ask(effect)
         effect <= seat.allow && (!effect.requiresApproval || seat.allow.requiresApproval) -> DoorDecision.Allowed
+        // Short of full access, an effect nobody classified is never assumed harmless and never refused outright: a person decides.
+        effect == SafetyClass.UnknownRemoteEffect -> DoorDecision.Ask(effect)
         effect <= seat.ask || effect <= seat.allow -> DoorDecision.Ask(effect)
         else -> DoorDecision.Refused(effect, "this seat may not cause ${effect.name}")
     }

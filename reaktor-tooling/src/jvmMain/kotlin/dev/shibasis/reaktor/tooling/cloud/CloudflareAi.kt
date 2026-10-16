@@ -145,7 +145,7 @@ class CloudflareLogin(source: String, private val credentials: CloudflareCredent
         const val TokenFile: String = "config/cloudflare.token"
 
         fun forWorkspace(root: File): CloudflareLogin {
-            val wrangler = WranglerLogin(refresh = { CloudInventoryReads.refreshWrangler(root) })
+            val wrangler = WranglerLogin()
             System.getenv("CLOUDFLARE_API_TOKEN")?.takeIf { it.isNotBlank() }
                 ?.let { return CloudflareLogin("CLOUDFLARE_API_TOKEN", CloudflareApiToken(it)) }
             listOf(TokenFile, "config/mcp/cloudflare.token").firstNotNullOfOrNull { path ->

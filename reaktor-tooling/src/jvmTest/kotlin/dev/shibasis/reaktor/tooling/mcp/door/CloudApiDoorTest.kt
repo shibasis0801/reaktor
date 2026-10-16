@@ -68,7 +68,7 @@ class CloudApiDoorTest {
         val handler = ReaktorMcpServer("cloud", "1", "", CloudApiTools.tools(apis))
         val mount = DoorMount(McpLinkProvider("cloud", FunctionMcpLink("cloud") { handler.handle(it) }, SafetyClass.UnknownRemoteEffect), callClasses = CloudApiTools.classes)
         door = McpDoor(listOf(mount), CallSnapshots(directory.resolve("snapshots")), CallLog(directory.resolve("calls.jsonl"), CallCaller("codex")),
-            CallCaller("codex"), scope, approvals = approvals, workspace = workspace.path)
+            CallCaller("codex"), scope, policy = DoorPolicy.Guarded, approvals = approvals, workspace = workspace.path)
         rpc("tools/list")
     }
 

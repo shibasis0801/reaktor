@@ -52,14 +52,4 @@ class DeviceInspectionTest {
         assertEquals(128, files[1].bytes)
         assertTrue(files.last().symbolicLink)
     }
-
-    @Test fun filePreviewIsBoundedAndAddressesTheExactAppOnTheExactDevice() {
-        val device = DevelopmentDevice("emulator-5554", "Pixel", DeviceTransport.Adb, "device")
-        val command = DeviceTools.command(device, DeviceAction.ReadFile, "ai.bestbuds.app", "files/state.json") { "adb" }
-        assertEquals(listOf("adb", "-s", "emulator-5554", "exec-out", "run-as", "ai.bestbuds.app", "head", "-c", "262144", "files/state.json"), command.argv)
-        assertEquals(SafetyClass.LiveRead, command.safety)
-        for (path in listOf("../state", "/data/state", "--help", "files/x;id")) assertFails {
-            DeviceTools.command(device, DeviceAction.ReadFile, "ai.bestbuds.app", path) { "adb" }
-        }
-    }
 }

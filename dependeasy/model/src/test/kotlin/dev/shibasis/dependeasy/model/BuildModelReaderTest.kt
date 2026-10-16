@@ -140,6 +140,9 @@ class BuildModelReaderTest {
         val bootstrap = root.resolve("dependeasy/bootstrap/src/main/kotlin/Versions.kt").apply {
             parentFile.mkdirs(); writeText("object Versions")
         }
+        val options = root.resolve("dependeasy/options/src/main/kotlin/BuildHandles.kt").apply {
+            parentFile.mkdirs(); writeText("class BuildOption")
+        }
         fun export() {
             val files = BuildDeclarationInputs.files(root).map {
                 DeclarationInput("fixture", it.relativeTo(root).invariantSeparatorsPath, BuildModelReader.digest(it))
@@ -158,6 +161,9 @@ class BuildModelReaderTest {
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
         export()
         bootstrap.writeText("object Versions { const val Changed = true }")
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+        export()
+        options.writeText("class BuildOption { val changed = true }")
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
         export()
         root.resolve("new/build.gradle.kts").apply { parentFile.mkdirs(); writeText("plugins {}") }

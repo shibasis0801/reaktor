@@ -260,6 +260,23 @@ class AdbDeviceSession(
     override suspend fun screenshot(): ByteArray =
         session.deviceServices.rawExec(selector, "screencap -p").use { it.drain() }
 
+    suspend fun exec(command: String, destination: Path, maxBytes: Long) {
+        session.deviceServices.rawExec(selector, command).use { channel ->
+            Files.newOutputStream(destination).use { output ->
+                val buffer = ByteBuffer.allocate(64 * 1024)
+                var total = 0L
+                while (true) {
+                    buffer.clear()
+                    if (channel.read(buffer, 60, TimeUnit.SECONDS) < 0) break
+                    buffer.flip()
+                    total += buffer.remaining()
+                    check(total <= maxBytes) { "Device stream exceeds $maxBytes bytes" }
+                    output.write(buffer.array(), 0, buffer.limit())
+                }
+            }
+        }
+    }
+
     /** Reads a raw exec channel to EOF. `exec` is used so no shell mangles CRLF inside the PNG. */
     private suspend fun AdbInputChannel.drain(bufferBytes: Int = 64 * 1024): ByteArray {
         val output = ByteArrayOutputStream()

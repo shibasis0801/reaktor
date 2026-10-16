@@ -3,11 +3,13 @@ import dev.shibasis.dependeasy.toolchain.BuildLibraries
 
 plugins {
     id("org.gradle.kotlin.embedded-kotlin")
+    `java-library`
     `maven-publish`
     id("org.jetbrains.kotlin.plugin.serialization") version embeddedKotlinVersion
 }
 
 dependencies {
+    api(projects.options)
     implementation(kotlin("stdlib", embeddedKotlinVersion))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${BuildLibraries.Serialization}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${BuildLibraries.Coroutines}")

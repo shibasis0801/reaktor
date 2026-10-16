@@ -33,6 +33,9 @@ gradlePlugin {
         "application" to "ApplicationPlugin",
         "web-app" to "WebAppPlugin",
         "load-tests" to "LoadTestsPlugin",
+        "apple-app" to "AppleAppPlugin",
+        "worker-fleet" to "WorkerFleetPlugin",
+        "device-tests" to "DeviceTestsPlugin",
     ).forEach { (name, implementation) ->
         plugins.create(name) {
             id = "dev.shibasis.dependeasy.$name"

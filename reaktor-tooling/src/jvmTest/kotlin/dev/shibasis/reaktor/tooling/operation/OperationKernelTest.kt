@@ -155,7 +155,7 @@ class OperationKernelTest {
     fun accessShowsWhatEachSeatMayDo() = kernel(DoorPolicy(mapOf("codex" to SeatPolicy(allow = SafetyClass.SourceWrite), "gemini" to SeatPolicy(SafetyClass.ReadOnly, SafetyClass.ReadOnly)))) { kernel, _, _ ->
         val access = kernel.access(listOf("*", "codex", "gemini")).associateBy { it.id.value }
         assertEquals(mapOf("*" to Access.Allowed, "codex" to Access.Allowed, "gemini" to Access.Allowed), access.getValue("build.show").seats)
-        assertEquals(mapOf("*" to Access.Ask, "codex" to Access.Allowed, "gemini" to Access.Refused), access.getValue("code.write").seats)
+        assertEquals(mapOf("*" to Access.Allowed, "codex" to Access.Allowed, "gemini" to Access.Refused), access.getValue("code.write").seats)
         assertEquals(Access.Ask, access.getValue("tool.workspace").seats["codex"])
         assertEquals(kernel.catalog().map { it.id }, access.values.map { it.id })
     }
@@ -175,7 +175,7 @@ class OperationKernelTest {
         } finally { graph.close(); dependencies.close() }
     }
 
-    private fun kernel(policy: DoorPolicy = DoorPolicy(), body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
+    private fun kernel(policy: DoorPolicy = DoorPolicy.Guarded, body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
         val directory = Files.createTempDirectory("operation-kernel")
         val dependencies = koinApplication {}
         val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))

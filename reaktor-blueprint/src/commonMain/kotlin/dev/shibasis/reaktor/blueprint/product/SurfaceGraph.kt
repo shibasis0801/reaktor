@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,9 +25,12 @@ import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
 import dev.shibasis.reaktor.blueprint.canvas.LinkShape
 import dev.shibasis.reaktor.blueprint.canvas.LinkStyle
 
-data class SurfaceGraphNode(val id: String, val title: String, val subtitle: String, val scope: String = "", val color: Color? = null)
+data class SurfaceGraphRow(val id: String, val title: String, val key: String = id, val aliases: List<String> = emptyList())
+data class SurfaceGraphNode(val id: String, val title: String, val subtitle: String, val scope: String = "", val color: Color? = null,
+    val rows: List<SurfaceGraphRow> = emptyList(), val folded: Int = 0, val owner: String = id)
+data class SurfaceGraphGroup(val key: String, val title: String, val subtitle: String = "", val color: Color? = null, val parent: String? = null, val owner: String? = null)
 
-data class SurfaceGraphLink(val id: String, val from: String, val to: String, val label: String = "", val proposed: Boolean = false)
+data class SurfaceGraphLink(val id: String, val from: String, val to: String, val label: String = "", val proposed: Boolean = false, val color: Color? = null)
 
 data class SurfaceGraphAppearance(
     val canvas: Color,
@@ -37,6 +41,9 @@ data class SurfaceGraphAppearance(
     val selected: Color,
     val width: Double = 220.0,
     val height: Double = 88.0,
+    val fontFamily: FontFamily? = null,
+    val titleFontFamily: FontFamily? = null,
+    val grid: Boolean = false,
 )
 
 fun surfaceGraphPositions(nodes: List<SurfaceGraphNode>, width: Double = 220.0, height: Double = 88.0): Map<String, Pair<Double, Double>> {

@@ -54,6 +54,9 @@ sealed interface InfrastructureOperation {
     ) : InfrastructureOperation
 
     @Serializable
+    data class HttpRead(val url: String, val accept: String = "application/json", val maxBytes: Int = 65_536) : InfrastructureOperation
+
+    @Serializable
     data class CloudApiCall(
         val workspace: String,
         val operation: String,
@@ -115,7 +118,7 @@ sealed interface InfrastructureOperation {
 }
 
 @Serializable
-enum class DatabaseProvider { Postgres, Memgraph, ClickHouse, PubSub }
+enum class DatabaseProvider { Postgres, Memgraph, ClickHouse, PubSub, D1, SQLite }
 
 @Serializable
 enum class DatabaseResultFormat { Csv, QueryReceipt }
@@ -135,6 +138,21 @@ sealed interface DatabaseConnection {
         val service: String,
         val port: Int,
     ) : DatabaseConnection
+
+    @Serializable
+    data class CloudflareD1(val workspace: String, val account: String, val database: String, val databaseId: String, val config: String) : DatabaseConnection
+
+    @Serializable
+    data class SQLiteFile(val path: String, val ownerOnly: Boolean = false) : DatabaseConnection
+
+    @Serializable
+    data class SQLiteDirectory(val path: String) : DatabaseConnection
+
+    @Serializable
+    data class AndroidAppDatabase(val serial: String, val application: String, val path: String) : DatabaseConnection
+
+    @Serializable
+    data class SimulatorAppDatabase(val udid: String, val application: String, val path: String) : DatabaseConnection
 }
 
 @Serializable

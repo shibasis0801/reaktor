@@ -169,10 +169,6 @@ open class DependeasyExtension internal constructor(
     fun kotlinBrowser(configuration: KotlinBrowser.() -> Unit = {}) =
         KotlinBrowser(project).apply(configuration).register()
 
-    fun appleHost(directory: String, application: org.gradle.api.artifacts.ProjectDependency,
-                  configuration: dev.shibasis.dependeasy.darwin.AppleHost.() -> Unit) =
-        dev.shibasis.dependeasy.darwin.AppleHost(project, directory, application).apply(configuration).also { it.install() }
-
     fun appleLibrary(name: String, exports: List<Any> = emptyList(), extensionSafe: Boolean = false,
                      configuration: org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension.() -> Unit = {}) =
         project.appleLibrary(name, exports, extensionSafe, configuration)
