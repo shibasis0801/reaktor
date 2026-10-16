@@ -18,8 +18,9 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-open class OperationNode(graph: Graph, val provider: String, val operations: List<Operation<*, *>>) : BasicNode(graph) {
-    init { require(operations.distinctBy { it.id }.size == operations.size) { "Duplicate operation ids from $provider" } }
+open class OperationNode(graph: Graph, val provider: String, private val declared: List<Operation<*, *>> = emptyList()) : BasicNode(graph) {
+    open val operations: List<Operation<*, *>> get() = declared
+    init { require(declared.distinctBy { it.id }.size == declared.size) { "Duplicate operation ids from $provider" } }
 }
 
 class OperationAuthority(
@@ -52,6 +53,17 @@ class OperationKernel(
 
     fun describe(id: OperationId): OperationDescriptor? = entries().firstOrNull { it.catalog.id == id }?.describe?.invoke()
 
+    fun access(seats: List<String>): List<OperationAccess> = entries().map { entry ->
+        val catalog = entry.catalog
+        OperationAccess(catalog.id, catalog.summary, catalog.effect, catalog.provider, seats.associateWith { seat ->
+            when (DoorAuthority.decide(catalog.effect, authority.policy.seat(seat))) {
+                DoorDecision.Allowed -> Access.Allowed
+                is DoorDecision.Ask -> if (authority.approvals == null) Access.Refused else Access.Ask
+                is DoorDecision.Refused -> Access.Refused
+            }
+        })
+    }.sortedBy { it.id.value }
+
     suspend fun invoke(invocation: Invocation): Outcome {
         val started = System.nanoTime()
         val entry = entries().firstOrNull { it.catalog.id == invocation.operation }
@@ -65,29 +77,31 @@ class OperationKernel(
         )
 
         val seat = invocation.caller.seat
-        var approvedBy: String? = null
-        when (val decision = DoorAuthority.decide(descriptor.effect, authority.policy.seat(seat))) {
+        val effect = runCatching { entry.effect(invocation.arguments) }
+            .getOrElse { failure -> return Outcome.Failed(failure.message ?: "Could not classify ${descriptor.id}").also { record("failed", it.message) } }
+        var approval: DoorApproval? = null
+        when (val decision = DoorAuthority.decide(effect, authority.policy.seat(seat))) {
             DoorDecision.Allowed -> Unit
-            is DoorDecision.Refused -> return Outcome.Refused(descriptor.effect, decision.reason).also { record("refused", decision.reason) }
+            is DoorDecision.Refused -> return Outcome.Refused(effect, decision.reason).also { record("refused", decision.reason) }
             is DoorDecision.Ask -> {
                 val approvals = authority.approvals
-                    ?: return Outcome.Refused(descriptor.effect, "${descriptor.effect.name} needs a person's approval and this host cannot ask for one").also { record("refused", "no approvals") }
+                    ?: return Outcome.Refused(effect, "${effect.name} needs a person's approval and this host cannot ask for one").also { record("refused", "no approvals") }
                 val spent = approvals.spend(seat, descriptor.provider, descriptor.id.value, invocation.arguments)
                 if (spent == null) {
                     approvals.denied(seat, descriptor.provider, descriptor.id.value, invocation.arguments)?.let { denied ->
                         return Outcome.Denied(denied.id, denied.decidedBy).also { record("denied", denied.id) }
                     }
                     val before = approvals.pending().map(DoorApproval::id).toSet()
-                    val waiting = approvals.request(seat, descriptor.provider, descriptor.id.value, descriptor.effect, invocation.arguments)
+                    val waiting = approvals.request(seat, descriptor.provider, descriptor.id.value, effect, invocation.arguments)
                     if (waiting.id !in before) runCatching { authority.onApprovalNeeded(waiting) }
-                    return Outcome.ApprovalRequired(waiting.id, descriptor.effect, waiting.expiresAtEpochMillis).also { record("approval-required", waiting.id) }
+                    return Outcome.ApprovalRequired(waiting.id, effect, waiting.expiresAtEpochMillis).also { record("approval-required", waiting.id) }
                 }
-                approvedBy = "approval ${spent.id} by ${spent.decidedBy}"
+                approval = spent
             }
         }
 
         val outcome = try {
-            Outcome.Completed(entry.execute(OperationCall(invocation), invocation.arguments))
+            Outcome.Completed(entry.execute(OperationCall(invocation, approval), invocation.arguments))
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (invalid: SerializationException) {
@@ -95,8 +109,9 @@ class OperationKernel(
         } catch (failure: Exception) {
             Outcome.Failed(failure.message ?: failure::class.simpleName.orEmpty())
         }
-        record(if (outcome is Outcome.Completed) "ok" else "failed", listOfNotNull(descriptor.effect.name, approvedBy, (outcome as? Outcome.Failed)?.message).joinToString("; "))
-        if (key != null && descriptor.effect != SafetyClass.ReadOnly) synchronized(replies) { replies[key] = outcome }
+        record(if (outcome is Outcome.Completed) "ok" else "failed", listOfNotNull(effect.name, approval?.let { "approval ${it.id} by ${it.decidedBy}" },
+            (outcome as? Outcome.Failed)?.message).joinToString("; "))
+        if (key != null && effect != SafetyClass.ReadOnly) synchronized(replies) { replies[key] = outcome }
         return outcome
     }
 
@@ -109,7 +124,7 @@ class OperationKernel(
                 val id = legacyId(definition.name)?.takeIf(taken::add) ?: return@mapNotNull null
                 val provider = node.label.ifBlank { node::class.simpleName ?: "graph" }
                 val descriptor = OperationDescriptor(id, definition.description, definition.effect(), provider, definition.inputSchema, definition.outputSchema)
-                Entry(CatalogEntry(id, definition.description, descriptor.effect, provider), { descriptor }) { _, arguments ->
+                Entry(CatalogEntry(id, definition.description, descriptor.effect, provider), { descriptor }, { descriptor.effect }) { _, arguments ->
                     val result = node.execute(definition.name, arguments)
                     if (result.isError) error(result.data.errorText()) else result.data
                 }
@@ -119,9 +134,14 @@ class OperationKernel(
     }
 
     private fun Operation<*, *>.entry(provider: String) =
-        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }) { call, arguments -> execute(call, arguments, json) }
+        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }, effectFor) { call, arguments -> execute(call, arguments, json) }
 
-    private class Entry(val catalog: CatalogEntry, val describe: () -> OperationDescriptor, val execute: suspend (OperationCall, JsonObject) -> JsonElement)
+    private class Entry(
+        val catalog: CatalogEntry,
+        val describe: () -> OperationDescriptor,
+        val effect: (JsonObject) -> SafetyClass,
+        val execute: suspend (OperationCall, JsonObject) -> JsonElement,
+    )
 
     private companion object {
         const val ReplayLimit = 256

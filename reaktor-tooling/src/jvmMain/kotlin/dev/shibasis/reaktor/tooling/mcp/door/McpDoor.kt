@@ -78,7 +78,7 @@ class McpDoor(
     /** Called when a call starts waiting for a person, so a host can put the question in front of one. */
     private val onApprovalNeeded: (DoorApproval) -> Unit = {},
 ) : McpMessageHandler {
-    private class Built(val revision: String, val server: ReaktorMcpServer, val dropped: Map<String, String>)
+    private class Built(val revision: String, val server: ReaktorMcpServer, val dropped: Map<String, String>, val offers: Map<String, List<Pair<DoorMount, ToolingCall>>>)
 
     @Volatile private var built: Built? = null
     /** A client that has not listed yet has nothing to be told about; announcing then is noise before the handshake is even done. */
@@ -97,6 +97,13 @@ class McpDoor(
         if (built == null || body.contains("\"tools/list\"") || body.contains("\"resources/list\"")) refreshCheap()
         return server().server.handle(body).also { if (body.contains("\"tools/list\"")) listed = true }
     }
+
+    fun effect(name: String, arguments: JsonObject): SafetyClass? = listing().offers[name]?.first()?.let { (mount, call) -> mount.effect(call, arguments) }
+
+    suspend fun callAdmitted(name: String, arguments: JsonObject): JsonObject =
+        route(listing().offers[name] ?: error("No provider offers '$name'. provider.tools lists them."), arguments, admitted = true)
+
+    private fun listing(): Built { if (built == null) refreshCheap(); return server() }
 
     /** Starts what is meant to be running; everything else waits for its first call. */
     fun open() {
@@ -186,10 +193,10 @@ class McpDoor(
             }
         }.distinctBy(McpReadResource::uri)
         val server = ReaktorMcpServer("reaktor", version, instructions(catalogs), ownCalls() + tools.sortedBy(McpTool::name), resources, toolsListChanged = true)
-        return Built(revision, server, dropped).also { built = it }
+        return Built(revision, server, dropped, owners).also { built = it }
     }
 
-    private suspend fun route(offers: List<Pair<DoorMount, ToolingCall>>, arguments: JsonObject): JsonObject {
+    private suspend fun route(offers: List<Pair<DoorMount, ToolingCall>>, arguments: JsonObject, admitted: Boolean = false): JsonObject {
         val reasons = mutableListOf<String>()
         offers.forEach { (mount, call) ->
             val started = System.nanoTime()
@@ -200,8 +207,8 @@ class McpDoor(
                 return@forEach
             }
             val effect = mount.effect(call, arguments)
-            var approvedAs: String? = null
-            if (!mount.selfGoverned) when (val decision = DoorAuthority.decide(effect, policy.seat(caller.seat))) {
+            var approvedAs: String? = if (admitted) "admitted by the operation gate" else null
+            if (!mount.selfGoverned && !admitted) when (val decision = DoorAuthority.decide(effect, policy.seat(caller.seat))) {
                 DoorDecision.Allowed -> Unit
                 is DoorDecision.Refused -> {
                     log.record(mount.id, call.name, arguments, took(), "refused", "${effect.name}: ${decision.reason}")

@@ -10,6 +10,8 @@ import dev.shibasis.reaktor.tooling.CallCaller
 import dev.shibasis.reaktor.tooling.SafetyClass
 import dev.shibasis.reaktor.tooling.mcp.door.CallLog
 import dev.shibasis.reaktor.tooling.mcp.door.DoorApprovals
+import dev.shibasis.reaktor.tooling.mcp.door.DoorPolicy
+import dev.shibasis.reaktor.tooling.mcp.door.SeatPolicy
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -132,7 +134,48 @@ class OperationKernelTest {
         assertEquals("build", described.getValue("provider").jsonPrimitive.content)
     }
 
-    private fun kernel(body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
+    @Test
+    fun theEffectCanDependOnTheArguments() = kernel { kernel, _, _ ->
+        val read = Invocation(OperationId("provider.call"), buildJsonObject { put("tool", "list") }, CallCaller("codex"))
+        assertEquals(JsonPrimitive("list"), assertIs<Outcome.Completed>(kernel.invoke(read)).result)
+        val write = read.copy(arguments = buildJsonObject { put("tool", "deploy") })
+        assertEquals(SafetyClass.ProductionReversibleWrite, assertIs<Outcome.ApprovalRequired>(kernel.invoke(write)).effect)
+        assertEquals(SafetyClass.UnknownRemoteEffect, kernel.catalog().single { it.id.value == "provider.call" }.effect)
+    }
+
+    @Test
+    fun theSpentApprovalReachesTheOperation() = kernel { kernel, approvals, _ ->
+        val request = Invocation(OperationId("source.sign"), buildJsonObject { put("path", "d.kt") }, CallCaller("claude"))
+        val asked = assertIs<Outcome.ApprovalRequired>(kernel.invoke(request))
+        approvals.decide(asked.approval, approve = true, by = "Hangar")
+        assertEquals(JsonPrimitive("${asked.approval} Used Hangar"), assertIs<Outcome.Completed>(kernel.invoke(request)).result)
+    }
+
+    @Test
+    fun accessShowsWhatEachSeatMayDo() = kernel(DoorPolicy(mapOf("codex" to SeatPolicy(allow = SafetyClass.SourceWrite), "gemini" to SeatPolicy(SafetyClass.ReadOnly, SafetyClass.ReadOnly)))) { kernel, _, _ ->
+        val access = kernel.access(listOf("*", "codex", "gemini")).associateBy { it.id.value }
+        assertEquals(mapOf("*" to Access.Allowed, "codex" to Access.Allowed, "gemini" to Access.Allowed), access.getValue("build.show").seats)
+        assertEquals(mapOf("*" to Access.Ask, "codex" to Access.Allowed, "gemini" to Access.Refused), access.getValue("code.write").seats)
+        assertEquals(Access.Ask, access.getValue("tool.workspace").seats["codex"])
+        assertEquals(kernel.catalog().map { it.id }, access.values.map { it.id })
+    }
+
+    @Test
+    fun aNodesOperationsCanChangeWhileItIsAttached() = runTest {
+        val dependencies = koinApplication {}
+        val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
+        val offered = mutableListOf<Operation<*, *>>()
+        graph.attach(object : OperationNode(graph, "hangar") { override val operations: List<Operation<*, *>> get() = offered.toList() })
+        val kernel = OperationKernel(graph, OperationAuthority())
+        try {
+            assertTrue(kernel.catalog().none { it.provider == "hangar" })
+            offered += operation<Write, String>("hangar.read", "Read") { it.path }
+            assertEquals(listOf("hangar.read"), kernel.catalog().filter { it.provider == "hangar" }.map { it.id.value })
+            assertEquals(JsonPrimitive("e"), assertIs<Outcome.Completed>(kernel.invoke(Invocation(OperationId("hangar.read"), buildJsonObject { put("path", "e") }))).result)
+        } finally { graph.close(); dependencies.close() }
+    }
+
+    private fun kernel(policy: DoorPolicy = DoorPolicy(), body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
         val directory = Files.createTempDirectory("operation-kernel")
         val dependencies = koinApplication {}
         val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
@@ -140,6 +183,9 @@ class OperationKernelTest {
         graph.attach(OperationNode(graph, "build", listOf(
             operation<ShowRequest, Shown>("build.show", "Show one build node") { Shown(it.node.value, it.detail) },
             operation<Write, Unit>("code.write", "Write a file", SafetyClass.SourceWrite) { written += it.path },
+            operation<Write, String>("source.sign", "Sign a file", SafetyClass.SourceWrite) { "${approval?.id} ${approval?.state} ${approval?.decidedBy}" },
+            rawOperation("provider.call", "Call a provider tool", SafetyClass.UnknownRemoteEffect, { JsonObject(emptyMap()) },
+                effectFor = { if (it["tool"] == JsonPrimitive("list")) SafetyClass.ReadOnly else SafetyClass.ProductionReversibleWrite }) { it.getValue("tool") },
         )))
         graph.attach(ToolNode(graph, listOf(
             Tool(ToolDefinition("graph_snapshot", "Snapshot", readOnly = true)) { ToolResult(JsonPrimitive("apps")) },
@@ -147,7 +193,7 @@ class OperationKernelTest {
         )))
         val approvals = DoorApprovals(directory.resolve("approvals"))
         try {
-            body(OperationKernel(graph, OperationAuthority(approvals = approvals, log = CallLog(directory.resolve("calls.jsonl"), CallCaller()))), approvals, written)
+            body(OperationKernel(graph, OperationAuthority(policy, approvals, CallLog(directory.resolve("calls.jsonl"), CallCaller()))), approvals, written)
         } finally {
             graph.close(); dependencies.close(); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         }

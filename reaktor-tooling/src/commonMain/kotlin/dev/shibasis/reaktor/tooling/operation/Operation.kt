@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.tooling.operation
 
 import dev.shibasis.reaktor.tooling.CallCaller
 import dev.shibasis.reaktor.tooling.SafetyClass
+import dev.shibasis.reaktor.tooling.mcp.door.DoorApproval
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialInfo
@@ -49,7 +50,7 @@ data class OperationDescriptor(
     val subject: String? = null,
 )
 
-class OperationCall(val invocation: Invocation)
+class OperationCall(val invocation: Invocation, val approval: DoorApproval? = null)
 
 class Operation<I, O>(
     val id: OperationId,
@@ -58,6 +59,7 @@ class Operation<I, O>(
     val input: KSerializer<I>,
     val output: KSerializer<O>,
     val schema: (() -> JsonObject)? = null,
+    val effectFor: (JsonObject) -> SafetyClass = { effect },
     val run: suspend OperationCall.(I) -> O,
 ) {
     val subject: String? get() = input.descriptor.subject()
@@ -82,8 +84,9 @@ fun rawOperation(
     summary: String,
     effect: SafetyClass,
     schema: () -> JsonObject,
+    effectFor: (JsonObject) -> SafetyClass = { effect },
     run: suspend OperationCall.(JsonObject) -> JsonElement,
-) = Operation(OperationId(id), summary, effect, JsonObject.serializer(), JsonElement.serializer(), schema, run)
+) = Operation(OperationId(id), summary, effect, JsonObject.serializer(), JsonElement.serializer(), schema, effectFor, run)
 
 @Serializable
 data class Invocation(
@@ -124,6 +127,12 @@ data class CatalogQuery(
 
 @Serializable
 data class CatalogEntry(val id: OperationId, val summary: String, val effect: SafetyClass, val provider: String, val subject: String? = null)
+
+@Serializable
+enum class Access { Allowed, Ask, Refused }
+
+@Serializable
+data class OperationAccess(val id: OperationId, val summary: String, val effect: SafetyClass, val provider: String, val seats: Map<String, Access>)
 
 @Serializable
 data class DescribeRequest(@Subject val operation: OperationId)
