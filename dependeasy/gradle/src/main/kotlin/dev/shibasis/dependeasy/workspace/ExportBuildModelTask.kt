@@ -66,12 +66,20 @@ abstract class ExportBuildModelTask : DefaultTask() {
         }).distinct().sortedBy { it.toString() })
         val text = BuildModelReader.encode(model)
         BuildModelReader.decode(text)
-        outputFile.get().asFile.apply { parentFile.mkdirs(); writeText(text) }
+        replaceAtomically(outputFile.get().asFile, text)
         val routing = RemoteHostsContract(builds = builds.associate { it.name to it.directory }.toSortedMap(),
             taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to model.requiredHost(it.id) }.toSortedMap(),
             taskFamilies = model.nodes.filter { it.id.build == own && it.artifactFamily != null }.associate {
                 (it.id.project.trimEnd(':') + ":" + it.id.name) to requireNotNull(it.artifactFamily) }.toSortedMap())
-        remoteHostsFile.get().asFile.apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(routing) + "\n") }
+        replaceAtomically(remoteHostsFile.get().asFile, BuildModelReader.json.encodeToString(routing) + "\n")
         legacyFiles().filter { it.exists() }.forEach { require(it.delete()) { "Cannot remove obsolete export: $it" } }
     }
+}
+
+private fun replaceAtomically(file: java.io.File, text: String) {
+    val target = file.toPath()
+    java.nio.file.Files.createDirectories(target.parent)
+    val pending = target.resolveSibling("${target.fileName}.pending")
+    java.nio.file.Files.writeString(pending, text)
+    java.nio.file.Files.move(pending, target, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
 }
