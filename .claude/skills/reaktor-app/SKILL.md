@@ -215,6 +215,41 @@ Pair it with `eager = false` and connect yourself, so nothing opens before there
 open it with — and re-read the token in `queryProvider`, which runs on every reconnect, so one
 refreshed while offline is picked up without tearing the socket down.
 
+**And give it a heartbeat.** The supervisor above only acts on a socket that knows it is broken.
+A connection can die without closing — a carrier NAT forgets an idle mapping in minutes, a phone
+changes networks — and then the socket reports `Open` forever while everything sent into it is
+lost and nothing comes out. Cairn's phone sat like that, showing itself online; the relay, asked
+directly, did not have it. Send something on an interval that your server answers, and let the
+socket drop a connection that has heard nothing:
+
+```kotlin
+webSocketOptions = WebSocketOptions(
+    eager = false,
+    heartbeat = Heartbeat(
+        interval = 20.seconds,   // under the idle timeout of the NATs that forget soonest
+        silence = 50.seconds,    // two missed answers and a margin, so congestion is not death
+        message = { json.encodeToString(ClientMessage.serializer(), ClientMessage.Ping(epochTime())) },
+    ),
+),
+```
+
+**Sending is not delivering.** A frame written to a socket that closed a moment later is gone,
+and so is one written before the socket finished opening. If the app promises that something sent
+arrives, keep it — sealed, exactly as sent — until the server says it has it, and send it again on
+every reconnect. Make the server's acknowledgement a message, and also resend when the server
+welcomes a new connection: a reconnect quick enough that the status went `Online` → `Online` never
+shows up in a `StateFlow`, because the in-between value was conflated away. Cairn's comment said
+"the room will get it on reconnect"; reconnecting only pulled, and drops sent offline reached
+nobody, ever.
+
+**A `ConcurrencyCapabilityImpl` dispatcher is passed by name.** Its first parameter is a context;
+a dispatcher passed there positionally is silently replaced by `Dispatchers.Default`. That is how
+`WebSocket` — documented as single-threaded — ran on the whole pool for its entire life.
+
+```kotlin
+ConcurrencyCapabilityImpl(coroutineDispatcher = dispatcher.limitedParallelism(1))
+```
+
 ## A function that returns `Result` must not throw
 
 Ports here return `Result` so the screen can say what went wrong. That is a promise about every

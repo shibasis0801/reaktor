@@ -280,6 +280,15 @@ The checks worth running at least once per app:
 - **Driving a device by tapping: read the screen between taps.** A second tap sent "in case the
   first missed" lands on whatever the first one opened. Dump the hierarchy
   (`adb shell uiautomator dump`), find the thing by its text, tap once, dump again.
+- **Two devices at once, and ask the server what it sees.** Every check one device at a time
+  passed while Cairn had a dropped hello, sends that never left, files nobody could decrypt and a
+  dead socket that called itself online — all found in one session with a phone and a browser in
+  the same room. When a device says it is connected, connect to the server yourself as a third
+  client and read who is there; when something does not arrive, the sender's own screen is the
+  last place to look.
+- **Read the log for secrets.** After a launch and a sign-in, `adb logcat -d | grep -iE
+  "token=|bearer|BODY"`. HTTP logging at `ALL` prints every body, and a WebSocket's token travels
+  in its URL, which header sanitising never reaches.
 - **Every shell, opened and used.** The web shell draws with the one font it ships. Anything typed
   outside Latin-1 — `←`, `▸`, `✕`, `☐` — is a missing-glyph box there and fine everywhere else,
   so a back button can be an empty rectangle on one target of three. Draw such marks instead of
