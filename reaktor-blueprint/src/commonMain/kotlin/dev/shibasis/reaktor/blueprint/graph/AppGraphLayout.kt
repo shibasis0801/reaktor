@@ -13,7 +13,7 @@ import dev.shibasis.reaktor.graph.core.DormantLifecycle
 import dev.shibasis.reaktor.graph.core.NodeShape
 import dev.shibasis.reaktor.graph.core.PortShape
 
-enum class Detail(val label: String) { Compact("Compact"), Standard("Ports in use"), Ports("Every port") }
+enum class Detail(val label: String) { Islands("Islands"), Compact("Compact"), Standard("Ports in use"), Ports("Every port") }
 
 data class LayoutRequest(
     val detail: Detail,
@@ -25,6 +25,22 @@ typealias GraphLayout = BlueprintLayout<LayoutRequest>
 
 object AppGraphLayout {
     fun layout(graph: AppGraph, request: LayoutRequest, layouter: FrameLayouter = DefaultFrameLayouter): GraphLayout {
+        if (request.detail == Detail.Islands) {
+            val scopes = graph.children[graph.root.id].orEmpty().filter { it.id !in request.hidden }
+            val cardOf = scopes.flatMap { scope ->
+                val descendants = graph.descendants(scope.id)
+                graph.nodes.values.filter { it.scope in descendants && it.id !in request.hidden }.map { it.id to scope.id }
+            }.toMap()
+            val groups = listOf(BlueprintGroup("system", graph.root.label,
+                scopes.map { BlueprintNode(it.id, Role.Service.lane) }))
+            val edges = graph.wires.mapNotNull { wire ->
+                val from = cardOf[wire.provider] ?: return@mapNotNull null
+                val to = cardOf[wire.consumer] ?: return@mapNotNull null
+                BlueprintEdge(wire.id, from, to).takeIf { from != to }
+            }
+            val layout = BlueprintEngine.layout(request, groups, edges, request.aspect, layouter)
+            return layout.copy(cardOf = layout.cardOf + cardOf)
+        }
         val groups = AppGraphFeatures.of(graph).map { feature ->
             val members = feature.members.filter { it.id !in request.hidden }.sortedWith(compareBy({ it.label }, { it.type }, { it.id }))
             BlueprintGroup(

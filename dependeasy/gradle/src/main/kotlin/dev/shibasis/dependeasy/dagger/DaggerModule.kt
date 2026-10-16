@@ -10,22 +10,20 @@ import kotlinx.serialization.encodeToString
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.register
 import dev.shibasis.dependeasy.handles.*
-import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.model.OptionArgument
 import dev.shibasis.dependeasy.model.OutputKind
 
-class DaggerModule internal constructor(private val project: Project, private val targets: Map<String, BuildTarget>) {
-    var browserImage = "mcr.microsoft.com/playwright:v1.64.0-noble"
-    private val gradleProperties = linkedMapOf<String, String>()
-
-    fun <T : Any> option(option: BuildOption<T>, value: T) { gradleProperties[option.name] = value.toString() }
+internal class DaggerModule(private val project: Project, private val targets: Map<String, BuildTarget>,
+    options: List<OptionArgument<*>>) {
+    private val gradleProperties = options.associate { it.option.name to it.value.toString() }
 
     internal fun register(): NodeHandle {
         dev.shibasis.dependeasy.toolchain.VerificationTools.get(project).dagger
         fun generation(name: String, output: Any) = project.tasks.register<GenerateDaggerTask>(name) {
             group = "code generation"
-            buildName.set(project.name)
+            buildName.set(project.rootProject.name)
             engineVersion.set(ToolchainVersions.Dagger)
-            browserImage.set(this@DaggerModule.browserImage)
+            browserImage.set("mcr.microsoft.com/playwright:v1.64.0-noble")
             gradleProperties.set(this@DaggerModule.gradleProperties)
             executionEnvironment.set(mapOf(
                 "DEPE_CONTAINER_PLATFORM" to "linux/arm64",
@@ -54,9 +52,9 @@ class DaggerModule internal constructor(private val project: Project, private va
             outputFile.set(project.file(output))
         }
         val reference = generation("generateDaggerReference", project.layout.buildDirectory.file("dependeasy/dagger-reference/pipeline.json"))
-        val generated = generation("generateDagger", project.layout.projectDirectory.file("dagger/pipeline.json"))
+        val generated = generation("generateDagger", project.rootProject.layout.projectDirectory.file("dagger/pipeline.json"))
         if (project.rootDir.resolve("dependeasy/dagger/src/index.ts").isFile) generated.configure {
-            sharedDirectory.set(project.layout.projectDirectory.dir("dependeasy/dagger"))
+            sharedDirectory.set(project.rootProject.layout.projectDirectory.dir("dependeasy/dagger"))
             sharedMetadata.set(mapOf(
                 "dagger.json" to buildJsonObject {
                     put("name", "dependeasy"); put("engineVersion", "v" + ToolchainVersions.Dagger)
@@ -85,9 +83,12 @@ class DaggerModule internal constructor(private val project: Project, private va
             group = "verification"
             mustRunAfter(generated)
             expected.set(reference.flatMap { it.outputFile })
-            actual.set(generated.flatMap { it.outputFile })
+            actual.set(project.rootProject.layout.projectDirectory.file("dagger/pipeline.json"))
         }
         project.node(generated, OutputKind.GeneratedContract)
-        return project.node(verification, OutputKind.VerificationResults)
+        return project.node(verification, OutputKind.VerificationResults).also {
+            dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
+                .reference(project, verification, OutputKind.VerificationResults, family = "metadata")
+        }
     }
 }

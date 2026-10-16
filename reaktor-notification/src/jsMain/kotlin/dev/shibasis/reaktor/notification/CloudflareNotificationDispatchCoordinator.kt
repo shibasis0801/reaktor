@@ -19,7 +19,11 @@ open class CloudflareNotificationDispatchCoordinator(
     private val state: Any,
     private val env: Any,
 ) : CloudflareDurableObject(state, env) {
-    private val app by lazy { Hono().mount(NotificationDispatcherService({ storage }, ::dispatchRemote), DispatcherIsland) }
+    private val app by lazy {
+        Reaktor.web()
+        val graph = Graph(label = DispatcherIsland)
+        Hono().mount(listOf(graph.ServiceNode(NotificationDispatcherService({ storage }, ::dispatchRemote))))
+    }
 
     open fun fetch(request: Any): Any = app.fetch(request, env.asDynamic(), state.asDynamic())
 

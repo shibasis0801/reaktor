@@ -67,7 +67,7 @@ class PortTelemetryTest {
         assertEquals("request", attrs[ReaktorAttributes.PortShape])
         assertEquals("consumer", attrs[ReaktorAttributes.PortDirection])
         assertEquals("local/7", attrs[ReaktorAttributes.ActivationId])
-        assertEquals(consumer.edge?.id.toString(), attrs[ReaktorAttributes.EdgeId])
+        assertEquals(null, attrs[ReaktorAttributes.EdgeId])
     }
 
     @Test

@@ -21,6 +21,8 @@ dependeasy {
             dependencies {
                 camera()
                 workManager()
+                implementation(Versions.Android.PdfViewer)
+                implementation(Versions.Android.PdfDocumentService)
             }
         }
         apple {}

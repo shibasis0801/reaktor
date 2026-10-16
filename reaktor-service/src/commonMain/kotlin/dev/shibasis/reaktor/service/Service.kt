@@ -112,7 +112,8 @@ abstract class Service(
             ServiceCall.sessionFromBaggage(request.headers.header("baggage"))?.let {
                 request.attributes[ServiceCall.SessionAttribute] = it
             }
-            val call = ServiceCall(parent?.child() ?: TraceContext.root(), parent?.spanId, request.attributes)
+            val call = ServiceCall(parent?.child() ?: TraceContext.root(), parent?.spanId,
+                request.attributes + created.executionAttributes?.invoke().orEmpty())
             request.attributes[ServiceCall.Attribute] = call
             withContext(call) {
                 invokeWithInterceptors(ServiceExecutionPhase.SERVER, InterceptorStage.SERVER_APPLICATION, created, request) { intercepted ->
@@ -136,7 +137,8 @@ abstract class Service(
         lateinit var created: RequestHandler<In, Out>
         created = factory.create(route, operation ?: route, requestSerializer, responseSerializer) { request ->
             val caller = currentCoroutineContext()[ServiceCall]
-            withContext(ServiceCall(caller?.trace?.child() ?: TraceContext.root(), caller?.trace?.spanId, request.attributes + caller?.attributes.orEmpty())) {
+            withContext(ServiceCall(caller?.trace?.child() ?: TraceContext.root(), caller?.trace?.spanId,
+                request.attributes + caller?.attributes.orEmpty() + created.executionAttributes?.invoke().orEmpty())) {
                 invokeWithInterceptors(ServiceExecutionPhase.CLIENT, InterceptorStage.CLIENT_APPLICATION, created, request) { intercepted ->
                     val fullUrl = baseUrl + created.url(intercepted)
                     val ktorMethod = created.method.toKtorMethod()

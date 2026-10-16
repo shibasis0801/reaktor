@@ -30,6 +30,9 @@ sealed class RequestHandler<In: Request, Out: Response>(
     var owner: Service? = null
         internal set
 
+    @JsExport.Ignore
+    var executionAttributes: (() -> Map<String, String>)? = null
+
     val transport: ServiceTransport
         get() = endpoint.transport
 

@@ -19,14 +19,14 @@ class IslandJvmClient(private val session: InfrastructureSession) {
         require(op.hosts.size in 1..64 && op.hosts.all { it.matches(IslandHost) })
         val token = ServiceTokenClient(session).token(op.tokenSource(), environment)
         val headers = mapOf("Authorization" to "Bearer $token", "Accept" to "application/json")
-        val readings = readIslandShapes(op.hosts) { host ->
+        val readings = readIslandShapes(op.hosts, allowedHosts = op.hosts.toSet().takeIf { op.authEnvironment == "STAGE" }) { host ->
             Json.parseToJsonElement(http.request(URI("https://$host/_reaktor/shape"), headers = headers, maxBytes = 4_194_304))
         }
         return Json.encodeToString(readings)
     }
 }
 
-internal fun readIslandShapes(hosts: List<String>, read: (String) -> JsonElement): List<IslandReading> {
+internal fun readIslandShapes(hosts: List<String>, allowedHosts: Set<String>? = null, read: (String) -> JsonElement): List<IslandReading> {
     require(hosts.size in 1..64 && hosts.all { it.matches(IslandHost) })
     val pending = hosts.distinct().toMutableList()
     val readings = mutableListOf<IslandReading>()
@@ -40,7 +40,9 @@ internal fun readIslandShapes(hosts: List<String>, read: (String) -> JsonElement
                 listOf("scopes", "nodes", "wires", "routes").any { graph[it] !is JsonArray }) {
                 IslandReading(host, failure = "Not a Reaktor island")
             } else {
-                islandClientHosts(island).forEach { next -> if (next !in pending && pending.size < 64) pending += next }
+                islandClientHosts(island).forEach { next ->
+                    if ((allowedHosts == null || next in allowedHosts) && next !in pending && pending.size < 64) pending += next
+                }
                 IslandReading(host, shape)
             }
         } catch (failure: Exception) {

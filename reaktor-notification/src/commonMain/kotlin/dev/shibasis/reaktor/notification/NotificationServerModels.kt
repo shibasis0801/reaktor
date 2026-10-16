@@ -102,6 +102,7 @@ data class NotificationDispatchPayload(
     val sender: NotificationPerson? = null,
     val conversation: NotificationConversation? = null,
     val capabilities: List<String> = emptyList(),
+    val badge: Int? = null,
 ) : Request()
 
 @Serializable
@@ -147,6 +148,7 @@ fun NotificationDispatchPayload.envelope(): NotificationEnvelope =
             threadId = conversation?.id,
             sender = sender,
             conversation = conversation,
+            badge = badge,
         ),
         route = route,
         correlationId = deliveryId,
@@ -225,6 +227,7 @@ fun NotificationDispatchPayload.fcmRequestBody(): String =
                                         put("category", categoryId)
                                         put("thread-id", conversation?.id ?: data["chatId"] ?: categoryId)
                                         put("sound", "default")
+                                        badge?.let { put("badge", it) }
                                         if (sender != null) put("mutable-content", 1)
                                     },
                                 )

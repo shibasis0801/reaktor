@@ -8,6 +8,11 @@ import dev.shibasis.reaktor.graph.capabilities.LifecycleCapability
 import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.NodeKind
+import dev.shibasis.reaktor.portgraph.port.Key
+import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
+import dev.shibasis.reaktor.portgraph.port.ProviderPort
+import dev.shibasis.reaktor.portgraph.port.registerConsumer
+import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.PortCapabilityImpl
@@ -68,3 +73,18 @@ fun<N: Node> Graph.Node(builder: (Graph) -> N): N {
     return node
 }
 
+inline fun <reified C : Any, reified A : Any, N : Node> Graph.Node(
+    configuration: ProviderPort<C>,
+    key: String,
+    crossinline constructor: (Graph, A) -> N,
+    factory: (C) -> A,
+): N {
+    val replacement = findProvider(Type<A>(), Key(key))
+    val implementation = replacement?.impl as? A ?: factory(configuration.impl)
+    val node = Node { constructor(it, implementation) }
+    connect(node.registerConsumer<C>(configuration.key, configuration.type), configuration).getOrThrow()
+    if (replacement != null) {
+        connect(node.registerConsumer<Any>(replacement.key, replacement.type), replacement).getOrThrow()
+    }
+    return node
+}

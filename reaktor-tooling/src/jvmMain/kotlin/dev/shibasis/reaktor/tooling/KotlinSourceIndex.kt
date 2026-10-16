@@ -5,9 +5,16 @@ import java.nio.file.Files
 
 data class SourceDeclaration(val qualifiedName: String, val file: File, val line: Int)
 
-/** An explicit-root declaration index. Ambiguous expect/actual declarations stay ambiguous. */
+/** An explicit-root declaration index. Simple names resolve only to a unique qualified name. */
 class KotlinSourceIndex private constructor(private val declarations: Map<String, List<SourceDeclaration>>) {
-    fun find(qualifiedName: String): List<SourceDeclaration> = declarations[qualifiedName].orEmpty()
+    private val names = declarations.keys.groupBy { it.substringAfterLast('.') }
+
+    fun find(qualifiedName: String): List<SourceDeclaration> {
+        declarations[qualifiedName]?.let { return it }
+        if ('.' in qualifiedName) return emptyList()
+        val exact = names[qualifiedName]?.singleOrNull() ?: return emptyList()
+        return declarations.getValue(exact)
+    }
 
     companion object {
         private val excluded = setOf(".git", ".gradle", ".kotlin", ".claude", ".codex", ".gradle-codex", ".github_modules", ".dagger", ".idea", "build", "node_modules", "Pods", "dist", "generated", "ts", "cpp")

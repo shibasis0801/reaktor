@@ -46,6 +46,6 @@ class SpanJvmClient(private val session: InfrastructureSession) {
     private companion object {
         val Database = Regex("[a-z_][a-z0-9_]{0,63}")
         val RequiredColumns = listOf("trace_id", "span_id", "parent_id", "phase", "island", "contract", "operation", "started_ms", "duration_ms", "status", "started_at")
-        val JoinColumns = listOf("application_session", "environment", "build", "node", "graph_digest")
+        val JoinColumns = listOf("application_session", "environment", "build", "node", "graph_digest", "port", "edge", "activation")
     }
 }

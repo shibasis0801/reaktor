@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.auth
 
+import dev.shibasis.reaktor.auth.kernel.MembershipStatus
+import dev.shibasis.reaktor.auth.kernel.PrincipalStatus
 import dev.shibasis.reaktor.auth.services.SessionRefreshService
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -92,5 +94,21 @@ class SessionRefreshServiceTest {
     fun unknownRefreshTokenIsRejected() {
         AuthDbFixture.seedUser() // ensure schema/seed path is exercised
         assertNull(sessions.rotate("rkr_this-token-was-never-issued"))
+    }
+
+    @Test
+    fun refreshRefusesASuspendedAccount() {
+        val appId = AuthDbFixture.seedApp()
+        val principalId = AuthDbFixture.seedUser(appId = appId, membershipStatus = MembershipStatus.SUSPENDED)
+        val created = sessions.createSession(principalId, appId)
+        assertNull(sessions.rotate(created.rawRefreshToken))
+    }
+
+    @Test
+    fun refreshRefusesADisabledPrincipal() {
+        val appId = AuthDbFixture.seedApp()
+        val principalId = AuthDbFixture.seedUser(appId = appId, principalStatus = PrincipalStatus.SOFT_DELETED)
+        val created = sessions.createSession(principalId, appId)
+        assertNull(sessions.rotate(created.rawRefreshToken))
     }
 }

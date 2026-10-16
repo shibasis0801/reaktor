@@ -16,7 +16,7 @@ data class Reduction<S, E>(
     val commands: List<LocalCommand> = emptyList(),
 )
 
-enum class FeedbackCue { Selection, Impact, Success, Threshold }
+enum class FeedbackCue { Selection, Impact, Success, Threshold, Warning }
 
 @JvmInline
 value class PartKey(val value: String)

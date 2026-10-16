@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.android
 
+import dev.shibasis.dependeasy.common.KotlinDependencies
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.common.Configuration
 import dev.shibasis.dependeasy.native.nativeConfigurationOrNull
@@ -7,7 +8,6 @@ import org.gradle.kotlin.dsl.invoke
 import org.gradle.kotlin.dsl.exclude
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 
@@ -16,10 +16,10 @@ import dev.shibasis.dependeasy.native.configureAndroidNative
 class AndroidConfiguration(
 
 ): Configuration<KotlinAndroidTarget>() {
-    internal var integrationTestDependencies: KotlinDependencyHandler.() -> Unit = {}
+    internal var integrationTestDependencies: KotlinDependencies.() -> Unit = {}
         private set
 
-    fun integrationTestDependencies(fn: KotlinDependencyHandler.() -> Unit = {}) {
+    fun integrationTestDependencies(fn: KotlinDependencies.() -> Unit = {}) {
         this.integrationTestDependencies = fn
     }
 }
@@ -48,7 +48,7 @@ fun KotlinMultiplatformExtension.droid(
         androidMain {
             configure.sourceSetModifier(this)
             dependencies {
-                configure.dependencies(this)
+                configure.dependencies(KotlinDependencies(this))
                 native?.android?.resolvedPrefabs.orEmpty().forEach { prefab ->
                     implementation(prefab.runtimeDependency) {
                         prefab.runtimeExcludes.forEach { (group, module) -> exclude(group = group, module = module) }
@@ -59,7 +59,7 @@ fun KotlinMultiplatformExtension.droid(
 
         findByName("androidUnitTest")?.dependencies {
             implementation(kotlin("test"))
-            configure.testDependencies(this)
+            configure.testDependencies(KotlinDependencies(this))
         }
         getByName("androidInstrumentedTest") {
             dependencies {
@@ -69,7 +69,7 @@ fun KotlinMultiplatformExtension.droid(
                 implementation(Versions.Android.TestJUnitLegacy)
                 implementation(Versions.Android.TestJUnitKtx)
                 implementation(Versions.Android.Espresso)
-                configure.integrationTestDependencies(this)
+                configure.integrationTestDependencies(KotlinDependencies(this))
             }
         }
     }

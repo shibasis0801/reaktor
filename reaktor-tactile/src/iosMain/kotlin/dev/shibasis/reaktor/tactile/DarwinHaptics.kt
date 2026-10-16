@@ -6,6 +6,7 @@ import platform.UIKit.UIImpactFeedbackGenerator
 import platform.UIKit.UIImpactFeedbackStyle
 import platform.UIKit.UINotificationFeedbackGenerator
 import platform.UIKit.UINotificationFeedbackType
+import platform.UIKit.UISelectionFeedbackGenerator
 
 /**
  * Plays [HapticPattern]s through the Taptic Engine.
@@ -27,6 +28,8 @@ class DarwinHaptics : HapticsAdapter<Unit>(Unit) {
     private val notification = UINotificationFeedbackGenerator()
     private val impact = UIImpactFeedbackGenerator(style = UIImpactFeedbackStyle.UIImpactFeedbackStyleLight)
     private val heavy = UIImpactFeedbackGenerator(style = UIImpactFeedbackStyle.UIImpactFeedbackStyleHeavy)
+    private val selection = UISelectionFeedbackGenerator()
+    private val threshold = UIImpactFeedbackGenerator(style = UIImpactFeedbackStyle.UIImpactFeedbackStyleRigid)
 
     override val available: Boolean get() = true
 
@@ -38,6 +41,14 @@ class DarwinHaptics : HapticsAdapter<Unit>(Unit) {
                 HapticPattern.Tap -> {
                     impact.prepare()
                     impact.impactOccurred()
+                }
+                HapticPattern.Selection -> {
+                    selection.prepare()
+                    selection.selectionChanged()
+                }
+                HapticPattern.Threshold -> {
+                    threshold.prepare()
+                    threshold.impactOccurred()
                 }
                 HapticPattern.Success -> {
                     notification.prepare()

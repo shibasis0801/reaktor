@@ -4,8 +4,6 @@ import dev.shibasis.dependeasy.configuration.resolve
 import dev.shibasis.dependeasy.handles.NodeHandle
 import dev.shibasis.dependeasy.handles.OutputHandle
 import dev.shibasis.dependeasy.model.*
-import dev.shibasis.dependeasy.verification.karateSuite
-import dev.shibasis.dependeasy.verification.k6Suite
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import kotlin.properties.ReadOnlyProperty
@@ -31,19 +29,10 @@ class WorkspaceScope internal constructor(private val project: Project, private 
 
     fun packageScripts() = workspace.packageScripts()
 
-    fun dagger(content: dev.shibasis.dependeasy.dagger.DaggerModule.() -> Unit = {}) =
-        workspace.dagger(content)
-
     fun workers(content: dev.shibasis.dependeasy.cloudflare.WorkerFleet.() -> Unit) = workspace.workers(content)
 
     fun deviceFlows(content: dev.shibasis.dependeasy.verification.DeviceFlows.() -> Unit) =
         NodeDeclaration { name -> dev.shibasis.dependeasy.verification.DeviceFlows(project, name).apply(content).register() }
-
-    fun karateSuite(directory: String, config: String, tags: List<String> = emptyList(), environmentFiles: List<String> = emptyList()) =
-        NodeDeclaration { name -> project.karateSuite(name, directory, config, tags, environmentFiles) }
-
-    fun k6Suite(script: String, environmentFiles: List<String> = emptyList()) =
-        NodeDeclaration { name -> project.k6Suite(name, script, environmentFiles) }
 
     fun external(call: ExternalCall, removal: String, run: Run = Run.Default,
         runner: Runner = when (call) { is ExternalCall.Fastlane -> Runner.Fastlane; is ExternalCall.Package -> Runner.Pnpm; is ExternalCall.BashScript -> Runner.Shell }, content: ExternalSpec.() -> Unit = {}): NodeDeclaration {

@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.server
 
+import dev.shibasis.dependeasy.common.KotlinDependencies
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.common.Configuration
 import org.gradle.kotlin.dsl.invoke
@@ -28,12 +29,12 @@ fun KotlinMultiplatformExtension.server(
         jvmMain {
             configure.sourceSetModifier(this)
             dependencies {
-                configure.dependencies(this)
+                configure.dependencies(KotlinDependencies(this))
             }
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
-            configure.testDependencies(this)
+            configure.testDependencies(KotlinDependencies(this))
         }
     }
 }

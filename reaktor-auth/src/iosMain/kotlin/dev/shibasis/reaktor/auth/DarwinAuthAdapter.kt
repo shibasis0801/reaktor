@@ -22,6 +22,7 @@ class DarwinAuthAdapter(
     override fun handleUrl(url: NSURL): Boolean = AppleGoogleSignInRuntime.current().handleUrl(url)
 
     override suspend fun logout(): Result<Unit> {
+        logoutSession().onFailure { Logger.w { "The session was cleared here but the server did not confirm its revocation: $it" } }
         providers.forEach { (_, provider) ->
             provider.logout().onFailure { Logger.e { "Logout failed for ${provider::class.simpleName}: $it" } }
         }

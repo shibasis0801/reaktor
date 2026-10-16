@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.telemetry.port
 
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.shape
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.visitor.StructuralSelector as RuntimeStructuralSelector
 import dev.shibasis.reaktor.portgraph.attach.attach
@@ -66,9 +67,13 @@ class TelemetryPlan internal constructor(
     private val interceptor: PortTelemetryInterceptor,
     val instrumented: List<Port<*>>,
     val skipped: List<Pair<Port<*>, String>>,
+    private val subjects: Set<String> = emptySet(),
 ) {
     /** Detaching is exactly attach-then-detach on K2 — a capture can expire cleanly. */
-    fun uninstall() = instrumented.forEach { it.removeInterceptor(interceptor) }
+    fun uninstall() {
+        instrumented.forEach { it.removeInterceptor(interceptor) }
+        interceptor.unbind(subjects)
+    }
 
     /**
      * Combines two plans over different roots so a caller instrumenting several graphs can report
@@ -79,6 +84,7 @@ class TelemetryPlan internal constructor(
         interceptor,
         instrumented + other.instrumented,
         skipped + other.skipped,
+        subjects + other.subjects,
     )
 
     override fun toString() =
@@ -100,8 +106,13 @@ fun instrumentPorts(
     defaults: TelemetryFacet = TelemetryFacet(),
 ): TelemetryPlan {
     val visitor = TelemetryPlanVisitor(interceptor, defaults)
+    val subjects = when (root) {
+        is Graph -> interceptor.bind(root.shape())
+        is Node -> interceptor.bind(root.graph.shape())
+        else -> emptySet()
+    }
     DepthFirstTraverser.traverse(root, if (root is Graph || root is Node) RuntimeStructuralSelector else StructuralSelector, visitor)
-    return TelemetryPlan(interceptor, visitor.instrumented.toList(), visitor.skipped.toList())
+    return TelemetryPlan(interceptor, visitor.instrumented.toList(), visitor.skipped.toList(), subjects)
 }
 
 /** Convenience for the common case: instrument a whole port graph with one tracer. */

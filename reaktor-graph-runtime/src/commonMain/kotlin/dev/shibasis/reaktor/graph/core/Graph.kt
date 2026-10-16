@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
 import dev.shibasis.reaktor.core.framework.Feature
+import dev.shibasis.reaktor.core.structs.ConcurrentHashMap
 import dev.shibasis.reaktor.graph.di.DependencyCapability
 import dev.shibasis.reaktor.graph.di.DependencyCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.Lifecycle
@@ -23,6 +24,9 @@ import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.DefaultActorSupervisorStrategy
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
+import dev.shibasis.reaktor.portgraph.port.Key
+import dev.shibasis.reaktor.portgraph.port.Type
+import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.portgraph.graph.connect
@@ -33,6 +37,7 @@ import dev.shibasis.reaktor.graph.navigation.NavCommand
 import dev.shibasis.reaktor.portgraph.graph.PortGraph
 import dev.shibasis.reaktor.core.framework.reaktorDefaultDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.atomicfu.atomic
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
@@ -40,7 +45,7 @@ import kotlin.uuid.Uuid
 open class Graph(
     val parentGraph: Graph? = null,
     dispatcher: CoroutineDispatcher = reaktorDefaultDispatcher,
-    dependencyAdapter: DependencyAdapter<*> = Feature.Dependency ?: throw DependencyException,
+    dependencyAdapter: DependencyAdapter<*> = parentGraph?.diAdapter ?: Feature.Dependency ?: throw DependencyException,
     override val id: Uuid = Uuid.random(),
     override val label: String = "",
     val dependencies: (DependencyAdapter.ScopeBuilder.() -> Unit) = {},
@@ -68,6 +73,33 @@ open class Graph(
     override val diScope get() = dependencyCapability.diScope
     override val coroutineScope get() = concurrencyCapability.coroutineScope
     override val coroutineDispatcher get() = concurrencyCapability.coroutineDispatcher
+
+    internal val ownedGraphs = ConcurrentHashMap<Uuid, Graph>()
+    private val importedGraphs = ConcurrentHashMap<Uuid, Graph>()
+    private val closed = atomic(false)
+
+    fun dependsOn(vararg graphs: Graph) {
+        require(graphs.none { it === this }) { "A graph cannot import itself" }
+        graphs.forEach { importedGraphs.putIfAbsent(it.id, it) }
+    }
+
+    internal fun providers() = nodes.flatMap { it.providerPorts.flattenedValues() }
+
+    fun findProvider(type: Type, key: Key): ProviderPort<Any>? {
+        var scope: Graph? = this
+        while (scope != null) {
+            val local = scope.providers().filter { it.type == type }
+            val localMatches = if (key.key.isEmpty() && local.size == 1) local else local.filter { it.key == key }
+            require(localMatches.size <= 1) { "Graph '${scope.label}' has ambiguous providers for $type / $key" }
+            localMatches.singleOrNull()?.let { return it }
+            val imported = scope.importedGraphs.values().flatMap { it.providers() }.distinct().filter { it.type == type }
+            val matches = if (key.key.isEmpty() && imported.size == 1) imported else imported.filter { it.key == key }
+            require(matches.size <= 1) { "Graph '${scope.label}' has ambiguous imported providers for $type / $key" }
+            matches.singleOrNull()?.let { return it }
+            scope = scope.parentGraph
+        }
+        return null
+    }
 
     val sentinel = RouteNode(this, "")
 
@@ -215,7 +247,11 @@ open class Graph(
     }
 
     override fun close() {
+        if (!closed.compareAndSet(false, true)) return
         transition(Lifecycle.Destroying)
+        ownedGraphs.values().forEach { it.close() }
+        ownedGraphs.clear()
+        importedGraphs.clear()
         dependencyCapability.close()
         concurrencyCapability.close()
         lifecycleCapability.close()
@@ -265,18 +301,7 @@ fun Graph.autoWire(vararg dependencies: Graph) {
                 match = matching.singleOrNull()
             }
 
-            var ancestor = parentGraph
-            while (match == null && ancestor != null) {
-                val candidates = ancestor.nodes.flatMap { it.providerPorts.flattenedValues() }
-                    .filter { it.type == consumer.type }
-                val matching = if (consumer.key.key.isEmpty() && candidates.size == 1) candidates
-                    else candidates.filter { it.key == consumer.key }
-                require(matching.size <= 1) {
-                    "Graph '$label' has ambiguous ancestor providers for key='${consumer.key.key}' type='${consumer.type.type}'"
-                }
-                match = matching.singleOrNull()
-                ancestor = ancestor.parentGraph
-            }
+            if (match == null) match = findProvider(consumer.type, consumer.key)
 
             if (match == null) {
                 val portFromDI = try {
@@ -313,7 +338,17 @@ fun Graph.requireFullyWired() {
     }
 }
 
-fun<G: Graph> Graph.Graph(builder: (Graph) -> G): G = builder(this)
+inline fun <reified T : Any> Graph.input(key: String = ""): ProviderPort<T> {
+    @Suppress("UNCHECKED_CAST")
+    return requireNotNull(findProvider(Type<T>(), Key(key))) {
+        "Graph '$label' requires a provider for ${Type<T>()} / $key"
+    } as ProviderPort<T>
+}
+
+fun<G: Graph> Graph.Graph(builder: (Graph) -> G): G = builder(this).also {
+    require(it.parentGraph === this) { "Owned graph must have its owner as parent" }
+    ownedGraphs.putIfAbsent(it.id, it)
+}
 
 fun Graph.containerPathTo(
     targetGraph: Graph,

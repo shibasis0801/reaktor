@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.darwin
 
+import dev.shibasis.dependeasy.common.KotlinDependencies
 import dev.shibasis.dependeasy.common.Configuration
 import dev.shibasis.dependeasy.native.nativeConfigurationOrNull
 import dev.shibasis.dependeasy.native.nativeProjectDependencies
@@ -39,10 +40,10 @@ fun KotlinMultiplatformExtension.darwin(configuration: DarwinConfigure.() -> Uni
     }
 
     sourceSets.matching { it.name == "iosTest" }.configureEach {
-        dependencies { options.testDependencies(this) }
+        dependencies { options.testDependencies(KotlinDependencies(this)) }
     }
     sourceSets.matching { it.name == "iosMain" }.configureEach {
         options.sourceSetModifier(this)
-        dependencies { options.dependencies(this) }
+        dependencies { options.dependencies(KotlinDependencies(this)) }
     }
 }

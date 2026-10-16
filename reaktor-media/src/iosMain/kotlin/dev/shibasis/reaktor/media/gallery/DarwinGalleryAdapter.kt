@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.media.gallery
 import dev.shibasis.reaktor.core.util.toByteArray
 import dev.shibasis.reaktor.media.copyToTemporary
 import dev.shibasis.reaktor.media.durationMillis
+import dev.shibasis.reaktor.media.photo
 import dev.shibasis.reaktor.media.readBytes
 import dev.shibasis.reaktor.media.remove
 import dev.shibasis.reaktor.media.temporaryUrl
@@ -88,21 +89,8 @@ class DarwinGalleryAdapter(
                         if (cont.isActive) cont.resume(null)
                         return@loadDataRepresentationForTypeIdentifier
                     }
-                    val length = data.length.toInt()
-                    val bytes = ByteArray(length)
-                    if (length > 0) {
-                        bytes.usePinned { pinned ->
-                            memcpy(pinned.addressOf(0), data.bytes, length.toULong())
-                        }
-                    }
                     if (cont.isActive) {
-                        cont.resume(
-                            MediaPick(
-                                bytes = bytes,
-                                mimeType = "image/*",
-                                suggestedName = provider.suggestedName,
-                            ),
-                        )
+                        cont.resume(photo(data, provider.suggestedName) ?: MediaPick(data.toByteArray(), "image/jpeg", provider.suggestedName))
                     }
                 }
             }

@@ -2,6 +2,8 @@ package dev.shibasis.dependeasy.handles
 
 import dev.shibasis.dependeasy.model.BuildHandle
 import dev.shibasis.dependeasy.model.ModuleHandle
+import dev.shibasis.dependeasy.model.OutputKind
+import dev.shibasis.dependeasy.model.Workspace
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 
@@ -57,9 +59,16 @@ object Reaktor {
 
     internal fun check(project: Project) {
         if (project.rootProject === project && project.name == build.name) {
-            val declared = modules.map { it.path }.toSet()
-            val included = project.subprojects.map { it.path }.toSet()
-            if (declared != included) throw GradleException("Reaktor catalog differs from settings includes: missing=${declared - included}, uncatalogued=${included - declared}")
+            project.gradle.projectsEvaluated {
+                val declared = modules.map { it.path }.toSet()
+                val included = project.subprojects.map { it.path }.toSet()
+                val roles = Workspace.entries.map { "${OutputKind.WorkspaceCompletion.name}:${it.name}" }.toSet()
+                val uncatalogued = project.subprojects.filter { it.path !in declared }.filterNot { component ->
+                    component.configurations.any { it.isCanBeConsumed && it.attributes.getAttribute(OutputAttribute) in roles }
+                }.map { it.path }.toSet()
+                if ((declared - included).isNotEmpty() || uncatalogued.isNotEmpty())
+                    throw GradleException("Reaktor catalog differs from settings includes: missing=${declared - included}, uncatalogued=$uncatalogued")
+            }
         }
     }
 }

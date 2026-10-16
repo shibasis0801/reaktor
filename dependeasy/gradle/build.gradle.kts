@@ -31,6 +31,8 @@ gradlePlugin {
         "workspace" to "WorkspacePlugin",
         "library" to "LibraryPlugin",
         "application" to "ApplicationPlugin",
+        "web-app" to "WebAppPlugin",
+        "load-tests" to "LoadTestsPlugin",
     ).forEach { (name, implementation) ->
         plugins.create(name) {
             id = "dev.shibasis.dependeasy.$name"

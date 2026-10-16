@@ -1,8 +1,79 @@
 # Reaktor code and agent system HLD
 
-Architecture reconciled on 11 October 2026 with the verified invocation/startup slice. The user has confirmed that the build layer is complete and directed this work toward coding and agentic ROI; existing build facts and check execution are consumed infrastructure. `reaktor-code` and `reaktor-conductor` are shared capability and tool packages, with executable tools, recipes, scripts and Kotlin integrations. Together they form one graph-native engineering system that Claude, Codex, CLI, automation and Hangar can use with consistent semantics. Agents can use MCP, shell commands or programmatic helpers as the work requires. Conductor's A2A peer projection and Claude Agent SDK adapter remain planned; existing native control uses Codex App Server and Claude Code CLI. The purpose is more accepted work within existing subscription allowances through precise context, deterministic transformations, reusable evidence and durable continuation. Completed foundations and remaining integration gates are distinguished below; this is not a claim that the full proposed operation surface has shipped.
+Architecture reconciled on 11 October 2026 with the qualified foundation, resumed owner attachment and a live connection audit. The user has confirmed that the build layer is complete and directed this work toward coding and agentic ROI; existing build facts and check execution are consumed infrastructure. `reaktor-code` and `reaktor-conductor` are shared capability and tool packages, with executable tools, recipes, scripts and Kotlin integrations. Together they form one graph-native engineering system that Claude, Codex, CLI, automation and Hangar can use with consistent semantics. Agents can use MCP, shell commands or programmatic helpers as the work requires. The implementation now includes a bounded A2A 1.0 peer profile over retained native task records; live cross-harness interoperability and the Claude Agent SDK remain qualification gates. Existing native control uses Codex App Server and Claude Code CLI. The product CLI, MCP composition and shared kernel belong to closed-source BestBuds; reusable Code, Conductor, Tooling and generic protocol mechanics remain open source in Reaktor. The purpose is more accepted work within existing subscription allowances through precise context, deterministic transformations, reusable evidence and durable continuation. Completed foundations and remaining integration gates are distinguished below; this is not a claim that the full proposed operation surface has shipped.
 
-The first complete deliverable is a real change queried, planned, applied and verified through this system, then continued in the other native harness without repeating settled investigation. The [single execution plan](engineering-tools-plan.md) supplies sequencing and economics. The [CLI, Dependeasy and Hangar HLD](cli-kernel-hld.md) defines the terminal redesign and authoritative build/kernel integration. Operation names and wire examples below are proposed contracts, not shipped APIs.
+The first complete deliverable is a real change queried, planned, applied and verified through this system, then continued in the other native harness without repeating settled investigation. The [single execution plan](engineering-tools-plan.md) supplies sequencing and economics. The [CLI, Dependeasy and Hangar HLD](cli-kernel-hld.md) defines the terminal redesign and authoritative build/kernel integration. The current implemented operations are enumerated by `workspace discover` and `operation.schema`. Broader operation names and examples below remain target contracts until their corresponding gates pass.
+
+The [11 October native Codex flow analysis](/Users/ovd/dev/bestbuds/plans/engineering-kernel-implementation.md) exercised a real ChatGPT-authenticated session for proposal, an approved apply attempt, and verification/receipt replay. An external fixture operator performed the write because native-active admission blocks apply; the real compiler ran successfully through the native shell, outside retained kernel checks. Code now owns an immutable source GraphShape: definitions, references and recorded symbol relationships drive queries, impact and local rename through graph-derived lookup indexes. A headless CodeWorkspaceNode provides the real typed port consumed by the kernel. code.investigate combines selection, definition/reference counts, affected files and shared excerpts within 12,000 serialized characters, with explicit omissions. General provider and workflow composition remains open.
+
+The [graph investigation qualification](/Users/ovd/dev/tmp/code-investigation-20261011/qualification.json) compares one investigation with four separate reads over the same real Reaktor target: 8,172 → 2,008 structured bytes and 23.846 → 5.841 ms warm median across twenty alternating trials per path. Cold investigation took 997.878 ms, including initial index loading and profiled JVM work. Two fresh native Codex sessions answered the identical bounded question correctly. Reusing the owner's MCP descriptor and directing known operations straight to execution removed discovery/schema calls: three → one MCP calls, five → three generations and 18,898 → 11,475 reported fresh input tokens. This is one directional sample per native variant, subject to cache and model variability; subscription ROI, accepted-change savings and Claude parity remain unproven. Active installations were not upgraded.
+
+## Current integration and completion flows
+
+Implementation order is code intelligence → native Claude/Codex → system ownership → verification. Useful working capabilities take priority over generalized resilience. Existing correctness and authority checks stay with each feature; recovery and fleet rollout follow demonstrated functionality. The current Code path includes Kotlin PSI syntax, source/configuration-bound TypeScript SCIP definitions/references, graph-owned semantic traversal, compact investigation, indexed-target impact and resolved file-local rename through the shared approval/receipt path. Kotlin semantic resolution and broader recipes remain open. The [semantic qualification receipt](/Users/ovd/dev/tmp/code-semantics-20261011/qualification.json) records normal Gradle/package acceptance and a real Reaktor target.
+
+The [full colored HLD diagrams](code-agent-hld-diagrams.md) show system ownership, code intelligence, native/A2A cooperation and verification/ROI. Green qualifies the labelled implementation scope, amber denotes incomplete acceptance and blue dashed flows remain gates. The [live connection receipt](/Users/ovd/dev/tmp/engineering-kernel-20261011/live-connection.json) distinguishes the connected single-tool kernel on 8766 from older installed Hangar and native-owner deployments. The current packaged CLI fails against that legacy native owner; rollout is not complete.
+
+Background-first workspace routing, source proposals, shared operator approval files, owner receipts and endpoint/client lifecycle pass deterministic two-kernel tests. Live Hangar inspection mounting and UI receipt presentation into that remote owner remain open.
+
+```mermaid
+flowchart TB
+    agents["Codex and Claude"] --> mcp
+    agents --> cli
+    agents --> clients
+    automation["Scripts and CI"] --> cli
+    hangar["Hangar UI and read MCP"] --> kernel
+    subgraph privateProduct["BestBuds: closed source"]
+        mcp["One workspace MCP tool"]
+        cli["Thin CLI: bounded JSON"]
+        clients["Native and typed clients"]
+        kernel["Kernel over reaktor-graph: typed ports, scope, authority and lifecycle"]
+        door["Existing operator approval door"]
+        inspection["Graph inspection and configured providers"]
+        rollout["Live rollout pending: Hangar and native owner use older interfaces"]
+        attachment["Background-first UI inspection mount and receipt presentation"]
+        mcp --> kernel
+        cli --> kernel
+        clients --> kernel
+        kernel --> door
+        kernel --> inspection
+        rollout -.-> kernel
+        hangar -.-> attachment
+        attachment -.-> kernel
+    end
+    subgraph openSource["Reaktor: open source"]
+        code["reaktor-code: source graph traversal, compact investigation, syntax and local rename"]
+        conductor["reaktor-conductor: context, native tasks and continuation"]
+        tooling["reaktor-tooling: processes, transports and generic mechanics"]
+        graphRuntime["reaktor-graph-runtime: identities, nodes and ports"]
+        kernel --> code
+        kernel --> conductor
+        kernel --> graphRuntime
+        conductor --> code
+        conductor --> tooling
+    end
+    kernel --> evidence["Existing linked stores: receipts, checks, decisions and checkpoints"]
+    conductor --> evidence
+    kernel --> buildFacts["Existing build and check substrate"]
+    classDef qualified fill:#DCFCE7,stroke:#15803D,color:#14532D
+    classDef partial fill:#FEF3C7,stroke:#D97706,color:#78350F
+    classDef planned fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A
+    classDef substrate fill:#F1F5F9,stroke:#64748B,color:#334155
+    class mcp,cli,clients,kernel,door,inspection,code,conductor,tooling,graphRuntime,evidence qualified
+    class hangar,rollout partial
+    class attachment planned
+    class agents,automation,buildFacts substrate
+    linkStyle 0,1,2,3,4,5,6,7,8,9,13,14,15,16,17,18,19 stroke:#15803D,stroke-width:2px
+    linkStyle 10 stroke:#D97706,stroke-width:2px
+    linkStyle 11,12 stroke:#2563EB,stroke-width:2px
+    linkStyle 20 stroke:#64748B
+```
+
+The primary MCP catalogue contains one `workspace` tool, currently projecting twenty-nine operations in the newly packaged kernel. Known operations execute directly; discovery and operation schemas load when capabilities or arguments are unknown. The native stdio host reuses the owner's description, schema and effect annotations. The surface includes searchable read-only inspection of existing kernel and mounted Hangar capabilities. Configured external/cloud tools remain behind the graph-owned door through bounded provider operations. Discovery projection is not an authorization boundary: known compatibility calls remain available under their existing authentication and effect policy. Native clients use the versioned operation endpoint; remote typed clients explicitly select the direct compatibility bridge. No agent tool may approve its own source edit.
+
+Literal transformations retain the `literal-v1` label. The additional `scip-local-rename-v1` recipe edits only resolved file-local TypeScript occurrences and rejects unsupported/coupled ranges or collisions; its exact proposal binds the index and source identities. SCIP navigation and impact cover one qualified target, with explicit omissions. Whole-entry context packing retains useful evidence and reports omissions. Applied edits retain receipts so a lost reply does not trigger another edit. Source writes share Conductor's admission lock and require idle workspace work before approval is spent. Project-wide rename and automatic check selection remain open.
+
+Parent-linked A2A delegation allows one level and at most eight children, and records reported child usage. Standalone peer questions are supported; these limits are not a global spending quota or authenticated per-run identity guarantee. SDK, remaining semantic providers, live A2A and measured ROI qualification remain distinct gates. Packaged acceptance invokes no models and establishes working code/transport behavior rather than subscription savings.
 
 ## Design constraints and change budget
 
@@ -14,72 +85,7 @@ The initial design work retained focused integration and CLI audits as historica
 
 This is the target coding/agent architecture. Arrows represent requests and data flow, not module imports. Specialist providers and recipes are selected by capability, source freshness, correctness and total cost, and qualified before adoption. Existing native adapters remain distinct from planned SDK/A2A integration; the complete operation surface, source-validated reuse and unified attachment remain implementation work.
 
-```mermaid
-flowchart TB
-    Agents["Native Codex and Claude"] --> MCP["MCP<br/>Small discoverable tool surface"]
-    Agents --> CLI["reaktor-cli<br/>Shell commands and bounded JSON"]
-    Agents --> Helpers["Typed clients and executable helpers"]
-    Hangar["Hangar and Reaktor+ consumers"] --> MCP
-    Hangar --> Helpers
-
-    MCP --> Kernel
-    CLI --> Kernel
-    Helpers --> Kernel
-    Kernel["Graph-native workspace kernel<br/>Shared contracts, scope and authority<br/>Plans, runs, artifacts and retry identity"]
-
-    subgraph CodeLayer["reaktor-code — owned code tools and Kotlin integrations"]
-        Code["Scoped code API<br/>Search, outline, references and impact<br/>Choose the cheapest qualified provider"]
-        Syntax["rg and syntax / ast-grep<br/>Text and structural queries"]
-        LSP["LSP<br/>Live navigation and diagnostics"]
-        SCIP["SCIP<br/>Reusable symbol/reference indexes"]
-        Kotlin["Kotlin Analysis API<br/>Compiler-resolved symbols and types"]
-        Joern["Joern — optional<br/>Deep control/data-flow questions"]
-        Graphify["Graphify ideas<br/>Scoped subgraphs and code/doc links<br/>Optional qualified import"]
-        Recipes["Codemods and architecture guards<br/>ast-grep / language codemods<br/>OpenRewrite / Kotlin PSI when needed<br/>Dry-run, exact plan and idempotent apply"]
-        Code --> Syntax
-        Code --> LSP
-        Code --> SCIP
-        Code --> Kotlin
-        Code -.->|question needs deeper analysis| Joern
-        Code -.->|navigation gap justifies it| Graphify
-        Code --> Recipes
-    end
-
-    subgraph AgentLayer["reaktor-conductor — owned agent tools and Kotlin integrations"]
-        Conductor["Task and native-session owner<br/>Continuation, budgets and recovery"]
-        Context["Bounded task context<br/>Relevant code and check evidence<br/>Decisions, failed attempts and next action"]
-        Native["Existing native adapters<br/>Codex App Server / Claude Code CLI"]
-        SDK["Claude Agent SDK — planned<br/>Qualify authentication and billing"]
-        A2A["A2A — planned<br/>Selective Claude ↔ Codex questions/handoffs<br/>Durable deduplication and exchange limits"]
-        Metrics["ROI accounting<br/>Accepted work and total parent/child usage<br/>Repeated reads, repair and human effort"]
-        Conductor --> Context
-        Conductor --> Native
-        Conductor -.-> SDK
-        Conductor -.-> A2A
-        A2A -.->|admitted peer delivery| Native
-        Context -->|focused prompt| Native
-        Conductor --> Metrics
-        Metrics -.->|measured policy tuning| Conductor
-    end
-
-    Kernel --> Code
-    Kernel --> Conductor
-    Context -->|retrieve only relevant facts| Code
-    Native <--> Agents
-
-    Facts["Source facts over existing graph identities<br/>Content digests, compilation and provider coverage<br/>Incremental invalidation; explicit uncertainty"]
-    Code <--> Facts
-    Evidence["Linked existing evidence stores<br/>Decisions, checkpoints, findings and check receipts<br/>Reuse only with valid inputs and freshness"]
-    Context <--> Evidence
-    Kernel --> Evidence
-    Recipes --> Checks["Existing check execution<br/>Verify the exact candidate and required coverage"]
-    Checks --> Evidence
-
-    Tooling["reaktor-tooling<br/>Process supervision, transports and MCP mechanics<br/>Cancellation and bounded artifact delivery"]
-    Kernel -->|host launches code-owned tools| Tooling
-    Conductor --> Tooling
-    A2A -.->|generic transport| Tooling
-```
+The complete target and completion flows are maintained together in the [four-view HLD](code-agent-hld-diagrams.md). Optional syntax/LSP, SCIP, Kotlin Analysis API, OpenRewrite, Joern and Graphify feed qualified revision-bound facts and proposals below the existing graph; they do not add separate public mutation surfaces. Claude Agent SDK, live A2A and measured ROI remain explicit gates.
 
 ### Cohesive tool selection
 
@@ -444,7 +450,7 @@ These are harness-control integrations owned by Conductor. A2A describes peer co
 
 The [official Codex App Server documentation](https://developers.openai.com/codex/app-server/) describes bidirectional JSON-RPC, stdio transport, thread/turn operations, approval requests and account/rate-limit reads. Start with the existing supervised stdio adapter; remote transports require separate qualification. Use native managed account authentication for the local subscription consumer. A supported App Server integration does not establish permission to attach to every existing desktop chat. Commercial/hosted distribution requires the separately supported authentication path documented by OpenAI; do not reuse local credentials as an application service identity.
 
-The [Claude Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview) describes Python/TypeScript libraries for Claude Code's agent loop. Its [quickstart](https://code.claude.com/docs/en/agent-sdk/quickstart) documents API-key/provider authentication and restricts third-party products offering claude.ai login/rate limits without prior approval. Therefore SDK installation or a locally working login does not prove that our integration can consume Max allowances. The SDK is included in the design, but the current native-subscription requirement stays on the existing CLI unless a supported SDK subscription mode for this use is established. Any chosen API/credit mode is separately accounted and requires an explicit scope change from subscription-only execution; this documentation update does not authorize that change.
+The [Claude Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview) describes Python/TypeScript libraries for Claude Code's agent loop. Anthropic's [7 October subscription update](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan), verified on 11 October, confirms that SDK and `claude -p` usage can still draw from subscription limits. [Included API credits](https://platform.claude.com/docs/en/about-claude/api-credits-for-subscribers) are a separate billing pool. SDK qualification is therefore an adapter/session/usage integration requirement, not an assumption that Max authentication is unavailable. Preserve the selected subscription mode; never silently switch to API credits, purchased credits or another provider. No SDK adapter is shipped in this implementation.
 
 The adapter qualification must cover:
 
@@ -501,10 +507,10 @@ The [single execution plan](engineering-tools-plan.md#delivery-sequence) owns de
 ## Implementation anchors
 
 - [CodeIntelligence](../reaktor-code/src/commonMain/kotlin/dev/shibasis/reaktor/code/CodeIntelligence.kt) supplies existing positions, locations and editor capabilities.
-- [Workspace CLI](../reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/cli/AgentWorkspaceCli.kt) supplies current call, MCP, run and access-check transports.
+- [Private workspace CLI](../../bestbuds/modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/AgentWorkspaceCli.kt) supplies current call, MCP, run and access-check transports.
 - [Workspace connection](../reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt) exposes the current MCP-shaped call bridge to migrate; [operation descriptors](../reaktor-service/src/commonMain/kotlin/dev/shibasis/reaktor/service/Operation.kt) supply existing schema identity.
 - [Native Codex runtime](../reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/appserver/CodexAppServerRuntime.kt) and [native Claude runtime](../reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/appserver/ClaudeCodeSessionRuntime.kt) are the first adapter candidates; [hybrid handoffs](../reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridHandoffs.kt) and [collaboration tests](../reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentCollaborationTest.kt) anchor existing persistence/collaboration behavior, not shipped A2A support.
-- [Workspace door](../reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/cli/WorkspaceDoor.kt) and [MCP door](../reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/door/McpDoor.kt) own current federation, discovery and read fallback.
+- [Private workspace door](../../bestbuds/modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/WorkspaceDoor.kt) and [MCP door](../reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/door/McpDoor.kt) own current federation, discovery and read fallback.
 - [Hangar MCP](../../bestbuds/targets/reaktorDesktop/src/main/kotlin/ReaktorDesktopMcp.kt), [kernel MCP](../../bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/mcp/KernelMcp.kt) and [desktop MCP client](../../bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/mcp/DesktopMcpSession.kt) supply existing server/client integration.
 - [Kernel agent integration](../../bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgents.kt) supplies current selected-subject packets; [local-context script](../reaktor-conductor/tools/local-context/context_store.py) supplies the existing module-owned tooling precedent.
 - [Agent evidence](../reaktor-conductor/src/commonMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentEvidence.kt), [check results](../reaktor-conductor/src/commonMain/kotlin/dev/shibasis/reaktor/conductor/CheckResult.kt) and [context packets](../reaktor-conductor/src/commonMain/kotlin/dev/shibasis/reaktor/conductor/ContextPacket.kt) own reusable data today.

@@ -6,6 +6,23 @@ import kotlin.math.ln
 import kotlin.math.sqrt
 
 object BlueprintEngine {
+    // Retain primitive coordinates rather than a Pair and two boxed Doubles for every route sample.
+    private class PackedPoints(val coordinates: DoubleArray) : AbstractList<Pair<Double, Double>>() {
+        override val size get() = coordinates.size / 2
+        override fun get(index: Int) = coordinates[index * 2] to coordinates[index * 2 + 1]
+    }
+
+    private fun transformPoints(points: List<Pair<Double, Double>>, x: (Double) -> Double, y: (Double) -> Double): List<Pair<Double, Double>> {
+        val coordinates = DoubleArray(points.size * 2)
+        val packed = (points as? PackedPoints)?.coordinates
+        points.indices.forEach { index ->
+            val point = if (packed == null) points[index] else null
+            coordinates[index * 2] = x(packed?.get(index * 2) ?: point!!.first)
+            coordinates[index * 2 + 1] = y(packed?.get(index * 2 + 1) ?: point!!.second)
+        }
+        return PackedPoints(coordinates)
+    }
+
     const val CardWidth = 272.0
     const val HeaderHeight = 46.0
     const val RowHeight = 18.0
@@ -50,7 +67,7 @@ object BlueprintEngine {
             val ox = x + FrameSide
             val oy = y + FrameTop
             block.layout.cards.values.forEach { card -> cards[card.id] = card.copy(x = card.x + ox, y = card.y + oy) }
-            block.layout.links.forEach { link -> links += link.copy(points = link.points.map { (px, py) -> px + ox to py + oy }) }
+            block.layout.links.forEach { link -> links += link.copy(points = transformPoints(link.points, { it + ox }, { it + oy })) }
             frames += Frame(block.group.key, block.group.label, x, y, block.width, block.height,
                 block.layout.cards.keys, block.group.detail, block.group.muted)
         }
@@ -78,13 +95,16 @@ object BlueprintEngine {
         val (sx, sy) = from
         val (ex, ey) = to
         val reach = maxOf(90.0, abs(ex - sx) * 0.45).let { if (ex < sx) it.coerceAtMost(320.0) else it }
-        return (0..24).map { step ->
+        val coordinates = DoubleArray(50)
+        (0..24).forEach { step ->
             val t = step / 24.0
             val u = 1 - t
             val x = u * u * u * sx + 3 * u * u * t * (sx + reach) + 3 * u * t * t * (ex - reach) + t * t * t * ex
             val y = u * u * u * sy + 3 * u * u * t * sy + 3 * u * t * t * ey + t * t * t * ey
-            x to y
+            coordinates[step * 2] = x
+            coordinates[step * 2 + 1] = y
         }
+        return PackedPoints(coordinates)
     }
 
     private fun pinsOf(node: BlueprintNode): List<Pin> =
@@ -143,7 +163,7 @@ object BlueprintEngine {
         fun shift(x: Double) = x + shifts.filter { (from, _) -> x >= from }.sumOf { it.second }
         val links = flat.links.map { link ->
             if (link.from in moved || link.to in moved) link.copy(points = curve(anchor(cards, link.from, link.fromPort, true), anchor(cards, link.to, link.toPort, false)))
-            else link.copy(points = link.points.map { (x, y) -> shift(x) to y })
+            else link.copy(points = transformPoints(link.points, ::shift, { it }))
         }
         val right = flat.width - flat.cards.values.maxOf { it.x + it.width }
         val bottom = flat.height - flat.cards.values.maxOf { it.y + it.height }

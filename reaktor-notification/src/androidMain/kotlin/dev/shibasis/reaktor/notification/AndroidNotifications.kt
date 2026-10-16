@@ -35,6 +35,7 @@ data class AndroidNotificationsConfig(
      */
     val pushTransport: AndroidPushTransport? = null,
     val selfName: String = "You",
+    val categories: List<NotificationCategorySpec> = emptyList(),
 )
 
 class AndroidNotificationsClient(
@@ -68,6 +69,10 @@ class AndroidNotificationsClient(
 
     init {
         AndroidNotificationsRuntime.install(this)
+        if (config.categories.isNotEmpty()) {
+            categories = config.categories
+            channelRegistry.register(config.categories)
+        }
     }
 
     override suspend fun getPermissions(options: NotificationPermissionOptions): NotificationPermissionStatus =
@@ -280,6 +285,10 @@ class AndroidNotificationsClient(
 
     suspend fun receiveRemoteMessage(data: Map<String, String>) {
         val envelope = NotificationEnvelope.fromDataMap(data)
+        if (envelope.type == NotificationEnvelope.ClearType) {
+            envelope.content.conversation?.id?.let { renderer.clearConversation(it) }
+            return
+        }
         events.emitReceived(envelope)
         devHarness.recordReceivedFromPlatform(envelope)
         if (config.autoDisplayRemoteMessages) {
@@ -289,6 +298,7 @@ class AndroidNotificationsClient(
                     categoryId = envelope.categoryId,
                     content = envelope.content,
                     route = envelope.route,
+                    android = AndroidNotificationOptions(actions = categories.firstOrNull { it.id == envelope.categoryId }?.actions.orEmpty()),
                 ),
             )
         }
@@ -300,12 +310,14 @@ class AndroidNotificationsClient(
 
     fun handleLaunchIntent(intent: Intent?): Boolean {
         if (intent == null || !intent.hasExtra(EXTRA_NOTIFICATION_ID)) return false
-        val event = NotificationResponseEvent(
-            notificationId = intent.getStringExtra(EXTRA_NOTIFICATION_ID).orEmpty(),
-            categoryId = intent.getStringExtra(EXTRA_CATEGORY_ID) ?: DEFAULT_CHANNEL_ID,
-            route = routeFromIntent(intent),
-            actionId = "open",
-            source = NotificationEventSource.Tap,
+        if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return false
+        val response = responseEventFromIntent(intent)
+        intent.removeExtra(EXTRA_NOTIFICATION_ID)
+        if (!AndroidNotificationsRuntime.firstLaunch(response)) return false
+        appContext.takeDown(intent)
+        val event = response.copy(
+            actionId = response.actionId ?: "open",
+            source = if (response.actionId == null) NotificationEventSource.Tap else NotificationEventSource.Action,
         )
         Dispatch.Default.launch {
             events.emitResponse(event)

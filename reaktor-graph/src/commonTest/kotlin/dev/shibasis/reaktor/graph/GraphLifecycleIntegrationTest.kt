@@ -1,6 +1,11 @@
 package dev.shibasis.reaktor.graph
 
 import dev.shibasis.reaktor.graph.capabilities.Lifecycle
+import dev.shibasis.reaktor.graph.core.input
+import dev.shibasis.reaktor.graph.core.shape
+import dev.shibasis.reaktor.graph.core.node.Node
+import dev.shibasis.reaktor.portgraph.port.getConsumer
+import dev.shibasis.reaktor.portgraph.port.registerProvider
 import dev.shibasis.reaktor.graph.core.autoWire
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
@@ -34,6 +39,47 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class GraphLifecycleIntegrationTest {
+    @Test
+    fun importedConfigurationIsInheritedAndOwnedHeadlessGraphsAreVisibleAndClosed() {
+        val root = Graph(dependencyAdapter = TestDependencyAdapter(), label = "app")
+        val config = root.Graph { Graph(parentGraph = it, label = "config") }
+        val provider = config.Node(::ProviderNode)
+        root.dependsOn(config)
+        val child = root.Graph { Graph(parentGraph = it, label = "feature") }
+        val consumer = child.Node(::ConsumerNode)
+        child.autoWire()
+        assertSame(provider.textPort, consumer.textPort.edge?.provider)
+        assertSame(provider.textPort, child.input<String>(provider.textPort.key.key))
+        val shape = root.shape()
+        assertEquals(3, shape.scopes.size)
+        assertEquals(root.id.toString(), shape.scopes.single { it.label == "config" }.parent)
+        assertTrue(shape.wires.any { it.provider == provider.id.toString() && it.consumer == consumer.id.toString() })
+        child.close()
+        assertTrue(config.nodes.contains(provider))
+        assertTrue(provider.textPort.edges.isEmpty())
+        root.close()
+        root.close()
+        assertTrue(config.nodes.isEmpty())
+        assertTrue(child.nodes.isEmpty())
+    }
+
+    @Test
+    fun configuredNodesUseTypedGraphOverridesWithoutConstructingTheDefault() {
+        val root = Graph(dependencyAdapter = TestDependencyAdapter())
+        val config = root.Graph { Graph(parentGraph = it) }
+        val recipe = config.Node(::ProviderNode)
+        val replacement = config.Node { BasicNode(it).apply { registerProvider("api", 42) } }
+        root.dependsOn(config)
+        val feature = root.Graph { Graph(parentGraph = it) }
+        val service = feature.Node(recipe.textPort, "api", { graph, number: Int ->
+            BasicNode(graph).apply { registerProvider("result", number) }
+        }) { _: String -> error("Default implementation must not be created") }
+        assertSame(recipe.textPort, service.getConsumer<String>(recipe.textPort.key.key)?.edge?.provider)
+        assertSame(replacement, service.getConsumer<Int>("api")?.edge?.provider?.owner)
+        feature.requireFullyWired()
+        root.close()
+    }
+
     @Test
     fun ancestorPortsAreScopedAndTheNearestOwnerWins() {
         val adapter = TestDependencyAdapter()

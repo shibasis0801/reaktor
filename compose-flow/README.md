@@ -108,22 +108,9 @@ Change these in `FlowSizing.kt` when you want to retune generic canvas feel:
 
 These are generic flow knobs, not Reaktor graph style knobs.
 
-## Parity reporting
+## Parity matrix
 
-Use the Gradle task:
-
-```sh
-./gradlew :compose-flow:reportParity --no-daemon --console=plain
-```
-
-Outputs:
-- `build/reports/compose-flow/parity.json`
-- `build/reports/compose-flow/parity.md`
-
-The source of truth is:
-- `parity/features.json`
-
-This is a maintained feature matrix, not an inferred report.
+[`parity/features.json`](parity/features.json) is the maintained feature matrix.
 
 ## Consumers
 

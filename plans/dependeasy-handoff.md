@@ -1,0 +1,1695 @@
+# Dependeasy redesign: typed, inspectable build layer — Codex handoff
+
+Written 13 October 2026 for Codex to execute. Owner: Shibasis. The baseline was measured on 13 October against reaktor `75b1f3bd`, bestbuds `98ba3f43` and manna `7fe612e`, plus their uncommitted trees. Everything below is outstanding unless it is marked done.
+
+This plan reopens the build layer. It supersedes two things:
+- the 11 October "build layer is done" status in [engineering-tools-plan.md](engineering-tools-plan.md);
+- the schema-1 parts of the Dependeasy integration contract in [cli-kernel-hld.md](cli-kernel-hld.md).
+
+The principles of those documents stay:
+- one projection, produced by its owner;
+- declared facts kept apart from execution evidence;
+- staleness judged from inputs, not timestamps;
+- only Gradle schedules.
+
+## Status at a glance
+
+| WP | Work | State |
+|---|---|---|
+| WP0 | Clear the blockers from the 13 Oct review | Blockers committed: reaktor `4786a918`, bestbuds `6129a3ee` / `73da2a7c`; build/unit checks pass, composite Hangar coverage incomplete (14 Oct 2026) |
+| WP1 | Split dependeasy into a stable toolchain part and a fast plugin part; one version authority | Split committed: reaktor `bfe3eab1`, bestbuds `17a14295`, manna `8ad7070`; checks and invalidation probe pass; local artifacts published (14 Oct 2026) |
+| WP2 | Typed build model; one node clickable end to end in Hangar, the CLI and MCP | Qualified and locally committed: reaktor / bestbuds / tools; receipts and source navigation pass (14 Oct 2026) |
+| WP3 | Handles replace strings in every build script | Qualified and locally committed: reaktor `0f3d9595`, bestbuds `d3655c20`, manna `4a1d5d6`; owner-approved Hangar sharding task/helper included (14 Oct 2026) |
+| WP4 | Typed kernels with honest inputs | Qualified and locally committed in all three repos; typed fixtures, real JS input probe and CLI specs pass (14 Oct 2026) |
+| WP5 | Plans and receipts from Gradle itself | Qualified locally |
+| WP6 | Web and Cloudflare adapters | Qualified and locally committed; config-service dev/prod deployments verified (14 Oct 2026) |
+| WP7 | Apple: generated Xcode settings and one release plan | Committed; build 25 uploaded to internal TestFlight; both dSYMs accepted |
+| WP8 | Native and CMake adapters | Committed; Android/iPhoneOS/desktop builds and warm reuse qualified |
+| WP9 | Device runners, test tools, Dagger and CI | Committed; Samsung and physical iPhone launch flows pass with receipts; local Dagger gate fails under OOM pressure; CI unqualified |
+| WP10 | Full drill-down in Hangar, the CLI and MCP | Committed; real CLI and isolated authenticated MCP walks pass; live Hangar/installed owner/IDE walk pending |
+| WP11 | Qualify and ship the first pass (§10.6) | Complete 15 Oct; Reaktor #18, BestBuds #8 and Manna #1 published; qualification limits retained |
+| WP12 | One typed DSL per node kind and per component kind | Qualified and committed 15 Oct: Reaktor `162ca4f3`, BestBuds `3673e133`, Manna `9db316c`, tools `10149f5`; typed workspace scope complete, component scopes WP13 and five-layer tools WP16 |
+| WP13 | Three altitudes: components become projects, the root becomes orchestration | Outstanding |
+| WP14 | Dependeasy holds no product facts | Outstanding |
+| WP15 | One option system, no ambient reads | Outstanding |
+| WP16 | Split mixed dependeasy files; complete the model | Outstanding |
+| WP17 | Cross-repo access only through handles | Outstanding |
+| WP18 | Finish the adapters and consumers | Outstanding |
+
+## 0. Summary for the owner
+
+Dependeasy works, but you cannot follow it by clicking. Build scripts name tasks, modules, properties, tools and lanes with strings, so finding out what a target really does takes grep or an agent. The decisions are also spread across Kotlin, TypeScript, Xcode settings, CMake, Ruby, Python and shell. Many are copies that already disagree: the iOS deployment target is 16.0 in Xcode, 15.0 in Kotlin/Native and 13.0 in CMake.
+
+The plan makes three changes:
+
+1. **Handles instead of strings.** Every reference in a build script becomes a Kotlin value you can Cmd+click. That covers projects, Reaktor modules, module outputs, other targets, tools, options, environments, lanes and native dependencies. A name is written once, where the thing is declared.
+2. **One inspectable model.** Dependeasy exports one typed model of the build. Every node records:
+   - where it was declared;
+   - which Kotlin class does the work;
+   - how it runs and where it must run;
+   - what it consumes and produces.
+
+   Gradle supplies the exact task tree on demand, and every run leaves a receipt. Hangar, the CLI and MCP all read this one model. From a workspace target you can reach the kernel class and Gradle's task tree in a few clicks.
+3. **Kotlin decides, adapters execute.** TypeScript, Swift, CMake, Ruby and shell keep only the work that must run inside their own tool: the TypeScript compiler, Vite, Wrangler, Xcode, App Store Connect and CMake. Each reads a contract file that Kotlin generates and makes no decisions of its own.
+
+The order of work is:
+1. Clear the four blockers from the review.
+2. Split dependeasy, so that plugin edits stop invalidating Android and Kotlin task outputs.
+3. Ship the model with one clickable path end to end.
+4. Replace strings with handles.
+5. Move the logic out of each integration.
+6. Finish the Hangar, CLI and MCP drill-down.
+
+Expected effect, estimated from the 13 Oct inventories:
+- No task paths, module names or property names in build scripts. There are 196 path literals today.
+- One reader of build facts instead of four, and one id per target instead of three.
+- About 3,600 hand-written lines outside Kotlin removed, replaced by about 1,300–1,700 lines of new Kotlin:
+
+  | Language | Lines removed (approx.) |
+  |---|---|
+  | shell | 1,450 |
+  | Ruby | 1,050 |
+  | JS/TS | 580 |
+  | Swift | 140 |
+  | Xcode settings | 140 |
+  | Python | 130 |
+  | YAML | 120 |
+- Hand-written package scripts down from 421 to about 140.
+- Zero Android, Kotlin or Compose task re-executions when dependeasy code changes. The 11 Oct composite repeat re-executed 3,491 tasks.
+
+## 1. What is wrong today
+
+### Big picture
+
+- **Orchestration is written in strings.** Workspace targets list Gradle task paths, other builds by name, Reaktor modules by name and settings by property name. Nothing is checked until Gradle runs, and the IDE cannot navigate any of it.
+- **The meat lives in many languages.** Kotlin has the authority on paper, but the logic sits elsewhere and the copies drift:
+  - release logic in fastlane Ruby;
+  - worker lists and environment choice in JS and shell;
+  - Xcode facts in pbxproj settings;
+  - native dependency discovery in CMake;
+  - routing and artifact families in Python and shell.
+- **The export cannot be opened.** The build graph has no declaration sites and no kernel references. A quarter of its nodes are "unexpanded". It is re-keyed three times before it reaches Hangar, the CLI or MCP. Agents can see Dependeasy targets but cannot run them.
+- **One classloader for everything.** The Android, Kotlin and Compose Gradle plugins are bundled inside dependeasy. Any dependeasy edit changes their implementation hash and re-executes their tasks.
+
+### Detail, measured 13 Oct
+
+**Build scripts (107 `*.gradle.kts` files)**
+- 196 colon-path string literals outside settings files: reaktor 118, bestbuds 61, manna 17. Examples: `verify("appChecks", ":app:jvmTest", ":design:jvmTest", ":engine:jvmTest")` and `included("Manna", ":buildAll")`.
+- 39 name-based task lookups (`tasks.named("…")`, `it.name == "…"`, `dependsOn("…")`).
+- 21 `apiReaktor` or `kotlinLibraries` calls that pass module names as strings. Product scripts spell 15 Reaktor module names, as in `apiReaktor("notification-fcm")` and `kotlinLibraries("reaktor-auth", build = "reaktor")`.
+- 25 property-name literals, such as `localProperty("bestbuds.devTools")` and `gradleProperties["bestbuds.devTools"] = "false"`.
+
+**Dependeasy itself (164 Kotlin files, 6,726 lines in `src/main`)**
+- 47 name-based task lookups. Examples: `rootProject.tasks.named("prepare${Name}Source")`, `dependsOn("assembleRelease")`, `tasks.matching { it.name == "check" }`, `":${module}:exportKotlinLibrary"`.
+- 8 string-typed fields where a closed set is meant:
+  - in [BuildTarget](../dependeasy/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildTarget.kt): `platform`, `effect`, `runner`, `output`, `worker`, `workerDirectory`, `artifactFamily`;
+  - `CommandTask.backend`, which takes "vite", "typescript", "karakum" or "pnpm".
+- 3 internal API types in 4 files:
+  - AGP `BaseAppModuleExtension` in `android/AndroidApplication.kt` and `android/androidConfig.kt`;
+  - Gradle `ServiceRegistry` in `web/KotlinPnpmBridge.kt`;
+  - Gradle `ProjectInternal` in the uncommitted `workspace/GradleTaskGraph.kt` change.
+- 46 hand-built JSON keys across the exports: `buildGraph`, `reportBuildLayout`, `generatePackageScripts` and the per-pipeline `plans/*.json`.
+- The task closure is computed at configuration time, and 25–30% of exported nodes stay "unexpanded".
+- File-layout guesses: `".../outputs/aar/${project.name}-release.aar"`, `.github_modules/$name`, the `"../reaktor/dependeasy/javascript"` fallback, and the `"**/worker/app-kt/**"` excludes.
+
+**Toolchain**
+- Six readers parse Kotlin source with a regex:
+  - dependeasy `build.gradle.kts` (`kotlinConstants()`);
+  - dependeasy `settings.gradle.kts`;
+  - `cmake/kernel/project.cmake`, for the C++ standard;
+  - `runtime.ts` in dependeasy, bestbuds and manna, for the Java image.
+
+  A seventh, `toolchain/read.sh`, uses sed inside the Dagger container to read the Gradle URL and checksum.
+- Facts kept in several copies:
+  - the iOS deployment target (16.0 / 15.0 / 13.0);
+  - Swift 6 and C++23, 10 copies each across the two Xcode projects;
+  - bundle ids, in Gradle, pbxproj, Ruby and the plists;
+  - the team id, in four pbxproj configurations, several Ruby files, `ExportOptions.plist` and `config/mobile-e2e.json`;
+  - the pnpm pin, in 46 manifests;
+  - TypeScript pins, in 45 manifest entries.
+
+**Exports and consumers**
+- Four independent readers:
+  - reaktor-tooling `GradleBuildTargets` keeps only gradle-runner build and verify targets. It drops `gradleTasks`, `plans`, `requires`, `bindings` and `environments`.
+  - Hangar `BuildGraphSource` serves only the UI; MCP and the CLI cannot reach it.
+  - Python `remote_build.py` and `remote-dev`.
+  - The legacy CLI's own parser.
+- Three ids for one target. Dependeasy's `bestbuds:artifacts` becomes tooling `dependeasy:…`, then operational `tooling/dependeasy-…`, which is lower-cased with separators collapsed. Collisions are silently dropped by `distinctBy`.
+- Dependeasy targets are forced into the Deploy domain whatever their effect, so `check.catalog` and `check.start` exclude them.
+- No node records where it was declared. MCP only sees a provenance string.
+
+**Outside Kotlin** (from the four inventories)
+- **fastlane:** 1,509 Ruby lines plus 287 test lines. About 740 of them are build decisions Kotlin should own: paths, ids, versions, command assembly, devTools injection, Info.plist stamping, a regex patch of `project.pbxproj`, and the privacy and dSYM checks.
+- **Apple:**
+  - Xcode settings repeat Kotlin's output paths and link flags.
+  - The notification extension builds reaktor as a separate Gradle build. In the 13 Oct archive, its framework and the app's were built on different hosts.
+  - fastlane disables devTools through `GRADLE_OPTS`, which remote-dev does not forward.
+- **Web and Cloudflare:**
+  - `WorkerFleet` lists 14 workers, but 6 more deployables ship through hand-written scripts, and 7 other hand-kept worker lists disagree.
+  - Wrangler configs are merged in three different ways, and dev versus prod is chosen in about 11 places.
+  - Kotlin output paths are hard-coded in Vite configs, tsconfigs and a Node generator.
+  - Seven Karakum packages generate their bindings outside Gradle.
+- **Runners:** four Maestro harnesses, three xcodebuild command builders, Karate downloaded without a checksum, and an unpinned k6.
+- **Dagger:** `runtime.ts` is copied into each product. The generator ignores `executionHost`, so Local-only checks would become Linux functions.
+
+### Keep from the 11 Oct rewrite
+
+The direction of the rewrite is right. These parts stay:
+- the `module(ns) { common / web / android / apple / jvm / framework }` DSL;
+- the pnpm workspace and `InstallTool` (checksummed Node, pnpm and Pulumi);
+- `BuildPipeline`'s separation of `after` (ordering) from `consumes` (artifact flow);
+- `SafeFiles` bounded deletes;
+- `WorkerFleet` as the authority on workers;
+- the removal of CocoaPods, the checked-in `ts/export` bundles, yarn and webpack;
+- Dagger generated from Gradle, with the engine pin coming from Kotlin;
+- the thin `ci.yml`.
+
+## 2. Rules for this work
+
+1. **Declare with a name, refer with a handle.** A string name appears once, where the thing is declared, and every other use refers to the Kotlin value. Cmd+click then works, and a rename fails to compile instead of failing at run time. Paths to authored files (configs, sources) stay as paths: they are inputs, checked at configuration time.
+2. **One authority per fact.** Each version, id, path and list has one owner in Kotlin. Other languages receive it in a generated contract. Nothing parses Kotlin source.
+3. **Kotlin decides, adapters execute.** An adapter reads one contract, runs one tool and writes one result. Adapters contain no discovery, defaults, fallbacks, naming conventions, environment choice or ordering.
+4. **Public API only.** Do not use Gradle, AGP or KGP internals.
+   - Record any exception in a boundary register, `dependeasy/BOUNDARIES.md`, with file, line, reason and removal condition.
+   - Gradle's own lifecycle constants, such as `LifecycleBasePlugin.BUILD_TASK_NAME`, count as handles.
+5. **Only Gradle schedules.** Ordering lives in Gradle task dependencies and variant wiring. There is no second scheduler in Python, TypeScript, Ruby or shell.
+6. **Every node opens to its kernel.** Each node records its id, declaration site, kernel class, invocation, effect, host, inputs and outputs. When dependeasy cannot know a fact, the node lists it as an omission with a reason; it never guesses.
+7. **Working path first.** Deliver one node, clickable end to end, before broadening. This follows the delivery priority in `~/dev/AGENTS.md`.
+8. **Project rules.**
+   - No comments in code.
+   - Record the budget and the acceptance evidence before the first edit (bestbuds `AGENTS.md` §2.3).
+   - Reuse the reaktor-tooling types (`ToolingCatalog`, `SourceLocation`, `SourceHandoff`, `TaskPlanningPort`, `RunLedger`) instead of adding parallel ones.
+   - No source-text architecture tests. Tests are TestKit fixture builds plus real builds of reaktor, bestbuds and manna.
+   - Maintained libraries only.
+   - Versions live only in Kotlin: no version catalog, no TOML, no properties files for versions.
+   - Hangar UI goes through Surface, and its graphs draw through workbench/blueprint. Identifiers are shown in full; secrets never are.
+9. **Delivery hygiene.**
+   - Commit messages are descriptive, never "progress".
+   - Commits that depend on each other across reaktor, bestbuds and manna land together.
+   - No toolchain bumps inside design work.
+   - Stage only your own hunks.
+   - No destructive git, and never `deleteRecursively` a real checkout.
+   - Never print secrets or fixture contents; report counts only.
+   - `~/dev/tools` (remote-dev, `remote_build.py`) is not a git repository. Back up a file before editing it, or put the folder under git first (decision 6).
+   - Gradle builds go through the configured wrappers. Devices and Maestro run on the Mac. Never start emulators or simulators.
+
+## 3. Target design
+
+### 3.1 Three layers
+
+```
+build scripts                    handles only: projects.app, Reaktor.Auth, IosLane.TestflightInternal
+   │ declare
+   ▼
+orchestration (dependeasy)       workspace nodes → Gradle tasks + variant wiring
+   │ realize                       consumes = variant resolution, after = task ordering
+   ▼
+kernels (dependeasy)             typed task classes: TypeScriptCheck, ViteBundle, CMakeBuild, XcodeHost …
+   │ execute
+   ▼
+adapters                         tsc, vite, wrangler, karakum, xcodebuild, cmake, fastlane, dagger
+                                 each reads one generated contract
+
+projection                       model.json (declared) · plan (Gradle, on demand) · receipts (observed)
+   │ one reader: dependeasy-model
+   ▼
+consumers                        Hangar · reaktor CLI · MCP · remote-dev · Dagger · fastlane
+```
+
+- **Kernel.** The Kotlin classes that do the real work. Each is a Gradle task type with typed inputs and outputs, plus one adapter when it needs an external tool. Kernels change slowly. "Kernel" here means dependeasy's kernel, not the bestbuds `ReaktorKernel`.
+- **Orchestration.** The `workspace {}` and `module {}` DSLs, which turn handles into Gradle wiring. They change often.
+- **Projection.** What consumers read: the declared model, Gradle's plan for one node, and the receipts of runs. It maps onto Reaktor V2's vocabulary: declarations realize nodes, artifacts derive from sources, and receipts observe runs.
+
+### 3.2 Handles instead of strings
+
+| Thing | Today | Handle | Declared once in |
+|---|---|---|---|
+| Project in the same build | `":app:jvmTest"`, `project(":engine")` | `projects.app` (Gradle type-safe project accessors) | `settings.gradle.kts` `include` |
+| Reaktor module used by a product | `apiReaktor("cloudflare")`, `kotlinLibraries("reaktor-auth", build = "reaktor")` | `Reaktor.Cloudflare`, `Reaktor.Auth` | `Reaktor` catalog object in dependeasy |
+| Another build | `included("Manna", ":buildAll")`, `includedBuild("reaktor").task(":pnpmInstall")` | `Reaktor.build`, or a `Manna` build handle from the bestbuds settings | catalog or settings |
+| A module's output | `":app:linkReleaseFrameworkIosArm64"`, `".../outputs/aar/x-release.aar"` | `appleFramework(projects.app, Apple.IosArm64, Build.Release)` | output kinds in dependeasy, one mapping each |
+| Another workspace node | `":appChecks"` inside `verify("pr", …)` | the value returned by `verify("appChecks") { … }` | the declaring call |
+| Public node of another build | `":frameworkChecks"` in reaktor | the `Workspace.Verify` role | the role enum; each workspace marks its role nodes |
+| Kernel kind | `CommandTask.backend = "vite"` | sealed kernel types | dependeasy kernel package |
+| Closed sets | `platform = "macos"`, `effect = "verify"`, `runner = "browser"`, `artifactFamily = "web"` | `Effect`, `Host` and `Runner` enums; the family and macOS requirement derived from output kinds | dependeasy model |
+| Tool | ambient `node`, `k6`, `maestro-runner`, unpinned Karate | `Tools.Node`, `Tools.K6`, `Tools.Karate`, `Tools.MaestroRunner` | `Tools` (version + checksums) |
+| Build option | `localProperty("bestbuds.devTools")`, `GRADLE_OPTS=-D…` | `BestBudsOptions.DevTools: BuildOption<Boolean>` | product build logic |
+| Environment | `TARGET_ENV`, `wrangler.dev.json` selection, 44 `:dev` wrappers | `Environment` handles (`Dev`, `Prod`) | product workspace |
+| Fastlane lane | `fastlane("ios", "build_release")` | `IosLane.TestflightInternal` | the Kotlin lane list; the Ruby side fails if a planned lane is missing |
+| Native dependency | `.github_modules/hermes`, `prepare${Name}Source`, the `HERMES` switch | `Native.Hermes` | native catalog (source, revision, checksum) |
+| Worker | 7 hand-kept lists | entries of `WorkerFleet` | `WorkerFleet` |
+
+How handles become Gradle wiring:
+- **Outputs are published as variants.** Each module plugin publishes what its module produces as Gradle variants, tagged with one attribute, `dependeasy.output`. Its values form an enum: Kotlin/JS library, Apple framework, Android APK/AAB/AAR, JVM distribution, worker bundle, and verification results per suite.
+- **The mapping uses public APIs only.** From KGP: `binaries.getFramework(…).linkTaskProvider` and the test runs' execution tasks. From AGP: `variant.artifacts.get(SingleArtifact.APK / BUNDLE / AAR)`.
+- **Consumers ask for outputs.** A consumer requests an output of a handle; Gradle resolves the variant, runs the producing task and hands over the files. Gradle's own test-report aggregation uses this mechanism, and it works across included builds through dependency substitution. That makes `includedBuild(…).task(…)` unnecessary.
+- **`after(node)` becomes task ordering.** `consumes` and `after` stay separate edges.
+- **The `Reaktor` catalog lives in the fast plugin tier.** reaktor's `settings.gradle.kts` keeps its Gradle-native `include` lines. reaktor's root plugin fails configuration when the catalog and the included projects disagree.
+
+### 3.3 Drill-down: one node, all the way down
+
+Every node answers the same questions, in this order, and each answer links to the next level.
+
+| Level | Question | Source of the answer |
+|---|---|---|
+| L0 Workspace | Which builds and nodes exist? | the model's builds and nodes |
+| L1 Node | What is it, what is its effect, which host does it need? | the model node: kind, effect, host, label |
+| L2 Declaration | Where was it declared? | the `SourceSite` (file and line) captured at the DSL call |
+| L3 Composition | What does it include, consume and produce? | the model's `Includes`, `Consumes` and `After` edges, and the node's outputs |
+| L4 Kernel | Which Kotlin class does the work, with which settings? | the `KernelRef`: class name plus typed spec |
+| L5 Invocation | What exactly runs? | Gradle task paths; for tool kernels, the argv, working directory, environment keys (never values) and tool version |
+| L6 Plan | Which Gradle tasks would run, in what order? | a Gradle Tooling API dry run, on demand, with its cost reported |
+| L7 Receipts | What happened last time? | receipts written by the in-build listener |
+
+**Declaration sites.**
+- Every DSL entry point captures the first stack frame that comes from a `*.gradle.kts` file, using `StackWalker` (a public JDK API), and records it relative to the workspace root.
+- A node created by a plugin instead records the module's build file and its kernel class.
+
+**The same node through each surface.**
+
+```
+$ reaktor build show bestbuds:appChecks
+bestbuds:appChecks   verification   effect Verify   host Any
+declared    build.gradle.kts:46
+kernel      dev.shibasis.dependeasy.verification.VerificationResults
+consumes    bestbuds:app      verification-results jvm
+            bestbuds:design   verification-results jvm
+            bestbuds:engine   verification-results jvm
+invocation  ./gradlew :appChecks
+last run    13 Oct 18:02  passed  4m12s  212 tasks (31 executed, 170 up to date, 11 from cache)
+```
+
+- **Hangar.** The Build pane shows the same panel:
+  - "Declared" opens the IDE at that line through `SourceHandoff`.
+  - "Kernel" finds the class through the existing code index (`code.query`).
+  - Each consumed node is a link.
+  - "Plan" asks Gradle for the task tree.
+  - "Last run" opens the receipt.
+- **MCP.** The `build_node` read tool returns the same structure as JSON. Agents reach it through `workspace` → `inspect.call`.
+
+### 3.4 The build model and its one reader
+
+A new module, `dependeasy/model`, holds:
+- the schema, as `@Serializable` Kotlin types;
+- the reader;
+- the contract types for adapters.
+
+It depends only on kotlinx-serialization-json and compiles to Java 21 bytecode. It has no Gradle, reaktor-code or graph-runtime dependency, so reaktor-tooling, the bestbuds kernel and Hangar's engine can all use it.
+
+```kotlin
+@Serializable
+data class BuildModel(
+    val schema: Int,
+    val producer: Producer,
+    val builds: List<BuildIdentity>,
+    val declarations: List<DeclarationInput>,
+    val nodes: List<Node>,
+    val edges: List<Edge>,
+    val omissions: List<Omission>,
+)
+
+@Serializable
+data class Node(
+    val id: NodeId,
+    val kind: NodeKind,
+    val label: String,
+    val effect: Effect,
+    val host: HostRequirement,
+    val declaredAt: SourceSite?,
+    val kernel: KernelRef?,
+    val invocation: Invocation,
+    val inputs: List<FileSet>,
+    val outputs: List<FileSet>,
+    val tools: List<ToolRef>,
+)
+
+@Serializable
+sealed interface Edge {
+    @Serializable data class Includes(val parent: NodeId, val child: NodeId) : Edge
+    @Serializable data class Consumes(val consumer: NodeId, val producer: NodeId, val output: OutputKind) : Edge
+    @Serializable data class After(val node: NodeId, val predecessor: NodeId) : Edge
+}
+```
+
+- **Ids.** A `NodeId(build, project, name)` is written as `bestbuds:appChecks` or `reaktor:reaktor-auth:check`.
+  - The build part is the build's own root project name, so an id stays the same whether reaktor is built alone or inside bestbuds.
+  - Names are author-declared Gradle names and cannot contain `:`, so each id is unique.
+  - Ids never come from labels, class names or order, and consumers use them verbatim.
+- **One file.** `exportBuildModel` writes `build/dependeasy/model.json` from typed data. It replaces `buildGraph`, `reportBuildLayout`, the JSON half of `generatePackageScripts` and the per-pipeline `plans/*.json`.
+- **No task closure inside.** The model holds only the declared nodes and edges. Gradle's exact task tree comes from the planner (L6). That removes both the "unexpanded" problem and the internal-API code.
+- **Staleness.** The model lists its declaration inputs with digests: build scripts, settings, `gradle.properties` and the dependeasy version. The reader recomputes the digests and reports the model as stale when they differ. It never uses modification times or HEAD.
+- **One size limit**, defined once in the model module. Today one reader allows 8 MiB and another 16 MiB.
+- **Receipts** live next to the model, in `build/dependeasy/receipts/<run>.json`, and use the model's types.
+
+### 3.5 Adapters and their contracts
+
+Every contract follows one pattern:
+1. A Kotlin task writes a typed, versioned file under `build/dependeasy/contracts/<adapter>/`. The file carries the schema version, the node id and the node's declaration site, so an adapter's error can point back to the Kotlin line.
+2. The adapter checks the schema version.
+3. The adapter runs its tool and writes a typed result.
+
+Where the tool has its own config format, the contract uses it: xcconfig for Xcode, an initial-cache file for CMake. Those contracts need no adapter code at all.
+
+| Integration | Stays in its language | Moves to Kotlin | Contract |
+|---|---|---|---|
+| TypeScript / JS | calls into the TypeScript compiler API (typecheck, the worker bundle's import closure), Karakum, Vite configs and plugins, Wrangler, docs generators, the Playwright runtime | which files and projects to check, Kotlin output locations, worker lists, dev/prod choice, Wrangler config merging, package script generation and merging, deploy order, size reporting, Karakum bindings as Gradle nodes | `web/<component>.json` (Kotlin packages → entry `.mjs`/`.d.mts`, resources, sources, generated tsconfig paths); `cloudflare/<worker>.<env>.json` (final Wrangler config) |
+| Swift / Xcode | three forwarding adapters (Firebase, Messaging, Crashlytics), the notification forwarder, a one- or two-line `main.swift`, the pbxproj structure (targets, resources, entitlements, package references), `Package.resolved` lockfiles | framework search paths, link flags, deployment target, Swift version, SDK, bundle ids, team, version and build number, signing selection, the Gradle task each phase runs, the adapter install list, SwiftPM pin checks, BGTask ids | per-target `xcode/<target>.xcconfig` (committed, drift-checked) |
+| fastlane (Ruby) | App Store Connect and Play uploads, store build-number queries, certificates, profiles, devices, keychain | versions, artifact paths, ids, xcodebuild and Gradle command tokens, devTools, Info.plist stamping, the pbxproj patch, privacy and dSYM checks, release ordering | `release/<product>.json` |
+| CMake | the target structure of `CMakeLists.txt` | C++ standard, deployment target, architecture, native dependency locations, `-D` flags, dependency discovery | `cmake/<library>-<platform>.cmake` (initial cache) |
+| Dagger (TS) | one shared module that maps pipeline steps to Dagger calls | image, Gradle URL and checksum, memory policy, Playwright image, apt packages, cache names, which nodes run in CI (never Local ones) | `dagger/pipeline.json` |
+| Shell / Python tools | remote-dev transport (sync, ssh, capacity probe); device commands inside the single Kotlin runner | routing policy (today a hard-coded task list), artifact families (today name heuristics), the Xcode variable forward list, package.json merging, `graph-run` plans and receipts | `remote/hosts.json` |
+
+### 3.6 Packaging: a stable toolchain part and a fast plugin part
+
+```
+reaktor/dependeasy                     included build "dependeasy"
+  buildSrc/                            compiles toolchain/…/GradlePlugins.kt so dependeasy's own scripts can import it
+  model/      dev.shibasis.dependeasy:model       schema, reader, contracts; kotlinx-serialization only; Java 21
+  toolchain/  dev.shibasis.dependeasy:toolchain   GradlePlugins versions + the settings plugin; implementation AGP, KGP, Compose, KSP, …
+  gradle/     dev.shibasis.dependeasy:gradle      every project plugin, kernels, catalogs, Tools, Versions; compileOnly on toolchain
+```
+
+- **The `toolchain` artifact holds only what changes with a toolchain bump:**
+  - Gradle plugin versions: Kotlin, AGP, Compose, KSP, serialization, Spring Boot, Google services, Crashlytics;
+  - JVM bytecode targets;
+  - repositories and plugin resolution.
+
+  Consumers apply it once, as the settings plugin, which loads those Gradle plugins into the settings classloader.
+- **Everything else lives in `gradle`,** compiled against those plugins with `compileOnly`. Editing orchestration or kernels then changes only dependeasy's own classloader, so Android, Kotlin and Compose task outputs stay valid.
+- **Tool versions live in `gradle` as `Tools`:** Node, pnpm, TypeScript, Karakum, Vite, Wrangler, CMake, NDK, Hermes, Karate, k6, maestro-runner, the Dagger engine, the Java image and the Gradle distribution. Bumping Node therefore does not re-run Android tasks.
+- **No more regex bootstrap.** dependeasy builds with Gradle's embedded Kotlin (the `kotlin-dsl` or `embedded-kotlin` plugin; the serialization plugin at `embeddedKotlinVersion`), so its settings no longer need to read a Kotlin version. `buildSrc` gives its scripts the plugin versions.
+- **`verifyBytecode`** checks that every class in the three jars is Java 21 bytecode (major version 65). It is part of dependeasy's `check`.
+- **No added actions on foreign tasks.** Dependeasy code adds no `doFirst`, `doLast` or `onlyIf` to Android, Kotlin or Compose tasks, because those lambdas would tie those tasks' implementation hash back to dependeasy.
+
+## 4. Before and after
+
+Before (bestbuds `build.gradle.kts` and `modules/app/build.gradle.kts`, 13 Oct):
+
+```kotlin
+javascript("companyWeb", "targets/companyOS") {
+    kotlinLibraries("app")
+    kotlinLibraries("reaktor-auth", "reaktor-graph", "reaktor-graph-port", build = "reaktor")
+}
+verify("reaktorVerify") { included("reaktor", ":frameworkChecks") }
+verify("appChecks", ":app:jvmTest", ":design:jvmTest", ":engine:jvmTest")
+verify("pr", ":verifyDagger", ":reaktorVerify", ":appChecks", ":jsChecks", ":architectureChecks")
+artifacts("iosFrameworks", ":app:linkReleaseFrameworkIosArm64", ":app:linkReleaseFrameworkIosSimulatorArm64") {
+    macos(); executionHost = BuildHost.Worker; artifactFamily = "apple"
+}
+external("webChecks") { pnpm("test:web"); effect = "verify"; runner = "browser" }
+
+val devToolsEnabled = localProperty("bestbuds.devTools").map(String::toBoolean)
+apiReaktor("notification-fcm")
+```
+
+After (shape, not final names):
+
+```kotlin
+val companyWeb = javascript("companyWeb", "targets/companyOS") {
+    kotlin(projects.app)
+    kotlin(Reaktor.Auth, Reaktor.Graph, Reaktor.GraphPort)
+}
+val reaktorChecks = verify("reaktorVerify") { includes(Reaktor.build, Workspace.Verify) }
+val appChecks = verify("appChecks") { tests(projects.app, projects.design, projects.engine, suite = Suite.Jvm) }
+verify("pr", role = Workspace.Verify) { includes(dagger, reaktorChecks, appChecks, jsChecks, architectureChecks) }
+val iosFrameworks = artifacts("iosFrameworks") {
+    appleFramework(projects.app, Apple.IosArm64, Apple.IosSimulatorArm64, build = Build.Release)
+    host = Host.Worker
+}
+browserCheck("webChecks") { serves(companyWeb); config("playwright.config.ts") }
+release("testflightInternal") {
+    consumes(iosFrameworks)
+    after(appChecks)
+    lane(IosLane.TestflightInternal)
+    require(BestBudsOptions.DevTools, false)
+}
+
+api(Reaktor.NotificationFcm)
+```
+
+What changed:
+- Every reference is a value the IDE can open.
+- The macOS requirement and the artifact family come from the Apple output kind.
+- The release's devTools requirement is checked before the artifact is produced.
+- Nothing names a Gradle task.
+
+## 5. Work packages
+
+Each package lists its goal, steps, acceptance evidence, budget and what not to do. Record the budget and the acceptance commands before the first edit (§2.3). Packages are ordered by dependency and leverage. Once WP4 is done, WP6–WP9 can run in parallel.
+
+### WP0 — Clear the blockers from the 13 Oct review
+
+Goal: a committed base that CI can configure, without the release-safety hole.
+
+Steps:
+1. Land the uncommitted dependeasy work together with the bestbuds and manna changes that depend on it, as paired commits with descriptive messages. This covers `BuildHost`, `artifactFamily`, `Versions.Data.Toml`, the `typecheck.mjs` import fix and `BuildWorkspaceTest`. Leave the `GradleTaskGraph.kt` internal-API change out; WP5 deletes that file.
+2. Make Manna opt-in in the bestbuds composite (decision 1). The bestbuds `settings.gradle.kts` includes `../manna` only when a typed settings option is on, and CI never turns it on.
+3. Release builds must not carry devTools or dev fixtures, whatever the host or property files:
+   - The effective `bestbuds.devTools` value is resolved in one order: command line, then `gradle.properties`, then `local.properties`, then the default. The source that set it is recorded.
+   - Xcode's Release configuration forces it off. Dependeasy's `darwin` code reads `CONFIGURATION` once; remote-dev already forwards that variable.
+   - Release nodes require it to be off and fail before linking, naming the source of the value (for example `local.properties`).
+   - fastlane passes the value as a Gradle argument, which remote-dev forwards, instead of through `GRADLE_OPTS`, which it does not.
+4. Make the Dagger generator skip nodes whose host is Local, then regenerate so that `verifyDagger` passes.
+
+Acceptance:
+- On the worker, dependeasy `check`, the reaktor framework checks and the bestbuds `pr` target all pass. This is the 11 Oct suite: 55/55, plus the composite `buildAll`.
+- A checkout of only bestbuds and reaktor configures (`./gradlew help`) without Manna.
+- On m1-worker, with `local.properties` setting devTools to true and fixture files present (the worker mirror holds both), the iOS release build does one of two things. Either it produces a binary with zero fixture markers, or it stops before linking and names the source. Report counts only.
+- No commit in one repo depends on an uncommitted change in another.
+
+Budget: one settings option and one requirement check. No other API.
+
+Do not: refactor while fixing; bump versions; print fixture or secret values.
+
+### WP1 — Stable toolchain part, fast plugin part, one version authority
+
+Goal: nothing parses Kotlin source, dependeasy edits stop re-executing Android, Kotlin and Compose tasks, and Java 21 bytecode is enforced.
+
+Steps:
+1. Split dependeasy into `model`, `toolchain` and `gradle` as in §3.6, with `buildSrc` compiling the plugin-versions file for dependeasy's own scripts. Build with embedded Kotlin. Delete `kotlinConstants()` and the settings regex.
+2. Move the settings plugin into `toolchain`, keeping only stable work there: repositories, plugin resolution and includes. AGP, KGP, Compose, KSP and the other bundled Gradle plugins become `implementation` dependencies of `toolchain` and `compileOnly` in `gradle`. Consumers apply third-party plugins without versions.
+3. Replace the six source readers and `read.sh` with generated contracts:
+   - `project.cmake` reads a generated toolchain CMake file;
+   - `runtime.ts` and `read.sh` read toolchain values that the Dagger generator writes into its output.
+4. Replace the internal APIs:
+   - `BaseAppModuleExtension` with AGP's public `ApplicationExtension`;
+   - `ServiceRegistry` in `KotlinPnpmBridge` with injected public services.
+5. Add `verifyBytecode` to dependeasy `check`.
+6. Publish dependeasy with its version taken from one constant. This fixes the version regression found in the review.
+
+Acceptance:
+- No file outside Kotlin reads a `.kt` file (seven readers today, counting `read.sh`; zero after).
+- **Re-execution probe**, in bestbuds:
+  1. Run `:appAndroid:assembleDebug` and `:app:linkDebugFrameworkIosArm64` until warm.
+  2. Change the body of a private function in `gradle`.
+  3. Run both tasks again.
+
+  No AGP, KGP or Compose task type executes. Record the executed-task counts by task type before and after.
+- A TestKit fixture with a Java 25 class fails `verifyBytecode`.
+- The configuration cache stays green for reaktor, bestbuds and manna.
+
+Budget: three modules, the moved settings plugin, two small contracts and one check task. The only consumer change is how the settings plugin is applied.
+
+Do not: add version catalogs, TOML or properties files for versions; bump any version; keep a regex fallback.
+
+### WP2 — Typed model; one node clickable end to end
+
+Goal: every declared node carries its declaration site, kernel, invocation, effect and host, and Hangar, the CLI and MCP can open a node down to its kernel class.
+
+Steps:
+1. In `model`, add:
+   - the types of §3.4 and the receipt types;
+   - `BuildModelReader`, which checks the schema, applies the single size limit and judges staleness from declaration digests.
+2. In `gradle`:
+   - capture a `SourceSite` at every DSL entry point and record a `KernelRef`;
+   - have `exportBuildModel` write `model.json` from typed data;
+   - delete the hand-built JSON in `BuildGraphTask`, `BuildLayoutTask`, `PackageScriptsTask`, `PipelineReport` and `BuildPlan`.
+3. Map today's DSL onto the model without changing it. Producers still given as task-path strings get an omission ("foreign task path") until WP3 removes them.
+4. Move the readers onto the model:
+   - **reaktor-tooling:** replace `GradleBuildTargets` with a lossless mapping from the model to `ToolingCatalog`, taking provenance from `declaredAt`.
+   - **Hangar:** `BuildGraphSource` reads through `BuildModelReader` and stops parsing JSON keys.
+   - **remote-dev:** reads `remote/hosts.json`. After confirming nothing calls `remote_build.py graph-run`, delete it; it is a second scheduler.
+5. The consumer slice:
+   - The operational catalog keeps the `NodeId` as a typed field.
+   - Build-node operational ids use an injective encoding, and a collision fails loudly instead of being dropped by `distinctBy`.
+   - The domain follows the declared effect: Verify → Testing, Build → Develop, Deploy → Deploy. Verification nodes then appear in `check.catalog`.
+   - Add `reaktor build show <node>`, the kernel read tool `build_node`, and Hangar's node panel with "Open declaration" and "Open kernel".
+6. Update the documents:
+   - in `cli-kernel-hld.md`, move the Dependeasy integration contract to the new model and fix the stale link to the deleted `reaktor-cli` sources (line 162 on 13 Oct);
+   - update the status line in `engineering-tools-plan.md`.
+
+Acceptance:
+- For every declared node, `reaktor build show` prints the file and line of its DSL call, and the kernel class resolves in the code index.
+- Hangar opens both in the IDE, and MCP `build_node` returns the same JSON.
+- `check.catalog` lists `appChecks`, `jsChecks` and `portableChecks`, and `check.start` runs one of them locally with a receipt.
+- Only one reader remains: `GradleBuildTargets` and `BuildGraphSource`'s key parsing are gone.
+- Two exports in a row are byte-identical, and the export works with the configuration cache.
+
+Budget: about 15 public model types, one export task replacing three, one CLI command, one read tool, one Hangar panel.
+
+Do not: embed the Gradle task closure; keep schema 1 alive once the readers have moved; add a second way to acquire the model.
+
+### WP3 — Handles replace strings in every build script
+
+Goal: no task paths, module names, property names or closed-set strings where things are used.
+
+Steps:
+1. Turn on type-safe project accessors in reaktor, bestbuds and manna.
+2. Add the `Reaktor` catalog (modules, the build handle and the `Workspace` roles) and its consistency check against reaktor's includes.
+3. Make module plugins publish their outputs as variants (§3.2), with one mapping per output kind, through public APIs.
+4. Build workspace DSL v2:
+   - `verify`, `artifacts`, `target`, `release`, `browserCheck` and `javascript` take handles;
+   - `includes`, `consumes` and `after` take node or output handles;
+   - `host` and `effect` are enums;
+   - the artifact family and the macOS requirement are derived from output kinds.
+5. Cross-build references go through variant resolution of the other build's root project. If that fails for root projects, use the public `includedBuild(handle.name).task(…)` with a path derived from the handle, and record it in the boundary register.
+6. Add typed build options. A `BuildOption<T>` has a name, type, default and resolution order, and records the source of its value. Nodes can declare `require(option, value)`.
+7. Migrate the reaktor, bestbuds and manna scripts in paired commits. Then delete the string API:
+   - `tasks(vararg String)`, `included(String, vararg String)`, `modules(vararg String)`, `recipe` and `gradle(vararg paths)`;
+   - `apiReaktor(vararg String)` and `kotlinLibraries(vararg String, build)`;
+   - the string fields of `BuildTarget`.
+
+Acceptance:
+- The §1 counts reach their targets:
+  - path literals outside settings includes: 196 → 0;
+  - name lookups: 39 in scripts and 47 in dependeasy → 0. The only exceptions are Gradle lifecycle constants, listed in the register;
+  - module-name strings in product scripts: 15 → 0;
+  - each of the 25 property names is declared once.
+- Before migrating, save the `--dry-run` task list of every node. After migrating, the lists match, or each difference is explained.
+- Renaming a project or a catalog entry fails at every use, with file and line.
+- The configuration cache stays green, and no new cross-project task access is added.
+
+Budget: nine new handle kinds (module, build, output, node, role, tool, option, environment, lane; projects come from Gradle). DSL v2 replaces v1 rather than sitting beside it.
+
+Do not: keep string overloads "for convenience"; generate Kotlin source for handles; use a version catalog for the module list.
+
+### WP4 — Typed kernels with honest inputs
+
+Goal: each kind of work is a Kotlin class with typed inputs and outputs, and Gradle knows every input, so nothing stays falsely up to date.
+
+Steps:
+1. Replace `CommandTask.backend` and the stage strings of `JavaScriptCommandKernel` with kernel task types:
+   - JS and web: `PnpmInstall`, `TypeScriptCheck`, `ViteBundle`, `KarakumBindings`, `WorkerTypes`, `WranglerDeploy`, `NodeGenerator`;
+   - native and sources: `CMakeBuild`, `GitSource`;
+   - tools and reporting: `InstallTool`, `ArtifactSize`.
+
+   Each exposes a typed spec for the model. `CommandTask` becomes the internal process runner.
+2. Fix the JS inputs:
+   - Kotlin JS libraries are consumed through the Kotlin/JS library output variant as file inputs. This fixes the stale deploys caused by `workspace:` references.
+   - pnpm install declares the lockfile and manifests as inputs and a stamp inside `node_modules` as its output, so it runs again after a clean.
+   - Kotlin export directories become task-owned outputs under `build/`. Delete the custom prune that removed unknown files.
+3. Karakum bindings:
+   - give the seven Reaktor `ts/` packages `bindings(…)` nodes;
+   - remove their pnpm `prebuild` and `postbuild` hooks;
+   - fix `reaktor-tactile/ts/karakum.config.json`, which says `libraryName: "reaktor-db"`.
+4. Tool kernels take a tool handle installed through `InstallTool`. Nothing uses an ambient tool.
+5. `ArtifactSize` reads typed outputs and becomes the one size reporter. `size-report.mjs` and `bundle-report.mjs` go, and `bundle-budget.mjs` becomes a declared check that reads the same data.
+6. `PulumiSdkTask` and `ExtractPrefabTask` delete only inside their own output directory, through `SafeFiles`.
+
+Acceptance:
+- Editing a Kotlin file in `:app`'s `jsMain` makes the `bestbudsWeb` bundle and its deploy node out of date. Today they stay up to date.
+- Deleting `node_modules` makes pnpm install run.
+- No `backend` strings remain, and each kernel's spec shows in `reaktor build show`.
+- Every kernel has a TestKit fixture that covers its outputs and its up-to-date behaviour. That includes a delete-boundary test for the two fixed tasks.
+
+Budget: about 15 kernel types.
+
+Do not: reimplement the TypeScript compiler, Vite, Wrangler or Karakum in Kotlin; add fallbacks for missing tools.
+
+### WP5 — Plans and receipts from Gradle itself
+
+Goal: Gradle's exact task tree for any node, on demand, and a typed receipt for every run, using public APIs only.
+
+Steps:
+1. Delete `GradleTaskGraph` and the `gradleTasks` closure.
+2. Add a planner in reaktor-tooling, as the `TaskPlanningPort` for build nodes. It uses the first-party Gradle Tooling API:
+   - it runs the node's invocation with `--dry-run`;
+   - it collects task events and `TaskOperationDescriptor.getDependencies()`;
+   - it returns a typed plan and reports how long Gradle configuration took;
+   - it caches the plan by model digest.
+3. Add receipts. A build service registered through `BuildEventsListenerRegistry.onTaskCompletion` writes `receipts/<run>.json`. Each receipt holds:
+   - the requested nodes;
+   - each task's outcome: executed, up to date, from cache, skipped or failed;
+   - durations and failure messages.
+
+   This works whoever starts Gradle: the CLI, Hangar, an Xcode phase, fastlane, Dagger or remote-dev.
+4. Implement reaktor-tooling's `RunLedger` over the receipts, and link operational runs to them.
+5. Show progress without polling. For runs Hangar starts, use Tooling API progress events. For runs started elsewhere, react when the receipt file appears.
+
+Acceptance:
+- For these nodes, the planner's task set equals what `./gradlew <node> --dry-run` prints:
+  - bestbuds `appChecks`, `iosFrameworks` and `workerBundle`;
+  - reaktor `mobileInteropChecks`;
+  - manna `buildAll`.
+- A run from an Xcode phase and a run from the CLI both produce receipts that Hangar shows.
+- The configuration cache stays green with the listener registered.
+
+Budget: one planner, one listener, one receipt type and the `RunLedger` implementation.
+
+Do not: compute task closures at configuration time; parse console output.
+
+### WP6 — Web and Cloudflare adapters
+
+Goal: one worker list, one environment choice, final Wrangler configs written by Kotlin, and JS tools that read a contract instead of hard-coded paths.
+
+Steps:
+1. Write `web/<component>.json`. Vite configs and tsconfigs read it instead of hard-coding the `ts/export`, `build/js` and `*-kt` paths. That covers manna `appWeb` and bestbuds `companyOS` Vite configs, the tsconfig chains, and `generate-js.sh`.
+2. Move `worker-bundle-manifest.mjs` into dependeasy's JS kernel as a generic import-closure generator. Kotlin passes its parameters.
+3. Make the fleet complete:
+   - grow `WorkerFleet` to all 20 deployables, adding accountPurge, archiver, dataProbe, appWeb, companyOS and reaktorWeb;
+   - add `Environment` handles;
+   - Kotlin writes the final per-environment Wrangler config, merging once with one documented precedence;
+   - the deploy kernel deploys that file.
+4. Generate package scripts:
+   - generate the `deploy*` and `logs*` scripts from the fleet;
+   - extend script generation to externals and JS components;
+   - a Kotlin task writes the package.json scripts directly, so remote-dev's merge goes.
+5. Delete:
+   - the jq `predeploy` merges, the shell `TARGET_ENV` selectors and the 17 per-target deploy scripts;
+   - `bestbuds/deploy.sh`, which watches paths that do not exist and then commits and pushes;
+   - the worker list in `run-worker-karate.mjs`;
+   - the build and deploy recipes in `tools/gemini-devops/recipes.json`;
+   - the duplicate target catalog in `package.json#reaktor`, keeping `name`, `stores` and `cloud`.
+6. Fix the naming trap: Gradle `deployAppWeb` deploys appBrowser, while the package script `deployWeb` deploys appWeb.
+
+Acceptance:
+- `reaktor build list --kind deploy` shows 20 deployables with declaration sites, and no other worker list exists.
+- Deploying one worker to dev and to prod uses the Kotlin-written config. Any difference from today's merged config is explained.
+- No Vite config or tsconfig contains a Kotlin output path.
+- Hand-written package scripts drop from 421 to about 140.
+
+Budget: two contract types and the fleet extension. No new JS files except moved ones.
+
+Do not: replace Vite or Wrangler; touch runtime JS (perf tools, docs generators, Playwright configs) beyond removing their build steps.
+
+### WP7 — Apple: generated Xcode settings and one release plan
+
+Goal: Xcode and fastlane read Kotlin facts. No ids, paths or versions are copied by hand, and builds stop rewriting tracked pbxproj, plist and profile files.
+
+Steps:
+1. Hold one value each in Kotlin for:
+   - the iOS deployment target, applied to Kotlin/Native, CMake and Xcode;
+   - the Swift language version;
+   - bundle ids, taken from the app declaration;
+   - the team id;
+   - BGTask ids;
+   - the version name and build number, shared with Android.
+2. Generate the Xcode settings:
+   - `generateXcodeHost` writes per-target xcconfigs: framework search paths, link flags from the framework declaration, deployment target, Swift version, SDK, sandboxing, bundle ids, team, version, and `REAKTOR_ROOT`/`REAKTOR_GRADLEW`/`REAKTOR_KOTLIN_TASK`;
+   - `verifyXcodeHost` fails on drift;
+   - both targets depend on one aggregate framework phase, whose single line runs from the bestbuds composite root, so the app and notification extension share one Gradle invocation.
+3. Info.plists use `$(MARKETING_VERSION)` and `$(CURRENT_PROJECT_VERSION)`. The Release configuration uses `$(BESTBUDS_CODE_SIGN_STYLE)` like Debug; that one-time pbxproj edit removes the need for fastlane's regex patch.
+4. The adapter install list comes from the framework export list, and `main.swift` shrinks to one or two lines.
+5. `verifyXcodeHost` also compares the `Package.resolved` pins with the versions declared in Kotlin. That catches Manna's stale GoogleSignIn pin. Make `Versions.FirebaseDarwin` the real pin, or delete it.
+6. Write the release plan contract, `release/<product>.json`:
+   - contents: versions, artifact paths from the AGP and KGP APIs, ids, and the xcodebuild and Gradle command tokens;
+   - the lanes read it;
+   - delete the Ruby build decisions: version handling, paths, command assembly, devTools injection, plist stamping and the pbxproj patch;
+   - also delete the maestro lanes, the `distribute` aliases and `ExportOptions.plist`, and stop tracking `report.xml` (`git rm --cached`).
+7. Port the dSYM and privacy checks to a Kotlin `darwin` archive check, which the lane runs after export. Port their 224 test lines to Kotlin too.
+8. Kotlin writes the signing xcconfig, replacing the xcconfig half of `prepare-ios-e2e.py`.
+9. remote-dev takes its list of Xcode variables from `remote/hosts.json`.
+
+Acceptance:
+- There is one xcodebuild command builder (down from three), and about 840 Ruby lines remain (from 1,896).
+- `git status` is clean after a release lane.
+- The deployment target is the same in Kotlin/Native, CMake and Xcode.
+- A TestFlight internal upload works end to end from the plan, run with the owner present for signing.
+- The app and extension frameworks are built in one Gradle invocation on one host.
+
+Budget: the Xcode host task and its check, the release contract, the archive check and the signing xcconfig task.
+
+Do not: remove fastlane's App Store Connect, profile or keychain work; adopt Kotlin's experimental SwiftPM import (decision 5); start simulators; untrack signing material in `config/`.
+
+### WP8 — Native and CMake adapters
+
+Goal: CMake files describe targets only. Flags, paths and dependencies arrive in a generated contract.
+
+Steps:
+1. Add a `Native` catalog covering Hermes, fbjni, FlatBuffers and Foundation, with source, revision, checksum and recipe for each. Source tasks are referenced by handle. Delete `tasks.named("prepare${Name}Source")` and the `.github_modules/$name` paths.
+2. Add a `NativeLibrary` spec on modules, with dependencies by handle, platforms and ABIs.
+   - `CMakeBuild` writes `cmake/<library>-<platform>.cmake`.
+   - AGP's external native build gets its arguments through the public variant API, so the contract is an input of the configure step.
+3. Shrink `api.cmake` and `dependencies.cmake`:
+   - remove `fi_auto_dependencies`, the `REAKTOR_NATIVE_DEPENDENCY_*` probing and the switch flags;
+   - `apple.cmake` takes its deployment target and architecture from the contract.
+
+Acceptance:
+- reaktor `androidNativeLibraries` and `iosNativeLibraries` build, with outputs that are identical or explained.
+- No CMake file contains a `.github_modules` path or a version number.
+- Changing the contract reconfigures CMake, so the stale `iphone*` CMakeCache failure cannot recur.
+
+Budget: the native catalog and one contract type. No new CMake functions.
+
+Do not: replace CMake or change C++ sources.
+
+### WP9 — Device runners, test tools, Dagger and CI
+
+Goal: one device-flow runner, pinned test tools, and Dagger as a generic executor of a Kotlin pipeline.
+
+Steps:
+1. Add a `DeviceFlow` kernel in dependeasy `verification`, with reaktor-tooling's `MaestroRunner` as the engine.
+   - Inputs: an app output handle, the app id and the flows directory.
+   - Device rule: exactly one physical device or an explicit serial; never emulators or simulators.
+   - Runner: maestro-runner, pinned through `InstallTool`. Host: Local.
+   - It replaces `reaktor/tools/maestro`, the fastlane maestro lanes, manna's `run-signed-in.sh` and the planning half of `mobile-e2e.mjs`. Keep the product hooks: fixture refresh and the age-gate fixture.
+   - Uninstalling an app on a signature mismatch wipes its data on personal phones, so it needs an explicit flag.
+2. Add `KarateSuite` and `K6Suite` kernels with pinned, checksummed tools.
+   - Suites are declared in Kotlin, and worker suites come from fleet membership.
+   - Generate the suite × environment aliases instead of keeping the 111 hand-written scripts.
+3. Dagger:
+   - write `dagger/pipeline.json`;
+   - one shared, hand-written TS module in dependeasy exposes `run(target)` and `list()`;
+   - the products stop copying `runtime.ts` and the generated `index.ts`;
+   - `.dagger/package.json` and `tsconfig.json` are generated from `Tools`, or removed;
+   - CI calls `dagger call run --target pr`.
+4. CI: keep `ci.yml`. Delete `mobile-web-performance-once.yml` and `reaktor/.github/publish.yml`, which is entirely commented out and never loaded.
+5. remote-dev reads `remote/hosts.json`. Delete its hard-coded local task list and its artifact-family name heuristics.
+6. Delete the `scripts/hangar` shell harness (`hangarFlows` already shards), the `tools/typecheck.mjs` symlink hops, and the flamechart scripts that boot simulators.
+
+Acceptance:
+- A BestBuds flow runs on the Samsung and on the iPhone from `reaktor build run bestbuds:deviceFlows`, and leaves a receipt.
+- Karate and k6 are pinned with checksums.
+- `dagger call run --target pr` passes in CI with no generated TS in the product repos.
+- remote-dev's routing contains no task names.
+
+Budget: three kernels and two contracts.
+
+Do not: start emulators or simulators; add ordering logic to Dagger.
+
+### WP10 — Full drill-down in Hangar, the CLI and MCP
+
+Goal: every level of §3.3 is one click or one command away, through the existing operation catalog.
+
+Steps:
+1. Hangar's Build pane, built through Surface and drawn through workbench/blueprint:
+   - its nodes come from the model;
+   - selecting a node shows its declaration, kernel, consumed and produced nodes (as links), invocation, plan (on request, with its cost) and receipts;
+   - identifiers are shown in full, and environment values never (keys only).
+2. CLI: `reaktor build list | show | plan | run | receipts`. `run` goes through the existing plan and approval flow.
+3. MCP: add the kernel read tools `build_model`, `build_node`, `build_plan` and `build_receipt`, reached through `workspace` → `inspect.call`. Verification nodes appear in `check.catalog`; deploy nodes stay behind approval.
+4. `JvmProjectDiscovery` stops regex-parsing `settings.gradle.kts` and scanning script text for "fastlane", "maestro", "karate" and "k6". Module nodes come from the model.
+
+Acceptance:
+- **Owner walkthrough, with no search at any step.** In Hangar:
+  1. open `bestbuds:pr`;
+  2. go to `appChecks`;
+  3. then to the `:app` JVM tests;
+  4. then to the kernel class in the IDE;
+  5. then to Gradle's plan;
+  6. then to the last receipt.
+- The same walk works in the CLI and MCP, with identical ids.
+- No regex over build scripts remains in reaktor-tooling.
+
+Budget: four read tools, five CLI subcommands and one Hangar panel family.
+
+Do not: add an MCP server or module (the gateway is the existing operation catalog); poll for run state.
+
+## 6. Owner decisions
+
+Codex goes ahead with the default unless the owner answers otherwise.
+
+1. **Manna in the bestbuds composite.** Default: opt-in, and CI never includes it. Alternative: CI also checks out manna.
+2. **Google sign-in policy in Swift.** The uncommitted `GoogleSignInSdk.swift` has grown from 33 to 132 lines of OAuth policy. Default: move that policy into reaktor-auth Kotlin, following `DarwinAppleLogin.kt` (AuthenticationServices, Keychain and Ktor), so that Swift only forwards.
+3. **Wrangler configs.** Default: Kotlin writes the final config under `build/`, and the authored `wrangler.json` files keep only per-worker facts. Alternative: the authored files stay authoritative and Kotlin only verifies them.
+4. **Java 21 bytecode for dependeasy.** Default: keep 21 for IDE and Android Studio sync, enforced by `verifyBytecode`. If no consumer needs it, move to 25 and drop the split.
+5. **Kotlin's experimental SwiftPM import.** Default: not now. It would remove the three Firebase adapters, but it is experimental and reverses the decision recorded in [dependeasy/VALIDATION.md](../dependeasy/VALIDATION.md).
+6. **Version control for `~/dev/tools`.** Default: put it under git before editing remote-dev or `remote_build.py`.
+
+## 7. Spotted in passing
+
+These are outside the build layer, but the inventories turned them up:
+- `workspace` `provider.refresh` sends `{"id": …}` (`KernelEngineering.kt:150`), but `reaktor_provider_refresh` reads `provider` (`McpDoor.kt:251`), so it should always fail.
+- `telemetry_refresh` starts an operation, yet it is advertised as read-only.
+- **Confirmed 13 Oct:** with the authenticated agent owner mounted, unauthenticated loopback `workspace` → `inspect.call` reaches `agent_transcript` and the unredacted `agent_check_catalog`. The synthetic audit returned 1 transcript event and 1 check task, including their markers, without an Authorization header. Reproduction fixture: [audits/KernelInspectionAccessAuditTest.kt](audits/KernelInspectionAccessAuditTest.kt); temporarily install it in BestBuds' kernel test source set and run `./gradlew :kernel:test --tests '*KernelInspectionAccessAuditTest'`. The fixture is kept outside the normal test suite because it verifies the reported exposure, not the desired policy. No authorization-policy change was made in this build-layer pass.
+- The legacy CLI's `self uninstall` deletes all of `~/.reaktor`, including the agent owner's state.
+- `reaktor/tools/maestro` uninstalls the app on a signature mismatch, which wipes its data on personal phones.
+- Karate is downloaded without a checksum.
+- `report.xml` is in `.gitignore` but tracked, and every lane run dirties it.
+- Storage rechecked during WP0: 73.8 GB free on 14 Oct. Temporary data is 14.4 GB; the active aggregate grew `.remote-dev` to 22.3 GB, so the router refused the queued checks and cleanup must restore the 20 GB remote limit before another build.
+
+## 8. Appendix: current API → target
+
+| Today | Target |
+|---|---|
+| `verify(name, vararg paths)` | `verify(name) { tests(…) / includes(…) }` |
+| `artifacts(name, vararg paths)` | `artifacts(name) { appleFramework(…) / android(…) / jvm(…) }` |
+| `target(name) { tasks(…) }` | `target(name) { includes(node) / consumes(output) }` |
+| `external(name) { pnpm(…); effect = "verify"; runner = "browser" }` | a typed kernel node (`browserCheck`, `release`, `deviceFlow`, …) |
+| `BuildTarget.platform/effect/runner/artifactFamily` strings | enums, or derived from output kinds |
+| `BuildTarget.macos()` | derived from Apple outputs |
+| `BuildTarget.included(build, paths)` | `includes(buildHandle, Workspace.Role)` |
+| `BuildTarget.modules(lifecycles)` | `modules(Lifecycle.Build)` over Gradle's lifecycle constants |
+| `BuildTarget.recipe(…)`, `gradle(…)`, `tasks(…)` | deleted; use `includes` |
+| `BuildTarget.fastlane(platform, lane)` | `lane(IosLane.…)` with the release contract |
+| `BuildTarget.task(provider)` | kept (already typed) |
+| `JavaScriptComponent.kotlinLibraries(vararg String, build)` | `kotlin(projects.x)`, `kotlin(Reaktor.X)` |
+| `JavaScriptComponent.types/verify/build(target, vararg projects: String)` | the same verbs, taking handles |
+| `CommandTask.backend` | sealed kernel types |
+| `BuildPipeline.node(task, id = task.name)` | nodes created from handles, with ids from declared names |
+| `apiReaktor(vararg String)` | `api(Reaktor.X, …)` |
+| `framework(name = "app", exports: List<Any>)` | `framework(exports = listOf(Reaktor.Core, …))`; the name flows into the xcconfig |
+| `localProperty("…")`, `gradleProperties[…]`, `GRADLE_OPTS` | `BuildOption<T>` with `require(…)` |
+| `includedBuild(name)` | build handles |
+| `workers { include("textModerator") }` | kept as the declaration; every other worker list derives from it |
+| `buildGraph`, `reportBuildLayout`, `generatePackageScripts` JSON, `*BuildPlan` | `exportBuildModel` and the contracts |
+| `GradleTaskGraph` | deleted; the planner (WP5) replaces it |
+| the `kotlinConstants()` regex, `read.sh`, the `project.cmake` regex, the `runtime.ts` regex | `buildSrc` sharing and generated contracts |
+
+## 9. Reporting progress
+
+- After each package, update the status table at the top with the state, commit ids and date, and add one dated line under "Log".
+- Record the acceptance evidence: the commands run, the counts before and after, and the receipt paths.
+- Stage only your own hunks. If another agent's edits overlap yours, stop and report instead of merging blindly.
+
+## 10. Review of the first pass, and the next steps (14 Oct)
+
+Reviewed on 14 October 2026 against these trees, including their uncommitted changes:
+- reaktor `c647c108`;
+- bestbuds `f7a13960`;
+- manna `6b3d985`;
+- tools `a04abaf`.
+
+The numbers come from the authored build scripts, the three exported models and two read-only audits.
+
+### 10.1 Verdict
+
+The first pass delivered the mechanics, but not yet the design.
+
+**Done:**
+- Task-path strings are gone from build scripts: 196 → 0 outside settings includes.
+- Gradle and AGP internal APIs are gone.
+- There is one typed model, with declaration sites and kernel source links.
+- Contracts feed Xcode, fastlane, Dagger, CMake, the web apps and remote-dev.
+- The regex readers of the version files are gone.
+- There is one xcodebuild command builder.
+- Ruby is down from 1,896 to 1,320 lines.
+- The Dagger code is shared instead of copied.
+- A Gradle planner and run receipts exist.
+
+**Not yet:**
+- Build scripts still mix orchestration, component declarations and plumbing in one file.
+- Below the node level, the DSL is wide and mostly untyped.
+- Many dependeasy files mix layers.
+- Several decisions moved from strings in scripts to strings inside Kotlin, Python and JS instead of disappearing.
+- Nothing is pushed, nothing has run in CI, and the live owner walkthrough has not happened.
+
+### 10.2 What to keep
+
+- Handles for projects, Reaktor modules, outputs, roles, builds, lanes and options.
+- Outputs published as Gradle variants, with ordinary dependency substitution across builds and no task fallback.
+- The model module, `BuildModelReader`, declaration sites, kernel source links, the planner and receipts.
+- The three-tier packaging, and the WP1 probe showing zero foreign recompilation.
+- The generated xcconfigs with their drift check and the one-line Xcode phase.
+- The release plan read by fastlane, the CMake preload contract, the shared Dagger module with `pipeline.json`, and `hosts.json` for remote-dev.
+- `BOUNDARIES.md` as the register (its drift is listed below).
+- The evidence discipline: each of the 610 task-set differences that WP3 introduced, across 84 of 217 nodes, has a written explanation.
+
+### 10.3 What is wrong, at a high level
+
+1. **Three altitudes share one file.**
+   - The bestbuds root script is 244 lines. About 60 are orchestration, about 90 declare components, and the rest are plumbing:
+     - size-budget regexes;
+     - argument wiring with absolute paths;
+     - file scanning at configuration time;
+     - shell commands assembled from strings with `-P` flags inside them;
+     - four near-identical device-flow blocks.
+   - Module scripts carry whole pipelines:
+     - `reaktor-code` runs its own compiler through `JavaExec`, building arguments in `doFirst`;
+     - `compose-flow` writes a Markdown report in `doLast`;
+     - `reaktorDesktop` forwards ten system properties by name, lists test classes by name and writes a fake completion marker in `doLast`.
+2. **The DSL does not say what a node is.**
+   - `verify`, `artifacts`, `target`, `release`, `external` and `browserCheck` all configure the same `BuildTarget`. So a verification accepts `fastlane(...)` and `worker = "..."`, and `release` is literally `target`. The model then records most of them as `Target`.
+   - Below the node level, about half of the public DSL members take raw strings, command lists, `Map<String, String>` keyed by platform or environment, or absolute paths.
+3. **Plumbing moved instead of disappearing.**
+   - Dependeasy now hard-codes BestBuds facts: the `BESTBUDS` xcconfig prefix chosen by list position, a `MESSAGE`/`LOGIN_USER` environment allow-list, and the literal `"dev"`.
+   - remote-dev carries 179 lines of embedded Python that re-read seven contract shapes.
+   - Worker discovery still lives in five Kotlin consumers, two secrets scripts and `pnpm-workspace.yaml`.
+4. **The clickable path is not usable day to day.**
+   - The CLI refuses to show a node whenever any build script changed since the last export.
+   - 233 nodes have the generic `WorkspaceTargetTask` as their kernel, so "open kernel" lands on an aggregator.
+   - 548 of 832 nodes have no kernel spec, no node lists its tools, and 644 nodes list no inputs.
+
+### 10.4 Detail by domain
+
+**Build scripts** (67 authored scripts, 2,795 lines)
+
+| Plumbing in authored scripts | Count |
+|---|---|
+| `System.getProperty` / `System.getenv` | 14 |
+| Property or environment names as string literals | 27 |
+| `.absolutePath` / `.asFile` | 17 |
+| `doLast` / `doFirst` | 5 |
+| `tasks.register` / `tasks.named`, `withType` | 10 / 23 |
+| `mustRunAfter` / `dependsOn` | 16 |
+| Paths into another repository (`"../reaktor…"`) | 14 |
+| `packageAlias` with shell text | 16 |
+| Command strings (`./gradlew`, `node`, `python3`, `pnpm`) | 22 |
+| `-P` / `-D` flags inside strings | 7 |
+| File existence checks or listings at configuration | 5 |
+
+- The worst files are the bestbuds root (29 hits), `reaktorDesktop` (26), `reaktor-code` (11), `engine` (8) and `compose-flow` (6).
+- There are three ways to depend on a Reaktor module: `apiReaktor(Reaktor.X)`, `api(Reaktor.X.coordinate)`, and `api(projects.reaktorX)` inside reaktor.
+- There are two release-safety mechanisms: `require(option, false)`, and an inline `refuseDevToolsBundle` check in appBrowser.
+- The bestbuds settings script declares its own option enum instead of using `BuildOption`.
+- Manna repeats its bundle id and team as literals.
+- Source sets, configurations and tasks are still named as strings: `"jvmMain"`, `"kspCommonMainMetadata"`, `getByName("iosArm64")`, `name in setOf("jsNodeTest", …)`.
+
+**DSL and dependeasy internals**
+- **Parallel mechanisms:**
+  - one receiver for all node kinds;
+  - four command APIs (`DependeasyExtension.command`, `BuildTarget.command`, `JavaScriptComponent.command`, `nodeScript`);
+  - `dag{}`/`BuildPipeline`, which keeps its own `target`/`after`/`consume` vocabulary;
+  - four code paths that add nodes to the model, plus a string-keyed `taskFamilies` side channel;
+  - five option systems.
+
+  `AppleHost` also exposes eight `TaskProvider`s.
+- **Surface size:** 225 public members across 30 DSL classes, plus 89 top-level functions. About 47% of the core members take low-level parameters.
+- **Files that mix layers:**
+  - `ReleasePlanTask`: a planner inside a task.
+  - `XcodeHostTask`.
+  - `AppleHost`: 14 `tmp/fastlane/ios/...` literals.
+  - `DeviceFlow` and `DeviceFlowDeclaration`: six `dependeasy.*` property literals.
+  - `WorkerFleet`: reads wrangler JSON and picks dev or prod at configuration time.
+  - `JavaScriptComponent`.
+  - `KotlinCMake` and `KotlinCMakeTask`: host detection, `/opt/homebrew`, and an `"OpenSSL::Crypto"` switch.
+  - `GradleInvocationTask`: five jobs and an embedded Groovy init script.
+  - `ArtifactSizeReport`: an inline `node -e` program.
+  - `DeclarationSites`: a regex over dependeasy's own sources to find a class line.
+- **Hidden tier membership:** the stable `toolchain` module compiles five files picked out of the fast module's source folder. Nothing in those files shows which tier they belong to.
+- **Remaining name lookups:** 5 task-name sites, 27 container lookups by literal name (`"main"`, `"commonMain"`), and 4 public `compilation: String` parameters.
+- **Boundary register drift:**
+  - the line number for `KotlinTestReport` is wrong;
+  - the intro claims removals that already happened;
+  - two types are unregistered: `DefaultCInteropSettings`, which appears in a public signature, and the legacy `AppExtension`.
+- **Tests:** 111 tests, 75 of them TestKit. There is no TestKit coverage for `deviceFlows`, `appleHost`, `dagger`, `benchmarks`, `interop`, `kotlinBrowser`, `desktopNative`, `springImage` or `androidApplication`.
+
+**Model**
+- bestbuds has 832 nodes (756 kernel, 70 target, 6 external) and 274 omissions.
+- 224 nodes lack a declaration site; 42 of those have no omission explaining why.
+- 82 nodes have no kernel; their omission reason is "multiple producers".
+- `tools` is empty everywhere.
+- Six node fields are still strings: `runner`, `artifactFamily`, `worker`, `workerDirectory`, `bindings`, `environments`.
+- The stale schema-1 files `build-graph.json` (10 MB) and `build-layout.json` still sit in `build/dependeasy`, with no writer or reader.
+
+**Adapters**
+
+| Measure | 13 Oct | 14 Oct | Target |
+|---|---|---|---|
+| Hand-written package scripts | 421 | 222 | ~140 |
+| Generated package scripts | 16 | 308 (in the bestbuds root, 244 names for 150 tasks) | one per node |
+| Ruby lines | 1,896 | 1,320 | ~840 |
+| Worker lists | 7 | the fleet, plus 6 hand lists and 5 Kotlin consumers | the fleet only |
+| Maestro engines | 4 | 2, plus helper scripts (remote-dev's points at a deleted script) | 1 |
+| Non-Kotlin readers of Kotlin source | 6 | 3 (`worker-connection-read.py`, `migrate-analytics-postgres-to-clickhouse.mjs`, a Playwright spec) | 0 |
+
+- The generated xcconfigs embed `CURRENT_PROJECT_VERSION = 25`, so every build bump rewrites tracked files.
+- Manna's Xcode phase uses the `BESTBUDS_` variable.
+- JS still decides contract paths, build targets and skiko/sqlite file names, and re-implements pnpm workspace membership.
+- `build/dependeasy/kotlin/library` is hard-coded in 18 `link:` entries and 4 imports.
+- `pnpm-workspace.yaml` still globs `build/js`.
+- JS dependency versions have no authority: wrangler is `4.149.0` in one manifest and `^4.95.0` in another; react is 18 in one and 19 in others.
+- `remote-dev` hard-codes the product names, output roots, and the `-kt` and `ts/export` heuristics.
+
+**Consumers**
+- `GradleBuildTargets` is gone, and every reader uses `BuildModelReader`.
+- Still to fix:
+  - reaktor-tooling runs 10 regexes over script text;
+  - `BestBudsOperationalCatalog` classifies scripts by their `fastlane`, `maestro`, `karate` and `k6` prefixes;
+  - `WorkspaceRepositories` regex-reads `settings.gradle.kts`;
+  - `plan` and `run` exist both top-level and under `build`.
+
+**Qualification debt**
+- Nothing is pushed: reaktor is 16 commits ahead, bestbuds 15, manna 7. CI has never run.
+- The local Dagger gate fails under memory pressure (OOM).
+- The live owner walkthrough and IDE opening are pending, and the installed `~/.reaktor` CLI predates the `build` command.
+- Hangar aggregate coverage is incomplete (4 failures), and one kernel database-query test fails.
+- `maestro:push` appears to call `mobile-e2e.mjs` with its old arguments, and three package scripts point at deleted lanes.
+- WP3 changed the task sets of 84 of 217 nodes: 396 tasks added and 214 removed, each explained. Confirm the additions are wanted (for example iOS simulator compile/link and completion manifests) and measure `buildAll`'s time.
+
+### 10.5 The design answer: three altitudes, one home each
+
+| Altitude | It says | Home | It may use |
+|---|---|---|---|
+| Orchestration | what the product verifies, ships and deploys, in which order, on which host | the root `build.gradle.kts`, inside `workspace {}` only | node handles, output handles, build handles, roles, environments, lanes, `require(option, value)` |
+| Components | what one component is and what it consumes | the component's own Gradle project | typed component specs: library, Android app, Apple app, web app, worker fleet, device suites, load suites |
+| Kernels and conventions | how the work is done | dependeasy for generic work; the product's `buildSrc` for product data and small conventions | the Gradle API, tasks, providers, files, processes |
+
+Rules:
+1. **Scripts do no plumbing.** An orchestration or component script never:
+   - registers a task;
+   - reads a system property, environment variable or file;
+   - assembles a command;
+   - names a task, source set or configuration.
+
+   Each such need is a missing kernel or convention; add it there.
+2. **Every component is a Gradle project.** Web apps, the Apple host, the worker fleet, and the device and load suites become projects with their own build files. Each then gets a type-safe accessor, its own clickable script and published outputs, and the root refers to it by handle.
+3. **Product build logic holds product data, not mechanisms.** That means the Apple identity, device suites, web budgets, load suites and Hangar test settings. Dependeasy holds no product names.
+4. **Each altitude is a different plugin.** The root applies `dev.shibasis.dependeasy.workspace`, which offers only `workspace {}`. Component DSLs come only from component plugins. The boundary is enforced by the API, not by a review checklist.
+
+The shape of the bestbuds root afterwards (names are illustrative):
+
+```kotlin
+plugins { id("dev.shibasis.dependeasy.workspace") }
+
+workspace {
+    includes(Reaktor.build)
+    optional(BestBudsBuilds.Manna)
+
+    val appChecks = verify("appChecks") { tests(Suite.Jvm, projects.app, projects.design, projects.engine) }
+    val jsChecks = verify("jsChecks") { tests(Suite.JavaScript, projects.app) }
+    val pr = verify("pr", role = Workspace.Verify) {
+        includes(Reaktor.build, Workspace.Verify)
+        includes(appChecks, jsChecks, projects.pipeline)
+    }
+
+    artifacts("buildAll", role = Workspace.Build) {
+        includes(projects.companyOs, projects.appWeb, projects.reaktorWeb, projects.appAndroid, projects.appDarwin, projects.reaktorDesktop)
+        includes(Reaktor.build, Workspace.Build)
+    }
+    release("testflightInternal") { after(pr); ships(projects.appDarwin, Build.Release, IosLane.TestflightInternal) }
+    deploy("workers") { after(pr); fleet(projects.workers, BestBudsEnvironments.Prod) }
+    devices("deviceFlows") { suites(projects.deviceTests) }
+}
+```
+
+A component, for example `targets/appWeb/build.gradle.kts`:
+
+```kotlin
+plugins { id("dev.shibasis.dependeasy.web-app") }
+
+webApp {
+    kotlin(projects.app, Reaktor.Graph)
+    sources(Reaktor.Performance.WebVitals)
+    budgets(BestBudsWeb.Budgets)
+}
+```
+
+### 10.6 Next work packages
+
+Do WP11 first: qualify and ship what exists. WP12 and WP13 are the altitude split, which is the owner's main complaint. WP14–WP18 follow.
+
+#### WP11 — Qualify and ship the first pass
+
+Goal: the existing work is pushed, green in CI and walked by the owner.
+
+Steps:
+1. Fix:
+   - the `maestro:push` arguments;
+   - the three package scripts that name deleted lanes;
+   - the failing kernel database-query test;
+   - the four failing Hangar flows.
+
+   Finish the in-flight IntelliJ sync change (`KotlinCMake.kt`) as its own commit, or park it.
+2. `reaktor build list|show|plan` display a stale model with a stale banner that lists the changed declaration files. Only `run` and evidence reuse refuse a stale model, as `cli-kernel-hld.md` requires.
+3. The model export deletes the orphan schema-1 files.
+4. Move `CURRENT_PROJECT_VERSION` and `MARKETING_VERSION` out of the committed xcconfigs into a per-run generated xcconfig.
+5. Bring the Dagger PR gate under its memory limit, with the memory policy declared in `pipeline.json` and measured. Push the three branches as §10.7 decision 1 describes, open the PRs and run CI.
+6. Install the CLI to `~/.reaktor`. Then do the WP10 owner walkthrough: Hangar → node → kernel in the IDE → plan → receipt.
+7. Measure `buildAll` before and after WP3 (time and task counts). Remove the extra work unless the owner wants it.
+
+Acceptance:
+- CI is green on the pushed branches.
+- The owner walkthrough is done with the installed CLI and Hangar.
+- `reaktor build show` works on a dirty tree.
+
+Budget: no new API.
+
+Do not: mix WP12 work into these commits.
+
+#### WP12 — One typed DSL per node kind and per component kind
+
+API shape: implement `dependeasy-api.md` (§3, §4.4 and migration step 1). It wins where it differs from the steps below, for example `val x by verify {}` naming and the `Run` modifier chain. The 15 Oct story target in `kernel-handoff.md` §3 applies now: `product`, `verify(parts)`, `artifacts(parts)` and `delivery` compose component-owned facts. Land K0 after WP11 and before this package (kernel handoff D2).
+
+Goal: what you can write depends on what you are declaring, with no string escape hatches.
+
+Steps:
+1. Give each node kind its own receiver:
+   - `VerifySpec`: tests, includes, after, host;
+   - `ArtifactsSpec`: outputs, host;
+   - `ReleaseSpec`: the output it ships, its lane, its requirements;
+   - `DeploySpec`: the fleet and environment;
+   - `ExternalSpec`: only where a tool truly has no kernel yet. List each one in the register with a removal condition.
+
+   Delete `release = target` and `browserCheck = external`. The model's `NodeKind` gains `Verification`, `ArtifactSet`, `Release`, `Deploy` and `External`.
+2. Replace the string fields on nodes with types:
+   - a `Runner` enum;
+   - the family taken from `OutputKind`;
+   - a `WorkerRef` from the fleet;
+   - a list of `Environment`.
+
+   Remove from the public surface: `bindings: MutableList<String>`, the `worker` and `workerDirectory` strings, `pnpm(String)` and `command(vararg String)`.
+3. Keep one way to add a node:
+   - fold `dag{}`/`BuildPipeline` into the workspace vocabulary;
+   - delete the `taskFamilies` side channel;
+   - keep one internal command kernel.
+4. Make parameters typed task options.
+   - Device platform, flow and artifact policy become Gradle `@Option`s on the device kernel (`--platform android`) instead of `-Pdependeasy.*` properties.
+   - Package aliases are generated from a node plus typed options, one alias per node and option set.
+   - Delete `packageAlias(File, String, String)`.
+5. Reach containers through typed accessors (`sourceSets.main`, `kotlin.sourceSets.commonMain`, compilation handles). No `"main"`, `"commonMain"` or `"test"` strings in public signatures.
+6. `AppleHost` stops exposing `TaskProvider`s; consumers use its outputs.
+7. Add TestKit coverage for every public DSL entry: `deviceFlows`, `appleHost`, `dagger`, `benchmarks`, `interop`, `kotlinBrowser`, `desktopNative`, `springImage`, `androidApplication` and `workers`.
+
+Acceptance:
+- The public API dump (`apiDump` or the binary-compatibility validator) shows no public member that takes a command list, shell text, a `Map<String, String>` keyed by platform or environment, or an absolute path.
+- `verify { fastlane(...) }` no longer compiles.
+- Model nodes carry their real kind.
+- The 16 `packageAlias` calls and 7 in-string flags in scripts are gone.
+
+Budget: five node receivers; the component specs come in WP13. The net public surface shrinks; report the before and after counts from the API dump.
+
+Do not: keep the old receivers as deprecated aliases.
+
+#### WP13 — Three altitudes: components become projects, the root becomes orchestration
+
+API shape: implement `dependeasy-api.md` (§3, §4.1–§4.5, migration steps 2 and 4). It covers the component plugins and scopes, parameters instead of setters, `@Entry`, and test tags. Follow `kernel-handoff.md` §3 for root altitude and component ownership. Keep generated package scripts until K1 supplies each typed CLI replacement; record that mapping before deletion.
+
+Goal: §10.5 holds in reaktor, bestbuds and manna.
+
+Steps:
+1. Add component plugins: `web-app`, `apple-app`, `worker-fleet`, `device-tests` and `load-tests`, beside the existing library and application plugins. Each publishes its outputs as variants.
+2. Create the component projects:
+   - bestbuds: `targets/companyOS`, `targets/appWeb`, `targets/reaktorWeb` (with its docs), `targets/appDarwin`, the worker fleet, device tests, load tests and the Dagger pipeline;
+   - manna: `targets/appWeb`, `targets/api`, `targets/appDarwin` and device tests.
+3. Root scripts apply only `dev.shibasis.dependeasy.workspace`.
+   - Move every component declaration out of them.
+   - Move product data into `buildSrc`: device suites as an enum carrying flows, environment and hook; web budgets; load suites; the Apple identity of both products; Hangar test settings.
+4. Remove the copy-paste:
+   - the four bestbuds device-flow blocks become one suite table;
+   - the karate and k6 loops become a suite table;
+   - nothing derives node names by string surgery.
+5. Give script-hosted pipelines a kernel:
+   - the Kotlin analysis distribution in `reaktor-code`;
+   - the compose-flow parity report, or delete it;
+   - the desktop window-test split and the Hangar shard runner, with no `doLast` marker;
+   - reaktor-web's probe framework and alias tasks.
+6. Keep one idiom per concept:
+   - `api(Reaktor.X)` everywhere; drop `apiReaktor` and `.coordinate`;
+   - `require(option, value)` for every release-safety rule; delete appBrowser's inline check;
+   - `BuildOption` in settings too.
+
+Acceptance:
+- Each root script contains only `workspace {}`. This is structural: the workspace plugin offers nothing else.
+- In authored scripts, these counts reach zero; report the §10.4 table before and after:
+  - `System.getProperty` and `System.getenv`;
+  - property names outside `BuildOption` declarations;
+  - `.absolutePath`;
+  - `doLast` and `doFirst`;
+  - `tasks.register`;
+  - configuration-time file checks;
+  - command strings;
+  - `-P` and `-D` flags in strings.
+- Every existing node's `--dry-run` task list is unchanged, or each difference is explained (the WP3 method).
+- The owner reads the bestbuds root script and recognises the product's release shape without opening another file.
+
+Budget: five component plugins. Add projects only where a component exists. No new handle kinds.
+
+Do not: move plumbing into `buildSrc` as ad-hoc tasks. Product build logic holds data and small conventions that call dependeasy.
+
+#### WP14 — Dependeasy holds no product facts
+
+Goal: dependeasy contains no BestBuds or Manna names, defaults or allow-lists.
+
+Steps:
+1. The xcconfig variable prefix becomes a parameter of the Apple app declaration, so there is no `index == 0` and manna gets `MANNA_`. Rename the variable in manna's Xcode phase.
+2. Each device suite declares its own environment allow-list.
+3. The fleet's environments replace the literal `"dev"` in `WorkerFleetTask`.
+4. The native catalog entry's declared imports replace the `"OpenSSL::Crypto"` switch.
+5. Host tool paths such as `/opt/homebrew` come from the toolchain contract.
+
+Acceptance: a TestKit fixture product with its own names produces Apple host, fleet, release and device contracts whose output contains no BestBuds or Manna strings.
+
+Budget: parameters on existing declarations only.
+
+#### WP15 — One option system, no ambient reads
+
+Goal: every ambient value enters through `BuildOption` and shows up in the model.
+
+Steps:
+1. `BuildOption`, in its property, system-property and environment forms, becomes the only way to read ambient values: in settings, scripts and dependeasy.
+2. A test-environment kernel replaces the per-module `systemProperty`, `System.getenv` and `user.home` code in engine, kernel and reaktorDesktop. For example: `testEnvironment { isolatedHome(); forward(HangarOptions.Flows); liveChecks(KernelLiveChecks.entries) }`.
+3. Host detection becomes one service; today 11 dependeasy files read `os.name` or `os.arch`.
+
+Acceptance:
+- In all three repos, Gradle's configuration-cache report for `help` and `buildAll` lists no system property, environment variable or file read that originates in an authored script.
+- Every such read comes from `BuildOption` resolution and appears in the model's declaration inputs.
+
+Budget: one test-environment kernel and one host service.
+
+#### WP16 — Split mixed dependeasy files; complete the model
+
+API shape: implement `dependeasy-api.md` (§5–§7, migration steps 3 and 5). It covers the five layers per capability, Gradle-free kernels, typed tools, the tree fields in the model, and `reaktor build tree|explain|kernels`.
+
+Goal: each dependeasy file belongs to one layer, and every node reaches a real kernel.
+
+Steps:
+1. Physically move the five stable files into `toolchain/src`, and have `buildSrc` share them from there. No cherry-picking out of another module's source folder.
+2. Split the mixed files:
+   - `ReleasePlanTask` and `XcodeHostTask` separate into plan types in the model plus rendering kernels.
+   - `GradleInvocationTask` splits into request validation, a plan cache and the Tooling API runner. A compiled listener replaces its embedded Groovy init script.
+   - `WorkerFleet` stops reading JSON at configuration time.
+   - `ArtifactSizeReport` measures in Kotlin, using a maintained library for Brotli, instead of an inline `node -e` program.
+   - `DeclarationSites` stops regex-reading sources. Use the class name plus the code index, or a build-time index generated from compiled classes.
+3. Give each node kind its own kernel. Verifications, artifact sets and releases get kernel classes with specs, replacing the generic `WorkspaceTargetTask`. In Hangar, "open kernel" on an aggregate node also lists the kernels of its consumed producers.
+4. Complete the model:
+   - every kernel node has a spec;
+   - `tools` lists each node's pinned tools;
+   - inputs are recorded;
+   - each of the 42 nodes missing a declaration site without explanation gets one.
+5. Correct the boundary register: the wrong line, the stale intro, and the two unregistered types.
+
+Acceptance:
+- No dependeasy kernel node lacks a spec.
+- Every tool kernel lists its tools.
+- No node is missing a declaration site without an omission explaining why.
+- Each run reports omissions by reason, with counts.
+
+#### WP17 — Cross-repo access only through handles
+
+Goal: no product reaches into another repository's files directly.
+
+Steps:
+1. Turn each direct path into a published output or a generated entry:
+   - the 14 `"../reaktor…"` paths in product scripts and the 6 in Vite configs;
+   - the 18 `link:` entries and 4 imports of `build/dependeasy/kotlin/library`;
+   - the `build/js` globs in `pnpm-workspace.yaml`;
+   - manna reading bestbuds' docs corpus;
+   - `import-closure.mjs`, which is located by path.
+2. Use outputs such as `Reaktor.Db`'s web resources and sqlite assets, `Reaktor.Performance`'s web vitals and a docs-corpus output. Generate the `link:` and workspace entries from the web contract.
+
+Acceptance: a model check finds no node input outside its own build root unless a resolved variant delivered it. Report violations as omissions; the target is zero.
+
+#### WP18 — Finish the adapters and consumers
+
+Goal: the adapter table in §10.4 reaches its targets.
+
+Steps:
+1. **Worker lists:**
+   - the fleet contract (`fleet.json`) becomes the only list;
+   - the secrets scripts, Playwright maps, karate base URLs, `recipes.json`, `pnpm-workspace.yaml` and the five Kotlin consumers either read it or are generated from it;
+   - `AuthDeclarations` stops regex-reading JS.
+2. **remote-dev:**
+   - product names, output roots and the `-kt`/`ts/export` heuristics come from `hosts.json`;
+   - its seven embedded Python contract readers shrink to one reader of one contract, or to a `reaktor` CLI subcommand that answers its questions;
+   - delete its Maestro path.
+3. **Ruby, down to about 840 lines:**
+   - ids, profile names, groups, tracks and paths come from the release plan;
+   - drop `ENV.fetch` defaults that duplicate plan values;
+   - delete the dead helpers.
+4. **JS:**
+   - the contract path, build targets and asset names come from the web contract;
+   - delete the second implementation of pnpm workspace membership;
+   - a Kotlin authority for JS dependency versions (`Versions.Web`), checked against the manifests.
+5. **reaktor-tooling:**
+   - remove the 10 script-text regexes;
+   - `BestBudsOperationalCatalog` classifies by model node kind and effect;
+   - `WorkspaceRepositories` reads the model;
+   - `plan` and `run` live in one place.
+6. Remove the three remaining non-Kotlin readers of Kotlin source.
+7. **Package scripts:** one generated alias per node, never several names for one task; hand-written entries down to about 140.
+8. Move the checked-in qualification JSON (about 3,100 lines in `plans/audits/`) out of `plans/` (decision 4).
+
+Acceptance: every row of the §10.4 adapter table reaches its target.
+
+### 10.7 Owner decisions for this round (approved 14 Oct)
+
+The owner approved all four on 14 October 2026.
+
+1. **Push: approved.**
+   - Push the committed work and open PRs.
+   - reaktor and bestbuds: push `shibasis/newDesign` (16 and 15 commits ahead).
+   - manna: its 7 commits on `main` go to a new branch, `shibasis/dependeasy`, with a PR into `main`. Never push manna `main` directly.
+   - Push commits only. The trees also hold uncommitted files (136, 208 and 47 on 14 Oct) that belong to the owner and other agents. Do not commit, stash, reset or check out those.
+   - Later work packages push to the same PR branches once their gates pass.
+2. **Components as projects (WP13): approved.** About eight Gradle projects in bestbuds and four in manna.
+3. **Package aliases: approved.** One generated alias per node. Docs point to `reaktor build run <node>`.
+4. **Qualification evidence: approved.** Move `plans/audits/*.json` into the receipts store and keep a one-line summary per package in the log.
+
+## Log
+
+- 13 Oct 2026 — plan written; baseline counts in §1; nothing started.
+- 13 Oct 2026 — WP0 execution started. Budget: one typed BestBuds settings option; one provider-backed release requirement with a Gradle task recording the effective source; no dependency or version changes. Acceptance: routed `:dependeasy:check`, `frameworkChecks`, BestBuds `help`, `generateDagger verifyDagger pr`, Manna `help generateDagger verifyDagger`, TestKit property-precedence/Xcode-release fixtures, an iOS release guard on m1-worker, and a fixture test of unauthenticated `inspect.*`. Commit only the build-layer hunks listed by WP0; retain the internal Gradle graph experiment outside those commits. Storage cleanup passes (92 GB free; temporary 14.2 GB and remote 12.6 GB).
+- 13 Oct 2026 — BestBuds `help generateDagger verifyDagger :kernel:test --tests '*KernelInspectionAccessAuditTest'` passed with Manna excluded (60 Gradle tasks, 46 seconds). The MCP exposure is confirmed using synthetic data only; the audit source remains under `plans/audits/`. Fastlane release regression suite passed: 15 tests, 104 assertions. Dependeasy release fixtures are still being qualified; WP0 is not complete.
+- 13 Oct 2026 — Worker `:dependeasy:check frameworkChecks` passed: 60 Dependeasy tests and 74 framework tests, zero failures/errors/skips; receipt `.remote-dev/logs/20261013-232339-5e8ed42a-reaktor.json`. Worker iOS release with mirrored local devTools enabled stopped at `:app:requireBestbudsDevToolsDisabledForRelease`, naming `local.properties`; no app release link ran; receipt `.remote-dev/logs/20261013-232801-c946dc9c-bestbuds.json`. BestBuds `pr` exposed two pre-existing uncommitted code-analysis test cleanups rejected by `SafeDeleteGuardTest`; their cleanup now matches `CodeWorkspaceTest` using a non-following `Files.walk` of the test-owned temporary root. These two edits remain outside the WP0 commits, preserving the uncommitted analysis work.
+- 13 Oct 2026 — WP0 paired commits: reaktor `4786a91857c86700f949ee3c506638805e3a14af`, bestbuds `6129a3eeac307f30c2583c8c7aac8c9228286cec`; no Manna dependent change existed to commit. The internal Gradle graph experiment and its test, unrelated library pins, OAuth/Xcode edits and the staged `ReaktorV2.pdf` remain outside these commits. Worker `pr` completed with 486/487 engine tests passing; its sole failure is the corrected cleanup guard; composite `buildAll` and a local rerun remain to qualify WP0.
+
+- 13 Oct 2026 — WP1 preparation started. Budget: three modules (`model`, stable `toolchain`, fast `gradle`), shared compiled Kotlin plugin pins through `buildSrc`, two generated toolchain contracts, and one bytecode check. No version bump. Acceptance: Dependeasy TestKit/check, Java 25 rejection fixture, zero non-Kotlin source readers, paired warm BestBuds Android/iOS re-execution counts by task class, and configuration-cache reuse in reaktor/bestbuds/manna. Activate the split after WP0 composite/local acceptance completes; publish local Maven artifacts first to inspect the one-version coordinates.
+
+- 14 Oct 2026 — WP0 composite qualification found the existing cleanup guard also rejects `CodeWorkspaceTest` despite its fresh temporary root and non-following reverse-order `Files.walk` cleanup. Budget extension: recognize that exact fixture-owned cleanup shape in the existing guard; no production delete API or dependency change. Acceptance: local `pr`, including the cleanup guard, then the warm composite aggregate.
+
+- 14 Oct 2026 — Composite `buildAll -Pbestbuds.devTools=false` completed in 29m32s (5,994 tasks: 5,091 executed, 600 cache, 303 up-to-date); its sole aggregate failure was the cleanup guard, corrected in bestbuds `73da2a7c`. Receipt `.remote-dev/logs/20261013-233953-588f6c33-bestbuds.json`. Local `pr` and CI opt-in help were refused before Gradle by the remote storage budget; cleanup and reruns are pending.
+
+- 14 Oct 2026 — Local `pr buildAll -Pbestbuds.devTools=false` ran 6,060 tasks (435 executed, 1 cached, 5,624 up to date) in 30m46s. `pr`, Reaktor buildAll, app/Android builds and both release iOS framework links completed; engine 487/487 and app JVM 273/273 passed. Hangar recorded 224 passed flows, four failures and incomplete coverage after this chat stopped its remaining fixture child; the composite therefore fails and is not claimed green. Receipt `.remote-dev/logs/20261014-001234-7b426002-bestbuds.json`. Carry this application-flow qualification gap while advancing the ordered build-layer packages. The queued CI configuration was again refused before Gradle by the remote storage budget; rerun after cleanup.
+
+- 14 Oct 2026 — CI `help -Pbestbuds.includeManna=true` passed with no Manna configuration. Activated WP1 source move, preserving dirty files. Two credential-containment smoke scripts need their authored source paths updated mechanically after the move; this extends the consumer budget only for those paths. No production policy changes.
+
+- 14 Oct 2026 — WP1 `:dependeasy:check :dependeasy:buildSrc:test :dependeasy:publishToMavenLocal` passed in 1m19s: 60 plugin tests plus two bytecode fixtures, zero failures/errors/skips; all 700 shipped classes have major version 65. The model, toolchain and gradle POMs all use `dev.shibasis.dependeasy`, version `2026.1.6-SNAPSHOT`; fast runtime dependencies exclude AGP/KGP/Compose. BestBuds and Manna `help generateDagger verifyDagger` pass and store configuration-cache entries. Both generated Dagger modules pass a strict TypeScript check using BestBuds' shared SDK through `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp1-dagger-tsconfig.json`.
+
+- 14 Oct 2026 — WP1 first Android/iOS probe passed in 2m36s (952 actionable tasks; 771 executed, 158 cached, 23 up to date). Warm repeat passed in 8s; its 41 foreign executions are always-running diagnostics/metadata: 29 KMP partially-resolved dependency checks, one Kotlin npm cache setup and 11 Compose runtime compatibility checks. Zero foreign compilation/packaging tasks executed. Reaktor, BestBuds and Manna all reuse configuration-cache entries. Compare the private-function edit against this measured baseline; do not disable correctness checks merely to force the literal total to zero.
+
+- 14 Oct 2026 — WP1 private edit exposed two native rebuild causes: CMake configuration comparison splits multiline tool identity/contract values through `readLines()`, and `NativeExportsTask` rewrites identical headers. Budget extension: compare the exact serialized configuration and preserve unchanged generated header content; no new public API, field or dependency. Acceptance: repeat the warm/edit Android+iOS probe and count any additional foreign task executions against the 41-task diagnostic baseline.
+
+- 14 Oct 2026 — WP1 final native fix/edit probe passed in 14s: the 41 always-running AGP/KGP/Compose diagnostics stayed unchanged; zero additional foreign executions and zero foreign compilation/packaging executions. Counts and receipt refs: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp1-task-executions.json`. Restored the private probe edit, then final check/local publication passed in 49s (receipt `.remote-dev/logs/20261014-010125-5f517ceb-reaktor.json`). Paired commits: reaktor `bfe3eab1`, bestbuds `17a14295`, manna `8ad7070`. External Maven publication awaits both configured credentials; local POMs and jars are qualified.
+
+- 14 Oct 2026 — WP2 started. Budget: about 15 model types, one typed export replacing the three declaration projections, one shared reader, one CLI command, one MCP read tool, one Hangar panel; capture DSL declaration sites and kernel references without changing current task wiring. Put tools under git before editing the remote host reader; delete graph-run only after checking callers. Acceptance: deterministic exports and configuration-cache reuse in all three builds; schema/size/digest/identity fixture tests; lossless catalog/effect mapping and injective operational IDs; CLI/MCP equality plus source navigation and one local declared verification run with a receipt. No task closure in the model, no schema-1 fallback.
+
+- 14 Oct 2026 — WP2 qualification passed in reaktor, bestbuds and manna twice with byte-identical exports and configuration-cache reuse. Models contain 52 / 97 / 68 nodes. Shared-reader, digest, identity, catalog/check-start, source-navigation, Hangar render/performance and CLI/MCP-equality tests pass. The packaged primary CLI ran real `bestbuds:jsChecks` successfully: `run-1791921995246-1`, router receipt `.remote-dev/logs/20261014-013648-308f4f2e-bestbuds.json`. Counts and qualification limits: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp2-qualification.json`. Deleted the old projections and graph-run scheduler. Budget expanded only for model enums/facts, a second declaration site on shared CMake tasks, and existing primary CLI/inspector seams. Foreign producers retain omissions for WP3; no installed service was changed.
+
+- 14 Oct 2026 — WP2 local commit: reaktor `4618aca4ffc71de9d8d8b4a462e4e05ac56f052b`. Only WP2 hunks are committed; concurrent source and staged artifacts are retained.
+
+- 14 Oct 2026 — WP2 local commit: bestbuds `aff8bb1e977d072abdfe914c7ae1df92c5ad3373`. Only WP2 hunks are committed; concurrent source and staged artifacts are retained.
+
+- 14 Oct 2026 — WP2 local commit: tools `c2ade08f8907badc55f4fc496996c20f42233bcc`. Only WP2 hunks are committed; concurrent source and staged artifacts are retained.
+
+- 14 Oct 2026 — WP3 preparation started. Budget: nine handle kinds (module, build, output, node, role, tool, option, environment and lane), public output variants and a replacement workspace DSL; no version changes or compatibility string overloads. Use Gradle project accessors and owning KGP/AGP providers. Acceptance: save every model node’s routed Gradle dry-run task list before migration; compare after with explained output-variant differences; TestKit variant resolution, option precedence/requirements, catalog consistency and rename failures; configuration-cache reuse in all three roots; inventory path/name/module/property references. Product option declarations must stay in product build logic; small compiled product catalogs may be required for use across scripts.
+
+- 14 Oct 2026 — WP3 root-variant probe passed with normal composite dependency substitution and configuration-cache reuse. Budget clarification: workspace aggregates need a task-owned completion manifest as their public variant artifact; this carries actual producer dependencies across builds. No cross-build task fallback is needed for these roots. Root project coordinates will be explicit, and output selectors use one enum-derived `dependeasy.output` attribute, with enum qualifiers for build type, Apple target and verification suite.
+
+- 14 Oct 2026 — WP3 publication budget clarification: replace dynamic lifecycle task paths with owned publication completion variants and a Local/Remote enum. The bootstrap build publishes lifecycle variants directly because applying its own fast plugin would create a cycle. Delete the unused cross-build publication API; the product Node-test helper remains and uses public KGP binary/test providers instead of task selectors. Use the Gradle lifecycle constants listed in the boundary register.
+
+- 14 Oct 2026 — WP3 task-plan comparison exposed loss of Android native producer dependencies: a fresh DirectoryProperty created in the AGP callback carried a path but no task ownership. Budget extension: one Sync subclass exposing its annotated generated directory. Acceptance: Android native dry-run retains CMake and copy producers; rebuild the AAR and iOS native outputs, inspect all configured JNI ABIs, and repeat the complete task-plan comparison. The KSP registration regression now has a passing configuration-cache TestKit fixture.
+
+- 14 Oct 2026 — WP3 final ownership review: move bootstrap lifecycle publication into one compiled buildSrc helper invoked separately by model, toolchain and gradle. The root only resolves variants; it must not register or look up child tasks. Acceptance: bootstrap check/assemble/local-publication plans retain all three owners, existing test suite passes, and repeat the three-root cache/export and complete node comparison. This replaces the prior script helper within the recorded publication budget.
+
+- 14 Oct 2026 — WP3 inventory includes the disabled historical React build script: its three project references now use Gradle accessors too. It remains excluded in settings and its pre-existing missing flatinvoker-core project/obsolete DSL remain outside this package. No React functionality is claimed.
+
+- 14 Oct 2026 — WP3 identity review caught a receiver-shadowing rename of interopTypeScriptVerify while replacing its string reference with a provider. Qualified the class owner explicitly to retain the baseline node identity. Bootstrap composite dry-run now includes all six plugin-test producer tasks plus its owned completion task. Repeated bootstrap checks pass after the correction.
+
+- 14 Oct 2026 — WP4 preparation while WP3 task comparison runs (no WP4 source edits yet). Budget: seven JS kernel task classes, explicit package-command/lock task types, a shared process-task input contract with an internal process runner, and typed process/native/source/tool/size specs on the existing model. Reuse the installed Node/pnpm tool chain and existing native/source/tool/size owners; move Kotlin exports into owned build outputs and update affected adapters/lock references. Register bindings in the seven current packages, centralize size evidence, and constrain the two SDK/extraction deletes to children of their output. Acceptance: TestKit output/up-to-date/delete tests for each kernel, node_modules deletion rerun, real app jsMain invalidation of web bundle/deploy, model specs visible in the CLI, and three-root cache reuse. No new compiler/bundler implementation or missing-tool fallback.
+
+- 14 Oct 2026 — WP5 API preflight measured on pinned Gradle 9.7.0: two Tooling API dry-runs emit zero TASK events; a real run emits descriptor dependencies. Public TaskExecutionGraph.getAllTasks/getDependencies exposes the already selected dry-run graph, including a cross-build output-variant edge, without computing a closure or parsing console text. Its whenReady hook is not repeated on configuration-cache reuse. Implementation adjustment: the Tooling API planner requests a fresh selected graph with configuration cache disabled and caches plans by validated model digest. Execution progress/receipts use task events with normal configuration cache retained. Evidence: /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp5-api-probe.json.
+
+- 14 Oct 2026 — WP5 cache correctness requirement: the validated model digest must include the fast plugin implementation inputs, because a dependency-wiring change in plugin Kotlin can change Gradle's selected plan without editing a build script. Extend the existing declaration-input projection in its owner; do not add a separate cache authority. This is within the planner's correctness scope and precedes its implementation.
+
+- 14 Oct 2026 — WP3 qualification found routed dry runs transferring old artifacts and potentially installing an APK when an install task is requested. Budget extension before edit: one dry-run guard in the existing remote executor, with a behavioural fixture for both Gradle dry-run spellings and the ordinary build path. Keep load routing and the actual Gradle invocation unchanged; suppress artifact transfer, Xcode-resource transfer and device installation only for dry runs. Acceptance: fixture observes no transfer/install calls, an ordinary mocked install still transfers/installs, and the remaining routed node captures retain their Gradle task sets.
+
+- 14 Oct 2026 — WP3 task comparison resumed after correcting the audit harness: Invocation.Gradle tasks are relative to NodeId.build; included-build execution needs the workspace prefix, as the existing CLI adapter already supplies. Successful captures are retained; failed harness invocations are rerun. No production code change was needed.
+
+- 14 Oct 2026 — WP3 commit preparation excludes the overlapping Hangar desktop script while the question about including the pre-existing sharding helper is pending. The typed desktop output wiring remains in the working tree and its task-plan qualification continues. No pre-existing helper will be staged without an answer.
+
+- 14 Oct 2026 — WP4 integration budget adjustment before activation: remove the unused GradleTaskGraph experiment now, because it references the CommandTask.backend API being replaced. Its deletion was a WP5 step; advancing only this prerequisite avoids rewriting an obsolete internal-API reader. The original uncommitted file is captured in the temporary baseline for review. WP5 still supplies the public planner.
+
+- 14 Oct 2026 — WP3 qualified: 217 baseline node identities retained, 211 Gradle captures (209 unique), six external invocations unchanged, zero failed captures and zero unexplained task-set differences. Final exports are byte-identical with configuration-cache reuse in all three roots. 65 plugin, three model and two bootstrap tests pass; rebuilt AAR/iOS native outputs retain all configured JNI ABIs. Inventory and evidence: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp3-qualification.json`. Paired commits: reaktor `0f3d9595`, bestbuds `d3655c20`, manna `4a1d5d6`. Typed desktop and pre-existing reaktor-code overlap remain uncommitted; unrelated staging is preserved. The routed dry-run transfer fix is tools `fba11a1`.
+
+- 14 Oct 2026 — WP4 routed compilation exposed a router bug: worker execution appends the root model task even when Gradle `-p` selects the standalone bootstrap build. Budget extension before edit: respect the selected Gradle project directory when adding router metadata, with mocked root/nested/equals-form cases. Keep load selection and output transfer unchanged. Acceptance: router fixture and the same routed bootstrap compile.
+
+- 14 Oct 2026 — Router selected-build fixture passes: six root/nested/project-option cases plus the three dry-run transport cases. Fix committed locally as tools `e2e2bb5`; retry the routed standalone plugin compilation.
+
+- 14 Oct 2026 — WP4 model review: typed specs must use owner-relative workspace paths, like the existing file sets, so local/worker checkout locations do not change declared facts. Budget clarification: normalize path-bearing fields in the typed spec projection; retain exact tool identity, versions, arguments and external SDK paths. Acceptance: typed fixture spec round-trip plus repeated real model exports.
+
+- 14 Oct 2026 — WP4 corrected full suite passed on m1-worker (router receipt `20261014-053252-6a6c0b77-reaktor`): 68 plugin tests and three model tests, no failures; 962 classes use Java 21 bytecode. A subsequent check was blocked by the 20 GB remote storage budget after output transfer. Close completed builds and run `dev-storage cleanup --wait` before retrying; retain the budget guard.
+
+- 14 Oct 2026 — WP4 final model qualification found bindings and repository tool/install kernels were registered as Gradle tasks without declaration-model references. Budget clarification: register those references at normal DSL configuration through the existing workspace owner; no new node type or graph-time mutation. Acceptance: all seven bindings declarations and installed-tool/install specs appear in the real exported model. Correct the process fixture to repeat the same requested task set, and disable retained file watching in the script-rewriting boundary fixture so its cache checks observe the changed script.
+
+- 14 Oct 2026 — WP4 real export exposed an eager-query violation in native header arguments: mapping a producer task output to a string demands completion during model export. Budget extension: the header owner declares one shared output-location provider for its task and command argument, while the input file retains the producer-backed provider. Acceptance: export without executing native producers, configuration-cache reuse, and existing interop output tests.
+
+- 14 Oct 2026 — WP4 declaration projection adjustment: enumerating TaskInputs files from the root exporter triggers forbidden cross-project configuration resolution. Add one typed file-input declaration (file/tree/configuration/producer/deferred provider) and project public ConfigurableFileCollection declarations without resolving them. Gradle task annotations remain the actual execution-input authority. Acceptance: inspect all models without running producers, deterministic/cache-repeat exports, and fixture output invalidation. Deferred providers are explicitly represented rather than claimed as resolved files.
+
+- 14 Oct 2026 — WP4 real Karakum runs found the authored custom library names were interpreted as installed package names by its default node input strategy. Select the supported plain strategy in all seven local-source configs, retaining their library/module names. The pinned installed Karakum implementation resolves plain inputs from the declared working directory. Acceptance: six populated declarations run and repeat incrementally; Tactile keeps its missing-source placeholder. BestBuds size-check argument now reads the declared report location without demanding report generation during inspection.
+
+- 14 Oct 2026 — Pinned Karakum alpha.112 CLI reifyConfiguration drops inputResolutionStrategy even though its public GenerateOptions/API supports it. Use the installed public generate API through minimal Node glue inside the typed task; no compiler implementation, version bump, CLI fallback or third-party patch. Acceptance: the actual local-source config is honoured, with output and repeat evidence. CLI usage reference: https://github.com/karakum-team/karakum/blob/master/docs/guides/Basic_usage.md; pinned implementation/API inspected locally.
+
+- 14 Oct 2026 — WP4 full web qualification regenerated bindings with alpha.112's newer void namespace, incompatible with the unchanged Kotlin wrapper pin. Add one supported Karakum converter plugin for void type arguments in the existing Node API glue, retaining Unit return types and the current pin. Acceptance: regenerate without editing ts/import, then compile the full Cloudflare-consuming BestBuds web path. The typed fixture also exposed eager declaration-tree enumeration as a configuration-cache input; keep the public file tree deferred in ExportBuildModelTask's input collection so execution snapshots, rather than configuration, observe those files. Acceptance: unchanged requested tasks reuse configuration cache while output/receipt files change. Advance WP6's appWeb naming correction only as needed for WP4's real bundle/deploy input acceptance; no external deploy.
+
+- 14 Oct 2026 — A live root file tree is unsuitable for declaration inputs: Gradle treats its root as overlapping every kernel output, even when those outputs do not match its patterns. Budget extension: one public ValueSource returns only authored Gradle declaration files, isolating directory enumeration from configuration-cache filesystem tracking and output dependency inference. The exporter still snapshots each resulting file as its execution input. Acceptance: typed fixture reuses configuration cache and no implicit producer dependency; three real root models stay deterministic.
+
+- 14 Oct 2026 — Google bindings' only authored declaration is the TypeScript-only Optional<T> helper; Karakum emits typealias Optional<T> = T?, which Kotlin rejects and no Kotlin consumer imports. Use Karakum's supported ignoreOutput for that one helper, keeping the TypeScript export intact. Acceptance: regeneration removes the unsupported generated alias and the full product JS compilation passes. Cloudflare's converter compatibility remains exercised by its real Promise<void> declarations.
+
+- 14 Oct 2026 — WP4 no-cache real probe found pnpmInstall consuming the compiled Kotlin export's package.json as an unowned linked-file input. Installation already depends on KGP's root package metadata through syncKotlinPnpmMetadata; exclude compiled export manifests from installation inputs using the output owner's fixed relative directory. Bundlers continue to consume the full output through KotlinJsLibrary variants. Reuse one constant on KotlinPackageExport for its owned directory; no new scheduling order or compile-before-install cycle. Acceptance: ordinary/no-cache full web builds and the real JS edit probe pass Gradle input validation; frozen installation and node_modules deletion fixture remain green.
+
+- 14 Oct 2026 — WP5 implementation budget before source edits: extend the existing model with a selected Gradle plan, typed task outcomes/durations and receipts; one public Tooling API bridge with planning/execution entrypoints on the load-selected host; one task-completion service; one receipt-backed RunLedger and WatchService delivery; integrate plan facts and receipt artifacts through the existing process/approval port. Transport must synchronize only bounded private request contracts and return typed plans/receipts; structured progress is an explicit protocol emitted by Tooling API events, never inferred from Gradle console text. Acceptance: TestKit exact selected dependencies, configuration-cache repeats, source-digest staleness, failure redaction and receipts from ordinary/bridged invocations; compare the five specified real dry-run node sets; packaged CLI run plus external/Xcode-phase receipt visibility. No version bump, internal API, parallel task catalog or independent scheduler.
+
+- 14 Oct 2026 — WP4 packaged Manna model read found a linked agent worktree counted as declaration files owned by Manna. Budget extension before edit: exclude agent state/worktree folders and symbolic-link directories in the existing declaration ValueSource, and cover an out-of-root linked build script in a behavioral export/read/cache fixture. Keep the reader’s escape check. Acceptance: all three real root reads and fourteen CLI kernel specs, plus the focused boundary fixture.
+
+- 14 Oct 2026 — WP4 qualified and locally committed: reaktor `ce84933977cbf959600b1fc4ab9359d06128dde4`, bestbuds `74e2b494d08bcae492aab126799a7058bb7b5efd`, manna `2e3d69b3b0952a34f7975371b239eb828aa272bb`; declaration boundary follow-up `7566b79d0ff8ebb9ac248976e8ea1e732f921a90`. Full suite: 68 plugin tests, three model tests and nine CLI tests pass; the new boundary fixture separately passes all four BuildWorkspace tests. Java 21 verified on 966 classes. All fourteen typed kernel specs are visible through the packaged CLI on real nodes. Three roots export byte-identically with configuration-cache reuse; six available binding tasks repeat up to date, and Tactile stays a declared missing-source placeholder. The real app jsMain edit changes both bundle and deploy input digests; restored source restores both digests. Evidence: /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp4-testkit.json, /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp4-js-inputs.json and /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp4-qualification.json. Generated bindings are tool-produced and left unstaged; unrelated staging is preserved. No external deployment.
+
+- 14 Oct 2026 — WP5 composite planning evidence: public getDependencies() reports the already prepared dependeasy:model:jar artifact outside the selected dry-run graph. Retain those edges explicitly as dependenciesOutsideSelection rather than add tasks Gradle did not select; selected dependencies remain validated against the exact task set. A public FlowProviders.buildWorkResult finalizer is being qualified to include configuration failures and final build status in the same receipt listener, as required by “every run.”
+
+- 14 Oct 2026 — WP5 real CLI admission exposed two existing wrapper losses: its selected environment was applied after Gradle planning, and artifact expectations replaced the shared planner's required receipt index. Pass the existing private environment/secret-key inputs through DiscoveredJvmWorkspace preparation and preserve the planner's artifact expectations through OperationalControlPlane. No new environment selector or artifact authority. Xcode's existing static-framework phase has already executed successfully using its actual iPhoneOS build settings, and its verified receipt appeared in the shared Hangar state.
+
+- 14 Oct 2026 — WP5 host parity check found remote-dev appended exportBuildModel to remote dry-runs although local dry-runs preserved the requested task vector. That extra metadata task cannot update a model during dry-run and changes the displayed task set. Exclude --dry-run/-m from this existing append behavior; retain export on actual builds. Eight selected-build transport subcases qualify the change.
+
+- 14 Oct 2026 — WP5 final freshness review: compiled root buildSrc Kotlin participates in declaration ownership, alongside dependeasy implementation sources. Extend the shared input policy and its behavioral content-change fixture before commit; acceptance is stale-model rejection on a root buildSrc edit and unchanged configuration-cache reuse. Investigate Manna plan-cache context using temporary per-key hashes only; no private values enter public evidence.
+
+- 14 Oct 2026 — WP5 Manna repeat selected identical task/dependency sets but macOS changed APP_ICON_<pid> between launcher processes. Temporary per-key hashes identified only those two launcher keys. Exclude that exact macOS UI metadata pattern from the context digest; preserve all execution environment inputs. Extend the existing bridge fixture with a changed launcher id and qualify byte-identical repeated planning, execution and receipt correlation. Temporary diagnostics removed from source.
+
+- 14 Oct 2026 — WP5 qualified and locally committed: reaktor `793c92f088cf6806ff9fe921ef4f6b6c6db55016`, bestbuds `d60d80892ebe324a737d23948745267ebda26dc2`, tools `88504da170243a0ad37f05bded26beed6439546a`. Five real selected plans match Gradle dry-run output exactly, including Manna buildAll (3,913 tasks), and repeat byte-identically. Full TestKit: 74 plugin, four model and two buildSrc tests pass; final bridge/build-workspace freshness subset passes nine plugin tests. Java 21 verified on 1,015 classes. The existing Xcode static-framework phase and packaged CLI jsChecks run both succeeded and produced verified receipts visible in Hangar state; CLI receipt matches its operation id and explicit task progress. Public final-build-result flow covers configuration failures; no console parsing in production. Evidence: /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp5-qualification.json, /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp5-plans.json and /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp5-api-probe.json. Unrelated staging preserved; no publication or deployment.
+
+- 14 Oct 2026 — WP6 budget and acceptance before edits: two public contracts (web component and worker fleet), one web contract writer and final Wrangler config writer, extend the existing fleet and package writer, and move the existing import-closure generator into the JS kernel. Kotlin owns environments and config precedence (standalone dev; recursive workspace defaults then local prod, arrays replaced). Preserve source configs and runtime JS behavior. Generate all 20 deployable declarations, remove duplicate deployment scripts/catalogs, and have Vite/tsconfig consumers use generated facts. Acceptance: behavioral contract/config/script-generation fixtures with cache reuse; all 20 real fleet entries and declaration sites; semantic comparison of every final dev/prod config; actual configServer Wrangler dry-run for both environments; CompanyOS/Manna builds and no Kotlin output paths in authored Vite/tsconfig; import-closure fixtures; script counts. External worker deploy is a final owner approval step after these reviewable artifacts exist. No new JS file except the moved generator, no version bump, no new deployment scheduler.
+
+- 14 Oct 2026 — WP6 implementation budget clarification: carry the existing TypeScript parser API dependency (6.0.3, already ToolchainVersions.TypeScriptApi) with the relocated import-closure generator. Preserve test-only and operational Gemini recipes; remove the build/deploy entry points. The former appBrowser deploy alias pointed at the misnamed deployAppWeb and is removed when that target is corrected to the appWeb site.
+
+- 14 Oct 2026 — Advance the WP10 build-list read command only to satisfy WP6 acceptance: read the shared model, filter deployable worker targets, and expose their full IDs and declaration sites. No new catalog or execution path. Manna Pagefind owns the whole public/pagefind directory, including its atomic staging directories; declare that output boundary so parallel typecheck hashing cannot race the generator.
+
+- 14 Oct 2026 — WP6 worker qualification exposed Manna's legacy npm facade resolving stale ts/export files on the Mac. Extend the existing web contract writer to read linked facade metadata and map its published name to the declared Kotlin output only when the workspace dependency and entry basename match. This removes the stale output dependency without adding another contract or handwritten alias. Acceptance: facade fixture points to the declared output, and the same Manna web path succeeds through the configured router.
+
+- 14 Oct 2026 — WP7 budget and acceptance before edits: one Xcode host writer/check, one release contract writer, one Darwin archive checker and one signing xcconfig writer. Product Kotlin owns existing iOS 16.0, Swift 6.0, bundle/team/BGTask/version facts; preserve existing SwiftPM versions and signing authority. Generate tracked host xcconfigs, combine app/extension Gradle phases, replace plist literals and release signing patch, and derive adapter installation from framework exports. Move release command tokens/artifact ownership and privacy/dSYM qualification into Kotlin; retain fastlane provider/profile/keychain mechanics and keep signing material tracked. Remote Xcode variable names come from its generated host contract. Acceptance: behavior tests for host drift/pins/command tokens/archive UUID+architecture+privacy/signing output; actual generated settings and composite physical iPhoneOS framework path; release lane must preserve tracked sources. Prepare a concrete signed archive/export before requesting an owner-present internal TestFlight upload. No simulator, experimental SwiftPM import, source dependency upgrades, new scheduler or C++ change. CMake deployment-target application follows in WP8.
+
+- 14 Oct 2026 — WP6 qualified locally: all 20 deployable targets have declaration sites; 36 generated environment configs match previous merge semantics. Real configServer Wrangler dev/prod dry runs pass without a live deploy. CompanyOS and public appBrowser bundles pass; Manna passes 99 test files / 796 tests and bundles, with repeated configuration-cache reuse. Twelve Gradle contract/backend fixtures, nine JS fixtures, four import-closure fixtures and five transport fixtures pass. The worker rerun exposed a pre-existing npm facade depending on stale local ts/export files; generated aliases now point to the declared Kotlin producer and the full Manna path passes. Script counts and pending live acceptance are recorded in /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp6-contracts.json; remaining suite/environment aliases are handled in WP9. Owner choice for the concrete config-service dev/prod deployment remains pending; continue local WP7 work.
+
+14 October owner decisions: include the existing Hangar sharding task and its helpers in the typed build migration. Keep Reaktor Tactile source-free; its bindings task has a recorded missing `ts/index.ts` input and is not qualified. Deploy config-service dev and prod through the Kotlin-generated configs.
+
+- 14 Oct 2026 — WP7 archive qualification found Xcode launch-environment version arguments were overridden by xcconfig defaults. The release contract now passes the same arguments as an explicit Xcode build setting. Two archive attempts also exceeded the combined temporary budget while Xcode compiled SDK modules; constrain this existing xcodebuild invocation to three parallel jobs, matching the workspace build resource limit. No new user option or scheduler.
+
+- WP7 archive qualification: a bounded file-size trace identified Xcode 26 compilation-cache sparse files (`v8.data` 17,179,869,184 bytes, `v8.index` 8,589,934,592 bytes, `v3.actions` 1,073,741,824 bytes) as the apparent-size storage blocker. Keep the 20 GB temporary budget unchanged. The Apple host contract disables optional compilation caching, and the single Kotlin xcodebuild builder passes that setting globally so SwiftPM targets obey it. Apple documents `COMPILATION_CACHE_ENABLE_CACHING` in its build-settings reference. The aggregate phase also receives the app resource folder through generated settings for Compose resource synchronization.
+
+- WP7 archive retries with both cache settings disabled still initialized the 26.8 GB generic store. The installed libclang recognizes LLVM_CAS_MAX_MAPPING_SIZE; the release contract now caps each mapped cache file at 128 MiB using LLVM’s supported override. Storage accounting and budgets are unchanged. Qualify the next real archive before claiming this fixes the blocker.
+
+- 14 Oct 2026 — WP8 budget and acceptance before edits: one native catalog and one generated contract type; extend the existing NativeLibrary declaration and CMake task rather than add a scheduler or CMake functions. Declare native module dependencies, platforms and ABIs explicitly. Kotlin owns source handles, pinned AAR checksums, exact Prefab imports and platform/compiler/SDK/deployment facts; CMake consumes the generated preload/target contract. Keep the current AGP public variant JNI producer because this repository already builds native libraries through its owned CMake tasks rather than AGP externalNativeBuild. Acceptance: existing real native composition/ownership fixtures, changed-contract reconfiguration and cache reuse, actual Android and physical-iPhoneOS native libraries with before/after artifact evidence, and removal of authored CMake source-path/version/probing policy. No C++ edits or dependency upgrades.
+
+- 14 Oct 2026 — WP7 local qualification: committed Kotlin Apple host/release/signing/archive contracts, the OAuth policy move and thin host consumers. The signed BestBuds 1.0 (25) archive/export passed with two matching binary/dSYM UUID sets; SHA-256 `70fb93266bc5f30abb76b2dd38ef612f6ede7dd890f498b2b1662b009bb2ddcd`. Doctor reports TestFlight build 23. Owner-present internal TestFlight and Crashlytics uploads are pending the already-presented approval request. Installed LLVM CAS mapping is capped at 128 MiB through its supported environment option; measured archive temporary peak was about 2.412 GB apparent, within the unchanged combined 20 GB limit. See `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp7-apple.json`. The Ruby estimate of 840 lines was not achieved (about 1,044 retained); provider/profile/keychain authority was preserved.
+
+- 14 Oct 2026 — Owner approved internal TestFlight and both Crashlytics uploads while present. The exact qualified build 25 IPA SHA-256 is unchanged. Both dSYMs passed the Kotlin provider-receipt check; App Store Connect accepted the package at 11:23:13 IST. Apple build-list processing and release-note attachment remain in progress. The qualified-IPA reuse adapter is committed; its 9 Ruby tests / 39 assertions pass. Server-side symbol processing and physical crash frames remain unqualified.
+
+- 14 Oct 2026 — Internal TestFlight lane completed successfully at 11:25:58 IST: build 1.0 (25) appeared, release notes were attached, and external distribution remained disabled. Crashlytics accepted both qualified dSYMs; its backend processing and physical crash frames remain separately unqualified. WP7 delivery acceptance is complete.
+
+- 14 Oct 2026 — WP8 committed as 050f339efadc8fde323086852e8086dd09c0689c. All 91 Gradle and 4 model tests passed, with plugin validation/local publication. Actual Android and Apple native libraries and the desktop WebView build passed; the identical warm command reused configuration cache and all 11 CMake producers were UP-TO-DATE. All 95 baseline static archives remain present: 47 match; 48 Apple archives differ after correcting the old CMake iOS 13.0 default to the existing Kotlin iOS 16.0 requirement. Exact hashes, JNI AAR entries and source/compiler/SDK contracts are in /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp8-native.json. No C++ or dependency pin changed.
+
+- 14 Oct 2026 — WP9 budget and acceptance before edits: three verification kernels (DeviceFlow, KarateSuite, K6Suite), one device-flow contract and one Dagger pipeline contract. Reuse InstallTool for checksummed native runner, Karate jar and k6; move the existing MaestroRunner engine behind a compatible tooling facade. Kotlin owns physical-device selection, app/output references, suite membership/environments, generated aliases and pipeline/host facts; preserve product fixture/age-gate and signing/provider hooks. Keep uninstall opt-in and prohibit emulator/simulator startup. Replace product generated TS with one shared Dependeasy Dagger module that invokes the declared Gradle target without scheduling dependencies. Preserve manual CI dispatch/billing and deploy secrets. Remove obsolete harnesses and task-name routing heuristics. Acceptance: behavioral runner/tool/pipeline/transport fixtures, real Samsung and iPhone flow receipts through the shared CLI, real pinned Karate/k6 qualification, shared Dagger PR container gate, three-root contract/cache qualification and no product generated TS. Read the pinned Dagger 0.21.8 implementation before choosing module loading; no upgrade, new MCP server or second scheduler.
+
+- 14 Oct 2026 — WP10 budget and acceptance before source edits: four existing-gateway read tools, five build CLI commands and one Hangar Build inspector family. Extend the shared model reader for relations and bounded retained plan/receipt pages; carry the exact sealed Gradle plan in the existing pending operation and use full model IDs in the catalog. Kotlin model declarations replace settings/script family inference; the Cloud pipeline projection reads its generated contract. Reuse Desktop IDE navigation for external kernel classes, existing Surface/MachineSignal/blueprint and operation approval. Acceptance: shared CLI/MCP relation and receipt fixtures, canonical catalog identity, exact sealed plan and pagination tests, discovery authority fixtures, Hangar owner walk from pr to appChecks to app JVM tests to kernel/plan/receipt, and existing module/UI checks. Plans configure Gradle only on explicit request and display cost; receipts remain recorded observations. No polling, new module/server, dependency upgrade or approval bypass.
+
+- WP9 container qualification follow-up before editing: the worker engine reports five OOM kills and runs in an 8 GiB Docker VM with unrelated services. Keep the current JVM limits and unrelated workloads. Set two fixed pnpm execution facts in the Kotlin Dagger contract (network concurrency 4, child concurrency 1), verified with the pinned pnpm config reader. This bounds the dependency-install peak for the required real container gate; no user flag, pin change or parallel scheduler. Qualify with a fresh gate and retain failure evidence.
+
+- WP10 real-host qualification follow-up before editing: macOS bundled rsync rejects the numeric --chmod=F600,D700 used for private Gradle requests. Replace only that spelling with equivalent symbolic owner-only modes; preserve request ownership and routing. Acceptance: bundled rsync private-file copy modes, existing router fixtures, and a real routed CLI plan. No new option or permission relaxation.
+
+- WP10 transport qualification: bundled openrsync accepts symbolic --chmod but does not apply it. Preserve source modes with -a and set the copied request to 0600 after verifying its owned path and content digest; the enclosing request directory is already 0700 before transfer. Qualify actual 0600 copying and existing router containment fixtures.
+
+- WP9 native container qualification before editing: checksum/gzip checks pass, but actual GNU tar extraction fails with ENOSYS in the worker amd64/Rosetta path. A temporary diagnostic reproduced the same failure in a disposable directory. Add libarchive-tools and bind the existing tar executable entry to bsdtar inside the Linux runner; retain the JDK image and all source pins. This is fixed OS execution glue, no public choice or task. Acceptance: actual Kotlin archive extraction through the runner and the full local PR gate. Primary reproduction: https://github.com/orbstack/orbstack/issues/2588. Temporary diagnostics are removed before delivery.
+
+- 14 Oct 2026 — WP10 implemented and locally committed: reaktor `5b07166c`, bestbuds `92542fa4`; private Gradle-request transfer follow-up in tools `a04abaf2`. Model 9/9, tooling 199 tests (one skipped), Hangar owner-walk fixtures 2/2, Cloud pipeline 1/1 and CLI/MCP fixtures 2/2 pass. The real packaged CLI walks `bestbuds:pr` → `bestbuds:appChecks` → `bestbuds:app:outputVerificationResultsJvm`, shows the KotlinJvmTest kernel, requests Gradle's exact 644-task plan (12,981 ms configuration), then runs all 273 app JVM tests successfully and reads receipt `4648f5fd-6dd1-4144-afa8-5e005ff71de1`. Large model arrays remain reachable through bounded JSON-pointer pages. The receipt truthfully reports a model mismatch after the later iOS variant export. Full kernel qualification records 284 tests, one database-query failure and 11 skipped; the failure reproduces alone. The existing live MCP owner returns `Unknown tool: workspace`; the packaged endpoint refuses unavailable owner identity. Visible IDE class opening could not be observed. The fixture gateway qualification uses existing uncommitted engineering code, preserved outside these commits; clean-checkout and published CI qualification are not claimed. See `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp10-drilldown.json`.
+
+- WP9 clean-container qualification before editing: the checksummed Pulumi 3.268.0 archive contains pulumi-language-java, but InstallTool currently extracts only pulumi. Extend the existing installation to its complete bundled executables under a fresh owned distribution directory, and prepend that directory for PulumiSdkTask. Budget: two existing Kotlin files, no new task, pin, public flag or global installation. Acceptance: existing generated-output/configuration-cache fixture, actual Grafana SDK generation using only the pinned bundle, and a fresh local Dagger PR gate. Retain the prior missing-plugin/daemon-disappearance evidence.
+
+- WP10 committed CLI/MCP seam follow-up `8d9c7211` uses the committed MCP read tools directly; both tests pass. The earlier workspace → inspect.call qualification remains separately recorded against the existing uncommitted engineering gateway.
+- WP9 Pulumi bundle follow-up committed as reaktor `314e8954`. The existing generated-output/configuration-cache fixture, plugin validation and local publication pass; actual `buildGrafanaSdk` succeeds with the bundled Java language executable. Dagger attempt 7 ran 17m55s: native extraction succeeded, then SDK generation reported the missing Java executable and the daemon disappeared; the engine OOM-kill counter increased from five to six. Preserve that failed result while qualifying the corrected gate.
+
+- WP9 settled iPhone CLI run `run-1791970761084-1` correctly recorded failure in receipt `99f4301c-c702-492b-9e65-97e636185e38`: the signed WDA build was reused, iOS timed out enabling automation mode, then app-session creation reset. No product uninstall or simulator was used. Samsung qualification remains passed. Final contract generation/verification succeeds in Reaktor, BestBuds and Manna; all three configuration-cache repeats are qualified. Dagger gate attempt 8 is running with the unchanged pinned tools and the now complete Pulumi bundle. See `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp9-runners.json`.
+
+- WP10 real-workspace qualification before editing: retainedPlan eagerly validates all JSON files in the shared plans directory, so an unrelated stale Gradle plan with a dangling dependency and legacy web-plan JSON prevent reading a valid current plan. Budget: existing reader selection and its behavioral fixture only. Select the current node/model artifact by its JSON identity before decoding/validating its task graph; retain rejection for an invalid selected plan. Acceptance: mixed-artifact/stale-plan regression, model tests, CLI/MCP consumer checks and the real authenticated gateway retained-plan walk. No swallowed selected-plan errors, source artifact deletion or new recovery policy.
+
+- 14 Oct 2026 — WP10 retained-plan selection follow-up committed as reaktor `0d96140c`. All nine model tests and CLI/MCP consumer checks pass. An isolated instance of the existing authenticated workspace gateway, using the real BestBuds workspace and empty agent runtimes, now completes `workspace` → `inspect.call` through the three canonical nodes, their relation links and KotlinJvmTest kernel, a fresh 644-task plan (13,053 ms configuration), retained plan pagination and receipt reads. The latest receipt is explicitly a dry run; exact execution receipt `4648f5fd-6dd1-4144-afa8-5e005ff71de1` records the successful 273-test run with the truthful later-model mismatch. No operation execution was started. The isolated owner closed; the installed owner was not restarted and still lacks `workspace`. The test HTTP client allowed 120 seconds for explicit configuration after the native client's 35-second fresh-plan request timed out; production timeout behavior is unchanged. Live Hangar and observed IDE class navigation remain unqualified.
+
+- WP10 final generated-model refresh after the reader follow-up: Reaktor `exportBuildModel generateDagger verifyDagger` passed in 12s; Manna passed in 9s. BestBuds consumer/install/export qualification passed in 36s. Owned commits are present in all four repositories; the unrelated staged `ReaktorV2.pdf` remains preserved.
+
+- WP9 fresh-checkout delivery follow-up before tracking artifacts: CI and the shared Dagger runner read dagger/pipeline.json before Gradle starts, but the three regenerated contracts remain untracked. Budget: track the three existing Kotlin-generated JSON contracts only; no workflow bootstrap, handwritten contract, new task or dependency. Acceptance: each tracked contract byte-matches its freshly verified Gradle reference, every workflow/module input is in Git, and the existing local container gate continues against identical contract bytes. Published CI remains unqualified.
+
+- WP9 generated-pipeline delivery follow-up committed: Reaktor `c647c108`, BestBuds `f7a13960`, Manna `6b3d9857`. All three tracked JSON contracts byte-match their freshly verified Gradle references; shared Dagger launch metadata/source and the CI pipeline input are now in Git. No handwritten contract or workflow bootstrap was added. The final packaged CLI read still accepts the current model and reports the canonical app JVM node. Clean-checkout compilation remains unqualified because the shared trees include unrelated uncommitted code.
+
+- WP9 local Dagger attempt 8 failed after 19m38s with Gradle daemon disappearance. The engine OOM-kill counter increased from six to seven. Its last work included the two roots' pnpm installations and reaktor-web JVM compilation; app JVM tests and corrected container Grafana generation were not reached. The complete pinned Pulumi bundle passed actual Grafana generation locally, and all generated-contract checks pass, but the container PR gate is not claimed green. Unrelated worker services and pinned versions were preserved. Remaining acceptance: successful physical-iPhone automation after owner device state changes, successful PR gate when worker memory pressure is resolved, published CI, live Hangar/installed MCP owner/observed IDE walk, and the separately recorded database-query/Hangar coverage failures. See /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp9-runners.json and /Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp10-drilldown.json.
+
+- Final storage cleanup passed: temporary work 16.47 GB, .remote-dev 12.66 GB, free disk 64.9 GB. Removed the owned Pulumi inspection archive, compiled qualification driver and closed isolated MCP owner directory. Durable audits and the handoff stay plain, uncommitted local files; no push or publication.
+
+- 14 Oct 2026 — After the owner confirmed the iPhone unlocked and ready, the packaged shared CLI completed `bestbuds:deviceFlows` successfully at 16:47 IST (`run-1791976595441-1`). Exact execution receipt `0b715099-9005-4cb8-9809-734f37f62694` is successful, `dryRun:false`, and matches the current iOS model when read; SHA-256 `ee635f3de28ce82a31aba8cf8593b71392639f3b2e4da006950fda1ea774e6c4`. The report timestamps fall inside this run and show the physical iPhone passing the existing `connect.yaml` flow with its single `launchApp` command. No product install, uninstall or simulator was used. The earlier automation timeout remains recorded as prior-attempt evidence. Both required device-runner paths now have actual shared-CLI receipts; broader iPhone product behavior, the OOM-affected container PR gate, published CI and the remaining WP10 owner/IDE/coverage checks stay unqualified. See `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp9-runners.json`.
+
+- 14 Oct 2026 — IntelliJ sync follow-up budget before edits: restore the existing Apple OpenSSL search root in the Kotlin-generated CMake settings and extend the existing native composition fixture. No new public type, flag, dependency, tool pin or IDE-only skip. Preserve the uncommitted vendor-glue removal. Acceptance: a real iOS CMake find-package fixture with a declared OpenSSL prefix and configuration-cache reuse, existing native checks, actual security cinterop/commonization, and a successful IntelliJ import. Review all authored Gradle/Kotlin, CMake and package.json layers; record broader changes separately from the sync correction.
+
+- 14 Oct 2026 — IntelliJ Gradle sync now succeeds for the actual BestBuds composite (IDE RESOLVE_PROJECT:6, 96.536s). The Kotlin-generated Apple native contract now restores CMAKE_FIND_ROOT_PATH beside the existing OpenSSL prefix, preserving the vendor-glue cleanup. A real declared-prefix iOS CMake fixture and configuration-cache repeat, security commonization/IDE cinterop copy, all 107 shared Gradle/model tests and the 1,216-class Java 21 bytecode check passed. The full build-layer inventory covers 76 authored Gradle scripts/settings, 14 CMake files and 50 package manifests, and 218 shared Kotlin owner files inventoried, with focused implementation review. Prioritized follow-ups and qualification limits are recorded in `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/build-layer-review.json`: Apple native dependency identity/linking, container resource fit, Gradle configuration cost, residual package orchestration, explicit missing-header validation and obsolete/capability metadata. The sync fix and audit remain local and uncommitted; full Dagger gate and broader WP10 acceptance are still unqualified.
+
+- 14 Oct 2026 — Review of WP0–WP10 written as §10. The mechanics landed, but the design did not fully land: orchestration, component declarations and plumbing still share the root scripts, and the DSL is untyped below the node level. WP11–WP18 added. WP11 (qualify and push) goes first; WP12–WP13 split the altitudes. Owner decisions are in §10.7. Nothing was published or committed.
+
+- 14 Oct 2026 — The owner approved all four §10.7 decisions, including the push. The owner handed WP11–WP18 to Codex.
+
+- 14 Oct 2026 — WP11 budget before edits: finish the already-qualified IntelliJ CMake correction as a separate code/test commit. Then extend the existing model reader and CLI read projections so stale declarations remain inspectable with changed-file metadata; keep exact execution and retained-plan reuse fresh-only. Correct the existing package/device entry points and failing tests, remove owned legacy schema-1 exports, and move run-specific Apple versions to generated settings. No new public signatures, flags, task kinds, dependency or pin; no WP12 receiver/component work. Acceptance starts with model reader/CLI freshness and authority fixtures, real dirty-workspace list/show/plan reads and run rejection, existing native/sync evidence, entry-point behavior, Apple drift/configuration-cache fixtures, focused failing checks, then the measured real Dagger gate. Committed-file-only PR delivery follows qualification and the branch destinations recorded in §10.7; preserve foreign work and the staged PDF.
+
+- WP11 device-entry correction before edits: add one product instance of the existing DeviceFlow kernel for the three paired notification flows. The current push script builds each platform once through its existing package alias, invokes that declared target with the existing selection/install properties, and collects reports from the generated contract. Preserve --skip-build behavior and stop after a failed step. Remove the three aliases to deleted fastlane lanes; verify every remaining fastlane alias against the loaded lane registry. No new public kernel API, option, pin, live upload or live notification send during qualification. Acceptance: behavioral child-process fixtures for both directions, build/install reuse, reports and failure stopping, plus package generation and actual lane loading.
+
+- WP11 Apple version correction before edits: the existing XcodeHostTask writes Version.local.xcconfig beside its existing generated host contract, declares that derived output through Gradle outputs.file, and the stable tracked settings include it and reference its resolved versions in Gradle arguments. generateReleasePlan depends on the existing host generator so each release refreshes the run settings. No new public property or task. Acceptance: version changes update only generated settings, preserve tracked bytes, pass drift and configuration-cache fixtures, and resolve correctly through real xcodebuild -showBuildSettings for both Apple hosts.
+
+- 14 Oct 2026 — The review of the delivery layer (Dagger, Pulumi, deploys) and its next steps are in the companion plan `delivery-handoff.md`, as WP19–WP26. WP19 can run alongside WP11–WP18. WP20 onwards follows WP12 and WP13.
+
+- WP11 Hangar correction before edits: all four reported flows reproduce in the current tree. The schema pane correctly reports source-derived repository SQL before a bounded catalog read; move LIVE assertions to observed schema results and assert SRC for topology-only reads. The agent fixture captures a complete source snapshot, so assert its recorded-snapshot label while retaining the review navigation checks. Budget: four existing YAML fixtures only, no production provenance or agent changes. Acceptance: isolated four-flow receipts and the existing complete-coverage aggregation guard.
+
+- 14 Oct 2026 — The owner asked for a declarative, Compose-like orchestration API with click-through to the kernel. Its spec is `dependeasy-api.md`, and WP12, WP13 and WP16 implement it. The owner approved the five delivery decisions in `delivery-handoff.md`.
+
+- WP11 Hangar diagnosis correction before runner edit: the three schema failures include a real private-session rejection, not only obsolete badge expectations. HangarFlowProcesses places java.io.tmpdir and user.home under the selected repository; the existing DatabaseQueryPlanner correctly forbids private session files there. Budget extension: move the runner-owned isolated temporary root to the OS temporary directory and remove it after all owned child processes close. Keep reports in the existing output directory and preserve the database authority check. Acceptance: the four original flows and existing exact-coverage test; reassess badge expectations after reads actually execute. No production API or authority change.
+
+- WP11 focused Hangar qualification passed all four original flows in 33s, plus the complete-coverage aggregation test. Committed BestBuds f28cdb01 moves isolated session/home storage outside the selected repository and deletes it when owned child processes close. The two query-pane/topology flows assert SRC before a catalog read; D1/SQLite still requires LIVE after its actual schema receipt. The original agent partial-snapshot and Postgres live-catalog checks pass unchanged with cold isolation. Earlier badge-only diagnosis is superseded by the private-session rejection. Unrelated graph YAML and staged PDF remain untouched.
+
+- WP11 installed-CLI authority follow-up before edits: real dirty-workspace list/show/plan correctly warn and expose declaration changes, but run currently reports an unknown node because discovery drops stale models. Add a private pre-admission freshness check to the existing Run command when a model exists; extend the existing stale-CLI test to require the explicit stale error without opening the kernel. No public signature or option. Acceptance: packaged dirty list/show/plan succeed and run rejects the stale model before kernel construction.
+
+- WP11 committed-source CLI qualification found the existing CLI/MCP comparison test also calls CodeWorkspace, whose implementation belongs to uncommitted Reaktor code-analysis work. Budget: remove those two unrelated outline assertions from this existing test; retain complete node equality, kernel/source metadata and no-execution checks. Do not import the foreign implementation or claim code-analysis/IDE qualification from this fixture. Acceptance: the same three CLI tests compile and pass using only committed source.
+
+- WP11 hosted-CI checkout correction before edits: BestBuds CI checks out Reaktor main although the paired build-layer work is on shibasis/newDesign, and specifies a repository token secret that is absent. Reaktor is public, so use the default checkout token and pin both existing Reaktor checkout steps to the qualified commit. Budget: the existing workflow only, no trigger or deployment behavior change, new secret or public kernel API. Acceptance: checkout SHA equals the locally qualified Reaktor source and the manual non-deploy CI run passes after push. Reaktor and Manna have no hosted workflows; the owner is being asked how to scope their hosted acceptance while committed-source local gates continue.
+
+- WP11 owner decision, 14 Oct 2026: GitHub Actions is not required. Remove BestBuds’ existing workflow; all CI runs locally through the declared Gradle/Dagger gates. This supersedes the hosted-CI checkout correction and hosted-green acceptance. Preserve branch/PR delivery authorization after local qualification. Budget: delete the single owned workflow and add a concise local CI command/evidence record; no hosted replacement, new scheduler, secret or deployment. Acceptance: no Actions workflows in the three repositories and the existing local gate reports actual results.
+
+- WP11 model stability follow-up before edits: installed fresh planning rejects its own newly exported model because configuration-cache serialization changes ConfigurableFileCollection declarations into resolved file collections. Budget: finalize the existing serialized model node/edge/omission inputs after all project declarations finish, before cache serialization; extend the existing export fixture with wrapped file/tree inputs. No public API, new model field or relaxed digest/freshness check. Acceptance: cold/warm forced exports byte-match without running producer tasks; existing export/planning fixtures and the installed real CLI fresh plan/run/receipt pass.
+
+- WP11 local CI attempt 9 failed after 1709.2s: sampled engine peak 6.077 GB, OOM-kill counter 7 to 8. Gradle daemon RSS reached about 3.0 GB under amd64/Rosetta, beside the shared engine and unrelated worker services. Budget before retry: lower existing Kotlin-owned Gradle heap to 1024 MiB and metaspace to 512 MiB; preserve pins, compiler mode, worker count and unrelated services. Regenerate the three existing contracts and measure the real gate. A separate generateBuildFlags failure appears because the committed-source archive lacks Git metadata required by sourceRevision; add a shallow Git object/index context to the one existing scratch checkout rather than changing revision semantics or copying source again. Acceptance: actual source-revision generation and a passing local gate with no OOM-counter increase; retain any failure evidence.
+
+- WP11 fresh-model qualification passed: Reaktor 62e50110 freezes the existing serialized node/edge/omission properties lazily on first read. Eager lifecycle snapshots were rejected by Gradle task-registration/configuration locks and removed. All 14 export/planning/kernel/package/Dagger fixtures pass, including no-cache/cold-cache/warm-cache exports and selected producer execution. The installed real CLI plans bestbuds:app:outputVerificationResultsJvm successfully; its model bytes remain identical before and after explicit planning. Digest/freshness checks remain strict.
+
+- WP11 installed CLI now completes a fresh bestbuds:verifyXcodeHost run: run-1791995403883-1, Succeeded, exit 0, 42.935s. Attempt 10 of the container gate was deliberately cancelled during SDK preparation after adding oversized Git blob packs to the filtered source; OOM kills stayed at eight. Compacted the existing scratch contexts to HEAD/tree/index metadata (about 742 KB combined packs), verified rev-parse/status still work, and restarted attempt 11. Source files and upstream commit IDs remain unchanged. Storage cleanup after compaction: temp 17.60 GB, remote 12.86 GB, free 61.80 GB.
+
+- WP11 simulator-work follow-up before edits: the pinned Compose plugin attaches test-resource copies to native test link tasks after their initial disabling. Budget: repeat the existing simulator compile/link dependency clearing after project configuration and extend the existing module-wiring fixture; no new public API, task, flag or resource policy. Acceptance: native test-resource producers disappear from the real buildAll plan, framework resources remain, and the dry-run fixture survives configuration-cache reuse without launching a simulator.
+
+- WP11 clean Hangar packaging found the committed ReaktorApps preview still supplies Pair<User, Map<String, Backend>> after SessionKey became typed. The working tree holds a related foreign correction using the newer uncommitted selections property; inclusion authorization is pending. Prepare only a SessionKey import and typed call using committed Backends.profile, preserving the primary working tree. Budget: two lines, no public API or session behavior change. Acceptance: committed-source desktop compilation/package and existing preview checks.
+
+- WP11 attempt 11 exhausted the 512 MiB JVM metaspace limit during composite configuration; no new cgroup OOM kill occurred. The daemon stalled in shutdown and its private log reports OutOfMemoryError: Metaspace. Read-only heap inspection shows 474366 KiB used out of 1 GiB. Cancelled only this owned gate. Budget before retry: raise the existing metaspace limit to 768 MiB, retaining 1024 MiB heap, worker count, compiler mode, toolchain pins and unrelated services; regenerate the three contracts. Acceptance: actual measured local gate completes, no additional OOM kills, and generated contracts byte-match Kotlin references.
+
+- WP11 owner approved inclusion of the existing two-line Hangar preview fix. BestBuds ef268648 imports SessionKey and uses the committed Backends.profile API; the newer foreign selections rename remains uncommitted. Committed-source desktop packaging passes in 48s. A private native Hangar window is mounted and its live MCP build_node reads a fresh source model; the visual owner/IDE/plan/receipt walk remains pending.
+
+- WP11 attempt 12 was killed by a global worker OOM during native distribution commonization (914.1s; sampled engine peak 6.026 GB; OOM kills eight to nine). Pinned Kotlin 2.4.21 source confirms that the commonizer runs in a separate JVM with a default 3 GiB heap; the existing daemon policy did not constrain it. Budget before retry: bound that JVM through the supported kotlin.mpp.commonizerJvmArgs property (512 MiB heap, 128 MiB metaspace, 32 MiB code cache), and use Serial GC for it and the existing one-worker Gradle JVM to reduce native GC overhead. Preserve Gradle heap/metaspace, all pins, task membership and unrelated services. Regenerate the three contracts through Kotlin and verify byte equality. Acceptance: existing Dagger transport fixture and the measured actual local gate complete without a new OOM kill. Retain failed attempts; do not claim a pass before it occurs.
+
+- WP11 app JVM receipt run failed at two stale BudBotMock.start calls in CircleJourneyTest. BudBotMock starts its collector in init. The primary working tree already contains exactly the two removals needed; these are foreign edits protected by §10.7. Budget before qualification: apply those two removals only to the existing scratch context, preserve production behavior and all assertions, no new API. Acceptance: the installed CLI runs the actual app JVM target and retains a successful receipt. Obtain owner authorization before including those existing primary edits in a commit.
+
+- WP11 actual app JVM tests now compile after the prepared CircleJourneyTest removals: 271/272 pass. The remaining application wiring check fails because SessionState consumes default users/hydration names while their existing providers declare userRepository/sessionHydrationInteractor. The primary foreign SessionState diff already contains the two explicit keys alongside unrelated API changes. Budget before qualification: apply only these two consumer keys in scratch, retaining committed SessionKey/Backends APIs and all tests; no new port or production concept. Acceptance: all 272 app JVM tests pass and the installed CLI records the successful actual target. Request inclusion authorization for only the two test removals and these two consumer-key changes after qualification.
+
+- WP11 owner authorized exactly four existing app corrections. BestBuds 9469d323eb4af242cdc829598f1c95a165cc2826 includes only the two obsolete BudBotMock.start removals and the two SessionState consumer keys; all other primary edits and the staged PDF are preserved. Installed CLI run run-1792000322386-1 succeeds in 58.460s with 272/272 app JVM tests, no failures/errors/skips; Gradle receipt 0c9ac67f-6a2a-489a-8b36-9bf8b5d330f0, SHA-256 f44444cb056ba23552af7935ef4d1d420bdaa571d57a6fd531a486700698fee8. Gate attempt 13 captured the previous committed source before these prepared fixes; do not label it qualified against this new commit.
+
+WP11 follow-up budget (14 Oct): no new public API, dependencies, model fields or flags. Adjust the existing Dagger Gradle heap from 1,024 to 1,536 MiB after attempt 13 saturated old generation (699,071/699,072 KiB) while two in-process Kotlin compilations were active; retain 768 MiB metaspace and 512 MiB commonizer limits. Acceptance: the existing Dagger contract fixture, all three drift checks, and a measured local PR gate with no additional OOM kill. Additional committed engine test failures are being diagnosed separately: stale discovery fixture, JUnit-owned symlink cleanup guard, and preview graph rendering. No assertion is weakened without establishing the intended behavior.
+WP11 adds a fixed `org.gradle.parallel=false` to the same execution contract: the worker budget of one did not prevent two included-project Kotlin compilations from sharing the exhausted heap. There is no new public option.
+
+WP11 engine test correction budget: test code only; zero public API, runtime state, flags, dependencies or task membership changes. Recognition of JUnit `@TempDir` cleanup must retain the raw recursive-delete guard. The discovery performance fixture must supply 91 exported model nodes and the existing request/plan protocol, preserving its task-count assertion and JFR/timing evidence. Acceptance: the affected existing tests followed by `appChecks`; inspector coverage remains under diagnosis.
+
+WP11 inspector diagnosis: the fixture has 139 shape nodes and 103 inspector nodes. `AppGraph` deliberately separates its 36 routes from inspector nodes. The test incorrectly applied the shape coverage minimum (104) to the inspector projection. The one-line correction checks `graph.shape.nodes` for that existing minimum while still rendering every inspector node. No runtime session/preview change is needed. Acceptance remains the three existing AppGraphShape tests and complete `appChecks`.
+
+- WP11 committed-source appChecks qualification passes through the installed CLI: 751 tests (app 272, design 2, engine 477), no failures/errors/skips; run-1792001466381-1, 389.143s, receipt 5c829201-7188-4fa2-a14c-e306ed03fbc0, SHA-256 947d88720b10b4a2fe06edaa6f194816256ff94eadf2c8ee60c47589af49e808. Native Hangar and live MCP retain the exact 774-task aggregate plan (13,812ms configuration). The queued native plan finished after the actual run and became the latest dry-run receipt; a final actual target run will finish the visual receipt walk. No dry-run is counted as an execution.
+
+- WP11 live receipt navigation diagnosis and budget before edit: Open receipt uses the operating-system JSON association and launched an unconfigured PyCharm, while declaration/kernel links correctly use the running IDE. Change only that button to the existing openInIde(file, 1) seam and update the existing owner-walk assertion; no API or receipt semantics change. Acceptance: the existing BuildGraphPane owner walk and an actual native receipt click open the matching JSON in the running IntelliJ window.
+
+- WP11 attempt 14 cancelled after 1,185.5s during engine JVM compilation: no additional OOM kill (nine to nine), sampled engine peak 5.952 GB. A single in-process Kotlin compiler is active; GC inspection shows tenured 1,048,575/1,048,576 KiB despite a 1,536 MiB total heap, with 268.7s VM-thread CPU. Budget before retry: set Serial GC NewRatio=5 within the same 1,536 MiB heap so tenured can use about 1,280 MiB; retain the 768 MiB metaspace, commonizer bounds, pins and serial Gradle policy. Acceptance: Dagger contract fixture and three generated drift checks, then the actual measured PR gate with unchanged OOM counter. No new public API, host daemon or tool upgrade.
+
+- 15 Oct 2026 WP11 native receipt follow-up: rebuilt Hangar’s actual Open receipt button opens `44a5f724-cea1-402c-b414-b5620752fe8f.json` at line 1 in the already-running IntelliJ. Native capture `live-idea-receipt-navigation-fixed.png` shows the successful receipt and green IDE sync. Its rebuilt inspector correctly reports current model false after later navigation/policy implementation edits and dry run false. Existing two navigation tests and distributable pass.
+
+- 15 Oct 2026 WP11 container budget before follow-up: attempt 15 retained the 1,536 MiB total heap and improved tenured space to 1,280 MiB, but the one active engine compiler again filled it (1,310,719 / 1,310,720 KiB) after 902 seconds; sampled engine peak 5.95 GB, OOM count unchanged at 9. Change only the existing Kotlin-owned runner environment and its three generated contracts: Gradle with 768 MiB heap / 768 MiB metaspace, separate Kotlin daemon with 1,536 MiB heap / 384 MiB metaspace, bounded Serial GC and code caches, fallback disabled. Pinned KGP 2.4.21 source confirms an explicit daemon strategy attempts the compiler daemon first; disable its in-process fallback so a failed connection cannot defeat the split. Keep Gradle daemon=false. Acceptance: existing contract fixture/generation, actual separate process flags and measured complete PR gate. No API, target, pin or VM-memory change.
+
+- 15 Oct 2026 WP11 bounded compiler lifetime before follow-up: attempt 16 verified separate Gradle (768 MiB) and compiler (1,536 MiB) processes, but both embedded Kotlin 2.4.0 and project Kotlin 2.4.21 daemons remained resident. Docker records an engine OOM, exit 137 and automatic restart; sampled peak 5.965 GB and the cgroup counter reset, so this attempt cannot qualify zero OOM kills. Add only the pinned daemon idle lifetime (60 seconds) to the existing Gradle JVM system properties, retaining all heaps, pins and serial scheduling. Pinned daemon source excludes active compilations from idle time and KGP releases its session after each compile. Acceptance: generated contracts and existing transport fixture, actual idle daemon termination, then a complete measured PR gate without an engine restart/OOM. No public API, new task, retry or VM-memory change. Historical paired builds continue in the one scratch checkout; contract generation waits for its restored current sources.
+
+- 15 Oct 2026 WP11 historical WP3 before observation: Gradle buildAll failed in 26m22s (wrapper wall 1,614.866s), 5,954 actionable tasks: 5,066 executed, 814 cache, 74 up-to-date. Twelve failures include committed stale app/engine/CLI code, missing docs build input and absent security Git submodules in the single measurement checkout. Shared caches were reused; no successful/cold-build performance claim. Paired after measurement is running, with the original current source heads restored afterward.
+
+- 15 Oct 2026 WP11 paired historical after observation: Gradle stopped with three Java heap space failures in 3m35s (wrapper wall 275.964s), 3,741 actionable tasks: 484 executed, 3,257 up-to-date. Execution did not complete its 10,507-task planned graph, so no before/after speed claim is supported. The exact planned difference is +93: 57 typed completion markers, 39 unused simulator producers and net three alias/runtime removals. WP11 already removes those 39 producers. Both measured runs used this Mac; the original current committed sources have been restored in the one scratch checkout.
+
+- 15 Oct 2026 — Owner-approved qualification JSON relocation complete: 22 files now live under `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`; relocation digests are retained there. Evidence remains local and unpublished.
+
+- WP0 evidence summary — Blocker corrections committed; synthetic inspection-access test confirmed the recorded access gap. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP1 evidence summary — Stable/fast split, Java 21 bytecode and three-root cache reuse qualified; private edit added zero foreign compilation/packaging executions. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP2 evidence summary — Shared model identity, reader, CLI/MCP parity and real execution receipt qualified. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP3 evidence summary — Typed ownership migration qualified; historical planned graph +93 explained, 39 unused simulator producers removed in WP11; paired actual builds failed and do not support a speed claim. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP4 evidence summary — Typed kernel/output fixtures and public task ownership checks recorded. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP5 evidence summary — Exact Gradle plans, request freshness and execution receipts qualified through installed CLI. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP6 evidence summary — Kotlin-generated web/Worker contracts qualified; approved config-service dev/prod deployments recorded. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP7 evidence summary — Signed build 1.0 (25) accepted by internal TestFlight; two qualified dSYMs accepted by Crashlytics; backend symbol processing/crash frames remain unqualified. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP8 evidence summary — Native Android/iPhoneOS/desktop build and cache evidence retained; Apple crypto final linking/runtime gap remains in the layer review. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP9 evidence summary — Physical Samsung and iPhone launch flows pass with receipts; full Dagger PR gate still in qualification. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP10 evidence summary — Installed CLI/native Hangar node→kernel→plan→receipt walk qualified in WP11; external library FQN URI limitation remains explicit. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- WP11 evidence summary — IntelliJ initial/warm sync, 751 appChecks tests and actual native receipt navigation pass; current bounded compiler lifetime gate is running. Not complete. Receipts: `/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/`.
+
+- 15 Oct 2026 WP11 bounded compiler lifetime committed: reaktor `fd8721a8f7631dccbed4704f7d751f4180dac03d`, bestbuds `944b1e4b7b53f7e5cf2bf3fd82928d2125421821`, manna `ba7f6aac43bc9aa1a145ab296cc539290e104dc8`. Existing Dagger fixture and all three generation/drift checks pass; contracts differ only in GRADLE_OPTS. Relevant clean-source files match these heads, foreign primary staging is unchanged, and measured local gate attempt 17 is running. No push or passing-CI claim yet.
+
+- 15 Oct 2026 WP11 historical scratch cleanup: discarded 830 completed disposable build/node_modules entries from the one measurement checkout, preserving source, Git metadata, reports, receipts and the open FFI build tree. Shared temporary use fell to 18.738 GB; remote use is 12.867 GB. Restored the exact original 20 GB storage limit and reran cleanup successfully. The other Hangar scratch checkout is preserved. Durable facts: qualification/wp11/storage-cleanup-final.json and historical-output-cleanup.json.
+
+- 15 Oct 2026 WP11 attempt 17 lifetime acceptance: filtered compiler logs explicitly record Idle timeout exceeded 60s, graceful shutdown and shutdown complete for two embedded Kotlin 2.4.0 daemons and one project Kotlin 2.4.21 daemon. The actual PR gate is running tasks; no passing-gate claim yet. Evidence: qualification/wp11/dagger-attempt17-compiler-lifetime.json.
+
+- 15 Oct 2026 WP11 generated SDK compiler isolation before source edits: attempt 17 keeps the engine alive and proves 60-second Kotlin daemon shutdown, but compileGrafanaSdk exhausts the shared 768 MiB Gradle heap in javac. Extend only the existing Pulumi SDK kernel and its existing generated-output fixture: fork Java compilation with a fixed 1,024 MiB heap, 256 MiB metaspace, 32 MiB code cache and Serial GC. Keep the selected Java toolchain, release bytecode, generator, source pins and runner policy. Acceptance: actual generated Java compilation in a separate bounded process, configuration-cache/up-to-date repeat, unchanged generated SDK metadata, then a complete measured local PR gate. No new public API, flag, task, dependency or VM-memory change. Remaining attempt-17 checks continue and their results are retained.
+
+- 15 Oct 2026 WP11 compiler isolation committed: reaktor d22df787f1c20ee4e2a299e69dc619ba38b5b136; existing generated-output tests pass (2 tests), including an actual bounded compiler worker, generated metadata and configuration-cache repeat. Attempt 17 failed only compileGrafanaSdk after 2,716.3 seconds, with 274 completed tests passing, sampled peak 6.362 GB, zero engine OOM events and unchanged engine identity. The full corrected local PR gate is next; no passing-CI or publication claim.
+
+- 15 Oct 2026 WP11 Linux test qualification budget before source edits: attempt 18 compiles the Grafana SDK and engine successfully without an observed OOM, then exposes two test assumptions. The transcript test accepts any identical New reply and reads 90 events before the final 92-event refresh; give replies unique identities and await the final run and its own output, preserving all retention/count/partial assertions. The AI render test requires manna-api although the approved BestBuds CI contract excludes Manna; assert that its rendered presence exactly matches the declared inventory, preserving real BestBuds worker checks. Budget: these two existing test files only, no production behavior, API, dependency, target or runner change. Acceptance: targeted test classes, repeated transcript check, and a complete measured local PR gate; retain the failed attempt evidence.
+
+- 15 Oct 2026 WP11 CI host correction budget before source edits: attempt 18 executes the native desktop suite inside linux/amd64 emulation, records a 34.849 ms frame median against the unchanged 16.7 ms budget, then OOM-kills the 512 MiB test JVM at about 2.8 GiB RSS after 387 of 477 engine tests. The existing desktopChecks is already Local; appChecks and its pr parent must record the same host requirement because they consume that engine suite. Extend the existing portableChecks to include the existing Dagger contract check and Reaktor framework verification, retaining app/design/kernel JVM and app JavaScript checks. Require both native host pr and Dagger portableChecks in CI.md. Budget: existing BestBuds root host/composition facts, its generated pipeline and local CI instructions only; no new node, task, API, test filter/skip, dependency, benchmark relaxation or VM-memory change. Acceptance: existing pruning fixture and generated drift check; portable contract excludes appChecks/pr/desktopChecks but retains every headless check; actual complete native pr and measured Dagger portableChecks both pass. Preserve the failed original container pr evidence and explain this host graph difference.
+
+- 15 Oct 2026 WP11 cross-host model export budget before source edits: completed attempt 18 also fails Reaktor exportBuildModel on Linux because the Apple CMake tool identity and generated metadata filenames realize xcrun-backed SDK settings. Keep Apple nodes and their Macos host requirement. The CMake tool identity records the already-pinned CMake/Ninja versions; SDK version, compiler, path and metadata checksum remain nativeContract execution inputs. Set module metadata output filenames directly from the declared library and platform, retaining their existing bytes/paths on macOS. Budget: existing CmakePlatform and KotlinCMake declaration files plus the existing NativeInputs fixture; no public member, model field, task, dependency or SDK fallback. Acceptance: a provider that rejects SDK evaluation must allow Apple kernel/model-output inspection; existing native input/composition/cache fixtures and actual Linux export through the portable gate, preserving macOS SDK contract inputs.
+
+- 15 Oct 2026 WP11 corrected host/model commits: BestBuds 1a0e6087bb11e4d04ce54cebe842a1683b66d63a declares native pr/appChecks hosts and expands the existing portableChecks; targeted classes pass 11 tests and the final-turn transcript check passes five repeats. Reaktor 22227888ed064815ec92f36e9b9026c89c0bffef keeps Apple SDK reads at execution; nine existing native/Dagger fixtures pass. Both complete CI gates are running on these heads. The source guard caught earlier scratch cleanup removing 71 authored build scripts/documents (967,468 bytes); their exact committed bytes and modes were restored before either current gate, with primary repositories untouched. The old cleanup summary is superseded by this correction. Under the owner allowance, corrected qualification uses a temporary 22 GB cap after the protected active data prevented cleanup at 20 GB; restore the original limit after the run. No push or passing-CI claim.
+
+- 15 Oct 2026 WP11 native pr passes on committed heads 22227888/1a0e6087/ba7f6aac: 375.723 seconds, 1,120 tests (app JVM 272, app JavaScript 296, design 2, engine 477, Reaktor framework 73), zero failures/errors/skips; all engine performance assertions retain their budgets. Portable attempt 19 passes 73 framework tests and fails sourceRevision because scratch refs advanced without portable commit/tree objects; no new OOM or engine restart. Refreshing only scratch shallow Git metadata (756,780 bytes across three repositories) makes standalone revision/status reads pass. Attempt 20 was interrupted after the source guard found native-generated tracked outputs; the separate next command had incorrectly launched despite the guard failure. Exact HEAD bytes are restored before attempt 21, whose guard passes all three roots; it is running. Native source heads remain unchanged. No push or passing portable-CI claim.
+
+- 15 Oct 2026 WP11 JavaScript linker budget before source edits: portable attempt 21 fails only app compileTestDevelopmentExecutableKotlinJs with Java heap space after 754.7 seconds; 73 framework tests pass, sampled engine peak 6.348 GB, no new OOM kill or restart. Raise the existing bounded Kotlin compiler heap from 1,536 to 2,048 MiB in the Kotlin Dagger owner; retain Gradle/commonizer/Node/compiler metadata limits, 60-second lifetime, one worker, source pins and every test. Budget: one fixed execution fact and the three generated pipeline contracts, zero new API/task/option/dependency or VM-memory change. Acceptance: existing Dagger fixture, three generation/drift checks and a complete measured portableChecks. Native pr already passed 1,120 tests on the prior implementation; qualification must record the new heads and unchanged native execution path. Latest actual IntelliJ sync RESOLVE_PROJECT:8 passes in 72.236s; Manna help/export/drift passes in 6s. Exact original storage policy restored; cleanup passes at temporary 19.765 GB and remote 12.867 GB after removing only 1.930 GB of completed owned dependency outputs.
+
+- WP11 native qualification correction before edits: the exact-head native repeat ran 1,120 tests in 367.827 seconds, with one failure in the unchanged desktop graph performance test. Its stack identifies concurrent mutation of PortCapabilityImpl listeners during BestBuds graph wiring, not a performance budget violation. Qualify the two existing uncommitted owner/agent changes: atomic immutable listener snapshots in PortCapability.kt and the one cancellation/emission regression plus AtomicInteger import in LiveGraphReadTest.kt. Budget: these two existing files only, preserve the public constructor and listener API, no dependency, flag, task kind, graph semantic rewrite or performance threshold change. Acceptance: the new regression rejects the committed implementation, passes the proposed implementation, and the existing port/graph checks plus native pr gate pass. Include these foreign changes only after the owner authorizes their exact scope under §10.7. Portable attempt 22 continues independently against the currently committed sources.
+
+- WP11 compiler heap correction before the next edit: portable attempt 22 reached app JS executable linking with the declared 2,048 MiB compiler, no new OOM kill or engine restart. Live JDK jstat evidence shows old generation 1,747,648/1,747,648 KiB occupied, 140 full GCs and 409.119 seconds in full GC. Cancel only this run’s owned Dagger CLI rather than continue GC thrashing. Budget: raise the one fixed compiler heap fact from 2,048 to 2,560 MiB in the existing Dagger kernel and regenerate its three contracts; no public API, flag, pin, VM limit or unrelated process change. Acceptance: existing Dagger behavioral fixture, all three generated-contract drift checks, measured fresh portable gate with engine identity/OOM counters and test results. Retain attempt 22 as cancelled and unqualified.
+
+- 15 Oct 2026 WP11 current candidate qualification: the existing listener regression rejects committed code with an IndexOutOfBoundsException; the exact two-file immutable-snapshot proposal passes 63 port/graph tests and the complete native pr gate (1,120 tests, zero failures/errors/skips, 347.687s), with unchanged desktop performance budgets. The owner inclusion decision remains pending under §10.7. Fixed 2,560 MiB compiler contracts are committed at Reaktor c7e4d67c, BestBuds d33b0950 and Manna e3af55b7; the existing Dagger fixture and all three drift checks pass. Manna help/export/drift passes on these heads in 32.118s (configuration/model/contract only). Portable attempt 23 runs these committed sources plus the frozen two-file proposal (tree ac1b357e17d11e390d418b7e4e1fd253eba231e7); no committed-only, pushed-branch or completed-WP11 claim is made.
+
+- WP11 native container platform budget before edits: attempt 23 fails app JavaScript linking when the worker kernel globally OOM-kills its compiler (3,163,904 KiB anonymous RSS; engine counter one to two, engine identity unchanged). The 8.324 GB ARM worker is executing an AMD64 Dagger engine and explicitly forced AMD64 Java/browser containers. Registry manifests confirm the existing pinned Java index and existing Playwright version both include linux/arm64. Budget: one fixed execution-platform fact in the existing Kotlin-owned environment, its three generated contracts, and the existing shared TypeScript adapter reading that fact for both images and the Hermes cache namespace. No public API/task/owner option, image/version/checksum change, VM-memory change or unrelated-service action. Acceptance: existing Dagger fixture and three drift checks, actual ARM Java/Gradle/compiler processes and platform-separated native cache, then the full unchanged measured portable gate. Retain attempt 23 as failed; do not claim desktop/Android runtime coverage from this portable gate.
+
+- 15 Oct 2026 — Native ARM execution correction committed: Reaktor 4c944566, BestBuds f5ef834a, Manna b48dbe8. Existing Dagger fixture, all three generated contract drift checks, and strict shared-adapter TypeScript checks pass. Attempt 24 qualifies the unchanged portableChecks target using these commits plus the exact pending two-file listener proposal (tree 56180f97f2bd213bcfdebbd42fd831109e7c0a0b). The prior amd64-on-ARM attempt 23 failed with a global compiler OOM and remains failed evidence. Original 20 GB storage limits restored; pre-run temp 19.788 GB and remote 12.868 GB. No push or WP12 source work yet.
+
+- 15 Oct 2026 — Repeated actual IntelliJ Build → Sync Project with Gradle Files after the native ARM contract commits. RESOLVE_PROJECT:9 succeeds; resolution 34.811s, complete sync 39.026s. This observes the primary composite working tree with foreign edits preserved. Evidence: qualification/wp11/intellij-arm-sync-{start.json,result.txt}.
+
+- 15 Oct 2026 — ARM compatibility correction budget before edits: actual pinned Android NDK clang --version in the owned ARM container fails with missing x86_64 ELF loader. Preserve those existing Android artifact targets on AMD64. Extend the existing Kotlin Dagger writer to derive per-target platform overrides from Android output kinds over the declared prerequisite graph, encode them in the existing environment map, and let the shared TS adapter read those facts. Extend the existing pipeline fixture and regenerate three contracts; no public API/model field, task, owner option, pin, VM or service change. Acceptance: direct and transitive Android output fixtures choose AMD64 while portable checks retain ARM; three drift checks, strict adapter typecheck, actual pinned NDK startup in AMD64, and unchanged full portable gate. Current attempt 24 remains evidence for its frozen pre-override source only.
+
+- WP11 idle-retention correction budget before edits: attempt 24 completed app JS/JVM tests, but the worker globally killed Java while the completed JS compiler still retained about 3.0 GB RSS. Its daemon log ends after cleaning session 3 at 22:42:46.160 with no shutdown, and the next JVM daemon begins at 22:43:28.479; kernel OOM and process-disappearance evidence correlate that retained compiler. Pinned Kotlin 2.4.21 daemon source keeps lastUsed current during compilation and checks idle lifetime after compilation; clean sessions permit graceful shutdown. Change only the existing fixed idle lifetime from 60 to 5 seconds; preserve compiler heap and all tests, pins, services and VM memory. Acceptance: Dagger fixture and three contract drift checks, then full measured portableChecks with no new OOM kill. Retain the failed run and all test failure evidence.
+
+- WP11 kernel/host correction budget before edits: recovered attempt-24 JUnit XML proves EXPLAIN fails because Android platform-tools/sqlite3 is EM_X86_64=62 and shadows the host in the ARM runner PATH; the batch cancellation regression records five started reads instead of three. Extend only the existing adapter OS package list with sqlite3 and append SDK tools after host tools. Move the existing three-slot admission to each caller of the private connection check, and check the enclosing batch cancellation after acquiring a slot. Extend the existing cancellation regression with repeated runs; preserve all assertions, slot count, authority and public APIs. Budget: existing TypeScript adapter, KernelConnections.kt and KernelConnectionBatchTest.kt, no new task, tool pin, public flag, scheduler or test exclusion. Acceptance: real ARM SQLite EXPLAIN, existing kernel connection/query tests, unchanged complete measured portable gate.
+
+- WP11 host/kernel corrections committed at Reaktor caaf8a90, BestBuds 43658169, Manna f1502438. Dagger fixture and all three generated drift checks pass; strict TypeScript passes; 18 connection/query tests pass, including 25 repeated cancellation runs with every original assertion. The exact pinned Android NDK starts on amd64 (read-only existing SDK evidence), and native ARM SQLite returns the expected INTEGER PRIMARY KEY plan. Attempt 24 remains failed (883 observed tests, two failures, 11 declared skips; global compiler OOM). Fresh full portableChecks attempt 25 starts from these commits plus the same pending two-file listener proposal, tree 1096e3b12655846ca2ae579b77faedd92aaceb4a; OOM counter starts at three. No push or passing CI claim.
+
+- 15 Oct 2026 — WP11 final candidate qualification: Reaktor caaf8a90, BestBuds 43658169 and Manna f1502438 plus the exact two-file listener proposal (tree 1096e3b12655846ca2ae579b77faedd92aaceb4a) passed both local gates. Native pr: 1,120 tests, zero failures/errors/skips, 361.831s. Dagger portableChecks attempt 25: 883 reported tests, 11 existing opt-in/live-service skips, zero failures/errors, 671.9s; sampled engine peak 6.280 GB, OOM counter 3 to 3, unchanged engine identity/no restart. Actual compiler logs show graceful JS shutdown before the next compiler; native ARM SQLite returns the expected index plan. Current Manna help/export/drift passed in 33.604s and actual IntelliJ RESOLVE_PROJECT:10 sync passed in 40.614s. Completed owned node_modules removed; exact original 20 GB storage limits restored, cleanup within both budgets (temporary 19.800 GB; remote 12.868 GB). Inclusion approval for PortCapability.kt and the single LiveGraphReadTest regression remains pending under §10.7. Nothing pushed/PR-created; WP11 shipping and WP12 source work wait for that final approval. Evidence: build/dependeasy/receipts/qualification/wp11-qualification.json.
+
+- 15 Oct 2026 — Read the owner’s updated API and delivery handoffs. WP12/WP13/WP16 follow `dependeasy-api.md`, including delegated names, story vocabulary, typed component scopes and direct Gradle-free kernels. New work uses Maestro for product behavior and direct CLI kernel execution, with existing framework checks retained; no new kernel unit-test suite. The pending WP11 listener inclusion still waits for exact authorization under §10.7. WP19’s independent obsolete-runner cleanup may proceed alongside WP11 as explicitly allowed by delivery-handoff §5; its budget and acceptance are recorded there.
+
+- 15 Oct 2026 — Continued the explicitly independent WP19 cleanup while preserving the WP11 shipping boundary. Cloud compile/process checks, ten existing server checks and three Worker dev dry runs pass; the delivery companion log and qualification/wp19 contain exact scope, source hashes, remaining deployment work and the current Kubernetes TLS validation limit. The API handoff remains authoritative for WP12/13/16. No new kernel unit tests, commits, push, PR or live write. The already-qualified two-file listener inclusion remains the outstanding WP11 owner decision.
+
+- 15 Oct 2026 — Incorporated kernel-handoff.md: K0 follows the WP11 commit, then WP12/WP13 build the product/verify/delivery story directly. K0 source inventory and backup hash are retained under qualification/k0; no K0 source was staged or committed. Independently qualified WP19 Worker action matching: production catalog resolves 36 production/dev variants through 20 model deploy nodes, rejects stale/missing models, and gives no action to undeclared browser/external app-service. Both existing Deploy Maestro flows pass (47.795s). Evidence is qualification/wp19/deploy-matching-candidate.json. WP11's two qualified listener file hashes are unchanged; their pending inclusion approval still gates shipping and K0. No new commit, push, PR or live write.
+
+- 15 Oct 2026 — Owner approved both qualified listener files. Committed only those files as Reaktor 16b08315, preserving the exact qualified tree 1096e3b12655846ca2ae579b77faedd92aaceb4a. Published Reaktor #18, BestBuds #8 and Manna #1 from their authorized branches; no merge. WP11 is complete with native/portable/IntelliJ evidence and its recorded coverage limits. Publication receipt: build/dependeasy/receipts/qualification/wp11/publication.json. K0 now proceeds before WP12 under kernel-handoff D2.
+
+- 15 Oct 2026 — K0 landed after WP11 under owner decision D2. Four scoped commits pushed on existing Reaktor #18 / BestBuds #8; 746 reported module cases, 27 existing skips, zero failures/errors, including the required CLI/MCP owner case. Primary foreign work and staged PDF preserved; only the five approved graph metadata fields joined the candidate. K0 proof and commit mapping live in qualification/k0. WP12 now starts with the 15 Oct product/verify/artifacts/delivery API, following dependeasy-api and kernel-handoff §3.
+
+- 15 Oct 2026 — WP12 budget and acceptance before source edits: implement the approved workspace plugin/story vocabulary (product, verify(parts), artifacts(parts), delivery, typed include roles), five distinct node receivers, delegated Kotlin names and Run modifiers. Use immutable typed specs and one Gradle binding path, preserve cross-build output variants and local routing. Then convert every affected caller, remove the generic workspace/command/package-alias escape hatches and fold the DAG entry into the same vocabulary; no deprecated aliases or toolchain/dependency bumps. Keep generated package commands until each K1 typed-CLI replacement exists, generating them from node + typed options rather than shell text. Device options move to the existing physical-device tasks; component-owned project migration remains WP13. Acceptance: existing TestKit fixture builds (no new kernel unit suite), positive and rejected DSL compilations, runtime model kinds/dependencies/spec sites, configuration-cache reuse, exact API dumps before/after, Gradle-free kernel plan invocation where added, then real Reaktor/BestBuds/Manna configuration/export and IntelliJ sync. First prove one product verification and delivery dependency end to end before widening. Baseline public signatures: BuildWorkspace 17, BuildTarget 22, DependeasyExtension 48, BuildPipeline 6 (constructors included, synthetic bridges excluded); qualification/wp12/public-api-before.*. Preserve all foreign working-tree hunks, and keep this package separate from K0 and WP19.
+
+- 15 Oct 2026 — WP12 model contract qualification: WorkerRef replaces the old scalar worker and separate directory. Advance only the build-model schema from 2 to 3 and reject older schemas before decoding node fields, so retained exports request regeneration instead of failing with a type error. Budget: existing model, reader and schema fixture only; no compatibility branch or new contract. Acceptance: current model round-trip, schema-2 rejection with exportBuildModel guidance, three real exports and consumer compilation.
+
+- 15 Oct 2026 — WP12 qualification in progress: full TestKit/model invocation 20261015-133922-f3c1dd68 succeeds in 2m22s, with final counts pending copied XML. Real Reaktor scripts configure after the Cloudflare ConfigurationRef import; an over-broad qualification command requested its nonexistent generatePackageScripts task and is retained as a failed invocation. Actual IntelliJ RESOLVE_PROJECT:11 identified the new mobile preparation receiver collision; qualified the environment property explicitly. RESOLVE_PROJECT:12 was cancelled after 75.961s, so it is not sync acceptance. Roots/exports, consumer compilation and a successful final IDE import remain required before WP12 delivery. Seven typed external declarations and the release adapter now have explicit WP16 removal conditions in the boundary register.
+
+- 15 Oct 2026 — WP12 real export source-site correction budget before edits: all six three-root invocations pass, but the semantic audit found the automatic prepareNativeTools aggregate has no declaration because settings lifecycle registration has no .gradle.kts stack frame. Extend the existing internal source-site resolver to use an exact Kotlin stack-frame source path within the known dependeasy source roots when no script frame exists. No public API, option, directory scan, task or model-field change. Acceptance: every real story node carries both declaration and kernel source; retain existing source/determinism/cache fixtures and rerun full framework qualification.
+
+- 15 Oct WP12 consumer qualification: the existing unsupported-schema fixture still replaced schema 2 after the wire contract advanced to 3, so its mutation became a no-op. Budget: update that fixture by copying the decoded model with schema = 1, preserving the old-schema rejection assertion; no new API or behaviour. Acceptance: existing CLI declaration/seal checks and Hangar compilation. IntelliJ cancellation traced to Kotlin script import reading the Stubs index while it requires rebuild; temporary method tracing removed and original bytecode restored before IDE cache repair.
+
+- 15 Oct WP12 IntelliJ correction budget before edits: cache rebuild proved RESOLVE_PROJECT:0 succeeds, then reproduced a JavaScript plugin StackOverflowError indexing Hermes parser stress fixtures under each root .github_modules. Add one internal root IDE convention, called by pipeline/workspace plugins, using Gradle IdeaModel.module.excludeDirs for that dependency checkout directory. No authored source, CMake compilation, dependencies or public API changes. Acceptance: existing TestKit root fixture generates the correct IDEA exclusion and reuses configuration cache; real IDE imports the exclusions and repeats sync successfully after index repair. Keep this correction separately evidenced from the already-passed 120 framework checks.
+
+- 15 Oct WP12 IDE source-ownership correction budget before edits: sync now passes twice after the vendored-fixture exclusion, but IntelliJ shows ambiguous duplicate DSL functions. Toolchain/buildSrc declare the full Gradle plugin source directory with compilation filters; IDE source sets consequently overlap. Move only the three existing bootstrap constant objects to one shared bootstrap source directory, compile that exact root in buildSrc/toolchain, and remove the broad roots/filters. No new module, public symbol, option, pin, task or runtime behaviour. Acceptance: unchanged compiled constant signatures, bytecode checks, full framework checks, CLI/Hangar consumers, actual sync and primary-root IDE diagnostics/navigation. Retire only completed owned scratch native outputs to recover the required storage budgets.
+
+- WP12 bootstrap ownership follow-through: include the new bootstrap source root in the existing declaration-freshness policy and extend its existing content-change fixture. This preserves stale-model rejection for the moved constants; no new state or API. The running full-framework source freeze predates this one-line policy addition, so qualify this final model change with the focused existing reader suite before publication.
+
+- 15 Oct WP12 router compatibility budget before edits: the private Gradle-request transport still accepts only build-model schema 2, so a schema-3 node can be planned but cannot execute remotely. Update that existing guard to schema 3 with exportBuildModel regeneration guidance, and extend the existing request-containment fixture to resolve real declared task targets and reject stale schema 2. Keep the separate hosts-layout schema 2, request schema 1, ownership, digest and private-file checks unchanged. Acceptance: existing router checks plus current three-root model resolution through the transport without invoking deployment or device actions; no new flag, state or contract.
+
+- 15 Oct 2026 — WP12 qualified and committed: Reaktor `162ca4f3`, BestBuds `3673e133`, Manna `9db316c`; local tools `10149f5` (no remote configured). Full framework run reports 121 cases in 44 suites with no failures/errors/skips; final bootstrap-freshness reader check passes 7 cases, tooling consumer checks 14, router checks 9; Hangar main/test compilation and all three model/Dagger exports pass. Verified 1,296 Java-21 classes. Repaired IntelliJ's Hermes JavaScript indexing overflow and overlapping toolchain/buildSrc roots; actual composite sync passes repeatedly and primary-script source navigation resolves. Script-receiver members shrink 292→288, while the whole artifact grows with typed specs; the three moved constant objects preserve all 24 signatures. Component declarations and lower-level task/tool receivers remain explicitly assigned to WP13/WP16. Full WP11 CI gates were not repeated for this package. No live deployment/device action, plan publication or unrelated source inclusion. The staged PDF and foreign working-tree hunks remain intact. Exact evidence is in build/dependeasy/receipts/qualification/wp12, with publication mapping in publication.json. WP13 starts next.
+
+- 15 Oct 2026 — WP13 budget and acceptance before source edits: five component plugins (web-app, apple-app, worker-fleet, device-tests, load-tests), contextual component scopes beside the existing library/application plugins, and projects only for existing deployables/suites. Reuse current specs, kernels, output variants and typed node handles; no new handle kind, scheduler, dependency, version or user flag. Product buildSrc contains immutable facts and small declaration composites only. Migrate authored component scripts, move suites/budgets/identity out of roots, and replace script-hosted task actions with owning kernels plus source entry/tag metadata. Preserve generated package aliases until K1 replacements exist. Acceptance: capture all current scripts/model nodes/package commands and representative Gradle dry-run task sets before edits; qualify one real web component through published variants/root verification first; then all component families, existing framework/TestKit checks and configuration-cache reuse, three-root model/contract generation, explicit task-list differences, API/forbidden-script counts and actual IntelliJ sync/navigation. Root declarations must read product → verification → delivery. Keep foreign primary hunks and staged files intact; use the existing qualification scratch checkouts without copying them. WP14 product-default removal and WP15 ambient host-service work remain separate. Baseline and source hashes are in qualification/wp13/scripts-before.json.
+
+- WP13 alias compatibility follow-through before edits: relocating CompanyOS removes its two existing root package command names. Expose the web component's existing bundle/typecheck/build NodeHandles in its contextual scope and reuse the current alias writer there, so scripts preserve package command names as data pointing at typed values. Remove the single buildAlias parameter in favour of this one existing mechanism. Manna also preserves its deploy alias against the declared child value. No new task, handle kind, flag, stored contract or runner. Extend the existing web component fixture to assert all aliases and verification-before-deploy ordering; qualify the real web components and generated command key sets before proceeding.
+
+- WP13 web-budget binding before edits: preserve BestBuds' existing asset metrics, limits and performance report while moving them from the root into appWeb ownership. One immutable WebPerformance fact record and one WebAppScope child declaration bind the existing ArtifactSizeReport and NodeGenerator adapter; product buildSrc holds the facts. Keep the existing adapter pending WP16, with no new measurement implementation, task class, runner or budget choice. Publish it through the component's verification role, retain all package aliases and root report paths, and compare the real bundle/report and dry-run dependencies.
+
+- 15 Oct 2026 — WP13 web migration in progress: CompanyOS earlier component build passes (13 files, 9,383,799 bytes), and expanded web/DSL fixtures pass 10 cases with 1,326 Java-21 classes. Primary IntelliJ composite import RESOLVE_PROJECT:5 succeeds in 73.318s; CompanyOS script has green inspections and webApp declaration navigation opens the Kotlin source. Web budgets now belong to appWeb with immutable product facts; docs and Manna web use component projects, and legacy package command names are retained as typed aliases. These newest budget/docs changes still need behavioral and real-build qualification. Manna retry reached Vitest but failed loading a non-explicit-relative generated tsconfig; its extends spelling is corrected locally, unqualified. Thunderbolt 10.77.77.2 now routes through Wi-Fi and SSH times out; the final framework wrapper failed before Gradle. Reconnect/wake question is pending. Resume remote run 20261015-161051-a51f6fb4-manna before synchronizing new worker source, then qualify the current frozen scope, aliases/cache, remaining component families and roots. No WP13 commit/publication or live action. Evidence and exact outstanding acceptance: qualification/wp13/progress.json.
+
+- WP13 connectivity follow-through: the owner reports m1-worker reconnected and awake, but local Thunderbolt interfaces and bridge remain inactive, the hardware inventory sees only the Dell display, and SSH still times out through the Wi-Fi route. IP configuration is intact; no network configuration or routing override was made. Independent pinned Vite 8.3.4/Oxc reproduction confirms the Manna tsconfig correction: with the referenced file present, bare build/... fails with the same TSCONFIG_ERROR and explicit ./build/... succeeds. This qualifies parser resolution only; the real Manna build and latest framework/web budget checks remain required. Evidence: qualification/wp13/tsconfig-relative-check.{mjs,json} and progress.json. No new source edit or WP13 publication.
+
+- 16 Oct 2026 — WP13 resumed after interruption. Worker framework run 20261015-173737-39ca9ff0-reaktor actually completed successfully: 12 tests across WebContracts, DslEntryPoints and TypedKernelExecution, zero failures/errors/skips, 1334 Java 21 classes; normal recovery copied 30935 files without error. Manna explicit-relative tsconfig retry reaches 54 passing tests but 83 suites fail package resolution: generated Manna-domain metadata exists before the tests, while the authored manna-domain facade still points at its obsolete export directory. Correction budget before edits: extend the existing WebContractTask facade-to-producer mapping using same-owner manifest and entry-file metadata, plus its existing behavioral/cache fixture; no new public API, path convention, package pin or runtime edit. Acceptance: direct facade mapping without a workspace dependency, unrelated same-filename isolation, cache/input freshness, then actual Manna tests/types/Vite/Pagefind and aliases. Both temporary storage budgets remain below 20 GB.
+
+- 16 Oct 2026 — WP13 package-alias comparison found that component-backed root deployments lose their generated aliases: PackageScriptsTask selection only includes worker-metadata targets, external calls and releases. Extend that existing selection to the existing Deploy kind and assert the root alias in the existing web-component fixture. Budget: one predicate and fixture assertion, no new script spelling or API; old alias keys must survive until K1. BestBuds CompanyOS missing aliases are in the current source but await latest package regeneration.
+
+- 16 Oct 2026 — WP13 typed dependency budget before edits: two contextual dependency receivers at the existing KMP and JVM bindings, with api/implementation ModuleHandle overloads and JVM testImplementation where used; reuse Gradle/KGP notation for all other dependencies. Replace apiReaktor and authored .coordinate calls, and delete apiReaktor after its final consumer migrates. No CharSequence implementation, reflection, notation registry, new module, pin or option. Extend existing DSL entry fixtures to inspect actual dependency coordinates (single and multiple handles, ordinary project/Kotlin notations, configuration-cache reuse); then qualify three real root models and IntelliJ. This addresses KGP api(Any) shadowing extensions instead of merely renaming calls.
+
+- 16 Oct 2026 — WP13 settings option budget before edits: move the existing option resolver into the toolchain binding and give Settings the same resolve/option overloads as Project, using the existing model dependency and canonical BuildOption types. Preserve all current resolution precedence and strict parsing. BestBuds settings declares IncludeManna and CI through BuildOption; CI presence, including empty text, remains a hard exclusion via existing OptionSource evidence. No new model type, option name, module, pin or fallback. Extend the existing settings fixture with default/property/system/command-line and empty-environment evidence plus cache invalidation/reuse; rerun existing option checks, all three real models and IntelliJ. Keep this source separate from the already-frozen web qualification until that run completes.
+
+- WP13 settings preflight constraint: toolchain currently has no model runtime dependency, which protects the WP1 compiler/plugin classpath split. Do not add the entire model/kernel jar to toolchain merely for BuildOption. The preceding proposed resolver move is not implemented; qualify a narrow options boundary before changing this dependency direction. Web qualification remains on the unchanged toolchain.
+
+- 16 Oct 2026 — WP13 real BestBuds export exposed an eager task-output read in the new web-budget adapter: model serialization resolves its argv before measurements execute. Correct only this binding to use the immutable declared report location for argv, while retaining the producer-backed input and explicit measurement dependency. Extend the existing web-component fixture to export the budget node and reuse configuration cache, then rerun the real web/model command. No new task, API, runner or budget policy.
+
+- 16 Oct 2026 — WP13 load-test component budget before edits: add the approved load-tests plugin and a loadTests declaration over an enum-keyed immutable LoadSuite table (Karate/K6 cases, required/optional environment-file paths, tags and PackageScript aliases). Enum identifiers are the node names; no name rewriting or lookup. Reuse the existing pinned suite kernels and WorkspaceCompletion verification variant, with root-relative execution/source semantics and component-owned reports. Move all 16 BestBuds standalone suites and 22 aliases to targets/loadTests and immutable buildSrc facts, preserving manual-only root selection. Delete migrated workspace suite declarations, retaining the existing internal fleet binding. Extend the existing pinned real-HTTP framework case to cover the component, root variant, aliases, export privacy, optional-file presence and configuration-cache reuse; compare every real suite spec/alias and dry-run against baseline. No new scheduler, tool, dependency, version or user flag.
+
+- 16 Oct 2026 — WP13 transport follow-through before edits: the real web build passes but its budget node has no declared artifact family, causing a conservative full transfer and a storage-limit refusal on the next command. Extend the existing internal task reference binding with an artifact-family override and mark the two web-budget tasks as web; output kinds and tool routing stay unchanged. Extend the existing web component fixture to assert both model and hosts contract families, then qualify the real mixed web command and cache reuse. No new public API, output kind, option, pin, transfer heuristic or scheduler. Retire only completed task-owned native packaging outputs and transferred payloads, retaining reports and source.
+
+- 16 Oct 2026 — WP13 cross-host web acceptance correction before edits: normal routing sent Manna's repeat to this Mac; all 796 tests passed, then Vite could not find SQLite under the obsolete root build/js/node_modules path. The installed dependency exists in the declared Reaktor.Db Kotlin library's exported dependency context. Add one contextual WebAppScope.assets(from: OutputHandle, paths: List<WebAsset>) declaration, restricted to the existing KotlinJsLibrary kind, and bind its paths through that published output and dependency context. Reuse WebAsset, WebContractTask assets, existing producer edges and bundle source inputs; remove the two authored generated-build paths from Manna. Budget: one scope method and its internal binding, no new type, handle kind, task, schema, tool, pin, fallback or option. Acceptance: extend the existing web-component fixture to resolve the declared dependency asset and retain cache reuse; real Manna tests/types/Vite/Pagefind on normal routing, plus unchanged BestBuds web acceptance. Retain the failed local attempt; no cached-worker-only claim.
+
+- 16 Oct 2026 — WP13 follow-through: all 16 load suites preserve their normalized execution specs, 22 aliases and 18 dry-run tasks after ownership/report moves; the repeat reuses configuration cache. All 6 web-contract cases pass on the dependency-assets revision, including byte-change invalidation of the bundle alone and cache reuse. Primary IntelliJ RESOLVE_PROJECT:10 succeeds in 66.931s resolution (73.300s full sync) with 17 source hashes verified. Merged 53 generated package commands across 7 changed manifests, preserving all 167 authored scripts and unrelated package fields. Manna run 20261016-131453-7fc1f17c-manna lost SSH during tests; its final result is unknown and must be recovered before synchronizing source. Thunderbolt hardware sees only the Dell display; bridge/en3 are inactive despite intact static configuration. Final Manna tests/types/Vite/Pagefind, actual SQLite assets and BestBuds unchanged warm-cache acceptance remain unqualified; WP13 remains in progress and uncommitted. See qualification/wp13/progress.json.
+
+- 16 Oct 2026 — WP13 resumed after owner restored Thunderbolt. Recovered 20261016-131453-7fc1f17c-manna: exit 1, 790 passing tests with two Vitest worker startup timeouts; retained as a failed attempt, with no cause asserted. Fresh Manna tests/types/Vite/Pagefind pass 99 files/796 tests on both routes; the two SQLite dist assets byte-match the published Reaktor.Db dependency. Unchanged worker repeat 20261016-140829-dde42fbf-manna passes in 9s with configuration-cache reuse. BestBuds CompanyOS/appWeb budgets/Reaktor Web/docs pass twice in 20261016-135654-d24ad8e8-bestbuds and 20261016-140238-cd687cfd-bestbuds; both web-only transfers complete without copy errors, and the repeat reuses cache. Dagger child ownership and removal of the unused compose-flow parity report are implemented but remain under qualification. Fresh baseline contracts/task trees, framework fixtures, all-root cache checks and a new IntelliJ sync are required before accepting that slice. WP13 remains in progress, unpublished and uncommitted.

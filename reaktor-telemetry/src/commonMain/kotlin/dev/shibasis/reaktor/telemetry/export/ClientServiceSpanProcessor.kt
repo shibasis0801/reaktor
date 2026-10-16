@@ -53,6 +53,9 @@ internal class ClientServiceSpanProcessor(private val sink: SpanSink) : SpanProc
             build = attributes[ServiceCall.BuildAttribute] as? String ?: "",
             node = attributes[ReaktorAttributes.NodeId] as? String ?: "",
             graphDigest = attributes[ServiceCall.GraphAttribute] as? String ?: "",
+            port = attributes[ReaktorAttributes.PortId] as? String ?: "",
+            edge = attributes[ReaktorAttributes.EdgeId] as? String ?: "",
+            activation = attributes[ReaktorAttributes.ActivationId] as? String ?: "",
         ))
     }
 

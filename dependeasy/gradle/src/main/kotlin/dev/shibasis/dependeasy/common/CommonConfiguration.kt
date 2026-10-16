@@ -4,21 +4,20 @@ import dev.shibasis.dependeasy.Versions
 import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 open class Configuration<Target> {
-    internal var dependencies: KotlinDependencyHandler.() -> Unit = {}
+    internal var dependencies: KotlinDependencies.() -> Unit = {}
         private set
     internal var sourceSetModifier: KotlinSourceSet.() -> Unit = {}
         private set
 
-    internal var testDependencies: KotlinDependencyHandler.() -> Unit = {}
+    internal var testDependencies: KotlinDependencies.() -> Unit = {}
         private set
 
     internal var targetModifier: Target.() -> Unit = {}
 
-    fun dependencies(fn: KotlinDependencyHandler.() -> Unit) {
+    fun dependencies(fn: KotlinDependencies.() -> Unit) {
         this.dependencies = fn
     }
 
@@ -26,7 +25,7 @@ open class Configuration<Target> {
         this.sourceSetModifier = fn
     }
 
-    fun testDependencies(fn: KotlinDependencyHandler.() -> Unit) {
+    fun testDependencies(fn: KotlinDependencies.() -> Unit) {
         this.testDependencies = fn
     }
 
@@ -56,14 +55,14 @@ fun KotlinMultiplatformExtension.common(
         commonMain {
             configure.sourceSetModifier(this)
             dependencies {
-                configure.dependencies(this)
+                configure.dependencies(KotlinDependencies(this))
             }
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(kotlin("test-annotations-common"))
             implementation(Versions.Kotlin.CoroutinesTest)
-            configure.testDependencies(this)
+            configure.testDependencies(KotlinDependencies(this))
         }
     }
 }

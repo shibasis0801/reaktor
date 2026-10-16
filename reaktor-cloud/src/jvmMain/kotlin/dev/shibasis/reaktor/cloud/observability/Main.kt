@@ -3,10 +3,6 @@ package dev.shibasis.reaktor.cloud.observability
 import com.pulumi.Pulumi
 import com.pulumi.core.Output
 
-/**
- * Mirrors index.ts — wires the modules and exports the datasource/dashboard UIDs that the
- * Cloud pane and deep-links consume (cloudflareDashboardUid, supabaseDashboardUid, ...).
- */
 fun main() {
     Pulumi.run { ctx ->
         val g = grafana(ctx)

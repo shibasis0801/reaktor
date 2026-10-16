@@ -22,6 +22,8 @@ import platform.darwin.NSObject
 object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
     private var configured = false
     private var started = false
+    private var forgetting = false
+    private var fetchAfterForget = false
     private val messaging get() = AppleRemoteMessagingRuntime.current()
 
     private val notificationCenterDelegate =
@@ -72,16 +74,27 @@ object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
         AppleRemoteMessagingRuntime.observeToken { token -> IosNotificationsRuntime.current()?.recordFcmToken(token) }
         IosNotificationsRuntime.installRemoteTransportStarter { Dispatch.Main.launch { start() } }
         IosNotificationsRuntime.installRemoteTokenForgetter {
-            messaging.deleteToken { error -> if (error != null) Logger.w { "Could not delete the FCM token: ${error.localizedDescription}" } }
+            forgetting = true
+            messaging.deleteToken { error ->
+                if (error != null) Logger.w { "Could not delete the FCM token: ${error.localizedDescription}" }
+                Dispatch.Main.launch {
+                    forgetting = false
+                    if (fetchAfterForget) {
+                        fetchAfterForget = false
+                        fetchToken()
+                    }
+                }
+            }
         }
         configured = true
     }
 
     private fun start() {
-        if (started) return
-        UNUserNotificationCenter.currentNotificationCenter().delegate = notificationCenterDelegate
-        messaging.autoInit(true)
-        started = true
+        if (!started) {
+            UNUserNotificationCenter.currentNotificationCenter().delegate = notificationCenterDelegate
+            messaging.autoInit(true)
+            started = true
+        }
         UIApplication.sharedApplication.registerForRemoteNotifications()
     }
 
@@ -91,6 +104,10 @@ object DarwinRemoteMessaging : AppLaunchHandler, RemoteNotificationHandler {
         IosNotificationsRuntime.current()?.recordApnsToken(deviceToken)
         started = true
         messaging.setApnsToken(deviceToken)
+        if (forgetting) fetchAfterForget = true else fetchToken()
+    }
+
+    private fun fetchToken() {
         messaging.requestToken { token, error ->
             when {
                 error != null -> Logger.e(error.localizedDescription) { "Failed to fetch FCM token" }

@@ -280,10 +280,10 @@ dependeasy {
 }
 ```
 
-Run `generateDagger generatePackageScripts` after changing delivery declarations;
+Run `:pipeline:generateDagger generatePackageScripts` after changing delivery declarations;
 Dagger source and `dagger.json` are generated together, including the Kotlin-owned
 engine pin. CI reads that generated version instead of keeping another literal.
-`verifyDagger` detects stale checked-in output. `buildGraph` imports active package
+`:pipeline:verifyDagger` detects stale checked-in output. `buildGraph` imports active package
 scripts directly from authored manifests. Generated aliases point back to Gradle;
 manifest dependencies and other authored commands remain in `package.json`.
 With `packageScripts()`, frozen pnpm installation depends on alias generation.

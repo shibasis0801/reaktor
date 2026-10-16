@@ -10,6 +10,7 @@ dependeasy {
                 api(projects.reaktorService)
                 api(projects.reaktorDb)
                 api(Versions.Data.Koin)
+                implementation(Versions.Data.Okio)
             }
         }
         android {}

@@ -11,6 +11,7 @@ import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.api.RefreshRequest
 import dev.shibasis.reaktor.auth.api.RefreshResponse
+import dev.shibasis.reaktor.auth.api.LogoutAllRequest
 import dev.shibasis.reaktor.auth.api.LogoutRequest
 import dev.shibasis.reaktor.auth.api.TokenSet
 import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
@@ -211,6 +212,17 @@ abstract class AuthAdapter<Controller>(
             Logger.e(error) { "Account deactivation request failed" }
             DeactivateAccountResponse(statusCode = StatusCode.INTERNAL_SERVER_ERROR)
         }
+    }
+
+    suspend fun logoutEverywhere(appId: String, environment: Environment = activeEnvironment): Boolean {
+        val headers = sessionHeaders(environment)
+        if (headers.isEmpty()) return false
+        return runCatching {
+            authClient.sessionLogoutAll(LogoutAllRequest(audience = appId, headers = headers, environment = environment)).statusCode == StatusCode.OK
+        }.onFailure { error ->
+            if (error is CancellationException) throw error
+            Logger.e(error) { "Signing out every session failed" }
+        }.getOrDefault(false)
     }
 
     suspend fun accessToken(): String? = if (sessionStore != null) sessionStore.read(activeEnvironment)?.tokens?.accessToken

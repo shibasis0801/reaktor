@@ -21,6 +21,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         baseConfiguration.set(runtime.file("tsconfig/base.json"))
         packageManifests.from(linkedPackageInputs(listOf(this@JavaScriptComponent.directory.resolve("package.json")))
             .filter { it.parentFile != this@JavaScriptComponent.directory.canonicalFile })
+        packageManifests.from(workspace.manifests.matching { exclude("**/build/**") })
         mustRunAfter(project.rootProject.tasks.withType(dev.shibasis.dependeasy.workspace.PackageScriptsTask::class.java))
         contract.set(project.layout.buildDirectory.file("dependeasy/web/${this@JavaScriptComponent.name}.json"))
         typeScriptConfiguration.set(project.layout.buildDirectory.file("dependeasy/web/${this@JavaScriptComponent.name}.tsconfig.json"))
@@ -39,6 +40,24 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         contract.configure { assets.putAll(paths.associate { it.first to project.file(it.second).relativeTo(root).invariantSeparatorsPath }) }
     }
 
+    internal fun dependencyAssets(from: OutputHandle, paths: List<WebAsset>): org.gradle.api.provider.Provider<Map<String, java.io.File>> {
+        require(from.kind == OutputKind.KotlinJsLibrary) { "Dependency assets need a Kotlin library output" }
+        require(paths.all { !java.io.File(it.source).isAbsolute && ".." !in it.source.split('/') }) {
+            "An asset path must stay within the library's installed dependencies"
+        }
+        val files = project.outputFiles(from)
+        val assets = files.elements.map { outputs ->
+            val dependencies = outputs.single().asFile.parentFile.resolve("node_modules")
+            paths.associate { it.destination to dependencies.resolve(it.source) }
+        }
+        val root = directory
+        contract.configure {
+            dependsOn(files)
+            this.assets.putAll(assets.map { entries -> entries.mapValues { it.value.relativeTo(root).invariantSeparatorsPath } })
+        }
+        return assets
+    }
+
     fun build(target: String, vararg projects: String,
               bundle: TaskProvider<out ProcessTask> = vite(),
               typecheck: TaskProvider<out org.gradle.api.Task> = types(*projects),
@@ -50,7 +69,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         val result = BuildWorkspace.get(project).aggregate(project, target, NodeKind.ArtifactSet,
             listOf(project.node(bundle).after(types, *generators.map { project.node(it) }.toTypedArray())))
         val build = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
-        build.alias(project.rootDir, target, result)
+        if (project == project.rootProject) build.alias(project.rootDir, target, result)
         if (bundle.name !in buildScriptTasks) build.alias(directory, "build", result)
         return project.node(requireNotNull(result.task), OutputKind.BrowserBundle)
     }

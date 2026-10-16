@@ -91,12 +91,14 @@ fun Graph.shape(): GraphShape {
     val wires = mutableListOf<WireShape>()
     val routes = mutableListOf<RouteShape>()
 
+    val visited = mutableSetOf<Graph>()
     fun visit(graph: Graph, container: ContainerNode?) {
+        if (!visited.add(graph)) return
         val scope = graph.id.toString()
         scopes += ScopeShape(
             id = scope,
             label = container?.labelOf(graph) ?: graph.label.ifBlank { "Graph" },
-            parent = container?.graph?.id?.toString(),
+            parent = if (graph === this) null else container?.graph?.id?.toString() ?: graph.parentGraph?.id?.toString(),
             container = container?.id?.toString(),
             active = container?.shows(graph) ?: true,
             backStack = graph.backStack.entries.value.mapNotNull { (it.edge.end as? Node)?.id?.toString() },
@@ -150,10 +152,11 @@ fun Graph.shape(): GraphShape {
                 routes += dormant.routes
             }
         }
+        graph.ownedGraphs.values().forEach { visit(it, null) }
     }
 
     visit(this, null)
-    return GraphShape(scopes, nodes, wires, routes)
+    return GraphShape(scopes, nodes, wires, routes).withDefinitionIdentity()
 }
 
 const val DormantLifecycle = "Dormant"
@@ -169,12 +172,14 @@ fun Graph.shapes(): Flow<GraphShape> = flow {
 
 private val InternalPorts = setOf("routeBinding", "navBinding")
 
-private fun Graph.watched(): List<Flow<*>> = buildList {
+private fun Graph.watched(visited: MutableSet<Graph> = mutableSetOf()): List<Flow<*>> = buildList {
+    if (!visited.add(this@watched)) return@buildList
     add(backStack.entries)
     nodes.toList().filterIsInstance<ContainerNode>().forEach { container ->
         addAll(container.changes)
-        container.graphs.toList().forEach { addAll(it.watched()) }
+        container.graphs.toList().forEach { addAll(it.watched(visited)) }
     }
+    ownedGraphs.values().forEach { addAll(it.watched(visited)) }
 }
 
 private fun Node.portShapes(graph: Graph): List<PortShape> =

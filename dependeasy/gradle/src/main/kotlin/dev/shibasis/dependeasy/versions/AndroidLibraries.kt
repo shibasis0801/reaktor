@@ -4,6 +4,8 @@ import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 
 object AndroidLibraries {
+    const val PdfViewer = "androidx.pdf:pdf-viewer:1.0.0-beta01"
+    const val PdfDocumentService = "androidx.pdf:pdf-document-service:1.0.0-beta01"
     const val CoreKtx = "androidx.core:core-ktx:1.7.0"
     const val CollectionKtx = "androidx.collection:collection-ktx:1.2.0"
     const val ActivityKtx = "androidx.activity:activity-ktx:${Versions.Activity}"

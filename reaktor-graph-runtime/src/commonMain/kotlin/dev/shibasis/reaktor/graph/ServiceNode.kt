@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.graph
 
 import dev.shibasis.reaktor.core.framework.kSerializer
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.shape
+import dev.shibasis.reaktor.service.ServiceCall
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.Key
@@ -44,15 +46,40 @@ open class ServiceNode(
         val serviceLabel: String = service::class.simpleName ?: "ServiceNode",
 ) : BasicNode(graph) {
     override val kind: NodeKind get() = NodeKind.Service
+    private val bindings = service.handlers.associateWith { handler ->
+        val binding: () -> Map<String, String> = {
+            var root = graph
+            while (root.parentGraph != null) root = requireNotNull(root.parentGraph)
+            val shape = root.shape()
+            val node = shape.nodes.singleOrNull { it.id == id.toString() }
+            val port = node?.ports?.singleOrNull { it.provides && it.key == handler.endpoint.portKey }
+            buildMap {
+                put(ServiceCall.NodeAttribute, node?.definitionId.orEmpty())
+                put(ServiceCall.GraphAttribute, shape.definitionDigest)
+                put(ServiceCall.PortAttribute, port?.definitionId.orEmpty())
+                if (handler.phase == dev.shibasis.reaktor.service.ServiceExecutionPhase.SERVER)
+                    put(ServiceCall.ActivationAttribute, root.id.toString())
+            }
+        }
+        binding
+    }
 
     init {
         service.handlers.forEach { handler ->
+            handler.executionAttributes = bindings[handler]
             registerProvider(
                     Key(handler.endpoint.portKey),
                     Type(operationPortType(handler.endpoint.operation, handler.requestSerializer, handler.responseSerializer)),
                     handler
             )
         }
+    }
+
+    override fun close() {
+        bindings.forEach { (handler, binding) ->
+            if (handler.executionAttributes === binding) handler.executionAttributes = null
+        }
+        super.close()
     }
 
     override fun toString(): String {

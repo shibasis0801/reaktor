@@ -1,9 +1,13 @@
 package dev.shibasis.reaktor.auth.services
 
+import dev.shibasis.reaktor.auth.AuthPrincipals
+import dev.shibasis.reaktor.auth.Memberships
 import dev.shibasis.reaktor.auth.RefreshToken
 import dev.shibasis.reaktor.auth.RefreshTokens
 import dev.shibasis.reaktor.auth.Session
 import dev.shibasis.reaktor.auth.Sessions
+import dev.shibasis.reaktor.auth.kernel.MembershipStatus
+import dev.shibasis.reaktor.auth.kernel.PrincipalStatus
 import dev.shibasis.reaktor.core.framework.EMPTY_JSON
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -143,6 +147,7 @@ class SessionRefreshService(
             .map { Sessions.toDto(it) }
             .firstOrNull() ?: return@txn null
         if (now > session.expiresAt) return@txn null
+        if (!session.stillAllowed()) return@txn null
 
         val raw = randomRefreshToken()
         RefreshTokens.insert {
@@ -155,6 +160,21 @@ class SessionRefreshService(
             )
         }
         RotatedSession(session, raw)
+    }
+
+    private fun Session.stillAllowed(): Boolean {
+        val principal = UUID.fromString(principalId)
+        val principalActive = AuthPrincipals.selectAll()
+            .where { (AuthPrincipals.id eq principal) and (AuthPrincipals.status eq PrincipalStatus.ACTIVE) }
+            .any()
+        if (!principalActive) return false
+        return Memberships.selectAll()
+            .where {
+                (Memberships.principalId eq principal) and
+                    (Memberships.appId eq UUID.fromString(appId)) and
+                    (Memberships.status eq MembershipStatus.ACTIVE)
+            }
+            .any()
     }
 
     /** Revoke every session of a principal (logout-all / "sign out everywhere"). Returns the session count revoked. */

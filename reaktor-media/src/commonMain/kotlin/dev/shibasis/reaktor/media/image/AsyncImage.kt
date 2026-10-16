@@ -13,6 +13,7 @@ fun AsyncImage(
     contentDescription: String = "url",
     contentScale: ContentScale = ContentScale.FillBounds,
     onSize: ((Size) -> Unit)? = null,
+    onError: (() -> Unit)? = null,
 ) {
     CoilAsyncImage(
         model = url,
@@ -20,6 +21,7 @@ fun AsyncImage(
         modifier = modifier,
         contentScale = contentScale,
         onSuccess = onSize?.let { report -> { loaded -> report(loaded.painter.intrinsicSize) } },
+        onError = onError?.let { report -> { report() } },
     )
 }
 

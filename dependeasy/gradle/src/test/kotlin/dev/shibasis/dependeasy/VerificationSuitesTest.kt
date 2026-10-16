@@ -156,7 +156,8 @@ class VerificationSuitesTest {
         server.start()
         try {
             val url = "http://127.0.0.1:${server.address.port}/fixture"
-            write("settings.gradle.kts", "rootProject.name = \"pinnedVerificationFixture\"")
+            write("settings.gradle.kts", "rootProject.name = \"pinnedVerificationFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"load\")")
+            write("package.json", """{"name":"pinned-verification-fixture","private":true}""")
             write("suite/input.feature", """
                 Feature: local service qualification
                 Scenario: fetch declared service
@@ -171,24 +172,63 @@ class VerificationSuitesTest {
                 export const options = { vus: 1, iterations: 1, thresholds: { checks: ['rate==1'] } };
                 export default function() {
                   const response = http.get('$url');
-                  check(response, { 'declared service': value => value.status === 200 && value.json('value') === 'passed' });
+                  check(response, {
+                    'declared service': value => value.status === 200 && value.json('value') === 'passed',
+                    'required environment wins': () => __ENV.FIXTURE_PRIORITY === 'required'
+                  });
                 }
             """.trimIndent())
             write("config/karate-config.js", "function fn() { return {}; }")
+            write("config/required.env", "FIXTURE_PRIORITY=required\n")
+            write("load/build.gradle.kts", """
+                import dev.shibasis.dependeasy.components.loadTests
+                import dev.shibasis.dependeasy.model.*
+                plugins { id("dev.shibasis.dependeasy.load-tests") }
+                enum class Suites(val spec: LoadSuite) {
+                    realKarate(LoadSuite.Karate("suite", "config",
+                        environmentFiles = listOf("config/required.env"),
+                        optionalEnvironmentFiles = listOf("config/optional.env"),
+                        aliases = listOf(PackageScript("karate:fixture")))),
+                    realK6(LoadSuite.K6("suite/input.js",
+                        environmentFiles = listOf("config/required.env"),
+                        optionalEnvironmentFiles = listOf("config/optional.env"),
+                        aliases = listOf(PackageScript("k6:fixture"))));
+                }
+                loadTests(Suites.entries.associateWith { it.spec })
+            """.trimIndent())
             write("build.gradle.kts", """
-                plugins { id("dev.shibasis.dependeasy.pipeline") }
-                dependeasy.workspace {
-                    val realKarate by karateSuite("suite/input.feature", "config")
-                    val realK6 by k6Suite("suite/input.js")
-                    val qualification by verify { include(realKarate, realK6) }
+                plugins { id("dev.shibasis.dependeasy.workspace") }
+                workspace {
+                    val qualification by verify(projects.load)
+                    packageScripts()
                 }
             """.trimIndent())
-            GradleRunner.create().withProjectDir(root).withPluginClasspath()
-                .withArguments("qualification", "--configuration-cache", "--stacktrace").build()
+            fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(root).withPluginClasspath()
+                .withArguments(*(tasks.toList().ifEmpty { listOf("qualification", "exportBuildModel", "generatePackageScripts") }).toTypedArray(),
+                    "--configuration-cache", "--stacktrace").build()
+            run("exportBuildModel", "generatePackageScripts")
+            run()
             assertEquals(2, requests.get())
-            assertTrue(root.resolve("build/reports/karate/realKarate").walkTopDown().any { it.isFile })
-            val summary = BuildModelReader.json.parseToJsonElement(root.resolve("build/reports/k6/realK6.json").readText())
+            assertTrue(root.resolve("load/build/reports/karate/realKarate").walkTopDown().any { it.isFile })
+            val summary = BuildModelReader.json.parseToJsonElement(root.resolve("load/build/reports/k6/realK6.json").readText())
             assertContains(summary.toString(), "checks")
+            val scripts = BuildModelReader.json.parseToJsonElement(root.resolve("package.json").readText()).toString()
+            assertContains(scripts, "./gradlew :load:realKarate")
+            assertContains(scripts, "./gradlew :load:realK6")
+            assertContains(run().output, "Reusing configuration cache")
+            assertEquals(4, requests.get())
+            write("config/optional.env", "PRIVATE_OPTIONAL=never-export-this-value\nFIXTURE_PRIORITY=optional\n")
+            run()
+            val model = BuildModelReader.read(root)
+            val specs = model.nodes.filter { it.id.project == ":load" }.mapNotNull { it.kernel?.spec }
+            assertContains(specs.filterIsInstance<KernelSpec.KarateSuite>().single().execution.environmentKeys, "PRIVATE_OPTIONAL")
+            assertContains(specs.filterIsInstance<KernelSpec.K6Suite>().single().execution.environmentKeys, "PRIVATE_OPTIONAL")
+            assertFalse(root.resolve(BuildModelReader.RelativePath).readText().contains("never-export-this-value"))
+            assertContains(run().output, "Reusing configuration cache")
+            assertTrue(root.resolve("config/optional.env").delete())
+            run()
+            val withoutOptional = BuildModelReader.read(root).nodes.mapNotNull { it.kernel?.spec }.filterIsInstance<KernelSpec.K6Suite>().single()
+            assertFalse("PRIVATE_OPTIONAL" in withoutOptional.execution.environmentKeys)
         } finally { server.stop(0) }
     }
 

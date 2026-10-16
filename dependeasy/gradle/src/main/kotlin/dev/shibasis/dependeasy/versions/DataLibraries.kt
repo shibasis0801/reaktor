@@ -4,8 +4,9 @@ import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 
 object DataLibraries {
-    const val Toml = "org.tomlj:tomlj:${Versions.Tomlj}"
     const val OkHttp = "com.squareup.okhttp3:okhttp:${Versions.OkHttp}"
+    const val Okio = "com.squareup.okio:okio:${Versions.Okio}"
+    const val Toml = "org.tomlj:tomlj:${Versions.Tomlj}"
     const val SQLiteJdbc = "org.xerial:sqlite-jdbc:3.49.1.0"
     const val Apollo = "com.apollographql.apollo:apollo-runtime:${Versions.Apollo}"
     const val Exposed = "org.jetbrains.exposed:exposed-core:${Versions.Exposed}"

@@ -246,6 +246,26 @@ class NotificationContractsTest {
         assertEquals("alert", apns.getValue("headers").jsonObject["apns-push-type"]?.jsonPrimitive?.content)
     }
 
+    @Test
+    fun aKnownBadgeReachesTheIconAndTheDataMap() {
+        val message = conversationPayload("ios", emptyList()).copy(badge = 4).fcmMessage()
+        val aps = message.getValue("apns").jsonObject.getValue("payload").jsonObject.getValue("aps").jsonObject
+
+        assertEquals("4", aps["badge"]?.jsonPrimitive?.content)
+        assertEquals("4", message.getValue("data").jsonObject["reaktor_badge"]?.jsonPrimitive?.content)
+        assertFalse("badge" in conversationPayload("ios", emptyList()).fcmMessage().getValue("apns").jsonObject.getValue("payload").jsonObject.getValue("aps").jsonObject)
+    }
+
+    @Test
+    fun aClearMessageKeepsItsTypeAndConversation() {
+        val payload = conversationPayload("android", listOf(NotificationPresentationFeature.DataMessages.capabilityName)).copy(type = NotificationEnvelope.ClearType)
+        val envelope = NotificationEnvelope.fromDataMap(payload.providerData())
+
+        assertEquals(NotificationEnvelope.ClearType, envelope.type)
+        assertEquals("c-1", envelope.content.conversation?.id)
+        assertFalse("notification" in payload.fcmMessage())
+    }
+
     private fun conversationPayload(platform: String, capabilities: List<String>) = NotificationDispatchPayload(
         deliveryId = "delivery-2",
         notificationId = "notification-2",

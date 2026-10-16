@@ -1,0 +1,542 @@
+{
+  "experimentDate": "2026-10-13",
+  "handoffPrepared": "2026-10-16",
+  "evidenceRecovery": "Original worker JSON and log records read on 16 October; assertions replayed over recorded results, no compiler/analyzer/model reruns.",
+  "host": "m1-worker",
+  "workerDirectory": "/Users/ovd/dev/offload/kotlin-tools-20261013",
+  "productionEditsInExperiment": 0,
+  "modelCallsInToolExperiment": 0,
+  "versionsAsCaptured": {
+    "analysis": "2.5.0-Beta2-71",
+    "targetCompiler": "2.4.21",
+    "openRewrite": "8.90.4",
+    "openRewriteAdvertisedLatest": "8.93.3 (authenticated repository)",
+    "astGrep": "ast-grep 0.50.0",
+    "scipKotlinPublished": "0.13.1"
+  },
+  "corpus": {
+    "files": 3059,
+    "bytes": 19685653,
+    "groups": {
+      "bestbuds:androidMain": 4,
+      "bestbuds:commonMain": 314,
+      "bestbuds:commonTest": 39,
+      "bestbuds:iosMain": 3,
+      "bestbuds:jsMain": 82,
+      "bestbuds:jsTest": 11,
+      "bestbuds:jvmMain": 284,
+      "bestbuds:jvmTest": 171,
+      "bestbuds:other": 267,
+      "manna:commonMain": 204,
+      "manna:commonTest": 44,
+      "manna:iosMain": 1,
+      "manna:jsMain": 16,
+      "manna:other": 3,
+      "reaktor:androidInstrumentedTest": 6,
+      "reaktor:androidMain": 70,
+      "reaktor:commonMain": 582,
+      "reaktor:commonTest": 100,
+      "reaktor:iosMain": 72,
+      "reaktor:iosSimulatorArm64Test": 1,
+      "reaktor:iosTest": 1,
+      "reaktor:jsMain": 108,
+      "reaktor:jsTest": 9,
+      "reaktor:jvmMain": 244,
+      "reaktor:jvmSharedMain": 1,
+      "reaktor:jvmTest": 209,
+      "reaktor:other": 211,
+      "reaktor:socketMain": 2
+    }
+  },
+  "originalSourceHashesStillMatch": true,
+  "qualification": {
+    "passed": 31,
+    "total": 31,
+    "positiveCases": {
+      "crypto-jvm.noSemanticErrors": true,
+      "crypto-js.noSemanticErrors": true,
+      "foundation-ios.noSemanticErrors": true,
+      "graph-jvm.noSemanticErrors": true,
+      "bestbuds-jvm.noSemanticErrors": true,
+      "manna-jvm.noSemanticErrors": true,
+      "bestbuds-compose.noSemanticErrors": true,
+      "graph.overloadIdentity": true,
+      "graph.inferredReturnTypes": true,
+      "graph.aliasSameDefinition": true,
+      "graph.suspendTyped": true,
+      "graph.sameNameMethodDistinct": true,
+      "graph.localFunctionDistinct": true,
+      "crypto.jvmJdkMethods": true,
+      "crypto.jsPromiseAwait": true,
+      "crypto.jsCommonNonce": true,
+      "ios.nativeFoundation": true,
+      "ios.cinteropTyped": true,
+      "bestbuds.intSumOverload": true,
+      "manna.dateLibraryTyped": true,
+      "compose.annotatedSlotsParsedAndResolved": true,
+      "graph.baselineBehavior": true,
+      "crypto.jvmCompiler": true,
+      "crypto.jsCompiler": true,
+      "ios.nativeCompiler": true,
+      "ast.migrationCompile": true,
+      "ast.migrationBehavior": true,
+      "rewrite.typeMigrationCompile": true,
+      "rewrite.typeMigrationBehavior": true,
+      "ast.qualifiedIdempotence": true,
+      "rewrite.typeMigrationIdempotence": true
+    },
+    "note": "31 named positive assertions; excludes deliberately retained negative outcomes and untested scopes."
+  },
+  "analysisApi": {
+    "scopes": {
+      "crypto-jvm": {
+        "files": 2,
+        "semanticErrors": 0,
+        "calls": 96,
+        "resolvedCalls": 96,
+        "coldSeconds": 3.6976894999388605,
+        "peakRssBytes": 414154752
+      },
+      "crypto-js": {
+        "files": 2,
+        "semanticErrors": 0,
+        "calls": 108,
+        "resolvedCalls": 108,
+        "coldSeconds": 3.1471510000992566,
+        "peakRssBytes": 414302208
+      },
+      "foundation-ios": {
+        "files": 1,
+        "semanticErrors": 0,
+        "calls": 5,
+        "resolvedCalls": 5,
+        "coldSeconds": 2.089868708048016,
+        "peakRssBytes": 430145536
+      },
+      "graph-jvm": {
+        "files": 18,
+        "semanticErrors": 0,
+        "calls": 520,
+        "resolvedCalls": 520,
+        "coldSeconds": 5.5408914589788765,
+        "peakRssBytes": 488357888
+      },
+      "bestbuds-jvm": {
+        "files": 1,
+        "semanticErrors": 0,
+        "calls": 19,
+        "resolvedCalls": 19,
+        "coldSeconds": 2.8118743340019137,
+        "peakRssBytes": 364969984
+      },
+      "manna-jvm": {
+        "files": 3,
+        "semanticErrors": 0,
+        "calls": 101,
+        "resolvedCalls": 101,
+        "coldSeconds": 2.993936291895807,
+        "peakRssBytes": 399015936
+      },
+      "bestbuds-compose": {
+        "files": 61,
+        "semanticErrors": 0,
+        "calls": 3992,
+        "resolvedCalls": 3992,
+        "coldSeconds": 11.114793207962066,
+        "peakRssBytes": 815464448
+      }
+    },
+    "warm29CallsMedianMsExcludingFirst": 0.096417,
+    "generatedSourceContext": {
+      "generatedKotlinFiles": 4,
+      "composeAuthoredFiles": 57,
+      "dependencyArtifacts": 104,
+      "initialMissingResourceErrors": 168,
+      "initialErrorCountEvidence": "Recorded in original session; initial diagnostic JSON was overwritten and is not independently retained."
+    }
+  },
+  "astGrep": {
+    "authoredFiles": 3059,
+    "errorNodes": 516,
+    "filesWithError": 154,
+    "filesWithErrorByRepo": {
+      "bestbuds": 81,
+      "manna": 3,
+      "reaktor": 70
+    },
+    "errorNodeScanSeconds": 2.1,
+    "errorNodeScanPeakRssBytes": 60456960,
+    "migration": {
+      "candidates": 8,
+      "qualifiedEdits": 4,
+      "rejectedUnrelated": 4,
+      "checks": {
+        "declarationRenamed": true,
+        "regularCallRenamed": true,
+        "aliasImportRenamed": true,
+        "aliasCallPreserved": true,
+        "unrelatedMethodPreserved": true,
+        "unrelatedCallPreserved": true,
+        "localDeclarationPreserved": true,
+        "localCallPreserved": true,
+        "commentPreserved": true
+      },
+      "elapsedMs": 745.4698749352247,
+      "scope": "17 real graph/core sources and one adversarial client",
+      "selected": [
+        [
+          "controls/GraphClient.kt",
+          107
+        ],
+        [
+          "controls/GraphClient.kt",
+          165
+        ],
+        [
+          "controls/GraphClient.kt",
+          959
+        ],
+        [
+          "reaktor/reaktor-graph-port/src/commonMain/kotlin/dev/shibasis/reaktor/portgraph/port/PortInterceptor.kt",
+          1550
+        ]
+      ],
+      "rejected": [
+        [
+          "controls/GraphClient.kt",
+          667
+        ],
+        [
+          "controls/GraphClient.kt",
+          1238
+        ],
+        [
+          "controls/GraphClient.kt",
+          1285
+        ],
+        [
+          "controls/GraphClient.kt",
+          1335
+        ]
+      ],
+      "qualification": "Analysis API source identity and resolved references; ast-grep structural ranges; UTF-16 to UTF-8 offsets",
+      "oldSymbolReferencesAfter": 0,
+      "newSymbolReferencesAfter": 4,
+      "idempotenceQualifiedSecondPassEdits": 0
+    }
+  },
+  "openRewrite": {
+    "corpus": {
+      "files": 3059,
+      "parseErrorFiles": [
+        "reaktor/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/Theme.kt",
+        "reaktor/reaktor-graph/src/commonMain/kotlin/dev/shibasis/reaktor/graph/core/node/ComposeBindings.kt"
+      ],
+      "printMismatch": 0,
+      "contextErrors": [],
+      "parseMs": 43415.144417,
+      "methodInvocations": 236054,
+      "nonNullMethodTypes": 156928,
+      "elapsedMs": 44297.371042
+    },
+    "graph": {
+      "files": 18,
+      "parseErrorFiles": [],
+      "printMismatch": 0,
+      "contextErrors": [],
+      "parseMs": 3055.187125,
+      "methodInvocations": 489,
+      "nonNullMethodTypes": 489,
+      "changedFiles": [],
+      "secondPassChanges": 0,
+      "elapsedMs": 3148.920625
+    },
+    "graph-type": {
+      "files": 18,
+      "parseErrorFiles": [],
+      "printMismatch": 0,
+      "contextErrors": [],
+      "parseMs": 2744.139458,
+      "methodInvocations": 489,
+      "nonNullMethodTypes": 489,
+      "changedFiles": [
+        "reaktor/reaktor-graph-port/src/commonMain/kotlin/dev/shibasis/reaktor/portgraph/port/ConsumerPort.kt",
+        "reaktor/reaktor-graph-port/src/commonMain/kotlin/dev/shibasis/reaktor/portgraph/port/PortInterceptor.kt",
+        "reaktor/reaktor-graph-port/src/commonMain/kotlin/dev/shibasis/reaktor/portgraph/port/ProviderPort.kt",
+        "controls/GraphClient.kt"
+      ],
+      "secondPassChanges": 0,
+      "elapsedMs": 3260.172125
+    },
+    "graph-wildcard": {
+      "files": 18,
+      "parseErrorFiles": [],
+      "printMismatch": 0,
+      "contextErrors": [],
+      "parseMs": 2839.914584,
+      "methodInvocations": 489,
+      "nonNullMethodTypes": 489,
+      "changedFiles": [
+        "controls/GraphClient.kt"
+      ],
+      "secondPassChanges": 0,
+      "elapsedMs": 2980.251625
+    }
+  },
+  "scip": {
+    "publishedPlugin": "0.13.1",
+    "jvmExitCode": 1,
+    "jsExitCode": 1,
+    "failure": "AnalyzerRegistrar compiler incompatibility: CompilerPluginRegistrar.getPluginId() AbstractMethodError",
+    "sourceReviewedRevision": "baba91a2482300612abfe67c53184fadd3b5fcac",
+    "sourceReviewBoundary": "Newer compatibility changes on main and JVM-oriented KMP Gradle triggers were reviewed; main was not built."
+  },
+  "measurements": {
+    "analysis-compile": {
+      "name": "analysis-compile",
+      "exitCode": 0,
+      "elapsedSeconds": 2.542573542,
+      "log": "/Users/ovd/dev/tmp/kotlin-tools-20261013/logs/analysis-compile.log",
+      "maxRSSBytes": 512049152
+    },
+    "api-bestbuds-compose": {
+      "name": "api-bestbuds-compose",
+      "exitCode": 0,
+      "elapsedSeconds": 11.114793207962066,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/api-bestbuds-compose.log",
+      "maxRSSBytes": 815464448
+    },
+    "api-bestbuds-jvm": {
+      "name": "api-bestbuds-jvm",
+      "exitCode": 0,
+      "elapsedSeconds": 2.8118743340019137,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/api-bestbuds-jvm.log",
+      "maxRSSBytes": 364969984
+    },
+    "api-crypto-js": {
+      "name": "api-crypto-js",
+      "exitCode": 0,
+      "elapsedSeconds": 3.1471510000992566,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/api-crypto-js.log",
+      "maxRSSBytes": 414302208
+    },
+    "api-crypto-jvm": {
+      "name": "api-crypto-jvm",
+      "exitCode": 0,
+      "elapsedSeconds": 3.6976894999388605,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/api-crypto-jvm.log",
+      "maxRSSBytes": 414154752
+    },
+    "api-foundation-ios": {
+      "name": "api-foundation-ios",
+      "exitCode": 0,
+      "elapsedSeconds": 2.089868708048016,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/api-foundation-ios.log",
+      "maxRSSBytes": 430145536
+    },
+    "api-graph-after": {
+      "name": "api-graph-after",
+      "exitCode": 0,
+      "elapsedSeconds": 5.093533916166052,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/api-graph-after.log",
+      "maxRSSBytes": 484163584
+    },
+    "api-graph-jvm": {
+      "name": "api-graph-jvm",
+      "exitCode": 0,
+      "elapsedSeconds": 5.5408914589788765,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/api-graph-jvm.log",
+      "maxRSSBytes": 488357888
+    },
+    "api-manna-jvm": {
+      "name": "api-manna-jvm",
+      "exitCode": 0,
+      "elapsedSeconds": 2.993936291895807,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/api-manna-jvm.log",
+      "maxRSSBytes": 399015936
+    },
+    "behavior-graph-after-graph-type": {
+      "name": "behavior-graph-after-graph-type",
+      "exitCode": 0,
+      "elapsedSeconds": 0.15006970893591642,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/behavior-graph-after-graph-type.log",
+      "maxRSSBytes": 69844992
+    },
+    "behavior-graph-after": {
+      "name": "behavior-graph-after",
+      "exitCode": 0,
+      "elapsedSeconds": 0.1501046249177307,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/behavior-graph-after.log",
+      "maxRSSBytes": 69844992
+    },
+    "behavior-graph-corpus": {
+      "name": "behavior-graph-corpus",
+      "exitCode": 0,
+      "elapsedSeconds": 0.13835091702640057,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/behavior-graph-corpus.log",
+      "maxRSSBytes": 70270976
+    },
+    "compile-foundation-ios": {
+      "name": "compile-foundation-ios",
+      "exitCode": 0,
+      "elapsedSeconds": 3.4801929579116404,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/compile-foundation-ios.log",
+      "maxRSSBytes": 286769152
+    },
+    "compile-graph-after-graph-type": {
+      "name": "compile-graph-after-graph-type",
+      "exitCode": 0,
+      "elapsedSeconds": 4.548701332882047,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/compile-graph-after-graph-type.log",
+      "maxRSSBytes": 503627776
+    },
+    "compile-graph-after-graph-wildcard": {
+      "name": "compile-graph-after-graph-wildcard",
+      "exitCode": 1,
+      "elapsedSeconds": 3.2218270420562476,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/compile-graph-after-graph-wildcard.log",
+      "maxRSSBytes": 464781312
+    },
+    "compile-graph-after": {
+      "name": "compile-graph-after",
+      "exitCode": 0,
+      "elapsedSeconds": 5.242640417069197,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/compile-graph-after.log",
+      "maxRSSBytes": 522485760
+    },
+    "compile-graph-corpus": {
+      "name": "compile-graph-corpus",
+      "exitCode": 0,
+      "elapsedSeconds": 5.0956778328400105,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/compile-graph-corpus.log",
+      "maxRSSBytes": 519438336
+    },
+    "compile-js-corpus": {
+      "name": "compile-js-corpus",
+      "exitCode": 0,
+      "elapsedSeconds": 2.5287824170663953,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/compile-js-corpus.log",
+      "maxRSSBytes": 396525568
+    },
+    "compile-js-corpus-scip": {
+      "name": "compile-js-corpus-scip",
+      "exitCode": 1,
+      "elapsedSeconds": 0.717760083032772,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/compile-js-corpus-scip.log",
+      "maxRSSBytes": 145457152
+    },
+    "compile-jvm-corpus": {
+      "name": "compile-jvm-corpus",
+      "exitCode": 0,
+      "elapsedSeconds": 2.8747768751345575,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/compile-jvm-corpus.log",
+      "maxRSSBytes": 370081792
+    },
+    "compile-jvm-corpus-scip": {
+      "name": "compile-jvm-corpus-scip",
+      "exitCode": 1,
+      "elapsedSeconds": 0.6696850419975817,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/compile-jvm-corpus-scip.log",
+      "maxRSSBytes": 123797504
+    },
+    "rewrite-corpus": {
+      "name": "rewrite-corpus",
+      "exitCode": 0,
+      "elapsedSeconds": 44.53595304209739,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/rewrite-corpus.log",
+      "maxRSSBytes": 5766103040
+    },
+    "rewrite-graph": {
+      "name": "rewrite-graph",
+      "exitCode": 0,
+      "elapsedSeconds": 3.3952707077842206,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/rewrite-graph.log",
+      "maxRSSBytes": 520208384
+    },
+    "rewrite-graph-type": {
+      "name": "rewrite-graph-type",
+      "exitCode": 0,
+      "elapsedSeconds": 3.4582884169649333,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/rewrite-graph-type.log",
+      "maxRSSBytes": 559693824
+    },
+    "rewrite-graph-wildcard": {
+      "name": "rewrite-graph-wildcard",
+      "exitCode": 0,
+      "elapsedSeconds": 3.222425499930978,
+      "log": "/Users/ovd/dev/offload/kotlin-tools-20261013/logs/rewrite-graph-wildcard.log",
+      "maxRSSBytes": 516128768
+    }
+  },
+  "sha256OfOriginalEvidenceFiles": {
+    "crypto-jvm-result.json": "cedca7ce3d99d202e9f1ae3d8ef5d72a7e73816913de7d4ff7b5c6c350b49310",
+    "crypto-js-result.json": "891ea10f34c93dce7f1e3622bc631798d6b305416222b5b75f7b39def410e605",
+    "foundation-ios-result.json": "196734eb9062d1feaede01c750c6265c02f31f145002b2eebec7df271373d88d",
+    "graph-jvm-result.json": "fe1d96154ff8ccf3749c8a15c594e2f81ae7f1222df6a0dd481484fbbcc97faa",
+    "bestbuds-jvm-result.json": "0bdd8eade2d9a53db348e5bf06dcd5dcb99a21cc3b5baf3cc18c085d8b26b485",
+    "manna-jvm-result.json": "ec2855f7ee42a378671a7389ed702aa71ddc7c40bc5bdde012dc5aac532630bf",
+    "bestbuds-compose-result.json": "1c0e9d5131fc232be3ede6f9b3b11ffb4de6a0483f6a7e7a84d3fffe144bd166",
+    "behavior-graph-corpus-measurement.json": "1edcf713c1c08f32ac6b8c0c2aa9c8f7b1da755840347a6cd368eb8963e172d2",
+    "compile-jvm-corpus-measurement.json": "58878f49825831cf2a0db699f75ce8b7d559def3e95883007d931407dcd6c802",
+    "compile-js-corpus-measurement.json": "76017a7755b7753a8b1cc37c48f7358a3f64a33c54d587a46dd59f58d62be606",
+    "compile-foundation-ios-measurement.json": "870a8f2028595c9dca8df6b55e8e6367078b6a0e817b11dcdb5a3523c1468104",
+    "compile-graph-after-measurement.json": "40b6d48bb5d33c56c956c768a5deb61e1eb8a1d437b0df12585be49054fa38ca",
+    "behavior-graph-after-measurement.json": "9f43a04f866f253a465afe397091a4f35a4ee74925f44b177b0b3f96b9829041",
+    "compile-graph-after-graph-type-measurement.json": "00d12d25bedb8d1297ebd6435201c39f11cae2b8f8481146c4790bcc7a96e9ae",
+    "behavior-graph-after-graph-type-measurement.json": "3b7af08c7a6189358146952cd90760e75c4d0fa762d9c7f1344666d9ec6cc2be",
+    "graph-after-result.json": "b38753245fb8cf2405ab32bbdcab0d28a071cfcd3ca6ef132e51d6af1308015f",
+    "rewrite-graph-type-result.json": "e81698907d0f745e8d816f703b47635b72203c2c5b6d84a990c7ea1fbab43def",
+    "analysis-compile-measurement.json": "a0be96b769e462febb8d52c637bed14293d11bc54132e4dc3fdf735d24c84062",
+    "api-bestbuds-compose-measurement.json": "950f4b5c9ec4b9b366b6504eb20b7985028fd5947c50be212b84548caa893a49",
+    "api-bestbuds-jvm-measurement.json": "e139bebde9143c2d2ebdbbc909cbfbc02c683f146b30cb1656c0f120e3e00c44",
+    "api-crypto-js-measurement.json": "fbd59b63b58165c4fec1f086856c88a2192db05185ccb62fd886d99e2ab965cf",
+    "api-crypto-jvm-measurement.json": "00c17bc07abeb14b1d55e8c656ee6461420d9622ad45967efb182466a50c248c",
+    "api-foundation-ios-measurement.json": "6d9cb7a1ae82f9128da14f48e5fcd51f5ea4e41277a53b295fa17362c4942748",
+    "api-graph-after-measurement.json": "8d59dbefa0680636405b3f8740a30a05e01ed35cc7fdbc2e9d99ccc3e497ed14",
+    "api-graph-jvm-measurement.json": "4528eb72c892c0d57338528f8a2809d080a2d244f33402f2da9b15cc6bac3b31",
+    "api-manna-jvm-measurement.json": "875649b86111c467f1081f22d356929a6ef03a01c2e27f55c031fc4ace6ebaf3",
+    "compile-graph-after-graph-wildcard-measurement.json": "b08f11d05a5d93d957cb9a26d119ade45f4cd64c4f0c916c59a8e42cd257d969",
+    "compile-graph-corpus-measurement.json": "4bfe5a5ebeb12b18d50dfa3cd2f25633afc26c1e973d43c924872cd35ff1fcfa",
+    "compile-js-corpus-scip-measurement.json": "ca8749475097d6679176b9d1b385abb839c32533bfae31bb9519dd22b7bc12db",
+    "compile-jvm-corpus-scip-measurement.json": "09009bc62962b11d241dabdbee1086841eb9be298030109f3877226203f91ee7",
+    "rewrite-corpus-measurement.json": "367eda371c1b7160557934c9dfae4ca76c4f2f0dbcffb1f299510ddc6e39dfd4",
+    "rewrite-graph-measurement.json": "f0be038176349e49394790f3a9422628cfca0baec63339e4c5dc76cdae306d66",
+    "rewrite-graph-type-measurement.json": "47badfafb4e1178822f8f33af6908a861ea16924acce668a3d1f6d2e5bc2858b",
+    "rewrite-graph-wildcard-measurement.json": "f74f5e3780c04779a9f5be76f8cf1144b823e5a2151743b1b651c53fb05d8575",
+    "corpus-inputs.json": "aba2ede18c421e37e93fbb9e869a0fd12791e1fbd485f4175f361c4d3e18218c",
+    "ast-parse-summary.json": "e201d7b97e095a7f92b13d67c24a6ff137ce6c8d82509befc83beff729b2bcc3",
+    "ast-migration-result.json": "81ab5de25eeffe1a9bf45e1ec33aa6a64a0e1575fe0cae4cdd3f11b31d53a644",
+    "rewrite-corpus-result.json": "59eb93adfb1485c55c20d67b6c080b2a8d1739f1b8659f6d186437c6a41b15f5",
+    "rewrite-graph-result.json": "fc636a3483625b8227188176d1eeea4aab30ba992dda7d970631848a814871d5",
+    "rewrite-graph-wildcard-result.json": "740fa01fce9fdd61fd64a870917d8e629f3c7b4b189781aef75e7867f9cd70f5",
+    "AnalysisProbe.kt": "b6f5046a7e226ab58e79e25291bb5f2afe532a654c982d235dadeab31e5956bb",
+    "RewriteProbe.java": "08335dc7f32adc1ccaa647842023f6725214172349cc57b6b5bd8b516484366a",
+    "ast-migration.py": "d83a8d0eef5c4f0ce518149c2fe8b12fb2c57957b7ffaea6216ad148b939f26c",
+    "ast-probe.py": "5f3f50f1808b04905ad27e0dd0180c87265b94ed93da195cde36a35a9a5dacf8",
+    "prepare.py": "405e03df5773da1c511af8216e3a445e43546f8a51e08a15fcc85322e4ddfcff",
+    "prepare-targets.py": "aad93d15972dec2d05f1c3d4b6822b33b7e34a23c653abed02bb718a043e3a08",
+    "prepare-compose.py": "e5b9f992eb5d9d11a7e9f18d2decf1170547646949f3fae02d03bf2c8c423e4f",
+    "compile-targets.py": "44094bcb26de99e7dfe395cc84e21a4ef7efb79d087e2f607ad03f6e36651f4a",
+    "run-analysis.py": "8a75e5a1c4ff53d887c8cca152d49998e9e3ca412067816924529f739042d893",
+    "run-rewrite.py": "342d71cc71211d5ca44ca4b8d15b67af9a6562424fbe77ab7eddec9a1ca8f309",
+    "measure.py": "c690fbcb99142d5cd2a1fefe561a1f873e2dad4e46d46f4f60a7dbdf01546e25",
+    "logs/ast-parse.log": "1becae33ec108c5f0d294fd17a2351444a4f8ce55cb82bb9c629c1bd2876660f",
+    "logs/compile-jvm-corpus-scip.log": "ea3e28ed70033a1c23a91aedf71695735f93bff5d6164fd225f3473d31e245c4",
+    "logs/compile-js-corpus-scip.log": "f8cfac41e9eb53b9f37c6fe479f55a798b3819b9ed16f978c94e5c95ce2fd760",
+    "rewrite/graph-type-diff.patch": "b6b821e80b26cfee35d45982d25911e57d94fdcb3501bc1a36c01b9f1cb5ec12",
+    "rewrite/graph-wildcard-diff.patch": "acff32a6963d53664ddb3ba8fd9d8039b85bad803d9d9ccf080d95bd3e93328b",
+    "versions.json": "b0089bef31dd3db0d9b36bbc2b3186bd70df4a01baf0eb1f2434c17fe1d06f14",
+    "corpus-summary.json": "6f496369459ff58981573b5a713ba54ab006a6729441cf1f5cd6b669a510b3c6"
+  },
+  "limitations": [
+    "Bounded semantic scopes, not all Reaktor+ modules/targets.",
+    "4,841 resolved call expressions does not establish correctness for every Kotlin call form; 31 named oracles constrain the claim.",
+    "ast-grep error-node scan and OpenRewrite parse/print do different work; elapsed times are not equivalent workloads.",
+    "OpenRewrite corpus uses a shared JVM classpath; syntax coverage is not KMP semantic qualification.",
+    "Warm query time is cached in-process call resolution, not MCP/kernel end-to-end latency.",
+    "Some independent jobs overlapped on one worker.",
+    "sed itself was not executed; migration used exact byte ranges.",
+    "No new model-token/quota ROI measurement in this tool experiment.",
+    "Historical CodeQL/Joern and native-task raw reports have expired locally; those findings are prior recorded observations, not revalidated in this recovery."
+  ]
+}

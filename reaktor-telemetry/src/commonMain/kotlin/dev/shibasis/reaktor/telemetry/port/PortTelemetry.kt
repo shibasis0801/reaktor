@@ -11,6 +11,8 @@ import dev.shibasis.reaktor.portgraph.Unique
 import dev.shibasis.reaktor.service.RequestHandler
 import dev.shibasis.reaktor.service.ServiceCall
 import dev.shibasis.reaktor.service.TraceContext
+import dev.shibasis.reaktor.graph.core.GraphShape
+import kotlinx.atomicfu.atomic
 import dev.shibasis.reaktor.telemetry.export.asCoroutineContext
 import dev.shibasis.reaktor.telemetry.export.attachSpanScope
 import dev.shibasis.reaktor.telemetry.export.currentPortSpan
@@ -39,6 +41,7 @@ object ReaktorAttributes {
     const val GraphId = "reaktor.graph.id"
     const val NodeId = "reaktor.node.id"
     const val PortId = "reaktor.port.id"
+    const val PortKey = "reaktor.port.key"
     const val PortShape = "reaktor.port.shape"
     const val PortDirection = "reaktor.port.direction"
     const val EdgeId = "reaktor.edge.id"
@@ -138,6 +141,26 @@ class PortTelemetryInterceptor(
     private val openTelemetry: OpenTelemetry? = null,
     private val callAttributes: () -> Map<String, String> = { emptyMap() },
 ) : PortInterceptor {
+    private val subjects = atomic<Map<String, Map<String, String>>>(emptyMap())
+    private val edges = atomic<Map<String, String>>(emptyMap())
+
+    internal fun bind(shape: GraphShape): Set<String> {
+        val scopes = shape.scopes.associateBy { it.id }
+        val bindings = shape.nodes.associate { node -> node.id to buildMap {
+            put(ServiceCall.NodeAttribute, node.definitionId)
+            put(ServiceCall.GraphAttribute, shape.definitionDigest)
+            put(ReaktorAttributes.GraphId, scopes[node.scope]?.definitionId.orEmpty())
+            node.ports.forEach { port -> put("${port.provides}:${port.key}:${port.type}", port.definitionId) }
+        } }
+        subjects.value = subjects.value + bindings
+        edges.value = edges.value + shape.wires.associate { "${it.consumer}:${it.consumerPort}:${it.type}" to it.definitionId }
+        return bindings.keys
+    }
+
+    internal fun unbind(ids: Set<String>) {
+        subjects.value = subjects.value - ids
+        edges.value = edges.value.filterKeys { key -> ids.none { key.startsWith("$it:") } }
+    }
 
     override fun intercept(invocation: PortInvocation, proceed: () -> Any?): Any? {
         val facet = invocation.port.resolvedTelemetryFacet(defaults)
@@ -232,7 +255,9 @@ class PortTelemetryInterceptor(
     private fun invocationAttributes(invocation: PortInvocation, resources: Map<String, String>, inherited: Map<String, Any?>): Map<String, String> {
         val attributes = buildMap {
             for (key in listOf(ServiceCall.SessionAttribute, ServiceCall.EnvironmentAttribute, ServiceCall.BuildAttribute, ServiceCall.GraphAttribute)) {
-                val value = (inherited[key] as? String) ?: resources[key] ?: continue
+                val value = if (key == ServiceCall.SessionAttribute) (inherited[key] as? String) ?: resources[key]
+                    else resources[key] ?: inherited[key] as? String
+                if (value == null) continue
                 val pattern = when (key) {
                     ServiceCall.SessionAttribute -> "[A-Za-z0-9_-]{1,96}"
                     ServiceCall.GraphAttribute -> "[0-9a-f]{64}"
@@ -240,7 +265,18 @@ class PortTelemetryInterceptor(
                 }
                 if (value.matches(Regex(pattern))) put(key, value)
             }
-            put(ServiceCall.NodeAttribute, (invocation.port.owner as? Unique)?.label.orEmpty())
+            val owner = invocation.port.owner as? Unique
+            val binding = owner?.id?.toString()?.let(subjects.value::get)
+            put(ServiceCall.NodeAttribute, binding?.get(ServiceCall.NodeAttribute) ?: owner?.label.orEmpty())
+            binding?.get(ServiceCall.GraphAttribute)?.let { put(ServiceCall.GraphAttribute, it) }
+            binding?.get(ReaktorAttributes.GraphId)?.let { put(ReaktorAttributes.GraphId, it) }
+            val port = invocation.port
+            binding?.get("${port is ProviderPort<*>}:${port.key.key}:${port.type.type}")?.let { put(ServiceCall.PortAttribute, it) }
+            invocation.edge?.let { edge ->
+                val source = edge.source as? Unique
+                source?.let { edges.value["${it.id}:${edge.consumer.key.key}:${edge.consumer.type.type}"] }
+                    ?.let { put(ServiceCall.EdgeAttribute, it) }
+            }
             activationId?.let { put(ReaktorAttributes.ActivationId, it) }
         }
         return attributes
@@ -254,7 +290,10 @@ class PortTelemetryInterceptor(
         ) {
             attributes.forEach { (key, value) -> if (value.isNotEmpty()) setStringAttribute(key, value) }
             val port = invocation.port
-            setStringAttribute(ReaktorAttributes.PortId, port.telemetryPortId())
+            val binding = (port.owner as? Unique)?.id?.toString()?.let(subjects.value::get)
+            val portId = binding?.get("${port is ProviderPort<*>}:${port.key.key}:${port.type.type}")
+            setStringAttribute(ReaktorAttributes.PortId, portId ?: port.telemetryPortId())
+            setStringAttribute(ReaktorAttributes.PortKey, port.key.key)
             setStringAttribute(ReaktorAttributes.ContractId, port.requestHandler()?.owner?.contract?.id ?: port.type.type)
             setStringAttribute(ReaktorAttributes.PortShape, facet.semantics.name.lowercase())
             setStringAttribute(
@@ -268,10 +307,14 @@ class PortTelemetryInterceptor(
                 // Two identities, never merged into one attribute. A node that declares no label
                 // has no stable architectural identity, and saying nothing is honest where
                 // substituting its per-run Uuid would silently claim otherwise.
-                if (node.label.isNotEmpty()) setStringAttribute(ReaktorAttributes.NodeId, node.label)
+                attributes[ServiceCall.NodeAttribute]?.takeIf { it.isNotEmpty() }?.let { setStringAttribute(ReaktorAttributes.NodeId, it) }
                 setStringAttribute(ReaktorAttributes.NodeInstance, node.id.toString())
             }
-            invocation.edge?.let { setStringAttribute(ReaktorAttributes.EdgeId, it.id.toString()) }
+            invocation.edge?.let { edge ->
+                val source = edge.source as? Unique
+                val edgeId = source?.let { edges.value["${it.id}:${edge.consumer.key.key}:${edge.consumer.type.type}"] }
+                edgeId?.takeIf(String::isNotEmpty)?.let { setStringAttribute(ReaktorAttributes.EdgeId, it) }
+            }
             activationId?.let { setStringAttribute(ReaktorAttributes.ActivationId, it) }
         }
 

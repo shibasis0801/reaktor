@@ -1,0 +1,36 @@
+name: reaktor-build-cache
+services:
+  cache:
+    image: ghcr.io/chrisjenx/silo:0.2.0@sha256:02b7d72fe159002746529a32334993baedd89e1d6070161f1cdd8ac18c4392f0
+    platform: linux/arm64
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 768m
+    ports:
+      - "127.0.0.1:18085:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    environment:
+      JAVA_OPTS: "-Xmx512m -XX:+ExitOnOutOfMemoryError"
+      SILO_MAX_BYTES: "4294967296"
+      SILO_MAX_ENTRIES: "100000"
+      SILO_MAX_ENTRY_BYTES: "536870912"
+      SILO_RESERVED_FREE_BYTES: "5368709120"
+      SILO_MAX_AGE_DAYS: "14"
+      SILO_VERIFY_SHA256_ON_READ: "true"
+      SILO_ANONYMOUS_READ: "false"
+      SILO_USERS_FILE: /etc/silo/users.conf
+    volumes:
+      - cache:/data
+      - type: bind
+        source: ../../../.remote-dev/build-cache/users.conf
+        target: /etc/silo/users.conf
+        read_only: true
+        bind:
+          create_host_path: false
+volumes:
+  cache:

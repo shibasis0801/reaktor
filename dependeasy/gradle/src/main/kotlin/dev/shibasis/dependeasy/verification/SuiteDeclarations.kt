@@ -7,31 +7,38 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 
-internal fun Project.karateSuite(name: String, directory: String, config: String, tags: List<String>, files: List<String>): NodeHandle {
+internal fun Project.karateSuite(name: String, directory: String, config: String, tags: List<String>, files: List<String>, optionalFiles: List<String> = emptyList()): NodeHandle {
     val tool = VerificationTools.get(this).karate
     val task = tasks.register<KarateSuite>(name) {
         group = "verification"
-        workingDirectory.set(layout.projectDirectory)
+        workingDirectory.set(rootProject.layout.projectDirectory)
         executable.set(java.io.File(System.getProperty("java.home"), "bin/java").absolutePath)
         toolVersion.set(tool.handle.version)
         jar.set(tool.executable); dependsOn(tool.installation)
         suites.set(listOf(directory)); this.tags.set(tags)
         arguments.set(listOf("--configdir", config))
-        environmentFiles.from(files.map(::file))
-        sourceFiles.from(fileTree(directory), fileTree(config).matching { include("*.js", "*.json") })
+        environmentFiles.from(optionalFiles.map { path ->
+            val file = rootProject.file(path)
+            rootProject.fileTree(file.parentFile).matching { include(file.name) }
+        }, files.map(rootProject::file))
+        sourceFiles.from(rootProject.fileTree(directory), rootProject.fileTree(config).matching { include("*.js", "*.json") })
         outputDirectories.from(layout.buildDirectory.dir("reports/karate/$name"))
     }
     return node(task, OutputKind.VerificationResults)
 }
 
-internal fun Project.k6Suite(name: String, script: String, files: List<String>): NodeHandle {
+internal fun Project.k6Suite(name: String, script: String, files: List<String>, optionalFiles: List<String> = emptyList()): NodeHandle {
     val tool = VerificationTools.get(this).k6
     val task = tasks.register<K6Suite>(name) {
         group = "verification"
-        workingDirectory.set(layout.projectDirectory)
+        workingDirectory.set(rootProject.layout.projectDirectory)
         executable.set(tool.executable.map { it.asFile.absolutePath }); dependsOn(tool.installation)
-        toolVersion.set(tool.handle.version); this.script.set(layout.projectDirectory.file(script))
-        environmentFiles.from(files.map(::file)); sourceFiles.from(file(script))
+        toolVersion.set(tool.handle.version); this.script.set(rootProject.layout.projectDirectory.file(script))
+        environmentFiles.from(optionalFiles.map { path ->
+            val file = rootProject.file(path)
+            rootProject.fileTree(file.parentFile).matching { include(file.name) }
+        }, files.map(rootProject::file))
+        sourceFiles.from(rootProject.file(script))
         outputFiles.from(layout.buildDirectory.file("reports/k6/$name.json"))
     }
     return node(task, OutputKind.VerificationResults)

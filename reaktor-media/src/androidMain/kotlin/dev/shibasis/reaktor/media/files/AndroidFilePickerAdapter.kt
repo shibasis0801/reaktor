@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import dev.shibasis.reaktor.core.extensions.getResultFromActivity
-import dev.shibasis.reaktor.media.bytes
+import dev.shibasis.reaktor.media.pick
 import dev.shibasis.reaktor.media.displayName
 import dev.shibasis.reaktor.media.durationMillis
 import dev.shibasis.reaktor.media.gallery.MediaPick
@@ -23,15 +23,10 @@ class AndroidFilePickerAdapter(
 
         return withContext(Dispatchers.IO) {
             val resolver = activity.contentResolver
-            val bytes = resolver.bytes(uri) ?: return@withContext null
             val mimeType = resolver.getType(uri) ?: "application/octet-stream"
+            val pick = resolver.pick(uri, mimeType, resolver.displayName(uri), readLimit) ?: return@withContext null
             val timed = mimeType.startsWith("audio/") || mimeType.startsWith("video/")
-            MediaPick(
-                bytes = bytes,
-                mimeType = mimeType,
-                suggestedName = resolver.displayName(uri),
-                durationMillis = if (timed) activity.durationMillis(uri) else null,
-            )
+            if (timed && pick.bytes.isNotEmpty()) pick.copy(durationMillis = activity.durationMillis(uri)) else pick
         }
     }
 }

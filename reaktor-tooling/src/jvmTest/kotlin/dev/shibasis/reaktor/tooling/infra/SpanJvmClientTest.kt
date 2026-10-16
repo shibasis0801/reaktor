@@ -17,21 +17,31 @@ class SpanJvmClientTest {
         assertEquals(base, receipt.columns)
         assertEquals(15, receipt.windowMinutes)
         assertTrue(requests.last().contains("'' AS application_session"))
+        assertTrue(requests.last().contains("'' AS port"))
+        assertTrue(requests.last().contains("'' AS edge"))
+        assertTrue(requests.last().contains("'' AS activation"))
         assertTrue(requests.last().contains("FROM bestbuds_dev.service_spans"))
         assertTrue(requests.last().contains("LIMIT 10"))
         assertFalse(requests.any { it.contains("ALTER") })
     }
 
     @Test fun newSchemaPreservesQualifiedJoinIdentity() = InfrastructureSession().use { session ->
-        val columns = base + listOf("application_session", "environment", "build", "node", "graph_digest")
+        val columns = base + listOf("application_session", "environment", "build", "node", "graph_digest", "port", "edge", "activation")
         val requests = mutableListOf<String>()
         val output = SpanJvmClient(session).readReceipt(op) { sql ->
             requests += sql
-            if (sql.startsWith("SELECT name")) columns.joinToString("\n") { "{\"name\":\"$it\"}" } else "{\"application_session\":\"fixture-session\"}"
+            if (sql.startsWith("SELECT name")) columns.joinToString("\n") { "{\"name\":\"$it\"}" }
+            else """{"application_session":"fixture-session","node":"message-node","graph_digest":"message-graph","port":"send-port","edge":"delivery-edge","activation":"phone-activation"}"""
         }
         val receipt = Json.decodeFromString(SpanReadReceipt.serializer(), output)
         assertEquals(columns, receipt.columns)
         assertEquals("fixture-session", receipt.rows.single().jsonObject["application_session"]!!.jsonPrimitive.content)
+        val row = receipt.rows.single().jsonObject
+        assertEquals("message-node", row.getValue("node").jsonPrimitive.content)
+        assertEquals("message-graph", row.getValue("graph_digest").jsonPrimitive.content)
+        assertEquals("send-port", row.getValue("port").jsonPrimitive.content)
+        assertEquals("delivery-edge", row.getValue("edge").jsonPrimitive.content)
+        assertEquals("phone-activation", row.getValue("activation").jsonPrimitive.content)
         assertFalse(requests.last().contains("'' AS"))
     }
 

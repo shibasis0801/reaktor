@@ -4,8 +4,6 @@ import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 
 import dev.shibasis.reaktor.tooling.SafetyClass
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
-import dev.shibasis.reaktor.tooling.ToolingWorkspace
-import dev.shibasis.reaktor.tooling.WorkspaceId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -42,8 +40,6 @@ fun main() = runBlocking {
 
         verifyRunnerCannotExecuteOrCancelTwice(fixture, executable.absolutePath, invocationLog)
         check(invocationLog.delete()) { "could not reset invocation log" }
-        verifyDaggerApprovalAndLifecycle(fixture, executable.absolutePath, invocationLog)
-        if (invocationLog.exists()) check(invocationLog.delete()) { "could not reset invocation log" }
         verifyPulumiApproval(pulumiProgram, executable.absolutePath, invocationLog)
 
         println("cloud tool E2E passed")
@@ -74,78 +70,6 @@ private suspend fun verifyRunnerCannotExecuteOrCancelTwice(
     val ownerEvents = owner.await()
     check(ownerEvents.completedCode() == 0) { "duplicate collector cancelled the owning process" }
     check(invocationLog.readLines().size == 1) { "direct command executed more than once" }
-}
-
-private suspend fun verifyDaggerApprovalAndLifecycle(
-    fixture: java.io.File,
-    executable: String,
-    invocationLog: java.io.File,
-): Unit = coroutineScope {
-    val provider = DaggerToolProvider(
-        repoRoot = fixture,
-        executable = executable,
-        reaktorRoot = fixture,
-        environment = mapOf("CLOUDFLARE_API_TOKEN" to "e2e-secret-never-forwarded"),
-    )
-    val operations = provider.operations()
-    val deployOperation = operations.single { it.id == "dagger.deployWorkers" }
-    check(deployOperation.unavailableReason?.contains("source closure") == true) {
-        "Dagger operation catalog advertised deployWorkers as executable"
-    }
-    check(operations.single { it.id == "dagger.jsChecks" }.unavailableReason == null) {
-        "Dagger operation catalog marked the real jsChecks function unavailable"
-    }
-    val catalogTasks = provider.asCatalogProvider().tasks(
-        ToolingWorkspace(WorkspaceId("cloud-e2e"), "cloud-e2e", fixture.absolutePath),
-    )
-    val catalogTask = catalogTasks.single { it.id.value == "dagger.deployWorkers" }
-    check(catalogTask.unavailableReason == deployOperation.unavailableReason) {
-        "unified cloud catalog dropped the deployWorkers availability contract"
-    }
-    check(catalogTask.attributes["unavailableReason"] == deployOperation.unavailableReason) {
-        "unified cloud catalog dropped the backwards-compatible unavailability attribute"
-    }
-    check(catalogTask.inputs.single { it.name == "cloudflare-api-token" }.sensitive) {
-        "unified cloud catalog dropped the deployment secret-input contract"
-    }
-    check(catalogTask.inputs.single { it.name == "target-env" }.allowedValues == listOf("dev", "prod")) {
-        "unified cloud catalog dropped the deployment environment choices"
-    }
-    val command = CloudCommand(
-        operationId = "dagger.deployWorkers",
-        provider = "dagger",
-        fn = "deployWorkers",
-        args = mapOf(
-            "cloudflare-api-token" to "CLOUDFLARE_API_TOKEN",
-            "target-env" to "prod",
-        ),
-    )
-    check(runCatching { provider.plan(command) }.exceptionOrNull()?.message?.contains("source closure") == true) {
-        "Dagger deployWorkers remained executable without a bounded source seal"
-    }
-    check(runCatching { provider.run(command) }.exceptionOrNull()?.message?.contains("source closure") == true) {
-        "Dagger deployWorkers remained runnable without a bounded source seal"
-    }
-    val jsCommand = CloudCommand(
-        operationId = "dagger.jsChecks",
-        provider = "dagger",
-        fn = "jsChecks",
-    )
-    check(catalogTasks.single { it.id.value == jsCommand.operationId }.unavailableReason == null) {
-        "unified cloud catalog did not advertise jsChecks as executable"
-    }
-    val jsPlan = provider.plan(jsCommand)
-    check(jsPlan.displayCommand.contains("jsChecks")) {
-        "Dagger jsChecks plan did not target the declared function"
-    }
-    val jsRun = provider.run(jsCommand)
-    check(provider.events(jsRun.id).toList().completedCode() == 0) {
-        "Dagger jsChecks did not execute through the supervised process boundary"
-    }
-    check(invocationLog.readLines().single().contains("call jsChecks")) {
-        "Dagger jsChecks executed an unexpected process command"
-    }
-    check(provider.events(jsRun.id).toList().isEmpty()) { "completed Dagger jsChecks run was retained" }
 }
 
 private suspend fun verifyPulumiApproval(

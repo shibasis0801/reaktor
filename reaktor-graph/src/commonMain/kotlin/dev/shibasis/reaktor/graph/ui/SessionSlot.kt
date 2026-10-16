@@ -28,6 +28,7 @@ class SessionSlot<K : Any>(
     parent: Graph,
     pattern: String,
     private val identity: StateFlow<K?>,
+    private val failed: @Composable (Throwable) -> Unit = {},
     private val build: (K) -> Graph,
 ) : ContainerNode(parent, pattern), ComposeContainer {
     private val lock = SynchronizedObject()
@@ -128,6 +129,8 @@ class SessionSlot<K : Any>(
     @Composable
     override fun Content(renderer: @Composable (graph: Graph, isFocused: Boolean) -> Unit) {
         val graph by current.collectAsState()
+        val trouble by failureState.collectAsState()
+        if (graph == null) trouble?.let { failed(it.second) }
         graph?.takeIf { it === current.value }?.let { showing ->
             key(showing.id) {
                 DisposableEffect(showing) {

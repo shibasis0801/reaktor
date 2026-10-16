@@ -15,6 +15,8 @@ WP7 maps KGP’s `embedAndSignAppleFrameworkForXcode` once in `ModuleOutputs` th
 
 WP7 storage qualification disables compilation and generic task caching through the Apple contract. Xcode still initializes its generic store when both settings are disabled. Its installed libclang supports LLVM’s `LLVM_CAS_MAX_MAPPING_SIZE`; the Kotlin release command bounds each mapping to 128 MiB. This controls actual cache allocation without changing storage accounting or moving disposable files. The adapter boundaries are Swift Build’s `BuiltinMacros.swift`/`GenericCachingTaskAction.swift` and LLVM’s `llvm/lib/CAS/OnDiskCommon.cpp`/`OnDiskGraphDB.cpp`. Remove this bound when Xcode skips cache initialization for disabled caching.
 
+WP8 uses AGP's public `LibraryAndroidComponentsExtension.onVariants` and `variant.sources.jniLibs.addGeneratedSourceDirectory` to attach the existing owned CMake producer. This repository does not use AGP `externalNativeBuild`, so there is no AGP native-build artifact to consume. CMake's public codemodel file API supplies the exact root artifact and static closure; Prefab's `abi.json` supplies its declared ABI and library kind. Source preparation owns checkout paths. The generated preload contract supplies compiler, SDK and deployment settings before `project()`, and its target section supplies exact imports afterward. Changing contract contents invalidates the existing CMake configure tree.
+
 ## WP12 external call register
 
 The workspace exposes only typed Fastlane lanes, package scripts and relative Bash

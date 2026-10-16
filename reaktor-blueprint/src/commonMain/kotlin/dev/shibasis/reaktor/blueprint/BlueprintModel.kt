@@ -84,9 +84,8 @@ data class BlueprintLayout<K>(
     val width: Double,
     val height: Double,
     val layoutFailures: List<Throwable> = emptyList(),
-) {
-    val cardOf: Map<String, String> = cards.keys.associateWith { it }
-}
+    val cardOf: Map<String, String> = cards.keys.associateWith { it },
+)
 
 class FrameEdge(
     val id: String,

@@ -4,11 +4,6 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.dependencies.atVersion
 
-fun KotlinDependencyHandler.apiReaktor(vararg modules: dev.shibasis.dependeasy.model.ModuleHandle, version: String? = null) {
-    val suffix = version?.let { ":$it" }.orEmpty()
-    modules.forEach { api(it.coordinate + suffix) }
-}
-
 fun KotlinDependencyHandler.commonSerialization(serializationVersion: String = Versions.Serialization, protobuf: Boolean = true) {
     api(Versions.Kotlin.SerializationCore.atVersion(serializationVersion))
     api(Versions.Kotlin.SerializationJson.atVersion(serializationVersion))

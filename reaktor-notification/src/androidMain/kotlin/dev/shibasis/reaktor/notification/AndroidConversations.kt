@@ -2,9 +2,11 @@ package dev.shibasis.reaktor.notification
 
 import android.app.ActivityManager
 import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
+import androidx.core.app.RemoteInput
 import androidx.core.content.LocusIdCompat
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
@@ -15,7 +17,11 @@ private const val SelfKey = "reaktor.self"
 private const val ConversationShortcutCategory = "android.shortcut.conversation"
 
 internal fun AndroidNotificationRenderer.clearConversation(id: String) {
-    context.getSystemService(NotificationManager::class.java).cancel(ConversationTag, id.notificationRequestCode())
+    context.cancelConversation(id)
+}
+
+internal fun Context.cancelConversation(id: String) {
+    getSystemService(NotificationManager::class.java).cancel(ConversationTag, id.notificationRequestCode())
 }
 
 internal suspend fun AndroidNotificationRenderer.showConversation(
@@ -67,7 +73,13 @@ internal suspend fun AndroidNotificationRenderer.showConversation(
         is NotificationSound.Named -> Unit
     }
     (request.android?.actions ?: emptyList()).forEach { action ->
-        builder.addAction(NotificationCompat.Action.Builder(smallIcon, action.title, responsePendingIntent(envelope, action.id, mutable = action.kind == NotificationActionKind.TextInput, dismissesNotification = action.dismissesNotification)).build())
+        val button = NotificationCompat.Action.Builder(smallIcon, action.title, actionPendingIntent(envelope, action))
+        if (action.kind == NotificationActionKind.TextInput) {
+            val input = action.textInput ?: NotificationTextInputOptions()
+            button.addRemoteInput(RemoteInput.Builder(input.resultKey).setLabel(input.placeholder).build())
+                .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+        }
+        builder.addAction(button.build())
     }
     manager.notify(ConversationTag, code, builder.build())
     return shown

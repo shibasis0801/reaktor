@@ -223,6 +223,8 @@ data class NotificationEnvelope(
     }
 
     companion object {
+        const val ClearType = "reaktor.notification.clear"
+
         fun fromDataMap(data: Map<String, String>): NotificationEnvelope {
             val route = when (data["reaktor_route_type"]) {
                 "open_path" -> NotificationRoute.OpenPath(data["reaktor_route"].orEmpty())

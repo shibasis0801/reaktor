@@ -61,4 +61,5 @@ data class VerificationOutcome(
     /** ISO 3166-1 alpha-2 issuing state. Not nationality, not residence. */
     val issuingCountry: String? = null,
     val failureReason: String? = null,
+    val documentNumber: String? = null,
 )

@@ -11,7 +11,7 @@ abstract class VerifyDaggerTask : DefaultTask() {
     @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val actual: RegularFileProperty
     @TaskAction fun check() {
         require(actual.get().asFile.readBytes().contentEquals(expected.get().asFile.readBytes())) {
-            "Dagger pipeline is stale; run ./gradlew generateDagger"
+            "Dagger pipeline is stale; run ./gradlew ${path.substringBeforeLast(':')}:generateDagger"
         }
     }
 }

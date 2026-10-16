@@ -100,12 +100,24 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
     override suspend fun registerCategories(categories: List<NotificationCategorySpec>) {
         this.categories = categories
         val nativeCategories = categories.map { category ->
-            UNNotificationCategory.categoryWithIdentifier(
-                identifier = category.id,
-                actions = category.actions.map(::toNativeAction),
-                intentIdentifiers = emptyList<Any>(),
-                options = if (category.ios?.allowDismissAction == false) 0u else UNNotificationCategoryOptionCustomDismissAction,
-            )
+            val options = if (category.ios?.allowDismissAction == false) 0u else UNNotificationCategoryOptionCustomDismissAction
+            val placeholder = category.ios?.hiddenPreviewsBodyPlaceholder
+            if (placeholder == null) {
+                UNNotificationCategory.categoryWithIdentifier(
+                    identifier = category.id,
+                    actions = category.actions.map(::toNativeAction),
+                    intentIdentifiers = emptyList<Any>(),
+                    options = options,
+                )
+            } else {
+                UNNotificationCategory.categoryWithIdentifier(
+                    identifier = category.id,
+                    actions = category.actions.map(::toNativeAction),
+                    intentIdentifiers = emptyList<Any>(),
+                    hiddenPreviewsBodyPlaceholder = placeholder,
+                    options = options,
+                )
+            }
         }.toSet()
         onMainQueue {
             center.setNotificationCategories(nativeCategories)

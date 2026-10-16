@@ -47,6 +47,9 @@ class ServiceCall(
         const val BuildAttribute = "reaktor.build"
         const val NodeAttribute = "reaktor.node"
         const val GraphAttribute = "reaktor.graph_digest"
+        const val PortAttribute = "reaktor.port.id"
+        const val EdgeAttribute = "reaktor.edge.id"
+        const val ActivationAttribute = "reaktor.activation.id"
 
         fun sessionFromBaggage(value: String?): String? {
             if (value == null || value.length > 512) return null
@@ -77,6 +80,9 @@ data class ServiceSpan(
     val build: String = "",
     val node: String = "",
     @SerialName("graph_digest") val graphDigest: String = "",
+    val port: String = "",
+    val edge: String = "",
+    val activation: String = "",
 )
 
 fun interface SpanSink {
@@ -154,7 +160,10 @@ class SpanRecorder(
                     environment = resources[ServiceCall.EnvironmentAttribute].orEmpty(),
                     build = resources[ServiceCall.BuildAttribute].orEmpty(),
                     node = (call.attributes[ServiceCall.NodeAttribute] as? String).orEmpty(),
-                    graphDigest = resources[ServiceCall.GraphAttribute].orEmpty(),
+                    graphDigest = resources[ServiceCall.GraphAttribute] ?: (call.attributes[ServiceCall.GraphAttribute] as? String).orEmpty(),
+                    port = (call.attributes[ServiceCall.PortAttribute] as? String).orEmpty(),
+                    edge = (call.attributes[ServiceCall.EdgeAttribute] as? String).orEmpty(),
+                    activation = (call.attributes[ServiceCall.ActivationAttribute] as? String).orEmpty(),
                 ),
             )
         }

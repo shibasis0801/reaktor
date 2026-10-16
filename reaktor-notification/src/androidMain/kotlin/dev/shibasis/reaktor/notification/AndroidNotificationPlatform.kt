@@ -203,15 +203,34 @@ class AndroidNotificationRenderer(
         )
     }
 
-    private fun nativeAction(envelope: NotificationEnvelope, spec: NotificationActionSpec, icon: Int): Action {
-        val pendingIntent = responsePendingIntent(
-            envelope = envelope,
-            actionId = spec.id,
-            mutable = spec.kind == NotificationActionKind.TextInput,
-            dismissesNotification = spec.dismissesNotification,
+    private fun replyPendingIntent(envelope: NotificationEnvelope, spec: NotificationActionSpec): PendingIntent {
+        val launchIntent = (context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent())
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .putExtra(EXTRA_ACTION_ID, spec.id)
+            .putExtra(EXTRA_DISMISSES_NOTIFICATION, spec.dismissesNotification)
+        putEnvelopeExtras(launchIntent, envelope)
+        return PendingIntent.getActivity(
+            context,
+            "${envelope.id}:${spec.id}".notificationRequestCode(),
+            launchIntent,
+            pendingIntentFlags(immutable = false),
         )
+    }
+
+    internal fun actionPendingIntent(envelope: NotificationEnvelope, spec: NotificationActionSpec): PendingIntent =
+        when (spec.kind) {
+            NotificationActionKind.Open -> tapPendingIntent(envelope)
+            NotificationActionKind.TextInput -> replyPendingIntent(envelope, spec)
+            NotificationActionKind.Button -> responsePendingIntent(
+                envelope = envelope,
+                actionId = spec.id,
+                dismissesNotification = spec.dismissesNotification,
+            )
+        }
+
+    private fun nativeAction(envelope: NotificationEnvelope, spec: NotificationActionSpec, icon: Int): Action {
         @Suppress("DEPRECATION")
-        val builder = Action.Builder(icon, spec.title, pendingIntent)
+        val builder = Action.Builder(icon, spec.title, actionPendingIntent(envelope, spec))
         if (spec.kind == NotificationActionKind.TextInput) {
             val input = spec.textInput ?: NotificationTextInputOptions()
             builder.addRemoteInput(
@@ -241,9 +260,7 @@ class ReaktorNotificationActionReceiver : BroadcastReceiver() {
         // Auto-cancel only covers a tap on the notification body, so an action button has to clear
         // its own notification. Done here rather than in the handler so the shade updates the
         // instant the button is pressed, whatever the response listener goes on to do.
-        if (intent.dismissesNotification()) {
-            context.cancelNotification(intent.getStringExtra(EXTRA_NOTIFICATION_ID))
-        }
+        context.takeDown(intent)
         Dispatch.Default.launch {
             AndroidNotificationsRuntime.ensure(context).handleActionIntent(intent)
         }
@@ -313,6 +330,11 @@ object AndroidNotificationsRuntime {
      * constructed.
      */
     internal val events = NotificationEventHub()
+
+    private val launched = mutableSetOf<String>()
+
+    internal fun firstLaunch(event: NotificationResponseEvent): Boolean =
+        synchronized(launched) { launched.add("${event.notificationId}:${event.actionId}") }
 
     fun install(client: AndroidNotificationsClient) {
         this.client = client
@@ -393,6 +415,15 @@ internal fun putEnvelopeExtras(intent: Intent, envelope: NotificationEnvelope) {
 /** Whether the action this intent carries should take its notification down with it. */
 internal fun Intent.dismissesNotification(): Boolean =
     getBooleanExtra(EXTRA_DISMISSES_NOTIFICATION, false)
+
+internal fun Context.takeDown(intent: Intent) {
+    if (!intent.dismissesNotification()) return
+    cancelNotification(intent.getStringExtra(EXTRA_NOTIFICATION_ID))
+    intent.getStringExtra(EXTRA_ENVELOPE_JSON)
+        ?.let { runCatching { json.decodeFromString<NotificationEnvelope>(it) }.getOrNull() }
+        ?.content?.conversation?.id
+        ?.let(::cancelConversation)
+}
 
 internal fun Context.cancelNotification(id: String?) {
     val notificationId = id?.takeIf { it.isNotEmpty() } ?: return

@@ -12,7 +12,11 @@ data class MediaPick(
     val thumbnail: ByteArray? = null,
     val width: Int? = null,
     val height: Int? = null,
+    val size: Long = bytes.size.toLong(),
 )
+
+const val PHOTO_EDGE = 2048
+const val PHOTO_QUALITY = 85
 
 internal const val THUMBNAIL_EDGE = 480
 internal const val THUMBNAIL_QUALITY = 80
@@ -20,6 +24,8 @@ internal const val THUMBNAIL_QUALITY = 80
 abstract class GalleryAdapter<Controller>(
     controller: Controller,
 ) : Adapter<Controller>(controller) {
+    var readLimit: Long = Long.MAX_VALUE
+
     abstract suspend fun pickImage(): MediaPick?
 
     open suspend fun pickVideo(): MediaPick? = null

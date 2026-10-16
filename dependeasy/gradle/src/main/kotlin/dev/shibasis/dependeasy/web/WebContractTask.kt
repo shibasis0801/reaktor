@@ -32,11 +32,13 @@ abstract class WebContractTask : DefaultTask() {
         fun relative(file: File) = file.relativeTo(base).invariantSeparatorsPath
         val aliases = linkedMapOf<String, String>()
         val types = linkedMapOf<String, List<String>>()
+        val producers = linkedMapOf<String, File>()
         manifests.files.sortedBy { it.path }.forEach { file ->
             val metadata = Json.parseToJsonElement(file.readText()).jsonObject
             val name = metadata.getValue("name").jsonPrimitive.content
             val main = metadata.getValue("main").jsonPrimitive.content
             require(aliases.put(name, relative(file.parentFile.resolve(main))) == null) { "Duplicate Kotlin package: $name" }
+            producers[name] = file
             metadata["types"]?.jsonPrimitive?.content?.let { types[name] = listOf(relative(file.parentFile.resolve(it))) }
             types["$name/*"] = listOf(relative(file.parentFile.resolve("*")))
         }
@@ -46,6 +48,9 @@ abstract class WebContractTask : DefaultTask() {
             val dependencies = metadata["dependencies"]?.jsonObject.orEmpty()
             val producer = dependencies.entries.singleOrNull { (name, version) ->
                 version.jsonPrimitive.content.startsWith("workspace:") && name in aliases &&
+                    File(aliases.getValue(name)).name == File(entry).name
+            }?.key ?: producers.entries.singleOrNull { (name, manifest) ->
+                manifest.canonicalFile.toPath().startsWith(file.parentFile.canonicalFile.toPath()) &&
                     File(aliases.getValue(name)).name == File(entry).name
             }?.key ?: return@forEach
             val name = metadata.getValue("name").jsonPrimitive.content

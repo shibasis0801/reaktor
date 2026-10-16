@@ -1,15 +1,18 @@
 package dev.shibasis.dependeasy.web
 
 import dev.shibasis.dependeasy.handles.publishOutput
-import dev.shibasis.dependeasy.model.OutputKind
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.configuration.resolve
+import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.workspace.declarationSite
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.jetbrains.kotlin.gradle.targets.js.ir.Executable
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsBinaryMode
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack
 import dev.shibasis.dependeasy.plugins.DependeasyExtension
 import org.gradle.api.Project
-import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.Task
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrLink
@@ -18,8 +21,10 @@ import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrLink
 class KotlinBrowser internal constructor(private val project: Project) {
     var output: String = "dist/client"
     var moduleName: String = "${project.rootProject.name}-${project.name}"
-    private val guards = mutableListOf<TaskProvider<out Task>>()
-    fun requires(vararg tasks: TaskProvider<out Task>) { guards.addAll(tasks) }
+    private val requirements = mutableListOf<OptionRequirement>()
+    fun <T : Any> require(option: BuildOption<T>, value: T) {
+        requirements.add(OptionRequirement(project.resolve(option).get().evidence, value.toString()))
+    }
 
     internal fun register(): TaskProvider<out Task> {
         val extension = project.extensions.getByType<KotlinMultiplatformExtension>()
@@ -44,7 +49,13 @@ class KotlinBrowser internal constructor(private val project: Project) {
             resources.set(extension.js().compilations.getByName("main").output.resourcesDir.relativeTo(root).invariantSeparatorsPath)
         }
         val bundle = component.vite(output)
-        bundle.configure { dependsOn(guards) }
+        if (requirements.isNotEmpty()) {
+            val guard = BuildWorkspace.get(project).emit(project, KernelSpec.WorkspaceNode(
+                NodeId(project.rootProject.name, project.path, "checkBrowserOptions"), NodeKind.Verification,
+                Run.Default, emptyList(), emptyList(), emptyList(), requirements.toList()), WorkspaceCompletion,
+                project.declarationSite(), null, emptyList(), emptyList(), emptyList())
+            bundle.configure { dependsOn(requireNotNull(guard.task)) }
+        }
         extension.js {
             compilations.getByName("main").binaries.withType(Executable::class.java).configureEach {
                 if (mode == KotlinJsBinaryMode.PRODUCTION) {

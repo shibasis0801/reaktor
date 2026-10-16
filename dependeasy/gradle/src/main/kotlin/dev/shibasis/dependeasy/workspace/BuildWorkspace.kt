@@ -1,9 +1,7 @@
 package dev.shibasis.dependeasy.workspace
 
 import dev.shibasis.dependeasy.verification.karateSuite
-import dev.shibasis.dependeasy.verification.k6Suite
 import dev.shibasis.dependeasy.web.PnpmWorkspace
-import dev.shibasis.dependeasy.dagger.DaggerModule
 import dev.shibasis.dependeasy.cloudflare.WorkerFleet
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.publishing.PublicationDefaults
@@ -16,9 +14,11 @@ import dev.shibasis.dependeasy.handles.*
 
 internal class BuildWorkspace(private val project: Project) {
     private val targets = linkedMapOf<String, BuildTarget>()
+    internal val declaredTargets: Map<String, BuildTarget> get() = targets
     private val declaredTasks = linkedSetOf<NodeId>()
     private val taskReferences = linkedSetOf<NodeId>()
     private val taskOutputKinds = linkedMapOf<NodeId, OutputKind>()
+    private val taskArtifactFamilies = linkedMapOf<NodeId, String>()
     private val taskHostRequirements = linkedMapOf<NodeId, HostRequirement>()
     private val prerequisites = linkedMapOf<NodeId, MutableSet<NodeId>>()
     private val scriptAliases = linkedMapOf<String, MutableMap<String, String>>()
@@ -163,7 +163,9 @@ internal class BuildWorkspace(private val project: Project) {
         targets[target.id.toString()] = target
         declaredTasks.add(target.id)
         graph.configure {
-            nodes.add(project.provider { BuildModelReader.encode(target.model().let { node -> taskOutputKinds[node.id]?.let { node.copy(artifactFamily = it.family) } ?: node }) })
+            nodes.add(project.provider { BuildModelReader.encode(target.model().let { node ->
+                (taskArtifactFamilies[node.id] ?: taskOutputKinds[node.id]?.family)?.let { node.copy(artifactFamily = it) } ?: node
+            }) })
             edges.addAll(project.provider { target.edges().map { BuildModelReader.json.encodeToString(it) } })
             omissions.addAll(project.provider { target.omissions().map { BuildModelReader.json.encodeToString(it) } })
         }
@@ -172,16 +174,10 @@ internal class BuildWorkspace(private val project: Project) {
     fun karateSuite(name: String, directory: String, config: String, tags: List<String> = emptyList(), environmentFiles: List<String> = emptyList()) =
         project.karateSuite(name, directory, config, tags, environmentFiles)
 
-    fun k6Suite(name: String, script: String, environmentFiles: List<String> = emptyList()) =
-        project.k6Suite(name, script, environmentFiles)
-
     internal fun configure(node: NodeHandle, configuration: BuildTarget.() -> Unit) {
         val target = targets.getValue(node.id.toString()).apply(configuration)
         node.task?.configure { setDependsOn(listOf(project.provider { target.dependencies() })); mustRunAfter(target.ordering) }
     }
-
-    fun dagger(configure: DaggerModule.() -> Unit = {}) =
-        DaggerModule(project, targets).apply(configure).register()
 
     fun workers(configure: WorkerFleet.() -> Unit) = WorkerFleet(project).apply(configure).also { it.register(this) }
 
@@ -194,7 +190,7 @@ internal class BuildWorkspace(private val project: Project) {
     fun packageScripts() = project.tasks.register<PackageScriptsTask>("generatePackageScripts") {
         group = "code generation"
         val file = project.layout.projectDirectory.file("package.json")
-        val generated = this@BuildWorkspace.targets.values.filter { it.id.project == project.path && (it.worker != null || it.declaration?.kind in setOf(NodeKind.External, NodeKind.Release)) }.associateBy { it.name }
+        val generated = this@BuildWorkspace.targets.values.filter { it.id.project == project.path && (it.worker != null || it.declaration?.kind in setOf(NodeKind.External, NodeKind.Release, NodeKind.Deploy)) }.associateBy { it.name }
         val generatedNames = generated.keys.toSet()
         manifest.set(project.providers.fileContents(file).asText.map { authoredManifest(it, generatedNames) })
         aliases.set(generated.mapValues { it.value.id.project.trimEnd(':') + ":" + it.value.name })
@@ -232,9 +228,10 @@ internal class BuildWorkspace(private val project: Project) {
         graph.configure { edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.Consumes(node.id, producer.id, producer.id.name))) }
     }
 
-    internal fun reference(owner: Project, task: TaskProvider<out Task>, kind: OutputKind?, host: HostRequirement? = null) {
+    internal fun reference(owner: Project, task: TaskProvider<out Task>, kind: OutputKind?, host: HostRequirement? = null, family: String? = null) {
         val id = NodeId(owner.rootProject.name, owner.path, task.name)
         kind?.let { taskOutputKinds[id] = it }
+        family?.let { taskArtifactFamilies[id] = it }
         host?.let { taskHostRequirements[id] = it }
         if (!taskReferences.add(id)) return
         val site = owner.declarationSite()
@@ -248,7 +245,7 @@ internal class BuildWorkspace(private val project: Project) {
                         typed?.kernelEffect ?: if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
                         taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), site, kernelRef(producer),
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
-                        artifactFamily = kind?.family)))
+                        artifactFamily = taskArtifactFamilies[id] ?: kind?.family)))
                 }
             })
         }

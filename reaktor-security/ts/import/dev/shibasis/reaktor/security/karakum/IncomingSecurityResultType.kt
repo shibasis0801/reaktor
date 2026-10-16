@@ -2,9 +2,8 @@
 
 package dev.shibasis.reaktor.security.karakum
 
-sealed external interface IncomingSecurityResultType {
-companion object
-}
+@js.union.JsUnion
+sealed external interface IncomingSecurityResultType
 
 inline val IncomingSecurityResultType.Companion.applicationMessage: IncomingSecurityResultType
     get() = js.reflect.unsafeCast("applicationMessage")

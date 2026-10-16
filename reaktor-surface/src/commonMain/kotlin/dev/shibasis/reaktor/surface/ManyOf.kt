@@ -19,7 +19,7 @@ object ManyOfKernel : BehaviorKernel<ManyOfProperties, ManyOfState, Choose, Many
             input.key in properties.selected ->
                 Reduction(next, listOf(ManyOfEvent.Change(properties.selected - input.key)), listOf(FeedbackCue.Selection))
             properties.selected.size >= properties.capacity ->
-                Reduction(next, listOf(ManyOfEvent.Refused(input.key)), listOf(FeedbackCue.Threshold))
+                Reduction(next, listOf(ManyOfEvent.Refused(input.key)), listOf(FeedbackCue.Warning))
             else ->
                 Reduction(next, listOf(ManyOfEvent.Change(properties.selected + input.key)), listOf(FeedbackCue.Selection))
         }

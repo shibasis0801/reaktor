@@ -44,5 +44,16 @@ class IslandJvmClientTest {
         assertEquals("Not a Reaktor island", notIsland.failure)
     }
 
+    @Test fun stageReadsCannotFollowAProductionClientOutsideTheSelectedCatalog() {
+        val hosts = listOf("worker-dev.fixture.test", "api.fixture.test")
+        val fetched = mutableListOf<String>()
+        val result = readIslandShapes(hosts, allowedHosts = hosts.toSet()) { host ->
+            fetched += host
+            shape("https://worker.fixture.test")
+        }
+        assertEquals(hosts, fetched)
+        assertEquals(hosts, result.map { it.host })
+    }
+
     private fun shape(url: String) = Json.parseToJsonElement("""{"island":"fixture","runtime":"worker","graph":{"scopes":[],"nodes":[{"attributes":{"role":"client","baseUrl":"$url"}}],"wires":[],"routes":[]}}""")
 }

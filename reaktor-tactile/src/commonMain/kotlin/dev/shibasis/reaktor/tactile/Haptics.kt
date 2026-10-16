@@ -17,6 +17,10 @@ enum class HapticPattern {
     /** A single light tick. Confirms a tap landed — the lightest thing worth feeling. */
     Tap,
 
+    Selection,
+
+    Threshold,
+
     /** Something finished, and the user may not be looking at the screen. */
     Success,
 

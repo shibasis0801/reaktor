@@ -16,7 +16,7 @@ import dev.shibasis.reaktor.portgraph.visitor.Selector
 
 object StructuralSelector : Selector {
     override fun neighbors(visitable: Visitable): List<Visitable> = when (visitable) {
-        is Graph -> visitable.nodes.toList()
+        is Graph -> visitable.nodes.toList() + visitable.ownedGraphs.values()
         is Node -> buildList {
             if (visitable is ContainerNode) {
                 visitable.graphs.forEach { add(it) }

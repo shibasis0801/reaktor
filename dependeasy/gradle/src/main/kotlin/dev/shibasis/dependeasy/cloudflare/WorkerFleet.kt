@@ -67,9 +67,10 @@ class WorkerFleet internal constructor(private val project: Project) {
             val directory = declaration.directory
             val configurations = worker.configurations
             val paths = configurations.mapValues { project.rootProject.file(it.value).relativeTo(directory).invariantSeparatorsPath }
+            val defaultEnvironment = environments.last().name
             val selected = project.providers.gradleProperty("dependeasy.environment")
-                .orElse(project.providers.environmentVariable("TARGET_ENV")).orElse(environments.last().name)
-                .map { value -> value.takeIf { it in configurations } ?: environments.last().name }
+                .orElse(project.providers.environmentVariable("TARGET_ENV")).orElse(defaultEnvironment)
+                .map { value -> value.takeIf { it in configurations } ?: defaultEnvironment }
             val component = extension.javascript("${name}Worker", directory)
             val command = component.deploy(producers = arrayOf(generate))
             command.configure {

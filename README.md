@@ -367,7 +367,6 @@ Detailed setup:
 ```bash
 ./gradlew :reaktor-graph:allTests
 ./gradlew :reaktor-graph-port:allTests
-./gradlew :compose-flow:reportParity
 ./gradlew :reaktor-flow:jvmTest
 ./gradlew :reaktor-ffi:assembleDebug
 ./gradlew :reaktor-flexbuffer:assembleDebug

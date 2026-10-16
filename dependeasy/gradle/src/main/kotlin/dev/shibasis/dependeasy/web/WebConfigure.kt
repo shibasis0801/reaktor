@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.web
 
 
+import dev.shibasis.dependeasy.common.KotlinDependencies
 import dev.shibasis.dependeasy.handles.publishOutput
 import dev.shibasis.dependeasy.model.OutputKind
 import dev.shibasis.dependeasy.model.Verification
@@ -141,10 +142,10 @@ fun KotlinMultiplatformExtension.web(
         jsMain {
             configure.sourceSetModifier(this)
             dependencies {
-                configure.dependencies(this)
+                configure.dependencies(KotlinDependencies(this))
             }
         }
-        jsTest.dependencies { configure.testDependencies(this) }
+        jsTest.dependencies { configure.testDependencies(KotlinDependencies(this)) }
     }
 
 
