@@ -47,6 +47,7 @@ data class HarnessSession(
 
     fun resumeCommand(): String = when (runtime) {
         RuntimeKind.Codex -> "codex resume $id"
+        RuntimeKind.Gemini -> "agy --conversation $id"
         else -> "claude --resume $id"
     }
 
@@ -111,6 +112,8 @@ object HarnessSessions {
     private val ClaudeEdits = EditTools.map { "$it\"".encodeToByteArray() }
     private val CodexItem = "\"type\":\"".encodeToByteArray()
     private val CodexEdits = listOf("FileChange\"".encodeToByteArray())
+    private val AntigravityEdits = listOf("replace_file_content\"", "multi_replace_file_content\"", "write_to_file\"").map { it.encodeToByteArray() }
+    private val AntigravityEditTools = setOf("replace_file_content", "multi_replace_file_content", "write_to_file")
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     fun read(
@@ -121,14 +124,14 @@ object HarnessSessions {
     ): List<HarnessSession> {
         val root = workspace.canonicalPath
         val since = now - WindowMillis
-        return (claude(home, since, now, root, processes) + codex(home, since, now, root, processes.openTranscripts()))
+        return (claude(home, since, now, root, processes) + codex(home, since, now, root, processes.openTranscripts()) + antigravity(home, since, now, root))
             .sortedByDescending { it.lastActiveAt }.distinctBy { it.runtime to it.id }
     }
 
     fun stamp(home: File = File(System.getProperty("user.home")), now: Long = System.currentTimeMillis()): Long {
         val since = now - WindowMillis
         val registry = File(home, ".claude/sessions").listFiles { file -> file.isFile && file.extension == "json" }.orEmpty().toList()
-        return (registry + claudeFiles(home, since) + codexFiles(home, since, now))
+        return (registry + claudeFiles(home, since) + codexFiles(home, since, now) + antigravityFiles(home, since))
             .sumOf { file -> (file.path.hashCode() * 31L + file.lastModified()) * 31L + file.length() }
     }
 
@@ -139,6 +142,7 @@ object HarnessSessions {
         val records = records(file, fromEnd = true, TimelineBytes)
         val entries = when (session.runtime) {
             RuntimeKind.Codex -> records.flatMap { codexEntries(it, root) }
+            RuntimeKind.Gemini -> records.flatMap { antigravityEntries(it, root) }
             else -> records.flatMap { claudeEntries(it, root) }
         }
         return HarnessTimeline(entries.takeLast(EntriesKept), file.length() > TimelineBytes || entries.size > EntriesKept)
@@ -151,7 +155,11 @@ object HarnessSessions {
         val key = "$root\u0000${file.path}"
         val known = editScans[key]?.takeIf { it.offset <= file.length() } ?: EditScan(0, emptyList())
         val latest = LinkedHashMap<String, Long?>().apply { known.edits.forEach { put(it.file, it.at) } }
-        val (prefix, names) = if (session.runtime == RuntimeKind.Codex) CodexItem to CodexEdits else ClaudeTool to ClaudeEdits
+        val (prefix, names) = when (session.runtime) {
+            RuntimeKind.Codex -> CodexItem to CodexEdits
+            RuntimeKind.Gemini -> ClaudeTool to AntigravityEdits
+            else -> ClaudeTool to ClaudeEdits
+        }
         val offset = lines(file, known.offset) { line ->
             if (line.mentions(prefix, names)) parse(line.decodeToString())?.let { latest.add(steps(it, session.runtime, root)) }
         }
@@ -169,6 +177,7 @@ object HarnessSessions {
         val at = instant(record.string("timestamp"))
         return when (runtime) {
             RuntimeKind.Codex -> record.nested("payload")?.takeIf { it.string("type") == "item_completed" }?.let { codexSteps(it.nested("item"), at, root) }.orEmpty()
+            RuntimeKind.Gemini -> antigravitySteps(record, root)
             else -> (record.nested("message")?.get("content") as? JsonArray).orEmpty()
                 .mapNotNull { block -> (block as? JsonObject)?.takeIf { it.string("type") == "tool_use" }?.let { claudeStep(it, at, root) } }
         }
@@ -428,6 +437,77 @@ object HarnessSessions {
             turning = events.indexOfLast { it == "task_started" } > events.indexOfLast { it == "task_complete" || it == "turn_aborted" },
             asking = events.lastOrNull() in ApprovalEvents,
         )
+    }
+
+    private fun antigravity(home: File, since: Long, now: Long, root: String): List<HarnessSession> {
+        val base = File(home, ".gemini/antigravity-cli")
+        val folders = File(base, "cache/last_conversations.json").takeIf(File::isFile)?.let { runCatching { json.parseToJsonElement(it.readText()) as? JsonObject }.getOrNull() }
+            .orEmpty().entries.mapNotNull { (folder, id) -> (id as? JsonPrimitive)?.contentOrNull?.let { it to folder } }.toMap()
+        return antigravityFiles(home, since).mapNotNull { file ->
+            val id = file.parentFile.parentFile.parentFile.name
+            runCatching { parsed(file, root) { antigravityParse(file, id, folders[id], root) } }.getOrNull()?.let { session ->
+                session.copy(activity = if (now - session.lastActiveAt <= HarnessSession.LiveMillis) HarnessActivity.Working else HarnessActivity.Ended)
+            }
+        }
+    }
+
+    private fun antigravityFiles(home: File, since: Long): List<File> =
+        File(home, ".gemini/antigravity-cli/brain").listFiles().orEmpty().map { File(it, ".system_generated/logs/transcript.jsonl") }
+            .filter { it.isFile && it.lastModified() >= since }
+
+    private fun antigravityParse(file: File, id: String, folder: String?, root: String): HarnessSession? {
+        val head = records(file, fromEnd = false, HeadBytes)
+        val tail = records(file, fromEnd = true, TailBytes)
+        val calls = (head + tail).flatMap { record -> (record["tool_calls"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.nested("args") } }
+        val paths = calls.mapNotNull { args -> args.string("Cwd") ?: args.string("TargetFile") ?: args.string("AbsolutePath") ?: args.string("SearchDirectory") }
+        if (folder?.let { related(it, root) } != true && paths.none { related(it, root) }) return null
+        val steps = tail.flatMap { antigravitySteps(it, root) }
+        return HarnessSession(
+            runtime = RuntimeKind.Gemini,
+            id = id,
+            title = head.firstNotNullOfOrNull(::antigravityPrompt)?.oneLine() ?: "Untitled session",
+            directory = folder ?: root,
+            startedAt = head.firstNotNullOfOrNull { instant(it.string("created_at")) },
+            lastActiveAt = file.lastModified(),
+            origin = "cli",
+            version = null,
+            branch = null,
+            model = null,
+            effort = null,
+            tokens = null,
+            steps = steps.takeLast(StepsKept),
+            transcript = file.path,
+            files = steps.mapNotNull { it.file }.distinct(),
+        )
+    }
+
+    private fun antigravityPrompt(record: JsonObject): String? {
+        if (record.string("type") != "USER_INPUT") return null
+        val text = record.string("content")?.trim().orEmpty()
+        val request = if (text.startsWith("<")) Regex("<USER_REQUEST>(.*?)</USER_REQUEST>", RegexOption.DOT_MATCHES_ALL).find(text)?.groupValues?.get(1) else text
+        return request?.trim()?.takeIf(String::isNotEmpty)
+    }
+
+    private fun antigravitySteps(record: JsonObject, root: String): List<HarnessStep> {
+        if (record.string("type") != "PLANNER_RESPONSE") return emptyList()
+        val at = instant(record.string("created_at"))
+        return (record["tool_calls"] as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }.map { call ->
+            val name = call.string("name").orEmpty()
+            val args = call.nested("args")
+            val path = (args?.string("TargetFile") ?: args?.string("AbsolutePath"))?.relativeTo(root)
+            val detail = args?.string("CommandLine") ?: path ?: args?.string("Pattern") ?: args?.string("toolSummary")
+            HarnessStep(at, name.replace('_', ' '), detail?.oneLine(), name.startsWith("mcp_reaktor"), path?.takeIf { name in AntigravityEditTools })
+        }
+    }
+
+    private fun antigravityEntries(record: JsonObject, root: String): List<HarnessEntry> {
+        val at = instant(record.string("created_at"))
+        return when (record.string("type")) {
+            "USER_INPUT" -> listOfNotNull(antigravityPrompt(record)?.let { HarnessEntry(at, HarnessEntryKind.Prompt, it.take(EntryChars)) })
+            "PLANNER_RESPONSE" -> listOfNotNull(record.string("content")?.trim()?.takeIf(String::isNotEmpty)?.let { HarnessEntry(at, HarnessEntryKind.Reply, it.take(EntryChars)) }) +
+                antigravitySteps(record, root).map { HarnessEntry(at, HarnessEntryKind.Tool, it.tool, it.detail, it.file) }
+            else -> emptyList()
+        }
     }
 
     private fun codexText(item: JsonObject): String? = (item["content"] as? JsonArray).orEmpty()

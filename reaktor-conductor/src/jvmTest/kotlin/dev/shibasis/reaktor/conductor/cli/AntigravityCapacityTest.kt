@@ -21,18 +21,18 @@ class AntigravityCapacityTest {
 
     @Test fun afullModelStepsDownToTheNextOneAndOnlyTheAnsweringTurnIsTranscribed() = runBlocking {
         val root = Files.createTempDirectory("agy-capacity").toFile()
-        val binary = fakeAgy(root, full = setOf("gemini-3.1-pro-high", "gemini-3.8-flash-high"))
+        val binary = fakeAgy(root, full = setOf("gemini-4-argon-high", "gemini-3.8-flash-high"))
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val executor = SupervisedProcessExecutor(scope = scope)
         try {
             val events = AntigravityRuntime(executor, binary.absolutePath).run(request(root)).toList()
             val outcome = (events.last() as AgentEvent.Finished).outcome
             assertTrue(outcome.ok, outcome.failure)
-            assertEquals("gemini-3.7-flash-high", outcome.attributes["model"], "It settled on the first model with capacity")
+            assertEquals("gemini-4-argon-medium", outcome.attributes["model"], "It settled on the first model with capacity")
 
             val switches = events.filterIsInstance<AgentEvent.Activity>().filter { it.item.id.startsWith("antigravity-capacity") }
             assertEquals(2, switches.size, "Both refusals are visible rather than silent")
-            assertTrue(switches.first().item.title.contains("gemini-3.1-pro-high is at capacity"), switches.first().item.title)
+            assertTrue(switches.first().item.title.contains("gemini-4-argon-high is at capacity"), switches.first().item.title)
 
             // The turns that never ran must not leave a transcript behind them.
             assertEquals(1, events.count { it is AgentEvent.Started })
@@ -62,7 +62,7 @@ class AntigravityCapacityTest {
         val argv = antigravityArgv(request(File("/tmp")).withPreferred())
         assertTrue("--model" in argv, "An unnamed model becomes whatever the CLI falls back to")
         assertEquals(defaultAntigravityModels.first(), argv[argv.indexOf("--model") + 1])
-        assertTrue(defaultAntigravityModels.first().contains("pro"), "The default is a working tier, not the cheapest one")
+        assertTrue(defaultAntigravityModels.first().contains("argon-high"), "The default is a working tier, not the cheapest one")
     }
 
     private fun AgentRequest.withPreferred() = copy(agent = agent.copy(model = defaultAntigravityModels.first()))
@@ -97,5 +97,10 @@ class AntigravityCapacityTest {
         )
         script.setExecutable(true)
         return script
+    }
+
+    @Test fun agyModelListBecomesIdsAndNames() {
+        val models = parseAntigravityModels("Fetching available models...\ngemini-4-argon-high\tGemini 4 Argon (High)\ngemini-3.8-flash-low\tGemini 3.8 Flash (Low)\n\n")
+        assertEquals(listOf("gemini-4-argon-high" to "Gemini 4 Argon (High)", "gemini-3.8-flash-low" to "Gemini 3.8 Flash (Low)"), models.toList())
     }
 }

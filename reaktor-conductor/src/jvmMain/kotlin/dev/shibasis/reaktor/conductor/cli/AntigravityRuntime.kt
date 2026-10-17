@@ -86,17 +86,41 @@ class AntigravityRuntime(
 /**
  * Antigravity's preference order for this seat, best first.
  *
- * Verified present on `agy models` and answering on this account, 15 September 2026. Antigravity
+ * Verified present on `agy models` (agy 1.4.0) and answering on this account, 17 October 2026. Antigravity
  * also serves `claude-*` and `gpt-oss-*` on the same allowance; those are reachable by naming one
  * explicitly, and are deliberately not the default, because a seat called ChatGPT + Gemini that
  * quietly runs Claude is a seat nobody can reason about when they are choosing a fallback.
  */
 val defaultAntigravityModels: List<String> = listOf(
-    "gemini-3.1-pro-high",
+    "gemini-4-argon-high",
     "gemini-3.8-flash-high",
-    "gemini-3.7-flash-high",
-    "gemini-3.6-flash-high",
+    "gemini-4-argon-medium",
+    "gemini-3.8-flash-medium",
 )
+
+val antigravityModelNames: Map<String, String> = linkedMapOf(
+    "gemini-4-argon-high" to "Gemini 4 Argon (High)",
+    "gemini-4-argon-medium" to "Gemini 4 Argon (Medium)",
+    "gemini-4-argon-low" to "Gemini 4 Argon (Low)",
+    "gemini-3.8-flash-high" to "Gemini 3.8 Flash (High)",
+    "gemini-3.8-flash-medium" to "Gemini 3.8 Flash (Medium)",
+    "gemini-3.8-flash-low" to "Gemini 3.8 Flash (Low)",
+)
+
+fun antigravityModels(executable: String = "agy", timeoutSeconds: Long = 30): Map<String, String> {
+    val process = ProcessBuilder(executable, "models").redirectErrorStream(true).start()
+    if (!process.waitFor(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS)) {
+        process.destroyForcibly()
+        error("agy models did not answer within $timeoutSeconds seconds")
+    }
+    val output = process.inputStream.bufferedReader().use { it.readText() }
+    check(process.exitValue() == 0) { output.lines().lastOrNull(String::isNotBlank) ?: "agy models exited with ${process.exitValue()}" }
+    return parseAntigravityModels(output)
+}
+
+fun parseAntigravityModels(output: String): Map<String, String> = output.lineSequence()
+    .mapNotNull { line -> line.split('\t').takeIf { it.size >= 2 && it[0].isNotBlank() }?.let { it[0].trim() to it[1].trim() } }
+    .toMap(linkedMapOf())
 
 private fun AgentRequest.withModel(model: String) =
     if (agent.model == model) this else copy(agent = agent.copy(model = model))
