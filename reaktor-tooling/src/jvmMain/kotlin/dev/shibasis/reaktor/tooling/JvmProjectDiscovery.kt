@@ -205,11 +205,10 @@ class JvmProjectDiscovery(
             declarationsText.getOrPut(file.canonicalFile) { file.readText() }
         }
         val declarations = reaktor.targetDeclarations()
-        val gradleModules = if (root.resolve(BuildDeclarations.Report).isFile) {
-            val model = dev.shibasis.dependeasy.model.BuildModelReader.readAllowingStale(root)
+        val gradleModules = readableBuildModel(root)?.let { model ->
             val main = model.builds.single { it.directory == "." }.name
             model.nodes.filter { it.id.build == main && it.id.project != ":" }.map { it.id.project.trim(':') }.distinct()
-        } else emptyList()
+        }.orEmpty()
         val targetNames = targetNames(root, workspaces, declarations, gradleModules)
         val workspace = ToolingWorkspace(
             id = WorkspaceId("workspace-${sha256(root.canonicalFile.absolutePath).take(24)}"),

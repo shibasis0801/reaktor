@@ -70,6 +70,16 @@ class BuildDeclarationsTest {
         assertEquals("fixture", workspace.catalog.workspace.name)
     }
 
+    @Test fun aModelFromANewerExporterKeepsTheWorkspaceDiscoverable() = fixture { root ->
+        val file = report(root, node("artifacts"))
+        file.writeText(file.readText().replace(Regex(""""type":\s*"[^"]+""""), """"type":"future""""))
+        assertFails { BuildModelReader.readAllowingStale(root) }
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        assertTrue(workspace.catalog.tasks.none { "buildNode" in it.attributes })
+        assertEquals("fixture", workspace.catalog.workspace.name)
+        assertTrue(gradleSourceRoots(root).unresolved)
+    }
+
     @Test fun compositeOwnershipAndEveryEffectRemainVisible() = fixture { root ->
         report(root, node("artifacts"), node("checks", Effect.Verify, "library"),
             node("serve", Effect.Develop), node("deploy", Effect.Deploy),
