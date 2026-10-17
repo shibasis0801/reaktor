@@ -69,11 +69,20 @@ abstract class ExportBuildModelTask : DefaultTask() {
         replaceAtomically(outputFile.get().asFile, text)
         val routing = RemoteHostsContract(builds = builds.associate { it.name to it.directory }.toSortedMap(),
             taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to model.requiredHost(it.id) }.toSortedMap(),
-            taskFamilies = model.nodes.filter { it.id.build == own && it.artifactFamily != null }.associate {
-                (it.id.project.trimEnd(':') + ":" + it.id.name) to requireNotNull(it.artifactFamily) }.toSortedMap())
+            taskFamilies = taskFamilies(model, own))
         replaceAtomically(remoteHostsFile.get().asFile, BuildModelReader.json.encodeToString(routing) + "\n")
         legacyFiles().filter { it.exists() }.forEach { require(it.delete()) { "Cannot remove obsolete export: $it" } }
     }
+}
+
+internal fun taskFamilies(model: BuildModel, own: String): Map<String, String> {
+    fun path(build: String, task: String) = (if (build == own) "" else ":$build") + task
+    val declared = model.nodes.filter { it.artifactFamily != null }
+    val invoked = declared.flatMap { node ->
+        (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { path(node.id.build, it) to requireNotNull(node.artifactFamily) }
+    }.groupBy({ it.first }, { it.second }).mapNotNull { (task, families) -> families.distinct().singleOrNull()?.let { task to it } }
+    val named = declared.map { path(it.id.build, it.id.project.trimEnd(':') + ":" + it.id.name) to requireNotNull(it.artifactFamily) }
+    return (invoked + named).toMap().toSortedMap()
 }
 
 private fun replaceAtomically(file: java.io.File, text: String) {
