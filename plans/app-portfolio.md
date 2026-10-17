@@ -1,6 +1,6 @@
 # Reaktor — App Portfolio & Framework Gaps
 
-*Working document · revised September 2026 · supersedes the earlier ten-idea list — the tenth here earns its slot on force coverage, not habit (§4, idea 10)*
+*Working document · revised September 2026 · supersedes the earlier ten-idea list — the tenth here earns its slot on force coverage, not habit (§4, idea 10) · 30 September 2026: idea 7 (Recorder) folded into idea 10 (Lector)*
 
 Apps chosen so that every hard problem in the framework gets exercised exactly once, plus the
 framework gaps each one closes. The set is deliberately small: earlier drafts had ten ideas, most of
@@ -37,15 +37,21 @@ entirely).
 
 **Nothing exists yet:**
 
-- **Motion / interaction feedback.** `ripple` and `haptic` appear zero times in the Kotlin source.
-  Every `spring` hit is Spring WebFlux, not spring physics. Animation and gesture code lives almost
-  entirely inside `compose-flow` / `reaktor-flow` — trapped in the graph canvas, unavailable to app UI.
-  `reaktor-tactile` has a build file, a podspec and a README, and no source files.
+- **Motion / interaction feedback.** `ripple` appears nowhere outside the canvas. Every `spring`
+  hit is Spring WebFlux, not spring physics. Animation and gesture code lives almost entirely inside
+  `compose-flow` / `reaktor-flow` — trapped in the graph canvas, unavailable to app UI.
+  *Updated 17 Oct 2026:* `reaktor-tactile` now has its first implementation (`0c158f4c`) — a
+  `HapticsAdapter` playing a fixed `HapticPattern` enum on Android and Darwin, consumed by GymBuddy.
+  That is the fixed effect set §3 argues against, not the parametric waveform; motion is still
+  untouched.
 - **Localization.** `i18n` appears zero times. No strings, plurals, locale-aware dates/numbers/
   currency, no RTL.
 - **Accessibility.** Semantics exist only in `reaktor-flow`, for graphs. No app-level focus order,
   screen-reader labels, dynamic type, contrast or reduced-motion.
-- **Widgets / live activities.** No module at all (Android Glance, iOS WidgetKit).
+- **Widgets / live activities.** No home-screen widget module (Android Glance, iOS WidgetKit).
+  *Updated 17 Oct 2026:* the live-activity half has started — `reaktor-notification` has an
+  `OngoingActivity` (`1d826131`): an ongoing notification on Android, and on iOS the Kotlin side of a
+  Live Activity whose Swift widget extension each app must still supply.
 - **App scaffolding.** `reaktor-cli` has lifecycle, topology, deploy, ops and docs commands but no
   `new` / template / scaffold command. Every app in this portfolio would hand-roll its KMP module
   layout, targets, podspec and webpack config. See §9.
@@ -72,10 +78,11 @@ entirely).
 - **Forms & validation** — logic scattered across ~20 files, no shared model.
 - **Feature flags / remote config** — one hit in the entire repo.
 - **Deep links** — routes exist; platform registration and cold-start routing don't.
-- **`reaktor-media`** — camera and gallery are real on both platforms, but `speech/` is
-  `commonMain` only: `SpeechRecognizer` and `SpeechSynthesizer` have no Android or Darwin
-  implementation. No video. The recognizer half is forced by idea 7 (Recorder), the synthesizer half
-  by idea 10 (voice reader).
+- **`reaktor-media`** — camera and gallery are real on both platforms, and `speech/` is now real in
+  both directions: `SpeechSynthesizer` and `SpeechRecognizer` each have Android and Darwin
+  implementations, both built for Lector. The recognizer was promoted from Lector's app code
+  (`b7b03703`) rather than built fresh. No video. Both halves are owned by idea 10 (voice reader);
+  idea 7 (Recorder) was folded into it.
 - **`reaktor-security`** — *corrected:* this is not a generic crypto box, it is a full MLS stack
   with `mlspp` vendored in `cpp/external`, group conversations, key package publishing and member
   add/remove. What exercises MLS is **membership churn**, not two-party transfer. Zero consumers —
@@ -85,12 +92,14 @@ entirely).
 - **`reaktor-web`** — real Android and Darwin WebView implementations, three source files, no known
   consumer.
 - **`reaktor-health`** (Health Connect + HealthKit) and **`reaktor-sensors`** (CoreMotion step
-  counter) both landed recently, both have tests, both have **zero consumers and no app in this
-  portfolio that touches them**. Addressed by idea 6.
+  counter) both landed with tests and no consumer. *Updated 17 Oct 2026:* GymBuddy, outside this
+  portfolio, now consumes both, so idea 6's case rests on widgets, which still have no consumer.
 - **`ShareAdapter`** — Android share-sheet work in progress in `reaktor-io`, not yet committed, and
   **outbound only**: `shareFile(payload)` hands a file *to* the platform sheet. Receiving content the
   user shares *into* an app does not exist anywhere in the repo. An earlier draft counted this as
-  reuse; it is new work. Design in [cairn.md §7](cairn.md).
+  reuse; it is new work. Design in [cairn.md §7](cairn.md). *Updated 17 Oct 2026:* the receiving
+  half landed as `ShareReceiver` (`71bb69cd`) on Android, desktop and web, consumed by Cairn. There
+  is no iOS receiver yet.
 
 ---
 
@@ -123,7 +132,8 @@ Consequences:
 
 ## 4. The portfolio
 
-Ten ideas across nine apps — ideas 1 and 2 are two arcs of one app, Cairn. Six come from the
+Ten ideas across nine apps — ideas 1 and 2 are two arcs of one app, Cairn. Idea 7 (Recorder) was
+folded into idea 10 on 30 September 2026, so nine ideas are live across eight apps. Six come from the
 original draft (three rescoped), plus Cairn arc II, Steps & health, and the reader idea now folded
 into Cairn. Idea 10, the voice reader, is added September 2026: it earns a slot despite this doc's
 standing suspicion of a tenth idea because it owns three forces nothing else claims (its own costume
@@ -265,28 +275,48 @@ budgets, with no external data dependency to derail it.
 *Forces:* widgets/live activities · health + sensor adapters · background budgets · permissions
 *Size:* 1–2 weeks
 
-### 7. Voice recorder with transcription
-**Primary stress: media capture + search, then on-device compute.**
-**Rescoped: split into two phases so FFI cannot eat the schedule.**
+### 7. Voice recorder with transcription — folded into Lector
+**Folded 30 September 2026. Not picked up as a separate app.**
+**Design doc: [lector.md](lector.md)** — the recognizer work now lives there.
 
 Record a meeting or a thought, transcribe it, search everything you've ever said.
 
-**Phase 1 — platform speech.** `SFSpeechRecognizer` and Android `SpeechRecognizer` behind the
-existing `SpeechRecognizer` / `SpeechSynthesizer` interfaces, which are `commonMain`-only stubs
-today. This is what `reaktor-media` actually needs regardless of what happens to phase 2. Adds a
-background processing queue and full-text search over a growing archive. Recordings are sensitive,
-so encryption at rest matters here.
+This idea was on the list for two framework reasons: phase 1 would force the `SpeechRecognizer`
+platform impl, and phase 2 would be the honest test of `reaktor-ffi` through whisper.cpp. Both now
+sit better inside Lector:
 
-**Phase 2 — on-device model.** whisper.cpp through `reaktor-ffi`, FlexBuffers moving payloads across
-the boundary. This is the honest test of `reaktor-ffi`, and it is also a multi-week build across
-four targets that can swallow the whole quarter. Start it only after phase 1 has shipped.
+- **The recognizer was already built — in the wrong place.** Lector's voice commands ran on Android
+  `SpeechRecognizer` and iOS `SFSpeechRecognizer` + `AVAudioEngine`, as app-local `VoiceInput`
+  classes, while `reaktor-media`'s `SpeechRecognizer` was an empty stub. Phase 1's framework work
+  became a promotion, not a new app — and it is done: `b7b03703` moved the code into
+  `reaktor-media` with a generalised contract (typed errors, language, prefer-on-device, an
+  in-memory fake for tests), and Lector consumes it (`lector@848037f`). The hard part, sharing one
+  audio session between a recognizer and a synthesizer that is speaking, came with it — generalised
+  to save and restore the caller's session rather than hard-code playback.
+- **The standalone app fails this doc's own habit test.** Without a real daily recording need, it
+  gives no reason to open it regularly — the failure that killed the earlier ten-idea list.
+- **Phase 2 pairs with a decision Lector already has open.** lector.md §10 defers bundling a neural
+  voice through `reaktor-ffi`; on-device recognition through whisper.cpp is the same kind of work on
+  the same module, so it joins that deferred item instead of holding a slot of its own.
 
-*Forces:* speech/audio capture · background processing · full-text search · encryption at rest · then FFI + flexbuffer
-*Size:* 2–3 weeks phase 1, 3–4 weeks phase 2
+Where each piece went:
+
+| Recorder piece | Now |
+|---|---|
+| `SpeechRecognizer` Android + Darwin impl | **Lector** — promoted into `reaktor-media` (`b7b03703`) |
+| Mic and synthesizer sharing one audio session | **Lector** — moved with the promotion; saves and restores the caller's session |
+| On-device model through `reaktor-ffi` (whisper.cpp, FlexBuffers) | **Lector, deferred** — beside the neural-voice decision; only if OS engines test poorly |
+| Full-text search | Cairn II (already owned) |
+| Encryption at rest | Cairn I (already owned) |
+| Background processing queue | Cairn II, Podcast (already owned) |
+| Long-form recording to file + long-form transcription | **Unowned, parked** — reopen only if a real daily recording need appears |
+
+*Forces moved:* speech recognition + platform impl → Lector · FFI + flexbuffer → Lector (deferred)
+*Size:* no separate slot; the promotion landed inside Lector
 
 ### 8. Commute companion
 **Primary stress: data scale.**
-**Demoted: widgets moved to idea 5; blocked on a feasibility check.**
+**Demoted: widgets moved to idea 6; blocked on a feasibility check.**
 
 Offline timetables, live delays, next departures.
 
@@ -295,7 +325,7 @@ and the flexbuffer work a production workload rather than a benchmark.
 
 **Blocking precondition:** the entire app collapses if your city has no usable GTFS or live-delay
 feed. Verify feed availability and licence *before* scheduling any work. If the feed is weak, drop
-this idea — idea 6 already covers the daily-glance habit and idea 5 already covers widgets, so
+this idea — idea 6 already covers both the daily-glance habit and widgets, so
 nothing else in the portfolio depends on it except data-scale, which the money manager's
 multi-year transaction history covers as a secondary.
 
@@ -323,7 +353,7 @@ real even if the personal value isn't.
 
 ### 10. Read-aloud / voice reader
 **Primary stress: speech *synthesis* + full-duplex voice control.**
-**New — September 2026. Complements Recorder: it owns the output half of `reaktor-media/speech`.**
+**New — September 2026. Owns both halves of `reaktor-media/speech`: output from the start, input since idea 7 (Recorder) was folded in.**
 **Design doc: [lector.md](lector.md)** — *Lector* is a working name, rename later.
 
 Point it at a PDF and it reads aloud, hands-free. Talk back — "highlight every date," "note: check
@@ -331,14 +361,15 @@ this figure," "next page" — and it highlights, annotates and scrolls itself, f
 word.
 
 The costume test first, because this doc has failed it before: the read-later reader is already
-Cairn II, media playback is already Podcast, ingestion is already Cairn's `ShareReceiver`, and speech
-*recognition* is already Recorder. What nothing owns is exactly three things, and they are the whole
-reason this is an entry and not a feature —
+Cairn II, media playback is already Podcast, and ingestion is already Cairn's `ShareReceiver`. What
+nothing owns is exactly three things, and they are the whole reason this is an entry and not a
+feature —
 
-- **The synthesizer half of speech.** `reaktor-media/.../speech/SpeechSynthesizer` is a `commonMain`
-  stub with no Android or Darwin body. Recorder forces the *recognizer* impl and never needs to
-  speak; this is the first thing that does. Together the two ideas make `reaktor-media/speech` real
-  in both directions.
+- **Both halves of speech.** `SpeechSynthesizer` was a `commonMain` stub; this is the first thing
+  that speaks, and its Android and Darwin bodies have landed. Lector's voice commands first ran on
+  the platform recognizers in app code; promoted into `SpeechRecognizer` (`b7b03703`), they make
+  `reaktor-media/speech` real in both directions from one app. The recognizer half used to be
+  Recorder's (idea 7) — folded in here because Lector built it first.
 - **Full-duplex voice control.** Doing capture and output at once is the hard part: speaking while
   listening for a command, ducking or pausing the synthesizer the instant the mic opens, resuming
   cleanly after. That barge-in loop — two half-duplex OS engines contending for audio focus — is a
@@ -364,9 +395,10 @@ is in front instead of pulling text in by share. iOS forbids it, and it can neit
 nor reliably scroll a foreign app — a late Android-only power feature with real Play-policy exposure,
 never the MVP, never promised on iOS. Gate on a policy check.
 
-*Forces:* speech synthesis + platform impl · full-duplex voice control (barge-in) · reading-follow (word-range highlight + auto-scroll) · on-device intent grammar, then LLM intent
+*Forces:* speech synthesis + recognition, both platform impls · full-duplex voice control (barge-in) · reading-follow (word-range highlight + auto-scroll) · on-device intent grammar, then LLM intent · deferred: on-device model through `reaktor-ffi`
 *Reuses:* Cairn `ShareReceiver` · Podcast player scope · existing `PermissionAdapter`
-*Size:* ~2 weeks once the synthesizer impl exists (read + highlight + auto-scroll, then the command loop); +1 week for the semantic tier; ambient overlay separate and later
+*Absorbs:* Recorder (idea 7) — the recognizer impl now, the `reaktor-ffi` model deferred
+*Size:* ~2 weeks once the synthesizer impl exists (read + highlight + auto-scroll, then the command loop); the recognizer promotion into `reaktor-media` (done); +1 week for the semantic tier; ambient overlay separate and later
 
 ---
 
@@ -376,7 +408,7 @@ never the MVP, never promised on iOS. Gate on a policy check.
 |---|---|
 | Multi-target parity (phone + desktop + web) | Cairn I |
 | Realtime + presence | Cairn I |
-| Encryption in transit / at rest | Cairn I (Recorder secondary) |
+| Encryption in transit / at rest | Cairn I |
 | MLS membership churn | Cairn I (device set as group); BestBuds for people |
 | Identity across moving sources (reconciliation, not sync) | Cairn II |
 | Graph scoping (long-lived node) | Podcast |
@@ -389,28 +421,30 @@ never the MVP, never promised on iOS. Gate on a policy check.
 | i18n — units and measures | Kitchen |
 | Accessibility (reference implementation) | Money manager |
 | Widgets / live activities | Steps & health |
-| Health + sensor adapters | Steps & health |
+| Health + sensor adapters | Steps & health (GymBuddy consumes both today) |
 | WebView | Cairn II |
 | Inbound share / OS ingestion | Cairn I and II |
-| Full-text search | Cairn II, Recorder |
-| Media capture (audio, camera) | Recorder, Kitchen phase 2 |
+| Full-text search | Cairn II |
+| Media capture (mic stream, camera) | Voice reader (mic), Kitchen phase 2 (camera) |
+| Long-form audio recording to file | Unowned — parked with Recorder (idea 7) |
 | Speech synthesis (TTS out) + platform impl | Voice reader |
+| Speech recognition (STT in) + platform impl | Voice reader (absorbed from Recorder) |
 | Full-duplex voice control (barge-in, duck) | Voice reader |
 | Reading-follow (word-range highlight + auto-scroll) | Voice reader |
-| On-device compute (FFI / C++) | Recorder phase 2 |
+| On-device compute (FFI / C++) | Voice reader, deferred (whisper.cpp or a bundled neural voice) |
 | Data scale & query performance | Money manager (Commute, if it happens) |
 | Multi-source ingestion (open-ended corpus) | Cairn II |
 | Temporal correctness (timezones, recurrence) | Scheduling |
 | Public web target (Kotlin/JS) | Scheduling |
-| Background: downloads / refresh / processing | Podcast / Steps / Cairn II / Recorder |
+| Background: downloads / refresh / processing | Podcast / Steps / Cairn II |
 | Motion & tactile feedback | Kitchen (eyes-free), then everywhere |
 | Permissions (UI layer above the existing adapter) | Every app — mic, camera, location, notifications, health |
 
 **New framework modules these force into existence:** motion + tactile, i18n, accessibility,
 widgets, forms, CLI scaffolding — plus a real sync layer completing the change feed that
 `ObjectDatabase` already emits, a permissions **UI** layer above the adapter that already exists, and
-the synthesizer + full-duplex voice-control half of `reaktor-media/speech` (idea 10) beside the
-recognizer half idea 7 builds.
+both halves of `reaktor-media/speech` — synthesizer, recognizer and the full-duplex control between
+them — all from idea 10.
 
 ---
 
@@ -452,14 +486,16 @@ number three. See §9.
 Podcast → Money manager → Kitchen.
 
 **Parallel track** — independent, pick up when the spine blocks:
-Steps & health (smallest, unblocks widgets), Recorder phase 1.
+Steps & health (smallest, unblocks widgets). Recorder phase 1 used to sit here; it was done inside
+Lector instead (idea 7).
 
-**Voice reader (idea 10)** — after Recorder phase 1 (which builds the shared `SpeechSynthesizer`
-platform interface) and after Cairn ships `ShareReceiver`. Reuse-heavy, so it only turns cheap once
-both exist; not before app three.
+**Voice reader (idea 10)** — in progress. Both preconditions have landed: `SpeechSynthesizer` on
+Android and Darwin, and the inbound `ShareReceiver`. The step absorbed from Recorder — promoting its
+app-local recognizer into `reaktor-media` — is done (`b7b03703`).
 
 **Last / conditional:** Scheduling (last), Commute (only if the transit feed checks out),
-Recorder phase 2 and Kitchen phase 2 (only after their phase 1 ships).
+Kitchen phase 2 (only after phase 1 ships), Lector's on-device model through `reaktor-ffi` (only if
+the OS speech engines test poorly).
 
 ---
 
@@ -507,7 +543,7 @@ Not free, and worth stating before the first Durable Object goes up:
 | Kitchen | Workers, Durable Objects (list state), R2 (attachments) | Small |
 | Scheduling | Workers, D1 or DO (bookings), Cloudflare Email, public hostname | Small + domain |
 | Cairn II | Rides on arc I's Workers/DO/R2; adds D1 + retained blob storage | Grows with corpus |
-| Podcast, Money, Steps, Recorder | Sync endpoint + object storage only | Minimal |
+| Podcast, Money, Steps | Sync endpoint + object storage only | Minimal |
 
 Everything else is on-device. The sync endpoint is shared across all of them — one more reason to
 build it once (§6). Budget for a domain, a Workers paid plan once Durable Objects are in play, and
@@ -521,20 +557,20 @@ Status of each idea. Update as work starts; per-app plans go in `plans/<app>.md`
 
 | # | App | Status | Blocked on | Plan doc |
 |---|---|---|---|---|
-| 1 | Cairn arc I (transfer) | Not started | — | [cairn.md](cairn.md) |
+| 1 | Cairn arc I (transfer) | In progress — two-device runs, release prep in `cairn/RELEASE.md` | — | [cairn.md](cairn.md) |
 | 2 | Cairn arc II (retention) | Not started | arc I ph.0–6 | [cairn.md](cairn.md) |
 | 0.5 | `reaktor-cli new` scaffolding | Not started | Cairn arc I shipping first | — |
 | 3 | Podcast | Not started | Cairn arc I | — |
 | 4 | Money manager | Not started | Podcast (sync tier 1) | — |
 | 5 | Kitchen ph.1 | Not started | Money (sync tier 2) + second-user confirmation | — |
 | 6 | Steps & health | Not started | — | — |
-| 7 | Recorder ph.1 | Not started | — | — |
+| 7 | Recorder ph.1 | **Folded into Lector** — recognizer promoted, `b7b03703` | — | [lector.md](lector.md) |
 | 8 | Commute | **Blocked** | Transit feed availability check | — |
 | 9 | Scheduling | Not started | — | — |
-| 10 | Voice reader | Not started | `SpeechSynthesizer` impl (shared w/ Recorder) · Cairn `ShareReceiver` | [lector.md](lector.md) |
+| 10 | Voice reader | In progress — also owns the recognizer now | — (synthesizer and `ShareReceiver` both landed) | [lector.md](lector.md) |
 | — | Cairn ph.12 (extraction) | Deferred | arc II in daily use | [cairn.md](cairn.md) |
 | — | Kitchen ph.2 | Deferred | Kitchen ph.1 shipping | — |
-| — | Recorder ph.2 (FFI) | Deferred | Recorder ph.1 shipping | — |
+| — | Recorder ph.2 (FFI) | **Folded into Lector**, deferred | OS speech engines testing poorly | [lector.md](lector.md) |
 | — | Voice reader ambient overlay (Android) | Deferred | Play-policy check; iOS excluded | [lector.md](lector.md) |
 
 **Open decisions awaiting an answer:** Cairn §15 (seven; 1–6 before its phase 3, 7 before phase 7) ·
@@ -558,8 +594,8 @@ Claims verified against the source tree, August 2026.
 | `ripple` / `haptic` absent; animation confined to the canvas | repo-wide search, `*.kt`, excluding `build/` |
 | `i18n` absent | repo-wide search, `*.kt`, excluding `build/` |
 | `reaktor-tactile` has no source files | `reaktor-tactile/` — build files and README only |
-| Speech has no platform implementation | `reaktor-media/src/commonMain/.../speech/` only; no `androidMain`/`iosMain` |
-| Speech splits recognizer (idea 7) / synthesizer (idea 10) | `reaktor-media/.../speech/{SpeechRecognizer,SpeechSynthesizer}.kt` |
+| Both speech halves have Android + Darwin impls *(re-checked 17 Oct 2026)* | `reaktor-media/src/{androidMain,iosMain}/.../speech/{Android,Darwin}Speech{Synthesizer,Recognizer}.kt` |
+| Lector consumes the framework recognizer; its app-local voice classes are gone *(17 Oct 2026)* | `lector@848037f` |
 | `reaktor-security` is MLS | `reaktor-security/cpp/external/mlspp/`, key packages, group conversations |
 | `reaktor-web` has real WebViews, no consumer | `reaktor-web/src/{commonMain,androidMain,iosMain}/.../WebView.kt` |
 | `reaktor-health` / `reaktor-sensors` have no consumer | `reaktor-health/src/`, `reaktor-sensors/src/` — commits `c37a360d`, `adb533b0` |
