@@ -94,6 +94,24 @@ class AgentWorkspaceConnection private constructor(
     suspend fun transcript(id: String, before: Int? = null, limit: Int = 20): AgentTranscript = ConductorJson.decodeFromJsonElement(AgentTranscript.serializer(),
         call("agent_transcript", buildJsonObject { put("threadId", id); before?.let { put("before", it) }; put("limit", limit) }))
 
+    suspend fun board(query: String = ""): BoardPage = ConductorJson.decodeFromJsonElement(BoardPage.serializer(),
+        call("agent_board", buildJsonObject { put("query", query) }))
+    suspend fun boardTask(id: String): BoardEntry = boardEntry(call("agent_board_task", buildJsonObject { put("taskId", id) }))
+    suspend fun createBoardTask(draft: BoardDraft, by: BoardActor): BoardEntry = boardEntry(call("agent_board_create",
+        JsonObject(AgentWorkspaceJson.encodeToJsonElement(BoardDraft.serializer(), draft).jsonObject + ("by" to actor(by)))))
+    suspend fun updateBoardTask(id: String, patch: BoardPatch, by: BoardActor, revision: Long? = null): BoardEntry = boardEntry(call("agent_board_update",
+        JsonObject(ConductorJson.encodeToJsonElement(BoardPatch.serializer(), patch).jsonObject + buildJsonObject {
+            put("taskId", id); put("by", actor(by)); revision?.let { put("revision", it) }
+        })))
+    suspend fun moveBoardTask(id: String, stage: BoardStage, by: BoardActor, revision: Long? = null): BoardEntry = boardEntry(call("agent_board_move", buildJsonObject {
+        put("taskId", id); put("stage", stage.name); put("by", actor(by)); revision?.let { put("revision", it) }
+    }))
+    suspend fun linkBoardWork(id: String, work: String, linked: Boolean, by: BoardActor): BoardEntry = boardEntry(call("agent_board_link", buildJsonObject {
+        put("taskId", id); put("work", work); put("linked", linked); put("by", actor(by))
+    }))
+    private fun boardEntry(value: JsonElement) = ConductorJson.decodeFromJsonElement(BoardEntry.serializer(), value)
+    private fun actor(by: BoardActor) = ConductorJson.encodeToJsonElement(BoardActor.serializer(), by)
+
     suspend fun call(name: String, args: JsonObject = buildJsonObject {}): JsonElement {
         withContext(Dispatchers.IO) { refreshEndpoint() }
         if (remote != null || endpoint.invocationVersion == null) return callMcp(name, args)

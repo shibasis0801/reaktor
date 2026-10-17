@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit
 
 data class HarnessStep(val at: Long?, val tool: String, val detail: String?, val door: Boolean, val file: String? = null)
 
+data class HarnessEdit(val file: String, val at: Long?)
+
 enum class HarnessActivity { NeedsYou, Working, Waiting, Ended }
 
 data class HarnessSession(
@@ -101,7 +103,14 @@ object HarnessSessions {
     private const val EntriesKept = 400
     private const val EntryChars = 16_000
     private const val ParsedKept = 2_048
+    private const val ScanBytes = 1 shl 20
+    private const val NewLine = '\n'.code.toByte()
     private val ApprovalEvents = setOf("exec_approval_request", "apply_patch_approval_request", "request_user_input")
+    private val EditTools = setOf("Edit", "Write", "MultiEdit", "NotebookEdit")
+    private val ClaudeTool = "\"name\":\"".encodeToByteArray()
+    private val ClaudeEdits = EditTools.map { "$it\"".encodeToByteArray() }
+    private val CodexItem = "\"type\":\"".encodeToByteArray()
+    private val CodexEdits = listOf("FileChange\"".encodeToByteArray())
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     fun read(
@@ -133,6 +142,85 @@ object HarnessSessions {
             else -> records.flatMap { claudeEntries(it, root) }
         }
         return HarnessTimeline(entries.takeLast(EntriesKept), file.length() > TimelineBytes || entries.size > EntriesKept)
+    }
+
+    fun edited(session: HarnessSession, workspace: File): List<HarnessEdit> {
+        val file = File(session.transcript)
+        if (session.transcript.isBlank() || !file.isFile) return LinkedHashMap<String, Long?>().apply { add(session.steps) }.edits()
+        val root = workspace.canonicalPath
+        val key = "$root\u0000${file.path}"
+        val known = editScans[key]?.takeIf { it.offset <= file.length() } ?: EditScan(0, emptyList())
+        val latest = LinkedHashMap<String, Long?>().apply { known.edits.forEach { put(it.file, it.at) } }
+        val (prefix, names) = if (session.runtime == RuntimeKind.Codex) CodexItem to CodexEdits else ClaudeTool to ClaudeEdits
+        val offset = lines(file, known.offset) { line ->
+            if (line.mentions(prefix, names)) parse(line.decodeToString())?.let { latest.add(steps(it, session.runtime, root)) }
+        }
+        val edits = latest.edits()
+        if (editScans.size >= ParsedKept) editScans.clear()
+        editScans[key] = EditScan(offset, edits)
+        return edits
+    }
+
+    private class EditScan(val offset: Long, val edits: List<HarnessEdit>)
+
+    private val editScans = ConcurrentHashMap<String, EditScan>()
+
+    private fun steps(record: JsonObject, runtime: RuntimeKind, root: String): List<HarnessStep> {
+        val at = instant(record.string("timestamp"))
+        return when (runtime) {
+            RuntimeKind.Codex -> record.nested("payload")?.takeIf { it.string("type") == "item_completed" }?.let { codexSteps(it.nested("item"), at, root) }.orEmpty()
+            else -> (record.nested("message")?.get("content") as? JsonArray).orEmpty()
+                .mapNotNull { block -> (block as? JsonObject)?.takeIf { it.string("type") == "tool_use" }?.let { claudeStep(it, at, root) } }
+        }
+    }
+
+    private fun MutableMap<String, Long?>.add(steps: List<HarnessStep>) =
+        steps.forEach { step -> step.file?.let { path -> this[path] = listOfNotNull(this[path], step.at).maxOrNull() } }
+
+    private fun Map<String, Long?>.edits(): List<HarnessEdit> = map { (path, at) -> HarnessEdit(path, at) }
+
+    private fun lines(file: File, from: Long, each: (ByteArray) -> Unit): Long = file.inputStream().use { input ->
+        input.skipNBytes(from)
+        val buffer = ByteArray(ScanBytes)
+        val pending = java.io.ByteArrayOutputStream()
+        var position = from
+        var complete = from
+        while (true) {
+            val read = input.read(buffer)
+            if (read < 0) break
+            var start = 0
+            for (index in 0 until read) {
+                if (buffer[index] != NewLine) continue
+                if (pending.size() == 0) each(buffer.copyOfRange(start, index))
+                else each(pending.apply { write(buffer, start, index - start) }.toByteArray().also { pending.reset() })
+                start = index + 1
+                complete = position + index + 1
+            }
+            pending.write(buffer, start, read - start)
+            position += read
+        }
+        complete
+    }
+
+    private fun ByteArray.mentions(prefix: ByteArray, names: List<ByteArray>): Boolean {
+        var at = find(prefix, 0)
+        while (at >= 0) {
+            val after = at + prefix.size
+            if (names.any { matches(it, after) }) return true
+            at = find(prefix, after)
+        }
+        return false
+    }
+
+    private fun ByteArray.find(marker: ByteArray, from: Int): Int {
+        for (index in from..size - marker.size) if (matches(marker, index)) return index
+        return -1
+    }
+
+    private fun ByteArray.matches(marker: ByteArray, at: Int): Boolean {
+        if (at + marker.size > size) return false
+        for (offset in marker.indices) if (this[at + offset] != marker[offset]) return false
+        return true
     }
 
     private class ClaudeLive(
@@ -244,7 +332,7 @@ object HarnessSessions {
         val name = block.string("name").orEmpty()
         val input = block.nested("input")
         val path = input?.string("file_path") ?: input?.string("notebook_path")
-        val edits = name in setOf("Edit", "Write", "MultiEdit", "NotebookEdit")
+        val edits = name in EditTools
         val detail = input?.string("description") ?: path?.relativeTo(root) ?: input?.string("command") ?: input?.string("pattern")
             ?: input?.string("url") ?: input?.string("query")
         return HarnessStep(at, name.toolLabel(), detail?.oneLine(), name.startsWith("mcp__reaktor__"), path?.takeIf { edits }?.relativeTo(root))

@@ -176,7 +176,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             AgentWorkspaceJson.encodeToJsonElement(AgentTranscript.serializer(), workspace.transcript(it.string("threadId"),
                 it["before"]?.jsonPrimitive?.int, it.long("limit", 20).toInt()))
         },
-    ) + agentEvidenceTools(workspace) + agentWorkflowTools(workspace) + agentContextTools(workspace) + agentMemoryTools(workspace) + extraTools
+    ) + agentEvidenceTools(workspace) + agentBoardTools(workspace) + agentWorkflowTools(workspace) + agentContextTools(workspace) + agentMemoryTools(workspace) + extraTools
     return tools + listOf(McpTool("agent_operation_schema", "Read the exact schema and effect annotations for a workspace operation without invoking it.",
         objectSchema(mapOf("operation" to stringSchema("Exact native operation name")), listOf("operation")), true, true) { args ->
         require(args.keys == setOf("operation"))

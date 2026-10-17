@@ -183,6 +183,31 @@ class HarnessSessionsTest {
         assertEquals("targets/botServer/wrangler.json", timeline.first { it.text == "edit" }.file)
     }
 
+    @Test fun everyFileASessionEditedIsFoundAcrossItsWholeTranscriptAndAsItGrows() {
+        val ws = workspace.path
+        val output = """{"type":"user","sessionId":"c7","timestamp":"2026-10-02T06:10:00Z","message":{"role":"user","content":[{"type":"tool_result","content":"{\"name\":\"Edit\",\"file_path\":\"$ws/Quoted.kt\"} ${"x".repeat(4_000)}"}]}}"""
+        claude("-in-workspace", "c7", ws, now - 10_000,
+            """{"type":"user","cwd":"$ws","sessionId":"c7","timestamp":"2026-10-02T06:00:00Z","message":{"role":"user","content":"Long work"}}""",
+            """{"type":"assistant","sessionId":"c7","timestamp":"2026-10-02T06:00:05Z","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"$ws/modules/early/E.kt"}},{"type":"tool_use","name":"Read","input":{"file_path":"$ws/modules/read/R.kt"}}]}}""",
+            *Array(300) { output })
+        val session = HarnessSessions.read(workspace, home, now, processes()).first { it.id == "c7" }
+        assertEquals(emptyList<String>(), session.files)
+        assertEquals(listOf("modules/early/E.kt"), HarnessSessions.edited(session, workspace).map { it.file })
+
+        File(session.transcript).appendText(
+            """{"type":"assistant","sessionId":"c7","timestamp":"2026-10-02T06:30:00Z","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"/elsewhere/reaktor/Late.kt"}}]}}""" + "\n" +
+                """{"type":"assistant","sessionId":"c7","timestamp":"2026-10-02T06:40:00Z","message":{"content":[{"type":"tool_use","name":"MultiEdit","input":{"file_path":"$ws/modules/early/E.kt"}}]}}""" + "\n" +
+                """{"type":"assistant","sessionId":"c7","timestamp":"2026-10-02T06:41:00Z","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"$ws/Partial.kt"}}]}}""")
+        assertEquals(listOf("modules/early/E.kt", "/elsewhere/reaktor/Late.kt"), HarnessSessions.edited(session, workspace).map { it.file })
+        File(session.transcript).appendText("\n")
+        val edits = HarnessSessions.edited(session, workspace)
+        assertEquals(listOf("modules/early/E.kt", "/elsewhere/reaktor/Late.kt", "Partial.kt"), edits.map { it.file })
+        assertEquals(listOf("06:40", "06:30", "06:41").map { Instant.parse("2026-10-02T$it:00Z").toEpochMilli() }, edits.map { it.at })
+
+        val codex = HarnessSessions.read(workspace, home, now, processes()).first { it.id == "x1" }
+        assertEquals(listOf(HarnessEdit("targets/botServer/wrangler.json", Instant.parse("2026-10-02T06:58:30Z").toEpochMilli())), HarnessSessions.edited(codex, workspace))
+    }
+
     private fun processes(alive: Set<Long> = emptySet(), open: Set<String> = emptySet()) = object : HarnessProcesses {
         override fun alive(pid: Long) = pid in alive
         override fun openTranscripts() = open

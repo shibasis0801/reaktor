@@ -5,6 +5,7 @@ import dev.shibasis.reaktor.conductor.cli.CliCapabilities
 import dev.shibasis.reaktor.conductor.store.FileThreadStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -64,6 +65,7 @@ class AgentWorkspace(
         evidence.recordCandidate(get(runId).threadId, candidate)
     }
     val entitlements = AgentEntitlements(directory.resolve("entitlements"))
+    val board = AgentBoardStore(directory.resolve("board"))
     internal suspend fun readKernel(name: String, arguments: JsonObject): JsonElement =
         requireNotNull(kernelRead) { "This host has no kernel check reader" }.invoke(name, arguments)
     internal fun submission(id: String): AgentSubmission = synchronized(lock) {
@@ -537,15 +539,43 @@ class AgentWorkspace(
                 field?.let { pattern?.containsMatchIn(it) ?: it.contains(value, ignoreCase = true) }
             }
         }
-        AgentTasksPage(changes.value, matches.drop(offset).take(limit), (offset + limit).takeIf { it < matches.size })
+        AgentTasksPage(revision(), matches.drop(offset).take(limit), (offset + limit).takeIf { it < matches.size })
     }
 
     suspend fun awaitTasks(afterRevision: Long, query: String = "", offset: Int = 0, limit: Int = 50, timeoutMillis: Long = 30000): AgentTasksPage {
         require(afterRevision >= 0 && timeoutMillis in 0..30000)
         val current = tasksPage(query, offset, limit)
         if (current.revision != afterRevision || timeoutMillis == 0L) return current
-        withTimeoutOrNull(timeoutMillis) { changes.first { it != afterRevision } }
+        withTimeoutOrNull(timeoutMillis) { revisions().first { it != afterRevision } }
         return tasksPage(query, offset, limit)
+    }
+
+    private fun revision() = board.revision + changes.value
+
+    private fun revisions() = combine(board.changes, changes) { tasks, runs -> tasks + runs }
+
+    fun boardPage(query: String = ""): BoardPage {
+        val revision = revision()
+        val tasks = board.tasks()
+        val byId = tasks.associateBy { it.id }
+        val threads = synchronized(lock) { recent.map(::get) }.groupBy { it.threadId }.mapValues { (_, runs) -> runs.maxBy { it.startedAt } }
+        return BoardPage(revision, tasks.map { task ->
+            task.entry(task.work.filter { it.startsWith(BoardRefs.Hangar) }.mapNotNull { ref -> threads[ref.removePrefix(BoardRefs.Hangar)]?.boardWork(ref) }, byId)
+        }).matching(query)
+    }
+
+    fun boardEntry(id: String): BoardEntry = boardPage().entries.firstOrNull { it.task.id == id } ?: error("$id is not on the board")
+
+    fun createBoardTask(draft: BoardDraft, by: BoardActor): BoardEntry = boardEntry(board.create(draft.copy(work = draft.work.onlyKnownThreads()), by).id)
+
+    fun linkBoardWork(id: String, ref: String, linked: Boolean, by: BoardActor): BoardEntry =
+        boardEntry(board.link(id, if (linked) listOf(ref).onlyKnownThreads().single() else ref, linked, by).id)
+
+    private fun List<String>.onlyKnownThreads(): List<String> = onEach { ref ->
+        val thread = ref.removePrefix(BoardRefs.Hangar)
+        require(!ref.startsWith(BoardRefs.Hangar) || Files.exists(threadPath(thread)) || synchronized(lock) { records.values.any { it.threadId == thread } }) {
+            "$ref is not a conversation in this workspace"
+        }
     }
 
     suspend fun awaitChange(id: String, afterRevision: Long, timeoutMillis: Long): AgentRunRecord {
