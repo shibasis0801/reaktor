@@ -12,7 +12,7 @@ Written 16 October 2026 by Claude. Not published. Inputs: the Codex tool-experim
 
 **What reaktor-graph adds.** Every Reaktor+ app is a reaktor-graph declared in regular Kotlin, so the Atlas can see nodes, ports, wiring, routes and services exactly. That turns architecture questions into single queries, stops impact analysis at port contracts, lets tests record the nodes they exercised for exact test selection, enables recipes at architecture level, and joins source definitions to live telemetry through the graph's definition ids.
 
-**Expected improvement.** For a normal week of Kotlin Multiplatform work, the target is 25-45% fewer input tokens and 20-35% fewer requests per accepted task, with 60-90% savings on structural questions and on refactors that have a qualified recipe. These are targets for the matched-task measurement in §5.4, and they depend on agents using the Atlas in place of whole-file reads. The first measurement (§5.5, 17 October) covered code questions only. Codex with the Atlas was as correct as with rg and file reads, and read 15% fewer new tokens, but its total input was 8% higher. Three real edits (§5.6) showed the same pattern: equally correct, 31% fewer new tokens and 16% more input in total, and Codex never used the kernel's edit path. Later that day, answers that list a declaration's uses with their text mentions, and what it calls, removed the extra searches and reads they targeted (A1 now costs what the control costs, and T3 22% less), but across all tasks Codex with the Atlas still used 13-14% more input in total than a control run the same evening (addendum to §5.6). That night, complete answers (every use and mention of a name in one call, possible uses kept apart, and what a whole file uses) brought it below the control: 16% less total input on the five questions and about the same on the three edits, 11% less across all eight, with every answer and diff correct (second addendum to §5.6). The edits still take more rounds than the control.
+**Expected improvement.** For a normal week of Kotlin Multiplatform work, the target is 25-45% fewer input tokens and 20-35% fewer requests per accepted task, with 60-90% savings on structural questions and on refactors that have a qualified recipe. These are targets for the matched-task measurement in §5.4, and they depend on agents using the Atlas in place of whole-file reads. The first measurement (§5.5, 17 October) covered code questions only. Codex with the Atlas was as correct as with rg and file reads, and read 15% fewer new tokens, but its total input was 8% higher. Three real edits (§5.6) showed the same pattern: equally correct, 31% fewer new tokens and 16% more input in total, and Codex never used the kernel's edit path. Later that day, answers that list a declaration's uses with their text mentions, and what it calls, removed the extra searches and reads they targeted (A1 now costs what the control costs, and T3 22% less), but across all tasks Codex with the Atlas still used 13-14% more input in total than a control run the same evening (addendum to §5.6). That night, complete answers (every use and mention of a name in one call, possible uses kept apart, and what a whole file uses) brought it below the control: 16% less total input on the five questions and about the same on the three edits, 11% less across all eight, with every answer and diff correct (second addendum to §5.6). The edits still take more rounds than the control. A rerun at 19:00, after one call could carry several lookups, cut the question rounds by a quarter and left total input equal to the control; the edits still took four more rounds, because Codex keeps its own shell rounds and adds the Atlas rounds on top (third addendum). At 20:20, with each source block sent only once per session, Codex with the Atlas used 4.2% less total input than a same-time control across all eight tasks, with 9 rounds against 14.5 on the questions and 17 against 16.5 on the edits. The change itself saved only about half a percent, because Codex repeated a block in 2 of 20 runs; the rest is within the control's own variation (fourth addendum). Eight runs per task settled it at 21:40: with the Atlas, Codex uses 6% less total input on the questions (cheaper in 7 of 8 passes, 9 rounds against 16) and 4.5% more on the edits (cheaper in 3 of 8, 18 rounds against 15.5). The Atlas arm's cost varies far less from run to run than the control's (fifth addendum). With the edit harness fixed to match the real checkout, the edits cost 15% more with the Atlas (19.6 rounds against 15.2), because Codex runs each Atlas call in a round of its own while the control packs its lookups into shell commands it needs anyway (sixth addendum). Called from the shell instead (`reaktor-agent atlas query '{...}'`), a lookup shares one command with the guide read and `git status`, and the edits cost 5% less than the control with 14.2 rounds against 16.6, although eight passes cannot yet rule out no difference (seventh addendum).
 
 **First steps.** Export compilations from dependeasy; extend the Kotlin producer to calls, types and compiler addresses with warm sessions in the kernel; ship `atlas.query`, `atlas.read` and a compiler-guided Kotlin `rename` through `change.plan` and `change.apply`; let agent seats apply deterministic in-scope plans without a person. The first gate is a real cross-module Kotlin rename done from both Claude and Codex with no whole-file reads and passing affected checks.
 
@@ -855,6 +855,275 @@ The first pass gave the same picture for the questions (641,400 tokens in the co
 
 **What remains.** Claude has not run these tasks, two runs per task is a small sample, and differences under about 15% are within the noise.
 
+#### Addendum: several lookups in one call (17 October, 19:00)
+
+**Result.** One Atlas call can now carry several lookups, and Codex uses it: 23 of its 62 Atlas calls this round carried extra queries or reads. On the five questions, Codex with the Atlas took over a quarter fewer tool rounds than the control (10.5 against 14.5), but its total input came out the same (634,000 tokens in both arms in the second pass, 2.5% less in the first). The edit tasks kept their extra rounds: 18.5 against 14.5, with 10% more total input in the second pass and 2% more in the first. The cause is now clear. With the Atlas, Codex runs nearly as many shell rounds as without it, 11.5 per three edit tasks against 12.5, to read AGENTS.md, run `git status`, look for other AGENTS.md files and check its diff, and its 5 Atlas rounds come on top. Without the Atlas, Codex does its lookups inside those same shell commands. Every answer and every diff was correct in both arms. Across all eight tasks the arms used about the same input this time (1% less and 3.5% more with the Atlas), against 11% less in the previous addendum. Part of that change is A4, which now takes the Atlas arm a round more (item 4 below), and part is the control's own variation (item 6).
+
+**What changed** (uncommitted; live on the owner's Mac since 18:55):
+- `atlas_query` takes `queries`, more `atlas_query` requests, and `reads`, `atlas_read` requests. They are answered in the same call after the first, each with its own counts and notes under a line such as `--- queries[0] {"from":{"text":"min("}}`. A request that fails shows its error in place and the others still answer. One call takes up to 8 extra requests and returns at most 44,000 characters; requests past that say so and can be sent again. The new fields and their description add 631 characters to the tool list, about 160 tokens per request, because the items of `queries` and `reads` point to the tools' own arguments instead of repeating them.
+- `imports: true` adds the package and import lines of each Kotlin file a result sits in. In the previous addendum, both T2 runs read those imports in a separate round after finding the uses.
+- AGENTS.md §1 item 2 and the server's instructions show one call that carries all three. The example of `references out` from a file no longer echoes A5's wording.
+- `KernelAtlasTest` has 22 tests, 4 of them new.
+
+**How it was measured.**
+- The same five questions and three edit tasks, two runs per task in each arm, with the control at the same time as the Atlas arm. Codex 0.163 (the previous addenda used 0.162), medium reasoning, apps and the Manna server switched off in both arms, and the reaktor server switched off in the controls.
+- There were two passes. The first, at 18:57, dropped the old guidance line that independent calls can go out together, to make room for the batch example. Codex then sent three reads one per round in one A3 run. The second pass, at 19:06, put the line back, now naming an Atlas call next to `git status` or a file read. No code changed between the passes; the tables give the second pass and name the first where it differs.
+
+The five questions, second pass:
+
+| Arm | Runs | Tool rounds | Tool calls | Input tokens | New (uncached) input | Correct |
+|---|---|---|---|---|---|---|
+| Control: rg and file reads | 10 | 14.5 | 14.5 | 634,400 | 104,900 | all |
+| Atlas, several lookups per call | 10 | 10.5 | 10.5 | 634,200 | 113,900 | all |
+
+In the first pass the control took 15.5 rounds and 679,300 input tokens (119,900 new), and the Atlas arm 11 rounds and 662,500 (98,500 new).
+
+Input tokens per question, in thousands, from the control to the Atlas:
+
+| Pass | A1 | A2 | A3 | A4 | A5 |
+|---|---|---|---|---|---|
+| First | 129 → 97 | 118 → 97 | 165 → 197 | 140 → 175 | 127 → 97 |
+| Second | 94 → 97 | 108 → 98 | 167 → 168 | 137 → 174 | 128 → 98 |
+
+The three edit tasks, second pass:
+
+| Task | Arm | Tool rounds | Atlas calls | Input tokens | New (uncached) input | Correct |
+|---|---|---|---|---|---|---|
+| T1 rename | Control | 4 | – | 99,800 | 12,800 | 2 of 2 |
+| | Atlas | 3 | 1 | 100,300 | 16,500 | 2 of 2 |
+| T2 port type | Control | 5 | – | 131,600 | 20,300 | 2 of 2 |
+| | Atlas | 8.5 | 2 | 139,500 | 22,800 | 2 of 2 |
+| T3 failing test | Control | 5.5 | – | 97,900 | 16,600 | 2 of 2 |
+| | Atlas | 7 | 2 | 123,300 | 15,000 | 2 of 2 |
+| All three | Control | 14.5 | – | 329,300 | 49,600 | 6 of 6 |
+| | Atlas | 18.5 | 5 | 363,000 | 54,200 | 6 of 6 |
+
+In the first pass the three tasks took the control 14.5 rounds and 372,000 input tokens, and the Atlas arm 19 rounds, 5.5 Atlas calls and 380,300 tokens.
+
+Where the edit rounds go, per three tasks (a round where an Atlas call went out next to a shell command counts as an Atlas round):
+
+| Measurement | Arm | Atlas rounds | Shell rounds | Edit rounds | All |
+|---|---|---|---|---|---|
+| Previous addendum | Control | – | 13 | 2 | 15 |
+| | Atlas | 6 | 11.5 | 2 | 19.5 |
+| First pass | Control | – | 12.5 | 2 | 14.5 |
+| | Atlas | 5.5 | 11.5 | 2 | 19 |
+| Second pass | Control | – | 12.5 | 2 | 14.5 |
+| | Atlas | 5 | 11.5 | 2 | 18.5 |
+
+**What the runs showed.**
+1. Codex took up the new fields on its own. 23 of 62 Atlas calls carried extra queries or reads, and 19 asked for imports, 16 of them in the edit tasks. A1 took one call in all four Atlas runs: the uses of `OwnerReply.Declined` and the declaration of `OwnerReply` came back together.
+2. Batching cut the Atlas rounds in the edit tasks from 6 to 5, but the shell rounds stayed at 11.5 in every measurement, and that is where the gap is. In T2's second pass, Codex read AGENTS.md, ran `git status`, looked for other AGENTS.md files, and ran `git diff --check`, `git diff --stat` and `git diff`, each in a round of its own. The control did the same work inside its `rg` and `cat` commands.
+3. Batched answers are large, and part of each repeats an earlier one. In every T2 run the second call returned 20,000 to 32,000 characters, and 6 or 7 of its 10 to 12 source blocks (four files' imports and two or three declarations) had already come back in the first call. Every later request carries both copies.
+4. A4 costs the Atlas arm a round more than before, because all four Atlas answers now say where `workspace` comes from (`KernelAccess.kt:179`); in the previous addendum none did. Answers are more complete in general: all four Atlas answers to A3 list all ten places, and one control run answered A3 literally.
+5. The restored guidance line helped where Codex followed it. In the second pass T1 took 3 rounds against the control's 4, the first time in these measurements that the Atlas arm needed fewer rounds than the control on an edit task, and A3 took 3 rounds in both runs. But Codex sent a shell command next to an Atlas call in only one of six edit runs.
+6. The noise is still large: the control's A1 took 129,000 tokens in the first pass and 94,000 in the second.
+
+**What would help next, most useful first.**
+- Send each source block once per session. The MCP server runs for the whole Codex session, so it can remember which declarations and imports it has sent, by handle and revision, and print a one-line reference to an unchanged one instead of the text. In T2 that would remove about a third of the second call (measured in the next addendum).
+- Fold the shell rounds into Atlas calls where the work is the same: a short worktree line in the first answer (changed files), so that `git status` is not needed, and `reads` for AGENTS.md. Whether Codex then skips its own commands has to be measured.
+- Compiler-resolved uses for files that name the owner (unchanged from the previous addendum).
+- More runs, and the same tasks with Claude.
+
+**What remains.** Claude has not run these tasks, two runs per task is a small sample, and the control's own variation is as large as most differences here.
+
+#### Addendum: each source sent once per session (17 October, 20:20)
+
+**Result.** The reaktor MCP server now sends each source block only once in a Codex session, and a repeat comes back as one line. It works, but this round Codex asked for a repeated block in only 2 of its 20 Atlas runs, so the change saved about 10,000 input tokens in all, around half a percent of the Atlas arm's input over its 20 runs. Codex with the Atlas used less total input than a control run at the same time on both sets of tasks: 4.6% less on the five questions, in 9 rounds against 14.5, and 3.6% less on the three edit tasks, in 17 rounds against 16.5. Across all eight tasks that is 4.2% less. Most of the edit difference is the control's own variation, not this change: the control's T1 took 124,000 tokens against 99,800 in the previous addendum, and the control took two more rounds. Without this change the Atlas arm would still have come in about 2.5% under the control. All 12 diffs matched the verified ones and all 20 answers were correct; one control run again answered A3 literally.
+
+**What changed** (uncommitted; live on the owner's Mac since 20:19):
+- The MCP server process lives as long as one Codex session. It now remembers each source block it has sent with a query answer: the declarations that `read: true` adds and the import lines that `imports: true` adds, in the first request and in `queries`. When a later answer would carry the same block again (same file, same declaration, same text and file revision), it prints one line instead, such as `Caller.kt:5-5 · fun caller() · sent earlier in this session, unchanged; atlas_read sends it again`. A file that changed has a new revision, so its blocks are sent in full again.
+- `atlas_read` and `reads` always send the full text, so an agent whose context was compacted can get a block back.
+- Only the text the agents see changed. The JSON results that Hangar and other kernel callers get still carry every source, and the owner still counts the full text against the 44,000-character limit of one call.
+- No guidance changed: AGENTS.md and the server's instructions are as in the previous addendum, so this round measures the server change alone.
+- `KernelAtlasTest` has 23 tests, 1 of them new. It sends requests through a real MCP server and checks the one-line repeats, the full text from `atlas_read`, in a new session and after a file changes, and that the JSON answer keeps every source.
+
+**How it was measured.** As in the previous addendum: the same five questions and three edit tasks, two runs per task in each arm, the control at the same time as the Atlas arm, Codex 0.163, medium reasoning, apps and the Manna server off in both arms and the reaktor server off in the controls. One pass, at 20:20.
+
+The five questions:
+
+| Arm | Runs | Tool rounds | Tool calls | Input tokens | New (uncached) input | Correct |
+|---|---|---|---|---|---|---|
+| Control: rg and file reads | 10 | 14.5 | 14.5 | 642,500 | 101,200 | all |
+| Atlas, each source sent once | 10 | 9 | 9 | 613,200 | 111,900 | all |
+
+Input tokens per question, in thousands, from the control to the Atlas:
+
+| Pass | A1 | A2 | A3 | A4 | A5 |
+|---|---|---|---|---|---|
+| 19:06 (previous addendum) | 94 → 97 | 108 → 98 | 167 → 168 | 137 → 174 | 128 → 98 |
+| 20:20 | 95 → 97 | 135 → 97 | 146 → 168 | 138 → 155 | 130 → 97 |
+
+The three edit tasks:
+
+| Task | Arm | Tool rounds | Atlas calls | Input tokens | New (uncached) input | Correct |
+|---|---|---|---|---|---|---|
+| T1 rename | Control | 5 | – | 124,300 | 20,300 | 2 of 2 |
+| | Atlas | 4.5 | 1 | 100,100 | 16,200 | 2 of 2 |
+| T2 port type | Control | 5.5 | – | 131,000 | 19,900 | 2 of 2 |
+| | Atlas | 6 | 2 | 135,900 | 21,000 | 2 of 2 |
+| T3 failing test | Control | 6 | – | 116,600 | 22,000 | 2 of 2 |
+| | Atlas | 6.5 | 2 | 122,800 | 14,700 | 2 of 2 |
+| All three | Control | 16.5 | – | 372,000 | 62,200 | 6 of 6 |
+| | Atlas | 17 | 5 | 358,700 | 51,900 | 6 of 6 |
+
+Where the edit rounds go, per three tasks:
+
+| Measurement | Arm | Atlas rounds | Shell rounds | Edit rounds | All |
+|---|---|---|---|---|---|
+| Previous addendum, second pass | Control | – | 12.5 | 2 | 14.5 |
+| | Atlas | 5 | 11.5 | 2 | 18.5 |
+| This round | Control | – | 14.5 | 2 | 16.5 |
+| | Atlas | 5 | 10 | 2 | 17 |
+
+**What the runs showed.**
+1. Repeats are removed where they occur, but this round they rarely occurred. In the previous addendum, the second call of every T2 run repeated six blocks, 8,700 characters or about a third of that call. This round one T2 run did: its second call carried seven one-line references in place of 11,200 characters, 24,400 characters instead of 35,600, which spared about 3,000 tokens in each of the three requests that followed. In the other T2 run Codex asked its second question with `context: 2` instead of `read: true`, and that answer (5,300 characters) repeated nothing. Among the questions, one A3 run saved 4,500 characters (two blocks) in its last call. The other 17 Atlas runs had nothing to remove.
+2. The edit rounds are now close, but mostly because the control took more. The control's shell rounds went from 12.5 to 14.5 (T1 took it 5 rounds instead of 4). The Atlas arm's shell rounds fell to 10, from 11.5 in each of the three measurements before; in one T2 run, for example, Codex ran `git status` and read AGENTS.md in one command. This change cannot move shell rounds, so that is variation too.
+3. On the questions the Atlas arm needed 9 rounds against the control's 14.5. A2 and A5 cost 25-28% less than the control and A1 the same. A3 and A4 cost more: the control's A3 was 21,000 tokens cheaper than in the previous addendum, partly because one run named only the direct call, and one Atlas run of A4 took four rounds, reading two declarations with `atlas_read` after its queries.
+4. Codex kept using the batch fields: 9 of 28 Atlas calls carried extra queries or reads.
+5. The noise is as large as the effects. Within this round the control's T1 took 117,000 tokens in one run and 131,000 in the other, against 99,800 on average in the previous addendum.
+
+**What would help next.**
+- Keep this change. It costs nothing when no block repeats and removes about a third of a repeated batch answer when one does.
+- More runs per task. With two runs, a 3-4% difference between the arms is inside the control's own variation.
+- The worktree line has not been tried. In 11 of the 18 Atlas edit runs since 19:00, Codex ran `git status` before its first Atlas call, where a line in an Atlas answer cannot replace it. In the other 7 it ran in the same round or later, so the line could save a round there, if Codex trusts it.
+- Compiler-resolved uses for files that name the owner, and the same tasks with Claude (unchanged).
+
+**What remains.** Claude has not run these tasks, and two runs per task is a small sample.
+
+#### Addendum: eight passes (17 October, 21:40)
+
+**Result.** With eight runs of every task in each arm instead of two, the Atlas is cheaper on the questions and not on the edits. On the five questions, Codex with the Atlas used 6.0% less total input than a control run at the same time, and took 9 rounds against 15.8. It was cheaper in 7 of 8 passes, and given the spread between passes the true saving is likely between 1% and 11% (95% interval). On the three edit tasks it used 4.5% more input and took 18.2 rounds against 15.5. It was cheaper in only 3 of 8 passes, and the true difference is likely between 3% less and 12% more. So the earlier results that put the edits below the control, the night addendum's 2% and the 20:20 addendum's 3.6%, were noise. The Atlas arm's cost hardly moves between passes (3.0% on the questions, 1.5% on the edits), while the control's moves 7-9%. All 80 answers and all 48 diffs were correct; one control answer to A3 again named only the direct call.
+
+**How it was measured.** Here a pass is one run of every task in both arms at the same time, so the 20:20 measurement was two passes. Three more rounds of two passes ran at 21:19, 21:25 and 21:31 (c15 to c17b, e18 to e23) with no change to code or guidance. With the 20:20 passes that makes eight passes, 8 runs per task in each arm. The settings were those of the previous addendum. At 20:54, between the 20:20 pass and these three, another session restarted the owner on a dist it built at 20:50 from the same tree. That dist carries the same Atlas code, and neither the owner nor the dist changed during the three passes. Other sessions kept editing files, and two of A1's line numbers moved by one between passes, so each pass's answers were checked against facts read from the tree right after it.
+
+Per pass, average of eight:
+
+| Tasks | Arm | Runs | Tool rounds | Input tokens | Spread between passes | New (uncached) input | Cheaper than the control |
+|---|---|---|---|---|---|---|---|
+| Five questions | Control | 40 | 15.8 | 659,200 | 7.1% | 101,500 | – |
+| | Atlas | 40 | 9.0 | 617,600 | 3.0% | 109,600 | 7 of 8 passes |
+| Three edit tasks | Control | 24 | 15.5 | 345,800 | 8.5% | 50,700 | – |
+| | Atlas | 24 | 18.2 | 359,300 | 1.5% | 54,900 | 3 of 8 passes |
+
+Per task, eight runs each, input tokens in thousands:
+
+| Task | Control: average (lowest to highest) | Atlas: average (lowest to highest) | Change | Rounds, control → Atlas |
+|---|---|---|---|---|
+| A1 | 99.6 (93 to 127) | 98.3 (96 to 105) | -1% | 2.0 → 1.0 |
+| A2 | 127.7 (92 to 160) | 96.3 (95 to 97) | -25% | 2.9 → 1.0 |
+| A3 | 166.2 (125 to 232) | 169.5 (167 to 177) | +2% | 4.6 → 3.0 |
+| A4 | 129.1 (101 to 140) | 156.1 (135 to 175) | +21% | 3.0 → 3.0 |
+| A5 | 136.5 (125 to 171) | 97.5 (96 to 106) | -29% | 3.2 → 1.0 |
+| T1 rename | 105.1 (85 to 131) | 100.2 (95 to 104) | -5% | 4.5 → 4.1 |
+| T2 port type | 122.7 (95 to 139) | 135.9 (130 to 148) | +11% | 5.4 → 7.0 |
+| T3 failing test | 117.9 (97 to 138) | 123.2 (122 to 125) | +4% | 5.6 → 7.1 |
+
+Where the edit rounds go, per three tasks, over eight passes: the control took 13.5 shell rounds and 2 edit rounds (15.5); the Atlas arm took 5 Atlas rounds, 11.2 shell rounds and 2 edit rounds (18.2).
+
+**What the runs showed.**
+1. On the questions, one or two Atlas calls replace several rounds of `rg` and file reads: A2 and A5 took one call each and cost 25-29% less. On the edits, the 5 Atlas rounds per three tasks replace only about 2 of the control's shell rounds.
+2. The Atlas arm is predictable: the same calls, rounds and cost from run to run. The control's cost depends on how Codex happens to group its commands; A3 ranged from 125,000 to 232,000 tokens.
+3. A flaw in the edit harness costs both arms rounds, and the Atlas arm more. reaktor's AGENTS.md points to `../bestbuds/AGENTS.md`, which does not exist next to the throwaway worktrees, so Codex looks for it. In the Atlas arm 3.5 rounds per three tasks do nothing but read or look for AGENTS.md files, against 2.5 in the control, which folds the search into its `rg` commands; 1.4 and 1.0 of those rounds search outside the worktree. In 7 of the 48 runs, commands named paths outside the run's own folder: the folder that holds both arms' worktrees, and once a copy of BestBuds' AGENTS.md in another Claude session's temporary folder, which Codex read. In the real checkout the file is there, so Codex would read it once instead of searching. (Corrected after 21:40: a first count, made from truncated commands, gave 3.9 and 3.0 rounds.)
+4. Sending each source once works where repeats occur. 7 of 8 T2 runs had repeats, and 43 one-line references replaced 57,900 characters, about 8,300 per run. It fired in 2 of 8 T3 runs and 4 of 40 question runs.
+5. T2 is still the edit task where the Atlas costs most (+11%). Its first answer, 17,000 characters, is carried through every later request. A third of it is the import lines of five files, of which Codex edits three. Over half of it is whole declarations. The largest is a 4,000-character function that builds an event without setting the field being changed, in a file the edit never touches.
+6. Each edit result since the night addendum came from two passes. Here, pairs of passes ranged from 3.6% less to 10.6% more, and single passes from 12% less to 15% more. Every earlier result (2% less at night, 2% and 10% more at 19:00, 3.6% less at 20:20) falls inside that range, so none of them alone could show which arm was cheaper.
+
+**What would help next.**
+- Fix the harness before the next edit measurement: give each throwaway worktree a sibling `bestbuds/AGENTS.md`, as in the real layout, so neither arm searches for it. Then rerun eight passes. (Done in the next addendum.)
+- For the edits, make T2's first answer smaller. When a use sits in a long declaration, send the lines around the use instead of the whole declaration. Measure it with eight passes.
+- Use eight passes for every measurement from now on. Two runs per task cannot tell a 5% difference from the control's variation.
+
+**What remains.** Claude has not run these tasks, and the edit harness has the flaw described in item 3.
+
+#### Addendum: the edit harness fixed (17 October, 23:15)
+
+**Result.** With the harness fixed, the Atlas makes the edit tasks clearly more expensive. Over eight passes, Codex with the Atlas used 15% more total input than the control and took 19.6 rounds against 15.2. It was cheaper in only 2 of 8 passes, and given the spread the true difference is likely between 1% and 30% more. Before the fix the gap was 4.5%. It grew because both arms now read the 45,000-character product guide, so every request is larger and each extra round costs more. The extra rounds come from how Codex orders its work. The control puts the guide read, `git status` and its `rg` lookup into one shell command per round. The Atlas arm runs each of them in a round of its own, because an Atlas call cannot go inside a shell command, and Codex sent one next to a shell command in only 4 of 42 Atlas rounds. All 48 diffs were correct. The questions are not affected: their harness already runs in the real BestBuds checkout, and the Atlas saves 6% there.
+
+**What changed in the harness** (scratchpad `edit/edit_ab2.sh`; no code or guidance changed):
+- Each run now has its own folder, `/private/tmp/atlas-edit/<run>/`, holding the reaktor worktree as `reaktor/` and a sibling `bestbuds/AGENTS.md`, as in the real checkout. reaktor's AGENTS.md tells agents to read that file's §2, §3.1 and §4.4.
+- Both arms get the same copy of BestBuds' AGENTS.md from its last commit, without the parts about the reaktor server (§1 items 2, 8 and 9, and the "Local agent access (MCP)" section). The harness sets the server per arm, and those parts would also send the Atlas arm to the `kernel` tool and the task board. The Atlas arm keeps the same Atlas guidance as before, injected into reaktor's AGENTS.md, and the control has none. The copy is about 45,000 characters.
+- Everything else is as before: commit b5be05bf, the same three tasks and prompts, Codex 0.163 at medium reasoning, apps and Manna off, and the dist built at 20:50, which did not change during the runs. Eight passes ran from 23:00 to 23:14 (e24 to e31).
+
+Per pass, average of eight:
+
+| Layout | Arm | Tool rounds | Input tokens | Spread between passes | New (uncached) input | Cheaper than the control |
+|---|---|---|---|---|---|---|
+| Before the fix (e16 to e23) | Control | 15.5 | 345,800 | 8.5% | 50,700 | – |
+| | Atlas | 18.2 | 359,300 | 1.5% | 54,900 | 3 of 8 passes |
+| Fixed (e24 to e31) | Control | 15.2 | 401,800 | 13.6% | 70,300 | – |
+| | Atlas | 19.6 | 455,900 | 4.2% | 81,800 | 2 of 8 passes |
+
+Per task in the fixed layout, eight runs each, input tokens in thousands:
+
+| Task | Control: average (lowest to highest) | Atlas: average (lowest to highest) | Change | Rounds, control → Atlas |
+|---|---|---|---|---|
+| T1 rename | 121.2 (93 to 152) | 129.0 (117 to 156) | +6% | 3.5 → 5.0 |
+| T2 port type | 138.2 (102 to 180) | 166.7 (155 to 179) | +21% | 5.2 → 7.2 |
+| T3 failing test | 142.4 (122 to 173) | 160.2 (145 to 182) | +12% | 6.5 → 7.4 |
+
+Where the rounds go, per three tasks: the control took 13.2 shell rounds and 2 edit rounds; the Atlas arm took 5.2 Atlas rounds, 12.4 shell rounds and 2 edit rounds.
+
+**What the runs showed.**
+1. The flaw is gone. No run searched outside its worktree or named a path outside its own folder. Before the fix, 1.0 rounds per three tasks in the control and 1.4 in the Atlas arm searched outside, and in 7 of 48 runs commands named paths outside the run's own folder. Every run now read the guide reaktor points to: the whole file in 26 of 48 runs (15 control, 11 Atlas), sections of it in the rest.
+2. Reading AGENTS.md files still takes the Atlas arm more rounds: 4.1 per three tasks do nothing else, against 3.0 in the control, which reads them inside its lookup commands.
+3. One rename shows the pattern. In e29, T1 took the control 3 rounds: a search together with `git status` and the guide, then guide sections with a second search, then a script that renames. It took the Atlas arm 8: the guide, `git status`, one Atlas call, a guide section, the renaming script, and three checks of the result, each in a round of its own.
+4. Sending each source once fired in all 8 T2 runs, with 40 one-line references in place of 52,400 characters.
+5. With the guide in place the control's cost varies more between passes (13.6%), and the Atlas arm's stays steady (4.2%).
+
+**What would help next.**
+- Let Codex call the Atlas from the shell, for example `reaktor-agent atlas query '{...}'` printing the same text. A lookup could then share one command with the guide read and `git status`, as `rg` does. This targets the measured cause, so it comes first. Measure it with eight passes in the fixed harness. (Done in the next addendum.)
+- Make T2's first answer smaller (previous addendum).
+- Keep the fixed harness (`edit_ab2.sh`) for every later edit measurement. Results from before 23:00 understate the cost of extra rounds.
+
+**What remains.** Claude has not run these tasks.
+
+#### Addendum: the Atlas from the shell (18 October, 00:30)
+
+**Result.** Called from the shell, the Atlas makes the edit tasks cheaper than the control instead of 15% more expensive. Codex can now run `reaktor-agent atlas query '{...}'` in the same shell command that reads the guide and runs `git status`, so a lookup no longer takes a round of its own. Over eight passes the Atlas arm used 5.2% less total input than a control run at the same time and took 14.2 rounds against 16.6. It was cheaper in 6 of 8 passes. Given the spread between passes, the true difference is likely between 16% less and 6% more, so eight passes cannot yet show that it is cheaper. Against its own 23:15 runs the Atlas arm used 10.9% less input (likely between 4.5% and 17.4% less) and 5.4 fewer rounds. Codex took to the shell form completely: 58 shell lookups and no MCP call, although the MCP server was still on, and 18 of 24 runs began with the example's single command that reads the guide, runs `git status` and asks the Atlas. All 48 diffs were correct.
+
+**What changed.**
+- A shell command (BestBuds `conductor/cli/AtlasCli.kt`, routed from `ConductorCli.main`). `reaktor-agent atlas query '<arguments>'` and `reaktor-agent atlas read '<arguments>'` take the same arguments as the `atlas_query` and `atlas_read` tools, ask the running owner through the same `kernel` operation and gate, and print the same text, because the MCP server and the shell share one renderer (`KernelAgentMcpHost.texts` and `shown`). Without `--dir` it asks the owner of the nearest folder at or above the current one, and `--seat` names the caller. Quotes around keys and one-word values are optional. `KernelAtlasTest.theShellPrintsWhatTheToolsPrintThroughTheRunningOwner` compares the shell's text with the tools' text against an in-process owner.
+- Two limits of Codex's sandbox shaped it. The workspace-write sandbox refuses loopback connections unless `sandbox_workspace_write.network_access` is on: a connection to the owner's port failed without it and succeeded with it. It also refuses writes outside the workspace, so the existing client fails there: before it connects, it sets the permissions of `~/.reaktor/agents/<digest>` and opens `owner.lock` in it for writing. The shell command only reads the owner's `connection.json` and then calls the owner. It keeps no memory between commands, so it always sends whole sources; the one-line repeats of the fourth addendum come only from the MCP server.
+- It does not collide with K1 in `kernel-handoff.md`. K1 generates `reaktor <domain> <verb>` with typed options from the catalog, in the `reaktor` launcher. This command lives in the `reaktor-agent` launcher and takes the tool's JSON as one argument, so agents can copy the tool examples. When K1 lands, its renderer for `atlas.*` can use the same text, and `reaktor-agent atlas` can stay as an alias or go.
+- The harness (scratchpad `edits8_shell.sh` and `edit/atlas_item_shell.md`). The Atlas arm's guidance item teaches the shell form, with one example that puts the guide read, `git status` and an Atlas query in one command; the rest of the item is unchanged. Both arms ran with network access on in the sandbox and `~/.reaktor/dist/conductor/bin` on the PATH, and neither ran a command that used the network. The dist was rebuilt at 00:10 from the working tree, and neither the owner nor the dist changed during the passes. Eight passes ran from 00:13 to 00:30 (e32 to e39). Everything else was as at 23:15.
+
+Per pass, average of eight:
+
+| Atlas called through | Arm | Tool rounds | Input tokens | Spread between passes | New (uncached) input | Cheaper than the control |
+|---|---|---|---|---|---|---|
+| MCP tools (e24 to e31, 23:15) | Control | 15.2 | 401,800 | 13.6% | 70,300 | – |
+| | Atlas | 19.6 | 455,900 | 4.2% | 81,800 | 2 of 8 passes |
+| The shell (e32 to e39) | Control | 16.6 | 432,300 | 10.3% | 79,800 | – |
+| | Atlas | 14.2 | 406,000 | 8.0% | 71,700 | 6 of 8 passes |
+
+Per task with the shell form, eight runs each, input tokens in thousands:
+
+| Task | Control: average (lowest to highest) | Atlas: average (lowest to highest) | Change | Rounds, control → Atlas |
+|---|---|---|---|---|
+| T1 rename | 122.9 (101 to 162) | 109.8 (82 to 149) | -11% | 4.5 → 3.0 |
+| T2 port type | 161.3 (113 to 198) | 165.9 (133 to 196) | +3% | 5.9 → 5.5 |
+| T3 failing test | 148.1 (118 to 172) | 130.3 (115 to 151) | -12% | 6.2 → 5.8 |
+
+Where the rounds go, per three tasks: the control took 14.6 shell rounds and 2 edit rounds. The Atlas arm took 2.1 rounds of lookups alone, 5.1 rounds in which a lookup shared the command with other work, 5.0 other shell rounds and 2 edit rounds. At 23:15 those were 4.8, 0.5, 12.4 and 2.
+
+**What the runs showed.**
+1. Packing is where the saving comes from. The Atlas arm's shell rounds without a lookup fell from 12.4 to 5.0 per three tasks, because the guide read and `git status` now go out with the first lookup. Rounds that carry a lookup and other work rose from 0.5 to 5.1.
+2. Codex followed the example closely. 18 of 24 runs opened with that command, 26 commands with a lookup used `queries` or `reads`, and no run used the MCP tools.
+3. T1 and T3 are now cheaper than the control. T2 is not: it takes 5.5 rounds against 5.9, but its first answer is about 12,500 characters in every run and is carried through every later request, and the shell cannot replace a repeated source with one line as the MCP server does.
+4. One of 58 lookups failed: Codex put `path` beside `from` instead of inside it. The owner's error named the unknown key, and Codex fixed the call in the next round. The guidance says `path` "narrows either" without saying where it goes.
+5. Each lookup starts a Java process, which takes about 0.75 seconds, and an Atlas run took 27.7 seconds against the control's 24.8.
+6. The control cost 7.6% more than at 23:15 (likely between 5.8% less and 21% more), which is within its own variation, and no control command used the network.
+
+**What would help next.**
+- Make the shell form the documented path in BestBuds' AGENTS.md §1 item 2 once two things are in place: `workspace install` puts `reaktor-agent` on the PATH, and the Codex entry it writes turns on `sandbox_workspace_write.network_access`, or a loopback-only permission if Codex offers one. Until then only a session that has both can use it.
+- Accept `path` beside `from` as narrowing it, or say in the guidance that it goes inside `from`.
+- Make T2's first answer smaller (fifth addendum). A session id on the shell command would let repeats come back as one line.
+- Rerun the questions with the shell form. Their harness runs read-only, which also needs loopback access.
+- Run eight more passes to narrow the interval, which still includes no difference.
+
+**What remains.** Claude has not run these tasks, and the shell form has not been tried in Claude Code's sandbox.
+
 ## 6. Delivery plan
 
 Domains are ordered by leverage. Each lists what is done and what comes next.
@@ -888,7 +1157,7 @@ Domains are ordered by leverage. Each lists what is done and what comes next.
 - Later: scip-clang and clangd for the MLS, FFI and FlexBuffer code; Swift only if Swift code grows.
 
 **7. Adoption and measurement**
-- Done: Codex comparisons on five code questions (§5.5) and three edit tasks (§5.6), and a same-evening rerun of both after one-call answers (addendum to §5.6), and a second rerun that night after complete answers (second addendum).
+- Done: Codex comparisons on five code questions (§5.5) and three edit tasks (§5.6), and a same-evening rerun of both after one-call answers (addendum to §5.6), and a second rerun that night after complete answers (second addendum), and a third at 19:00 after one call could carry several lookups (third addendum), and a fourth at 20:20 after the MCP server sent each source block once per session (fourth addendum), and eight runs per task by 21:40 (fifth addendum), and eight edit passes in a harness that matches the real checkout at 23:15 (sixth addendum), and eight more with the Atlas called from the shell at 00:30 on 18 October (seventh addendum).
 - Next: the AGENTS.md and CLAUDE.md map, the session-start `map`, and the same comparisons on Claude.
 
 **First completion gate.** One real Kotlin change, renaming an extension function or a port type across at least two modules, done from both Claude and Codex through `atlas.query`, `change.plan`, `change.apply` and `check.run`, with no whole-file reads of the edited files, compilation and affected checks passing, and a measured comparison against the ordinary workflow. This is the Codex handoff's gate made concrete.
@@ -946,7 +1215,7 @@ Started 16 October 2026 at the owner's request ("start building"). Codex keeps d
 |---|---|---|
 | 1 | One server: the `reaktor` door serves the kernel catalog (`kernel` plus direct tools); `code.apply` and `provider.call` join the gate; Hangar's reads join the owner's catalog; the `workspace` meta-tool and the separate `reaktor-desktop` registration go | Code done 16 Oct: `KernelAgentMcpHost` lists `kernel` and the direct tools; `code.apply` (SourceWrite, its effect checked against the plan before anyone is asked) and `provider.call` (the effect of the provider tool named in the call) run only through `OperationKernel.invoke`; Hangar's reads are `hangar.*` operations, in process (`attachHangar`) and in the owner (`HangarLoopbackNode`). Live on the owner's Mac 16 Oct: new dist installed, BestBuds owner upgraded, `.mcp.json` and both Codex configs register only `reaktor`, Hangar reinstalled; the live `access.map` lists 135 operations, 21 of them `hangar.*` |
 | 2 | Access map: `access.map` shows each face (Hangar, terminal, Claude Code, Codex, Antigravity), the servers it is configured with, and every operation's decision for its seat | Code done 16 Oct: `KernelAccess` (faces from `.mcp.json`, `~/.claude.json`, `.codex/config.toml`, `~/.gemini/config/mcp_config.json`, the spawned-task config; seats `*`, `cli`, `claude-code`, `codex`, `gemini`, `spawned`; findings for retired servers, wrong seats, missing launchers and folders, Codex trust). Hangar asks the running owner and falls back to the files when none answers |
-| 3 | Atlas v0: `atlas.query` and `atlas.read` over today's facts (PSI outline, identifiers, the semantic index, the build model) with the shared envelope and `next` hints | Code done 16 Oct in the BestBuds kernel (`KernelAtlas.kt`). Since 17 Oct (uncommitted, live on the owner's Mac): it covers the builds BestBuds includes, such as `../reaktor`; finds names (`Type.member`), literal text and positions; returns every overload of a name; with `read: true` it carries the source of each declaration a result sits in, and with `context: N` the lines around each result; and it answers agents as plain text with line numbers (`AtlasText.kt`). Later on 17 Oct: uses of `Type.member` or `package.function` leave out other declarations with the same name and list text mentions; `references out` lists what a declaration calls, up to four calls deep; `atlas.read` takes `part: imports`. That night: text mentions for the uses of every declaration; a member's uses split into uses and possible uses, with the rest counted; each file searched on its own, so the list of uses is complete; `references out` from a file and through the types a declaration names; `atlas.read` takes `paths`. Measured in §5.5, §5.6 and the two addenda to §5.6 |
+| 3 | Atlas v0: `atlas.query` and `atlas.read` over today's facts (PSI outline, identifiers, the semantic index, the build model) with the shared envelope and `next` hints | Code done 16 Oct in the BestBuds kernel (`KernelAtlas.kt`). Since 17 Oct (live on the owner's Mac): it covers the builds BestBuds includes, such as `../reaktor`; finds names (`Type.member`), literal text and positions; returns every overload of a name; with `read: true` it carries the source of each declaration a result sits in, and with `context: N` the lines around each result; and it answers agents as plain text with line numbers (`AtlasText.kt`). Later on 17 Oct: uses of `Type.member` or `package.function` leave out other declarations with the same name and list text mentions; `references out` lists what a declaration calls, up to four calls deep; `atlas.read` takes `part: imports`. That night: text mentions for the uses of every declaration; a member's uses split into uses and possible uses, with the rest counted; each file searched on its own, so the list of uses is complete; `references out` from a file and through the types a declaration names; `atlas.read` takes `paths`. At 19:00: one `atlas.query` call carries more queries and reads, and `imports: true` adds the import lines of each file a result sits in. At 20:20: the MCP server sends each source block once per Codex session and prints one line for a repeat; `atlas_read` always sends it in full. At 00:30 on 18 Oct: `reaktor-agent atlas query|read` (`AtlasCli.kt`) gives the same answers from the shell, through the same gate. Measured in §5.5, §5.6 and the seven addenda to §5.6; over eight runs per task the Atlas saves 6% on questions. On edits it cost 15% more through the MCP tools, because Codex ran each Atlas call in a round of its own; from the shell a lookup shares a command with other reads, and the edits cost 5% less than the control (14.2 rounds against 16.6) |
 | 4 | Hangar: an Access view in Agent → MCP, then an Atlas view | Done 16 Oct. Access view (`AgentAccess.kt`, the first view of Agent → MCP; it replaced the machine-evidence drawer). Atlas view (`AgentAtlas.kt`, the second): a question box that takes a name, a file or position, `node:`, `op:` or a handle, with Find, Uses, Contents or Build tree; the answer is drawn with blueprint as a map and listed in a table with its evidence, omissions and next questions; the inspector reads a result's exact source through `atlas.read`. Hangar asks the running owner as seat `hangar` through `KernelAgents.ask` (`KernelOwner.kt`), the same gate the agents use, and says in plain words when no owner runs or the owner predates the `kernel` tool. `KernelAtlasTest`, `AgentPaneRenderTest` (a real owner on a temporary workspace) and flows F-AGENT-20 and F-AGENT-28 pass. Installed in Hangar 16 Oct |
 | 5 | Build facts: compilations through a Gradle Tooling API model fetch; Kotlin compiler addresses; JS and Native compilations | Later |
 | 6 | Change engine: multi-file atomic apply, Kotlin `rename`, `edit`, seat policy for deterministic plans (decision 1) | Later |
