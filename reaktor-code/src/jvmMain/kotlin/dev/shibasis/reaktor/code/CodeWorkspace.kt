@@ -16,6 +16,7 @@ data class CodeDeclaration(val name: String, val kind: String, val container: St
     val span: CodeSpan, val selection: CodeSpan)
 data class CodeOutline(val path: String, val digest: String, val provider: String, val packageName: String,
     val imports: List<String>, val declarations: List<CodeDeclaration>, val diagnostics: List<CodeDiagnostic>, val partial: Boolean)
+data class CodeName(val name: String, val called: Boolean, val qualifier: String?, val receiver: Boolean)
 data class CodeEditPlan(val workspace: String, val before: CodeDocument, val after: String, val fingerprint: String,
     val replacements: Int, val find: String, val replacement: String, val recipe: String = "literal-v1", val evidence: String = "")
 
@@ -38,13 +39,19 @@ class CodeWorkspace(root: Path) {
     }
 
     fun outline(path: String, limit: Int = 80): CodeOutline {
-        require(limit in 1..128)
+        require(limit in 1..MAX_OUTLINE_DECLARATIONS)
         val document = read(path)
         requireKotlin(document)
         return KotlinSyntax.outline(document, limit)
     }
 
     fun identifiers(paths: List<String>, name: String, limit: Int = 40): CodeQueryResult = search(paths, name, limit, true)
+
+    fun names(path: String, span: CodeSpan): List<CodeName> {
+        val document = read(path)
+        requireKotlin(document)
+        return KotlinSyntax.names(document.text, span)
+    }
 
     @Synchronized fun index(path: String): CodeSemanticIndex {
         val file = resolve(path)
@@ -194,6 +201,7 @@ class CodeWorkspace(root: Path) {
 
     companion object {
         private const val MAX_FILE_BYTES = 524288
+        const val MAX_OUTLINE_DECLARATIONS = 4096
         fun renameSelector(indexPath: String, at: CodePosition) = listOf(indexPath, at.line.toString(), at.column.toString()).joinToString("\u0000")
     }
 }

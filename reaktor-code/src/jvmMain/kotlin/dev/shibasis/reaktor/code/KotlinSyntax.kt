@@ -28,6 +28,46 @@ internal object KotlinSyntax {
         }
     }
 
+    fun names(text: String, span: CodeSpan): List<CodeName> {
+        val normalized = text.replace("\r\n", "\n")
+        val starts = buildList { add(0); normalized.forEachIndexed { i, c -> if (c == '\n') add(i + 1) } }
+        fun offset(position: CodePosition) = ((starts.getOrNull(position.line) ?: normalized.length) + position.column).coerceAtMost(normalized.length)
+        val from = offset(span.start)
+        val to = offset(span.end)
+        val tokens = buildList {
+            val lexer = KotlinLexer()
+            lexer.start(normalized)
+            while (lexer.tokenType != null && lexer.tokenStart < to) {
+                val type = lexer.tokenType!!
+                if (lexer.tokenEnd > from && type !in KtTokens.WHITESPACES && type !in KtTokens.COMMENTS)
+                    add(type to normalized.substring(lexer.tokenStart, lexer.tokenEnd))
+                lexer.advance()
+            }
+        }
+        fun after(index: Int): Int {
+            if (tokens.getOrNull(index)?.first != KtTokens.LT) return index
+            var depth = 0
+            for (next in index until minOf(tokens.size, index + 24)) {
+                when (tokens[next].first) {
+                    KtTokens.LT -> depth++
+                    KtTokens.GT -> if (--depth == 0) return next + 1
+                    KtTokens.LPAR, KtTokens.RPAR, KtTokens.LBRACE, KtTokens.RBRACE, KtTokens.SEMICOLON -> return index
+                }
+            }
+            return index
+        }
+        return tokens.mapIndexedNotNull { index, (type, value) ->
+            if (type != KtTokens.IDENTIFIER) return@mapIndexedNotNull null
+            val previous = tokens.getOrNull(index - 1)?.first
+            val before = tokens.getOrNull(index - 2)
+            val receiver = ((previous == KtTokens.DOT || previous == KtTokens.SAFE_ACCESS) && before?.first != KtTokens.THIS_KEYWORD) ||
+                (previous == KtTokens.COLONCOLON && before?.first == KtTokens.IDENTIFIER)
+            val qualifier = before?.takeIf { receiver && it.first == KtTokens.IDENTIFIER }?.second?.removeSurrounding("`")
+            val next = tokens.getOrNull(after(index + 1))?.first
+            CodeName(value.removeSurrounding("`"), next == KtTokens.LPAR || next == KtTokens.LBRACE || previous == KtTokens.COLONCOLON, qualifier, receiver)
+        }
+    }
+
     @OptIn(CoreEnvironmentDeprecation::class, CompilerConfiguration.Internals::class, ExperimentalCompilerApi::class)
     fun outline(document: CodeDocument, limit: Int): CodeOutline {
         val disposable = Disposer.newDisposable()
