@@ -351,6 +351,29 @@ Two assertions are worth keeping beside the pictures, because pictures do not fa
   and `assertIsDisplayed` does not.
 - **Click through from the empty state.** Start with nothing, tap what the empty state offers, and
   assert where you land. Entry points that live under a list do not exist when the list is empty.
+- **The title got its width.** Beside a chip, a title is what gives way, and at 2× Cairn's library
+  read `plans/ap…` next to `▸ 2 versions` in full. Asserting it took three tries, each of which
+  passed on the broken layout:
+
+  ```kotlin
+  // Inside setContent: the font scale, and a phone-sized box, for runComposeUiTest.
+  CompositionLocalProvider(LocalDensity provides Density(1f, fontScale)) {
+      Box(Modifier.requiredSize(412.dp, 700.dp)) { AppTheme { GraphApplication(graph) } }
+  }
+
+  // A clickable row merges its texts into one node the row's size: read the unmerged tree.
+  val title = onNodeWithText("plans/app-portfolio.md", useUnmergedTree = true)
+
+  // Not isLineEllipsized — false on the desktop's Skia text for a visibly cut line — and not
+  // hasVisualOverflow, true for a line that fits when glyphs are taller than the line height.
+  val layouts = mutableListOf<TextLayoutResult>()
+  title.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+  val cut = layouts.single().run { multiParagraph.intrinsics.maxIntrinsicWidth > size.width + 0.5f }
+  ```
+
+  Assert the 1× layout too ("the chip stays beside the title when there is room"), or a fix that
+  always moves the chip underneath passes. A mark in a fixed-size box — a file-type tile — must not
+  scale with the font at all: `JPG` in a tile that does not grow becomes `J…`.
 
 **Anything loaded off the drawing thread needs more than two frames.** A picture decodes on another
 dispatcher, so frame two shows the space left for it. Render until two frames in a row are
