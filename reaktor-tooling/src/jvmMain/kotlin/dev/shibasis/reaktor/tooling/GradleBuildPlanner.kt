@@ -18,8 +18,35 @@ internal class GradleBuildPlanner {
     fun prepare(root: File, wrapper: String, node: Node, arguments: List<String>,
                 seal: ProcessDefinitionSeal, redactions: Set<String>, environment: Map<String, String>,
                 sensitiveEnvironmentKeys: Set<String>): PreparedGradleBuild {
-        val model = BuildModelReader.read(root)
-        require(model.nodes.single { it.id == node.id } == node) { "Build declaration changed; refresh the catalog" }
+        fun gradle(tasks: List<String>, definitions: ProcessDefinitionSeal, failure: String) = runBlocking {
+            SupervisedProcessExecutor().use { executor ->
+                val prepared = AdHocProcessPlan.create(listOf(wrapper) + tasks + "--console=plain", root, TaskId(node.id.toString()),
+                    SafetyPolicy(SafetyClass.LocalArtifactWrite), redactions = redactions, definitionSeal = definitions,
+                    environment = environment, sensitiveEnvironmentKeys = sensitiveEnvironmentKeys)
+                val handle = executor.start(prepared)
+                val tail = ArrayDeque<String>()
+                val collector = launch { handle.events.collect { event ->
+                    if (event is RunEvent.Output) { tail.addLast(event.text); if (tail.size > 16) tail.removeFirst() }
+                } }
+                val completed = handle.await(); collector.join()
+                check(completed.status == RunStatus.Succeeded) { "$failure: " +
+                    (completed.failure?.message.orEmpty() + "\n" + tail.joinToString("\n")).takeLast(8192) }
+            }
+        }
+        val model = BuildModelReader.readAllowingStale(root).let { declared ->
+            if (BuildModelReader.changedDeclarations(root, declared).isEmpty()) declared else {
+                gradle(listOf(GradleProtocol.ExportTask), ProcessDefinitionSeal.capture(seal.files, seal.directories),
+                    "The build model was stale and exporting it again failed")
+                BuildModelReader.readAllowingStale(root)
+            }
+        }
+        val current = requireNotNull(model.nodes.singleOrNull { it.id == node.id }) {
+            "${node.id} is no longer declared in the build; refresh the catalog"
+        }
+        require(current == node) {
+            "The declaration of ${node.id} changed" + (current.declaredAt?.let { " at ${it.build}/${it.file}:${it.line}" } ?: "") +
+                " since the catalog was read; refresh the catalog"
+        }
         val request = GradleRequest(node = node.id, declaredAt = node.declaredAt,
             modelDigest = BuildModelReader.digest(BuildModelReader.encode(model)), arguments = arguments)
         fun write(value: GradleRequest): File {
@@ -37,23 +64,8 @@ internal class GradleBuildPlanner {
             return file.toFile()
         }
         val contract = write(request)
-        val planArgs = listOf(wrapper, GradleProtocol.PlanTask, "-P${GradleProtocol.RequestOption}=${contract.absolutePath}", "--console=plain")
-        val planningSeal = ProcessDefinitionSeal.capture(seal.files + contract, seal.directories)
-        runBlocking {
-            SupervisedProcessExecutor().use { executor ->
-                val prepared = AdHocProcessPlan.create(planArgs, root, TaskId(node.id.toString()),
-                    SafetyPolicy(SafetyClass.LocalArtifactWrite), redactions = redactions, definitionSeal = planningSeal,
-                    environment = environment, sensitiveEnvironmentKeys = sensitiveEnvironmentKeys)
-                val handle = executor.start(prepared)
-                val tail = ArrayDeque<String>()
-                val collector = launch { handle.events.collect { event ->
-                    if (event is RunEvent.Output) { tail.addLast(event.text); if (tail.size > 16) tail.removeFirst() }
-                } }
-                val completed = handle.await(); collector.join()
-                check(completed.status == RunStatus.Succeeded) { "Gradle planning failed: " +
-                    (completed.failure?.message.orEmpty() + "\n" + tail.joinToString("\n")).takeLast(8192) }
-            }
-        }
+        gradle(listOf(GradleProtocol.PlanTask, "-P${GradleProtocol.RequestOption}=${contract.absolutePath}"),
+            ProcessDefinitionSeal.capture(seal.files + contract, seal.directories), "Gradle planning failed")
         val planFile = root.resolve("${GradleProtocol.PlanDirectory}/${contract.name}")
         val plan = BuildModelReader.readPlan(planFile)
         require(plan.node == node.id && plan.modelDigest == request.modelDigest && plan.requestDigest == BuildModelReader.digest(contract))

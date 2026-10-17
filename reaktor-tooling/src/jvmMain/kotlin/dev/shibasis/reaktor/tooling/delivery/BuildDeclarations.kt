@@ -8,8 +8,14 @@ import java.io.File
 internal object BuildDeclarations {
     const val Report = BuildModelReader.RelativePath
     const val Layout = "build/dependeasy/remote/hosts.json"
-    data class Target(val node: Node, val tasks: List<String>, val kind: TaskKind, val host: HostRequirement, val safety: SafetyClass) {
+    data class Target(val node: Node, val tasks: List<String>, val kind: TaskKind, val host: HostRequirement, val safety: SafetyClass,
+                      val changedDeclarations: List<String> = emptyList()) {
         val task: String get() = tasks.firstOrNull().orEmpty()
+        val staleAttributes: Map<String, String> get() = if (changedDeclarations.isEmpty()) emptyMap() else mapOf(
+            "buildModel" to "stale",
+            "buildModelNote" to "Build model is stale: ${changedDeclarations.size} of its build files changed since the last export; planning exports it again first",
+            "changedDeclarations" to changedDeclarations.joinToString("\n"),
+        )
         val unavailableReason: String? get() {
             val osName = System.getProperty("os.name").lowercase()
             return when {
@@ -23,7 +29,8 @@ internal object BuildDeclarations {
 
     fun read(root: File): List<Target> {
         if (!root.resolve(Report).isFile) return emptyList()
-        val model = BuildModelReader.read(root)
+        val model = BuildModelReader.readAllowingStale(root)
+        val changed = BuildModelReader.changedDeclarations(root, model).map { "${it.build}:${it.path}" }
         val rootBuild = model.builds.single { it.directory == "." }.name
         val byId = model.nodes.associateBy { it.id }
         val dependencies = model.edges.filter { it !is Edge.After }.groupBy { it.from }
@@ -53,7 +60,7 @@ internal object BuildDeclarations {
                     Effect.Build -> TaskKind.Build
                     Effect.Develop -> TaskKind.Develop
                     Effect.Deploy -> TaskKind.Deploy
-                }, model.requiredHost(node.id), safety(node.id))
+                }, model.requiredHost(node.id), safety(node.id), changed)
         }
     }
 }

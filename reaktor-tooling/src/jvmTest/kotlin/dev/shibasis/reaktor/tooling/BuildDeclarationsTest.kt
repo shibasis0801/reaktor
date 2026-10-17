@@ -30,6 +30,8 @@ class BuildDeclarationsTest {
         assertEquals(TaskKind.Build, task.kind)
         assertEquals(node("artifacts"), BuildModelReader.decodeNode(task.attributes.getValue("buildNode")))
         assertEquals(TaskProvenance("dependeasy", "fixture/build.gradle.kts:1"), task.provenance)
+        assertFalse(root.resolve("build/exports.txt").exists())
+        assertNull(task.attributes["buildModel"])
     }
 
     @Test fun typedPrerequisitesCarryPhysicalHostAndWriteAuthorityWithoutTaskNameInference() = fixture { root ->
@@ -58,16 +60,39 @@ class BuildDeclarationsTest {
         SupervisedProcessExecutor().use { executor ->
             assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) }
         }
-        assertFailsWith<IllegalArgumentException> { BuildDeclarations.read(root) }
+        assertEquals(listOf("fixture:build.gradle.kts"), BuildDeclarations.read(root).single().changedDeclarations)
     }
 
-    @Test fun aStaleModelKeepsTheWorkspaceDiscoverableButWithholdsItsBuildTasks() = fixture { root ->
+    @Test fun aStaleModelKeepsItsBuildTasksMarkedAndPlanningExportsItOnceFirst() = fixture { root ->
         report(root, node("artifacts"))
         root.resolve("build.gradle.kts").appendText("\n")
-        assertFailsWith<IllegalArgumentException> { BuildDeclarations.read(root) }
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        assertTrue(workspace.catalog.tasks.none { "buildNode" in it.attributes })
-        assertEquals("fixture", workspace.catalog.workspace.name)
+        val task = workspace.catalog.tasks.single { it.id.value == "fixture:artifacts" }
+        assertEquals("stale", task.attributes["buildModel"])
+        assertEquals("fixture:build.gradle.kts", task.attributes["changedDeclarations"])
+        assertContains(task.attributes["buildModelNote"].orEmpty(), "1 of its build files changed")
+        assertNull(task.description)
+        assertNull(task.unavailableReason)
+        val prepared = workspace.prepare(TaskInvocation(task.id))
+        assertEquals(GradleProtocol.RunTask, prepared.request.argv[1])
+        assertEquals(listOf("export"), root.resolve("build/exports.txt").readLines())
+        assertTrue(BuildModelReader.changedDeclarations(root, BuildModelReader.readAllowingStale(root)).isEmpty())
+    }
+
+    @Test fun planningRefusesANodeWhoseDeclarationReallyChangedAndNamesWhere() = fixture { root ->
+        report(root, node("artifacts"))
+        root.resolve("build.gradle.kts").appendText("\n")
+        root.resolve("build/export-moves-nodes").writeText("")
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        val failure = assertFailsWith<IllegalArgumentException> { workspace.prepare(TaskInvocation(TaskId("fixture:artifacts"))) }
+        assertContains(failure.message.orEmpty(), "fixture/build.gradle.kts:2")
+        assertContains(failure.message.orEmpty(), "refresh the catalog")
+        root.resolve("build/export-moves-nodes").delete()
+        root.resolve("build/export-drops-nodes").writeText("")
+        root.resolve("build.gradle.kts").appendText("\n")
+        val dropped = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        assertContains(assertFailsWith<IllegalArgumentException> { dropped.prepare(TaskInvocation(TaskId("fixture:artifacts"))) }
+            .message.orEmpty(), "no longer declared")
     }
 
     @Test fun aModelFromANewerExporterKeepsTheWorkspaceDiscoverable() = fixture { root ->
@@ -132,6 +157,16 @@ class BuildDeclarationsTest {
                     import hashlib,json,os,sys
                     from pathlib import Path
                     root=Path(__file__).parent
+                    if 'exportBuildModel' in sys.argv:
+                      report=root/'build/dependeasy/model.json';model=json.loads(report.read_text())
+                      for declaration in model['declarations']:
+                        declaration['sha256']=hashlib.sha256((root/declaration['path']).read_bytes()).hexdigest()
+                      if (root/'build/export-moves-nodes').exists():
+                        for node in model['nodes']:node['declaredAt']['line']+=1
+                      if (root/'build/export-drops-nodes').exists():model['nodes']=[]
+                      report.write_text(json.dumps(model))
+                      with open(root/'build/exports.txt','a') as exports:exports.write('export\n')
+                      sys.exit(0)
                     request=Path(next(arg.split('=',1)[1] for arg in sys.argv if arg.startswith('-Pdependeasy.gradleRequest=')))
                     value=json.loads(request.read_text())
                     digest=hashlib.sha256(request.read_bytes()).hexdigest()

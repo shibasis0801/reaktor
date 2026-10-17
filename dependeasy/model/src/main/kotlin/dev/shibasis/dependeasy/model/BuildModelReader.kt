@@ -48,7 +48,7 @@ object BuildModelReader {
         return model
     }
 
-    private fun changedDeclarations(root: File, model: BuildModel): List<DeclarationInput> {
+    fun changedDeclarations(root: File, model: BuildModel): List<DeclarationInput> {
         val directories = model.builds.associate { it.name to root.resolve(it.directory).canonicalFile }
         return model.declarations.filter { input ->
             val owner = directories.getValue(input.build)

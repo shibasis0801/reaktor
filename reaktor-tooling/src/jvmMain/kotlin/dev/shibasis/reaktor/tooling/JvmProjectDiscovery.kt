@@ -536,7 +536,7 @@ private class TaskCatalogBuilder(
             provenance = TaskProvenance(if (declaration == null) "gradle-settings" else "dependeasy", provenancePath),
             attributes = mapOf("gradleTask" to gradleTask) + declaration?.node?.let { node ->
                 mapOf("buildNode" to dev.shibasis.dependeasy.model.BuildModelReader.encode(node))
-            }.orEmpty(),
+            }.orEmpty() + declaration?.staleAttributes.orEmpty(),
             unavailableReason = declaration?.unavailableReason,
             environments = declaration?.node?.environments.orEmpty().map { it.name }.toSet(),
         )
