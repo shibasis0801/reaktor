@@ -242,6 +242,20 @@ shows up in a `StateFlow`, because the in-between value was conflated away. Cair
 "the room will get it on reconnect"; reconnecting only pulled, and drops sent offline reached
 nobody, ever.
 
+**A node that reads its state back and also listens to a port has a race in its `init`.**
+`launch { hydrate() }` and `launchWhenWired(room) { … }` start together, and nothing orders them.
+Cairn's store caught up from the cursor it held — which, until the database answered, was zero; the
+room usually opened first, so most launches asked the server for the whole week. Gate the port
+work on a `CompletableDeferred` that `hydrate` completes in a `finally`. For a `SharedFlow`,
+subscribe first and await inside the collector: awaiting before subscribing loses whatever arrived
+in between. Test it against a database that is slow to read — an in-memory one answers before
+anything else runs and hides the race.
+
+**Deleting what a server can send again needs a note that it was deleted.** If the server keeps a
+history and replays it on catch-up, or passes on a client's resend, a row removed locally is a row
+never seen. Cairn forgot a drop and had it back four days later. Keep the deleted id — persisted —
+for as long as the server could still send it, and skip it on arrival.
+
 **A `ConcurrencyCapabilityImpl` dispatcher is passed by name.** Its first parameter is a context;
 a dispatcher passed there positionally is silently replaced by `Dispatchers.Default`. That is how
 `WebSocket` — documented as single-threaded — ran on the whole pool for its entire life.
