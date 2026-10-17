@@ -256,6 +256,20 @@ history and replays it on catch-up, or passes on a client's resend, a row remove
 never seen. Cairn forgot a drop and had it back four days later. Keep the deleted id — persisted —
 for as long as the server could still send it, and skip it on arrival.
 
+**File bytes do not go in an `ObjectDatabase` row.** On Android, `SqliteObjectDatabase` reads rows
+through a 2 MB `CursorWindow`. A row bigger than that — a 1.5 MB file is enough once it is base64
+inside JSON — is written without complaint and cannot be read back, and `getAll` on its store then
+fails for every row in it. Before that limit, the cost is time: Cairn decoded a week of files on
+every launch before showing a list, 72 s on a busy emulator. Keep metadata in rows and bytes in
+files through `Feature.File` (`DesktopFileAdapter(rootDirectory = …)` on the desktop — its default
+root is `~/.reaktor`), read the bytes after the list is on screen, and check a file's length on
+read: `writeBinaryFile` is not atomic, so a kill mid-write leaves a short file that looks whole.
+
+**A secret that opens something later must outlive the process.** Cairn kept each blob's content
+key in a `HashMap` filled as envelopes were opened, so a file that had arrived but not been
+downloaded could not be downloaded after a restart. Anything a later action needs goes where the
+row that offers the action goes.
+
 **A `ConcurrencyCapabilityImpl` dispatcher is passed by name.** Its first parameter is a context;
 a dispatcher passed there positionally is silently replaced by `Dispatchers.Default`. That is how
 `WebSocket` — documented as single-threaded — ran on the whole pool for its entire life.
