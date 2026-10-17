@@ -5,6 +5,8 @@ import coil3.PlatformContext
 import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.request.CachePolicy
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okio.Path
 import okio.Path.Companion.toPath
 
@@ -16,6 +18,18 @@ object CoilCache {
 
     val cacheDirectory: Path?
         get() = diskCache?.directory
+
+    suspend fun prime(url: String, bytes: ByteArray) {
+        val disk = diskCache ?: return
+        withContext(Dispatchers.Default) {
+            val editor = disk.openEditor(url) ?: return@withContext
+            runCatching {
+                disk.fileSystem.write(editor.metadata) {}
+                disk.fileSystem.write(editor.data) { write(bytes) }
+                editor.commit()
+            }.onFailure { runCatching { editor.abort() } }
+        }
+    }
 
     fun createImageLoader(
         context: PlatformContext,

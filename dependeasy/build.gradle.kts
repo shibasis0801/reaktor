@@ -1,64 +1,91 @@
-val kotlinVersion = "2.3.0"
+import dev.shibasis.dependeasy.bootstrap.BootstrapLifecycle
+import dev.shibasis.dependeasy.bootstrap.bootstrapAttribute
+import dev.shibasis.dependeasy.bootstrap.VerifyBytecode
+import dev.shibasis.dependeasy.publishing.PublicationDefaults
+import dev.shibasis.dependeasy.toolchain.GradlePlugins
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.gradle.language.base.plugins.LifecycleBasePlugin
+import org.gradle.api.publish.plugins.PublishingPlugin
+import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 
 plugins {
-    id("java-gradle-plugin")
-    id("maven-publish")
-    id("org.gradle.kotlin.kotlin-dsl") version "6.5.2"
+    base
+    `kotlin-dsl` apply false
 }
 
-repositories {
-    google()
-    mavenCentral()
-    maven(url = "https://plugins.gradle.org/m2/")
-    maven(url = "https://jitpack.io")
-}
+group = "${PublicationDefaults.Group}.dependeasy"
+version = providers.gradleProperty(PublicationDefaults.VersionOptionName).orElse(PublicationDefaults.Version).get()
 
-dependencies {
-    // Align Version of all Kotlin components
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
-    implementation("com.android.tools.build:gradle:8.8.0") {
-        exclude(group = "org.apache.commons", module = "commons-compress")
+subprojects {
+    group = rootProject.group
+    version = rootProject.version
+    repositories {
+        google()
+        mavenCentral()
+        maven(url = "https://plugins.gradle.org/m2/")
     }
-    implementation("org.apache.commons:commons-compress:1.28.0") // todo remember to upgrade on upgrading Spring
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-    implementation("org.jetbrains.kotlin.native.cocoapods:org.jetbrains.kotlin.native.cocoapods.gradle.plugin:$kotlinVersion")
-    implementation("org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-    implementation("com.google.firebase:firebase-crashlytics-gradle:3.0.3")
-    implementation("com.codingfeline.buildkonfig:buildkonfig-gradle-plugin:0.15.1")
-    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.3.2")
-//    implementation("com.github.node-gradle:gradle-node-plugin:7.1.0")
-//    implementation("io.github.turansky.seskar:seskar-gradle-plugin:4.25.0")
-
-}
-
-gradlePlugin {
-    val libraryPlugin by plugins.creating {
-        id = "dev.shibasis.dependeasy.library"
-        implementationClass = "dev.shibasis.dependeasy.plugins.LibraryPlugin"
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        extensions.configure<KotlinJvmProjectExtension> {
+            jvmToolchain(GradlePlugins.CompilerJava)
+            compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(GradlePlugins.BytecodeJava.toString()))
+        }
+        extensions.configure<JavaPluginExtension> {
+            targetCompatibility = JavaVersion.toVersion(GradlePlugins.BytecodeJava)
+            withSourcesJar()
+        }
+        tasks.withType<JavaCompile>().configureEach { options.release.set(GradlePlugins.BytecodeJava) }
     }
-
-    val applicationPlugin by plugins.creating {
-        id = "dev.shibasis.dependeasy.application"
-        implementationClass = "dev.shibasis.dependeasy.plugins.ApplicationPlugin"
-    }
-
-    val settingsPlugin by plugins.creating {
-        id = "dev.shibasis.dependeasy.settings"
-        implementationClass = "dev.shibasis.dependeasy.plugins.SettingsPlugin"
+    plugins.withId("maven-publish") {
+        extensions.configure<PublishingExtension> {
+            repositories.maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/${PublicationDefaults.Repository}")
+                credentials {
+                    username = providers.environmentVariable("USERNAME").orNull
+                    password = providers.environmentVariable("TOKEN").orNull
+                }
+            }
+        }
     }
 }
 
-kotlin {
-//    jvmToolchain(11)
-    compilerOptions {
-        freeCompilerArgs.addAll("-Xcontext-receivers", "-Xwhen-guards")
+fun lifecycleInputs(lifecycle: BootstrapLifecycle, modules: List<Project> = subprojects.toList()): Configuration {
+    val name = lifecycle.task
+    return configurations.create("bootstrap${name.replaceFirstChar(Char::uppercase)}") {
+        isCanBeConsumed = false
+        isTransitive = false
+        attributes.attribute(bootstrapAttribute, name)
+        modules.forEach { dependencies.add(project.dependencies.project(mapOf("path" to it.path))) }
     }
 }
-
-tasks.named<Jar>("jar") {
-    archiveFileName.set("dependeasy.jar")
-    from(sourceSets.main.get().output)
+val bytecodeJars = configurations.create("bootstrapJars") {
+    isCanBeConsumed = false
+    isTransitive = false
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+    }
+    subprojects.forEach { dependencies.add(project.dependencies.project(mapOf("path" to it.path))) }
 }
-
-apply(from = "$rootDir/../publishing.gradle.kts")
+val verifyBytecode = tasks.register<VerifyBytecode>("verifyBytecode") { jars.from(bytecodeJars) }
+val checks = lifecycleInputs(BootstrapLifecycle.Check)
+val assembly = lifecycleInputs(BootstrapLifecycle.Assemble)
+tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(verifyBytecode, checks) }
+tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(assembly) }
+val pluginTests = tasks.register(JavaPlugin.TEST_TASK_NAME) {
+    val result = layout.buildDirectory.file("dependeasy/plugin-tests.txt")
+    dependsOn(lifecycleInputs(BootstrapLifecycle.Test, listOf(project(projects.gradle.path))))
+    outputs.file(result)
+    doLast { result.get().asFile.apply { parentFile.mkdirs(); writeText("verified\n") } }
+}
+configurations.create("pluginVerification") {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+    attributes.attribute(Attribute.of("dependeasy.output", String::class.java), "VerificationResults:Plugin")
+    outgoing.artifact(layout.buildDirectory.file("dependeasy/plugin-tests.txt")) { builtBy(pluginTests) }
+}
+val localPublication = lifecycleInputs(BootstrapLifecycle.LocalPublication)
+val remotePublication = lifecycleInputs(BootstrapLifecycle.RemotePublication)
+tasks.register(MavenPublishPlugin.PUBLISH_LOCAL_LIFECYCLE_TASK_NAME) { dependsOn(localPublication) }
+tasks.register(PublishingPlugin.PUBLISH_LIFECYCLE_TASK_NAME) { dependsOn(remotePublication) }

@@ -1,33 +1,19 @@
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.web.*
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.common.commonCoroutines
+import dev.shibasis.dependeasy.common.commonSerialization
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-auth"))
-            api(project(":reaktor-core"))
+library(namespace = "dev.shibasis.reaktor.secrets", targets = Targets.All) {
+    dependencies {
+        common {
+            api(projects.reaktorAuthCore)
+            api(projects.reaktorCore)
             commonCoroutines()
             commonSerialization(protobuf = false)
         }
+        jvm { api(Versions.Google.Auth) }
     }
-
-    droid {}
-    darwin {}
-    web {}
-    server {
-        dependencies {
-            api("com.google.auth:google-auth-library-oauth2-http:1.42.1")
-        }
-    }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.secrets")
 }

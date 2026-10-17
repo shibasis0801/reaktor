@@ -1,0 +1,13 @@
+@file:OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+package dev.shibasis.reaktor.web
+
+import kotlin.io.encoding.Base64
+
+object WebBridgeAssets : WebAssetProvider {
+    override val paths = setOf("/reaktor/bridge.js", "/reaktor/index.js")
+    override fun read(path: String): WebAsset? = when (webAssetPath(path)) {
+        "/reaktor/bridge.js" -> WebAsset(Base64.decode({{entry}}), "text/javascript")
+        "/reaktor/index.js" -> WebAsset(Base64.decode({{client}}), "text/javascript")
+        else -> null
+    }
+}

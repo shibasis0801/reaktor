@@ -1,5 +1,6 @@
 {
   "input": "karakum.ts",
   "output": "import",
-  "libraryName": "dev-shibasis-reaktor-cloudflare-karakum"
+  "libraryName": "dev-shibasis-reaktor-cloudflare-karakum",
+  "inputResolutionStrategy": "plain"
 }

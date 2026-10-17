@@ -11,7 +11,8 @@ import kotlin.js.Promise
  * `JwtVerifier.verifyReaktorSignature` / `verifyReaktorToken`:
  *
  *   1. split the compact JWT, pin `alg=ES256` (RFC 8725 — never trust the header's alg blindly),
- *   2. fetch the issuer's JWKS (cached in Workers KV with a TTL; refreshed on `kid` miss for rotation),
+ *   2. resolve the issuer's JWKS (isolate memory, then the colo Cache API, then KV, then the network;
+ *      a `kid` miss bypasses every layer so a manual key rotation is picked up without a redeploy),
  *   3. import the EC P-256 public key and verify the signature via Web Crypto (`crypto.subtle`),
  *   4. check `iss` / `exp` / `nbf`, and `aud` when audiences are supplied.
  *
@@ -71,23 +72,49 @@ class WorkerJwtVerifier(
     }
 
     private suspend fun loadJwks(forceRefresh: Boolean): dynamic {
-        jwksJson?.takeIf { it.isNotBlank() }?.let { return parseJson(it) }
+        val pinned = jwksJson?.takeIf { it.isNotBlank() }
+        if (pinned != null) return parseJson(pinned)
 
         val cache = kv // local val so the smart-cast survives into the inline runCatching lambdas below
-        if (!forceRefresh && cache != null) {
-            val cached = cache.getString(cacheKey)
-            if (cached != null) {
-                val parsed = runCatching { parseJson(cached) }.getOrNull()
+        val stale = jwksMemory[jwksUrl]
+        if (!forceRefresh) {
+            val held = jwksMemory[jwksUrl]
+            if (held != null && held.freshAt(nowMillis())) {
+                val parsed = parseOrNull(held.text)
                 if (parsed != null) return parsed
             }
+            val fromColo = cacheApiRead(jwksUrl)
+            if (fromColo != null) {
+                val parsed = parseOrNull(fromColo)
+                if (parsed != null) {
+                    remember(fromColo)
+                    return parsed
+                }
+            }
+            val fromKv = cache?.getString(cacheKey)
+            if (fromKv != null) {
+                val parsed = parseOrNull(fromKv)
+                if (parsed != null) {
+                    remember(fromKv)
+                    cacheApiWrite(jwksUrl, fromKv, cacheTtlSeconds)
+                    return parsed
+                }
+            }
         }
-        val text = fetchText(jwksUrl) ?: return null
+
+        val text = runCatching { fetchText(jwksUrl) }.getOrNull() ?: return stale?.let { parseOrNull(it.text) }
+        remember(text)
+        cacheApiWrite(jwksUrl, text, cacheTtlSeconds)
         if (cache != null) runCatching { cache.putString(cacheKey, text, cacheTtlSeconds) }
-        return runCatching { parseJson(text) }.getOrNull()
+        return parseOrNull(text)
+    }
+
+    private fun remember(text: String) {
+        jwksMemory[jwksUrl] = HeldJwks(text, nowMillis() + cacheTtlSeconds * 1000.0)
     }
 
     private suspend fun fetchText(url: String): String? {
-        val response = (js("fetch(url)").unsafeCast<Promise<dynamic>>()).await()
+        val response = (js("fetch(url, { signal: AbortSignal.timeout(5000) })").unsafeCast<Promise<dynamic>>()).await()
         if (response == null || !(response.ok as Boolean)) return null
         return response.text().unsafeCast<Promise<String>>().await()
     }
@@ -145,7 +172,33 @@ private fun VerifiedToken.toPlainJsObject(): Any {
     return out.unsafeCast<Any>()
 }
 
+private class HeldJwks(val text: String, private val expiresAtMillis: Double) {
+    fun freshAt(now: Double) = now < expiresAtMillis
+}
+
+private val jwksMemory: MutableMap<String, HeldJwks> = mutableMapOf()
+
+private suspend fun cacheApiRead(key: String): String? {
+    val response = runCatching { cacheMatch(key).await() }.getOrNull() ?: return null
+    if (response == null || response == undefined) return null
+    return runCatching { response.text().unsafeCast<Promise<String>>().await() }.getOrNull()
+}
+
+private suspend fun cacheApiWrite(key: String, text: String, ttlSeconds: Int) {
+    runCatching { cachePut(key, text, ttlSeconds).await() }
+}
+
 // --- JS interop helpers (kept file-private; single-line js() literals reference locals by name) ---
+
+private fun cacheMatch(key: String): Promise<dynamic> =
+    js("(typeof caches==='undefined'||!caches.default)?Promise.resolve(null):caches.default.match(new Request(key))").unsafeCast<Promise<dynamic>>()
+
+private fun cachePut(key: String, text: String, ttlSeconds: Int): Promise<dynamic> =
+    js("(typeof caches==='undefined'||!caches.default)?Promise.resolve(null):caches.default.put(new Request(key),new Response(text,{headers:{'Content-Type':'application/json','Cache-Control':'max-age='+ttlSeconds}}))").unsafeCast<Promise<dynamic>>()
+
+private fun nowMillis(): Double = js("Date.now()") as Double
+
+private fun parseOrNull(text: String): dynamic = runCatching { parseJson(text) }.getOrNull()
 
 private fun selectKey(jwks: dynamic, kid: String?): dynamic {
     if (jwks == null) return null

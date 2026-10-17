@@ -6,6 +6,10 @@ It is the shared runtime used by:
 - [BestBuds](/Users/ovd/dev/bestbuds/README.md)
 - `Manna`
 
+Published documentation lives at [reaktor.build/docs](https://reaktor.build/docs/).
+Its source is in [BestBuds' Reaktor web target](/Users/ovd/dev/bestbuds/targets/reaktorWeb/docusaurus).
+The older `website/` scaffold and `docs.reaktor.build` deployment have been retired.
+
 Before trusting a green build here, read [BUILD_HEALTH.md](BUILD_HEALTH.md): three modules do not
 compile or test on JS, two fail on the JVM, and a root `jvmTest` runs only half of the modules that
 have tests.
@@ -142,7 +146,7 @@ Every module has a stability level indicating its maturity:
 | --- | --- | --- | --- |
 | [reaktor-cloudflare](/Users/ovd/dev/reaktor/reaktor-cloudflare/README.md) | **Experimental** | JS (Cloudflare Workers) | Workers, D1, R2, Durable Objects, PartyServer, Hono, service bindings |
 | [reaktor-google](/Users/ovd/dev/reaktor/reaktor-google/README.md) | **Experimental** | JVM, JS, Android, iOS | Google Cloud Pub/Sub adapters |
-| [reaktor-work](/Users/ovd/dev/reaktor/reaktor-work/README.md) | **Experimental** | Android, iOS, JVM, JS | background task orchestration with platform-native schedulers |
+| [reaktor-work](/Users/ovd/dev/reaktor/reaktor-work/README.md) | **Experimental** | Android, iOS, JVM, JS | Legacy facade; selected replacement separates durable state, attempts and direct platform wakeups |
 
 ### Native Interop
 
@@ -318,7 +322,7 @@ Reaktor ships a unified native toolchain path:
 
 ### Background work
 
-`reaktor-work` abstracts platform-native task schedulers behind a unified API for sync, token refresh, analytics upload, media upload, maintenance, and related background jobs.
+`reaktor-work` still contains the legacy Meeseeks facade and placeholder worker bodies. The selected replacement removes Meeseeks and separates WorkStore, WorkRuntime and WorkScheduler, using WorkManager, BGTaskScheduler, browser hosts, Cloudflare Workflows/Queues/GCP Pub/Sub and Spring Quartz/queues/GCP Pub/Sub directly. These profiles remain proposed until qualified. See the [Work architecture](https://reaktor.build/docs/reaktor-work) for contracts and platform boundaries.
 
 ### Telemetry
 
@@ -334,7 +338,7 @@ Reaktor is a composite Gradle build and provides its own internal plugins from `
 Important build characteristics:
 - Kotlin Multiplatform is the default for all modules
 - native dependencies such as Hermes and FlatBuffers are bootstrapped into `.github_modules`
-- generated JS exports live under `*/ts/export`
+- generated JS exports live under `*/build/dependeasy/kotlin/library`
 - consumer repos such as BestBuds use `includeBuild("../reaktor")`
 - KSP is used for compile-time code generation
 
@@ -347,7 +351,7 @@ That means changes in `reaktor` are immediately visible to product repos using t
 - Android SDK
 - Xcode + iOS platform for Darwin targets
 - CMake and Ninja for native modules
-- CocoaPods for iOS dependencies
+- Xcode and SwiftPM for iOS dependencies
 
 Detailed setup:
 - [SETUP.md](/Users/ovd/dev/reaktor/SETUP.md)
@@ -363,7 +367,6 @@ Detailed setup:
 ```bash
 ./gradlew :reaktor-graph:allTests
 ./gradlew :reaktor-graph-port:allTests
-./gradlew :compose-flow:reportParity
 ./gradlew :reaktor-flow:jvmTest
 ./gradlew :reaktor-ffi:assembleDebug
 ./gradlew :reaktor-flexbuffer:assembleDebug

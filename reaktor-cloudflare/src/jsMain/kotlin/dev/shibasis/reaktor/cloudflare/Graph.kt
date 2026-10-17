@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.cloudflare
 
-import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
+import dev.shibasis.reaktor.auth.kernel.BearerHeaders.AUTHORIZATION as AUTHORIZATION_HEADER
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.service.Request
 import kotlinx.serialization.json.JsonElement
@@ -51,6 +51,14 @@ class GraphGateway internal constructor(
             put("params", params)
         }
         return send("/query-id", body.toString(), headers(JSON_BODY))
+    }
+
+    suspend fun writeId(id: String, params: JsonObject = EMPTY_PARAMS): JsonElement {
+        val body = buildJsonObject {
+            put("id", id)
+            put("params", params)
+        }
+        return send("/write-id", body.toString(), headers(JSON_BODY))
     }
 
     private suspend fun sendCypher(

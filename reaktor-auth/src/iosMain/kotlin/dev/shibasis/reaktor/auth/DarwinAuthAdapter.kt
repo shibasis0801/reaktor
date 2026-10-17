@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.auth
 
 import co.touchlab.kermit.Logger
-import cocoapods.GoogleSignIn.GIDSignIn
 import dev.shibasis.reaktor.auth.api.AuthServiceClient
 import dev.shibasis.reaktor.core.framework.UrlHandler
 import dev.shibasis.reaktor.core.utils.*
@@ -20,9 +19,10 @@ class DarwinAuthAdapter(
      * adapter is listed in a [dev.shibasis.reaktor.core.framework.ReaktorAppDelegate]'s
      * handlers — the app controller no longer touches `GIDSignIn` directly.
      */
-    override fun handleUrl(url: NSURL): Boolean = GIDSignIn.sharedInstance.handleURL(url)
+    override fun handleUrl(url: NSURL): Boolean = AppleGoogleSignInRuntime.current().handleUrl(url)
 
     override suspend fun logout(): Result<Unit> {
+        logoutSession().onFailure { Logger.w { "The session was cleared here but the server did not confirm its revocation: $it" } }
         providers.forEach { (_, provider) ->
             provider.logout().onFailure { Logger.e { "Logout failed for ${provider::class.simpleName}: $it" } }
         }

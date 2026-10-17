@@ -1,5 +1,9 @@
 {
   "input": "index.ts",
   "output": "import",
-  "libraryName": "dev-shibasis-reaktor-google-karakum"
+  "libraryName": "dev-shibasis-reaktor-google-karakum",
+  "inputResolutionStrategy": "plain",
+  "ignoreOutput": [
+    "**/Optional.kt"
+  ]
 }

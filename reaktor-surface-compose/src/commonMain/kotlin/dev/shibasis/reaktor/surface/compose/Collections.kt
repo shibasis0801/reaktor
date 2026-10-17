@@ -1,0 +1,908 @@
+package dev.shibasis.reaktor.surface.compose
+
+import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusTarget
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.InputModeManager
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.input.pointer.isMetaPressed
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.PointerInputModifierNode
+import androidx.compose.ui.node.SemanticsModifierNode
+import androidx.compose.ui.node.currentValueOf
+import androidx.compose.ui.platform.LocalInputModeManager
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.semantics.CollectionInfo
+import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.collapse
+import androidx.compose.ui.semantics.collectionInfo
+import androidx.compose.ui.semantics.collectionItemInfo
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.expand
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selectableGroup
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.roundToIntRect
+import dev.shibasis.reaktor.surface.GridCell
+import dev.shibasis.reaktor.surface.GridInput
+import dev.shibasis.reaktor.surface.GridKernel
+import dev.shibasis.reaktor.surface.KeyName
+import dev.shibasis.reaktor.surface.Availability
+import dev.shibasis.reaktor.surface.BehaviorKernel
+import dev.shibasis.reaktor.surface.CollectionEvent
+import dev.shibasis.reaktor.surface.CollectionInput
+import dev.shibasis.reaktor.surface.CollectionKernel
+import dev.shibasis.reaktor.surface.CollectionProperties
+import dev.shibasis.reaktor.surface.CollectionState
+import dev.shibasis.reaktor.surface.CommandEntry
+import dev.shibasis.reaktor.surface.CommandId
+import dev.shibasis.reaktor.surface.CommandSet
+import dev.shibasis.reaktor.surface.Edge
+import dev.shibasis.reaktor.surface.ItemSource
+import dev.shibasis.reaktor.surface.KeyConvention
+import dev.shibasis.reaktor.surface.LocalCommand
+import dev.shibasis.reaktor.surface.MenuInput
+import dev.shibasis.reaktor.surface.MenuKernel
+import dev.shibasis.reaktor.surface.PressProperties
+import dev.shibasis.reaktor.surface.PressInput
+import dev.shibasis.reaktor.surface.PressKernel
+import dev.shibasis.reaktor.surface.PressState
+import dev.shibasis.reaktor.surface.SelectionMode
+import dev.shibasis.reaktor.surface.ThemeSnapshot
+import dev.shibasis.reaktor.surface.TreeItems
+import dev.shibasis.reaktor.surface.TreeSource
+
+typealias CollectionBehavior = BehaviorKernel<CollectionProperties, CollectionState, CollectionInput, CollectionEvent>
+
+data class RowProperties(
+    val selected: Boolean,
+    val enabled: Boolean,
+    val index: Int,
+    val depth: Int,
+    val expandable: Boolean,
+    val expanded: Boolean,
+)
+
+data class RowState(val active: Boolean, val hovered: Boolean, val focusVisible: Boolean)
+
+class RowSlots(val content: @Composable () -> Unit, val toggle: Modifier?)
+
+typealias RowAppearance = ComposeAppearance<RowProperties, RowState, RowSlots>
+
+@Stable
+class ItemScope internal constructor(val key: String, val index: Int, private val flags: RowFlags, internal val host: CollectionHost) {
+    val selected: Boolean get() = flags.selected
+    val active: Boolean get() = flags.active
+
+    @Composable
+    fun MenuTrigger(modifier: Modifier = Modifier, content: @Composable () -> Unit) =
+        Box(modifier.then(MenuTriggerElement(host, key)), propagateMinConstraints = true) { content() }
+
+    @Composable
+    fun CommandButton(command: CommandId, modifier: Modifier = Modifier, appearance: ButtonAppearance = LocalAppearances.current.button, content: @Composable () -> Unit) {
+        val enabled = host.available(command, key)
+        val press = remember(host, key, command) { mutableStateOf(RestingPress) }
+        Box(modifier.then(CommandButtonElement(host, key, command, enabled, press)), propagateMinConstraints = true) {
+            appearance.Content(PressProperties(enabled), press.value, LocalThemeSnapshot.current, rememberFeedback(pressed = press.value.pressed, focusVisible = false), ButtonSlots(content))
+        }
+    }
+}
+
+class RowActions(
+    val commands: (Set<String>) -> CommandSet,
+    val onInvoke: (CommandId, Set<String>) -> Unit,
+) {
+    companion object {
+        val None = RowActions({ NoCommands }, { _, _ -> })
+    }
+}
+
+@Composable
+fun <T> ListBox(
+    source: ItemSource<T>,
+    selection: Set<String>,
+    onSelectionChange: (Set<String>) -> Unit,
+    modifier: Modifier = Modifier,
+    mode: SelectionMode = SelectionMode.Single,
+    onActivate: (String) -> Unit = {},
+    onCheckedChange: (String, Boolean) -> Unit = { _, _ -> },
+    actions: RowActions = RowActions.None,
+    state: LazyListState = rememberLazyListState(),
+    behavior: CollectionBehavior = CollectionKernel(),
+    appearance: RowAppearance = LocalAppearances.current[Appearance.Row],
+    scrolling: Boolean = true,
+    row: @Composable ItemScope.(T) -> Unit,
+) = Collection(source, selection, onSelectionChange, { _, _ -> }, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, scrolling, row)
+
+@Composable
+fun <T> Tree(
+    source: TreeSource<T>,
+    selection: Set<String>,
+    onSelectionChange: (Set<String>) -> Unit,
+    onExpandedChange: (String, Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    mode: SelectionMode = SelectionMode.Single,
+    onActivate: (String) -> Unit = {},
+    onCheckedChange: (String, Boolean) -> Unit = { _, _ -> },
+    actions: RowActions = RowActions.None,
+    state: LazyListState = rememberLazyListState(),
+    behavior: CollectionBehavior = CollectionKernel(),
+    appearance: RowAppearance = LocalAppearances.current[Appearance.Row],
+    row: @Composable ItemScope.(T) -> Unit,
+) = Collection(source, selection, onSelectionChange, onExpandedChange, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, true, row)
+
+@Composable
+internal fun <T> Collection(
+    source: ItemSource<T>,
+    selection: Set<String>,
+    onSelectionChange: (Set<String>) -> Unit,
+    onExpandedChange: (String, Boolean) -> Unit,
+    modifier: Modifier,
+    mode: SelectionMode,
+    onActivate: (String) -> Unit,
+    onCheckedChange: (String, Boolean) -> Unit,
+    actions: RowActions,
+    state: LazyListState,
+    behavior: CollectionBehavior,
+    appearance: RowAppearance,
+    scrollbar: Boolean,
+    scrolling: Boolean,
+    row: @Composable ItemScope.(T) -> Unit,
+    grid: GridBinding? = null,
+) {
+    val properties = CollectionProperties(source, selection, LocalSurfaceEnvironment.current.keys, mode, LocalLayoutDirection.current == LayoutDirection.Rtl)
+    val selected = rememberUpdatedState(selection)
+    val host = remember { CollectionHost(selected) }
+    val changed by rememberUpdatedState(onSelectionChange)
+    val expanded by rememberUpdatedState(onExpandedChange)
+    val activated by rememberUpdatedState(onActivate)
+    val checked by rememberUpdatedState(onCheckedChange)
+    fun original(key: String): String = source.indexOf(key).takeIf { it >= 0 }?.let(source::originalKey) ?: key
+    host.machine = rememberMachine(behavior, properties, host::execute) { event ->
+        when (event) {
+            is CollectionEvent.SelectionChange -> changed(event.selection.mapTo(linkedSetOf(), ::original))
+            is CollectionEvent.Activate -> activated(original(event.key))
+            is CollectionEvent.ExpansionChange -> expanded(original(event.key), event.expanded)
+            is CollectionEvent.MenuRequest -> host.menu(event)
+            is CollectionEvent.CheckChange -> checked(original(event.key), event.checked)
+        }
+    }
+    host.grid = grid
+    grid?.host = host
+    host.list = state.takeIf { scrolling }
+    host.actions = actions
+    val inputModes = LocalInputModeManager.current
+    SideEffect { host.update(properties, behavior, inputModes) }
+    val menus = actions !== RowActions.None
+    val commands = if (menus) actions.commands(selection) else NoCommands
+    val invoke: (CommandId) -> Unit = { id -> actions.onInvoke(id, selected.value) }
+    if (menus) RowMenu(host, commands, invoke)
+    Box(
+        modifier
+            .semantics {
+                collectionInfo = CollectionInfo(source.size, grid?.properties?.columns?.size ?: 1)
+                selectableGroup()
+            }
+            .then(if (grid != null) Modifier.onPreviewKeyEvent(host::onKey) else Modifier)
+            .then(if (menus) Modifier.commands(commands, invoke) else Modifier)
+            .then(if (grid == null) Modifier.onPreviewKeyEvent(host::onKey) else Modifier)
+            .onFocusChanged(host::onFocus)
+            .focusProperties { canFocus = host.waiting() }
+            .focusTarget(),
+    ) {
+        if (scrolling) {
+            LazyColumn(Modifier.fillMaxWidth().then(CollectionPointerElement(host)), state = state) {
+                items(source.size, key = source::key, contentType = { RowContent }) { index -> CollectionRow(host, source, index, appearance, row) }
+            }
+        } else {
+            Column(Modifier.fillMaxWidth().then(CollectionPointerElement(host))) {
+                repeat(source.size) { index -> key(source.key(index)) { CollectionRow(host, source, index, appearance, row) } }
+            }
+        }
+        if (scrollbar && scrolling) Box(Modifier.matchParentSize()) { CollectionScrollbar(state, Modifier.align(Alignment.CenterEnd).fillMaxHeight()) }
+    }
+}
+
+@Composable
+private fun RowMenu(host: CollectionHost, commands: CommandSet, invoke: (CommandId) -> Unit) {
+    val open = host.menuOpen
+    val level = rememberMenuLevel(open.value, true, RowMenuKernel, null) { expanded ->
+        open.value = expanded
+        if (!expanded) host.returnFocus()
+    }
+    DisposableEffect(host, level) {
+        host.openMenu = { anchor ->
+            host.menuAnchor = anchor
+            level.machine.send(MenuInput.Open(level.machine.nextSequence(), Edge.First))
+        }
+        onDispose { host.openMenu = null }
+    }
+    val empty = commands.commands.isEmpty()
+    SideEffect { if (open.value && empty) level.machine.send(MenuInput.Dismiss) }
+    val entries = commands.menus.firstOrNull()?.entries ?: commands.commands.map { CommandEntry.Item(it.id) }
+    val scope = LocalAutomationScope.current
+    level.Popup(open.value && !empty, { host.menuAnchor }, ContextPlacement, LocalAppearances.current.menuPanel) {
+        if (scope == null) Commands(commands, entries, invoke) else AutomationScope(MenuPart) { Commands(commands, entries, invoke) }
+    }
+}
+
+@Composable
+private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index: Int, appearance: RowAppearance, row: @Composable ItemScope.(T) -> Unit) {
+    val key = source.key(index)
+    val flags = remember(host, key) { RowFlags(host, key) }
+    val focus = remember { FocusRequester() }
+    if (host.grid == null) DisposableEffect(host, key) {
+        host.register(key, focus)
+        onDispose { host.unregister(key, focus) }
+    }
+    val tree = source as? TreeItems
+    val enabled = source.enabled(index)
+    val expandable = tree?.expandable(index) == true
+    val expanded = tree?.expanded(index) == true
+    val checked = source.checked(index)
+    val selected = flags.selected
+    val state = RowState(flags.active, flags.hovered, flags.focusVisible)
+    val scope = remember(flags, index) { ItemScope(key, index, flags, host) }
+    val item = source[index]
+    val automation = LocalAutomationScope.current
+    Box(
+        Modifier
+            .then(if (automation == null) Modifier else Modifier.testId(automationId(automation, "row/$key")))
+            .then(if (host.list == null) Modifier.onGloballyPositioned { host.rowCoordinates[key] = it } else Modifier)
+            .focusRequester(focus)
+            .onFocusChanged { host.onRowFocus(key, it.isFocused) }
+            .focusProperties { canFocus = host.grid == null && host.canFocus(key) }
+            .focusable()
+            .semantics(mergeDescendants = host.grid == null) {
+                this.selected = selected
+                checked?.let { toggleableState = ToggleableState(it) }
+                collectionItemInfo = CollectionItemInfo(index, 1, 0, 1)
+                if (enabled) {
+                    onClick { host.select(key); true }
+                    customActions = listOf(CustomAccessibilityAction(OpenLabel) { host.open(key); true })
+                } else {
+                    disabled()
+                }
+                if (expandable) {
+                    if (expanded) collapse { host.expand(key, false); true } else expand { host.expand(key, true); true }
+                }
+            }
+            .focusProperties { onEnter = { if (host.grid == null) cancelFocusChange() } }
+            .focusGroup(),
+        propagateMinConstraints = true,
+    ) {
+        val content = remember(scope, item, row) { @Composable { scope.row(item) } }
+        appearance.Content(
+            RowProperties(selected, enabled, index, tree?.depth(index) ?: 0, expandable, expanded),
+            state,
+            LocalThemeSnapshot.current,
+            rememberFeedback(pressed = false, focusVisible = state.focusVisible),
+            RowSlots(content, if (tree == null) null else host.toggle(key, expandable, expanded)),
+        )
+    }
+}
+
+@Stable
+internal class RowFlags(host: CollectionHost, key: String) {
+    private val isSelected = derivedStateOf { key in host.selected }
+    private val isActive = derivedStateOf { host.active == key }
+    private val isHovered = derivedStateOf { host.hovered == key }
+    private val showsFocus = derivedStateOf { host.focused == key && host.keyboard }
+
+    val selected: Boolean get() = isSelected.value
+    val active: Boolean get() = isActive.value
+    val hovered: Boolean get() = isHovered.value
+    val focusVisible: Boolean get() = showsFocus.value
+}
+
+@Stable
+internal class CollectionHost(private val selection: State<Set<String>>) {
+    lateinit var machine: Machine<CollectionProperties, CollectionState, CollectionInput, CollectionEvent>
+    var grid: GridBinding? = null
+    var list: LazyListState? = null
+    val rowCoordinates = HashMap<String, LayoutCoordinates>()
+    private var properties: CollectionProperties? = null
+    private var behavior: CollectionBehavior = DefaultKernel
+    private var inputModes: InputModeManager? = null
+    private val rows = HashMap<String, FocusRequester>()
+    private val availability = HashMap<String, State<Set<CommandId>>>()
+    private var pending: String? = null
+    private var pointing = false
+
+    var openMenu: ((IntRect) -> Unit)? = null
+    var actions by mutableStateOf(RowActions.None)
+    val menuOpen = mutableStateOf(false)
+    var menuAnchor = IntRect.Zero
+    var coordinates: LayoutCoordinates? = null
+    private var pointerAnchor = IntRect.Zero
+    private var nextAnchor: IntRect? = null
+
+    var focused by mutableStateOf<String?>(null)
+        private set
+    var keyboard by mutableStateOf(false)
+        private set
+
+    val selected: Set<String> get() = selection.value
+    val active: String? get() = machine.state.active
+    val hovered: String? get() = machine.state.hovered
+
+    fun update(properties: CollectionProperties, behavior: CollectionBehavior, inputModes: InputModeManager) {
+        val viewport = list
+        val previous = this.properties?.items
+        if (viewport != null && viewport.firstVisibleItemIndex == 0 && viewport.firstVisibleItemScrollOffset == 0 &&
+            previous != null && previous.size > 0 && properties.items.size > 0 && previous.key(0) != properties.items.key(0)) {
+            viewport.requestScrollToItem(0)
+        }
+        this.properties = properties
+        this.behavior = behavior
+        this.inputModes = inputModes
+        val cells = grid
+        if (cells != null) {
+            val active = cells.state.cursor.active
+            if (active != null && (machine.state.within || pending == active.part.value)) {
+                val moved = previous?.indexOf(active.row) != properties.items.indexOf(active.row)
+                if (focused != active.part.value) focus(active.part.value)
+                if (moved || focused != active.part.value) {
+                    reveal(active.row)
+                    cells.revealColumn(active.column)
+                }
+            }
+            return
+        }
+        val gone = focused?.takeIf { properties.items.indexOf(it) < 0 } ?: return
+        machine.state.active?.takeIf { it != gone }?.let {
+            focus(it)
+            reveal(it)
+        }
+    }
+
+    fun execute(command: LocalCommand): Boolean = when (command) {
+        is LocalCommand.Focus -> {
+            focus(command.part.value)
+            true
+        }
+        is LocalCommand.Reveal -> {
+            val cells = grid
+            val cell = cells?.state?.cursor?.active?.takeIf { it.part == command.part }
+            if (cell == null) reveal(command.part.value) else {
+                reveal(cell.row)
+                cells.revealColumn(cell.column)
+            }
+            true
+        }
+        else -> false
+    }
+
+    fun register(key: String, focus: FocusRequester) {
+        rows[key] = focus
+        if (pending == key) {
+            if (grid == null) pending = null
+            focus.requestFocus()
+        }
+    }
+
+    fun unregister(key: String, focus: FocusRequester) {
+        if (rows[key] === focus) {
+            rows.remove(key)
+            rowCoordinates.remove(key)
+            availability.remove(key)
+        }
+    }
+
+    fun positioned(key: String) {
+        if (pending == key && focused == key) pending = null
+    }
+
+    val focusTarget: String? get() = pending ?: focused
+
+    fun canFocus(key: String): Boolean = machine.state.active == key
+
+    fun waiting(): Boolean = (grid?.state?.cursor?.active?.part?.value ?: machine.state.active)?.let { it !in rows } ?: false
+
+    fun onFocus(state: FocusState) {
+        if (!state.hasFocus && !menuOpen.value) machine.send(CollectionInput.Blurred)
+        if (!state.isFocused) return
+        val cell = grid?.state?.cursor?.active
+        val active = cell?.part?.value ?: machine.state.active ?: return
+        if (inputModes?.inputMode == InputMode.Keyboard) keyboard = true
+        focus(active)
+        reveal(cell?.row ?: active)
+        cell?.let { grid?.revealColumn?.invoke(it.column) }
+    }
+
+    fun onCellFocus(cell: GridCell, isFocused: Boolean) {
+        if (isFocused) {
+            if (pending == cell.part.value) pending = null
+            focused = cell.part.value
+            if (!pointing && inputModes?.inputMode == InputMode.Keyboard) keyboard = true
+            grid?.send(GridInput.Focused(cell))
+            machine.send(CollectionInput.Focused(cell.row))
+        } else if (focused == cell.part.value) focused = null
+    }
+
+    fun pointCell(cell: GridCell) = pointed { grid?.send(GridInput.Point(cell)) }
+
+    fun secondaryCell(cell: GridCell) = pointed {
+        grid?.send(GridInput.Focused(cell))
+        focus(cell.part.value)
+    }
+
+    fun onRowFocus(key: String, isFocused: Boolean) {
+        if (isFocused) {
+            if (pending == key) pending = null
+            focused = key
+            if (!pointing && inputModes?.inputMode == InputMode.Keyboard) keyboard = true
+            machine.send(CollectionInput.Focused(key))
+        } else if (focused == key) {
+            focused = null
+        }
+    }
+
+    fun onKey(event: KeyEvent): Boolean {
+        if (event.type != KeyEventType.KeyDown) return false
+        val stroke = event.stroke() ?: return false
+        val cells = grid
+        if (cells != null) {
+            val active = cells.state.cursor.active ?: return false
+            if (focusTarget != active.part.value) return false
+            keyboard = true
+            if (GridKernel.handles(cells.properties, stroke)) {
+                cells.send(GridInput.Stroke(stroke, page()))
+                return true
+            }
+            if (stroke.key == KeyName.ContextMenu || stroke.key == KeyName.F10 && stroke.shift && !stroke.meta && !stroke.control && !stroke.alt) {
+                machine.send(CollectionInput.Secondary(active.row, atPointer = false))
+                return true
+            }
+            return false
+        }
+        val properties = properties ?: return false
+        if (!(behavior as? CollectionKernel ?: DefaultKernel).handles(properties, stroke, machine.state.active)) return false
+        keyboard = true
+        machine.send(CollectionInput.Stroke(stroke, page()))
+        return true
+    }
+
+    fun press(key: String, modifiers: PointerKeyboardModifiers, clicks: Int) = pointed {
+        val primary = if (properties?.keys == KeyConvention.Mac) modifiers.isMetaPressed else modifiers.isCtrlPressed
+        machine.send(CollectionInput.Press(key, extend = modifiers.isShiftPressed, toggle = primary, clicks = clicks))
+    }
+
+    fun secondary(key: String, at: Offset) {
+        pointerAnchor = coordinates?.takeIf { it.isAttached }?.let { IntRect(it.localToWindow(at).round(), IntSize.Zero) } ?: IntRect.Zero
+        pointed { machine.send(CollectionInput.Secondary(key, atPointer = true)) }
+    }
+
+    fun menuFrom(key: String, anchor: IntRect) {
+        nextAnchor = anchor
+        pointed { machine.send(CollectionInput.Secondary(key, atPointer = true)) }
+        nextAnchor = null
+    }
+
+    fun menu(request: CollectionEvent.MenuRequest) {
+        val anchor = nextAnchor ?: if (request.atPointer) pointerAnchor else rowAnchor(request.key)
+        nextAnchor = null
+        openMenu?.invoke(anchor)
+    }
+
+    fun returnFocus() {
+        (grid?.state?.cursor?.active?.part?.value ?: machine.state.active)?.let(::focus)
+    }
+
+    private fun rowAnchor(key: String): IntRect {
+        rowCoordinates[key]?.takeIf { it.isAttached }?.let { return it.boundsInWindow().roundToIntRect() }
+        val layout = coordinates?.takeIf { it.isAttached } ?: return IntRect.Zero
+        val item = list?.layoutInfo?.visibleItemsInfo?.firstOrNull { it.key == key } ?: return IntRect(layout.localToWindow(Offset.Zero).round(), IntSize.Zero)
+        val origin = layout.localToWindow(Offset(0f, item.offset.toFloat())).round()
+        return IntRect(origin, IntSize(layout.size.width, item.size))
+    }
+
+    fun select(key: String) = machine.send(CollectionInput.Press(key, extend = false, toggle = false, clicks = 1))
+
+    fun available(command: CommandId, key: String): Boolean = command in availability.getOrPut(key) {
+        derivedStateOf { actions.commands(setOf(key)).commands.filter { it.availability == Availability.Available }.mapTo(mutableSetOf()) { it.id } }
+    }.value
+
+    fun run(command: CommandId, key: String) {
+        val chosen = setOf(key)
+        if (actions.commands(chosen).commands.any { it.id == command && it.availability == Availability.Available }) actions.onInvoke(command, chosen)
+    }
+
+    fun open(key: String) = machine.send(CollectionInput.Open(key))
+
+    fun expand(key: String, expanded: Boolean) = machine.send(CollectionInput.Expand(key, expanded))
+
+    fun hover(key: String?) {
+        if (machine.state.hovered != key) machine.send(CollectionInput.Hover(key))
+    }
+
+    fun keyAt(position: Offset): String? {
+        val list = list
+        if (list == null) {
+            val point = coordinates?.takeIf { it.isAttached }?.localToWindow(position) ?: return null
+            return rowCoordinates.entries.firstOrNull { (_, row) -> row.isAttached && row.boundsInWindow().contains(point) }?.key
+        }
+        val y = position.y.toInt()
+        return list.layoutInfo.visibleItemsInfo.firstOrNull { y >= it.offset && y < it.offset + it.size }?.key as? String
+    }
+
+    fun toggle(key: String, expandable: Boolean, expanded: Boolean): Modifier =
+        if (expandable) Modifier.then(ToggleElement(this, key, expanded)) else Modifier.clearAndSetSemantics {}
+
+    private inline fun pointed(send: () -> Unit) {
+        keyboard = false
+        pointing = true
+        try {
+            send()
+        } finally {
+            pointing = false
+        }
+    }
+
+    private fun focus(key: String) {
+        pending = key
+        rows[key]?.let {
+            if (grid == null) pending = null
+            it.requestFocus()
+        }
+    }
+
+    private fun reveal(key: String) {
+        val list = list ?: return
+        val index = properties?.items?.indexOf(key)?.takeIf { it >= 0 } ?: return
+        val visible = list.layoutInfo.visibleItemsInfo
+        val item = visible.firstOrNull { it.index == index }
+        if (item != null && (grid == null || item.offset >= list.layoutInfo.viewportStartOffset && item.offset + item.size <= list.layoutInfo.viewportEndOffset)) return
+        val first = visible.firstOrNull()?.index ?: 0
+        list.requestScrollToItem(if (index < first || grid != null && index == first) index else (index - page() + 1).coerceAtLeast(0))
+    }
+
+    private fun page(): Int {
+        val info = list?.layoutInfo ?: return rowCoordinates.values.count { row ->
+            row.isAttached && row.boundsInWindow().height >= row.size.height && row.size.height > 0
+        }.coerceAtLeast(1)
+        return info.visibleItemsInfo.count { it.offset >= info.viewportStartOffset && it.offset + it.size <= info.viewportEndOffset }.coerceAtLeast(1)
+    }
+}
+
+private data class CollectionPointerElement(val host: CollectionHost) : ModifierNodeElement<CollectionPointerNode>() {
+    override fun create() = CollectionPointerNode(host)
+
+    override fun update(node: CollectionPointerNode) {
+        node.host = host
+    }
+}
+
+private class CollectionPointerNode(var host: CollectionHost) :
+    Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode, LayoutAwareModifierNode {
+    private var last: String? = null
+    private var lastTime = 0L
+    private var lastPosition = Offset.Zero
+    private var clicks = 0
+    private val tap = TouchTap()
+
+    override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+        if (pass != PointerEventPass.Main) return
+        val change = pointerEvent.changes.firstOrNull() ?: return
+        if (change.type != PointerType.Mouse) {
+            if (tap.completes(pointerEvent.type, change, currentValueOf(LocalViewConfiguration).touchSlop)) press(pointerEvent, change)
+            return
+        }
+        when (pointerEvent.type) {
+            PointerEventType.Enter, PointerEventType.Move -> host.hover(host.keyAt(change.position))
+            PointerEventType.Exit -> host.hover(null)
+            PointerEventType.Press -> if (!change.isConsumed) press(pointerEvent, change)
+        }
+    }
+
+    private fun press(event: PointerEvent, change: PointerInputChange) {
+        val key = host.keyAt(change.position) ?: return
+        if (event.buttons.isSecondaryPressed) {
+            host.secondary(key, change.position)
+        } else {
+            val configuration = currentValueOf(LocalViewConfiguration)
+            val again = key == last && change.uptimeMillis - lastTime <= configuration.doubleTapTimeoutMillis &&
+                (change.position - lastPosition).getDistance() <= configuration.touchSlop
+            clicks = if (again) clicks + 1 else 1
+            last = key
+            lastTime = change.uptimeMillis
+            lastPosition = change.position
+            host.press(key, event.keyboardModifiers, clicks)
+        }
+        change.consume()
+    }
+
+    override fun onCancelPointerInput() = tap.cancel()
+
+    override fun onPlaced(coordinates: LayoutCoordinates) {
+        host.coordinates = coordinates
+    }
+}
+
+private fun PointerEvent.activates(tap: TouchTap, slop: Float): Boolean {
+    val change = changes.firstOrNull() ?: return false
+    if (change.type != PointerType.Mouse) return tap.completes(type, change, slop).also { if (it) change.consume() }
+    if (type != PointerEventType.Press || buttons.isSecondaryPressed || change.isConsumed) return false
+    change.consume()
+    return true
+}
+
+private class TouchTap {
+    private var pointer: PointerId? = null
+    private var origin = Offset.Zero
+
+    fun holds(id: PointerId): Boolean = pointer == id
+
+    fun completes(type: PointerEventType, change: PointerInputChange, slop: Float): Boolean {
+        when (type) {
+            PointerEventType.Press -> if (!change.isConsumed) {
+                pointer = change.id
+                origin = change.position
+                change.consume()
+            }
+            PointerEventType.Move -> if (change.id == pointer && (change.isConsumed || (change.position - origin).getDistance() > slop)) pointer = null
+            PointerEventType.Release -> if (change.id == pointer) {
+                pointer = null
+                return !change.isConsumed
+            }
+        }
+        return false
+    }
+
+    fun cancel() {
+        pointer = null
+    }
+}
+
+internal fun Modifier.gridCellPointer(host: CollectionHost, cell: GridCell): Modifier = then(GridCellPointerElement(host, cell))
+
+private data class GridCellPointerElement(val host: CollectionHost, val cell: GridCell) : ModifierNodeElement<GridCellPointerNode>() {
+    override fun create() = GridCellPointerNode(host, cell)
+    override fun update(node: GridCellPointerNode) { node.host = host; node.cell = cell }
+}
+
+private class GridCellPointerNode(var host: CollectionHost, var cell: GridCell) : Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode {
+    private val tap = TouchTap()
+    override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+        if (pass != PointerEventPass.Main) return
+        if (pointerEvent.type == PointerEventType.Press && pointerEvent.buttons.isSecondaryPressed && pointerEvent.changes.none { it.isConsumed }) host.secondaryCell(cell)
+        else if (pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)) host.pointCell(cell)
+    }
+    override fun onCancelPointerInput() = tap.cancel()
+}
+
+private data class ToggleElement(val host: CollectionHost, val key: String, val expanded: Boolean) : ModifierNodeElement<ToggleNode>() {
+    override fun create() = ToggleNode(host, key, expanded)
+
+    override fun update(node: ToggleNode) {
+        node.host = host
+        node.key = key
+        node.expanded = expanded
+    }
+}
+
+private class ToggleNode(var host: CollectionHost, var key: String, var expanded: Boolean) :
+    Modifier.Node(), PointerInputModifierNode, SemanticsModifierNode, CompositionLocalConsumerModifierNode {
+    private val tap = TouchTap()
+
+    override val shouldMergeDescendantSemantics: Boolean get() = true
+
+    override fun SemanticsPropertyReceiver.applySemantics() {
+        role = Role.Button
+        hideFromAccessibility()
+        onClick(label = if (expanded) "Collapse" else "Expand") { host.expand(key, !expanded); true }
+    }
+
+    override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+        if (pass == PointerEventPass.Main && pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)) host.expand(key, !expanded)
+    }
+
+    override fun onCancelPointerInput() = tap.cancel()
+}
+
+private data class MenuTriggerElement(val host: CollectionHost, val key: String) : ModifierNodeElement<MenuTriggerNode>() {
+    override fun create() = MenuTriggerNode(host, key)
+
+    override fun update(node: MenuTriggerNode) {
+        node.host = host
+        node.key = key
+    }
+}
+
+private class MenuTriggerNode(var host: CollectionHost, var key: String) :
+    Modifier.Node(), PointerInputModifierNode, LayoutAwareModifierNode, SemanticsModifierNode, CompositionLocalConsumerModifierNode {
+    private var placed: LayoutCoordinates? = null
+    private val tap = TouchTap()
+
+    override val shouldMergeDescendantSemantics: Boolean get() = true
+
+    override fun onPlaced(coordinates: LayoutCoordinates) {
+        placed = coordinates
+    }
+
+    override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+        if (pass == PointerEventPass.Main && pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)) open()
+    }
+
+    override fun onCancelPointerInput() = tap.cancel()
+
+    override fun SemanticsPropertyReceiver.applySemantics() {
+        role = Role.Button
+        onClick {
+            open()
+            true
+        }
+    }
+
+    private fun open() = host.menuFrom(key, placed?.takeIf { it.isAttached }?.boundsInWindow()?.roundToIntRect() ?: IntRect.Zero)
+}
+
+private data class CommandButtonElement(val host: CollectionHost, val key: String, val command: CommandId, val enabled: Boolean, val press: MutableState<PressState>) :
+    ModifierNodeElement<CommandButtonNode>() {
+    override fun create() = CommandButtonNode(host, key, command, enabled, press)
+
+    override fun update(node: CommandButtonNode) {
+        node.host = host
+        node.key = key
+        node.command = command
+        node.enabled = enabled
+        node.press = press
+        if (!enabled) node.onCancelPointerInput()
+    }
+}
+
+private class CommandButtonNode(var host: CollectionHost, var key: String, var command: CommandId, var enabled: Boolean, var press: MutableState<PressState>) :
+    Modifier.Node(), PointerInputModifierNode, SemanticsModifierNode, CompositionLocalConsumerModifierNode {
+    private val tap = TouchTap()
+
+    override val shouldMergeDescendantSemantics: Boolean get() = true
+
+    override fun SemanticsPropertyReceiver.applySemantics() {
+        role = Role.Button
+        if (!enabled) disabled()
+        onClick {
+            host.run(command, key)
+            enabled
+        }
+    }
+
+    override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+        if (!enabled || pass != PointerEventPass.Main) return
+        val change = pointerEvent.changes.firstOrNull() ?: return
+        val mouse = change.type == PointerType.Mouse
+        val activate = (!mouse || pointerEvent.buttons.isPrimaryPressed) && pointerEvent.activates(tap, currentValueOf(LocalViewConfiguration).touchSlop)
+        if (mouse) {
+            val inside = pointerEvent.type != PointerEventType.Exit && change.position.x >= 0f && change.position.y >= 0f &&
+                change.position.x < bounds.width && change.position.y < bounds.height
+            feedback(PressInput.Hover(inside))
+            if (pointerEvent.type == PointerEventType.Press && activate) feedback(PressInput.Press(change.id.value))
+            else if (!pointerEvent.buttons.isPrimaryPressed || !inside) feedback(PressInput.Cancel(change.id.value))
+        } else {
+            feedback(if (tap.holds(change.id)) PressInput.Press(change.id.value) else PressInput.Cancel(change.id.value))
+        }
+        if (activate) host.run(command, key)
+    }
+
+    override fun onCancelPointerInput() {
+        tap.cancel()
+        press.value = PressKernel.reconcile(PressProperties(enabled = false), press.value).state
+    }
+
+    private fun feedback(input: PressInput) {
+        press.value = PressKernel.reduce(PressProperties(enabled), press.value, input).state
+    }
+}
+
+val BareRow: RowAppearance = object : RowAppearance {
+    @Composable
+    override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 32.dp)
+                .drawBehind { if (properties.selected) drawRect(Color.LightGray) }
+                .focusFrame(state.focusVisible)
+                .padding(start = 16.dp * properties.depth),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            slots.toggle?.let { toggle ->
+                Box(toggle.size(24.dp), contentAlignment = Alignment.Center) {
+                    if (properties.expandable) BasicText(if (properties.expanded) "▾" else "▸")
+                }
+            }
+            Box(Modifier.weight(1f)) { slots.content() }
+        }
+    }
+}
+
+internal fun Modifier.focusFrame(shown: Boolean): Modifier = drawWithContent {
+    drawContent()
+    if (shown) drawRect(Color.Gray, style = Stroke(1.dp.toPx()))
+}
+
+private val DefaultKernel = CollectionKernel()
+
+private val RowMenuKernel = MenuKernel()
+
+private val RestingPress = PressState()
+
+private val NoCommands = CommandSet(emptyList())
+
+private const val MenuPart = "menu"
+
+private object RowContent
+
+private const val OpenLabel = "Open"

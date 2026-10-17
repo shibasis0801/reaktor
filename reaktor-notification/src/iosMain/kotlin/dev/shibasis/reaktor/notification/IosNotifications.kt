@@ -24,12 +24,19 @@ import platform.UIKit.UIApplicationOpenSettingsURLString
 import platform.UIKit.UIDevice
 import kotlin.coroutines.resume
 import kotlin.math.absoluteValue
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionAdapter()) {
     private val center = UNUserNotificationCenter.currentNotificationCenter()
     private val events = NotificationEventHub()
     private var categories: List<NotificationCategorySpec> = emptyList()
     private var token: DevicePushToken? = null
+    private val tokens = MutableSharedFlow<DevicePushToken>(replay = 1, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    override val tokenChanges: Flow<DevicePushToken> = tokens.asSharedFlow()
     private var apnsTokenLength: ULong? = null
     private var foregroundPresentation = ForegroundPresentationPolicy()
     private var badgeCount: Int? = null
@@ -93,12 +100,24 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
     override suspend fun registerCategories(categories: List<NotificationCategorySpec>) {
         this.categories = categories
         val nativeCategories = categories.map { category ->
-            UNNotificationCategory.categoryWithIdentifier(
-                identifier = category.id,
-                actions = category.actions.map(::toNativeAction),
-                intentIdentifiers = emptyList<Any>(),
-                options = if (category.ios?.allowDismissAction == false) 0u else UNNotificationCategoryOptionCustomDismissAction,
-            )
+            val options = if (category.ios?.allowDismissAction == false) 0u else UNNotificationCategoryOptionCustomDismissAction
+            val placeholder = category.ios?.hiddenPreviewsBodyPlaceholder
+            if (placeholder == null) {
+                UNNotificationCategory.categoryWithIdentifier(
+                    identifier = category.id,
+                    actions = category.actions.map(::toNativeAction),
+                    intentIdentifiers = emptyList<Any>(),
+                    options = options,
+                )
+            } else {
+                UNNotificationCategory.categoryWithIdentifier(
+                    identifier = category.id,
+                    actions = category.actions.map(::toNativeAction),
+                    intentIdentifiers = emptyList<Any>(),
+                    hiddenPreviewsBodyPlaceholder = placeholder,
+                    options = options,
+                )
+            }
         }.toSet()
         onMainQueue {
             center.setNotificationCategories(nativeCategories)
@@ -122,6 +141,7 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
     }
 
     fun recordFcmToken(value: String?) {
+        val changed = value != null && value != token?.value
         token = value?.let {
             DevicePushToken(
                 provider = "fcm",
@@ -129,6 +149,7 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
                 deviceId = UIDevice.currentDevice.identifierForVendor?.UUIDString,
             )
         }
+        if (changed) token?.let(tokens::tryEmit)
         devHarness.recordToken(token, apnsTokenLength)
     }
 
@@ -141,6 +162,7 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
 
     override suspend fun unregisterRemoteEndpoint() {
         token = null
+        IosNotificationsRuntime.forgetRemoteToken()
     }
 
     override suspend fun updatePreferences(command: UpdateNotificationPreferences) {
@@ -248,7 +270,22 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
             events.emitReceived(envelope)
             devHarness.recordReceivedFromPlatform(envelope)
         }
+        val focused = NotificationFocus.conversation
+        if (focused != null && focused == (envelope.content.conversation?.id ?: notification.request.content.threadIdentifier)) return 0uL
         return foregroundPresentation.toIosPresentationOptions()
+    }
+
+    override suspend fun clearConversation(id: String) {
+        val center = UNUserNotificationCenter.currentNotificationCenter()
+        val delivered = suspendCancellableCoroutine { continuation ->
+            center.getDeliveredNotificationsWithCompletionHandler { found ->
+                continuation.resume(found.orEmpty().filterIsInstance<UNNotification>())
+            }
+        }
+        val matching = delivered
+            .filter { it.request.content.threadIdentifier == id || it.request.content.userInfo["reaktor_conversation_id"] == id }
+            .map { it.request.identifier }
+        if (matching.isNotEmpty()) center.removeDeliveredNotificationsWithIdentifiers(matching)
     }
 
     fun didReceive(response: UNNotificationResponse) {

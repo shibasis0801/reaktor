@@ -17,23 +17,31 @@ import kotlin.math.abs
 import kotlin.math.exp
 
 class FlowDesktopViewportPlatformBridge internal constructor(
-    private val window: ComposeWindow,
+    private val content: JComponent?,
+    private val windowScale: () -> Float?,
+    private val pointerOnScreen: () -> Point? = { MouseInfo.getPointerInfo()?.location },
 ) : FlowViewportPlatformBridge {
     override fun resolveScrollAnchor(
         event: PointerEvent,
         interactionState: FlowViewportInteractionState,
     ): Offset? {
-        val mouseWheelEvent = event.nativeEvent as? MouseWheelEvent ?: return interactionState.lastPointerPosition
-        val content = window.contentPane as? JComponent ?: return interactionState.lastPointerPosition
-        val pointInContent = SwingUtilities.convertPoint(
-            mouseWheelEvent.component ?: content,
-            mouseWheelEvent.point,
-            content,
-        )
-        return Offset(
-            x = pointInContent.x.toFloat() - interactionState.canvasOriginInWindow.x,
-            y = pointInContent.y.toFloat() - interactionState.canvasOriginInWindow.y,
-        )
+        // Compose has already converted this event to the receiving canvas's pixel space.
+        return event.changes.firstOrNull()?.position
+    }
+
+    override fun resolveScrollPan(
+        event: PointerEvent,
+        interactionState: FlowViewportInteractionState,
+    ): Offset? {
+        if (!isMacOs()) return null
+        val wheel = event.nativeEvent as? MouseWheelEvent
+        val delta = event.changes.fold(Offset.Zero) { total, change -> total + change.scrollDelta }
+        val amount = wheel?.scrollAmount?.toFloat() ?: 1f
+        // Matches Compose Foundation's MacOSCocoaConfig (native deltas already accelerate).
+        return if (wheel?.scrollType == MouseWheelEvent.WHEEL_BLOCK_SCROLL) {
+            Offset(delta.x * interactionState.canvasBoundsInWindow.width,
+                delta.y * interactionState.canvasBoundsInWindow.height) * -amount
+        } else delta * (-FlowSizing.macWheelPanFactor * interactionState.canvasDensity * amount).toFloat()
     }
 
     override fun installViewportGestures(
@@ -42,7 +50,7 @@ class FlowDesktopViewportPlatformBridge internal constructor(
         config: FlowViewportGestureConfig,
     ): FlowViewportPlatformGestureSubscription? {
         if (!isMacOs()) return null
-        val content = window.contentPane as? JComponent ?: return null
+        val content = content ?: return null
         val gestureUtilitiesClass = runCatching { Class.forName("com.apple.eawt.event.GestureUtilities") }.getOrNull() ?: return null
         val gestureListenerClass = runCatching { Class.forName("com.apple.eawt.event.GestureListener") }.getOrNull() ?: return null
         val magnificationListenerClass = runCatching { Class.forName("com.apple.eawt.event.MagnificationListener") }.getOrNull() ?: return null
@@ -53,10 +61,19 @@ class FlowDesktopViewportPlatformBridge internal constructor(
             gestureUtilitiesClass.getMethod("removeGestureListenerFrom", JComponent::class.java, gestureListenerClass)
         }.getOrNull() ?: return null
 
+        var disposed = false
         val listener = Proxy.newProxyInstance(
             magnificationListenerClass.classLoader,
             arrayOf(magnificationListenerClass),
-        ) { _, method, args ->
+        ) { proxy, method, args ->
+            // GestureHandler stores these proxies in Lists and removes them with equals().
+            // Returning null here left disposed canvases consuming the next canvas's pinch.
+            when (method.name) {
+                "equals" -> return@newProxyInstance proxy === args?.firstOrNull()
+                "hashCode" -> return@newProxyInstance System.identityHashCode(proxy)
+                "toString" -> return@newProxyInstance "FlowMagnificationListener"
+            }
+            if (disposed) return@newProxyInstance null
             if (method.name != "magnify") {
                 return@newProxyInstance null
             }
@@ -66,16 +83,13 @@ class FlowDesktopViewportPlatformBridge internal constructor(
                 gestureEvent.javaClass.getMethod("getMagnification").invoke(gestureEvent) as Double
             }.getOrNull() ?: return@newProxyInstance null
 
-            if (abs(magnification) < 0.0001) {
+            if (!magnification.isFinite() || abs(magnification) < 0.0001) {
                 return@newProxyInstance null
             }
 
-            val anchor = pointerPositionInContent(content)?.let { point ->
-                Offset(
-                    x = point.x - interactionState.canvasOriginInWindow.x,
-                    y = point.y - interactionState.canvasOriginInWindow.y,
-                )
-            } ?: return@newProxyInstance null
+            val scale = windowScale() ?: interactionState.canvasDensity
+            val anchor = pointerPositionInContent(content)
+                ?.let { interactionState.canvasPositionFromWindow(it, scale) } ?: return@newProxyInstance null
 
             val factor = exp(magnification * FlowSizing.pinchZoomSensitivity)
             interactionState.markViewportAsUserModified()
@@ -98,14 +112,15 @@ class FlowDesktopViewportPlatformBridge internal constructor(
         if (!installed) return null
 
         return FlowViewportPlatformGestureSubscription {
-            runCatching {
-                removeMethod.invoke(null, content, listener)
+            if (!disposed) {
+                disposed = true
+                runCatching { removeMethod.invoke(null, content, listener) }
             }
         }
     }
 
     private fun pointerPositionInContent(content: JComponent): Offset? {
-        val location = MouseInfo.getPointerInfo()?.location ?: return null
+        val location = pointerOnScreen() ?: return null
         val localPoint = Point(location)
         SwingUtilities.convertPointFromScreen(localPoint, content)
         return Offset(localPoint.x.toFloat(), localPoint.y.toFloat())
@@ -119,5 +134,5 @@ class FlowDesktopViewportPlatformBridge internal constructor(
 fun rememberFlowDesktopViewportPlatformBridge(
     window: ComposeWindow?,
 ): FlowViewportPlatformBridge? = remember(window) {
-    window?.let(::FlowDesktopViewportPlatformBridge)
+    window?.let { FlowDesktopViewportPlatformBridge(it.contentPane as? JComponent, { it.graphicsConfiguration?.defaultTransform?.scaleX?.toFloat() }) }
 }

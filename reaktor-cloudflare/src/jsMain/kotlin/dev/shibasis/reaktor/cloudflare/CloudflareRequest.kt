@@ -20,9 +20,12 @@ open class CloudflareRequest(
     override var cloudflareContext: CloudflareContext? = null
 }
 
+const val CloudflareContextAttribute = "reaktor.cloudflare.context"
+
 val Request.contextOrNull: CloudflareContext?
     get() = (this as? CloudflareAwareRequest)?.cloudflareContext
         ?: requestContextOrNull(this)
+        ?: attributes[CloudflareContextAttribute] as? CloudflareContext
 
 val Request.context: CloudflareContext
     get() = contextOrNull ?: error("Cloudflare context is only available for CloudflareAwareRequest handlers mounted through Service.toHono()")

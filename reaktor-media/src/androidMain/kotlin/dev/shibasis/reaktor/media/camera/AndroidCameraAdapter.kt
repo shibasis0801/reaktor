@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.media.camera
 
+import dev.shibasis.reaktor.media.photo
+
 import android.view.Surface
 import androidx.activity.ComponentActivity
 import androidx.camera.core.CameraSelector
@@ -18,7 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.work.await
+import kotlinx.coroutines.guava.await
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.adapters.Permission
 import dev.shibasis.reaktor.core.adapters.PermissionAdapter
@@ -98,7 +100,7 @@ class AndroidCameraAdapter(
                     override fun onCaptureSuccess(image: ImageProxy) {
                         val bytes = image.use { it.jpegBytes() }
                         if (continuation.isActive) {
-                            continuation.resume(MediaPick(bytes = bytes, mimeType = JPEG))
+                            continuation.resume(photo(bytes, JPEG, null))
                         }
                     }
 

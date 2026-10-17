@@ -13,3 +13,5 @@ actual val http = HttpClient(Darwin) {
         }
     }
 }
+
+actual val socketHeadersSupported: Boolean = true

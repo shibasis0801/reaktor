@@ -1,0 +1,85 @@
+# Shared filesystem, environment and build-artifact helpers. Product policy stays in imported lanes.
+def repo_path(*parts)
+  File.join(repo_root, *parts)
+end
+
+# Resolve a possibly-relative path against the repo root so env-configured paths
+# work regardless of fastlane's working directory.
+def resolve_repo_path(value)
+  File.expand_path(value.to_s, repo_root)
+end
+
+def shell_escape(value)
+  Shellwords.escape(value.to_s)
+end
+
+def ensure_file!(path, message = nil)
+  UI.user_error!(message || "Missing required file at #{path}") unless File.exist?(path)
+  path
+end
+
+def ensure_env!(name)
+  value = ENV[name]
+  UI.user_error!("Missing required environment variable #{name}") if value.to_s.empty?
+  value
+end
+
+def env_or_nil(name)
+  value = ENV[name].to_s.strip
+  value.empty? ? nil : value
+end
+
+def copy_if_present(source, destination)
+  return unless File.exist?(source)
+
+  FileUtils.mkdir_p(File.dirname(destination))
+  FileUtils.cp(source, destination)
+  UI.message("Copied #{source} -> #{destination}")
+end
+
+def artifact_size_bytes(path)
+  if File.directory?(path)
+    Find.find(path).sum { |entry| File.file?(entry) ? File.size(entry) : 0 }
+  else
+    File.size(path)
+  end
+end
+
+def human_size(bytes)
+  value = bytes.to_f
+  units = ["B", "KiB", "MiB", "GiB"]
+  unit = units.shift
+
+  while value >= 1024 && !units.empty?
+    value /= 1024.0
+    unit = units.shift
+  end
+
+  format("%.2f %s", value, unit)
+end
+
+def append_build_size!(platform:, variant:, artifact_path:)
+  ensure_file!(artifact_path, "Missing build artifact at #{artifact_path}")
+
+  log_path = build_size_log_path
+  FileUtils.mkdir_p(File.dirname(log_path))
+
+  unless File.exist?(log_path)
+    File.write(log_path, "timestamp_utc\tplatform\tvariant\tbytes\thuman_size\tartifact_path\n")
+  end
+
+  bytes = artifact_size_bytes(artifact_path)
+  File.open(log_path, "a") do |file|
+    file.puts([
+      Time.now.utc.iso8601,
+      platform,
+      variant,
+      bytes,
+      human_size(bytes),
+      artifact_path
+    ].join("\t"))
+  end
+
+  UI.message("Logged #{platform} #{variant} size: #{human_size(bytes)} (#{bytes} bytes)")
+end
+

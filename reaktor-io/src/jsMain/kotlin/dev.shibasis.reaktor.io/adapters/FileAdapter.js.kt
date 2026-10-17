@@ -101,19 +101,10 @@ private fun pathSegments(path: String): List<String> =
         .map(String::trim)
         .filter { it.isNotEmpty() && it != "." }
 
-private fun ByteArray.toUint8Array(): dynamic {
-    val view = js("new Uint8Array(this.length)")
-    for (index in indices) {
-        view[index] = this[index].toInt() and 0xFF
-    }
-    return view
+internal fun ByteArray.toUint8Array(): dynamic {
+    val bytes = this
+    return js("new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.length)")
 }
 
-private fun arrayBufferToByteArray(buffer: dynamic): ByteArray {
-    val view = js("new Uint8Array(buffer)")
-    val bytes = ByteArray(view.length as Int)
-    for (index in bytes.indices) {
-        bytes[index] = (view[index] as Int).toByte()
-    }
-    return bytes
-}
+internal fun arrayBufferToByteArray(buffer: dynamic): ByteArray =
+    js("new Int8Array(buffer)").unsafeCast<ByteArray>()

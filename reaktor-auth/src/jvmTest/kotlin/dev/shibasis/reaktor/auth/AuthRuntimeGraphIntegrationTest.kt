@@ -46,8 +46,8 @@ class AuthRuntimeGraphIntegrationTest {
         assertTrue(consumer.tokenGrantsPort.isConnected())
         assertTrue(consumer.httpServicePort.isConnected())
         assertTrue(consumer.appServicePort.isConnected())
-        assertTrue(runtime.authHandlers.providerPorts.flattenedValues().any { it.key.key == "/anonymous" })
-        assertTrue(runtime.authHandlers.providerPorts.flattenedValues().any { it.key.key == "/token" })
+        assertTrue(runtime.authHandlers.providerPorts.flattenedValues().any { it.key.key == runtime.service.anonymous.endpoint.portKey })
+        assertTrue(runtime.authHandlers.providerPorts.flattenedValues().any { it.key.key == runtime.service.token.endpoint.portKey })
 
         val pat = consumer.patPort.suspended { verify(VerifyPatRequest(rawToken)) }
         assertEquals(StatusCode.OK, pat.statusCode)
@@ -79,7 +79,7 @@ class AuthRuntimeGraphIntegrationTest {
     fun springServerAdaptersExposeGraphHandlersToServiceRouters() {
         val fx = AuthRuntimeGraphFixture()
 
-        assertEquals(10, AuthServer(fx.runtime.service).handlers.size)
+        assertEquals(12, AuthServer(fx.runtime.service).handlers.size)
         assertEquals(2, AppServer(fx.runtime.appService).handlers.size)
     }
 }

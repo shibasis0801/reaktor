@@ -1,53 +1,56 @@
-import dev.shibasis.dependeasy.Version
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.Versions
+
+import dev.shibasis.dependeasy.common.arrow
+import dev.shibasis.dependeasy.server.springWebFlux
+
 import dev.shibasis.dependeasy.dependencies.useKoin
 import org.gradle.api.tasks.testing.Test
 
-plugins {
-    id("org.jetbrains.compose")
-    id("org.jetbrains.kotlin.plugin.compose")
-    id("com.android.library")
-    id("dev.shibasis.dependeasy.library")
-    
-}
-val resilience4jVersion = "2.2.0"
+plugins { id("dev.shibasis.dependeasy.compose-library") }
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-graph-port"))
-            api(project(":reaktor-service"))
-            api(project(":reaktor-ui"))
-            api(project(":reaktor-db"))
-            arrow()
+dependeasy {
+    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
+    workspace { val generateBindings by artifacts { include(node(bindings)) } }
+
+    module("dev.shibasis.reaktor.navigation") {
+        common {
+            dependencies {
+                api(projects.reaktorGraphRuntime)
+                api(projects.reaktorUi)
+                arrow()
+            }
+        }
+        android {}
+        apple {}
+
+        web {
+            sourceSetModifier { kotlin.srcDir(bindings) }
+            dependencies {
+                api(Versions.Compose.NavigationEvent)
+            }
+        }
+
+        jvm {
+            dependencies {
+                // Spring beans/context for SpringDependencyAdapter. The service Spring router moved to
+                // :reaktor-service; the Exposed/Postgres helpers moved to :reaktor-db.
+                springWebFlux()
+            }
+        }
+
+        kotlin {
+            useKoin()
         }
     }
-    droid {}
-    darwin {}
-    web {}
-    server {
-        dependencies {
-            // Spring beans/context for SpringDependencyAdapter. The service Spring router moved to
-            // :reaktor-service; the Exposed/Postgres helpers moved to :reaktor-db.
-            springWebFlux()
-        }
+
+
+    tasks.withType<Test>().configureEach {
+        // Kotlin serialization and graph test helpers generate concrete JVM classes in
+        // commonTest. Gradle/JUnit discovery can otherwise try to execute DTOs,
+        // serializers, and private helper classes as tests.
+        exclude("**/*\$*")
     }
-    useKoin()
-}
 
-android {
-    defaults("dev.shibasis.reaktor.navigation")
-}
-
-tasks.withType<Test>().configureEach {
-    // Kotlin serialization and graph test helpers generate concrete JVM classes in
-    // commonTest. Gradle/JUnit discovery can otherwise try to execute DTOs,
-    // serializers, and private helper classes as tests.
-    setScanForTestClasses(false)
-    include("**/*Test.class", "**/*Tests.class")
-    exclude("**/*\$*")
+    testClasses()
 }

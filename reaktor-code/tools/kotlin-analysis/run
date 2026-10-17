@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ -n "${REAKTOR_JAVA_HOME:-}" ]; then
+    executable="$REAKTOR_JAVA_HOME/bin/java"
+elif [ -x /usr/libexec/java_home ]; then
+    executable="$(/usr/libexec/java_home -v 25)/bin/java"
+else
+    executable=$(command -v java)
+fi
+exec "$executable" -Djava.awt.headless=true -cp "$directory/classes:$directory/lib/*" dev.shibasis.reaktor.code.kotlinanalysis.MainKt "$@"

@@ -1,0 +1,373 @@
+package dev.shibasis.dependeasy
+
+import kotlinx.serialization.json.*
+import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.io.TempDir
+import java.io.File
+import kotlin.test.*
+
+class WebContractsTest {
+    @TempDir lateinit var directory: File
+
+    private fun write(path: String, text: String) = directory.resolve(path).apply { parentFile.mkdirs(); writeText(text) }
+    private fun json(path: String) = Json.parseToJsonElement(directory.resolve(path).readText()).jsonObject
+    private fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+        .withArguments(*tasks, "--configuration-cache", "--stacktrace").build()
+    private fun prepare(script: String) {
+        write("settings.gradle.kts", "rootProject.name = \"webFixture\"")
+        write("build.gradle.kts", "plugins { id(\"dev.shibasis.dependeasy.pipeline\") }\n" + script)
+    }
+
+    @Test fun `web aliases follow published metadata and preserve non Kotlin paths`() {
+        write("library/package.json", """{"name":"fixture-kotlin","main":"index.mjs","types":"index.d.mts"}""")
+        write("facade/package.json", """{"name":"fixture","main":"export/index.mjs","dependencies":{"fixture-kotlin":"workspace:*"}}""")
+        write("owned/generated/package.json", """{"name":"Owned","main":"module.mjs","types":"module.d.mts"}""")
+        write("owned/package.json", """{"name":"owned-facade","main":"export/module.mjs"}""")
+        write("unrelated/generated/package.json", """{"name":"Unrelated","main":"module.mjs"}""")
+        write("unrelated/package.json", """{"name":"unrelated-facade","main":"different.mjs"}""")
+        write("base.json", """{"compilerOptions":{"strict":true}}""")
+        prepare("""
+            tasks.register<dev.shibasis.dependeasy.web.WebContractTask>("contract") {
+                component.set("site")
+                directory.set(layout.projectDirectory.dir("site"))
+                manifests.from("library/package.json", "owned/generated/package.json", "unrelated/generated/package.json")
+                packageManifests.from("facade/package.json", "owned/package.json", "unrelated/package.json")
+                baseConfiguration.set(layout.projectDirectory.file("base.json"))
+                typeScriptPaths.put("@/*", listOf("src/*"))
+                assets.put("parser.wasm", "vendor/parser.wasm")
+                contract.set(layout.buildDirectory.file("web/site.json"))
+                typeScriptConfiguration.set(layout.buildDirectory.file("web/site.tsconfig.json"))
+            }
+        """.trimIndent())
+        assertEquals(TaskOutcome.SUCCESS, run("contract").task(":contract")?.outcome)
+        val contract = json("build/web/site.json")
+        assertEquals("../../library/index.mjs", contract.getValue("aliases").jsonObject.getValue("fixture-kotlin").jsonPrimitive.content)
+        assertEquals("../../library/index.mjs", contract.getValue("aliases").jsonObject.getValue("fixture").jsonPrimitive.content)
+        assertEquals("../../owned/generated/module.mjs", contract.getValue("aliases").jsonObject.getValue("owned-facade").jsonPrimitive.content)
+        assertFalse("unrelated-facade" in contract.getValue("aliases").jsonObject)
+        assertEquals("../../site/vendor/parser.wasm", contract.getValue("assets").jsonObject.getValue("parser.wasm").jsonPrimitive.content)
+        val paths = json("build/web/site.tsconfig.json").getValue("compilerOptions").jsonObject.getValue("paths").jsonObject
+        assertEquals("../../site/src/*", paths.getValue("@/*").jsonArray.single().jsonPrimitive.content)
+        assertEquals("../../library/index.d.mts", paths.getValue("fixture-kotlin").jsonArray.single().jsonPrimitive.content)
+        assertEquals("../../owned/generated/module.d.mts", paths.getValue("owned-facade").jsonArray.single().jsonPrimitive.content)
+        val repeat = run("contract")
+        assertContains(repeat.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":contract")?.outcome)
+        write("library/package.json", """{"name":"fixture-kotlin","main":"changed.mjs","types":"index.d.mts"}""")
+        assertEquals(TaskOutcome.SUCCESS, run("contract").task(":contract")?.outcome)
+        assertEquals("../../library/changed.mjs", json("build/web/site.json").getValue("aliases").jsonObject.getValue("fixture-kotlin").jsonPrimitive.content)
+        write("owned/generated/package.json", """{"name":"Owned","main":"changed.mjs","types":"changed.d.mts"}""")
+        write("owned/package.json", """{"name":"owned-facade","main":"export/changed.mjs"}""")
+        assertEquals(TaskOutcome.SUCCESS, run("contract").task(":contract")?.outcome)
+        assertEquals("../../owned/generated/changed.mjs", json("build/web/site.json").getValue("aliases").jsonObject.getValue("owned-facade").jsonPrimitive.content)
+    }
+
+    @Test fun `component contract names stay independent of Gradle task names`() {
+        write("package.json", """{"name":"fixture","private":true}""")
+        write("base.json", "{}")
+        prepare("""
+            dependeasy {
+                val site = javascript("site", "web")
+                site.contract.configure { baseConfiguration.set(layout.projectDirectory.file("base.json")) }
+            }
+        """.trimIndent())
+        assertEquals(TaskOutcome.SUCCESS, run("siteWebContract").task(":siteWebContract")?.outcome)
+        assertEquals("site", json("build/dependeasy/web/site.json").getValue("component").jsonPrimitive.content)
+        assertTrue(directory.resolve("build/dependeasy/web/site.tsconfig.json").isFile)
+        assertEquals(TaskOutcome.UP_TO_DATE, run("siteWebContract").task(":siteWebContract")?.outcome)
+    }
+
+    @Test fun `one browser runtime owns the Kotlin package and facade identities`() {
+        write("runtime/package.json", """{"name":"app-runtime","main":"app.mjs","types":"app.d.mts"}""")
+        write("graph/package.json", """{"name":"graph-kotlin","main":"graph.mjs","types":"graph.d.mts"}""")
+        write("db/package.json", """{"name":"db-kotlin","main":"db.mjs","types":"db.d.mts"}""")
+        write("facade/package.json", """{"name":"graph-facade","main":"export/graph.mjs","dependencies":{"graph-kotlin":"workspace:*"}}""")
+        write("base.json", "{}")
+        prepare("""
+            tasks.register<dev.shibasis.dependeasy.web.WebContractTask>("contract") {
+                component.set("site")
+                directory.set(layout.projectDirectory.dir("site"))
+                manifests.from("runtime/package.json", "graph/package.json", "db/package.json")
+                runtimeManifest.set(layout.projectDirectory.file("runtime/package.json"))
+                packageManifests.from("facade/package.json")
+                baseConfiguration.set(layout.projectDirectory.file("base.json"))
+                typeScriptPaths.put("@/*", listOf("src/*"))
+                contract.set(layout.buildDirectory.file("web/site.json"))
+                typeScriptConfiguration.set(layout.buildDirectory.file("web/site.tsconfig.json"))
+            }
+        """.trimIndent())
+        fun assertRuntime(entry: String, declaration: String) {
+            val aliases = json("build/web/site.json").getValue("aliases").jsonObject
+            assertEquals(setOf("app-runtime", "graph-kotlin", "db-kotlin", "graph-facade"), aliases.keys)
+            assertEquals(setOf("../../runtime/$entry"), aliases.values.map { it.jsonPrimitive.content }.toSet())
+            val paths = json("build/web/site.tsconfig.json").getValue("compilerOptions").jsonObject.getValue("paths").jsonObject
+            aliases.keys.forEach { name ->
+                assertEquals("../../runtime/$declaration", paths.getValue(name).jsonArray.single().jsonPrimitive.content)
+            }
+            assertEquals("../../site/src/*", paths.getValue("@/*").jsonArray.single().jsonPrimitive.content)
+        }
+        assertEquals(TaskOutcome.SUCCESS, run("contract").task(":contract")?.outcome)
+        assertRuntime("app.mjs", "app.d.mts")
+        val repeat = run("contract")
+        assertContains(repeat.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":contract")?.outcome)
+        write("runtime/package.json", """{"name":"app-runtime","main":"updated.mjs","types":"updated.d.mts"}""")
+        assertEquals(TaskOutcome.SUCCESS, run("contract").task(":contract")?.outcome)
+        assertRuntime("updated.mjs", "updated.d.mts")
+    }
+
+    @Test fun `web project publishes its own verification and bundle to the workspace story`() {
+        write("settings.gradle.kts", """
+            rootProject.name = "webFixture"
+            enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+            include("site", "library")
+        """.trimIndent())
+        write("package.json", """{"name":"fixture","private":true}""")
+        write("pnpm-workspace.yaml", "packages: ['site', 'library']")
+        write("library/package.json", """{"name":"fixture-library","main":"export/module.mjs"}""")
+        write("library/generated/package.json", """{"name":"Fixture-Library","main":"module.mjs","types":"module.d.mts"}""")
+        write("library/build/node_modules/@fixture/native/parser.wasm", "native-parser")
+        write("library/build.gradle.kts", """
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            val exports = tasks.register<Sync>("generateLibrary") {
+                from("generated")
+                into(layout.buildDirectory.dir("library"))
+            }
+            publishOutput(OutputKind.KotlinJsLibrary, exports.map { it.destinationDir }, producer = exports)
+        """.trimIndent())
+        write("base.json", "{}")
+        write("site/package.json", """{"name":"site","private":true,"scripts":{"bundle:assets":"node bundle.cjs"}}""")
+        write("site/index.ts", "export const value = 1;")
+        write("site/tsconfig.json", """{"files":["index.ts"]}""")
+        write("site/types.cjs", "require('node:fs').readFileSync('index.ts', 'utf8');")
+        write("site/bundle.cjs", """
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const contractFile = path.resolve('build/dependeasy/web/site.json');
+            const contract = JSON.parse(fs.readFileSync(contractFile, 'utf8'));
+            fs.mkdirSync('dist', {recursive: true});
+            fs.copyFileSync(path.resolve(path.dirname(contractFile), contract.assets['parser.wasm']), 'dist/parser.wasm');
+        """.trimIndent())
+        write("site/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.webApp
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.web-app") }
+            webApp(kotlin = listOf(kotlinJsLibrary(projects.library)), bundle = WebBundle.Package(PackageScript("bundle:assets")),
+                paths = listOf(TypeScriptPath("@/*", listOf("src/*")))) {
+                assets(from = kotlinJsLibrary(projects.library), paths = listOf(WebAsset("parser.wasm", "@fixture/native/parser.wasm")))
+                val publish by deploy(WorkerRef("fixture-site", "site"), listOf(Environment("production")))
+                alias(PackageScript("previousBundle"), bundle)
+                alias(PackageScript("previousTypes"), typecheck)
+                alias(PackageScript("previousBuild"), build)
+                alias(PackageScript("previousDeploy"), publish)
+            }
+            tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
+                baseConfiguration.set(rootProject.layout.projectDirectory.file("base.json"))
+            }
+            tasks.withType<dev.shibasis.dependeasy.web.TypeScriptCheck>().configureEach {
+                adapter.set(layout.projectDirectory.file("types.cjs"))
+            }
+        """.trimIndent())
+        write("build.gradle.kts", """
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.workspace") }
+            workspace {
+                val site = product(shared = projects.site)
+                val pr by verify(site, role = Workspace.Verify)
+                val everything by artifacts(site, role = Workspace.Build)
+                delivery(after = pr) { val ship by deploy(projects.site) }
+                packageScripts()
+            }
+        """.trimIndent())
+        val result = run(":site:siteWebContract", "exportBuildModel", "generatePackageScripts")
+        assertEquals(TaskOutcome.SUCCESS, result.task(":site:siteWebContract")?.outcome)
+        val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        assertTrue(model.nodes.any { it.id.project == ":site" && it.id.name == "outputWorkspaceCompletionVerify" })
+        assertTrue(model.nodes.any { it.id.project == ":site" && it.id.name == "outputBrowserBundle" })
+        assertEquals("site", json("site/build/dependeasy/web/site.json").getValue("component").jsonPrimitive.content)
+        val aliases = json("site/build/dependeasy/web/site.json").getValue("aliases").jsonObject
+        assertEquals("../../../../library/build/library/module.mjs", aliases.getValue("fixture-library").jsonPrimitive.content)
+        val asset = json("site/build/dependeasy/web/site.json").getValue("assets").jsonObject.getValue("parser.wasm").jsonPrimitive.content
+        assertEquals("../../../../library/build/node_modules/@fixture/native/parser.wasm", asset)
+        assertEquals("native-parser", directory.resolve("site/build/dependeasy/web").resolve(asset).readText())
+        val scripts = json("package.json").getValue("scripts").jsonObject
+        assertEquals("./gradlew :ship", scripts.getValue("ship").jsonPrimitive.content)
+        assertEquals("./gradlew :site:siteBundleAssets", scripts.getValue("previousBundle").jsonPrimitive.content)
+        assertEquals("./gradlew :site:siteTypes", scripts.getValue("previousTypes").jsonPrimitive.content)
+        assertEquals("./gradlew :site:assembleWeb", scripts.getValue("previousBuild").jsonPrimitive.content)
+        assertEquals("./gradlew :site:publish", scripts.getValue("previousDeploy").jsonPrimitive.content)
+        val verification = run("pr", "--dry-run").output
+        assertContains(verification, ":site:siteTypes SKIPPED")
+        assertFalse(verification.contains(":site:siteBundleAssets SKIPPED"))
+        val artifacts = run("everything", "--dry-run").output
+        assertContains(artifacts, ":site:siteBundleAssets SKIPPED")
+        val shipping = run("ship", "--dry-run").output
+        assertContains(shipping, ":site:siteDeploy SKIPPED")
+        assertTrue(shipping.indexOf(":pr SKIPPED") < shipping.indexOf(":site:siteDeploy SKIPPED"))
+        run(":site:siteWebContract", "exportBuildModel", "generatePackageScripts")
+        assertContains(run(":site:siteWebContract", "exportBuildModel", "generatePackageScripts").output, "Reusing configuration cache")
+        val lockedAndBuilt = run("pnpmLock", "everything")
+        assertTrue(lockedAndBuilt.tasks.indexOfFirst { it.path == ":generatePackageScripts" } <
+            lockedAndBuilt.tasks.indexOfFirst { it.path == ":pnpmLock" })
+        assertEquals("native-parser", directory.resolve("site/dist/parser.wasm").readText())
+        val bundled = run("everything")
+        assertContains(bundled.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, bundled.task(":site:siteBundleAssets")?.outcome)
+        write("library/build/node_modules/@fixture/native/parser.wasm", "changed-parser")
+        val changedAsset = run("everything")
+        assertContains(changedAsset.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.SUCCESS, changedAsset.task(":site:siteBundleAssets")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, changedAsset.task(":site:siteTypes")?.outcome)
+        assertEquals("changed-parser", directory.resolve("site/dist/parser.wasm").readText())
+        write("report.mjs", "console.log('report')")
+        val script = directory.resolve("site/build.gradle.kts").readText()
+        write("site/build.gradle.kts", script.replace("alias(PackageScript(\"previousBundle\"), bundle)", """
+            val assets by performance(WebPerformance("dist", listOf(SizeMetric("bytes", ".*", SizeMeasure.Bytes)),
+                listOf(SizeBudget("bytes", 100)), "report.mjs", "build/measurements.json", "build/report.json"))
+            alias(PackageScript("previousBundle"), bundle)
+        """.trimIndent()))
+        run("exportBuildModel", "generatePackageScripts")
+        assertContains(run("exportBuildModel", "generatePackageScripts").output, "Reusing configuration cache")
+        val budgetModel = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        for (name in listOf("assets", "assetsMeasurements")) {
+            assertEquals("web", budgetModel.nodes.single { it.id.project == ":site" && it.id.name == name }.artifactFamily)
+        }
+        val families = json("build/dependeasy/remote/hosts.json").getValue("taskFamilies").jsonObject
+        assertEquals("web", families.getValue(":site:assets").jsonPrimitive.content)
+        assertEquals("web", families.getValue(":site:assetsMeasurements").jsonPrimitive.content)
+        val budgetKernel = budgetModel.nodes.single { it.id.project == ":site" && it.id.name == "assets" }.kernel?.spec
+        assertIs<dev.shibasis.dependeasy.model.KernelSpec.NodeGenerator>(budgetKernel)
+        assertContains(budgetKernel.execution.arguments, "build/measurements.json")
+        val budgeted = run("pr", "--dry-run").output
+        assertContains(budgeted, ":site:siteBundleAssets SKIPPED")
+        assertTrue(budgeted.indexOf(":site:siteBundleAssets SKIPPED") < budgeted.indexOf(":site:assetsMeasurements SKIPPED"))
+        assertTrue(budgeted.indexOf(":site:assetsMeasurements SKIPPED") < budgeted.indexOf(":site:assets SKIPPED"))
+        assertTrue(budgeted.indexOf(":site:assets SKIPPED") < budgeted.indexOf(":pr SKIPPED"))
+        assertContains(run("pr", "--dry-run").output, "Reusing configuration cache")
+    }
+
+    @Test fun `fleet uses standalone dev and deep merged prod with arrays replaced`() {
+        val defaults = """{"compatibility_date":"2026-10-01","vars":{"shared":"yes","override":"base"},"services":[{"binding":"BASE","service":"base"}]}"""
+        val prod = """{"name":"fixture-prod","vars":{"override":"local"},"services":[{"binding":"LOCAL","service":"local"}]}"""
+        val dev = """{"name":"fixture-dev","vars":{"development":"only"}}"""
+        write("wrangler.json", defaults)
+        write("targets/worker/wrangler.json", prod)
+        write("targets/worker/wrangler.dev.json", dev)
+        prepare("""
+            tasks.register<dev.shibasis.dependeasy.cloudflare.WorkerFleetTask>("fleet") {
+                root.set(layout.projectDirectory)
+                defaults.set(layout.projectDirectory.file("wrangler.json"))
+                configurations.from("targets/worker/wrangler.json", "targets/worker/wrangler.dev.json")
+                declaration.set(""${'"'}{"schema":1,"workers":[{"name":"worker","node":{"build":"webFixture","project":":","name":"deployWorker"},"directory":"targets/worker","configurations":{"dev":"targets/worker/wrangler.dependeasy-dev.json","prod":"targets/worker/wrangler.dependeasy-prod.json"},"services":{"dev":"fixture-dev","prod":"fixture-prod"}}]}""${'"'})
+                finalConfigurations.from("targets/worker/wrangler.dependeasy-dev.json", "targets/worker/wrangler.dependeasy-prod.json")
+                contract.set(layout.buildDirectory.file("cloudflare/fleet.json"))
+            }
+        """.trimIndent())
+        assertEquals(TaskOutcome.SUCCESS, run("fleet").task(":fleet")?.outcome)
+        val result = json("targets/worker/wrangler.dependeasy-prod.json")
+        assertEquals("yes", result.getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
+        assertEquals("local", result.getValue("vars").jsonObject.getValue("override").jsonPrimitive.content)
+        assertEquals("LOCAL", result.getValue("services").jsonArray.single().jsonObject.getValue("binding").jsonPrimitive.content)
+        assertEquals(Json.parseToJsonElement(dev), json("targets/worker/wrangler.dependeasy-dev.json"))
+        assertEquals(prod, directory.resolve("targets/worker/wrangler.json").readText())
+        val repeat = run("fleet")
+        assertContains(repeat.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":fleet")?.outcome)
+        write("wrangler.json", defaults.replace("yes", "changed"))
+        assertEquals(TaskOutcome.SUCCESS, run("fleet").task(":fleet")?.outcome)
+        assertEquals("changed", json("targets/worker/wrangler.dependeasy-prod.json").getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
+    }
+
+    @Test fun `package aliases preserve runtime scripts and remove retired generated aliases`() {
+        write("package.json", """{"name":"root","scripts":{"serve":"node serve.mjs","retired":"old"},"dependeasy":{"generatedScripts":["retired"]}}""")
+        write("targets/worker/package.json", """{"name":"worker","scripts":{"dev":"wrangler dev","retired":"old"},"dependeasy":{"generatedScripts":["retired"]}}""")
+        write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts"}""")
+        write("targets/worker/wrangler.dev.json", """{"name":"fixture-worker-dev","main":"index.ts"}""")
+        write("wrangler.json", "{}")
+        prepare("")
+        write("build.gradle.kts", """
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            val compiled = tasks.register("compileFixture") { outputs.dir(layout.buildDirectory.dir("js")) }
+            publishOutput(OutputKind.KotlinJsLibrary, layout.buildDirectory.dir("js"), producer = compiled)
+            dependeasy.workspace { packageScripts() }
+        """.trimIndent())
+        write("settings.gradle.kts", """
+            rootProject.name = "webFixture"
+            enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+            include("workers")
+        """.trimIndent())
+        write("gradle.properties", "org.gradle.parallel=true")
+        write("workers/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.workers
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.worker-fleet") }
+            workers(environments = listOf(Environment("dev"), Environment("prod")),
+                prerequisites = listOf(kotlinJsLibrary(projects.webFixture))) {
+                worker(WorkerRef("worker", "targets/worker"))
+                worker(WorkerRef("backend", "targets/backend"))
+            }
+        """.trimIndent())
+        write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts","services":[{"binding":"BACKEND","service":"fixture-backend"}]}""")
+        write("targets/backend/wrangler.json", """{"name":"fixture-backend","main":"index.ts"}""")
+        write("targets/backend/wrangler.dev.json", """{"name":"fixture-backend-dev","main":"index.ts"}""")
+        assertEquals(TaskOutcome.SUCCESS, run(":workers:generateWorkerFleet", "generatePackageScripts", "exportBuildModel").task(":generatePackageScripts")?.outcome)
+        assertEquals("metadata", json("build/dependeasy/remote/hosts.json").getValue("taskFamilies").jsonObject
+            .getValue(":workers:generateWorkerFleet").jsonPrimitive.content)
+        val scripts = json("package.json").getValue("scripts").jsonObject
+        assertEquals("node serve.mjs", scripts.getValue("serve").jsonPrimitive.content)
+        assertEquals("./gradlew :workers:deployWorker -Pdependeasy.environment=dev", scripts.getValue("deployWorkerDev").jsonPrimitive.content)
+        assertFalse("retired" in scripts)
+        val local = json("targets/worker/package.json").getValue("scripts").jsonObject
+        assertEquals("wrangler dev", local.getValue("dev").jsonPrimitive.content)
+        assertEquals("../../gradlew :workers:deployWorker", local.getValue("deploy").jsonPrimitive.content)
+        assertFalse("retired" in local)
+        assertEquals(TaskOutcome.UP_TO_DATE, run("generatePackageScripts").task(":generatePackageScripts")?.outcome)
+        val deployment = run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev")
+        assertContains(deployment.output, ":workers:workerWorkerDeploy SKIPPED")
+        assertContains(deployment.output, ":compileFixture SKIPPED")
+        val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        val worker = dev.shibasis.dependeasy.model.NodeId("webFixture", ":workers", "deployWorker")
+        assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes && it.from == worker &&
+            it.to == dev.shibasis.dependeasy.model.NodeId("webFixture", ":", "outputKotlinJsLibrary") })
+        assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Includes && it.from == worker &&
+            it.to == dev.shibasis.dependeasy.model.NodeId("webFixture", ":workers", "deployBackend") })
+        assertEquals("targets/worker", model.nodes.single { it.id == worker }.worker?.directory)
+        assertEquals("./gradlew :workers:deployWorkers", scripts.getValue("deployWorkers").jsonPrimitive.content)
+        assertContains(run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev").output, "Reusing configuration cache")
+    }
+    @Test fun `local model export does not enable an undeclared worker environment`() {
+        write("base.json", "{}")
+        write("targets/worker/index.ts", "export default {}")
+        write("package.json", """{"name":"fixture"}""")
+        write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts"}""")
+        write("targets/worker/wrangler.dev.json", """{"name":"fixture-worker-dev","main":"index.ts"}""")
+        write("wrangler.json", "{}")
+        prepare("")
+        write("settings.gradle.kts", "rootProject.name = \"webFixture\"; include(\"workers\")")
+        write("workers/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.workers
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.worker-fleet") }
+            workers(environments = listOf(Environment("dev"), Environment("prod"))) {
+                worker(WorkerRef("worker", "targets/worker"))
+            }
+            tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
+                baseConfiguration.set(rootProject.layout.projectDirectory.file("base.json"))
+            }
+        """.trimIndent())
+        run("exportBuildModel", "-Pdependeasy.environment=local")
+        val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        assertTrue(model.nodes.any { it.id.name == "deployWorker" })
+        val rejected = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments(":workers:deployWorker", "-Pdependeasy.environment=local", "--configuration-cache", "--stacktrace").buildAndFail()
+        assertContains(rejected.output, "Worker deployment has no environment 'local'")
+    }
+
+}

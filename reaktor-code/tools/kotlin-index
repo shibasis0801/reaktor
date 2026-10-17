@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+directory=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+archive="$directory/build/distributions/kotlin-semantics.zip"
+if [ ! -f "$archive" ]; then
+    printf '%s\n' 'Build the isolated helper first: ./gradlew :reaktor-code:kotlinSemanticDistZip' >&2
+    exit 1
+fi
+temporary=$(mktemp -d "${TMPDIR:-/tmp}/reaktor-kotlin.XXXXXX")
+trap 'rm -rf "$temporary"' EXIT HUP INT TERM
+unzip -q "$archive" -d "$temporary"
+sh "$temporary/run" "$@"

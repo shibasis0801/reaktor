@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.db.adapters
 
-import androidx.activity.ComponentActivity
+import android.content.Context
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 
@@ -11,8 +11,8 @@ import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import dev.shibasis.reaktor.db.sql.ReaktorSqliteHelper
 
 class AndroidSqlAdapter(
-    activity: ComponentActivity
-): SqlAdapter<ComponentActivity>(activity) {
+    context: Context
+): SqlAdapter<Context>(context.applicationContext) {
     override fun createDriver(): SqlDriver = invoke {
         val factory = FrameworkSQLiteOpenHelperFactory()
         val helper = factory.create(

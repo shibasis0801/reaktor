@@ -28,6 +28,14 @@ class R2Object internal constructor(
 
     val uploadedAt: String
         get() = raw.uploaded.toISOString()
+
+    @JsExport.Ignore
+    val customMetadata: Map<String, String>
+        get() {
+            val metadata = raw.asDynamic().customMetadata ?: return emptyMap()
+            val keys = js("Object.keys(metadata)").unsafeCast<Array<String>>()
+            return keys.associateWith { key -> metadata[key].toString() }
+        }
 }
 
 @JsExport
@@ -49,6 +57,9 @@ class R2ObjectBody internal constructor(
      */
     val body: dynamic
         get() = raw.asDynamic().body
+
+    @JsExport.Ignore
+    suspend fun bytes(maxBytes: Int): ByteArray = readBoundedStream(raw.asDynamic().body, maxBytes)
 
     @JsExport.Ignore
     suspend fun text(): String = raw.text().await()
@@ -111,6 +122,17 @@ class R2Bucket internal constructor(
     fun getAsync(key: String): Promise<R2ObjectBody?> = promiseOf { get(key) }
 
     @JsExport.Ignore
+    suspend fun get(key: String, offset: Long, length: Long?): R2ObjectBody? {
+        val range = js("({})")
+        range.offset = offset.toDouble()
+        if (length != null) range.length = length.toDouble()
+        val options = js("({})")
+        options.range = range
+        return raw.asDynamic().get(key, options).unsafeCast<Promise<RawR2ObjectBody?>>().await()?.let(::R2ObjectBody)
+    }
+
+
+    @JsExport.Ignore
     suspend fun put(key: String, value: ByteArray): R2Object =
         R2Object(raw.put(key, value.toUint8Array()).await())
 
@@ -128,10 +150,11 @@ class R2Bucket internal constructor(
         key: String,
         stream: dynamic,
         contentType: String? = null,
+        metadata: Map<String, String> = emptyMap(),
     ): R2Object =
         R2Object(
             raw.asDynamic()
-                .put(key, stream, putOptions(contentType))
+                .put(key, stream, putOptions(contentType, metadata))
                 .unsafeCast<kotlin.js.Promise<RawR2Object>>()
                 .await(),
         )
@@ -243,13 +266,15 @@ class R2Bucket internal constructor(
         getText(key)?.let(dev.shibasis.reaktor.core.framework.json::decodeFromString)
 
     @JsExport.Ignore
-    suspend fun list(prefix: String? = null, limit: Int? = null): R2ListResult {
+    suspend fun list(prefix: String? = null, limit: Int? = null, cursor: String? = null, delimiter: String? = null): R2ListResult {
         val options: dynamic = js("({})")
         if (prefix != null) options.prefix = prefix
         if (limit != null) options.limit = limit
+        if (cursor != null) options.cursor = cursor
+        if (delimiter != null) options.delimiter = delimiter
         val result: RawR2Objects = raw.list(options).await()
         val objects = result.objects.map { R2Object(it) }
-        return R2ListResult(objects, result.truncated, result.cursor)
+        return R2ListResult(objects, result.truncated, result.cursor, (result.asDynamic().delimitedPrefixes as? Array<String>)?.toList().orEmpty())
     }
 
     @JsExport.Ignore
@@ -272,6 +297,7 @@ class R2ListResult(
     val objects: List<R2Object>,
     val truncated: Boolean,
     val cursor: String?,
+    val delimitedPrefixes: List<String> = emptyList(),
 )
 
 private fun ByteArray.toUint8Array(): dynamic {
@@ -292,14 +318,21 @@ private fun arrayBufferToByteArray(buffer: dynamic): ByteArray {
     return bytes
 }
 
-private fun putOptions(contentType: String?): dynamic {
-    if (contentType == null) {
+private fun putOptions(contentType: String?, metadata: Map<String, String> = emptyMap()): dynamic {
+    if (contentType == null && metadata.isEmpty()) {
         return undefined
     }
 
     val options = js("({})")
-    val httpMetadata = js("({})")
-    httpMetadata.contentType = contentType
-    options.httpMetadata = httpMetadata
+    if (contentType != null) {
+        val httpMetadata = js("({})")
+        httpMetadata.contentType = contentType
+        options.httpMetadata = httpMetadata
+    }
+    if (metadata.isNotEmpty()) {
+        val custom = js("({})")
+        metadata.forEach { (name, value) -> custom[name] = value }
+        options.customMetadata = custom
+    }
     return options
 }

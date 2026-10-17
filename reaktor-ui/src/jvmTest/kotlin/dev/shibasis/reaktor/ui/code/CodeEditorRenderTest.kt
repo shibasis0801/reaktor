@@ -1,0 +1,163 @@
+package dev.shibasis.reaktor.ui.code
+
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.test.requestFocus
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.code.CodeDiagnostic
+import dev.shibasis.reaktor.code.CodePosition
+import dev.shibasis.reaktor.code.CodeSpan
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+@OptIn(ExperimentalTestApi::class)
+class CodeEditorRenderTest {
+    private val source = "fun main() {\n    println(\"hi\")\n}"
+
+    @Test fun rendersTheBufferAndItsChrome() = runComposeUiTest {
+        val state = CodeEditorState(source, CodeLanguage.Kotlin)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        onNodeWithTag("code-editor").assertExists()
+        onNodeWithTag("code-editor-status").assertExists()
+        onNodeWithTag("code-editor-caret").assertTextEquals("Ln 1, Col 1")
+        onNode(hasText("println", substring = true)).assertExists()
+    }
+
+    @Test fun codeStaysLeftToRightInARightToLeftLayout() = runComposeUiTest {
+        val state = CodeEditorState(source, CodeLanguage.Kotlin)
+        setContent {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                CodeEditor(state, Modifier.size(700.dp, 320.dp))
+            }
+        }
+        val line = onNode(hasText("println", substring = true)).fetchSemanticsNode().boundsInRoot
+        val editor = onNodeWithTag("code-editor").fetchSemanticsNode().boundsInRoot
+        assertTrue(line.left - editor.left < editor.width / 4, "the line starts at ${line.left} in an editor from ${editor.left} to ${editor.right}")
+    }
+
+    @Test fun aHarnessCanSetTheWholeBufferThroughSemantics() = runComposeUiTest {
+        val state = CodeEditorState(source, CodeLanguage.Kotlin)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        onNodeWithTag("code-editor")
+            .performSemanticsAction(SemanticsActions.SetText) { it(AnnotatedString("{\"worker\":\"messaging-service\"}")) }
+        waitForIdle()
+        assertEquals("{\"worker\":\"messaging-service\"}", state.text)
+    }
+
+    @Test fun aReadOnlyEditorRefusesTheSameWrite() = runComposeUiTest {
+        val state = CodeEditorState(source, CodeLanguage.Kotlin, readOnly = true)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        onNodeWithTag("code-editor")
+            .performSemanticsAction(SemanticsActions.SetText) { it(AnnotatedString("nope")) }
+        waitForIdle()
+        assertEquals(source, state.text)
+    }
+
+    @Test fun theStatusBarFollowsTheCaret() = runComposeUiTest {
+        val state = CodeEditorState(source, CodeLanguage.Kotlin)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        state.moveTo(CodePosition(1, 4))
+        waitForIdle()
+        onNodeWithTag("code-editor-caret").assertTextEquals("Ln 2, Col 5")
+    }
+
+    @Test fun diagnosticsAndReadOnlyReachTheStatusBar() = runComposeUiTest {
+        val state = CodeEditorState(source, CodeLanguage.Kotlin, readOnly = true)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        state.diagnostics = listOf(CodeDiagnostic(CodeSpan.of(1, 4, 11), "unresolved reference"))
+        waitForIdle()
+        onNodeWithTag("code-editor-errors").assertTextEquals("1 error")
+        onNodeWithTag("code-editor-readonly").assertExists()
+    }
+
+    @Test fun findBarOpensWithTheMatchCount() = runComposeUiTest {
+        val state = CodeEditorState("alpha\nalpha\nbeta", CodeLanguage.Kotlin)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        state.openFind("alpha")
+        waitForIdle()
+        onNodeWithTag("code-editor-find-count").assertTextEquals("1 of 2")
+    }
+
+    @Test fun typedKeysReachTheBufferThroughTheModifierChain() = runComposeUiTest {
+        val state = CodeEditorState("", CodeLanguage.Kotlin)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        onNodeWithTag("code-editor-surface").requestFocus()
+        onNodeWithTag("code-editor-surface").performKeyInput {
+            pressKey(Key.V)
+            pressKey(Key.A)
+            pressKey(Key.L)
+        }
+        waitForIdle()
+        assertEquals("val", state.text)
+    }
+
+    @Test fun aLongBufferRendersWithoutMaterialisingEveryLine() = runComposeUiTest {
+        val state = CodeEditorState((1..20_000).joinToString("\n") { "val line$it = $it" }, CodeLanguage.Kotlin)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 320.dp)) }
+        onNodeWithTag("code-editor").assertExists()
+        state.goToLine(19_000)
+        waitForIdle()
+        onNodeWithTag("code-editor-caret").assertTextEquals("Ln 19000, Col 1")
+    }
+
+    @Test fun theViewerIsReadOnlyAndFollowsItsText() = runComposeUiTest {
+        var payload by mutableStateOf("""{"a": 1}""")
+        setContent { CodeViewer(payload, Modifier.size(700.dp, 200.dp), showStatusBar = true, tag = "payload") }
+        onNode(hasText("\"a\"", substring = true)).assertExists()
+        onNodeWithTag("payload-readonly").assertExists()
+
+        payload = """{"b": 2}"""
+        waitForIdle()
+        onNode(hasText("\"b\"", substring = true)).assertExists()
+    }
+
+    @Test fun theViewerTypesNothingEvenWhenFocused() = runComposeUiTest {
+        val text = "untouched"
+        setContent { CodeViewer(text, Modifier.size(700.dp, 200.dp), tag = "locked") }
+        onNodeWithTag("locked-surface").requestFocus()
+        onNodeWithTag("locked-surface").performKeyInput { pressKey(Key.X) }
+        waitForIdle()
+        onNode(hasText("untouched")).assertExists()
+    }
+
+    @Test fun aHugePayloadNeedsNoHandTruncation() = runComposeUiTest {
+        val payload = (1..40_000).joinToString(",\n") { """  {"row": $it}""" }
+        setContent { CodeViewer("[\n$payload\n]", Modifier.size(700.dp, 200.dp), showStatusBar = true, tag = "huge") }
+        onNodeWithTag("huge").assertExists()
+        onNodeWithTag("huge-caret").assertTextEquals("Ln 1, Col 1")
+    }
+
+    @Test fun aHugeSingleLineRemainsNavigableAndEditable() = runComposeUiTest {
+        val source = "start " + "x".repeat(300_000) + " END_MARKER"
+        val state = CodeEditorState(source, CodeLanguage.Plain)
+        setContent { CodeEditor(state, Modifier.size(700.dp, 200.dp)) }
+        onNode(hasText("start ", substring = true)).assertExists()
+        state.moveTo(state.document.end)
+        waitForIdle()
+        onNode(hasText("END_MARKER", substring = true)).assertExists()
+        onNodeWithTag("code-editor-surface").requestFocus()
+        onNodeWithTag("code-editor-surface").performKeyInput { pressKey(Key.X) }
+        waitForIdle()
+        assertEquals(source + "x", state.text)
+        state.selectAll()
+        assertEquals(source + "x", state.selectedText)
+    }
+}

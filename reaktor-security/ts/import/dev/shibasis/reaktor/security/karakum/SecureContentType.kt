@@ -2,9 +2,8 @@
 
 package dev.shibasis.reaktor.security.karakum
 
-sealed external interface SecureContentType {
-companion object
-}
+@js.union.JsUnion
+sealed external interface SecureContentType
 inline val SecureContentType.Companion.text: SecureContentType
     get() = js.reflect.unsafeCast("text")
 

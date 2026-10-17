@@ -1,50 +1,25 @@
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
-plugins {
-    id("dev.shibasis.dependeasy.library")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.kotlin.plugin.compose")
-}
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.android.camera
+import dev.shibasis.dependeasy.android.workManager
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-service"))
-            api(project(":reaktor-ui"))
-            api(project(":reaktor-io"))
-            api("io.coil-kt.coil3:coil-compose:3.2.0")
-            api("io.coil-kt.coil3:coil-network-ktor3:3.2.0")
+plugins { id("dev.shibasis.dependeasy.compose-library") }
+
+library(namespace = "dev.shibasis.reaktor.media", targets = Targets.Web + Targets.Android + Targets.Apple + Targets.Jvm) {
+    dependencies {
+        common {
+            api(projects.reaktorService)
+            api(projects.reaktorUi)
+            api(projects.reaktorIo)
+            api(Versions.Compose.Coil)
+            api(Versions.Compose.CoilKtor)
         }
-    }
-
-    web {
-        dependencies {
-
-        }
-    }
-
-    droid {
-        dependencies {
+        android {
             camera()
             workManager()
+            implementation(Versions.Android.PdfViewer)
+            implementation(Versions.Android.PdfDocumentService)
         }
     }
-
-    darwin {
-        dependencies {
-
-        }
-    }
-    server {
-        dependencies {
-
-        }
-    }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.media")
 }

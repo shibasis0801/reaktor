@@ -1,0 +1,5 @@
+function(setup_ios)
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS" OR NOT CMAKE_OSX_SYSROOT OR NOT CMAKE_OSX_DEPLOYMENT_TARGET OR NOT CMAKE_OSX_ARCHITECTURES)
+        message(FATAL_ERROR "The generated native contract must declare the Apple platform before project()")
+    endif()
+endfunction()

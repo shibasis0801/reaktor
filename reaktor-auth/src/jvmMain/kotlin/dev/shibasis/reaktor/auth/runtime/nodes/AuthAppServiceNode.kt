@@ -18,7 +18,7 @@ class AuthAppServiceNode(graph: Graph) : BasicNode(graph), AuthAppService {
     val appServicePort by provides<AuthAppService>(this)
 
     override val service: AppService = object : AppService("") {
-        override val getAll = GetHandler<Request, AppResponse>("/") { request ->
+        override val getAll by GetHandler<Request, AppResponse>("/") { request ->
             appCatalogPort.suspended {
                 all(request).fold(
                     { AppResponse.Success(it) },
@@ -27,7 +27,7 @@ class AuthAppServiceNode(graph: Graph) : BasicNode(graph), AuthAppService {
             }
         }
 
-        override val getApp = GetHandler<Request, AppResponse>("/{id}") { request ->
+        override val getApp by GetHandler<Request, AppResponse>("/{id}") { request ->
             val id = request.pathParams["id"]
                 ?: return@GetHandler AppResponse.Failure(ErrorMessage(1, "Invalid id"))
 

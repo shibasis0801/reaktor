@@ -14,6 +14,7 @@ import dev.shibasis.reaktor.auth.runtime.nodes.AuthRepositoryNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthServiceAccountNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthSessionLifecycleNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthSessionNode
+import dev.shibasis.reaktor.auth.runtime.nodes.AuthAuthorityNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthTokenGrantNode
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.autoWire
@@ -49,6 +50,7 @@ class AuthRuntimeGraph(
     val pat = Node(::AuthPatNode)
     val tokenGrants = Node(::AuthTokenGrantNode)
     val sessions = Node(::AuthSessionNode)
+    val authority = Node(::AuthAuthorityNode)
     val account = Node(::AuthAccountNode)
     val authHttp = Node(::AuthHttpServiceNode)
     val appHttp = Node(::AuthAppServiceNode)

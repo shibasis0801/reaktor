@@ -8,7 +8,6 @@ import dev.shibasis.reaktor.flexbuffer.core.FlexBuffers as CoreFlexBuffers
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.FlexBuffersBuilder
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.getRoot
 import dev.shibasis.reaktor.flexbuffer.flatbuffers.Map as FlexMap
-import java.io.File
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -249,50 +248,15 @@ class FlexBufferHardeningTest {
     }
 
     private fun runCpp(vararg args: String): String {
-        val binary = cppBenchBinary()
+        val binary = CppReference.binary
         val process = ProcessBuilder(listOf(binary.absolutePath) + args)
-            .directory(findCppBenchDir())
+            .directory(binary.parentFile)
             .redirectErrorStream(true)
             .start()
         val output = process.inputStream.bufferedReader().readText()
         val exit = process.waitFor()
         assertEquals(0, exit, "C++ flexbuffer harness failed for ${args.joinToString(" ")}:\n$output")
         return output
-    }
-
-    private fun cppBenchBinary(): File {
-        val benchDir = findCppBenchDir()
-        val source = File(benchDir, "flexbuffer_bench.cpp")
-        val binary = File(System.getProperty("user.dir"), "build/tmp/flexbufferBench/flexbuffer_bench")
-        if (!binary.canExecute() || binary.lastModified() < source.lastModified()) {
-            binary.parentFile.mkdirs()
-            val compile = ProcessBuilder(
-                "clang++",
-                "-O2",
-                "-std=c++17",
-                "-I",
-                "../../../.github_modules/flatbuffers/include",
-                "flexbuffer_bench.cpp",
-                "-o",
-                binary.absolutePath
-            ).directory(benchDir).redirectErrorStream(true).start()
-            val compileOutput = compile.inputStream.bufferedReader().readText()
-            val compileExit = compile.waitFor()
-            assertEquals(0, compileExit, "C++ harness compile failed:\n$compileOutput")
-        }
-        return binary
-    }
-
-    private fun findCppBenchDir(): File {
-        val candidates = listOf(
-            File("cpp/bench"),
-            File("reaktor-flexbuffer/cpp/bench"),
-            File("../reaktor-flexbuffer/cpp/bench"),
-            File(System.getProperty("user.dir"), "cpp/bench"),
-            File(System.getProperty("user.dir"), "reaktor-flexbuffer/cpp/bench")
-        )
-        return candidates.firstOrNull { File(it, "flexbuffer_bench.cpp").isFile }?.canonicalFile
-            ?: error("Could not locate reaktor-flexbuffer/cpp/bench/flexbuffer_bench.cpp from ${System.getProperty("user.dir")}")
     }
 
     private fun ByteArray.toHex(): String = joinToString(separator = "") { "%02x".format(it.toInt() and 0xff) }

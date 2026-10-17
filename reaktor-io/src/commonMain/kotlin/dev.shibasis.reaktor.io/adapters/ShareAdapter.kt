@@ -54,6 +54,8 @@ abstract class ShareAdapter<Controller>(controller: Controller) : Adapter<Contro
      * ignored everywhere else.
      */
     abstract suspend fun shareText(text: String, title: String? = null, subject: String? = null): Boolean
+
+    abstract suspend fun openFile(payload: SharePayload): Boolean
 }
 
 var Feature.Share by CreateSlot<ShareAdapter<*>>()

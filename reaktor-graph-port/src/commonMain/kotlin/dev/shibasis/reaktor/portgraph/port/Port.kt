@@ -3,6 +3,8 @@
 package dev.shibasis.reaktor.portgraph.port
 
 import dev.shibasis.reaktor.portgraph.Unique
+import dev.shibasis.reaktor.portgraph.attach.Attachable
+import dev.shibasis.reaktor.portgraph.attach.Attachments
 import dev.shibasis.reaktor.portgraph.visitor.Visitable
 import kotlinx.atomicfu.atomic
 import kotlin.js.ExperimentalJsStatic
@@ -17,7 +19,7 @@ sealed class Port<Functionality: Any>(
     val owner: PortCapability,
     val key: Key,
     val type: Type
-): Visitable {
+): Visitable, Attachable by Attachments() {
     abstract fun isConnected(): Boolean
 
     @JsName("createWithStrings")
@@ -66,7 +68,7 @@ data class KeyType(val key: Key, val type: Type) {
     }
 }
 
-typealias TypedKeyedMap<Value> = MutableMap<Type, MutableMap<Key, Value>>
-inline fun<reified Port> TypedKeyedMap<Port>.flattenedValues() = values.flatMap { it.values }
+// TypedKeyedMap and its flattenedValues() now live in TypedKeyedMap.kt: a live graph's port
+// index has to be readable while the graph is still wiring itself.
 
 typealias PortDelegate<Port> = ReadOnlyProperty<PortCapability, Port>

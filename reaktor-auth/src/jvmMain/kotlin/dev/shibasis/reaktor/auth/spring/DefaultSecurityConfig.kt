@@ -48,6 +48,8 @@ open class DefaultSecurityConfig(
                 // Framework-public, route-guarded: reaktorServer's graph gateway enforces
                 // its own Worker service bearer because it is not a Reaktor user/session JWT.
                 authorize("/_graph/**", permitAll)
+                authorize("/_reaktor/**", permitAll)
+                authorize("/connect/*/callback", permitAll)
                 authorize("/.well-known/jwks.json", permitAll)
                 authorize("/actuator/health/**", permitAll)
                 // Everything else requires a valid Reaktor token (then per-route AuthRequirement applies).

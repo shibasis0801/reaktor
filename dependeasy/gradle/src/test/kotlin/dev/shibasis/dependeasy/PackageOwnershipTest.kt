@@ -1,0 +1,65 @@
+package dev.shibasis.dependeasy
+
+import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.io.TempDir
+import java.io.File
+import kotlin.test.*
+
+class PackageOwnershipTest {
+    @TempDir lateinit var directory: File
+
+    @Test fun `native and authored TypeScript inputs exclude sibling Kotlin exports`() {
+        fun write(path: String, text: String) = directory.resolve(path).apply {
+            parentFile.mkdirs(); writeText(text)
+        }
+        write("base.json", File("javascript/tsconfig/base.json").readText())
+        write("settings.gradle.kts", "rootProject.name = \"ownershipFixture\"")
+        write("package.json", """{"name":"ownership-fixture","private":true,"scripts":{"check":"node src/commonMain/typescript/check.mjs"}}""")
+        write("pnpm-workspace.yaml", "packages: []\n")
+        write("compiled/package.json", """{"name":"generated-kotlin","private":true}""")
+        write("compiled/index.mjs", "export const value = 1;\n")
+        write("src/commonMain/typescript/check.mjs", "console.log('authored TypeScript check');\n")
+        write("src/commonMain/cpp/sample.cpp", "extern \"C\" int sample() { return 1; }\n")
+        write("CMakeLists.txt", """
+            cmake_minimum_required(VERSION 3.22)
+            project(sample LANGUAGES CXX)
+            add_library(sample STATIC src/commonMain/cpp/sample.cpp)
+        """.trimIndent())
+        write("build.gradle.kts", """
+            import dev.shibasis.dependeasy.web.KotlinPackageExport
+            import dev.shibasis.dependeasy.handles.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            val exported = tasks.register<KotlinPackageExport>("exportKotlinLibrary") {
+                sourceFiles.from("compiled")
+                destination.set(layout.projectDirectory.dir("build/dependeasy/kotlin/library"))
+                dependencyDirectory.set(layout.projectDirectory.dir("node_modules"))
+            }
+            dependeasy {
+                val authored = javascript("authored").check("check")
+                val native = cmake("sample") { source = "." }
+                workspace { val allBuilds by artifacts { include(node(exported), node(authored), node(native)) } }
+            }
+            tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
+                baseConfiguration.set(layout.projectDirectory.file("base.json"))
+            }
+        """.trimIndent())
+        fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
+            .withPluginClasspath().withArguments(*tasks, "--configuration-cache", "--stacktrace").build()
+        run("pnpmLock")
+        val first = run("allBuilds")
+        assertEquals(TaskOutcome.SUCCESS, first.task(":exportKotlinLibrary")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, first.task(":authoredCheck")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, first.task(":sampleCMake")?.outcome)
+        val repeat = run("allBuilds")
+        assertContains(repeat.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":authoredCheck")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":sampleCMake")?.outcome)
+        write("compiled/index.mjs", "export const value = 2;\n")
+        val changed = run("allBuilds")
+        assertEquals(TaskOutcome.SUCCESS, changed.task(":exportKotlinLibrary")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, changed.task(":authoredCheck")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, changed.task(":sampleCMake")?.outcome)
+        assertContains(directory.resolve("build/dependeasy/kotlin/library/index.mjs").readText(), "value = 2")
+    }
+}

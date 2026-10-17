@@ -20,6 +20,19 @@ sealed class RequestHandler<In: Request, Out: Response>(
     var endpoint: ServiceEndpoint = endpoint
         private set
 
+    var phase: ServiceExecutionPhase = ServiceExecutionPhase.SERVER
+        internal set
+
+    var pinned: Boolean = false
+        internal set
+
+    @JsExport.Ignore
+    var owner: Service? = null
+        internal set
+
+    @JsExport.Ignore
+    var executionAttributes: (() -> Map<String, String>)? = null
+
     val transport: ServiceTransport
         get() = endpoint.transport
 
@@ -49,13 +62,24 @@ sealed class RequestHandler<In: Request, Out: Response>(
         thisRef: Service,
         property: KProperty<*>,
     ): ReadOnlyProperty<Service, H> {
-        bindProperty(property.name)
+        if (!pinned) bindProperty(property.name)
         if (this !in thisRef.handlers) {
             thisRef.handlers += this
         }
         val handler = this as H
         return ReadOnlyProperty { _, _ -> handler }
     }
+
+    fun descriptor(contract: ServiceContract): OperationDescriptor = OperationDescriptor(
+        contract = contract.id,
+        version = contract.version,
+        operation = endpoint.operation,
+        interaction = Interaction.RequestReply,
+        phase = phase,
+        request = requestSerializer.schemaRef(),
+        response = responseSerializer.schemaRef(),
+        http = endpoint.method?.let { HttpBinding(it, route) },
+    )
 
     interface Factory {
         fun <In: Request, Out: Response> create(

@@ -1,0 +1,9 @@
+{
+  "name": "reaktor-code-scip",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@sourcegraph/scip-typescript": "0.4.0",
+    "typescript": "5.9.3"
+  }
+}

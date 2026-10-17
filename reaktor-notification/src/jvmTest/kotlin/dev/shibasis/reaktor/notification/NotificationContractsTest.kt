@@ -5,6 +5,10 @@ import dev.shibasis.reaktor.core.adapters.PermissionAdapter
 import dev.shibasis.reaktor.core.adapters.PermissionResult
 import dev.shibasis.reaktor.core.adapters.NotificationPermissionState
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -192,6 +196,95 @@ class NotificationContractsTest {
         assertEquals("delivery-1", result.deliveryId)
         assertEquals(NotificationDeliveryStatuses.DryRunAccepted, result.status)
     }
+
+    @Test
+    fun conversationRoundTripsThroughProviderDataMap() {
+        val envelope = NotificationEnvelope(
+            id = "n-2",
+            type = "chat.message",
+            categoryId = "messages",
+            content = NotificationContent(
+                title = "Maya",
+                body = "Dinner at eight",
+                imageUrl = "https://example.com/photo.jpg",
+                sender = NotificationPerson("u-1", "Maya", "https://example.com/maya.jpg"),
+                conversation = NotificationConversation("c-1", "Friday Table", group = true),
+            ),
+        )
+
+        val decoded = NotificationEnvelope.fromDataMap(envelope.toDataMap())
+
+        assertEquals(envelope.content.sender, decoded.content.sender)
+        assertEquals(envelope.content.conversation, decoded.content.conversation)
+        assertEquals(envelope.content.imageUrl, decoded.content.imageUrl)
+    }
+
+    @Test
+    fun androidClientsThatDrawThemselvesGetDataOnlyPushes() {
+        val message = conversationPayload("android", listOf(NotificationPresentationFeature.DataMessages.capabilityName)).fcmMessage()
+
+        assertFalse("notification" in message)
+        assertFalse("notification" in message.getValue("android").jsonObject)
+        assertEquals("https://example.com/maya.jpg", message.getValue("data").jsonObject["reaktor_sender_photo"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun olderAndroidClientsKeepTheNotificationBlock() {
+        val message = conversationPayload("android", listOf(NotificationPresentationFeature.Conversation.capabilityName)).fcmMessage()
+
+        assertTrue("notification" in message)
+        assertTrue("notification" in message.getValue("android").jsonObject)
+    }
+
+    @Test
+    fun iosConversationPushesWakeTheServiceExtension() {
+        val apns = conversationPayload("ios", emptyList()).fcmMessage().getValue("apns").jsonObject
+        val aps = apns.getValue("payload").jsonObject.getValue("aps").jsonObject
+
+        assertEquals("1", aps["mutable-content"]?.jsonPrimitive?.content)
+        assertEquals("c-1", aps["thread-id"]?.jsonPrimitive?.content)
+        assertEquals("alert", apns.getValue("headers").jsonObject["apns-push-type"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun aKnownBadgeReachesTheIconAndTheDataMap() {
+        val message = conversationPayload("ios", emptyList()).copy(badge = 4).fcmMessage()
+        val aps = message.getValue("apns").jsonObject.getValue("payload").jsonObject.getValue("aps").jsonObject
+
+        assertEquals("4", aps["badge"]?.jsonPrimitive?.content)
+        assertEquals("4", message.getValue("data").jsonObject["reaktor_badge"]?.jsonPrimitive?.content)
+        assertFalse("badge" in conversationPayload("ios", emptyList()).fcmMessage().getValue("apns").jsonObject.getValue("payload").jsonObject.getValue("aps").jsonObject)
+    }
+
+    @Test
+    fun aClearMessageKeepsItsTypeAndConversation() {
+        val payload = conversationPayload("android", listOf(NotificationPresentationFeature.DataMessages.capabilityName)).copy(type = NotificationEnvelope.ClearType)
+        val envelope = NotificationEnvelope.fromDataMap(payload.providerData())
+
+        assertEquals(NotificationEnvelope.ClearType, envelope.type)
+        assertEquals("c-1", envelope.content.conversation?.id)
+        assertFalse("notification" in payload.fcmMessage())
+    }
+
+    private fun conversationPayload(platform: String, capabilities: List<String>) = NotificationDispatchPayload(
+        deliveryId = "delivery-2",
+        notificationId = "notification-2",
+        endpointId = "endpoint-2",
+        userId = "user-2",
+        platform = platform,
+        provider = "fcm",
+        token = "token-2",
+        title = "Maya",
+        body = "Dinner at eight",
+        categoryId = "messages",
+        dryRun = false,
+        sender = NotificationPerson("u-1", "Maya", "https://example.com/maya.jpg"),
+        conversation = NotificationConversation("c-1"),
+        capabilities = capabilities,
+    )
+
+    private fun NotificationDispatchPayload.fcmMessage(): JsonObject =
+        Json.parseToJsonElement(fcmRequestBody()).jsonObject.getValue("message").jsonObject
 
     @Test
     fun inMemoryClientSupportsFirstSliceOperations() {

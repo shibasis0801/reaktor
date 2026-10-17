@@ -1,33 +1,53 @@
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.Versions
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-auth"))
-            api(project(":reaktor-core"))
-            api(project(":reaktor-service"))
-            api(project(":reaktor-io"))
-            api(project(":reaktor-secrets"))
+dependeasy {
+    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
+    workspace { val generateBindings by artifacts { include(node(bindings)) } }
+
+    module("dev.shibasis.reaktor.cloudflare") {
+        common {
+            dependencies {
+                api(projects.reaktorAuthCore)
+                api(projects.reaktorCore)
+                api(projects.reaktorService)
+                api(projects.reaktorGraphRuntime)
+                api(projects.reaktorIo)
+                api(projects.reaktorSecrets)
+            }
+        }
+        android {}
+        apple {}
+
+        web {
+            sourceSetModifier { kotlin.srcDir(bindings) }
+            dependencies {
+                api(npm("hono", Versions.Web.Hono))
+                api(npm("partyserver", Versions.Web.PartyServer))
+                api(npm("postgres", Versions.Web.Postgres))
+            }
+            testDependencies {
+                implementation(projects.reaktorWork)
+                implementation(npm("miniflare", Versions.Web.Miniflare))
+            }
+        }
+
+        kotlin {
+
+            js {
+                nodejs { testTask { useMocha { timeout = "60s" } } }
+            }
         }
     }
-    droid {}
-    darwin {}
-    web {
-        dependencies {
-            api(npm("hono", "4.12.23"))
-            api(npm("partyserver", "0.5.6"))
-            api(npm("postgres", "3.4.9"))
-        }
-    }
-}
 
-android {
-    defaults("dev.shibasis.reaktor.cloudflare")
+
+    dependencyBoundary("verifyCloudflareRuntimeBoundary", ConfigurationRef.JavaScriptCompileClasspath) {
+        moduleSuffix.set("-js")
+        forbidGroupPrefixes("androidx.compose", "org.jetbrains.compose", "org.jetbrains.skiko", "ai.bestbuds")
+        forbidModules("reaktor-auth", "reaktor-graph", "reaktor-ui", "engine", "kernel")
+        reason.set("Cloudflare hosts must remain headless")
+    }
 }

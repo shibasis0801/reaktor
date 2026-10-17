@@ -1,73 +1,77 @@
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.web.kotlinWrappers
+import dev.shibasis.dependeasy.web.react
+import dev.shibasis.dependeasy.web.webCoroutines
+import dev.shibasis.dependeasy.android.activityFragment
+import dev.shibasis.dependeasy.android.androidCoroutines
+import dev.shibasis.dependeasy.android.extensions
+import dev.shibasis.dependeasy.android.fbjni
+
 import dev.shibasis.dependeasy.dependencies.useKoin
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.kotlin.plugin.compose")
-}
+plugins { id("dev.shibasis.dependeasy.compose-library") }
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-core"))
-            api(project(":reaktor-io"))
-            api(compose.runtime)
-            api(compose.foundation)
-            api(compose.material3)
-            api(compose.materialIconsExtended)
-            // Common BackHandler — needed by any full-screen overlay that must swallow back
-            // instead of letting it pop the route underneath.
-            api("org.jetbrains.compose.ui:ui-backhandler:${project.property("compose.version")}")
-            api("io.coil-kt.coil3:coil-compose:3.2.0")
-            api("io.coil-kt.coil3:coil-network-ktor3:3.2.0")
-            api("io.coil-kt.coil3:coil-svg:3.2.0")
+dependeasy {
+    javascript("uiTypeScript").library("buildUiTypeScript", "ts/tsconfig.json", "ts/dist")
+    module("dev.shibasis.reaktor.ui") {
+        common {
+            dependencies {
+                api(projects.reaktorCore)
+                api(projects.reaktorCode)
+                api(projects.reaktorIo)
+                api(projects.reaktorWeb)
+                api(projects.reaktorSurfaceCompose)
+                api(Versions.Compose.Runtime)
+                api(Versions.Compose.Foundation)
+                api(Versions.Compose.Material3)
+                api(Versions.Compose.MaterialIcons)
+                // Common BackHandler — needed by any full-screen overlay that must swallow back
+                // instead of letting it pop the route underneath.
+                api(Versions.Compose.BackHandler)
+                api(Versions.Compose.Coil)
+                api(Versions.Compose.CoilKtor)
+                api(Versions.Compose.CoilSvg)
+            }
+            testDependencies {
+                implementation(Versions.Compose.UiTest)
+            }
         }
-        testDependencies {
-            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-            api(compose.uiTest)
+
+        web {
+            dependencies {
+                kotlinWrappers()
+                react()
+                webCoroutines()
+            }
+        }
+
+        android {
+            dependencies {
+                activityFragment()
+                androidCoroutines()
+                fbjni()
+
+                extensions()
+            }
+        }
+
+        apple {
+            dependencies {
+                // todo kotlin native needs this, should be transitive but there is some bug https://github.com/Kotlin/kotlinx.coroutines/pull/3996/files
+                api(Versions.Kotlin.AtomicFu)
+            }
+        }
+
+        jvm {
+            dependencies {
+                api(Versions.Compose.Desktop)
+            }
+            testDependencies {
+                implementation(projects.reaktorPerformance)
+            }
         }
     }
 
-    web {
-        webpackConfig {
-            configDirectory = file("${projectDir}/webpack.config.d")
-        }
-        dependencies {
-            kotlinWrappers()
-            react()
-            webCoroutines()
-        }
-        packageJson = file("package.json")
-    }
 
-    droid {
-        dependencies {
-            activityFragment()
-            androidCoroutines()
-            fbjni()
-//            lifecycle()
-            extensions()
-        }
-    }
-
-    darwin {
-        dependencies {
-            // todo kotlin native needs this, should be transitive but there is some bug https://github.com/Kotlin/kotlinx.coroutines/pull/3996/files
-            api("org.jetbrains.kotlinx:atomicfu:0.23.1")
-        }
-    }
-    server {
-        dependencies {
-            api(compose.desktop.currentOs)
-        }
-    }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.ui")
+    jvmClasspath("jvmComposeWebViewProbeClasspath", "reports/webview/compose-probe-classpath.txt")
 }

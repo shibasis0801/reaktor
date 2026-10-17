@@ -1,26 +1,32 @@
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.Versions
+plugins { id("dev.shibasis.dependeasy.library") }
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-}
+dependeasy {
+    javascript("graphPortTypeScript") {
+        kotlinLibraries(kotlinJsLibrary(Reaktor.GraphPort))
+        verify("checkGraphPortTypeScript", "ts/tsconfig.json")
+    }
+    module("dev.shibasis.reaktor.graph.port") {
+        common {
+            dependencies {
+                api(Versions.Kotlin.AtomicFu)
+                api(projects.reaktorCore)
+            }
+        }
+        android {}
+        apple {}
+        web {}
+        jvm {}
+    }
 
-kotlin {
-    common {
-        dependencies {
-            api("org.jetbrains.kotlinx:atomicfu:0.28.0")
-            api(project(":reaktor-core"))
+
+    // The JVM test runner scans every class in the test source set, so a plain fixture class
+    // (no @Test methods) fails with initializationError. Restrict it to test classes by name.
+    tasks.withType<Test>().configureEach {
+        filter {
+            isFailOnNoMatchingTests = false
+            includeTestsMatching("*Test")
         }
     }
-    droid {}
-    darwin {}
-    web {}
-    server {}
-}
-
-android {
-    defaults("dev.shibasis.reaktor.graph.port")
 }

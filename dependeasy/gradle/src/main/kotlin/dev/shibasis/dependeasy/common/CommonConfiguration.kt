@@ -1,0 +1,68 @@
+package dev.shibasis.dependeasy.common
+
+import dev.shibasis.dependeasy.Versions
+import org.gradle.kotlin.dsl.invoke
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
+
+open class Configuration<Target> {
+    internal var dependencies: KotlinDependencies.() -> Unit = {}
+        private set
+    internal var sourceSetModifier: KotlinSourceSet.() -> Unit = {}
+        private set
+
+    internal var testDependencies: KotlinDependencies.() -> Unit = {}
+        private set
+
+    internal var targetModifier: Target.() -> Unit = {}
+
+    fun dependencies(fn: KotlinDependencies.() -> Unit) {
+        this.dependencies = fn
+    }
+
+    fun sourceSetModifier(fn: KotlinSourceSet.() -> Unit) {
+        this.sourceSetModifier = fn
+    }
+
+    fun testDependencies(fn: KotlinDependencies.() -> Unit) {
+        this.testDependencies = fn
+    }
+
+    fun targetModifier(fn: Target.() -> Unit) {
+        this.targetModifier = fn
+    }
+}
+
+class CommonConfiguration: Configuration<Unit>()
+
+@OptIn(ExperimentalKotlinGradlePluginApi::class)
+fun KotlinMultiplatformExtension.common(
+    configuration: CommonConfiguration.() -> Unit = {}
+) {
+    jvmToolchain(Versions.SDK.Java.asInt)
+    val configure = CommonConfiguration().apply(configuration)
+
+    sourceSets {
+        compilerOptions {
+            freeCompilerArgs.add("-Xexpect-actual-classes")
+        }
+        all {
+            languageSettings.apply {
+                optIn("kotlin.js.ExperimentalJsExport")
+            }
+        }
+        commonMain {
+            configure.sourceSetModifier(this)
+            dependencies {
+                configure.dependencies(KotlinDependencies(this))
+            }
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(kotlin("test-annotations-common"))
+            implementation(Versions.Kotlin.CoroutinesTest)
+            configure.testDependencies(KotlinDependencies(this))
+        }
+    }
+}

@@ -1,99 +1,38 @@
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnPlugin
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
-import java.time.LocalDate
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.model.*
 
-plugins {
-    kotlin("multiplatform") apply false
-    kotlin("android") apply false
-    id("com.android.application") apply false
-    id("com.android.library") apply false
-    id("com.google.firebase.crashlytics") apply false
-    id("org.jetbrains.compose") apply false
-    id("org.jetbrains.kotlin.plugin.compose").apply(false)
-    id("com.google.devtools.ksp") apply false
-    id("dev.shibasis.dependeasy.library") apply false
-    id("dev.shibasis.dependeasy.application") apply false
-    id("org.jetbrains.kotlinx.benchmark") apply false
-    id("com.codingfeline.buildkonfig") apply false
-//    id("org.jetbrains.dokka") version "2.0.0"
-}
+plugins { id("dev.shibasis.dependeasy.pipeline") }
+group = Reaktor.build.group
 
-buildscript {
-    repositories {
-        mavenLocal()
-        gradlePluginPortal()
-        google()
-        mavenCentral()
-        maven(url = "https://jitpack.io")
-    }
-}
-
-allprojects {
-    group = "dev.shibasis.reaktor"
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        google()
-        maven(url = "https://www.jitpack.io")
-        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
-        maven("https://oss.sonatype.org/content/repositories/snapshots")
-        maven("https://maven.pkg.jetbrains.space/kotlin/p/wasm/experimental")
-    }
-}
-
-subprojects {
-//    apply(plugin = "org.jetbrains.dokka")
-    apply(plugin = "maven-publish")
-    apply(from = "$rootDir/publishing.gradle.kts")
-
-    // Disable lint for library modules — lint runs on the app target, not here
-    afterEvaluate {
-        tasks.matching { it.name.contains("lint", ignoreCase = true) }.configureEach {
-            enabled = false
+dependeasy {
+    val tooling = buildTooling()
+    workspace {
+        val webPackageChecks by verify {
+            include(verification(Reaktor.Core, Verification.TypeScript), verification(Reaktor.Ui, Verification.TypeScript),
+                verification(Reaktor.GraphPort, Verification.TypeScript), verification(Reaktor.Mcp, Verification.TypeScript),
+                verification(Reaktor.Performance, Verification.TypeScript), verification(Reaktor.Web, Verification.WebBridge))
+        }
+        val mobileInteropChecks by verify {
+            include(verification(Reaktor.Ffi, Verification.InteropTypeScript), verification(Reaktor.Ffi, Verification.InteropHost),
+                output(Reaktor.Ffi, OutputKind.AndroidInstrumentedTests, Build.Debug),
+                output(Reaktor.Ffi, OutputKind.AppleCompilation, Apple.IosArm64))
+        }
+        val frameworkChecks by verify(role = Workspace.Verify) {
+            include(tooling)
+            include(verification(Reaktor.Core, Verification.Jvm), verification(Reaktor.Graph, Verification.Jvm),
+                verification(Reaktor.Performance, Verification.Jvm))
+        }
+        val androidNativeLibraries by artifacts(role = Workspace.Android) {
+            outputs(androidLibrary(Reaktor.Ffi, Build.Release), androidLibrary(Reaktor.Flexbuffer, Build.Release))
+        }
+        val iosNativeLibraries by artifacts(role = Workspace.Apple) {
+            outputs(nativeLibrary(Reaktor.Ffi, Apple.IosArm64), nativeLibrary(Reaktor.Ffi, Apple.IosSimulatorArm64))
+        }
+        val buildAll by artifacts(role = Workspace.Build, run = Run.onMac()) {
+            include(tooling, webPackageChecks, mobileInteropChecks)
+            outputs(*Reaktor.modules.map { output(it, OutputKind.ModuleBuild) }.toTypedArray())
+            outputs(verification(Dependeasy.build, Verification.Plugin))
         }
     }
-}
-
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).configureEach {
-    compilerOptions {
-        freeCompilerArgs.add("-Xopt-in=kotlin.experimental.ExperimentalNativeApi")
-    }
-}
-
-//tasks.dokkaHtmlMultiModule.configure {
-//    outputDirectory.set(file("docs"))
-//}
-
-
-tasks.register("publishToGithubPackages") {
-    group = "reaktor"
-    dependsOn(gradle.includedBuild("dependeasy").task(":publish"))
-    dependsOn(subprojects.mapNotNull { it.tasks.findByName("publish") })
-}
-
-//tasks.register("publishToMavenCentral") {
-//    group = "reaktor"
-//    version = LocalDate.now().run { "$year.$monthValue.$dayOfMonth" }
-//    dependsOn(gradle.includedBuild("dependeasy").task(":publishAllPublicationsToMavenCentralRepository"))
-//    dependsOn(subprojects.mapNotNull { it.tasks.findByName("publishAllPublicationsToMavenCentralRepository") })
-//}
-
-
-tasks.register("publishToMavenLocal") {
-    group = "reaktor"
-    dependsOn(gradle.includedBuild("dependeasy").task(":publishToMavenLocal"))
-    dependsOn(subprojects.mapNotNull { it.tasks.findByName("publishToMavenLocal") })
-}
-
-
-rootProject.plugins.withType(YarnPlugin::class.java) {
-    rootProject.extensions.configure(YarnRootExtension::class.java) {
-        // "FAIL" ensures CI breaks if the lockfile drifts, preventing phantom dependency issues.
-        yarnLockMismatchReport = YarnLockMismatchReport.WARNING
-
-        // Set to FALSE on CI (via System.getenv("CI")) to ensure reproducible builds.
-        reportNewYarnLock = false
-        yarnLockAutoReplace = true
-    }
+    publishing { githubPackages() }
 }

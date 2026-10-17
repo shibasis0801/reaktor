@@ -78,8 +78,15 @@ external object HonoModule {
     val HonoFactory: dynamic
 }
 
+@JsModule("hono/cors")
+external object HonoCorsModule {
+    fun cors(options: dynamic): dynamic
+}
+
 external interface Hono {
     fun on(method: String, path: String, handler: (HonoContext) -> dynamic): Hono
+    fun all(path: String, handler: (HonoContext) -> dynamic): Hono
+    fun use(path: String, middleware: dynamic): Hono
     fun route(path: String, app: Hono): Hono
     fun fetch(request: dynamic, env: CloudflareEnv = definedExternally, executionCtx: WorkerExecutionContext = definedExternally): dynamic
 }
@@ -141,6 +148,7 @@ internal external interface RawDurableObjectStub {
 }
 
 internal external interface RawDurableObjectStorage {
+    fun getAlarm(): Promise<Double?>
     fun get(key: String): Promise<Any?>
     fun put(key: String, value: Any?): Promise<Unit>
     fun delete(key: String): Promise<Boolean>
@@ -216,6 +224,8 @@ class CloudflareContext internal constructor(
     fun vectorOrNull(name: String): VectorIndex? = rawBindingOrNull<RawVectorizeIndex>(name)?.let(::VectorIndex)
     @JsExport.Ignore
     fun aiOrNull(name: String): WorkersAI? = rawBindingOrNull<RawWorkersAI>(name)?.let(::WorkersAI)
+    @JsExport.Ignore
+    fun rateLimiterOrNull(name: String): RateLimiter? = rawBindingOrNull<RawRateLimiter>(name)?.let(::RateLimiter)
     internal fun hyperdriveOrNull(name: String): HyperdriveConfig? = rawBindingOrNull<RawHyperdrive>(name)?.let(::HyperdriveConfig)
 
     fun requireD1(name: String): D1Database = d1OrNull(name) ?: missingBinding(name, "D1Database")

@@ -13,10 +13,10 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
-import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.provides
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 
 open class TabbedContainer(
     graph: Graph,
@@ -29,12 +29,20 @@ open class TabbedContainer(
 ), ComposeContainer {
     val selected = MutableStateFlow(initialSelection)
 
+    override val changes: List<Flow<*>> get() = listOf(activeGraphIndex, selected)
+
+    override fun shows(graph: Graph): Boolean = children[selected.value]?.graph == graph
+
+    override fun labelOf(graph: Graph): String =
+        children.entries.firstOrNull { it.value.graph == graph }?.let { (key, child) -> child.label.ifBlank { key } }
+            ?: super.labelOf(graph)
+
     val controller by provides<Controller>(object: Controller {
         override val selected = this@TabbedContainer.selected
     })
 
-    override fun activateGraphForRoute(route: RouteNode<*, *>): Boolean {
-        val activated = super.activateGraphForRoute(route)
+    override fun activate(graph: Graph): Boolean {
+        val activated = super.activate(graph)
         if (activated) {
             val index = activeGraphIndex.value
             val key = children.keys.elementAtOrNull(index)

@@ -17,4 +17,8 @@ class AndroidCrashlytics: CrashlyticsAdapter<Unit>(Unit) {
     override fun setUserId(userId: String) {
         crashlytics.setUserId(userId)
     }
+
+    override fun writeCustomKey(key: String, value: String) {
+        crashlytics.setCustomKey(key, value)
+    }
 }

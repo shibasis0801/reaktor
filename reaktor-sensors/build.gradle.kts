@@ -1,24 +1,8 @@
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
 
-plugins {
-    id("com.android.library")
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-// Android and Apple, each with a real counter behind it. Still no web{}: a browser has no
-// pedometer, and an empty target would only pretend otherwise.
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-core"))
-        }
-    }
-    droid {}
-    darwin {}
-}
-
-android {
-    defaults("dev.shibasis.reaktor.sensors")
+library(namespace = "dev.shibasis.reaktor.sensors", targets = Targets.Android + Targets.Apple) {
+    dependencies { common { api(projects.reaktorCore) } }
 }

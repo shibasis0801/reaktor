@@ -2,9 +2,8 @@
 
 package dev.shibasis.reaktor.security.karakum
 
-sealed external interface SecureEnvelopeContentKind {
-companion object
-}
+@js.union.JsUnion
+sealed external interface SecureEnvelopeContentKind
 
 inline val SecureEnvelopeContentKind.Companion.application: SecureEnvelopeContentKind
     get() = js.reflect.unsafeCast("application")

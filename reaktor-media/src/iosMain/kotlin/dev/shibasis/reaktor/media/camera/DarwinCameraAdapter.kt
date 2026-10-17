@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.media.camera
 
+import dev.shibasis.reaktor.media.photo
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -146,7 +148,7 @@ class DarwinCameraAdapter(
                     return
                 }
                 if (continuation.isActive) {
-                    continuation.resume(MediaPick(bytes = data.toByteArray(), mimeType = JPEG))
+                    continuation.resume(photo(data, null) ?: MediaPick(bytes = data.toByteArray(), mimeType = JPEG))
                 }
             }
         }

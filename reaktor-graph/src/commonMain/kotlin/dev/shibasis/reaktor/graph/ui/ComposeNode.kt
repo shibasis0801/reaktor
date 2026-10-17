@@ -10,6 +10,7 @@ import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.ui.themed
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
+import dev.shibasis.reaktor.graph.core.NodeKind
 
 
 @JsExport
@@ -31,7 +32,7 @@ interface ComposeContent: View {
 abstract class ComposeNode<State>(
     graph: Graph
 ): ControllerNode<State>(graph), ComposeContent {
-
+    override val kind: NodeKind get() = NodeKind.Screen
 }
 
 

@@ -55,6 +55,10 @@ class IosNotificationDevHarness(
             ),
             route = NotificationRoute.GraphAction("reaktor.notification.open", "{}"),
         )
+        return inject(envelope)
+    }
+
+    override suspend fun inject(envelope: NotificationEnvelope): NotificationDevState {
         lastEnvelope = envelope
         return client.injectRemoteEnvelope(envelope)
     }
@@ -74,6 +78,15 @@ class IosNotificationDevHarness(
 object IosNotificationsRuntime {
     private var client: IosNotificationsClient? = null
     private var remoteTransportStarter: (() -> Unit)? = null
+    private var remoteTokenForgetter: (() -> Unit)? = null
+
+    fun installRemoteTokenForgetter(forgetter: () -> Unit) {
+        remoteTokenForgetter = forgetter
+    }
+
+    fun forgetRemoteToken() {
+        remoteTokenForgetter?.invoke()
+    }
 
     fun install(client: IosNotificationsClient) {
         this.client = client

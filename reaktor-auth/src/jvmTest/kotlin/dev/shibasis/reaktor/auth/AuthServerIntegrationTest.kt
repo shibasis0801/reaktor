@@ -28,6 +28,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import dev.shibasis.reaktor.auth.runtime.MAX_ACCESS_TOKEN_TTL_SECONDS
 
 /**
  * Handler-level integration for the AuthServer surface. These tests intentionally call the same
@@ -214,7 +215,7 @@ class AuthServerIntegrationTest {
             TokenRequest(grantType = "pat", rawToken = raw, audience = "manna-mcp", ttlSeconds = 9999, environment = Environment.STAGE)
         )
         assertEquals(StatusCode.OK, exchanged.statusCode)
-        assertEquals(15 * 60, exchanged.expiresInSeconds, "PAT exchanges clamp too-large TTLs")
+        assertEquals(MAX_ACCESS_TOKEN_TTL_SECONDS, exchanged.expiresInSeconds, "PAT exchanges clamp too-large TTLs")
         assertEquals(listOf("mcp:read"), exchanged.scopes)
     }
 
@@ -329,7 +330,7 @@ class AuthServerIntegrationTest {
             )
         )
         assertEquals(StatusCode.OK, clientCredentials.statusCode)
-        assertEquals(15 * 60, clientCredentials.expiresInSeconds)
+        assertEquals(MAX_ACCESS_TOKEN_TTL_SECONDS, clientCredentials.expiresInSeconds)
         assertEquals(listOf("delegate:write"), clientCredentials.scopes)
         val serviceClaims = fx.runtime.jwt.verifier.verifyReaktorToken(clientCredentials.accessToken, listOf("manna-mcp")).getOrNull()
         assertNotNull(serviceClaims)

@@ -62,7 +62,11 @@ Services are HTTP/RPC abstractions that work identically on client and server:
 
 ### Graph as runtime scope
 
-A graph owns nodes, DI scope, lifecycle state, coroutine scope, navigation state, local ports, and auto-wiring. It is the fundamental unit of application composition.
+A graph owns nodes, DI scope, lifecycle state, coroutine scope, navigation state, local ports, and auto-wiring. `Graph { ... }` owns child scopes, including graphs without a UI container; closing the owner disposes them and `shape()` includes them. Child graphs inherit the owner's dependency adapter.
+
+`dependsOn(config)` imports a graph's provider ports for this scope and its descendants. Imports borrow providers and do not transfer ownership. `autoWire(otherFeature)` adds providers for that wiring pass; sibling features remain isolated unless explicitly connected. Local providers take priority, followed by declared imports and the nearest ancestor scope.
+
+`input<T>(key)` selects a scoped provider for construction. `Node(configurationPort, key, ::ServiceNode) { config -> implementation(config) }` constructs only the selected implementation and connects its configuration port. A matching typed provider in scope replaces the default factory and is connected as an additional input, keeping substitutions inspectable through ordinary graph edges.
 
 ### Nodes communicate through typed ports
 

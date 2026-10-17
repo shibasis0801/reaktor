@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION ${DEPE_CMAKE_MINIMUM})
+project(ReaktorFlexbufferReference LANGUAGES CXX)
+if(NOT FLATBUFFERS_INCLUDE_DIR)
+    message(FATAL_ERROR "The generated native contract must declare Flatbuffers")
+endif()
+add_executable(flexbuffer_bench flexbuffer_bench.cpp)
+target_include_directories(flexbuffer_bench PRIVATE "${FLATBUFFERS_INCLUDE_DIR}")

@@ -3,11 +3,13 @@ package dev.shibasis.composeflow.compose.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -68,7 +70,7 @@ internal fun FlowNodeBox(
     onNodeClick: ((Node) -> Unit)?,
     onNodesChange: ((List<NodeChange>) -> Unit)?,
     onConnect: ((Connection) -> Unit)?,
-    viewport: Viewport,
+    viewport: () -> Viewport,
     renderStyle: NodeRenderStyle,
     handleRenderStyle: (Handle) -> HandleRenderStyle,
     defaultNodeWidthPx: Double,
@@ -88,6 +90,8 @@ internal fun FlowNodeBox(
     val height = node.measured?.height ?: node.height ?: defaultNodeHeightPx
     val widthDp = with(density) { width.toFloat().toDp() }
     val heightDp = with(density) { height.toFloat().toDp() }
+    val contentWidth = with(density) { (renderStyle.contentSize?.width ?: width).toFloat().toDp() }
+    val contentHeight = with(density) { (renderStyle.contentSize?.height ?: height).toFloat().toDp() }
     val handles = resolvedHandles(node)
     val backgroundColor = renderStyle.backgroundColor ?: if (node.selected) {
         FlowSurface.copy(alpha = FlowVisualDefaults.selectedNodeSurfaceAlpha)
@@ -95,11 +99,14 @@ internal fun FlowNodeBox(
         FlowSurface.copy(alpha = FlowVisualDefaults.idleNodeSurfaceAlpha)
     }
     val borderColor = renderStyle.borderColor ?: if (node.selected) FlowSelection else FlowBorder
+    val cornerRadius = renderStyle.cornerRadius ?: FlowSizing.nodeCornerRadius
+    val nodeShape = RoundedCornerShape(cornerRadius)
 
     Box(
         modifier = Modifier
             .offset { IntOffset(node.position.x.roundToInt(), node.position.y.roundToInt()) }
-            .size(widthDp, heightDp)
+            .wrapContentSize(Alignment.TopStart, unbounded = true)
+            .size(contentWidth, contentHeight)
             .zIndex(if (node.dragging || node.selected) FlowRuntimeDefaults.selectedNodeZIndex else node.zIndex.toFloat())
             .graphicsLayer {
                 alpha = renderStyle.alpha
@@ -111,7 +118,7 @@ internal fun FlowNodeBox(
                     // Layered halo behind the card — three widening, fading strokes read as a
                     // soft bloom without any blur shader (crisp at every zoom level).
                     Modifier.drawBehind {
-                        val radius = FlowSizing.nodeCornerRadius.toPx()
+                        val radius = cornerRadius.toPx()
                         listOf(2f to 0.38f, 6f to 0.18f, 12f to 0.08f).forEach { (spread, glowAlpha) ->
                             drawRoundRect(
                                 color = glow.copy(alpha = glowAlpha),
@@ -124,16 +131,16 @@ internal fun FlowNodeBox(
                     }
                 } ?: Modifier,
             )
-            .clip(RoundedCornerShape(FlowSizing.nodeCornerRadius))
-            .background(backgroundColor, RoundedCornerShape(FlowSizing.nodeCornerRadius))
-            .border(FlowSizing.nodeBorderWidth, borderColor, RoundedCornerShape(FlowSizing.nodeCornerRadius))
+            .then(if (renderStyle.clip) Modifier.clip(nodeShape) else Modifier)
+            .background(backgroundColor, nodeShape)
+            .border(renderStyle.borderWidth ?: FlowSizing.nodeBorderWidth, borderColor, nodeShape)
             .onSizeChanged { size ->
                 val dimensions = Dimensions(size.width.toDouble(), size.height.toDouble())
-                if (node.measured != dimensions) {
+                if (renderStyle.contentSize == null && node.measured != dimensions) {
                     onNodesChange?.invoke(listOf(NodeDimensionChange(id = node.id, dimensions = dimensions)))
                 }
             }
-            .pointerInput(node.id, viewport.zoom, node.draggable, node.selectable) {
+            .pointerInput(node.id, node.draggable, node.selectable) {
                 awaitPointerEventScope {
                     while (true) {
                         val down = awaitPointerEvent().changes.firstOrNull { it.pressed } ?: continue
@@ -146,7 +153,9 @@ internal fun FlowNodeBox(
                             val event = awaitPointerEvent()
                             val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             if (!change.pressed) {
-                                if (!dragged && node.selectable) {
+                                // A directed port/menu inside the card owns its consumed click.
+                                // Do not replace that exact subject with the enclosing node.
+                                if (!dragged && node.selectable && !change.isConsumed) {
                                     onNodeClick?.invoke(node)
                                 } else if (dragged) {
                                     onNodesChange?.invoke(listOf(NodePositionChange(id = node.id, position = currentPosition, dragging = false)))
@@ -169,8 +178,9 @@ internal fun FlowNodeBox(
                                 }
                             }
 
-                            var newX = currentPosition.x + delta.x / viewport.zoom
-                            var newY = currentPosition.y + delta.y / viewport.zoom
+                            val zoom = viewport().zoom
+                            var newX = currentPosition.x + delta.x / zoom
+                            var newY = currentPosition.y + delta.y / zoom
 
                             if (snapToGrid) {
                                 newX = (kotlin.math.round(newX / snapGrid.first) * snapGrid.first)
@@ -220,7 +230,7 @@ internal fun FlowNodeBox(
         if (node.connectable) {
             handles.forEach { handle ->
                 Handle(
-                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle))
+                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle), density)
                         .pointerInput(node.id, handle.id, handle.type, connectionController) {
                             if (connectionController == null) return@pointerInput
                             awaitPointerEventScope {
@@ -257,7 +267,7 @@ internal fun FlowNodeBox(
         } else {
             handles.forEach { handle ->
                 Handle(
-                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle)),
+                    modifier = handleModifier(handle, widthDp, heightDp, handleRenderStyle(handle), density),
                     type = handle.type,
                     style = handleRenderStyle(handle),
                     onConnect = null,

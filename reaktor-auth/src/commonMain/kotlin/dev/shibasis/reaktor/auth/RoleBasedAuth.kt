@@ -130,7 +130,8 @@ data class PrincipalRole(
     val contextId: String? = null,
     override var data: JsonElement,
     @Contextual override var createdAt: Instant = Clock.System.now(),
-    @Contextual override var updatedAt: Instant = Clock.System.now()
+    @Contextual override var updatedAt: Instant = Clock.System.now(),
+    val tenantId: String? = null
 ): AuditableDto
 
 @Serializable

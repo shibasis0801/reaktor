@@ -5,6 +5,7 @@ import dev.shibasis.reaktor.io.network.http
 import dev.shibasis.reaktor.media.gallery.GalleryAdapter
 import dev.shibasis.reaktor.media.gallery.MediaPick
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.onUpload
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -32,6 +33,7 @@ class MediaUploader(
         bytes: ByteArray,
         contentType: String,
         @Suppress("UNUSED_PARAMETER") fileName: String = path.substringAfterLast('/'),
+        progress: (suspend (sent: Long, total: Long?) -> Unit)? = null,
     ): Result<String> = runCatching {
         val url = "$baseUrl/${path.trimStart('/')}"
         val parsedType = runCatching { ContentType.parse(contentType) }.getOrNull()
@@ -40,6 +42,7 @@ class MediaUploader(
         val response = httpClient.post(url) {
             contentType(parsedType)
             uploadHeaders.forEach { (name, value) -> header(name, value) }
+            progress?.let { listener -> onUpload { sent, total -> listener(sent, total) } }
             setBody(bytes)
         }
         val body = response.bodyAsText()

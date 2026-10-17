@@ -6,7 +6,7 @@ export type Optional<T> = T | null | undefined;
 export * from "reaktor-reaktor-graph-port";
 
 // Re-export React Flow components and utilities
-export * from "./src";
+export * from "../src/jsMain/typescript";
 
 export {
     Greeter

@@ -1,11 +1,9 @@
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.common.commonCoroutines
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
 
-plugins {
-    id("com.android.library")
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
 // Firebase Cloud Messaging transport for :reaktor-notification.
 //
@@ -16,36 +14,15 @@ plugins {
 //
 // Depend on this module only when the app actually receives remote push. Everything in
 // :reaktor-notification keeps working without it — see AndroidPushTransport there.
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-notification"))
+library(namespace = "dev.shibasis.reaktor.notification.fcm", targets = Targets.Android + Targets.Apple) {
+    dependencies {
+        common {
+            api(projects.reaktorNotification)
             commonCoroutines()
         }
-    }
-    droid {
-        dependencies {
-            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.1.1"))
-            api("com.google.firebase:firebase-messaging")
+        android {
+            api(project.dependencies.platform(Versions.Android.FirebaseBom))
+            api(Versions.Android.FirebaseMessaging)
         }
     }
-    darwin {
-        dependencies {
-            api("dev.gitlive:firebase-app:2.4.0")
-        }
-        podDependencies {
-            // NOTE: the Xcode 26 "Catalyst-only" xcodebuild workaround tasks that apps carry in
-            // their `darwinPods` loop must cover FirebaseCore + FirebaseMessaging, and shared
-            // FirebaseCore reconciled with reaktor-telemetry (Analytics/Crashlytics).
-            // Verify with an on-device iOS build.
-            pod("FirebaseMessaging") {
-                version = "11.0"
-                extraOpts += listOf("-compiler-option", "-fmodules")
-            }
-        }
-    }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.notification.fcm")
 }

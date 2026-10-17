@@ -1,42 +1,42 @@
-import dev.shibasis.dependeasy.web.*
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.darwin.*
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.dependencies.useKoin
 
 plugins {
 //    id("org.jetbrains.compose")
 //    id("org.jetbrains.kotlin.plugin.compose")
-    id("com.android.library")
-    id("dev.shibasis.dependeasy.library")
+    id("dev.shibasis.dependeasy.compose-library")
 }
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-auth"))
-        }
-    }
-    droid {
-        dependencies {
+dependeasy {
+    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
+    workspace { val generateBindings by artifacts { include(node(bindings)) } }
 
+    module("dev.shibasis.reaktor.google") {
+        common {
+            dependencies {
+                api(projects.reaktorAuth)
+                api(projects.reaktorWork)
+            }
         }
-    }
-    darwin {
-        podDependencies {
+        android {}
+        apple {}
+        web { sourceSetModifier { kotlin.srcDir(bindings) } }
 
+        jvm {
+            dependencies {
+                api(Versions.Google.Sheets)
+                api(Versions.Google.Pubsub)
+                implementation(Versions.Google.Calendar)
+                implementation(Versions.Google.Drive)
+                implementation(Versions.Google.YouTube)
+                api(Versions.Google.Auth)
+                implementation(projects.reaktorCrypto)
+            }
+            testDependencies {
+                implementation(Versions.Data.MockWebServer)
+                implementation(Versions.Data.Postgres)
+            }
         }
     }
-    web {}
-    server {
-        dependencies {
-            api("com.google.apis:google-api-services-sheets:v4-rev20250211-2.0.0")
-            api("com.google.cloud:google-cloud-pubsub:1.147.0")
-        }
-    }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.google")
 }

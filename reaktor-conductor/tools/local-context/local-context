@@ -1,0 +1,27 @@
+#!/bin/sh
+set -eu
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+export REAKTOR_LOCAL_DATA_DIR=${REAKTOR_LOCAL_DATA_DIR:-"$HOME/Library/Application Support/Reaktor/local-context"}
+umask 077
+mkdir -p "$REAKTOR_LOCAL_DATA_DIR"
+case "${1:-status}" in
+  setup)
+    if [ ! -f "$REAKTOR_LOCAL_DATA_DIR/postgres-password" ]; then
+      python3 -c 'import secrets; print(secrets.token_urlsafe(32))' > "$REAKTOR_LOCAL_DATA_DIR/postgres-password"
+    fi
+    python3 -m venv "$REAKTOR_LOCAL_DATA_DIR/venv"
+    "$REAKTOR_LOCAL_DATA_DIR/venv/bin/pip" install -r "$SCRIPT_DIR/requirements.txt"
+    "$REAKTOR_LOCAL_DATA_DIR/venv/bin/pip" freeze > "$REAKTOR_LOCAL_DATA_DIR/requirements-resolved.txt"
+    docker compose -f "$SCRIPT_DIR/compose.yaml" up -d --wait
+    ;;
+  up|stop|status)
+    command=${1:-status}
+    if [ "$command" = status ]; then command=ps; fi
+    if [ "$command" = up ]; then
+      docker compose -f "$SCRIPT_DIR/compose.yaml" up -d --wait
+    else
+      docker compose -f "$SCRIPT_DIR/compose.yaml" "$command"
+    fi
+    ;;
+  *) exec "$REAKTOR_LOCAL_DATA_DIR/venv/bin/python" "$SCRIPT_DIR/context_store.py" "$@" ;;
+esac

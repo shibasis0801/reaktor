@@ -12,6 +12,7 @@ import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
+import dev.shibasis.reaktor.service.ServiceContract
 
 
 @Serializable
@@ -27,12 +28,14 @@ sealed class AppResponse(
 
 
 abstract class AppService(baseUrl: String): Service(baseUrl) {
+    override val contract = ServiceContract("reaktor.apps")
+
     abstract val getAll: GetHandler<Request, AppResponse>
     abstract val getApp: GetHandler<Request, AppResponse>
 }
 
 abstract class AppClient: AppService("http://cloudflare/api") {
-    override val getAll = GetHandler<Request, AppResponse>("/")
-    override val getApp = GetHandler<Request, AppResponse>("/{id}")
+    override val getAll by GetHandler<Request, AppResponse>("/")
+    override val getApp by GetHandler<Request, AppResponse>("/{id}")
 }
 

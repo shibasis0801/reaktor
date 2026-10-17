@@ -1,0 +1,5 @@
+gradle.taskGraph.afterTask { task, state ->
+    def types = []
+    for (def type = task.class; type != null; type = type.superclass) types.add(type.name)
+    println("WP1_TASK\t" + task.project.rootProject.name + "\t" + task.path + "\t" + (state.skipMessage ?: (state.failure ? "FAILED" : "EXECUTED")) + "\t" + types.join(","))
+}

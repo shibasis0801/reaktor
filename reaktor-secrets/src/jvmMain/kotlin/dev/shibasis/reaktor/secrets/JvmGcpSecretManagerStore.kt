@@ -1,8 +1,8 @@
 package dev.shibasis.reaktor.secrets
 
 import com.google.auth.oauth2.GoogleCredentials
-import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
-import dev.shibasis.reaktor.auth.transport.bearerAuthorization
+import dev.shibasis.reaktor.auth.kernel.BearerHeaders.AUTHORIZATION as AUTHORIZATION_HEADER
+import dev.shibasis.reaktor.auth.kernel.BearerHeaders.authorization as bearerAuthorization
 import dev.shibasis.reaktor.core.framework.json
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

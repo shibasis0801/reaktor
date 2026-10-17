@@ -40,7 +40,7 @@ class AuthAccountNode(graph: Graph) : BasicNode(graph), AuthAccount {
 
         // Self-only by construction: principalId comes from the caller's own token.
         sessionLifecyclePort { revokeAllForPrincipal(principalId, request.environment) }
-        val deactivated = principalDirectoryPort {
+        val deactivated = principalDirectoryPort.suspended {
             softDeleteAccount(request, principalId.uuid())
         }.getOrDefault(false)
 

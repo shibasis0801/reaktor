@@ -1,0 +1,26 @@
+package dev.shibasis.reaktor.graph.core.node
+
+import dev.shibasis.reaktor.graph.navigation.Payload
+import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.portgraph.port.ConsumerPort
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.js.JsExport
+import dev.shibasis.reaktor.graph.core.NodeKind
+
+@JsExport
+abstract class ControllerNode<State>(
+    graph: Graph
+): Node(graph), Node.Routable {
+    override val kind: NodeKind get() = NodeKind.Controller
+
+    abstract val state: MutableStateFlow<State>
+//    abstract val routeBinding: ConsumerPort<out RouteBinding<out Payload>>
+
+    fun update(transform: (State) -> State) {
+        state.value = transform(state.value)
+    }
+
+    override fun toString(): String {
+        return "${super.toString()} [Controller]"
+    }
+}

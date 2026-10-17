@@ -1,33 +1,46 @@
 # reaktor-cloud
 
-One JVM module with two halves of the Reaktor cloud control plane:
+Dependeasy configures this module as a Kotlin Multiplatform library with JVM,
+Android and Apple targets. Its JVM code contains:
 
-- **Control-plane library** (`dev.shibasis.reaktor.cloud`) — the provider-neutral model
-  (`CloudResource`/`CloudProvider`/`CloudToolProvider`/`CloudInventory`/`CloudOperation`/`CloudRun`/`CloudEvent`)
-  and JVM tool runners (`ProcessToolRunner`, `DaggerToolProvider`, `PulumiToolProvider`, `ReaktorBrowser`).
-  These back the reaktorDesktop **Cloud pane** (see reaktor.build/docs/reaktor-cloud-pane).
-- **Observability IaC** (`dev.shibasis.reaktor.cloud.observability`) — a runnable Pulumi program
-  that provisions the Grafana folder, datasources (Supabase, Cloudflare→GraphQL, GCP Stackdriver),
-  dashboards, and the k3s `k8s-monitoring` Helm release. Config-driven via `Pulumi.<stack>.yaml`.
+- `CloudToolProvider`, operation/plan/event models and `ProcessToolRunner` for
+  supervised process execution;
+- `PulumiToolProvider` for explicit-stack preview, refresh and apply operations,
+  with approval bound to the reviewed command and program contents;
+- the observability Pulumi program under `cloud/observability`.
 
-It is a plain `kotlin("jvm")` + `application` module (not a dependeasy KMP library) because it hosts a
-runnable Pulumi app + a build-time codegen step; the cloud control plane is inherently JVM/desktop.
+Build operations come from the Dependeasy model. The former per-product Dagger
+provider and `.dagger` module are removed. Local container CI uses the shared
+module at `dependeasy/dagger`; its entry is `run --target portableChecks`.
 
-## Grafana SDK — generated at build time (not vendored)
-`@pulumiverse/grafana` publishes `sdk: "all,!java"`, so there is no `com.pulumi:grafana` on Maven.
-The `genGrafanaSdk` task runs `pulumi package gen-sdk --language java` into `build/grafana-sdk`
-(gitignored) and folds it into the main source set. **Requires the `pulumi` CLI on PATH.**
+## Build and check
 
-## Build
+From the Reaktor repository root:
+
 ```sh
-# from the reaktor repo root
-./gradlew :reaktor-cloud:build
+./gradlew :reaktor-cloud:compileKotlinJvm --console=plain
+./gradlew :reaktor-cloud:cloudToolE2e --console=plain
 ```
 
-## Run the observability stack (operator step — needs real secrets)
-Config keys (namespaces: root `reaktor-observability:` + `supabase:`/`cloudflare:`/`gcp:`/`k3s:`):
-```sh
-pulumi config set --secret reaktor-observability:grafana_service_account_token <token>
-pulumi preview   # runtime: java → gradle run, main = dev.shibasis.reaktor.cloud.observability.MainKt
-pulumi up
-```
+The existing process-boundary check executes a local shell fixture. It checks
+single process ownership, exact Pulumi approval, and source changes before process
+admission; it does not access a cloud account.
+
+## Generated Grafana SDK
+
+`genGrafanaSdk` runs the checksummed Pulumi CLI installed by Dependeasy, with its
+version from `ToolchainVersions`. It writes `build/dependeasy/grafana-sdk`.
+`compileGrafanaSdk` and `grafanaSdkJar` compile and package that output, which is a
+JVM dependency of this module. Generated SDK files are not edited or vendored.
+
+## Observability ownership
+
+The Pulumi entry point is `dev.shibasis.reaktor.cloud.observability.MainKt`, exposed
+as `:reaktor-cloud:run`. It currently has no checked-in stack configuration. Live
+observability is managed by BestBuds' `cloud/k3s/observability` scripts; delivery WP25
+covers adopting those existing resources into Pulumi. The program's presence is
+not evidence of a completed live migration.
+
+The runtime `PulumiToolProvider` still defaults to `pulumi` on PATH. Wiring it to
+the pinned toolchain is a remaining WP19 item; SDK generation already uses the
+pinned distribution.

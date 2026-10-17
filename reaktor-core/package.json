@@ -1,0 +1,19 @@
+{
+  "name": "reaktor-core",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./js/dist/index.js"
+  },
+  "main": "./js/dist/index.js",
+  "types": "./js/dist/index.d.ts",
+  "scripts": {
+    "build": "node ../dependeasy/javascript/cli/typecheck.ts --project js/tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "@cloudflare/workers-types": "^4.20260528.1",
+    "typescript-native": "npm:typescript@7.0.2"
+  },
+  "packageManager": "pnpm@12.10.1"
+}

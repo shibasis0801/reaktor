@@ -1,0 +1,5 @@
+{
+  "name": "reaktor-workspace",
+  "private": true,
+  "packageManager": "pnpm@12.10.1"
+}

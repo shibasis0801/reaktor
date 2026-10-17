@@ -1,0 +1,3 @@
+import ReaktorWebProbe
+
+DeviceWebViewProbeKt.startDeviceWebViewProbe()

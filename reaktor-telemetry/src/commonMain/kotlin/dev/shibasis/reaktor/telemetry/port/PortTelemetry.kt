@@ -1,0 +1,343 @@
+package dev.shibasis.reaktor.telemetry.port
+
+import dev.shibasis.reaktor.portgraph.attach.AttachmentKey
+import dev.shibasis.reaktor.portgraph.attach.attachment
+import dev.shibasis.reaktor.portgraph.port.ConsumerPort
+import dev.shibasis.reaktor.portgraph.port.Port
+import dev.shibasis.reaktor.portgraph.port.PortInterceptor
+import dev.shibasis.reaktor.portgraph.port.PortInvocation
+import dev.shibasis.reaktor.portgraph.port.ProviderPort
+import dev.shibasis.reaktor.portgraph.Unique
+import dev.shibasis.reaktor.service.RequestHandler
+import dev.shibasis.reaktor.service.ServiceCall
+import dev.shibasis.reaktor.service.TraceContext
+import dev.shibasis.reaktor.graph.core.GraphShape
+import kotlinx.atomicfu.atomic
+import dev.shibasis.reaktor.telemetry.export.asCoroutineContext
+import dev.shibasis.reaktor.telemetry.export.attachSpanScope
+import dev.shibasis.reaktor.telemetry.export.currentPortSpan
+import dev.shibasis.reaktor.telemetry.export.SpanCoroutineParent
+import io.opentelemetry.kotlin.OpenTelemetry
+import io.opentelemetry.kotlin.context.Context
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.withContext
+import io.opentelemetry.kotlin.ExperimentalApi
+import io.opentelemetry.kotlin.tracing.Tracer
+import io.opentelemetry.kotlin.tracing.data.StatusData
+import io.opentelemetry.kotlin.tracing.model.SpanKind
+import kotlin.time.TimeSource
+
+/**
+ * D4 — the `reaktor.*` semantic convention.
+ *
+ * Reaktor's contribution to OpenTelemetry is this attribute vocabulary. Everything else —
+ * spans, metrics, context, propagation — is OTel's.
+ *
+ * Only the stable architectural identities belong on metrics. `activation.id` is per-process
+ * and is a span attribute only; see the cardinality rules in the telemetry design.
+ */
+object ReaktorAttributes {
+    const val GraphId = "reaktor.graph.id"
+    const val NodeId = "reaktor.node.id"
+    const val PortId = "reaktor.port.id"
+    const val PortKey = "reaktor.port.key"
+    const val PortShape = "reaktor.port.shape"
+    const val PortDirection = "reaktor.port.direction"
+    const val EdgeId = "reaktor.edge.id"
+    const val ContractId = "reaktor.contract.id"
+
+    /**
+     * The node's runtime identity — its `Uuid`, which is regenerated every process start.
+     *
+     * Span-only, and deliberately not [NodeId]: a per-run identifier under a name that promises
+     * stability breaks correlation across restarts and is unbounded as a metric dimension. This is
+     * the "runtime activation" half of a node's identity; [NodeId] is the architectural half.
+     */
+    const val NodeInstance = "reaktor.node.instance"
+
+    /** Span-only. Never a metric dimension — it is unbounded across process restarts. */
+    const val ActivationId = "reaktor.activation.id"
+
+    /**
+     * Elapsed time measured by the interceptor from a monotonic source.
+     *
+     * The span's own start and end come from the SDK clock, which reports nanosecond *units* at
+     * wall-clock *resolution* — on a local port call that quantises to zero. This attribute is
+     * the duration the call actually took.
+     */
+    const val DurationNanos = "reaktor.duration_ns"
+    const val Cancelled = "reaktor.cancelled"
+}
+
+/**
+ * What kind of operation crosses this port. Attached rather than typed, so a plain
+ * `ConsumerPort<Anything>` can declare its shape without the kernel gaining five port classes.
+ */
+enum class PortSemantics {
+    /** A reference handoff. Never traced: the call happens on the returned object. */
+    Reference,
+    Request,
+    Mailbox,
+    Stream,
+    State,
+}
+
+enum class TracePolicy {
+    /** Take the setting from the owning node, then the graph. */
+    Inherit,
+    Off,
+    /** Aggregate only — the interceptor runs but emits no span. */
+    Metrics,
+    Spans,
+}
+
+/** D5 — policy, never collected data. */
+data class TelemetryFacet(
+    val tracePolicy: TracePolicy = TracePolicy.Inherit,
+    val semantics: PortSemantics = PortSemantics.Reference,
+    /** Overrides the derived low-cardinality span name. */
+    val operation: String? = null,
+)
+
+val TelemetryPolicy = AttachmentKey<TelemetryFacet>("reaktor.telemetry.policy")
+
+/** Resolves the effective policy: port, then owning node, then the supplied default. */
+fun Port<*>.resolvedTelemetryFacet(fallback: TelemetryFacet = TelemetryFacet()): TelemetryFacet {
+    val own = attachment(TelemetryPolicy)
+    val owner = (owner as? dev.shibasis.reaktor.portgraph.attach.Attachable)?.attachment(TelemetryPolicy)
+    val merged = own ?: owner ?: if (requestHandler() != null) fallback.copy(semantics = PortSemantics.Request) else fallback
+    if (merged.tracePolicy != TracePolicy.Inherit) return merged
+    val inherited = owner?.tracePolicy?.takeIf { it != TracePolicy.Inherit }
+        ?: fallback.tracePolicy.takeIf { it != TracePolicy.Inherit }
+        ?: TracePolicy.Spans
+    return merged.copy(tracePolicy = inherited)
+}
+
+/**
+ * The low-cardinality operation name. Derived from the port's declared key and contract, never
+ * from a runtime value, so it is safe as a span name and as a metric dimension.
+ */
+fun Port<*>.telemetryOperationName(facet: TelemetryFacet = resolvedTelemetryFacet()): String =
+    facet.operation ?: requestHandler()?.endpoint?.operation ?: "${type.type}.${telemetryPortId()}"
+
+/**
+ * D7 — one completed span per port call.
+ *
+ * Installed through K1, so it sees every call that crosses the port and nothing that does not.
+ * A `Reference`-shaped port is skipped: its call happens on the object the port handed out, and
+ * tracing the handoff would say a call occurred when none did.
+ */
+@OptIn(ExperimentalApi::class)
+class PortTelemetryInterceptor(
+    private val tracer: Tracer,
+    private val activationId: String? = null,
+    private val defaults: TelemetryFacet = TelemetryFacet(),
+    /**
+     * Where aggregate measures go. Shared across every interceptor in one installation, so the
+     * figures cover the whole graph rather than one node.
+     */
+    val metrics: PortMetrics = PortMetrics(),
+    private val openTelemetry: OpenTelemetry? = null,
+    private val callAttributes: () -> Map<String, String> = { emptyMap() },
+) : PortInterceptor {
+    private val subjects = atomic<Map<String, Map<String, String>>>(emptyMap())
+    private val edges = atomic<Map<String, String>>(emptyMap())
+
+    internal fun bind(shape: GraphShape): Set<String> {
+        val scopes = shape.scopes.associateBy { it.id }
+        val bindings = shape.nodes.associate { node -> node.id to buildMap {
+            put(ServiceCall.NodeAttribute, node.definitionId)
+            put(ServiceCall.GraphAttribute, shape.definitionDigest)
+            put(ReaktorAttributes.GraphId, scopes[node.scope]?.definitionId.orEmpty())
+            node.ports.forEach { port -> put("${port.provides}:${port.key}:${port.type}", port.definitionId) }
+        } }
+        subjects.value = subjects.value + bindings
+        edges.value = edges.value + shape.wires.associate { "${it.consumer}:${it.consumerPort}:${it.type}" to it.definitionId }
+        return bindings.keys
+    }
+
+    internal fun unbind(ids: Set<String>) {
+        subjects.value = subjects.value - ids
+        edges.value = edges.value.filterKeys { key -> ids.none { key.startsWith("$it:") } }
+    }
+
+    override fun intercept(invocation: PortInvocation, proceed: () -> Any?): Any? {
+        val facet = invocation.port.resolvedTelemetryFacet(defaults)
+        if (!shouldObserve(facet)) return proceed()
+        val sdk = openTelemetry
+        val inherited = currentPortSpan()?.attributes.orEmpty()
+        val attributes = invocationAttributes(invocation, callAttributes(), inherited)
+        val span = if (shouldTrace(facet)) startSpan(invocation, facet, parentContext(null, null), attributes) else null
+        val scope = span?.takeIf { sdk != null }?.attachSpanScope()
+        val started = TimeSource.Monotonic.markNow()
+        var failed = false
+        var cancelled = false
+        return try {
+            proceed().also { span?.status = StatusData.Ok }
+        } catch (error: Throwable) {
+            cancelled = error is CancellationException
+            failed = !cancelled
+            if (cancelled) span?.setBooleanAttribute(ReaktorAttributes.Cancelled, true)
+            else span?.status = StatusData.Error(error::class.simpleName ?: "Throwable")
+            throw error
+        } finally {
+            val elapsed = started.elapsedNow().inWholeNanoseconds
+            if (!cancelled) metrics.record(invocation.port, elapsed, failed, facet.semantics)
+            span?.setLongAttribute(ReaktorAttributes.DurationNanos, elapsed)
+            try { span?.end() } finally { scope?.detach() }
+        }
+    }
+
+    override suspend fun interceptSuspend(
+        invocation: PortInvocation,
+        proceed: suspend () -> Any?,
+    ): Any? {
+        val facet = invocation.port.resolvedTelemetryFacet(defaults)
+        if (!shouldObserve(facet)) return proceed()
+        val caller = currentCoroutineContext()[ServiceCall]
+        val sdk = openTelemetry
+        val inherited = caller?.attributes ?: currentPortSpan()?.attributes.orEmpty()
+        val attributes = invocationAttributes(invocation, callAttributes(), inherited)
+        val span = if (shouldTrace(facet)) startSpan(invocation, facet, parentContext(caller, currentCoroutineContext()[SpanCoroutineParent]?.spanId), attributes) else null
+        val started = TimeSource.Monotonic.markNow()
+        var failed = false
+        var cancelled = false
+        return try {
+            val context = span?.spanContext?.takeIf { it.isValid }
+            val result = if (context == null || sdk == null || span == null) proceed() else withContext(ServiceCall(
+                TraceContext(context.traceId, context.spanId, context.traceFlags.isSampled),
+                span.parent?.takeIf { it.isValid }?.spanId,
+                caller?.attributes.orEmpty() + attributes,
+            ) + span.asCoroutineContext() + SpanCoroutineParent(context.spanId)) { runCatching { proceed() } }.getOrThrow()
+            result.also { span?.status = StatusData.Ok }
+        } catch (error: Throwable) {
+            cancelled = error is CancellationException
+            failed = !cancelled
+            if (cancelled) span?.setBooleanAttribute(ReaktorAttributes.Cancelled, true)
+            else span?.status = StatusData.Error(error::class.simpleName ?: "Throwable")
+            throw error
+        } finally {
+            val elapsed = started.elapsedNow().inWholeNanoseconds
+            if (!cancelled) metrics.record(invocation.port, elapsed, failed, facet.semantics)
+            span?.setLongAttribute(ReaktorAttributes.DurationNanos, elapsed)
+            span?.end()
+        }
+    }
+
+    /**
+     * Whether this call is observed at all.
+     *
+     * [TracePolicy.Metrics] is documented as "aggregate only — the interceptor runs but emits no
+     * span", and until there was something to aggregate into it did nothing whatsoever: the
+     * interceptor returned `proceed()` and recorded neither a span nor a measure. It now means
+     * what it says.
+     */
+    private fun shouldObserve(facet: TelemetryFacet): Boolean =
+        facet.tracePolicy != TracePolicy.Off && facet.semantics != PortSemantics.Reference
+
+    private fun shouldTrace(facet: TelemetryFacet): Boolean =
+        facet.tracePolicy == TracePolicy.Spans && facet.semantics != PortSemantics.Reference
+
+    private fun parentContext(call: ServiceCall?, sdkBoundSpan: String?): Context? {
+        val sdk = openTelemetry ?: return null
+        val active = currentPortSpan()?.spanContext
+        if (active?.isValid == true && (call == null || active.traceId == call.trace.traceId &&
+            (active.spanId == call.trace.spanId || call.trace.spanId == sdkBoundSpan))) {
+            return sdk.contextFactory.storeSpan(sdk.contextFactory.root(), sdk.spanFactory.fromSpanContext(active))
+        }
+        val trace = call?.trace ?: return sdk.contextFactory.root()
+        val context = sdk.spanContextFactory.create(trace.traceId, trace.spanId,
+            sdk.traceFlagsFactory.create(trace.sampled, false), sdk.traceStateFactory.default)
+        return sdk.contextFactory.storeSpan(sdk.contextFactory.root(), sdk.spanFactory.fromSpanContext(context))
+    }
+
+    private fun invocationAttributes(invocation: PortInvocation, resources: Map<String, String>, inherited: Map<String, Any?>): Map<String, String> {
+        val attributes = buildMap {
+            for (key in listOf(ServiceCall.SessionAttribute, ServiceCall.EnvironmentAttribute, ServiceCall.BuildAttribute, ServiceCall.GraphAttribute)) {
+                val value = if (key == ServiceCall.SessionAttribute) (inherited[key] as? String) ?: resources[key]
+                    else resources[key] ?: inherited[key] as? String
+                if (value == null) continue
+                val pattern = when (key) {
+                    ServiceCall.SessionAttribute -> "[A-Za-z0-9_-]{1,96}"
+                    ServiceCall.GraphAttribute -> "[0-9a-f]{64}"
+                    else -> "[A-Za-z0-9_.:-]{1,128}"
+                }
+                if (value.matches(Regex(pattern))) put(key, value)
+            }
+            val owner = invocation.port.owner as? Unique
+            val binding = owner?.id?.toString()?.let(subjects.value::get)
+            put(ServiceCall.NodeAttribute, binding?.get(ServiceCall.NodeAttribute) ?: owner?.label.orEmpty())
+            binding?.get(ServiceCall.GraphAttribute)?.let { put(ServiceCall.GraphAttribute, it) }
+            binding?.get(ReaktorAttributes.GraphId)?.let { put(ReaktorAttributes.GraphId, it) }
+            val port = invocation.port
+            binding?.get("${port is ProviderPort<*>}:${port.key.key}:${port.type.type}")?.let { put(ServiceCall.PortAttribute, it) }
+            invocation.edge?.let { edge ->
+                val source = edge.source as? Unique
+                source?.let { edges.value["${it.id}:${edge.consumer.key.key}:${edge.consumer.type.type}"] }
+                    ?.let { put(ServiceCall.EdgeAttribute, it) }
+            }
+            activationId?.let { put(ReaktorAttributes.ActivationId, it) }
+        }
+        return attributes
+    }
+
+    private fun startSpan(invocation: PortInvocation, facet: TelemetryFacet, parent: Context?, attributes: Map<String, String>) =
+        tracer.startSpan(
+            name = invocation.port.telemetryOperationName(facet),
+            spanKind = spanKindFor(facet.semantics),
+            parentContext = parent,
+        ) {
+            attributes.forEach { (key, value) -> if (value.isNotEmpty()) setStringAttribute(key, value) }
+            val port = invocation.port
+            val binding = (port.owner as? Unique)?.id?.toString()?.let(subjects.value::get)
+            val portId = binding?.get("${port is ProviderPort<*>}:${port.key.key}:${port.type.type}")
+            setStringAttribute(ReaktorAttributes.PortId, portId ?: port.telemetryPortId())
+            setStringAttribute(ReaktorAttributes.PortKey, port.key.key)
+            setStringAttribute(ReaktorAttributes.ContractId, port.requestHandler()?.owner?.contract?.id ?: port.type.type)
+            setStringAttribute(ReaktorAttributes.PortShape, facet.semantics.name.lowercase())
+            setStringAttribute(
+                ReaktorAttributes.PortDirection,
+                when (port) {
+                    is ConsumerPort<*> -> "consumer"
+                    is ProviderPort<*> -> "provider"
+                },
+            )
+            (port.owner as? Unique)?.let { node ->
+                // Two identities, never merged into one attribute. A node that declares no label
+                // has no stable architectural identity, and saying nothing is honest where
+                // substituting its per-run Uuid would silently claim otherwise.
+                attributes[ServiceCall.NodeAttribute]?.takeIf { it.isNotEmpty() }?.let { setStringAttribute(ReaktorAttributes.NodeId, it) }
+                setStringAttribute(ReaktorAttributes.NodeInstance, node.id.toString())
+            }
+            invocation.edge?.let { edge ->
+                val source = edge.source as? Unique
+                val edgeId = source?.let { edges.value["${it.id}:${edge.consumer.key.key}:${edge.consumer.type.type}"] }
+                edgeId?.takeIf(String::isNotEmpty)?.let { setStringAttribute(ReaktorAttributes.EdgeId, it) }
+            }
+            activationId?.let { setStringAttribute(ReaktorAttributes.ActivationId, it) }
+        }
+
+    private fun spanKindFor(semantics: PortSemantics) = when (semantics) {
+        PortSemantics.Mailbox -> SpanKind.PRODUCER
+        PortSemantics.Stream -> SpanKind.CONSUMER
+        else -> SpanKind.INTERNAL
+    }
+}
+
+/**
+ * A port's identity within its node.
+ *
+ * The key alone is blank for the common single-port-per-contract case, and a blank attribute is
+ * indistinguishable from an unset one — it grouped every default port in the traces under "".
+ * [DefaultPortKey] names that case instead of hiding it.
+ */
+fun Port<*>.telemetryPortId(): String = key.key.ifBlank { DefaultPortKey }
+
+/** What a port registered with no explicit key is called in telemetry. */
+const val DefaultPortKey = "default"
+
+private fun Port<*>.requestHandler(): RequestHandler<*, *>? = when (this) {
+    is ConsumerPort<*> -> impl as? RequestHandler<*, *>
+    is ProviderPort<*> -> impl as? RequestHandler<*, *>
+}

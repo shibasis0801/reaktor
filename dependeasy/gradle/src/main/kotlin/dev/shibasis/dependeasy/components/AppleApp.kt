@@ -1,0 +1,35 @@
+package dev.shibasis.dependeasy.components
+
+import dev.shibasis.dependeasy.darwin.AppleHost
+import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.plugins.AppleAppPlugin
+import org.gradle.api.Project
+import org.gradle.api.artifacts.ProjectDependency
+
+fun Project.appleApp(
+    application: ProjectDependency,
+    entryPoint: String,
+    bundleId: String,
+    team: String,
+    backgroundTasks: List<String> = emptyList(),
+    extension: AppleFrameworkSpec? = null,
+    extensionTarget: String = "NotificationService",
+    target: String = "iosApp",
+    version: BuildOption<String>? = null,
+    number: BuildOption<Int>? = null,
+    developmentTools: BuildOption<Boolean>? = null,
+    android: ProjectDependency? = null,
+    web: WorkerRef? = null,
+    fleet: OutputHandle? = null,
+): NodeHandle {
+    require(plugins.hasPlugin(AppleAppPlugin::class.java)) { "Apply dev.shibasis.dependeasy.apple-app" }
+    require(project != rootProject) { "Declare an Apple app in its component project" }
+    require((web == null) == (fleet == null)) { "A web release requires its worker and fleet contract" }
+    require(fleet == null || fleet.kind == OutputKind.GeneratedContract && fleet.qualifiers == listOf(Contract.WorkerFleet.name)) {
+        "Use the worker fleet's published contract"
+    }
+    return AppleHost(this, application, AppleAppSpec(entryPoint, bundleId, team, backgroundTasks.toList(),
+        extension, extensionTarget, target, version, number, developmentTools, web), android, fleet).install()
+}
+

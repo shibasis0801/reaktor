@@ -83,11 +83,14 @@ class JwtRoundTripTest {
     fun delegatedTokenCarriesActChain() {
         val token = minter.mintDelegatedToken(
             subject = "user-7", actorSubject = "svc:42", audience = "manna-mcp", scopes = listOf("x"),
+            appId = "app-1",
         )
         val claims = verifier.verifyReaktorSignature(token).getOrNull()
         assertNotNull(claims)
         assertEquals("user-7", claims.subject)
         assertEquals("delegation", claims.getStringClaim("credential_type"))
+        assertEquals("app-1", claims.getStringClaim("app_id"))
+        assertEquals(listOf("manna-mcp"), claims.audience)
         @Suppress("UNCHECKED_CAST")
         val act = claims.getClaim("act") as Map<String, Any?>
         assertEquals("svc:42", act["sub"])

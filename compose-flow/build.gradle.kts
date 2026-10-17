@@ -1,95 +1,56 @@
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.darwin.*
-import dev.shibasis.dependeasy.server.*
-import dev.shibasis.dependeasy.web.*
-import groovy.json.JsonOutput
-import groovy.json.JsonSlurper
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.android.activityFragment
+import dev.shibasis.dependeasy.android.androidCoroutines
+import dev.shibasis.dependeasy.android.extensions
 
-plugins {
-    id("dev.shibasis.dependeasy.library")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.kotlin.plugin.compose")
-}
+import dev.shibasis.dependeasy.web.webCoroutines
 
-kotlin {
-    common {
-        dependencies {
-            api(compose.runtime)
-            api(compose.foundation)
-            api(compose.material3)
-        }
-    }
+plugins { id("dev.shibasis.dependeasy.compose-library") }
 
-    web {
-        dependencies {
-            kotlinWrappers()
-            react()
-            webCoroutines()
-        }
-        packageJson = file("ts/package.json")
-    }
-
-    droid {
-        dependencies {
-            activityFragment()
-            androidCoroutines()
-            extensions()
-        }
-    }
-
-    darwin {
-        dependencies {
-            api("org.jetbrains.kotlinx:atomicfu:0.23.1")
-        }
-    }
-
-    server {
-        dependencies {
-            api(compose.desktop.currentOs)
-        }
-    }
-}
-
-android {
-    defaults("dev.shibasis.composeflow")
-}
-
-val parityMatrixFile = project.file("parity/features.json")
-val parityReportDir = layout.buildDirectory.dir("reports/compose-flow")
-
-tasks.register("reportParity") {
-    group = "verification"
-    description = "Generate compose-flow React Flow parity reports."
-    inputs.file(parityMatrixFile)
-    outputs.dir(parityReportDir)
-
-    doLast {
-        val matrix = JsonSlurper().parse(parityMatrixFile) as Map<*, *>
-        val reportsDir = parityReportDir.get().asFile.apply { mkdirs() }
-        val jsonFile = reportsDir.resolve("parity.json")
-        val markdownFile = reportsDir.resolve("parity.md")
-        jsonFile.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(matrix)))
-
-        val categories = matrix["categories"] as List<Map<String, *>>
-        val markdown = buildString {
-            appendLine("# Compose Flow Parity Report")
-            appendLine()
-            appendLine("Generated from `parity/features.json`.")
-            appendLine()
-            categories.forEach { category ->
-                appendLine("## ${category["name"]}")
-                appendLine()
-                appendLine("| Feature | Status | Notes |")
-                appendLine("| --- | --- | --- |")
-                val features = category["features"] as List<Map<String, *>>
-                features.forEach { feature ->
-                    val notes = (feature["notes"] as? String).orEmpty().replace("|", "\\|")
-                    appendLine("| ${feature["name"]} | ${feature["status"]} | $notes |")
-                }
-                appendLine()
+dependeasy {
+    module("dev.shibasis.composeflow") {
+        common {
+            dependencies {
+                api(Versions.Compose.Runtime)
+                api(Versions.Compose.Foundation)
+                api(Versions.Compose.Material3)
             }
         }
-        markdownFile.writeText(markdown)
+
+        web {
+            dependencies {
+                webCoroutines()
+            }
+        }
+
+        android {
+            dependencies {
+                activityFragment()
+                androidCoroutines()
+                extensions()
+            }
+        }
+
+        apple {
+            dependencies {
+                api(Versions.Kotlin.AtomicFu)
+            }
+        }
+
+        jvm {
+            dependencies {
+                api(Versions.Compose.Desktop)
+            }
+        }
     }
+
+
+    tasks.withType<Test>().configureEach {
+        systemProperty("java.awt.headless", "true")
+        if (System.getProperty("os.name").lowercase().contains("mac")) {
+            // Exercise JDK native gesture dispatch and listener cleanup in the desktop regression.
+            jvmArgs("--add-opens=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
+        }
+    }
+
 }

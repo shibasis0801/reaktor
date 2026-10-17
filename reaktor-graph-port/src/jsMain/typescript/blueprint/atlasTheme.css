@@ -1,0 +1,79 @@
+/* Manna Atlas theme. Consumers share these values and Blueprint primitives. */
+.bp-atlas-theme {
+  --bp-canvas: #f6f5ef;
+  --bp-grid-minor-line: rgba(32, 61, 53, 0.045);
+  --bp-grid-major-line: rgba(32, 61, 53, 0.09);
+  --bp-ink: #203d35;
+  --bp-text: #203d35;
+  --bp-muted: #5e6e66;
+  --bp-row-text: #203d35;
+  --bp-header-text: #ffffff;
+  --bp-card: #ffffff;
+  --bp-card-border: 45%;
+  --bp-header-from: 55%;
+  --bp-header-to: 85%;
+  --bp-far-from: 50%;
+  --bp-far-to: 70%;
+  --bp-block: 74%;
+  --bp-frame-fill: 6%;
+  --bp-frame-border: 28%;
+  --bp-frame-band-from: 20%;
+  --bp-frame-band-to: 7%;
+  --bp-frame-label: #203d35;
+  --bp-accent: #286551;
+  --bp-focus: #78a990;
+  --bp-attention: #b5475b;
+  --bp-surface: color-mix(in srgb, #ffffff 94%, transparent);
+  --bp-tooltip: #ffffff;
+  --bp-line: #d8e0d7;
+  --bp-corridor: #6f8f7d;
+  --bp-watermark: rgba(32, 61, 53, 0.07);
+  --bp-watermark-line: rgba(32, 61, 53, 0.42);
+  --bp-radius-frame: 16px;
+  --bp-radius-card: 10px;
+  --bp-radius-legend: 9px;
+  --bp-radius-tag: 6px;
+  --bp-radius-pill: 99px;
+  --bp-card-shadow: 0 2px 6px rgba(32, 61, 53, 0.06);
+  --bp-panel-shadow: 0 4px 16px rgba(32, 61, 53, 0.08);
+  --bp-font: 'DM Sans', system-ui, sans-serif;
+  --bp-title-font: 'DM Sans', system-ui, sans-serif;
+  --bp-row-font: 'DM Sans', system-ui, sans-serif;
+  --bp-serif: 'Libre Baskerville', Georgia, serif;
+  --bp-bead: var(--mm-live);
+}
+
+:is([data-theme='dark'] .bp-atlas-theme, .bp-atlas-theme[data-theme='dark']) {
+  --bp-canvas: #121815;
+  --bp-grid-minor-line: rgba(230, 240, 233, 0.035);
+  --bp-grid-major-line: rgba(230, 240, 233, 0.08);
+  --bp-ink: #0e1311;
+  --bp-text: #e3ece6;
+  --bp-muted: #93a59b;
+  --bp-row-text: #d3ded8;
+  --bp-card: #1b2420;
+  --bp-card-border: 35%;
+  --bp-header-from: 40%;
+  --bp-header-to: 80%;
+  --bp-frame-fill: 7%;
+  --bp-frame-border: 32%;
+  --bp-frame-band-from: 22%;
+  --bp-frame-band-to: 8%;
+  --bp-frame-label: #e3ece6;
+  --bp-accent: #5fb38e;
+  --bp-attention: #ff7a93;
+  --bp-surface: color-mix(in srgb, #1b2420 94%, transparent);
+  --bp-tooltip: #1b2420;
+  --bp-line: #2c3a33;
+  --bp-corridor: #7e968a;
+  --bp-watermark: rgba(227, 236, 230, 0.07);
+  --bp-watermark-line: rgba(227, 236, 230, 0.3);
+  --bp-card-shadow: none;
+  --bp-panel-shadow: none;
+}
+
+.bp-atlas-theme .bp-card__title { font-size: 13px; letter-spacing: -0.005em; }
+.bp-atlas-theme .bp-card__subtitle { color: var(--bp-muted); }
+.bp-atlas-theme .bp-row { font-size: 11px; }
+.bp-atlas-theme .bp-frame__title { font-weight: 700; }
+.bp-atlas-frame-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--bp-tone); }

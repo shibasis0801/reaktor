@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.auth
 import androidx.activity.ComponentActivity
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
+import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.auth.api.AuthServiceClient
 
 
@@ -15,8 +16,10 @@ class AndroidAuthAdapter(
 ) {
     val credentialManager = CredentialManager.create(controller!!)
     override suspend fun logout(): Result<Unit> = suspended {
+        logoutSession().onFailure { Logger.w { "The session was cleared here but the server did not confirm its revocation: $it" } }
         try {
             credentialManager.clearCredentialState(ClearCredentialStateRequest())
+            providers.values.forEach { it.logout().getOrThrow() }
             resetLoginState()
             Result.success(Unit)
         } catch (e: Exception) {

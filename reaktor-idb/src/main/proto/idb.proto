@@ -1,0 +1,515 @@
+// Generated subset of facebook/idb proto/idb.proto (MIT).
+// Only the RPCs Reaktor calls are kept; field numbers are copied verbatim so the wire
+// format stays compatible with the full companion service.
+syntax = "proto3";
+
+package idb;
+
+option java_package = "dev.shibasis.reaktor.tooling.idb.proto";
+option java_outer_classname = "IdbProto";
+option java_multiple_files = false;
+
+service CompanionService {
+  rpc describe(TargetDescriptionRequest) returns (TargetDescriptionResponse) {}
+  rpc list_apps(ListAppsRequest) returns (ListAppsResponse) {}
+  rpc screenshot(ScreenshotRequest) returns (ScreenshotResponse) {}
+  rpc accessibility_info(AccessibilityInfoRequest) returns (AccessibilityInfoResponse) {}
+  rpc log(LogRequest) returns (stream LogResponse) {}
+  rpc open_url(OpenUrlRequest) returns (OpenUrlRequest) {}
+  rpc terminate(TerminateRequest) returns (TerminateResponse) {}
+  rpc hid(stream HIDEvent) returns (HIDResponse) {}
+  rpc crash_list(CrashLogQuery) returns (CrashLogResponse) {}
+  rpc crash_show(CrashShowRequest) returns (CrashShowResponse) {}
+  rpc ls(LsRequest) returns (LsResponse) {}
+  rpc set_location(SetLocationRequest) returns (SetLocationResponse) {}
+  rpc approve(ApproveRequest) returns (ApproveResponse) {}
+  rpc connect(ConnectRequest) returns (ConnectResponse) {}
+}
+
+message AccessibilityActionRequest {
+  enum SearchableKey {
+    LABEL = 0;
+    UNIQUE_ID = 1;
+    VALUE = 2;
+    TITLE = 3;
+    ROLE = 4;
+    ROLE_DESCRIPTION = 5;
+    SUBROLE = 6;
+    HELP = 7;
+    PLACEHOLDER = 8;
+  }
+  // No target means the frontmost application element.
+  oneof target {
+    string marker = 1;
+    Point point = 2;
+  }
+  SearchableKey match_key = 3;
+  uint32 depth = 4;
+  // Compare a marker — the source and, on a drag, the destination —
+  // case-insensitively. Absent on an older client, which matches
+  // case-sensitively as before.
+  bool ignore_case = 9;
+
+  message Tap {
+    bool check_expected_value = 1;
+    string expected_value = 2;
+    SearchableKey expected_key = 3;
+  }
+
+  message Scroll {
+    enum Direction {
+      UP = 0;
+      DOWN = 1;
+      LEFT = 2;
+      RIGHT = 3;
+      VISIBLE = 4;
+    }
+    Direction direction = 1;
+  }
+
+  message SetValue {
+    string value = 1;
+  }
+
+  // Press and hold the request's target, drag to the destination below, and
+  // release. All durations are in seconds; a zero value means the server
+  // default noted against each field.
+  message Drag {
+    // A destination is required; unlike the source, it has no frontmost
+    // default.
+    oneof destination {
+      string marker = 1;
+      Point point = 2;
+    }
+    SearchableKey destination_match_key = 3;
+    uint32 destination_depth = 4;
+    // How long to hold the source before moving. Default 0.5.
+    double press_duration = 5;
+    // How long the movement itself takes. Default 0.5.
+    double duration = 6;
+    // How long to hold the destination before releasing. Default 0.1.
+    double release_duration = 7;
+    // Distance between interpolated touch points, in points. Default 10.
+    double delta = 8;
+  }
+
+  oneof action {
+    Tap tap = 5;
+    Scroll scroll = 6;
+    SetValue set_value = 7;
+    Drag drag = 8;
+  }
+}
+
+message AccessibilityInfoRequest {
+  enum Format {
+    LEGACY = 0;
+    NESTED = 1;
+    // A consolidated document: the element tree plus the read's provenance
+    // (which backend served it, what was asked, screen bounds, truncation,
+    // any blocking modal). An older server does not recognize this value and
+    // falls back to LEGACY — a caller can detect that by the response shape.
+    COMPLETE = 2;
+  }
+  // Which backend serves the read. UNSPECIFIED preserves the historical
+  // behaviour, so an older client — or one that does not ask — is unaffected;
+  // an older server ignores this field entirely and serves the read as if it
+  // were unset.
+  enum Backend {
+    BACKEND_UNSPECIFIED = 0;
+    AX = 1;
+    AXBRIDGE = 2;
+    AXBRIDGE_PERSISTENT = 3;
+  }
+  Point point = 2;
+  Format format = 3;
+  // Optional: describe a single element by marker (substring match against
+  // match_key, within depth) instead of by point / the whole screen.
+  string marker = 4;
+  AccessibilityActionRequest.SearchableKey match_key = 5;
+  uint32 depth = 6;
+  // Restricts the described accessibility keys to this set; an empty list
+  // returns the default key set.
+  repeated string keys = 7;
+  Backend backend = 8;
+  // Collect element counts and timings for the read. Reported by the COMPLETE
+  // format only; the legacy formats collect but have nowhere to report, so
+  // their output is unchanged.
+  bool profile = 9;
+  // Collect upper-region frame coverage for the read. Reported by the
+  // COMPLETE format only, like profile.
+  bool collect_frame_coverage = 10;
+  // Which elements the read reports. FILTER_ALL is the historical behaviour,
+  // so an older client — or one that does not ask — is unaffected.
+  enum Filter {
+    FILTER_ALL = 0;
+    // Only the elements a caller could actually interact with.
+    FILTER_INTERACTABLE = 1;
+  }
+  // Report only the elements whose match_key value contains this substring;
+  // empty reports every element, which is the historical behaviour. Unlike
+  // marker, which selects the first matching element and only it, match
+  // reports all of them and finding none is an empty result rather than an
+  // error. Setting both marker and match is INVALID_ARGUMENT.
+  string match = 11;
+  // Compare match — and, on a marker read, marker — case-insensitively.
+  bool ignore_case = 12;
+  Filter filter = 13;
+}
+
+message AccessibilityInfoResponse {
+  string json = 1;
+}
+
+message ApproveRequest {
+  enum Permission {
+    PHOTOS = 0;
+    CAMERA = 1;
+    CONTACTS = 2;
+    URL = 3;
+    LOCATION = 4;
+    NOTIFICATION = 5;
+    MICROPHONE = 6;
+  }
+  string bundle_id = 1;
+  repeated Permission permissions = 2;
+  string scheme = 3;
+}
+
+message ApproveResponse {}
+
+message CompanionInfo {
+  string udid = 1;
+  bool is_local = 4;
+  bytes metadata = 6;
+}
+
+message ConnectRequest {
+  map<string, string> metadata = 1;
+  string local_file_path = 4;
+}
+
+message ConnectResponse {
+  CompanionInfo companion = 1;
+}
+
+message CrashLogInfo {
+  string name = 1;
+  string bundle_id = 2;
+  string process_name = 3;
+  string parent_process_name = 4;
+  uint64 process_identifier = 5;
+  uint64 parent_process_identifier = 6;
+  uint64 timestamp = 7;
+}
+
+message CrashLogQuery {
+  uint64 since = 1;
+  uint64 before = 2;
+  string bundle_id = 3;
+  string name = 4;
+}
+
+message CrashLogResponse {
+  repeated CrashLogInfo list = 1;
+}
+
+message CrashShowRequest {
+  string name = 1;
+}
+
+message CrashShowResponse {
+  CrashLogInfo info = 1;
+  string contents = 2;
+}
+
+message FileContainer {
+  enum Kind {
+    NONE = 0;
+    APPLICATION = 1;
+    ROOT = 2;
+    MEDIA = 3;
+    CRASHES = 4;
+    PROVISIONING_PROFILES = 5;
+    MDM_PROFILES = 6;
+    SPRINGBOARD_ICONS = 7;
+    WALLPAPER = 8;
+    DISK_IMAGES = 9;
+    GROUP_CONTAINER = 10;
+    APPLICATION_CONTAINER = 11;
+    AUXILLARY = 12;
+    XCTEST = 13;
+    DYLIB = 14;
+    DSYM = 15;
+    FRAMEWORK = 16;
+    SYMBOLS = 17;
+  }
+  Kind kind = 1;
+  string bundle_id = 2;
+}
+
+message FileInfo {
+  string path = 1;
+}
+
+message FileListing {
+  FileInfo parent = 1;
+  repeated FileInfo files = 2;
+}
+
+message HIDEvent {
+  enum HIDDirection {
+    DOWN = 0;
+    UP = 1;
+  }
+
+  message HIDTouch {
+    Point point = 1;
+  }
+
+  enum HIDButtonType {
+    APPLE_PAY = 0;
+    HOME = 1;
+    LOCK = 2;
+    SIDE_BUTTON = 3;
+    SIRI = 4;
+  }
+
+  message HIDButton {
+    HIDButtonType button = 1;
+  }
+
+  message HIDKey {
+    uint64 keycode = 1;
+  }
+
+  message HIDPressAction {
+    oneof action {
+      HIDTouch touch = 1;
+      HIDButton button = 2;
+      HIDKey key = 3;
+    }
+  }
+
+  message HIDPress {
+    HIDPressAction action = 1;
+    HIDDirection direction = 2;
+  }
+
+  message HIDSwipe {
+    Point start = 1;
+    Point end = 2;
+    double delta = 5;
+    double duration = 6;
+  }
+
+  message HIDDelay {
+    double duration = 1;
+  }
+
+  message HIDPinch {
+    Point center = 1;
+    double scale = 2;
+    double duration = 3;
+    double radius = 4;
+  }
+
+  enum HIDOrientationType {
+    PORTRAIT = 0;
+    PORTRAIT_UPSIDE_DOWN = 1;
+    LANDSCAPE_LEFT = 2;
+    LANDSCAPE_RIGHT = 3;
+  }
+
+  message HIDOrientation {
+    HIDOrientationType orientation = 1;
+  }
+
+  message HIDShake {}
+
+  oneof event {
+    HIDPress press = 1;
+    HIDSwipe swipe = 2;
+    HIDDelay delay = 3;
+    HIDPinch pinch = 4;
+    HIDOrientation orientation = 5;
+    HIDShake shake = 6;
+  }
+}
+
+message HIDResponse {}
+
+message InstalledAppInfo {
+  string bundle_id = 1;
+  string name = 2;
+  repeated string architectures = 3;
+  string install_type = 4;
+  enum AppProcessState {
+    UNKNOWN = 0;
+    NOT_RUNNING = 1;
+    RUNNING = 2;
+  }
+  AppProcessState process_state = 5;
+  bool debuggable = 6;
+  uint64 process_identifier = 7;
+}
+
+message ListAppsRequest {
+  bool suppress_process_state = 1;
+}
+
+message ListAppsResponse {
+  repeated InstalledAppInfo apps = 1;
+}
+
+message Location {
+  double latitude = 1;
+  double longitude = 2;
+}
+
+message LogRequest {
+  enum Source {
+    TARGET = 0;
+    COMPANION = 1;
+  }
+  repeated string arguments = 1;
+  Source source = 2;
+}
+
+message LogResponse {
+  bytes output = 1;
+}
+
+message LsRequest {
+  string path = 2;
+  FileContainer container = 3;
+  repeated string paths = 4;
+}
+
+message LsResponse {
+  repeated FileInfo files = 1;
+  repeated FileListing listings = 2;
+}
+
+message OpenUrlRequest {
+  string url = 1;
+}
+
+message Point {
+  double x = 1;
+  double y = 2;
+}
+
+message ScreenDimensions {
+  uint64 width = 1;
+  uint64 height = 2;
+  double density = 3;
+  uint64 width_points = 4;
+  uint64 height_points = 5;
+}
+
+message ScreenshotRequest {
+  enum Format {
+    PNG = 0;
+    JPEG = 1;
+    TIFF = 2;
+  }
+  // The unit that `crop` and `fit` are expressed in. POINTS is the coordinate
+  // space that tap, swipe and describe already use; it is resolved to pixels
+  // on the companion, which is the only side that knows the screen scale.
+  enum Unit {
+    PIXELS = 0;
+    POINTS = 1;
+  }
+  // Top-left origin, matching the tap/swipe coordinate space. A rect that
+  // partially overhangs the screen is clamped; the response reports the
+  // dimensions actually captured.
+  message Rect {
+    double x = 1;
+    double y = 2;
+    double width = 3;
+    double height = 4;
+  }
+  // Bounding box the image is scaled to fit inside. One factor is applied to
+  // both axes and the image is never upscaled, so the aspect ratio is
+  // preserved to within the rounding of each side to a whole pixel -- a few
+  // percent on a very small image. 0 means "unbounded" on that axis; when both
+  // are set, the more restrictive bound wins.
+  message Fit {
+    uint32 max_width = 1;
+    uint32 max_height = 2;
+  }
+
+  Format format = 1;
+  // Lossy formats only; 0 means "server default" (0.8), as in
+  // VideoStreamRequest. Setting this on PNG or TIFF is an INVALID_ARGUMENT
+  // error rather than a no-op.
+  double compression_quality = 2;
+  // Unset captures the full screen.
+  Rect crop = 3;
+  // Transforms are applied crop -> scale -> encode, so the scaler never
+  // touches pixels that are about to be discarded.
+  oneof scale {
+    // In (0, 1].
+    double scale_factor = 4;
+    Fit fit = 5;
+  }
+  Unit unit = 6;
+}
+
+message ScreenshotResponse {
+  // Pixels. A measurement is never legitimately 0, so 0 on either axis is the
+  // companion saying it did not report one rather than an image of no height.
+  message Size {
+    uint32 width = 1;
+    uint32 height = 2;
+  }
+
+  bytes image_data = 1;
+  // One of "png", "jpeg" or "tiff". Declared since this message was written
+  // but never populated before the request gained fields. A companion that
+  // leaves this empty predates that change and has silently ignored every
+  // field of ScreenshotRequest.
+  string image_format = 2;
+  // Dimensions of image_data, after crop and scale.
+  Size destination = 3;
+  // Dimensions of the native capture, before crop and scale.
+  Size source = 4;
+  // Pixels per point, so a client can convert between the two units itself.
+  // 0 when the target does not report a screen scale, which is also when a
+  // request in POINTS is rejected.
+  double screen_scale = 5;
+}
+
+message SetLocationRequest {
+  Location location = 1;
+}
+
+message SetLocationResponse {}
+
+message TargetDescription {
+  string udid = 1;
+  string name = 2;
+  ScreenDimensions screen_dimensions = 3;
+  string state = 4;
+  string target_type = 5;
+  string os_version = 6;
+  string architecture = 7;
+  bytes extended = 9;
+  bytes diagnostics = 10;
+}
+
+message TargetDescriptionRequest {
+  bool fetch_diagnostics = 1;
+}
+
+message TargetDescriptionResponse {
+  TargetDescription target_description = 1;
+  CompanionInfo companion = 2;
+}
+
+message TerminateRequest {
+  string bundle_id = 1;
+}
+
+message TerminateResponse {}

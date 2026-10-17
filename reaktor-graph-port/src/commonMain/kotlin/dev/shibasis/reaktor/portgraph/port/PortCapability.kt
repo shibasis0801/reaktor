@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.portgraph.port
 
 import kotlin.js.JsExport
+import kotlinx.atomicfu.atomic
 
 @JsExport
 sealed class PortEvent(val port: Port<*>) {
@@ -38,22 +39,28 @@ interface PortCapability {
 
 @JsExport
 open class PortCapabilityImpl(
-    override val consumerPorts: TypedKeyedMap<ConsumerPort<Any>> = hashMapOf(),
-    override val providerPorts: TypedKeyedMap<ProviderPort<Any>> = hashMapOf(),
-    private val listeners: MutableList<PortEventListener> = mutableListOf()
+    override val consumerPorts: TypedKeyedMap<ConsumerPort<Any>> = TypedKeyedMap(),
+    override val providerPorts: TypedKeyedMap<ProviderPort<Any>> = TypedKeyedMap(),
+    listeners: MutableList<PortEventListener> = mutableListOf()
 ): PortCapability {
+    private val eventListeners = atomic<List<PortEventListener>>(listeners.toList())
+
     override fun addPortEventListener(listener: PortEventListener) {
-        listeners.add(listener)
+        while (true) {
+            val current = eventListeners.value
+            if (eventListeners.compareAndSet(current, current + listener)) return
+        }
     }
 
     override fun removePortEventListener(listener: PortEventListener) {
-        listeners.remove(listener)
+        while (true) {
+            val current = eventListeners.value
+            if (eventListeners.compareAndSet(current, current - listener)) return
+        }
     }
 
     override fun emit(event: PortEvent) {
-        // Over a snapshot: a one-shot listener — the common shape for "wake me when this port is
-        // connected" — removes itself while being called, which mutates the list mid-iteration.
-        // Adding a listener from inside a handler has the same problem, and the same fix.
-        listeners.toList().forEach { it(event) }
+        // An immutable snapshot also allows cancellation on another thread while events fire.
+        eventListeners.value.forEach { it(event) }
     }
 }

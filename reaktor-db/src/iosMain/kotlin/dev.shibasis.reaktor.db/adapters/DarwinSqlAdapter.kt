@@ -4,27 +4,13 @@ import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import co.touchlab.sqliter.DatabaseConfiguration
-import co.touchlab.sqliter.DatabaseFileContext
-import dev.shibasis.reaktor.core.utils.logger
-import dev.shibasis.reaktor.core.utils.warn
 
 private const val DATABASE_NAME = "reaktor.db"
 
 class DarwinSqlAdapter: SqlAdapter<Unit>(Unit) {
-    private val log = "DarwinSqlAdapter".logger()
-
     override fun createDriver(): SqlDriver {
-        return try {
-            openDriver()
-        } catch (throwable: Throwable) {
-            // A file SQLite refuses to open cannot be repaired from here, and the alternative to
-            // replacing it is an app that throws on every launch until it is deleted — which
-            // costs the user the same data plus the app. Android's SQLite already deletes and
-            // recreates a corrupt file; this keeps the two platforms behaving alike.
-            log.warn { "Recreating $DATABASE_NAME, which would not open: ${throwable.message}" }
-            DatabaseFileContext.deleteDatabase(DATABASE_NAME)
-            openDriver()
-        }
+        // Accepted intent cannot be erased because an open failed (including transient lock errors).
+        return openDriver()
     }
 
     private fun openDriver(): SqlDriver {

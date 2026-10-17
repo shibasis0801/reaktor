@@ -1,5 +1,15 @@
 # reaktor-flexbuffer runtime-performance audit
 
+> **Historical analysis — current status refreshed 4 October 2026.** Read the
+> [October review](PERFORMANCE_REVIEW_2026-10-03.md) for actual Chrome and physical-device measurements,
+> JSON/Protobuf baselines and four unresolved correctness defects. Numbers and
+> architectural sketches below retain their original scope; Android bulk policy
+> is proposed, not shipped. Compiler/plugin, native and mutable-engine proposals
+> are not production features. The
+> [complete book](https://reaktor.build/docs/flatbuffers-flexbuffers-mutable-memory)
+> is now published as separate design input.
+
+
 Date: 2026-07-11/12
 
 ## Executive conclusion

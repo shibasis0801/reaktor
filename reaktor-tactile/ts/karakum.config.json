@@ -1,5 +1,6 @@
 {
-    "input": "index.ts",
-    "output": "import",
-    "libraryName": "reaktor-db"
+  "input": "index.ts",
+  "output": "import",
+  "libraryName": "reaktor-tactile",
+  "inputResolutionStrategy": "plain"
 }

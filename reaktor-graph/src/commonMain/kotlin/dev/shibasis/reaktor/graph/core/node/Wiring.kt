@@ -3,11 +3,10 @@ package dev.shibasis.reaktor.graph.core.node
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.PortEvent
 import dev.shibasis.reaktor.portgraph.port.PortEventListener
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 
 /**
  * Wait until this port has a provider on the other end.
@@ -24,29 +23,17 @@ import kotlin.coroutines.resume
 suspend fun ConsumerPort<*>.awaitConnected() {
     if (isConnected()) return
 
-    suspendCancellableCoroutine { continuation ->
-        // Re-checked inside the listener registration window: `connect` may have run between the
-        // check above and this line, and a listener added afterwards would never hear about it.
-        if (isConnected()) {
-            continuation.resume(Unit)
-            return@suspendCancellableCoroutine
-        }
-
-        lateinit var listener: PortEventListener
-        listener = { event ->
-            if (event is PortEvent.Connected && event.port === this && isConnected()) {
-                owner.removePortEventListener(listener)
-                if (continuation.isActive) continuation.resume(Unit)
-            }
-        }
-        owner.addPortEventListener(listener)
-        continuation.invokeOnCancellation { owner.removePortEventListener(listener) }
-
-        // One last look, in case the connection landed while the listener was being registered.
-        if (isConnected()) {
-            owner.removePortEventListener(listener)
-            if (continuation.isActive) continuation.resume(Unit)
-        }
+    val connected = CompletableDeferred<Unit>()
+    val listener: PortEventListener = { event ->
+        if (event is PortEvent.Connected && event.port === this && isConnected()) connected.complete(Unit)
+    }
+    owner.addPortEventListener(listener)
+    try {
+        // The registration check and connection event may arrive together; completion is atomic.
+        if (isConnected()) connected.complete(Unit)
+        connected.await()
+    } finally {
+        owner.removePortEventListener(listener)
     }
 }
 
