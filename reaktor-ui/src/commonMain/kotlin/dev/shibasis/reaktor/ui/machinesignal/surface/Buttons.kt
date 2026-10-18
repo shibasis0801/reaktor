@@ -6,7 +6,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.surface.ComponentRecipe
 import dev.shibasis.reaktor.surface.PressProperties
 import dev.shibasis.reaktor.surface.PressState
+import dev.shibasis.reaktor.surface.ThemeSnapshot
+import dev.shibasis.reaktor.surface.compose.ButtonSlots
+import dev.shibasis.reaktor.surface.compose.ComposeFeedback
 import dev.shibasis.reaktor.surface.compose.ButtonAppearance
 import dev.shibasis.reaktor.surface.compose.composeAppearance
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
@@ -51,6 +60,32 @@ val PrimaryButton: ButtonAppearance = toneLook(SignalTone.Primary)
 val SecondaryButton: ButtonAppearance = toneLook(SignalTone.Secondary)
 val GhostButton: ButtonAppearance = toneLook(SignalTone.Ghost)
 val DangerButton: ButtonAppearance = toneLook(SignalTone.Danger)
+
+val SendButton: ButtonAppearance = object : ButtonAppearance {
+    @Composable
+    override fun Content(properties: PressProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ButtonSlots) {
+        val signal = theme.machineSignal
+        val colors = signal.colors
+        Box(
+            Modifier
+                .pointerHoverIcon(PointerIcon.Hand)
+                .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, CircleShape))
+                .then(if (properties.busy) Modifier.alpha(BusyAlpha) else Modifier)
+                .size(signal.metrics.controlHeight)
+                .background(
+                    when {
+                        !properties.enabled -> colors.raised
+                        state.hovered -> colors.accentHover
+                        else -> colors.accent
+                    },
+                    CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            CompositionLocalProvider(LocalContentColor provides if (properties.enabled) colors.onAccent else colors.textFaint, content = slots.content)
+        }
+    }
+}
 
 private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
     ComponentRecipe<PressProperties, PressState, ButtonLook> { properties, state, theme ->

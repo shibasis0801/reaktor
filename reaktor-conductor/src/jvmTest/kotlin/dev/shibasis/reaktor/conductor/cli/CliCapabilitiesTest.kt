@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.conductor.cli
 import dev.shibasis.reaktor.conductor.NativeEffort
 import dev.shibasis.reaktor.conductor.ReasoningFidelity
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -67,6 +68,78 @@ class CliCapabilitiesTest {
         assertNull(absent.version)
         assertFalse(absent.effortControl.usable)
     }
+
+    @Test
+    fun claudeModelAliasesAreReadFromItsModelFlag() {
+        val models = CliCapabilities.parseClaudeModels(claudeModelHelp)
+        assertEquals(listOf("fable" to "Fable", "opus" to "Opus", "sonnet" to "Sonnet"), models.map { it.id to it.name })
+        val capability = CliCapabilities.claude("2.1.289", claudeModelHelp, defaultModel = "opus")
+        assertEquals(models, capability.models)
+        assertEquals("Opus", capability.model(capability.defaultModel)?.name)
+        assertTrue(CliCapabilities.parseClaudeModels(claudeHelp).isEmpty())
+    }
+
+    @Test
+    fun codexModelsComeFromItsOwnCacheInPriorityOrderWithTheirEffortLevels() {
+        val models = CliCapabilities.parseCodexModels(codexCache)
+        assertEquals(listOf("lead" to "Lead", "helper" to "Helper"), models.map { it.id to it.name })
+        assertEquals(listOf("low", "high", "max").map(::NativeEffort), models.first().effort?.supported)
+        assertEquals(NativeEffort("high"), models.first().effort?.default)
+        assertNull(models.last().effort?.supported, "A model that lists no levels keeps an unknown set")
+        assertTrue(CliCapabilities.parseCodexModels("{not json").isEmpty())
+    }
+
+    @Test
+    fun codexDefaultsAreTheTopLevelConfigKeysNotAProfiles() {
+        val config = """
+            model = "lead"
+            model_reasoning_effort = "max"
+
+            [profiles.fast]
+            model = "helper"
+        """.trimIndent()
+        assertEquals("lead", CliCapabilities.parseTomlString(config, "model"))
+        assertEquals("max", CliCapabilities.parseTomlString(config, "model_reasoning_effort"))
+        assertNull(CliCapabilities.parseTomlString("[profiles.fast]\nmodel = \"helper\"", "model"))
+    }
+
+    @Test
+    fun theProbeReadsEachHarnessOwnModelFiles() {
+        val home = Files.createTempDirectory("capability-home").toFile()
+        home.resolve("codex").apply { mkdirs() }.let { codex ->
+            codex.resolve("models_cache.json").writeText(codexCache)
+            codex.resolve("config.toml").writeText("model = \"helper\"\nmodel_reasoning_effort = \"low\"\n")
+        }
+        home.resolve(".gemini/antigravity-cli").apply { mkdirs() }.resolve("settings.json").writeText("""{"model":"gemini-4-argon-high"}""")
+        home.resolve("claude").apply { mkdirs() }.resolve("settings.json").writeText("""{"model":"sonnet"}""")
+        val codex = CliCapabilities.probe(RuntimeKind.Codex, "codex-does-not-exist-here", home, mapOf("CODEX_HOME" to home.resolve("codex").path))
+        assertEquals(listOf("lead", "helper"), codex.models.map { it.id })
+        assertEquals("helper", codex.defaultModel)
+        assertEquals(NativeEffort("low"), codex.effort?.default)
+        val antigravity = CliCapabilities.probe(RuntimeKind.Gemini, "agy-does-not-exist-here", home, emptyMap())
+        assertEquals(antigravityModelNames.keys.toList(), antigravity.models.map { it.id })
+        assertEquals("gemini-4-argon-high", antigravity.defaultModel)
+        val claude = CliCapabilities.probe(RuntimeKind.ClaudeCode, "claude-does-not-exist-here", home, mapOf("CLAUDE_CONFIG_DIR" to home.resolve("claude").path))
+        assertEquals("sonnet", claude.defaultModel)
+        assertTrue(CliCapabilities.probe(RuntimeKind.ChatGptGemini, "agy-does-not-exist-here", home, emptyMap()).models.isEmpty())
+    }
+
+    private val codexCache = """
+        {"client_version":"0.154.0","etag":"e","fetched_at":"2026-10-18T00:00:00Z","models":[
+          {"slug":"helper","display_name":"Helper","priority":2,"visibility":"list","default_reasoning_level":"medium","supported_reasoning_levels":[]},
+          {"slug":"hidden","display_name":"Hidden","priority":0,"visibility":"hide","default_reasoning_level":"low","supported_reasoning_levels":[{"effort":"low","description":"d"}]},
+          {"slug":"lead","display_name":"Lead","priority":1,"visibility":"list","default_reasoning_level":"high",
+           "supported_reasoning_levels":[{"effort":"low","description":"d"},{"effort":"high","description":"d"},{"effort":"max","description":"d"}]}
+        ]}
+    """.trimIndent()
+
+    private val claudeModelHelp = """
+  --model <model>                       Model for the current session. Provide
+                                        an alias for the latest model (e.g.
+                                        'fable', 'opus', or 'sonnet') or a
+                                        model's full name.
+  -n, --name <name>                     Set a display name for this session
+    """.trimIndent()
 
     /** CAPTURED: the relevant window of `claude --help`, wrapping and all. */
     private val claudeHelp = """

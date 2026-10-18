@@ -98,6 +98,17 @@ data class ProviderCapability(
     val notes: List<String> = emptyList(),
     val controls: Map<String, Qualification> = emptyMap(),
     val entitlements: List<AgentEntitlement> = runtime.entitlements(),
+    val models: List<ModelChoice> = emptyList(),
+    val defaultModel: String? = null,
+) {
+    fun model(id: String?): ModelChoice? = id?.let { wanted -> models.firstOrNull { it.id == wanted } }
+}
+
+@Serializable
+data class ModelChoice(
+    val id: String,
+    val name: String,
+    val effort: EffortSupport? = null,
 )
 
 /**
