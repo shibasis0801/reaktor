@@ -27,7 +27,7 @@ internal fun agentBoardTools(workspace: AgentWorkspace): List<McpTool> {
     val links = "links" to objectSchema(mapOf(
         "mission" to stringSchema("Mission id or link"), "issue" to stringSchema("Issue link"), "pullRequest" to stringSchema("Pull request link"),
     ))
-    val work = list("A run or session: hangar:<conversation id>, claude:<session id> or codex:<session id>")
+    val work = list("A run or session: hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>")
     val stages = BoardStage.entries.map { it.name }
     return listOf(
         McpTool("agent_board", "Read the task board. Each entry is a task and its column: Backlog, Planning, Running, Needs you, Review or Done. " +
@@ -86,7 +86,7 @@ internal fun agentBoardTools(workspace: AgentWorkspace): List<McpTool> {
                 .let { workspace.boardEntry(it.id) })
         },
         McpTool("agent_board_link", "Link a run or session to a task, or unlink it with linked false. A task's column follows the work linked to it.",
-            objectSchema(mapOf(task, "work" to stringSchema("hangar:<conversation id>, claude:<session id> or codex:<session id>"),
+            objectSchema(mapOf(task, "work" to stringSchema("hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>"),
                 "linked" to buildJsonObject { put("type", "boolean"); put("description", "False unlinks; true by default") }, by),
                 listOf("taskId", "work", "by")), readOnly = false, idempotent = true) { args ->
             args.only("taskId", "work", "linked", "by")

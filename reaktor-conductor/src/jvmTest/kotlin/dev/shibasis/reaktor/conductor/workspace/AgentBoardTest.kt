@@ -46,7 +46,7 @@ class AgentBoardTest {
         assertEquals(1_200, entry.since)
     }
 
-    @Test fun linkedClaudeCodeAndCodexSessionsPlaceTheirTasks() {
+    @Test fun linkedClaudeCodeCodexAndAntigravitySessionsPlaceTheirTasks() {
         fun task(id: String, stage: BoardStage, ref: String) =
             BoardTask(id, "Task $id", stage = stage, work = listOf(ref), createdBy = agent, createdAt = 1_000, updatedAt = 1_000, stageChangedAt = 1_000)
         fun session(runtime: RuntimeKind, id: String, activity: HarnessActivity, at: Long) = HarnessSession(runtime, id, "Session $id", "/workspace",
@@ -58,15 +58,18 @@ class AgentBoardTest {
             task("T3", BoardStage.Planning, "claude:idle"),
             task("T4", BoardStage.Review, "claude:idle"),
             task("T5", BoardStage.Planning, "claude:gone"),
+            task("T6", BoardStage.Planning, "agy:conversation"),
+            task("T7", BoardStage.Planning, "claude:conversation"),
         )
         val byId = tasks.associateBy { it.id }
         val placed = BoardPage(7, tasks.map { it.entry(emptyList(), byId) }).placed(listOf(
             session(RuntimeKind.Codex, "working", HarnessActivity.Working, 5_000),
             session(RuntimeKind.Codex, "asking", HarnessActivity.NeedsYou, 6_000),
             session(RuntimeKind.ClaudeCode, "idle", HarnessActivity.Waiting, 7_000),
+            session(RuntimeKind.Gemini, "conversation", HarnessActivity.Waiting, 8_000),
         ))
         assertEquals(mapOf("T1" to BoardColumn.Running, "T2" to BoardColumn.NeedsYou, "T3" to BoardColumn.NeedsYou, "T4" to BoardColumn.Review,
-            "T5" to BoardColumn.Planning), placed.entries.associate { it.task.id to it.column })
+            "T5" to BoardColumn.Planning, "T6" to BoardColumn.NeedsYou, "T7" to BoardColumn.Planning), placed.entries.associate { it.task.id to it.column })
         assertEquals(4_900L, placed.entries.first { it.task.id == "T1" }.since)
         assertEquals(listOf("T1"), placed.matching("column:Running").entries.map { it.task.id })
         assertEquals(7L, placed.revision)
@@ -114,11 +117,11 @@ class AgentBoardTest {
         assertFailsWith<IllegalArgumentException> { store.create(BoardDraft("two\nlines"), person) }
         assertFailsWith<IllegalArgumentException> { store.create(BoardDraft("Bad link", work = listOf("terminal:1")), person) }
         assertFailsWith<IllegalArgumentException> { store.create(BoardDraft("Nobody"), BoardActor(BoardActorKind.Agent, "")) }
-        store.create(BoardDraft("First", acceptance = listOf(" passes ", ""), work = listOf("claude:abc", "claude:abc")), person)
+        store.create(BoardDraft("First", acceptance = listOf(" passes ", ""), work = listOf("claude:abc", "claude:abc", "agy:def")), person)
         store.create(BoardDraft("Second", parent = "T1"), agent)
         assertFailsWith<IllegalStateException> { store.create(BoardDraft("Orphan", parent = "T7"), agent) }
         assertEquals(listOf("passes"), store.get("T1").acceptance)
-        assertEquals(listOf("claude:abc"), store.get("T1").work)
+        assertEquals(listOf("claude:abc", "agy:def"), store.get("T1").work)
         val revision = store.revision
         val reopened = AgentBoardStore(folder)
         assertEquals(revision, reopened.revision)

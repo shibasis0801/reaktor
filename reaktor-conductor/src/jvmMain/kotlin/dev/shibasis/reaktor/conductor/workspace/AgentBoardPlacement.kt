@@ -1,11 +1,10 @@
 package dev.shibasis.reaktor.conductor.workspace
 
-import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.cli.HarnessActivity
 import dev.shibasis.reaktor.conductor.cli.HarnessSession
 import dev.shibasis.reaktor.tooling.query.SearchQuery
 
-val HarnessSession.boardRef: String get() = (if (runtime == RuntimeKind.Codex) BoardRefs.Codex else BoardRefs.Claude) + id
+val HarnessSession.boardRef: String get() = BoardRefs.session(runtime, id)
 
 fun HarnessSession.boardWork(): BoardWork = when (activity) {
     HarnessActivity.NeedsYou -> BoardWork(boardRef, BoardWorkState.Asking, lastActiveAt)

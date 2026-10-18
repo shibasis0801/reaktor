@@ -159,7 +159,7 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
 
     private fun List<String>.refs(): List<String> = distinct().also { refs ->
         require(refs.size <= 50) { "A task links at most 50 runs and sessions" }
-        refs.forEach { require(BoardRefs.pattern.matches(it)) { "$it is not a run or session: use hangar:<thread>, claude:<session> or codex:<session>" } }
+        refs.forEach { require(BoardRefs.pattern.matches(it)) { "$it is not a run or session: use hangar:<thread>, claude:<session>, codex:<session> or agy:<conversation>" } }
     }
 
     private companion object {

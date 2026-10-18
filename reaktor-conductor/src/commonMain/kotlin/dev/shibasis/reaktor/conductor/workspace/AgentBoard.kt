@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.conductor.RuntimeKind
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -141,5 +142,12 @@ object BoardRefs {
     const val Hangar = "hangar:"
     const val Claude = "claude:"
     const val Codex = "codex:"
-    val pattern = Regex("(hangar|claude|codex):[A-Za-z0-9._-]{1,200}")
+    const val Antigravity = "agy:"
+    val pattern = Regex("(hangar|claude|codex|agy):[A-Za-z0-9._-]{1,200}")
+
+    fun session(runtime: RuntimeKind, id: String): String = when (runtime) {
+        RuntimeKind.Codex -> Codex
+        RuntimeKind.Gemini -> Antigravity
+        else -> Claude
+    } + id
 }
