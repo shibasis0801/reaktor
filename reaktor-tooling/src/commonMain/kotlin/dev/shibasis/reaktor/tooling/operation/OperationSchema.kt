@@ -42,11 +42,11 @@ private fun schema(descriptor: SerialDescriptor, seen: Set<String>): JsonObject 
             StructureKind.LIST -> buildJsonObject { put("type", "array"); put("items", schema(descriptor.getElementDescriptor(0), seen)) }
             StructureKind.MAP -> buildJsonObject { put("type", "object"); put("additionalProperties", schema(descriptor.getElementDescriptor(1), seen)) }
             StructureKind.CLASS, StructureKind.OBJECT -> if (name in seen) type("object") else properties(descriptor, seen + name)
-            PolymorphicKind.SEALED -> buildJsonObject {
+            PolymorphicKind.SEALED -> if (name in seen) type("object") else buildJsonObject {
                 val variants = descriptor.getElementDescriptor(1)
                 put("oneOf", JsonArray((0 until variants.elementsCount).map { index ->
                     val variant = variants.getElementDescriptor(index)
-                    discriminated(properties(variant, seen + variant.serialName), variant.serialName)
+                    discriminated(properties(variant, seen + name + variant.serialName), variant.serialName)
                 }))
             }
             else -> JsonObject(emptyMap())

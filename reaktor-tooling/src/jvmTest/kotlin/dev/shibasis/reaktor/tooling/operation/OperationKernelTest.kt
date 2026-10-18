@@ -31,6 +31,7 @@ import kotlin.jvm.JvmInline
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -42,6 +43,13 @@ import kotlin.test.assertTrue
     @Serializable @SerialName("node") data class Node(val ref: NodeRef) : Target
     @Serializable @SerialName("all") data object All : Target
 }
+
+@Serializable sealed interface Step {
+    @Serializable @SerialName("leaf") data class Leaf(val text: String) : Step
+    @Serializable @SerialName("group") data class Group(val steps: List<Step>) : Step
+}
+
+@Serializable data class Steps(val steps: List<Step>)
 
 @Serializable
 @Describe("Show one build node")
@@ -75,6 +83,14 @@ class OperationKernelTest {
         val variants = properties.getValue("target").jsonObject.getValue("oneOf").jsonArray.map { it.jsonObject }
         assertEquals(setOf("node", "all"), variants.map { it.getValue("properties").jsonObject.getValue("type").jsonObject.getValue("const").jsonPrimitive.content }.toSet())
         assertEquals(JsonPrimitive(false), schema.input["additionalProperties"])
+    }
+
+    @Test
+    fun schemaOfARecursiveSealedTypeStopsAtItsFirstRepeat() {
+        val output = assertNotNull(operation<ShowRequest, Steps>("build.steps", "Steps") { Steps(emptyList()) }.describe("build").output)
+        val variants = output.getValue("properties").jsonObject.getValue("steps").jsonObject.getValue("items").jsonObject.getValue("oneOf").jsonArray.map { it.jsonObject }
+        val group = variants.single { it.getValue("properties").jsonObject.getValue("type").jsonObject.getValue("const").jsonPrimitive.content == "group" }
+        assertEquals(JsonPrimitive("object"), group.getValue("properties").jsonObject.getValue("steps").jsonObject.getValue("items").jsonObject["type"])
     }
 
     @Test
