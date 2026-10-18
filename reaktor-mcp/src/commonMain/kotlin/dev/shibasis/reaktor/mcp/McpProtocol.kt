@@ -78,8 +78,8 @@ class ReaktorMcpServer(
     resources: List<McpReadResource> = emptyList(),
     /** True only for a host that can push `notifications/tools/list_changed` on its own channel. */
     private val toolsListChanged: Boolean = false,
+    private val structuredContent: Boolean = true,
 ) : McpMessageHandler {
-    private val json = Json { encodeDefaults = true; explicitNulls = false; prettyPrint = true }
     private val tools = tools.associateBy(McpTool::name)
     private val resources = resources.associateBy(McpReadResource::uri)
 
@@ -212,10 +212,10 @@ class ReaktorMcpServer(
             putJsonArray("content") {
                 addJsonObject {
                     put("type", "text")
-                    put("text", json.encodeToString(JsonElement.serializer(), result))
+                    put("text", result.toString())
                 }
             }
-            put("structuredContent", result as? JsonObject ?: buildJsonObject { put("result", result) })
+            if (structuredContent) put("structuredContent", result as? JsonObject ?: buildJsonObject { put("result", result) })
             put("isError", false)
         })
     }
