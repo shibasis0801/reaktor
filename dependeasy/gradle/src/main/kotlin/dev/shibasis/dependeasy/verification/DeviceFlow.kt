@@ -140,7 +140,14 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
                         command(listOf(adb, "-s", device.id, "uninstall", applicationId.get()))
                         command(listOf(adb, "-s", device.id, "install", app))
                     }
-                } else command(listOf("/usr/bin/xcrun", "devicectl", "device", "install", "app", "--device", device.id, app))
+                } else {
+                    val bundle = java.io.ByteArrayOutputStream()
+                    execOperations.exec {
+                        commandLine("/usr/bin/plutil", "-extract", "CFBundleIdentifier", "raw", "-o", "-", java.io.File(app, "Info.plist").absolutePath); standardOutput = bundle
+                    }
+                    require(bundle.toString(Charsets.UTF_8).trim() == applicationId.get()) { "Declared iOS app belongs to a different application" }
+                    command(listOf("/usr/bin/xcrun", "devicectl", "device", "install", "app", "--device", device.id, app))
+                }
             }
             val selected = contract.flows
             require(selected.isNotEmpty()) { "Select at least one declared flow" }
