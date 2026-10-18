@@ -11,16 +11,20 @@ class AntigravityParserTest {
         parser.onLine("""{"event":"result","result":{"status":"SUCCESS","response":"Looks fine","denied_actions":[{"action":"command"}],"usage":{"input_tokens":10,"cache_read_tokens":20,"output_tokens":4}}}""")
         val outcome = parser.finish(0, "")
         assertFalse(outcome.ok)
+        assertEquals("Antigravity could not obtain required permissions to run a command.", outcome.failure)
         assertEquals(UsageScope.ProviderSessionTotal, outcome.usage?.scope)
         assertNull(outcome.usage?.cachedInputTokens)
         assertTrue(outcome.attributes.containsKey("usageNotice"))
     }
 
-    @Test fun noBlanketPermissionFlagAndAbsoluteWorkspaceIsGranted() {
+    @Test fun everyTurnSkipsPermissionPromptsAndAnInspectionStaysInPlanMode() {
         val request = AgentRequest(AgentSpec(AgentId("hybrid"), "Hybrid", RuntimeKind.Gemini, ""), "Inspect graph", "/tmp")
         val argv = antigravityArgv(request)
-        assertFalse("--dangerously-skip-permissions" in argv)
+        assertTrue("--dangerously-skip-permissions" in argv)
         assertEquals("plan", argv[argv.indexOf("--mode") + 1])
+        val editing = antigravityArgv(request.copy(agent = request.agent.copy(tools = ToolPolicy(allowWrites = true))))
+        assertTrue("--dangerously-skip-permissions" in editing)
+        assertEquals("accept-edits", editing[editing.indexOf("--mode") + 1])
         // The harness ignores --mode while slash expansion is disabled, so asking for inspection
         // and then disabling expansion would silently permit writes. The prompt Reaktor builds
         // never begins with a slash, which is the only place expansion reads one.

@@ -4,6 +4,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
+private val ExploreTypes = setOf("read", "search", "list_files")
+
 internal class CodexLog(private val root: String?) : LogParser {
     private val turns = Turns("codex-")
     private val asked = mutableListOf<Pair<Int, Int>>()
@@ -79,7 +81,10 @@ internal class CodexLog(private val root: String?) : LogParser {
             "CommandExecution" -> {
                 val exit = item.num("exit_code")?.toInt()
                 val (output, cut) = LogText.cut(item.str("aggregated_output"))
-                turn.add(WorkStep.Command(id, stamp, command(item), output = output?.takeIf(String::isNotEmpty), exitCode = exit, millis = millis, cut = cut,
+                val parts = item.list("parsed_cmd").mapNotNull { it as? JsonObject }
+                if (!failed && (exit ?: 0) == 0 && parts.isNotEmpty() && parts.all { it.str("type") in ExploreTypes })
+                    parts.forEachIndexed { index, part -> turn.add(explore("$id:$index", stamp, part, if (index == 0) millis else null)) }
+                else turn.add(WorkStep.Command(id, stamp, command(item), output = output?.takeIf(String::isNotEmpty), exitCode = exit, millis = millis, cut = cut,
                     status = if (failed || exit != null && exit != 0) StepStatus.Failed else StepStatus.Done))
             }
             "FileChange" -> item.obj("changes")?.forEach { (path, value) ->
@@ -124,6 +129,16 @@ internal class CodexLog(private val root: String?) : LogParser {
             if (question.at == null || at == null || at > question.at) turns.at(turn).steps[step] = question.copy(status = StepStatus.Done, answer = question.answer ?: "Answered")
         }
         asked.removeAll { (turn, step) -> (turns.at(turn).steps[step] as? WorkStep.Question)?.status != StepStatus.Running }
+    }
+
+    private fun explore(id: String, at: Long?, part: JsonObject, millis: Long?): WorkStep.Tool {
+        val path = LogText.relative(part.str("path"), root)
+        return when (part.str("type")) {
+            "read" -> WorkStep.Tool(id, at, ToolKind.Read, "Read", path ?: part.str("name"), part.str("cmd"), status = StepStatus.Done, millis = millis)
+            "list_files" -> WorkStep.Tool(id, at, ToolKind.Search, "List folder", path ?: ".", part.str("cmd"), status = StepStatus.Done, millis = millis)
+            else -> WorkStep.Tool(id, at, ToolKind.Search, "Search", listOfNotNull(part.str("query"), path).joinToString(" · ").ifEmpty { null }, part.str("cmd"),
+                status = StepStatus.Done, millis = millis)
+        }
     }
 
     private fun text(item: JsonObject): String? = item["content"].plain()?.trim()?.takeIf(String::isNotEmpty)

@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.worklog.parsedArguments
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -458,7 +459,7 @@ object HarnessSessions {
     private fun antigravityParse(file: File, id: String, folder: String?, root: String): HarnessSession? {
         val head = records(file, fromEnd = false, HeadBytes)
         val tail = records(file, fromEnd = true, TailBytes)
-        val calls = (head + tail).flatMap { record -> (record["tool_calls"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.nested("args") } }
+        val calls = (head + tail).flatMap { record -> (record["tool_calls"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.nested("args")?.parsedArguments() } }
         val paths = calls.mapNotNull { args -> args.string("Cwd") ?: args.string("TargetFile") ?: args.string("AbsolutePath") ?: args.string("SearchDirectory") }
         if (folder?.let { related(it, root) } != true && paths.none { related(it, root) }) return null
         val steps = tail.flatMap { antigravitySteps(it, root) }
@@ -493,7 +494,7 @@ object HarnessSessions {
         val at = instant(record.string("created_at"))
         return (record["tool_calls"] as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }.map { call ->
             val name = call.string("name").orEmpty()
-            val args = call.nested("args")
+            val args = call.nested("args")?.parsedArguments()
             val path = (args?.string("TargetFile") ?: args?.string("AbsolutePath"))?.relativeTo(root)
             val detail = args?.string("CommandLine") ?: path ?: args?.string("Pattern") ?: args?.string("toolSummary")
             HarnessStep(at, name.replace('_', ' '), detail?.oneLine(), name.startsWith("mcp_reaktor"), path?.takeIf { name in AntigravityEditTools })

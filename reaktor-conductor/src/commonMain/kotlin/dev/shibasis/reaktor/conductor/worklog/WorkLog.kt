@@ -140,6 +140,21 @@ sealed interface WorkStep {
     data class Note(override val id: String, override val at: Long?, val kind: NoteKind, val text: String) : WorkStep
 }
 
+fun WorkLog.settled(live: Boolean = false): WorkLog = copy(turns = turns.mapIndexed { index, turn ->
+    if (live && index == turns.lastIndex) turn else turn.copy(open = false, steps = turn.steps.map(WorkStep::settled))
+})
+
+fun WorkStep.settled(): WorkStep = when (this) {
+    is WorkStep.Subagent -> copy(status = status.settled(), steps = steps.map(WorkStep::settled))
+    is WorkStep.Command -> copy(status = status.settled())
+    is WorkStep.Edit -> copy(status = status.settled())
+    is WorkStep.Tool -> copy(status = status.settled())
+    is WorkStep.Question -> copy(status = status.settled())
+    else -> this
+}
+
+private fun StepStatus.settled() = if (this == StepStatus.Running) StepStatus.Interrupted else this
+
 fun WorkStep.edits(): List<WorkStep.Edit> = when (this) {
     is WorkStep.Edit -> listOf(this)
     is WorkStep.Subagent -> steps.flatMap(WorkStep::edits)

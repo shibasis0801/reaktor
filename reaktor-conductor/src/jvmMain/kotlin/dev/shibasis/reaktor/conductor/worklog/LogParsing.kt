@@ -25,6 +25,10 @@ internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: L
         return steps.lastIndex
     }
 
+    fun settle(index: Int) {
+        steps[index] = steps[index].settled()
+    }
+
     fun touch(at: Long?) {
         if (at != null && (endedAt == null || at > endedAt!!)) endedAt = at
     }
@@ -123,6 +127,13 @@ internal fun JsonObject.flag(key: String): Boolean = (this[key] as? JsonPrimitiv
 internal fun JsonObject.obj(key: String): JsonObject? = this[key] as? JsonObject
 
 internal fun JsonObject.list(key: String): List<JsonElement> = (this[key] as? JsonArray) ?: emptyList()
+
+internal fun JsonObject.parsedArguments(): JsonObject = JsonObject(mapValues { (_, value) -> value.parsedJsonText() ?: value })
+
+private val JsonTextStarts = setOf('"', '[', '{')
+
+private fun JsonElement.parsedJsonText(): JsonElement? = (this as? JsonPrimitive)?.takeIf { it.isString }?.content
+    ?.takeIf { it.firstOrNull() in JsonTextStarts }?.let { runCatching { Json.parseToJsonElement(it) }.getOrNull() }
 
 internal fun JsonElement?.plain(): String? = when (this) {
     null -> null

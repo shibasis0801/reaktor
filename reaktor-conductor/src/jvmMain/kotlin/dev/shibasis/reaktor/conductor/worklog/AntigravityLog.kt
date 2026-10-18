@@ -14,6 +14,7 @@ internal class AntigravityLog(private val root: String?) : LogParser {
         val status = when (record.str("status")) { "ERROR" -> StepStatus.Failed; "RUNNING" -> StepStatus.Running; else -> StepStatus.Done }
         when (record.str("type")) {
             "USER_INPUT" -> request(record.str("content"))?.let { prompt ->
+                waiting.forEach { pending -> turns.at(pending.turn).settle(pending.step) }
                 waiting.clear()
                 turns.start(prompt, at)
             }
@@ -22,7 +23,7 @@ internal class AntigravityLog(private val root: String?) : LogParser {
                 record.str("thinking")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Reasoning("agy:$index:thinking", at, it, summary = false)) }
                 record.str("content")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Message("agy:$index:text", at, it)) }
                 record.list("tool_calls").mapNotNull { it as? JsonObject }.forEachIndexed { position, call ->
-                    waiting += Pending(turns.lastIndex, turn.add(call("agy:$index:$position", at, call.str("name").orEmpty(), call.obj("args") ?: JsonObject(emptyMap()))))
+                    waiting += Pending(turns.lastIndex, turn.add(call("agy:$index:$position", at, call.str("name").orEmpty(), call.obj("args")?.parsedArguments() ?: JsonObject(emptyMap()))))
                 }
                 turn.open = waiting.isNotEmpty()
             }
@@ -66,6 +67,7 @@ internal class AntigravityLog(private val root: String?) : LogParser {
                 listOfNotNull(args.str("Pattern") ?: args.str("Query"), LogText.relative(args.str("SearchDirectory") ?: args.str("SearchPath") ?: args.str("DirectoryPath"), root)).joinToString(" · ").ifEmpty { purpose })
             "search_web", "read_url_content", "read_browser_page" -> WorkStep.Tool(id, at, ToolKind.Web, if (name == "search_web") "Web search" else "Fetch",
                 args.str("query") ?: args.str("Url") ?: purpose)
+            "call_mcp_tool" -> WorkStep.Tool(id, at, ToolKind.Mcp, args.str("ToolName") ?: "MCP tool", purpose, LogText.clip(args["Arguments"]?.toString()), server = args.str("ServerName"))
             else -> if (name.startsWith("mcp_")) WorkStep.Tool(id, at, ToolKind.Mcp, name.removePrefix("mcp_"), purpose, LogText.clip(args.toString()))
             else WorkStep.Tool(id, at, ToolKind.Other, name.replace('_', ' ').replaceFirstChar(Char::uppercase), purpose, LogText.clip(args.toString()))
         }

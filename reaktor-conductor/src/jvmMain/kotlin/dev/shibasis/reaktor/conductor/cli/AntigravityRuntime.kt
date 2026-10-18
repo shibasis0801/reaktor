@@ -137,8 +137,8 @@ private fun AgentOutcome.outOfCapacity(): Boolean {
 /**
  * The guards that hold for every Antigravity turn, whichever transport carries it.
  *
- * Antigravity headless has no per-turn permission overrides: it uses the permissions the operator
- * configured. Accepting an allow/deny list here and dropping it would be worse than refusing it,
+ * Antigravity headless has no per-turn allow or deny lists, and every turn runs with its permission
+ * prompts skipped. Accepting an allow/deny list here and dropping it would be worse than refusing it,
  * because the caller would believe a bound it never got.
  */
 internal fun antigravityGuard(request: AgentRequest) {
@@ -154,7 +154,7 @@ internal fun antigravityPrompt(request: AgentRequest): String {
     val policy = request.agent.tools
     val root = File(request.workingDirectory).canonicalPath
     return "Workspace: $root. Use absolute paths within this workspace.\n" +
-        (if (policy.allowWrites) "Repository edits are authorized within this task. Native command and MCP permission rules still apply.\n" else "Inspect only. Do not modify repository files, run mutating commands, or use mutating MCP tools.\n") +
+        (if (policy.allowWrites) "Repository edits are authorized within this task.\n" else "Inspect only. Do not modify repository files, run mutating commands, or use mutating MCP tools.\n") +
         policy.mcpConfig?.let { "Reaktor's workspace and graph MCP servers are registered with this harness and resolve this workspace. Use their tools, or the workspace CLI, for graph context and actual check receipts. The launch configuration at $it is Reaktor's own copy; this harness loads its servers from your Antigravity configuration, not from that file.\n" }.orEmpty() +
         request.prompt
 }
@@ -171,6 +171,7 @@ private fun antigravityFlags(request: AgentRequest): List<String> = buildList {
     // is refused and reported in denied_actions. Expansion only reads a prompt that begins with a
     // slash, and this prompt always begins with Reaktor's own workspace line.
     add("--mode"); add(if (policy.allowWrites) "accept-edits" else "plan")
+    add("--dangerously-skip-permissions")
     add("--add-dir"); add(root)
     policy.additionalDirectories.forEach { add("--add-dir"); add(it) }
     add("--print-timeout"); add("${request.agent.budget.timeoutMillis}ms")
@@ -256,9 +257,10 @@ class AntigravityEventParser(
      * the most recent file. Best-effort: a missing or unreadable transcript just leaves the original
      * message alone.
      */
-    private fun deniedDetail(denied: String): String {
-        val base = "Antigravity could not obtain required permissions: $denied"
-        val conversation = session?.sessionId ?: return base
+    private fun deniedDetail(denied: List<JsonElement>): String {
+        val actions = denied.mapNotNull { (it as? JsonObject)?.text("action") }.distinct().map(::deniedAction).ifEmpty { listOf("continue") }
+        val base = "Antigravity could not obtain required permissions to ${actions.joinToString(" or ")}"
+        val conversation = session?.sessionId ?: return "$base."
         val transcript = File(System.getProperty("user.home"),
             ".gemini/antigravity-cli/brain/$conversation/.system_generated/logs/transcript.jsonl")
         val commands = runCatching {
@@ -273,10 +275,17 @@ class AntigravityEventParser(
                 .map { it.groupValues[1].replace("\\\"", "\"").replace("\\\\", "\\") }
                 .toList().takeLast(3)
         }.getOrDefault(emptyList())
-        if (commands.isEmpty()) return base
+        if (commands.isEmpty()) return "$base."
         return base + ". The last commands it tried were: " + commands.joinToString(" | ") { it.take(200) } +
             ". Allow the one it needs in ~/.gemini/antigravity-cli/settings.json under permissions.allow, " +
             "as command(<binary>) — rules match by prefix, so command(./gradlew) covers every invocation."
+    }
+
+    private fun deniedAction(action: String): String = when (action) {
+        "read_file" -> "read files outside the workspace"
+        "command" -> "run a command"
+        "write_file", "edit_file" -> "edit files"
+        else -> action.replace('_', ' ')
     }
 
     /**
@@ -315,7 +324,7 @@ class AntigravityEventParser(
         val input = usage?.get("input_tokens")?.jsonPrimitive?.longOrNull
         val cached = usage?.get("cache_read_tokens")?.jsonPrimitive?.longOrNull
         return AgentOutcome(agent, text, ok,
-            failure = if (ok) null else result?.text("error") ?: if (denied.isNotEmpty()) deniedDetail(denied.toString()) else stderr.takeLast(2000).ifBlank { blankAnswer(result?.text("status")) },
+            failure = if (ok) null else result?.text("error") ?: if (denied.isNotEmpty()) deniedDetail(denied) else stderr.takeLast(2000).ifBlank { blankAnswer(result?.text("status")) },
             session = session, usage = usage?.let { AgentUsage(inputTokens = input,
                 outputTokens = it["output_tokens"]?.jsonPrimitive?.longOrNull,
                 cachedInputTokens = cached?.takeIf { value -> input != null && value <= input },

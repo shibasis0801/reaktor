@@ -111,6 +111,29 @@ class WorkLogsTest {
         assertEquals(WorkUsage(5000, 300, 100), turn.usage)
     }
 
+    @Test fun codexReadsSearchesAndListingsBecomeExplorationSteps() {
+        val file = home.resolve(".codex/sessions/2026/10/17/rollout-2026-10-17T11-00-00-x10.jsonl").apply { parentFile.mkdirs() }
+        file.writeText(lines(
+            """{"timestamp":"2026-10-17T11:00:00Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"Read the guide"}]}}}""",
+            """{"timestamp":"2026-10-17T11:00:02Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"CommandExecution","id":"c1","command":["/bin/zsh","-lc","sed -n 1,80p AGENTS.md && rg Kernel modules"],""" +
+                """"parsed_cmd":[{"type":"read","cmd":"sed -n 1,80p AGENTS.md","name":"AGENTS.md","path":"$root/AGENTS.md"},{"type":"search","cmd":"rg Kernel modules","query":"Kernel","path":"modules"}],""" +
+                """"aggregated_output":"# Guide","exit_code":0,"status":"completed"}}}""",
+            """{"timestamp":"2026-10-17T11:00:03Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"CommandExecution","id":"c2","command":["/bin/zsh","-lc","ls && ./gradlew test"],""" +
+                """"parsed_cmd":[{"type":"list_files","cmd":"ls","path":null},{"type":"unknown","cmd":"./gradlew test"}],"aggregated_output":"ok","exit_code":0,"status":"completed"}}}""",
+        ))
+
+        val steps = WorkLogs.read(RuntimeKind.Codex, file, root).turns.single().steps
+        val read = assertIs<WorkStep.Tool>(steps[0])
+        assertEquals(ToolKind.Read, read.kind)
+        assertEquals("AGENTS.md", read.summary)
+        assertEquals("sed -n 1,80p AGENTS.md", read.input)
+        val search = assertIs<WorkStep.Tool>(steps[1])
+        assertEquals(ToolKind.Search, search.kind)
+        assertEquals("Kernel · modules", search.summary)
+        assertEquals("ls && ./gradlew test", assertIs<WorkStep.Command>(steps[2]).command)
+        assertEquals(3, steps.size)
+    }
+
     @Test fun antigravityTranscriptPairsToolCallsWithTheirResults() {
         val file = home.resolve(".gemini/antigravity-cli/brain/g1/.system_generated/logs/transcript.jsonl").apply { parentFile.mkdirs() }
         file.writeText(lines(
@@ -141,6 +164,57 @@ class WorkLogsTest {
         assertEquals("Rename the screen", session.title)
         assertEquals(listOf("ui/Screen.kt"), session.files)
         assertEquals("agy --conversation g1", session.resumeCommand())
+    }
+
+    @Test fun antigravityArgumentsWrittenAsJsonTextReadAsPlainValuesAndUnansweredCallsEndWithTheTurn() {
+        val file = home.resolve(".gemini/antigravity-cli/brain/g2/.system_generated/logs/transcript.jsonl").apply { parentFile.mkdirs() }
+        file.writeText(lines(
+            """{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-10-17T10:00:00Z","content":"<USER_REQUEST>\nScan reaktor\n</USER_REQUEST>"}""",
+            """{"step_index":1,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-10-17T10:00:01Z","tool_calls":[""" +
+                """{"name":"view_file","args":{"AbsolutePath":"\"$root/AGENTS.md\"","StartLine":"1","EndLine":"40","toolSummary":"\"Reading the guide\""}},""" +
+                """{"name":"view_file","args":{"AbsolutePath":"\"$home/.gemini/antigravity-cli/mcp/reaktor/kernel.json\""}},""" +
+                """{"name":"replace_file_content","args":{"TargetFile":"\"$root/ui/Screen.kt\"","TargetContent":"\"Old\\nline\"","ReplacementContent":"\"New\""}},""" +
+                """{"name":"call_mcp_tool","args":{"ServerName":"\"reaktor\"","ToolName":"\"kernel\"","Arguments":"{\"operation\":\"board.list\"}","toolSummary":"\"List the board\""}}]}""",
+            """{"step_index":2,"source":"MODEL","type":"GENERIC","status":"DONE","created_at":"2026-10-17T10:00:02Z","content":"# Guide"}""",
+            """{"step_index":3,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-10-17T10:01:00Z","content":"<USER_REQUEST>\nNext\n</USER_REQUEST>"}""",
+        ))
+
+        val log = WorkLogs.read(RuntimeKind.Gemini, file, root)
+        val steps = log.turns.first().steps
+        assertEquals("AGENTS.md · lines 1–40", assertIs<WorkStep.Tool>(steps[0]).summary)
+        assertEquals("$home/.gemini/antigravity-cli/mcp/reaktor/kernel.json", assertIs<WorkStep.Tool>(steps[1]).summary)
+        val edit = assertIs<WorkStep.Edit>(steps[2])
+        assertEquals("ui/Screen.kt", edit.file)
+        assertEquals(listOf("-Old", "-line", "+New"), edit.hunks.single().lines)
+        val mcp = assertIs<WorkStep.Tool>(steps[3])
+        assertEquals(ToolKind.Mcp, mcp.kind)
+        assertEquals("kernel", mcp.name)
+        assertEquals("reaktor", mcp.server)
+        assertEquals("List the board", mcp.summary)
+        assertEquals("""{"operation":"board.list"}""", mcp.input)
+        assertEquals(listOf(StepStatus.Done, StepStatus.Interrupted, StepStatus.Interrupted, StepStatus.Interrupted), steps.map { it.status })
+
+        assertTrue(log.turns.last().open)
+        assertTrue(log.settled(live = true).turns.last().open)
+        assertFalse(log.settled().turns.any { it.open })
+
+        val now = Instant.parse("2026-10-17T10:02:00Z").toEpochMilli()
+        file.setLastModified(now - 30_000)
+        assertEquals(listOf("ui/Screen.kt"), HarnessSessions.read(File(root), home, now).single().files)
+    }
+
+    @Test fun aRunningStepThatOutlivedItsTurnSettlesAsInterrupted() {
+        val running = WorkStep.Command("c", null, "./gradlew test")
+        val log = WorkLog(listOf(
+            WorkTurn("t1", "First", 1, 2, listOf(running, WorkStep.Subagent("a", null, "Survey", steps = listOf(running), status = StepStatus.Done))),
+            WorkTurn("t2", "Second", 3, 4, listOf(running), open = true),
+        ))
+        val settled = log.settled(live = true)
+        assertEquals(StepStatus.Interrupted, settled.turns[0].steps[0].status)
+        assertEquals(StepStatus.Done, settled.turns[0].steps[1].status)
+        assertEquals(StepStatus.Interrupted, assertIs<WorkStep.Subagent>(settled.turns[0].steps[1]).steps.single().status)
+        assertEquals(StepStatus.Running, settled.turns[1].steps.single().status)
+        assertEquals(StepStatus.Interrupted, log.settled().turns[1].steps.single().status)
     }
 
     @Test fun codexRateLimitsComeFromTheLatestTokenCount() {
