@@ -114,13 +114,14 @@ class AgentWorkspaceConnection private constructor(
 
     suspend fun call(name: String, args: JsonObject = buildJsonObject {}): JsonElement {
         withContext(Dispatchers.IO) { refreshEndpoint() }
-        if (remote != null || endpoint.invocationVersion == null) return callMcp(name, args)
+        val patience = patience(args)
+        if (remote != null || endpoint.invocationVersion == null) return callMcp(name, args, patience)
         check(endpoint.invocationVersion == 1) { "Unsupported workspace invocation version" }
         val payload = buildJsonObject {
             put("version", 1); put("workspaceRoot", endpoint.workspaceRoot)
             put("operation", name); put("arguments", args)
         }
-        val result = request(payload.toString(), "/operations")?.jsonObject ?: error("Expected workspace response")
+        val result = request(payload.toString(), "/operations", patience)?.jsonObject ?: error("Expected workspace response")
         check(result["isError"]?.jsonPrimitive?.booleanOrNull != true) {
             result["data"]?.jsonObject?.get("error")?.jsonPrimitive?.content
                 ?: result["content"]?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.content
@@ -129,12 +130,12 @@ class AgentWorkspaceConnection private constructor(
         return result.getValue("data")
     }
 
-    private suspend fun callMcp(name: String, args: JsonObject): JsonElement {
+    private suspend fun callMcp(name: String, args: JsonObject, patience: Duration): JsonElement {
         val request = buildJsonObject {
             put("jsonrpc", "2.0"); put("id", 1); put("method", "tools/call")
             putJsonObject("params") { put("name", name); put("arguments", args) }
         }
-        val envelope = exchange(request.toString())?.jsonObject ?: error("Expected workspace response")
+        val envelope = exchange(request.toString(), patience)?.jsonObject ?: error("Expected workspace response")
         envelope["error"]?.let { error("Workspace protocol error: $it") }
         val result = envelope.getValue("result").jsonObject
         check(result["isError"]?.jsonPrimitive?.booleanOrNull != true) {
@@ -143,7 +144,7 @@ class AgentWorkspaceConnection private constructor(
         return result.getValue("structuredContent")
     }
 
-    suspend fun exchange(message: String): JsonElement? = request(message, "/mcp")
+    suspend fun exchange(message: String, patience: Duration = Patience): JsonElement? = request(message, "/mcp", patience)
 
     private fun refreshEndpoint() {
         check(!closed.get()) { "Connection is closed" }
@@ -155,11 +156,11 @@ class AgentWorkspaceConnection private constructor(
         }
     }
 
-    private suspend fun request(message: String, path: String): JsonElement? = withContext(Dispatchers.IO) {
+    private suspend fun request(message: String, path: String, patience: Duration): JsonElement? = withContext(Dispatchers.IO) {
         refreshEndpoint()
         require(message.length <= 250000) { "Workspace message exceeds the transport budget" }
         if (remote != null) return@withContext remote.exchange(message)
-        val builder = HttpRequest.newBuilder(URI("http://127.0.0.1:${endpoint.port}$path")).timeout(Duration.ofSeconds(35))
+        val builder = HttpRequest.newBuilder(URI("http://127.0.0.1:${endpoint.port}$path")).timeout(patience)
             .header("Authorization", "Bearer ${endpoint.token}").header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(message))
         if (path == "/mcp") builder.header("MCP-Protocol-Version", protocolVersion)
@@ -178,6 +179,16 @@ class AgentWorkspaceConnection private constructor(
     override fun close() { if (closed.compareAndSet(false, true)) { try { http.shutdownNow() } finally { closeOwner() } } }
 
     companion object {
+        private val Patience = Duration.ofSeconds(35)
+        private val LongestPatience = Duration.ofMinutes(15)
+
+        internal fun patience(args: JsonObject): Duration {
+            fun JsonObject.seconds(): Long? = (this["timeoutSeconds"] as? JsonPrimitive)?.longOrNull
+                ?: (this["timeoutMillis"] as? JsonPrimitive)?.longOrNull?.let { (it + 999) / 1000 }
+            val asked = args.seconds() ?: (args["arguments"] as? JsonObject)?.seconds() ?: return Patience
+            return Duration.ofSeconds(asked + 10).coerceIn(Patience, LongestPatience)
+        }
+
         fun remote(profile: AgentRemoteProfile): AgentWorkspaceConnection = AgentWorkspaceConnection(
             AgentEndpoint(workspaceRoot = profile.workspaceRoot, port = 0, token = ""), Path.of("."), false, remote = AgentRemoteWorkspace(profile))
         fun defaultDirectory(root: File): Path = Path.of(System.getProperty("user.home"), ".reaktor", "agents", digest(root.canonicalPath))

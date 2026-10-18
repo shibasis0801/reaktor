@@ -38,6 +38,16 @@ class AgentWorkspaceInvocationTest {
         } finally { root.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
+    @Test fun aCallWaitsAsLongAsTheWaitItAsksForWithinBounds() {
+        assertEquals(java.time.Duration.ofSeconds(35), AgentWorkspaceConnection.patience(buildJsonObject { put("runId", "r") }))
+        assertEquals(java.time.Duration.ofSeconds(40), AgentWorkspaceConnection.patience(buildJsonObject { put("timeoutMillis", 30000) }))
+        assertEquals(java.time.Duration.ofSeconds(130), AgentWorkspaceConnection.patience(buildJsonObject {
+            put("operation", "run.wait"); putJsonObject("arguments") { put("timeoutSeconds", 120) }
+        }))
+        assertEquals(java.time.Duration.ofMinutes(15), AgentWorkspaceConnection.patience(buildJsonObject { put("timeoutSeconds", 86400) }))
+        assertEquals(java.time.Duration.ofSeconds(35), AgentWorkspaceConnection.patience(buildJsonObject { putJsonObject("timeoutSeconds") {} }))
+    }
+
     @Test fun remoteTypedClientSelectsCompatibilityBridgeAndQuotesPaths() {
         val command = AgentRemoteWorkspace(AgentRemoteProfile("m1-worker", "/tmp/workspace's source", "/opt/reaktor tools/agent")).command()
         assertEquals("m1-worker", command[command.lastIndex - 1])

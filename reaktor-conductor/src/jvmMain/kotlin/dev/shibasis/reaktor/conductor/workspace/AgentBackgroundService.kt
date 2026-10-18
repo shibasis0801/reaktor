@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit
 /** The OS owns the service; every desktop/CLI connection is only a client. */
 object AgentBackgroundService {
     @Synchronized fun connect(root: File, command: List<String>, directory: Path = AgentWorkspaceConnection.defaultDirectory(root)): AgentWorkspaceConnection {
+        AgentWorkspaceRoots.refusal(root)?.let { throw IllegalArgumentException(it) }
         runCatching { AgentWorkspaceConnection.open(root, directory, allowStart = false) }.getOrNull()?.let { return it }
         privateDirectory(directory)
         if (!Files.exists(directory.resolve("service.log"))) atomicWrite(directory.resolve("service.log"), "")
@@ -20,18 +21,17 @@ object AgentBackgroundService {
             }
             val label = label(root)
             val domain = "gui/${uid()}"
-            val agents = Path.of(System.getProperty("user.home"), "Library", "LaunchAgents")
-            Files.createDirectories(agents)
-            val plist = agents.resolve("$label.plist")
             val owned = directory.resolve("launch-agent.plist")
-            if (Files.exists(plist)) {
+            val plist = if (AgentWorkspaceRoots.temporary(root)) owned
+                else Path.of(System.getProperty("user.home"), "Library", "LaunchAgents").also { Files.createDirectories(it) }.resolve("$label.plist")
+            if (plist != owned && Files.exists(plist)) {
                 check(Files.exists(owned) && Files.readString(plist) == Files.readString(owned)) { "The background service configuration was edited outside Reaktor: $plist" }
             }
             val loaded = run(listOf("/bin/launchctl", "print", "$domain/$label")).first == 0
             if (!loaded) {
                 val content = configuration(label, snapshotServiceCommand(command, directory), root, directory)
-                atomicWrite(plist, content)
                 atomicWrite(owned, content)
+                if (plist != owned) atomicWrite(plist, content)
                 val result = run(listOf("/bin/launchctl", "bootstrap", domain, plist.toString()))
                 check(result.first == 0 || run(listOf("/bin/launchctl", "print", "$domain/$label")).first == 0) {
                     "Could not start background service: ${result.second.take(500)}"
@@ -48,7 +48,7 @@ object AgentBackgroundService {
 
     fun label(root: File) = "build.reaktor.agents.${digest(root.canonicalPath).take(24)}"
 
-    private fun uid(): Int {
+    internal fun uid(): Int {
         val probe = Files.createTempFile("reaktor-uid", ".probe")
         return try { Files.getAttribute(probe, "unix:uid") as Int } finally { Files.deleteIfExists(probe) }
     }
@@ -98,7 +98,7 @@ object AgentBackgroundService {
 <key>Label</key>${string(label)}
 <key>ProgramArguments</key><array>${command.joinToString("") { string(it) }}</array>
 <key>WorkingDirectory</key>${string(root.canonicalPath)}
-<key>KeepAlive</key><true/>
+<key>KeepAlive</key><dict><key>PathState</key><dict><key>${xml(root.canonicalPath)}</key><true/></dict></dict>
 <key>RunAtLoad</key><true/>
 <key>ThrottleInterval</key><integer>10</integer>
 <key>ExitTimeOut</key><integer>20</integer>
