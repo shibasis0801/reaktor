@@ -110,7 +110,7 @@ class CliCapabilitiesTest {
             codex.resolve("models_cache.json").writeText(codexCache)
             codex.resolve("config.toml").writeText("model = \"helper\"\nmodel_reasoning_effort = \"low\"\n")
         }
-        home.resolve(".gemini/antigravity-cli").apply { mkdirs() }.resolve("settings.json").writeText("""{"model":"gemini-4-argon-high"}""")
+        home.resolve(".gemini/antigravity-cli").apply { mkdirs() }.resolve("settings.json").writeText("""{"model":"Gemini 3.5 Flash (High)"}""")
         home.resolve("claude").apply { mkdirs() }.resolve("settings.json").writeText("""{"model":"sonnet"}""")
         val codex = CliCapabilities.probe(RuntimeKind.Codex, "codex-does-not-exist-here", home, mapOf("CODEX_HOME" to home.resolve("codex").path))
         assertEquals(listOf("lead", "helper"), codex.models.map { it.id })
@@ -118,7 +118,7 @@ class CliCapabilitiesTest {
         assertEquals(NativeEffort("low"), codex.effort?.default)
         val antigravity = CliCapabilities.probe(RuntimeKind.Gemini, "agy-does-not-exist-here", home, emptyMap())
         assertEquals(antigravityModelNames.keys.toList(), antigravity.models.map { it.id })
-        assertEquals("gemini-4-argon-high", antigravity.defaultModel)
+        assertEquals(defaultAntigravityModels.first(), antigravity.defaultModel, "Hangar runs its own model ladder, not the CLI's saved pick")
         val claude = CliCapabilities.probe(RuntimeKind.ClaudeCode, "claude-does-not-exist-here", home, mapOf("CLAUDE_CONFIG_DIR" to home.resolve("claude").path))
         assertEquals("sonnet", claude.defaultModel)
         assertTrue(CliCapabilities.probe(RuntimeKind.ChatGptGemini, "agy-does-not-exist-here", home, emptyMap()).models.isEmpty())

@@ -183,7 +183,7 @@ object CliCapabilities {
             notes = listOf("Gemini through Antigravity headless. Native permissions apply; missing permissions fail the turn. Plan mode requests inspection; it is not an OS sandbox. No live steering or permission responses on this transport.",
                 if (runtime == RuntimeKind.ChatGptGemini) "One composite seat: ChatGPT plans and reviews each cycle around Gemini execution, looping until it says the work is done or the cycle cap stops it. The programmatic planner is Codex on its ChatGPT account and spends that pool; pausing it falls back to operator-transferred planning rather than to another provider." else "Antigravity uses the saved Google account and native credit policies; remaining capacity is unknown."),
             models = if (runtime == RuntimeKind.Gemini) antigravityModelNames.map { (id, name) -> ModelChoice(id, name) } else emptyList(),
-            defaultModel = if (runtime == RuntimeKind.Gemini) small(home.resolve(".gemini/antigravity-cli/settings.json"))?.let(::parseSettingsModel) else null)
+            defaultModel = if (runtime == RuntimeKind.Gemini) defaultAntigravityModels.first() else null)
         RuntimeKind.Gateway -> ProviderCapability(RuntimeKind.Gateway, executable = null, version = "Cloudflare AI REST",
             effort = EffortSupport(listOf("low", "medium", "high").map(::NativeEffort), source = "reasoning_effort on models that list it"),
             effortControl = Qualification(true, true, true),
