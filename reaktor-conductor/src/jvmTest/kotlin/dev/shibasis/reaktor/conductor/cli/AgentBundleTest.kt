@@ -38,7 +38,7 @@ class AgentBundleTest {
             """.trimIndent() + "\n"
             codex.writeText(original)
 
-            val targets = AgentBundle.Targets(codex, java.io.File(root, ".mcp.json"), java.io.File(home, ".gemini/config/mcp_config.json"))
+            val targets = AgentBundle.Targets(codex, java.io.File(root, ".mcp.json"), java.io.File(home, ".gemini/config/mcp_config.json"), java.io.File(home, ".local/bin/reaktor-agent"))
             AgentBundle.install(targets, command)
             val installed = codex.readText()
             assertTrue(installed.contains("[mcp_servers.reaktor]"))
@@ -132,8 +132,8 @@ class AgentBundleTest {
             AgentBundle.install(ta, listOf("java", "workspace", "mcp", "--dir", a.canonicalPath))
             val collided = AgentBundle.install(tb, listOf("java", "workspace", "mcp", "--dir", b.canonicalPath))
             assertTrue(ta.codexConfig.readText().contains(a.canonicalPath))
-            // With one entry there is nothing else of ours to add: a name the operator already owns stays exactly theirs.
-            assertEquals(original, tb.codexConfig.readText())
+            // A name the operator already owns stays exactly theirs.
+            assertTrue(tb.codexConfig.readText().endsWith(original))
             assertTrue(collided.any { it.startsWith("codex/reaktor: collision") }, collided.toString())
             assertFalse(ta.codexConfig.readText().contains(b.canonicalPath))
             AgentBundle.uninstall(tb)
@@ -155,15 +155,16 @@ class AgentBundleTest {
     }
 
     @Test fun modifiedOwnedEntrySurvivesUninstall() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
         val root = Files.createTempDirectory("bundle-modified").toFile()
         try {
-            val targets = AgentBundle.targets(root)
+            val targets = AgentBundle.targets(root, home)
             AgentBundle.install(targets, command)
             targets.codexConfig.appendText("[mcp_servers.reaktor.env]\nUSER_SETTING = \"preserve\"\n")
             AgentBundle.uninstall(targets)
             assertTrue(targets.codexConfig.readText().contains("USER_SETTING"))
             assertTrue(targets.codexConfig.readText().contains("[mcp_servers.reaktor]"))
-        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun antigravityIsRegisteredWhereAgyReadsItAndFollowsTheWorkspaceItIsStartedIn() {
@@ -241,6 +242,83 @@ class AgentBundleTest {
                 .getValue("reaktor-graph").jsonObject.getValue("command").jsonPrimitive.content, "an entry its owner changed is not ours to remove")
             assertTrue(messages.any { it.startsWith("antigravity/reaktor-graph: modified") }, messages.toString())
             assertFalse(Json.parseToJsonElement(targets.manifest.readText()).jsonObject.getValue("entries").jsonObject.keys.any { it.endsWith("reaktor-graph") })
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun codexShellsInTheProjectReachTheOwnerOverLoopbackAndUninstallGivesTheFileBack() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
+        val root = Files.createTempDirectory("bundle-root").toFile()
+        try {
+            val targets = AgentBundle.targets(root, home)
+            val original = "model = \"x\"\n\n[mcp_servers.pencil]\ncommand = \"pencil-mcp\"\n"
+            targets.codexConfig.apply { parentFile.mkdirs() }.writeText(original)
+            val messages = AgentBundle.install(targets, command)
+            val installed = targets.codexConfig.readText()
+            assertEquals(listOf("default_permissions = \"reaktor\"", "features.network_proxy = true", "permissions.reaktor.extends = \":workspace\"",
+                "permissions.reaktor.network.enabled = true", "permissions.reaktor.network.allow_local_binding = true"),
+                installed.substringBefore(original).lines().filter { it.isNotBlank() && !it.startsWith("#") }, "root keys have to come before the first table")
+            assertTrue(installed.contains(original))
+            assertTrue(messages.any { it.startsWith("codex/reaktor-sandbox: installed") && it.contains("experimental network proxy") }, messages.toString())
+            assertTrue(AgentBundle.status(targets).codexSandbox)
+
+            AgentBundle.uninstall(targets)
+            assertEquals(original, targets.codexConfig.readText())
+            assertFalse(AgentBundle.status(targets).codexSandbox)
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun aProjectThatAlreadyChoosesItsPermissionsOrFeaturesKeepsThem() {
+        listOf("default_permissions = \"mine\"\n\n[permissions.mine]\nextends = \":read-only\"\n", "[features]\nweb_search = true\n").forEach { original ->
+            val home = Files.createTempDirectory("bundle-home").toFile()
+            val root = Files.createTempDirectory("bundle-root").toFile()
+            try {
+                val targets = AgentBundle.targets(root, home)
+                targets.codexConfig.apply { parentFile.mkdirs() }.writeText(original)
+                val messages = AgentBundle.install(targets, command)
+                assertTrue(messages.any { it.startsWith("codex/reaktor-sandbox: collision") }, messages.toString())
+                assertTrue(targets.codexConfig.readText().startsWith(original), "a second [features] or default_permissions would not parse")
+                assertFalse(AgentBundle.status(targets).codexSandbox)
+                AgentBundle.uninstall(targets)
+                assertEquals(original, targets.codexConfig.readText())
+            } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+        }
+    }
+
+    @Test fun theLauncherPutsTheSameCommandOnThePathAndPassesEveryArgumentThrough() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
+        val root = Files.createTempDirectory("bundle-root").toFile()
+        try {
+            val cli = java.io.File(root, "bin/reaktor's cli").apply { parentFile.mkdirs(); writeText("#!/bin/sh\nfor a in \"\$@\"; do echo \"[\$a]\"; done\n"); setExecutable(true) }
+            val launch = listOf(cli.path, "workspace", "mcp", "--dir", root.path)
+            val targets = AgentBundle.targets(root, home)
+            assertEquals(java.io.File(home, ".local/bin/reaktor-agent"), targets.launcher)
+            AgentBundle.install(targets, launch)
+            assertTrue(AgentBundle.status(targets).launcher)
+            val process = ProcessBuilder(targets.launcher.path, "atlas", "query", "{\"from\": {\"name\": \"A b\"}}").redirectErrorStream(true).start()
+            assertEquals("[atlas]\n[query]\n[{\"from\": {\"name\": \"A b\"}}]\n", process.inputStream.readAllBytes().decodeToString())
+            assertEquals(0, process.waitFor())
+            AgentBundle.uninstall(targets)
+            assertFalse(targets.launcher.exists())
+
+            AgentBundle.install(targets, launch)
+            targets.launcher.writeText("#!/bin/sh\nexec mine \"\$@\"\n")
+            assertTrue(AgentBundle.install(targets, launch).any { it.startsWith("path/reaktor-agent: collision") })
+            AgentBundle.uninstall(targets)
+            assertEquals("#!/bin/sh\nexec mine \"\$@\"\n", targets.launcher.readText(), "a launcher someone changed is theirs")
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun aFileWithNothingOfOursToChangeKeepsItsFormatting() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
+        val root = Files.createTempDirectory("bundle-root").toFile()
+        try {
+            val targets = AgentBundle.targets(root, home)
+            val pretty = "{\n  \"mcpServers\": {\n    \"reaktor\": {\n      \"command\": \"operator-owned\"\n    }\n  }\n}\n"
+            targets.claudeProjectConfig.writeText(pretty)
+            AgentBundle.install(targets, command)
+            assertEquals(pretty, targets.claudeProjectConfig.readText(), "a tracked file is not rewritten when its content does not change")
+            AgentBundle.uninstall(targets)
+            assertEquals(pretty, targets.claudeProjectConfig.readText())
         } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 

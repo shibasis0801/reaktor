@@ -4,11 +4,15 @@ import dev.shibasis.reaktor.conductor.workspace.atomicWrite
 import kotlinx.serialization.json.*
 import java.io.File
 import java.nio.channels.FileChannel
+import java.nio.file.Files
 import java.nio.file.StandardOpenOption.*
+import java.nio.file.attribute.PosixFilePermissions
 
 object AgentBundle {
     const val SERVER_NAME = "reaktor"
     const val GRAPH_SERVER_NAME = "reaktor-graph"
+    const val SANDBOX_NAME = "reaktor-sandbox"
+    const val LAUNCHER_NAME = "reaktor-agent"
     const val DEFAULT_GRAPH_URL = "http://127.0.0.1:8765/mcp"
 
     /**
@@ -19,21 +23,22 @@ object AgentBundle {
      * so [antigravityConfig] is a machine-wide file the operator shares with every other project,
      * and it is passed in rather than derived so no caller can reach the real home by accident.
      */
-    data class Targets(val codexConfig: File, val claudeProjectConfig: File, val antigravityConfig: File) {
+    data class Targets(val codexConfig: File, val claudeProjectConfig: File, val antigravityConfig: File, val launcher: File) {
         val manifest: File get() = File(claudeProjectConfig.parentFile, ".reaktor/agent-bundle.json")
     }
 
     fun targets(root: File, home: File = File(System.getProperty("user.home"))) = Targets(
-        File(root, ".codex/config.toml"), File(root, ".mcp.json"), File(home, ".gemini/config/mcp_config.json"))
+        File(root, ".codex/config.toml"), File(root, ".mcp.json"), File(home, ".gemini/config/mcp_config.json"), File(home, ".local/bin/$LAUNCHER_NAME"))
 
     data class Status(val codex: Boolean, val claude: Boolean, val codexGraph: Boolean = false, val claudeGraph: Boolean = false,
-        val antigravity: Boolean = false, val antigravityGraph: Boolean = false)
+        val antigravity: Boolean = false, val antigravityGraph: Boolean = false, val codexSandbox: Boolean = false, val launcher: Boolean = false)
     fun status(targets: Targets): Status {
         val text = targets.codexConfig.takeIf { it.isFile }?.readText().orEmpty()
         val servers = readObject(targets.claudeProjectConfig).servers()
         return Status(hasTable(text, SERVER_NAME), SERVER_NAME in servers,
             hasTable(text, GRAPH_SERVER_NAME), GRAPH_SERVER_NAME in servers,
-            SERVER_NAME in readObject(targets.antigravityConfig).servers(), GRAPH_SERVER_NAME in readObject(targets.antigravityConfig).servers())
+            SERVER_NAME in readObject(targets.antigravityConfig).servers(), GRAPH_SERVER_NAME in readObject(targets.antigravityConfig).servers(),
+            text.contains("# reaktor-bundle begin $SANDBOX_NAME\n"), targets.launcher.canExecute())
     }
 
     /**
@@ -60,6 +65,7 @@ object AgentBundle {
         var claude = readObject(targets.claudeProjectConfig)
         var antigravity = readObject(targets.antigravityConfig)
         var text = targets.codexConfig.takeIf { it.isFile }?.readText().orEmpty()
+        val read = Triple(text, claude, antigravity)
         val manifest = readObject(targets.manifest).toMutableMap()
         manifest.putIfAbsent("codexCreated", JsonPrimitive(!targets.codexConfig.exists()))
         manifest.putIfAbsent("claudeCreated", JsonPrimitive(!targets.claudeProjectConfig.exists()))
@@ -85,6 +91,44 @@ object AgentBundle {
             }
             hasTable(text, name) -> messages += "$key: collision; preserved unowned or modified entry"
             else -> { text += chunk; owned[key] = JsonPrimitive(chunk); messages += "$key: installed in ${targets.codexConfig.path}" }
+        }
+
+        val sandboxKey = "codex/$SANDBOX_NAME"
+        val sandbox = "# reaktor-bundle begin $SANDBOX_NAME\ndefault_permissions = ${toml(SERVER_NAME)}\nfeatures.network_proxy = true\n" +
+            "permissions.$SERVER_NAME.extends = \":workspace\"\npermissions.$SERVER_NAME.network.enabled = true\n" +
+            "permissions.$SERVER_NAME.network.allow_local_binding = true\n# reaktor-bundle end $SANDBOX_NAME\n"
+        val previousSandbox = (owned[sandboxKey] as? JsonPrimitive)?.content
+        when {
+            previousSandbox != null && text.contains(previousSandbox) -> {
+                text = text.replace(previousSandbox, sandbox)
+                owned[sandboxKey] = JsonPrimitive(sandbox)
+                messages += "$sandboxKey: " + if (previousSandbox == sandbox) "already installed" else "updated owned entry"
+            }
+            Regex("(?m)^\\s*(?:default_permissions\\s*=|(?:features|permissions)\\s*[.=]|\\[\\s*(?:features|permissions)\\s*[.\\]])").containsMatchIn(text) ->
+                messages += "$sandboxKey: collision; ${targets.codexConfig.path} already sets default_permissions, features or permissions, " +
+                    "so Codex keeps that sandbox and its shells may not reach the workspace owner"
+            else -> {
+                text = sandbox + text
+                owned[sandboxKey] = JsonPrimitive(sandbox)
+                messages += "$sandboxKey: installed in ${targets.codexConfig.path}; Codex sessions in this trusted project default to workspace writes " +
+                    "plus connections to this machine only, through Codex's experimental network proxy, so reaktor-agent atlas reaches the owner; other hosts stay blocked"
+            }
+        }
+
+        val prefix = command.subList(0, workspaceIndex)
+        val launcherKey = "path/$LAUNCHER_NAME"
+        val launcher = "#!/bin/sh\nexec ${prefix.joinToString(" ") { "'" + it.replace("'", "'\\''") + "'" }} \"\$@\"\n"
+        val placed = targets.launcher.takeIf { it.isFile }?.readText()
+        val onPath = System.getenv("PATH").orEmpty().split(File.pathSeparator).any { it.isNotEmpty() && File(it).absoluteFile == targets.launcher.parentFile.absoluteFile }
+        val written = when {
+            prefix.isEmpty() || !File(prefix.first()).isAbsolute || File(prefix.first()).absoluteFile == targets.launcher.absoluteFile -> false
+            placed == launcher -> false.also { messages += "$launcherKey: already installed" }
+            placed != null && owned[launcherKey] != JsonPrimitive(placed) -> false.also { messages += "$launcherKey: collision; preserved ${targets.launcher.path}" }
+            else -> true.also {
+                owned[launcherKey] = JsonPrimitive(launcher)
+                messages += "$launcherKey: " + (if (placed == null) "installed ${targets.launcher.path}" else "updated owned entry") +
+                    if (onPath) "" else "; ${targets.launcher.parent} is not on PATH, so add it in the profile agents' shells start from"
+            }
         }
 
         val agyServers = antigravity.servers()
@@ -128,9 +172,13 @@ object AgentBundle {
             messages += "antigravity: add \"mcp(reaktor/*)\" to permissions.allow in " +
                 File(targets.antigravityConfig.parentFile.parentFile, "antigravity-cli/settings.json").path +
                 "; without it a headless Gemini turn reports these tools as denied"
-        writeText(targets.codexConfig, text)
-        writeObject(targets.claudeProjectConfig, claude)
-        writeObject(targets.antigravityConfig, antigravity)
+        if (text != read.first) writeText(targets.codexConfig, text)
+        if (claude != read.second) writeObject(targets.claudeProjectConfig, claude)
+        if (antigravity != read.third) writeObject(targets.antigravityConfig, antigravity)
+        if (written) {
+            writeText(targets.launcher, launcher)
+            Files.setPosixFilePermissions(targets.launcher.toPath(), PosixFilePermissions.fromString("rwxr-xr-x"))
+        }
         writeObject(targets.manifest, JsonObject(manifest + ("entries" to JsonObject(owned))))
         messages
     }
@@ -156,6 +204,7 @@ object AgentBundle {
         var text = targets.codexConfig.takeIf { it.isFile }?.readText().orEmpty()
         var claude = readObject(targets.claudeProjectConfig)
         var antigravity = readObject(targets.antigravityConfig)
+        val read = Triple(text, claude, antigravity)
         val messages = mutableListOf<String>()
         owned.forEach { (key, value) ->
             val name = key.substringAfter('/')
@@ -175,20 +224,23 @@ object AgentBundle {
                     claude = JsonObject(claude + ("mcpServers" to JsonObject(servers - name)))
                     messages += "$key: removed"
                 } else messages += "$key: modified; preserved"
+            } else if (key.startsWith("path/")) {
+                if (targets.launcher.takeIf { it.isFile }?.readText() == value.jsonPrimitive.content) { targets.launcher.delete(); messages += "$key: removed" }
+                else messages += "$key: modified; preserved"
             }
         }
         if (targets.codexConfig.exists()) {
             if (text.isEmpty() && manifest["codexCreated"] == JsonPrimitive(true)) targets.codexConfig.delete()
-            else writeText(targets.codexConfig, text)
+            else if (text != read.first) writeText(targets.codexConfig, text)
         }
         if (targets.claudeProjectConfig.exists()) {
             if (claude.keys == setOf("mcpServers") && claude.servers().isEmpty() && manifest["claudeCreated"] == JsonPrimitive(true)) targets.claudeProjectConfig.delete()
-            else writeObject(targets.claudeProjectConfig, claude)
+            else if (claude != read.second) writeObject(targets.claudeProjectConfig, claude)
         }
         targets.manifest.delete()
         if (targets.antigravityConfig.exists()) {
             if (antigravity.keys == setOf("mcpServers") && antigravity.servers().isEmpty() && manifest["antigravityCreated"] == JsonPrimitive(true)) targets.antigravityConfig.delete()
-            else writeObject(targets.antigravityConfig, antigravity)
+            else if (antigravity != read.third) writeObject(targets.antigravityConfig, antigravity)
         }
         messages.ifEmpty { listOf("No owned entries; existing configuration preserved") }
     }
