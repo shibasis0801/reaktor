@@ -19,6 +19,11 @@ data class CodeOutline(val path: String, val digest: String, val provider: Strin
 data class CodeName(val name: String, val called: Boolean, val qualifier: String?, val receiver: Boolean)
 data class CodeEditPlan(val workspace: String, val before: CodeDocument, val after: String, val fingerprint: String,
     val replacements: Int, val find: String, val replacement: String, val recipe: String = "literal-v1", val evidence: String = "")
+data class CodeTextEdit(val path: String, val span: CodeSpan, val replacement: String)
+data class CodeFileChange(val before: CodeDocument, val after: String, val edits: List<CodeTextEdit>)
+data class CodeChangePlan(val workspace: String, val recipe: String, val files: List<CodeFileChange>, val fingerprint: String, val evidence: String = "") {
+    val edits: Int get() = files.sumOf { it.edits.size }
+}
 
 class CodeWorkspace(root: Path) {
     val root: Path = root.toRealPath()
@@ -38,11 +43,17 @@ class CodeWorkspace(root: Path) {
         return CodeDocument(root.relativize(file).toString().replace('\\', '/'), digest(bytes), text)
     }
 
+    private val outlines = object : LinkedHashMap<Triple<String, String, Int>, CodeOutline>(256, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Triple<String, String, Int>, CodeOutline>?) = size > MAX_CACHED_OUTLINES
+    }
+
     fun outline(path: String, limit: Int = 80): CodeOutline {
         require(limit in 1..MAX_OUTLINE_DECLARATIONS)
         val document = read(path)
         requireKotlin(document)
-        return KotlinSyntax.outline(document, limit)
+        val key = Triple(document.path, document.digest, limit)
+        synchronized(outlines) { outlines[key] }?.let { return it }
+        return KotlinSyntax.outline(document, limit).also { outline -> synchronized(outlines) { outlines[key] = outline } }
     }
 
     fun identifiers(paths: List<String>, name: String, limit: Int = 40): CodeQueryResult = search(paths, name, limit, true)
@@ -51,6 +62,26 @@ class CodeWorkspace(root: Path) {
         val document = read(path)
         requireKotlin(document)
         return KotlinSyntax.names(document.text, span)
+    }
+
+    fun occurrences(path: String, name: String): List<CodeSpan> {
+        val document = read(path)
+        requireKotlin(document)
+        val starts = buildList { add(0); document.text.forEachIndexed { i, c -> if (c == '\n') add(i + 1) } }
+        fun position(offset: Int): CodePosition {
+            val line = starts.binarySearch(offset).let { if (it >= 0) it else -it - 2 }
+            return CodePosition(line, offset - starts[line])
+        }
+        return KotlinSyntax.identifiers(document.text, name).map { offset ->
+            val end = offset + if (document.text.startsWith("`", offset)) name.length + 2 else name.length
+            CodeSpan(position(offset), position(end))
+        }.toList()
+    }
+
+    fun statement(path: String, at: CodePosition): CodeSpan {
+        val document = read(path)
+        requireKotlin(document)
+        return KotlinSyntax.statement(document, at)
     }
 
     @Synchronized fun index(path: String): CodeSemanticIndex {
@@ -163,18 +194,84 @@ class CodeWorkspace(root: Path) {
             val index = requireNotNull(semanticIndex?.takeIf { it.digest == plan.evidence }) { "Load the exact SCIP evidence before applying this proposal" }
             index.inputs.forEach { (input, expected) -> require(read(input).digest == expected) { "Stale SCIP evidence: $input changed; re-index this target" } }
         }
-        val file = resolve(current.path)
+        write(current.path, plan.after, current)
+        return read(current.path)
+    }
+
+    fun change(recipe: String, edits: List<CodeTextEdit>, evidence: String = ""): CodeChangePlan {
+        require(recipe.isNotBlank() && recipe.length <= 128)
+        require(edits.isNotEmpty() && edits.size <= MAX_CHANGE_EDITS) { "A change holds 1 to $MAX_CHANGE_EDITS edits" }
+        val byPath = edits.groupBy { it.path }
+        require(byPath.size <= MAX_CHANGE_FILES) { "A change touches at most $MAX_CHANGE_FILES files" }
+        val files = byPath.toSortedMap().map { (path, fileEdits) ->
+            val before = read(path)
+            val starts = buildList { add(0); before.text.forEachIndexed { i, c -> if (c == '\n') add(i + 1) } }
+            fun offset(position: CodePosition): Int {
+                val start = requireNotNull(starts.getOrNull(position.line)) { "$path has no line ${position.line + 1}" }
+                val end = if (position.line + 1 < starts.size) starts[position.line + 1] - 1 else before.text.length
+                require(position.column in 0..(end - start)) { "$path has no column ${position.column + 1} on line ${position.line + 1}" }
+                return start + position.column
+            }
+            val ranges = fileEdits.map { edit -> Triple(offset(edit.span.start), offset(edit.span.end), edit) }.sortedBy { it.first }
+            ranges.forEach { (start, end, _) -> require(start <= end) { "An edit in $path ends before it starts" } }
+            ranges.zipWithNext().forEach { (first, second) -> require(first.second <= second.first) { "Edits in $path overlap at line ${second.third.span.start.line + 1}" } }
+            val after = StringBuilder(before.text)
+            ranges.asReversed().forEach { (start, end, edit) -> after.replace(start, end, edit.replacement) }
+            val text = after.toString()
+            require(text != before.text) { "The edits leave $path unchanged" }
+            require(text.toByteArray().size <= MAX_FILE_BYTES) { "$path would exceed the bounded file size" }
+            CodeFileChange(before, text, ranges.map { it.third })
+        }
+        return CodeChangePlan(root.toString(), recipe, files, changeFingerprint(recipe, files, evidence), evidence)
+    }
+
+    @Synchronized fun apply(plan: CodeChangePlan, approvedFingerprint: String): List<CodeDocument> {
+        require(plan.workspace == root.toString()) { "Change belongs to another workspace" }
+        require(plan.fingerprint == approvedFingerprint && plan.fingerprint == changeFingerprint(plan.recipe, plan.files, plan.evidence)) { "Change approval does not match the plan" }
+        val current = plan.files.map { read(it.before.path) }
+        if (current.zip(plan.files).all { (now, file) -> now.text == file.after }) return current
+        plan.files.zip(current).forEach { (file, now) -> require(now == file.before) { "${file.before.path} changed since the change was planned; plan it again" } }
+        val written = mutableListOf<CodeFileChange>()
+        try {
+            plan.files.forEach { file -> write(file.before.path, file.after, file.before); written += file }
+        } catch (failure: Exception) {
+            val stopped = plan.files[written.size].before.path
+            if (written.isEmpty()) throw IllegalStateException("The change stopped at $stopped before writing anything: ${failure.message}", failure)
+            val restored = written.asReversed().all { file -> runCatching { write(file.before.path, file.before.text, null) }.isSuccess }
+            val count = if (written.size == 1) "the 1 file" else "the ${written.size} files"
+            throw IllegalStateException("The change stopped at $stopped; " +
+                (if (restored) "$count written before it restored" else "$count written before it could not all be restored") +
+                ": ${failure.message}", failure)
+        }
+        return plan.files.map { read(it.before.path) }
+    }
+
+    @Synchronized fun revert(plan: CodeChangePlan): List<CodeDocument> {
+        require(plan.workspace == root.toString()) { "Change belongs to another workspace" }
+        val current = plan.files.map { read(it.before.path) }
+        plan.files.zip(current).forEach { (file, now) ->
+            require(now == file.before || now.text == file.after) { "${file.before.path} changed after the change was applied; it was left as it is" }
+        }
+        plan.files.zip(current).filter { (file, now) -> now != file.before }.forEach { (file, now) -> write(file.before.path, file.before.text, now) }
+        return plan.files.map { read(it.before.path) }
+    }
+
+    private fun write(path: String, text: String, expected: CodeDocument?) {
+        val file = resolve(path)
         val temporary = Files.createTempFile(file.parent, ".reaktor-edit-", ".tmp")
         try {
-            Files.writeString(temporary, plan.after)
+            Files.writeString(temporary, text)
             if (Files.getFileStore(file).supportsFileAttributeView("posix")) {
                 Files.setPosixFilePermissions(temporary, Files.getPosixFilePermissions(file, NOFOLLOW_LINKS))
             }
-            require(read(current.path) == current) { "Source changed while the edit was prepared" }
+            if (expected != null) require(read(path) == expected) { "Source changed while the edit was prepared" }
             Files.move(temporary, file, ATOMIC_MOVE, REPLACE_EXISTING)
         } finally { Files.deleteIfExists(temporary) }
-        return read(current.path)
     }
+
+    private fun changeFingerprint(recipe: String, files: List<CodeFileChange>, evidence: String): String = digest(
+        (listOf("change-v1", recipe, root.toString(), evidence) + files.sortedBy { it.before.path }.flatMap { listOf(it.before.path, it.before.digest, digest(it.after.toByteArray())) })
+            .joinToString("\u0000").toByteArray())
 
     private fun resolve(path: String): Path {
         require(path.isNotBlank() && path.length <= 4096)
@@ -202,6 +299,9 @@ class CodeWorkspace(root: Path) {
     companion object {
         private const val MAX_FILE_BYTES = 524288
         const val MAX_OUTLINE_DECLARATIONS = 4096
+        const val MAX_CHANGE_FILES = 256
+        private const val MAX_CACHED_OUTLINES = 2048
+        const val MAX_CHANGE_EDITS = 4096
         fun renameSelector(indexPath: String, at: CodePosition) = listOf(indexPath, at.line.toString(), at.column.toString()).joinToString("\u0000")
     }
 }

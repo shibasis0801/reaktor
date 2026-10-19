@@ -150,6 +150,88 @@ class CodeWorkspaceTest {
         assertFailsWith<IllegalArgumentException> { code.query(emptyList(), "x") }
     }
 
+    @Test fun aStatementSpansTheWholeStatementOrBranchAroundAPosition() = fixture { root, code ->
+        Files.writeString(root.resolve("Record.kt"), """
+            package sample
+            class Audit {
+                fun record(event: Event): Entry {
+                    val entry = Entry(
+                        id = event.id,
+                        scopes = event.scopes,
+                    )
+                    if (event.urgent) {
+                        notify(entry)
+                    }
+                    return when (event.kind) {
+                        Kind.Grant -> entry.copy(granted = true)
+                        else -> entry
+                    }
+                }
+            }
+            val limit = listOf(
+                1,
+            )
+        """.trimIndent() + "\n")
+        fun lines(line: Int, column: Int) = code.statement("Record.kt", CodePosition(line, column)).let { it.start.line to it.end.line }
+        assertEquals(3 to 6, lines(5, 28))
+        assertEquals(8 to 8, lines(8, 12))
+        assertEquals(11 to 11, lines(11, 30))
+        assertEquals(2 to 14, lines(2, 16))
+        assertEquals(16 to 18, lines(17, 4))
+    }
+
+    @Test fun aChangeWritesEveryFileOrNoneAndReplaysOnce() = fixture { root, code ->
+        Files.createDirectories(root.resolve("a")); Files.createDirectories(root.resolve("b"))
+        Files.writeString(root.resolve("a/One.kt"), "fun oldName() = 1\n")
+        Files.writeString(root.resolve("b/Two.kt"), "val x = oldName()\r\nval y = oldName()\r\n")
+        val edits = listOf(CodeTextEdit("b/Two.kt", CodeSpan.of(1, 8, 15), "newName"), CodeTextEdit("a/One.kt", CodeSpan.of(0, 4, 11), "newName"),
+            CodeTextEdit("b/Two.kt", CodeSpan.of(0, 8, 15), "newName"))
+        val plan = code.change("rename-test", edits)
+        assertEquals(3, plan.edits)
+        assertEquals(listOf("a/One.kt", "b/Two.kt"), plan.files.map { it.before.path })
+        val applied = code.apply(plan, plan.fingerprint)
+        assertEquals(listOf("fun newName() = 1\n", "val x = newName()\r\nval y = newName()\r\n"), applied.map { it.text })
+        assertEquals(applied, code.apply(plan, plan.fingerprint), "applying the same plan again replays it")
+
+        Files.writeString(root.resolve("a/One.kt"), "fun oldName() = 1\n")
+        Files.writeString(root.resolve("b/Two.kt"), "val x = oldName()\r\nval y = oldName()\r\n")
+        val second = code.change("rename-test", edits)
+        Files.writeString(root.resolve("b/Two.kt"), "val x = oldName()\r\nval y = oldName() + 1\r\n")
+        assertFailsWith<IllegalArgumentException> { code.apply(second, second.fingerprint) }
+        assertEquals("fun oldName() = 1\n", code.read("a/One.kt").text, "a stale file stops the change before anything is written")
+        assertFailsWith<IllegalArgumentException> { code.apply(second.copy(recipe = "other"), second.fingerprint) }
+        assertFailsWith<IllegalArgumentException> {
+            code.change("overlap", listOf(CodeTextEdit("a/One.kt", CodeSpan.of(0, 4, 11), "x"), CodeTextEdit("a/One.kt", CodeSpan.of(0, 6, 9), "y")))
+        }
+        assertFailsWith<IllegalArgumentException> { code.change("past the line", listOf(CodeTextEdit("a/One.kt", CodeSpan.of(0, 4, 40), "x"))) }
+    }
+
+    @Test fun aChangeThatFailsPartWayRestoresTheFilesItWrote() = fixture { root, code ->
+        Files.createDirectories(root.resolve("a")); Files.createDirectories(root.resolve("b"))
+        Files.writeString(root.resolve("a/One.kt"), "val one = 1\n")
+        Files.writeString(root.resolve("b/Two.kt"), "val two = 2\n")
+        val plan = code.change("edit-test", listOf(CodeTextEdit("a/One.kt", CodeSpan.of(0, 10, 11), "10"), CodeTextEdit("b/Two.kt", CodeSpan.of(0, 10, 11), "20")))
+        val locked = root.resolve("b").toFile()
+        assertTrue(locked.setWritable(false))
+        try {
+            val failure = assertFailsWith<IllegalStateException> { code.apply(plan, plan.fingerprint) }
+            assertTrue(failure.message!!.startsWith("The change stopped at b/Two.kt; the 1 file written before it restored"), failure.message)
+        } finally { locked.setWritable(true) }
+        assertEquals("val one = 1\n", code.read("a/One.kt").text)
+        assertEquals("val two = 2\n", code.read("b/Two.kt").text)
+    }
+
+    @Test fun outlinesFromManyThreadsAgree() = fixture { root, code ->
+        Files.writeString(root.resolve("Many.kt"), "package sample\n\n" + (1..200).joinToString("\n") { "class Type$it { fun call$it() = $it }" } + "\n")
+        val expected = code.outline("Many.kt", 1000)
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(4)
+        try {
+            val outlines = (1..16).map { pool.submit<CodeOutline> { code.outline("Many.kt", 1000) } }.map { it.get() }
+            assertTrue(outlines.all { it == expected })
+            assertEquals(400, expected.declarations.size)
+        } finally { pool.shutdownNow() }
+    }
+
     private fun fixture(test: (java.nio.file.Path, CodeWorkspace) -> Unit) {
         val root = Files.createTempDirectory("code-workspace-")
         try { test(root, CodeWorkspace(root)) }

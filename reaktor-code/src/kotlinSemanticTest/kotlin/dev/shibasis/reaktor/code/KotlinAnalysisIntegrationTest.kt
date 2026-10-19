@@ -110,4 +110,82 @@ class KotlinAnalysisIntegrationTest {
             assertTrue(Files.readString(root.resolve("producer.log")).contains("Unknown target option"))
         } finally { Files.walk(root).use { files -> files.sorted(Comparator.reverseOrder()).forEach(Files::delete) } }
     }
+
+    @Test fun aServedSessionResolvesEachUseAcrossModulesFollowsOverridesAndStaysWarmUntilASourceChanges() {
+        val root = Files.createTempDirectory("code-kotlin-serve-").toRealPath()
+        try {
+            val helper = unpack(root.resolve("helper"))
+            val api = "package lib\n\nopen class Service {\n    open fun answer(): Int = 42\n}\n\nclass Other {\n    fun answer(): Int = 1\n}\n"
+            val use = "package app\n\nimport lib.Other\nimport lib.Service\n\nclass Special : Service() {\n    override fun answer(): Int = 7\n}\n\n" +
+                "fun use(service: Service, other: Other) = service.answer() + other.answer() + Special().answer()\n"
+            Files.createDirectories(root.resolve("lib"))
+            Files.createDirectories(root.resolve("app"))
+            Files.writeString(root.resolve("lib/Api.kt"), api)
+            Files.writeString(root.resolve("app/Use.kt"), use)
+            fun at(path: String, line: Int, column: Int) = buildJsonObject { put("path", path); put("line", line); put("column", column) }
+            fun places(path: String, text: String) = Regex("\\banswer\\b").findAll(text).map { match ->
+                val before = text.substring(0, match.range.first)
+                at(path, before.count { it == '\n' }, match.range.first - before.lastIndexOf('\n') - 1)
+            }.toList()
+            val stdlib = System.getProperty("reaktor.kotlin.stdlib")
+            fun request(id: Int, current: String) = buildJsonObject {
+                put("id", id)
+                put("jdkHome", Path.of(System.getProperty("java.home")).toRealPath().toString())
+                putJsonArray("modules") {
+                    addJsonObject { put("name", "lib"); put("platform", "jvm"); putJsonArray("sources") { add("lib/Api.kt") }; putJsonArray("classpath") { add(stdlib) } }
+                    addJsonObject {
+                        put("name", "app"); put("platform", "jvm"); putJsonArray("sources") { add("app/Use.kt") }; putJsonArray("classpath") { add(stdlib) }
+                        putJsonArray("dependencies") { add("lib") }
+                    }
+                }
+                put("declaration", at("lib/Api.kt", 3, 13))
+                put("candidates", JsonArray(places("lib/Api.kt", api) + places("app/Use.kt", current)))
+            }
+            val process = ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-Djava.awt.headless=true",
+                "-cp", "$helper/classes:$helper/lib/*", "dev.shibasis.reaktor.code.kotlinanalysis.MainKt", "serve", root.toString())
+                .redirectError(root.resolve("serve.log").toFile()).start()
+            try {
+                val input = process.outputStream.bufferedWriter()
+                val output = process.inputStream.bufferedReader()
+                fun ask(id: Int, current: String = use): JsonObject {
+                    input.write(request(id, current).toString())
+                    input.newLine()
+                    input.flush()
+                    return Json.parseToJsonElement(output.readLine() ?: fail(Files.readString(root.resolve("serve.log")))).jsonObject
+                }
+                fun verdicts(reply: JsonObject) = reply.getValue("decisions").jsonArray.map { it.jsonObject.getValue("verdict").jsonPrimitive.content }
+                val first = ask(1)
+                assertNull(first["error"], "$first")
+                assertEquals(1, first.getValue("id").jsonPrimitive.int)
+                assertEquals("lib/Api.kt:3:13", first.getValue("target").jsonPrimitive.content)
+                assertEquals(setOf("lib/Api.kt:3:13", "app/Use.kt:6:17"), first.getValue("family").jsonArray.map { it.jsonPrimitive.content }.toSet())
+                assertTrue(first.getValue("external").jsonArray.isEmpty())
+                assertEquals(listOf("target", "other", "target", "target", "other", "target"), verdicts(first))
+                assertFalse(first.getValue("warm").jsonPrimitive.boolean)
+                val second = ask(2)
+                assertTrue(second.getValue("warm").jsonPrimitive.boolean)
+                assertEquals(verdicts(first), verdicts(second))
+                val changed = use.replace("other.answer()", "other.answer() + 0")
+                Files.writeString(root.resolve("app/Use.kt"), changed)
+                val third = ask(3, changed)
+                assertFalse(third.getValue("warm").jsonPrimitive.boolean)
+                assertEquals(verdicts(first), verdicts(third))
+            } finally {
+                process.destroy()
+                process.waitFor(10, TimeUnit.SECONDS)
+            }
+        } finally { Files.walk(root).use { files -> files.sorted(Comparator.reverseOrder()).forEach(Files::delete) } }
+    }
+
+    private fun unpack(helper: Path): Path {
+        ZipFile(System.getProperty("reaktor.kotlin.archive")).use { archive -> archive.entries().asSequence().forEach { entry ->
+            val destination = helper.resolve(entry.name).normalize()
+            require(destination.startsWith(helper))
+            if (entry.isDirectory) Files.createDirectories(destination) else {
+                Files.createDirectories(destination.parent)
+                archive.getInputStream(entry).use { Files.copy(it, destination) }
+            }
+        } }
+        return helper
+    }
 }
