@@ -16,6 +16,109 @@ Written 16 October 2026 by Claude. Not published. Inputs: the Codex tool-experim
 
 **First steps.** Export compilations from dependeasy; extend the Kotlin producer to calls, types and compiler addresses with warm sessions in the kernel; ship `atlas.query`, `atlas.read` and a compiler-guided Kotlin `rename` through `change.plan` and `change.apply`; let agent seats apply deterministic in-scope plans without a person. The first gate is a real cross-module Kotlin rename done from both Claude and Codex with no whole-file reads and passing affected checks.
 
+### Status at a glance (19 October)
+
+```mermaid
+flowchart TB
+    subgraph faces["Faces"]
+        claude["Claude Code<br/>connected,<br/>not measured yet"]
+        codex["Codex<br/>MCP tools and shell<br/>form, measured"]
+        hangar["Hangar<br/>Access and Atlas views<br/>ask the owner"]
+        cli["reaktor CLI<br/>generated face<br/>not wired"]
+    end
+    subgraph doors["Doors to the owner"]
+        mcp["MCP server reaktor<br/>kernel, atlas_query,<br/>atlas_read"]
+        shell["Shell form<br/>reaktor-agent atlas<br/>query and read, set up<br/>by workspace install"]
+    end
+    subgraph kernelBox["Workspace kernel (BestBuds)"]
+        gate["OperationKernel gate<br/>catalog, effects, seats;<br/>20 agent operations<br/>declare no effect"]
+        atlasOps["atlas.query, atlas.read<br/>plain-text answers"]
+        changeOps["change.plan, change.apply<br/>only as code.plan<br/>and code.apply"]
+        checkRun["check.run<br/>named, not in<br/>the catalog"]
+        ledger["Run ledger<br/>plans and receipts"]
+        revisions["Revisions<br/>a digest of the files<br/>each answer read;<br/>no file watcher"]
+    end
+    subgraph atlasBox["Atlas (KernelAtlas.kt)"]
+        planner["Query planner<br/>one fixed v0 pipeline"]
+        engine["Change engine<br/>literal edits and<br/>file-local TypeScript<br/>renames, one file<br/>at a time"]
+        identity["Ids<br/>file offsets, no<br/>compiler addresses"]
+        segments["Fact segments<br/>semantic artifacts<br/>bound to input digests"]
+        sourceView["Source view<br/>names, literal text,<br/>positions"]
+        semanticView["Semantic view<br/>common and JVM names<br/>and explicit references"]
+        buildView["Build view<br/>declared build model,<br/>no compilations"]
+        laterViews["Reaktor view and<br/>runtime view"]
+    end
+    subgraph providers["Provider nodes"]
+        psi["Kotlin PSI and git grep<br/>behind every answer"]
+        kaa["Kotlin Analysis API<br/>isolated producer,<br/>not warm"]
+        ts["scip-typescript<br/>one tsconfig"]
+        laterProviders["ast-grep, scip-clang<br/>and clangd, Reaktor<br/>graph extractor, runtime<br/>overlay, OpenRewrite"]
+    end
+    subgraph buildFacts["Build facts"]
+        dep["dependeasy model<br/>no compilations<br/>section yet"]
+        laterBuild["Gradle Tooling API,<br/>CMake File API, pnpm<br/>and tsconfig references"]
+    end
+    subgraph problems["Open problems"]
+        p1["atlas.query with read: true<br/>windows in long<br/>declarations hide the<br/>lines T2 edits: edits cost<br/>12% more, T2 35% more"]
+        p2["atlas.query, path with<br/>follow: Codex means the<br/>file to list uses in, the<br/>owner narrows the<br/>declaration, so the<br/>answer is empty"]
+        p3["Workspace owner<br/>a temporary owner stalls<br/>for 35 s under load:<br/>3 of 54 shell lookups<br/>timed out"]
+    end
+    claude --> mcp
+    codex --> mcp
+    codex --> shell
+    mcp --> gate
+    shell --> gate
+    hangar --> gate
+    cli --> gate
+    gate --> atlasOps
+    gate --> changeOps
+    gate --> checkRun
+    changeOps --> ledger
+    atlasOps --> revisions
+    atlasOps --> planner
+    changeOps --> engine
+    revisions --> segments
+    ledger ~~~ engine
+    ledger ~~~ identity
+    revisions ~~~ planner
+    planner --> sourceView
+    planner --> semanticView
+    planner --> buildView
+    planner -.-> laterViews
+    engine --> sourceView
+    sourceView --> psi
+    semanticView --> kaa
+    semanticView --> ts
+    laterViews -.-> laterProviders
+    buildView --> dep
+    buildView -.-> laterBuild
+    psi ~~~ dep
+    ts ~~~ laterBuild
+    dep ~~~ p1
+    dep ~~~ p2
+    laterBuild ~~~ p3
+    classDef live fill:#DCFCE7,stroke:#15803D,color:#14532D
+    classDef partial fill:#FEF3C7,stroke:#D97706,color:#78350F
+    classDef problem fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef later fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-dasharray: 4 3
+    class claude,codex,hangar,mcp,shell,atlasOps,ledger,sourceView,psi live
+    class cli,gate,changeOps,revisions,planner,engine,identity,segments,semanticView,buildView,kaa,ts,dep partial
+    class p1,p2,p3 problem
+    class checkRun,laterViews,laterProviders,laterBuild later
+```
+
+Green works today for its stated scope. Amber exists but is narrow, incomplete or only under an older name. Grey, with a dashed border, is designed and not started; each grey box lists the parts of its tier that have not started. Red boxes are the open problems the eighth addendum to §5.6 found, and each names the part it affects. Dotted arrows are connections the design plans and the code does not make yet. Today the Kotlin producer reads hand-written manifests, not the dependeasy model. The boxes follow §4.2, and §9 has the detail. The only change since 18 October is that the background-owner fixes are now committed.
+
+| Measured with Codex, eight passes per task | Total input against a same-time control |
+|---|---|
+| Five code questions, Atlas through the MCP tools (17 October, 21:40) | 6% less, 9 rounds against 16 |
+| Five code questions, Atlas from the shell (18 October, 13:00) | 18.9% less, 9 rounds against 13.8; most of the gain came from outside the harness, because one MCP call now costs what one shell call costs |
+| Three edits, Atlas through the MCP tools (17 October, 23:15) | 15% more, 19.6 rounds against 15.2, because Codex runs each Atlas call in a round of its own |
+| Three edits, Atlas from the shell (18 October, 00:30) | 5% less, 14.2 rounds against 16.6; eight passes cannot rule out no difference |
+| Three edits, shell form with the long-declaration windows (18 October, 13:00) | 12% more, almost all in T2 (35% more) |
+| Claude | Not measured |
+| First completion gate: a cross-module Kotlin rename through `change.apply` from Claude and Codex | Not reached; there is no Kotlin rename recipe yet |
+
 ## 1. Where things stand
 
 The layer has a sound skeleton and a narrow core.
@@ -25,6 +128,8 @@ The skeleton is the BestBuds kernel. It is one reaktor-graph, `KernelGraph`, wit
 The core is reaktor-code: under 1,000 lines of production code that give bounded reads, literal and identifier search, PSI outlines, and a semantic index loaded from a SCIP-shaped artifact. Two helpers produce that artifact: scip-typescript for one tsconfig, and the Kotlin Analysis API for declared common and JVM modules, covering names and explicit references only. The kernel can investigate a symbol within 12,000 characters and apply a single-file literal edit or a file-local TypeScript rename, each after a person approves. Everything the 13 October experiments proved beyond that (resolved calls and types, JS and Native compilations, compiler-guided multi-file rename, ast-grep, OpenRewrite) is not integrated.
 
 ### 1.1 Current architecture
+
+This is the state on 16 October, before the build started. "Status at a glance" in §0 shows where each part of the proposed design stands now.
 
 ```mermaid
 flowchart TB
@@ -1296,7 +1401,7 @@ Started 16 October 2026 at the owner's request ("start building"). Codex keeps d
 
 **Open on the owner's Mac (16 Oct).**
 - Cut-over done 16 Oct. It surfaced a startup bug: an engineering descriptor (`kernel-connection.json`) left by a dead process made the new owner's `publish` throw, the owner then lost its lock and new sessions failed for about 15 minutes. `publish` and the server's `connect` now replace a descriptor whose endpoint is gone or answers as someone else, and the owner exits for launchd to restart it when startup fails after it opened the workspace. Still open: 20 `agent.*` operations declare no effect. Since 17 Oct the default seat policy allows every effect (the owner's "full access as default"; `DoorPolicy.Guarded` keeps the old decisions), so they no longer ask a person, but their effects still matter for the audit trail and for Guarded. remote-dev's appended `:exportBuildModel` failed on `kotlinAnalysisCompiler` resolution in dependeasy on 16 Oct.
-- Background owners, fixed 17 Oct (uncommitted). `~/Library/LaunchAgents` held 45 `build.reaktor.agents.*` services: 30 for folders that no longer exist, mostly test temp roots; 10 old conductor `workspace serve` services, one serving `/`; one owner for the temp folder itself. Now: `AgentBackgroundService.connect` refuses `/`, the home folder and the temp folder (`AgentWorkspaceRoots`); without `--dir` the CLI serves the repository around the current folder and refuses when there is none; an owner for a temporary folder is loaded from its own copy and never written to `~/Library/LaunchAgents`, so it ends with the login session; launchd restarts an owner only while its folder exists (`KeepAlive` → `PathState`, checked against launchd with a probe job); `reaktor-agent workspace services [--prune]` lists the owners and removes the ones that need it (`AgentBackgroundServices`); Hangar's Access view counts them; `access.map` flags a reaktor entry with no `--dir` (Antigravity's starts in `/`, which is how `/` got an owner). Left for the owner: add `--dir` to Antigravity's entry before the new dist goes live, and run the prune once.
+- Background owners, fixed 17 Oct and committed 18 Oct (reaktor 03b99aae, bestbuds b568018c). `~/Library/LaunchAgents` held 45 `build.reaktor.agents.*` services: 30 for folders that no longer exist, mostly test temp roots; 10 old conductor `workspace serve` services, one serving `/`; one owner for the temp folder itself. Now: `AgentBackgroundService.connect` refuses `/`, the home folder and the temp folder (`AgentWorkspaceRoots`); without `--dir` the CLI serves the repository around the current folder and refuses when there is none; an owner for a temporary folder is loaded from its own copy and never written to `~/Library/LaunchAgents`, so it ends with the login session; launchd restarts an owner only while its folder exists (`KeepAlive` → `PathState`, checked against launchd with a probe job); `reaktor-agent workspace services [--prune]` lists the owners and removes the ones that need it (`AgentBackgroundServices`); Hangar's Access view counts them; `access.map` flags a reaktor entry with no `--dir` (Antigravity's starts in `/`, which is how `/` got an owner). Left for the owner: Antigravity's entry still has no `--dir` on 19 Oct, so its server starts only when Antigravity launches it inside a repository; the prune has not run, and 47 owners are installed.
 
 **Acceptance for slices 1 and 2.**
 - `workspace mcp` lists only callable tools: `kernel` and the direct tools whose operations are in the catalog. No `workspace` meta-tool.
