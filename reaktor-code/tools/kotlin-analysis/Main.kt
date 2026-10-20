@@ -481,18 +481,22 @@ private fun facts(warm: Warm, request: JsonObject): JsonObject {
                         if (expects.isNotEmpty()) putJsonArray("x") { expects.forEach { add(intern(it)) } }
                     }
                 }
-                val references = PsiTreeUtil.collectElementsOfType(file, KtNameReferenceExpression::class.java).mapNotNull { reference ->
-                    val targets = runCatching { reference.mainReference.resolveToSymbols().mapNotNull { address(it) }.distinct() }.getOrDefault(emptyList())
-                        .filterNot { it.startsWith("kotlin-local:") }
-                    if (targets.isEmpty()) return@mapNotNull null
+                val references = PsiTreeUtil.collectElementsOfType(file, KtSimpleNameExpression::class.java)
+                    .filter { it is KtNameReferenceExpression || it is KtOperationReferenceExpression }.mapNotNull { reference ->
+                    val symbols = runCatching { reference.mainReference.resolveToSymbols() }.getOrNull() ?: return@mapNotNull null
+                    val targets = symbols.mapNotNull { address(it) }.distinct().filterNot { it.startsWith("kotlin-local:") }
+                    val operator = reference is KtOperationReferenceExpression
+                    val unresolved = symbols.isEmpty() && !operator
+                    if (targets.isEmpty() && !unresolved) return@mapNotNull null
                     val (line, column) = position(file, reference.textOffset)
-                    val call = (reference.parent as? KtCallExpression)?.calleeExpression == reference
+                    val call = operator || (reference.parent as? KtCallExpression)?.calleeExpression == reference
                     val imported = PsiTreeUtil.getParentOfType(reference, KtImportDirective::class.java, true) != null
+                    val sign = (reference as? KtOperationReferenceExpression)?.operationSignTokenType != null
                     buildJsonObject {
                         put("l", line); put("c", column)
-                        putJsonArray("t") { targets.forEach { add(intern(it)) } }
+                        if (targets.isNotEmpty()) putJsonArray("t") { targets.forEach { add(intern(it)) } }
                         parent(reference)?.let { put("p", it) }
-                        val flags = (if (call) 1 else 0) or (if (imported) 2 else 0)
+                        val flags = (if (call) 1 else 0) or (if (imported) 2 else 0) or (if (unresolved) 4 else 0) or (if (sign) 8 else 0)
                         if (flags != 0) put("f", flags)
                     }
                 }

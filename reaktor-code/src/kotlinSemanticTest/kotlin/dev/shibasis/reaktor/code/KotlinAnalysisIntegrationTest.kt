@@ -181,9 +181,11 @@ class KotlinAnalysisIntegrationTest {
         val root = Files.createTempDirectory("code-kotlin-facts-").toRealPath()
         try {
             val helper = unpack(root.resolve("helper"))
-            val api = "package lib\n\nopen class Service(val name: String) {\n    open fun answer(): Int = 42\n}\n\nfun Service.twice(times: Int): Int = answer() * times\n"
-            val use = "package app\n\nimport lib.Service\nimport lib.twice\n\nclass Special : Service(\"special\") {\n    override fun answer(): Int = 7\n}\n\n" +
-                "fun use(service: Service): Int = service.twice(2) + Special().answer()\n"
+            val api = "package lib\n\nopen class Service(val name: String) {\n    open fun answer(): Int = 42\n}\n\nfun Service.twice(times: Int): Int = answer() * times\n\n" +
+                "infix fun Service.join(other: Service): Int = 1\n\noperator fun Service.plus(other: Service): Service = this\n"
+            val pair = "fun pair(service: Service): Int = (service + service join Special()) + missing"
+            val use = "package app\n\nimport lib.Service\nimport lib.join\nimport lib.plus\nimport lib.twice\n\nclass Special : Service(\"special\") {\n    override fun answer(): Int = 7\n}\n\n" +
+                "fun use(service: Service): Int = service.twice(2) + Special().answer()\n\n$pair\n"
             Files.createDirectories(root.resolve("lib"))
             Files.createDirectories(root.resolve("app"))
             Files.writeString(root.resolve("lib/Api.kt"), api)
@@ -232,7 +234,14 @@ class KotlinAnalysisIntegrationTest {
                 assertEquals(listOf("kotlin:lib/Service#answer()@lib"), app.getValue("answer").addresses("o"))
                 val references = file(reply, "app/Use.kt").getValue("references").jsonArray.map { it.jsonObject }
                 fun flagged(flag: Int) = references.filter { ((it["f"]?.jsonPrimitive?.int ?: 0) and flag) != 0 }.flatMap { it.addresses("t") }
-                assertEquals(setOf("kotlin:lib/#twice[lib.Service](kotlin.Int)@lib", "kotlin:app/Special#<init>()@app", "kotlin:app/Special#answer()@app"), flagged(1).toSet())
+                val join = "kotlin:lib/#join[lib.Service](lib.Service)@lib"
+                val plus = "kotlin:lib/#plus[lib.Service](lib.Service)@lib"
+                assertEquals(setOf("kotlin:lib/#twice[lib.Service](kotlin.Int)@lib", "kotlin:app/Special#<init>()@app", "kotlin:app/Special#answer()@app", join, plus), flagged(1).toSet(),
+                    "an infix call and an operator are calls too")
+                assertEquals(setOf(plus), flagged(8).toSet(), "an operator is marked, because its sign is not the function's name")
+                val line = use.split('\n').indexOf(pair)
+                assertEquals(listOf(line to pair.indexOf("missing")), references.filter { ((it["f"]?.jsonPrimitive?.int ?: 0) and 4) != 0 }
+                    .map { it.getValue("l").jsonPrimitive.int to it.getValue("c").jsonPrimitive.int }, "a name the compiler cannot resolve is kept and marked")
                 assertTrue("kotlin:lib/#twice[lib.Service](kotlin.Int)@lib" in flagged(2), "the import of twice is a use too")
                 assertTrue(references.filter { "kotlin:lib/#twice[lib.Service](kotlin.Int)@lib" in it.addresses("t") && ((it["f"]?.jsonPrimitive?.int ?: 0) and 1) != 0 }
                     .all { it.address("p") == "kotlin:app/#use(lib.Service)@app" }, "a call names the declaration it sits in")
