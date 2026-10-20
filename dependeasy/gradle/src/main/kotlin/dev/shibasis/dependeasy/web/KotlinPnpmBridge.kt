@@ -32,10 +32,16 @@ internal fun installKotlinPnpmBridge(project: Project) {
         val generatedDirectory = packagesDirectory.parentFile
         val synchronize = project.tasks.register("syncKotlinPnpmMetadata", KotlinWorkspaceMetadata::class.java) {
             group = "dependeasy"
-            description = "Remove obsolete compiler package metadata before the frozen workspace installation"
+            description = "Generate exact workspace membership and remove obsolete compiler package metadata"
             dependsOn(root.rootPackageJsonTaskProvider)
-            workspaceDirectory.set(generatedDirectory)
+            component.set("workspace")
+            directory.set(workspace.directory)
+            workspaceMetadata.set(generatedDirectory.resolve("package.json"))
+            workspaceDefinition.set(workspace.directory.resolve("pnpm-workspace.yaml"))
+            contract.set(project.layout.buildDirectory.file("dependeasy/web/workspace.json"))
         }
+        dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project).reference(project, synchronize,
+            dev.shibasis.dependeasy.model.OutputKind.GeneratedContract)
         project.allprojects.forEach { child ->
             child.plugins.withId("org.jetbrains.kotlin.multiplatform") {
                 child.extensions.getByType(KotlinMultiplatformExtension::class.java).targets.withType(KotlinJsIrTarget::class.java).configureEach {

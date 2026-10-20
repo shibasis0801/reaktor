@@ -22,4 +22,5 @@ data class WebAppSpec(
     val paths: List<TypeScriptPath> = emptyList(),
     val assets: List<WebAsset> = emptyList(),
     val sources: List<String> = emptyList(),
+    val dataSources: Map<String, String> = emptyMap(),
 )

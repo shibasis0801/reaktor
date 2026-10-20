@@ -12,17 +12,23 @@ interface WebContract {
   directory: string;
   aliases: Record<string, string>;
   assets: Record<string, string>;
+  workspaces?: string[]
+  packages?: Record<string, string>;
+  dataSources?: Record<string, string>;
   kotlinDirectory?: string | null;
   resources?: string | null;
   moduleName?: string | null;
 }
 
-export function webContract(file: string): WebContract {
+export function webContract(file: string): Omit<WebContract, 'aliases'> & { aliases: { find: RegExp; replacement: string }[] } {
   const value: WebContract = JSON.parse(readFileSync(file, 'utf8'));
   if (value.schema !== 1) throw new Error(`Unsupported web contract: ${file}`);
   const base = dirname(file);
   const paths = (values: Record<string, string>): Record<string, string> => Object.fromEntries(Object.entries(values).map(([key, path]) => [key, resolve(base, path)]));
-  return { ...value, directory: resolve(base, value.directory), aliases: paths(value.aliases), assets: paths(value.assets),
+  return { ...value, directory: resolve(base, value.directory), aliases: Object.entries(paths(value.aliases)).map(([name, path]) => ({
+    find: new RegExp('^' + name.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('(.+)') + '$'),
+    replacement: path.replaceAll('*', '$1'),
+  })), assets: paths(value.assets), packages: paths(value.packages ?? {}),
     kotlinDirectory: value.kotlinDirectory && resolve(base, value.kotlinDirectory), resources: value.resources && resolve(base, value.resources) };
 }
 

@@ -254,6 +254,13 @@ class BackendPipelineTest {
                 into(layout.buildDirectory.dir("producer"))
             }
             publishOutput(OutputKind.KotlinJsLibrary, exports.map { it.destinationDir }, producer = exports)
+            val packageContract = tasks.register<dev.shibasis.dependeasy.web.WebContractTask>("libraryPackageContract") {
+                component.set("libraryPackage")
+                directory.set(layout.projectDirectory)
+                packageLocations.put("fixture-producer", layout.buildDirectory.dir("producer").get().asFile.absolutePath)
+                contract.set(layout.buildDirectory.file("web/library-package.json"))
+            }
+            publishOutput(OutputKind.KotlinJsPackageMetadata, packageContract.flatMap { it.contract }, producer = packageContract)
         """.trimIndent())
         directory.resolve("verify.mjs").writeText("""
             import { readFileSync } from 'node:fs';

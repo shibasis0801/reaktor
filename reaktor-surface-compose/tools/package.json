@@ -1,0 +1,12 @@
+{
+  "name": "@reaktor/surface-compose",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./dependencies": "./compose-dependencies.mjs"
+  },
+  "dependencies": {
+    "@reaktor/performance": "workspace:*"
+  }
+}

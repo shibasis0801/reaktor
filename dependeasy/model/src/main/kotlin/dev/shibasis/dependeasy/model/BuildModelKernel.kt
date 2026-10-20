@@ -45,7 +45,35 @@ object BuildModelKernel {
         }, omissions = (declared.omissions + declared.edges.filter { it.to !in identities }.map {
             Omission(it.from, "Referenced producer has no declaration model", it.to.toString())
         }).distinct().sortedBy { it.toString() })
-        return BuildModelReader.decode(BuildModelReader.encode(model))
+        val owned = model.copy(omissions = (model.omissions + unownedInputs(model, root)).distinct().sortedBy { it.toString() })
+        return BuildModelReader.decode(BuildModelReader.encode(owned))
+    }
+
+    private fun unownedInputs(model: BuildModel, root: File): List<Omission> {
+        val directories = model.builds.associate { it.name to root.resolve(it.directory).canonicalFile.toPath() }
+        val nodes = model.nodes.associateBy { it.id }
+        val dependencies = model.edges.filter { it !is Edge.OrderedAfter }.groupBy { it.from }
+        fun path(build: String, value: String) = directories.getValue(build).resolve(value).toFile().canonicalFile.toPath()
+        return model.nodes.flatMap { node ->
+            val visited = mutableSetOf<NodeId>()
+            val delivered = mutableListOf<java.nio.file.Path>()
+            fun visit(id: NodeId) {
+                if (!visited.add(id)) return
+                dependencies[id].orEmpty().forEach { edge ->
+                    if (edge is Edge.Consumes) nodes[edge.to]?.outputs.orEmpty().flatMap { it.paths }
+                        .mapTo(delivered) { path(edge.to.build, it) }
+                    visit(edge.to)
+                }
+            }
+            visit(node.id)
+            val own = directories.getValue(node.id.build)
+            val inputs = node.inputs.flatMap { input -> input.paths + input.declarations
+                .filter { it.kind == FileInputKind.File || it.kind == FileInputKind.Tree }.map { it.identity } }.distinct()
+            inputs.filter { input ->
+                val actual = path(node.id.build, input)
+                !actual.startsWith(own) && delivered.none(actual::startsWith)
+            }.map { Omission(node.id, "Input outside owning build has no resolved output variant", it) }
+        }
     }
 
     fun routing(model: BuildModel, own: String): RemoteHostsContract {

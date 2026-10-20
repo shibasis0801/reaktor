@@ -68,7 +68,9 @@ test('web contract resolves Kotlin outputs and assets from its own location', ()
   await mkdir(join(root, 'build'));
   await writeFile(file, JSON.stringify({schema: 1, component: 'site', directory: '..', aliases: {'fixture-kotlin': '../library/main.mjs'}, assets: {'parser.wasm': '../vendor/parser.wasm'}, kotlinDirectory: '../library', resources: '../resources', moduleName: 'fixture-kotlin'}));
   const contract = webContract(file);
-  assert.equal(contract.aliases['fixture-kotlin'], resolve(root, 'library/main.mjs'));
+  assert.equal(contract.aliases[0].replacement, resolve(root, 'library/main.mjs'));
+  assert.equal(contract.aliases[0].find.test('fixture-kotlin'), true);
+  assert.equal(contract.aliases[0].find.test('fixture-kotlin/other.mjs'), false);
   assert.equal(contract.assets['parser.wasm'], resolve(root, 'vendor/parser.wasm'));
   assert.equal(contract.kotlinDirectory, resolve(root, 'library'));
   assert.equal(contract.resources, resolve(root, 'resources'));

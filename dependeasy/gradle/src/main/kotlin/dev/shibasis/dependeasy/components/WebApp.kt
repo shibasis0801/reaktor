@@ -19,10 +19,11 @@ fun Project.webApp(
     assets: List<WebAsset> = emptyList(),
     sources: List<String> = emptyList(),
     kotlinRuntime: OutputHandle? = null,
+    dataSources: Map<String, String> = emptyMap(),
     content: WebAppScope.() -> Unit = {},
 ): NodeHandle {
     require(plugins.hasPlugin(WebAppPlugin::class.java)) { "Apply dev.shibasis.dependeasy.web-app" }
-    return bindWebApp(WebAppSpec(typescript, bundle, tests, generators, paths, assets, sources), kotlin, kotlinRuntime).apply(content).build
+    return bindWebApp(WebAppSpec(typescript, bundle, tests, generators, paths, assets, sources, dataSources), kotlin, kotlinRuntime).apply(content).build
 }
 
 private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, runtime: OutputHandle?): WebAppScope {
@@ -30,6 +31,7 @@ private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, run
     web.kotlinLibraries(*kotlin.toTypedArray())
     runtime?.let(web::kotlinRuntime)
     web.typeScriptPaths(*spec.paths.map { it.alias to it.paths }.toTypedArray())
+    web.contract.configure { dataSources.putAll(spec.dataSources) }
     web.assets(*spec.assets.map { it.destination to rootProject.file(it.source) }.toTypedArray())
     web.sources(*spec.sources.map(rootProject::file).toTypedArray())
     web.sources(fileTree(projectDir) {

@@ -2,11 +2,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import { analyzeTrace, collapsedStacks, cpuProfileJson, firstPresentedAfter, markTime, quietAfter, threadProfiles, traceModel } from '../ts/src/trace.ts';
-import { flameFrames, profileCapture, profilingReport, traceMetrics } from '../ts/src/profiling.ts';
-import { flameSvg } from '../ts/src/flame.ts';
-import { symbolicator } from '../ts/src/sourcemap.ts';
-import { budgetViolations } from '../ts/src/index.ts';
+import { analyzeTrace, collapsedStacks, cpuProfileJson, firstPresentedAfter, markTime, quietAfter, threadProfiles, traceModel } from '@reaktor/performance/trace';
+import { flameFrames, profileCapture, profilingReport, traceMetrics } from '@reaktor/performance/profiling';
+import { flameSvg } from '@reaktor/performance/flame';
+import { symbolicator } from '@reaktor/performance/sourcemap';
+import { budgetViolations } from '@reaktor/performance';
 
 function usage(message) {
   if (message) console.error(`error: ${message}`);

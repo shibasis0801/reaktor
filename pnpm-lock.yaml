@@ -2568,6 +2568,9 @@ importers:
 
   reaktor-performance/tools:
     dependencies:
+      '@reaktor/performance':
+        specifier: workspace:*
+        version: link:..
       chrome-launcher:
         specifier: ^1.1.2
         version: 1.2.2(supports-color@10.2.2)
@@ -2590,6 +2593,12 @@ importers:
       typescript-native:
         specifier: npm:typescript@7.0.2
         version: typescript@7.0.2
+
+  reaktor-surface-compose/tools:
+    dependencies:
+      '@reaktor/performance':
+        specifier: workspace:*
+        version: link:../../reaktor-performance
 
   reaktor-surface/ts:
     dependencies:

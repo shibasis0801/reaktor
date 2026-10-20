@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { checkTypes, CommandFailure } from '../api/process.ts';
 
 checkTypes(process.argv.slice(2)).catch(error => {

@@ -56,6 +56,8 @@ internal fun kernelRef(task: Task): KernelRef {
         is dev.shibasis.dependeasy.toolchain.InstallTool -> dev.shibasis.dependeasy.model.ToolInstallKernel::class.java
         is dev.shibasis.dependeasy.verification.DependencyBoundary -> dev.shibasis.dependeasy.model.DependencyBoundaryKernel::class.java
         is dev.shibasis.dependeasy.codegen.KotlinTemplateTask -> dev.shibasis.dependeasy.model.KotlinTemplateKernel::class.java
+        is dev.shibasis.dependeasy.web.WebContractTask -> dev.shibasis.dependeasy.model.WebContractKernel::class.java
+        is dev.shibasis.dependeasy.web.WebResourcesTask -> dev.shibasis.dependeasy.model.WebResourcesKernel::class.java
         is dev.shibasis.dependeasy.web.KotlinExportCatalog -> dev.shibasis.dependeasy.model.KotlinExportCatalogKernel::class.java
         is dev.shibasis.dependeasy.web.KotlinPackageExport -> dev.shibasis.dependeasy.model.KotlinPackageKernel::class.java
         is dev.shibasis.dependeasy.tasks.KotlinCMakeTask -> dev.shibasis.dependeasy.model.CMakeBuildKernel::class.java
@@ -108,9 +110,15 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.WorkspaceNode -> this
         is KernelSpec.WorkerFleet -> this
         is KernelSpec.BuildModelExport -> copy(declarations = files(declarations), includedModels = files(includedModels), output = files(output), routing = files(routing))
-        is KernelSpec.PackageScripts -> copy(output = files(output))
+        is KernelSpec.PackageScripts -> copy(output = files(output), packageContracts = packageContracts.mapValues { files(it.value) })
         is KernelSpec.DaggerPipeline -> copy(model = files(model), output = files(output), sharedDirectory = files(sharedDirectory))
         is KernelSpec.DaggerVerification -> copy(expected = files(expected), actual = files(actual))
+        is KernelSpec.WebContract -> copy(directory = path(directory), manifests = files(manifests), wrappers = files(wrappers),
+            runtime = files(runtime), baseConfiguration = files(baseConfiguration), output = files(output),
+            typeScriptConfiguration = files(typeScriptConfiguration), sourceManifests = files(sourceManifests),
+            packageContracts = files(packageContracts), packageLocations = packageLocations.mapValues { path(it.value) },
+            workspaceMetadata = files(workspaceMetadata), workspaceDefinition = files(workspaceDefinition))
+        is KernelSpec.WebResources -> copy(sources = files(sources), output = files(output))
         is KernelSpec.KotlinPackage -> copy(sources = files(sources), destination = files(destination), dependencies = files(dependencies), receipt = files(receipt))
         is KernelSpec.Prefab -> copy(archive = files(archive), output = files(output))
         is KernelSpec.PulumiSdk -> copy(executable = path(executable), output = files(output))

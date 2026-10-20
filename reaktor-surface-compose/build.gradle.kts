@@ -5,6 +5,7 @@ import dev.shibasis.dependeasy.model.Targets
 plugins { id("dev.shibasis.dependeasy.compose-library") }
 
 library(namespace = "dev.shibasis.reaktor.surface.compose", targets = Targets.All) {
+    val packageSources by webPackage("tools")
     dependencies {
         common {
             api(projects.reaktorSurface)

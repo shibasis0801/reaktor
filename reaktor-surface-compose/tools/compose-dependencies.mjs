@@ -1,4 +1,4 @@
-import { instrumentComposeWeb } from '../../reaktor-performance/tools/compose-web.mjs';
+import { instrumentComposeWeb } from '@reaktor/performance/tools/compose-web';
 
 /** Skiko's generated dependency eagerly starts WASM at import time. Defer only that
  * dependency initialization until Compose calls awaitSkiko.then(). The ordinary

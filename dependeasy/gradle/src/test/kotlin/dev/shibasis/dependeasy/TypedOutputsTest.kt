@@ -45,7 +45,14 @@ class TypedOutputsTest {
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
+            val unowned = tasks.register<dev.shibasis.dependeasy.web.PackageCommand>("unowned") {
+                workingDirectory.set(layout.projectDirectory)
+                executable.set("unused")
+                toolVersion.set("fixture")
+                sourceFiles.from(rootProject.file("../unpublished-input.txt"))
+            }
             dependeasy.workspace {
+                val inspectInputs by artifacts { include(node(unowned)) }
                 val other = BuildHandle("other", "fixture")
                 val framework = include(other)
                 val checks by verify {
@@ -69,6 +76,9 @@ class TypedOutputsTest {
         assertEquals("library/build/result.txt", output.outputs.single().paths.single())
         assertTrue(model.edges.any { it is Edge.Consumes && it.to == output.id })
         assertTrue(model.omissions.none { it.reason == "foreign task path" })
+        val outside = model.omissions.filter { it.reason == "Input outside owning build has no resolved output variant" }
+        assertEquals(listOf(Omission(NodeId("fixture", ":", "unowned"),
+            "Input outside owning build has no resolved output variant", "../unpublished-input.txt")), outside)
         listOf("apple", "appleIncluded").forEach { name ->
             val node = model.nodes.single { it.id == NodeId("fixture", ":", name) }
             assertEquals(HostPlatform.Macos, node.host.platform)

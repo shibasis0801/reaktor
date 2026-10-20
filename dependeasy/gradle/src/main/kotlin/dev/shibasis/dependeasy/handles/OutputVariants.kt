@@ -26,7 +26,13 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
         attributes.attribute(OutputAttribute, handle.selector)
         outgoing.artifacts(provider { files.files }) { builtBy(files) }
     }
-    BuildWorkspace.get(this).graph.configure {
+    val workspace = BuildWorkspace.get(this)
+    producer?.let {
+        val source = node(it)
+        val relationship = BuildModelReader.json.encodeToString<Edge>(Edge.Includes(handle.nodeId, source.id))
+        workspace.graph.configure { edges.add(relationship) }
+    }
+    workspace.graph.configure {
         nodes.add(provider {
             val site = declaredAt ?: this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared
             val tasks = files.buildDependencies.getDependencies(null).sortedBy { it.path }

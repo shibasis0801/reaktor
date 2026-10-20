@@ -36,21 +36,20 @@ internal class JavaScriptCommandKernel(
                 if (directory == project.projectDir) exclude("ts/export/**")
                 exclude(component.generatedOutputs)
             })
-            sourceFiles.from(workspace.directory.resolve("pnpm-lock.yaml"), component.sourceInputs)
+            sourceFiles.from(workspace.directory.resolve("pnpm-lock.yaml"), component.sourceInputs, runtime.sources)
             sourceFiles.from(component.contract.flatMap { it.contract }, component.contract.flatMap { it.typeScriptConfiguration })
-            val linked = linkedPackageInputs(listOf(directory.resolve("package.json")))
-            sourceFiles.from(linked)
-            linked.filter { it.name == "package.json" && it.parentFile != directory }.forEach { manifest ->
-                sourceFiles.from(project.fileTree(manifest.parentFile) {
-                    exclude("**/node_modules/**", "**/dist/**", "**/build/**", "**/.git/**", "**/.gradle/**", "**/.kotlin/**", "**/*.tsbuildinfo")
-                })
-            }
             if (fileOutput != null) outputFiles.from(directory.resolve(fileOutput))
             else if (output != null) outputDirectories.from(directory.resolve(output))
             else receiptFile.set(project.layout.buildDirectory.file("dependeasy/checks/$taskName.properties"))
         }.also {
             val build = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
             build.reference(project, it, null)
+            runtime.output?.let { output -> build.consume(project.node(it), output) }
+            component.kotlinOutputs.forEach { output -> build.consume(project.node(it), output) }
+            val node = project.node(it)
+            component.commands.add(node)
+            component.packageOutputs.forEach { output -> build.consume(node, output) }
+            build.connect(node, listOf(project.node(component.contract), project.rootProject.node(install)))
             if (type != PackageCommand::class.java) {
                 val node = project.node(it)
                 build.alias(directory, if (type == TypeScriptCheck::class.java && suffix == "types") "typecheck" else suffix, node)

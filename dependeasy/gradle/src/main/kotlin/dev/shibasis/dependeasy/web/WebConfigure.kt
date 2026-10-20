@@ -3,6 +3,8 @@ package dev.shibasis.dependeasy.web
 
 import dev.shibasis.dependeasy.common.KotlinDependencies
 import dev.shibasis.dependeasy.handles.publishModuleOutput
+import dev.shibasis.dependeasy.handles.node
+import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.model.OutputKind
 import dev.shibasis.dependeasy.model.Verification
 import org.gradle.language.base.plugins.LifecycleBasePlugin
@@ -116,6 +118,19 @@ fun KotlinMultiplatformExtension.web(
             }
             distribution.outputDirectory.set(project.layout.buildDirectory.dir("dist/js/library/$name"))
         }
+        val packageContract = project.tasks.register<WebContractTask>("libraryPackageContract") {
+            component.set("libraryPackage")
+            directory.set(project.layout.projectDirectory)
+            packageLocations.set(project.provider {
+                val metadata = packageJson.single()
+                val packageName = PackageJson(metadata.npmProjectName.get(), metadata.projectVersion).apply {
+                    metadata.packageJsonHandlers.get().forEach { it.execute(this) }
+                }.name
+                mapOf(packageName to project.layout.buildDirectory.dir(KotlinPackageExport.RelativeDirectory).get().asFile.absolutePath)
+            })
+            contract.set(project.layout.buildDirectory.file("dependeasy/web/library-package.json"))
+        }
+        project.publishModuleOutput(OutputKind.KotlinJsPackageMetadata, packageContract.flatMap { it.contract }, producer = packageContract)
         project.tasks.register<WebContractTask>("libraryWebContract") {
             group = "code generation"
             component.set("library")
@@ -131,6 +146,9 @@ fun KotlinMultiplatformExtension.web(
                 if (name == org.jetbrains.kotlin.gradle.plugin.KotlinCompilation.TEST_COMPILATION_NAME) {
                     project.publishModuleOutput(OutputKind.VerificationResults, executionTask.map { it.reports.junitXml.outputLocation.get() },
                         Verification.JavaScript, producer = executionTask)
+                    JavaScriptRuntime(project).output?.let { runtime ->
+                        BuildWorkspace.get(project).consume(project.node(executionTask), runtime)
+                    }
                 }
             }
         }

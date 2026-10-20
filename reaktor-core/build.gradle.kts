@@ -17,6 +17,7 @@ import dev.shibasis.dependeasy.model.Targets
 plugins { id("dev.shibasis.dependeasy.library") }
 
 library(namespace = "dev.shibasis.reaktor.core", targets = Targets.All) {
+    val packageSources by webPackage(".")
     val buildCoreTypeScript by typescript(configuration = "js/tsconfig.json", output = "js/dist", kotlinConsumer = true)
     dependencies {
         common {

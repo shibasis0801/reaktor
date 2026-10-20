@@ -19,12 +19,15 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         component.set(this@JavaScriptComponent.name)
         this.directory.set(this@JavaScriptComponent.directory)
         baseConfiguration.set(runtime.file("tsconfig/base.json"))
-        packageManifests.from(linkedPackageInputs(listOf(this@JavaScriptComponent.directory.resolve("package.json")))
-            .filter { it.parentFile != this@JavaScriptComponent.directory.canonicalFile })
-        packageManifests.from(workspace.manifests.matching { exclude("**/build/**") })
+        packageManifests.from(this@JavaScriptComponent.directory.resolve("package.json"))
         mustRunAfter(project.rootProject.tasks.withType(dev.shibasis.dependeasy.workspace.PackageScriptsTask::class.java))
         contract.set(project.layout.buildDirectory.file("dependeasy/web/${this@JavaScriptComponent.name}.json"))
         typeScriptConfiguration.set(project.layout.buildDirectory.file("dependeasy/web/${this@JavaScriptComponent.name}.tsconfig.json"))
+    }
+    init {
+        val model = BuildWorkspace.get(project)
+        model.reference(project, contract, OutputKind.GeneratedContract)
+        runtime.output?.let { model.consume(project.node(contract), it) }
     }
     private val buildScriptTasks = mutableSetOf<String>()
     internal val sourceInputs = mutableListOf<Any>()
@@ -33,7 +36,32 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     val install = workspace.install
     val installation get() = project.rootProject.node(install)
     internal val prerequisites = mutableListOf<Any>(contract)
-    private val kotlinExports by lazy { project.tasks.register("${name}Kotlin") { group = "dependeasy" } }
+    internal val kotlinOutputs = mutableListOf<OutputHandle>()
+    internal val packageOutputs = mutableListOf<OutputHandle>()
+    internal val commands = mutableListOf<NodeHandle>()
+    fun packages(vararg outputs: OutputHandle, directory: String = ".") {
+        require(outputs.all { it.kind == OutputKind.JavaScriptPackage }) { "Declare JavaScript package outputs" }
+        outputs.forEach { output ->
+            BuildWorkspace.get(project).packageSources(project, this.directory.resolve(directory), output)
+            if (packageOutputs.any { it.nodeId == output.nodeId }) return@forEach
+            packageOutputs.add(output)
+            val files = project.outputFiles(output)
+            sourceInputs.add(files.asFileTree.matching {
+                exclude("**/build/**", "**/node_modules/**", "**/dist/**", "**/.git/**", "**/.gradle/**", "**/.kotlin/**")
+            })
+            project.afterEvaluate {
+                val locations = files.files.toList()
+                contract.configure {
+                    packageContracts.from(locations.filter { it.extension == "json" })
+                    packageManifests.from(locations.filter { it.isDirectory }.map { it.resolve("package.json") })
+                }
+            }
+            val model = BuildWorkspace.get(project)
+            model.consume(project.node(contract), output)
+            commands.forEach { model.consume(it, output) }
+            workspace.packages(output, project)
+        }
+    }
     fun sources(vararg files: Any) { sourceInputs.addAll(files) }
     fun typeScriptPaths(vararg paths: Pair<String, List<String>>) { contract.configure { typeScriptPaths.putAll(paths.toMap()) } }
     fun assets(vararg paths: Pair<String, Any>) {
@@ -42,19 +70,23 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     }
 
     internal fun dependencyAssets(from: OutputHandle, paths: List<WebAsset>): org.gradle.api.provider.Provider<Map<String, java.io.File>> {
-        require(from.kind == OutputKind.KotlinJsLibrary) { "Dependency assets need a Kotlin library output" }
+        require(from.kind in setOf(OutputKind.KotlinJsLibrary, OutputKind.WebResources, OutputKind.JavaScriptPackage)) { "Dependency assets need a library, source package or web resource output" }
         require(paths.all { !java.io.File(it.source).isAbsolute && ".." !in it.source.split('/') }) {
-            "An asset path must stay within the library's installed dependencies"
+            "An asset path must stay within its published output"
         }
         val files = project.outputFiles(from)
-        val assets = files.elements.map { outputs ->
-            val dependencies = outputs.single().asFile.parentFile.resolve("node_modules")
-            paths.associate { it.destination to dependencies.resolve(it.source) }
-        }
+        val kotlinLibrary = from.kind == OutputKind.KotlinJsLibrary
+        val assets = project.objects.mapProperty(String::class.java, java.io.File::class.java)
         val root = directory
-        contract.configure {
-            dependsOn(files)
-            this.assets.putAll(assets.map { entries -> entries.mapValues { it.value.relativeTo(root).invariantSeparatorsPath } })
+        contract.configure { dependsOn(files) }
+        project.afterEvaluate {
+            val published = if (from.kind == OutputKind.JavaScriptPackage) files.files.single { it.isDirectory } else files.singleFile
+            val dependencies = if (kotlinLibrary) published.parentFile.resolve("node_modules") else published
+            val locations = paths.associate { it.destination to dependencies.resolve(it.source) }
+            assets.set(locations)
+            contract.configure {
+                this.assets.putAll(locations.mapValues { it.value.relativeTo(root).invariantSeparatorsPath })
+            }
         }
         return assets
     }
@@ -78,20 +110,27 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     fun kotlinLibraries(vararg outputs: OutputHandle) {
         require(outputs.all { it.kind == OutputKind.KotlinJsLibrary })
         val producers = outputs.map(project::outputFiles)
-        kotlinExports.configure { dependsOn(producers) }
+        outputs.forEach { output ->
+            val metadata = OutputHandle(output.dependency, output.build, output.projectPath, OutputKind.KotlinJsPackageMetadata, emptyList())
+            workspace.packages(metadata, project)
+            BuildWorkspace.get(project).packageSources(project, directory, metadata)
+        }
+        kotlinOutputs.addAll(outputs)
         sourceInputs.addAll(producers)
-        prerequisites.add(kotlinExports)
-        contract.configure {
-            dependsOn(producers)
-            manifests.from(producers.map { files -> files.elements.map { locations -> locations.map { it.asFile.resolve("package.json") } } })
+        prerequisites.addAll(producers)
+        contract.configure { dependsOn(producers) }
+        project.afterEvaluate {
+            val locations = producers.map { files -> files.files.map { it.resolve("package.json") } }
+            contract.configure { manifests.from(locations) }
         }
     }
 
     fun kotlinRuntime(output: OutputHandle) {
         kotlinLibraries(output)
         val files = project.outputFiles(output)
-        contract.configure {
-            runtimeManifest.set(project.layout.file(files.elements.map { it.single().asFile.resolve("package.json") }))
+        project.afterEvaluate {
+            val manifest = files.singleFile.resolve("package.json")
+            contract.configure { runtimeManifest.set(manifest) }
         }
     }
 
@@ -101,13 +140,11 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         return project.node(command(script.name, output, "run", script.name))
     }
     fun tests(after: NodeHandle): NodeHandle = project.node(check()).after(after)
-    fun vite(output: String = "dist"): TaskProvider<ViteBundle> = commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build").also {
-        it.configure { sourceFiles.from(runtime.sources) }
-    }
+    fun vite(output: String = "dist"): TaskProvider<ViteBundle> = commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build")
     fun types(vararg projects: String, generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): TaskProvider<TypeScriptCheck> =
         commandKernel.register(TypeScriptCheck::class.java, "types", null, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
             "--projects", *(projects.toList().ifEmpty { listOf("tsconfig.json") }).toTypedArray()).also {
-            it.configure { adapter.set(runtime.file("cli/typecheck.ts")); this.projects.set(projects.toList().ifEmpty { listOf("tsconfig.json") }); dependsOn(generators); sourceFiles.from(runtime.sources, generators) }
+            it.configure { adapter.set(runtime.file("cli/typecheck.ts")); this.projects.set(projects.toList().ifEmpty { listOf("tsconfig.json") }); dependsOn(generators); sourceFiles.from(generators) }
         }
     fun workerTypes(config: String = "wrangler.json", output: String = "worker-configuration.d.ts"): TaskProvider<WorkerTypes> =
         commandKernel.register(WorkerTypes::class.java, "workerTypes", null, "exec", "wrangler", "types", output, "--config", config, fileOutput = output)
@@ -162,7 +199,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     /** Emit a package and make it available to this module's Kotlin/JS compilations. */
     fun library(target: String, config: String, output: String, kotlin: Boolean = false): NodeHandle {
         val compile = commandKernel.register(TypeScriptCheck::class.java, "compile", output, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
-            "--project", config).also { it.configure { adapter.set(runtime.file("cli/typecheck.ts")); emit.set(true); projects.set(listOf(config)); sourceFiles.from(runtime.sources) } }
+            "--project", config).also { it.configure { adapter.set(runtime.file("cli/typecheck.ts")); emit.set(true); projects.set(listOf(config)) } }
         val result = BuildWorkspace.get(project).aggregate(project, target, NodeKind.Verification, listOf(project.node(compile)))
         return project.node(requireNotNull(result.task), OutputKind.BrowserBundle).also {
             if (kotlin) project.javascriptLibraryConsumer(checkNotNull(it.task))

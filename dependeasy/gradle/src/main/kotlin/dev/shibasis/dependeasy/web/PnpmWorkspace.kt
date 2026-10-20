@@ -3,7 +3,9 @@ package dev.shibasis.dependeasy.web
 import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.toolchain.JavaScriptTools
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
+import dev.shibasis.dependeasy.handles.outputFiles
 import dev.shibasis.dependeasy.handles.publishOutput
+import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.model.OutputKind
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
@@ -15,6 +17,9 @@ import kotlinx.serialization.json.jsonPrimitive
 /** A repository owns one lockfile and installation, including its Kotlin-generated packages. */
 class PnpmWorkspace private constructor(private val project: Project) {
     val directory: File = project.rootDir
+    internal val runtimeDirectory: File = if (project.gradle.includedBuilds.any { it.name == dev.shibasis.dependeasy.handles.Reaktor.build.name })
+        project.outputFiles(dev.shibasis.dependeasy.handles.output(dev.shibasis.dependeasy.handles.Reaktor.build, OutputKind.JavaScriptRuntime)).singleFile
+        else directory.resolve("dependeasy/javascript")
     val tools = JavaScriptTools.get(project)
     val manifests = workspaceManifests(project)
     internal fun localPackages(): Map<String, File> =
@@ -63,6 +68,20 @@ class PnpmWorkspace private constructor(private val project: Project) {
         model.reference(project, tools.pnpmSetup, null)
         project.publishOutput(OutputKind.JavaScriptInstallation,
             directory.resolve("node_modules/.modules.yaml"), producer = install)
+        if (project.gradle.includedBuilds.any { it.name == dev.shibasis.dependeasy.handles.Reaktor.build.name }) {
+            packages(dev.shibasis.dependeasy.handles.output(dev.shibasis.dependeasy.handles.Reaktor.build, OutputKind.JavaScriptPackage))
+        }
+        if (project.rootProject.name == dev.shibasis.dependeasy.handles.Reaktor.build.name) {
+            project.publishOutput(OutputKind.JavaScriptRuntime,
+                directory.resolve("dependeasy/javascript"), producer = install)
+        }
+    }
+
+    internal fun packages(output: dev.shibasis.dependeasy.handles.OutputHandle, owner: Project = project) {
+        val model = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
+        model.packageSources(owner, directory, output)
+        model.consume(project.node(install), output)
+        model.consume(project.node(updateLockfile), output)
     }
 
     companion object {

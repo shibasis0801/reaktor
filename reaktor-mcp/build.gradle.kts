@@ -8,6 +8,7 @@ import dev.shibasis.dependeasy.common.commonSerialization
 plugins { id("dev.shibasis.dependeasy.library") }
 
 library(namespace = "dev.shibasis.reaktor.mcp", targets = Targets.All, bytecode = 21) {
+    val packageSources by webPackage(".")
     dependencies {
         common { commonSerialization(protobuf = false); api(Reaktor.GraphRuntime); implementation(Versions.Tooling.McpClient) }
         jvm { implementation(Versions.Tooling.McpServer) }

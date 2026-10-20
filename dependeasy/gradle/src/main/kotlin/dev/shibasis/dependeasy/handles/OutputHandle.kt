@@ -26,6 +26,10 @@ fun output(build: BuildHandle, kind: OutputKind) =
 
 fun Project.kotlinJsLibrary(module: ProjectDependency) = output(module, OutputKind.KotlinJsLibrary)
 fun kotlinJsLibrary(module: ModuleHandle) = output(module, OutputKind.KotlinJsLibrary)
+fun Project.webResources(module: ProjectDependency) = output(module, OutputKind.WebResources)
+fun webResources(module: ModuleHandle) = output(module, OutputKind.WebResources)
+fun Project.webPackage(module: ProjectDependency) = output(module, OutputKind.JavaScriptPackage)
+fun webPackage(module: ModuleHandle) = output(module, OutputKind.JavaScriptPackage)
 fun Project.verification(module: ProjectDependency, suite: Verification) = output(module, OutputKind.VerificationResults, suite)
 fun verification(module: ModuleHandle, suite: Verification) = output(module, OutputKind.VerificationResults, suite)
 fun verification(build: BuildHandle, suite: Verification) =
@@ -53,4 +57,7 @@ internal fun Project.resolve(output: OutputHandle): Configuration {
     }
 }
 
-fun Project.outputFiles(output: OutputHandle): FileCollection = resolve(output)
+fun Project.outputFiles(output: OutputHandle): FileCollection =
+    if (output.build == rootProject.name && output.projectPath == path)
+        files(provider { configurations.getByName(output.nodeId.name).outgoing.artifacts.files })
+    else resolve(output)

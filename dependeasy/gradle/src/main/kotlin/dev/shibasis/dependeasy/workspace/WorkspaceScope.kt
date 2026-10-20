@@ -29,6 +29,10 @@ class WorkspaceScope internal constructor(private val project: Project, private 
         before: List<NodeHandle> = emptyList(), settings: List<OptionArgument<*>> = emptyList()) =
         workspace.alias(directory, name, node, options, before, settings)
 
+    fun packages(vararg outputs: OutputHandle) {
+        outputs.forEach { dev.shibasis.dependeasy.web.PnpmWorkspace.get(project).packages(it) }
+    }
+
     fun packageScripts() = workspace.packageScripts()
 
     fun buildTooling() = dev.shibasis.dependeasy.web.buildTooling(project)

@@ -24,6 +24,31 @@ internal class BuildWorkspace(private val project: Project) {
     private val prerequisites = linkedMapOf<NodeId, MutableSet<NodeId>>()
     private val scriptAliases = linkedMapOf<String, MutableMap<String, String>>()
     private var scriptGeneration: TaskProvider<PackageScriptsTask>? = null
+    private val packageContracts = linkedMapOf<String, Pair<Project, MutableList<OutputHandle>>>()
+
+    internal fun packageSources(owner: Project, directory: java.io.File, output: OutputHandle) {
+        val path = directory.resolve("package.json").relativeTo(project.rootDir).invariantSeparatorsPath
+        val outputs = packageContracts.getOrPut(path) { owner to mutableListOf() }.second
+        if (outputs.any { it.nodeId == output.nodeId }) return
+        outputs.add(output)
+        scriptGeneration?.let { bindPackageSources(it, owner, path, outputs) }
+    }
+
+    private fun bindPackageSources(generation: TaskProvider<PackageScriptsTask>, owner: Project, path: String, outputs: List<OutputHandle>) {
+        val contracts = owner.files(outputs.map(owner::outputFiles)).filter { it.extension == "json" }
+        generation.configure {
+            packageContractFiles.from(contracts)
+            if (path != "package.json") {
+                additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { PackageScriptsKernel.authoredManifest(it) })
+                generatedFiles.from(project.file(path))
+            }
+        }
+        owner.afterEvaluate {
+            val locations = contracts.files.map { it.absolutePath }.sorted()
+            generation.configure { packageContracts.put(path, locations) }
+        }
+        outputs.forEach { consume(project.node(generation), it) }
+    }
 
     private fun recordAlias(directory: java.io.File, alias: String, command: String) {
         val file = directory.resolve("package.json")
@@ -218,6 +243,7 @@ internal class BuildWorkspace(private val project: Project) {
         }
     }.also { generation ->
         scriptGeneration = generation
+        packageContracts.forEach { (path, entry) -> bindPackageSources(generation, entry.first, path, entry.second) }
         graph.configure { mustRunAfter(generation) }
         reference(project, generation, OutputKind.GeneratedContract)
         PnpmWorkspace.get(project).install.configure { dependsOn(generation) }
@@ -246,6 +272,16 @@ internal class BuildWorkspace(private val project: Project) {
             requireNotNull(node.task).configure { mustRunAfter(project.resolve(output)) }
             graph.configure { edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.OrderedAfter(node.id, output.nodeId))) }
         }
+    }
+
+    internal fun consume(node: NodeHandle, output: OutputHandle) {
+        val task = requireNotNull(node.task)
+        val owner = project.rootProject.project(node.id.project)
+        val files = owner.outputFiles(output)
+        task.configure {
+            dependsOn(files)
+        }
+        graph.configure { edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.Consumes(node.id, output.nodeId, output.selector))) }
     }
 
     internal fun consume(node: NodeHandle, producer: NodeHandle, location: org.gradle.api.provider.Provider<out org.gradle.api.file.FileSystemLocation>) {

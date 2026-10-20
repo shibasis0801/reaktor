@@ -1,7 +1,7 @@
 package dev.shibasis.dependeasy.components
 
 import dev.shibasis.dependeasy.common.KotlinDependencies
-import dev.shibasis.dependeasy.handles.moduleBuild
+import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.BuildOption
 import dev.shibasis.dependeasy.model.SourceSite
 import dev.shibasis.dependeasy.model.Workspace
@@ -29,15 +29,24 @@ fun Project.browserApp(output: String = "dist/client", moduleName: String = "${r
 class BrowserScope internal constructor(private val project: Project, private val browser: KotlinBrowser) {
     private val dependencyBlocks = mutableListOf<KotlinDependencies.() -> Unit>()
     private val resourceDirectories = mutableListOf<String>()
+    private val resourceOutputs = mutableListOf<OutputHandle>()
 
     fun dependencies(content: KotlinDependencies.() -> Unit) { dependencyBlocks.add(content) }
     fun resources(directory: String) { resourceDirectories.add(directory) }
+    fun resources(output: OutputHandle) {
+        require(output.kind == dev.shibasis.dependeasy.model.OutputKind.WebResources) { "Browser resources need a web resource output" }
+        resourceOutputs.add(output)
+    }
     fun <T : Any> require(option: BuildOption<T>, value: T) = browser.require(option, value)
 
     internal fun bind() {
-        browser.register()
+        val bundle = project.node(browser.register())
         val source = project.extensions.getByType<KotlinMultiplatformExtension>().sourceSets.getByName("jsMain")
         source.resources.srcDirs(resourceDirectories)
+        resourceOutputs.forEach { output ->
+            source.resources.srcDir(project.outputFiles(output))
+            BuildWorkspace.get(project).consume(bundle, output)
+        }
         source.dependencies { dependencyBlocks.forEach { KotlinDependencies(this).apply(it) } }
     }
 }

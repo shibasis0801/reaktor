@@ -6,6 +6,8 @@ import dev.shibasis.dependeasy.Versions
 plugins { id("dev.shibasis.dependeasy.library") }
 
 library(namespace = "dev.shibasis.reaktor.db", targets = Targets.All) {
+    val resources by webResources()
+    val packageSources by webPackage("ts")
     val generateBindings by bindings()
     dependencies {
         common {

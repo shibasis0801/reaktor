@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.web
 
+import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.process.nodeScript
 import org.gradle.api.Project
 
@@ -19,4 +20,9 @@ internal fun Project.exportManifest(name: String, script: Any, output: Any,
                 exclude("node_modules", "node_modules/**")
             }, inputs)
         outputFiles.from(file(output))
+    }.also { task ->
+        val model = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(this)
+        val workspace = PnpmWorkspace.get(this)
+        model.connect(node(task), listOf(rootProject.node(workspace.install)))
+        JavaScriptRuntime(this).output?.let { runtime -> model.consume(node(task), runtime) }
     }

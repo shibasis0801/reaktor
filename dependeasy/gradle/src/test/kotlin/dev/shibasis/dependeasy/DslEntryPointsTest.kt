@@ -43,6 +43,7 @@ class DslEntryPointsTest {
             }
             tasks.register("probe")
         """)
+        write("library/src/jsMain/resources/probe.txt", "published-resource")
         write("tests/preload.mjs", "globalThis.fixtureRuntime = true")
         write("targets/worker/src/index.ts", "export const fixture = true")
         write("targets/worker/ignored.ts", "export const ignored = true")
@@ -65,6 +66,7 @@ class DslEntryPointsTest {
             plugins { id("dev.shibasis.dependeasy.library") }
             repositories { mavenCentral(); google() }
             library(namespace = "dev.fixture.library", targets = Targets.Android + Targets.Apple + Targets.Web + Targets.Jvm, ui = Compose(resources = "dev.fixture.resources", reports = true), jvmNullChecks = false) {
+                val resources by webResources()
                 val generateBindings by bindings()
                 val bench by appleBenchmarks()
                 val probeFramework by appleTestFramework(baseName = "FixtureProbe")
@@ -163,6 +165,7 @@ class DslEntryPointsTest {
                     check((inputs.properties["manifestArguments"] as List<*>).takeLast(2).first() == "--source")
                     check((inputs.properties["manifestArguments"] as List<*>).last().toString().endsWith("/targets/worker/src/index.ts"))
                     check("exportKotlinLibrary" in (inputs.properties["manifestPrerequisites"] as List<*>))
+                    check("pnpmInstall" in (inputs.properties["manifestPrerequisites"] as List<*>))
                     check("generateWorkerManifest" in (inputs.properties["manifestFinalizers"] as List<*>))
                     val assertionFlags = listOf("-Xno-call-assertions", "-Xno-receiver-assertions", "-Xno-param-assertions")
                     val compilerArguments = inputs.properties["jvmCompilerArguments"] as Map<*, *>
@@ -233,6 +236,14 @@ class DslEntryPointsTest {
             assertEquals(1, model.nodes.count { it.id.project == ":library" && it.id.name == name })
         }
         val owner = model.nodes.first { it.id.project == ":library" }.id.build
+        val resources = model.nodes.single { it.id == NodeId(owner, ":library", "outputWebResources") }
+        assertEquals("dev.shibasis.dependeasy.model.WebResourcesKernel", resources.kernel?.className)
+        assertIs<KernelSpec.WebResources>(resources.kernel?.spec)
+        assertTrue(model.edges.any { it is Edge.Includes && it.from == resources.id && it.to == resources.id.copy(name = "resources") })
+        assertNull(exported.task(":library:resources"))
+        run(":library:resources")
+        assertEquals("published-resource", directory.resolve("library/build/dependeasy/resources/resources/probe.txt").readText())
+        assertContains(run(":library:resources").output, "Reusing configuration cache")
         val bench = model.nodes.single { it.id == NodeId(owner, ":library", "bench") }
         val benchSpec = assertIs<KernelSpec.WorkspaceNode>(bench.kernel?.spec)
         assertEquals(Run.onMac(), benchSpec.run)
@@ -269,6 +280,7 @@ class DslEntryPointsTest {
         assertEquals(SourceSite(owner, "library/build.gradle.kts", manifestLine), manifest.declaredAt?.copy(symbol = null, callPath = emptyList()))
         assertEquals("dev.shibasis.dependeasy.model.JavaScriptKernel", manifest.kernel?.className)
         assertEquals(listOf("library/fixture.manifest.json"), manifest.outputs.single().paths)
+        assertTrue(model.edges.any { it is Edge.After && it.from == manifest.id && it.to == NodeId(owner, ":", "pnpmInstall") })
         assertTrue(model.edges.any { it is Edge.Includes && it.from == NodeId(owner, ":library", "componentBuild") && it.to == manifest.id })
         assertNull(exported.task(":library:generateWorkerManifest"))
         val typescript = model.nodes.single { it.id.project == ":library" && it.id.name == "checkFixtureTypeScript" }
@@ -338,8 +350,13 @@ class DslEntryPointsTest {
         assertTrue(published.isNotEmpty())
         val typescriptDeclaration = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val checkFixtureTypeScript by") } + 1
         assertEquals(SourceSite(owner, "library/build.gradle.kts", typescriptDeclaration), typescript.declaredAt?.copy(symbol = null, callPath = emptyList()))
+        val resourcesDeclaration = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val resources by") } + 1
         for (output in published) {
-            val line = if (output.id.name == "outputVerificationResultsTypeScript") typescriptDeclaration else declaration
+            val line = when (output.id.name) {
+                "outputVerificationResultsTypeScript" -> typescriptDeclaration
+                "outputWebResources" -> resourcesDeclaration
+                else -> declaration
+            }
             assertEquals(SourceSite(owner, "library/build.gradle.kts", line), output.declaredAt?.copy(symbol = null, callPath = emptyList()), output.id.name)
         }
         assertContains(run("exportBuildModel").output, "Reusing configuration cache")

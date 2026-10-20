@@ -1,8 +1,11 @@
+import dev.shibasis.dependeasy.components.webPackage
 import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.*
 
 plugins { id("dev.shibasis.dependeasy.workspace") }
 group = Reaktor.build.group
+
+val javascriptPackage by webPackage("dependeasy/javascript")
 
 workspace {
     val tooling = buildTooling()

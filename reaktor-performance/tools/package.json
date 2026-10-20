@@ -11,6 +11,7 @@
     "self-test": "node lighthouse-report.mjs --self-test fixtures/lighthouse-sample.json"
   },
   "dependencies": {
+    "@reaktor/performance": "workspace:*",
     "chrome-launcher": "^1.1.2",
     "lighthouse": "^12.2.1"
   },

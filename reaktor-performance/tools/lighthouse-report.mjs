@@ -2,14 +2,14 @@
 // Standard Lighthouse runner for reaktor-performance.
 //   config -> run (median of N) -> map LHR -> ReaktorPerformanceReport -> budgets -> assert
 // The LHR->report mapping and the budget set are imported from the single source in
-// ../ts/src/index.ts (Node strips the types), so this runner never re-states the contract.
+// @reaktor/performance (Node strips the types), so this runner never re-states the contract.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import {
   budgetViolations,
   lighthouseReport,
   recommendedLighthouseBudgets,
-} from '../ts/src/index.ts';
+} from '@reaktor/performance';
 
 function usage(message) {
   if (message) console.error(`error: ${message}`);

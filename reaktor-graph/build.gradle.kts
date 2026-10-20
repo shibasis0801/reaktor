@@ -10,6 +10,7 @@ import dev.shibasis.dependeasy.server.springWebFlux
 plugins { id("dev.shibasis.dependeasy.library") }
 
 library(namespace = "dev.shibasis.reaktor.navigation", targets = Targets.All, ui = Compose()) {
+    val packageSources by webPackage("ts")
     val generateBindings by bindings()
     dependencies {
         common {

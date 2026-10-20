@@ -34,6 +34,7 @@ import dev.shibasis.dependeasy.model.ModuleHandle
 import dev.shibasis.dependeasy.model.NativeContract
 import dev.shibasis.dependeasy.plugins.ComposeLibraryPlugin
 import org.gradle.kotlin.dsl.getByType
+import org.gradle.kotlin.dsl.register
 import org.jetbrains.compose.ComposeExtension
 import org.jetbrains.compose.resources.ResourcesExtension
 import org.gradle.api.Project
@@ -41,6 +42,7 @@ import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.web.exportManifest
+import dev.shibasis.dependeasy.web.sourcePackage
 import dev.shibasis.dependeasy.provenance.identity
 import dev.shibasis.dependeasy.benchmark.jvmBenchmarks
 import dev.shibasis.dependeasy.native.nativeHostTests
@@ -60,6 +62,11 @@ fun Project.library(bytecode: Int = Versions.SDK.Java.asInt, content: JvmModule.
     require(plugins.hasPlugin(JvmPlugin::class.java)) { "Apply dev.shibasis.dependeasy.jvm" }
     declarationSite()?.let { extensions.add(SourceSite::class.java, "dependeasyComponentDeclaration", it) }
     return JvmModule(this, bytecode).apply(content).also { publishLibraryRoles(setOf(LibraryTarget.Jvm), it.verifications, generatedResources = it.generatedResources) }
+}
+
+fun Project.webPackage(vararg directories: String): NodeDeclaration {
+    val site = declarationSite()
+    return NodeDeclaration { name -> sourcePackage(name, directories.toList().ifEmpty { listOf(".") }, site) }
 }
 
 @LibraryDsl
@@ -99,6 +106,26 @@ class LibraryScope internal constructor(private val project: Project, private va
     fun javascript() = PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, JavaScriptComponent>> { _, property ->
         val component = JavaScriptComponent(project, property.name, ".")
         ReadOnlyProperty { _, _ -> component }
+    }
+
+    fun webPackage(vararg directories: String): NodeDeclaration =
+        project.webPackage(*directories).let { declaration -> NodeDeclaration { name ->
+            declaration.declare(name).also(generatedProducers::add)
+        } }
+
+    fun webResources(): NodeDeclaration {
+        require(LibraryTarget.Web in spec.targets) { "Web resources need the Web target" }
+        val site = project.declarationSite()
+        return NodeDeclaration { name ->
+            val task = project.tasks.register<dev.shibasis.dependeasy.web.WebResourcesTask>(name) {
+                sourceDirectory.set(project.layout.projectDirectory.dir("src/jsMain/resources"))
+                outputDirectory.set(project.layout.buildDirectory.dir("dependeasy/resources/$name"))
+                site?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) }
+            }
+            project.publishOutput(dev.shibasis.dependeasy.model.OutputKind.WebResources,
+                task.flatMap { it.outputDirectory }, producer = task)
+            project.node(task, dev.shibasis.dependeasy.model.OutputKind.WebResources).also(generatedProducers::add)
+        }
     }
 
     fun artifacts(vararg producers: NodeHandle): NodeDeclaration {

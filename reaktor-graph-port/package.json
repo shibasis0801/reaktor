@@ -27,6 +27,8 @@
   "packageManager": "pnpm@12.10.1",
   "exports": {
     ".": "./ts/index.ts",
+    "./blueprint/elkClient": "./src/jsMain/typescript/blueprint/elkClient.ts",
+    "./blueprint/engine": "./src/jsMain/typescript/blueprint/engine.ts",
     "./blueprint/views/BlueprintCard": "./src/jsMain/typescript/blueprint/views/BlueprintCard.tsx",
     "./blueprint/views/BlueprintChrome": "./src/jsMain/typescript/blueprint/views/BlueprintChrome.tsx",
     "./blueprint/views/BlueprintFrame": "./src/jsMain/typescript/blueprint/views/BlueprintFrame.tsx",
@@ -40,6 +42,21 @@
     "./scope/ScopeGraphCanvas": "./src/jsMain/typescript/scope/ScopeGraphCanvas.tsx",
     "./scope/ScopeGraphFlow": "./src/jsMain/typescript/scope/ScopeGraphFlow.tsx",
     "./*": "./src/jsMain/typescript/*.ts",
-    "./*.css": "./src/jsMain/typescript/*.css"
+    "./*.css": "./src/jsMain/typescript/*.css",
+    "./blueprint/atlasTheme.css": "./src/jsMain/typescript/blueprint/atlasTheme.css",
+    "./blueprint/blueprint.css": "./src/jsMain/typescript/blueprint/blueprint.css",
+    "./blueprint/definition": "./src/jsMain/typescript/blueprint/definition.ts",
+    "./blueprint/document": "./src/jsMain/typescript/blueprint/document.ts",
+    "./blueprint/hash": "./src/jsMain/typescript/blueprint/hash.ts",
+    "./blueprint/highlight": "./src/jsMain/typescript/blueprint/highlight.ts",
+    "./blueprint/query": "./src/jsMain/typescript/blueprint/query.ts",
+    "./blueprint/referenceGraph": "./src/jsMain/typescript/blueprint/referenceGraph.ts",
+    "./blueprint/types": "./src/jsMain/typescript/blueprint/types.ts",
+    "./blueprint/views/camera": "./src/jsMain/typescript/blueprint/views/camera.ts",
+    "./blueprint/views/context": "./src/jsMain/typescript/blueprint/views/context.ts",
+    "./blueprint/views/dashes": "./src/jsMain/typescript/blueprint/views/dashes.ts",
+    "./blueprint/views/looks": "./src/jsMain/typescript/blueprint/views/looks.ts",
+    "./blueprint/views/paths": "./src/jsMain/typescript/blueprint/views/paths.ts",
+    "./document": "./src/jsMain/typescript/document.ts"
   }
 }

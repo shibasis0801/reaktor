@@ -36,6 +36,7 @@ class WebContractsTest {
                 baseConfiguration.set(layout.projectDirectory.file("base.json"))
                 typeScriptPaths.put("@/*", listOf("src/*"))
                 assets.put("parser.wasm", "vendor/parser.wasm")
+                dataSources.put("documentation", "https://example.test/docs/corpus/")
                 contract.set(layout.buildDirectory.file("web/site.json"))
                 typeScriptConfiguration.set(layout.buildDirectory.file("web/site.tsconfig.json"))
             }
@@ -47,6 +48,7 @@ class WebContractsTest {
         assertEquals("../../owned/generated/module.mjs", contract.getValue("aliases").jsonObject.getValue("owned-facade").jsonPrimitive.content)
         assertFalse("unrelated-facade" in contract.getValue("aliases").jsonObject)
         assertEquals("../../site/vendor/parser.wasm", contract.getValue("assets").jsonObject.getValue("parser.wasm").jsonPrimitive.content)
+        assertEquals("https://example.test/docs/corpus/", contract.getValue("dataSources").jsonObject.getValue("documentation").jsonPrimitive.content)
         val paths = json("build/web/site.tsconfig.json").getValue("compilerOptions").jsonObject.getValue("paths").jsonObject
         assertEquals("../../site/src/*", paths.getValue("@/*").jsonArray.single().jsonPrimitive.content)
         assertEquals("../../library/index.d.mts", paths.getValue("fixture-kotlin").jsonArray.single().jsonPrimitive.content)
@@ -128,18 +130,38 @@ class WebContractsTest {
         write("library/package.json", """{"name":"fixture-library","main":"export/module.mjs"}""")
         write("library/generated/package.json", """{"name":"Fixture-Library","main":"module.mjs","types":"module.d.mts"}""")
         write("library/build/node_modules/@fixture/native/parser.wasm", "native-parser")
+        write("library/resources/vitals.js", "published-vitals")
+        write("library/source/package.json", """{"name":"fixture-source","main":"index.ts","exports":{"./detail":"./detail.ts"}}""")
+        write("library/tools/package.json", """{"name":"fixture-tools","bin":{"fixture-tool":"tool.mjs"}}""")
+        write("library/tools/tool.mjs", "export const tool = 1")
+        write("library/source/index.ts", "export const source = 1")
+        write("library/source/detail.ts", "export const detail = 2")
         write("library/build.gradle.kts", """
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
+            import dev.shibasis.dependeasy.components.webPackage
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val exports = tasks.register<Sync>("generateLibrary") {
                 from("generated")
                 into(layout.buildDirectory.dir("library"))
             }
             publishOutput(OutputKind.KotlinJsLibrary, exports.map { it.destinationDir }, producer = exports)
+            val packageContract = tasks.register<dev.shibasis.dependeasy.web.WebContractTask>("libraryPackageContract") {
+                component.set("libraryPackage")
+                directory.set(layout.projectDirectory)
+                packageLocations.put("Fixture-Library", layout.buildDirectory.dir("library").get().asFile.absolutePath)
+                contract.set(layout.buildDirectory.file("web/library-package.json"))
+            }
+            publishOutput(OutputKind.KotlinJsPackageMetadata, packageContract.flatMap { it.contract }, producer = packageContract)
+            val resources = tasks.register<dev.shibasis.dependeasy.web.WebResourcesTask>("publishResources") {
+                sourceDirectory.set(layout.projectDirectory.dir("resources"))
+                outputDirectory.set(layout.buildDirectory.dir("resources"))
+            }
+            publishOutput(OutputKind.WebResources, resources.flatMap { it.outputDirectory }, producer = resources)
+            val sourcePackage by webPackage("source", "tools")
         """.trimIndent())
         write("base.json", "{}")
-        write("site/package.json", """{"name":"site","private":true,"scripts":{"bundle:assets":"node bundle.cjs"}}""")
+        write("site/package.json", """{"name":"site","private":true,"dependencies":{"fixture-source":"workspace:*"},"scripts":{"bundle:assets":"node bundle.cjs"}}""")
         write("site/index.ts", "export const value = 1;")
         write("site/tsconfig.json", """{"files":["index.ts"]}""")
         write("site/types.cjs", "require('node:fs').readFileSync('index.ts', 'utf8');")
@@ -159,6 +181,8 @@ class WebContractsTest {
             webApp(kotlin = listOf(kotlinJsLibrary(projects.library)), bundle = WebBundle.Package(PackageScript("bundle:assets")),
                 paths = listOf(TypeScriptPath("@/*", listOf("src/*")))) {
                 assets(from = kotlinJsLibrary(projects.library), paths = listOf(WebAsset("parser.wasm", "@fixture/native/parser.wasm")))
+                assets(from = webResources(projects.library), paths = listOf(WebAsset("vitals.js", "vitals.js")))
+                packages(webPackage(projects.library))
                 val publish by deploy(WorkerRef("fixture-site", "site"), listOf(Environment("production")))
                 alias(PackageScript("previousBundle"), bundle)
                 alias(PackageScript("previousTypes"), typecheck)
@@ -183,6 +207,13 @@ class WebContractsTest {
                 packageScripts()
             }
         """.trimIndent())
+        val sourceOnly = run(":library:sourcePackage")
+        assertNull(sourceOnly.task(":pnpmInstall"))
+        assertNull(sourceOnly.task(":library:generateLibrary"))
+        val sourceContract = json("library/build/dependeasy/web/sourcePackage.json")
+        assertEquals("../../../source", sourceContract.getValue("packages").jsonObject.getValue("fixture-source").jsonPrimitive.content)
+        assertEquals("../../../tools", sourceContract.getValue("packages").jsonObject.getValue("fixture-tools").jsonPrimitive.content)
+        assertContains(run(":library:sourcePackage").output, "Reusing configuration cache")
         val result = run(":site:siteWebContract", "exportBuildModel", "generatePackageScripts")
         assertEquals(TaskOutcome.SUCCESS, result.task(":site:siteWebContract")?.outcome)
         val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
@@ -209,17 +240,33 @@ class WebContractsTest {
                 edge.to.project == owner && edge.to.name == producer }, "$owner $role must expose its producing node")
         }
         assertEquals("site", json("site/build/dependeasy/web/site.json").getValue("component").jsonPrimitive.content)
+        val publishedPackage = model.nodes.single { it.id.project == ":library" && it.id.name == "outputJavaScriptPackage" }
+        assertIs<dev.shibasis.dependeasy.model.KernelSpec.WebContract>(publishedPackage.kernel?.spec)
+        assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes &&
+            it.from.project == ":site" && it.from.name == "siteBundleAssets" && it.to == publishedPackage.id })
         val aliases = json("site/build/dependeasy/web/site.json").getValue("aliases").jsonObject
-        assertEquals("../../../../library/build/library/module.mjs", aliases.getValue("fixture-library").jsonPrimitive.content)
+        assertEquals("../../../../library/build/library/module.mjs", aliases.getValue("Fixture-Library").jsonPrimitive.content)
+        assertEquals("../../../../library/source/index.ts", aliases.getValue("fixture-source").jsonPrimitive.content)
+        assertEquals("../../../../library/source/detail.ts", aliases.getValue("fixture-source/detail").jsonPrimitive.content)
         val asset = json("site/build/dependeasy/web/site.json").getValue("assets").jsonObject.getValue("parser.wasm").jsonPrimitive.content
         assertEquals("../../../../library/build/node_modules/@fixture/native/parser.wasm", asset)
         assertEquals("native-parser", directory.resolve("site/build/dependeasy/web").resolve(asset).readText())
+        val vitals = json("site/build/dependeasy/web/site.json").getValue("assets").jsonObject.getValue("vitals.js").jsonPrimitive.content
+        assertEquals("published-vitals", directory.resolve("site/build/dependeasy/web").resolve(vitals).readText())
+        assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes &&
+            it.from.project == ":site" && it.from.name == "siteBundleAssets" && it.to.name == "outputWebResources" })
         val scripts = json("package.json").getValue("scripts").jsonObject
         assertEquals("./gradlew :ship", scripts.getValue("ship").jsonPrimitive.content)
         assertEquals("./gradlew :site:siteBundleAssets", scripts.getValue("previousBundle").jsonPrimitive.content)
         assertEquals("./gradlew :site:siteTypes", scripts.getValue("previousTypes").jsonPrimitive.content)
         assertEquals("./gradlew :site:assembleWeb", scripts.getValue("previousBuild").jsonPrimitive.content)
         assertEquals("./gradlew :site:publish", scripts.getValue("previousDeploy").jsonPrimitive.content)
+        val sitePackage = json("site/package.json")
+        assertEquals("link:../library/source", sitePackage.getValue("dependencies").jsonObject.getValue("fixture-source").jsonPrimitive.content)
+        assertEquals(listOf("fixture-source"), sitePackage.getValue("dependeasy").jsonObject.getValue("generatedLinks").jsonObject.getValue("dependencies").jsonArray.map { it.jsonPrimitive.content })
+        val generatedPackageBytes = directory.resolve("site/package.json").readBytes()
+        run("generatePackageScripts")
+        assertContentEquals(generatedPackageBytes, directory.resolve("site/package.json").readBytes())
         val verification = run("pr", "--dry-run").output
         assertContains(verification, ":site:siteTypes SKIPPED")
         assertFalse(verification.contains(":site:siteBundleAssets SKIPPED"))
@@ -237,6 +284,12 @@ class WebContractsTest {
         val bundled = run("everything")
         assertContains(bundled.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, bundled.task(":site:siteBundleAssets")?.outcome)
+        write("library/source/index.ts", "export const source = 3")
+        val changedSource = run("everything")
+        assertContains(changedSource.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.SUCCESS, changedSource.task(":site:siteBundleAssets")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, changedSource.task(":site:siteTypes")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, run("everything").task(":site:siteBundleAssets")?.outcome)
         write("library/build/node_modules/@fixture/native/parser.wasm", "changed-parser")
         val changedAsset = run("everything")
         assertContains(changedAsset.output, "Reusing configuration cache")

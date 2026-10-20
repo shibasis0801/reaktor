@@ -7,6 +7,7 @@ import dev.shibasis.dependeasy.Versions
 plugins { id("dev.shibasis.dependeasy.library") }
 
 library(namespace = "dev.shibasis.reaktor.auth", targets = Targets.All, ui = Compose()) {
+    val packageSources by webPackage("ts")
     dependencies {
         common {
             api(Reaktor.AuthCore, Reaktor.Ui, Reaktor.Graph, Reaktor.Service, Reaktor.Db, Reaktor.Io)

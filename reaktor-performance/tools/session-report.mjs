@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { compareMarkdown, sessionReport } from '../ts/src/session.ts';
-import { budgetViolations } from '../ts/src/index.ts';
+import { compareMarkdown, sessionReport } from '@reaktor/performance/session';
+import { budgetViolations } from '@reaktor/performance';
 
 function usage(message) {
   if (message) console.error(`error: ${message}`);

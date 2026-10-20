@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { budgetViolations, lighthouseReport, recommendedLighthouseBudgets } from '../ts/src/index.ts';
+import { budgetViolations, lighthouseReport, recommendedLighthouseBudgets } from '@reaktor/performance';
 
 function usage(message) {
   if (message) console.error(`error: ${message}`);

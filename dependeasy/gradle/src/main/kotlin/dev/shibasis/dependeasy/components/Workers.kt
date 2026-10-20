@@ -26,6 +26,7 @@ fun Project.workerApp(
     worker: WorkerRef,
     environments: List<Environment>,
     kotlin: List<OutputHandle> = emptyList(),
+    packages: List<OutputHandle> = emptyList(),
     typescript: List<String> = listOf("tsconfig.json"),
     tests: PackageScript? = null,
 ): NodeHandle {
@@ -37,6 +38,7 @@ fun Project.workerApp(
     val spec = WorkerAppSpec(worker, environments.toList(), typescript.toList(), tests)
     val web = JavaScriptComponent(this, name, ".")
     web.kotlinLibraries(*kotlin.toTypedArray())
+    web.packages(*packages.toTypedArray())
     web.sources(fileTree(projectDir) {
         include("src/**", "test/**", "scripts/**")
         exclude("**/node_modules/**", "**/build/**", "**/dist/**")

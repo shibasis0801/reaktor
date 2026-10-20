@@ -7,6 +7,7 @@ import dev.shibasis.dependeasy.web.kotlinWrappers
 plugins { id("dev.shibasis.dependeasy.library") }
 
 library(namespace = "dev.shibasis.reaktor.surface", targets = Targets.All) {
+    val packageSources by webPackage("ts")
     dependencies {
         common { commonCoroutines() }
         web {

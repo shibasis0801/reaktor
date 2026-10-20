@@ -1,7 +1,6 @@
 package dev.shibasis.dependeasy.web
 
 import org.gradle.api.Project
-import dev.shibasis.dependeasy.handles.Dependeasy
 import dev.shibasis.dependeasy.handles.Reaktor
 import dev.shibasis.dependeasy.handles.output
 import dev.shibasis.dependeasy.handles.outputFiles
@@ -10,14 +9,11 @@ import java.io.File
 
 /** One owner for adapter locations, installation and kernel input tracking. */
 internal class JavaScriptRuntime(private val project: Project) {
-    val directory: File = project.gradle.includedBuilds.find { it.name == Dependeasy.build.name }
-        ?.projectDir?.resolve("javascript")
-        ?: project.rootDir.resolve("../reaktor/dependeasy/javascript")
+    val output = if (project.gradle.includedBuilds.any { it.name == Reaktor.build.name })
+        output(Reaktor.build, OutputKind.JavaScriptRuntime) else null
+    val directory: File get() = PnpmWorkspace.get(project).runtimeDirectory
     fun file(path: String) = directory.resolve(path)
     val sources = project.fileTree(directory) { include("api/**", "kernel/**", "cli/**", "package.json") }
     val install: Any
-        get() = if (!directory.resolve("package.json").isFile ||
-            project.rootDir.canonicalFile == directory.parentFile.parentFile.canonicalFile)
-            PnpmWorkspace.get(project).install
-        else project.outputFiles(output(Reaktor.build, OutputKind.JavaScriptInstallation))
+        get() = output?.let(project::outputFiles) ?: PnpmWorkspace.get(project).install
 }

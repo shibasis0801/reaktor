@@ -25,8 +25,11 @@ class WebAppScope internal constructor(
     fun alias(script: PackageScript, node: NodeHandle) =
         BuildWorkspace.get(project).alias(project.rootProject.file(script.directory), script.name, node)
 
+    fun packages(vararg outputs: OutputHandle, directory: String = ".") = web.packages(*outputs, directory = directory)
+
     fun assets(from: OutputHandle, paths: List<WebAsset>) {
         val files = web.dependencyAssets(from, paths)
+        BuildWorkspace.get(project).consume(bundle, from)
         requireNotNull(bundle.task).configure {
             inputs.files(files.map { it.values }).withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE)
         }

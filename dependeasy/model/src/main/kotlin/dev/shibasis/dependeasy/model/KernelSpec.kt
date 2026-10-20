@@ -25,7 +25,17 @@ sealed interface KernelSpec {
         val model: FileSet, val output: FileSet, val sharedDirectory: FileSet, val sharedMetadata: Map<String, String>) : KernelSpec
     @Serializable data class DaggerVerification(val expected: FileSet, val actual: FileSet, val generator: NodeId) : KernelSpec
     @Serializable data class PackageScripts(val targets: Map<String, PackageAlias>, val extraAliases: Map<String, String>,
-        val additionalAliases: Map<String, Map<String, String>>, val output: FileSet) : KernelSpec
+        val additionalAliases: Map<String, Map<String, String>>, val output: FileSet,
+        val packageContracts: Map<String, FileSet> = emptyMap()) : KernelSpec
+    @Serializable data class WebContract(val component: String, val directory: String,
+        val manifests: FileSet, val wrappers: FileSet, val runtime: FileSet,
+        val typeScriptPaths: Map<String, List<String>>, val assets: Map<String, String>, val baseConfiguration: FileSet,
+        val kotlinDirectory: String?, val resources: String?, val moduleName: String?,
+        val output: FileSet, val typeScriptConfiguration: FileSet,
+        val sourceManifests: FileSet = FileSet(emptyList()), val packageContracts: FileSet = FileSet(emptyList()),
+        val packageLocations: Map<String, String> = emptyMap(), val dataSources: Map<String, String> = emptyMap(),
+        val workspaceMetadata: FileSet = FileSet(emptyList()), val workspaceDefinition: FileSet = FileSet(emptyList())) : KernelSpec
+    @Serializable data class WebResources(val sources: FileSet, val output: FileSet) : KernelSpec
     @Serializable data class KotlinPackage(val sources: FileSet, val destination: FileSet, val dependencies: FileSet, val receipt: FileSet) : KernelSpec
     @Serializable data class Prefab(val archive: FileSet, val checksum: String, val module: String, val output: FileSet) : KernelSpec
     @Serializable data class PulumiSdk(val provider: String, val version: String, val server: String, val executable: String,
@@ -139,6 +149,6 @@ fun KernelSpec.tools(): List<ToolRef> = when (this) {
     is KernelSpec.WorkspaceNode, is KernelSpec.ExternalCommand, is KernelSpec.XcodeHost,
     is KernelSpec.ReleasePlan, is KernelSpec.SigningXcconfig,
     is KernelSpec.InstallTool, is KernelSpec.WorkerFleet, is KernelSpec.KotlinTemplate, is KernelSpec.KotlinExportCatalog,
-    is KernelSpec.KotlinPackage, is KernelSpec.Prefab, is KernelSpec.BuildModelExport,
+    is KernelSpec.WebContract, is KernelSpec.WebResources, is KernelSpec.KotlinPackage, is KernelSpec.Prefab, is KernelSpec.BuildModelExport,
     is KernelSpec.DaggerPipeline, is KernelSpec.DaggerVerification, is KernelSpec.PackageScripts -> emptyList()
 }
