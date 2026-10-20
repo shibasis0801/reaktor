@@ -134,6 +134,26 @@ class TodayBinding(
 // in Content(): routeBinding { workoutEdge.push(Payload()) }
 ```
 
+## Motion and touch that respect the person's settings
+
+**Reduce motion is the app's job.** No platform applies it to a Compose `tween`: Android only scales
+animator durations, and iOS and the browser only report the setting. Provide reaktor-ui's answer once
+at the theme root, then read it in every motion helper:
+
+```kotlin
+CompositionLocalProvider(LocalReduceMotion provides rememberReduceMotion()) { content() }
+```
+
+Test it with frames rendered every 16 ms. An `ImageComposeScene` sampled with one `render` per
+assertion advances an animation by one frame each time, and makes a looping pulse look still.
+
+**Haptics go through Compose, not reaktor-tactile, for UI feedback.**
+`LocalHapticFeedback.current.performHapticFeedback(HapticFeedbackType.Confirm | Reject | VirtualKey)`
+is common code. On Android it is the view's `performHapticFeedback`: it follows the system's
+touch-feedback switch, needs no permission, and does nothing on the desktop or in a browser.
+reaktor-tactile drives the vibrator directly. That merges `VIBRATE`, ignores the switch, and exists
+only on Android and iOS, so keep it for alarms that must carry across a room.
+
 ## Platform slots: two patterns, different jobs
 
 Something with no shared implementation — a camera, a widget, a live activity — is a slot the
