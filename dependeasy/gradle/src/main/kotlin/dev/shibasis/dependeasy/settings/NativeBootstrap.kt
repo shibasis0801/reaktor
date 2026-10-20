@@ -5,6 +5,7 @@ import dev.shibasis.dependeasy.handles.Tools
 import dev.shibasis.dependeasy.model.ToolHandle
 import org.gradle.api.tasks.TaskProvider
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.workspace.declarationSources
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.model.NodeKind
 import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
@@ -19,7 +20,7 @@ internal class NativeBootstrap(private val project: Project) {
     lateinit var hermesCompiler: TaskProvider<KotlinCMakeTask>
         private set
     fun register() = with(project) {
-        if (!rootDir.resolve("dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/NativeSources.kt").isFile) return@with
+        if (rootDir.resolve("dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/NativeSources.kt").absolutePath !in declarationSources(rootDir)) return@with
         val sources = Native.sources.associate { it.source!! to it }.mapValues { (tool, source) ->
             val name = tool.name
             tasks.register<GitSourceTask>("prepare${name.replaceFirstChar(Char::uppercaseChar)}Source") {

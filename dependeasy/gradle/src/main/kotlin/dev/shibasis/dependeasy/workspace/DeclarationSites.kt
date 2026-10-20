@@ -158,7 +158,7 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
     }
 }
 
-private fun Project.declarationSources(owner: File): Set<String> {
+internal fun Project.declarationSources(owner: File): Set<String> {
     val key = "dependeasy.declarationSources:${owner.absolutePath}"
     val metadata = rootProject.extensions.extraProperties
     @Suppress("UNCHECKED_CAST")
