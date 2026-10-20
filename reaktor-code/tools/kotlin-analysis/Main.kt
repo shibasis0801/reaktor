@@ -16,9 +16,18 @@ import org.jetbrains.kotlin.analysis.api.standalone.disposeGlobalStandaloneAppli
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaConstructorSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaFunctionSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaValueParameterSymbol
+import org.jetbrains.kotlin.analysis.api.renderer.types.impl.KaTypeRendererForSource
+import org.jetbrains.kotlin.analysis.api.types.KaClassType
+import org.jetbrains.kotlin.analysis.api.types.KaDefinitelyNotNullType
+import org.jetbrains.kotlin.analysis.api.types.KaFlexibleType
+import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.analysis.project.structure.builder.*
 import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.idea.references.mainReference
@@ -28,6 +37,7 @@ import org.jetbrains.kotlin.platform.js.JsPlatforms
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.platform.konan.NativePlatforms
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.types.Variance
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -203,7 +213,8 @@ fun main(args: Array<String>) {
     }
 }
 
-private class Warm(val digest: String, val disposable: com.intellij.openapi.Disposable, val files: Map<String, KtFile>, val stamps: Map<Path, Pair<Long, Long>>, val skipped: List<String>) {
+private class Warm(val digest: String, val disposable: com.intellij.openapi.Disposable, val files: Map<String, KtFile>, val stamps: Map<Path, Pair<Long, Long>>, val skipped: List<String>,
+    val modules: Map<String, String>) {
     val paths: Map<KtFile, String> = files.entries.associate { (path, file) -> file to path }
     fun fresh() = stamps.all { (path, stamp) -> runCatching { Files.getLastModifiedTime(path).toMillis() to Files.size(path) }.getOrNull() == stamp }
     fun close() = Disposer.dispose(disposable)
@@ -230,7 +241,8 @@ private fun serve(root: Path) {
                     warm = null
                     open(root, request, digest).also { warm = it }
                 }
-                JsonObject(resolve(session, request) + ("warm" to JsonPrimitive(reused != null)))
+                val answer = if (request["op"]?.jsonPrimitive?.contentOrNull == "facts") facts(session, request) else resolve(session, request)
+                JsonObject(answer + ("warm" to JsonPrimitive(reused != null)))
             }.getOrElse { failure -> buildJsonObject { put("error", (failure.message ?: failure.toString()).take(2000)) } }
             protocol.println(JsonObject(reply + mapOf("id" to (request?.get("id") ?: JsonNull), "millis" to JsonPrimitive((System.nanoTime() - started) / 1_000_000))))
         }
@@ -258,6 +270,7 @@ private fun open(root: Path, request: JsonObject, digest: String): Warm {
     require(modules.size in 1..256) { "A session holds 1 to 256 modules" }
     val stamps = linkedMapOf<Path, Pair<Long, Long>>()
     val skipped = mutableListOf<String>()
+    val owners = HashMap<String, String>()
     val disposable = Disposer.newDisposable("Reaktor Kotlin resolver")
     try {
         val session = buildStandaloneAnalysisAPISession(disposable) {
@@ -277,7 +290,7 @@ private fun open(root: Path, request: JsonObject, digest: String): Warm {
                     val sources = spec.strings("sources").mapNotNull { relative ->
                         root.resolve(relative).normalize().takeIf { it.startsWith(root) && it.toString().endsWith(".kt") && Files.isRegularFile(it) } ?: run { skipped += relative; null }
                     }
-                    sources.forEach { stamps[it] = Files.getLastModifiedTime(it).toMillis() to Files.size(it) }
+                    sources.forEach { stamps[it] = Files.getLastModifiedTime(it).toMillis() to Files.size(it); owners[root.relativize(it).toString().replace('\\', '/')] = name }
                     val classpath = spec.strings("classpath").map { Path.of(it) }.filter { Files.exists(it) }
                     built[name] = addModule(buildKtSourceModule {
                         moduleName = name; platform = target; languageVersionSettings = settings
@@ -299,7 +312,7 @@ private fun open(root: Path, request: JsonObject, digest: String): Warm {
             val path = Path.of(file.virtualFile.path).normalize()
             if (path.startsWith(root)) root.relativize(path).toString().replace('\\', '/') to file else null
         }.toMap()
-        return Warm(digest, disposable, files, stamps, skipped)
+        return Warm(digest, disposable, files, stamps, skipped, owners)
     } catch (failure: Throwable) {
         Disposer.dispose(disposable)
         throw failure
@@ -386,5 +399,113 @@ private fun resolve(warm: Warm, request: JsonObject): JsonObject {
                 }
             }
         }
+    }
+}
+
+private fun facts(warm: Warm, request: JsonObject): JsonObject {
+    val wanted = request["files"]?.jsonArray?.map { it.jsonPrimitive.content } ?: warm.files.keys.sorted()
+    val starts = HashMap<KtFile, IntArray>()
+    fun lines(file: KtFile) = starts.getOrPut(file) { (listOf(0) + file.text.indices.filter { file.text[it] == '\n' }.map { it + 1 }).toIntArray() }
+    fun position(file: KtFile, offset: Int): Pair<Int, Int> {
+        val all = lines(file)
+        val line = all.binarySearch(offset).let { if (it >= 0) it else -it - 2 }
+        return line to offset - all[line]
+    }
+    val table = LinkedHashMap<String, Int>()
+    fun intern(address: String) = table.getOrPut(address) { table.size }
+    fun KaSession.erasure(type: KaType): String = when (type) {
+        is KaClassType -> type.classId.asFqNameString()
+        is KaTypeParameterType -> type.symbol.upperBounds.firstOrNull()?.let { erasure(it) } ?: "kotlin.Any"
+        is KaFlexibleType -> erasure(type.lowerBound)
+        is KaDefinitelyNotNullType -> erasure(type.original)
+        else -> "?"
+    }
+    fun KaSession.address(symbol: KaSymbol): String? {
+        val real = (symbol as? KaCallableSymbol)?.fakeOverrideOriginal ?: symbol
+        val file = real.psi?.containingFile as? KtFile
+        val owner = file?.let { warm.paths[it] }?.let { warm.modules[it] } ?: return null
+        val local = { (real.psi as? KtNamedDeclaration)?.nameIdentifier?.let { name -> position(file, name.textOffset).let { (line, column) -> "kotlin-local:${warm.paths[file]}:$line:$column" } } }
+        return when (real) {
+            is KaClassLikeSymbol -> real.classId?.takeUnless { it.isLocal }?.let { "kotlin:${it.asString()}@$owner" } ?: local()
+            is KaConstructorSymbol -> real.containingClassId?.takeUnless { it.isLocal }
+                ?.let { "kotlin:${it.asString()}#<init>(${real.valueParameters.joinToString(",") { parameter -> erasure(parameter.returnType) }})@$owner" } ?: local()
+            is KaCallableSymbol -> real.callableId?.takeUnless { it.isLocal }?.let { id ->
+                val container = id.classId?.asString() ?: (id.packageName.asString().replace('.', '/') + "/")
+                val receiver = real.receiverParameter?.returnType?.let { "[${erasure(it)}]" }.orEmpty()
+                val parameters = (real as? KaFunctionSymbol)?.valueParameters?.joinToString(",", "(", ")") { erasure(it.returnType) }.orEmpty()
+                "kotlin:$container#${id.callableName}$receiver$parameters@$owner"
+            } ?: local()
+            else -> local()
+        }
+    }
+    fun kind(declaration: KtNamedDeclaration): String? = when (declaration) {
+        is KtClass -> when { declaration.isInterface() -> "interface"; declaration.isEnum() -> "enum"; else -> "class" }
+        is KtObjectDeclaration -> if (declaration.isCompanion()) "companion" else "object"
+        is KtNamedFunction -> if (declaration.isLocal) null else "function"
+        is KtProperty -> if (declaration.isLocal) null else "property"
+        is KtParameter -> if (declaration.hasValOrVar() && declaration.ownerFunction is KtPrimaryConstructor) "property" else null
+        is KtTypeAlias -> "typealias"
+        is KtEnumEntry -> "enum entry"
+        else -> null
+    }
+    val skipped = mutableListOf<String>()
+    val files = wanted.mapNotNull { path ->
+        val file = warm.files[path] ?: return@mapNotNull null.also { skipped += path }
+        runCatching {
+            val parents = HashMap<KtNamedDeclaration, Int?>()
+            analyze(file) {
+                fun parent(element: PsiElement): Int? {
+                    val owner = generateSequence(PsiTreeUtil.getParentOfType(element, KtNamedDeclaration::class.java, true)) {
+                        PsiTreeUtil.getParentOfType(it, KtNamedDeclaration::class.java, true)
+                    }.firstOrNull { kind(it) != null } ?: return null
+                    return parents.getOrPut(owner) { address(owner.symbol)?.let(::intern) }
+                }
+                val declarations = PsiTreeUtil.collectElementsOfType(file, KtNamedDeclaration::class.java).mapNotNull { declaration ->
+                    val shown = kind(declaration) ?: return@mapNotNull null
+                    val name = declaration.nameIdentifier ?: return@mapNotNull null
+                    val symbol = (declaration as? KtParameter)?.let { (it.symbol as? KaValueParameterSymbol)?.generatedPrimaryConstructorProperty } ?: declaration.symbol
+                    val address = address(symbol) ?: return@mapNotNull null
+                    val (line, column) = position(file, name.textOffset)
+                    val type = (symbol as? KaCallableSymbol)?.returnType
+                    buildJsonObject {
+                        put("a", intern(address)); put("k", shown); put("n", declaration.name ?: name.text); put("l", line); put("c", column)
+                        put("e", position(file, declaration.textRange.endOffset).first)
+                        parent(declaration)?.let { put("p", it) }
+                        type?.let { put("t", it.render(KaTypeRendererForSource.WITH_SHORT_NAMES, position = Variance.INVARIANT)) }
+                        (type as? KaClassType)?.symbol?.let { address(it) }?.let { put("ta", intern(it)) }
+                        val supertypes = (symbol as? KaClassSymbol)?.superTypes.orEmpty().mapNotNull { (it as? KaClassType)?.symbol?.let { found -> address(found) } }
+                        if (supertypes.isNotEmpty()) putJsonArray("s") { supertypes.forEach { add(intern(it)) } }
+                        val overrides = (symbol as? KaCallableSymbol)?.directlyOverriddenSymbols?.mapNotNull { address(it) }?.toList().orEmpty()
+                        if (overrides.isNotEmpty()) putJsonArray("o") { overrides.forEach { add(intern(it)) } }
+                        val expects = runCatching { symbol.getExpectsForActual().mapNotNull { address(it) } }.getOrDefault(emptyList())
+                        if (expects.isNotEmpty()) putJsonArray("x") { expects.forEach { add(intern(it)) } }
+                    }
+                }
+                val references = PsiTreeUtil.collectElementsOfType(file, KtNameReferenceExpression::class.java).mapNotNull { reference ->
+                    val targets = runCatching { reference.mainReference.resolveToSymbols().mapNotNull { address(it) }.distinct() }.getOrDefault(emptyList())
+                        .filterNot { it.startsWith("kotlin-local:") }
+                    if (targets.isEmpty()) return@mapNotNull null
+                    val (line, column) = position(file, reference.textOffset)
+                    val call = (reference.parent as? KtCallExpression)?.calleeExpression == reference
+                    val imported = PsiTreeUtil.getParentOfType(reference, KtImportDirective::class.java, true) != null
+                    buildJsonObject {
+                        put("l", line); put("c", column)
+                        putJsonArray("t") { targets.forEach { add(intern(it)) } }
+                        parent(reference)?.let { put("p", it) }
+                        val flags = (if (call) 1 else 0) or (if (imported) 2 else 0)
+                        if (flags != 0) put("f", flags)
+                    }
+                }
+                buildJsonObject {
+                    put("path", path); put("module", warm.modules[path] ?: "")
+                    put("declarations", JsonArray(declarations)); put("references", JsonArray(references))
+                }
+            }
+        }.getOrElse { failure -> skipped += "$path: ${failure.message ?: failure}".take(300); null }
+    }
+    return buildJsonObject {
+        putJsonArray("addresses") { table.keys.forEach { add(it) } }
+        put("files", JsonArray(files))
+        putJsonArray("skipped") { skipped.take(50).forEach { add(it) } }
     }
 }

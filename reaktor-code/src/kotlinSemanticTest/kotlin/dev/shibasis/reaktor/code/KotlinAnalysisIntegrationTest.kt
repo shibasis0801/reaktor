@@ -177,6 +177,79 @@ class KotlinAnalysisIntegrationTest {
         } finally { Files.walk(root).use { files -> files.sorted(Comparator.reverseOrder()).forEach(Files::delete) } }
     }
 
+    @Test fun servedFactsNameEachDeclarationByItsCompilerAddressAndResolveEveryUseAndCall() {
+        val root = Files.createTempDirectory("code-kotlin-facts-").toRealPath()
+        try {
+            val helper = unpack(root.resolve("helper"))
+            val api = "package lib\n\nopen class Service(val name: String) {\n    open fun answer(): Int = 42\n}\n\nfun Service.twice(times: Int): Int = answer() * times\n"
+            val use = "package app\n\nimport lib.Service\nimport lib.twice\n\nclass Special : Service(\"special\") {\n    override fun answer(): Int = 7\n}\n\n" +
+                "fun use(service: Service): Int = service.twice(2) + Special().answer()\n"
+            Files.createDirectories(root.resolve("lib"))
+            Files.createDirectories(root.resolve("app"))
+            Files.writeString(root.resolve("lib/Api.kt"), api)
+            Files.writeString(root.resolve("app/Use.kt"), use)
+            val stdlib = System.getProperty("reaktor.kotlin.stdlib")
+            fun request(id: Int) = buildJsonObject {
+                put("id", id); put("op", "facts")
+                put("jdkHome", Path.of(System.getProperty("java.home")).toRealPath().toString())
+                putJsonArray("modules") {
+                    addJsonObject { put("name", "lib"); put("platform", "jvm"); putJsonArray("sources") { add("lib/Api.kt") }; putJsonArray("classpath") { add(stdlib) } }
+                    addJsonObject {
+                        put("name", "app"); put("platform", "jvm"); putJsonArray("sources") { add("app/Use.kt") }; putJsonArray("classpath") { add(stdlib) }
+                        putJsonArray("dependencies") { add("lib") }
+                    }
+                }
+            }
+            val process = ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-Djava.awt.headless=true",
+                "-cp", "$helper/classes:$helper/lib/*", "dev.shibasis.reaktor.code.kotlinanalysis.MainKt", "serve", root.toString())
+                .redirectError(root.resolve("facts.log").toFile()).start()
+            try {
+                val input = process.outputStream.bufferedWriter()
+                val output = process.inputStream.bufferedReader()
+                fun ask(id: Int): JsonObject {
+                    input.write(request(id).toString())
+                    input.newLine()
+                    input.flush()
+                    return Json.parseToJsonElement(output.readLine() ?: fail(Files.readString(root.resolve("facts.log")))).jsonObject
+                }
+                val reply = ask(1)
+                assertNull(reply["error"], "$reply")
+                val addresses = reply.getValue("addresses").jsonArray.map { it.jsonPrimitive.content }
+                fun file(reply: JsonObject, path: String) = reply.getValue("files").jsonArray.map { it.jsonObject }.single { it.getValue("path").jsonPrimitive.content == path }
+                fun declared(reply: JsonObject, path: String) =
+                    file(reply, path).getValue("declarations").jsonArray.map { it.jsonObject }.associateBy { it.getValue("n").jsonPrimitive.content }
+                fun JsonObject.address(key: String = "a") = addresses[getValue(key).jsonPrimitive.int]
+                fun JsonObject.addresses(key: String) = get(key)?.jsonArray.orEmpty().map { addresses[it.jsonPrimitive.int] }
+                val lib = declared(reply, "lib/Api.kt")
+                assertEquals("kotlin:lib/Service@lib", lib.getValue("Service").address())
+                assertEquals("kotlin:lib/Service#name@lib", lib.getValue("name").address(), "a constructor property is named as the property")
+                assertEquals("kotlin:lib/Service#answer()@lib", lib.getValue("answer").address())
+                assertEquals("kotlin:lib/#twice[lib.Service](kotlin.Int)@lib", lib.getValue("twice").address())
+                assertEquals("Int", lib.getValue("twice").getValue("t").jsonPrimitive.content)
+                assertEquals("kotlin:lib/Service@lib", lib.getValue("answer").address("p"), "a member names the class it sits in")
+                val app = declared(reply, "app/Use.kt")
+                assertEquals(listOf("kotlin:lib/Service@lib"), app.getValue("Special").addresses("s"))
+                assertEquals(listOf("kotlin:lib/Service#answer()@lib"), app.getValue("answer").addresses("o"))
+                val references = file(reply, "app/Use.kt").getValue("references").jsonArray.map { it.jsonObject }
+                fun flagged(flag: Int) = references.filter { ((it["f"]?.jsonPrimitive?.int ?: 0) and flag) != 0 }.flatMap { it.addresses("t") }
+                assertEquals(setOf("kotlin:lib/#twice[lib.Service](kotlin.Int)@lib", "kotlin:app/Special#<init>()@app", "kotlin:app/Special#answer()@app"), flagged(1).toSet())
+                assertTrue("kotlin:lib/#twice[lib.Service](kotlin.Int)@lib" in flagged(2), "the import of twice is a use too")
+                assertTrue(references.filter { "kotlin:lib/#twice[lib.Service](kotlin.Int)@lib" in it.addresses("t") && ((it["f"]?.jsonPrimitive?.int ?: 0) and 1) != 0 }
+                    .all { it.address("p") == "kotlin:app/#use(lib.Service)@app" }, "a call names the declaration it sits in")
+
+                Files.writeString(root.resolve("lib/Api.kt"), "// moved down a line\n$api")
+                val moved = ask(2)
+                val again = moved.getValue("addresses").jsonArray.map { it.jsonPrimitive.content }
+                val answer = declared(moved, "lib/Api.kt").getValue("answer")
+                assertEquals("kotlin:lib/Service#answer()@lib", again[answer.getValue("a").jsonPrimitive.int], "the address does not move with the text")
+                assertEquals(4, answer.getValue("l").jsonPrimitive.int)
+            } finally {
+                process.destroy()
+                process.waitFor(10, TimeUnit.SECONDS)
+            }
+        } finally { Files.walk(root).use { files -> files.sorted(Comparator.reverseOrder()).forEach(Files::delete) } }
+    }
+
     @Test fun servedJsAndNativeSessionsResolveUsesAgainstTheirKlibs() {
         val root = Files.createTempDirectory("code-kotlin-klibs-").toRealPath()
         try {
