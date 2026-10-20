@@ -39,6 +39,11 @@ sealed interface GraphSource {
         override val label = "Build declarations"
     }
 
+    data object Code : GraphSource {
+        override val id = "code"
+        override val label = "Kotlin sources"
+    }
+
     data class Device(override val id: String, override val label: String) : GraphSource
 }
 

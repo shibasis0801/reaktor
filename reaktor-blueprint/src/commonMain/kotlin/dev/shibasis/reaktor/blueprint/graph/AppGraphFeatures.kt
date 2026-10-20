@@ -8,9 +8,10 @@ data class Feature(val key: String, val label: String, val members: List<NodeSha
 object AppGraphFeatures {
     private const val Start = "start"
     private const val HubHops = 4
+    private val ScopedSources = setOf(GraphSource.Build, GraphSource.Code)
 
     fun of(graph: AppGraph): List<Feature> {
-        if (graph.source == GraphSource.Build) return graph.nodes.values.groupBy { it.scope }
+        if (graph.source in ScopedSources) return graph.nodes.values.groupBy { it.scope }
             .map { (scope, members) -> Feature(scope, if (scope == graph.root.id) graph.root.label else graph.scopeLabel(scope), members) }
             .sortedBy { it.key }
         val islandOf = graph.nodes.values.associate { it.id to graph.island(it.scope) }
