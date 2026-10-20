@@ -37,9 +37,9 @@ data class CallResource(
     val mimeType: String? = null,
 )
 
-/** Recorded for attribution. Nothing here is verified, so nothing may be decided on it. */
+/** Recorded for attribution. Nothing here is verified, so it may narrow what a call may do and never widen it. */
 @Serializable
-data class CallCaller(val seat: String? = null, val runId: String? = null)
+data class CallCaller(val seat: String? = null, val runId: String? = null, val principal: String? = null)
 
 @Serializable
 data class CallRequest(

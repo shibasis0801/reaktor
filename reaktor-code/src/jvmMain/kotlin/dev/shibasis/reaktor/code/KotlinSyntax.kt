@@ -5,8 +5,10 @@ import org.jetbrains.kotlin.cli.extensionsStorage
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.com.intellij.openapi.util.Disposer
+import org.jetbrains.kotlin.com.intellij.psi.PsiComment
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.com.intellij.psi.PsiErrorElement
+import org.jetbrains.kotlin.com.intellij.psi.PsiWhiteSpace
 import org.jetbrains.kotlin.com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.compiler.plugin.CompilerPluginRegistrar
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
@@ -92,6 +94,72 @@ internal object KotlinSyntax {
         val normalized = text.replace("\r\n", "\n")
         read(Parsed(KtPsiFactory(environment.project).createFile(path.substringAfterLast('/'), normalized), normalized))
     }
+
+    fun structural(document: CodeDocument, pattern: String): List<CodeStructuralMatch> = parsed(document.path, document.text) { parsed ->
+        val template = runCatching { KtPsiFactory(environment.project).createExpression(Hole.replace(pattern.trim()) { found ->
+            (if (found.groupValues[1].isEmpty()) One else Many) + found.groupValues[2]
+        }) }.getOrNull()
+        require(template != null && PsiTreeUtil.findChildOfType(template, PsiErrorElement::class.java) == null) { "pattern is not one Kotlin expression" }
+        val found = mutableListOf<CodeStructuralMatch>()
+        fun visit(element: PsiElement) {
+            if (element is KtExpression) {
+                val bound = LinkedHashMap<String, IntRange>()
+                if (matches(template, element, parsed.text, bound)) {
+                    found += CodeStructuralMatch(parsed.span(element), bound.mapValues { (_, range) -> CodeSpan(parsed.position(range.first), parsed.position(range.last + 1)) },
+                        bound.mapValues { (_, range) -> parsed.text.substring(range.first, range.last + 1) })
+                    return
+                }
+            }
+            var child = element.firstChild
+            while (child != null) { visit(child); child = child.nextSibling }
+        }
+        visit(parsed.file)
+        found
+    }
+
+    private fun matches(pattern: PsiElement, element: PsiElement, text: String, bound: MutableMap<String, IntRange>): Boolean {
+        hole(pattern, One)?.let { name -> return element is KtExpression && bind(name, element.textRange.startOffset until element.textRange.endOffset, text, bound) }
+        if (pattern.node.elementType != element.node.elementType) return false
+        val expected = significant(pattern)
+        val actual = significant(element)
+        if (expected.isEmpty() && actual.isEmpty()) return pattern.text == element.text
+        return sequence(expected, 0, actual, 0, element.textRange.endOffset, text, bound)
+    }
+
+    private fun sequence(expected: List<PsiElement>, i: Int, actual: List<PsiElement>, j: Int, end: Int, text: String, bound: MutableMap<String, IntRange>): Boolean {
+        if (i == expected.size) return j == actual.size
+        val kept = LinkedHashMap(bound)
+        fun restore() { bound.clear(); bound.putAll(kept) }
+        val many = hole(expected[i], Many) ?: (expected[i] as? KtValueArgument)?.getArgumentExpression()?.let { hole(it, Many) }
+        if (many != null) {
+            for (last in j..actual.size) {
+                val start = actual.getOrNull(j)?.textRange?.startOffset ?: end
+                val range = if (last == j) start until start else start until actual[last - 1].textRange.endOffset
+                if (bind(many, range, text, bound) && sequence(expected, i + 1, actual, last, end, text, bound)) return true
+                restore()
+            }
+            return false
+        }
+        if (j == actual.size) return false
+        if (matches(expected[i], actual[j], text, bound) && sequence(expected, i + 1, actual, j + 1, end, text, bound)) return true
+        restore()
+        return false
+    }
+
+    private fun bind(name: String, range: IntRange, text: String, bound: MutableMap<String, IntRange>): Boolean {
+        val earlier = bound[name] ?: run { bound[name] = range; return true }
+        return text.substring(earlier.first, earlier.last + 1) == text.substring(range.first, range.last + 1)
+    }
+
+    private fun hole(element: PsiElement, kind: String): String? =
+        (element as? KtNameReferenceExpression)?.getReferencedName()?.takeIf { it.startsWith(kind) }?.removePrefix(kind)
+
+    private fun significant(element: PsiElement): List<PsiElement> =
+        element.node.getChildren(null).map { it.psi }.filterNot { it is PsiWhiteSpace || it is PsiComment }
+
+    private const val One = "__reaktor_one_"
+    private const val Many = "__reaktor_many_"
+    private val Hole = Regex("\\$(\\$\\$)?([A-Z_][A-Z0-9_]*)")
 
     fun statement(document: CodeDocument, at: CodePosition): CodeSpan = parsed(document.path, document.text) { parsed ->
         val offset = parsed.offset(at)

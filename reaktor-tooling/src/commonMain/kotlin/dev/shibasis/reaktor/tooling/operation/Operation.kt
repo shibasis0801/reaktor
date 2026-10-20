@@ -60,7 +60,7 @@ class Operation<I, O>(
     val output: KSerializer<O>,
     val schema: (() -> JsonObject)? = null,
     val effectFor: (JsonObject) -> SafetyClass = { effect },
-    val appliesOwnPlan: (JsonObject) -> Boolean = { false },
+    val appliesOwnPlan: suspend (JsonObject, CallCaller) -> Boolean = { _, _ -> false },
     val run: suspend OperationCall.(I) -> O,
 ) {
     val subject: String? get() = input.descriptor.subject()

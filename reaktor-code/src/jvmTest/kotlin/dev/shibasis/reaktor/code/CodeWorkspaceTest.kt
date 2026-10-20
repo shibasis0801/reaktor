@@ -4,6 +4,27 @@ import java.nio.file.Files
 import kotlin.test.*
 
 class CodeWorkspaceTest {
+    @Test fun aStructuralPatternBindsItsHolesAndRunsOfArgumentsAndAHoleUsedTwiceMatchesTheSameText() = fixture { root, code ->
+        Files.writeString(root.resolve("Demo.kt"), """
+            package demo
+            fun use(a: Api, b: Api) {
+                a.call(1, 2)
+                b.items.first().call()
+                call(3)
+                same(a, a)
+                same(a, b)
+                a.call(a.call(4))
+            }
+        """.trimIndent())
+        val calls = code.structural("Demo.kt", "\$R.call(\$\$\$ARGS)")
+        assertEquals(listOf("a" to "1, 2", "b.items.first()" to "", "a" to "a.call(4)"), calls.map { it.texts.getValue("R") to it.texts.getValue("ARGS") })
+        assertEquals(CodeSpan(CodePosition(2, 4), CodePosition(2, 16)), calls.first().span)
+        assertEquals(CodeSpan(CodePosition(2, 11), CodePosition(2, 15)), calls.first().holes.getValue("ARGS"))
+        assertEquals(listOf(5), code.structural("Demo.kt", "same(\$X, \$X)").map { it.span.start.line })
+        assertEquals(listOf(4, 7), code.structural("Demo.kt", "call(\$N)").map { it.span.start.line }, "the call after a receiver's dot is a call too")
+        assertFailsWith<IllegalArgumentException> { code.structural("Demo.kt", "fun (") }
+    }
+
     @Test fun kotlinOutlinePreservesDeclarationsSignaturesAndUtf16Ranges() = fixture { root, code ->
         val source = """
             package sample

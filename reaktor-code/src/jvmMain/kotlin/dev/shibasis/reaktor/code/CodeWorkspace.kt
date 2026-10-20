@@ -20,6 +20,7 @@ data class CodeName(val name: String, val called: Boolean, val qualifier: String
 data class CodeEditPlan(val workspace: String, val before: CodeDocument, val after: String, val fingerprint: String,
     val replacements: Int, val find: String, val replacement: String, val recipe: String = "literal-v1", val evidence: String = "")
 data class CodeTextEdit(val path: String, val span: CodeSpan, val replacement: String)
+data class CodeStructuralMatch(val span: CodeSpan, val holes: Map<String, CodeSpan>, val texts: Map<String, String>)
 data class CodeFileChange(val before: CodeDocument, val after: String, val edits: List<CodeTextEdit>)
 data class CodeChangePlan(val workspace: String, val recipe: String, val files: List<CodeFileChange>, val fingerprint: String, val evidence: String = "") {
     val edits: Int get() = files.sumOf { it.edits.size }
@@ -82,6 +83,12 @@ class CodeWorkspace(root: Path) {
         val document = read(path)
         requireKotlin(document)
         return KotlinSyntax.statement(document, at)
+    }
+
+    fun structural(path: String, pattern: String): List<CodeStructuralMatch> {
+        val document = read(path)
+        requireKotlin(document)
+        return KotlinSyntax.structural(document, pattern)
     }
 
     @Synchronized fun index(path: String): CodeSemanticIndex {
