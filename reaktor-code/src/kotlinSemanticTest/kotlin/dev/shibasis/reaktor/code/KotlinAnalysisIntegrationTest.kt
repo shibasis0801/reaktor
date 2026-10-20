@@ -177,6 +177,87 @@ class KotlinAnalysisIntegrationTest {
         } finally { Files.walk(root).use { files -> files.sorted(Comparator.reverseOrder()).forEach(Files::delete) } }
     }
 
+    @Test fun servedJsAndNativeSessionsResolveUsesAgainstTheirKlibs() {
+        val root = Files.createTempDirectory("code-kotlin-klibs-").toRealPath()
+        try {
+            val helper = unpack(root.resolve("helper"))
+            val jvmStdlib = Path.of(System.getProperty("reaktor.kotlin.stdlib"))
+            val version = jvmStdlib.fileName.toString().removePrefix("kotlin-stdlib-").removeSuffix(".jar")
+            val jsStdlib = Files.walk(jvmStdlib.parent.parent.parent.parent.resolve("kotlin-stdlib-js/$version")).use { found ->
+                found.filter { it.fileName.toString() == "kotlin-stdlib-js-$version.klib" }.findFirst().orElse(null)
+            }
+            assertNotNull(jsStdlib, "This test reads kotlin-stdlib-js-$version.klib from the Gradle cache next to ${jvmStdlib.fileName}")
+            val konan = Files.list(Path.of(System.getProperty("user.home"), ".konan")).use { found ->
+                found.filter { it.fileName.toString().startsWith("kotlin-native-prebuilt-") && it.fileName.toString().endsWith("-$version") }.findFirst().orElse(null)
+            }
+            assertNotNull(konan, "This test reads the Kotlin/Native $version distribution from ~/.konan")
+            val platform = konan.resolve("klib/platform/ios_arm64")
+            val libraries = linkedSetOf<Path>()
+            val next = ArrayDeque(listOf("org.jetbrains.kotlin.native.platform.Foundation"))
+            while (next.isNotEmpty()) {
+                val library = platform.resolve(next.removeFirst())
+                if (!libraries.add(library)) continue
+                Files.readAllLines(library.resolve("default/manifest")).first { it.startsWith("depends=") }.removePrefix("depends=").split(' ')
+                    .filter { it.isNotBlank() && it != "stdlib" }.forEach(next::addLast)
+            }
+            val common = "package demo\n\nfun greet(): String = \"hi\"\n"
+            val js = "package demo\n\nfun shout(): Int = greet().length\n"
+            val ios = "package demo\n\nimport platform.Foundation.NSData\n\nfun size(data: NSData): Int = data.length.toInt() + greet().length\n"
+            listOf("common/Greeting.kt" to common, "js/Shout.kt" to js, "ios/Size.kt" to ios).forEach { (path, text) ->
+                Files.createDirectories(root.resolve(path).parent)
+                Files.writeString(root.resolve(path), text)
+            }
+            fun at(path: String, text: String, word: String, from: Int = 0): JsonObject {
+                val offset = Regex("\\b$word\\b").find(text, from)!!.range.first
+                val before = text.substring(0, offset)
+                return buildJsonObject { put("path", path); put("line", before.count { it == '\n' }); put("column", offset - before.lastIndexOf('\n') - 1) }
+            }
+            fun request(id: Int, family: String, own: String, ownText: String, classpath: List<String>, more: JsonObjectBuilder.() -> Unit = {}) = buildJsonObject {
+                put("id", id)
+                put("jdkHome", Path.of(System.getProperty("java.home")).toRealPath().toString())
+                put("platform", family)
+                more()
+                putJsonArray("modules") {
+                    addJsonObject { put("name", "common"); put("platform", family); putJsonArray("sources") { add("common/Greeting.kt") }; putJsonArray("classpath") { classpath.forEach { add(it) } } }
+                    addJsonObject {
+                        put("name", family); put("platform", family); putJsonArray("sources") { add(own) }; putJsonArray("classpath") { classpath.forEach { add(it) } }
+                        putJsonArray("dependsOn") { add("common") }
+                    }
+                }
+                put("declaration", at("common/Greeting.kt", common, "greet"))
+                putJsonArray("candidates") {
+                    add(at(own, ownText, "greet"))
+                    add(at(own, ownText, "length", ownText.indexOf("=")))
+                }
+            }
+            val process = ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-Djava.awt.headless=true",
+                "-cp", "$helper/classes:$helper/lib/*", "dev.shibasis.reaktor.code.kotlinanalysis.MainKt", "serve", root.toString())
+                .redirectError(root.resolve("serve.log").toFile()).start()
+            try {
+                val input = process.outputStream.bufferedWriter()
+                val output = process.inputStream.bufferedReader()
+                fun ask(request: JsonObject): JsonObject {
+                    input.write(request.toString())
+                    input.newLine()
+                    input.flush()
+                    return Json.parseToJsonElement(output.readLine() ?: fail(Files.readString(root.resolve("serve.log")))).jsonObject
+                }
+                fun verdicts(reply: JsonObject) = reply.getValue("decisions").jsonArray.map { it.jsonObject.getValue("verdict").jsonPrimitive.content }
+                val onJs = ask(request(1, "js", "js/Shout.kt", js, listOf(jsStdlib.toString())))
+                assertNull(onJs["error"], "$onJs")
+                assertEquals(listOf("target", "other"), verdicts(onJs), "greet is the declaration and length is the JS stdlib's: $onJs")
+                val onIos = ask(request(2, "native", "ios/Size.kt", ios, (listOf(konan.resolve("klib/common/stdlib")) + libraries).map { it.toString() }) {
+                    put("konanTarget", "ios_arm64")
+                })
+                assertNull(onIos["error"], "$onIos")
+                assertEquals(listOf("target", "other"), verdicts(onIos), "greet is the declaration and length is Foundation's NSData.length: $onIos")
+            } finally {
+                process.destroy()
+                process.waitFor(10, TimeUnit.SECONDS)
+            }
+        } finally { Files.walk(root).use { files -> files.sorted(Comparator.reverseOrder()).forEach(Files::delete) } }
+    }
+
     private fun unpack(helper: Path): Path {
         ZipFile(System.getProperty("reaktor.kotlin.archive")).use { archive -> archive.entries().asSequence().forEach { entry ->
             val destination = helper.resolve(entry.name).normalize()

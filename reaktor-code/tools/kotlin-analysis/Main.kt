@@ -23,7 +23,10 @@ import org.jetbrains.kotlin.analysis.project.structure.builder.*
 import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.platform.CommonPlatforms
+import org.jetbrains.kotlin.platform.TargetPlatform
+import org.jetbrains.kotlin.platform.js.JsPlatforms
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
+import org.jetbrains.kotlin.platform.konan.NativePlatforms
 import org.jetbrains.kotlin.psi.*
 import java.nio.file.Files
 import java.nio.file.Path
@@ -218,7 +221,8 @@ private fun serve(root: Path) {
             val started = System.nanoTime()
             val request = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull()
             val reply = if (request == null) buildJsonObject { put("error", "Unreadable request") } else runCatching {
-                val digest = MessageDigest.getInstance("SHA-256").digest((request.getValue("modules").toString() + "\u0000" + request.string("jdkHome")).toByteArray())
+                val digest = MessageDigest.getInstance("SHA-256").digest((request.getValue("modules").toString() + "\u0000" + request.string("jdkHome") + "\u0000" +
+                    request["platform"] + "\u0000" + request["konanTarget"]).toByteArray())
                     .joinToString("") { "%02x".format(it) }
                 val reused = warm?.takeIf { it.digest == digest && it.fresh() }
                 val session = reused ?: run {
@@ -239,6 +243,15 @@ private fun serve(root: Path) {
 private fun open(root: Path, request: JsonObject, digest: String): Warm {
     val jdk = Path.of(request.string("jdkHome")).toRealPath()
     val jvm = JvmPlatforms.jvmPlatformByTargetVersion(JvmTarget.JVM_25)
+    val konanTarget = request["konanTarget"]?.jsonPrimitive?.contentOrNull
+    fun platformOf(name: String): TargetPlatform = when (name) {
+        "jvm" -> jvm
+        "common" -> CommonPlatforms.defaultCommonPlatform
+        "js" -> JsPlatforms.defaultJsPlatform
+        "native" -> NativePlatforms.nativePlatformByTargetNames(listOf(requireNotNull(konanTarget) { "A native session names its konanTarget" }))
+        else -> error("Unknown platform $name")
+    }
+    val family = request["platform"]?.jsonPrimitive?.contentOrNull ?: "jvm"
     val settings = LanguageVersionSettingsImpl(LanguageVersion.KOTLIN_2_4, requireNotNull(ApiVersion.parse("2.4")),
         specificFeatures = mapOf(LanguageFeature.MultiPlatformProjects to LanguageFeature.State.ENABLED))
     val modules = request.getValue("modules").jsonArray.map { it.jsonObject }
@@ -249,18 +262,18 @@ private fun open(root: Path, request: JsonObject, digest: String): Warm {
     try {
         val session = buildStandaloneAnalysisAPISession(disposable) {
             buildKtModuleProvider {
-                platform = jvm
-                val sdk = addModule(buildKtSdkModule {
+                platform = platformOf(family)
+                val sdk = if (family == "jvm") addModule(buildKtSdkModule {
                     libraryName = "jdk"; platform = jvm
                     addBinaryRootsFromJdkHome(jdk, false)
-                })
-                val libraries = HashMap<Pair<String, Boolean>, KaModule>()
+                }) else null
+                val libraries = HashMap<Pair<String, String>, KaModule>()
                 val built = linkedMapOf<String, KaSourceModule>()
                 modules.forEach { spec ->
                     val name = spec.string("name")
                     require(name.isNotBlank() && name !in built) { "Each module needs its own name: $name" }
-                    val common = spec.string("platform") == "common"
-                    val target = if (common) CommonPlatforms.defaultCommonPlatform else jvm
+                    val kind = spec.string("platform")
+                    val target = platformOf(kind)
                     val sources = spec.strings("sources").mapNotNull { relative ->
                         root.resolve(relative).normalize().takeIf { it.startsWith(root) && it.toString().endsWith(".kt") && Files.isRegularFile(it) } ?: run { skipped += relative; null }
                     }
@@ -270,11 +283,11 @@ private fun open(root: Path, request: JsonObject, digest: String): Warm {
                         moduleName = name; platform = target; languageVersionSettings = settings
                         addSourceRoots(sources)
                         classpath.forEach { path ->
-                            addRegularDependency(libraries.getOrPut(path.toString() to common) {
+                            addRegularDependency(libraries.getOrPut(path.toString() to kind) {
                                 addModule(buildKtLibraryModule { libraryName = path.toString(); platform = target; addBinaryRoot(path) })
                             })
                         }
-                        if (!common) addRegularDependency(sdk)
+                        if (kind == "jvm" && sdk != null) addRegularDependency(sdk)
                         spec.strings("dependsOn").mapNotNull { built[it] }.forEach(::addDependsOnDependency)
                         spec.strings("dependencies").mapNotNull { built[it] }.forEach(::addRegularDependency)
                         spec.strings("friends").mapNotNull { built[it] }.forEach(::addFriendDependency)
