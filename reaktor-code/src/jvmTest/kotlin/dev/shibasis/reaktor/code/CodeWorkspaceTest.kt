@@ -275,6 +275,48 @@ class CodeWorkspaceTest {
         } finally { pool.shutdownNow() }
     }
 
+    @Test fun bindingsTellAUseFromAParameterLocalOrArgumentOfTheSameName() = fixture { root, code ->
+        Files.writeString(root.resolve("Demo.kt"), """
+            package demo
+
+            fun greeting() = "hello"
+            fun decoy(greeting: String) = greeting
+            fun caller() = greeting() + ::greeting.name
+            fun named() = format(greeting = "x")
+            fun format(greeting: String) = greeting
+            fun lambda() = listOf("a").map { greeting -> greeting + greeting() }
+            fun local(): String { val greeting = "x"; return greeting }
+            fun later(): String { val text = greeting(); val greeting = 1; return text + greeting }
+            class Holder(val greeting: String, seed: Int) {
+                val copy = greeting + seed
+                fun inside() = greeting
+                fun call() = greeting()
+            }
+            class Service {
+                companion object { fun start() = 1 }
+                fun run() = start()
+            }
+            fun outer() { loop@ for (start in 1..2) { if (start > 1) break@loop } }
+        """.trimIndent() + "\n")
+        fun read(name: String) = code.bindings("Demo.kt", name).map { listOf(it.span.start.line, it.role, it.bound?.start?.line, it.possible) }
+        assertEquals(listOf(
+            listOf(2, "declaration", null, false),
+            listOf(3, "local", null, false), listOf(3, "value", 3, false),
+            listOf(4, "call", null, false), listOf(4, "call", null, false),
+            listOf(5, "argument", null, false),
+            listOf(6, "local", null, false), listOf(6, "value", 6, false),
+            listOf(7, "local", null, false), listOf(7, "value", 7, false), listOf(7, "call", 7, true),
+            listOf(8, "local", null, false), listOf(8, "value", 8, false),
+            listOf(9, "call", null, false), listOf(9, "local", null, false), listOf(9, "value", 9, false),
+            listOf(10, "declaration", null, false),
+            listOf(11, "value", 10, false), listOf(12, "value", 10, false), listOf(13, "call", 10, true),
+        ), read("greeting"))
+        assertEquals(listOf(listOf(16, "declaration", null, false), listOf(17, "call", 16, false), listOf(19, "local", null, false), listOf(19, "value", 19, false)), read("start"))
+        assertEquals(code.occurrences("Demo.kt", "greeting"), code.bindings("Demo.kt", "greeting").map { it.span })
+        assertTrue(code.bindings("Demo.kt", "loop").all { it.role == "label" })
+        assertEquals("format", code.bindings("Demo.kt", "greeting").single { it.role == "argument" }.callee)
+    }
+
     private fun fixture(test: (java.nio.file.Path, CodeWorkspace) -> Unit) {
         val root = Files.createTempDirectory("code-workspace-")
         try { test(root, CodeWorkspace(root)) }

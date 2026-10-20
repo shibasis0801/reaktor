@@ -172,6 +172,103 @@ internal object KotlinSyntax {
         parsed.span(statement)
     }
 
+    fun bindings(document: CodeDocument, name: String): List<CodeBinding> = parsed(document.path, document.text) { parsed ->
+        identifiers(parsed.text, name).mapNotNull { offset ->
+            val leaf = parsed.file.findElementAt(offset) ?: return@mapNotNull null
+            val found = bound(leaf, name)
+            CodeBinding(parsed.span(leaf), found.role, found.declaration?.let { parsed.span(it.nameIdentifier ?: it) }, found.possible, found.callee)
+        }.toList()
+    }
+
+    private class Bound(val role: String, val declaration: KtNamedDeclaration? = null, val possible: Boolean = false, val callee: String? = null)
+
+    private fun bound(leaf: PsiElement, name: String): Bound {
+        val parent = leaf.parent
+        if (parent is KtNamedDeclaration && parent.nameIdentifier == leaf) return Bound(if (outlined(parent)) "declaration" else "local")
+        if (PsiTreeUtil.getParentOfType(leaf, KtImportDirective::class.java) != null) return Bound("import")
+        if (PsiTreeUtil.getParentOfType(leaf, KtPackageDirective::class.java) != null) return Bound("package")
+        if (generateSequence(parent) { it.parent }.take(3).any { it is KtLabelReferenceExpression }) return Bound("label")
+        val reference = parent as? KtSimpleNameExpression ?: return Bound("other")
+        val holder = reference.parent
+        if (holder is KtValueArgumentName) return Bound("argument", callee = PsiTreeUtil.getParentOfType(holder, KtCallExpression::class.java)?.calleeExpression?.let { it as? KtSimpleNameExpression }?.getReferencedName())
+        if (reference is KtOperationReferenceExpression) return Bound("call")
+        if (holder is KtUserType) return Bound("type")
+        val called = holder is KtCallExpression && holder.calleeExpression == reference
+        val referenced = holder is KtCallableReferenceExpression && holder.callableReference == reference
+        if (holder is KtCallableReferenceExpression && !referenced) return Bound("type")
+        val role = if (called || referenced) "call" else "value"
+        val expression = if (called) holder as KtCallExpression else reference
+        val qualified = (expression.parent as? KtQualifiedExpression)?.selectorExpression == expression ||
+            (referenced && (holder as KtCallableReferenceExpression).receiverExpression != null)
+        if (qualified) return Bound(role)
+        return scoped(reference, name, called || referenced)?.let { (declaration, possible) -> Bound(role, declaration, possible) } ?: Bound(role)
+    }
+
+    private fun outlined(declaration: KtNamedDeclaration): Boolean {
+        if (generateSequence(declaration.parent) { it.parent }.any { it is KtObjectLiteralExpression || (it is KtBlockExpression && it.parent !is KtScript) }) return false
+        return when (declaration) {
+            is KtEnumEntry, is KtClass, is KtObjectDeclaration, is KtNamedFunction, is KtProperty, is KtTypeAlias -> true
+            is KtParameter -> declaration.hasValOrVar()
+            else -> false
+        }
+    }
+
+    private fun scoped(reference: KtSimpleNameExpression, name: String, call: Boolean): Pair<KtNamedDeclaration, Boolean>? {
+        var child: PsiElement = reference
+        var initializing = false
+        while (true) {
+            val from = child
+            val scope = from.parent ?: return null
+            if (scope is KtFile) return null
+            val found = when (scope) {
+                is KtBlockExpression -> if (scope.parent is KtScript) null else scope.statements.asReversed()
+                    .filter { it.textRange.endOffset <= from.textRange.startOffset }
+                    .firstNotNullOfOrNull { statement -> local(statement, name)?.let { fit(it, call) } }
+                is KtFunction -> scope.valueParameters.firstNotNullOfOrNull { parameter -> named(parameter, name)?.let { fit(it, call) } }
+                    ?: (scope as? KtNamedFunction)?.takeIf { it.name == name && call && !outlined(it) }?.let { it to false }
+                is KtForExpression -> scope.loopParameter?.takeIf { inside(scope.body, reference) }?.let { named(it, name) }?.let { fit(it, call) }
+                is KtCatchClause -> scope.catchParameter?.takeIf { inside(scope.catchBody, reference) }?.let { named(it, name) }?.let { fit(it, call) }
+                is KtWhenExpression -> scope.subjectVariable?.takeIf { it.name == name && scope.entries.any { entry -> inside(entry, reference) } }?.let { fit(it, call) }
+                is KtPropertyAccessor -> scope.parameter?.takeIf { it.name == name }?.let { fit(it, call) }
+                is KtClassBody -> (scope.parent as? KtClassOrObject)?.let { owner -> member(owner, name, call, initializing) }
+                is KtClassOrObject -> scope.primaryConstructorParameters.takeIf { from is KtPrimaryConstructor || from is KtSuperTypeList }
+                    ?.firstOrNull { it.name == name }?.let { fit(it, call) }
+                else -> null
+            }
+            if (found != null) return found
+            when (scope) {
+                is KtProperty -> if (from == scope.initializer || from == scope.delegate) initializing = true
+                is KtAnonymousInitializer -> initializing = true
+                is KtClassBody -> initializing = false
+            }
+            child = scope
+        }
+    }
+
+    private fun inside(scope: PsiElement?, element: PsiElement) = scope != null && PsiTreeUtil.isAncestor(scope, element, false)
+
+    private fun local(statement: KtExpression, name: String): KtNamedDeclaration? = when (statement) {
+        is KtDestructuringDeclaration -> statement.entries.firstOrNull { it.name == name }
+        is KtNamedDeclaration -> statement.takeIf { it.name == name }
+        else -> null
+    }
+
+    private fun named(parameter: KtParameter, name: String): KtNamedDeclaration? =
+        parameter.takeIf { it.name == name } ?: parameter.destructuringDeclaration?.entries?.firstOrNull { it.name == name }
+
+    private fun member(owner: KtClassOrObject, name: String, call: Boolean, initializing: Boolean): Pair<KtNamedDeclaration, Boolean>? {
+        (listOf(owner) + owner.companionObjects).forEach { body ->
+            body.declarations.forEach { declaration -> if (declaration is KtNamedDeclaration && declaration.name == name) fit(declaration, call)?.let { return it } }
+        }
+        return owner.primaryConstructorParameters.firstOrNull { it.name == name && (it.hasValOrVar() || initializing) }?.let { fit(it, call) }
+    }
+
+    private fun fit(declaration: KtNamedDeclaration, call: Boolean): Pair<KtNamedDeclaration, Boolean>? = when (declaration) {
+        is KtNamedFunction -> if (call) declaration to false else null
+        is KtClassOrObject -> declaration to false
+        else -> declaration to call
+    }
+
     fun outline(document: CodeDocument, limit: Int): CodeOutline = parsed(document.path, document.text) { parsed ->
         val file = parsed.file
         val text = parsed.text

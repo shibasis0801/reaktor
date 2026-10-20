@@ -69,9 +69,13 @@ class Operation<I, O>(
         id, summary, effect, provider, schema?.invoke() ?: input.descriptor.jsonSchema(), output.descriptor.jsonSchema().takeIf { it.isNotEmpty() }, subject,
     )
 
-    suspend fun execute(call: OperationCall, arguments: JsonObject, json: Json): JsonElement =
-        json.encodeToJsonElement(output, call.run(json.decodeFromJsonElement(input, arguments)))
+    suspend fun execute(call: OperationCall, arguments: JsonObject, json: Json): JsonElement {
+        val decoded = try { json.decodeFromJsonElement(input, arguments) } catch (invalid: IllegalArgumentException) { throw InvalidArguments(invalid) }
+        return json.encodeToJsonElement(output, call.run(decoded))
+    }
 }
+
+class InvalidArguments(cause: IllegalArgumentException) : IllegalArgumentException(cause.message, cause)
 
 inline fun <reified I, reified O> operation(
     id: String,
@@ -127,7 +131,7 @@ data class CatalogQuery(
 )
 
 @Serializable
-data class CatalogEntry(val id: OperationId, val summary: String, val effect: SafetyClass, val provider: String, val subject: String? = null)
+data class CatalogEntry(val id: OperationId, val summary: String, val effect: SafetyClass, val provider: String, val subject: String? = null, val prefer: OperationId? = null)
 
 @Serializable
 enum class Access { Allowed, Ask, Refused }

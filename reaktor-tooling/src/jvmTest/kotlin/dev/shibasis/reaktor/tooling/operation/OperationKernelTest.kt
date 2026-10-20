@@ -193,6 +193,42 @@ class OperationKernelTest {
         } finally { graph.close(); dependencies.close() }
     }
 
+    @Test
+    fun dataAnOperationReadsIsNotBlamedOnItsArguments() = runTest {
+        val dependencies = koinApplication {}
+        val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
+        graph.attach(OperationNode(graph, "store", listOf(
+            operation<Write, Shown>("store.read", "Reads a stored node") { OperationJson.decodeFromString(Shown.serializer(), "{}") },
+        )))
+        val kernel = OperationKernel(graph, OperationAuthority())
+        try {
+            val stored = assertIs<Outcome.Failed>(kernel.invoke(Invocation(OperationId("store.read"), buildJsonObject { put("path", "a") }))).message
+            assertTrue(stored.startsWith("store.read read its arguments but could not decode other data it depends on: "), stored)
+            assertTrue(stored.endsWith("newer or older than this store build"), stored)
+            val invalid = assertIs<Outcome.Failed>(kernel.invoke(Invocation(OperationId("store.read"), buildJsonObject { put("file", "a") }))).message
+            assertTrue(invalid.startsWith("Invalid arguments for store.read: "), invalid)
+            assertTrue(invalid.endsWith("operation.describe {operation: store.read} shows what it takes"), invalid)
+        } finally { graph.close(); dependencies.close() }
+    }
+
+    @Test
+    fun theCatalogListsPreferredOperationsBeforeTheAliasesKeptForOlderCallers() = runTest {
+        val dependencies = koinApplication {}
+        val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
+        graph.attach(OperationNode(graph, "code", listOf(
+            operation<Write, String>("atlas.read", "Read") { it.path },
+            operation<Write, String>("code.read", "Read, the old way") { it.path },
+            operation<Write, String>("code.write", "Write") { it.path },
+        )))
+        val kernel = OperationKernel(graph, OperationAuthority(),
+            preferred = mapOf(OperationId("code.read") to OperationId("atlas.read"), OperationId("code.write") to OperationId("change.apply")))
+        try {
+            assertEquals(listOf("atlas.read" to null, "code.write" to null, "operation.catalog" to null, "operation.describe" to null, "code.read" to "atlas.read"),
+                kernel.catalog().map { it.id.value to it.prefer?.value })
+            assertEquals(kernel.catalog().map { it.id }, kernel.access(listOf("*")).map { it.id })
+        } finally { graph.close(); dependencies.close() }
+    }
+
     private fun kernel(policy: DoorPolicy = DoorPolicy.Guarded, body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
         val directory = Files.createTempDirectory("operation-kernel")
         val dependencies = koinApplication {}

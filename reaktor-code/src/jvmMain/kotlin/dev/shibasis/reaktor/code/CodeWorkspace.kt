@@ -20,6 +20,7 @@ data class CodeDeclaration(val name: String, val kind: String, val container: St
 data class CodeOutline(val path: String, val digest: String, val provider: String, val packageName: String,
     val imports: List<String>, val declarations: List<CodeDeclaration>, val diagnostics: List<CodeDiagnostic>, val partial: Boolean)
 data class CodeName(val name: String, val called: Boolean, val qualifier: String?, val receiver: Boolean)
+data class CodeBinding(val span: CodeSpan, val role: String, val bound: CodeSpan? = null, val possible: Boolean = false, val callee: String? = null)
 data class CodeEditPlan(val workspace: String, val before: CodeDocument, val after: String, val fingerprint: String,
     val replacements: Int, val find: String, val replacement: String, val recipe: String = "literal-v1", val evidence: String = "")
 data class CodeTextEdit(val path: String, val span: CodeSpan, val replacement: String)
@@ -99,6 +100,18 @@ class CodeWorkspace(root: Path, private val generatedRoots: () -> Collection<Pat
             val end = offset + if (document.text.startsWith("`", offset)) name.length + 2 else name.length
             CodeSpan(position(offset), position(end))
         }.toList()
+    }
+
+    private val bindings = object : LinkedHashMap<Triple<String, String, String>, List<CodeBinding>>(256, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Triple<String, String, String>, List<CodeBinding>>?) = size > MAX_CACHED_OUTLINES
+    }
+
+    fun bindings(path: String, name: String): List<CodeBinding> {
+        val document = read(path)
+        requireKotlin(document)
+        val key = Triple(document.path, document.digest, name)
+        synchronized(bindings) { bindings[key] }?.let { return it }
+        return KotlinSyntax.bindings(document, name).also { found -> synchronized(bindings) { bindings[key] = found } }
     }
 
     fun statement(path: String, at: CodePosition): CodeSpan {

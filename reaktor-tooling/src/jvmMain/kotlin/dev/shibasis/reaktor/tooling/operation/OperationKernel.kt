@@ -35,13 +35,15 @@ class OperationKernel(
     private val graph: Graph,
     private val authority: OperationAuthority,
     private val json: Json = OperationJson,
+    private val preferred: Map<OperationId, OperationId> = emptyMap(),
 ) {
     private val replies = object : LinkedHashMap<Pair<String?, String>, Outcome>(64, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Pair<String?, String>, Outcome>) = size > ReplayLimit
     }
 
     private val own = listOf(
-        operation<CatalogQuery, List<CatalogEntry>>("operation.catalog", "Lists the operations this workspace offers, with their effect. Describe one before calling it with unfamiliar arguments.") { query ->
+        operation<CatalogQuery, List<CatalogEntry>>("operation.catalog", "Lists the operations this workspace offers, with their effect, the preferred ones first; " +
+            "an entry with prefer is kept for older callers and the operation it names does the same work. Describe one before calling it with unfamiliar arguments.") { query ->
             catalog().filter { query.domain == null || it.id.domain == query.domain }
                 .filter { entry -> query.query.isNullOrBlank() || query.query.lowercase().split(' ').all { word -> word in entry.id.value || word in entry.summary.lowercase() } }
         },
@@ -50,12 +52,15 @@ class OperationKernel(
         },
     ).map { it.entry("kernel") }
 
-    fun catalog(): List<CatalogEntry> = entries().map { it.catalog }.sortedBy { it.id.value }
+    fun catalog(): List<CatalogEntry> {
+        val listed = entries().map { it.catalog }
+        val present = listed.mapTo(hashSetOf()) { it.id }
+        return listed.map { entry -> entry.copy(prefer = preferred[entry.id]?.takeIf { it in present }) }.sortedWith(compareBy({ it.prefer != null }, { it.id.value }))
+    }
 
     fun describe(id: OperationId): OperationDescriptor? = entries().firstOrNull { it.catalog.id == id }?.describe?.invoke()
 
-    fun access(seats: List<String>): List<OperationAccess> = entries().map { entry ->
-        val catalog = entry.catalog
+    fun access(seats: List<String>): List<OperationAccess> = catalog().map { catalog ->
         OperationAccess(catalog.id, catalog.summary, catalog.effect, catalog.provider, seats.associateWith { seat ->
             when (DoorAuthority.decide(catalog.effect, authority.policy.seat(seat))) {
                 DoorDecision.Allowed -> Access.Allowed
@@ -63,7 +68,7 @@ class OperationKernel(
                 is DoorDecision.Refused -> Access.Refused
             }
         })
-    }.sortedBy { it.id.value }
+    }
 
     suspend fun invoke(invocation: Invocation): Outcome {
         val started = System.nanoTime()
@@ -106,8 +111,11 @@ class OperationKernel(
             Outcome.Completed(entry.execute(OperationCall(invocation, approval), invocation.arguments))
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (invalid: SerializationException) {
-            Outcome.Failed("Invalid arguments for ${descriptor.id}: ${invalid.message}")
+        } catch (invalid: InvalidArguments) {
+            Outcome.Failed("Invalid arguments for ${descriptor.id}: ${invalid.message}. operation.describe {operation: ${descriptor.id}} shows what it takes")
+        } catch (unreadable: SerializationException) {
+            Outcome.Failed("${descriptor.id} read its arguments but could not decode other data it depends on: ${unreadable.message}. " +
+                "The program that wrote that data is likely newer or older than this ${descriptor.provider} build")
         } catch (failure: Exception) {
             Outcome.Failed(failure.message ?: failure::class.simpleName.orEmpty())
         }
