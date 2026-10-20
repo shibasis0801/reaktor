@@ -6,9 +6,11 @@ import dev.shibasis.dependeasy.model.ProcessExecution
 import dev.shibasis.dependeasy.model.SourceSite
 import org.gradle.api.Project
 import org.gradle.api.Task
+import java.io.File
 
 internal fun Project.declarationSite(): SourceSite? {
     val owners = listOf(rootDir) + gradle.includedBuilds.map { it.projectDir }
+    val sources by lazy { owners.associateWith { declarationSources(it) } }
     val calls = Throwable().stackTrace.mapNotNull { frame ->
         if (frame.lineNumber <= 0) return@mapNotNull null
         val name = frame.fileName ?: return@mapNotNull null
@@ -20,7 +22,7 @@ internal fun Project.declarationSite(): SourceSite? {
             val relative = listOf(packagePath, name).filter(String::isNotEmpty).joinToString("/")
             owners.firstNotNullOfOrNull { owner ->
                 listOf("buildSrc/src/main/kotlin", "dependeasy/gradle/src/main/kotlin", "dependeasy/model/src/main/kotlin")
-                    .asSequence().map { owner.resolve("$it/$relative") }.firstOrNull { it.isFile }?.let { source ->
+                    .asSequence().map { owner.resolve("$it/$relative") }.firstOrNull { it.absolutePath in sources.getValue(owner) }?.let { source ->
                         SourceSite(if (owner == rootDir) rootProject.name else owner.name,
                             source.relativeTo(owner).invariantSeparatorsPath, frame.lineNumber,
                             frame.className + "." + frame.methodName)
@@ -156,13 +158,26 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
     }
 }
 
+private fun Project.declarationSources(owner: File): Set<String> {
+    val key = "dependeasy.declarationSources:${owner.absolutePath}"
+    val metadata = rootProject.extensions.extraProperties
+    @Suppress("UNCHECKED_CAST")
+    return if (metadata.has(key)) metadata.get(key) as Set<String> else {
+        providers.of(BuildDeclarationFiles::class.java) { parameters.root.set(owner) }.get()
+            .map { it.absolutePath }.toSet().also { metadata.set(key, it) }
+    }
+}
+
 internal fun kernelRef(project: Project, type: Class<*>): KernelRef {
     val sourceOwner = (listOf(project.rootDir) + project.gradle.includedBuilds.map { it.projectDir })
-        .firstOrNull { it.resolve("dependeasy/gradle/src/main/kotlin").isDirectory }
+        .firstOrNull { owner ->
+            val prefix = owner.resolve("dependeasy/gradle/src/main/kotlin").absolutePath + File.separator
+            project.declarationSources(owner).any { it.startsWith(prefix) }
+        }
     val site = sourceOwner?.let { owner ->
         dev.shibasis.dependeasy.model.JvmEntry.sourceSite(type, owner, owner.name,
             listOf("gradle/src/main/kotlin", "model/src/main/kotlin", "toolchain/src/main/kotlin", "toolchain/src/contracts/kotlin")
-                .map { owner.resolve("dependeasy/$it") })
+                .map { owner.resolve("dependeasy/$it") }, project.declarationSources(owner))
     }
     return KernelRef(type.name, site)
 }

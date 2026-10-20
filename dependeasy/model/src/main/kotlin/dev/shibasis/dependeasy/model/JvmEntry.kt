@@ -23,7 +23,7 @@ object JvmEntry {
         return entries.single()
     }
 
-    fun sourceSite(type: Class<*>, root: File, build: String, sources: List<File>): SourceSite? {
+    fun sourceSite(type: Class<*>, root: File, build: String, sources: List<File>, sourceFiles: Set<String>? = null): SourceSite? {
         val compiled = type.getResourceAsStream("/" + type.name.replace('.', '/') + ".class")?.use {
             ClassEntry(DataInputStream(it)).read()
         } ?: return null
@@ -31,7 +31,7 @@ object JvmEntry {
         val line = compiled.line ?: return null
         val namespace = compiled.name.substringBeforeLast('.', "").replace('.', '/')
         val source = sources.map { it.resolve(if (namespace.isEmpty()) file else "$namespace/$file") }
-            .filter(File::isFile).distinctBy { it.canonicalPath }.singleOrNull() ?: return null
+            .filter { sourceFiles?.contains(it.absolutePath) ?: it.isFile }.distinctBy { it.canonicalPath }.singleOrNull() ?: return null
         return SourceSite(build, source.canonicalFile.relativeTo(root.canonicalFile).invariantSeparatorsPath, line)
     }
 
