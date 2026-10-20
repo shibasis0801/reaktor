@@ -290,6 +290,12 @@ key in a `HashMap` filled as envelopes were opened, so a file that had arrived b
 downloaded could not be downloaded after a restart. Anything a later action needs goes where the
 row that offers the action goes.
 
+**A send can fail after the state said `Open`.** The connection can die between the check and
+the frame: `sender.send` returns a failed `Result` then, and must be handled as one. Before this was
+true it threw the transport's `EOFException`, and the heartbeat sending from its own coroutine took
+the Android process with it whenever the server restarted. Anything you launch that touches a
+socket gets a `try` around each iteration, so one bad round does not end the loop.
+
 **A `ConcurrencyCapabilityImpl` dispatcher is passed by name.** Its first parameter is a context;
 a dispatcher passed there positionally is silently replaced by `Dispatchers.Default`. That is how
 `WebSocket` — documented as single-threaded — ran on the whole pool for its entire life.

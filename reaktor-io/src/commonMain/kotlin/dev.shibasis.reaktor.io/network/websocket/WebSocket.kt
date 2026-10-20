@@ -11,7 +11,9 @@ import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.cancel
@@ -57,6 +59,15 @@ data class WebSocketOptions(
     val heartbeat: Heartbeat? = null,
 )
 
+/**
+ * The last line under a socket's own coroutines. A transport failure that reached one of them was
+ * an uncaught exception, and on Android that ends the app; a socket is there to survive the
+ * network, so it is logged here and the socket goes on.
+ */
+internal val socketFailuresAreLogged = CoroutineExceptionHandler { _, error ->
+    Logger.w(error) { "Reaktor:WebSocket — a failure reached the socket's scope: ${error::class.simpleName}" }
+}
+
 /** Why a socket that never closed was dropped. */
 class SilentConnection(silence: Duration) : RuntimeException("Nothing heard for $silence")
 typealias UrlProvider = suspend () -> String
@@ -69,6 +80,7 @@ open class WebSocket(
     dispatcher: CoroutineDispatcher = Dispatchers.Async,
     val httpClient: HttpClient = http
 ): ConcurrencyCapability by ConcurrencyCapabilityImpl(
+    context = socketFailuresAreLogged,
     // Named. The first parameter is a context, and a dispatcher passed there positionally is
     // overridden by the default one — which is how every socket ran on the whole default pool, with
     // connect, close and both listeners free to interleave, while this said it was single-threaded.
@@ -99,11 +111,19 @@ open class WebSocket(
         while (true) {
             delay(beat.interval)
             val open = connection.value as? ConnectionState.Open ?: continue
-            if (lastHeard.elapsedNow() > beat.silence) {
-                Logger.w { "Reaktor:WebSocket — nothing heard for ${beat.silence}; dropping the connection." }
-                drop(open, SilentConnection(beat.silence))
-            } else {
-                sender.send(beat.message())
+            // Nothing in one beat may end the heartbeat: a loop that died here stopped the very
+            // thing that notices a dead connection, and took the process with it.
+            try {
+                if (lastHeard.elapsedNow() > beat.silence) {
+                    Logger.w { "Reaktor:WebSocket — nothing heard for ${beat.silence}; dropping the connection." }
+                    drop(open, SilentConnection(beat.silence))
+                } else {
+                    sender.send(beat.message())
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Logger.w(error) { "Reaktor:WebSocket — a heartbeat failed; the next one tries again." }
             }
         }
     }
