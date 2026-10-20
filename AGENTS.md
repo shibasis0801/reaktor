@@ -10,6 +10,11 @@ bar (§2) governs here too.
   layer boundaries). They are written from the product side but they bind this repo.
 - `README.md` and `LLM_CONTEXT.md` predate the control-plane and Machine Signal work. Trust code
   over both.
+- Look code up through the Atlas before rg or whole-file reads: the `reaktor` MCP server's
+  `atlas_query` and `atlas_read` tools, or `reaktor-agent atlas query '<arguments>'` from the shell,
+  answer across this repository in one call; `../bestbuds/AGENTS.md` §1 items 2 and 10 give the calls.
+  Claude Code sessions here start with the workspace map (`.claude/settings.json`); in Codex, run
+  `reaktor-agent atlas query '{preset: "map"}'` with your first command.
 
 ## 2. The graph is the foundation
 
