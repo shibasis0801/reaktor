@@ -30,7 +30,6 @@ import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
 import org.gradle.work.DisableCachingByDefault
-import java.io.File
 import javax.inject.Inject
 
 @DisableCachingByDefault(because = "Executes a probe against the host-specific packaged runtime")
@@ -47,18 +46,9 @@ abstract class PackagedRuntimeTest : JavaExec(), KernelSpecOwner {
     @get:Classpath abstract val probeClasspath: ConfigurableFileCollection
 
     @TaskAction override fun exec() {
-        val root = distribution.get().asFile
-        val release = root.walkTopDown().single { it.isFile && it.name == "release" &&
-            it.readLines().any { line -> line.startsWith("MODULES=") } }
-        val modules = release.readLines().single { it.startsWith("MODULES=") }
-            .substringAfter('=').trim('"').split(' ').joinToString(",")
-        val configuration = root.walkTopDown().single { it.name == "${packageName.get()}.cfg" }
-        val jars = configuration.readLines().filter { it.startsWith("app.classpath=") }.map {
-            File(configuration.parentFile, it.substringAfter("\$APPDIR/"))
-        }
-        check(jars.isNotEmpty() && jars.all(File::isFile)) { "Packaged runtime classpath is incomplete" }
-        classpath = probeClasspath.plus(runtimeFiles.fileCollection().from(jars))
-        jvmArgs("--limit-modules=$modules", "--enable-native-access=ALL-UNNAMED")
+        val runtime = JvmLaunchKernel.packaged(distribution.get().asFile, packageName.get())
+        classpath = probeClasspath.plus(runtimeFiles.fileCollection().from(runtime.jars))
+        jvmArgs(JavaTool.limitModules(runtime.modules) + JavaTool.nativeAccess(true))
         super.exec()
     }
 
@@ -77,7 +67,7 @@ internal fun Project.packagedRuntime(name: String, run: Run, site: SourceSite?):
         group = "verification"
         site?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) }
         entryContract.set(entry.location)
-        declaration.set(BuildModelReader.json.encodeToString(KernelSpec.JvmProgram(compilation, entry.producer.id, run)))
+        declaration.set(BuildModelReader.json.encodeToString(KernelSpec.JvmProgram(compilation, entry.producer.id, run, java = ToolRef("java", Versions.SDK.Java.asInt.toString()))))
         distribution.set(project.layout.dir(files.elements.map { it.single().asFile }))
         packageName.set(project.extensions.getByType<DesktopAppSpec>().packageName)
         mainClass.set(entry.entryClass)

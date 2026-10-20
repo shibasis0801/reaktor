@@ -1,6 +1,7 @@
 import dev.shibasis.dependeasy.components.library
 import dev.shibasis.dependeasy.codegen.KotlinTemplate
 import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.native.Native
 import dev.shibasis.dependeasy.configuration.FrameworkOptions
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.configuration.option
@@ -15,12 +16,10 @@ library(namespace = "dev.shibasis.reaktor.web", targets = Targets.All) {
             implementation(Versions.Android.TestJUnit)
         }
     }
-    val desktopWebViewNative by desktopNative(target = "ReaktorWebView", defines = mapOf(
+    val desktopWebViewNative by desktopNative(target = "ReaktorWebView", sources = listOf(Native.WebView), defines = mapOf(
         "CMAKE_OSX_DEPLOYMENT_TARGET" to Versions.SDK.targetMacos,
         "REAKTOR_WEBVIEW_WEBKITGTK_API" to Versions.WebView.WebKitGtkApi,
         "REAKTOR_WEBVIEW_WINDOWS_SDK" to Versions.WebView.WindowsSDK,
-        "REAKTOR_WEBVIEW_COMMIT" to Versions.WebView.commit,
-        "REAKTOR_WEBVIEW_SHA256" to Versions.WebView.archiveSha256,
     ))
     // Callable probe fixtures are qualified through the host probes and testWebBridge.
     val browserFixtures by tests(Suite.JavaScript, environment = TestEnvironment(allowEmpty = true))

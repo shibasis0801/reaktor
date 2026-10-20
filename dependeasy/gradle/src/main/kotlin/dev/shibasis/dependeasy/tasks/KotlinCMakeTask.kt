@@ -6,11 +6,8 @@ import dev.shibasis.dependeasy.process.KernelSpecOwner
 import dev.shibasis.dependeasy.model.KernelSpec
 import dev.shibasis.dependeasy.model.ToolRef
 import org.gradle.work.DisableCachingByDefault
-import dev.shibasis.dependeasy.files.deleteTreeSafely
 import dev.shibasis.dependeasy.native.AndroidPrefabConfiguration
 import dev.shibasis.dependeasy.native.CMakeLibraries
-import dev.shibasis.dependeasy.native.cmake
-import dev.shibasis.dependeasy.native.prefabLibrary
 import dev.shibasis.dependeasy.model.NativeContract
 import dev.shibasis.dependeasy.model.BuildModelReader
 import dev.shibasis.dependeasy.toolchain.cmakeToolchainContract
@@ -36,7 +33,7 @@ import javax.inject.Inject
 
 @DisableCachingByDefault(because = "CMake build trees contain absolute host paths; use incremental local builds")
 abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
-    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.CMakeBuild(sourceDirectory.get().asFile.absolutePath, buildDirectory.get().asFile.absolutePath, cmakeExecutable.get(), generator.get(), configuration.get(), buildTarget.get(), configureArguments.get(), environment.get().keys.sorted(), ToolRef("cmake", toolVersion.get()), toolchainContract.get().asFile.absolutePath, ninjaExecutable.get(), parallelism.get(), nativeModelFile.get().asFile.absolutePath)
+    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.CMakeBuild(sourceDirectory.get().asFile.absolutePath, buildDirectory.get().asFile.absolutePath, cmakeExecutable.get(), generator.get(), configuration.get(), buildTarget.get(), configureArguments.get(), environment.get().keys.sorted(), ToolRef("cmake", toolVersion.get()), toolchainContract.get().asFile.absolutePath, ninjaExecutable.get(), parallelism.get(), nativeModelFile.get().asFile.absolutePath, nativeContractFile.get().asFile.absolutePath, ToolRef("ninja", ninjaVersion.get()), nativeExecutables.get())
 
     @get:Inject
     abstract val providers: org.gradle.api.provider.ProviderFactory
@@ -70,6 +67,8 @@ abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
     @get:Input
     abstract val ninjaExecutable: Property<String>
 
+    @get:Input abstract val ninjaVersion: Property<String>
+
     @get:Input
     abstract val executionPlatform: Property<dev.shibasis.dependeasy.model.HostPlatform>
     @get:Internal override val kernelHost: dev.shibasis.dependeasy.model.HostRequirement get() = dev.shibasis.dependeasy.model.HostRequirement(executionPlatform.get())
@@ -95,6 +94,7 @@ abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
     @get:Input
     abstract val toolVersion: Property<String>
 
+    @get:Input abstract val nativeExecutables: ListProperty<NativeContract.Executable>
     @get:Input abstract val nativeContract: Property<String>
     @get:OutputFile abstract val nativeContractFile: RegularFileProperty
     @get:OutputFile abstract val nativeModelFile: RegularFileProperty
@@ -111,12 +111,14 @@ abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
         executionPlatform.convention(dev.shibasis.dependeasy.model.HostPlatform.Portable)
         generator.convention("Ninja")
         ninjaExecutable.convention(tools.ninja.executable.map { it.asFile.absolutePath })
+        ninjaVersion.convention(tools.ninja.handle.version)
         inputs.files(tools.cmake.executable, tools.ninja.executable)
         toolchainContract.convention(project.cmakeToolchainContract().flatMap { it.contract })
         staticLibrariesManifest.convention(buildDirectory.file(CMakeLibraries.MANIFEST))
         environment.convention(emptyMap())
         configuration.convention("Release")
         configureArguments.convention(emptyList())
+        nativeExecutables.convention(emptyList())
         nativeContract.convention(buildTarget.map { BuildModelReader.json.encodeToString(NativeContract(library = it, platform = "host")) })
         val contractPath = buildTarget.zip(nativeContract) { name, declaration ->
             "dependeasy/cmake/$name-${BuildModelReader.json.decodeFromString<NativeContract>(declaration).platform.replace('/', '-')}"
@@ -130,73 +132,25 @@ abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
 
     @TaskAction
     fun build() {
-        val sourceDir = sourceDirectory.get().asFile
-        val buildDir = buildDirectory.get().asFile
-        var contract = BuildModelReader.json.decodeFromString<NativeContract>(nativeContract.get())
-        val imports = dependencyManifests.files.sorted().map { manifest ->
-            CMakeLibraries.primary(manifest).let { it.copy(includes = dependencyIncludes.get()[it.target].orEmpty()) }
-        } + prefabDirectories.get().map { (name, directory) -> prefabLibrary(java.io.File(directory), contract.settings.getValue("ANDROID_ABI"), prefabDeclarations.get().getValue(name)) }
-        val settings = contract.settings.toMutableMap()
-        val libraries = (contract.imports + imports).associateBy { it.target }
-        val libraryVariables = prefabDeclarations.get().values.flatMap { declaration -> declaration.linkVariables.map { it to declaration.target } }
-            .groupBy({ it.first }, { libraries.getValue(it.second) }).mapValues { (_, selected) ->
-                val referenced = selected.flatMap { it.links }.toSet()
-                val ordered = linkedSetOf<String>()
-                fun include(target: String) {
-                    if (ordered.add(target)) libraries.getValue(target).links.forEach(::include)
-                }
-                (selected.filter { it.target !in referenced } + selected).forEach { include(it.target) }
-                ordered.joinToString(";") { libraries.getValue(it).artifact }
+        val spec = kernelSpec as KernelSpec.CMakeBuild
+        val contract = dev.shibasis.dependeasy.model.CMakeBuildKernel.resolve(
+            BuildModelReader.json.decodeFromString<NativeContract>(nativeContract.get()).let { it.copy(executables = it.executables + spec.executables) }, dependencyManifests.files.toList(),
+            dependencyIncludes.get(), prefabDirectories.get(), prefabDeclarations.get())
+        val environment = environment.get()
+        val identity = dev.shibasis.dependeasy.model.CMakeBuildKernel.prepare(spec, contract, environment)
+        val plan = dev.shibasis.dependeasy.model.CMakeBuildKernel.plan(spec)
+        fun execute(execution: dev.shibasis.dependeasy.model.ProcessExecution) {
+            execOperations.exec {
+                workingDir = java.io.File(execution.directory)
+                executable = execution.executable
+                environment(environment)
+                args(execution.arguments)
             }
-        prefabDeclarations.get().values.forEach { declaration ->
-            val library = libraries.getValue(declaration.target)
-            declaration.artifactVariables.forEach { settings[it] = library.artifact }
-            declaration.includeVariables.forEach { settings[it] = library.includes.joinToString(";") }
-            declaration.linkVariables.forEach { settings[it] = libraryVariables.getValue(it) }
         }
-        contract = contract.copy(imports = contract.imports + imports, settings = settings, linkLibraries = (contract.linkLibraries + imports.map { it.target }).distinct())
-        nativeModelFile.get().asFile.apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(contract) + "\n") }
-        val generatedContract = contract.cmake()
-        val nativeFile = nativeContractFile.get().asFile.apply { parentFile.mkdirs(); writeText(generatedContract) }
-        val configuration = listOf(sourceIdentity, generator.get(), cmakeExecutable.get(), ninjaExecutable.get(), toolVersion.get(), environment.get().toSortedMap().toString(), toolchainContract.get().asFile.readText(), generatedContract) + configureArguments.get()
-        val serializedConfiguration = configuration.joinToString("\n")
-        val configured = buildDir.resolve("configure-arguments.txt")
-        if (!configured.isFile || configured.readText() != serializedConfiguration) {
-            buildDir.resolve("CMakeCache.txt").delete()
-            buildDir.resolve("CMakeFiles").deleteTreeSafely(within = buildDir)
-        }
-        buildDir.mkdirs()
-        CMakeLibraries.request(buildDir)
-
-        execOperations.exec {
-            workingDir = sourceDir
-            executable = cmakeExecutable.get()
-            environment(this@KotlinCMakeTask.environment.get())
-            args(
-                "-C", toolchainContract.get().asFile.absolutePath,
-                "-C", nativeFile.absolutePath,
-                "-DDEPE_NATIVE_CONTRACT=${nativeFile.absolutePath}",
-                "-DDEPE_TOOLCHAIN_CONTRACT=${toolchainContract.get().asFile.absolutePath}",
-                "-S", sourceDir.absolutePath,
-                "-B", buildDir.absolutePath,
-                "-G", generator.get(),
-                "-DCMAKE_MAKE_PROGRAM=${ninjaExecutable.get()}",
-            )
-            args(configureArguments.get())
-        }
-        configured.writeText(serializedConfiguration)
-
-        execOperations.exec {
-            workingDir = sourceDir
-            executable = cmakeExecutable.get()
-            environment(this@KotlinCMakeTask.environment.get())
-            args(
-                "--build", buildDir.absolutePath,
-                "--config", this@KotlinCMakeTask.configuration.get(),
-                "--parallel", parallelism.get().toString(),
-                "--target", buildTarget.get(),
-            )
-        }
-        CMakeLibraries.record(buildDir, buildTarget.get(), this.configuration.get())
+        execute(plan[0])
+        dev.shibasis.dependeasy.model.CMakeBuildKernel.configured(spec, identity)
+        execute(plan[1])
+        dev.shibasis.dependeasy.model.CMakeBuildKernel.completed(spec)
     }
+
 }

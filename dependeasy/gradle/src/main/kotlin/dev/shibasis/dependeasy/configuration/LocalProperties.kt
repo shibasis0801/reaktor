@@ -19,19 +19,17 @@ internal fun Project.releaseRequirement(option: BuildOption<Boolean>, expected: 
     val effective = resolve(option).zip(option(BuildOption.environment("CONFIGURATION", ""))) { resolved, configuration ->
         if (configuration == "Release") ResolvedOption(expected, resolved.evidence.copy(value = expected.toString(), source = OptionSource.XcodeRelease)) else resolved
     }
-    val requirement = tasks.register<RequireDisabledPropertyTask>(
+    val build = rootProject.name
+    val project = path
+    val requirement = tasks.register<dev.shibasis.dependeasy.workspace.WorkspaceNodeTask>(
         "require${option.name.split('.', '-').joinToString("") { it.replaceFirstChar(Char::uppercaseChar) }}${if (expected) "Enabled" else "Disabled"}ForRelease"
     ) {
-        optionName.set(option.name)
-        requiredValue.set(expected)
+        bind(VerificationKernel)
         site?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) }
-        optionEnabled.set(effective.map { it.value })
-        source.set(effective.map { resolved -> resolved.evidence.file ?: when (resolved.evidence.source) {
-            OptionSource.CommandLine -> "command line"
-            OptionSource.Default -> "default"
-            OptionSource.XcodeRelease -> "Xcode CONFIGURATION=Release"
-            else -> resolved.evidence.source.name
-        } })
+        val identity = NodeId(build, project, name)
+        declaration.set(effective.map { resolved -> BuildModelReader.json.encodeToString(
+            KernelSpec.WorkspaceNode(identity, NodeKind.Verification, Run.Default,
+                emptyList(), emptyList(), emptyList(), listOf(OptionRequirement(resolved.evidence, expected.toString())))) })
     }
     val producer = node(requirement)
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {

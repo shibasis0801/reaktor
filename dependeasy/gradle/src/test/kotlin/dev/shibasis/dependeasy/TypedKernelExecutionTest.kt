@@ -55,7 +55,9 @@ class TypedKernelExecutionTest {
         names.forEach { assertEquals(TaskOutcome.SUCCESS, first.task(":$it")?.outcome) }
         val model = dev.shibasis.dependeasy.model.BuildModelReader.decode(directory.resolve("build/dependeasy/model.json").readText())
         val specs = model.nodes.mapNotNull { it.kernel?.spec }
-        assertEquals(7, specs.count { it !is dev.shibasis.dependeasy.model.KernelSpec.GradleInvocation })
+        val owned = model.nodes.filter { it.kernel?.className?.startsWith("dev.shibasis.dependeasy.") == true }
+        assertTrue(owned.isNotEmpty())
+        owned.forEach { assertNotNull(it.kernel?.spec, "${it.id} must declare its kernel spec") }
         val bridges = model.nodes.filter { it.kernel?.spec is dev.shibasis.dependeasy.model.KernelSpec.GradleInvocation }
         assertEquals(2, bridges.size)
         bridges.forEach {
@@ -63,6 +65,10 @@ class TypedKernelExecutionTest {
             assertTrue(it.tools.single().name == "gradle" && it.tools.single().version.isNotBlank())
         }
         names.forEach { name -> assertEquals("fixture 1", model.nodes.single { it.id.name == name }.tools.single().version) }
+        names.forEach { name ->
+            val expected = if (name in listOf("typescript", "vite", "bindings", "generator")) "JavaScriptKernel" else "ProcessKernel"
+            assertEquals("dev.shibasis.dependeasy.model.$expected", model.nodes.single { it.id.name == name }.kernel?.className)
+        }
         assertEquals(dev.shibasis.dependeasy.model.NodeKind.ArtifactSet, model.nodes.single { it.id.name == "allKernels" }.kind)
         assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode })
         assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.TypeScriptCheck && it.execution.directory == "typescript" })

@@ -36,8 +36,11 @@ class KotlinExportCatalogTest {
         val metadata = Json.parseToJsonElement(directory.resolve("build/dependeasy/kotlin-exports.json").readText()).jsonObject
         assertEquals(listOf("library/build/dependeasy/kotlin/library"), metadata.getValue("directories").jsonArray.map { it.jsonPrimitive.content })
         val catalog = BuildModelReader.read(directory).nodes.single { it.id.project == ":" && it.id.name == "reportKotlinExports" }
-        assertEquals(SourceSite("catalogFixture", "library/build.gradle.kts", 3), catalog.declaredAt)
+        assertEquals(SourceSite("catalogFixture", "library/build.gradle.kts", 3), catalog.declaredAt?.copy(symbol = null, callPath = emptyList()))
         assertEquals(Invocation.Gradle(listOf(":reportKotlinExports")), catalog.invocation)
+        assertEquals("dev.shibasis.dependeasy.model.KotlinExportCatalogKernel", catalog.kernel!!.className)
+        val spec = catalog.kernel!!.spec as dev.shibasis.dependeasy.model.KernelSpec.KotlinExportCatalog
+        assertEquals(listOf("library/build/dependeasy/kotlin/library"), spec.directories.paths)
         val repeated = run()
         assertContains(repeated.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":reportKotlinExports")?.outcome)

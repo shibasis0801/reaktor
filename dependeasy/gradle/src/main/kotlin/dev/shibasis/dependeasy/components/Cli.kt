@@ -31,13 +31,13 @@ fun Project.cli(name: String, checks: List<OutputHandle> = emptyList(), content:
     extensions.getByType<JavaApplication>().apply {
         applicationName = name
         mainClass.set(entry.entryClass)
-        applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
+        applicationDefaultJvmArgs = JavaTool.nativeAccess(true)
     }
     // Entry resolution needs compiled classes, so javac must not consume that entry.
     tasks.named<JavaCompile>(JavaPlugin.COMPILE_JAVA_TASK_NAME) { options.javaModuleMainClass.unsetConvention() }
     val run = tasks.named<JavaExec>(ApplicationPlugin.TASK_RUN_NAME) {
         site?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) }
-        extensions.add(KernelSpec::class.java, "dependeasyKernel", KernelSpec.JvmProgram(CompilationRef.Main, entry.producer.id, Run.Default))
+        extensions.add(KernelSpec::class.java, "dependeasyKernel", KernelSpec.JvmProgram(CompilationRef.Main, entry.producer.id, Run.Default, java = ToolRef("java", dev.shibasis.dependeasy.Versions.SDK.Java.asInt.toString())))
     }
     BuildWorkspace.get(this).reference(this, run, null, Run.Default.host, "jvm")
     node(run).consumes(entry)

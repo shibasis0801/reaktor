@@ -35,7 +35,7 @@ internal class BuildWorkspace(private val project: Project) {
             if (path == "package.json") extraAliases.putAll(aliases)
             else {
                 additionalAliases.put(path, BuildModelReader.json.encodeToString(aliases.toMap()))
-                additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { authoredManifest(it, aliases.keys) })
+                additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { PackageScriptsKernel.authoredManifest(it, aliases.keys) })
                 generatedFiles.from(file)
             }
         }
@@ -105,10 +105,11 @@ internal class BuildWorkspace(private val project: Project) {
         }
     }
 
-    internal fun emit(owner: Project, spec: KernelSpec.WorkspaceNode, kernel: WorkspaceCompletion, site: SourceSite?, role: Workspace?,
+    internal fun emit(owner: Project, spec: KernelSpec.WorkspaceNode, kernel: WorkspaceKernel, site: SourceSite?, role: Workspace?,
         includes: List<NodeHandle>, consumes: List<OutputHandle>, after: List<NodeHandle>): NodeHandle {
+        require(spec.kind == kernel.kind) { "${spec.id}: incorrect kernel ${kernel.kind}" }
         require((includes + after).all { it.id.build == owner.rootProject.name }) { "Use declared outputs across builds" }
-        return declaredTarget(spec.id.name, site, role, owner) {
+        return declaredTarget(spec.id.name, site, kernel, role, owner) {
             declaration = spec
             effect = spec.effect
             runner = spec.runner
@@ -126,13 +127,14 @@ internal class BuildWorkspace(private val project: Project) {
                 val outputs = consumedOutputs
                 val bindings = (includedNodes + ordering).associate { it.id to requireNotNull(it.task) } +
                     outputs.associate { it.nodeId to owner.resolve(it) }
-                if (current.kind in setOf(NodeKind.Deploy, NodeKind.Release)) {
+                val producerGates = kernel.producerGates(current).map { bindings.getValue(it) }
+                if (producerGates.isNotEmpty()) {
                     val gated = mutableSetOf<NodeId>()
                     fun gate(producer: Task) {
                         val id = NodeId(producer.project.rootProject.name, producer.project.path, producer.name)
                         if (!gated.add(id)) return
                         targets[id.toString()]?.includedNodes?.forEach { gate(requireNotNull(it.task).get()) }
-                        producer.dependsOn(ordering.map { requireNotNull(it.task) })
+                        producer.dependsOn(producerGates)
                     }
                     (outputs.flatMap { owner.resolve(it).buildDependencies.getDependencies(null) } + includedNodes.map { requireNotNull(it.task).get() }).forEach(::gate)
                 }
@@ -143,20 +145,27 @@ internal class BuildWorkspace(private val project: Project) {
 
     internal fun aggregate(owner: Project, name: String, kind: NodeKind, nodes: List<NodeHandle>, run: Run = Run.Default): NodeHandle =
         emit(owner, KernelSpec.WorkspaceNode(NodeId(owner.rootProject.name, owner.path, name), kind, run,
-            nodes.map { it.id }, emptyList(), emptyList(), emptyList()), WorkspaceCompletion, owner.declarationSite(), null,
+            nodes.map { it.id }, emptyList(), emptyList(), emptyList()), when (kind) {
+            NodeKind.Verification -> VerificationKernel
+            NodeKind.ArtifactSet -> ArtifactSetKernel
+            NodeKind.Release -> ReleaseKernel
+            NodeKind.Deploy -> DeployKernel
+            NodeKind.External -> ExternalKernel
+            else -> error("$kind is not an aggregate kind")
+        }, owner.declarationSite(), null,
             nodes, emptyList(), emptyList())
 
-    internal fun declaredTarget(name: String, site: SourceSite?, role: Workspace? = null, owner: Project = project, configure: BuildTarget.() -> Unit): NodeHandle {
+    internal fun declaredTarget(name: String, site: SourceSite?, kernel: WorkspaceKernel, role: Workspace? = null, owner: Project = project, configure: BuildTarget.() -> Unit): NodeHandle {
         val id = NodeId(owner.rootProject.name, owner.path, name)
         require(name.matches(Regex("[a-z][A-Za-z0-9]*"))) { "Use a camelCase target name: $name" }
         require(id.toString() !in targets) { "Duplicate build target: $id" }
-        val target = BuildTarget(owner, name, site).apply(configure)
+        val target = BuildTarget(owner, name, site, kernel).apply(configure)
         add(target)
-        val task = owner.tasks.register(name, WorkspaceTargetTask::class.java) {
+        val task = owner.tasks.register(name, WorkspaceNodeTask::class.java) {
+            bind(kernel)
             group = "dependeasy"
             dependsOn(owner.provider { target.dependencies() })
             mustRunAfter(owner.provider { target.ordering.map { requireNotNull(it.task) } })
-            requirements.set(owner.provider { target.requirements.map { BuildModelReader.json.encodeToString(it.get()) } })
             target.declaration?.let { spec ->
                 declaration.set(owner.provider { BuildModelReader.json.encodeToString(requireNotNull(target.declaration)) })
                 spec.run.timeoutMillis?.let { timeout.set(java.time.Duration.ofMillis(it)) }
@@ -197,15 +206,14 @@ internal class BuildWorkspace(private val project: Project) {
         val file = project.layout.projectDirectory.file("package.json")
         val generated = this@BuildWorkspace.targets.values.filter { it.id.project == project.path && (it.worker != null || it.declaration?.kind in setOf(NodeKind.External, NodeKind.Release, NodeKind.Deploy)) }.associateBy { it.name }
         val generatedNames = generated.keys.toSet()
-        manifest.set(project.providers.fileContents(file).asText.map { authoredManifest(it, generatedNames) })
-        aliases.set(generated.mapValues { it.value.id.project.trimEnd(':') + ":" + it.value.name })
+        manifest.set(project.providers.fileContents(file).asText.map { PackageScriptsKernel.authoredManifest(it, generatedNames) })
         targets.set(generated.mapValues { BuildModelReader.encode(it.value.model(project)) })
         outputFile.set(file)
         rootDirectory.set(project.layout.projectDirectory)
         extraAliases.putAll(scriptAliases["package.json"].orEmpty())
         scriptAliases.filterKeys { it != "package.json" }.forEach { (path, aliases) ->
             additionalAliases.put(path, BuildModelReader.json.encodeToString(aliases.toMap()))
-            additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { authoredManifest(it, aliases.keys) })
+            additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { PackageScriptsKernel.authoredManifest(it, aliases.keys) })
             generatedFiles.from(project.file(path))
         }
     }.also { generation ->
@@ -267,6 +275,7 @@ internal class BuildWorkspace(private val project: Project) {
                         else if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
                         taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer),
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
+                        tools = producer.declaredTools(),
                         artifactFamily = taskArtifactFamilies[id] ?: kind?.family)))
                 }
             })
@@ -284,5 +293,20 @@ internal class BuildWorkspace(private val project: Project) {
         }
     }
 }
+
+internal fun Task.declaredTools(): List<ToolRef> = when (this) {
+    is WorkspaceCommandTask -> when ((kernelSpec as KernelSpec.ExternalCommand).call) {
+        is ExternalCall.BashScript -> listOf(ToolRef("bash", toolVersion.get()))
+        is ExternalCall.Fastlane -> listOf(ToolRef("fastlane", toolVersion.get()))
+        is ExternalCall.Package -> listOf(
+            ToolRef("pnpm", dev.shibasis.dependeasy.toolchain.ToolchainVersions.Pnpm),
+            ToolRef("node", dev.shibasis.dependeasy.toolchain.ToolchainVersions.Node))
+    }
+    is org.gradle.api.tasks.testing.Test -> listOf(ToolRef("java", dev.shibasis.dependeasy.toolchain.ToolchainVersions.Java.toString()))
+    is org.gradle.api.tasks.JavaExec -> listOf(ToolRef("java", dev.shibasis.dependeasy.toolchain.ToolchainVersions.Java.toString()))
+    is org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest -> listOf(ToolRef("node", dev.shibasis.dependeasy.toolchain.ToolchainVersions.Node))
+    else -> emptyList()
+} + if (this is dev.shibasis.dependeasy.benchmark.JvmBenchmarkKernel)
+    listOf(ToolRef("jmh", dev.shibasis.dependeasy.toolchain.ToolchainVersions.Jmh)) else emptyList()
 
 private fun shellToken(value: String) = if (value.matches(Regex("[A-Za-z0-9_./:=+@%-]+"))) value else "'" + value.replace("'", "'\\''") + "'"

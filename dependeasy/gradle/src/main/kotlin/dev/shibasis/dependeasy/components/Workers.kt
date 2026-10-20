@@ -50,6 +50,6 @@ fun Project.workerApp(
     val declaration = KernelSpec.WorkspaceNode(NodeId(rootProject.name, path, "publishWorker"), NodeKind.Deploy,
         Run.onLinux().onWorker(), listOf(execution.id), emptyList(), emptyList(), emptyList(),
         worker = spec.worker, environments = spec.environments)
-    return BuildWorkspace.get(this).emit(this, declaration, WorkspaceCompletion, declarationSite(), null,
+    return BuildWorkspace.get(this).emit(this, declaration, DeployKernel, declarationSite(), null,
         listOf(execution), emptyList(), emptyList()).also { componentRole(Workspace.Deploy, it) }
 }

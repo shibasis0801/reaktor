@@ -228,7 +228,7 @@ class DslEntryPointsTest {
             directory.resolve("legacy/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("module(") } + 1)
         val foreign = model.nodes.filter { it.id.project == ":legacy" && (it.id.name == "probe" || it.id.name.startsWith("output")) }
         assertTrue(foreign.any { it.id.name == "probe" })
-        assertTrue(foreign.all { it.declaredAt == legacySite }, foreign.joinToString { it.id.name + "=" + it.declaredAt })
+        assertTrue(foreign.all { it.declaredAt?.copy(symbol = null, callPath = emptyList()) == legacySite }, foreign.joinToString { it.id.name + "=" + it.declaredAt })
         for (name in listOf("outputModuleBuild", "outputVerificationResultsJvm", "outputVerificationResultsJavaScript")) {
             assertEquals(1, model.nodes.count { it.id.project == ":library" && it.id.name == name })
         }
@@ -239,7 +239,7 @@ class DslEntryPointsTest {
         val linkNames = setOf("linkBenchReleaseExecutableIosArm64", "linkBenchReleaseExecutableIosSimulatorArm64")
         assertEquals(linkNames, benchSpec.includes.map { it.name }.toSet())
         val benchLine = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val bench by") } + 1
-        assertEquals(SourceSite(owner, "library/build.gradle.kts", benchLine), bench.declaredAt)
+        assertEquals(SourceSite(owner, "library/build.gradle.kts", benchLine), bench.declaredAt?.copy(symbol = null, callPath = emptyList()))
         for (linkName in linkNames) {
             val link = model.nodes.single { it.id == bench.id.copy(name = linkName) }
             assertEquals(bench.declaredAt, link.declaredAt)
@@ -256,7 +256,7 @@ class DslEntryPointsTest {
         val probeLink = model.nodes.single { it.id == NodeId(owner, ":library", "linkProbeFrameworkDebugFrameworkIosArm64") }
         assertEquals(listOf(probeLink.id), probeSpec.includes)
         val probeLine = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val probeFramework by") } + 1
-        assertEquals(SourceSite(owner, "library/build.gradle.kts", probeLine), probeFramework.declaredAt)
+        assertEquals(SourceSite(owner, "library/build.gradle.kts", probeLine), probeFramework.declaredAt?.copy(symbol = null, callPath = emptyList()))
         assertEquals(probeFramework.declaredAt, probeLink.declaredAt)
         assertEquals(HostPlatform.Macos, probeLink.host.platform)
         assertEquals("apple", probeLink.artifactFamily)
@@ -266,8 +266,8 @@ class DslEntryPointsTest {
         assertNull(exported.task(":library:linkProbeFrameworkDebugFrameworkIosArm64"))
         val manifest = model.nodes.single { it.id == NodeId(owner, ":library", "generateWorkerManifest") }
         val manifestLine = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val generateWorkerManifest by") } + 1
-        assertEquals(SourceSite(owner, "library/build.gradle.kts", manifestLine), manifest.declaredAt)
-        assertTrue(manifest.kernel?.className?.endsWith("NodeGenerator") == true)
+        assertEquals(SourceSite(owner, "library/build.gradle.kts", manifestLine), manifest.declaredAt?.copy(symbol = null, callPath = emptyList()))
+        assertEquals("dev.shibasis.dependeasy.model.JavaScriptKernel", manifest.kernel?.className)
         assertEquals(listOf("library/fixture.manifest.json"), manifest.outputs.single().paths)
         assertTrue(model.edges.any { it is Edge.Includes && it.from == NodeId(owner, ":library", "componentBuild") && it.to == manifest.id })
         assertNull(exported.task(":library:generateWorkerManifest"))
@@ -281,13 +281,15 @@ class DslEntryPointsTest {
             assertTrue(model.edges.any { it is Edge.Includes && it.from == NodeId(owner, ":library", "componentChecks") && it.to == emitter.id })
             assertTrue(model.edges.any { it is Edge.Includes && it.from == emitter.id && it.to == compile.id })
             val line = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val " + name + " by") } + 1
-            assertEquals(SourceSite(owner, "library/build.gradle.kts", line), emitter.declaredAt)
+            assertEquals(SourceSite(owner, "library/build.gradle.kts", line), emitter.declaredAt?.copy(symbol = null, callPath = emptyList()))
             assertEquals(emitter.declaredAt, compile.declaredAt)
         }
         for ((name, suite) in listOf("unit" to Suite.Jvm, "androidUnit" to Suite.AndroidUnit, "node" to Suite.JavaScript)) {
             val node = model.nodes.single { it.id.project == ":library" && it.id.name == name }
             val output = model.nodes.single { it.id.project == ":library" && it.id.name == "outputVerificationResults" + suite.name }
             val spec = assertIs<KernelSpec.TestSuite>(output.kernel?.spec)
+            assertEquals(listOf(if (suite == Suite.JavaScript) ToolRef("node", dev.shibasis.dependeasy.toolchain.ToolchainVersions.Node)
+                else ToolRef("java", dev.shibasis.dependeasy.toolchain.ToolchainVersions.Java.toString())), output.tools)
             assertEquals(if (suite == Suite.AndroidUnit) TestDiscovery.Annotations else TestDiscovery.Conventional, spec.environment.discovery)
             assertEquals(suite != Suite.Jvm, spec.environment.allowEmpty)
             assertFalse(spec.environment.standardStreams)
@@ -310,12 +312,12 @@ class DslEntryPointsTest {
             assertTrue(model.edges.any { it is Edge.Consumes && it.from == node.id && it.to == output.id })
             assertTrue(model.edges.any { it is Edge.Includes && it.from == NodeId(owner, ":library", "componentChecks") && it.to == node.id })
             val line = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val " + name + " by") } + 1
-            assertEquals(SourceSite(owner, "library/build.gradle.kts", line), node.declaredAt)
+            assertEquals(SourceSite(owner, "library/build.gradle.kts", line), node.declaredAt?.copy(symbol = null, callPath = emptyList()))
         }
         val classpath = model.nodes.single { it.id.project == ":library" && it.id.name == "probeClasspath" }
         assertEquals(CompilationRef.Test, assertIs<KernelSpec.JvmClasspath>(classpath.kernel?.spec).compilation)
         val classpathLine = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val probeClasspath by") } + 1
-        assertEquals(SourceSite(owner, "library/build.gradle.kts", classpathLine), classpath.declaredAt)
+        assertEquals(SourceSite(owner, "library/build.gradle.kts", classpathLine), classpath.declaredAt?.copy(symbol = null, callPath = emptyList()))
         assertEquals(listOf("library/build/reports/probe-classpath.txt"), classpath.outputs.single().paths)
         val bindings = model.nodes.single { it.id.project == ":library" && it.id.name == "karakumBindings" }
         assertEquals("karakum.config.json", assertIs<KernelSpec.KarakumBindings>(bindings.kernel?.spec).configuration)
@@ -335,10 +337,10 @@ class DslEntryPointsTest {
         val published = model.nodes.filter { it.id.project == ":library" && it.id.name.startsWith("output") }
         assertTrue(published.isNotEmpty())
         val typescriptDeclaration = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val checkFixtureTypeScript by") } + 1
-        assertEquals(SourceSite(owner, "library/build.gradle.kts", typescriptDeclaration), typescript.declaredAt)
+        assertEquals(SourceSite(owner, "library/build.gradle.kts", typescriptDeclaration), typescript.declaredAt?.copy(symbol = null, callPath = emptyList()))
         for (output in published) {
             val line = if (output.id.name == "outputVerificationResultsTypeScript") typescriptDeclaration else declaration
-            assertEquals(SourceSite(owner, "library/build.gradle.kts", line), output.declaredAt, output.id.name)
+            assertEquals(SourceSite(owner, "library/build.gradle.kts", line), output.declaredAt?.copy(symbol = null, callPath = emptyList()), output.id.name)
         }
         assertContains(run("exportBuildModel").output, "Reusing configuration cache")
         assertEquals(TaskOutcome.SUCCESS, run(":library:probe").task(":library:probe")?.outcome)
@@ -806,7 +808,12 @@ class DslEntryPointsTest {
             val profile = model.nodes.single { it.id == NodeId("componentFixture", ":desktop", name) }
             val entry = profile.id.copy(name = "resolve" + name.replaceFirstChar(Char::uppercaseChar) + "Entry")
             assertNull(result.task(":desktop:" + entry.name))
-            assertEquals("dev.shibasis.dependeasy.benchmark.ProfileKernel", profile.kernel!!.className)
+            assertEquals("dev.shibasis.dependeasy.model.JvmProfileKernel", profile.kernel!!.className)
+            val profileSpec = profile.kernel!!.spec as KernelSpec.Profile
+            assertEquals(entry, profileSpec.entry)
+            assertEquals(output, profileSpec.output.paths.single().removePrefix("desktop/"))
+            assertEquals(setOf("java", "async-profiler"), profile.tools.map { it.name }.toSet())
+            assertTrue(profile.tools.all { it.version.isNotBlank() })
             assertEquals("desktop/build.gradle.kts", profile.declaredAt!!.file)
             assertTrue(profile.outputs.any { files -> files.paths.any { it.endsWith(output) } })
             assertEquals(if (name == "cpu") HostPlatform.Macos else HostPlatform.Portable, profile.host.platform)
@@ -1076,8 +1083,8 @@ class DslEntryPointsTest {
             Triple(Workspace.Verify, "componentChecks", "outputVerificationResultsJvm"))) {
             val component = model.nodes.single { it.id.project == ":server" && it.id.name == producer }
             val published = model.nodes.single { it.id.project == ":server" && it.id.name == "outputWorkspaceCompletion" + role.name }
-            assertEquals(serverSite, component.declaredAt)
-            assertEquals(serverSite, published.declaredAt)
+            assertEquals(serverSite, component.declaredAt?.copy(symbol = null, callPath = emptyList()))
+            assertEquals(serverSite, published.declaredAt?.copy(symbol = null, callPath = emptyList()))
             assertTrue(model.edges.any { it is Edge.Includes && it.from == published.id && it.to == component.id })
             assertTrue(model.edges.any { it is Edge.Consumes && it.from == component.id && it.to == component.id.copy(name = output) })
         }
@@ -1099,7 +1106,9 @@ class DslEntryPointsTest {
         assertEquals(CompilationRef("packagedRuntime"), packagedSpec.compilation)
         assertEquals(Effect.Verify, packaged.effect)
         assertEquals(ExecutionHost.Local, packaged.host.execution)
-        assertEquals("dev.shibasis.dependeasy.desktop.PackagedRuntimeTest", packaged.kernel?.className)
+        assertEquals("dev.shibasis.dependeasy.model.JvmLaunchKernel", packaged.kernel?.className)
+        assertEquals(ToolRef("java", "25"), packagedSpec.java)
+        assertEquals(listOf(packagedSpec.java), packagedSpec.tools())
         assertEquals("desktop/build.gradle.kts", packaged.declaredAt?.file)
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == packaged.id && it.to == packagedSpec.entry })
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == packaged.id && it.to.name == "outputJvmDistribution" })
@@ -1157,7 +1166,7 @@ class DslEntryPointsTest {
         val hangarSpec = assertIs<KernelSpec.TestSuite>(hangar.kernel?.spec)
         assertEquals(Suite.Hangar, hangarSpec.suite)
         assertEquals(Effect.Verify, hangar.effect)
-        assertEquals("dev.shibasis.dependeasy.verification.JvmTestProgramTask", hangar.kernel?.className)
+        assertEquals("dev.shibasis.dependeasy.model.TestEnvironmentKernel", hangar.kernel?.className)
         assertNull(hangar.kernel?.source, "TestKit loads a binary plugin; included-build source navigation is checked in the product model")
         assertEquals("fixture.results", hangarSpec.environment.results?.name)
         assertEquals("build/hangar-results", hangarSpec.environment.results?.value)

@@ -42,7 +42,7 @@ class BuildOptionsTest {
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val feature = BuildOption.boolean("fixture.feature")
             check((findProject(":enabled") != null) == option(feature).get())
-            val producer = tasks.register<dev.shibasis.dependeasy.workspace.WorkspaceTargetTask>("producer")
+            val producer = tasks.register<dev.shibasis.dependeasy.workspace.WorkspaceNodeTask>("producer") { bind(ArtifactSetKernel) }
             dependeasy.workspace { val checks by verify { include(node(producer)); require(feature, true) } }
         """.trimIndent())
     }

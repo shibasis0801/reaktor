@@ -15,10 +15,14 @@ abstract class KarateSuite : ProcessTask() {
     @get:Input abstract val tags: ListProperty<String>
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val environmentFiles: ConfigurableFileCollection
     init { executionEffect.set(Effect.Verify); tags.convention(emptyList()); outputs.upToDateWhen { false } }
-    override fun commandArguments() = listOf("-jar", jar.get().asFile.absolutePath, "run", "--runtime-log-level=warn", "--report-log-level=warn") +
-        arguments.get() + tags.get().flatMap { listOf("--tags", it) } + listOf("--output", outputDirectories.singleFile.absolutePath) + suites.get()
-    override fun executionEnvironment() = readEnvironment(environmentFiles.files) + environment.get()
-    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.KarateSuite(executionSpec().copy(environmentKeys = (readEnvironment(environmentFiles.files).keys + environment.get().keys).sorted()), suites.get(), tags.get())
+    override fun commandArguments() = (kernelSpec as KernelSpec.KarateSuite).execution.arguments
+    override fun executionEnvironment() = EnvironmentFiles.read(environmentFiles.files) + environment.get()
+    @get:Internal override val kernelSpec: KernelSpec get() {
+        val spec = KernelSpec.KarateSuite(executionSpec(arguments.get()).copy(
+            environmentKeys = (EnvironmentFiles.read(environmentFiles.files).keys + environment.get().keys).sorted()),
+            suites.get(), tags.get(), jar.get().asFile.absolutePath, outputDirectories.singleFile.absolutePath, arguments.get())
+        return spec.copy(execution = KarateSuiteKernel.plan(spec))
+    }
 }
 
 @DisableCachingByDefault(because = "Verification may contact a live service")
@@ -26,20 +30,12 @@ abstract class K6Suite : ProcessTask() {
     @get:InputFile @get:PathSensitive(PathSensitivity.RELATIVE) abstract val script: RegularFileProperty
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val environmentFiles: ConfigurableFileCollection
     init { executionEffect.set(Effect.Verify); outputs.upToDateWhen { false } }
-    override fun commandArguments() = listOf("run", "--summary-export", outputFiles.singleFile.absolutePath) + arguments.get() + script.get().asFile.absolutePath
-    override fun executionEnvironment() = readEnvironment(environmentFiles.files) + environment.get()
-    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.K6Suite(executionSpec().copy(environmentKeys = (readEnvironment(environmentFiles.files).keys + environment.get().keys).sorted()), script.get().asFile.absolutePath)
-}
-
-internal fun readEnvironment(files: Set<java.io.File>): Map<String, String> = buildMap {
-    files.forEach { file -> file.readLines().forEach { line ->
-        val value = line.trim().removePrefix("export ")
-        if (value.isBlank() || value.startsWith("#")) return@forEach
-        val at = value.indexOf('=')
-        require(at > 0) { "Invalid environment declaration in ${file.name}" }
-        val key = value.substring(0, at).trim()
-        require(key.matches(Regex("[A-Za-z_][A-Za-z0-9_]*"))) { "Invalid environment key in ${file.name}" }
-        val raw = value.substring(at + 1).trim()
-        put(key, if (raw.length >= 2 && raw.first() == raw.last() && raw.first() in listOf('\'', '"')) raw.substring(1, raw.length - 1) else raw)
-    } }
+    override fun commandArguments() = (kernelSpec as KernelSpec.K6Suite).execution.arguments
+    override fun executionEnvironment() = EnvironmentFiles.read(environmentFiles.files) + environment.get()
+    @get:Internal override val kernelSpec: KernelSpec get() {
+        val spec = KernelSpec.K6Suite(executionSpec(arguments.get()).copy(
+            environmentKeys = (EnvironmentFiles.read(environmentFiles.files).keys + environment.get().keys).sorted()),
+            script.get().asFile.absolutePath, outputFiles.singleFile.absolutePath, arguments.get())
+        return spec.copy(execution = K6SuiteKernel.plan(spec))
+    }
 }

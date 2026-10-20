@@ -1,0 +1,70 @@
+package dev.shibasis.dependeasy.model
+
+import java.io.File
+import kotlinx.serialization.encodeToString
+
+object BuildModelKernel {
+    fun build(spec: KernelSpec.BuildModelExport, root: File, declaredNodes: List<Node>, edges: List<Edge>, omissions: List<Omission>,
+        resolvedOptions: List<Map<String, String>>, declarationFiles: Collection<File>, included: List<BuildModel>): BuildModel {
+        val own = spec.build
+        val owners = spec.directories
+        val builds = (owners.map { (name, directory) -> BuildIdentity(name, directory) } + included.flatMap { model ->
+            model.builds.map { build ->
+                val base = root.resolve(owners.getValue(model.builds.single { it.directory == "." }.name))
+                build.copy(directory = base.resolve(build.directory).canonicalFile.relativeTo(root.canonicalFile).invariantSeparatorsPath)
+            }
+        }).groupBy { it.name }.map { (name, copies) ->
+            require(copies.distinct().size == 1) { "Conflicting build directories for $name" }
+            copies.first()
+        }.sortedBy { it.name }
+        val options = resolvedOptions.distinct().map { fields ->
+            val value = OptionValue(fields.getValue("name"), OptionType.valueOf(fields.getValue("type")),
+                fields.getValue("value"), OptionSource.valueOf(fields.getValue("source")), fields["file"],
+                fields.getValue("sensitive").toBooleanStrict())
+            val text = BuildModelReader.json.encodeToString(value)
+            val hash = BuildModelReader.digest(text)
+            DeclarationInput(own, "option:${fields.getValue("scope")}:${value.name}:${hash.take(16)}", hash, DeclarationInputKind.Option, value)
+        }
+        val declarations = options + declarationFiles.filter { it.isFile }.map {
+            DeclarationInput(own, it.relativeTo(root).invariantSeparatorsPath, BuildModelReader.digest(it))
+        } + DeclarationInput(own, ".", BuildDeclarationInputs.membership(root), DeclarationInputKind.Membership) + included.flatMap { it.declarations }
+        val declared = BuildModel(producer = Producer(version = spec.version), builds = builds,
+            declarations = declarations.distinct().sortedWith(compareBy({ it.build }, { it.path })),
+            nodes = (declaredNodes + included.flatMap { it.nodes }).groupBy { it.id }.map { (id, copies) ->
+                val facts = copies.map { it.copy(label = it.id.name, declaredAt = null, inputs = emptyList(), outputs = emptyList(), additionalDeclarations = emptyList()) }.distinct()
+                require(facts.size == 1) { "Conflicting kernel or invocation for $id" }
+                val sites = copies.flatMap { listOfNotNull(it.declaredAt) + it.additionalDeclarations }.distinct().sortedWith(compareBy({ it.build }, { it.file }, { it.line }))
+                copies.first().copy(label = id.name, declaredAt = sites.firstOrNull(), additionalDeclarations = sites.drop(1),
+                    inputs = copies.flatMap { it.inputs }.distinct(), outputs = copies.flatMap { it.outputs }.distinct())
+            }.sortedBy { it.id.toString() },
+            edges = (edges + included.flatMap { it.edges }).distinct().sortedBy { it.toString() },
+            omissions = (omissions + included.flatMap { it.omissions }).distinct().sortedBy { it.toString() })
+        val identities = declared.nodes.map { it.id }.toSet()
+        val model = declared.copy(nodes = declared.nodes.map { node ->
+            node.copy(tools = (node.tools + node.kernel?.spec?.tools().orEmpty()).distinct())
+        }, omissions = (declared.omissions + declared.edges.filter { it.to !in identities }.map {
+            Omission(it.from, "Referenced producer has no declaration model", it.to.toString())
+        }).distinct().sortedBy { it.toString() })
+        return BuildModelReader.decode(BuildModelReader.encode(model))
+    }
+
+    fun routing(model: BuildModel, own: String): RemoteHostsContract {
+        val routing = RemoteHostsContract(builds = model.builds.associate { it.name to it.directory }.toSortedMap(),
+            taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to model.requiredHost(it.id) }.toSortedMap(),
+            taskFamilies = taskFamilies(model, own))
+        val appleVariables = model.nodes.mapNotNull { (it.kernel?.spec as? KernelSpec.XcodeHost)?.host }
+            .map { host -> "${host.targets.single { it.name == host.applicationTarget }.settingsPrefix}_GRADLE_ARGS" }
+        return routing.copy(xcodeEnvironment = (routing.xcodeEnvironment + appleVariables).distinct().sorted())
+    }
+
+    fun taskFamilies(model: BuildModel, own: String): Map<String, String> {
+        fun path(build: String, task: String) = (if (build == own) "" else ":$build") + task
+        val declared = model.nodes.filter { it.artifactFamily != null }
+        val invoked = declared.flatMap { node ->
+            (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { path(node.id.build, it) to requireNotNull(node.artifactFamily) }
+        }.groupBy({ it.first }, { it.second }).mapNotNull { (task, families) -> families.distinct().singleOrNull()?.let { task to it } }
+        val named = declared.map { path(it.id.build, it.id.project.trimEnd(':') + ":" + it.id.name) to requireNotNull(it.artifactFamily) }
+        return (invoked + named).toMap().toSortedMap()
+    }
+
+}

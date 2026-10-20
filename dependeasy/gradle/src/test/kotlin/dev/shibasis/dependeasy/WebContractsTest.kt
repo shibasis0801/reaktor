@@ -278,12 +278,18 @@ class WebContractsTest {
         write("targets/worker/wrangler.json", stable)
         write("targets/worker/wrangler.preview.json", preview)
         prepare("""
+            import dev.shibasis.dependeasy.model.*
+            import kotlinx.serialization.encodeToString
             tasks.register<dev.shibasis.dependeasy.cloudflare.WorkerFleetTask>("fleet") {
                 root.set(layout.projectDirectory)
-                defaultEnvironment.set("stable")
                 defaults.set(layout.projectDirectory.file("wrangler.json"))
                 configurations.from("targets/worker/wrangler.json", "targets/worker/wrangler.preview.json")
-                declaration.set(""${'"'}{"schema":1,"workers":[{"name":"worker","node":{"build":"webFixture","project":":","name":"deployWorker"},"directory":"targets/worker","configurations":{"preview":"targets/worker/wrangler.dependeasy-preview.json","stable":"targets/worker/wrangler.dependeasy-stable.json"},"services":{"preview":"fixture-preview","stable":"fixture-stable"}}]}""${'"'})
+                declaration.set(dev.shibasis.dependeasy.model.BuildModelReader.json.encodeToString(
+                    dev.shibasis.dependeasy.model.KernelSpec.WorkerFleet(Environment("stable"), listOf(
+                        dev.shibasis.dependeasy.model.FleetWorker(WorkerRef("worker", "targets/worker"), NodeId("webFixture", ":", "deployWorker"), listOf(
+                            WorkerDeployment(Environment("preview"), ServiceRef("fixture-preview")),
+                            WorkerDeployment(Environment("stable"), ServiceRef("fixture-stable"), listOf(WorkerServiceBinding.External("LOCAL", ServiceRef("local"))))))),
+                        FileSet(listOf("wrangler.json")), FileSet(listOf("build/cloudflare/fleet.json")))))
                 finalConfigurations.from("targets/worker/wrangler.dependeasy-preview.json", "targets/worker/wrangler.dependeasy-stable.json")
                 contract.set(layout.buildDirectory.file("cloudflare/fleet.json"))
             }
@@ -332,8 +338,13 @@ class WebContractsTest {
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
             workers(environments = listOf(Environment("dev"), Environment("prod")),
                 prerequisites = listOf(kotlinJsLibrary(projects.webFixture))) {
-                worker(WorkerRef("worker", "targets/worker"))
-                worker(WorkerRef("backend", "targets/backend"))
+                worker(WorkerRef("worker", "targets/worker"), listOf(
+                    WorkerDeployment(Environment("dev"), ServiceRef("fixture-worker-dev")),
+                    WorkerDeployment(Environment("prod"), ServiceRef("fixture-worker"), listOf(
+                        WorkerServiceBinding.Worker("BACKEND", WorkerRef("backend", "targets/backend"))))))
+                worker(WorkerRef("backend", "targets/backend"), listOf(
+                    WorkerDeployment(Environment("dev"), ServiceRef("fixture-backend-dev")),
+                    WorkerDeployment(Environment("prod"), ServiceRef("fixture-backend"))))
             }
         """.trimIndent())
         write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts","services":[{"binding":"BACKEND","service":"fixture-backend"}]}""")
@@ -363,6 +374,11 @@ class WebContractsTest {
         assertEquals("targets/worker", model.nodes.single { it.id == worker }.worker?.directory)
         assertEquals("./gradlew :workers:deployWorkers", scripts.getValue("deployWorkers").jsonPrimitive.content)
         assertContains(run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev").output, "Reusing configuration cache")
+        write("targets/worker/wrangler.json", "invalid JSON must not be read while configuring")
+        run("exportBuildModel")
+        val rejected = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments(":workers:generateWorkerFleet", "--configuration-cache", "--stacktrace").buildAndFail()
+        assertContains(rejected.output, "JsonDecodingException")
     }
     @Test fun `local model export does not enable an undeclared worker environment`() {
         write("base.json", "{}")
@@ -378,7 +394,9 @@ class WebContractsTest {
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
             workers(environments = listOf(Environment("dev"), Environment("prod"))) {
-                worker(WorkerRef("worker", "targets/worker"))
+                worker(WorkerRef("worker", "targets/worker"), listOf(
+                    WorkerDeployment(Environment("dev"), ServiceRef("fixture-worker-dev")),
+                    WorkerDeployment(Environment("prod"), ServiceRef("fixture-worker"))))
             }
             tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
                 baseConfiguration.set(rootProject.layout.projectDirectory.file("base.json"))

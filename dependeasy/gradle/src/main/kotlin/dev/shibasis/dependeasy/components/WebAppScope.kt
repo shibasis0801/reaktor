@@ -50,7 +50,7 @@ class WebAppScope internal constructor(
             val spec = KernelSpec.WorkspaceNode(NodeId(project.rootProject.name, project.path, name), NodeKind.Deploy,
                 Run.onLinux().onWorker(), listOf(execution.id), emptyList(), emptyList(), emptyList(),
                 worker = worker, environments = environments)
-            val result = BuildWorkspace.get(project).emit(project, spec, WorkspaceCompletion, site, null,
+            val result = BuildWorkspace.get(project).emit(project, spec, DeployKernel, site, null,
                 listOf(execution), emptyList(), emptyList())
             project.publishRole(Workspace.Deploy, execution, command.flatMap { it.receiptFile })
             result

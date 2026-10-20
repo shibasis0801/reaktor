@@ -7,10 +7,11 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
-import java.util.Base64
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.process.KernelSpecOwner
 
 @CacheableTask
-abstract class KotlinTemplateTask : DefaultTask() {
+abstract class KotlinTemplateTask : DefaultTask(), KernelSpecOwner {
     @get:Internal abstract val root: DirectoryProperty
     @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val templateFile: RegularFileProperty
     @get:Input abstract val assetPaths: MapProperty<String, String>
@@ -18,17 +19,15 @@ abstract class KotlinTemplateTask : DefaultTask() {
     @get:Input abstract val fileName: Property<String>
     @get:OutputDirectory abstract val outputDirectory: DirectoryProperty
 
+    @get:Internal override val kernelSpec get() = KernelSpec.KotlinTemplate(
+        FileSet(listOf(templateFile.get().asFile.absolutePath)),
+        assetPaths.get().mapValues { FileSet(listOf(root.file(it.value).get().asFile.absolutePath)) },
+        FileSet(listOf(outputDirectory.file(fileName.get()).get().asFile.absolutePath)))
+
     @TaskAction fun generate() {
-        var source = templateFile.get().asFile.readText()
-        assetPaths.get().toSortedMap().forEach { (token, path) ->
-            val placeholder = "{{$token}}"
-            require(placeholder in source) { "Template has no placeholder for $token" }
-            val encoded = Base64.getEncoder().encodeToString(root.file(path).get().asFile.readBytes())
-            val chunks = encoded.chunked(16_000).ifEmpty { listOf("") }
-            val expression = chunks.joinToString(",\n") { "\"$it\"" }.let { "listOf($it).joinToString(\"\")" }
-            source = source.replace(placeholder, expression)
-        }
-        require(!Regex("\\{\\{[A-Za-z][A-Za-z0-9_]*}}").containsMatchIn(source)) { "Template has unbound placeholders" }
+        val spec = kernelSpec
+        val source = KotlinTemplateKernel.render(spec, templateFile.get().asFile.readText(),
+            spec.assets.mapValues { java.io.File(it.value.paths.single()).readBytes() })
         outputDirectory.file(fileName.get()).get().asFile.apply { parentFile.mkdirs(); writeText(source) }
     }
 }

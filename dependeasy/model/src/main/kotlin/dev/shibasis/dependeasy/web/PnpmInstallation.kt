@@ -6,8 +6,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-/** Inspect declared registry entries without traversing the pnpm store or linked source trees. */
-internal object PnpmInstallation {
+object PnpmInstallation {
     private val dependencyGroups = listOf("dependencies", "devDependencies", "optionalDependencies")
     private val localReferences = listOf("workspace:", "link:", "file:")
 

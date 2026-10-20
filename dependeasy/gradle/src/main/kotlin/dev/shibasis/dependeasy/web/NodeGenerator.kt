@@ -11,6 +11,9 @@ import org.gradle.work.DisableCachingByDefault
 @DisableCachingByDefault(because = "External tool outputs contain host paths")
 abstract class NodeGenerator : ProcessTask() {
     @get:InputFile @get:PathSensitive(PathSensitivity.RELATIVE) abstract val script: RegularFileProperty
-    override fun commandArguments() = listOf(script.get().asFile.absolutePath) + arguments.get()
-    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.NodeGenerator(executionSpec(), script.get().asFile.absolutePath)
+    override fun commandArguments() = (kernelSpec as KernelSpec.NodeGenerator).execution.arguments
+    @get:Internal override val kernelSpec: KernelSpec get() {
+        val spec = KernelSpec.NodeGenerator(executionSpec(arguments.get()), script.get().asFile.absolutePath, arguments.get())
+        return spec.copy(execution = dev.shibasis.dependeasy.model.JavaScriptKernel.plan(spec))
+    }
 }

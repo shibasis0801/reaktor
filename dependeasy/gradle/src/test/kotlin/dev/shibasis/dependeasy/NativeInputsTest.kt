@@ -36,6 +36,9 @@ class NativeInputsTest {
         }
         write("CMakeLists.txt", "project(Fixture LANGUAGES CXX)")
         val implementation = write("src/commonMain/cpp/Fixture.cpp")
+        val android = write("src/androidMain/cpp/Android.cpp")
+        val apple = write("src/iosMain/cpp/Apple.mm")
+        val legacy = write("common/obsolete.cpp")
         val fragment = write("cmake/vendor.cmake")
         val header = write("cpp/external/vendor/include/Fixture.h")
         val generated = write("cpp/external/vendor/build/Generated.cpp")
@@ -56,6 +59,12 @@ class NativeInputsTest {
             assertFalse(versions in inputs, "Unrelated language versions must not invalidate native builds")
             val contract = dev.shibasis.dependeasy.model.BuildModelReader.json.decodeFromString<dev.shibasis.dependeasy.model.NativeContract>(compile.get().nativeContract.get())
             assertEquals(ToolchainVersions.CppStandard, contract.settings["CMAKE_CXX_STANDARD"])
+            if (compile == mobile) {
+                assertEquals(listOf(implementation.absolutePath, apple.absolutePath).sorted(), contract.compilationSources)
+                assertEquals("STATIC", contract.libraryKind)
+                assertFalse(android.absolutePath in contract.compilationSources)
+                assertFalse(legacy.absolutePath in contract.compilationSources)
+            }
         }
     }
 
@@ -69,6 +78,7 @@ class NativeInputsTest {
         val spec = kotlin.test.assertIs<dev.shibasis.dependeasy.model.KernelSpec.CMakeBuild>(kernel.spec)
         assertEquals(dev.shibasis.dependeasy.model.HostPlatform.Macos, task.kernelHost.platform)
         assertContains(spec.tool.version, "cmake ${ToolchainVersions.Cmake}")
+        assertEquals(dev.shibasis.dependeasy.model.ToolRef("ninja", ToolchainVersions.Ninja), spec.ninja)
         assertEquals("build/dependeasy/cmake/${task.buildTarget.get()}-iphoneos.json", spec.nativeContract)
         assertContains(task.outputs.files.files, task.nativeModelFile.get().asFile)
         val failure = kotlin.test.assertFails { task.nativeContract.get() }

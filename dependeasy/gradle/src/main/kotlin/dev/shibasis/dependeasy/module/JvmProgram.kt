@@ -84,7 +84,7 @@ internal fun Project.componentProgram(name: String, environment: ProgramEnvironm
     val entry = compiledJvmEntry(name, compilation, sources)
     val project = this
     val buildRoot = rootProject.projectDir
-    val values = provider { settings.arguments(buildRoot) }
+    val values = provider { JvmLaunchKernel.arguments(settings, buildRoot) }
     val program = tasks.register<JvmProgramTask>(name) {
         val execution = project.jvmExecution(compilation.name)
         val launcher = project.extensions.getByType<JavaToolchainService>().launcherFor {
@@ -93,18 +93,18 @@ internal fun Project.componentProgram(name: String, environment: ProgramEnvironm
         group = if (verify) "verification" else "application"
         description = settings.description
         entryContract.set(entry.location)
-        declaration.set(BuildModelReader.json.encodeToString(KernelSpec.JvmProgram(compilation, entry.producer.id, run, settings, verify)))
+        declaration.set(BuildModelReader.json.encodeToString(KernelSpec.JvmProgram(compilation, entry.producer.id, run, settings, verify, ToolRef("java", Versions.SDK.Java.asInt.toString()))))
         mainClass.set(entry.entryClass)
         javaLauncher.set(launcher)
         classpath = execution.classpath
         arguments(values)
-        jvmArgs(jvmNativeAccessArguments(settings.nativeAccess))
+        jvmArgs(dev.shibasis.dependeasy.model.JavaTool.nativeAccess(settings.nativeAccess))
         run.timeoutMillis?.let { timeout.set(java.time.Duration.ofMillis(it)) }
     }
     val command = jvmCommand(name + "Command", entry.entryClass, compilation.name, values)
     command.configure {
-        jvmArguments.set(jvmNativeAccessArguments(settings.nativeAccess))
-        extensions.add(KernelSpec::class.java, "dependeasyKernel", KernelSpec.JvmCommand(compilation, entry.producer.id, settings))
+        jvmArguments.set(dev.shibasis.dependeasy.model.JavaTool.nativeAccess(settings.nativeAccess))
+        extensions.add(KernelSpec::class.java, "dependeasyKernel", KernelSpec.JvmCommand(compilation, entry.producer.id, settings, ToolRef("java", Versions.SDK.Java.asInt.toString())))
     }
     node(command).consumes(entry)
     BuildWorkspace.get(this).reference(this, program, null, run.host, "jvm")

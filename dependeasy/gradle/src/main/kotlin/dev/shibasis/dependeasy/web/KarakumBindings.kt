@@ -21,8 +21,9 @@ abstract class KarakumBindings : ProcessTask() {
             config.asFile.parentFile.resolve(input)
         }))
     }
-    override fun commandArguments() = listOf("exec", "node", "--input-type=module", "-e",
-        "import{readFileSync}from'node:fs';import{createRequire}from'node:module';import{pathToFileURL}from'node:url';const r=createRequire(process.cwd()+'/package.json');const{generate}=await import(pathToFileURL(r.resolve('karakum')));const ts=r('typescript');const config=JSON.parse(readFileSync(process.argv[1],'utf8'));config.plugins=[{async setup(){},async traverse(){},async render(n){return n.kind===ts.SyntaxKind.VoidKeyword&&ts.isTypeReferenceNode(n.parent)?'js.core.Void':null},async generate(){return[]}}];await generate(config);",
-        configuration.get())
-    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.KarakumBindings(executionSpec(), configuration.get())
+    override fun commandArguments() = (kernelSpec as KernelSpec.KarakumBindings).execution.arguments
+    @get:Internal override val kernelSpec: KernelSpec get() {
+        val spec = KernelSpec.KarakumBindings(executionSpec(arguments.get()), configuration.get())
+        return spec.copy(execution = dev.shibasis.dependeasy.model.JavaScriptKernel.plan(spec))
+    }
 }

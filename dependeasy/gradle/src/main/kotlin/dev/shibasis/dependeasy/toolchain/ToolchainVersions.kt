@@ -24,6 +24,7 @@ object ToolchainVersions {
         "ASPROF_LIB" to listOf("/opt/homebrew/lib/libasyncProfiler.dylib", "/usr/local/lib/libasyncProfiler.dylib", "~/.local/lib/libasyncProfiler.dylib"),
         "ASPROF_JAR" to listOf("/opt/homebrew/opt/async-profiler/libexec/async-profiler.jar", "/usr/local/opt/async-profiler/libexec/async-profiler.jar"),
     )
+    const val AsyncProfiler = "4.3"
     const val Jmh = "1.37"
     const val Gradle = "9.7.0"
     const val GradleSha256 = "84fbba45c7f4c64abc77460e1c00f541e9f960e3c7ed2538f1ede19eacd873ae"

@@ -26,7 +26,11 @@ class ReleasePropertyTest {
     private fun runner(vararg arguments: String, configuration: String = "Debug") = GradleRunner.create()
         .withProjectDir(directory).withPluginClasspath()
         .withEnvironment(System.getenv() + ("CONFIGURATION" to configuration))
-        .withArguments(*arguments, "--configuration-cache", "--stacktrace")
+        .withArguments(*arguments, "exportBuildModel", "--configuration-cache", "--stacktrace")
+
+    private fun requirement() = dev.shibasis.dependeasy.model.BuildModelReader.read(directory).nodes
+        .single { it.id.name == "requireBestbudsDevToolsDisabledForRelease" }.kernel!!.spec
+        .let { it as dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode }.requirements.single()
 
     private fun markers() = directory.resolve("build/generated/generateFlags/kotlin/fixture/Flags.kt")
         .readText().windowed("fixture-marker".length).count { it == "fixture-marker" }
@@ -35,7 +39,8 @@ class ReleasePropertyTest {
         fixture()
         directory.resolve("local.properties").writeText("bestbuds.devTools=true\n")
         val result = runner("release").buildAndFail()
-        assertContains(result.output, "enabled by local.properties")
+        assertContains(result.output, "requires bestbuds.devTools=false")
+        assertContains(result.output, "LocalProperties (local.properties)")
         assertEquals(TaskOutcome.FAILED, result.task(":requireBestbudsDevToolsDisabledForRelease")?.outcome)
     }
 
@@ -44,7 +49,7 @@ class ReleasePropertyTest {
         directory.resolve("local.properties").writeText("bestbuds.devTools=true\n")
         directory.resolve("gradle.properties").writeText("bestbuds.devTools=true\n")
         val result = runner("release", "-Pbestbuds.devTools=false").build()
-        assertContains(result.output, "resolved from command line")
+        assertEquals(dev.shibasis.dependeasy.model.OptionSource.CommandLine, requirement().option.source)
         assertEquals(0, markers())
         assertContains(runner("release", "-Pbestbuds.devTools=false").build().output, "Reusing configuration cache")
     }
@@ -53,11 +58,13 @@ class ReleasePropertyTest {
         fixture()
         directory.resolve("local.properties").writeText("bestbuds.devTools=true\n")
         directory.resolve("gradle.properties").writeText("bestbuds.devTools=false\n")
-        assertContains(runner("release").build().output, "resolved from gradle.properties")
+        runner("release").build()
+        assertEquals(dev.shibasis.dependeasy.model.OptionSource.RootGradleProperties, requirement().option.source)
         assertEquals(0, markers())
         directory.resolve("local.properties").delete()
         directory.resolve("gradle.properties").delete()
-        assertContains(runner("release").build().output, "resolved from default")
+        runner("release").build()
+        assertEquals(dev.shibasis.dependeasy.model.OptionSource.Default, requirement().option.source)
         assertEquals(0, markers())
     }
 
@@ -65,7 +72,7 @@ class ReleasePropertyTest {
         fixture()
         directory.resolve("local.properties").writeText("bestbuds.devTools=true\n")
         val result = runner("release", "-Pbestbuds.devTools=true", configuration = "Release").build()
-        assertContains(result.output, "resolved from Xcode CONFIGURATION=Release")
+        assertEquals(dev.shibasis.dependeasy.model.OptionSource.XcodeRelease, requirement().option.source)
         assertEquals(0, markers())
     }
 }

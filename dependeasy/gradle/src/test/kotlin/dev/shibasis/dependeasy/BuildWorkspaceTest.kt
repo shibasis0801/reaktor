@@ -96,15 +96,20 @@ class BuildWorkspaceTest {
         assertEquals(NodeKind.Verification, pr.kind)
         assertEquals(NodeKind.Deploy, backend.kind)
         assertEquals(NodeKind.ArtifactSet, everything.kind)
-        assertEquals("dev.shibasis.dependeasy.model.WorkspaceCompletion", pr.kernel?.className)
+        assertEquals("dev.shibasis.dependeasy.model.VerificationKernel", pr.kernel?.className)
         val spec = assertIs<KernelSpec.WorkspaceNode>(backend.kernel?.spec)
         val deliveryReady = model.nodes.single { it.id.name == "deliveryReady" }
         assertEquals(listOf(pr.id, deliveryReady.id), spec.after)
+        assertTrue(deliveryReady.declaredAt?.callPath.orEmpty().any { it.symbol?.endsWith(".ready") == true })
+        assertTrue(deliveryReady.declaredAt?.callPath.orEmpty().all { it.callPath.isEmpty() })
         assertTrue(first.tasks.indexOfFirst { it.path == ":deliveryReady" } < first.tasks.indexOfFirst { it.path == ":web:deployPart" })
         assertTrue(model.edges.any { it is Edge.After && it.from == backend.id && it.to == deliveryReady.id })
         assertEquals(60_000, spec.run.timeoutMillis)
         assertEquals(ExecutionHost.Local, backend.host.execution)
-        assertContains(WorkspaceCompletion.plan(spec), pr.id)
+        assertContains(DeployKernel.plan(spec), pr.id)
+        assertEquals(spec.after, DeployKernel.producerGates(spec))
+        assertEquals("dev.shibasis.dependeasy.model.DeployKernel", backend.kernel?.className)
+        assertEquals("dev.shibasis.dependeasy.model.ArtifactSetKernel", everything.kernel?.className)
         assertEquals(setOf(":shared"), assertIs<KernelSpec.WorkspaceNode>(pr.kernel?.spec).consumes.map { it.project }.toSet())
         assertEquals(setOf(":shared", ":web"), assertIs<KernelSpec.WorkspaceNode>(everything.kernel?.spec).consumes.map { it.project }.toSet())
         assertEquals(listOf(":web"), spec.consumes.map { it.project })
@@ -154,11 +159,13 @@ class BuildWorkspaceTest {
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.model.*
             import kotlin.time.Duration.Companion.minutes
+            import dev.shibasis.dependeasy.workspace.WorkspaceScope
             plugins { id("dev.shibasis.dependeasy.workspace") }
+            fun WorkspaceScope.ready() = verify()
             workspace {
                 val app = product(shared = projects.shared) { services(projects.web); packages(projects.shared) }
                 val pr by verify(app, role = Workspace.Verify)
-                val deliveryReady by verify()
+                val deliveryReady by ready()
                 val everything by artifacts(app, role = Workspace.Build)
                 delivery(after = pr, run = Run.onLocal().timeout(1.minutes)) {
                     val backend by deploy(app.services)
@@ -305,7 +312,7 @@ class BuildWorkspaceTest {
         assertEquals(Effect.Verify, check.effect)
         assertEquals(5, check.declaredAt?.line)
         assertEquals("build.gradle.kts", check.declaredAt?.file)
-        assertEquals("dev.shibasis.dependeasy.model.WorkspaceCompletion", check.kernel?.className)
+        assertEquals("dev.shibasis.dependeasy.model.VerificationKernel", check.kernel?.className)
         assertEquals(ExecutionHost.Local, model.nodes.single { it.id.name == "desktop" }.host.execution)
         assertEquals(listOf(":checks"), (check.invocation as Invocation.Gradle).tasks)
         assertContains(run().output, "Reusing configuration cache")

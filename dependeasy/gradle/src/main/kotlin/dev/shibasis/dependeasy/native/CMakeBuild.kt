@@ -19,6 +19,7 @@ class CMakeBuild internal constructor(private val project: Project, private val 
     var generator: String = "Ninja"
     val inputs = mutableListOf<Any>()
     private val sourceLibraries = linkedMapOf<ToolHandle, String>()
+    internal val executables = mutableListOf<NativeContract.Executable>()
 
     fun sourceLibrary(tool: ToolHandle, includeVariable: String) { sourceLibraries[tool] = includeVariable }
 
@@ -39,6 +40,7 @@ class CMakeBuild internal constructor(private val project: Project, private val 
         buildTarget.set(this@CMakeBuild.target)
         val settings = mapOf("CMAKE_BUILD_TYPE" to this@CMakeBuild.configuration, "CMAKE_CXX_STANDARD" to ToolchainVersions.CppStandard, "CMAKE_CXX_EXTENSIONS" to "OFF") +
             sourceLibraries.map { (tool, variable) -> variable to project.nativeTools.sourceTasks.getValue(tool).get().checkout.get().asFile.resolve("include").absolutePath }
+        nativeExecutables.set(this@CMakeBuild.executables)
         nativeContract.set(BuildModelReader.json.encodeToString(NativeContract(library = this@CMakeBuild.target, platform = "host", settings = settings,
             sources = sourceLibraries.keys.map { tool ->
                 val dependency = Native.sources.single { it.source == tool }

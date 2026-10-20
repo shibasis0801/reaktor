@@ -7,7 +7,7 @@ import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.*
-import dev.shibasis.dependeasy.workspace.WorkspaceTargetTask
+import dev.shibasis.dependeasy.workspace.WorkspaceNodeTask
 import dev.shibasis.dependeasy.workspace.declarationSite
 import kotlinx.serialization.encodeToString
 import org.gradle.api.Project
@@ -34,7 +34,8 @@ internal class AppleHost(
     internal val generate = project.tasks.register<XcodeHostTask>("generateXcodeHost")
     internal val verify = project.tasks.register<VerifyXcodeHost>("verifyXcodeHost")
     internal val release = project.tasks.register<ReleasePlanTask>("generateReleasePlan")
-    internal val frameworks = project.tasks.register<WorkspaceTargetTask>("embedAppleFrameworksForXcode") {
+    internal val frameworks = project.tasks.register<WorkspaceNodeTask>("embedAppleFrameworksForXcode") {
+        bind(ArtifactSetKernel)
         dependsOn(project.outputFiles(project.appleXcodeFramework(application)))
     }
 
@@ -158,7 +159,7 @@ internal class AppleHost(
         val assembled = workspace.emit(project, KernelSpec.WorkspaceNode(
             NodeId(project.rootProject.name, project.path, "assembleApple"), NodeKind.ArtifactSet, Run.Default,
             included.map { it.id }, outputs.map { it.nodeId }, emptyList(), emptyList()),
-            WorkspaceCompletion, project.declarationSite(), null, included, outputs, emptyList())
+            ArtifactSetKernel, project.declarationSite(), null, included, outputs, emptyList())
         project.componentRole(Workspace.Verify, verification)
         project.componentRole(Workspace.Build, assembled)
         project.componentRole(Workspace.Apple, assembled)

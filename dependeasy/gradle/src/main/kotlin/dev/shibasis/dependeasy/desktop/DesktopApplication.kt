@@ -43,7 +43,7 @@ internal fun Project.desktopApplication(spec: DesktopAppSpec) {
         javaHome = extensions.getByType<JavaToolchainService>().launcherFor {
             languageVersion.set(JavaLanguageVersion.of(Versions.SDK.Java.asInt))
         }.get().metadata.installationPath.asFile.absolutePath
-        jvmArgs("--enable-native-access=ALL-UNNAMED", "-Dcompose.application.configure.swing.globals=false")
+        jvmArgs(*(JavaTool.nativeAccess(true) + "-Dcompose.application.configure.swing.globals=false").toTypedArray())
         if (mac) jvmArgs("-Dsun.java2d.metal=true", "-Dsun.java2d.opengl=false",
             "--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
         jvmArgs(*spec.runtime.properties.map { (name, value) -> "-D$name=$value" }.toTypedArray())
@@ -88,7 +88,7 @@ internal fun Project.desktopApplication(spec: DesktopAppSpec) {
             val task = tasks.named(name, JavaExec::class.java)
             task.configure {
                 mainClass.set(entry.entryClass)
-                extensions.add(KernelSpec::class.java, "dependeasyKernel", KernelSpec.JvmProgram(CompilationRef.Main, entry.producer.id, spec.run))
+                extensions.add(KernelSpec::class.java, "dependeasyKernel", KernelSpec.JvmProgram(CompilationRef.Main, entry.producer.id, spec.run, java = ToolRef("java", Versions.SDK.Java.asInt.toString())))
                 spec.run.timeoutMillis?.let { timeout.set(java.time.Duration.ofMillis(it)) }
             }
             task.consumeEntry()

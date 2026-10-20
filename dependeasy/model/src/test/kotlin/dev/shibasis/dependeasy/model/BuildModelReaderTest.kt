@@ -23,6 +23,21 @@ class BuildModelReaderTest {
         val page = BuildModelReader.modelPage(root, limit = 1)
         assertEquals(1, page.getValue("nextOffset").jsonPrimitive.int)
         assertEquals(2, page.getValue("total").jsonPrimitive.int)
+        val tree = BuildModelReader.tree(root, node.id.toString())
+        val treeRoot = tree.getValue("roots").jsonArray.single().jsonObject
+        assertEquals(node.id.toString(), treeRoot.getValue("id").jsonPrimitive.content)
+        val related = treeRoot.getValue("children").jsonArray.single().jsonObject
+        assertEquals(app.id.toString(), related.getValue("node").jsonObject.getValue("id").jsonPrimitive.content)
+        assertEquals("source", tree.getValue("truth").jsonPrimitive.content)
+        assertEquals(1, BuildModelReader.kernels(root, limit = 1).getValue("total").jsonPrimitive.int)
+        assertEquals(2, BuildModelReader.kernels(root).getValue("kernels").jsonArray.single().jsonObject.getValue("missingSpecs").jsonPrimitive.int)
+        val cycleModel = declared.copy(edges = declared.edges + Edge.After(app.id, node.id))
+        file.writeText(BuildModelReader.encode(cycleModel))
+        val cyclic = BuildModelReader.tree(root, node.id.toString(), depth = 8)
+        assertTrue(cyclic.toString().contains("\"cycle\":true"))
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.tree(root, depth = 9) }
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.tree(root, "missing") }
+        file.writeText(BuildModelReader.encode(declared))
         val tasks = (0..24).map { index -> PlannedGradleTask(NodeId("fixture", ":app", "task$index"),
             if (index == 0) emptyList() else listOf(NodeId("fixture", ":app", "task${index - 1}"))) }
         val plan = GradlePlan(node = app.id, modelDigest = BuildModelReader.digest(file), requestDigest = "request",
@@ -32,6 +47,7 @@ class BuildModelReaderTest {
         root.resolve(GradleProtocol.PlanDirectory + "/stale.json").writeText(BuildModelReader.json.encodeToString(invalid.copy(modelDigest = "outdated")))
         root.resolve(GradleProtocol.PlanDirectory + "/legacy.json").writeText("""{"schemaVersion":1,"id":"web"}""")
         assertEquals(plan, BuildModelReader.retainedPlan(root, app.id.toString()))
+        assertEquals(25, BuildModelReader.tree(root, app.id.toString(), expand = true).getValue("roots").jsonArray.single().jsonObject.getValue("gradlePlan").jsonObject.getValue("totalTasks").jsonPrimitive.int)
         assertEquals(10, BuildModelReader.planPage(plan).getValue("nextOffset").jsonPrimitive.int)
         val receipt = RunReceipt(run = "observed", build = "fixture", requestedNodes = listOf(node.id), requestedTasks = listOf(":checks"),
             startedAtEpochMillis = 1, finishedAtEpochMillis = 2, status = ReceiptStatus.Failed,

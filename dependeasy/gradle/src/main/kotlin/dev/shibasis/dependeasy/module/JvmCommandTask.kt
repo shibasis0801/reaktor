@@ -30,19 +30,11 @@ abstract class JvmProcessTask : DefaultTask() {
     @get:Input @get:Optional abstract val relativeClasspath: Property<String>
 
     @TaskAction fun printCommand() {
-        val cp = if (relativeClasspath.isPresent) "\"\$here/${relativeClasspath.get()}/*\"" else quote(classpath.asPath)
-        val java = (listOf(executable.get()) + jvmArguments.get()).joinToString(" ", transform = ::quote)
-        val command = "$java -cp $cp " +
-            (listOf(mainClass.get()) + arguments.get()).joinToString(" ", transform = ::quote)
-        if (launcherFile.isPresent) launcherFile.get().asFile.apply {
-            parentFile.mkdirs()
-            val base = if (relativeClasspath.isPresent) "here=\$(cd \"\$(dirname \"\$0\")/..\" && pwd)\n" else ""
-            writeText("#!/bin/sh\n${base}exec $command \"\$@\"\n")
-            check(setExecutable(true)) { "Could not enable launcher $this" }
-        } else println(command)
+        val command = dev.shibasis.dependeasy.model.JvmLaunchKernel.command(executable.get(), classpath.asPath,
+            mainClass.get(), arguments.get(), jvmArguments.get(), relativeClasspath.orNull)
+        if (launcherFile.isPresent) dev.shibasis.dependeasy.model.JvmLaunchKernel.launcher(
+            command, relativeClasspath.isPresent, launcherFile.get().asFile) else println(command)
     }
-
-    private fun quote(value: String) = "'${value.replace("'", "'\"'\"'")}'"
 }
 
 internal fun Project.jvmCommand(name: String, main: Provider<String>, compilation: String, arguments: Provider<List<String>>): org.gradle.api.tasks.TaskProvider<JvmProcessTask> {
@@ -61,6 +53,3 @@ internal fun Project.jvmCommand(name: String, main: Provider<String>, compilatio
         executable.set(launcher.map { it.executablePath.asFile.absolutePath })
     }
 }
-
-internal fun jvmNativeAccessArguments(enabled: Boolean): List<String> =
-    if (enabled) listOf("--enable-native-access=ALL-UNNAMED") else emptyList()

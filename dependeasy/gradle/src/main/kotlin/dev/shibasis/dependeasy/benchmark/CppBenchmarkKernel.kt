@@ -7,6 +7,7 @@ import dev.shibasis.dependeasy.model.Edge
 import dev.shibasis.dependeasy.model.ToolHandle
 import dev.shibasis.dependeasy.model.Verification
 import dev.shibasis.dependeasy.native.CMakeBuild
+import dev.shibasis.dependeasy.settings.nativeTools
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
@@ -26,6 +27,10 @@ internal class CppBenchmarkKernel(private val project: Project) {
             source = "src/commonBenchmark/cpp"
             target = executable
             headers.forEach { (tool, variable) -> sourceLibrary(tool, variable) }
+            executables.add(dev.shibasis.dependeasy.model.NativeContract.Executable(executable,
+                listOf("$executable.cpp"), includes = headers.keys.map { tool ->
+                    project.nativeTools.sourceTasks.getValue(tool).get().checkout.get().asFile.resolve("include").absolutePath
+                }))
         }.register(name)
         project.extensions.getByType(KotlinMultiplatformExtension::class.java).targets.withType(KotlinJvmTarget::class.java).configureEach {
             testRuns.matching { it.name == KotlinCompilation.TEST_COMPILATION_NAME }.configureEach {

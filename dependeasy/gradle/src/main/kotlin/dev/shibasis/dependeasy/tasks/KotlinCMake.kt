@@ -58,19 +58,24 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
         val libraryName = native.resolvedLibraryName
         val sources = project.nativeSourceContracts(sourceDependencies.filter { it.recipe != "foundation" }, platform, emptyMap())
         val foundationSource = sourceDependencies.firstOrNull { it.recipe == "foundation" }?.let { dependency -> NativeContract.Source(dependency.name, dependency.repository, "", "", dependency.checksumAlgorithm, dependency.recipe) }
-        nativeContract.set(platform.settings(project).map { settings ->
+        val nativeRoot = native.resolvedCmakeLists.parentFile
+        val localProjects = native.localProjects.toList()
+        val localLinks = native.localLinks.toList()
+        val testExecutables = native.testExecutables.toList()
+        nativeContract.set(platform.settings(project).zip(sourceFiles.elements) { settings, files ->
             val hermes = sourceDependencies.any { it.recipe == "hermes" }
             val foundation = sourceDependencies.any { it.recipe == "foundation" }
-            BuildModelReader.json.encodeToString(NativeContract(library = libraryName, platform = platform.variant,
+            BuildModelReader.json.encodeToString(dev.shibasis.dependeasy.model.CMakeBuildKernel.sourceSet(NativeContract(library = libraryName, platform = platform.variant,
                 settings = settings + hostRoots +
                     (if (platform is CmakePlatform.Darwin && hostRoots.isNotEmpty()) mapOf("CMAKE_FIND_ROOT_PATH" to hostRoots.values.distinct().joinToString(";")) else emptyMap()) + mapOf("CMAKE_CXX_STANDARD" to ToolchainVersions.CppStandard, "CMAKE_CXX_EXTENSIONS" to "OFF"),
                 includeDirectories = includes,
-                linkLibraries = (if(platform is CmakePlatform.Android) listOf("android", "log") else emptyList()) +
+                projects = localProjects, executables = testExecutables,
+                linkLibraries = localLinks + (if(platform is CmakePlatform.Android) listOf("android", "log") else emptyList()) +
                     (if(hermes) if(platform is CmakePlatform.Android) listOf("jsi") else listOf("hermesvm", "jsi") else emptyList()) +
                     (if(foundation) listOf("-framework Foundation") else emptyList()),
                 compileOptions = if(foundation) listOf("-fobjc-arc") else emptyList(),
                 linkOptions = if(platform is CmakePlatform.Android) listOf("-Wl,-z,max-page-size=16384", "-Wl,-z,common-page-size=16384") else emptyList(),
-                sources = sources + listOfNotNull(foundationSource?.copy(revision = settings.getValue("DEPE_SDK_VERSION"), checksum = settings.getValue("DEPE_SDK_METADATA_SHA256")))))
+                sources = sources + listOfNotNull(foundationSource?.copy(revision = settings.getValue("DEPE_SDK_VERSION"), checksum = settings.getValue("DEPE_SDK_METADATA_SHA256")))), nativeRoot, files.map { it.asFile }))
         })
         includeNativeDependencies(dependencyTasks)
         includePrefabs(prefabTasks)

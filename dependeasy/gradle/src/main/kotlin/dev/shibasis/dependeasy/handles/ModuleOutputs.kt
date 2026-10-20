@@ -5,7 +5,7 @@ import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.ApplicationVariant
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import dev.shibasis.dependeasy.model.*
-import dev.shibasis.dependeasy.workspace.WorkspaceTargetTask
+import dev.shibasis.dependeasy.workspace.WorkspaceNodeTask
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.testing.Test
@@ -27,7 +27,8 @@ internal class AndroidApplicationOutputs {
 
 internal fun Project.moduleOutputs() {
     pluginManager.withPlugin("base") {
-        val completed = tasks.register<WorkspaceTargetTask>("completeModuleBuild") {
+        val completed = tasks.register<WorkspaceNodeTask>("completeModuleBuild") {
+            bind(ArtifactSetKernel)
             dependsOn(tasks.named(LifecycleBasePlugin.BUILD_TASK_NAME))
         }
         publishModuleOutput(OutputKind.ModuleBuild, completed.flatMap { it.completionManifest }, producer = completed)
@@ -71,7 +72,8 @@ internal fun Project.moduleOutputs() {
     }
     afterEvaluate {
         if (extensions.findByType(dev.shibasis.dependeasy.darwin.AppleFrameworkDeclaration::class.java) != null) {
-            val embedded = tasks.register<WorkspaceTargetTask>("completeXcodeFramework") {
+            val embedded = tasks.register<WorkspaceNodeTask>("completeXcodeFramework") {
+                bind(ArtifactSetKernel)
                 dependsOn(tasks.named("embedAndSignAppleFrameworkForXcode"))
             }
             publishModuleOutput(OutputKind.AppleXcodeFramework, embedded.flatMap { it.completionManifest }, producer = embedded)

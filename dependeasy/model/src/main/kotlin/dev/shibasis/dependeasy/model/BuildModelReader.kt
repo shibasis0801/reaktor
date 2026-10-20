@@ -37,7 +37,7 @@ object BuildModelReader {
 
     private fun declaredModel(root: File): BuildModel {
         val file = root.resolve(RelativePath)
-        require(file.isFile) { "Run ./gradlew exportBuildModel in this workspace" }
+        require(file.isFile) { "No build model yet. Run ./gradlew exportBuildModel in ${root.path}" }
         val bytes = file.inputStream().use { it.readNBytes(MaxBytes + 1) }
         require(bytes.size <= MaxBytes) { "Build model exceeds $MaxBytes bytes" }
         val model = decode(bytes.toString(Charsets.UTF_8))
@@ -73,6 +73,7 @@ object BuildModelReader {
             put("truth", if (changed.isEmpty()) "source" else "stale")
             put("stale", changed.isNotEmpty())
             put("changedDeclarations", buildJsonArray { changed.forEach { add("${it.build}:${it.path}") } })
+            put("omissionCounts", json.encodeToJsonElement(omissionCounts(model)))
             put("node", json.encodeToJsonElement(Node.serializer(), selected))
             put("effectiveHost", json.encodeToJsonElement(HostRequirement.serializer(), model.requiredHost(selected.id)))
             put("edges", buildJsonArray { model.edges.filter { it.from == selected.id || it.to == selected.id }
@@ -133,11 +134,157 @@ object BuildModelReader {
             put("stale", changed.isNotEmpty()); put("changedDeclarationCount", changed.size)
             put("changedDeclarations", buildJsonArray { changed.take(limit).forEach { add("${it.build}:${it.path}") } })
             if (changed.size > limit) put("omission", "Read nodeDetails collection /changedDeclarations for all changed declaration inputs")
+            put("omissionCounts", json.encodeToJsonElement(omissionCounts(model)))
             put("producer", json.encodeToJsonElement(Producer.serializer(), model.producer))
             put("builds", buildJsonArray { model.builds.forEach { add(json.encodeToJsonElement(BuildIdentity.serializer(), it)) } })
             put("view", view); put("offset", offset); put("total", values.size)
             put(view, JsonArray(values.drop(offset).take(limit)))
             if (offset + limit < values.size) put("nextOffset", offset + limit)
+        }
+    }
+
+    fun omissionCounts(model: BuildModel): Map<String, Int> = model.omissions.groupingBy { it.reason }.eachCount().toSortedMap()
+
+    private fun status(root: File, model: BuildModel): JsonObject {
+        val changed = changedDeclarations(root, model)
+        return buildJsonObject {
+            put("truth", if (changed.isEmpty()) "source" else "stale"); put("stale", changed.isNotEmpty())
+            put("changedDeclarationCount", changed.size)
+            put("changedDeclarations", buildJsonArray { changed.take(10).forEach { add("${it.build}:${it.path}") } })
+            put("omissionCounts", json.encodeToJsonElement(omissionCounts(model)))
+        }
+    }
+
+    private fun selected(model: BuildModel, selector: String?): List<Node> {
+        if (selector == null) return model.nodes.filter { it.id.build == model.builds.single { build -> build.directory == "." }.name }
+        model.nodes.singleOrNull { it.id.toString() == selector }?.let { return listOf(it) }
+        val own = model.builds.single { it.directory == "." }.name
+        val build = if (selector.startsWith(':')) own else selector.substringBefore(':')
+        val project = if (selector.startsWith(':')) selector else selector.substringAfter(build).ifEmpty { ":" }
+        return model.nodes.filter { it.id.build == build && it.id.project == project }.also {
+            require(it.isNotEmpty()) { "Unknown build node or project: $selector" }
+        }
+    }
+
+    private fun summary(model: BuildModel, node: Node): JsonObject = buildJsonObject {
+        put("id", node.id.toString()); put("kind", node.kind.name); put("label", node.label); put("effect", node.effect.name)
+        put("declaredAt", node.declaredAt?.let { json.encodeToJsonElement(it) } ?: JsonNull)
+        put("kernel", node.kernel?.let { buildJsonObject {
+            put("className", it.className); put("source", it.source?.let { source -> json.encodeToJsonElement(source) } ?: JsonNull)
+            put("spec", it.spec?.let { spec -> buildJsonObject {
+                val fields = json.encodeToJsonElement(KernelSpec.serializer(), spec).jsonObject
+                put("type", fields.getValue("type")); put("fields", JsonArray(fields.keys.filter { key -> key != "type" }.map(::JsonPrimitive)))
+            } } ?: JsonNull)
+        } } ?: JsonNull)
+        put("host", json.encodeToJsonElement(node.host)); put("effectiveHost", json.encodeToJsonElement(model.requiredHost(node.id)))
+        val spec = node.kernel?.spec?.let { json.encodeToJsonElement(KernelSpec.serializer(), it).jsonObject }
+        put("run", spec?.get("run") ?: JsonNull)
+        put("tools", json.encodeToJsonElement(node.tools))
+    }
+
+    fun tree(root: File, selector: String? = null, depth: Int = 2, offset: Int = 0, limit: Int = 10, expand: Boolean = false): JsonObject {
+        require(depth in 0..8 && offset >= 0 && limit in 1..20)
+        val model = declaredModel(root)
+        val status = status(root, model)
+        val byId = model.nodes.associateBy { it.id }
+        val outgoing = model.edges.groupBy { it.from }
+        val chosen = selected(model, selector)
+        val chosenIds = chosen.map { it.id }.toSet()
+        val included = model.edges.filter { it.from in chosenIds }.map { it.to }.toSet()
+        val roots = if (chosen.size == 1) chosen else chosen.filter { it.id !in included }.ifEmpty { chosen.take(1) }
+        var remaining = 200
+        fun branch(node: Node, level: Int, ancestors: Set<NodeId>): JsonObject {
+            remaining--
+            val related = outgoing[node.id].orEmpty()
+            val cycle = node.id in ancestors
+            val children = mutableListOf<JsonElement>()
+            if (!cycle && level > 0) for (edge in related.take(limit)) {
+                if (remaining <= 0) break
+                children += buildJsonObject {
+                    put("relationship", json.encodeToJsonElement(Edge.serializer(), edge))
+                    val target = byId[edge.to]
+                    if (target == null) { put("id", edge.to.toString()); put("omission", "Referenced producer has no declaration model") }
+                    else put("node", branch(target, level - 1, ancestors + node.id))
+                }
+            }
+            return buildJsonObject {
+                summary(model, node).forEach { (key, value) -> put(key, value) }
+                put("children", JsonArray(children)); put("more", related.size - children.size)
+                if (cycle) put("cycle", true)
+                if (expand) {
+                    if (status.getValue("stale").jsonPrimitive.boolean) put("planOmission", "A stale declaration cannot reuse a retained Gradle plan")
+                    else {
+                        val plan = retainedPlan(root, node.id.toString())
+                        if (plan == null) put("planOmission", "No retained exact Gradle plan; request build plan ${node.id} to configure Gradle explicitly")
+                        else put("gradlePlan", planPage(plan))
+                    }
+                }
+            }
+        }
+        val page = buildJsonArray {
+            for (node in roots.drop(offset).take(limit)) {
+                if (remaining <= 0) break
+                add(branch(node, depth, emptySet()))
+            }
+        }
+        return buildJsonObject {
+            status.forEach { (key, value) -> put(key, value) }
+            put("selector", selector?.let(::JsonPrimitive) ?: JsonNull); put("depth", depth); put("offset", offset); put("totalRoots", roots.size)
+            put("roots", page)
+            if (offset + page.size < roots.size) put("nextOffset", offset + page.size)
+            put("nodeBudget", 200); put("expanded", expand)
+        }
+    }
+
+    fun explain(root: File, id: String, offset: Int = 0, limit: Int = 10): JsonObject {
+        require(offset >= 0 && limit in 1..20)
+        val model = declaredModel(root)
+        val node = model.nodes.single { it.id.toString() == id }
+        val spec = node.kernel?.spec
+        val fields = spec?.let { json.encodeToJsonElement(KernelSpec.serializer(), it).jsonObject.filterKeys { key -> key != "type" } }.orEmpty()
+        val nonDefaults = spec?.let { Json(json) { encodeDefaults = false }.encodeToJsonElement(KernelSpec.serializer(), it).jsonObject }.orEmpty()
+        val definition = spec?.let {
+            model.builds.firstNotNullOfOrNull { build ->
+                val owner = root.resolve(build.directory)
+                JvmEntry.sourceSite(it.javaClass, owner, build.name, listOf(owner.resolve("dependeasy/model/src/main/kotlin")))
+            }
+        }
+        val bounded = ((nodeDetails(root, id).getValue("node").jsonObject["kernel"] as? JsonObject)?.get("spec") as? JsonObject).orEmpty()
+        return buildJsonObject {
+            status(root, model).forEach { (key, value) -> put(key, value) }
+            put("node", summary(model, node)); put("offset", offset); put("totalFields", fields.size)
+            put("callPath", json.encodeToJsonElement(node.declaredAt?.callPath.orEmpty()))
+            put("fields", buildJsonArray { fields.entries.drop(offset).take(limit).forEach { (name, _) -> add(buildJsonObject {
+                put("name", name); put("value", bounded[name] ?: JsonNull)
+                put("matchesDeclaredDefault", name !in nonDefaults)
+                put("definedAt", definition?.let { json.encodeToJsonElement(it) } ?: JsonNull)
+            }) } })
+            put("provenance", "Values are retained spec facts. Default equality does not prove the caller omitted the argument.")
+            put("collections", nodeDetails(root, id).getValue("collections"))
+            if (spec == null) put("omission", "This node has no recorded kernel spec")
+            if (offset + limit < fields.size) put("nextOffset", offset + limit)
+        }
+    }
+
+    fun kernels(root: File, selector: String? = null, offset: Int = 0, limit: Int = 10): JsonObject {
+        require(offset >= 0 && limit in 1..20)
+        val model = declaredModel(root)
+        val groups = selected(model, selector).filter { it.kernel != null }.groupBy { requireNotNull(it.kernel).className }.toSortedMap()
+        return buildJsonObject {
+            status(root, model).forEach { (key, value) -> put(key, value) }
+            put("offset", offset); put("total", groups.size)
+            put("kernels", buildJsonArray { groups.entries.drop(offset).take(limit).forEach { (name, nodes) -> add(buildJsonObject {
+                put("className", name)
+                put("source", nodes.firstNotNullOfOrNull { it.kernel?.source }?.let { json.encodeToJsonElement(it) } ?: JsonNull)
+                put("nodeCount", nodes.size); put("nodes", JsonArray(nodes.take(10).map { JsonPrimitive(it.id.toString()) }))
+                put("specs", JsonArray(nodes.mapNotNull { it.kernel?.spec }.map { spec ->
+                    val fields = json.encodeToJsonElement(KernelSpec.serializer(), spec).jsonObject
+                    buildJsonObject { put("type", fields.getValue("type")); put("fields", JsonArray(fields.keys.filter { it != "type" }.map(::JsonPrimitive))) }
+                }.distinct()))
+                put("tools", json.encodeToJsonElement(nodes.flatMap { it.tools }.distinct()))
+                put("missingSpecs", nodes.count { it.kernel?.spec == null })
+            }) } })
+            if (offset + limit < groups.size) put("nextOffset", offset + limit)
         }
     }
 

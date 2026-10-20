@@ -4,6 +4,7 @@ import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.declarationSite
 import dev.shibasis.dependeasy.workspace.kernelRef
+import dev.shibasis.dependeasy.workspace.declaredTools
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.FileCollection
@@ -43,7 +44,7 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
                 },
                 HostRequirement(handle.kind.platform), site, tasks.singleOrNull()?.let(::kernelRef),
                 Invocation.Gradle(tasks.map { it.path }), outputs = listOf(FileSet(files.paths(this@publishOutput), handle.kind.name)),
-                artifactFamily = handle.kind.family))
+                tools = tasks.flatMap { it.declaredTools() }.distinct(), artifactFamily = handle.kind.family))
         })
         omissions.addAll(provider {
             val site = declaredAt ?: this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared

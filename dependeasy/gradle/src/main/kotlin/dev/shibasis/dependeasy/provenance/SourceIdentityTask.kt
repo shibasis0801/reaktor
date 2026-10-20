@@ -8,8 +8,6 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 import org.gradle.work.DisableCachingByDefault
 import java.io.File
-import java.security.MessageDigest
-import java.time.Instant
 
 class IdentitySources internal constructor(
     @get:Input val name: String,
@@ -49,7 +47,7 @@ abstract class SourceIdentityTask : DefaultTask() {
 
     fun revision(name: String, directory: File) {
         val git = project.providers.exec {
-            commandLine("git", "-C", directory.absolutePath, "rev-parse", "HEAD")
+            commandLine(listOf("git") + dev.shibasis.dependeasy.model.Git.revision(directory.absolutePath))
             isIgnoreExitValue = true
         }
         revisions.put(name, git.standardOutput.asText.zip(git.result) { output, result ->
@@ -58,34 +56,13 @@ abstract class SourceIdentityTask : DefaultTask() {
     }
 
     @TaskAction fun generate() {
-        val entries = sourceGroups.flatMap { group ->
-            group.files.files.filter(File::isFile).map { file ->
-                require(file.canonicalFile.toPath().startsWith(group.directory.toPath())) { "Identity source escapes ${group.name}: $file" }
-                "${group.name}/${file.canonicalFile.relativeTo(group.directory).invariantSeparatorsPath}" to file
-            }
-        }.sortedBy { it.first }
-        val digest = MessageDigest.getInstance("SHA-256")
-        entries.forEach { (path, file) ->
-            digest.update(path.toByteArray(Charsets.UTF_8))
-            digest.update(0.toByte())
-            file.inputStream().use { input ->
-                val buffer = ByteArray(8192)
-                var size = input.read(buffer)
-                while (size >= 0) { digest.update(buffer, 0, size); size = input.read(buffer) }
-            }
+        val sources = sourceGroups.map { group ->
+            dev.shibasis.dependeasy.model.IdentitySource(group.name, group.directory.path, listOf("."))
         }
-        val values = revisions.get().toMutableMap()
-        values["sourceDigest"] = digest.digest().joinToString("") { "%02x".format(it) }
-        if (recordTime.get()) values["builtAt"] = Instant.now().toString()
-        val destination = outputDirectory.get().asFile.resolve(fileName.get())
-        require(destination.toPath().normalize().startsWith(outputDirectory.get().asFile.toPath().normalize())) { "Identity output escapes its directory" }
-        destination.parentFile.mkdirs()
-        destination.writeText(values.toSortedMap().entries.joinToString("\n", postfix = "\n") { (key, value) ->
-            "${escape(key)}=${escape(value)}"
-        }, Charsets.ISO_8859_1)
+        val spec = dev.shibasis.dependeasy.model.KernelSpec.SourceIdentity(fileName.get(), sources,
+            emptyList(), recordTime.get())
+        dev.shibasis.dependeasy.model.SourceIdentityKernel.generate(spec,
+            sourceGroups.associate { it.name to it.files.files }, revisions.get(), outputDirectory.get().asFile)
     }
 
-    private fun escape(value: String) = value.replace("\\", "\\\\").replace("\n", "\\n")
-        .replace("\r", "\\r").replace("\t", "\\t").replace(" ", "\\ ").replace("=", "\\=")
-        .replace(":", "\\:").replace("#", "\\#").replace("!", "\\!")
 }

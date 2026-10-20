@@ -35,7 +35,13 @@ data class BuildModel(
 @Serializable data class BuildIdentity(val name: String, val directory: String)
 @Serializable data class DeclarationInput(val build: String, val path: String, val sha256: String, val kind: DeclarationInputKind = DeclarationInputKind.File, val option: OptionValue? = null)
 @Serializable enum class DeclarationInputKind { File, Membership, Option }
-@Serializable data class SourceSite(val build: String, val file: String, val line: Int) {
+@Serializable data class SourceSite(
+    val build: String,
+    val file: String,
+    val line: Int,
+    val symbol: String? = null,
+    val callPath: List<SourceSite> = emptyList(),
+) {
     init { require(line > 0 && file.isNotBlank()) }
 }
 @Serializable data class KernelRef(val className: String, val source: SourceSite? = null, val spec: KernelSpec? = null)
@@ -106,6 +112,7 @@ data class RunReceipt(
     val failures: List<String> = emptyList(),
     val requestDigest: String? = null,
     val operationRunId: String? = null,
+    val omissionCounts: Map<String, Int> = emptyMap(),
 )
 @Serializable enum class ReceiptStatus { Succeeded, Failed }
 @Serializable enum class TaskOutcome { Executed, UpToDate, FromCache, Skipped, Failed }

@@ -1,42 +1,39 @@
 package dev.shibasis.dependeasy.cloudflare
 
 import dev.shibasis.dependeasy.model.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.*
+import dev.shibasis.dependeasy.process.KernelSpecOwner
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.*
-import org.gradle.api.provider.*
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 
 @CacheableTask
-abstract class WorkerFleetTask : DefaultTask() {
+abstract class WorkerFleetTask : DefaultTask(), KernelSpecOwner {
     @get:Input abstract val declaration: Property<String>
-    @get:Input abstract val defaultEnvironment: Property<String>
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val configurations: ConfigurableFileCollection
     @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val defaults: RegularFileProperty
     @get:Internal abstract val root: DirectoryProperty
     @get:OutputFiles abstract val finalConfigurations: ConfigurableFileCollection
     @get:OutputFile abstract val contract: RegularFileProperty
+    @get:Internal override val kernelSpec: KernelSpec.WorkerFleet
+        get() = BuildModelReader.json.decodeFromString(declaration.get())
 
     @TaskAction fun write() {
-        val fleet = BuildModelReader.json.decodeFromString<WorkerFleetContract>(declaration.get())
-        val base = Json.parseToJsonElement(defaults.get().asFile.readText()).jsonObject
+        val spec = kernelSpec
         val boundary = root.get().asFile.canonicalFile
-        fleet.workers.forEach { worker ->
-            val directory = boundary.resolve(worker.directory).canonicalFile
-            require(directory.toPath().startsWith(boundary.toPath()))
-            worker.configurations.forEach { (environment, path) ->
-                val local = Json.parseToJsonElement(directory.resolve(if (environment == defaultEnvironment.get()) "wrangler.json" else "wrangler.$environment.json").readText()).jsonObject
-                val config = if (environment == defaultEnvironment.get()) merge(base, local) else local
-                val output = boundary.resolve(path)
-                require(output.canonicalFile.parentFile == directory && !java.nio.file.Files.isSymbolicLink(output.toPath()))
-                output.writeText(BuildModelReader.json.encodeToString(config) + "\n")
-            }
+        fun input(path: String): String {
+            val file = boundary.resolve(path).canonicalFile
+            require(file.toPath().startsWith(boundary.toPath()))
+            return file.readText()
         }
-        contract.get().asFile.apply { parentFile.mkdirs(); writeText(declaration.get() + "\n") }
+        val sources = WorkerFleetKernel.configurationSources(spec).associateWith(::input)
+        val rendered = WorkerFleetKernel.render(spec, input(spec.defaults.paths.single()), sources)
+        val allowed = finalConfigurations.files + contract.get().asFile
+        rendered.forEach { (path, text) ->
+            val output = boundary.resolve(path)
+            require(output in allowed && output.canonicalFile.toPath().startsWith(boundary.toPath()) &&
+                !java.nio.file.Files.isSymbolicLink(output.toPath()))
+            output.parentFile.mkdirs(); output.writeText(text)
+        }
     }
-
-    private fun merge(defaults: JsonObject, local: JsonObject): JsonObject = JsonObject(defaults + local.mapValues { (key, value) ->
-        if (value is JsonObject) merge(defaults[key] as? JsonObject ?: JsonObject(emptyMap()), value) else value
-    })
 }

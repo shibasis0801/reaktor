@@ -5,7 +5,7 @@ import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.plugins.WebAppPlugin
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
-import dev.shibasis.dependeasy.workspace.WorkspaceTargetTask
+import dev.shibasis.dependeasy.workspace.WorkspaceNodeTask
 import org.gradle.api.Project
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
@@ -58,5 +58,5 @@ private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, run
 
 internal fun Project.componentRole(role: Workspace, node: NodeHandle) {
     val task = requireNotNull(node.task)
-    publishRole(role, node, task.flatMap { (it as WorkspaceTargetTask).completionManifest })
+    publishRole(role, node, task.flatMap { (it as WorkspaceNodeTask).completionManifest })
 }

@@ -16,7 +16,9 @@ abstract class TypeScriptCheck : ProcessTask() {
     @get:Input abstract val emit: Property<Boolean>
     init { emit.convention(false) }
     @get:Internal override val kernelEffect: dev.shibasis.dependeasy.model.Effect get() = if (emit.get()) dev.shibasis.dependeasy.model.Effect.Build else dev.shibasis.dependeasy.model.Effect.Verify
-    override fun commandArguments() = listOf("exec", "node", adapter.get().asFile.absolutePath,
-        if (emit.get()) "--project" else "--projects") + projects.get()
-    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.TypeScriptCheck(executionSpec(), projects.get())
+    override fun commandArguments() = (kernelSpec as KernelSpec.TypeScriptCheck).execution.arguments
+    @get:Internal override val kernelSpec: KernelSpec get() {
+        val spec = KernelSpec.TypeScriptCheck(executionSpec(arguments.get()), projects.get(), adapter.get().asFile.absolutePath, emit.get())
+        return spec.copy(execution = dev.shibasis.dependeasy.model.JavaScriptKernel.plan(spec))
+    }
 }

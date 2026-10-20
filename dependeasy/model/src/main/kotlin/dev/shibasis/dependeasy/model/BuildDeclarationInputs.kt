@@ -15,9 +15,9 @@ object BuildDeclarationInputs {
             val implementation = path.startsWith("buildSrc/src/main/") || path.startsWith("dependeasy/") &&
                 (listOf("gradle", "model", "toolchain", "buildSrc").any { path.startsWith("dependeasy/$it/src/main/") } ||
                     path.startsWith("dependeasy/toolchain/src/contracts/"))
-            file.isFile && file.canonicalFile.toPath().startsWith(boundary) &&
-                (file.name.endsWith(".gradle.kts") || file.name in setOf("gradle.properties", "local.properties") ||
-                    implementation && file.extension == "kt")
+            (file.name.endsWith(".gradle.kts") || file.name in setOf("gradle.properties", "local.properties") ||
+                implementation && file.extension == "kt") &&
+                file.isFile && file.canonicalFile.toPath().startsWith(boundary)
         }.sortedBy { it.invariantSeparatorsPath }.toList()
     }
     fun membership(root: File): String = BuildModelReader.digest(files(root).joinToString("\n") {

@@ -41,7 +41,7 @@ fun File.deleteTreeSafely(within: File): Boolean {
     return !Files.exists(actual, NOFOLLOW_LINKS)
 }
 
-internal fun File.clearChildrenSafely() {
+fun File.clearChildrenSafely() {
     val boundary = toPath().toAbsolutePath().normalize()
     require(boundary.parent != null) { "Refusing to clear filesystem root $boundary" }
     for (ancestor in generateSequence(boundary) { it.parent }) {

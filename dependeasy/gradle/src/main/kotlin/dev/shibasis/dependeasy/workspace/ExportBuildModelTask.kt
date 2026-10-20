@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.workspace
 
 import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.process.KernelSpecOwner
 import kotlinx.serialization.encodeToString
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
@@ -12,7 +13,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 
 @CacheableTask
-abstract class ExportBuildModelTask : DefaultTask() {
+abstract class ExportBuildModelTask : DefaultTask(), KernelSpecOwner {
     @get:Input abstract val buildName: Property<String>
     @get:Input abstract val version: Property<String>
     @get:Input abstract val nodes: ListProperty<String>
@@ -33,71 +34,21 @@ abstract class ExportBuildModelTask : DefaultTask() {
         outputs.doNotCacheIf("Schema-1 exports must be removed") { legacyFiles().any { it.exists() } }
     }
 
+    @get:Internal override val kernelSpec get() = KernelSpec.BuildModelExport(buildName.get(), version.get(), directories.get(),
+        FileSet(emptyList(), declarations = declarationFiles.declarations()), FileSet(emptyList(), declarations = includedModels.declarations()),
+        FileSet(listOf(outputFile.get().asFile.absolutePath)), FileSet(listOf(remoteHostsFile.get().asFile.absolutePath)))
+
     @TaskAction fun write() {
-        val root = workspaceDirectory.get().asFile
-        val own = buildName.get()
-        val included = includedModels.files.sortedBy { it.path }.map { BuildModelReader.decode(it.readText()) }
-        val owners = directories.get()
-        val builds = (owners.map { (name, directory) -> BuildIdentity(name, directory) } + included.flatMap { model ->
-            model.builds.map { build ->
-                val base = root.resolve(owners.getValue(model.builds.single { it.directory == "." }.name))
-                build.copy(directory = base.resolve(build.directory).canonicalFile.relativeTo(root.canonicalFile).invariantSeparatorsPath)
-            }
-        }).groupBy { it.name }.map { (name, copies) ->
-            require(copies.distinct().size == 1) { "Conflicting build directories for $name" }
-            copies.first()
-        }.sortedBy { it.name }
-        val declaredNodes = nodes.get().map(BuildModelReader::decodeNode)
-        val options = resolvedOptions.get().distinct().map { fields ->
-            val value = OptionValue(fields.getValue("name"), OptionType.valueOf(fields.getValue("type")),
-                fields.getValue("value"), OptionSource.valueOf(fields.getValue("source")), fields["file"],
-                fields.getValue("sensitive").toBooleanStrict())
-            val text = BuildModelReader.json.encodeToString(value)
-            val hash = BuildModelReader.digest(text)
-            DeclarationInput(own, "option:${fields.getValue("scope")}:${value.name}:${hash.take(16)}", hash, DeclarationInputKind.Option, value)
-        }
-        val declarations = options + declarationFiles.files.filter { it.isFile }.map {
-            DeclarationInput(own, it.relativeTo(root).invariantSeparatorsPath, BuildModelReader.digest(it))
-        } + DeclarationInput(own, ".", BuildDeclarationInputs.membership(root), DeclarationInputKind.Membership) + included.flatMap { it.declarations }
-        val declared = BuildModel(producer = Producer(version = version.get()), builds = builds,
-            declarations = declarations.distinct().sortedWith(compareBy({ it.build }, { it.path })),
-            nodes = (declaredNodes + included.flatMap { it.nodes }).groupBy { it.id }.map { (id, copies) ->
-                val facts = copies.map { it.copy(label = it.id.name, declaredAt = null, inputs = emptyList(), outputs = emptyList(), additionalDeclarations = emptyList()) }.distinct()
-                require(facts.size == 1) { "Conflicting kernel or invocation for $id" }
-                val sites = copies.flatMap { listOfNotNull(it.declaredAt) + it.additionalDeclarations }.distinct().sortedWith(compareBy({ it.build }, { it.file }, { it.line }))
-                copies.first().copy(label = id.name, declaredAt = sites.firstOrNull(), additionalDeclarations = sites.drop(1),
-                    inputs = copies.flatMap { it.inputs }.distinct(), outputs = copies.flatMap { it.outputs }.distinct())
-            }.sortedBy { it.id.toString() },
-            edges = (edges.get().map { BuildModelReader.json.decodeFromString<Edge>(it) } + included.flatMap { it.edges }).distinct().sortedBy { it.toString() },
-            omissions = (omissions.get().map { BuildModelReader.json.decodeFromString<Omission>(it) } + included.flatMap { it.omissions }).distinct().sortedBy { it.toString() })
-        val identities = declared.nodes.map { it.id }.toSet()
-        val model = declared.copy(nodes = declared.nodes.map { node ->
-            node.copy(tools = (node.tools + node.kernel?.spec?.tools().orEmpty()).distinct())
-        }, omissions = (declared.omissions + declared.edges.filter { it.to !in identities }.map {
-            Omission(it.from, "Referenced producer has no declaration model", it.to.toString())
-        }).distinct().sortedBy { it.toString() })
-        val text = BuildModelReader.encode(model)
-        BuildModelReader.decode(text)
-        replaceAtomically(outputFile.get().asFile, text)
-        val routing = RemoteHostsContract(builds = builds.associate { it.name to it.directory }.toSortedMap(),
-            taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to model.requiredHost(it.id) }.toSortedMap(),
-            taskFamilies = taskFamilies(model, own))
-        val appleVariables = model.nodes.mapNotNull { (it.kernel?.spec as? KernelSpec.XcodeHost)?.host }
-            .map { host -> "${host.targets.single { it.name == host.applicationTarget }.settingsPrefix}_GRADLE_ARGS" }
-        replaceAtomically(remoteHostsFile.get().asFile, BuildModelReader.json.encodeToString(
-            routing.copy(xcodeEnvironment = (routing.xcodeEnvironment + appleVariables).distinct().sorted())) + "\n")
+        val spec = kernelSpec
+        val model = BuildModelKernel.build(spec, workspaceDirectory.get().asFile, nodes.get().map(BuildModelReader::decodeNode),
+            edges.get().map { BuildModelReader.json.decodeFromString<Edge>(it) },
+            omissions.get().map { BuildModelReader.json.decodeFromString<Omission>(it) }, resolvedOptions.get(), declarationFiles.files,
+            includedModels.files.sortedBy { it.path }.map { BuildModelReader.decode(it.readText()) })
+        replaceAtomically(outputFile.get().asFile, BuildModelReader.encode(model))
+        replaceAtomically(remoteHostsFile.get().asFile, BuildModelReader.json.encodeToString(BuildModelKernel.routing(model, spec.build)) + "\n")
+        logger.lifecycle("Build model omissions: " + BuildModelReader.omissionCounts(model).entries.joinToString { "${it.key}: ${it.value}" }.ifEmpty { "none" })
         legacyFiles().filter { it.exists() }.forEach { require(it.delete()) { "Cannot remove obsolete export: $it" } }
     }
-}
-
-internal fun taskFamilies(model: BuildModel, own: String): Map<String, String> {
-    fun path(build: String, task: String) = (if (build == own) "" else ":$build") + task
-    val declared = model.nodes.filter { it.artifactFamily != null }
-    val invoked = declared.flatMap { node ->
-        (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { path(node.id.build, it) to requireNotNull(node.artifactFamily) }
-    }.groupBy({ it.first }, { it.second }).mapNotNull { (task, families) -> families.distinct().singleOrNull()?.let { task to it } }
-    val named = declared.map { path(it.id.build, it.id.project.trimEnd(':') + ":" + it.id.name) to requireNotNull(it.artifactFamily) }
-    return (invoked + named).toMap().toSortedMap()
 }
 
 private fun replaceAtomically(file: java.io.File, text: String) {

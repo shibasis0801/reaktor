@@ -31,6 +31,7 @@ import dev.shibasis.dependeasy.plugins.LibraryPlugin
 import dev.shibasis.dependeasy.compose.composeConfiguration
 import dev.shibasis.dependeasy.model.Compose
 import dev.shibasis.dependeasy.model.ModuleHandle
+import dev.shibasis.dependeasy.model.NativeContract
 import dev.shibasis.dependeasy.plugins.ComposeLibraryPlugin
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.compose.ComposeExtension
@@ -42,6 +43,8 @@ import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.web.exportManifest
 import dev.shibasis.dependeasy.provenance.identity
 import dev.shibasis.dependeasy.benchmark.jvmBenchmarks
+import dev.shibasis.dependeasy.native.nativeHostTests
+import dev.shibasis.dependeasy.native.NativeDependency
 
 @DslMarker
 annotation class LibraryDsl
@@ -115,11 +118,11 @@ class LibraryScope internal constructor(private val project: Project, private va
         }
     }
 
-    fun desktopNative(target: String, source: String = "src/jvmMain/cpp", defines: Map<String, String> = emptyMap()): NodeDeclaration {
+    fun desktopNative(target: String, source: String = "src/jvmMain/cpp", defines: Map<String, String> = emptyMap(), sources: List<NativeDependency> = emptyList()): NodeDeclaration {
         require(LibraryTarget.Jvm in spec.targets) { "Desktop native libraries need the Jvm target" }
         require(target.isNotBlank() && source.isNotBlank()) { "A desktop native library needs its target and source" }
         return NodeDeclaration { name ->
-            val task = dev.shibasis.dependeasy.desktop.NativeDesktopLibrary(project, name, source, target, defines.toMap()).register()
+            val task = dev.shibasis.dependeasy.desktop.NativeDesktopLibrary(project, name, source, target, defines.toMap(), sources.toList()).register()
             project.node(task).also(generatedProducers::add)
         }
     }
@@ -128,14 +131,14 @@ class LibraryScope internal constructor(private val project: Project, private va
 
     fun cpuProfile(sources: FileSet, output: String, run: Run = Run.Default): NodeDeclaration {
         require(LibraryTarget.Jvm in spec.targets) { "Profiles need the Jvm target" }
-        return NodeDeclaration { name -> dev.shibasis.dependeasy.benchmark.ProfileKernel.install(project, name,
+        return NodeDeclaration { name -> dev.shibasis.dependeasy.benchmark.ProfileTask.install(project, name,
             dev.shibasis.dependeasy.benchmark.Profile(sources, output), run) }
     }
 
     fun apiProfile(sources: FileSet, output: String, outputEnvironment: String, run: Run = Run.Default): NodeDeclaration {
         require(LibraryTarget.Jvm in spec.targets) { "Profiles need the Jvm target" }
         require(outputEnvironment.isNotBlank()) { "An API profile needs its output environment name" }
-        return NodeDeclaration { name -> dev.shibasis.dependeasy.benchmark.ProfileKernel.install(project, name,
+        return NodeDeclaration { name -> dev.shibasis.dependeasy.benchmark.ProfileTask.install(project, name,
             dev.shibasis.dependeasy.benchmark.Profile(sources, output, outputEnvironment), run) }
     }
 
@@ -221,6 +224,7 @@ class LibraryScope internal constructor(private val project: Project, private va
         native.platforms(*platforms.toTypedArray())
         native.abis(*abis.toTypedArray())
         LibraryNativeScope(native).apply(content)
+        if (native.testExecutables.isNotEmpty()) verifications.add(project.nativeHostTests(native))
     }
 
     fun appleInterop(packageName: String, headers: List<String>) {
@@ -415,6 +419,16 @@ internal fun Project.publishLibraryRoles(targets: Set<LibraryTarget>, verificati
 class LibraryNativeScope internal constructor(private val native: dev.shibasis.dependeasy.native.NativeLibrary) {
     fun links(vararg dependencies: dev.shibasis.dependeasy.native.NativeDependency) = native.dependencies(*dependencies)
     fun uses(vararg modules: ModuleHandle) = native.modules(*modules)
+    fun uses(vararg projects: NativeContract.Project) { native.localProjects.addAll(projects) }
+    fun links(vararg projects: NativeContract.Project) {
+        uses(*projects)
+        native.localLinks.addAll(projects.map { it.target })
+    }
+    fun tests(name: String, sources: List<String>, vararg dependencies: NativeContract.Project) {
+        uses(*dependencies)
+        native.testExecutables.add(NativeContract.Executable(name, sources,
+            listOf(native.resolvedLibraryName) + dependencies.map { it.target }, hostOnly = true, discoverTests = true))
+    }
 }
 
 @LibraryDsl

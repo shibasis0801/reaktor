@@ -227,12 +227,12 @@ class AppleContractsTest {
             put("apsEnvironment", "production"); put("method", "app-store-connect"); put("team", "fixture-team")
             put("profiles", buildJsonObject { put("fixture.app", "Profile & Co"); put("fixture.app.service", "service-profile") })
         }
-        val (settings, options) = signingFiles(host, request)
+        val (settings, options) = SigningKernel.render(host, request)
         assertContains(settings, "FIXTURE_SERVICE_CODE_SIGN_STYLE = Manual")
         assertContains(settings, "FIXTURE_SERVICE_PROVISIONING_PROFILE_SPECIFIER = service-profile")
         assertContains(settings, "FIXTURE_PROVISIONING_PROFILE_SPECIFIER = Profile & Co")
         assertContains(requireNotNull(options), "Profile &amp; Co")
-        assertFailsWith<IllegalArgumentException> { signingFiles(host, JsonObject(request + ("identity" to JsonPrimitive("Injected\nSETTING = YES")))) }
+        assertFailsWith<IllegalArgumentException> { SigningKernel.render(host, JsonObject(request + ("identity" to JsonPrimitive("Injected\nSETTING = YES")))) }
     }
     @Test fun `signing task preserves cache and private settings permissions`() {
         prepare()

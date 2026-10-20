@@ -1,0 +1,20 @@
+package dev.shibasis.dependeasy.model
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+sealed interface WorkerServiceBinding {
+    val binding: String
+    val entrypoint: String?
+    @Serializable data class Worker(override val binding: String, val target: WorkerRef,
+        override val entrypoint: String? = null) : WorkerServiceBinding
+    @Serializable data class External(override val binding: String, val target: ServiceRef,
+        override val entrypoint: String? = null) : WorkerServiceBinding
+}
+
+@Serializable
+data class WorkerDeployment(val environment: Environment, val service: ServiceRef,
+    val bindings: List<WorkerServiceBinding> = emptyList())
+
+@Serializable
+data class FleetWorker(val ref: WorkerRef, val node: NodeId, val deployments: List<WorkerDeployment>)

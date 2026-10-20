@@ -50,7 +50,7 @@ internal class KotlinBrowser(private val project: Project, private val output: S
         if (requirements.isNotEmpty()) {
             val guard = BuildWorkspace.get(project).emit(project, KernelSpec.WorkspaceNode(
                 NodeId(project.rootProject.name, project.path, "checkBrowserOptions"), NodeKind.Verification,
-                Run.Default, emptyList(), emptyList(), emptyList(), requirements.toList()), WorkspaceCompletion,
+                Run.Default, emptyList(), emptyList(), emptyList(), requirements.toList()), VerificationKernel,
                 project.declarationSite(), null, emptyList(), emptyList(), emptyList())
             bundle.configure { dependsOn(requireNotNull(guard.task)) }
         }

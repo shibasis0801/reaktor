@@ -4,8 +4,3 @@ reaktor_platform()
 project(${DEPE_NATIVE_TARGET} LANGUAGES C CXX)
 reaktor_configuration()
 reaktor_library(${PROJECT_NAME})
-
-if(NOT ANDROID AND NOT iOS)
-    add_executable(interopHostTest src/commonTest/cpp/RuntimeTest.cpp)
-    target_link_libraries(interopHostTest PRIVATE ReaktorFFI)
-endif()

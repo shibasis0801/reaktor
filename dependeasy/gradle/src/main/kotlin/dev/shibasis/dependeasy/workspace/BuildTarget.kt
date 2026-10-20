@@ -2,11 +2,9 @@ package dev.shibasis.dependeasy.workspace
 
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.handles.*
-import dev.shibasis.dependeasy.configuration.resolve
 import org.gradle.api.Project
-import org.gradle.api.provider.Provider
 
-internal class BuildTarget(private val project: Project, val name: String, private val site: SourceSite?) {
+internal class BuildTarget(private val project: Project, val name: String, private val site: SourceSite?, private val kernel: WorkspaceKernel) {
     var effect = Effect.Build
     var host = HostRequirement()
     var runner = Runner.Gradle
@@ -15,7 +13,6 @@ internal class BuildTarget(private val project: Project, val name: String, priva
     val environments = mutableListOf<Environment>()
     internal val dependencies = mutableListOf<Any>()
     internal val ordering = mutableListOf<NodeHandle>()
-    internal val requirements = mutableListOf<Provider<OptionRequirement>>()
     private val edges = mutableListOf<Edge>()
     private val outputs = mutableListOf<OutputHandle>()
     internal val consumedOutputs get() = outputs.toList()
@@ -53,18 +50,10 @@ internal class BuildTarget(private val project: Project, val name: String, priva
         }
     }
 
-    fun <T : Any> require(option: BuildOption<T>, value: T) {
-        requirements.add(project.resolve(option).map { OptionRequirement(it.evidence, value.toString()) })
-    }
-
     internal fun outputKinds(): List<OutputKind> = (outputs.map { it.kind } + includedNodes.flatMap { it.outputKinds() }).distinct()
 
     internal fun dependencies(): List<Any> {
-        (declaration?.requirements ?: requirements.map { it.get() }).forEach { requirement ->
-            check(requirement.option.value == requirement.expected) {
-                "$name requires ${requirement.option.name}=${requirement.expected}; resolved from ${requirement.option.source}${requirement.option.file?.let { " ($it)" }.orEmpty()}"
-            }
-        }
+        kernel.validate(requireNotNull(declaration))
         return dependencies
     }
 
@@ -75,11 +64,11 @@ internal class BuildTarget(private val project: Project, val name: String, priva
         val files = outputs.map { FileSet(consumer.resolve(it).paths(consumer), it.kind.name) }
         return Node(id, requireNotNull(declaration).kind,
             name, effect, host.copy(platform = platform), site,
-            kernelRef(project, WorkspaceCompletion::class.java).copy(spec = declaration),
+            kernelRef(project, kernel.javaClass).copy(spec = declaration),
             Invocation.Gradle(listOf(project.path.trimEnd(':') + ":" + name)),
             inputs = files, outputs = if (exposesOutputs) files else emptyList(), runner = runner,
             artifactFamily = family, worker = worker, bindings = bindings.sortedBy { it.name },
-            environments = environments.toList(), requirements = declaration?.requirements ?: requirements.map { it.get() })
+            environments = environments.toList(), requirements = requireNotNull(declaration).requirements)
     }
 
     internal fun edges(): List<Edge> = edges.distinct()

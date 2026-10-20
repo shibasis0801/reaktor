@@ -2,6 +2,7 @@ package dev.shibasis.dependeasy.process
 
 import dev.shibasis.dependeasy.model.KernelSpec
 import dev.shibasis.dependeasy.model.ProcessExecution
+import dev.shibasis.dependeasy.model.ProcessKernel
 import dev.shibasis.dependeasy.model.ToolRef
 import dev.shibasis.dependeasy.model.Effect
 import dev.shibasis.dependeasy.model.HostPlatform
@@ -62,7 +63,13 @@ abstract class ProcessTask : DefaultTask(), KernelSpecOwner {
     @TaskAction fun run() {
         outputFiles.files.forEach { it.parentFile.mkdirs() }
         outputDirectories.files.forEach { it.mkdirs() }
-        CommandTask.run(execOperations, workingDirectory.get().asFile, executable.get(),
-            commandArguments(), executionEnvironment(), toolVersion.get(), receiptFile.orNull?.asFile)
+        ProcessKernel.run(executionSpec(), receiptFile.orNull?.asFile) { execution ->
+            execOperations.exec {
+                workingDir = java.io.File(execution.directory)
+                executable = execution.executable
+                args(execution.arguments)
+                environment(executionEnvironment())
+            }.assertNormalExitValue()
+        }
     }
 }

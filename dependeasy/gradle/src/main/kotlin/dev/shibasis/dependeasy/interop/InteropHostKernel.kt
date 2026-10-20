@@ -14,7 +14,11 @@ import org.gradle.kotlin.dsl.register
 
 internal fun Project.interopHostTests(name: String, bundleFile: java.io.File, bundle: TaskProvider<out ProcessTask>): TaskProvider<ProcessTask> {
     val compile = checkNotNull(project.kotlinCmake(dev.shibasis.dependeasy.tasks.CmakePlatform.Host())).also { task ->
-        task.configure { buildTarget.set("interopHostTest") }
+        task.configure {
+            nativeExecutables.add(dev.shibasis.dependeasy.model.NativeContract.Executable("interopHostTest",
+                listOf("src/commonTest/cpp/RuntimeTest.cpp"), listOf(buildTarget.get())))
+            buildTarget.set("interopHostTest")
+        }
     }
     val check = tasks.register<ProcessTask>("${name}HostCheck") {
         group = "verification"

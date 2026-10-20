@@ -9,7 +9,6 @@ import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.declarationSite
 import kotlinx.serialization.encodeToString
 import org.gradle.kotlin.dsl.register
-import kotlinx.serialization.json.*
 import org.gradle.api.Project
 import java.io.File
 import dev.shibasis.dependeasy.handles.*
@@ -21,43 +20,31 @@ class WorkerFleet internal constructor(
     private val prerequisites: List<OutputHandle>,
     private val contracts: WorkerContractTests?,
 ) {
-    private data class Declaration(val directory: File, val prerequisites: List<OutputHandle>, val site: SourceSite?)
+    private data class Declaration(val worker: FleetWorker, val directory: File, val prerequisites: List<OutputHandle>, val site: SourceSite?)
     private val workers = linkedMapOf<String, Declaration>()
     private val environmentOption = BuildOption.string("dependeasy.environment", environment = "TARGET_ENV")
-    fun worker(ref: WorkerRef, vararg prerequisites: OutputHandle) {
+    fun worker(ref: WorkerRef, deployments: List<WorkerDeployment>, vararg prerequisites: OutputHandle) {
         require(!File(ref.directory).isAbsolute) { "Worker directories must be relative" }
-        require(workers.put(ref.name, Declaration(project.rootProject.file(ref.directory), prerequisites.toList(), project.declarationSite())) == null) { "Duplicate worker: ${ref.name}" }
+        require(workers.put(ref.name, Declaration(FleetWorker(ref, NodeId(project.rootProject.name, project.path, "deploy${ref.name.replaceFirstChar(Char::uppercaseChar)}"), deployments.toList()), project.rootProject.file(ref.directory), prerequisites.toList(), project.declarationSite())) == null) { "Duplicate worker: ${ref.name}" }
     }
 
     internal fun register(workspace: BuildWorkspace): NodeHandle {
         require(environments.isNotEmpty()) { "Declare the fleet environments" }
-        val configs = workers.mapValues { Json.parseToJsonElement(it.value.directory.resolve("wrangler.json").readText()).jsonObject }
-        val records = workers.map { (name, declaration) ->
-            val directory = declaration.directory
-            val selected = environments.filter { it == environments.last() || directory.resolve("wrangler.${it.name}.json").isFile }
-            WorkerDeployable(name, NodeId(project.rootProject.name, project.path, "deploy${name.replaceFirstChar(Char::uppercaseChar)}"),
-                project.rootProject.relativePath(directory),
-                selected.associate { it.name to project.rootProject.relativePath(directory.resolve("wrangler.dependeasy-${it.name}.json")) },
-                selected.associate { environment ->
-                    val file = directory.resolve(if (environment == environments.last()) "wrangler.json" else "wrangler.${environment.name}.json")
-                    environment.name to Json.parseToJsonElement(file.readText()).jsonObject.getValue("name").jsonPrimitive.content
-                })
-        }
+        require(workers.values.all { declaration -> declaration.worker.deployments.all { it.environment in environments } }) { "A worker uses an undeclared fleet environment" }
+        val fleetSpec = KernelSpec.WorkerFleet(environments.last(), workers.values.map { it.worker }, FileSet(listOf("wrangler.json")),
+            FileSet(listOf(project.rootProject.relativePath(project.rootProject.layout.buildDirectory.file("dependeasy/cloudflare/fleet.json").get().asFile))))
+        val records = WorkerFleetKernel.plan(fleetSpec).workers
         val generate = project.tasks.register<WorkerFleetTask>("generateWorkerFleet") {
             group = "code generation"
             root.set(project.rootProject.layout.projectDirectory)
             defaults.set(project.rootProject.layout.projectDirectory.file("wrangler.json"))
-            defaultEnvironment.set(environments.last().name)
-            declaration.set(BuildModelReader.json.encodeToString(WorkerFleetContract(workers = records)))
-            configurations.from(records.flatMap { worker -> worker.configurations.keys.map { environment ->
-                project.rootProject.file(worker.directory).resolve(if (environment == environments.last().name) "wrangler.json" else "wrangler.$environment.json")
-            } })
+            declaration.set(BuildModelReader.json.encodeToString(fleetSpec))
+            configurations.from(WorkerFleetKernel.configurationSources(fleetSpec).map(project.rootProject::file))
             finalConfigurations.from(records.flatMap { it.configurations.values }.map(project.rootProject::file))
             contract.set(project.rootProject.layout.buildDirectory.file("dependeasy/cloudflare/fleet.json"))
         }
         project.node(generate, OutputKind.GeneratedContract)
         project.publishOutput(OutputKind.GeneratedContract, generate.flatMap { it.contract }, Contract.WorkerFleet, producer = generate)
-        val names = configs.entries.associate { it.value.getValue("name").jsonPrimitive.content to it.key }
         val nodes = linkedMapOf<String, NodeHandle>()
         records.forEach { worker ->
             val name = worker.name
@@ -83,14 +70,14 @@ class WorkerFleet internal constructor(
                 dependsOn(generate)
                 outputs.upToDateWhen { false }
             }
-            val bindings = configs.getValue(name)["services"]?.jsonArray.orEmpty().map { it.jsonObject.getValue("service").jsonPrimitive.content }
+            val bindings = WorkerFleetKernel.bindings(fleetSpec, declaration.worker, environments.last()).map { it.second }
             val dependencies = listOf(project.node(command))
             val outputs = prerequisites + declaration.prerequisites
             val spec = KernelSpec.WorkspaceNode(worker.node, NodeKind.Deploy, Run.onLinux().onWorker(),
                 dependencies.map { it.id }, outputs.map { it.nodeId }, emptyList(), emptyList(),
                 worker = WorkerRef(name, project.rootProject.relativePath(directory)),
-                environments = this@WorkerFleet.environments.filter { it.name in configurations }, bindings = bindings.map(::ServiceRef))
-            nodes[name] = workspace.emit(project, spec, WorkspaceCompletion, declaration.site, null, dependencies, outputs, emptyList())
+                environments = this@WorkerFleet.environments.filter { it.name in configurations }, bindings = bindings)
+            nodes[name] = workspace.emit(project, spec, DeployKernel, declaration.site, null, dependencies, outputs, emptyList())
             val deploy = nodes.getValue(name)
             val tail = project.node(logs)
             workspace.alias(directory, "deploy", deploy)
@@ -137,10 +124,10 @@ class WorkerFleet internal constructor(
                 workspace.alias(project.rootDir, "test:workers:karate$suffix", suite)
             }
         }
-        workers.keys.forEach { name ->
-            val bindings = configs.getValue(name)["services"]?.jsonArray.orEmpty().map { it.jsonObject.getValue("service").jsonPrimitive.content }
+        workers.forEach { (name, declaration) ->
+            val bindings = declaration.worker.deployments.single { it.environment == environments.last() }.bindings
             workspace.configure(nodes.getValue(name)) {
-                includes(*bindings.mapNotNull(names::get).filter { it != name }.map(nodes::getValue).toTypedArray())
+                includes(*bindings.filterIsInstance<WorkerServiceBinding.Worker>().map { it.target.name }.filter { it != name }.map(nodes::getValue).toTypedArray())
             }
         }
         project.tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(generate) }

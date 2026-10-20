@@ -144,8 +144,8 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     }
 
     private fun verificationConsumer(task: TaskProvider<out org.gradle.api.Task>) {
-        val completed = project.registeredTask(dev.shibasis.dependeasy.workspace.WorkspaceTargetTask::class.java, "typeScriptVerification") {
-            val aggregate = project.tasks.register<dev.shibasis.dependeasy.workspace.WorkspaceTargetTask>("completeTypeScriptChecks")
+        val completed = project.registeredTask(dev.shibasis.dependeasy.workspace.WorkspaceNodeTask::class.java, "typeScriptVerification") {
+            val aggregate = project.tasks.register<dev.shibasis.dependeasy.workspace.WorkspaceNodeTask>("completeTypeScriptChecks") { bind(VerificationKernel) }
             project.publishOutput(OutputKind.VerificationResults, aggregate.flatMap { it.completionManifest },
                 Verification.TypeScript, producer = aggregate)
             aggregate

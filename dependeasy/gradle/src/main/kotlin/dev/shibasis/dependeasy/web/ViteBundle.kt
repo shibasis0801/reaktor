@@ -11,7 +11,9 @@ import org.gradle.work.DisableCachingByDefault
 @DisableCachingByDefault(because = "External tool outputs contain host paths")
 abstract class ViteBundle : ProcessTask() {
     @get:Input @get:Optional abstract val configuration: Property<String>
-    override fun commandArguments() = listOf("exec", "vite", "build") +
-        configuration.orNull?.let { listOf("--config", it) }.orEmpty()
-    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.ViteBundle(executionSpec(), configuration.orNull)
+    override fun commandArguments() = (kernelSpec as KernelSpec.ViteBundle).execution.arguments
+    @get:Internal override val kernelSpec: KernelSpec get() {
+        val spec = KernelSpec.ViteBundle(executionSpec(arguments.get()), configuration.orNull)
+        return spec.copy(execution = dev.shibasis.dependeasy.model.JavaScriptKernel.plan(spec))
+    }
 }

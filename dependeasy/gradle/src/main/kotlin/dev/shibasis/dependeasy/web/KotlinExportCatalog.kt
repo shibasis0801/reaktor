@@ -6,11 +6,9 @@ import dev.shibasis.dependeasy.model.OutputKind
 import dev.shibasis.dependeasy.model.SourceSite
 import dev.shibasis.dependeasy.workspace.declarationSite
 import java.io.File
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.add
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.process.KernelSpecOwner
+import org.gradle.api.tasks.Internal
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
@@ -22,18 +20,17 @@ import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 import org.gradle.work.DisableCachingByDefault
 
-/** Machine adapters consume declared export locations instead of guessing directory names. */
 @DisableCachingByDefault(because = "A small deterministic workspace metadata file")
-abstract class KotlinExportCatalog : DefaultTask() {
+abstract class KotlinExportCatalog : DefaultTask(), KernelSpecOwner {
     @get:Input abstract val directories: ListProperty<String>
     @get:OutputFile abstract val outputFile: RegularFileProperty
 
+    @get:Internal override val kernelSpec get() = KernelSpec.KotlinExportCatalog(
+        FileSet(directories.get()), FileSet(listOf(outputFile.get().asFile.absolutePath)))
+
     @TaskAction fun write() {
-        val metadata = buildJsonObject {
-            put("schemaVersion", 1)
-            putJsonArray("directories") { directories.get().distinct().sorted().forEach { add(it) } }
-        }
-        outputFile.get().asFile.apply { parentFile.mkdirs(); writeText(Json.encodeToString(metadata) + "\n") }
+        val rendered = KotlinExportCatalogKernel.render(kernelSpec)
+        outputFile.get().asFile.apply { parentFile.mkdirs(); writeText(rendered) }
     }
 }
 

@@ -4,7 +4,7 @@ import dev.shibasis.dependeasy.model.BuildOption
 import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.handles.*
-import dev.shibasis.dependeasy.workspace.WorkspaceTargetTask
+import dev.shibasis.dependeasy.workspace.WorkspaceNodeTask
 import dev.shibasis.dependeasy.workspace.declarationSite
 import org.gradle.api.publish.maven.tasks.PublishToMavenLocal
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
@@ -47,7 +47,8 @@ internal class PublishingKernel(
     private fun aggregate(name: String, destination: Publication, type: Class<out org.gradle.api.Task>) {
         val site = project.declarationSite()
         val outputs = project.subprojects.map { module ->
-            val completed = module.tasks.register<WorkspaceTargetTask>("complete${destination.name}Publication") {
+            val completed = module.tasks.register<WorkspaceNodeTask>("complete${destination.name}Publication") {
+                bind(ReleaseKernel)
                 dependsOn(module.tasks.withType(type))
             }
             val output = OutputHandle(project.dependencies.project(mapOf("path" to module.path)),

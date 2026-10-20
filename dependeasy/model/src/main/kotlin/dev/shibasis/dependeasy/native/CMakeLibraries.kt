@@ -5,7 +5,7 @@ import java.io.File
 import kotlinx.serialization.json.*
 
 /** CMake owns the configured target graph. Old archives on disk are not declarations. */
-internal object CMakeLibraries {
+object CMakeLibraries {
     const val MANIFEST = "static-libraries.json"
 
     fun request(build: File) {

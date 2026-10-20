@@ -10,11 +10,12 @@ open class NativeLibrary internal constructor(
     private val project: Project,
 ) {
     var enabled: Boolean? = null
-    var sourceDirectory: Any? = null
-    var cmakeLists: Any? = null
     var libraryName: String? = null
     private val libraries = linkedSetOf<NativeDependency>()
     private val nativeModules = linkedSetOf<dev.shibasis.dependeasy.model.ModuleHandle>()
+    internal val localProjects = linkedSetOf<dev.shibasis.dependeasy.model.NativeContract.Project>()
+    internal val localLinks = linkedSetOf<String>()
+    internal val testExecutables = mutableListOf<dev.shibasis.dependeasy.model.NativeContract.Executable>()
     private var supportedPlatforms = NativePlatform.entries.toSet()
     private var supportedAbis = NativeAbi.defaults
 
@@ -36,15 +37,12 @@ open class NativeLibrary internal constructor(
     fun includeDirs(vararg directories: Any) { publicHeaders.addAll(directories) }
 
     internal val resolvedIncludeDirs: List<String>
-        get() = (legacyIncludeDirs + sourceSetIncludeDirs + publicHeaders.map(project::file) +
+        get() = (sourceSetIncludeDirs + publicHeaders.map(project::file) +
             libraries.flatMap { dependency -> dependency.source?.let { tool ->
                 val directory = project.nativeTools.sourceTasks.getValue(tool).get().checkout.get().asFile
                 dependency.includeRoots.map(directory::resolve)
             }.orEmpty() })
             .map { it.absolutePath }.distinct()
-
-    private val legacyIncludeDirs: List<File>
-        get() = listOf(resolvedSourceDirectory).filter { it != project.projectDir }
 
     private val sourceSetIncludeDirs: List<File>
         get() = listOf("commonMain", "androidMain", "iosMain").flatMap { sourceSet ->
@@ -56,10 +54,10 @@ open class NativeLibrary internal constructor(
     internal val darwin = DarwinNativeConfiguration(project)
 
     internal val resolvedSourceDirectory: File
-        get() = project.file(sourceDirectory ?: if (project.file("CMakeLists.txt").isFile) "." else "cpp").normalize()
+        get() = project.projectDir
 
     internal val resolvedCmakeLists: File
-        get() = project.file(cmakeLists ?: resolvedSourceDirectory.resolve("CMakeLists.txt"))
+        get() = resolvedSourceDirectory.resolve("CMakeLists.txt")
 
     internal val resolvedLibraryName: String
         get() = libraryName

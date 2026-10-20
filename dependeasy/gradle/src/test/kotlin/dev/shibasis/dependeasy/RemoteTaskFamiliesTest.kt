@@ -1,7 +1,6 @@
 package dev.shibasis.dependeasy
 
 import dev.shibasis.dependeasy.model.*
-import dev.shibasis.dependeasy.workspace.taskFamilies
 import kotlin.test.*
 
 class RemoteTaskFamiliesTest {
@@ -23,7 +22,7 @@ class RemoteTaskFamiliesTest {
                 node("product", ":web", "outputVerificationResults", "verification", ":web:bundle"),
                 node("framework", ":conductor", "outputVerificationResultsJvm", "verification", ":conductor:jvmTest"),
             ))
-        val families = taskFamilies(model, "product")
+        val families = BuildModelKernel.taskFamilies(model, "product")
         assertEquals("jvm", families[":kernel:agentDist"])
         assertEquals("verification", families[":kernel:test"])
         assertEquals("verification", families[":framework:conductor:jvmTest"])

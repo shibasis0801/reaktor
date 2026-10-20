@@ -50,7 +50,7 @@ class WorkspaceScope internal constructor(private val project: Project, private 
                 if (call is ExternalCall.Fastlane) Effect.Build else Effect.Verify, run))
             workspace.emit(project, declaration.spec(name, NodeKind.External).copy(
                 effect = if (call is ExternalCall.Fastlane) Effect.Build else Effect.Verify,
-                runner = runner), WorkspaceCompletion, site, null,
+                runner = runner), ExternalKernel, site, null,
                 declaration.includes.toList(), declaration.consumes.toList(), declaration.after.toList())
         }
     }
@@ -81,7 +81,7 @@ class WorkspaceScope internal constructor(private val project: Project, private 
     private fun verification(outputs: List<OutputHandle>, role: Workspace?, run: Run, content: VerifySpec.() -> Unit): NodeDeclaration {
         val declaration = NodeContent(project, run).apply { consumes.addAll(outputs) }
         VerifySpec(declaration).apply(content)
-        return emit(declaration, NodeKind.Verification, role, project.declarationSite(), WorkspaceCompletion)
+        return emit(declaration, NodeKind.Verification, role, project.declarationSite(), VerificationKernel)
     }
 
     fun artifacts(parts: Parts, role: Workspace? = null, run: Run = Run.Default, content: ArtifactsSpec.() -> Unit = {}) =
@@ -96,14 +96,14 @@ class WorkspaceScope internal constructor(private val project: Project, private 
     private fun artifacts(outputs: List<OutputHandle>, role: Workspace?, run: Run, content: ArtifactsSpec.() -> Unit): NodeDeclaration {
         val declaration = NodeContent(project, run).apply { consumes.addAll(outputs) }
         ArtifactsSpec(declaration).apply(content)
-        return emit(declaration, NodeKind.ArtifactSet, role, project.declarationSite(), WorkspaceCompletion)
+        return emit(declaration, NodeKind.ArtifactSet, role, project.declarationSite(), ArtifactSetKernel)
     }
 
     fun delivery(after: NodeHandle, run: Run = Run.Default, content: DeliveryScope.() -> Unit) {
         DeliveryScope(project, workspace, after, run).apply(content)
     }
 
-    private fun emit(content: NodeContent, kind: NodeKind, role: Workspace?, site: SourceSite?, kernel: WorkspaceCompletion) =
+    private fun emit(content: NodeContent, kind: NodeKind, role: Workspace?, site: SourceSite?, kernel: WorkspaceKernel) =
         NodeDeclaration { name -> workspace.emit(project, content.spec(name, kind), kernel, site, role, content.includes.toList(), content.consumes.toList(), content.after.toList()) }
 }
 
@@ -120,7 +120,7 @@ class DeliveryScope internal constructor(
         val site = project.declarationSite()
         return NodeDeclaration { name ->
             declaration.includes.add(project.externalCommand("${name}Lane", ExternalCall.Fastlane(lane), "WP16 typed store release kernel", Effect.Deploy, run))
-            workspace.emit(project, declaration.spec(name, NodeKind.Release), WorkspaceCompletion, site, null,
+            workspace.emit(project, declaration.spec(name, NodeKind.Release), ReleaseKernel, site, null,
                 declaration.includes.toList(), declaration.consumes.toList(), declaration.after.toList())
         }
     }
@@ -131,7 +131,7 @@ class DeliveryScope internal constructor(
         DeploySpec(declaration).apply(content)
         val site = project.declarationSite()
         return NodeDeclaration { name -> workspace.emit(project, declaration.spec(name, NodeKind.Deploy).copy(worker = worker, environments = environments),
-            WorkspaceCompletion, site, null, declaration.includes.toList(), emptyList(), declaration.after.toList()) }
+            DeployKernel, site, null, declaration.includes.toList(), emptyList(), declaration.after.toList()) }
     }
 
     fun migrate(output: OutputHandle, run: Run = this.run, content: DeploySpec.() -> Unit = {}): NodeDeclaration {
@@ -144,7 +144,7 @@ class DeliveryScope internal constructor(
         val declaration = NodeContent(project, run).apply { consumes.add(output); after.add(gate) }
         ReleaseSpec(declaration).apply(content)
         val site = project.declarationSite()
-        return NodeDeclaration { name -> workspace.emit(project, declaration.spec(name, NodeKind.Release), WorkspaceCompletion, site, null,
+        return NodeDeclaration { name -> workspace.emit(project, declaration.spec(name, NodeKind.Release), ReleaseKernel, site, null,
             emptyList(), declaration.consumes.toList(), declaration.after.toList()) }
     }
 
@@ -161,7 +161,7 @@ class DeliveryScope internal constructor(
         val declaration = NodeContent(project, run).apply { consumes.addAll(outputs); after.add(gate) }
         DeploySpec(declaration).apply(content)
         val site = project.declarationSite()
-        return NodeDeclaration { name -> workspace.emit(project, declaration.spec(name, NodeKind.Deploy), WorkspaceCompletion, site, null,
+        return NodeDeclaration { name -> workspace.emit(project, declaration.spec(name, NodeKind.Deploy), DeployKernel, site, null,
             declaration.includes.toList(), declaration.consumes.toList(), declaration.after.toList()) }
     }
 }

@@ -21,9 +21,9 @@ abstract class PnpmInstallTask : ProcessTask() {
     }
 
     override fun commandArguments(): List<String> {
-        val command = super.commandArguments()
-        if (!PnpmInstallation.needsRepair(packageManifests.files)) return command
-        logger.lifecycle("Repairing incomplete pnpm registry packages from the frozen lockfile")
-        return command + "--force"
+        val spec = kernelSpec as KernelSpec.PnpmInstall
+        val command = dev.shibasis.dependeasy.model.JavaScriptKernel.plan(spec).arguments
+        if (command != spec.execution.arguments) logger.lifecycle("Repairing incomplete pnpm registry packages from the frozen lockfile")
+        return command
     }
 }

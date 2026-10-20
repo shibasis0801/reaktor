@@ -39,15 +39,7 @@ abstract class DependencyBoundary : DefaultTask(), KernelSpecOwner {
         reason.convention("Dependency boundary violated")
     }
 
-    @TaskAction fun verify() {
-        val forbidden = coordinates.get().filter { coordinate ->
-            val (group, module) = coordinate.split(':', limit = 3)
-            groupPrefixes.get().any(group::startsWith) || groupFragments.get().any(group::contains) ||
-                module.removeSuffix(moduleSuffix.get()) in modules.get()
-        }
-        check(forbidden.isEmpty()) { "${reason.get()}: ${forbidden.joinToString()}" }
-        resultFile.get().asFile.apply { parentFile.mkdirs(); writeText("verified\n") }
-    }
+    @TaskAction fun verify() = DependencyBoundaryKernel.verify(kernelSpec, coordinates.get(), resultFile.get().asFile)
 }
 
 internal fun Project.dependencyBoundary(

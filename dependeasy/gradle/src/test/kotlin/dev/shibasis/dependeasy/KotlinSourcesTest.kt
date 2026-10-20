@@ -70,11 +70,15 @@ class KotlinSourcesTest {
         val requirement = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
             .withEnvironment(System.getenv().filterKeys { it != "CONFIGURATION" })
             .withArguments("requireEnabledDisabledForRelease", "-Penabled=true", "--configuration-cache").buildAndFail()
-        assertContains(requirement.output, "enabled must be false for release")
+        assertContains(requirement.output, "requires enabled=false")
         val xcodeRelease = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
             .withEnvironment(System.getenv() + ("CONFIGURATION" to "Release"))
-            .withArguments("generateTypedFields", "requireEnabledDisabledForRelease", "-Penabled=true", "--configuration-cache").build()
-        assertContains(xcodeRelease.output, "Xcode CONFIGURATION=Release")
+            .withArguments("generateTypedFields", "requireEnabledDisabledForRelease", "exportBuildModel", "-Penabled=true", "--configuration-cache").build()
+        val releaseGuard = dev.shibasis.dependeasy.model.BuildModelReader.read(directory).nodes
+            .single { it.id.name == "requireEnabledDisabledForRelease" }
+        val guardSpec = releaseGuard.kernel!!.spec as dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode
+        assertEquals(dev.shibasis.dependeasy.model.OptionSource.XcodeRelease, guardSpec.requirements.single().option.source)
+        assertEquals("dev.shibasis.dependeasy.model.VerificationKernel", releaseGuard.kernel!!.className)
         assertContains(typed.readText(), "const val enabled: Boolean = false")
         assertFalse(typed.readText().contains("dollars"))
         run(false)

@@ -4,7 +4,7 @@ import dev.shibasis.dependeasy.model.NativeContract
 import kotlinx.serialization.json.*
 import java.io.File
 
-internal fun NativeContract.cmake(): String {
+fun NativeContract.cmake(): String {
     require(schema == 1) { "Unsupported native contract" }
     fun quote(value: String): String {
         require('\n' !in value && '\r' !in value && '\u0000' !in value) { "Invalid CMake value" }
@@ -18,7 +18,20 @@ internal fun NativeContract.cmake(): String {
         fun setting(name: String, value: String) { append("set(${variable(name)} ${quote(value)} CACHE STRING \"\" FORCE)\n") }
         setting("DEPE_NATIVE_SCHEMA", schema.toString())
         setting("DEPE_NATIVE_TARGET", library)
+        setting("DEPE_NATIVE_TESTS", if (executables.any { it.discoverTests }) "ON" else "OFF")
+        require(libraryKind in setOf("STATIC", "SHARED")) { "Unsupported native library kind" }
+        setting("DEPE_NATIVE_LIBRARY_KIND", libraryKind)
+        setting("DEPE_NATIVE_SOURCES", compilationSources.joinToString(";"))
+        setting("DEPE_NATIVE_PRIVATE_INCLUDE_DIRECTORIES", privateIncludeDirectories.joinToString(";"))
         settings.toSortedMap().forEach { (name, value) -> setting(name, value) }
+        sources.filter { it.recipe == "webview" }.singleOrNull()?.let { source ->
+            setting("DEPE_WEBVIEW_SOURCE", source.directory)
+            listOf("WEBVIEW_BUILD_TESTS", "WEBVIEW_BUILD_EXAMPLES", "WEBVIEW_BUILD_DOCS", "WEBVIEW_BUILD_AMALGAMATION",
+                "WEBVIEW_BUILD_SHARED_LIBRARY", "WEBVIEW_INSTALL_TARGETS", "WEBVIEW_ENABLE_PACKAGING").forEach { setting(it, "OFF") }
+            setting("WEBVIEW_BUILD_STATIC_LIBRARY", "ON")
+            setting("WEBVIEW_MSWEBVIEW2_VERSION", settings.getValue("REAKTOR_WEBVIEW_WINDOWS_SDK"))
+            setting("WEBVIEW_WEBKITGTK_API", settings.getValue("REAKTOR_WEBVIEW_WEBKITGTK_API"))
+        }
         setting("DEPE_NATIVE_INCLUDE_DIRECTORIES", includeDirectories.joinToString(";"))
         setting("DEPE_NATIVE_LINK_LIBRARIES", linkLibraries.joinToString(";"))
         setting("DEPE_NATIVE_COMPILE_OPTIONS", compileOptions.joinToString(";"))
@@ -42,11 +55,27 @@ internal fun NativeContract.cmake(): String {
                 append("    add_subdirectory(${quote(source.directory)} \"\${CMAKE_CURRENT_BINARY_DIR}/deps/hermes\")\n  endif()\n")
             }
         }
+        projects.forEach { project ->
+            project.settings.toSortedMap().forEach { (name, value) -> setting(name, value) }
+            append("  add_subdirectory(${quote(project.directory)} EXCLUDE_FROM_ALL)\n")
+            project.packageVariable?.let { name ->
+                append("  set(${variable(name)} \"\${CMAKE_CURRENT_BINARY_DIR}/${project.directory}\" CACHE PATH \"\" FORCE)\n")
+            }
+        }
+        if (executables.any { it.discoverTests }) append("  include(GoogleTest)\n")
+        require(executables.map { it.name }.distinct().size == executables.size) { "Duplicate native executable" }
+        executables.forEach { executable ->
+            require(executable.name.isNotBlank() && executable.sources.isNotEmpty()) { "Native executable needs a name and sources" }
+            append("  add_executable(${quote(executable.name)} ${executable.sources.joinToString(" ", transform = ::quote)})\n")
+            if (executable.discoverTests) append("  gtest_discover_tests(${quote(executable.name)})\n")
+            if (executable.links.isNotEmpty()) append("  target_link_libraries(${quote(executable.name)} PRIVATE ${executable.links.joinToString(" ", transform = ::quote)})\n")
+            if (executable.includes.isNotEmpty()) append("  target_include_directories(${quote(executable.name)} PRIVATE ${executable.includes.joinToString(" ", transform = ::quote)})\n")
+        }
         append("endif()\n")
     }
 }
 
-internal fun prefabLibrary(directory: File, abi: String, declaration: AndroidPrefabConfiguration): NativeContract.Library {
+fun prefabLibrary(directory: File, abi: String, declaration: AndroidPrefabConfiguration): NativeContract.Library {
     val root = directory.resolve("libs/android.$abi")
     val metadata = Json.parseToJsonElement(root.resolve("abi.json").readText()).jsonObject
     require(metadata.getValue("abi").jsonPrimitive.content == abi) { "Prefab ABI mismatch" }

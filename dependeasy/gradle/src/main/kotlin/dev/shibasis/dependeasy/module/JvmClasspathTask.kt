@@ -28,10 +28,7 @@ abstract class JvmClasspathTask : DefaultTask(), KernelSpecOwner {
     @get:Input val paths: List<String> get() = classpath.files.map { it.absolutePath }
 
     @TaskAction fun write() {
-        destination.get().asFile.apply {
-            parentFile.mkdirs()
-            writeText(paths.joinToString("\n"))
-        }
+        dev.shibasis.dependeasy.model.JvmLaunchKernel.classpath(paths, destination.get().asFile)
     }
 }
 

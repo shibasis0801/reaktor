@@ -1,7 +1,5 @@
 package dev.shibasis.dependeasy.codegen
 
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.MapProperty
@@ -9,7 +7,6 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import java.io.File
-import dev.shibasis.dependeasy.files.clearChildrenSafely
 import org.gradle.work.DisableCachingByDefault
 
 /** Generated values have declared inputs and a producer-backed source directory. */
@@ -40,20 +37,9 @@ abstract class KotlinObjectTask : DefaultTask() {
     }
 
     @TaskAction fun generate() {
-        val fields = values.get().map { (name, value) -> "    val $name: String = ${literal(value)}" } +
-            strings.get().map { (name, value) -> "    const val $name: String = ${literal(value)}" } +
-            booleans.get().map { (name, value) -> "    const val $name: Boolean = $value" } +
-            texts.get().map { (name, value) ->
-                val chunks = value.chunked(16_000).ifEmpty { listOf("") }.joinToString(",\n        ", transform = ::literal)
-                "    val $name: String = listOf(\n        $chunks,\n    ).joinToString(\"\")"
-            }
-        val owned = outputDirectory.get().asFile
-        owned.clearChildrenSafely()
-        val destination = owned.resolve("${packageName.get().replace('.', '/')}/${objectName.get()}.kt")
-        destination.parentFile.mkdirs()
-        destination.writeText("package ${packageName.get()}\n\ninternal object ${objectName.get()} {\n" +
-            fields.sorted().joinToString("\n") + "\n}\n")
+        val spec = dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject(packageName.get(), objectName.get(), emptyMap())
+        dev.shibasis.dependeasy.model.KotlinObjectKernel.generate(spec, values.get(), strings.get(),
+            booleans.get(), texts.get(), outputDirectory.get().asFile)
     }
 
-    private fun literal(value: String): String = Json.encodeToString(value).replace("$", "\\$")
 }

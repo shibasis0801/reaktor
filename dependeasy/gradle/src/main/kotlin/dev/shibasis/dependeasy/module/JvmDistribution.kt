@@ -23,11 +23,12 @@ internal fun Project.jvmLauncher(name: String, program: NodeHandle, output: Stri
     val compilation = requireNotNull(program.programCompilation)
     val launcher = jvmCommand(name, entry.entryClass, compilation.name, provider { arguments })
     launcher.configure {
-        jvmArguments.set(jvmNativeAccessArguments(requireNotNull(program.programEnvironment).nativeAccess))
+        jvmArguments.set(dev.shibasis.dependeasy.model.JavaTool.nativeAccess(requireNotNull(program.programEnvironment).nativeAccess))
         launcherFile.set(layout.buildDirectory.file(output))
         relativeClasspath?.let { this.relativeClasspath.set(it) }
         extensions.add(KernelSpec::class.java, "dependeasyKernel", KernelSpec.JvmLauncher(
-            program.id, compilation, entry.producer.id, output, arguments, relativeClasspath))
+            program.id, compilation, entry.producer.id, output, arguments, relativeClasspath,
+            dev.shibasis.dependeasy.model.ToolRef("java", dev.shibasis.dependeasy.Versions.SDK.Java.asInt.toString())))
     }
     node(launcher).consumes(entry)
     return launcher

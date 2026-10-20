@@ -29,6 +29,8 @@ data class NativeDependency(
 ) : Serializable
 
 object Native {
+    val WebView = NativeDependency("webview", "https://codeload.github.com/webview/webview/tar.gz/${Versions.WebView.commit}",
+        Versions.WebView.commit, Versions.WebView.archiveSha256, "sha256", "webview")
     val Flatbuffers = NativeDependency("flatbuffers", NativeSources.flatbuffers.first, NativeSources.flatbuffers.second,
         NativeSources.flatbuffers.second, "git-commit-sha1", "headers", Tools.Flatbuffers, listOf("include"))
     val Hermes = NativeDependency("hermes", NativeSources.hermes.first, NativeSources.hermes.second,
