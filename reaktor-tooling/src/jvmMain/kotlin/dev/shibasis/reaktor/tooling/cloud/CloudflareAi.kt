@@ -14,6 +14,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
@@ -158,16 +159,17 @@ class CloudflareLogin(source: String, private val credentials: CloudflareCredent
 }
 
 object CloudflareAccounts {
-    private val AccountId = Regex("""account_id"?\s*[:=]\s*"([0-9a-f]{32})"""")
-    private val Skipped = setOf("node_modules", "build", "dist", ".git", ".gradle", ".claude", ".wrangler")
-
-    fun of(root: File): String? = System.getenv("CLOUDFLARE_ACCOUNT_ID")?.takeIf { it.isNotBlank() }
-        ?: root.walkTopDown().maxDepth(4).onEnter { it.name !in Skipped }
-            .filter { it.isFile && it.name.startsWith("wrangler.") && it.extension in setOf("json", "jsonc", "toml") }
-            .mapNotNull { file -> AccountId.find(file.readText())?.groupValues?.get(1) }
-            .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
+    fun of(root: File): String? {
+        System.getenv("CLOUDFLARE_ACCOUNT_ID")?.takeIf { it.isNotBlank() }?.let { return it }
+        val fleet = dev.shibasis.reaktor.tooling.delivery.WorkerFleets.read(root) ?: return null
+        return fleet.workers.flatMap { worker ->
+            worker.configurations.keys.mapNotNull { environment ->
+                val (_, config) = dev.shibasis.reaktor.tooling.delivery.WorkerFleets.configuration(root, worker, environment)
+                config["account_id"]?.jsonPrimitive?.contentOrNull
+            }
+        }.distinct().singleOrNull()
+    }
 }
-
 class CloudflareAi(
     private val accountId: String,
     private val credentials: CloudflareCredentials,

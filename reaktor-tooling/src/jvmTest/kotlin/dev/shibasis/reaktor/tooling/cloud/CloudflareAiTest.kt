@@ -85,14 +85,28 @@ class CloudflareAiTest {
         assertEquals("Bearer t", sent["authorization"])
     }
 
-    @Test fun theAccountIsTheOneMostWranglerConfigsName() {
+    @Test fun theAccountComesOnlyFromTheDeclaredFleet() {
         val root = Files.createTempDirectory("accounts").toFile()
         try {
-            File(root, "targets/a/wrangler.json").apply { parentFile.mkdirs() }.writeText("""{"account_id": "${"a".repeat(32)}"}""")
-            File(root, "targets/b/wrangler.jsonc").apply { parentFile.mkdirs() }.writeText("""{"account_id": "${"a".repeat(32)}"}""")
-            File(root, "targets/c/wrangler.toml").apply { parentFile.mkdirs() }.writeText("""account_id = "${"b".repeat(32)}"""")
-            File(root, "node_modules/x/wrangler.json").apply { parentFile.mkdirs() }.writeText("""{"account_id": "${"c".repeat(32)}"}""")
-            if (System.getenv("CLOUDFLARE_ACCOUNT_ID").isNullOrBlank()) assertEquals("a".repeat(32), CloudflareAccounts.of(root))
+            val first = File(root, "targets/a/final-prod.json").apply { parentFile.mkdirs() }
+            val second = File(root, "targets/b/final-prod.json").apply { parentFile.mkdirs() }
+            first.writeText("""{"name":"a","account_id":"${"a".repeat(32)}"}""")
+            second.writeText("""{"name":"b","account_id":"${"a".repeat(32)}"}""")
+            File(root, "targets/decoy/wrangler.json").apply { parentFile.mkdirs() }
+                .writeText("""{"account_id":"${"b".repeat(32)}"}""")
+            val fleet = File(root, "build/dependeasy/cloudflare/fleet.json").apply { parentFile.mkdirs() }
+            fleet.writeText("""{"schema":1,"defaultEnvironment":"prod","workers":[
+                {"name":"a","node":{"build":"fixture","project":":a","name":"deploy"},"directory":"targets/a",
+                 "configurations":{"prod":"targets/a/final-prod.json"},"services":{"prod":"a"}},
+                {"name":"b","node":{"build":"fixture","project":":b","name":"deploy"},"directory":"targets/b",
+                 "configurations":{"prod":"targets/b/final-prod.json"},"services":{"prod":"b"}}]}""")
+            if (System.getenv("CLOUDFLARE_ACCOUNT_ID").isNullOrBlank()) {
+                assertEquals("a".repeat(32), CloudflareAccounts.of(root))
+                second.writeText("""{"name":"b","account_id":"${"b".repeat(32)}"}""")
+                assertEquals(null, CloudflareAccounts.of(root))
+                fleet.delete()
+                assertEquals(null, CloudflareAccounts.of(root))
+            }
         } finally {
             root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         }
