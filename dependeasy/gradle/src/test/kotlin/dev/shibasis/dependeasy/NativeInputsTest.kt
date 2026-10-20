@@ -48,6 +48,8 @@ class NativeInputsTest {
         val versions = write("dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/ToolchainVersions.kt")
         val project = ProjectBuilder.builder().withProjectDir(directory).build()
         val extension = DependeasyExtension.create(project)
+        kotlin.test.assertNull(project.kotlinCmake(CmakePlatform.Darwin("iphoneos")), "Files alone do not declare a native component")
+        extension.native.libraryName = "Fixture"
         val mobile = checkNotNull(project.kotlinCmake(CmakePlatform.Darwin("iphoneos")))
         val host = extension.cmake("host") { source = "." }
         listOf(mobile, host).forEach { compile ->
@@ -71,7 +73,7 @@ class NativeInputsTest {
     @Test fun `Apple model metadata does not resolve execution SDK settings`() {
         directory.resolve("CMakeLists.txt").writeText("project(Fixture LANGUAGES CXX)")
         val project = ProjectBuilder.builder().withProjectDir(directory).build()
-        DependeasyExtension.create(project)
+        DependeasyExtension.create(project).native.libraryName = "Fixture"
         val task = checkNotNull(project.kotlinCmake(CmakePlatform.Darwin("iphoneos"))).get()
         task.nativeContract.set(project.provider { error("SDK settings require the execution host") })
         val kernel = dev.shibasis.dependeasy.workspace.kernelRef(task)

@@ -178,7 +178,17 @@ class NativeCompositionTest {
 
     @Test fun `Apple native imports resolve a declared OpenSSL prefix with cache reuse`() {
         if (!System.getProperty("os.name").contains("Mac", ignoreCase = true)) return
-        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"appleOpenSsl\"")
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"appleOpenSsl\"\ninclude(\":plain\")")
+        val plain = directory.resolve("plain").apply { mkdirs() }
+        plain.resolve("CMakeLists.txt").writeText("message(FATAL_ERROR \"Undeclared native component\")\n")
+        plain.resolve("src/commonMain/cpp/include").mkdirs()
+        plain.resolve("src/commonMain/cpp/include/stray.h").writeText("#pragma once\n")
+        plain.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.components.library
+            import dev.shibasis.dependeasy.model.Targets
+            plugins { id("dev.shibasis.dependeasy.library") }
+            library(namespace = "dev.fixture.plain", targets = Targets.Apple) {}
+        """.trimIndent())
         directory.resolve("gradle.properties").writeText("android.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true")
         val prefix = directory.resolve("openssl fixture")
         prefix.resolve("include/openssl").mkdirs()
@@ -215,10 +225,13 @@ class NativeCompositionTest {
         """.trimIndent())
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
             .withEnvironment(System.getenv() + ("OPENSSL_ROOT_DIR" to prefix.absolutePath))
-            .withArguments("iphoneosCMake", "--configuration-cache", "--stacktrace").build()
+            .withArguments("iphoneosCMake", ":plain:tasks", "--all", "--configuration-cache", "--stacktrace").build()
         val first = run()
         assertEquals(TaskOutcome.SUCCESS, first.task(":iphoneosCMake")?.outcome)
         assertContains(first.output, "Found OpenSSL")
+        assertFalse(first.output.contains("cinteropReaktor"))
+        assertFalse(first.output.contains("generateIosArm64NativeDef"))
+        assertFalse(first.output.contains("generateIosSimulatorArm64NativeDef"))
         assertTrue(directory.resolve("build/dependeasy/native/iphoneos/libsample.a").isFile)
         val repeated = run()
         assertContains(repeated.output, "Reusing configuration cache")

@@ -31,7 +31,7 @@ fun KotlinMultiplatformExtension.darwin(configuration: DarwinConfigure.() -> Uni
         val sdk = if (target.name.lowercase().contains("simulator")) "iphonesimulator" else "iphoneos"
         val build = builds[sdk]
         build?.let { target.compilations.getByName("main").compileTaskProvider.configure { dependsOn(it) } }
-        native?.takeIf { it.darwin.isConfigured }?.let {
+        native?.takeIf { it.isEnabled && it.darwin.isConfigured }?.let {
             project.registerDarwinInterop(target, sdk, it, dependencies, build)
         }
         target.binaries.configureEach { freeCompilerArgs += "-Xoverride-konan-properties=minVersion.ios=${dev.shibasis.dependeasy.Versions.SDK.targetDarwin}" }

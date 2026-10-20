@@ -69,7 +69,7 @@ open class NativeLibrary internal constructor(
                 }
 
     internal val isEnabled: Boolean
-        get() = enabled ?: resolvedCmakeLists.exists()
+        get() = enabled ?: (libraryName != null)
 
 }
 
