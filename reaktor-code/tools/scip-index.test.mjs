@@ -46,6 +46,13 @@ const project = {
     '  return port.answer(port.answer(value))',
     '}',
     '',
+    'function helper() {',
+    '  return twice(2)',
+    '}',
+    '',
+    'const named = helper()',
+    'export { named }',
+    '',
   ].join('\n'),
   'tests/use.test.ts': "import { twice } from '../src/use'\n\nexport const checked = twice(1) === 4\n",
 };
@@ -72,6 +79,8 @@ test('facts list each declaration with its parent, supertypes and overrides, and
     const use = facts.files.find(it => it.path === 'src/use.ts');
     const port = use.declarations.find(it => it.n === 'port');
     assert.deepEqual([port.k, address(port.ta)], ['property', 'ts:demo src/`api.ts`/Port#']);
+    assert.deepEqual(use.declarations.filter(it => it.p === undefined).map(it => [it.n, it.h ?? false]),
+      [['port', false], ['twice', false], ['helper', true], ['named', false]], 'a top-level declaration the file neither exports nor lists in an export clause is hidden');
     const references = use.references.map(it => [it.l, it.c, address(it.t[0]), it.p === undefined ? null : address(it.p), it.f ?? 0]);
     assert.deepEqual(references.filter(it => it[0] === 0).map(it => [it[2], it[4]]), [['ts:demo src/`api.ts`/Loud#', 2], ['ts:demo src/`api.ts`/Port#', 2]], 'imports are flagged');
     assert.deepEqual(references.find(it => it[0] === 2 && it[2].endsWith('Loud#')), [2, 30, 'ts:demo src/`api.ts`/Loud#', 'ts:demo src/`use.ts`/port.', 1], 'new is a call of the class');

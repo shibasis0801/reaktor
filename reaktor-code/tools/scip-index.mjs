@@ -220,6 +220,21 @@ function file(path, text, copies, defined, global, declarable, address) {
     ts.forEachChild(node, visit);
   };
   visit(source);
+  const exported = new Set();
+  for (const statement of source.statements) {
+    if (ts.isExportDeclaration(statement) && !statement.moduleSpecifier && statement.exportClause && ts.isNamedExports(statement.exportClause))
+      for (const element of statement.exportClause.elements) exported.add((element.propertyName ?? element.name).text);
+    if (ts.isExportAssignment(statement) && ts.isIdentifier(statement.expression)) exported.add(statement.expression.text);
+  }
+  const unscoped = !ts.isExternalModule(source) || source.isDeclarationFile;
+  const hidden = node => {
+    if (unscoped) return false;
+    let statement = node;
+    while (statement.parent && statement.parent !== source) statement = statement.parent;
+    if (statement.parent !== source || (ts.isModuleDeclaration(statement) && (statement.flags & ts.NodeFlags.GlobalAugmentation || !ts.isIdentifier(statement.name)))) return false;
+    if (ts.canHaveModifiers(statement) && (ts.getModifiers(statement) ?? []).some(it => it.kind === kind.ExportKeyword)) return false;
+    return !exported.has(node.name?.getText(source));
+  };
   const offset = range => source.getPositionOfLineAndCharacter(range[0], range[1]);
   const seen = new Set();
   const occurrences = [];
@@ -260,6 +275,7 @@ function file(path, text, copies, defined, global, declarable, address) {
   }
   const declarations = found.map(({ row, node, symbol }) => {
     for (let parent = node?.parent; parent; parent = parent.parent) if (nodes.has(parent)) { row.p = nodes.get(parent); break; }
+    if (row.p === undefined && node && hidden(node)) row.h = true;
     if (node?.type) {
       row.t = node.type.getText(source).replace(/\s+/g, ' ').slice(0, 200);
       const type = ts.isTypeReferenceNode(node.type) ? resolved(rightmost(node.type.typeName)) : undefined;
