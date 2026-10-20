@@ -1,34 +1,39 @@
 {
-  "name": "@reaktor/performance",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "main": "src/jsMain/typescript/index.ts",
-  "exports": {
-    ".": "./src/jsMain/typescript/index.ts",
-    "./react": "./src/jsMain/typescript/react.ts",
-    "./cdp": "./src/jsMain/typescript/cdp.ts",
-    "./probes": "./src/jsMain/typescript/probes.ts",
-    "./mutations": "./src/jsMain/typescript/mutations.ts",
-    "./flicker": "./src/jsMain/typescript/flicker.ts",
-    "./trace": "./src/jsMain/typescript/trace.ts",
-    "./sourcemap": "./src/jsMain/typescript/sourcemap.ts",
-    "./flame": "./src/jsMain/typescript/flame.ts",
-    "./stats": "./src/jsMain/typescript/stats.ts",
-    "./profiling": "./src/jsMain/typescript/profiling.ts",
-    "./session": "./src/jsMain/typescript/session.ts",
-    "./tools/route-host": "./tools/route-host.mjs",
-    "./tools/compose-web": "./tools/compose-web.mjs",
-    "./tools/worker-web": "./tools/worker-web.mjs",
-    "./web-vitals": "./src/jsMain/resources/reaktor-web-vitals.js"
-  },
-  "types": "src/jsMain/typescript/index.ts",
-  "scripts": {
-    "typecheck": "node ../dependeasy/javascript/cli/typecheck.ts --projects ts/tsconfig.json"
-  },
-  "devDependencies": {
-    "typescript": "6.0.3",
-    "typescript-native": "npm:typescript@7.0.2"
-  },
-  "packageManager": "pnpm@12.10.1"
+    "name": "@reaktor/performance",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "main": "src/jsMain/typescript/index.ts",
+    "exports": {
+        ".": "./src/jsMain/typescript/index.ts",
+        "./react": "./src/jsMain/typescript/react.ts",
+        "./cdp": "./src/jsMain/typescript/cdp.ts",
+        "./probes": "./src/jsMain/typescript/probes.ts",
+        "./mutations": "./src/jsMain/typescript/mutations.ts",
+        "./flicker": "./src/jsMain/typescript/flicker.ts",
+        "./trace": "./src/jsMain/typescript/trace.ts",
+        "./sourcemap": "./src/jsMain/typescript/sourcemap.ts",
+        "./flame": "./src/jsMain/typescript/flame.ts",
+        "./stats": "./src/jsMain/typescript/stats.ts",
+        "./profiling": "./src/jsMain/typescript/profiling.ts",
+        "./session": "./src/jsMain/typescript/session.ts",
+        "./tools/route-host": "./tools/route-host.mjs",
+        "./tools/compose-web": "./tools/compose-web.mjs",
+        "./tools/worker-web": "./tools/worker-web.mjs",
+        "./web-vitals": "./src/jsMain/resources/reaktor-web-vitals.js"
+    },
+    "types": "src/jsMain/typescript/index.ts",
+    "scripts": {
+        "typecheck": "../gradlew :reaktor-performance:checkPerformanceTypeScriptTypes"
+    },
+    "devDependencies": {
+        "typescript": "6.0.3",
+        "typescript-native": "npm:typescript@7.0.2"
+    },
+    "packageManager": "pnpm@12.10.1",
+    "dependeasy": {
+        "generatedScripts": [
+            "typecheck"
+        ]
+    }
 }

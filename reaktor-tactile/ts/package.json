@@ -1,60 +1,66 @@
 {
-  "name": "reaktor-tactile",
-  "version": "1.0.0",
-  "description": "Tactile Design System",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
+    "name": "reaktor-tactile",
+    "version": "1.0.0",
+    "description": "Tactile Design System",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.js"
+        },
+        "./tokens": {
+            "types": "./dist/tokens/index.d.ts",
+            "import": "./dist/tokens/index.js"
+        },
+        "./theme": {
+            "types": "./dist/theme/index.d.ts",
+            "import": "./dist/theme/index.js"
+        },
+        "./atoms": {
+            "types": "./dist/atoms/index.d.ts",
+            "import": "./dist/atoms/index.js"
+        }
     },
-    "./tokens": {
-      "types": "./dist/tokens/index.d.ts",
-      "import": "./dist/tokens/index.js"
+    "scripts": {
+        "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
+        "dev": "node ../../dependeasy/javascript/typecheck.mjs -b --watch",
+        "clean": "rm -rf dist",
+        "bindings": "../../gradlew :reaktor-tactile:karakumBindings"
     },
-    "./theme": {
-      "types": "./dist/theme/index.d.ts",
-      "import": "./dist/theme/index.js"
+    "dependencies": {
+        "react": "^19.2.6",
+        "react-dom": "^19.2.6"
     },
-    "./atoms": {
-      "types": "./dist/atoms/index.d.ts",
-      "import": "./dist/atoms/index.js"
+    "devDependencies": {
+        "@types/react": "^19.2.2",
+        "@types/react-dom": "^19.2.0",
+        "karakum": "1.0.0-alpha.112",
+        "typescript": "6.0.3",
+        "typescript-native": "npm:typescript@7.0.2"
+    },
+    "peerDependencies": {
+        "react": "^19.2.6",
+        "react-dom": "^19.2.6"
+    },
+    "keywords": [
+        "react",
+        "ui",
+        "components",
+        "design-system",
+        "material",
+        "kotlin",
+        "compose-multiplatform",
+        "cross-platform"
+    ],
+    "author": "BestBudsVentures",
+    "license": "MIT",
+    "packageManager": "pnpm@12.10.1",
+    "dependeasy": {
+        "generatedScripts": [
+            "bindings"
+        ]
     }
-  },
-  "scripts": {
-    "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
-    "dev": "node ../../dependeasy/javascript/typecheck.mjs -b --watch",
-    "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
-  },
-  "devDependencies": {
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.0",
-    "karakum": "1.0.0-alpha.112",
-    "typescript": "6.0.3",
-    "typescript-native": "npm:typescript@7.0.2"
-  },
-  "peerDependencies": {
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
-  },
-  "keywords": [
-    "react",
-    "ui",
-    "components",
-    "design-system",
-    "material",
-    "kotlin",
-    "compose-multiplatform",
-    "cross-platform"
-  ],
-  "author": "BestBudsVentures",
-  "license": "MIT",
-  "packageManager": "pnpm@12.10.1"
 }

@@ -1,18 +1,24 @@
 {
-  "name": "dev-shibasis-reaktor-cloudflare-karakum",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.ts",
-  "scripts": {
-    "build": "node ../../dependeasy/javascript/typecheck.mjs -b"
-  },
-  "dependencies": {
-    "reaktor-reaktor-cloudflare": "workspace:*"
-  },
-  "devDependencies": {
-    "karakum": "1.0.0-alpha.112",
-    "typescript": "6.0.3",
-    "typescript-native": "npm:typescript@7.0.2"
-  },
-  "packageManager": "pnpm@12.10.1"
+    "name": "dev-shibasis-reaktor-cloudflare-karakum",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.ts",
+    "scripts": {
+        "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
+        "bindings": "../../gradlew :reaktor-cloudflare:karakumBindings"
+    },
+    "dependencies": {
+        "reaktor-reaktor-cloudflare": "workspace:*"
+    },
+    "devDependencies": {
+        "karakum": "1.0.0-alpha.112",
+        "typescript": "6.0.3",
+        "typescript-native": "npm:typescript@7.0.2"
+    },
+    "packageManager": "pnpm@12.10.1",
+    "dependeasy": {
+        "generatedScripts": [
+            "bindings"
+        ]
+    }
 }

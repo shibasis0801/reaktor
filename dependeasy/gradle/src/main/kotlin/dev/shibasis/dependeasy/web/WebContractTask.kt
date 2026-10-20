@@ -16,7 +16,11 @@ abstract class WebContractTask : DefaultTask(), KernelSpecOwner {
     @get:Internal abstract val directory: DirectoryProperty
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val manifests: ConfigurableFileCollection
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val packageManifests: ConfigurableFileCollection
-    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val sourceManifests: ConfigurableFileCollection
+    @get:Internal abstract val sourceManifests: ConfigurableFileCollection
+    // Package generation rewrites scripts and links; source identity depends only on exported entries.
+    @get:Input val sourceMetadata get() = sourceManifests.files.associate { file ->
+        file.relativeTo(directory.get().asFile).invariantSeparatorsPath to WebContractKernel.sourceMetadata(file).toString()
+    }
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val packageContracts: ConfigurableFileCollection
     @get:InputFile @get:Optional @get:PathSensitive(PathSensitivity.RELATIVE) abstract val runtimeManifest: RegularFileProperty
     @get:InputFile @get:Optional @get:PathSensitive(PathSensitivity.RELATIVE) abstract val workspaceMetadata: RegularFileProperty
@@ -29,10 +33,15 @@ abstract class WebContractTask : DefaultTask(), KernelSpecOwner {
     @get:Input @get:Optional abstract val kotlinDirectory: Property<String>
     @get:Input @get:Optional abstract val resources: Property<String>
     @get:Input @get:Optional abstract val moduleName: Property<String>
+    @get:Input abstract val target: Property<String>
+    @get:Input abstract val assetFileNames: Property<String>
     @get:OutputFile abstract val contract: RegularFileProperty
     @get:OutputFile @get:Optional abstract val typeScriptConfiguration: RegularFileProperty
 
-    init { typeScriptPaths.convention(emptyMap()); assets.convention(emptyMap()); dataSources.convention(emptyMap()); packageLocations.convention(emptyMap()) }
+    init {
+        typeScriptPaths.convention(emptyMap()); assets.convention(emptyMap()); dataSources.convention(emptyMap()); packageLocations.convention(emptyMap())
+        target.convention("es2022"); assetFileNames.convention("assets/[name]-[hash][extname]")
+    }
 
     @get:Internal override val kernelSpec get() = KernelSpec.WebContract(
         component.get(), directory.get().asFile.absolutePath,
@@ -47,7 +56,7 @@ abstract class WebContractTask : DefaultTask(), KernelSpecOwner {
         FileSet(sourceManifests.files.map { it.absolutePath }.sorted()),
         FileSet(packageContracts.files.map { it.absolutePath }.sorted()), packageLocations.get(), dataSources.get(),
         FileSet(listOfNotNull(workspaceMetadata.orNull?.asFile?.absolutePath)),
-        FileSet(listOfNotNull(workspaceDefinition.orNull?.asFile?.absolutePath)))
+        FileSet(listOfNotNull(workspaceDefinition.orNull?.asFile?.absolutePath)), target.get(), assetFileNames.get())
 
     @TaskAction fun write() = WebContractKernel.write(kernelSpec)
 }

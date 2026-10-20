@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, symlink, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { staticAssets, reactDevtools, webContract } from '../api/vite.ts';
+import { pathToFileURL } from 'node:url';
+import { staticAssets, reactDevtools, webContract, kotlinBrowser, hermesLibrary } from '../api/vite.ts';
 
 async function fixture(action) {
-  const root = await mkdtemp(join(tmpdir(), 'dependeasy-assets-'));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'dependeasy-assets-')));
   try {
     await mkdir(join(root, 'fonts', 'nested'), { recursive: true });
     await writeFile(join(root, 'fonts', 'nested', 'one.woff2'), 'font');
@@ -66,7 +67,9 @@ test('DevTools is opt-in and adds the declared backend before its connection boo
 test('web contract resolves Kotlin outputs and assets from its own location', () => fixture(async root => {
   const file = join(root, 'build', 'web.json');
   await mkdir(join(root, 'build'));
-  await writeFile(file, JSON.stringify({schema: 1, component: 'site', directory: '..', aliases: {'fixture-kotlin': '../library/main.mjs'}, assets: {'parser.wasm': '../vendor/parser.wasm'}, kotlinDirectory: '../library', resources: '../resources', moduleName: 'fixture-kotlin'}));
+  await writeFile(file, JSON.stringify({schema: 1, component: 'site', directory: '..', aliases: {'fixture-kotlin': '../library/main.mjs'}, assets: {'parser.wasm': '../vendor/parser.wasm'}, kotlinDirectory: '../library', resources: '../resources', moduleName: 'fixture-kotlin', target: 'es2020', assetFileNames: 'fixture/[name]-[hash][extname]'}));
+  const packageFile = join(root, 'package.json');
+  await writeFile(packageFile, JSON.stringify({name: 'fixture', imports: {'#dependeasy/web': './build/web.json'}}));
   const contract = webContract(file);
   assert.equal(contract.aliases[0].replacement, resolve(root, 'library/main.mjs'));
   assert.equal(contract.aliases[0].find.test('fixture-kotlin'), true);
@@ -74,6 +77,11 @@ test('web contract resolves Kotlin outputs and assets from its own location', ()
   assert.equal(contract.assets['parser.wasm'], resolve(root, 'vendor/parser.wasm'));
   assert.equal(contract.kotlinDirectory, resolve(root, 'library'));
   assert.equal(contract.resources, resolve(root, 'resources'));
+  assert.deepEqual(webContract(pathToFileURL(packageFile)), contract);
+  const browser = kotlinBrowser({directory: root});
+  assert.equal(browser.build.target, 'es2020');
+  assert.equal(hermesLibrary(contract, 'index.ts', 'fixture.js').build.target, 'es2020');
+  assert.equal(browser.build.rolldownOptions.output.assetFileNames, 'fixture/[name]-[hash][extname]');
   await writeFile(file, JSON.stringify({schema: 99}));
   assert.throws(() => webContract(file), /Unsupported web contract/);
 }));

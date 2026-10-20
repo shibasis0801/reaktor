@@ -19,6 +19,8 @@ internal class InteropBuildKernel(private val project: Project, private val name
         project.nativeExports(name, declaration.nativeInstallers)
         val directory = declaration.typescriptDirectory ?: return emptyList()
         val typescript = JavaScriptComponent(project, "${name}TypeScript", directory)
+        typescript.contract.configure { target.set("es2018") }
+        BuildWorkspace.get(project).packageImport(project, project.file(directory), typescript.contractLocation)
         typescript.sources("src/commonMain/typescript")
         val types = typescript.types()
         val bundle = typescript.vite()

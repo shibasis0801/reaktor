@@ -15,6 +15,8 @@ data class WebContract(
     val kotlinDirectory: String? = null,
     val resources: String? = null,
     val moduleName: String? = null,
+    val target: String = "es2022",
+    val assetFileNames: String = "assets/[name]-[hash][extname]",
 )
 
 @Serializable

@@ -1,23 +1,29 @@
 {
-  "name": "reaktor-db",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.ts",
-  "scripts": {
-    "build": "node ../../dependeasy/javascript/typecheck.mjs -b"
-  },
-  "dependencies": {
-    "@google-cloud/pubsub": "^5.2.2",
-    "reaktor-reaktor-db": "workspace:*"
-  },
-  "devDependencies": {
-    "karakum": "1.0.0-alpha.112",
-    "typescript": "6.0.3",
-    "typescript-native": "npm:typescript@7.0.2"
-  },
-  "packageManager": "pnpm@12.10.1",
-  "exports": {
-    ".": "./index.ts",
-    "./browser": "./browser.ts"
-  }
+    "name": "reaktor-db",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.ts",
+    "scripts": {
+        "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
+        "bindings": "../../gradlew :reaktor-db:karakumBindings"
+    },
+    "dependencies": {
+        "@google-cloud/pubsub": "^5.2.2",
+        "reaktor-reaktor-db": "workspace:*"
+    },
+    "devDependencies": {
+        "karakum": "1.0.0-alpha.112",
+        "typescript": "6.0.3",
+        "typescript-native": "npm:typescript@7.0.2"
+    },
+    "packageManager": "pnpm@12.10.1",
+    "exports": {
+        ".": "./index.ts",
+        "./browser": "./browser.ts"
+    },
+    "dependeasy": {
+        "generatedScripts": [
+            "bindings"
+        ]
+    }
 }

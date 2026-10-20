@@ -2,10 +2,12 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { InlineConfig } from 'vite';
+import type { WebContract } from '../../api/vite.ts';
 import { workspaceVite } from '../vite/tools.ts';
 
 export interface StaticSiteOptions {
   root: string; destination: string; entry: string; renderer: string;
+  build: Pick<WebContract, 'target' | 'assetFileNames'>;
   pages: readonly { path?: string; title: string; data: Record<string, unknown>; content: string }[];
   staticDirectories: readonly string[]; aliases: Record<string, string>; head: string; base?: string;
 }
@@ -17,7 +19,7 @@ const escape = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<',
 function configuration(options: StaticSiteOptions): InlineConfig {
   return { configFile: false, root: options.root, base: options.base ?? '/',
     resolve: { alias: options.aliases, dedupe: ['react', 'react-dom'] },
-    oxc: { jsx: { runtime: 'automatic' } }, build: { target: 'es2022', sourcemap: false, minify: true } };
+    oxc: { jsx: { runtime: 'automatic' } }, build: { target: options.build.target, sourcemap: false, minify: true } };
 }
 
 export async function prepareClient(options: StaticSiteOptions): Promise<ClientEntry> {
@@ -25,7 +27,7 @@ export async function prepareClient(options: StaticSiteOptions): Promise<ClientE
   const common = configuration(options);
   await rm(options.destination, { recursive: true, force: true });
   await build({ ...common, build: { ...common.build, outDir: options.destination, manifest: true,
-    rolldownOptions: { input: resolve(options.root, options.entry) } } });
+    rolldownOptions: { input: resolve(options.root, options.entry), output: { assetFileNames: options.build.assetFileNames } } } });
   const manifest: Record<string, ClientEntry> = JSON.parse(await readFile(resolve(options.destination, '.vite/manifest.json'), 'utf8'));
   const asset = Object.values(manifest).find(value => value.isEntry);
   if (!asset) throw new Error('Vite did not emit the static site entry');

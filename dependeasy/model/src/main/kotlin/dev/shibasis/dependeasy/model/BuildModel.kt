@@ -125,7 +125,7 @@ data class RunReceipt(
     val kotlinExports: List<String> = emptyList(),
     val environment: List<String> = emptyList(),
     val outputRoots: Map<String, List<String>> = mapOf(
-        "all" to listOf("outputs", "libs", "distributions", "reports", "test-results", "bin", "xcode-frameworks", "XCFrameworks", "compose", "processedResources", "classes", "resources"),
+        "all" to listOf("outputs", "libs", "distributions", "reports", "test-results", "bin", "xcode-frameworks", "XCFrameworks", "compose", "processedResources", "classes", "resources", "agent-dist"),
         "verification" to listOf("reports", "test-results", "hangar-flows", "hangar-shards"),
         "android" to listOf("outputs", "libs", "reports", "test-results"),
         "jvm" to listOf("agent-dist", "compose", "distributions", "reports", "test-results"),

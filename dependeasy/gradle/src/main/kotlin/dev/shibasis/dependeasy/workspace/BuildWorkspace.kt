@@ -24,7 +24,30 @@ internal class BuildWorkspace(private val project: Project) {
     private val prerequisites = linkedMapOf<NodeId, MutableSet<NodeId>>()
     private val scriptAliases = linkedMapOf<String, MutableMap<String, String>>()
     private var scriptGeneration: TaskProvider<PackageScriptsTask>? = null
+    private val packageImports = linkedMapOf<String, Map<String, String>>()
     private val packageContracts = linkedMapOf<String, Pair<Project, MutableList<OutputHandle>>>()
+
+    internal fun packageImport(owner: Project, directory: java.io.File, contract: org.gradle.api.provider.Provider<org.gradle.api.file.RegularFile>) {
+        if (!directory.resolve("package.json").isFile) return
+        owner.afterEvaluate {
+            val path = directory.resolve("package.json").relativeTo(project.rootDir).invariantSeparatorsPath
+            val target = contract.get().asFile.relativeTo(directory).invariantSeparatorsPath
+            require(!target.startsWith("../")) { "A web contract import must stay inside its package: $path" }
+            val imports = mapOf("#dependeasy/web" to "./$target")
+            require(packageImports.putIfAbsent(path, imports).let { it == null || it == imports }) { "Conflicting web contract for $path" }
+            scriptGeneration?.let { bindPackageImports(it, path, imports) }
+        }
+    }
+
+    private fun bindPackageImports(generation: TaskProvider<PackageScriptsTask>, path: String, imports: Map<String, String>) {
+        generation.configure {
+            packageImports.put(path, BuildModelReader.json.encodeToString(imports))
+            if (path != "package.json") {
+                additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { PackageScriptsKernel.authoredManifest(it) })
+                generatedFiles.from(project.file(path))
+            }
+        }
+    }
 
     internal fun packageSources(owner: Project, directory: java.io.File, output: OutputHandle) {
         val path = directory.resolve("package.json").relativeTo(project.rootDir).invariantSeparatorsPath
@@ -244,6 +267,7 @@ internal class BuildWorkspace(private val project: Project) {
     }.also { generation ->
         scriptGeneration = generation
         packageContracts.forEach { (path, entry) -> bindPackageSources(generation, entry.first, path, entry.second) }
+        packageImports.forEach { (path, imports) -> bindPackageImports(generation, path, imports) }
         graph.configure { mustRunAfter(generation) }
         reference(project, generation, OutputKind.GeneratedContract)
         PnpmWorkspace.get(project).install.configure { dependsOn(generation) }

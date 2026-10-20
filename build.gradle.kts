@@ -36,4 +36,5 @@ workspace {
         outputs(verification(Dependeasy.build, Verification.Plugin))
     }
     publishing { githubPackages() }
+    packageScripts()
 }

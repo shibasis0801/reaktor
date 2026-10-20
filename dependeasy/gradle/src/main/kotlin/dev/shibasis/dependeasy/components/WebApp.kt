@@ -28,6 +28,7 @@ fun Project.webApp(
 
 private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, runtime: OutputHandle?): WebAppScope {
     val web = JavaScriptComponent(this, name, ".")
+    BuildWorkspace.get(this).packageImport(this, projectDir, web.contractLocation)
     web.kotlinLibraries(*kotlin.toTypedArray())
     runtime?.let(web::kotlinRuntime)
     web.typeScriptPaths(*spec.paths.map { it.alias to it.paths }.toTypedArray())

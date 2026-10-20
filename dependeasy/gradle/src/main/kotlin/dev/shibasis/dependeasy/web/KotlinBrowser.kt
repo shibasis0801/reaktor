@@ -42,8 +42,10 @@ internal class KotlinBrowser(private val project: Project, private val output: S
         }
         val component = DependeasyExtension.get(project).javascript("browser", ".")
         val root = project.projectDir
+        BuildWorkspace.get(project).packageImport(project, root, component.contractLocation)
         component.contract.configure {
             moduleName.set(this@KotlinBrowser.moduleName)
+            assetFileNames.set("[name]-[hash][extname]")
             resources.set(extension.js().compilations.getByName("main").output.resourcesDir.relativeTo(root).invariantSeparatorsPath)
         }
         val bundle = component.vite(output)

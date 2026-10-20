@@ -24,6 +24,10 @@ class RemoteTaskFamiliesTest {
             ))
         val families = BuildModelKernel.taskFamilies(model, "product")
         assertEquals("jvm", families[":kernel:agentDist"])
+        val roots = BuildModelKernel.routing(model, "product").outputRoots
+        check(roots.getValue("all").containsAll(roots.getValue("agent"))) {
+            "Mixed build requests must retain complete agent distributions"
+        }
         assertEquals("verification", families[":kernel:test"])
         assertEquals("verification", families[":framework:conductor:jvmTest"])
         assertEquals("metadata", families[":exportBuildModel"])

@@ -1,5 +1,47 @@
 {
-  "name": "reaktor-workspace",
-  "private": true,
-  "packageManager": "pnpm@12.10.1"
+    "name": "reaktor-workspace",
+    "private": true,
+    "packageManager": "pnpm@12.10.1",
+    "scripts": {
+        "buildToolingTypes": "./gradlew :buildToolingTypes",
+        "checkBuildTooling": "./gradlew :checkBuildTooling",
+        "karakumBindings": "./gradlew :reaktor-tactile:karakumBindings",
+        "buildCoreTypeScriptCompile": "./gradlew :reaktor-core:buildCoreTypeScriptCompile",
+        "interopTypeScriptTypes": "./gradlew :reaktor-ffi:interopTypeScriptTypes",
+        "interopTypeScriptBundle": "./gradlew :reaktor-ffi:interopTypeScriptBundle",
+        "checkGraphPortTypeScriptTypes": "./gradlew :reaktor-graph-port:checkGraphPortTypeScriptTypes",
+        "checkMcpTypeScriptTypes": "./gradlew :reaktor-mcp:checkMcpTypeScriptTypes",
+        "checkPerformanceTypeScriptTypes": "./gradlew :reaktor-performance:checkPerformanceTypeScriptTypes",
+        "buildUiTypeScriptCompile": "./gradlew :reaktor-ui:buildUiTypeScriptCompile"
+    },
+    "dependeasy": {
+        "generatedScripts": [
+            "buildCoreTypeScriptCompile",
+            "buildToolingTypes",
+            "buildUiTypeScriptCompile",
+            "checkBuildTooling",
+            "checkGraphPortTypeScriptTypes",
+            "checkMcpTypeScriptTypes",
+            "checkPerformanceTypeScriptTypes",
+            "interopTypeScriptBundle",
+            "interopTypeScriptTypes",
+            "karakumBindings"
+        ],
+        "generatedPackages": [
+            "dependeasy/javascript/package.json",
+            "reaktor-cloudflare/ts/package.json",
+            "reaktor-core/package.json",
+            "reaktor-db/ts/package.json",
+            "reaktor-ffi/package.json",
+            "reaktor-google/ts/package.json",
+            "reaktor-graph-port/package.json",
+            "reaktor-graph/ts/package.json",
+            "reaktor-mcp/package.json",
+            "reaktor-performance/package.json",
+            "reaktor-security/ts/package.json",
+            "reaktor-tactile/ts/package.json",
+            "reaktor-ui/package.json"
+        ],
+        "generatedTargets": {}
+    }
 }

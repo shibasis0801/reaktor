@@ -1,55 +1,61 @@
 {
-  "name": "reaktor-ui",
-  "version": "1.0.0",
-  "description": "Cross-platform UI component library for React and Compose Multiplatform",
-  "main": "ts/dist/index.js",
-  "module": "ts/dist/index.js",
-  "types": "ts/dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./ts/dist/index.d.ts",
-      "import": "./ts/dist/index.js",
-      "require": "./ts/dist/index.js"
+    "name": "reaktor-ui",
+    "version": "1.0.0",
+    "description": "Cross-platform UI component library for React and Compose Multiplatform",
+    "main": "ts/dist/index.js",
+    "module": "ts/dist/index.js",
+    "types": "ts/dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./ts/dist/index.d.ts",
+            "import": "./ts/dist/index.js",
+            "require": "./ts/dist/index.js"
+        },
+        "./tokens": {
+            "types": "./ts/dist/tokens/index.d.ts",
+            "import": "./ts/dist/tokens/index.js"
+        },
+        "./theme": {
+            "types": "./ts/dist/theme/index.d.ts",
+            "import": "./ts/dist/theme/index.js"
+        },
+        "./atoms": {
+            "types": "./ts/dist/atoms/index.d.ts",
+            "import": "./ts/dist/atoms/index.js"
+        }
     },
-    "./tokens": {
-      "types": "./ts/dist/tokens/index.d.ts",
-      "import": "./ts/dist/tokens/index.js"
+    "scripts": {
+        "build": "node ../dependeasy/javascript/cli/typecheck.ts --project ts/tsconfig.json",
+        "dev": "node ../dependeasy/javascript/cli/typecheck.ts -p ts/tsconfig.json --watch",
+        "compile": "../gradlew :reaktor-ui:buildUiTypeScriptCompile"
     },
-    "./theme": {
-      "types": "./ts/dist/theme/index.d.ts",
-      "import": "./ts/dist/theme/index.js"
+    "devDependencies": {
+        "@types/react": "^19.2.2",
+        "@types/react-dom": "^19.2.0",
+        "karakum": "1.0.0-alpha.112",
+        "typescript": "6.0.3",
+        "typescript-native": "npm:typescript@7.0.2"
     },
-    "./atoms": {
-      "types": "./ts/dist/atoms/index.d.ts",
-      "import": "./ts/dist/atoms/index.js"
+    "peerDependencies": {
+        "react": ">=18",
+        "react-dom": ">=18"
+    },
+    "keywords": [
+        "react",
+        "ui",
+        "components",
+        "design-system",
+        "material",
+        "kotlin",
+        "compose-multiplatform",
+        "cross-platform"
+    ],
+    "author": "Shibasis Patnaik",
+    "license": "MIT",
+    "packageManager": "pnpm@12.10.1",
+    "dependeasy": {
+        "generatedScripts": [
+            "compile"
+        ]
     }
-  },
-  "scripts": {
-    "build": "node ../dependeasy/javascript/cli/typecheck.ts --project ts/tsconfig.json",
-    "dev": "node ../dependeasy/javascript/cli/typecheck.ts -p ts/tsconfig.json --watch"
-  },
-  "devDependencies": {
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.0",
-    "karakum": "1.0.0-alpha.112",
-    "typescript": "6.0.3",
-    "typescript-native": "npm:typescript@7.0.2"
-  },
-  "peerDependencies": {
-    "react": ">=18",
-    "react-dom": ">=18"
-  },
-  "keywords": [
-    "react",
-    "ui",
-    "components",
-    "design-system",
-    "material",
-    "kotlin",
-    "compose-multiplatform",
-    "cross-platform"
-  ],
-  "author": "Shibasis Patnaik",
-  "license": "MIT",
-  "packageManager": "pnpm@12.10.1"
 }

@@ -26,7 +26,8 @@ sealed interface KernelSpec {
     @Serializable data class DaggerVerification(val expected: FileSet, val actual: FileSet, val generator: NodeId) : KernelSpec
     @Serializable data class PackageScripts(val targets: Map<String, PackageAlias>, val extraAliases: Map<String, String>,
         val additionalAliases: Map<String, Map<String, String>>, val output: FileSet,
-        val packageContracts: Map<String, FileSet> = emptyMap()) : KernelSpec
+        val packageContracts: Map<String, FileSet> = emptyMap(),
+        val packageImports: Map<String, Map<String, String>> = emptyMap()) : KernelSpec
     @Serializable data class WebContract(val component: String, val directory: String,
         val manifests: FileSet, val wrappers: FileSet, val runtime: FileSet,
         val typeScriptPaths: Map<String, List<String>>, val assets: Map<String, String>, val baseConfiguration: FileSet,
@@ -34,7 +35,8 @@ sealed interface KernelSpec {
         val output: FileSet, val typeScriptConfiguration: FileSet,
         val sourceManifests: FileSet = FileSet(emptyList()), val packageContracts: FileSet = FileSet(emptyList()),
         val packageLocations: Map<String, String> = emptyMap(), val dataSources: Map<String, String> = emptyMap(),
-        val workspaceMetadata: FileSet = FileSet(emptyList()), val workspaceDefinition: FileSet = FileSet(emptyList())) : KernelSpec
+        val workspaceMetadata: FileSet = FileSet(emptyList()), val workspaceDefinition: FileSet = FileSet(emptyList()),
+        val target: String = "es2022", val assetFileNames: String = "assets/[name]-[hash][extname]") : KernelSpec
     @Serializable data class WebResources(val sources: FileSet, val output: FileSet) : KernelSpec
     @Serializable data class KotlinPackage(val sources: FileSet, val destination: FileSet, val dependencies: FileSet, val receipt: FileSet) : KernelSpec
     @Serializable data class Prefab(val archive: FileSet, val checksum: String, val module: String, val output: FileSet) : KernelSpec

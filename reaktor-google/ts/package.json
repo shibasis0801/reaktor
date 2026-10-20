@@ -1,19 +1,25 @@
 {
-  "name": "reaktor-google",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.ts",
-  "scripts": {
-    "build": "node ../../dependeasy/javascript/typecheck.mjs -b"
-  },
-  "dependencies": {
-    "react": "^19.2.6",
-    "reaktor-reaktor-google": "workspace:*"
-  },
-  "devDependencies": {
-    "karakum": "1.0.0-alpha.112",
-    "typescript": "6.0.3",
-    "typescript-native": "npm:typescript@7.0.2"
-  },
-  "packageManager": "pnpm@12.10.1"
+    "name": "reaktor-google",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.ts",
+    "scripts": {
+        "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
+        "bindings": "../../gradlew :reaktor-google:karakumBindings"
+    },
+    "dependencies": {
+        "react": "^19.2.6",
+        "reaktor-reaktor-google": "workspace:*"
+    },
+    "devDependencies": {
+        "karakum": "1.0.0-alpha.112",
+        "typescript": "6.0.3",
+        "typescript-native": "npm:typescript@7.0.2"
+    },
+    "packageManager": "pnpm@12.10.1",
+    "dependeasy": {
+        "generatedScripts": [
+            "bindings"
+        ]
+    }
 }

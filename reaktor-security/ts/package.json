@@ -1,20 +1,26 @@
 {
-  "name": "dev-shibasis-reaktor-security-karakum",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "node ../../dependeasy/javascript/typecheck.mjs -b"
-  },
-  "dependencies": {
-    "reaktor-reaktor-security": "workspace:*"
-  },
-  "devDependencies": {
-    "karakum": "1.0.0-alpha.112",
-    "typescript": "6.0.3",
-    "typescript-native": "npm:typescript@7.0.2"
-  },
-  "packageManager": "pnpm@12.10.1"
+    "name": "dev-shibasis-reaktor-security-karakum",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
+        "bindings": "../../gradlew :reaktor-security:karakumBindings"
+    },
+    "dependencies": {
+        "reaktor-reaktor-security": "workspace:*"
+    },
+    "devDependencies": {
+        "karakum": "1.0.0-alpha.112",
+        "typescript": "6.0.3",
+        "typescript-native": "npm:typescript@7.0.2"
+    },
+    "packageManager": "pnpm@12.10.1",
+    "dependeasy": {
+        "generatedScripts": [
+            "bindings"
+        ]
+    }
 }

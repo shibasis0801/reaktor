@@ -37,12 +37,16 @@ class WebContractsTest {
                 typeScriptPaths.put("@/*", listOf("src/*"))
                 assets.put("parser.wasm", "vendor/parser.wasm")
                 dataSources.put("documentation", "https://example.test/docs/corpus/")
+                target.set("es2020")
+                assetFileNames.set("fixture/[name]-[hash][extname]")
                 contract.set(layout.buildDirectory.file("web/site.json"))
                 typeScriptConfiguration.set(layout.buildDirectory.file("web/site.tsconfig.json"))
             }
         """.trimIndent())
         assertEquals(TaskOutcome.SUCCESS, run("contract").task(":contract")?.outcome)
         val contract = json("build/web/site.json")
+        assertEquals("es2020", contract.getValue("target").jsonPrimitive.content)
+        assertEquals("fixture/[name]-[hash][extname]", contract.getValue("assetFileNames").jsonPrimitive.content)
         assertEquals("../../library/index.mjs", contract.getValue("aliases").jsonObject.getValue("fixture-kotlin").jsonPrimitive.content)
         assertEquals("../../library/index.mjs", contract.getValue("aliases").jsonObject.getValue("fixture").jsonPrimitive.content)
         assertEquals("../../owned/generated/module.mjs", contract.getValue("aliases").jsonObject.getValue("owned-facade").jsonPrimitive.content)
@@ -161,14 +165,14 @@ class WebContractsTest {
             val sourcePackage by webPackage("source", "tools")
         """.trimIndent())
         write("base.json", "{}")
-        write("site/package.json", """{"name":"site","private":true,"dependencies":{"fixture-source":"workspace:*"},"scripts":{"bundle:assets":"node bundle.cjs"}}""")
+        write("site/package.json", """{"name":"site","private":true,"imports":{"#keep":"./index.ts"},"dependencies":{"fixture-source":"workspace:*"},"scripts":{"bundle:assets":"node bundle.cjs"}}""")
         write("site/index.ts", "export const value = 1;")
         write("site/tsconfig.json", """{"files":["index.ts"]}""")
         write("site/types.cjs", "require('node:fs').readFileSync('index.ts', 'utf8');")
         write("site/bundle.cjs", """
             const fs = require('node:fs');
             const path = require('node:path');
-            const contractFile = path.resolve('build/dependeasy/web/site.json');
+            const contractFile = require.resolve('#dependeasy/web');
             const contract = JSON.parse(fs.readFileSync(contractFile, 'utf8'));
             fs.mkdirSync('dist', {recursive: true});
             fs.copyFileSync(path.resolve(path.dirname(contractFile), contract.assets['parser.wasm']), 'dist/parser.wasm');
@@ -198,8 +202,11 @@ class WebContractsTest {
         """.trimIndent())
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.model.*
+            import dev.shibasis.dependeasy.components.webPackage
             plugins { id("dev.shibasis.dependeasy.workspace") }
+            val sourcePackage by webPackage("library/source")
             workspace {
+                alias("sourceInfo", sourcePackage, directory = file("library/source"))
                 val site = product(shared = projects.site)
                 val pr by verify(site, role = Workspace.Verify)
                 val everything by artifacts(site, role = Workspace.Build)
@@ -262,11 +269,20 @@ class WebContractsTest {
         assertEquals("./gradlew :site:assembleWeb", scripts.getValue("previousBuild").jsonPrimitive.content)
         assertEquals("./gradlew :site:publish", scripts.getValue("previousDeploy").jsonPrimitive.content)
         val sitePackage = json("site/package.json")
+        assertEquals("./build/dependeasy/web/site.json", sitePackage.getValue("imports").jsonObject.getValue("#dependeasy/web").jsonPrimitive.content)
+        assertEquals("./index.ts", sitePackage.getValue("imports").jsonObject.getValue("#keep").jsonPrimitive.content)
+        val authored = Json.parseToJsonElement(dev.shibasis.dependeasy.model.PackageScriptsKernel.authoredManifest(sitePackage.toString())).jsonObject
+        assertEquals(setOf("#keep"), authored.getValue("imports").jsonObject.keys)
+        val packageGenerator = model.nodes.single { it.id.name == "generatePackageScripts" }.kernel?.spec
+        assertIs<dev.shibasis.dependeasy.model.KernelSpec.PackageScripts>(packageGenerator)
+        assertEquals("./build/dependeasy/web/site.json", packageGenerator.packageImports.getValue("site/package.json").getValue("#dependeasy/web"))
         assertEquals("link:../library/source", sitePackage.getValue("dependencies").jsonObject.getValue("fixture-source").jsonPrimitive.content)
         assertEquals(listOf("fixture-source"), sitePackage.getValue("dependeasy").jsonObject.getValue("generatedLinks").jsonObject.getValue("dependencies").jsonArray.map { it.jsonPrimitive.content })
         val generatedPackageBytes = directory.resolve("site/package.json").readBytes()
         run("generatePackageScripts")
         assertContentEquals(generatedPackageBytes, directory.resolve("site/package.json").readBytes())
+        assertTrue(json("library/source/package.json").getValue("scripts").jsonObject.containsKey("sourceInfo"))
+        assertEquals(TaskOutcome.UP_TO_DATE, run(":library:sourcePackage").task(":library:sourcePackage")?.outcome)
         val verification = run("pr", "--dry-run").output
         assertContains(verification, ":site:siteTypes SKIPPED")
         assertFalse(verification.contains(":site:siteBundleAssets SKIPPED"))
@@ -321,6 +337,12 @@ class WebContractsTest {
         assertTrue(budgeted.indexOf(":site:assetsMeasurements SKIPPED") < budgeted.indexOf(":site:assets SKIPPED"))
         assertTrue(budgeted.indexOf(":site:assets SKIPPED") < budgeted.indexOf(":pr SKIPPED"))
         assertContains(run("pr", "--dry-run").output, "Reusing configuration cache")
+        val sourceManifest = directory.resolve("library/source/package.json")
+        sourceManifest.writeText(sourceManifest.readText().replace("index.ts", "detail.ts"))
+        assertEquals(TaskOutcome.SUCCESS, run(":library:sourcePackage").task(":library:sourcePackage")?.outcome)
+        assertEquals("../../../source/detail.ts", json("library/build/dependeasy/web/sourcePackage.json")
+            .getValue("aliases").jsonObject.getValue("fixture-source").jsonPrimitive.content)
+        assertEquals(TaskOutcome.UP_TO_DATE, run(":library:sourcePackage").task(":library:sourcePackage")?.outcome)
     }
 
     @Test fun `fleet uses declared preview and deep merged stable with arrays replaced`() {

@@ -5,6 +5,9 @@ import kotlinx.serialization.json.*
 import java.io.File
 
 object WebContractKernel {
+    fun sourceMetadata(file: File) = JsonObject(Json.parseToJsonElement(file.readText()).jsonObject
+        .filterKeys { it in setOf("name", "main", "exports") })
+
     fun write(spec: KernelSpec.WebContract) {
         val output = File(spec.output.paths.single())
         val base = output.parentFile
@@ -60,7 +63,7 @@ object WebContractKernel {
         }
         spec.sourceManifests.paths.sorted().forEach { path ->
             val file = File(path)
-            val metadata = Json.parseToJsonElement(file.readText()).jsonObject
+            val metadata = sourceMetadata(file)
             val name = metadata.getValue("name").jsonPrimitive.content
             registerPackage(name, file.parentFile)
             fun entry(key: String, value: String) {
@@ -119,7 +122,8 @@ object WebContractKernel {
             assets = spec.assets.mapValues { relative(root.resolve(it.value)) }, packages = packages,
             workspaces = workspaces.map(::relative), dataSources = spec.dataSources.toSortedMap(),
             kotlinDirectory = spec.kotlinDirectory?.let { relative(root.resolve(it)) },
-            resources = spec.resources?.let { relative(root.resolve(it)) }, moduleName = spec.moduleName)
+            resources = spec.resources?.let { relative(root.resolve(it)) }, moduleName = spec.moduleName,
+            target = spec.target, assetFileNames = spec.assetFileNames)
         output.parentFile.mkdirs()
         val contract = BuildModelReader.json.encodeToString(value) + "\n"
         if (!output.isFile || output.readText() != contract) output.writeText(contract)

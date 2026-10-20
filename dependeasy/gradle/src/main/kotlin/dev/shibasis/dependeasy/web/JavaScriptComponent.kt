@@ -14,6 +14,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     private val directory = project.file(directory)
     private val workspace = PnpmWorkspace.get(project)
     private val runtime = JavaScriptRuntime(project)
+    internal val contractLocation = project.layout.buildDirectory.file("dependeasy/web/$name.json")
     val contract = project.tasks.register<WebContractTask>("${name}WebContract") {
         group = "code generation"
         component.set(this@JavaScriptComponent.name)
@@ -21,7 +22,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         baseConfiguration.set(runtime.file("tsconfig/base.json"))
         packageManifests.from(this@JavaScriptComponent.directory.resolve("package.json"))
         mustRunAfter(project.rootProject.tasks.withType(dev.shibasis.dependeasy.workspace.PackageScriptsTask::class.java))
-        contract.set(project.layout.buildDirectory.file("dependeasy/web/${this@JavaScriptComponent.name}.json"))
+        contract.set(contractLocation)
         typeScriptConfiguration.set(project.layout.buildDirectory.file("dependeasy/web/${this@JavaScriptComponent.name}.tsconfig.json"))
     }
     init {

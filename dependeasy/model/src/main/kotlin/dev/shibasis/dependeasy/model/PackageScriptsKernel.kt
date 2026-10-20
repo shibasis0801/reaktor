@@ -14,6 +14,9 @@ object PackageScriptsKernel {
         val owned = metadata.remove("generatedScripts")?.jsonArray.orEmpty().map { it.jsonPrimitive.content }.toSet() + generated
         metadata.remove("generatedTargets")
         metadata.remove("generatedPackages")
+        val imports = root["imports"]?.jsonObject.orEmpty().toMutableMap()
+        metadata.remove("generatedImports")?.jsonArray.orEmpty().forEach { imports.remove(it.jsonPrimitive.content) }
+        if (imports.isEmpty()) root.remove("imports") else root["imports"] = JsonObject(imports)
         metadata.remove("generatedLinks")?.jsonObject.orEmpty().forEach { (section, names) ->
             val dependencies = root[section]?.jsonObject.orEmpty().toMutableMap()
             names.jsonArray.forEach { name ->
@@ -37,7 +40,7 @@ object PackageScriptsKernel {
         root["scripts"] = JsonObject(scripts)
         val metadata = buildJsonObject {
             putJsonArray("generatedScripts") { commands.keys.sorted().forEach { add(it) } }
-            putJsonArray("generatedPackages") { (spec.additionalAliases.keys + spec.packageContracts.keys).filter { it != "package.json" }.sorted().forEach { add(it) } }
+            putJsonArray("generatedPackages") { (spec.additionalAliases.keys + spec.packageContracts.keys + spec.packageImports.keys).filter { it != "package.json" }.sorted().forEach { add(it) } }
             putJsonObject("generatedTargets") {
                 spec.targets.toSortedMap().forEach { (alias, node) ->
                     put(alias, buildJsonObject {
@@ -88,6 +91,21 @@ object PackageScriptsKernel {
                 }
             }
             if (owned.isNotEmpty()) packageRoot["dependeasy"] = JsonObject(packageRoot["dependeasy"]?.jsonObject.orEmpty() + ("generatedLinks" to owned))
+            outputs[key] = formatter.encodeToString(JsonObject.serializer(), JsonObject(packageRoot)) + "\n"
+        }
+        spec.packageImports.toSortedMap().forEach { (path, declared) ->
+            val key = if (path == "package.json") spec.output.paths.single() else path
+            val source = outputs[key] ?: additionalManifests.getValue(path)
+            val packageRoot = Json.parseToJsonElement(source).jsonObject.toMutableMap()
+            val imports = packageRoot["imports"]?.jsonObject.orEmpty().toMutableMap()
+            declared.toSortedMap().forEach { (name, target) ->
+                require(imports[name].let { it == null || it == JsonPrimitive(target) }) { "Conflicting package import: $path $name" }
+                imports[name] = JsonPrimitive(target)
+            }
+            packageRoot["imports"] = JsonObject(imports)
+            packageRoot["dependeasy"] = JsonObject(packageRoot["dependeasy"]?.jsonObject.orEmpty() + buildJsonObject {
+                putJsonArray("generatedImports") { declared.keys.sorted().forEach { add(it) } }
+            })
             outputs[key] = formatter.encodeToString(JsonObject.serializer(), JsonObject(packageRoot)) + "\n"
         }
         return outputs

@@ -2497,8 +2497,8 @@ importers:
         specifier: '>=18'
         version: 19.3.0(react@19.3.0)
       reaktor-reaktor-graph-port:
-        specifier: workspace:*
-        version: link:../build/js/packages/reaktor-reaktor-graph-port
+        specifier: link:build/dependeasy/kotlin/library
+        version: link:build/dependeasy/kotlin/library
     devDependencies:
       '@types/react':
         specifier: ^19.2.2
@@ -2547,8 +2547,8 @@ importers:
         specifier: 1.5.2
         version: 1.5.2
       reaktor-reaktor-mcp:
-        specifier: workspace:*
-        version: link:../build/js/packages/reaktor-reaktor-mcp
+        specifier: link:build/dependeasy/kotlin/library
+        version: link:build/dependeasy/kotlin/library
     devDependencies:
       typescript:
         specifier: 6.0.3
