@@ -5,13 +5,26 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.constructor.SafeConstructor
 import java.io.File
 import org.gradle.api.Project
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ValueSource
+import org.gradle.api.provider.ValueSourceParameters
 
 internal fun workspaceManifests(project: Project) = project.fileTree(project.rootDir) {
     include("package.json")
-    workspacePatterns(project.rootDir.resolve("pnpm-workspace.yaml")).forEach { pattern ->
+    project.providers.of(WorkspacePatternsSource::class.java) {
+        parameters.definition.set(project.rootProject.layout.projectDirectory.file("pnpm-workspace.yaml"))
+    }.get().forEach { pattern ->
         if (pattern.startsWith("!")) exclude("${pattern.drop(1)}/**") else include("$pattern/package.json")
     }
     exclude("**/node_modules/**")
+}
+
+internal abstract class WorkspacePatternsSource : ValueSource<List<String>, WorkspacePatternsSource.Parameters>, org.gradle.api.Describable {
+    override fun getDisplayName(): String = "Pnpm workspace membership"
+    interface Parameters : ValueSourceParameters {
+        val definition: RegularFileProperty
+    }
+    override fun obtain(): List<String> = workspacePatterns(parameters.definition.get().asFile)
 }
 
 /** Read membership without installing packages or interpreting YAML object tags. */

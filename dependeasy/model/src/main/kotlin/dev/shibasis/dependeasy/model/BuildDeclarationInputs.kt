@@ -15,7 +15,7 @@ object BuildDeclarationInputs {
             val implementation = path.startsWith("buildSrc/src/main/") || path.startsWith("dependeasy/") &&
                 (listOf("gradle", "model", "toolchain", "buildSrc").any { path.startsWith("dependeasy/$it/src/main/") } ||
                     path.startsWith("dependeasy/toolchain/src/contracts/"))
-            (file.name.endsWith(".gradle.kts") || file.name in setOf("gradle.properties", "local.properties") ||
+            (file.name.endsWith(".gradle.kts") || file.name in setOf("gradle.properties", "local.properties") || path == "pnpm-workspace.yaml" ||
                 implementation && file.extension == "kt") &&
                 file.isFile && file.canonicalFile.toPath().startsWith(boundary)
         }.sortedBy { it.invariantSeparatorsPath }.toList()

@@ -117,6 +117,13 @@ class BackendPipelineTest {
         assertEquals(TaskOutcome.UP_TO_DATE, run("installWorkspace").task(":pnpmInstall")?.outcome)
         manifest.writeText("""{"name":"fixture-tool","version":"1.0.0","description":"changed"}""")
         assertEquals(TaskOutcome.SUCCESS, run("installWorkspace").task(":pnpmInstall")?.outcome)
+        run("help")
+        assertContains(run("help").output, "Reusing configuration cache")
+        directory.resolve("pnpm-workspace.yaml").writeText("packages: ['packages/*', '!packages/ignored', 'outside/*']\n")
+        val changedMembership = run("help")
+        assertFalse(changedMembership.output.contains("Reusing configuration cache"))
+        assertContains(changedMembership.output, "Pnpm workspace membership")
+        assertContains(run("help").output, "Reusing configuration cache")
     }
 
     @Test fun `cmake stays lazy and tracks headers`() {

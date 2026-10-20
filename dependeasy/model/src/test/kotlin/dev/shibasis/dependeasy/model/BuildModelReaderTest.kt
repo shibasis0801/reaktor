@@ -187,5 +187,15 @@ class BuildModelReaderTest {
         export()
         root.resolve("new/build.gradle.kts").apply { parentFile.mkdirs(); writeText("plugins {}") }
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+        export()
+        val workspace = root.resolve("pnpm-workspace.yaml")
+        workspace.writeText("packages: [web]")
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+        export()
+        workspace.writeText("packages: [web, docs]")
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+        export()
+        assertTrue(workspace.delete())
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
     }
 }
