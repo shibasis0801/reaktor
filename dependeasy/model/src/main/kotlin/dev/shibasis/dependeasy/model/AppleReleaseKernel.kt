@@ -24,6 +24,9 @@ object AppleReleaseKernel {
             }
         }
         commands["iosExport"] = Xcodebuild.export(artifacts.getValue("iosArchive"), artifacts.getValue("iosIpaDirectory"), artifacts.getValue("iosExportOptions"))
+        val distributionArtifacts = spec.distribution?.artifacts.orEmpty()
+        require(distributionArtifacts.keys.intersect(artifacts.keys + spec.androidArtifacts.keys + androidApks.keys).isEmpty()) { "Distribution paths replace release artifacts" }
+        artifacts.putAll(distributionArtifacts)
         artifacts.putAll(androidApks)
         artifacts.putAll(spec.androidArtifacts)
         spec.androidTasks.forEach { (key, task) ->
@@ -37,6 +40,6 @@ object AppleReleaseKernel {
         commands["iosSigning"] = AppleGradle.verify(spec.signingTask, spec.host, spec.versionName, spec.buildNumber)
         return ReleasePlan(product = spec.product, versionName = spec.versionName, buildNumber = spec.buildNumber,
             bundleId = application.bundleId, extensionBundleId = spec.host.targets.singleOrNull { it.name != spec.host.applicationTarget }?.bundleId,
-            team = spec.host.team, artifacts = artifacts, commands = commands)
+            team = spec.host.team, artifacts = artifacts, commands = commands, distribution = spec.distribution)
     }
 }

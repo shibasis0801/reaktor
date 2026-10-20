@@ -40,6 +40,7 @@ import kotlinx.serialization.Serializable
     val team: String,
     val artifacts: Map<String, String>,
     val commands: Map<String, ReleaseCommand>,
+    val distribution: ReleaseDistribution? = null,
 )
 
 @Serializable data class ReleaseCommand(
@@ -47,3 +48,33 @@ import kotlinx.serialization.Serializable
     val tokens: List<String>,
     val environment: Map<String, String> = emptyMap(),
 )
+
+@Serializable data class ReleaseDistribution(
+    val appleId: String,
+    val appStoreTeamId: String,
+    val firebaseGroup: String,
+    val testflightExternalGroups: List<String>,
+    val playInternalTrack: String = "internal",
+    val playInternalStatus: String = "completed",
+    val playProductionTrack: String = "production",
+    val playProductionStatus: String = "draft",
+    val firebaseExportMethod: String = "release-testing",
+    val appStoreExportMethod: String = "app-store-connect",
+    val signingCertificate: String = "Apple Distribution",
+    val artifacts: Map<String, String> = emptyMap(),
+    val profiles: List<ReleaseProfile> = emptyList(),
+) {
+    init {
+        require(listOf(appleId, appStoreTeamId, firebaseGroup).all(String::isNotBlank))
+        require(testflightExternalGroups.isNotEmpty() && testflightExternalGroups.all(String::isNotBlank))
+        require(profiles.map { it.bundleId to it.method }.distinct().size == profiles.size) { "Duplicate release profile" }
+    }
+}
+
+@Serializable data class ReleaseProfile(val bundleId: String, val method: String, val name: String, val fileName: String) {
+    init {
+        require(bundleId.isNotBlank() && name.isNotBlank())
+        require(method in setOf("ad-hoc", "app-store", "development"))
+        require(fileName.isNotBlank() && '/' !in fileName && '\\' !in fileName && fileName != "." && fileName != "..")
+    }
+}

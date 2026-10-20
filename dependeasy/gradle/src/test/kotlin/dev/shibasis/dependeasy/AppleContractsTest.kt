@@ -22,6 +22,10 @@ class AppleContractsTest {
         write("settings.gradle.kts", "rootProject.name = \"appleFixture\"")
         write("pins.json", """{"pins":[{"identity":"appauth-ios","state":{"version":"1.7.6"}}]}""")
         write("host.json", BuildModelReader.json.encodeToString(host))
+        write("distribution.json", BuildModelReader.json.encodeToString(ReleaseDistribution(
+            appleId = "owner@fixture.invalid", appStoreTeamId = "fixture-store", firebaseGroup = "fixture-testers",
+            testflightExternalGroups = listOf("fixture-external"), artifacts = mapOf("iosSigningDirectory" to "config/fixture-signing"),
+            profiles = listOf(ReleaseProfile("fixture.app", "ad-hoc", "Fixture AdHoc", "Fixture.mobileprovision")))))
         write("fleet.json", BuildModelReader.json.encodeToString(WorkerFleetContract(workers = listOf(
             WorkerDeployable("web", NodeId("appleFixture", ":workers", "deployWeb"), "targets/web", emptyMap(), emptyMap())))))
         write("build.gradle.kts", """
@@ -42,6 +46,7 @@ class AppleContractsTest {
                 mustRunAfter(generate)
             }
             tasks.register<ReleasePlanTask>("release") {
+                distribution.set(providers.fileContents(layout.projectDirectory.file("distribution.json")).asText)
                 product.set("fixture"); host.set(declarationJson); versionName.set("5.2"); buildNumber.set(31)
                 xcodeDirectory.set("targets/apple"); xcodeProject.set("iosApp.xcodeproj"); scheme.set("iosApp")
                 webWorker.set("web"); workerFleet.set(layout.projectDirectory.file("fleet.json"))
@@ -107,6 +112,16 @@ class AppleContractsTest {
         prepare(); runner("release").build()
         val plan = BuildModelReader.json.decodeFromString<ReleasePlan>(directory.resolve("build/release.json").readText())
         assertEquals(31, plan.buildNumber)
+        assertEquals("fixture-testers", plan.distribution?.firebaseGroup)
+        assertEquals("Fixture AdHoc", plan.distribution?.profiles?.single()?.name)
+        assertEquals("config/fixture-signing", plan.artifacts.getValue("iosSigningDirectory"))
+        val repeat = runner("release").build()
+        assertContains(repeat.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":release")?.outcome)
+        val changed = requireNotNull(plan.distribution).copy(firebaseGroup = "changed-testers")
+        write("distribution.json", BuildModelReader.json.encodeToString(changed))
+        assertEquals(TaskOutcome.SUCCESS, runner("release").build().task(":release")?.outcome)
+        assertEquals(changed, BuildModelReader.json.decodeFromString<ReleasePlan>(directory.resolve("build/release.json").readText()).distribution)
         assertEquals("fixture.app", plan.bundleId)
         assertEquals("fixture.app.service", plan.extensionBundleId)
         assertFalse(Regex("bestbuds|manna", RegexOption.IGNORE_CASE).containsMatchIn(directory.resolve("build/release.json").readText()))
@@ -169,6 +184,7 @@ class AppleContractsTest {
             check(project(":android").state.executed)
             appleApp(application = projects.app, android = projects.android,
                 entryPoint = "Fixture.start()", bundleId = "fixture.app", team = "fixture-team", settingsPrefix = "FIXTURE",
+                distribution = ReleaseDistribution("owner@fixture.invalid", "fixture-store", "fixture-testers", listOf("fixture-external")),
                 web = WorkerRef("web", "targets/web"), fleet = output(projects.appleFixture, OutputKind.GeneratedContract, Contract.WorkerFleet))
         """.trimIndent())
         write("targets/apple/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -194,6 +210,8 @@ class AppleContractsTest {
         val releaseSpec = releaseNode.kernel?.spec as KernelSpec.ReleasePlan
         assertEquals(NodeId("appleFixture", ":", "outputGeneratedContractWorkerFleet"), releaseSpec.workerFleet)
         assertEquals("targets/apple", releaseSpec.xcodeDirectory)
+        assertEquals(plan.distribution, releaseSpec.distribution)
+        assertEquals("fixture-testers", releaseSpec.distribution?.firebaseGroup)
         assertEquals(":android:assembleDebug", releaseSpec.androidTasks["androidDebug"])
         val hostNode = model.nodes.single { it.id == NodeId("appleFixture", ":apple", "generateXcodeHost") }
         assertEquals(AppleHostKernel::class.java.name, hostNode.kernel?.className)

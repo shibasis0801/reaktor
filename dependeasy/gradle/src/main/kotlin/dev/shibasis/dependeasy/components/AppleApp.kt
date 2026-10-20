@@ -24,6 +24,7 @@ fun Project.appleApp(
     android: ProjectDependency? = null,
     web: WorkerRef? = null,
     fleet: OutputHandle? = null,
+    distribution: ReleaseDistribution? = null,
 ): NodeHandle {
     require(plugins.hasPlugin(AppleAppPlugin::class.java)) { "Apply dev.shibasis.dependeasy.apple-app" }
     require(project != rootProject) { "Declare an Apple app in its component project" }
@@ -35,6 +36,6 @@ fun Project.appleApp(
     return AppleHost(this, application, AppleAppSpec(entryPoint = entryPoint, bundleId = bundleId, team = team,
         settingsPrefix = settingsPrefix, backgroundTasks = backgroundTasks.toList(), extension = extension,
         extensionSettingsPrefix = extensionSettingsPrefix, extensionTarget = extensionTarget, target = target,
-        version = version, number = number, developmentTools = developmentTools, web = web), android, fleet).install()
+        version = version, number = number, developmentTools = developmentTools, web = web, distribution = distribution), android, fleet).install()
 }
 

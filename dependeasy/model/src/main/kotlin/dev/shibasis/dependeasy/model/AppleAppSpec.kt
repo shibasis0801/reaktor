@@ -18,4 +18,5 @@ data class AppleAppSpec(
     val number: BuildOption<Int>? = null,
     val developmentTools: BuildOption<Boolean>? = null,
     val web: WorkerRef? = null,
+    val distribution: ReleaseDistribution? = null,
 )
