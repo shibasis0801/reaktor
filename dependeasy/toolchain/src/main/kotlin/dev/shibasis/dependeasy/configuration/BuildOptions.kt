@@ -41,7 +41,8 @@ private fun <T : Any> Project.recordBuildOption(scope: String, option: BuildOpti
     fun fields(value: OptionValue) =
         mapOf("scope" to scope, "name" to value.name, "type" to value.type.name,
             "value" to value.value, "source" to value.source.name, "sensitive" to value.sensitive.toString()) +
-            listOfNotNull(value.file?.let { "file" to it }).toMap()
+            listOfNotNull(value.file?.let { "file" to it },
+                option.takeIf { OptionSource.Environment in it.resolutionOrder }?.let { "environment" to (it.environment ?: "ORG_GRADLE_PROJECT_${it.name}") }).toMap()
     resolvedBuildOptions().addAll(resolved.map { result ->
         val value = result.evidence
         listOf(fields(value))
@@ -88,7 +89,8 @@ abstract class BuildOptionSource : ValueSource<ResolvedOption<Any>, BuildOptionS
             val value = option.parse(text)
             val path = file?.let { if (source == OptionSource.UserGradleProperties) it.absolutePath else it.name }
             return ResolvedOption(value, OptionValue(option.name, option.type,
-                if (option.sensitive) "<redacted>" else value.toString(), source, path, option.sensitive))
+                if (option.sensitive) "<redacted>" else value.toString(), source, path, option.sensitive,
+                option.takeIf { OptionSource.Environment in it.resolutionOrder }?.let { it.environment ?: "ORG_GRADLE_PROJECT_${it.name}" }))
         }
         return null
     }

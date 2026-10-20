@@ -20,7 +20,7 @@ object BuildModelKernel {
         val options = resolvedOptions.distinct().map { fields ->
             val value = OptionValue(fields.getValue("name"), OptionType.valueOf(fields.getValue("type")),
                 fields.getValue("value"), OptionSource.valueOf(fields.getValue("source")), fields["file"],
-                fields.getValue("sensitive").toBooleanStrict())
+                fields.getValue("sensitive").toBooleanStrict(), fields["environment"])
             val text = BuildModelReader.json.encodeToString(value)
             val hash = BuildModelReader.digest(text)
             DeclarationInput(own, "option:${fields.getValue("scope")}:${value.name}:${hash.take(16)}", hash, DeclarationInputKind.Option, value)
@@ -100,7 +100,8 @@ object BuildModelKernel {
             .flatMap { it.directories.paths }.distinct().sorted()
         val routing = RemoteHostsContract(builds = model.builds.associate { it.name to it.directory }.toSortedMap(),
             taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to model.requiredHost(it.id) }.toSortedMap(),
-            taskFamilies = taskFamilies(model, own), publicOutputs = public, kotlinExports = exports)
+            taskFamilies = taskFamilies(model, own), publicOutputs = public, kotlinExports = exports,
+            environment = model.declarations.mapNotNull { it.option?.environment }.distinct().sorted())
         val appleVariables = model.nodes.mapNotNull { (it.kernel?.spec as? KernelSpec.XcodeHost)?.host }
             .map { host -> "${host.targets.single { it.name == host.applicationTarget }.settingsPrefix}_GRADLE_ARGS" }
         return routing.copy(xcodeEnvironment = (routing.xcodeEnvironment + appleVariables).distinct().sorted())

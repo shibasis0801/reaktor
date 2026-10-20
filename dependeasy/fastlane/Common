@@ -29,14 +29,6 @@ def env_or_nil(name)
   value.empty? ? nil : value
 end
 
-def copy_if_present(source, destination)
-  return unless File.exist?(source)
-
-  FileUtils.mkdir_p(File.dirname(destination))
-  FileUtils.cp(source, destination)
-  UI.message("Copied #{source} -> #{destination}")
-end
-
 def artifact_size_bytes(path)
   if File.directory?(path)
     Find.find(path).sum { |entry| File.file?(entry) ? File.size(entry) : 0 }

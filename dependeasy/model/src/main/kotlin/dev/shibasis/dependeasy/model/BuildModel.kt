@@ -123,6 +123,7 @@ data class RunReceipt(
     val taskHosts: Map<String, HostRequirement> = emptyMap(),
     val publicOutputs: Map<String, List<String>> = emptyMap(),
     val kotlinExports: List<String> = emptyList(),
+    val environment: List<String> = emptyList(),
     val outputRoots: Map<String, List<String>> = mapOf(
         "all" to listOf("outputs", "libs", "distributions", "reports", "test-results", "bin", "xcode-frameworks", "XCFrameworks", "compose", "processedResources", "classes", "resources"),
         "verification" to listOf("reports", "test-results", "hangar-flows", "hangar-shards"),

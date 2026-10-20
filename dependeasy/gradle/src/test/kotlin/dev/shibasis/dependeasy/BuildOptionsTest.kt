@@ -69,7 +69,12 @@ class BuildOptionsTest {
         assertEquals("false", requirement().option.value)
         val options = BuildModelReader.read(directory).declarations.mapNotNull { it.option }
         assertTrue(options.any { it.name == "fixture.feature" && it.source == OptionSource.Absent })
-        assertTrue(options.any { it.name == "FIXTURE_DIRECT" && it.source == OptionSource.Absent })
+        assertTrue(options.any { it.name == "FIXTURE_DIRECT" && it.source == OptionSource.Absent && it.environment == "FIXTURE_DIRECT" })
+        val hosts = BuildModelReader.json.decodeFromString<RemoteHostsContract>(directory.resolve("build/dependeasy/remote/hosts.json").readText())
+        assertContains(hosts.environment, "FIXTURE_DIRECT")
+        assertContains(hosts.environment, "FIXTURE_ENV")
+        assertContains(hosts.environment, "ORG_GRADLE_PROJECT_fixture.feature")
+        assertTrue(hosts.environment.none { it == "fixture.text" })
         val rejected = run("checks").buildAndFail()
         assertNull(rejected.task(":producer"))
         val failure = rejected.output
@@ -107,6 +112,10 @@ class BuildOptionsTest {
         val secret = inputs.single { it.option?.name == "FIXTURE_SECRET" }.option!!
         assertTrue(secret.sensitive)
         assertEquals("<redacted>", secret.value)
+        assertEquals("FIXTURE_SECRET", secret.environment)
+        val hosts = directory.resolve("build/dependeasy/remote/hosts.json").readText()
+        assertContains(BuildModelReader.json.decodeFromString<RemoteHostsContract>(hosts).environment, "FIXTURE_SECRET")
+        assertFalse(hosts.contains("fixture-sensitive-value"))
         assertFalse(directory.resolve(BuildModelReader.RelativePath).readText().contains("fixture-sensitive-value"))
         val changed = environment + ("FIXTURE_ENV" to "present")
         val first = run("exportBuildModel").withEnvironment(changed).build()
