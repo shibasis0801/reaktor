@@ -107,7 +107,6 @@ class WorkerFleet internal constructor(
                         val suffix = if (environment == environments.last().name) "" else ":$environment"
                         val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
                         workspace.alias(project.rootDir, alias + suffix, suite)
-                        if (mode == "auth") workspace.alias(project.rootDir, "test:$target:karate$suffix", suite)
                         groups.getOrPut("$mode:$environment") { mutableListOf() }.add(suite)
                     }
                 }
