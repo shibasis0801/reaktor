@@ -219,7 +219,7 @@ class VerificationSuitesTest {
         server.start()
         try {
             val url = "http://127.0.0.1:${server.address.port}/fixture"
-            write("settings.gradle.kts", "rootProject.name = \"pinnedVerificationFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"load\")")
+            write("settings.gradle.kts", "rootProject.name = \"pinnedVerificationFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"load\", \"workers\")")
             write("package.json", """{"name":"pinned-verification-fixture","private":true}""")
             write("suite/input.feature", """
                 Feature: local service qualification
@@ -228,6 +228,7 @@ class VerificationSuitesTest {
                   When method get
                   Then status 200
                   And match response.value == 'passed'
+                  And match java.lang.System.getenv('FIXTURE_DECLARED') == 'declared'
             """.trimIndent())
             write("suite/input.js", """
                 import http from 'k6/http';
@@ -237,22 +238,38 @@ class VerificationSuitesTest {
                   const response = http.get('$url');
                   check(response, {
                     'declared service': value => value.status === 200 && value.json('value') === 'passed',
-                    'required environment wins': () => __ENV.FIXTURE_PRIORITY === 'required'
+                    'required environment wins': () => __ENV.FIXTURE_PRIORITY === 'required',
+                    'declared environment reaches runner': () => __ENV.FIXTURE_DECLARED === 'declared'
                   });
                 }
             """.trimIndent())
             write("config/karate-config.js", "function fn() { return {}; }")
             write("config/required.env", "FIXTURE_PRIORITY=required\n")
+            write("wrangler.json", "{}")
+            write("worker/wrangler.json", """{"main":"src/index.ts"}""")
+            write("tests/worker/karate/input.feature", root.resolve("suite/input.feature").readText())
+            write("workers/build.gradle.kts", """
+                import dev.shibasis.dependeasy.components.workers
+                import dev.shibasis.dependeasy.model.*
+                plugins { id("dev.shibasis.dependeasy.worker-fleet") }
+                val prod = Environment("prod")
+                workers(listOf(prod), contracts = WorkerContractTests("config",
+                    environment = mapOf(prod to mapOf("FIXTURE_DECLARED" to "declared")))) {
+                    worker(WorkerRef("fixture", "worker"), listOf(WorkerDeployment(prod, ServiceRef("fixture-worker"))))
+                }
+            """.trimIndent())
             write("load/build.gradle.kts", """
                 import dev.shibasis.dependeasy.components.loadTests
                 import dev.shibasis.dependeasy.model.*
                 plugins { id("dev.shibasis.dependeasy.load-tests") }
                 enum class Suites(val spec: LoadSuite) {
                     realKarate(LoadSuite.Karate("suite", "config",
+                        environment = mapOf("FIXTURE_DECLARED" to "declared"),
                         environmentFiles = listOf("config/required.env"),
                         optionalEnvironmentFiles = listOf("config/optional.env"),
                         aliases = listOf(PackageScript("karate:fixture")))),
                     realK6(LoadSuite.K6("suite/input.js",
+                        environment = mapOf("FIXTURE_DECLARED" to "declared"),
                         environmentFiles = listOf("config/required.env"),
                         optionalEnvironmentFiles = listOf("config/optional.env"),
                         aliases = listOf(PackageScript("k6:fixture"))));
@@ -274,6 +291,7 @@ class VerificationSuitesTest {
             assertNull(exported.task(":karateSetup"))
             assertNull(exported.task(":k6Setup"))
             val declared = BuildModelReader.read(root)
+            assertContains(BuildModelKernel.routing(declared, "pinnedVerificationFixture").environment, "FIXTURE_DECLARED")
             val installerEdges = listOf("realKarate" to "karateSetup", "realK6" to "k6Setup").map { (suite, tool) ->
                 val source = NodeId("pinnedVerificationFixture", ":load", suite)
                 val target = NodeId("pinnedVerificationFixture", ":", tool)
@@ -305,6 +323,11 @@ class VerificationSuitesTest {
             run()
             val withoutOptional = BuildModelReader.read(root).nodes.mapNotNull { it.kernel?.spec }.filterIsInstance<KernelSpec.K6Suite>().single()
             assertFalse("PRIVATE_OPTIONAL" in withoutOptional.execution.environmentKeys)
+            val workerSuite = model.nodes.single { it.id.project == ":workers" && it.id.name == "karateWorkerAuthProd" }
+            assertContains(assertIs<KernelSpec.KarateSuite>(workerSuite.kernel?.spec).execution.environmentKeys, "FIXTURE_DECLARED")
+            val beforeWorker = requests.get()
+            run(":workers:karateWorkerAuthProd")
+            assertEquals(beforeWorker + 1, requests.get())
         } finally { server.stop(0) }
     }
 

@@ -103,7 +103,8 @@ class WorkerFleet internal constructor(
                     modes.forEach { (mode, tags) ->
                         val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
                         val suite = project.karateSuite(name, if (mode == "public") "$directory/public.feature" else directory, contracts.configuration, tags,
-                            listOfNotNull(contracts.environmentFiles[Environment(environment)]))
+                            listOfNotNull(contracts.environmentFiles[Environment(environment)]),
+                              environment = contracts.environment[Environment(environment)].orEmpty())
                         val suffix = if (environment == environments.last().name) "" else ":$environment"
                         val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
                         workspace.alias(project.rootDir, alias + suffix, suite)

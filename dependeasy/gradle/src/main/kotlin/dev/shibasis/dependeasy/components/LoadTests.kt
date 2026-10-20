@@ -16,8 +16,8 @@ fun <S : Enum<S>> Project.loadTests(suites: Map<S, LoadSuite>): NodeHandle {
     val nodes = suites.map { (identity, spec) ->
         val node = when (spec) {
             is LoadSuite.Karate -> karateSuite(identity.name, spec.directory, spec.configuration, spec.tags,
-                spec.environmentFiles, spec.optionalEnvironmentFiles)
-            is LoadSuite.K6 -> k6Suite(identity.name, spec.script, spec.environmentFiles, spec.optionalEnvironmentFiles)
+                spec.environmentFiles, spec.optionalEnvironmentFiles, spec.environment)
+            is LoadSuite.K6 -> k6Suite(identity.name, spec.script, spec.environmentFiles, spec.optionalEnvironmentFiles, spec.environment)
         }
         spec.aliases.forEach { workspace.alias(rootProject.file(it.directory), it.name, node) }
         node
