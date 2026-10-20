@@ -634,6 +634,7 @@ class AgentWorkspace(
             FileThreadStore.open(threadPath(initial.threadId)).use { store ->
                 val isolated = if (request.isolation == AgentIsolation.Worktree) worktrees.prepare(initial.id, "workspace") else null
                 val workingRoot = isolated?.roots?.first { it.source == root.canonicalPath }?.path?.let(::File) ?: root
+                val includedRoots = isolated?.roots?.filter { it.source != root.canonicalPath }?.map { it.path } ?: includedBuildRoots(root)
                 update(initial.id, true) { it.copy(workingDirectory = workingRoot.canonicalPath) }
                 val supplied = request.context
                 val subjects = supplied?.entries.orEmpty().filter { it.kind == "graph-subject" }
@@ -657,12 +658,13 @@ class AgentWorkspace(
                 fun spec(provider: RuntimeKind, model: String?, effort: NativeEffort?) = AgentSpec(
                     AgentId(provider.name.lowercase()), provider.name, provider,
                     "Follow the workspace's repository instructions.", model = model, effort = effort,
-                    tools = ToolPolicy(allowWrites = request.allowWrites, mcpConfig = harnessMcpConfig),
+                    tools = ToolPolicy(allowWrites = request.allowWrites, additionalDirectories = includedRoots, mcpConfig = harnessMcpConfig),
                     budget = request.timeoutMillis?.let { AgentBudget(timeoutMillis = it) } ?: AgentBudget(),
                     attributes = (request.maxCycles?.let { mapOf("maxCycles" to it.toString()) }.orEmpty()) +
                         (request.allowedChecks.takeIf { it.isNotEmpty() }
                             ?.let { mapOf("allowedChecks" to it.joinToString("\u0001")) }.orEmpty()))
-                val specs = request.workflow?.participants?.map { it.copy(tools = ToolPolicy(allowWrites = request.allowWrites && it.tools.allowWrites, mcpConfig = harnessMcpConfig)) }
+                val specs = request.workflow?.participants?.map { it.copy(tools = ToolPolicy(allowWrites = request.allowWrites && it.tools.allowWrites,
+                    additionalDirectories = includedRoots, mcpConfig = harnessMcpConfig)) }
                     ?: (listOf(spec(request.provider, request.model, request.effort)) +
                     listOfNotNull(request.partner?.let { spec(it.provider, it.model, it.effort) }) +
                     if (request.councilHybrid) listOf(spec(RuntimeKind.ChatGptGemini, null, null)) else emptyList())
