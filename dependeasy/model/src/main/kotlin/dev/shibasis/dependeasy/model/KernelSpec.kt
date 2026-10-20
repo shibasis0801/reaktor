@@ -27,7 +27,8 @@ sealed interface KernelSpec {
     @Serializable data class PackageScripts(val targets: Map<String, PackageAlias>, val extraAliases: Map<String, String>,
         val additionalAliases: Map<String, Map<String, String>>, val output: FileSet,
         val packageContracts: Map<String, FileSet> = emptyMap(),
-        val packageImports: Map<String, Map<String, String>> = emptyMap()) : KernelSpec
+        val packageImports: Map<String, Map<String, String>> = emptyMap(),
+        val versions: Map<String, List<String>> = emptyMap()) : KernelSpec
     @Serializable data class WebContract(val component: String, val directory: String,
         val manifests: FileSet, val wrappers: FileSet, val runtime: FileSet,
         val typeScriptPaths: Map<String, List<String>>, val assets: Map<String, String>, val baseConfiguration: FileSet,

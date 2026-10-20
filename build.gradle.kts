@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.components.webPackage
 import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.*
@@ -36,5 +37,5 @@ workspace {
         outputs(verification(Dependeasy.build, Verification.Plugin))
     }
     publishing { githubPackages() }
-    packageScripts()
+    packageScripts(versions = Versions.Web.Libraries)
 }

@@ -31,6 +31,19 @@ object PackageScriptsKernel {
     }
 
     fun render(spec: KernelSpec.PackageScripts, manifest: String, additionalManifests: Map<String, String>): Map<String, String> {
+        if (spec.versions.isNotEmpty()) {
+            (additionalManifests + ("package.json" to manifest)).forEach { (path, text) ->
+                val source = Json.parseToJsonElement(text).jsonObject
+                listOf("dependencies", "devDependencies", "optionalDependencies", "peerDependencies").forEach { section ->
+                    source[section]?.jsonObject.orEmpty().forEach { (name, declared) ->
+                        val version = declared.jsonPrimitive.content
+                        require(listOf("workspace:", "link:", "file:").any(version::startsWith) || version in spec.versions[name].orEmpty()) {
+                            "$path: $section.$name=$version is not declared in Kotlin package versions"
+                        }
+                    }
+                }
+            }
+        }
         val base = Json.parseToJsonElement(manifest).jsonObject
         val root = base.toMutableMap()
         val scripts = base["scripts"]?.jsonObject.orEmpty().toMutableMap()

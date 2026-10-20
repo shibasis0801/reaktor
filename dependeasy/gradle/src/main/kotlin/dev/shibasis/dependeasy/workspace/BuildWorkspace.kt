@@ -249,7 +249,7 @@ internal class BuildWorkspace(private val project: Project) {
         }
     }
 
-    fun packageScripts() = project.tasks.register<PackageScriptsTask>("generatePackageScripts") {
+    fun packageScripts(versions: Map<String, List<String>> = emptyMap()) = project.tasks.register<PackageScriptsTask>("generatePackageScripts") {
         group = "code generation"
         val file = project.layout.projectDirectory.file("package.json")
         val generated = this@BuildWorkspace.targets.values.filter { it.id.project == project.path && (it.worker != null || it.declaration?.kind in setOf(NodeKind.External, NodeKind.Release, NodeKind.Deploy)) }.associateBy { it.name }
@@ -258,6 +258,16 @@ internal class BuildWorkspace(private val project: Project) {
         targets.set(generated.mapValues { BuildModelReader.encode(it.value.model(project)) })
         outputFile.set(file)
         rootDirectory.set(project.layout.projectDirectory)
+        dependencyVersions.set(versions)
+        if (versions.isNotEmpty()) {
+            val generatedRoot = project.layout.buildDirectory.get().asFile.canonicalFile.toPath()
+            PnpmWorkspace.get(project).manifests.files.filterNot { it.canonicalFile.toPath().startsWith(generatedRoot) }
+                .filterNot { it == file.asFile }.forEach { source ->
+                    val path = source.relativeTo(project.rootDir).invariantSeparatorsPath
+                    additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText
+                        .map { PackageScriptsKernel.authoredManifest(it) })
+                }
+        }
         extraAliases.putAll(scriptAliases["package.json"].orEmpty())
         scriptAliases.filterKeys { it != "package.json" }.forEach { (path, aliases) ->
             additionalAliases.put(path, BuildModelReader.json.encodeToString(aliases.toMap()))

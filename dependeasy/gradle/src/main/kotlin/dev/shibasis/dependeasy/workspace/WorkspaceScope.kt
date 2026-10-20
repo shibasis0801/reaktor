@@ -33,7 +33,7 @@ class WorkspaceScope internal constructor(private val project: Project, private 
         outputs.forEach { dev.shibasis.dependeasy.web.PnpmWorkspace.get(project).packages(it) }
     }
 
-    fun packageScripts() = workspace.packageScripts()
+    fun packageScripts(versions: Map<String, List<String>> = emptyMap()) = workspace.packageScripts(versions)
 
     fun buildTooling() = dev.shibasis.dependeasy.web.buildTooling(project)
 

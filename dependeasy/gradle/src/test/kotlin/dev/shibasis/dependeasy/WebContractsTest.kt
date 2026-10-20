@@ -395,8 +395,9 @@ class WebContractsTest {
     }
 
     @Test fun `package aliases preserve runtime scripts and remove retired generated aliases`() {
-        write("package.json", """{"name":"root","scripts":{"serve":"node serve.mjs","retired":"old"},"dependeasy":{"generatedScripts":["retired"]}}""")
-        write("targets/worker/package.json", """{"name":"worker","scripts":{"dev":"wrangler dev","retired":"old"},"dependeasy":{"generatedScripts":["retired"]}}""")
+        write("package.json", """{"name":"root","devDependencies":{"vite":"8.3.4"},"scripts":{"serve":"node serve.mjs","retired":"old"},"dependeasy":{"generatedScripts":["retired"]}}""")
+        write("pnpm-workspace.yaml", "packages:\n  - 'targets/*'\n")
+        write("targets/worker/package.json", """{"name":"worker","dependencies":{"vite":"8.3.4","local":"workspace:*"},"scripts":{"dev":"wrangler dev","retired":"old"},"dependeasy":{"generatedScripts":["retired"]}}""")
         write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts"}""")
         write("targets/worker/wrangler.dev.json", """{"name":"fixture-worker-dev","main":"index.ts"}""")
         write("wrangler.json", "{}")
@@ -407,7 +408,7 @@ class WebContractsTest {
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val compiled = tasks.register("compileFixture") { outputs.dir(layout.buildDirectory.dir("js")) }
             publishOutput(OutputKind.KotlinJsLibrary, layout.buildDirectory.dir("js"), producer = compiled)
-            dependeasy.workspace { packageScripts() }
+            dependeasy.workspace { packageScripts(versions = mapOf("vite" to listOf("8.3.4"))) }
         """.trimIndent())
         write("settings.gradle.kts", """
             rootProject.name = "webFixture"
@@ -458,6 +459,13 @@ class WebContractsTest {
         assertEquals("targets/worker", model.nodes.single { it.id == worker }.worker?.directory)
         assertEquals("./gradlew :workers:deployWorkers", scripts.getValue("deployWorkers").jsonPrimitive.content)
         assertContains(run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev").output, "Reusing configuration cache")
+        val validManifest = directory.resolve("targets/worker/package.json").readText()
+        write("targets/worker/package.json", validManifest.replace("8.3.4", "0.0.0"))
+        val versionDrift = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("generatePackageScripts", "--configuration-cache", "--stacktrace").buildAndFail()
+        assertContains(versionDrift.output, "targets/worker/package.json: dependencies.vite=0.0.0 is not declared in Kotlin package versions")
+        write("targets/worker/package.json", validManifest)
+        assertEquals(TaskOutcome.SUCCESS, run("generatePackageScripts").task(":generatePackageScripts")?.outcome)
         write("targets/worker/wrangler.json", "invalid JSON must not be read while configuring")
         run("exportBuildModel")
         val rejected = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
