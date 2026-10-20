@@ -43,6 +43,7 @@ class AndroidPermissionAdapter(
         if (actual.all { context.hasPermission(it) }) {
             return true
         }
+        rememberAsked(context, actual)
 
         val componentActivity = context as? ComponentActivity
         if (componentActivity != null) {
@@ -67,12 +68,16 @@ class AndroidPermissionAdapter(
         val appNotificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
         val granted = permissionGranted && appNotificationsEnabled
         val canRequest = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !permissionGranted
+        // Android cannot say whether a permission that is not granted was never asked for or was
+        // refused, so this adapter remembers asking. Without it every refusal read as "not
+        // determined", and an app could never tell a person that notifications were off.
+        val neverAsked = canRequest && !wasAsked(context, Manifest.permission.POST_NOTIFICATIONS)
         val blockedCategories = blockedNotificationCategories(context, options.categoryIds)
         return NotificationPermissionStatus(
             platform = PermissionPlatform.Android,
             state = when {
                 granted -> NotificationPermissionState.Granted
-                canRequest -> NotificationPermissionState.NotDetermined
+                neverAsked -> NotificationPermissionState.NotDetermined
                 else -> NotificationPermissionState.Denied
             },
             canRequest = canRequest,
@@ -92,6 +97,16 @@ class AndroidPermissionAdapter(
         request(Permission.NOTIFICATIONS)
         return getNotificationPermissionStatus(options)
     }
+
+    private fun asked(context: Context) =
+        context.getSharedPreferences(ASKED_PREFERENCES, Context.MODE_PRIVATE)
+
+    private fun rememberAsked(context: Context, permissions: Array<String>) {
+        asked(context).edit().apply { permissions.forEach { putBoolean(it, true) } }.apply()
+    }
+
+    private fun wasAsked(context: Context, permission: String): Boolean =
+        asked(context).getBoolean(permission, false)
 
     @SuppressLint("NewApi")
     private fun blockedNotificationCategories(
@@ -119,5 +134,6 @@ class AndroidPermissionAdapter(
 
     private companion object {
         const val PERMISSION_REQUEST_CODE = 7701
+        const val ASKED_PREFERENCES = "reaktor.permissions.asked"
     }
 }
