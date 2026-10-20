@@ -1363,7 +1363,7 @@ Whole-file reads in both tasks were checked against the length of each edited fi
 
 **What would help next.**
 - `check.run` should say which checks Gradle found up to date or took from its cache, so an agent knows whether the tests ran.
-- Stop the daemon started on 18 October (pid 38840); it was still running on 20 October. Until then, plain `./gradlew` test runs on this Mac fail in reaktor-tooling, `engine` and `reaktorDesktop` while `check.run` passes.
+- The daemon started on 18 October (pid 38840) was stopped on 20 October at 13:20. Plain `./gradlew` test runs in reaktor-tooling, `engine` and `reaktorDesktop` have not been run again since. If test processes crash again as soon as a test draws text, compare with `--no-daemon` before suspecting the change.
 - reaktor-tooling's live device tests should never be up to date, or should move out of `jvmTest` into a check of their own; its test JVMs should run headless.
 - To meet the gate on the extension function, Codex needs one pass that uses the change tools without reading a file whole, and Claude needs a control run. The guide could say that `change_plan` finds the declaration and its uses itself, so a rename needs no lookup or read before it. Both are agent runs, and they wait for the owner's go-ahead.
 - One or two passes per arm show what works; they do not measure the gain. Eight passes per arm, as in §5.6, would measure it, and they too wait for the owner's go-ahead.
