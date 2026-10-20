@@ -1,5 +1,8 @@
 package dev.shibasis.dependeasy.desktop
 
+import dev.shibasis.dependeasy.toolchain.buildHost
+import dev.shibasis.dependeasy.workspace.declarationSite
+import dev.shibasis.dependeasy.model.SourceSite
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.model.NativeContract
 import dev.shibasis.dependeasy.model.BuildModelReader
@@ -13,17 +16,14 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
-class NativeDesktopLibrary internal constructor(private val project: Project, private val name: String) {
-    var source: Any = "src/jvmMain/cpp"
-    var target: String = name
-    private val defines = linkedMapOf<String, String>()
-    fun define(name: String, value: Any) { defines[name] = value.toString() }
+internal class NativeDesktopLibrary(private val project: Project, private val name: String,
+    private val source: String, private val target: String, private val defines: Map<String, String>) {
 
     internal fun register() = with(project) {
-        val os = providers.systemProperty("os.name").get()
-        val arch = providers.systemProperty("os.arch").get()
-        val platform = (if (os.startsWith("Mac")) "macos-" else if (os.startsWith("Windows")) "windows-" else "linux-") +
-            (if (arch in setOf("aarch64", "arm64")) "arm64" else "x64")
+        val site = declarationSite()
+        val host = buildHost
+        val platform = (if (host.mac) "macos-" else if (host.windows) "windows-" else "linux-") +
+            (if (host.arm) "arm64" else "x64")
         val libraryTaskName = this@NativeDesktopLibrary.name
         val output = layout.buildDirectory.dir("libs/$libraryTaskName/$platform")
         val jdk = extensions.getByType<JavaToolchainService>().launcherFor {
@@ -31,6 +31,7 @@ class NativeDesktopLibrary internal constructor(private val project: Project, pr
         }
         val compile = tasks.register<KotlinCMakeTask>(libraryTaskName) {
             group = "dependeasy"
+            site?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) }
             sourceDirectory.set(file(source))
             sourceFiles.from(fileTree(file(source)))
             buildDirectory.set(layout.buildDirectory.dir("native/$libraryTaskName/$platform"))
@@ -52,7 +53,7 @@ class NativeDesktopLibrary internal constructor(private val project: Project, pr
             from(output) { include("*.dylib", "*.so", "*.dll", "*-LICENSE") }
             into(resourceRoot.map { it.dir("native/$platform") })
         }
-        extensions.getByType<KotlinMultiplatformExtension>().sourceSets.named("jvmMain") {
+        extensions.getByType<KotlinMultiplatformExtension>().sourceSets.matching { it.name == "jvmMain" }.configureEach {
             resources.srcDir(packageLibraries.map { resourceRoot.get() })
         }
         compile

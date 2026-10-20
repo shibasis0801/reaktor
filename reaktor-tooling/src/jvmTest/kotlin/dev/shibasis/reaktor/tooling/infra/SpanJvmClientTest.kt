@@ -45,6 +45,36 @@ class SpanJvmClientTest {
         assertFalse(requests.last().contains("'' AS"))
     }
 
+    @Test fun filtersRunBeforeTheLimitAndAreEncodedAsData() = InfrastructureSession().use { session ->
+        val filter = SpanReadFilter(trace = "1".repeat(32), session = "x' OR 1=1 --\\你好", build = "build-a", node = "node-a")
+        val requests = mutableListOf<String>()
+        val columns = base + listOf("application_session", "build", "node")
+        val output = SpanJvmClient(session).readReceipt(op.copy(filter = filter)) { sql ->
+            requests += sql
+            if (sql.startsWith("SELECT name")) columns.joinToString("\n") { "{\"name\":\"$it\"}" } else ""
+        }
+        val sql = requests.last()
+        assertTrue(sql.indexOf("trace_id = unhex(") < sql.indexOf("LIMIT"))
+        assertTrue(sql.contains("application_session = unhex("))
+        assertFalse(sql.contains(filter.session!!))
+        assertEquals(filter, Json.decodeFromString(SpanReadReceipt.serializer(), output).filter)
+    }
+
+    @Test fun missingFilterColumnsAndInvalidTraceNeverReadRows() = InfrastructureSession().use { session ->
+        var requests = 0
+        assertFailsWith<IllegalArgumentException> {
+            SpanJvmClient(session).readReceipt(op.copy(filter = SpanReadFilter(session = "session"))) {
+                requests++
+                base.joinToString("\n") { "{\"name\":\"$it\"}" }
+            }
+        }
+        assertEquals(1, requests)
+        assertFailsWith<IllegalArgumentException> {
+            SpanJvmClient(session).readReceipt(op.copy(filter = SpanReadFilter(trace = "bad"))) { requests++; "" }
+        }
+        assertEquals(1, requests)
+    }
+
     @Test fun missingBaseSchemaOrInvalidScopeFailsBeforeReadingRows() = InfrastructureSession().use { session ->
         var requests = 0
         assertFails { SpanJvmClient(session).readReceipt(op) { requests++; "{\"name\":\"trace_id\"}" } }

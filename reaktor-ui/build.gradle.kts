@@ -6,72 +6,43 @@ import dev.shibasis.dependeasy.android.activityFragment
 import dev.shibasis.dependeasy.android.androidCoroutines
 import dev.shibasis.dependeasy.android.extensions
 import dev.shibasis.dependeasy.android.fbjni
-
-import dev.shibasis.dependeasy.dependencies.useKoin
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Compose
+import dev.shibasis.dependeasy.handles.Reaktor
+import dev.shibasis.dependeasy.model.Targets
 
 plugins { id("dev.shibasis.dependeasy.compose-library") }
 
-dependeasy {
-    javascript("uiTypeScript").library("buildUiTypeScript", "ts/tsconfig.json", "ts/dist")
-    module("dev.shibasis.reaktor.ui") {
+library(namespace = "dev.shibasis.reaktor.ui", targets = Targets.All, ui = Compose()) {
+    val buildUiTypeScript by typescript(configuration = "ts/tsconfig.json", output = "ts/dist")
+    val jvmComposeWebViewProbeClasspath by classpath(output = "reports/webview/compose-probe-classpath.txt")
+    dependencies {
         common {
-            dependencies {
-                api(projects.reaktorCore)
-                api(projects.reaktorCode)
-                api(projects.reaktorIo)
-                api(projects.reaktorWeb)
-                api(projects.reaktorSurfaceCompose)
-                api(Versions.Compose.Runtime)
-                api(Versions.Compose.Foundation)
-                api(Versions.Compose.Material3)
-                api(Versions.Compose.MaterialIcons)
-                // Common BackHandler — needed by any full-screen overlay that must swallow back
-                // instead of letting it pop the route underneath.
-                api(Versions.Compose.BackHandler)
-                api(Versions.Compose.Coil)
-                api(Versions.Compose.CoilKtor)
-                api(Versions.Compose.CoilSvg)
-            }
-            testDependencies {
-                implementation(Versions.Compose.UiTest)
-            }
+            api(Reaktor.Core, Reaktor.Code, Reaktor.Io, Reaktor.Web, Reaktor.SurfaceCompose)
+            api(Versions.Compose.Runtime)
+            api(Versions.Compose.Foundation)
+            api(Versions.Compose.Material3)
+            api(Versions.Compose.MaterialIcons)
+            api(Versions.Compose.BackHandler)
+            api(Versions.Compose.Coil)
+            api(Versions.Compose.CoilKtor)
+            api(Versions.Compose.CoilSvg)
         }
-
+        commonTest { implementation(Versions.Compose.UiTest) }
         web {
-            dependencies {
-                kotlinWrappers()
-                react()
-                webCoroutines()
-            }
+            kotlinWrappers()
+            react()
+            webCoroutines()
         }
-
         android {
-            dependencies {
-                activityFragment()
-                androidCoroutines()
-                fbjni()
-
-                extensions()
-            }
+            activityFragment()
+            androidCoroutines()
+            fbjni()
+            extensions()
         }
-
-        apple {
-            dependencies {
-                // todo kotlin native needs this, should be transitive but there is some bug https://github.com/Kotlin/kotlinx.coroutines/pull/3996/files
-                api(Versions.Kotlin.AtomicFu)
-            }
-        }
-
-        jvm {
-            dependencies {
-                api(Versions.Compose.Desktop)
-            }
-            testDependencies {
-                implementation(projects.reaktorPerformance)
-            }
-        }
+        apple { api(Versions.Kotlin.AtomicFu) }
+        jvm { api(Versions.Compose.Desktop) }
+        jvmTest { implementation(Reaktor.Performance) }
     }
-
-
-    jvmClasspath("jvmComposeWebViewProbeClasspath", "reports/webview/compose-probe-classpath.txt")
 }
+

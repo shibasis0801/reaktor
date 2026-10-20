@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.verification
 
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.process.KernelSpecOwner
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.api.DefaultTask
@@ -13,7 +15,11 @@ import org.gradle.work.DisableCachingByDefault
 
 /** The policy is product-owned; resolution and verification are declared Gradle state. */
 @DisableCachingByDefault(because = "Verification has no output artifact to cache")
-abstract class DependencyBoundary : DefaultTask() {
+abstract class DependencyBoundary : DefaultTask(), KernelSpecOwner {
+    @get:Input abstract val configurationName: Property<String>
+    override val kernelEffect get() = Effect.Verify
+    override val kernelSpec get() = KernelSpec.DependencyBoundary(ConfigurationRef(configurationName.get()),
+        groupPrefixes.get(), groupFragments.get(), modules.get(), moduleSuffix.get(), reason.get())
     @get:InputFiles @get:PathSensitive(PathSensitivity.NONE)
     abstract val artifacts: ConfigurableFileCollection
     @get:Input abstract val coordinates: ListProperty<String>
@@ -33,10 +39,6 @@ abstract class DependencyBoundary : DefaultTask() {
         reason.convention("Dependency boundary violated")
     }
 
-    fun forbidGroupPrefixes(vararg values: String) = groupPrefixes.addAll(*values)
-    fun forbidGroupFragments(vararg values: String) = groupFragments.addAll(*values)
-    fun forbidModules(vararg values: String) = modules.addAll(*values)
-
     @TaskAction fun verify() {
         val forbidden = coordinates.get().filter { coordinate ->
             val (group, module) = coordinate.split(':', limit = 3)
@@ -49,15 +51,20 @@ abstract class DependencyBoundary : DefaultTask() {
 }
 
 internal fun Project.dependencyBoundary(
-    name: String, configuration: String, policy: DependencyBoundary.() -> Unit,
-) = configurations.named(configuration).let { runtime ->
-    tasks.register<DependencyBoundary>(name) {
-        group = "verification"
-        artifacts.from(runtime)
-        coordinates.set(runtime.map { dependencyConfiguration ->
-            dependencyConfiguration.resolvedConfiguration.resolvedArtifacts
-                .map { it.moduleVersion.id.toString() }.distinct().sorted()
-        })
-        policy()
-    }.also { boundary -> tasks.matching { it.name == LifecycleBasePlugin.CHECK_TASK_NAME }.configureEach { dependsOn(boundary) } }
-}
+    name: String, policy: KernelSpec.DependencyBoundary, description: String? = null,
+) = tasks.register<DependencyBoundary>(name) {
+    val runtime = project.configurations.named(policy.configuration.name)
+    configurationName.set(policy.configuration.name)
+    group = "verification"
+    artifacts.from(runtime)
+    coordinates.set(runtime.map { dependencyConfiguration ->
+        dependencyConfiguration.resolvedConfiguration.resolvedArtifacts
+            .map { it.moduleVersion.id.toString() }.distinct().sorted()
+    })
+    groupPrefixes.set(policy.groupPrefixes)
+    groupFragments.set(policy.groupFragments)
+    modules.set(policy.modules)
+    moduleSuffix.set(policy.moduleSuffix)
+    reason.set(policy.reason)
+    this.description = description
+}.also { boundary -> tasks.matching { it.name == LifecycleBasePlugin.CHECK_TASK_NAME }.configureEach { dependsOn(boundary) } }

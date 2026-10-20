@@ -17,7 +17,7 @@ class GeneratedOutputBoundaryTest {
 
     @Test fun `SDK compilation uses a bounded worker and retains generated metadata`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"sdkFixture\"")
-        directory.resolve("gradle.properties").writeText("org.gradle.jvmargs=-Xmx384m -XX:MaxMetaspaceSize=384m\n")
+        directory.resolve("gradle.properties").writeText("org.gradle.jvmargs=-Xmx384m -XX:MaxMetaspaceSize=384m\nandroid.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true\n")
         directory.resolve("generator").apply {
             writeText("""
                 #!/bin/sh
@@ -36,24 +36,37 @@ class GeneratedOutputBoundaryTest {
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.codegen.PulumiSdkTask
             import dev.shibasis.dependeasy.toolchain.InstallTool
-            plugins { java; id("dev.shibasis.dependeasy.pipeline") }
-            dependeasy { pulumiSdk("fixture", "1", "example.invalid") }
+            import dev.shibasis.dependeasy.components.library
+            import dev.shibasis.dependeasy.model.Targets
+            plugins { id("dev.shibasis.dependeasy.library") }
+            repositories { google(); mavenCentral() }
+            library(namespace = "fixture", targets = Targets.Jvm) {
+                val sdk = pulumiSdk("fixture", "1", "example.invalid")
+                dependencies { jvm { implementation(sdk) } }
+            }
             tasks.withType<InstallTool>().configureEach { enabled = false }
             tasks.named<PulumiSdkTask>("genFixtureSdk") {
                 executable.set(layout.projectDirectory.file("generator").asFile.absolutePath)
             }
             tasks.named<JavaCompile>("compileFixtureSdk") { classpath = files() }
         """.trimIndent())
-        val first = runner("fixtureSdkJar", "--info").build()
+        directory.resolve("src/jvmMain/kotlin/Consumer.kt").apply {
+            parentFile.mkdirs(); writeText("fun fixture() = sdk.Fixture()")
+        }
+        val first = runner("compileKotlinJvm", "exportBuildModel", "--info").build()
         assertEquals(TaskOutcome.SUCCESS, first.task(":compileFixtureSdk")?.outcome)
         assertContains(first.output, "Gradle Worker Daemon")
         assertContains(first.output, "-Xmx1024m")
+        assertEquals(TaskOutcome.SUCCESS, first.task(":compileKotlinJvm")?.outcome)
+        val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Includes &&
+            it.from.name == "componentBuild" && it.to.name == "fixtureSdkJar" })
         val jar = directory.resolve("build/libs").listFiles()!!.single { it.extension == "jar" }
         java.util.jar.JarFile(jar).use {
             assertNotNull(it.getJarEntry("sdk/Fixture.class"))
             assertEquals("1", it.getInputStream(it.getJarEntry("com/pulumi/fixture/version.txt")).reader().readText())
         }
-        val repeated = runner("fixtureSdkJar").build()
+        val repeated = runner("compileKotlinJvm", "exportBuildModel", "--info").build()
         assertContains(repeated.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":compileFixtureSdk")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":fixtureSdkJar")?.outcome)

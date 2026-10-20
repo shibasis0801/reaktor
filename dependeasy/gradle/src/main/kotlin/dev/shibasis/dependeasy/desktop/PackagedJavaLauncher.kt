@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.desktop
 
+import dev.shibasis.dependeasy.toolchain.buildHost
 import org.gradle.api.Action
 import org.gradle.api.Task
 import org.gradle.api.file.DirectoryProperty
@@ -12,7 +13,7 @@ import javax.inject.Inject
 fun Task.retainJavaLauncher(
     javaHome: Provider<String>, destination: DirectoryProperty, classSharing: Provider<Boolean>,
 ) {
-    val executable = if (System.getProperty("os.name").startsWith("Windows")) "java.exe" else "java"
+    val executable = if (project.buildHost.windows) "java.exe" else "java"
     inputs.file(javaHome.map { "$it/bin/$executable" }).withPropertyName("backgroundJavaLauncher")
     inputs.property("desktopClassSharing", classSharing)
     doLast(project.objects.newInstance(RetainJavaLauncher::class.java, javaHome, destination, classSharing, executable))

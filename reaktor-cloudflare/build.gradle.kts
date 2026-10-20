@@ -1,53 +1,31 @@
-import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.configuration.ReaktorTests
 import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.Versions
 
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
-    workspace { val generateBindings by artifacts { include(node(bindings)) } }
-
-    module("dev.shibasis.reaktor.cloudflare") {
-        common {
-            dependencies {
-                api(projects.reaktorAuthCore)
-                api(projects.reaktorCore)
-                api(projects.reaktorService)
-                api(projects.reaktorGraphRuntime)
-                api(projects.reaktorIo)
-                api(projects.reaktorSecrets)
-            }
-        }
-        android {}
-        apple {}
-
+library(namespace = "dev.shibasis.reaktor.cloudflare", targets = Targets.Android + Targets.Apple + Targets.Web) {
+    val generateBindings by bindings()
+    dependencies {
+        common { api(Reaktor.AuthCore, Reaktor.Core, Reaktor.Service, Reaktor.GraphRuntime, Reaktor.Io, Reaktor.Secrets) }
         web {
-            sourceSetModifier { kotlin.srcDir(bindings) }
-            dependencies {
-                api(npm("hono", Versions.Web.Hono))
-                api(npm("partyserver", Versions.Web.PartyServer))
-                api(npm("postgres", Versions.Web.Postgres))
-            }
-            testDependencies {
-                implementation(projects.reaktorWork)
-                implementation(npm("miniflare", Versions.Web.Miniflare))
-            }
+            api(npm("hono", Versions.Web.Hono))
+            api(npm("partyserver", Versions.Web.PartyServer))
+            api(npm("postgres", Versions.Web.Postgres))
         }
-
-        kotlin {
-
-            js {
-                nodejs { testTask { useMocha { timeout = "60s" } } }
-            }
+        webTest {
+            implementation(Reaktor.Work)
+            implementation(npm("miniflare", Versions.Web.Miniflare))
         }
     }
-
-
-    dependencyBoundary("verifyCloudflareRuntimeBoundary", ConfigurationRef.JavaScriptCompileClasspath) {
-        moduleSuffix.set("-js")
-        forbidGroupPrefixes("androidx.compose", "org.jetbrains.compose", "org.jetbrains.skiko", "ai.bestbuds")
-        forbidModules("reaktor-auth", "reaktor-graph", "reaktor-ui", "engine", "kernel")
-        reason.set("Cloudflare hosts must remain headless")
-    }
+    val node by tests(Suite.JavaScript, environment = ReaktorTests.Cloudflare)
+    val verifyCloudflareRuntimeBoundary by boundary(
+        configuration = ConfigurationRef.JavaScriptCompileClasspath,
+        moduleSuffix = "-js",
+        groupPrefixes = listOf("androidx.compose", "org.jetbrains.compose", "org.jetbrains.skiko", "ai.bestbuds"),
+        modules = listOf("reaktor-auth", "reaktor-graph", "reaktor-ui", "engine", "kernel"),
+        reason = "Cloudflare hosts must remain headless",
+    )
 }

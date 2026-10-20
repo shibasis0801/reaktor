@@ -14,9 +14,6 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 include(":pipeline")
 project(":pipeline").projectDir = file("dagger")
 
-//include(":reaktor-react") // will fix later
-
-
 include(":reaktor-compiler")
 include(":reaktor-core")
 include(":reaktor-code")

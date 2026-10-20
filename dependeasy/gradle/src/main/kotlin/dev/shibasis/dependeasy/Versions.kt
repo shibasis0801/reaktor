@@ -99,7 +99,6 @@ object Versions {
     const val Coroutines = "1.10.2"
     const val Kermit = "2.0.5"
     const val Serialization = dev.shibasis.dependeasy.toolchain.BuildLibraries.Serialization
-    const val Seskar = "4.25.0"
 
     // DevTools
     const val LeakCanary = "2.8.1"

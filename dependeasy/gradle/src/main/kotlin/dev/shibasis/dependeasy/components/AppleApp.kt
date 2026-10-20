@@ -12,8 +12,10 @@ fun Project.appleApp(
     entryPoint: String,
     bundleId: String,
     team: String,
+    settingsPrefix: String,
     backgroundTasks: List<String> = emptyList(),
     extension: AppleFrameworkSpec? = null,
+    extensionSettingsPrefix: String? = null,
     extensionTarget: String = "NotificationService",
     target: String = "iosApp",
     version: BuildOption<String>? = null,
@@ -29,7 +31,10 @@ fun Project.appleApp(
     require(fleet == null || fleet.kind == OutputKind.GeneratedContract && fleet.qualifiers == listOf(Contract.WorkerFleet.name)) {
         "Use the worker fleet's published contract"
     }
-    return AppleHost(this, application, AppleAppSpec(entryPoint, bundleId, team, backgroundTasks.toList(),
-        extension, extensionTarget, target, version, number, developmentTools, web), android, fleet).install()
+    require((extension == null) == (extensionSettingsPrefix == null)) { "Declare settings for each Apple target" }
+    return AppleHost(this, application, AppleAppSpec(entryPoint = entryPoint, bundleId = bundleId, team = team,
+        settingsPrefix = settingsPrefix, backgroundTasks = backgroundTasks.toList(), extension = extension,
+        extensionSettingsPrefix = extensionSettingsPrefix, extensionTarget = extensionTarget, target = target,
+        version = version, number = number, developmentTools = developmentTools, web = web), android, fleet).install()
 }
 

@@ -5,8 +5,7 @@ import org.gradle.kotlin.dsl.register
 import dev.shibasis.dependeasy.model.ToolHandle
 
 class VerificationTools private constructor(private val project: Project) {
-    private val host = (if (System.getProperty("os.name").startsWith("Mac")) "darwin" else "linux") +
-        "-" + if (System.getProperty("os.arch") in setOf("aarch64", "arm64")) "arm64" else "amd64"
+    private val host = project.toolPlatform().replace("-x64", "-amd64")
     private fun install(name: String, version: String, url: String, sha: String, prefix: String?, binary: String, format: ToolArchive): InstalledTool {
         val directory = project.gradle.gradleUserHomeDir.resolve("dependeasy/tools/$name/$version/$host")
         val task = project.tasks.register<InstallTool>("${name}Setup") {

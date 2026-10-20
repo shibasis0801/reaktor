@@ -1,19 +1,8 @@
-import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
-    workspace { val generateBindings by artifacts { include(node(bindings)) } }
-
-    module("dev.shibasis.reaktor.tactile") {
-        common {
-            dependencies {
-                api(projects.reaktorCore)
-            }
-        }
-        android {}
-        apple {}
-        web {}
-        jvm {}
-    }
+library(namespace = "dev.shibasis.reaktor.tactile", targets = Targets.All) {
+    val generateBindings by bindings(kotlinConsumer = false)
+    dependencies { common { api(projects.reaktorCore) } }
 }

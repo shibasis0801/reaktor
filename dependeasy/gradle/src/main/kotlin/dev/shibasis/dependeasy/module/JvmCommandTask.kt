@@ -25,12 +25,14 @@ abstract class JvmProcessTask : DefaultTask() {
     @get:Input abstract val executable: Property<String>
     @get:Input abstract val mainClass: Property<String>
     @get:Input abstract val arguments: ListProperty<String>
+    @get:Input abstract val jvmArguments: ListProperty<String>
     @get:OutputFile @get:Optional abstract val launcherFile: RegularFileProperty
     @get:Input @get:Optional abstract val relativeClasspath: Property<String>
 
     @TaskAction fun printCommand() {
         val cp = if (relativeClasspath.isPresent) "\"\$here/${relativeClasspath.get()}/*\"" else quote(classpath.asPath)
-        val command = "${quote(executable.get())} -cp $cp " +
+        val java = (listOf(executable.get()) + jvmArguments.get()).joinToString(" ", transform = ::quote)
+        val command = "$java -cp $cp " +
             (listOf(mainClass.get()) + arguments.get()).joinToString(" ", transform = ::quote)
         if (launcherFile.isPresent) launcherFile.get().asFile.apply {
             parentFile.mkdirs()
@@ -43,17 +45,22 @@ abstract class JvmProcessTask : DefaultTask() {
     private fun quote(value: String) = "'${value.replace("'", "'\"'\"'")}'"
 }
 
-internal fun Project.jvmCommand(name: String, main: String, compilation: String, arguments: Provider<List<String>>): org.gradle.api.tasks.TaskProvider<JvmProcessTask> {
-    val execution = jvmExecution(compilation)
+internal fun Project.jvmCommand(name: String, main: Provider<String>, compilation: String, arguments: Provider<List<String>>): org.gradle.api.tasks.TaskProvider<JvmProcessTask> {
+    val project = this
     val launcher = extensions.getByType<JavaToolchainService>().launcherFor {
         languageVersion.set(JavaLanguageVersion.of(Versions.SDK.Java.asInt))
     }
     return tasks.register<JvmProcessTask>(name) {
+        val execution = project.jvmExecution(compilation)
         group = "application"
         dependsOn(execution.classes)
         classpath.from(execution.classpath)
         mainClass.set(main)
         this.arguments.set(arguments)
+        jvmArguments.convention(emptyList())
         executable.set(launcher.map { it.executablePath.asFile.absolutePath })
     }
 }
+
+internal fun jvmNativeAccessArguments(enabled: Boolean): List<String> =
+    if (enabled) listOf("--enable-native-access=ALL-UNNAMED") else emptyList()

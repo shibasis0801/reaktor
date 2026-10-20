@@ -47,6 +47,7 @@ class NativeCompositionTest {
 
     @Test fun `declarative native exports compile and retain their producer with configuration cache`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"nativeComposition\"")
+        directory.resolve("gradle.properties").writeText("android.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true")
         directory.resolve("cpp/include/reaktor/interop").mkdirs()
         directory.resolve("cpp/include/reaktor/interop/Runtime.hpp").writeText(
             "#pragma once\nnamespace reaktor::interop { struct Runtime { int value = 0; }; }\n")
@@ -65,9 +66,13 @@ class NativeCompositionTest {
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.handles.*
-            plugins { id("dev.shibasis.dependeasy.pipeline") }
-            dependeasy {
+            import dev.shibasis.dependeasy.components.library
+            import dev.shibasis.dependeasy.model.Targets
+            plugins { id("dev.shibasis.dependeasy.library") }
+            library(namespace = "fixture.nativebuild", targets = Targets.Jvm) {
                 interop { cppModule("Exports.hpp", "fixture::install") }
+            }
+            dependeasy {
                 val compile = cmake("sample") { source = "cpp" }
                 workspace { val nativeBuild by artifacts { include(node(compile)) } }
             }
@@ -98,15 +103,26 @@ class NativeCompositionTest {
     }
     @Test fun `a changed native contract reconfigures and rebuilds with cache reuse`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"nativeContract\"")
+        for (module in listOf("alpha", "beta")) {
+            val root = directory.resolve("prefabs/$module")
+            root.resolve("include").mkdirs()
+            root.resolve("libs/android.arm64-v8a").mkdirs()
+            root.resolve("libs/android.arm64-v8a/abi.json").writeText("{\"abi\":\"arm64-v8a\",\"static\":true}")
+            root.resolve("libs/android.arm64-v8a/lib$module.a").writeText("!<arch>\n")
+        }
         directory.resolve("cpp").mkdirs()
         directory.resolve("cpp/main.cpp").writeText("#include <cstdio>\nint main() { std::printf(\"%d\", FIXTURE_VALUE); }\n")
         directory.resolve("cpp/CMakeLists.txt").writeText("""
             cmake_minimum_required(VERSION ${'$'}{DEPE_CMAKE_MINIMUM})
             project(sample LANGUAGES CXX)
+            set(DEPE_NATIVE_CONFIGURE_TARGETS TRUE)
+            include("${'$'}{DEPE_NATIVE_CONTRACT}")
             add_executable(sample main.cpp)
+            target_link_libraries(sample PRIVATE Fixture::Beta)
             target_compile_definitions(sample PRIVATE FIXTURE_VALUE=${'$'}{FIXTURE_VALUE})
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.native.AndroidPrefabConfiguration
             import dev.shibasis.dependeasy.model.NativeContract
             import dev.shibasis.dependeasy.model.BuildModelReader
             import dev.shibasis.dependeasy.handles.*
@@ -115,8 +131,20 @@ class NativeCompositionTest {
                 val compile = cmake("sample") { source = "cpp" }
                 val value = providers.gradleProperty("fixtureValue").orElse("42")
                 val contract = BuildModelReader.json.encodeToString(NativeContract(
-                    library = "sample", platform = "host", settings = mapOf("FIXTURE_VALUE" to value.get())))
-                compile.configure { nativeContract.set(contract) }
+                    library = "sample", platform = "host", settings = mapOf("FIXTURE_VALUE" to value.get(), "ANDROID_ABI" to "arm64-v8a")))
+                val alpha = AndroidPrefabConfiguration("FIXTURE_ALPHA_DIR", "fixture:alpha:1", "alpha", target = "Fixture::Alpha",
+                    artifactVariables = listOf("FIXTURE_ALPHA_LIBRARY"), includeVariables = listOf("FIXTURE_INCLUDE_DIR"), linkVariables = listOf("FIXTURE_LIBRARIES"))
+                val beta = alpha.copy(cmakeVariable = "FIXTURE_BETA_DIR", moduleName = "beta", target = "Fixture::Beta",
+                    links = listOf(alpha.target), artifactVariables = listOf("FIXTURE_BETA_LIBRARY"), includeVariables = emptyList())
+                compile.configure {
+                    nativeContract.set(contract)
+                    for (declaration in listOf(alpha, beta)) {
+                        val root = layout.projectDirectory.dir("prefabs/" + declaration.moduleName)
+                        sourceFiles.from(root)
+                        prefabDirectories.put(declaration.cmakeVariable, root.asFile.absolutePath)
+                        prefabDeclarations.put(declaration.cmakeVariable, declaration)
+                    }
+                }
                 workspace { val nativeBuild by artifacts { include(node(compile)) } }
             }
         """.trimIndent())
@@ -130,6 +158,16 @@ class NativeCompositionTest {
         }
         assertEquals(TaskOutcome.SUCCESS, run(42).task(":sampleCMake")?.outcome)
         assertEquals("42", result())
+        val generated = directory.resolve("build/dependeasy/cmake/sample-host.json").readText()
+        val contract = dev.shibasis.dependeasy.model.BuildModelReader.json.decodeFromString<dev.shibasis.dependeasy.model.NativeContract>(generated)
+        val alpha = contract.imports.single { it.target == "Fixture::Alpha" }
+        val beta = contract.imports.single { it.target == "Fixture::Beta" }
+        assertEquals(listOf(alpha.target), beta.links)
+        assertEquals(alpha.artifact, contract.settings["FIXTURE_ALPHA_LIBRARY"])
+        assertEquals(beta.artifact, contract.settings["FIXTURE_BETA_LIBRARY"])
+        assertEquals(alpha.includes.single(), contract.settings["FIXTURE_INCLUDE_DIR"])
+        assertEquals("${beta.artifact};${alpha.artifact}", contract.settings["FIXTURE_LIBRARIES"])
+        assertFalse(listOf("OpenSSL", "BestBuds", "Manna").any { generated.contains(it, ignoreCase = true) })
         assertEquals(TaskOutcome.SUCCESS, run(43).task(":sampleCMake")?.outcome)
         assertEquals("43", result())
         val repeated = run(43)
@@ -141,6 +179,7 @@ class NativeCompositionTest {
     @Test fun `Apple native imports resolve a declared OpenSSL prefix with cache reuse`() {
         if (!System.getProperty("os.name").contains("Mac", ignoreCase = true)) return
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"appleOpenSsl\"")
+        directory.resolve("gradle.properties").writeText("android.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true")
         val prefix = directory.resolve("openssl fixture")
         prefix.resolve("include/openssl").mkdirs()
         prefix.resolve("include/openssl/ssl.h").writeText("#pragma once\n")
@@ -164,12 +203,12 @@ class NativeCompositionTest {
             import dev.shibasis.dependeasy.tasks.CmakePlatform
             import dev.shibasis.dependeasy.tasks.kotlinCmake
             import dev.shibasis.dependeasy.handles.*
-            plugins { id("dev.shibasis.dependeasy.pipeline") }
-            dependeasy {
-                nativeLibrary {
-                    libraryName = "sample"
-                    platforms(NativePlatform.Darwin)
-                    dependencies(Native.OpenSslCrypto, Native.OpenSslSsl)
+            import dev.shibasis.dependeasy.components.library
+            import dev.shibasis.dependeasy.model.Targets
+            plugins { id("dev.shibasis.dependeasy.library") }
+            library(namespace = "dev.fixture.nativebuild", targets = Targets.Apple) {
+                native(name = "sample", platforms = setOf(NativePlatform.Darwin)) {
+                    links(Native.OpenSslCrypto, Native.OpenSslSsl)
                 }
             }
             kotlinCmake(CmakePlatform.Darwin("iphoneos"))

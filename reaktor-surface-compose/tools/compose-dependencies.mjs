@@ -1,3 +1,5 @@
+import { instrumentComposeWeb } from '../../reaktor-performance/tools/compose-web.mjs';
+
 /** Skiko's generated dependency eagerly starts WASM at import time. Defer only that
  * dependency initialization until Compose calls awaitSkiko.then(). The ordinary
  * React workspace shares the Kotlin runtime, and must not fetch a renderer it isn't using. */
@@ -27,22 +29,38 @@ export function lazyComposeDependencies() {
         const detachMatch = layer?.match(/\n  ([\w$]+)\(\) \{\n  \}/);
         const detach = detachMatch?.[0];
         const attach = 'function attachTo($this, htmlCanvas) {';
-        if (!state || !detach || !source.includes(attach)) throw new Error('Skiko layer disposal changed; requalify the Compose dependency adapter.');
+        const attachedCanvas = source.match(/function attachTo\(\$this, htmlCanvas\) \{\n  \$this\.([\w$]+) = htmlCanvas;/)?.[1];
+        const renderer = source.match(/class CanvasRenderer \{[\s\S]*?\n\}/)?.[0];
+        const width = renderer?.match(/this\.([\w$]+) = width;/)?.[1];
+        const height = renderer?.match(/this\.([\w$]+) = height;/)?.[1];
+        if (!state || !detach || !attachedCanvas || !width || !height) throw new Error('Skiko layer disposal/resize changed; requalify the Compose dependency adapter.');
         const replacement = detach.replace(/\{\n  \}/, `{
     const renderer = this.${state};
     renderer?.__surfaceDispose();
     this.${state} = null;
   }`);
-        patched = patched.replace(layer, layer.replace(detach, replacement))
-          .replace(attach, `${attach}\n  $this.${detachMatch[1]}();`);
+        // Compose calls attachTo on every resize, sometimes from inside a frame. Keep the
+        // DirectContext and its caches; swap the framebuffer-sized surface when the next
+        // frame starts, never under a frame that is still drawing into it.
+        patched = patched.replace(layer, () => layer.replace(detach, replacement))
+          .replace(attach, `${attach}
+  const renderer = $this.${state};
+  if ($this.${attachedCanvas} === htmlCanvas && renderer && !renderer.__surfaceDisposed) {
+    renderer.${width} = htmlCanvas.width;
+    renderer.${height} = htmlCanvas.height;
+    renderer.__resized = true;
+    return;
+  }
+  $this.${detachMatch[1]}();`);
       }
       if (source.includes('class CanvasRenderer {')) {
         const renderer = source.match(/class CanvasRenderer \{[\s\S]*?\n\}/)?.[0];
         const pointer = renderer?.match(/this\.([\w$]+) = contextPointer;/)?.[1];
         const context = renderer?.match(/this\.([\w$]+) = Companion_getInstance[\w$]*\(\)\.[\w$]+\(\);/)?.[1];
         const close = source.match(/function disposeCanvas\(\$this\) \{[\s\S]*?tmp0_safe_receiver\.([\w$]+)\(\);/)?.[1];
+        const resize = renderer?.match(/\n    this\.([\w$]+)\(\);/)?.[1];
         const frame = /function CanvasRenderer\$needRedraw\$lambda\(this\$0\) \{\n  return \(timestamp\) => \{/;
-        if (!pointer || !context || !close || !frame.test(source)) throw new Error('Skiko renderer disposal changed; requalify the Compose dependency adapter.');
+        if (!pointer || !context || !close || !resize || !frame.test(source)) throw new Error('Skiko renderer disposal changed; requalify the Compose dependency adapter.');
         const dispose = `
   __surfaceDispose() {
     if (this.__surfaceDisposed) return;
@@ -55,8 +73,9 @@ export function lazyComposeDependencies() {
   }
 }`;
         patched = patched.replace(renderer, renderer.slice(0, -1) + dispose)
-          .replace(frame, '$&\n    if (this$0.__surfaceDisposed) return;');
+          .replace(frame, `$&\n    if (this$0.__surfaceDisposed) return;\n    if (this$0.__resized) { this$0.__resized = false; GL.makeContextCurrent(this$0.${pointer}); this$0.${resize}(); }`);
       }
+      patched = instrumentComposeWeb(patched);
       if (!file.endsWith('/skiko.mjs')) return patched === source ? undefined : patched;
       const eager = 'export const awaitSkiko = loadSkikoWASM().then((module) => {';
       const end = '    return module\n});';

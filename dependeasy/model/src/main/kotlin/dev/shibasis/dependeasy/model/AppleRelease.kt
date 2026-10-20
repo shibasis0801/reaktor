@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
     val deploymentTarget: String,
     val swiftVersion: String,
     val team: String,
+    val applicationTarget: String,
     val entryPoint: String = "",
     val versionOption: String = "",
     val numberOption: String = "",
@@ -21,10 +22,13 @@ import kotlinx.serialization.Serializable
     val bundleId: String,
     val framework: String,
     val frameworkDirectory: String,
+    val settingsPrefix: String,
     val adapters: List<String> = emptyList(),
     val backgroundTasks: List<String> = emptyList(),
     val linkFlags: List<String> = emptyList(),
-)
+) {
+    init { require(settingsPrefix.matches(Regex("[A-Z][A-Z0-9_]*"))) { "Invalid Xcode settings prefix" } }
+}
 
 @Serializable data class ReleasePlan(
     val schema: Int = 1,

@@ -1,12 +1,13 @@
 package dev.shibasis.dependeasy.workspace
 
+import dev.shibasis.dependeasy.handles.OutputAttribute
 import dev.shibasis.dependeasy.handles.OutputHandle
 import dev.shibasis.dependeasy.handles.output
 import dev.shibasis.dependeasy.model.*
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 
-open class Parts internal constructor(internal val roles: Map<Workspace, List<OutputHandle>>)
+open class Parts internal constructor(internal val roles: (Workspace) -> List<OutputHandle>)
 
 class Product internal constructor(
     val shared: Parts,
@@ -31,9 +32,10 @@ class ProductScope internal constructor(private val project: Project, private va
     fun services(vararg parts: ProjectDependency) { services = Parts(combine(listOf(services, project.parts(parts.toList())))) }
     fun sites(vararg parts: ProjectDependency) { sites = Parts(combine(listOf(sites, project.parts(parts.toList())))) }
     fun tools(vararg parts: ProjectDependency) { tools = Parts(combine(listOf(tools, project.parts(parts.toList())))) }
-    fun tools(vararg builds: BuildHandle) { tools = Parts(combine(listOf(tools, Parts(Workspace.entries.associateWith { role -> builds.map { output(it, role) } })))) }
-    fun packages(vararg modules: ModuleHandle) { packages = Parts(combine(listOf(packages, parts(modules.toList())))) }
-    fun native(vararg modules: ModuleHandle) { native = Parts(combine(listOf(native, parts(modules.toList())))) }
+    fun tools(vararg builds: BuildHandle) { tools = Parts(combine(listOf(tools, Parts { role -> if (role == Workspace.Build || role == Workspace.Verify) builds.map { output(it, role) } else emptyList() }))) }
+    fun packages(vararg parts: ProjectDependency) { packages = Parts(combine(listOf(packages, project.parts(parts.toList())))) }
+    fun packages(vararg modules: ModuleHandle) { packages = Parts(combine(listOf(packages, project.parts(modules.toList())))) }
+    fun native(vararg modules: ModuleHandle) { native = Parts(combine(listOf(native, project.parts(modules.toList())))) }
 
     internal fun build() = Product(shared, clients, services, sites, tools, packages, native)
 }
@@ -43,16 +45,27 @@ class IncludedBuild internal constructor(build: BuildHandle) {
     val artifacts = output(build, Workspace.Build)
 }
 
-internal fun Project.parts(projects: List<ProjectDependency>) = Parts(Workspace.entries.associateWith { role ->
-    projects.map { OutputHandle(it, rootProject.name, it.path, OutputKind.WorkspaceCompletion, listOf(role.name)) }
-})
+internal fun Project.parts(projects: List<ProjectDependency>) = Parts { role ->
+    projects.mapNotNull { dependency ->
+        val output = OutputHandle(dependency, rootProject.name, dependency.path, OutputKind.WorkspaceCompletion, listOf(role.name))
+        val owner = rootProject.project(dependency.path)
+        owner.configurations.findByName(output.nodeId.name)?.let { published ->
+            require(published.isCanBeConsumed && published.attributes.getAttribute(OutputAttribute) == output.selector) {
+                "Invalid component role: ${output.nodeId}"
+            }
+            output
+        }
+    }
+}
 
-internal fun parts(modules: List<ModuleHandle>) = Parts(Workspace.entries.associateWith { role ->
-    modules.map { OutputHandle(it.coordinate, it.build.name, it.path, OutputKind.WorkspaceCompletion, listOf(role.name)) }
-})
+@JvmName("moduleParts")
+internal fun Project.parts(modules: List<ModuleHandle>): Parts {
+    require(modules.all { it.build.name == rootProject.name }) { "Compose components in their owning build; include another build through its declared workspace roles" }
+    return parts(modules.map { dependencies.project(mapOf("path" to it.path)) as ProjectDependency })
+}
 
-internal fun emptyParts() = Parts(emptyMap())
+internal fun emptyParts() = Parts { emptyList() }
 
-private fun combine(parts: List<Parts>) = Workspace.entries.associateWith { role ->
-    parts.flatMap { it.roles[role].orEmpty() }.distinctBy { it.nodeId }
+private fun combine(parts: List<Parts>): (Workspace) -> List<OutputHandle> = { role ->
+    parts.flatMap { it.roles(role) }.distinctBy { it.nodeId }
 }

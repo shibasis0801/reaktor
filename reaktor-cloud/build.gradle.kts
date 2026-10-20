@@ -1,37 +1,31 @@
 import dev.shibasis.dependeasy.configuration.FrameworkOptions
 import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.*
 
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
+library(namespace = "dev.shibasis.reaktor.cloud", targets = Targets.Android + Targets.Apple + Targets.Jvm) {
     val grafana = pulumiSdk("grafana", Versions.Server.GrafanaProvider, "github://api.github.com/pulumiverse")
-    module("dev.shibasis.reaktor.cloud") {
+    dependencies {
         common {
-            dependencies {
-                api(projects.reaktorCore)
-                api(projects.reaktorGraph)
-                api(projects.reaktorTooling)
-            }
+            api(projects.reaktorCore)
+            api(projects.reaktorGraph)
+            api(projects.reaktorTooling)
         }
-        android {}
-        apple {}
-
         jvm {
-            dependencies {
-                implementation(files(grafana))
-                implementation(Versions.Server.Pulumi)
-                implementation(Versions.Server.PulumiKubernetes)
-                implementation(Versions.Data.Gson)
-                implementation(Versions.Tooling.Jsr305)
-                implementation(Versions.Tooling.SnakeYaml)
-                implementation(Versions.Kotlin.SerializationJson)
-            }
+            implementation(grafana)
+            implementation(Versions.Server.Pulumi)
+            implementation(Versions.Server.PulumiKubernetes)
+            implementation(Versions.Data.Gson)
+            implementation(Versions.Tooling.Jsr305)
+            implementation(Versions.Tooling.SnakeYaml)
+            implementation(Versions.Kotlin.SerializationJson)
         }
-
     }
-    jvmEntryPoint("cloudToolE2e", "dev.shibasis.reaktor.cloud.CloudToolE2eKt", compilation = dev.shibasis.dependeasy.model.CompilationRef("e2e"), verify = true)
-    jvmEntryPoint("run", "dev.shibasis.reaktor.cloud.observability.MainKt")
-    jvmEntryPoint("verifyWrangler", "dev.shibasis.reaktor.cloud.WranglerVerifyKt") {
-        args(option(FrameworkOptions.WranglerDirectory).map { it.ifBlank { rootDir.absolutePath } }.get())
-    }
+    val cloudToolE2e by program(compilation = CompilationRef("e2e"), verify = true)
+    val run by program(sources = FileSet(listOf("reaktor-cloud/src/jvmMain/kotlin/dev/shibasis/reaktor/cloud/observability/Main.kt")))
+    val verifyWrangler by program(
+        environment = ProgramEnvironment(inputs = listOf(ProgramInput(FrameworkOptions.WranglerDirectory, whenBlank = ProgramFallback.BuildRoot))),
+        sources = FileSet(listOf("reaktor-cloud/src/jvmMain/kotlin/dev/shibasis/reaktor/cloud/WranglerVerify.kt")))
 }

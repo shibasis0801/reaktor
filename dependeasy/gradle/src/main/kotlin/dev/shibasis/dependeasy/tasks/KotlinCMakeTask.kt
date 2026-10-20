@@ -1,10 +1,13 @@
 package dev.shibasis.dependeasy.tasks
 
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.process.KernelSpecOwner
 import dev.shibasis.dependeasy.model.KernelSpec
 import dev.shibasis.dependeasy.model.ToolRef
 import org.gradle.work.DisableCachingByDefault
 import dev.shibasis.dependeasy.files.deleteTreeSafely
+import dev.shibasis.dependeasy.native.AndroidPrefabConfiguration
 import dev.shibasis.dependeasy.native.CMakeLibraries
 import dev.shibasis.dependeasy.native.cmake
 import dev.shibasis.dependeasy.native.prefabLibrary
@@ -99,7 +102,7 @@ abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
     abstract val dependencyManifests: ConfigurableFileCollection
     @get:Input abstract val dependencyIncludes: MapProperty<String, List<String>>
     @get:Input abstract val prefabDirectories: MapProperty<String, String>
-    @get:Input abstract val prefabTargets: MapProperty<String, String>
+    @get:Input abstract val prefabDeclarations: MapProperty<String, AndroidPrefabConfiguration>
 
     init {
         val tools = dev.shibasis.dependeasy.toolchain.NativeBuildTools.get(project)
@@ -120,8 +123,8 @@ abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
         }
         nativeContractFile.convention(project.layout.buildDirectory.file(contractPath.map { "$it.cmake" }))
         nativeModelFile.convention(project.layout.buildDirectory.file(contractPath.map { "$it.json" }))
-        dependencyIncludes.convention(emptyMap()); prefabDirectories.convention(emptyMap()); prefabTargets.convention(emptyMap())
-        parallelism.convention(providers.environmentVariable("CMAKE_BUILD_PARALLEL_LEVEL").map { it.toInt() }.orElse(3))
+        dependencyIncludes.convention(emptyMap()); prefabDirectories.convention(emptyMap()); prefabDeclarations.convention(emptyMap())
+        parallelism.convention(project.option(BuildOption.environment("CMAKE_BUILD_PARALLEL_LEVEL", "3")).map { it.toInt() })
         toolVersion.convention("cmake ${tools.cmake.handle.version} / ninja ${tools.ninja.handle.version}")
     }
 
@@ -132,12 +135,25 @@ abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
         var contract = BuildModelReader.json.decodeFromString<NativeContract>(nativeContract.get())
         val imports = dependencyManifests.files.sorted().map { manifest ->
             CMakeLibraries.primary(manifest).let { it.copy(includes = dependencyIncludes.get()[it.target].orEmpty()) }
-        } + prefabDirectories.get().map { (name, directory) -> prefabLibrary(java.io.File(directory), contract.settings.getValue("ANDROID_ABI"), prefabTargets.get().getValue(name)) }
+        } + prefabDirectories.get().map { (name, directory) -> prefabLibrary(java.io.File(directory), contract.settings.getValue("ANDROID_ABI"), prefabDeclarations.get().getValue(name)) }
         val settings = contract.settings.toMutableMap()
-        imports.sortedBy { it.target }.forEach { library -> when(library.target) {
-            "OpenSSL::Crypto" -> { settings["OPENSSL_CRYPTO_LIBRARY"] = library.artifact; settings["OPENSSL_INCLUDE_DIR"] = library.includes.single(); settings["OPENSSL_LIBRARIES"] = library.artifact }
-            "OpenSSL::SSL" -> { settings["OPENSSL_SSL_LIBRARY"] = library.artifact; settings["OPENSSL_LIBRARIES"] = library.artifact + ";" + settings["OPENSSL_CRYPTO_LIBRARY"] }
-        } }
+        val libraries = (contract.imports + imports).associateBy { it.target }
+        val libraryVariables = prefabDeclarations.get().values.flatMap { declaration -> declaration.linkVariables.map { it to declaration.target } }
+            .groupBy({ it.first }, { libraries.getValue(it.second) }).mapValues { (_, selected) ->
+                val referenced = selected.flatMap { it.links }.toSet()
+                val ordered = linkedSetOf<String>()
+                fun include(target: String) {
+                    if (ordered.add(target)) libraries.getValue(target).links.forEach(::include)
+                }
+                (selected.filter { it.target !in referenced } + selected).forEach { include(it.target) }
+                ordered.joinToString(";") { libraries.getValue(it).artifact }
+            }
+        prefabDeclarations.get().values.forEach { declaration ->
+            val library = libraries.getValue(declaration.target)
+            declaration.artifactVariables.forEach { settings[it] = library.artifact }
+            declaration.includeVariables.forEach { settings[it] = library.includes.joinToString(";") }
+            declaration.linkVariables.forEach { settings[it] = libraryVariables.getValue(it) }
+        }
         contract = contract.copy(imports = contract.imports + imports, settings = settings, linkLibraries = (contract.linkLibraries + imports.map { it.target }).distinct())
         nativeModelFile.get().asFile.apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(contract) + "\n") }
         val generatedContract = contract.cmake()

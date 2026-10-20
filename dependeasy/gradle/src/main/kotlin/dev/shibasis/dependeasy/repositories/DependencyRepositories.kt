@@ -8,17 +8,16 @@ import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.kotlin.dsl.maven
 
 internal fun dependencyRepositories(project: Project, configure: RepositoryHandler.() -> Unit) {
-    val providers = project.rootProject.providers
     val prefix = project.rootProject.name.lowercase()
     val username = project.option(FrameworkOptions.GitHubPackagesUsername).filter(String::isNotBlank)
         .orElse(project.option(BuildOption.string("$prefix.githubPackagesUsername")).filter(String::isNotBlank))
-        .orElse(providers.environmentVariable("GITHUB_PACKAGES_USERNAME"))
-        .orElse(providers.environmentVariable("GITHUB_ACTOR"))
+        .orElse(project.option(BuildOption.environment("GITHUB_PACKAGES_USERNAME")))
+        .orElse(project.option(BuildOption.environment("GITHUB_ACTOR")))
         .orElse("shibasis0801")
     val token = project.option(FrameworkOptions.GitHubPackagesToken).filter(String::isNotBlank)
-        .orElse(project.option(BuildOption.string("$prefix.githubPackagesToken")).filter(String::isNotBlank))
-        .orElse(providers.environmentVariable("GITHUB_PACKAGES_TOKEN"))
-        .orElse(providers.environmentVariable("GITHUB_TOKEN"))
+        .orElse(project.option(BuildOption.string("$prefix.githubPackagesToken", sensitive = true)).filter(String::isNotBlank))
+        .orElse(project.option(BuildOption.environment("GITHUB_PACKAGES_TOKEN", sensitive = true)))
+        .orElse(project.option(BuildOption.environment("GITHUB_TOKEN", sensitive = true)))
     val local = project.option(FrameworkOptions.MavenLocal)
     project.allprojects {
         repositories.apply {

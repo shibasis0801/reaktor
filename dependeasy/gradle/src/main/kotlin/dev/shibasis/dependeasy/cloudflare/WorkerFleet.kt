@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.cloudflare
 
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.components.componentRole
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.verification.karateSuite
@@ -45,6 +47,7 @@ class WorkerFleet internal constructor(
             group = "code generation"
             root.set(project.rootProject.layout.projectDirectory)
             defaults.set(project.rootProject.layout.projectDirectory.file("wrangler.json"))
+            defaultEnvironment.set(environments.last().name)
             declaration.set(BuildModelReader.json.encodeToString(WorkerFleetContract(workers = records)))
             configurations.from(records.flatMap { worker -> worker.configurations.keys.map { environment ->
                 project.rootProject.file(worker.directory).resolve(if (environment == environments.last().name) "wrangler.json" else "wrangler.$environment.json")
@@ -63,14 +66,13 @@ class WorkerFleet internal constructor(
             val configurations = worker.configurations
             val paths = configurations.mapValues { project.rootProject.file(it.value).relativeTo(directory).invariantSeparatorsPath }
             val defaultEnvironment = environments.last().name
-            val selected = project.providers.gradleProperty("dependeasy.environment")
-                .orElse(project.providers.environmentVariable("TARGET_ENV")).orElse(defaultEnvironment)
+            val selected = project.option(environmentOption.copy(resolutionOrder = environmentOption.resolutionOrder - dev.shibasis.dependeasy.model.OptionSource.Default)).orElse(defaultEnvironment)
                 .map { value -> value.takeIf { it in configurations } ?: defaultEnvironment }
             val component = JavaScriptComponent(project, "${name}Worker", directory)
             val command = component.deploy(producers = arrayOf(generate))
             command.configure {
                 configuration.set(selected.map { value -> paths.getValue(value) })
-                requestedEnvironment.set(project.providers.gradleProperty("dependeasy.environment").orElse(project.providers.environmentVariable("TARGET_ENV")))
+                requestedEnvironment.set(project.option(environmentOption.copy(resolutionOrder = environmentOption.resolutionOrder - dev.shibasis.dependeasy.model.OptionSource.Default)))
                 allowedEnvironments.set(configurations.keys.toList())
                 sourceFiles.from(generate.map { it.finalConfigurations })
                 arguments.add("--minify")

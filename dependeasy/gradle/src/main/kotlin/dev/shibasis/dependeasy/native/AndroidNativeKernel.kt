@@ -1,5 +1,9 @@
 package dev.shibasis.dependeasy.native
 
+import dev.shibasis.dependeasy.model.OptionSource
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.option
+import dev.shibasis.dependeasy.toolchain.buildHost
 import com.android.build.api.dsl.LibraryExtension
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.tasks.droidCmake
@@ -11,11 +15,10 @@ import org.gradle.kotlin.dsl.register
 internal fun Project.configureAndroidNative() {
     val native = nativeConfigurationOrNull?.takeIf { it.isEnabled } ?: return
     native.android.declare(native.resolvedDependencies)
-    val sdk = providers.environmentVariable("ANDROID_HOME").orElse(providers.environmentVariable("ANDROID_SDK_ROOT"))
-        .orNull ?: rootProject.file("local.properties").takeIf { it.isFile }?.let { file ->
-            java.util.Properties().apply { file.reader().use(::load) }.getProperty("sdk.dir")
-        } ?: error("Android SDK is required for native compilation")
-    val host = if (providers.systemProperty("os.name").get().contains("Mac", true)) "darwin-x86_64" else "linux-x86_64"
+    val sdk = option(BuildOption.environment("ANDROID_HOME")).orElse(option(BuildOption.environment("ANDROID_SDK_ROOT")))
+        .orElse(option(BuildOption.string("sdk.dir").copy(resolutionOrder = listOf(OptionSource.LocalProperties))))
+        .orNull ?: error("Android SDK is required for native compilation")
+    val host = if (buildHost.mac) "darwin-x86_64" else "linux-x86_64"
     val runtime = file("$sdk/ndk/${Versions.SDK.ndkVersion}/toolchains/llvm/prebuilt/$host/sysroot/usr/lib")
     val builds = native.resolvedAbis.mapNotNull { abi -> droidCmake(abi, sdk) }
     val external = native.android.resolvedPrefabs.filter { it.runtimeDependency != it.dependencyNotation }

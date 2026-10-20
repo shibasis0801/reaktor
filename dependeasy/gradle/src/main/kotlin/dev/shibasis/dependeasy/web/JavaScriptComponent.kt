@@ -31,6 +31,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     internal val generatedOutputs = linkedSetOf<String>()
     private val commandKernel = JavaScriptCommandKernel(project, name, this.directory, this)
     val install = workspace.install
+    val installation get() = project.rootProject.node(install)
     internal val prerequisites = mutableListOf<Any>(contract)
     private val kotlinExports by lazy { project.tasks.register("${name}Kotlin") { group = "dependeasy" } }
     fun sources(vararg files: Any) { sourceInputs.addAll(files) }
@@ -95,6 +96,11 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     }
 
     fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
+    fun script(script: PackageScript, output: String): NodeHandle {
+        require(project.file(script.directory) == directory) { "A package script must belong to this component" }
+        return project.node(command(script.name, output, "run", script.name))
+    }
+    fun tests(after: NodeHandle): NodeHandle = project.node(check()).after(after)
     fun vite(output: String = "dist"): TaskProvider<ViteBundle> = commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build").also {
         it.configure { sourceFiles.from(runtime.sources) }
     }
@@ -107,10 +113,12 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         commandKernel.register(WorkerTypes::class.java, "workerTypes", null, "exec", "wrangler", "types", output, "--config", config, fileOutput = output)
             .also { it.configure { configuration.set(config); declarations.set(directory.resolve(output)); outputFiles.setFrom(emptyList<Any>()) } }
     fun check(script: String = "test"): TaskProvider<PackageCommand> = command("check", null, "run", script).also { it.configure { executionEffect.set(Effect.Verify) } }
-    fun bindings(config: String, output: String): TaskProvider<KarakumBindings> =
-        commandKernel.register(KarakumBindings::class.java, "bindings", output, "exec", "karakum", "--config", config).also {
+    fun bindings(config: String, output: String): TaskProvider<KarakumBindings> {
+        project.pluginManager.apply("io.github.turansky.seskar")
+        return commandKernel.register(KarakumBindings::class.java, "bindings", output, "exec", "karakum", "--config", config).also {
             it.configure { configuration.set(config) }
         }
+    }
 
     fun deploy(config: String = "wrangler.json", vararg producers: Any): TaskProvider<WranglerDeploy> =
         commandKernel.register(WranglerDeploy::class.java, "deploy", null).also {

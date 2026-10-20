@@ -2,14 +2,26 @@ package dev.shibasis.composeflow.compose.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import dev.shibasis.composeflow.model.BackgroundVariant
-import dev.shibasis.composeflow.model.Viewport
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import dev.shibasis.composeflow.compose.theme.FlowGridMajor
 import dev.shibasis.composeflow.compose.theme.FlowGridMinor
 import dev.shibasis.composeflow.compose.theme.FlowGridMinorCross
 import dev.shibasis.composeflow.compose.theme.FlowSizing
+import dev.shibasis.composeflow.model.BackgroundVariant
+import dev.shibasis.composeflow.model.Viewport
+import kotlin.math.roundToInt
 
 @Composable
 fun Background(
@@ -17,74 +29,51 @@ fun Background(
     viewport: Viewport = Viewport(),
     variant: BackgroundVariant = BackgroundVariant.Dots,
 ) {
-    FlowBackground(modifier, viewport, variant)
+    FlowBackground(modifier, { viewport }, variant)
+}
+
+private class GridTile(val period: Int, val brush: ShaderBrush)
+
+private fun gridTile(variant: BackgroundVariant): GridTile {
+    val step = when (variant) {
+        BackgroundVariant.Dots -> FlowSizing.dotGridStepPx
+        BackgroundVariant.Lines -> FlowSizing.lineGridStepPx
+        BackgroundVariant.Cross -> FlowSizing.crossGridStepPx
+    }
+    val period = (if (variant == BackgroundVariant.Cross) step * FlowSizing.crossGridMajorMultiplier else step).roundToInt()
+    val image = ImageBitmap(period, period)
+    val centre = period / 2 + .5f
+    CanvasDrawScope().draw(Density(1f), LayoutDirection.Ltr, androidx.compose.ui.graphics.Canvas(image), Size(period.toFloat(), period.toFloat())) {
+        fun cross(at: Float, color: androidx.compose.ui.graphics.Color, width: Float) {
+            drawLine(color, Offset(at, 0f), Offset(at, size.height), width)
+            drawLine(color, Offset(0f, at), Offset(size.width, at), width)
+        }
+        when (variant) {
+            BackgroundVariant.Dots -> drawCircle(FlowGridMinor, FlowSizing.dotGridRadiusPx, Offset(centre, centre))
+            BackgroundVariant.Lines -> cross(centre, FlowGridMinor, FlowSizing.minorGridStrokePx)
+            BackgroundVariant.Cross -> {
+                val minors = FlowSizing.crossGridMajorMultiplier.roundToInt()
+                for (k in 0 until minors) cross((centre + (k - minors / 2) * step + period) % period, FlowGridMinorCross, FlowSizing.minorGridStrokePx)
+                cross(centre, FlowGridMajor, FlowSizing.majorGridStrokePx)
+            }
+        }
+    }
+    return GridTile(period, ShaderBrush(ImageShader(image, TileMode.Repeated, TileMode.Repeated)))
 }
 
 @Composable
 internal fun FlowBackground(
     modifier: Modifier,
-    viewport: Viewport,
+    viewport: () -> Viewport,
     variant: BackgroundVariant,
 ) {
-    Canvas(modifier) {
-        val step = when (variant) {
-            BackgroundVariant.Dots -> FlowSizing.dotGridStepPx
-            BackgroundVariant.Lines -> FlowSizing.lineGridStepPx
-            BackgroundVariant.Cross -> FlowSizing.crossGridStepPx
-        }
-        val offsetX = ((viewport.x % step.toDouble()) + step).toFloat() % step
-        val offsetY = ((viewport.y % step.toDouble()) + step).toFloat() % step
+    val tile = remember(variant) { gridTile(variant) }
+    Canvas(modifier) { drawGrid(tile, viewport()) }
+}
 
-        when (variant) {
-            BackgroundVariant.Dots -> {
-                var x = offsetX
-                while (x < size.width) {
-                    var y = offsetY
-                    while (y < size.height) {
-                        drawCircle(FlowGridMinor, radius = FlowSizing.dotGridRadiusPx, center = Offset(x, y))
-                        y += step
-                    }
-                    x += step
-                }
-            }
-            BackgroundVariant.Lines -> {
-                var x = offsetX
-                while (x < size.width) {
-                    drawLine(FlowGridMinor, Offset(x, 0f), Offset(x, size.height), FlowSizing.minorGridStrokePx)
-                    x += step
-                }
-                var y = offsetY
-                while (y < size.height) {
-                    drawLine(FlowGridMinor, Offset(0f, y), Offset(size.width, y), FlowSizing.minorGridStrokePx)
-                    y += step
-                }
-            }
-            BackgroundVariant.Cross -> {
-                val majorStep = step * FlowSizing.crossGridMajorMultiplier
-                val majorOffsetX = ((viewport.x % majorStep.toDouble()) + majorStep).toFloat() % majorStep
-                val majorOffsetY = ((viewport.y % majorStep.toDouble()) + majorStep).toFloat() % majorStep
-
-                var x = offsetX
-                while (x < size.width) {
-                    drawLine(FlowGridMinorCross, Offset(x, 0f), Offset(x, size.height), FlowSizing.minorGridStrokePx)
-                    x += step
-                }
-                var y = offsetY
-                while (y < size.height) {
-                    drawLine(FlowGridMinorCross, Offset(0f, y), Offset(size.width, y), FlowSizing.minorGridStrokePx)
-                    y += step
-                }
-                var majorX = majorOffsetX
-                while (majorX < size.width) {
-                    drawLine(FlowGridMajor, Offset(majorX, 0f), Offset(majorX, size.height), FlowSizing.majorGridStrokePx)
-                    majorX += majorStep
-                }
-                var majorY = majorOffsetY
-                while (majorY < size.height) {
-                    drawLine(FlowGridMajor, Offset(0f, majorY), Offset(size.width, majorY), FlowSizing.majorGridStrokePx)
-                    majorY += majorStep
-                }
-            }
-        }
-    }
+private fun DrawScope.drawGrid(tile: GridTile, view: Viewport) {
+    val period = tile.period
+    val x = view.x.roundToInt().mod(period) - period / 2 - period
+    val y = view.y.roundToInt().mod(period) - period / 2 - period
+    translate(x.toFloat(), y.toFloat()) { drawRect(tile.brush, size = Size(size.width + 2f * period, size.height + 2f * period)) }
 }

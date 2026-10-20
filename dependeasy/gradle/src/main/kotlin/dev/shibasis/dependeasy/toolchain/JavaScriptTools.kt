@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.toolchain
 
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.option
 import org.gradle.api.Project
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.model.OutputKind
@@ -11,7 +13,7 @@ import org.gradle.kotlin.dsl.register
 
 class JavaScriptTools private constructor(private val project: Project) {
     private val cache = project.gradle.gradleUserHomeDir.resolve("dependeasy/tools")
-    private val platform = toolPlatform()
+    private val platform = project.toolPlatform()
     private fun setup(name: String, version: String, download: String, entry: String): TaskProvider<InstallTool> =
         project.tasks.register<InstallTool>("${name}Setup") {
             group = "dependeasy"
@@ -28,9 +30,8 @@ class JavaScriptTools private constructor(private val project: Project) {
     val node: Provider<RegularFile> = project.objects.fileProperty().fileValue(cache.resolve("node/${ToolchainVersions.Node}/$platform/bin/node"))
     val pnpm: Provider<RegularFile> = project.objects.fileProperty().fileValue(cache.resolve("pnpm/${ToolchainVersions.Pnpm}/$platform/bin/pnpm"))
     val path: Provider<String> = node.zip(pnpm) { node, pnpm ->
-        listOf(node.asFile.parent, pnpm.asFile.parent, System.getenv("PATH"))
-            .joinToString(java.io.File.pathSeparator)
-    }
+        listOf(node.asFile.parent, pnpm.asFile.parent).joinToString(java.io.File.pathSeparator)
+    }.zip(project.option(BuildOption.environment("PATH", ""))) { tools, path -> tools + java.io.File.pathSeparator + path }
     internal val environment: Provider<Map<String, String>> = path.map {
         mapOf("PATH" to it, "PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN" to "error")
     }

@@ -1,5 +1,6 @@
-plugins { id("dev.shibasis.dependeasy.pipeline") }
+import dev.shibasis.dependeasy.components.appleLibrary
+import dev.shibasis.dependeasy.handles.Reaktor
 
-dependeasy {
-    appleLibrary(dev.shibasis.dependeasy.handles.Reaktor.NotificationFramework.name, extensionSafe = true)
-}
+plugins { id("dev.shibasis.dependeasy.apple-library") }
+
+appleLibrary(Reaktor.NotificationFramework.name, extensionSafe = true)

@@ -137,10 +137,10 @@ class BuildModelReaderTest {
         val rootImplementation = root.resolve("buildSrc/src/main/kotlin/Handles.kt").apply {
             parentFile.mkdirs(); writeText("class Handles")
         }
-        val bootstrap = root.resolve("dependeasy/bootstrap/src/main/kotlin/Versions.kt").apply {
+        val pins = root.resolve("dependeasy/toolchain/src/main/kotlin/Versions.kt").apply {
             parentFile.mkdirs(); writeText("object Versions")
         }
-        val options = root.resolve("dependeasy/options/src/main/kotlin/BuildHandles.kt").apply {
+        val options = root.resolve("dependeasy/toolchain/src/contracts/kotlin/BuildHandles.kt").apply {
             parentFile.mkdirs(); writeText("class BuildOption")
         }
         fun export() {
@@ -160,10 +160,13 @@ class BuildModelReaderTest {
         rootImplementation.writeText("class Handles { fun changed() = true }")
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
         export()
-        bootstrap.writeText("object Versions { const val Changed = true }")
+        pins.writeText("object Versions { const val Changed = true }")
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
         export()
         options.writeText("class BuildOption { val changed = true }")
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
+        export()
+        root.resolve("dependeasy/toolchain/src/contracts/kotlin/NewHandle.kt").writeText("class NewHandle")
         assertFailsWith<IllegalArgumentException> { BuildModelReader.read(root) }
         export()
         root.resolve("new/build.gradle.kts").apply { parentFile.mkdirs(); writeText("plugins {}") }

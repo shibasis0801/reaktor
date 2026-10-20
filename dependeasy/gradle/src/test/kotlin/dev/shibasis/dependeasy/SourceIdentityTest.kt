@@ -20,8 +20,10 @@ class SourceIdentityTest {
         directory.resolve("source").mkdir()
         val source = directory.resolve("source/main.kt").apply { writeText("fun value() = 1\n") }
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.provenance.SourceIdentityTask
             plugins { id("dev.shibasis.dependeasy.pipeline") }
-            dependeasy.sourceIdentity("identity", "identity.properties") {
+            tasks.register<SourceIdentityTask>("identity") {
+                fileName.set("identity.properties")
                 sources("workspace", file("source"), fileTree("source"))
                 revisions.put("revision", "fixture:revision=1")
             }

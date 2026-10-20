@@ -471,6 +471,9 @@ private class TaskCatalogBuilder(
         val safety = safetyFor(script, expandedBody)
         val words = "$script $expandedBody".lowercase()
         val blockedReason = when {
+            Regex("(?:^|[\\s/])gradlew(?:\\.bat)?(?:\\s|$)").containsMatchIn(expandedBody) &&
+                dev.shibasis.reaktor.tooling.delivery.GradlePackageTargets.workerDeploy(root, parse(definitionFile) ?: JsonObject(emptyMap()), script, body) == null ->
+                "Gradle package alias has no sealed generated binding; use its canonical build node"
             "wrangler deploy" in words && definitionFile.parentFile == root && PackageScriptCommands.workspaces(expandedBody).isEmpty() ->
                 "Worker deploy target could not be resolved to a bounded workspace"
             else -> null
@@ -575,6 +578,7 @@ private class TaskCatalogBuilder(
             REMOTE_WRITE_WORDS.any(words::contains) -> SafetyClass.ProductionReversibleWrite
             REMOTE_UNKNOWN_WORDS.any(words::contains) -> SafetyClass.UnknownRemoteEffect
             LITERAL_DEFINITION_PATH.containsMatchIn(body) && "node" in tokens -> SafetyClass.UnknownRemoteEffect
+            "gradlew" in tokens || "gradle" in tokens -> SafetyClass.UnknownRemoteEffect
             READ_PHRASES.any(words::contains) || READ_TOKENS.any(tokens::contains) -> SafetyClass.ReadOnly
             LOCAL_EPHEMERAL_WORDS.any(words::contains) -> SafetyClass.LocalEphemeral
             LOCAL_ARTIFACT_WORDS.any(words::contains) -> SafetyClass.LocalArtifactWrite
@@ -831,7 +835,7 @@ private class TaskCatalogBuilder(
         private val READ_TOKENS = setOf("status", "doctor", "inspect", "list", "logs", "check", "lint", "preview", "whoami", "functions")
         private val READ_PHRASES = listOf("--version", "stack ls")
         private val LOCAL_EPHEMERAL_WORDS = listOf(" dev", "serve", "watch", "vite", "localhost", "node -e")
-        private val LOCAL_ARTIFACT_WORDS = listOf("build", "compile", "assemble", "bundle", "package", "generate", "tsc", "gradlew", "vitest", "jest")
+        private val LOCAL_ARTIFACT_WORDS = listOf("build", "compile", "assemble", "bundle", "package", "generate", "tsc", "vitest", "jest")
         private val ROOT_DEPENDENCY_FILES = listOf(
             "package.json", "package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".npmrc", "yarn.lock",
         )

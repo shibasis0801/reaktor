@@ -46,13 +46,12 @@ internal fun NativeContract.cmake(): String {
     }
 }
 
-internal fun prefabLibrary(directory: File, abi: String, target: String): NativeContract.Library {
+internal fun prefabLibrary(directory: File, abi: String, declaration: AndroidPrefabConfiguration): NativeContract.Library {
     val root = directory.resolve("libs/android.$abi")
     val metadata = Json.parseToJsonElement(root.resolve("abi.json").readText()).jsonObject
     require(metadata.getValue("abi").jsonPrimitive.content == abi) { "Prefab ABI mismatch" }
     val kind = if (metadata["static"]?.jsonPrimitive?.boolean == true) "STATIC" else "SHARED"
     val suffix = if (kind == "STATIC") "a" else "so"
     val artifact = root.listFiles().orEmpty().single { it.isFile && it.extension == suffix }
-    return NativeContract.Library(target, kind, artifact.absolutePath, listOf(directory.resolve("include").absolutePath),
-        if (target == "OpenSSL::SSL") listOf("OpenSSL::Crypto") else emptyList())
+    return NativeContract.Library(declaration.target, kind, artifact.absolutePath, listOf(directory.resolve("include").absolutePath), declaration.links)
 }

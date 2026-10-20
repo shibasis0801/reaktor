@@ -55,7 +55,14 @@ class TypedKernelExecutionTest {
         names.forEach { assertEquals(TaskOutcome.SUCCESS, first.task(":$it")?.outcome) }
         val model = dev.shibasis.dependeasy.model.BuildModelReader.decode(directory.resolve("build/dependeasy/model.json").readText())
         val specs = model.nodes.mapNotNull { it.kernel?.spec }
-        assertEquals(7, specs.size)
+        assertEquals(7, specs.count { it !is dev.shibasis.dependeasy.model.KernelSpec.GradleInvocation })
+        val bridges = model.nodes.filter { it.kernel?.spec is dev.shibasis.dependeasy.model.KernelSpec.GradleInvocation }
+        assertEquals(2, bridges.size)
+        bridges.forEach {
+            assertEquals("dev.shibasis.dependeasy.model.GradleInvocationKernel", it.kernel?.className)
+            assertTrue(it.tools.single().name == "gradle" && it.tools.single().version.isNotBlank())
+        }
+        names.forEach { name -> assertEquals("fixture 1", model.nodes.single { it.id.name == name }.tools.single().version) }
         assertEquals(dev.shibasis.dependeasy.model.NodeKind.ArtifactSet, model.nodes.single { it.id.name == "allKernels" }.kind)
         assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode })
         assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.TypeScriptCheck && it.execution.directory == "typescript" })
@@ -101,6 +108,7 @@ class TypedKernelExecutionTest {
         val first = run("installFixture", "sizes")
         assertEquals(TaskOutcome.SUCCESS, first.task(":installFixture")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, first.task(":sizes")?.outcome)
+        assertTrue(first.tasks.none { it.path.contains("node", ignoreCase = true) })
         val repeated = run("installFixture", "sizes")
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":installFixture")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":sizes")?.outcome)

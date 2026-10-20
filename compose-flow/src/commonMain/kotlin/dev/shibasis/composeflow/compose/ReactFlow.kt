@@ -68,6 +68,7 @@ import dev.shibasis.composeflow.compose.primitives.HandleRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeRenderStyle
 import dev.shibasis.composeflow.compose.primitives.NodeTypes
 import dev.shibasis.composeflow.compose.primitives.anchorFor
+import dev.shibasis.composeflow.compose.primitives.resolvedEdgePath
 import dev.shibasis.composeflow.compose.primitives.routedEdgePath
 import dev.shibasis.composeflow.compose.primitives.drawConnectionLine
 import dev.shibasis.composeflow.compose.primitives.drawFlowEdge
@@ -216,7 +217,7 @@ fun ReactFlow(
                 },
         ) {
             if (showBackground) {
-                FlowBackground(Modifier.fillMaxSize(), state.viewport, backgroundVariant)
+                FlowBackground(Modifier.fillMaxSize(), viewport, backgroundVariant)
             }
 
             Box(Modifier.fillMaxSize().clipToBounds()) {
@@ -272,24 +273,12 @@ fun ReactFlow(
                     val edgeStyles = edges.filterNot { it.hidden }
                         .sortedBy { it.zIndex }
                         .map { it to edgeRenderStyle(it) }
-                    val anyFlowAnimated = edgeStyles.any { (_, style) -> style.flowAnimated }
-                    val flowPhase = if (anyFlowAnimated) {
-                        rememberInfiniteTransition(label = "edgeFlow").animateFloat(
-                            initialValue = 0f,
-                            targetValue = FlowSizing.edgeFlowDashPeriodPx,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(FlowSizing.edgeFlowCycleMillis, easing = LinearEasing),
-                                repeatMode = RepeatMode.Restart,
-                            ),
-                            label = "edgeFlowPhase",
-                        )
-                    } else null
+                    val (flowing, still) = edgeStyles.partition { (_, style) -> style.flowAnimated }
                     Canvas(Modifier.fillMaxSize()) {
-                        val dashPhase = flowPhase?.value ?: 0f
-                        edgeStyles.forEach { (edge, style) ->
+                        still.forEach { (edge, style) ->
                             val source = nodeById[edge.source] ?: return@forEach
                             val target = nodeById[edge.target] ?: return@forEach
-                            drawFlowEdge(source, target, edge, style, edgePathStyle, defaultWidthPx, defaultHeightPx, dashPhase)
+                            drawFlowEdge(source, target, edge, style, edgePathStyle, defaultWidthPx, defaultHeightPx)
                         }
 
                         if (connectionController.isConnecting) {
@@ -334,44 +323,31 @@ fun ReactFlow(
                         }
                     }
 
+                    if (flowing.isNotEmpty()) FlowingEdges(flowing, nodeById, edgePathStyle, defaultWidthPx, defaultHeightPx)
+
                     nodeDrawing?.let { drawing -> Canvas(Modifier.fillMaxSize()) { drawing() } }
 
-                    val visibleNodes by remember(nodes, state, canvasSize, defaultWidthPx, defaultHeightPx) {
-                        derivedStateOf {
-                            val view = state.viewport
-                            val left = -view.x / view.zoom
-                            val top = -view.y / view.zoom
-                            val right = (canvasSize.width - view.x) / view.zoom
-                            val bottom = (canvasSize.height - view.y) / view.zoom
-                            nodes.filter { node -> !node.hidden && (node.dragging ||
-                                node.position.x < right && node.position.y < bottom &&
-                                node.position.x + (node.width ?: defaultWidthPx) > left &&
-                                node.position.y + (node.height ?: defaultHeightPx) > top) }.sortedBy { it.zIndex }
-                        }
-                    }
-                    visibleNodes.forEach { node ->
-                        key(node.id) {
-                            FlowNodeBox(
-                                node = node,
-                                nodeContent = nodeTypes[node.type],
-                                onNodeClick = onNodeClick,
-                                onNodesChange = onNodesChange,
-                                onConnect = onConnect,
-                                viewport = viewport,
-                                renderStyle = nodeRenderStyle(node),
-                                handleRenderStyle = { handle -> handleRenderStyle(node, handle) },
-                                defaultNodeWidthPx = defaultWidthPx,
-                                defaultNodeHeightPx = defaultHeightPx,
-                                snapToGrid = snapToGrid,
-                                snapGrid = snapGrid,
-                                autoPanOnDrag = autoPanOnNodeDrag,
-                                canvasSize = canvasSize,
-                                onPanBy = state::panBy,
-                                isValidConnection = isValidConnection,
-                                onConnectStart = onConnectStart,
-                                onConnectEnd = onConnectEnd,
-                            )
-                        }
+                    FlowNodes(nodes, state, canvasSize, defaultWidthPx, defaultHeightPx) { node ->
+                        FlowNodeBox(
+                            node = node,
+                            nodeContent = nodeTypes[node.type],
+                            onNodeClick = onNodeClick,
+                            onNodesChange = onNodesChange,
+                            onConnect = onConnect,
+                            viewport = viewport,
+                            renderStyle = nodeRenderStyle(node),
+                            handleRenderStyle = { handle -> handleRenderStyle(node, handle) },
+                            defaultNodeWidthPx = defaultWidthPx,
+                            defaultNodeHeightPx = defaultHeightPx,
+                            snapToGrid = snapToGrid,
+                            snapGrid = snapGrid,
+                            autoPanOnDrag = autoPanOnNodeDrag,
+                            canvasSize = canvasSize,
+                            onPanBy = state::panBy,
+                            isValidConnection = isValidConnection,
+                            onConnectStart = onConnectStart,
+                            onConnectEnd = onConnectEnd,
+                        )
                     }
 
                     // Above the node layer: a label eclipsed by a card answers nothing. Labels
@@ -390,7 +366,7 @@ fun ReactFlow(
                 if (showControls) {
                     FlowControls(
                         modifier = Modifier.align(Alignment.TopEnd).padding(FlowSizing.controlsPadding),
-                        viewport = state.viewport,
+                        zoom = { state.viewport.zoom },
                         onZoomIn = {
                             interactionState.markViewportAsUserModified()
                             state.zoomAroundCanvasCenter(
@@ -428,6 +404,61 @@ fun ReactFlow(
             }
         }
     }
+}
+
+@Composable
+private fun FlowNodes(
+    nodes: List<Node>,
+    state: ReactFlowState,
+    canvasSize: IntSize,
+    defaultWidth: Double,
+    defaultHeight: Double,
+    content: @Composable (Node) -> Unit,
+) {
+    val ordered = remember(nodes) { nodes.filterNot { it.hidden }.sortedBy { it.zIndex } }
+    val visible by remember(ordered, state, canvasSize, defaultWidth, defaultHeight) {
+        derivedStateOf {
+            val view = state.viewport
+            val mx = canvasSize.width / view.zoom / 4
+            val my = canvasSize.height / view.zoom / 4
+            val left = -view.x / view.zoom - mx
+            val top = -view.y / view.zoom - my
+            val right = (canvasSize.width - view.x) / view.zoom + mx
+            val bottom = (canvasSize.height - view.y) / view.zoom + my
+            ordered.filter { node -> node.dragging ||
+                node.position.x < right && node.position.y < bottom &&
+                node.position.x + (node.width ?: defaultWidth) > left &&
+                node.position.y + (node.height ?: defaultHeight) > top }
+        }
+    }
+    visible.forEach { node -> key(node.id) { content(node) } }
+}
+
+@Composable
+private fun FlowingEdges(
+    edges: List<Pair<Edge, EdgeRenderStyle>>,
+    nodeById: Map<String, Node>,
+    pathStyle: EdgePathStyle,
+    defaultWidth: Double,
+    defaultHeight: Double,
+) {
+    val phase by rememberInfiniteTransition(label = "edgeFlow").animateFloat(
+        initialValue = 0f,
+        targetValue = FlowSizing.edgeFlowDashPeriodPx,
+        animationSpec = infiniteRepeatable(
+            animation = tween(FlowSizing.edgeFlowCycleMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "edgeFlowPhase",
+    )
+    val paths = remember(edges, nodeById, pathStyle, defaultWidth, defaultHeight) {
+        edges.mapNotNull { (edge, style) ->
+            val source = nodeById[edge.source] ?: return@mapNotNull null
+            val target = nodeById[edge.target] ?: return@mapNotNull null
+            Triple(edge, style, resolvedEdgePath(source, target, edge, pathStyle, defaultWidth, defaultHeight))
+        }
+    }
+    Canvas(Modifier.fillMaxSize()) { paths.forEach { (edge, style, path) -> drawFlowEdge(path, edge, style, phase) } }
 }
 
 /**

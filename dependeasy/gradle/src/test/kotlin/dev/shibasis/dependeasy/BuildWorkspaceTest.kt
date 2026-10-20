@@ -49,16 +49,23 @@ class BuildWorkspaceTest {
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.workspace") }
             workspace {
+                val Allowed = BuildOption.boolean("releaseFeature")
                 val pr by verify()
                 delivery(after = pr) {
                     val schema by migrate(output(projects.payload, OutputKind.DatabaseMigration))
                     val registry by publish(output(projects.payload, OutputKind.PublishedModules)) { after(schema) }
-                    val internalRelease by release(output(projects.payload, OutputKind.WorkerBundle), LaneHandle("fixture", "internal")) { after(registry) }
+                    val internalRelease by release(output(projects.payload, OutputKind.WorkerBundle), LaneHandle("fixture", "internal")) { after(registry); require(Allowed, false) }
                 }
             }
         """.trimIndent())
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
             .withArguments("internalRelease", "exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        val rejected = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("internalRelease", "-PreleaseFeature=true", "--configuration-cache", "--stacktrace").buildAndFail()
+        assertContains(rejected.output, "requires releaseFeature=false")
+        assertNull(rejected.task(":internalReleaseLane"))
+        assertFalse(directory.resolve("build/lane.txt").exists())
+        assertFalse(directory.resolve("payload/build/publication.txt").exists())
         val first = run()
         assertEquals(org.gradle.testkit.runner.TaskOutcome.SUCCESS, first.task(":internalReleaseLane")?.outcome)
         assertEquals("complete", directory.resolve("build/lane.txt").readText())
@@ -74,6 +81,11 @@ class BuildWorkspaceTest {
         storyFixture()
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
             .withArguments("backend", "everything", "exportBuildModel", "--parallel", "--configuration-cache", "--stacktrace").build()
+        val passive = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        assertTrue(passive.tasks.none { it.path.endsWith("Part") })
+        val passiveBackend = BuildModelReader.read(directory).nodes.single { it.id.name == "backend" }
+        assertEquals(listOf("pr", "deliveryReady"), assertIs<KernelSpec.WorkspaceNode>(passiveBackend.kernel?.spec).after.map { it.name })
         val first = run()
         assertNotNull(first.task(":web:deployPart"))
         assertEquals("complete", directory.resolve("web/build/deployed.txt").readText())
@@ -86,16 +98,30 @@ class BuildWorkspaceTest {
         assertEquals(NodeKind.ArtifactSet, everything.kind)
         assertEquals("dev.shibasis.dependeasy.model.WorkspaceCompletion", pr.kernel?.className)
         val spec = assertIs<KernelSpec.WorkspaceNode>(backend.kernel?.spec)
-        assertEquals(listOf(pr.id), spec.after)
+        val deliveryReady = model.nodes.single { it.id.name == "deliveryReady" }
+        assertEquals(listOf(pr.id, deliveryReady.id), spec.after)
+        assertTrue(first.tasks.indexOfFirst { it.path == ":deliveryReady" } < first.tasks.indexOfFirst { it.path == ":web:deployPart" })
+        assertTrue(model.edges.any { it is Edge.After && it.from == backend.id && it.to == deliveryReady.id })
         assertEquals(60_000, spec.run.timeoutMillis)
         assertEquals(ExecutionHost.Local, backend.host.execution)
         assertContains(WorkspaceCompletion.plan(spec), pr.id)
-        assertEquals(setOf(":shared", ":web"), assertIs<KernelSpec.WorkspaceNode>(pr.kernel?.spec).consumes.map { it.project }.toSet())
+        assertEquals(setOf(":shared"), assertIs<KernelSpec.WorkspaceNode>(pr.kernel?.spec).consumes.map { it.project }.toSet())
+        assertEquals(setOf(":shared", ":web"), assertIs<KernelSpec.WorkspaceNode>(everything.kernel?.spec).consumes.map { it.project }.toSet())
+        assertEquals(listOf(":web"), spec.consumes.map { it.project })
+        for (node in listOf(pr, everything, backend)) {
+            val consumed = assertIs<KernelSpec.WorkspaceNode>(node.kernel?.spec).consumes
+            assertEquals(consumed.toSet(), model.edges.filterIsInstance<Edge.Consumes>().filter { it.from == node.id }.map { it.to }.toSet())
+            assertTrue(consumed.all { id -> model.nodes.any { it.id == id } })
+        }
         assertTrue(model.edges.any { it is Edge.After && it.from == backend.id && it.to == pr.id })
         assertEquals(3, listOf(pr, backend, everything).map { it.declaredAt }.toSet().size)
         val encoded = directory.resolve(BuildModelReader.RelativePath).readText()
         assertContains(run().output, "Reusing configuration cache")
         assertEquals(encoded, directory.resolve(BuildModelReader.RelativePath).readText())
+        directory.resolve("build.gradle.kts").appendText("\nworkspace { val required by verify(projects.web) }\n")
+        val missing = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("required", "--configuration-cache", "--stacktrace").buildAndFail()
+        assertContains(missing.output, "WorkspaceCompletion:Verify")
     }
 
     @Test fun `a failed story verification prevents its component deployment`() {
@@ -130,11 +156,13 @@ class BuildWorkspaceTest {
             import kotlin.time.Duration.Companion.minutes
             plugins { id("dev.shibasis.dependeasy.workspace") }
             workspace {
-                val app = product(shared = projects.shared) { services(projects.web) }
+                val app = product(shared = projects.shared) { services(projects.web); packages(projects.shared) }
                 val pr by verify(app, role = Workspace.Verify)
+                val deliveryReady by verify()
                 val everything by artifacts(app, role = Workspace.Build)
                 delivery(after = pr, run = Run.onLocal().timeout(1.minutes)) {
                     val backend by deploy(app.services)
+                    backend.after(deliveryReady)
                 }
             }
         """.trimIndent())
@@ -156,9 +184,11 @@ class BuildWorkspaceTest {
                 @CacheableTask
                 abstract class Deployment : DefaultTask() {
                     @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val gate: RegularFileProperty
+                    @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val lateGate: RegularFileProperty
                     @get:OutputFile abstract val marker: RegularFileProperty
                     @TaskAction fun write() {
                         check(gate.get().asFile.readText().contains(":pr"))
+                        check(lateGate.get().asFile.readText().contains(":deliveryReady"))
                         marker.get().asFile.apply { parentFile.mkdirs(); writeText("complete") }
                     }
                 }
@@ -172,11 +202,15 @@ class BuildWorkspaceTest {
                 }
                 val deployed = tasks.register<Deployment>("deployPart") {
                     gate.set(rootProject.layout.buildDirectory.file("dependeasy/completed/pr.txt"))
+                    lateGate.set(rootProject.layout.buildDirectory.file("dependeasy/completed/deliveryReady.txt"))
                     marker.set(layout.buildDirectory.file("deployed.txt"))
                 }
-                publishOutput(OutputKind.WorkspaceCompletion, proof.flatMap { it.marker }, Workspace.Verify, producer = proof)
+                if (project.name == "shared") publishOutput(OutputKind.WorkspaceCompletion, proof.flatMap { it.marker }, Workspace.Verify, producer = proof)
                 publishOutput(OutputKind.WorkspaceCompletion, packaged.flatMap { it.marker }, Workspace.Build, producer = packaged)
-                publishOutput(OutputKind.WorkspaceCompletion, deployed.flatMap { it.marker }, Workspace.Deploy, producer = deployed)
+                if (project.name == "web") dependeasy.workspace {
+                    val deployment by artifacts { include(node(deployed)) }
+                    val fleet by artifacts(role = Workspace.Deploy) { include(deployment) }
+                }
             """.trimIndent())
         }
     }

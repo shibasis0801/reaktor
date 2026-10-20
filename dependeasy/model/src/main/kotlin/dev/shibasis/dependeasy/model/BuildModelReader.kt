@@ -22,6 +22,7 @@ object BuildModelReader {
         val builds = model.builds.map { it.name }.toSet()
         require(model.nodes.all { it.id.build in builds }) { "Unknown node build" }
         require(model.declarations.all { it.build in builds }) { "Unknown declaration build" }
+        require(model.declarations.all { (it.kind == DeclarationInputKind.Option) == (it.option != null) }) { "Option declaration needs its recorded evidence" }
         return model
     }
 
@@ -41,7 +42,7 @@ object BuildModelReader {
         require(bytes.size <= MaxBytes) { "Build model exceeds $MaxBytes bytes" }
         val model = decode(bytes.toString(Charsets.UTF_8))
         val directories = model.builds.associate { it.name to root.resolve(it.directory).canonicalFile }
-        model.declarations.forEach { input ->
+        model.declarations.filter { it.kind != DeclarationInputKind.Option }.forEach { input ->
             val owner = directories.getValue(input.build)
             require(owner.resolve(input.path).canonicalFile.toPath().startsWith(owner.toPath())) { "Declaration escapes its build" }
         }
@@ -50,13 +51,14 @@ object BuildModelReader {
 
     fun changedDeclarations(root: File, model: BuildModel): List<DeclarationInput> {
         val directories = model.builds.associate { it.name to root.resolve(it.directory).canonicalFile }
-        return model.declarations.filter { input ->
+        return model.declarations.filter { it.kind != DeclarationInputKind.Option }.filter { input ->
             val owner = directories.getValue(input.build)
             val declaration = owner.resolve(input.path).canonicalFile
             require(declaration.toPath().startsWith(owner.toPath())) { "Declaration escapes its build" }
             when (input.kind) {
                 DeclarationInputKind.File -> !declaration.isFile || digest(declaration) != input.sha256
                 DeclarationInputKind.Membership -> BuildDeclarationInputs.membership(declaration) != input.sha256
+                DeclarationInputKind.Option -> false
             }
         }
     }

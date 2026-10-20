@@ -39,9 +39,10 @@ class BuildLayoutTest {
         assertEquals(2, report.schema)
         assertEquals(mapOf("product" to ".", "framework" to "framework", "Other" to "other"),
             report.builds)
-        val expected = mapOf(":produceSite" to "web", ":validateContract" to "web", ":emitPackage" to "web")
+        val expected = mapOf(":produceSite" to "web", ":emitPackage" to "web")
         assertEquals(expected, report.taskFamilies.filterKeys { it in expected })
         val model = BuildModelReader.read(directory)
+        assertEquals(dev.shibasis.dependeasy.model.NodeKind.Verification, model.nodes.single { it.id.name == "validateContract" }.kind)
         model.nodes.filter { it.artifactFamily != null }.forEach { node ->
             assertEquals(node.artifactFamily, report.taskFamilies[node.id.project.trimEnd(':') + ":" + node.id.name])
         }

@@ -1,52 +1,46 @@
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.configuration.ReaktorTests
 import dev.shibasis.dependeasy.native.*
 import dev.shibasis.dependeasy.native.NativePlatform
-import dev.shibasis.dependeasy.handles.Reaktor
 import dev.shibasis.dependeasy.handles.Tools
+import dev.shibasis.dependeasy.handles.Reaktor
+import dev.shibasis.dependeasy.model.Targets
+import dev.shibasis.dependeasy.model.Suite
+import dev.shibasis.dependeasy.model.TestEnvironment
+import dev.shibasis.dependeasy.model.FileSet
+import kotlin.time.Duration.Companion.minutes
 import dev.shibasis.dependeasy.Versions
+
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    nativeLibrary {
-        platforms(NativePlatform.Android, NativePlatform.Darwin, NativePlatform.Host)
-        abis(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64)
-        dependencies(Native.Flatbuffers, Native.Foundation)
+library(namespace = "dev.shibasis.reaktor.flexbuffer", targets = Targets.All, jvmNullChecks = false) {
+    testProfile("flamechart/output/android-flamechart.html")
+    val jmh by jvmBenchmarks(sources = FileSet(listOf("reaktor-flexbuffer/src/jvmBenchmark/kotlin/dev/shibasis/reaktor/flexbuffer/bench/FlexBufferJmhBenchmark.kt")))
+    val unit by tests(Suite.Jvm, environment = ReaktorTests.Benchmarks)
+    val reference by cppReference(executable = "flexbuffer_bench", property = "flexbuffer.reference",
+        headers = mapOf(Tools.Flatbuffers to "FLATBUFFERS_INCLUDE_DIR"))
+    val bench by appleBenchmarks()
+    val jvmFlameChart by cpuProfile(
+        sources = FileSet(listOf("reaktor-flexbuffer/src/jvmMain/kotlin/dev/shibasis/reaktor/flexbuffer/bench/JvmFlameChart.kt")),
+        output = "flamechart/output/jvm-flamechart.html")
+    val phaseProfile by apiProfile(
+        sources = FileSet(listOf("reaktor-flexbuffer/src/jvmMain/kotlin/dev/shibasis/reaktor/flexbuffer/bench/PhaseProfiler.kt")),
+        output = "flamechart/output/phase", outputEnvironment = "PHASE_OUT")
+    val androidUnit by tests(Suite.AndroidUnit, environment = ReaktorTests.Benchmarks)
+    val node by tests(Suite.JavaScript, environment = TestEnvironment(caseTimeoutMillis = 5.minutes.inWholeMilliseconds))
+    native(name = "ReaktorFlexbuffer", platforms = setOf(NativePlatform.Android, NativePlatform.Darwin, NativePlatform.Host),
+        abis = listOf(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64)) {
+        links(Native.Flatbuffers, Native.Foundation)
     }
-    module("dev.shibasis.reaktor.flexbuffer") {
-        common { dependencies { api(projects.reaktorCore) } }
+    dependencies {
+        processors(Reaktor.Compiler, options = mapOf(
+            Reaktor.CompilerOptions.FlexCoderRegistrarPackage to "dev.shibasis.reaktor.flexbuffer.generated",
+            Reaktor.CompilerOptions.FlexCoderRegistrarObject to "ReaktorFlexbufferCoders",
+        ))
+        common { api(projects.reaktorCore) }
         android {
-            dependencies {
-                api(projects.reaktorIo)
-                implementation(Versions.Native.Flatbuffers)
-            }
+            api(projects.reaktorIo)
+            implementation(Versions.Native.Flatbuffers)
         }
-        jvm {}; web {}; apple {}
-    }
-    kotlinProcessor(projects.reaktorCompiler) {
-        option("reaktor.flexcoder.registrar.package", "dev.shibasis.reaktor.flexbuffer.generated")
-        option("reaktor.flexcoder.registrar.object", "ReaktorFlexbufferCoders")
-    }
-    benchmarks {
-        cpp("flexbuffer_bench", property = "flexbuffer.reference") {
-            sourceLibrary(Tools.Flatbuffers, includeVariable = "FLATBUFFERS_INCLUDE_DIR")
-        }
-        jvm(".*FlexBufferJmhBenchmark.*")
-        apple("dev.shibasis.reaktor.flexbuffer.bench.iosBenchMain")
-        node()
-        profile("jvmFlameChart", "dev.shibasis.reaktor.flexbuffer.bench.JvmFlameChartKt", "flamechart/output") {
-            cpuAgent("jvm-flamechart.html")
-        }
-        profile("phaseProfile", "dev.shibasis.reaktor.flexbuffer.bench.PhaseProfilerKt", "flamechart/output/phase") {
-            fixtures(); profilerApi(); environment("PHASE_OUT")
-        }
-        testProfile("flamechart/output/android-flamechart.html")
-    }
-
-
-    tasks.withType<Test>().configureEach {
-        exclude("**/*\$*", "**/*Coder*", "**/*ImplsKt*")
-        testLogging.showStandardStreams = true
-    }
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
-        compilerOptions.freeCompilerArgs.addAll("-Xno-call-assertions", "-Xno-receiver-assertions", "-Xno-param-assertions")
     }
 }

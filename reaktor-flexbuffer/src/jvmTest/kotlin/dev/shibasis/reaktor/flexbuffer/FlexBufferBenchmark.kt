@@ -23,7 +23,7 @@ import kotlin.time.measureTime
  * establish the full performance picture across the language stack.
  *
  * Run via: ./gradlew :reaktor-flexbuffer:jvmTest --tests "*.FlexBufferBenchmark"
- * C++ ref: ./gradlew :reaktor-flexbuffer:flexbuffer_benchCMake
+ * C++ ref: ./gradlew :reaktor-flexbuffer:reference
  *
  * Four implementation tiers compared:
  *   1. C++ FlexBuffers (separate binary) — the format's reference implementation.

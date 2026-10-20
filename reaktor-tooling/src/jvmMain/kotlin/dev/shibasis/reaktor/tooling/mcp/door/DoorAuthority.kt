@@ -50,7 +50,7 @@ data class DoorPolicy(
             if (machine == null) return project
             val seats = (machine.seats.keys + project.seats.keys).associateWith { name ->
                 val a = machine.seat(name); val b = project.seat(name)
-                SeatPolicy(minOf(a.allow, b.allow), minOf(a.ask, b.ask))
+                SeatPolicy(minOf(a.allow, b.allow), minOf(a.ask, b.ask), a.plans && b.plans)
             }
             return DoorPolicy(seats, minOf(machine.approvalMinutes, project.approvalMinutes), minOf(machine.maxResultChars, project.maxResultChars), machine.approvalDialog)
         }
@@ -66,9 +66,10 @@ data class SeatPolicy(
     val allow: SafetyClass = SafetyClass.UnknownRemoteEffect,
     /** Above [allow] and up to here a person is asked first; above it the call is refused. */
     val ask: SafetyClass = SafetyClass.UnknownRemoteEffect,
+    val plans: Boolean = false,
 ) {
     companion object {
-        val Guarded = SeatPolicy(SafetyClass.LiveRead, SafetyClass.Destructive)
+        val Guarded = SeatPolicy(SafetyClass.LiveRead, SafetyClass.Destructive, plans = true)
     }
 }
 
@@ -107,8 +108,9 @@ object DoorAuthority {
         "pg_terminate_backend", "pg_cancel_backend", "pg_reload_conf", "attach", "detach", "optimize", "kill", "system", "load", "listen", "notify", "unlisten", "discard",
         "comment", "security", "reassign", "import", "export", "outfile", "dumpfile")
 
-    fun decide(effect: SafetyClass, seat: SeatPolicy): DoorDecision = when {
+    fun decide(effect: SafetyClass, seat: SeatPolicy, ownPlan: Boolean = false): DoorDecision = when {
         effect <= seat.allow && (!effect.requiresApproval || seat.allow.requiresApproval) -> DoorDecision.Allowed
+        ownPlan && seat.plans && effect <= SafetyClass.SourceWrite -> DoorDecision.Allowed
         // Short of full access, an effect nobody classified is never assumed harmless and never refused outright: a person decides.
         effect == SafetyClass.UnknownRemoteEffect -> DoorDecision.Ask(effect)
         effect <= seat.ask || effect <= seat.allow -> DoorDecision.Ask(effect)

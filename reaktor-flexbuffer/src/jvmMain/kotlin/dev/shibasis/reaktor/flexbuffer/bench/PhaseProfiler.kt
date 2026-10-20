@@ -2,6 +2,7 @@
 
 package dev.shibasis.reaktor.flexbuffer.bench
 
+import dev.shibasis.reaktor.core.build.Entry
 import dev.shibasis.reaktor.flexbuffer.BenchApiResponse
 import dev.shibasis.reaktor.flexbuffer.BenchChatThread
 import dev.shibasis.reaktor.flexbuffer.BenchTimeSeriesChunk
@@ -43,10 +44,7 @@ object PhaseProfiler {
     private const val MEASURE = 2_000_000
 
     fun runAll() {
-        if (asprof == null) {
-            println("async-profiler library not loaded. Set ASPROF_LIB env var.")
-            return
-        }
+        check(asprof != null) { "async-profiler library not loaded; set ASPROF_LIB" }
         val outputDirPath = System.getenv("PHASE_OUT")
             ?: "flamechart/output/phase"
         val outputDir = File(outputDirPath).absoluteFile.apply { mkdirs() }
@@ -209,6 +207,7 @@ class AsyncProfilerHandle private constructor(
     }
 }
 
+@Entry
 fun main() {
     println("PhaseProfiler — per-phase CPU + alloc flamegraphs")
     println("JVM: ${System.getProperty("java.vm.name")} ${System.getProperty("java.vm.version")}")

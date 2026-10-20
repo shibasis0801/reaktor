@@ -13,5 +13,5 @@ object FrameworkOptions {
     val PublishCrashlytics = BuildOption.boolean("dependeasy.publishCrashlytics")
     val MavenLocal = BuildOption.boolean("dependeasy.useMavenLocal")
     val GitHubPackagesUsername = BuildOption.string("dependeasy.githubPackagesUsername")
-    val GitHubPackagesToken = BuildOption.string("dependeasy.githubPackagesToken")
+    val GitHubPackagesToken = BuildOption.string("dependeasy.githubPackagesToken", sensitive = true)
 }

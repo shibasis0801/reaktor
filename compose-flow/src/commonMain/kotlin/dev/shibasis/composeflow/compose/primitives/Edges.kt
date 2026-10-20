@@ -37,8 +37,10 @@ internal fun DrawScope.drawFlowEdge(
     // React Flow/xyflow uses editor-space anchor points and derives the edge path from those
     // anchors after node measurement. Keep the same separation here: node layout decides anchors,
     // edge rendering only consumes those resolved points.
-    val pathData = resolvedEdgePath(source, target, edge, pathStyle, defaultNodeWidth, defaultNodeHeight)
+    drawFlowEdge(resolvedEdgePath(source, target, edge, pathStyle, defaultNodeWidth, defaultNodeHeight), edge, renderStyle, dashPhase)
+}
 
+internal fun DrawScope.drawFlowEdge(pathData: FlowEdgePath, edge: Edge, renderStyle: EdgeRenderStyle, dashPhase: Float) {
     val strokeWidth = renderStyle.width ?: if (edge.animated) {
         FlowSizing.animatedEdgeStrokePx
     } else {

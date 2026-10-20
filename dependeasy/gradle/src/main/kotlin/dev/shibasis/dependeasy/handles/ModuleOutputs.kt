@@ -30,11 +30,11 @@ internal fun Project.moduleOutputs() {
         val completed = tasks.register<WorkspaceTargetTask>("completeModuleBuild") {
             dependsOn(tasks.named(LifecycleBasePlugin.BUILD_TASK_NAME))
         }
-        publishOutput(OutputKind.ModuleBuild, completed.flatMap { it.completionManifest }, producer = completed)
+        publishModuleOutput(OutputKind.ModuleBuild, completed.flatMap { it.completionManifest }, producer = completed)
     }
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
         val tests = tasks.named<Test>(JavaPlugin.TEST_TASK_NAME)
-        publishOutput(OutputKind.VerificationResults, tests.map { it.reports.junitXml.outputLocation.get() },
+        publishModuleOutput(OutputKind.VerificationResults, tests.map { it.reports.junitXml.outputLocation.get() },
             Verification.Jvm, producer = tests)
     }
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
@@ -42,28 +42,29 @@ internal fun Project.moduleOutputs() {
         kotlin.targets.withType(KotlinJvmTarget::class.java).configureEach {
             testRuns.configureEach {
                 if (name == KotlinCompilation.TEST_COMPILATION_NAME) {
-                    publishOutput(OutputKind.VerificationResults, executionTask.map { it.reports.junitXml.outputLocation.get() },
+                    publishModuleOutput(OutputKind.VerificationResults, executionTask.map { it.reports.junitXml.outputLocation.get() },
                         Verification.Jvm, producer = executionTask)
                 }
             }
         }
-        kotlin.targets.withType(KotlinNativeTarget::class.java).configureEach {
-            val apple = when (konanTarget) {
-                KonanTarget.IOS_ARM64 -> Apple.IosArm64
-                KonanTarget.IOS_SIMULATOR_ARM64 -> Apple.IosSimulatorArm64
-                else -> null
-            }
-            if (apple != null) {
-                compilations.configureEach {
-                    if (name == KotlinCompilation.MAIN_COMPILATION_NAME) {
-                        publishOutput(OutputKind.AppleCompilation, output.classesDirs, apple)
-                    }
+        afterEvaluate {
+            kotlin.targets.withType(KotlinNativeTarget::class.java).forEach { target ->
+                val apple = when (target.konanTarget) {
+                    KonanTarget.IOS_ARM64 -> Apple.IosArm64
+                    KonanTarget.IOS_SIMULATOR_ARM64 -> Apple.IosSimulatorArm64
+                    else -> null
                 }
-                binaries.withType(Framework::class.java).configureEach {
-                    if (compilation.name != KotlinCompilation.MAIN_COMPILATION_NAME) return@configureEach
-                    val build = if (buildType == NativeBuildType.RELEASE) Build.Release else Build.Debug
-                    publishOutput(OutputKind.AppleFramework, linkTaskProvider.flatMap { it.outputFile },
-                        apple, build, producer = linkTaskProvider)
+                if (apple != null) {
+                    target.compilations.findByName(KotlinCompilation.MAIN_COMPILATION_NAME)?.let { main ->
+                        publishModuleOutput(OutputKind.AppleCompilation, main.output.classesDirs, apple)
+                    }
+                    target.binaries.withType(Framework::class.java).forEach { framework ->
+                        if (framework.compilation.name == KotlinCompilation.MAIN_COMPILATION_NAME) {
+                            val build = if (framework.buildType == NativeBuildType.RELEASE) Build.Release else Build.Debug
+                            publishModuleOutput(OutputKind.AppleFramework, framework.linkTaskProvider.flatMap { it.outputFile },
+                                apple, build, producer = framework.linkTaskProvider)
+                        }
+                    }
                 }
             }
         }
@@ -73,7 +74,7 @@ internal fun Project.moduleOutputs() {
             val embedded = tasks.register<WorkspaceTargetTask>("completeXcodeFramework") {
                 dependsOn(tasks.named("embedAndSignAppleFrameworkForXcode"))
             }
-            publishOutput(OutputKind.AppleXcodeFramework, embedded.flatMap { it.completionManifest }, producer = embedded)
+            publishModuleOutput(OutputKind.AppleXcodeFramework, embedded.flatMap { it.completionManifest }, producer = embedded)
         }
     }
     pluginManager.withPlugin("com.android.application") {
@@ -90,10 +91,10 @@ internal fun Project.moduleOutputs() {
                 }
             }
             if (build != null) {
-                publishOutput(OutputKind.AndroidApk, variant.artifacts.get(SingleArtifact.APK), build)
-                publishOutput(OutputKind.AndroidBundle, variant.artifacts.get(SingleArtifact.BUNDLE), build)
+                publishModuleOutput(OutputKind.AndroidApk, variant.artifacts.get(SingleArtifact.APK), build)
+                publishModuleOutput(OutputKind.AndroidBundle, variant.artifacts.get(SingleArtifact.BUNDLE), build)
                 variant.androidTest?.let { tests ->
-                    publishOutput(OutputKind.AndroidInstrumentedTests, tests.artifacts.get(SingleArtifact.APK), build)
+                    publishModuleOutput(OutputKind.AndroidInstrumentedTests, tests.artifacts.get(SingleArtifact.APK), build)
                 }
             }
         }
@@ -109,9 +110,9 @@ internal fun Project.moduleOutputs() {
                 }
             }
             if (build != null) {
-                publishOutput(OutputKind.AndroidLibrary, variant.artifacts.get(SingleArtifact.AAR), build)
+                publishModuleOutput(OutputKind.AndroidLibrary, variant.artifacts.get(SingleArtifact.AAR), build)
                 variant.androidTest?.let { tests ->
-                    publishOutput(OutputKind.AndroidInstrumentedTests, tests.artifacts.get(SingleArtifact.APK), build)
+                    publishModuleOutput(OutputKind.AndroidInstrumentedTests, tests.artifacts.get(SingleArtifact.APK), build)
                 }
             }
         }

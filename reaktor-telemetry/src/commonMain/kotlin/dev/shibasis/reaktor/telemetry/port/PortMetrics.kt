@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.Port
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import kotlinx.atomicfu.atomic
+import dev.shibasis.reaktor.service.ServiceCall
+import kotlin.math.ceil
 
 /**
  * D11 — aggregate measures per port, collected at the call site.
@@ -29,8 +31,8 @@ class PortMetrics {
     private val series = atomic<Map<PortSeries, PortMeasurement>>(emptyMap())
 
     /** Records one completed call. Lock-free, so it never perturbs the call it is measuring. */
-    fun record(port: Port<*>, durationNanos: Long, failed: Boolean, shape: PortSemantics) {
-        val key = port.series(shape)
+    fun record(port: Port<*>, durationNanos: Long, failed: Boolean, shape: PortSemantics, attributes: Map<String, String> = emptyMap()) {
+        val key = port.series(shape, attributes)
         while (true) {
             val current = series.value
             val updated = (current[key] ?: PortMeasurement(key)).plus(durationNanos, failed)
@@ -55,19 +57,24 @@ data class PortSeries(
     val contractId: String,
     val direction: String,
     val shape: String,
+    val graphDigest: String = "",
+    val portKey: String = portId,
 ) {
-    val operation: String get() = "$contractId.$portId"
+    val operation: String get() = "$contractId.$portKey"
 }
 
-private fun Port<*>.series(shape: PortSemantics) = PortSeries(
-    nodeId = (owner as? Unique)?.label.orEmpty().ifEmpty { "unlabelled" },
-    portId = telemetryPortId(),
+private fun Port<*>.series(shape: PortSemantics, attributes: Map<String, String>) = PortSeries(
+    nodeId = attributes[ServiceCall.NodeAttribute]?.takeIf(String::isNotBlank)
+        ?: (owner as? Unique)?.label.orEmpty().ifEmpty { "unlabelled" },
+    portId = attributes[ServiceCall.PortAttribute]?.takeIf(String::isNotBlank) ?: telemetryPortId(),
     contractId = type.type,
     direction = when (this) {
         is ConsumerPort<*> -> "consumer"
         is ProviderPort<*> -> "provider"
     },
     shape = shape.name.lowercase(),
+    graphDigest = attributes[ServiceCall.GraphAttribute].orEmpty(),
+    portKey = telemetryPortId(),
 )
 
 /**
@@ -109,7 +116,8 @@ data class PortMeasurement(
      */
     fun quantileNanos(fraction: Double): Long? {
         if (calls == 0L) return null
-        val target = (calls * fraction).toLong().coerceAtLeast(1)
+        require(fraction.isFinite() && fraction in 0.0..1.0)
+        val target = ceil(calls * fraction).toLong().coerceAtLeast(1)
         var seen = 0L
         buckets.forEachIndexed { at, count ->
             seen += count

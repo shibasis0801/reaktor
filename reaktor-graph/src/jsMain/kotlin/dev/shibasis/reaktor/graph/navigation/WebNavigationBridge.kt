@@ -7,10 +7,11 @@ import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.io.network.RoutePattern
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import org.w3c.dom.events.Event
 import kotlin.js.JsExport
@@ -69,11 +70,11 @@ class WebNavigationBridge(private val graph: Graph) {
 
     private fun observeBackStack() {
         var initialized = false
-        scope.launch {
-            graph.backStack.entries.collectLatest { entries ->
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            graph.backStack.entries.collect { entries ->
                 if (!initialized) {
                     initialized = true
-                    return@collectLatest
+                    return@collect
                 }
 
                 val size = entries.size
@@ -82,10 +83,10 @@ class WebNavigationBridge(private val graph: Graph) {
                     suppressStackSize = null
                     if (size == expected) {
                         lastStackSize = size
-                        return@collectLatest
+                        return@collect
                     }
                 }
-                val topEntry = entries.lastOrNull() ?: return@collectLatest
+                val topEntry = entries.lastOrNull() ?: return@collect
                 val url = entryToUrl(topEntry)
 
                 when {

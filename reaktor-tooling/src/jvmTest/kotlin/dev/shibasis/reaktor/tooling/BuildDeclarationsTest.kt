@@ -39,12 +39,16 @@ class BuildDeclarationsTest {
             kernel = KernelRef("fixture.Device", spec = KernelSpec.DeviceFlow("android", "fixture.app", "fixture:app", listOf("flow.yaml"),
                 "contract.json", emptyList(), ToolRef("runner", "1"))))
         val parent = node("checks", Effect.Verify)
-        val model = BuildModel(producer = Producer(version = "fixture"), builds = listOf(BuildIdentity("fixture", ".")), nodes = listOf(parent, device),
-            edges = listOf(Edge.Includes(parent.id, device.id)))
+        val selected = node("selected", Effect.Verify)
+        val model = BuildModel(producer = Producer(version = "fixture"), builds = listOf(BuildIdentity("fixture", ".")), nodes = listOf(parent, device, selected),
+            edges = listOf(Edge.Includes(parent.id, device.id), Edge.OrderedAfter(selected.id, device.id)))
         root.resolve(BuildDeclarations.Report).apply { parentFile.mkdirs(); writeText(BuildModelReader.encode(model)) }
         val declared = BuildDeclarations.read(root).single { it.node.id == parent.id }
         assertEquals(ExecutionHost.Local, declared.host.execution)
         assertEquals(SafetyClass.DeviceWrite, declared.safety)
+        val ordered = BuildDeclarations.read(root).single { it.node.id == selected.id }
+        assertEquals(HostRequirement(), ordered.host)
+        assertEquals(SafetyClass.ReadOnly, ordered.safety)
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         assertEquals(SafetyClass.DeviceWrite, workspace.catalog.tasks.single { it.id.value == "fixture:checks" }.safety.classification)
         assertTrue(workspace.catalog.tasks.none { it.provenance.source == "gradle-settings" })

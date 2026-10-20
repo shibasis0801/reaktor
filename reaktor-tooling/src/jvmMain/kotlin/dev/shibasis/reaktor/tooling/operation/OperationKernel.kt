@@ -79,8 +79,9 @@ class OperationKernel(
         val seat = invocation.caller.seat
         val effect = runCatching { entry.effect(invocation.arguments) }
             .getOrElse { failure -> return Outcome.Failed(failure.message ?: "Could not classify ${descriptor.id}").also { record("failed", it.message) } }
+        val ownPlan = runCatching { entry.ownPlan(invocation.arguments) }.getOrDefault(false)
         var approval: DoorApproval? = null
-        when (val decision = DoorAuthority.decide(effect, authority.policy.seat(seat))) {
+        when (val decision = DoorAuthority.decide(effect, authority.policy.seat(seat), ownPlan)) {
             DoorDecision.Allowed -> Unit
             is DoorDecision.Refused -> return Outcome.Refused(effect, decision.reason).also { record("refused", decision.reason) }
             is DoorDecision.Ask -> {
@@ -124,7 +125,7 @@ class OperationKernel(
                 val id = legacyId(definition.name)?.takeIf(taken::add) ?: return@mapNotNull null
                 val provider = node.label.ifBlank { node::class.simpleName ?: "graph" }
                 val descriptor = OperationDescriptor(id, definition.description, definition.effect(), provider, definition.inputSchema, definition.outputSchema)
-                Entry(CatalogEntry(id, definition.description, descriptor.effect, provider), { descriptor }, { descriptor.effect }) { _, arguments ->
+                Entry(CatalogEntry(id, definition.description, descriptor.effect, provider), { descriptor }, { descriptor.effect }, { false }) { _, arguments ->
                     val result = node.execute(definition.name, arguments)
                     if (result.isError) error(result.data.errorText()) else result.data
                 }
@@ -134,12 +135,13 @@ class OperationKernel(
     }
 
     private fun Operation<*, *>.entry(provider: String) =
-        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }, effectFor) { call, arguments -> execute(call, arguments, json) }
+        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }, effectFor, appliesOwnPlan) { call, arguments -> execute(call, arguments, json) }
 
     private class Entry(
         val catalog: CatalogEntry,
         val describe: () -> OperationDescriptor,
         val effect: (JsonObject) -> SafetyClass,
+        val ownPlan: (JsonObject) -> Boolean,
         val execute: suspend (OperationCall, JsonObject) -> JsonElement,
     )
 
@@ -155,7 +157,8 @@ class OperationKernel(
         fun ToolDefinition.effect() = when {
             readOnly -> SafetyClass.ReadOnly
             destructive -> SafetyClass.Destructive
-            else -> SafetyClass.UnknownRemoteEffect
+            openWorld -> SafetyClass.UnknownRemoteEffect
+            else -> SafetyClass.LocalArtifactWrite
         }
 
         fun JsonElement.errorText(): String =

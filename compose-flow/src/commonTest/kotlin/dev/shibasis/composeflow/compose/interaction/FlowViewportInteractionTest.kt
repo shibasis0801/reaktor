@@ -2,13 +2,30 @@ package dev.shibasis.composeflow.compose.interaction
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.pointer.PointerType
 import dev.shibasis.composeflow.model.Viewport
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class FlowViewportInteractionTest {
+    @Test
+    fun smallMouseDragsStartWithoutReducingTheTouchOrStylusThreshold() {
+        for (density in listOf(1f, 2f, 3f)) {
+            val touchSlop = 18f * density
+            val smallDrag = 1f * density
+            val mouseSlop = flowViewportPointerSlop(touchSlop, PointerType.Mouse)
+            assertTrue(mouseSlop > 0f, "A stationary click must remain a click")
+            assertTrue(smallDrag > mouseSlop, "A one-dp mouse move must start panning")
+            for (type in listOf(PointerType.Touch, PointerType.Stylus, PointerType.Eraser, PointerType.Unknown)) {
+                assertEquals(touchSlop, flowViewportPointerSlop(touchSlop, type))
+                assertTrue(smallDrag < flowViewportPointerSlop(touchSlop, type))
+            }
+        }
+    }
+
     @Test
     fun nativeAnchorUsesDisplayDensityAndRejectsClippedCanvasAndChrome() {
         val interaction = FlowViewportInteractionState()

@@ -1,35 +1,23 @@
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.handles.Reaktor
+import dev.shibasis.dependeasy.model.Compose
+import dev.shibasis.dependeasy.model.Targets
 import dev.shibasis.dependeasy.Versions
 
-plugins { id("dev.shibasis.dependeasy.compose-library") }
+plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    module("dev.shibasis.reaktor.blueprint") {
+library(namespace = "dev.shibasis.reaktor.blueprint", targets = Targets.All, ui = Compose()) {
+    dependencies {
         common {
-            dependencies {
-                api(projects.composeFlow)
-                api(projects.reaktorUi)
-                api(projects.reaktorGraphRuntime)
-                api(Versions.Compose.Runtime)
-                api(Versions.Compose.Foundation)
-                api(Versions.Compose.Material3)
-            }
+            api(Reaktor.ComposeFlow, Reaktor.Ui, Reaktor.GraphRuntime)
+            api(Versions.Compose.Runtime)
+            api(Versions.Compose.Foundation)
+            api(Versions.Compose.Material3)
         }
-        web {}
-        android {}
-        apple {}
-
         jvm {
-            dependencies {
-                api(Versions.Compose.Desktop)
-                implementation(Versions.Compose.Elk)
-                implementation(Versions.Compose.Xbase)
-            }
+            api(Versions.Compose.Desktop)
+            implementation(Versions.Compose.Elk)
+            implementation(Versions.Compose.Xbase)
         }
-    }
-
-
-    tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
-        include("**/*Test.class")
-        exclude("**/*\$*")
     }
 }

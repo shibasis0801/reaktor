@@ -3,6 +3,8 @@ package dev.shibasis.dependeasy.web
 import dev.shibasis.dependeasy.tasks.registeredTask
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.model.OutputKind
+import dev.shibasis.dependeasy.model.SourceSite
+import dev.shibasis.dependeasy.workspace.declarationSite
 import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -36,11 +38,13 @@ abstract class KotlinExportCatalog : DefaultTask() {
 }
 
 internal fun Project.kotlinExportCatalog(directory: File): TaskProvider<KotlinExportCatalog> {
+    val site = declarationSite()
     val root = rootProject
     val name = "reportKotlinExports"
     val path = directory.relativeTo(root.rootDir).invariantSeparatorsPath
     require(path != "." && path.split('/').none { it == ".." }) { "Kotlin exports must stay within the workspace" }
     val catalog = root.registeredTask(KotlinExportCatalog::class.java) { root.tasks.register<KotlinExportCatalog>(name) {
+        site?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) }
         group = "dependeasy"
         description = "Describe compiler-owned package exports for IDE and worker artifact transfer"
         directories.convention(emptyList())

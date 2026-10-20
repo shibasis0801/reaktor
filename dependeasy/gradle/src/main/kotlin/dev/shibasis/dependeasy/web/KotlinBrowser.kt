@@ -18,9 +18,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrLink
 
 /** Kotlin produces ESM; the same workspace Vite used by TypeScript owns the browser bundle. */
-class KotlinBrowser internal constructor(private val project: Project) {
-    var output: String = "dist/client"
-    var moduleName: String = "${project.rootProject.name}-${project.name}"
+internal class KotlinBrowser(private val project: Project, private val output: String, private val moduleName: String) {
     private val requirements = mutableListOf<OptionRequirement>()
     fun <T : Any> require(option: BuildOption<T>, value: T) {
         requirements.add(OptionRequirement(project.resolve(option).get().evidence, value.toString()))

@@ -183,7 +183,7 @@ class PortTelemetryInterceptor(
             throw error
         } finally {
             val elapsed = started.elapsedNow().inWholeNanoseconds
-            if (!cancelled) metrics.record(invocation.port, elapsed, failed, facet.semantics)
+            if (!cancelled) metrics.record(invocation.port, elapsed, failed, facet.semantics, attributes)
             span?.setLongAttribute(ReaktorAttributes.DurationNanos, elapsed)
             try { span?.end() } finally { scope?.detach() }
         }
@@ -219,7 +219,7 @@ class PortTelemetryInterceptor(
             throw error
         } finally {
             val elapsed = started.elapsedNow().inWholeNanoseconds
-            if (!cancelled) metrics.record(invocation.port, elapsed, failed, facet.semantics)
+            if (!cancelled) metrics.record(invocation.port, elapsed, failed, facet.semantics, attributes)
             span?.setLongAttribute(ReaktorAttributes.DurationNanos, elapsed)
             span?.end()
         }

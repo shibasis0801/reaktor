@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy
 
+import dev.shibasis.dependeasy.model.BuildModelReader
+import dev.shibasis.dependeasy.model.SourceSite
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.io.TempDir
@@ -18,8 +20,8 @@ class PublishingTest {
             include("library")
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
-            plugins { id("dev.shibasis.dependeasy.pipeline") }
-            dependeasy {
+            plugins { id("dev.shibasis.dependeasy.workspace") }
+            workspace {
                 publishing {
                     group = "fixture"
                     maven("localFixture", layout.buildDirectory.dir("repository").get().asFile.toURI().toString())
@@ -34,10 +36,18 @@ class PublishingTest {
             }
         """.trimIndent())
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
-            .withArguments("publishToGithubPackages", "-PpublicationFixtureVersion=7.2", "--configuration-cache").build()
+            .withArguments("publishToGithubPackages", "exportBuildModel", "-PpublicationFixtureVersion=7.2", "--configuration-cache").build()
         val first = run()
         assertEquals(TaskOutcome.SUCCESS, first.task(":library:publishJavaPublicationToLocalFixtureRepository")?.outcome)
         assertTrue(directory.resolve("build/repository/fixture/library/7.2/library-7.2.jar").isFile)
+        val model = BuildModelReader.read(directory)
+        assertTrue(model.nodes.none { it.id.project == ":" && it.id.name == "outputModuleBuild" })
+        assertEquals(setOf("outputPublishedModulesLocal", "outputPublishedModulesRemote"),
+            model.nodes.filter { it.id.project == ":library" && it.id.name.startsWith("outputPublishedModules") }.map { it.id.name }.toSet())
+        val publicationSite = SourceSite("publicationFixture", "build.gradle.kts",
+            directory.resolve("build.gradle.kts").readLines().indexOfFirst { it.trim() == "publishing {" } + 1)
+        assertTrue(model.nodes.filter { it.id.name.startsWith("outputPublishedModules") }.all { it.declaredAt == publicationSite })
+        assertEquals(null, first.task(":completeModuleBuild"))
         assertContains(run().output, "Reusing configuration cache")
     }
 }

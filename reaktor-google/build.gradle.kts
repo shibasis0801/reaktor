@@ -1,42 +1,26 @@
-import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Compose
+import dev.shibasis.dependeasy.model.Targets
 import dev.shibasis.dependeasy.Versions
-import dev.shibasis.dependeasy.dependencies.useKoin
 
-plugins {
-//    id("org.jetbrains.compose")
-//    id("org.jetbrains.kotlin.plugin.compose")
-    id("dev.shibasis.dependeasy.compose-library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
-    workspace { val generateBindings by artifacts { include(node(bindings)) } }
-
-    module("dev.shibasis.reaktor.google") {
-        common {
-            dependencies {
-                api(projects.reaktorAuth)
-                api(projects.reaktorWork)
-            }
-        }
-        android {}
-        apple {}
-        web { sourceSetModifier { kotlin.srcDir(bindings) } }
-
+library(namespace = "dev.shibasis.reaktor.google", targets = Targets.All, ui = Compose()) {
+    val generateBindings by bindings()
+    dependencies {
+        common { api(projects.reaktorAuth); api(projects.reaktorWork) }
         jvm {
-            dependencies {
-                api(Versions.Google.Sheets)
-                api(Versions.Google.Pubsub)
-                implementation(Versions.Google.Calendar)
-                implementation(Versions.Google.Drive)
-                implementation(Versions.Google.YouTube)
-                api(Versions.Google.Auth)
-                implementation(projects.reaktorCrypto)
-            }
-            testDependencies {
-                implementation(Versions.Data.MockWebServer)
-                implementation(Versions.Data.Postgres)
-            }
+            api(Versions.Google.Sheets)
+            api(Versions.Google.Pubsub)
+            implementation(Versions.Google.Calendar)
+            implementation(Versions.Google.Drive)
+            implementation(Versions.Google.YouTube)
+            api(Versions.Google.Auth)
+            implementation(projects.reaktorCrypto)
+        }
+        jvmTest {
+            implementation(Versions.Data.MockWebServer)
+            implementation(Versions.Data.Postgres)
         }
     }
 }

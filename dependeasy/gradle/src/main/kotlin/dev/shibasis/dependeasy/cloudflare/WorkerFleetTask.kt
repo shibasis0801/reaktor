@@ -11,6 +11,7 @@ import org.gradle.api.tasks.*
 @CacheableTask
 abstract class WorkerFleetTask : DefaultTask() {
     @get:Input abstract val declaration: Property<String>
+    @get:Input abstract val defaultEnvironment: Property<String>
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val configurations: ConfigurableFileCollection
     @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val defaults: RegularFileProperty
     @get:Internal abstract val root: DirectoryProperty
@@ -25,8 +26,8 @@ abstract class WorkerFleetTask : DefaultTask() {
             val directory = boundary.resolve(worker.directory).canonicalFile
             require(directory.toPath().startsWith(boundary.toPath()))
             worker.configurations.forEach { (environment, path) ->
-                val local = Json.parseToJsonElement(directory.resolve(if (environment == "dev") "wrangler.dev.json" else "wrangler.json").readText()).jsonObject
-                val config = if (environment == "dev") local else merge(base, local)
+                val local = Json.parseToJsonElement(directory.resolve(if (environment == defaultEnvironment.get()) "wrangler.json" else "wrangler.$environment.json").readText()).jsonObject
+                val config = if (environment == defaultEnvironment.get()) merge(base, local) else local
                 val output = boundary.resolve(path)
                 require(output.canonicalFile.parentFile == directory && !java.nio.file.Files.isSymbolicLink(output.toPath()))
                 output.writeText(BuildModelReader.json.encodeToString(config) + "\n")

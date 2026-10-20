@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.settings
 
+import dev.shibasis.dependeasy.toolchain.buildHost
 import dev.shibasis.dependeasy.handles.Tools
 import dev.shibasis.dependeasy.model.ToolHandle
 import org.gradle.api.tasks.TaskProvider
@@ -38,7 +39,7 @@ internal class NativeBootstrap(private val project: Project) {
             buildDirectory.set(layout.buildDirectory.dir("dependeasy/tools/hermes"))
             generator.set("Ninja")
             buildTarget.set("hermesc")
-            val mac = providers.systemProperty("os.name").get().contains("Mac", ignoreCase = true)
+            val mac = project.buildHost.mac
             toolVersion.set(dev.shibasis.dependeasy.toolchain.NativeBuildTools.get(project).let {
                 "cmake ${it.cmake.handle.version} / ninja ${it.ninja.handle.version}"
             })

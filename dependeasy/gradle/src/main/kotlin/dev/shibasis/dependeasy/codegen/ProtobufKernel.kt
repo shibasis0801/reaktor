@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.codegen
 
+import dev.shibasis.dependeasy.toolchain.buildHost
 import dev.shibasis.dependeasy.Versions
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
@@ -32,9 +33,9 @@ internal class ProtobufKernel(private val project: Project, private val entry: S
     }
 
     private fun classifier(): String {
-        val os = System.getProperty("os.name").lowercase()
-        require(os.contains("mac") || os.contains("linux")) { "Protobuf tools support macOS and Linux" }
-        val cpu = if (System.getProperty("os.arch") in listOf("aarch64", "arm64")) "aarch_64" else "x86_64"
-        return "${if (os.contains("mac")) "osx" else "linux"}-$cpu"
+        val host = project.buildHost
+        require(host.mac || host.linux) { "Protobuf tools support macOS and Linux" }
+        val cpu = if (host.arm) "aarch_64" else "x86_64"
+        return "${if (host.mac) "osx" else "linux"}-$cpu"
     }
 }

@@ -1,0 +1,5 @@
+allprojects {
+    tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        reports.junitXml.outputLocation.set(layout.buildDirectory.dir("reports/qualification/wp13-framework-evidence/" + name))
+    }
+}

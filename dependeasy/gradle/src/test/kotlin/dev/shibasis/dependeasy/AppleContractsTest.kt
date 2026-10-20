@@ -13,9 +13,11 @@ import kotlin.test.*
 class AppleContractsTest {
     @TempDir lateinit var directory: File
     private fun write(path: String, text: String) = directory.resolve(path).apply { parentFile.mkdirs(); writeText(text) }
-    private val host = AppleHostContract(deploymentTarget = "16.0", swiftVersion = "6.0", team = "fixture-team", entryPoint = "Fixture.start()", versionOption = "bestbudsVersionName", numberOption = "bestbudsVersionCode", developmentToolsOption = "bestbuds.devTools",
-        targets = listOf(AppleHostTarget("iosApp", "fixture.app", "Fixture", "../../app/build/xcode-frameworks",
-            listOf("FixtureAdapter.install()"), listOf("fixture.work"), listOf("-lsqlite3"))), swiftPackages = mapOf("appauth-ios" to "1.7.6"))
+    private val host = AppleHostContract(deploymentTarget = "16.0", swiftVersion = "6.0", team = "fixture-team", applicationTarget = "iosApp", entryPoint = "Fixture.start()", versionOption = "fixtureVersionName", numberOption = "fixtureVersionCode", developmentToolsOption = "fixture.devTools",
+        targets = listOf(
+            AppleHostTarget("Service", "fixture.app.service", "Service", "../../service/build/xcode-frameworks", "FIXTURE_SERVICE"),
+            AppleHostTarget("iosApp", "fixture.app", "Fixture", "../../app/build/xcode-frameworks", "FIXTURE",
+                listOf("FixtureAdapter.install()"), listOf("fixture.work"), listOf("-lsqlite3"))), swiftPackages = mapOf("appauth-ios" to "1.7.6"))
     private fun prepare() {
         write("settings.gradle.kts", "rootProject.name = \"appleFixture\"")
         write("pins.json", """{"pins":[{"identity":"appauth-ios","state":{"version":"1.7.6"}}]}""")
@@ -50,6 +52,7 @@ class AppleContractsTest {
                 output.set(layout.buildDirectory.file("release.json"))
             }
             tasks.register<SigningXcconfigTask>("signing") {
+                host.set(declarationJson)
                 request.set(layout.projectDirectory.file("signing.json"))
                 config.set(layout.buildDirectory.file("Signing.local.xcconfig"))
                 exportOptions.set(layout.buildDirectory.file("ExportOptions.plist"))
@@ -65,16 +68,22 @@ class AppleContractsTest {
         assertFalse(settings.contains("MARKETING_VERSION ="))
         assertFalse(settings.contains("CURRENT_PROJECT_VERSION ="))
         assertContains(settings, "#include? \"../build/Version.local.xcconfig\"")
-        assertContains(settings, "-PbestbudsVersionName=\$(MARKETING_VERSION)")
-        assertContains(settings, "-PbestbudsVersionCode=\$(CURRENT_PROJECT_VERSION)")
+        assertContains(settings, "-PfixtureVersionName=\$(MARKETING_VERSION)")
+        assertContains(settings, "-PfixtureVersionCode=\$(CURRENT_PROJECT_VERSION)")
         val versions = directory.resolve("build/Version.local.xcconfig")
         assertEquals("MARKETING_VERSION = 5.2\nCURRENT_PROJECT_VERSION = 31\n", versions.readText())
-        assertContains(settings, "-Pbestbuds.devTools=false")
+        assertContains(settings, "-Pfixture.devTools=false")
         assertContains(settings, "REAKTOR_BG_TASK_0 = fixture.work")
         assertContains(settings, "UNLOCALIZED_RESOURCES_FOLDER_PATH = iosApp.app")
         assertContains(settings, "COMPILATION_CACHE_ENABLE_CACHING = NO")
         assertContains(settings, "ENABLE_GENERIC_TASK_CACHING = NO")
+        assertContains(directory.resolve("config/Bootstrap.swift").readText(), "import Fixture")
         assertContains(directory.resolve("config/Bootstrap.swift").readText(), "FixtureAdapter.install()")
+        assertContains(settings, "FIXTURE_CODE_SIGN_STYLE = Automatic")
+        assertContains(directory.resolve("config/Service-Release.xcconfig").readText(), "FIXTURE_SERVICE_CODE_SIGN_STYLE = Automatic")
+        assertFalse(Regex("bestbuds|manna", RegexOption.IGNORE_CASE).containsMatchIn(
+            directory.resolve("config").walkTopDown().filter(File::isFile).joinToString("\n") { it.readText() } +
+                directory.resolve("build/host.json").readText()))
         val repeat = runner("generate", "verify").build()
         assertContains(repeat.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":generate")?.outcome)
@@ -99,17 +108,19 @@ class AppleContractsTest {
         val plan = BuildModelReader.json.decodeFromString<ReleasePlan>(directory.resolve("build/release.json").readText())
         assertEquals(31, plan.buildNumber)
         assertEquals("fixture.app", plan.bundleId)
+        assertEquals("fixture.app.service", plan.extensionBundleId)
+        assertFalse(Regex("bestbuds|manna", RegexOption.IGNORE_CASE).containsMatchIn(directory.resolve("build/release.json").readText()))
         val archive = plan.commands.getValue("iosArchive")
         assertEquals("archive", archive.tokens.last())
         assertContains(archive.tokens, "MARKETING_VERSION=5.2")
         assertContains(archive.tokens, "COMPILATION_CACHE_ENABLE_CACHING=NO")
         assertContains(archive.tokens, "ENABLE_GENERIC_TASK_CACHING=NO")
-        assertContains(archive.tokens, "BESTBUDS_GRADLE_ARGS=-PbestbudsVersionName=5.2 -PbestbudsVersionCode=31 -Pbestbuds.devTools=false")
-        assertContains(archive.environment.getValue("BESTBUDS_GRADLE_ARGS"), "-Pbestbuds.devTools=false")
+        assertContains(archive.tokens, "FIXTURE_GRADLE_ARGS=-PfixtureVersionName=5.2 -PfixtureVersionCode=31 -Pfixture.devTools=false")
+        assertContains(archive.environment.getValue("FIXTURE_GRADLE_ARGS"), "-Pfixture.devTools=false")
         assertTrue(archive.environment.getValue("LLVM_CAS_MAX_MAPPING_SIZE").toLong() in 1..134217728)
-        assertFalse(plan.commands.getValue("iosDebug").environment.getValue("BESTBUDS_GRADLE_ARGS").contains("devTools"))
+        assertFalse(plan.commands.getValue("iosDebug").environment.getValue("FIXTURE_GRADLE_ARGS").contains("devTools"))
         assertFalse(plan.commands.getValue("iosExport").tokens.contains("-derivedDataPath"))
-        assertContains(plan.commands.getValue("androidRelease").tokens, "-PbestbudsVersionCode=31")
+        assertContains(plan.commands.getValue("androidRelease").tokens, "-PfixtureVersionCode=31")
         assertEquals(":workers:deployWeb", plan.commands.getValue("webDeploy").tokens[1])
         assertEquals(":apple:darwinArchiveCheck", plan.commands.getValue("iosArchiveCheck").tokens[1])
         assertEquals(":apple:verifyDarwinSymbolUpload", plan.commands.getValue("iosSymbolUploadCheck").tokens[1])
@@ -140,13 +151,15 @@ class AppleContractsTest {
             }
         """.trimIndent())
         write("app/build.gradle.kts", """
-            plugins { id("dev.shibasis.dependeasy.pipeline") }
-            dependeasy { appleLibrary("Fixture") }
+            import dev.shibasis.dependeasy.components.appleLibrary
+            plugins { id("dev.shibasis.dependeasy.apple-library") }
+            appleLibrary("Fixture")
         """.trimIndent())
         write("android/src/main/AndroidManifest.xml", "<manifest />")
         write("android/build.gradle.kts", """
-            plugins { id("dev.shibasis.dependeasy.application"); id("dev.shibasis.dependeasy.pipeline") }
-            dependeasy.androidApplication("dev.fixture.app")
+            import dev.shibasis.dependeasy.components.androidApp
+            plugins { id("dev.shibasis.dependeasy.application") }
+            androidApp("dev.fixture.app")
         """.trimIndent())
         write("targets/apple/build.gradle.kts", """
             import dev.shibasis.dependeasy.components.appleApp
@@ -155,7 +168,7 @@ class AppleContractsTest {
             plugins { id("dev.shibasis.dependeasy.apple-app") }
             check(project(":android").state.executed)
             appleApp(application = projects.app, android = projects.android,
-                entryPoint = "Fixture.start()", bundleId = "fixture.app", team = "fixture-team",
+                entryPoint = "Fixture.start()", bundleId = "fixture.app", team = "fixture-team", settingsPrefix = "FIXTURE",
                 web = WorkerRef("web", "targets/web"), fleet = output(projects.appleFixture, OutputKind.GeneratedContract, Contract.WorkerFleet))
         """.trimIndent())
         write("targets/apple/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -176,10 +189,24 @@ class AppleContractsTest {
         assertEquals("android/build/outputs/apk/debug", plan.artifacts.getValue("androidDebugApkDirectory"))
         assertContains(directory.resolve("config/apple-host/iosApp-Debug.xcconfig").readText(), "REAKTOR_KOTLIN_TASK = :apple:embedAppleFrameworksForXcode")
         val model = BuildModelReader.read(directory)
+        val releaseNode = model.nodes.single { it.id == NodeId("appleFixture", ":apple", "generateReleasePlan") }
+        assertEquals(AppleReleaseKernel::class.java.name, releaseNode.kernel?.className)
+        val releaseSpec = releaseNode.kernel?.spec as KernelSpec.ReleasePlan
+        assertEquals(NodeId("appleFixture", ":", "outputGeneratedContractWorkerFleet"), releaseSpec.workerFleet)
+        assertEquals("targets/apple", releaseSpec.xcodeDirectory)
+        assertEquals(":android:assembleDebug", releaseSpec.androidTasks["androidDebug"])
+        val hostNode = model.nodes.single { it.id == NodeId("appleFixture", ":apple", "generateXcodeHost") }
+        assertEquals(AppleHostKernel::class.java.name, hostNode.kernel?.className)
+        val hostSpec = hostNode.kernel?.spec as KernelSpec.XcodeHost
+        assertEquals(dev.shibasis.dependeasy.toolchain.ToolchainVersions.CppStandard, hostSpec.cppStandard)
+        assertEquals(":apple:embedAppleFrameworksForXcode", hostSpec.kotlinTask)
         assertTrue(model.nodes.any { it.id == NodeId("appleFixture", ":apple", "outputGeneratedContractAppleRelease") })
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("appleFixture", ":apple", "generateReleasePlan") &&
             it.to == NodeId("appleFixture", ":", "outputGeneratedContractWorkerFleet") })
         assertTrue(model.nodes.none { it.id.project == ":" && it.id.name == "generateReleasePlan" })
+        val hosts = BuildModelReader.json.decodeFromString<RemoteHostsContract>(directory.resolve("build/dependeasy/remote/hosts.json").readText())
+        assertContains(hosts.xcodeEnvironment, "FIXTURE_GRADLE_ARGS")
+        assertTrue(hosts.xcodeEnvironment.none { it.contains("BESTBUDS") || it.contains("MANNA") })
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("appleFixture", ":apple", "generateReleasePlan") &&
             it.to == NodeId("appleFixture", ":android", "outputAndroidApkDebug") })
         Apple.entries.forEach { target ->
@@ -196,22 +223,23 @@ class AppleContractsTest {
     }
     @Test fun `signing settings escape XML and reject setting injection`() {
         val request = buildJsonObject {
-            put("identity", "Apple Distribution: Fixture & Co"); put("profile", "app-profile"); put("extensionProfile", "extension-profile")
+            put("identity", "Apple Distribution: Fixture & Co")
             put("apsEnvironment", "production"); put("method", "app-store-connect"); put("team", "fixture-team")
-            put("profiles", buildJsonObject { put("fixture.app", "Profile & Co") })
+            put("profiles", buildJsonObject { put("fixture.app", "Profile & Co"); put("fixture.app.service", "service-profile") })
         }
-        val (settings, options) = signingFiles(request)
-        assertContains(settings, "BESTBUDS_NSE_CODE_SIGN_STYLE = Manual")
-        assertContains(settings, "BESTBUDS_NSE_PROVISIONING_PROFILE_SPECIFIER = extension-profile")
+        val (settings, options) = signingFiles(host, request)
+        assertContains(settings, "FIXTURE_SERVICE_CODE_SIGN_STYLE = Manual")
+        assertContains(settings, "FIXTURE_SERVICE_PROVISIONING_PROFILE_SPECIFIER = service-profile")
+        assertContains(settings, "FIXTURE_PROVISIONING_PROFILE_SPECIFIER = Profile & Co")
         assertContains(requireNotNull(options), "Profile &amp; Co")
-        assertFailsWith<IllegalArgumentException> { signingFiles(JsonObject(request + ("identity" to JsonPrimitive("Injected\nSETTING = YES")))) }
+        assertFailsWith<IllegalArgumentException> { signingFiles(host, JsonObject(request + ("identity" to JsonPrimitive("Injected\nSETTING = YES")))) }
     }
     @Test fun `signing task preserves cache and private settings permissions`() {
         prepare()
-        write("signing.json", """{"identity":"Fixture Identity","apsEnvironment":"production","team":"fixture-team","method":"app-store-connect","profile":"fixture-profile","profiles":{"fixture.app":"Fixture & Profile"}}""")
+        write("signing.json", """{"identity":"Fixture Identity","apsEnvironment":"production","team":"fixture-team","method":"app-store-connect","profiles":{"fixture.app":"Fixture & Profile"}}""")
         runner("signing").build()
         val settings = directory.resolve("build/Signing.local.xcconfig")
-        assertContains(settings.readText(), "PROVISIONING_PROFILE_SPECIFIER = fixture-profile")
+        assertContains(settings.readText(), "PROVISIONING_PROFILE_SPECIFIER = Fixture & Profile")
         assertEquals(java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"), java.nio.file.Files.getPosixFilePermissions(settings.toPath()))
         assertContains(directory.resolve("build/ExportOptions.plist").readText(), "Fixture &amp; Profile")
         assertContains(runner("signing").build().output, "Reusing configuration cache")

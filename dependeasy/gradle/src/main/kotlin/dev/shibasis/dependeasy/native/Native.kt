@@ -25,6 +25,7 @@ data class NativeDependency(
     val source: ToolHandle? = null,
     val includeRoots: List<String> = emptyList(),
     val prefab: AndroidPrefabConfiguration? = null,
+    val hostRoots: List<String> = emptyList(),
 ) : Serializable
 
 object Native {
@@ -40,10 +41,14 @@ object Native {
         prefab = AndroidPrefabConfiguration("FBJNI_PREFAB_DIR", Versions.Native.Fbjni, "fbjni", Versions.Native.FbjniJava,
             target = "fbjni::fbjni", checksum = "2927d8a99d1bce1844677b7d8e6f1d0f33670cfd154c30559fd26e6d155ceb1d"))
     val OpenSslCrypto = NativeDependency("openssl-crypto", "maven:${Versions.Native.OpenSsl}", Versions.Native.OpenSsl.substringAfterLast(':'),
-        "a5b05c4b362d35c022238ef9b2e4e2196248adea3bac9dd683845ee75a3a8d66", "sha256", "prefab",
+        "a5b05c4b362d35c022238ef9b2e4e2196248adea3bac9dd683845ee75a3a8d66", "sha256", "prefab", hostRoots = listOf("OPENSSL_ROOT_DIR"),
         prefab = AndroidPrefabConfiguration("OPENSSL_CRYPTO_PREFAB_DIR", Versions.Native.OpenSsl, "crypto", target = "OpenSSL::Crypto",
-            checksum = "a5b05c4b362d35c022238ef9b2e4e2196248adea3bac9dd683845ee75a3a8d66"))
-    val OpenSslSsl = OpenSslCrypto.copy(name = "openssl-ssl", prefab = OpenSslCrypto.prefab!!.copy(cmakeVariable = "OPENSSL_SSL_PREFAB_DIR", moduleName = "ssl", target = "OpenSSL::SSL"))
+            checksum = "a5b05c4b362d35c022238ef9b2e4e2196248adea3bac9dd683845ee75a3a8d66",
+            artifactVariables = listOf("OPENSSL_CRYPTO_LIBRARY"), includeVariables = listOf("OPENSSL_INCLUDE_DIR"),
+            linkVariables = listOf("OPENSSL_LIBRARIES")))
+    val OpenSslSsl = OpenSslCrypto.copy(name = "openssl-ssl", prefab = OpenSslCrypto.prefab!!.copy(
+        cmakeVariable = "OPENSSL_SSL_PREFAB_DIR", moduleName = "ssl", target = "OpenSSL::SSL",
+        links = listOf(OpenSslCrypto.prefab!!.target), artifactVariables = listOf("OPENSSL_SSL_LIBRARY"), includeVariables = emptyList()))
     val Foundation = NativeDependency("Foundation", "Apple SDK/Foundation.framework", "sdk", "sdk-metadata", "sha256", "foundation")
     val sources = listOf(Flatbuffers, Hermes)
 }

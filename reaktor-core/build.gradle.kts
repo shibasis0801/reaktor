@@ -11,59 +11,39 @@ import dev.shibasis.dependeasy.common.commonSerialization
 import dev.shibasis.dependeasy.server.serverCoroutines
 import dev.shibasis.dependeasy.server.springWebFlux
 
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
+
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    javascript("coreTypeScript").library("buildCoreTypeScript", "js/tsconfig.json", "js/dist", kotlin = true)
-    module("dev.shibasis.reaktor.core") {
+library(namespace = "dev.shibasis.reaktor.core", targets = Targets.All) {
+    val buildCoreTypeScript by typescript(configuration = "js/tsconfig.json", output = "js/dist", kotlinConsumer = true)
+    dependencies {
         common {
-            dependencies {
-                commonLogging()
-                commonCoroutines()
-                commonSerialization()
-                api(Versions.Kotlin.DateTime)
-                api(Versions.Kotlin.AtomicFu)
-                api(Versions.Kotlin.ImmutableCollections)
-            }
+            commonLogging()
+            commonCoroutines()
+            commonSerialization()
+            api(Versions.Kotlin.DateTime)
+            api(Versions.Kotlin.AtomicFu)
+            api(Versions.Kotlin.ImmutableCollections)
         }
-
         web {
-            dependencies {
-                api(npm("reaktor-core", projectDir))
-                kotlinWrappers()
-                webCoroutines()
-            }
+            api(npm("reaktor-core", projectDir))
+            kotlinWrappers()
+            webCoroutines()
         }
-
         android {
-            dependencies {
-                activityFragment()
-                androidCoroutines()
-                fbjni()
-
-                extensions()
-            }
+            activityFragment()
+            androidCoroutines()
+            fbjni()
+            extensions()
         }
-        apple {}
-
         jvm {
-            dependencies {
-                serverCoroutines()
-                springWebFlux()
-                api(Versions.Data.Exposed)
-                api(Versions.Data.ExposedJdbc)
-                api(Versions.Data.Postgis)
-            }
+            serverCoroutines()
+            springWebFlux()
+            api(Versions.Data.Exposed)
+            api(Versions.Data.ExposedJdbc)
+            api(Versions.Data.Postgis)
         }
-    }
-
-
-    tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
-        exclude(
-            "**/ChmAdapter.class",
-            "**/ReaktorChmAdapter.class",
-            "**/JavaChmAdapter.class",
-            "**/SyncHashChmAdapter.class",
-        )
     }
 }

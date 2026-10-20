@@ -14,11 +14,12 @@ internal class BuildTarget(private val project: Project, val name: String, priva
     val bindings = mutableListOf<ServiceRef>()
     val environments = mutableListOf<Environment>()
     internal val dependencies = mutableListOf<Any>()
-    internal val ordering = mutableListOf<Any>()
+    internal val ordering = mutableListOf<NodeHandle>()
     internal val requirements = mutableListOf<Provider<OptionRequirement>>()
     private val edges = mutableListOf<Edge>()
     private val outputs = mutableListOf<OutputHandle>()
-    private val includedNodes = mutableListOf<NodeHandle>()
+    internal val consumedOutputs get() = outputs.toList()
+    internal val includedNodes = mutableListOf<NodeHandle>()
     internal var exposesOutputs = false
     internal var declaration: KernelSpec.WorkspaceNode? = null
     internal val id get() = NodeId(project.rootProject.name, project.path, name)
@@ -37,6 +38,7 @@ internal class BuildTarget(private val project: Project, val name: String, priva
             dependencies.add(project.resolve(output))
             edges.add(Edge.Consumes(id, output.nodeId, output.selector))
             outputs.add(output)
+            declaration = declaration?.let { it.copy(consumes = (it.consumes + output.nodeId).distinct()) }
         }
     }
 
@@ -44,8 +46,10 @@ internal class BuildTarget(private val project: Project, val name: String, priva
         nodes.forEach { node ->
             require(node.task != null) { "Ordering needs a Gradle node: ${node.id}" }
             dependencies.add(node.task)
-            ordering.add(node.task)
+            require(node.id.build == id.build) { "Use declared outputs across builds" }
+            ordering.add(node)
             edges.add(Edge.After(id, node.id))
+            declaration = declaration?.let { it.copy(after = (it.after + node.id).distinct()) }
         }
     }
 

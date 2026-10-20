@@ -1,8 +1,10 @@
 package dev.shibasis.reaktor.cloud.observability
 
+import dev.shibasis.reaktor.core.build.Entry
 import com.pulumi.Pulumi
 import com.pulumi.core.Output
 
+@Entry
 fun main() {
     Pulumi.run { ctx ->
         val g = grafana(ctx)

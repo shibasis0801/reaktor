@@ -1,5 +1,8 @@
 package dev.shibasis.dependeasy.workspace
 
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.executionOption
+import dev.shibasis.dependeasy.configuration.resolvedBuildOptions
 import dev.shibasis.dependeasy.web.PnpmWorkspace
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.publishing.PublicationDefaults
@@ -63,6 +66,7 @@ internal class BuildWorkspace(private val project: Project) {
         description = "Export declared build nodes, source sites and kernels without executing producers"
         buildName.set(project.name)
         version.set(PublicationDefaults.Version)
+        resolvedOptions.set(project.resolvedBuildOptions())
         nodes.convention(emptyList())
         edges.convention(emptyList())
         omissions.convention(emptyList())
@@ -89,7 +93,7 @@ internal class BuildWorkspace(private val project: Project) {
                 rootDirectory.set(root)
                 gradleHome.set(project.gradle.gradleHomeDir)
                 gradleUserHome.set(project.gradle.gradleUserHomeDir)
-                requestFile.set(project.providers.gradleProperty(GradleProtocol.RequestOption).map { root.file(it) })
+                requestFile.set(project.executionOption(BuildOption.property(GradleProtocol.RequestOption)).map { root.file(it) })
                 modelFile.set(graph.flatMap { it.outputFile })
                 this.planning.set(planning)
                 maxWorkers.set(project.gradle.startParameter.maxWorkerCount)
@@ -104,16 +108,6 @@ internal class BuildWorkspace(private val project: Project) {
     internal fun emit(owner: Project, spec: KernelSpec.WorkspaceNode, kernel: WorkspaceCompletion, site: SourceSite?, role: Workspace?,
         includes: List<NodeHandle>, consumes: List<OutputHandle>, after: List<NodeHandle>): NodeHandle {
         require((includes + after).all { it.id.build == owner.rootProject.name }) { "Use declared outputs across builds" }
-        val bindings = (includes + after).associate { node ->
-            node.id to requireNotNull(node.task) { "A workspace dependency needs a kernel: ${node.id}" }
-        } + consumes.associate { it.nodeId to owner.resolve(it) }
-        val planned = kernel.plan(spec).map { bindings.getValue(it) }
-        val gated = if (spec.kind in setOf(NodeKind.Deploy, NodeKind.Release)) owner.provider {
-            (consumes.flatMap { owner.resolve(it).buildDependencies.getDependencies(null) } + includes.map { requireNotNull(it.task).get() }).distinct().forEach { producer ->
-                producer.dependsOn(after.map { requireNotNull(it.task) })
-            }
-            planned
-        } else owner.provider { planned }
         return declaredTarget(spec.id.name, site, role, owner) {
             declaration = spec
             effect = spec.effect
@@ -127,7 +121,23 @@ internal class BuildWorkspace(private val project: Project) {
             consumes(*consumes.toTypedArray())
             after(*after.toTypedArray())
             dependencies.clear()
-            dependencies.add(gated)
+            dependencies.add(owner.provider {
+                val current = requireNotNull(declaration)
+                val outputs = consumedOutputs
+                val bindings = (includedNodes + ordering).associate { it.id to requireNotNull(it.task) } +
+                    outputs.associate { it.nodeId to owner.resolve(it) }
+                if (current.kind in setOf(NodeKind.Deploy, NodeKind.Release)) {
+                    val gated = mutableSetOf<NodeId>()
+                    fun gate(producer: Task) {
+                        val id = NodeId(producer.project.rootProject.name, producer.project.path, producer.name)
+                        if (!gated.add(id)) return
+                        targets[id.toString()]?.includedNodes?.forEach { gate(requireNotNull(it.task).get()) }
+                        producer.dependsOn(ordering.map { requireNotNull(it.task) })
+                    }
+                    (outputs.flatMap { owner.resolve(it).buildDependencies.getDependencies(null) } + includedNodes.map { requireNotNull(it.task).get() }).forEach(::gate)
+                }
+                kernel.plan(current).map { bindings.getValue(it) }
+            })
         }
     }
 
@@ -145,7 +155,7 @@ internal class BuildWorkspace(private val project: Project) {
         val task = owner.tasks.register(name, WorkspaceTargetTask::class.java) {
             group = "dependeasy"
             dependsOn(owner.provider { target.dependencies() })
-            mustRunAfter(target.ordering)
+            mustRunAfter(owner.provider { target.ordering.map { requireNotNull(it.task) } })
             requirements.set(owner.provider { target.requirements.map { BuildModelReader.json.encodeToString(it.get()) } })
             target.declaration?.let { spec ->
                 declaration.set(owner.provider { BuildModelReader.json.encodeToString(requireNotNull(target.declaration)) })
@@ -173,7 +183,7 @@ internal class BuildWorkspace(private val project: Project) {
 
     internal fun configure(node: NodeHandle, configuration: BuildTarget.() -> Unit) {
         val target = targets.getValue(node.id.toString()).apply(configuration)
-        node.task?.configure { setDependsOn(listOf(project.provider { target.dependencies() })); mustRunAfter(target.ordering) }
+        node.task?.configure { setDependsOn(listOf(project.provider { target.dependencies() })); mustRunAfter(project.provider { target.ordering.map { requireNotNull(it.task) } }) }
     }
 
     fun includedBuild(handle: BuildHandle) {
@@ -212,9 +222,21 @@ internal class BuildWorkspace(private val project: Project) {
             current == target || (visited.add(current) && prerequisites[current].orEmpty().any { reaches(it, target, visited) })
         dependencies.forEach { dependency ->
             if (reaches(dependency.id, node.id, mutableSetOf())) throw org.gradle.api.GradleException("Build dependency cycle: ${node.id} -> ${dependency.id} -> ${node.id}")
-            requireNotNull(node.task).configure { dependsOn(requireNotNull(dependency.task)) }
+            if (node.id.toString() in targets) {
+                configure(node) { after(dependency) }
+            } else {
+                requireNotNull(node.task).configure { dependsOn(requireNotNull(dependency.task)) }
+                graph.configure { edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.After(node.id, dependency.id))) }
+            }
             prerequisites.getOrPut(node.id) { linkedSetOf() }.add(dependency.id)
-            graph.configure { edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.After(node.id, dependency.id))) }
+        }
+    }
+
+    internal fun orderAfter(node: NodeHandle, outputs: List<OutputHandle>) {
+        require(node.id.build == project.rootProject.name && outputs.all { it.build == node.id.build }) { "Selected-only ordering stays within its build" }
+        outputs.distinctBy { it.nodeId }.forEach { output ->
+            requireNotNull(node.task).configure { mustRunAfter(project.resolve(output)) }
+            graph.configure { edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.OrderedAfter(node.id, output.nodeId))) }
         }
     }
 
@@ -231,15 +253,19 @@ internal class BuildWorkspace(private val project: Project) {
         host?.let { taskHostRequirements[id] = it }
         if (!taskReferences.add(id)) return
         val site = owner.declarationSite()
+        val evaluated = owner.state.executed
         graph.configure {
             nodes.addAll(project.provider {
                 if (id in declaredTasks) emptyList() else {
                     val kind = taskOutputKinds[id]
                     val producer = task.get()
+                    val declaration = producer.extensions.findByType(SourceSite::class.java)
+                        ?: if (evaluated) owner.extensions.findByType(SourceSite::class.java) ?: site else site
                     val typed = producer as? dev.shibasis.dependeasy.process.KernelSpecOwner
                     listOf(BuildModelReader.encode(Node(id, NodeKind.Kernel, task.name,
-                        typed?.kernelEffect ?: if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
-                        taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), site, kernelRef(producer),
+                        typed?.kernelEffect ?: if (producer.extensions.findByType(KernelSpec::class.java) is KernelSpec.JvmProgram) Effect.Develop
+                        else if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
+                        taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer),
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
                         artifactFamily = taskArtifactFamilies[id] ?: kind?.family)))
                 }

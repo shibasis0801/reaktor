@@ -10,6 +10,10 @@ import org.gradle.api.Project
 object Reaktor {
     val build = BuildHandle("reaktor", "dev.shibasis")
     val Compiler = ModuleHandle(build, "reaktor-compiler")
+    object CompilerOptions {
+        val FlexCoderRegistrarPackage = dev.shibasis.dependeasy.model.ProcessorOption("reaktor.flexcoder.registrar.package")
+        val FlexCoderRegistrarObject = dev.shibasis.dependeasy.model.ProcessorOption("reaktor.flexcoder.registrar.object")
+    }
     val Core = ModuleHandle(build, "reaktor-core")
     val Code = ModuleHandle(build, "reaktor-code")
     val Flexbuffer = ModuleHandle(build, "reaktor-flexbuffer")

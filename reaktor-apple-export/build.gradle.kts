@@ -1,5 +1,6 @@
-plugins { id("dev.shibasis.dependeasy.pipeline") }
+import dev.shibasis.dependeasy.components.appleLibrary
+import dev.shibasis.dependeasy.handles.Reaktor
 
-dependeasy {
-    appleLibrary("Reaktor", exports = listOf(projects.reaktorCore, projects.reaktorIo, projects.reaktorFlexbuffer))
-}
+plugins { id("dev.shibasis.dependeasy.apple-library") }
+
+appleLibrary("Reaktor", exports = listOf(Reaktor.Core, Reaktor.Io, Reaktor.Flexbuffer))

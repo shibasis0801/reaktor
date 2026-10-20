@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.toolchain
 
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.model.ToolHandle
 import dev.shibasis.dependeasy.model.BuildModelReader
 import org.gradle.api.Project
@@ -12,8 +14,9 @@ class InstalledTool(val handle: ToolHandle, val executable: Provider<RegularFile
 
 class NativeBuildTools private constructor(private val project: Project) {
     private val cache = project.gradle.gradleUserHomeDir.resolve("dependeasy/tools")
-    private val mac = System.getProperty("os.name").startsWith("Mac")
-    private val arm = System.getProperty("os.arch") in setOf("aarch64", "arm64")
+    private val host = project.buildHost
+    private val mac = host.mac
+    private val arm = host.arm
     private val platform = if (mac) "macos-universal" else if (arm) "linux-aarch64" else "linux-x86_64"
     private fun downloaded(name: String, version: String, url: String, checksum: String, prefix: String?, entry: String, format: ToolArchive): InstalledTool {
         val directory = cache.resolve("$name/$version/$platform")
@@ -49,6 +52,13 @@ class NativeBuildTools private constructor(private val project: Project) {
         }
         return InstalledTool(ToolHandle(name, version.get()), project.objects.fileProperty().fileValue(directory.resolve(name)), task, environment)
     }
+    private fun defaultPaths(variable: String) = project.option(BuildOption.systemProperty("user.home")).map { home ->
+        ToolchainVersions.HostPaths.getValue(variable).map { java.io.File(if (it.startsWith("~/")) home + it.substring(1) else it) }
+    }
+    fun hostFile(variable: String): Provider<String> = project.option(BuildOption.environment(variable)).map { listOf(java.io.File(it)) }
+        .orElse(defaultPaths(variable)).map { candidates -> candidates.firstOrNull { it.isFile }?.absolutePath.orEmpty() }
+    fun hostDirectory(variable: String): Provider<String> = project.option(BuildOption.environment(variable))
+        .orElse(defaultPaths(variable).map { candidates -> candidates.firstOrNull { it.isDirectory }?.absolutePath.orEmpty() })
     private fun xcode(name: String) = project.providers.exec { commandLine("/usr/bin/xcrun", "--find", name) }.standardOutput.asText.map { it.trim() }
     private val sdkGit = if (mac) xcode("git") else project.provider { "/usr/bin/git" }
     val git: InstalledTool by lazy {

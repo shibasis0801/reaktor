@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.tasks
 
+import dev.shibasis.dependeasy.toolchain.buildHost
 import dev.shibasis.dependeasy.Versions
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
@@ -15,7 +16,7 @@ sealed class CmakePlatform(val variant: String, val generator: String, val taskP
         override fun settings(project: Project): Provider<Map<String, String>> = appleSettings(project, sdk, Versions.SDK.targetDarwin, "iOS")
     }
     class Host : CmakePlatform("host", "Ninja", "host") {
-        override fun settings(project: Project): Provider<Map<String, String>> = if(project.providers.systemProperty("os.name").get().contains("Mac", true))
+        override fun settings(project: Project): Provider<Map<String, String>> = if(project.buildHost.mac)
             appleSettings(project, "macosx", Versions.SDK.targetMacos, "Darwin")
         else project.provider { mapOf("CMAKE_BUILD_TYPE" to "Release") }
     }

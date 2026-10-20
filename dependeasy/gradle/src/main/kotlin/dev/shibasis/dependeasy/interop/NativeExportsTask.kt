@@ -4,9 +4,10 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.*
+import org.gradle.work.DisableCachingByDefault
 
 /** Compile-time composition: no global mutable registry or platform handles in the public API. */
-@CacheableTask
+@DisableCachingByDefault(because = "Cache restoration touches unchanged headers and invalidates native compilation")
 abstract class NativeExportsTask : DefaultTask() {
     @get:Input abstract val installers: MapProperty<String, String>
     @get:OutputFile abstract val header: RegularFileProperty

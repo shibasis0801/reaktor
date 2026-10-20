@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.components
 
+import dev.shibasis.dependeasy.model.BuildOption
 import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.*
@@ -10,7 +11,6 @@ import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.NodeDeclaration
 import kotlinx.serialization.encodeToString
 import org.gradle.api.Project
-import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.file.RegularFile
 import org.gradle.kotlin.dsl.register
 import org.gradle.language.base.plugins.LifecycleBasePlugin
@@ -50,7 +50,7 @@ class DeviceTestsScope internal constructor(
         require(spec.flows.isNotEmpty() && apps.keys.containsAll(spec.flows.keys)) { "Declare an application for every suite platform" }
         val tool = VerificationTools.get(project).maestro
         val root = project.rootProject
-        val install = project.providers.gradleProperty("dependeasy.installApplication").map(String::toBooleanStrict).orElse(false)
+        val install = project.option(BuildOption.boolean("dependeasy.installApplication"))
         val emptyFile = project.providers.provider<RegularFile> { null }
         val android = apps[DevicePlatform.Android]?.let(project::outputFiles)
         val ios = apps[DevicePlatform.Ios]?.let { handle ->
@@ -73,9 +73,9 @@ class DeviceTestsScope internal constructor(
         }
         val identities = apps.mapValues { it.value.nodeId }
         val selectors = apps.mapValues { it.value.selector }
-        val configuredSerial = project.providers.gradleProperty("dependeasy.deviceSerial")
-        val iosSerial = project.providers.environmentVariable("IOS_DEVICE_ID")
-        val androidSerial = project.providers.environmentVariable("ANDROID_SERIAL")
+        val configuredSerial = project.option(BuildOption.property("dependeasy.deviceSerial"))
+        val iosSerial = project.option(BuildOption.environment("IOS_DEVICE_ID"))
+        val androidSerial = project.option(BuildOption.environment("ANDROID_SERIAL"))
         val id = applicationId
         val signingTeam = team
         val wda = wdaBundleId
@@ -93,6 +93,7 @@ class DeviceTestsScope internal constructor(
             runnerVersion.set(tool.handle.version)
             runnerWorkspace.set(root.layout.projectDirectory.dir("tmp/dependeasy/device/$name/runner"))
             environment.set(values)
+            environmentAllowList.set(spec.environmentAllowList)
             options.forEach { (key, value) -> environment.put(key, value) }
             environmentFiles.from(spec.environmentFiles.map(root::file), spec.optionalEnvironmentFiles.map { path ->
                 val file = root.file(path)
@@ -115,7 +116,7 @@ class DeviceTestsScope internal constructor(
                     DevicePlatform.Ios -> ios
                 }
             })
-            uninstallOnSignatureMismatch.set(project.providers.gradleProperty("dependeasy.uninstallOnSignatureMismatch").map(String::toBooleanStrict).orElse(false))
+            uninstallOnSignatureMismatch.set(project.option(BuildOption.boolean("dependeasy.uninstallOnSignatureMismatch")))
             reportDirectory.set(project.layout.buildDirectory.dir("reports/device/$name"))
             contractFile.set(project.layout.buildDirectory.file("dependeasy/device/$name.json"))
         }
@@ -138,8 +139,6 @@ class DeviceTestsScope internal constructor(
         require(suites.isNotEmpty()) { "Declare at least one device suite" }
         val verification = workspace.aggregate(project, "checkDeviceTests", NodeKind.Verification, suites.toList(), Run.onPhones())
         project.componentRole(Workspace.Verify, verification)
-        val output = project.output(project.dependencies.project(mapOf("path" to project.path)) as ProjectDependency, OutputKind.WorkspaceCompletion, Workspace.Verify)
-        workspace.graph.configure { edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.Includes(output.nodeId, verification.id))) }
         project.tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(requireNotNull(verification.task)) }
         return verification
     }

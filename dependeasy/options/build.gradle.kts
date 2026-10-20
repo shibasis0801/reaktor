@@ -8,6 +8,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version embeddedKotlinVersion
 }
 
+kotlin.sourceSets.main { kotlin.srcDir("../toolchain/src/contracts/kotlin") }
+
 dependencies {
     api("org.jetbrains.kotlinx:kotlinx-serialization-core:${BuildLibraries.Serialization}")
 }

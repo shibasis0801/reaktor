@@ -22,7 +22,7 @@ class CMakeBuild internal constructor(private val project: Project, private val 
 
     fun sourceLibrary(tool: ToolHandle, includeVariable: String) { sourceLibraries[tool] = includeVariable }
 
-    internal fun register(): TaskProvider<KotlinCMakeTask> = project.tasks.register<KotlinCMakeTask>("${name}CMake") {
+    internal fun register(taskName: String = "${name}CMake"): TaskProvider<KotlinCMakeTask> = project.tasks.register<KotlinCMakeTask>(taskName) {
         group = "dependeasy"
         sourceDirectory.set(project.file(this@CMakeBuild.source))
         sourceFiles.from(project.cmakeSources(project.file(this@CMakeBuild.source)), project.cmakeKernelSources(), this@CMakeBuild.inputs)

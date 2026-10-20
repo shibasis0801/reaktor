@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.web
 
+import dev.shibasis.reaktor.core.build.Entry
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
@@ -15,6 +16,7 @@ import javax.swing.Timer
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 
+@Entry
 fun main() = EventQueue.invokeLater {
     val app = koinApplication {}
     val graph = Graph(dependencyAdapter = KoinDependencyAdapter(app))

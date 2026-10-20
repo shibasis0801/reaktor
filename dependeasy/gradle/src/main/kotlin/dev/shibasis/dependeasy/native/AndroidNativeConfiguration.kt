@@ -14,6 +14,10 @@ data class AndroidPrefabConfiguration(
     val runtimeExcludes: List<Pair<String, String>> = emptyList(),
     val target: String = moduleName,
     val checksum: String = "",
+    val links: List<String> = emptyList(),
+    val artifactVariables: List<String> = emptyList(),
+    val includeVariables: List<String> = emptyList(),
+    val linkVariables: List<String> = emptyList(),
 ) : java.io.Serializable
 
 open class AndroidNativeConfiguration internal constructor() {

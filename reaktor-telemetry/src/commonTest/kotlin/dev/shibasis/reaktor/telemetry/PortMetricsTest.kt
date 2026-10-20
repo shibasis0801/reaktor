@@ -159,6 +159,14 @@ class PortMetricsTest {
     }
 
     @Test
+    fun smallSamplesUseTheCeilingRankForTailQuantiles() {
+        var measured = PortMeasurement(PortSeries("n", "p", "c", "consumer", "request"))
+        repeat(2) { measured = measured.plus(2_000, false) }
+        measured = measured.plus(2_000_000_000, false)
+        assertEquals(10_000_000_000L, measured.quantileNanos(.95))
+    }
+
+    @Test
     fun seriesAreKeyedOnStableIdentityOnly() {
         val metrics = PortMetrics()
         // Two separate owners with the same label are the same architectural series; a per-process

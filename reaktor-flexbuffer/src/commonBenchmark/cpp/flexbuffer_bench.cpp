@@ -19,7 +19,7 @@
  *   - Decode: nested map traversal cost
  *   - Round-trip encode→decode latency
  *
- * Build through Gradle: ./gradlew :reaktor-flexbuffer:flexbuffer_benchCMake
+ * Build through Gradle: ./gradlew :reaktor-flexbuffer:reference
  *
  * Run:
  *   ./flexbuffer_bench              # all benchmarks

@@ -6,64 +6,79 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameMillis
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.platform.LocalGraphicsContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.Constraints
-import dev.shibasis.reaktor.surface.compose.TooltipGroup
-import kotlin.math.roundToInt
-import dev.shibasis.reaktor.blueprint.canvas.CanvasCard
-import dev.shibasis.reaktor.blueprint.canvas.CanvasFrame
+import dev.shibasis.composeflow.compose.interaction.FlowViewportGestureConfig
+import dev.shibasis.composeflow.compose.interaction.FlowViewportPlatformGestureEffect
+import dev.shibasis.composeflow.compose.interaction.LocalFlowViewportPlatformBridge
+import dev.shibasis.composeflow.compose.interaction.flowPointerViewportGestures
+import dev.shibasis.composeflow.compose.interaction.flowViewportPointerTracking
+import dev.shibasis.composeflow.compose.interaction.flowWheelAndTrackpadViewportGestures
+import dev.shibasis.composeflow.compose.interaction.rememberFlowViewportInteractionState
+import dev.shibasis.composeflow.runtime.ReactFlowState
+import dev.shibasis.reaktor.blueprint.canvas.BlueprintPainter
+import dev.shibasis.reaktor.blueprint.canvas.BlueprintType
 import dev.shibasis.reaktor.blueprint.canvas.CanvasGrid
-import dev.shibasis.reaktor.blueprint.canvas.CanvasLink
 import dev.shibasis.reaktor.blueprint.canvas.CanvasPulse
-import dev.shibasis.reaktor.blueprint.canvas.CardStyle
-import dev.shibasis.reaktor.blueprint.canvas.GraphCanvas
 import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
-import dev.shibasis.reaktor.blueprint.canvas.LinkArrow
 import dev.shibasis.reaktor.blueprint.canvas.LinkStyle
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.TooltipState
@@ -71,9 +86,12 @@ import dev.shibasis.reaktor.surface.compose.ComposeFeedback
 import dev.shibasis.reaktor.surface.compose.TipContent
 import dev.shibasis.reaktor.surface.compose.Tooltip
 import dev.shibasis.reaktor.surface.compose.TooltipAppearance
+import dev.shibasis.reaktor.surface.compose.TooltipGroup
 import dev.shibasis.reaktor.surface.compose.TooltipSlots
-import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.LocalMachineSignalFonts
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
+import kotlinx.coroutines.flow.collectLatest
+import kotlin.math.roundToInt
 
 object Blueprint {
     val Body = MachineSignal.Editor.Canvas.copy(alpha = .95f)
@@ -85,12 +103,6 @@ object Blueprint {
     val Faint = Color.White.copy(alpha = .16f)
     val Pulse = lerp(Live, Color.White, .8f)
     const val FarZoom = 0.42
-
-    fun header(tone: Color): Brush = Brush.horizontalGradient(listOf(lerp(tone, Color.Black, .3f), lerp(tone, Color.Black, .78f)))
-
-    fun far(tone: Color): Brush = Brush.horizontalGradient(listOf(lerp(tone, Color.Black, .45f), lerp(tone, Color.Black, .8f)))
-
-    fun scaled(base: Double, zoom: Double): TextUnit = (base * (1.0 / zoom.coerceIn(0.35, 1.0)).coerceAtMost(1.8)).sp
 
     fun fitted(text: String, width: Double, base: Double, zoom: Double): TextUnit {
         val wanted = base * (1.0 / zoom.coerceIn(0.35, 1.0)).coerceAtMost(1.8)
@@ -137,8 +149,8 @@ fun <K> BlueprintCanvas(
     highlight: Set<String>,
     selected: String?,
     linkStyle: (Link) -> LinkStyle,
-    frameContent: @Composable (Frame) -> Unit,
-    cardContent: @Composable (Card) -> Unit,
+    frameLook: @Composable (Frame) -> BlueprintFrameLook,
+    cardLook: @Composable (Card) -> BlueprintCardLook?,
     onCardClick: (String) -> Unit,
     onLinkClick: (Link) -> Unit,
     onPaneClick: () -> Unit,
@@ -148,230 +160,168 @@ fun <K> BlueprintCanvas(
     startInset: Dp = 0.dp,
     pulses: List<CanvasPulse> = emptyList(),
     glow: (String) -> Color? = { null },
-    cardOverview: ((Card) -> Pair<String, Color>)? = null,
+    pinTip: (Card, Pin) -> BlueprintTip? = { _, _ -> null },
 ) {
-    val frames = remember(layout) { layout.frames.map { CanvasFrame("frame:${it.key}", it.x, it.y, it.width, it.height, 1, BlueprintEngine.FrameTop) } }
-    val framesById = remember(layout) { layout.frames.associateBy { "frame:${it.key}" } }
-    val cards = remember(layout) { layout.cards.values.map { CanvasCard(it.id, it.x, it.y, it.width, it.height) } }
-    val links = remember(layout, labels) {
-        layout.links.map { CanvasLink(it.id, it.from, it.to, it.points, labels[it.id], if (it.reversed) LinkArrow.Start else LinkArrow.End) }
-    }
-    val linksById = remember(layout) { layout.links.associateBy { it.id } }
-    val far by remember(canvas) { derivedStateOf { canvas.zoom < Blueprint.FarZoom } }
-    val painting = far && cardOverview != null
-    val overview = remember(layout, cardOverview, painting) {
-        if (painting) layout.cards.mapValues { requireNotNull(cardOverview)(it.value) } else emptyMap()
-    }
+    val cards = remember(layout) { layout.cards.values.toList() }
+    val looks = cards.map { cardLook(it) }
+    val glows = cards.map { glow(it.id) }
+    val frameLooks = layout.frames.map { frameLook(it) }
+    val styles = layout.links.map(linkStyle)
     val density = LocalDensity.current.density
     val fonts = LocalMachineSignalFonts.current
-    val measurer = rememberTextMeasurer()
-    val overviewLabels = remember(overview, fonts, density, measurer) {
-        overview.mapValues { (id, value) -> measurer.measure(value.first,
-            TextStyle(color = MachineSignal.Editor.Text, fontFamily = fonts.mono, fontWeight = FontWeight.SemiBold,
-                fontSize = Blueprint.fitted(value.first, layout.cards.getValue(id).width - 18, 13.0, Blueprint.FarZoom)),
-            maxLines = 1, overflow = TextOverflow.Ellipsis,
-            constraints = Constraints(maxWidth = ((layout.cards.getValue(id).width - 18) * density).roundToInt())) }
+    val base = LocalTextStyle.current
+    val resolver = LocalFontFamilyResolver.current
+    val direction = LocalLayoutDirection.current
+    val graphics = LocalGraphicsContext.current
+    val painter = remember(graphics, resolver, direction, fonts, base) {
+        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 512), BlueprintType(fonts.ui, fonts.mono, base))
     }
-    CompositionLocalProvider(LocalBlueprintOverview provides painting) {
-        TooltipGroup {
-            Box(modifier.fillMaxSize().background(MachineSignal.Editor.Canvas)) {
-                GraphCanvas(
-                    frames = frames,
-                    cards = cards,
-                    links = links,
-                    state = canvas,
-                    background = MachineSignal.Editor.Canvas,
-                    fitKey = fitKey,
-                    topInset = 48.dp,
-                    startInset = startInset,
-                    grid = Blueprint.Grid,
-                    pulses = pulses,
-                    frameContent = { frame -> framesById[frame.id]?.let { frameContent(it) } },
-                    cardContent = { card -> layout.cards[card.id]?.let { cardContent(it) } },
-                    cardStyle = { card ->
-                        CardStyle(
-                            alpha = if (highlight.isEmpty() || card.id in highlight) 1f else 0.2f,
-                            glow = if (card.id == selected) MachineSignal.Editor.Accent.copy(alpha = 0.45f) else glow(card.id),
-                        )
-                    },
-                    linkStyle = { link -> linksById[link.id]?.let(linkStyle) ?: LinkStyle(color = MachineSignal.Editor.Muted) },
-                    onCardClick = onCardClick,
-                    onLinkClick = { id -> linksById[id]?.let(onLinkClick) },
-                    onPaneClick = onPaneClick,
-                    cardDrawing = if (!painting) null else draw@ { card ->
-                        val item = overview[card.id] ?: return@draw
-                        val position = Offset((card.x * density).toFloat(), (card.y * density).toFloat())
-                        val size = Size((card.width * density).toFloat(), (card.height * density).toFloat())
-                        val radius = CornerRadius(8 * density)
-                        val alpha = if (highlight.isEmpty() || card.id in highlight) 1f else .2f
-                        drawRoundRect(Blueprint.far(item.second), position, size, radius, alpha = alpha)
-                        val outline = glow(card.id)
-                        drawRoundRect(if (card.id == selected) MachineSignal.Editor.Accent else outline ?: item.second.copy(alpha = .3f),
-                            position, size, radius, alpha = alpha, style = Stroke((if (card.id == selected) 2f else if (outline != null) 1.6f else 1f) * density))
-                        overviewLabels[card.id]?.let { drawText(it, topLeft = position + Offset(10 * density, 6 * density), alpha = alpha) }
-                    },
-                )
+    DisposableEffect(painter) { onDispose(painter::release) }
+    LaunchedEffect(painter) { painter.run() }
+    val flow = canvas.flow
+    SideEffect { canvas.density(density.toDouble()); canvas.insetTop = TopInset.value.toDouble(); canvas.insetStart = startInset.value.toDouble() }
+    LaunchedEffect(fitKey, flow.canvasSize, layout, density) {
+        if (cards.isEmpty() && layout.frames.isEmpty()) return@LaunchedEffect
+        canvas.fitOnce(fitKey) { canvas.fit(cards + layout.frames) }
+    }
+    val phase = remember { mutableFloatStateOf(0f) }
+    if (styles.any { it.flowing }) LaunchedEffect(Unit) {
+        val begin = withFrameMillis { it }
+        while (true) withFrameMillis { phase.floatValue = (it - begin) % FlowCycleMillis * FlowPeriod / FlowCycleMillis }
+    }
+    val tick = remember { mutableIntStateOf(0) }
+    LaunchedEffect(pulses) { while (pulses.any { it.born.elapsedNow().inWholeMilliseconds < it.travelMillis }) withFrameNanos { tick.intValue++ } }
+    val interaction = rememberFlowViewportInteractionState()
+    val bridge = LocalFlowViewportPlatformBridge.current
+    val config = remember(density) { FlowViewportGestureConfig(minZoom = MinZoom * density, maxZoom = MaxZoom * density) }
+    FlowViewportPlatformGestureEffect(flow, interaction, config, bridge)
+    val cardClick = rememberUpdatedState(onCardClick)
+    val linkClick = rememberUpdatedState(onLinkClick)
+    val paneClick = rememberUpdatedState(onPaneClick)
+    val pane = remember { { paneClick.value() } }
+    val clickCard = remember { { id: String -> cardClick.value(id) } }
+    val tap = remember(painter, canvas) {
+        { point: Offset ->
+            val at = canvas.flow.screenToFlowPosition(point.x.toDouble(), point.y.toDouble())
+            val x = at.x.toFloat(); val y = at.y.toFloat()
+            when (val card = painter.cardAt(x, y)) {
+                null -> painter.headerAt(x, y) || painter.linkAt(x, y, (LinkReach / canvas.density).toFloat())?.also { linkClick.value(it) } != null
+                else -> { clickCard(card); true }
             }
         }
     }
-}
-
-private val LocalBlueprintOverview = staticCompositionLocalOf { false }
-
-@Composable
-fun BlueprintFrame(
-    frame: Frame,
-    zoom: () -> Double,
-    icon: ImageVector,
-    count: String,
-    modifier: Modifier = Modifier,
-    lit: Color? = null,
-    badges: @Composable RowScope.() -> Unit = {},
-) {
-    val tint = Blueprint.Container
-    Box(
-        Modifier.fillMaxSize().drawBehind {
-            val bounds = Size((frame.width * density).toFloat(), (frame.height * density).toFloat())
-            val radius = CornerRadius(12.dp.toPx())
-            drawRoundRect(tint.copy(alpha = if (frame.muted) .03f else .06f), size = bounds, cornerRadius = radius)
-            drawRoundRect(lit?.copy(alpha = .75f) ?: tint.copy(alpha = .28f), size = bounds, cornerRadius = radius,
-                style = Stroke((if (lit != null) 1.5.dp else 1.dp).toPx()))
-        },
-    ) {
-        Row(
-            modifier.fillMaxWidth().height(BlueprintEngine.FrameTop.dp)
-                .background(Brush.verticalGradient(listOf(tint.copy(alpha = .2f), tint.copy(alpha = .07f))))
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+    TooltipGroup {
+        Box(
+            modifier.fillMaxSize().clipToBounds()
+                .onSizeChanged { flow.setCanvasSize(it) }
+                .onGloballyPositioned { interaction.updateCanvasGeometry(it.positionInWindow(), it.boundsInWindow(), density) }
+                .flowViewportPointerTracking(interaction)
+                .flowWheelAndTrackpadViewportGestures(flow, interaction, config, bridge)
+                .flowPointerViewportGestures(flow, interaction, config, onPaneClick = pane, onPaneTap = tap)
+                .drawBehind {
+                    painter.version.intValue
+                    tick.intValue
+                    painter.sync(layout, looks, glows, frameLooks, styles, selected, highlight, labels)
+                    withTransform({ scale(density, density, Offset.Zero) }) {
+                        painter.draw(this, canvas.viewport(), Size(size.width / density, size.height / density), density, phase.floatValue, pulses)
+                    }
+                },
         ) {
-            Icon(icon, null, Modifier.canvasScale(zoom).size(14.dp), tint = tint)
-            CanvasText(frame.label, Modifier.canvasScale(zoom), color = MachineSignal.Editor.Text, size = 13.sp, weight = FontWeight.SemiBold)
-            CanvasText(count, Modifier.canvasScale(zoom), color = MachineSignal.Editor.Muted, size = 11.sp)
-            CanvasText(frame.detail.joinToString(" · "), Modifier.canvasScale(zoom), color = MachineSignal.Editor.Muted, size = 11.sp, mono = true, maxLines = 1)
-            badges()
+            BlueprintMarkers(layout, cards, looks, frameLooks, flow, density, pinTip, clickCard)
         }
     }
 }
 
 @Composable
-fun BlueprintCard(
-    card: Card,
-    zoom: () -> Double,
-    tone: Color,
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    modifier: Modifier = Modifier,
-    subtitleMono: Boolean = false,
-    selected: Boolean = false,
-    outline: Color? = null,
-    folded: String? = null,
-    badges: @Composable RowScope.() -> Unit = {},
-    pin: @Composable (Pin) -> Unit = {},
-) {
-    val far by remember(zoom) { derivedStateOf { zoom() < Blueprint.FarZoom } }
-    if (far && LocalBlueprintOverview.current) {
-        Box(modifier.fillMaxSize().semantics { text = AnnotatedString(title) })
-        return
+private fun BlueprintMarkers(layout: BlueprintLayout<*>, cards: List<Card>, looks: List<BlueprintCardLook?>, frameLooks: List<BlueprintFrameLook>,
+    flow: ReactFlowState, density: Float, pinTip: (Card, Pin) -> BlueprintTip?, onCardClick: (String) -> Unit) {
+    var shown by remember(layout, cards, flow, density) { mutableStateOf<Shown?>(null) }
+    LaunchedEffect(layout, cards, flow, density) {
+        snapshotFlow { flow.viewport to flow.canvasSize }.collectLatest {
+            if (shown != null) repeat(SettleFrames) { withFrameNanos { } }
+            shown = visibleMarkers(layout, cards, flow, density)
+        }
     }
-    val shape = RoundedCornerShape(8.dp)
-    Box(
-        Modifier.fillMaxSize().clip(shape)
-            .then(if (far) Modifier.background(Blueprint.far(tone)) else Modifier.background(Blueprint.Body))
-            .border(
-                when {
-                    selected -> 2.dp
-                    outline != null -> 1.6.dp
-                    else -> 1.dp
-                },
-                when {
-                    selected -> MachineSignal.Editor.Accent
-                    outline != null -> outline
-                    else -> tone.copy(alpha = .3f)
-                },
-                shape,
-            )
-            .then(modifier),
-    ) {
-        if (far) {
-            CanvasText(title, Modifier.padding(start = 10.dp, end = 8.dp, top = 6.dp), color = MachineSignal.Editor.Text,
-                size = Blueprint.fitted(title, card.width - 18, 13.0, Blueprint.FarZoom), weight = FontWeight.SemiBold, mono = true, maxLines = 1)
-            return@Box
-        }
-        Column(Modifier.fillMaxWidth()) {
-            Row(
-                Modifier.fillMaxWidth().height(26.dp).background(Blueprint.header(tone)).padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(icon, null, Modifier.size(14.dp), tint = Color.White.copy(alpha = .92f))
-                CanvasText(title, Modifier.weight(1f), color = Color.White, size = 12.5.sp, weight = FontWeight.SemiBold, mono = true, maxLines = 1)
-                badges()
-            }
-            CanvasText(subtitle, Modifier.padding(start = 10.dp, end = 8.dp, top = 3.dp), color = MachineSignal.Editor.Muted,
-                size = 10.5.sp, mono = subtitleMono, maxLines = 1)
-        }
+    Box(Modifier.fillMaxSize().graphicsLayer {
+        val view = flow.viewport
+        translationX = view.x.toFloat(); translationY = view.y.toFloat()
+        scaleX = (view.zoom / density).toFloat(); scaleY = scaleX
+        transformOrigin = TransformOrigin(0f, 0f)
+    }) {
+        val now = shown ?: return@Box
+        now.frames.forEach { i -> key("frame:${layout.frames[i].key}") { FrameMarker(layout.frames[i], frameLooks[i]) } }
+        now.cards.forEach { i -> looks[i]?.let { look -> key(cards[i].id) { CardMarker(cards[i], look, now.far, pinTip, onCardClick) } } }
+    }
+}
+
+private data class Shown(val frames: List<Int>, val cards: List<Int>, val far: Boolean)
+
+private fun visibleMarkers(layout: BlueprintLayout<*>, cards: List<Card>, flow: ReactFlowState, density: Float): Shown {
+    val view = flow.viewport
+    val scale = view.zoom
+    val mx = flow.canvasSize.width / scale / 4; val my = flow.canvasSize.height / scale / 4
+    val left = -view.x / scale - mx; val top = -view.y / scale - my
+    val right = (flow.canvasSize.width - view.x) / scale + mx; val bottom = (flow.canvasSize.height - view.y) / scale + my
+    fun within(x: Double, y: Double, width: Double, height: Double) = x < right && y < bottom && x + width > left && y + height > top
+    return Shown(layout.frames.indices.filter { layout.frames[it].let { f -> within(f.x, f.y, f.width, f.height) } },
+        cards.indices.filter { cards[it].let { c -> within(c.x, c.y, c.width, c.height) } }, view.zoom / density < Blueprint.FarZoom)
+}
+
+@Composable
+private fun FrameMarker(frame: Frame, look: BlueprintFrameLook) {
+    Box(Modifier.at(frame.x, frame.y, frame.width, BlueprintEngine.FrameTop).tagged(look.tag)) {
+        listOf(frame.label, look.count, frame.detail.joinToString(" · ")).forEach { Said(it) }
+        look.marks.forEach { Said(it.said) }
+    }
+}
+
+@Composable
+private fun CardMarker(card: Card, look: BlueprintCardLook, far: Boolean, pinTip: (Card, Pin) -> BlueprintTip?, onCardClick: (String) -> Unit) {
+    Box(Modifier.at(card.x, card.y, card.width, card.height).semantics {
+        selected = look.selected
+        look.action?.let { onClick(label = it) { onCardClick(card.id); true } }
+    }.tagged(look.tag)) {
+        Said(look.title)
+        if (far) return@Box
+        Said(look.subtitle)
+        look.marks.forEach { Said(it.said) }
+        look.folded?.let { Said(it) }
         val oneSided = card.pins.all { it.provides } || card.pins.none { it.provides }
-        card.pins.forEach { entry ->
-            Box(
-                Modifier.offset(y = (entry.y - BlueprintEngine.RowHeight / 2).dp).height(BlueprintEngine.RowHeight.dp)
-                    .fillMaxWidth(if (oneSided) 1f else 0.5f)
-                    .let { if (entry.provides && !oneSided) it.offset(x = (card.width / 2).dp) else it },
-            ) {
-                pin(entry)
+        card.pins.forEachIndexed { k, pin ->
+            val text = look.pins.getOrNull(k)?.text ?: return@forEachIndexed
+            val width = if (oneSided) card.width else card.width / 2
+            Box(Modifier.at(if (pin.provides && !oneSided) card.width / 2 else 0.0, pin.y - BlueprintEngine.RowHeight / 2, width, BlueprintEngine.RowHeight)) {
+                val tip = pinTip(card, pin)
+                if (tip == null) Said(text) else Tooltip(appearance = tip.appearance ?: UnframedBlueprintTip, tip = tip.content) { Said(text) }
             }
         }
-        folded?.let {
-            CanvasText(it, Modifier.align(Alignment.TopEnd).padding(top = 30.dp, end = 8.dp), color = MachineSignal.Editor.Muted, size = 9.5.sp)
-        }
     }
 }
 
 @Composable
-fun BlueprintPin(
-    pin: Pin,
-    color: Color,
-    text: String,
-    textColor: Color,
-    filled: Boolean,
-    chip: Boolean = false,
-    tooltip: (@Composable () -> Unit)? = null,
-    tip: TooltipAppearance = UnframedBlueprintTip,
-) {
-    val row = @Composable {
-        Row(
-            Modifier.fillMaxSize().padding(horizontal = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = if (pin.provides) Arrangement.End else Arrangement.Start,
-        ) {
-            if (!pin.provides) PinDot(color, filled)
-            if (!pin.provides) Spacer(Modifier.width(6.dp))
-            if (chip) CanvasText(text, Modifier.clip(RoundedCornerShape(3.dp)).background(color.copy(alpha = .2f)).padding(horizontal = 4.dp),
-                color = Color.White, size = 10.sp, mono = true, maxLines = 1)
-            else CanvasText(text, color = textColor, size = 10.5.sp, mono = true, maxLines = 1)
-            if (pin.provides) Spacer(Modifier.width(6.dp))
-            if (pin.provides) PinDot(color, filled)
-        }
-    }
-    if (tooltip == null) row() else Tooltip(appearance = tip, tip = tooltip) { row() }
+private fun Said(text: String) {
+    if (text.isNotEmpty()) Box(Modifier.fillMaxSize().semantics { this.text = AnnotatedString(text) })
 }
 
-@Composable
-private fun PinDot(color: Color, filled: Boolean) {
-    Box(
-        Modifier.size(8.dp).clip(CircleShape)
-            .background(if (filled) color else Color.Transparent)
-            .border(1.4.dp, color, CircleShape),
-    )
+private val BlueprintMark.said get() = when (kind) {
+    BlueprintMark.Kind.Tag -> text.uppercase()
+    else -> text
 }
 
-@Composable
-fun BlueprintTag(text: String, tone: Color) {
-    Box(Modifier.clip(RoundedCornerShape(3.dp)).background(tone).padding(horizontal = 4.dp, vertical = 1.dp)) {
-        CanvasText(text.uppercase(), color = MachineSignal.Editor.Canvas, size = 8.5.sp, weight = FontWeight.Bold)
-    }
+private fun Modifier.at(x: Double, y: Double, width: Double, height: Double) = layout { measurable, _ ->
+    val placeable = measurable.measure(Constraints.fixed((width * density).roundToInt(), (height * density).roundToInt()))
+    layout(0, 0) { placeable.place((x * density).roundToInt(), (y * density).roundToInt()) }
 }
+
+private fun Modifier.tagged(tag: String?) = if (tag == null) this else testTag(tag)
+
+private val TopInset = 48.dp
+private const val MinZoom = 0.05
+private const val MaxZoom = 2.5
+private const val LinkReach = 20.0
+private const val FlowPeriod = 22f
+private const val FlowCycleMillis = 700L
+private const val SettleFrames = 6
 
 sealed interface LegendEntry {
     data class Dot(val color: Color, val label: String) : LegendEntry
@@ -406,8 +356,8 @@ fun BlueprintLegend(entries: List<LegendEntry>, modifier: Modifier = Modifier) {
 @Composable
 fun BlueprintWatermark(title: String, line: String, lineColor: Color, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.End) {
-        CanvasText(title.uppercase(), color = Color.White.copy(alpha = .07f), size = 38.sp, weight = FontWeight.Bold, maxLines = 1)
-        CanvasText(line, color = lineColor, size = 12.sp, weight = FontWeight.SemiBold, maxLines = 1)
+        CanvasText(title.uppercase(), color = Color.White.copy(alpha = .07f), size = 38.sp, weight = FontWeight.Bold)
+        CanvasText(line, color = lineColor, size = 12.sp, weight = FontWeight.SemiBold)
     }
 }
 
@@ -417,32 +367,6 @@ private val UnframedBlueprintTip: TooltipAppearance = object : TooltipAppearance
 }
 
 @Composable
-private fun CanvasText(
-    text: String,
-    modifier: Modifier = Modifier,
-    color: Color,
-    size: TextUnit,
-    weight: FontWeight = FontWeight.Normal,
-    mono: Boolean = false,
-    maxLines: Int = 1,
-) {
-    val fonts = LocalMachineSignalFonts.current
-    Text(text, modifier, color = color, fontFamily = if (mono) fonts.mono else fonts.ui, fontSize = size, fontWeight = weight, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
-}
-
-private fun Modifier.canvasScale(zoom: () -> Double) = layout { measurable, constraints ->
-    val scale = (1.0 / zoom().coerceIn(0.35, 1.0)).coerceAtMost(1.8).toFloat()
-    val measured = measurable.measure(constraints.copy(
-        minWidth = (constraints.minWidth / scale).roundToInt(),
-        minHeight = (constraints.minHeight / scale).roundToInt(),
-        maxWidth = if (constraints.maxWidth == Constraints.Infinity) Constraints.Infinity else (constraints.maxWidth / scale).roundToInt(),
-        maxHeight = if (constraints.maxHeight == Constraints.Infinity) Constraints.Infinity else (constraints.maxHeight / scale).roundToInt(),
-    ))
-    layout((measured.width * scale).roundToInt(), (measured.height * scale).roundToInt()) {
-        measured.placeWithLayer(0, 0) {
-            scaleX = scale
-            scaleY = scale
-            transformOrigin = TransformOrigin(0f, 0f)
-        }
-    }
+private fun CanvasText(text: String, color: Color, size: TextUnit, weight: FontWeight = FontWeight.Normal) {
+    Text(text, color = color, fontFamily = LocalMachineSignalFonts.current.ui, fontSize = size, fontWeight = weight, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }

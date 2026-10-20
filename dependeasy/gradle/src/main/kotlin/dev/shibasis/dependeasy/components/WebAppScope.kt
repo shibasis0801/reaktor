@@ -52,7 +52,7 @@ class WebAppScope internal constructor(
                 worker = worker, environments = environments)
             val result = BuildWorkspace.get(project).emit(project, spec, WorkspaceCompletion, site, null,
                 listOf(execution), emptyList(), emptyList())
-            project.publishOutput(OutputKind.WorkspaceCompletion, command.flatMap { it.receiptFile }, Workspace.Deploy, producer = command)
+            project.publishRole(Workspace.Deploy, execution, command.flatMap { it.receiptFile })
             result
         }
     }

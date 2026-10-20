@@ -23,6 +23,7 @@ class ApplicationPlugin: Plugin<Project> {
             compilerOptions.jvmTarget.set(JvmTarget.fromTarget(ToolchainVersions.AndroidJava.toString()))
         }
         dependencies.add("coreLibraryDesugaring", dev.shibasis.dependeasy.Versions.Android.Desugaring)
+        DependeasyExtension.create(project)
     }
 
     /**

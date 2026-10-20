@@ -32,3 +32,9 @@ class DeviceTestsPlugin : Plugin<Project> {
         project.pluginManager.apply("base")
     }
 }
+
+class AppleLibraryPlugin : Plugin<Project> {
+    override fun apply(project: Project) {
+        DependeasyExtension.create(project)
+    }
+}

@@ -30,6 +30,6 @@ internal fun KotlinCMakeTask.includePrefabs(
     prefabs.forEach { (prefab, task) ->
         sourceFiles.from(task.flatMap { it.outputDirectory })
         prefabDirectories.put(prefab.cmakeVariable, task.flatMap { it.outputDirectory }.map { it.asFile.absolutePath })
-        prefabTargets.put(prefab.cmakeVariable, prefab.target)
+        prefabDeclarations.put(prefab.cmakeVariable, prefab)
     }
 }

@@ -1,7 +1,7 @@
 @file:OptIn(ExperimentalUnsignedTypes::class, kotlinx.cinterop.ExperimentalForeignApi::class)
 
-package dev.shibasis.reaktor.flexbuffer.bench
-
+import dev.shibasis.reaktor.core.build.Entry
+import dev.shibasis.reaktor.flexbuffer.bench.AdversarialBench
 import dev.shibasis.reaktor.flexbuffer.generated.ReaktorFlexbufferCoders
 import dev.shibasis.reaktor.flexbuffer.BenchUserProfile
 import dev.shibasis.reaktor.flexbuffer.BenchApiResponse
@@ -41,7 +41,7 @@ import kotlinx.cinterop.toKString
  *   BENCH_ROUNDS — number of timed rounds (default 0 = infinite)
  */
 @OptIn(ExperimentalNativeApi::class)
-object IosBenchRunner {
+private object IosBenchRunner {
 
     @Volatile
     private var sink: Any? = null
@@ -109,6 +109,7 @@ object IosBenchRunner {
     }
 }
 
-fun iosBenchMain() {
+@Entry
+fun main() {
     IosBenchRunner.run()
 }

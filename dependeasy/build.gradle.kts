@@ -1,6 +1,8 @@
+import dev.shibasis.dependeasy.configuration.option
+import dev.shibasis.dependeasy.model.BuildOption
 import dev.shibasis.dependeasy.bootstrap.BootstrapLifecycle
-import dev.shibasis.dependeasy.bootstrap.bootstrapAttribute
 import dev.shibasis.dependeasy.bootstrap.VerifyBytecode
+import dev.shibasis.dependeasy.bootstrap.bootstrapAttribute
 import dev.shibasis.dependeasy.publishing.PublicationDefaults
 import dev.shibasis.dependeasy.toolchain.GradlePlugins
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
@@ -14,7 +16,7 @@ plugins {
 }
 
 group = "${PublicationDefaults.Group}.dependeasy"
-version = providers.gradleProperty(PublicationDefaults.VersionOptionName).orElse(PublicationDefaults.Version).get()
+version = option(BuildOption.string(PublicationDefaults.VersionOptionName, PublicationDefaults.Version)).get()
 
 subprojects {
     group = rootProject.group
@@ -41,8 +43,8 @@ subprojects {
                 name = "GitHubPackages"
                 url = uri("https://maven.pkg.github.com/${PublicationDefaults.Repository}")
                 credentials {
-                    username = providers.environmentVariable("USERNAME").orNull
-                    password = providers.environmentVariable("TOKEN").orNull
+                    username = project.option(BuildOption.environment("USERNAME")).orNull
+                    password = project.option(BuildOption.environment("TOKEN", sensitive = true)).orNull
                 }
             }
         }

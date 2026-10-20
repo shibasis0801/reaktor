@@ -1,6 +1,9 @@
 package dev.shibasis.dependeasy
 
 import java.io.File
+import dev.shibasis.dependeasy.model.BuildModelReader
+import dev.shibasis.dependeasy.model.SourceSite
+import dev.shibasis.dependeasy.model.Invocation
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -25,15 +28,19 @@ class KotlinExportCatalogTest {
             """.trimIndent())
         }
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
-            .withArguments("reportKotlinExports", "--configuration-cache", "--stacktrace").build()
+            .withArguments("reportKotlinExports", "exportBuildModel", "--configuration-cache", "--stacktrace").build()
         val first = run()
         assertEquals(TaskOutcome.SUCCESS, first.task(":reportKotlinExports")?.outcome)
         assertNull(first.task(":pnpmInstall"))
         assertNull(first.task(":library:exportKotlinLibrary"))
         val metadata = Json.parseToJsonElement(directory.resolve("build/dependeasy/kotlin-exports.json").readText()).jsonObject
         assertEquals(listOf("library/build/dependeasy/kotlin/library"), metadata.getValue("directories").jsonArray.map { it.jsonPrimitive.content })
+        val catalog = BuildModelReader.read(directory).nodes.single { it.id.project == ":" && it.id.name == "reportKotlinExports" }
+        assertEquals(SourceSite("catalogFixture", "library/build.gradle.kts", 3), catalog.declaredAt)
+        assertEquals(Invocation.Gradle(listOf(":reportKotlinExports")), catalog.invocation)
         val repeated = run()
         assertContains(repeated.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":reportKotlinExports")?.outcome)
+        assertEquals(catalog, BuildModelReader.read(directory).nodes.single { it.id == catalog.id })
     }
 }

@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.cloud
 
+import dev.shibasis.reaktor.core.build.Entry
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 
 import dev.shibasis.reaktor.tooling.SafetyClass
@@ -20,6 +21,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /** Executable process-boundary E2E; intentionally uses no unit-test framework or mocks. */
+@Entry
 fun main() = runBlocking {
     val fixture = Files.createTempDirectory("reaktor-cloud-e2e-").toFile()
     try {

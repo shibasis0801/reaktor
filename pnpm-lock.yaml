@@ -2557,8 +2557,6 @@ importers:
         specifier: npm:typescript@7.0.2
         version: typescript@7.0.2
 
-  reaktor-mcp/js: {}
-
   reaktor-performance:
     devDependencies:
       typescript:

@@ -33,35 +33,45 @@ data class BlueprintEdge(
     val reversed: Boolean = false,
 )
 
+interface Bounds {
+    val x: Double
+    val y: Double
+    val width: Double
+    val height: Double
+}
+
 data class Pin(
     val key: String,
     val type: String,
     val provides: Boolean,
     val y: Double,
     val wiring: PortWiring,
+    val id: String = key,
+    val aliases: List<String> = emptyList(),
 )
 
 data class Card(
     val id: String,
-    val x: Double,
-    val y: Double,
-    val width: Double,
-    val height: Double,
+    override val x: Double,
+    override val y: Double,
+    override val width: Double,
+    override val height: Double,
     val pins: List<Pin>,
     val folded: Int,
-)
+) : Bounds
 
 data class Frame(
     val key: String,
     val label: String,
-    val x: Double,
-    val y: Double,
-    val width: Double,
-    val height: Double,
+    override val x: Double,
+    override val y: Double,
+    override val width: Double,
+    override val height: Double,
     val nodes: Set<String>,
     val detail: List<String>,
     val muted: Boolean,
-)
+    val parent: String? = null,
+) : Bounds
 
 data class Link(
     val id: String,
@@ -74,6 +84,8 @@ data class Link(
     val points: List<Pair<Double, Double>>,
     val cross: Boolean = false,
     val reversed: Boolean = false,
+    val family: String = "",
+    val curve: Boolean = false,
 )
 
 data class BlueprintLayout<K>(

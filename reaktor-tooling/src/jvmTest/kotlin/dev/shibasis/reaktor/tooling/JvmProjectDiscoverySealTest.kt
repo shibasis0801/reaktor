@@ -130,6 +130,14 @@ class JvmProjectDiscoverySealTest {
         assertTrue(prepared.request.environment.getValue("PATH").startsWith(executable.canonicalFile.parent))
         assertEquals(SafetyClass.UnknownRemoteEffect, prepared.plan.safety.classification)
         assertTrue(prepared.request.definitionSeal!!.files.any { it.name == "check.mjs" })
+        File(root, "package.json").writeText("""{"name":"opaque-gradle","reaktor":{},"scripts":{"check":"./gradlew :workers:karateAuthProd","build":"./gradlew :workers:build"}}""")
+        val opaque = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        for (name in listOf("check", "build")) {
+            val task = opaque.catalog.tasks.single { it.id.value == "npm/$name" }
+            assertEquals(SafetyClass.UnknownRemoteEffect, task.safety.classification)
+            assertTrue(task.unavailableReason.orEmpty().contains("canonical build node"))
+            assertFailsWith<IllegalStateException> { opaque.prepare(TaskInvocation(task.id)) }
+        }
     }
 
     @Test

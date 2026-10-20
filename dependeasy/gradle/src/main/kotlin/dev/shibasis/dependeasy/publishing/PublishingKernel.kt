@@ -1,8 +1,11 @@
 package dev.shibasis.dependeasy.publishing
 
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.workspace.WorkspaceTargetTask
+import dev.shibasis.dependeasy.workspace.declarationSite
 import org.gradle.api.publish.maven.tasks.PublishToMavenLocal
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.Project
@@ -30,8 +33,8 @@ internal class PublishingKernel(
                     url = module.uri(repository.url)
                     if (repository.username != null && repository.password != null) {
                         credentials {
-                            username = module.providers.environmentVariable(repository.username).orNull
-                            password = module.providers.environmentVariable(repository.password).orNull
+                            username = module.option(BuildOption.environment(repository.username)).orNull
+                            password = module.option(BuildOption.environment(repository.password, sensitive = true)).orNull
                         }
                     }
                 }
@@ -42,13 +45,15 @@ internal class PublishingKernel(
     }
 
     private fun aggregate(name: String, destination: Publication, type: Class<out org.gradle.api.Task>) {
+        val site = project.declarationSite()
         val outputs = project.subprojects.map { module ->
             val completed = module.tasks.register<WorkspaceTargetTask>("complete${destination.name}Publication") {
                 dependsOn(module.tasks.withType(type))
             }
-            module.publishOutput(OutputKind.PublishedModules, completed.flatMap { it.completionManifest }, destination, producer = completed)
-            project.resolve(OutputHandle(project.dependencies.project(mapOf("path" to module.path)),
-                project.name, module.path, OutputKind.PublishedModules, listOf(destination.name)))
+            val output = OutputHandle(project.dependencies.project(mapOf("path" to module.path)),
+                project.name, module.path, OutputKind.PublishedModules, listOf(destination.name))
+            module.publishOutput(output, completed.flatMap { it.completionManifest }, completed, declaredAt = site)
+            project.resolve(output)
         }
         project.tasks.register(name) {
             group = "publishing"

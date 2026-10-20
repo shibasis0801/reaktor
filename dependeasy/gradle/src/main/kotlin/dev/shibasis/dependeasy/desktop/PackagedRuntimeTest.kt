@@ -2,12 +2,20 @@ package dev.shibasis.dependeasy.desktop
 
 import dev.shibasis.dependeasy.handles.output
 import dev.shibasis.dependeasy.handles.outputFiles
-import dev.shibasis.dependeasy.model.OutputKind
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.process.KernelSpecOwner
+import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.handles.node
+import dev.shibasis.dependeasy.module.compiledJvmEntry
+import dev.shibasis.dependeasy.module.entryClass
+import kotlinx.serialization.encodeToString
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.module.jvmExecution
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.provider.Property
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.tasks.Classpath
@@ -26,7 +34,12 @@ import java.io.File
 import javax.inject.Inject
 
 @DisableCachingByDefault(because = "Executes a probe against the host-specific packaged runtime")
-abstract class PackagedRuntimeTest : JavaExec() {
+abstract class PackagedRuntimeTest : JavaExec(), KernelSpecOwner {
+    @get:InputFile @get:PathSensitive(PathSensitivity.RELATIVE) abstract val entryContract: RegularFileProperty
+    @get:Input abstract val declaration: Property<String>
+    override val kernelSpec get() = BuildModelReader.json.decodeFromString<KernelSpec.JvmProgram>(declaration.get())
+    override val kernelEffect get() = Effect.Verify
+    override val kernelHost get() = kernelSpec.run.host
     @get:Inject abstract val runtimeFiles: ObjectFactory
     @get:InputDirectory @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val distribution: DirectoryProperty
@@ -51,18 +64,33 @@ abstract class PackagedRuntimeTest : JavaExec() {
 
 }
 
-internal fun Project.packagedRuntimeTest(name: String, main: String, compilation: String,
-                                       configuration: PackagedRuntimeTest.() -> Unit) = run {
-    val execution = jvmExecution(compilation)
+internal fun Project.packagedRuntime(name: String, run: Run, site: SourceSite?): dev.shibasis.dependeasy.handles.NodeHandle {
+    val compilation = CompilationRef("packagedRuntime")
+    val execution = jvmExecution(compilation.name)
+    val entry = compiledJvmEntry(name, compilation)
+    val packaged = output(dependencies.project(mapOf("path" to path)) as org.gradle.api.artifacts.ProjectDependency, OutputKind.JvmDistribution)
+    val files = outputFiles(packaged)
     val launcher = extensions.getByType<JavaToolchainService>().launcherFor {
         languageVersion.set(JavaLanguageVersion.of(Versions.SDK.Java.asInt))
     }
-    tasks.register<PackagedRuntimeTest>(name) {
+    val task = tasks.register<PackagedRuntimeTest>(name) {
         group = "verification"
-        dependsOn(outputFiles(output(project.dependencies.project(mapOf("path" to project.path)) as org.gradle.api.artifacts.ProjectDependency, OutputKind.JvmDistribution)), execution.classes)
-        mainClass.set(main)
+        site?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) }
+        entryContract.set(entry.location)
+        declaration.set(BuildModelReader.json.encodeToString(KernelSpec.JvmProgram(compilation, entry.producer.id, run)))
+        distribution.set(project.layout.dir(files.elements.map { it.single().asFile }))
+        packageName.set(project.extensions.getByType<DesktopAppSpec>().packageName)
+        mainClass.set(entry.entryClass)
         javaLauncher.set(launcher)
         probeClasspath.from(execution.output)
-        configuration()
+        args(project.rootProject.projectDir.absolutePath)
+        dependsOn(files)
+        run.timeoutMillis?.let { timeout.set(java.time.Duration.ofMillis(it)) }
     }
+    val producer = node(task, OutputKind.VerificationResults).consumes(entry)
+    BuildWorkspace.get(this).reference(this, task, OutputKind.VerificationResults, run.host, "verification")
+    BuildWorkspace.get(this).graph.configure {
+        edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.Consumes(producer.id, packaged.nodeId, packaged.selector)))
+    }
+    return producer
 }

@@ -150,6 +150,7 @@ class VerificationSuitesTest {
                 val flows by suite(DeviceSuite(mapOf(
                     DevicePlatform.Android to DeviceFlowSelection("android", files = listOf("login.yaml")),
                     DevicePlatform.Ios to DeviceFlowSelection("ios", exclude = listOf("unused.yaml"))),
+                    environmentAllowList = setOf("FIXTURE_MESSAGE"),
                     optionalEnvironmentFiles = listOf("device.local.env")))
                 alias("test:phones", flows, DeviceOptions(DevicePlatform.Ios, "login", ArtifactPolicy.Always))
             }
@@ -172,6 +173,8 @@ class VerificationSuitesTest {
         assertEquals("deviceOptions:apple:outputGeneratedContractAppleRelease", spec().appOutput)
         assertEquals(listOf("ios/login.yaml"), spec().flows)
         assertEquals("always", spec().artifacts)
+        assertEquals(listOf("FIXTURE_MESSAGE"), spec().environmentAllowList)
+        assertFalse(Regex("bestbuds|manna", RegexOption.IGNORE_CASE).containsMatchIn(BuildModelReader.json.encodeToString(spec())))
         val model = BuildModelReader.read(root)
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("deviceOptions", ":phones", "flows") && it.to == NodeId("deviceOptions", ":apple", "outputGeneratedContractAppleRelease") })
         assertTrue(model.edges.any { it is Edge.After && it.from == NodeId("deviceOptions", ":phones", "flows") && it.to == NodeId("deviceOptions", ":", "maestroRunnerSetup") })
@@ -266,7 +269,18 @@ class VerificationSuitesTest {
             fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(root).withPluginClasspath()
                 .withArguments(*(tasks.toList().ifEmpty { listOf("qualification", "exportBuildModel", "generatePackageScripts") }).toTypedArray(),
                     "--configuration-cache", "--stacktrace").build()
-            run("exportBuildModel", "generatePackageScripts")
+            val exported = run("exportBuildModel", "generatePackageScripts")
+            assertEquals(0, requests.get())
+            assertNull(exported.task(":karateSetup"))
+            assertNull(exported.task(":k6Setup"))
+            val declared = BuildModelReader.read(root)
+            val installerEdges = listOf("realKarate" to "karateSetup", "realK6" to "k6Setup").map { (suite, tool) ->
+                val source = NodeId("pinnedVerificationFixture", ":load", suite)
+                val target = NodeId("pinnedVerificationFixture", ":", tool)
+                assertEquals(listOf(":$tool"), assertNotNull(declared.nodes.single { it.id == target }.invocation as? Invocation.Gradle).tasks)
+                assertFalse(declared.nodes.any { it.id.project == ":load" && it.id.name == tool })
+                Edge.After(source, target).also { assertContains(declared.edges, it) }
+            }
             run()
             assertEquals(2, requests.get())
             assertTrue(root.resolve("load/build/reports/karate/realKarate").walkTopDown().any { it.isFile })
@@ -276,6 +290,8 @@ class VerificationSuitesTest {
             assertContains(scripts, "./gradlew :load:realKarate")
             assertContains(scripts, "./gradlew :load:realK6")
             assertContains(run().output, "Reusing configuration cache")
+            val repeated = BuildModelReader.read(root)
+            installerEdges.forEach { assertContains(repeated.edges, it) }
             assertEquals(4, requests.get())
             write("config/optional.env", "PRIVATE_OPTIONAL=never-export-this-value\nFIXTURE_PRIORITY=optional\n")
             run()

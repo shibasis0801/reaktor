@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.model.device
 
+import dev.shibasis.dependeasy.model.BuildOption
+
 import kotlinx.serialization.json.*
 import kotlinx.coroutines.flow.Flow
 import java.io.File
@@ -116,7 +118,7 @@ class MaestroRunner(
     }.getOrElse { emptyList() }
 }
 
-internal fun physicalRunnerEnvironment(platform: String, inherited: Map<String, String> = System.getenv(), developerToolsDirectory: String? = null): Map<String, String> =
+internal fun physicalRunnerEnvironment(platform: String, inherited: Map<String, String> = BuildOption.environmentSnapshot(), developerToolsDirectory: String? = null): Map<String, String> =
     if (platform == "ios") inherited.filterKeys { it !in setOf("CPATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH", "OBJC_INCLUDE_PATH", "LIBRARY_PATH") } +
         ("LLVM_CAS_MAX_MAPPING_SIZE" to "134217728") +
         (developerToolsDirectory?.let { mapOf("PATH" to it + File.pathSeparator + inherited["PATH"].orEmpty()) } ?: emptyMap()) else inherited

@@ -24,8 +24,9 @@ gradlePlugin {
         "compose-library" to "ComposeLibraryPlugin",
         "compose-application" to "ComposeApplicationPlugin",
         "browser" to "BrowserPlugin",
-        "compose-jvm" to "ComposeJvmPlugin",
+        "desktop-app" to "ComposeJvmPlugin",
         "jvm" to "JvmPlugin",
+        "cli" to "CliPlugin",
         "spring-application" to "SpringApplicationPlugin",
         "pipeline" to "PipelinePlugin",
         "workspace" to "WorkspacePlugin",
@@ -34,6 +35,7 @@ gradlePlugin {
         "web-app" to "WebAppPlugin",
         "load-tests" to "LoadTestsPlugin",
         "apple-app" to "AppleAppPlugin",
+        "apple-library" to "AppleLibraryPlugin",
         "worker-fleet" to "WorkerFleetPlugin",
         "device-tests" to "DeviceTestsPlugin",
     ).forEach { (name, implementation) ->

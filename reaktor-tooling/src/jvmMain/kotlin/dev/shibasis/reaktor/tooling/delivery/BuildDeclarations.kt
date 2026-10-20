@@ -33,7 +33,7 @@ internal object BuildDeclarations {
         val changed = BuildModelReader.changedDeclarations(root, model).map { "${it.build}:${it.path}" }
         val rootBuild = model.builds.single { it.directory == "." }.name
         val byId = model.nodes.associateBy { it.id }
-        val dependencies = model.edges.filter { it !is Edge.After }.groupBy { it.from }
+        val dependencies = model.edges.filter { it !is Edge.After && it !is Edge.OrderedAfter }.groupBy { it.from }
         fun safety(id: NodeId, visited: Set<NodeId> = emptySet()): SafetyClass {
             val node = byId[id] ?: return SafetyClass.UnknownRemoteEffect
             val own = when (node.kernel?.spec) {

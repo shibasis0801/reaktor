@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.verification
 
+import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.toolchain.VerificationTools
@@ -12,7 +13,7 @@ internal fun Project.karateSuite(name: String, directory: String, config: String
     val task = tasks.register<KarateSuite>(name) {
         group = "verification"
         workingDirectory.set(rootProject.layout.projectDirectory)
-        executable.set(java.io.File(System.getProperty("java.home"), "bin/java").absolutePath)
+        executable.set(java.io.File(option(BuildOption.systemProperty("java.home")).get(), "bin/java").absolutePath)
         toolVersion.set(tool.handle.version)
         jar.set(tool.executable); dependsOn(tool.installation)
         suites.set(listOf(directory)); this.tags.set(tags)
@@ -24,7 +25,7 @@ internal fun Project.karateSuite(name: String, directory: String, config: String
         sourceFiles.from(rootProject.fileTree(directory), rootProject.fileTree(config).matching { include("*.js", "*.json") })
         outputDirectories.from(layout.buildDirectory.dir("reports/karate/$name"))
     }
-    return node(task, OutputKind.VerificationResults)
+    return node(task, OutputKind.VerificationResults).after(rootProject.node(tool.installation))
 }
 
 internal fun Project.k6Suite(name: String, script: String, files: List<String>, optionalFiles: List<String> = emptyList()): NodeHandle {
@@ -41,5 +42,5 @@ internal fun Project.k6Suite(name: String, script: String, files: List<String>, 
         sourceFiles.from(rootProject.file(script))
         outputFiles.from(layout.buildDirectory.file("reports/k6/$name.json"))
     }
-    return node(task, OutputKind.VerificationResults)
+    return node(task, OutputKind.VerificationResults).after(rootProject.node(tool.installation))
 }

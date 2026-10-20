@@ -8,7 +8,6 @@ import dev.shibasis.dependeasy.codegen.KotlinObjectTask
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.model.NodeKind
-import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.getByType
@@ -16,9 +15,9 @@ import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 internal class InteropBuildKernel(private val project: Project, private val name: String, private val declaration: InteropBuild) {
-    fun install() {
+    fun install(): List<dev.shibasis.dependeasy.handles.NodeHandle> {
         project.nativeExports(name, declaration.nativeInstallers)
-        val directory = declaration.typescriptDirectory ?: return
+        val directory = declaration.typescriptDirectory ?: return emptyList()
         val typescript = JavaScriptComponent(project, "${name}TypeScript", directory)
         typescript.sources("src/commonMain/typescript")
         val types = typescript.types()
@@ -43,7 +42,10 @@ internal class InteropBuildKernel(private val project: Project, private val name
         val checked = requireNotNull(verification.task)
         project.publishOutput(OutputKind.VerificationResults, project.files(checked), Verification.InteropTypeScript, producer = checked)
         project.tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME).configure { dependsOn(checked) }
-        if (declaration.hostTests) project.interopHostTests(name, source.asFile, bundle)
+        return buildList {
+            add(verification)
+            if (declaration.hostTests) add(project.node(project.interopHostTests(name, source.asFile, bundle)))
+        }
     }
 
 }

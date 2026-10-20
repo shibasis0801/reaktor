@@ -18,7 +18,6 @@ class ComposeLibraryPlugin : Plugin<Project> {
 class ComposeApplicationPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         project.pluginManager.apply(ApplicationPlugin::class.java)
-        DependeasyExtension.create(project)
         project.composePlugins()
     }
 }

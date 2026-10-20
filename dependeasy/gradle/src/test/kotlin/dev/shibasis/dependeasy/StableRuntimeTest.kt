@@ -9,27 +9,38 @@ class StableRuntimeTest {
     @TempDir lateinit var directory: File
 
     private fun runner(fail: Boolean = false) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
-        .withArguments("launch", "-PfixtureFail=$fail", "--configuration-cache", "--stacktrace")
+        .withArguments("run", "-PfixtureFail=$fail", "--configuration-cache", "--stacktrace")
 
     @Test fun `runtime releases leases on successful and failed launches with configuration cache`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"runtimeFixture\"")
-        directory.resolve("src/main/java").mkdirs()
-        directory.resolve("src/main/java/Fixture.java").writeText("""
-            public class Fixture {
-                public static void main(String[] arguments) {
-                    System.out.println("fixture launched");
-                    if (Boolean.parseBoolean(arguments[0])) System.exit(7);
-                }
+        directory.resolve("src/main/kotlin").mkdirs()
+        directory.resolve("src/main/kotlin/Entry.kt").writeText("""
+            package dev.shibasis.reaktor.core.build
+            @Target(AnnotationTarget.FUNCTION)
+            @Retention(AnnotationRetention.BINARY)
+            annotation class Entry
+        """.trimIndent())
+        directory.resolve("src/main/kotlin/Fixture.kt").writeText("""
+            import dev.shibasis.reaktor.core.build.Entry
+            @Entry fun main(arguments: Array<String>) {
+                println("fixture launched")
+                if (arguments.single().toBoolean()) kotlin.system.exitProcess(7)
             }
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
-            plugins { java; id("dev.shibasis.dependeasy.pipeline") }
-            val launch = tasks.register<JavaExec>("launch") {
-                classpath = files(tasks.jar) + configurations.runtimeClasspath.get()
-                mainClass.set("Fixture")
-                args(providers.gradleProperty("fixtureFail").get())
+            import dev.shibasis.dependeasy.components.desktopApp
+            import dev.shibasis.dependeasy.desktop.RuntimeLeaseService
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.desktop-app") }
+            dependencies { implementation(compose.runtime) }
+            desktopApp(BuildOption.string("fixture.name", "Fixture"), setOf(Installer.Dmg))
+            afterEvaluate {
+                tasks.named<JavaExec>("run") { args(providers.gradleProperty("fixtureFail").get()) }
+                gradle.sharedServices.registrations.forEach { registration ->
+                    val parameters = registration.parameters
+                    if (parameters is RuntimeLeaseService.Parameters) parameters.directory.set(layout.buildDirectory.dir("runtime"))
+                }
             }
-            dependeasy.stableRuntime(launch, layout.buildDirectory.dir("runtime").get().asFile)
         """.trimIndent())
         val leases = directory.resolve("build/runtime/launches")
         assertContains(runner().build().output, "fixture launched")

@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import java.io.File
 import java.nio.file.FileSystems
+import java.nio.file.NoSuchFileException
 import java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
 import java.security.MessageDigest
 
@@ -25,25 +26,33 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
         if (workspaceId != null && workspaceId != workspace) emptyList() else entries().take(limit.coerceIn(0, 1000))
 
     fun changes(): Flow<TaskRun> = callbackFlow {
-        val watcher = FileSystems.getDefault().newWatchService()
-        directory.toPath().register(watcher, ENTRY_CREATE)
-        val delivered = mutableSetOf<RunId>()
-        val job = launch(Dispatchers.IO) {
-            suspend fun deliver(file: File) {
-                if (file.extension != "json") return
-                for (run in read(file)) if (delivered.add(run.id)) send(run)
-            }
-            directory.listFiles().orEmpty().sortedBy { it.name }.forEach { deliver(it) }
-            while (true) {
-                val key = runInterruptible { watcher.take() }
-                for (event in key.pollEvents()) {
-                    val relative = event.context() as? java.nio.file.Path ?: continue
-                    deliver(directory.resolve(relative.toString()))
+        FileSystems.getDefault().newWatchService().use { watcher ->
+            for (attempt in 1..3) {
+                try {
+                    directory.toPath().register(watcher, ENTRY_CREATE)
+                    break
+                } catch (missing: NoSuchFileException) {
+                    if (attempt == 3 || !directory.isDirectory) throw missing
                 }
-                if (!key.reset()) break
             }
+            val delivered = mutableSetOf<RunId>()
+            val job = launch(Dispatchers.IO) {
+                suspend fun deliver(file: File) {
+                    if (file.extension != "json") return
+                    for (run in read(file)) if (delivered.add(run.id)) send(run)
+                }
+                directory.listFiles().orEmpty().sortedBy { it.name }.forEach { deliver(it) }
+                while (true) {
+                    val key = runInterruptible { watcher.take() }
+                    for (event in key.pollEvents()) {
+                        val relative = event.context() as? java.nio.file.Path ?: continue
+                        deliver(directory.resolve(relative.toString()))
+                    }
+                    if (!key.reset()) break
+                }
+            }
+            awaitClose { job.cancel() }
         }
-        awaitClose { job.cancel(); watcher.close() }
     }
 
     override fun events(runId: RunId, afterSequence: Long): Flow<RunEvent> = flow {

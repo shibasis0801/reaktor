@@ -58,6 +58,5 @@ private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, run
 
 internal fun Project.componentRole(role: Workspace, node: NodeHandle) {
     val task = requireNotNull(node.task)
-    publishOutput(OutputKind.WorkspaceCompletion,
-        task.flatMap { (it as WorkspaceTargetTask).completionManifest }, role, producer = task)
+    publishRole(role, node, task.flatMap { (it as WorkspaceTargetTask).completionManifest })
 }

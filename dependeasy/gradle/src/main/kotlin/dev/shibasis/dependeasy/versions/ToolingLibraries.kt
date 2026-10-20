@@ -13,6 +13,7 @@ object ToolingLibraries {
     const val JUnitLauncher = "org.junit.platform:junit-platform-launcher"
     const val CommonsCompress = dev.shibasis.dependeasy.toolchain.BuildLibraries.CommonsCompress
     const val Adb = "com.android.tools.adblib:adblib:9.4.0"
+    const val DependeasyModel = "dev.shibasis.dependeasy:model:${dev.shibasis.dependeasy.publishing.PublicationDefaults.Version}"
     const val Clikt = "com.github.ajalt.clikt:clikt:5.0.3"
     const val GrpcOkHttp = "io.grpc:grpc-okhttp:$GrpcVersion"
     const val GrpcProtobuf = "io.grpc:grpc-protobuf:$GrpcVersion"

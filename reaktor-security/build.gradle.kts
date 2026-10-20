@@ -1,40 +1,24 @@
-import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.handles.Reaktor
 import dev.shibasis.dependeasy.native.*
 import dev.shibasis.dependeasy.native.NativePlatform
-import dev.shibasis.dependeasy.handles.Reaktor
+import dev.shibasis.dependeasy.model.Targets
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.common.commonCoroutines
 
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    nativeLibrary {
-        platforms(NativePlatform.Android, NativePlatform.Darwin, NativePlatform.Host)
-        abis(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64)
-        dependencies(Native.OpenSslCrypto, Native.OpenSslSsl)
+library(namespace = "dev.shibasis.reaktor.security", targets = Targets.Android + Targets.Apple + Targets.Jvm + Targets.Web) {
+    native(name = "ReaktorSecurity", platforms = setOf(NativePlatform.Android, NativePlatform.Darwin, NativePlatform.Host),
+        abis = listOf(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64)) {
+        links(Native.OpenSslCrypto, Native.OpenSslSsl)
     }
-    val bindings = javascript("karakum", "ts").bindings("karakum.config.json", "import")
-    workspace { val generateBindings by artifacts { include(node(bindings)) } }
-
-    darwinNative {
-        packageName = "dev.shibasis.reaktor.security.native"
-        headers("src/commonMain/cpp/include/rsec/rsec.h")
+    val generateBindings by bindings()
+    appleInterop(packageName = "dev.shibasis.reaktor.security.native", headers = listOf("src/commonMain/cpp/include/rsec/rsec.h"))
+    dependencies {
+        common { commonCoroutines(); api(Reaktor.Core) }
+        jvm { implementation(Versions.Native.Jna) }
+        web { api(Versions.Kotlin.KarakumRuntime) }
+        processors(Reaktor.Compiler)
     }
-    module("dev.shibasis.reaktor.security") {
-        common {
-            dependencies {
-                commonCoroutines()
-                api(projects.reaktorCore)
-            }
-        }
-
-        android {}
-        apple {}
-
-        jvm {
-            dependencies { implementation(Versions.Native.Jna) }
-        }
-        web { sourceSetModifier { kotlin.srcDir(bindings) } }
-    }
-    kotlinProcessor(projects.reaktorCompiler)
 }

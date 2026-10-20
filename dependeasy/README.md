@@ -339,18 +339,19 @@ Headless modules can declare their runtime boundary without repeating resolution
 and verification code:
 
 ```kotlin
-dependeasy {
-    dependencyBoundary("verifyHeadlessRuntime") {
-        forbidGroupPrefixes("androidx.compose", "org.jetbrains.compose")
-        forbidModules("reaktor-ui")
-        reason.set("The runtime must remain independent of UI libraries.")
-    }
+library(namespace = "example.runtime", targets = Targets.Jvm) {
+    val verifyHeadlessRuntime by boundary(
+        groupPrefixes = listOf("androidx.compose", "org.jetbrains.compose"),
+        modules = listOf("reaktor-ui"),
+        reason = "The runtime must remain independent of UI libraries.")
 }
 ```
 
 The check participates in `check`, resolves only when executed, and declares its
 dependency metadata and artifacts as inputs. Select a different configuration with
-`configuration = "jsCompileClasspath"`; ordinary task properties remain available.
+`configuration = ConfigurationRef.JavaScriptCompileClasspath`. A pure JVM component
+accepts the existing immutable `KernelSpec.DependencyBoundary` and a `Verification`
+role, publishing the same check identity while including it in `componentChecks`.
 
 Generated Kotlin sources carry their own output directory and inputs. Registration
 adds the producer to multiplatform `commonMain` or JVM `main` automatically:
@@ -365,10 +366,15 @@ dependeasy {
 }
 ```
 
-`nodeScript` returns a typed command task for Node generators. `sourceIdentity`
-returns a typed task whose source groups define the files represented by a digest,
-and registers its output as JVM resources. `jvmClasspath(name, output)` writes a
-multiplatform JVM test classpath through a typed task with declared inputs and outputs.
+`nodeScript` returns a typed command task for Node generators. Inside a JVM
+`library` or `server`, `val buildIdentity by identity(fileName = "build.properties",
+sources = listOf(IdentitySource("app", ".", listOf("src/main"))))` declares a named
+resource producer. Immutable source/revision data and the generator are recorded
+in the canonical graph; the component build includes it and JVM resources consume
+its output. Identity hashing, git reads and resource wiring belong to the binding.
+Inside `library`,
+`val probeClasspath by classpath(output = "reports/probe-classpath.txt")` publishes
+the JVM test classpath with canonical ownership and declared inputs and outputs.
 `stableRuntime` retains desktop jars without copying downloaded dependencies.
 `retainJavaLauncher` restores the background-process launcher to a stripped runtime
 image and optionally prepares its base class archive. `sharedClassArchive` derives
@@ -384,24 +390,28 @@ a giant options object or adding another build runner.
 
 ## JVM programs and packaging
 
-JVM entrypoints share the module's declared runtime. A named compilation associates
-with `main`; test probes and command generators reuse that same classpath.
+JVM programs resolve their compiled `@Entry` declaration and share the module's
+runtime. Explicit source ownership separates programs in the same compilation.
+Launchers and distributions consume the program's compiled entry through the graph.
 
 ```kotlin
-dependeasy {
-    jvm { dependencies { implementation(Versions.Tooling.Clikt) } }
-    jvmEntryPoint("probe", "example.ProbeKt", compilation = "probe", verify = true)
-    jvmLauncher("launcher", "example.MainKt", "bin/example")
-    jvmDistribution("applicationDist", "example.MainKt", "example")
+library {
+    val application by program(sources = FileSet(listOf("src/main/kotlin/example/application")))
+    val launcher by launcher(application, output = "bin/example")
+    val applicationDist by distribution(application, executable = "example")
+    dependencies { implementation(Versions.Tooling.Clikt) }
 }
 ```
 
 `desktopApplication` owns the Compose/JDK packaging defaults and accepts the
 ordinary Compose application DSL. Package formats, heap settings, ports and JDK
-modules remain visible product choices. `packagedRuntimeTest` uses the actual
+modules remain visible product choices. Inside `desktopApp`,
+`val verifyPackage by packagedRuntime()` resolves the compiled `@Entry` probe and
+consumes the published desktop distribution through the build graph. It uses the actual
 packaged jars and module list, so missing packaged dependencies cannot be hidden
-by the development runtime. `springImage` selects the pinned builder, Java 25 JRE
-and shared runtime policy; its task receiver remains the low-level escape.
+by the development runtime. `server(image = "registry/application:tag") { dependencies { ... } }`
+owns the Spring component, pinned builder, Java 25 JRE and shared runtime policy,
+and publishes its build and verification roles through the same workspace graph.
 
 Kotlin browser distributions first write isolated, tracked build outputs.
 `exportKotlinLibrary` synchronizes compiled files into the declared export directory
@@ -409,3 +419,7 @@ and supplies a relative pnpm dependency link. Its output snapshot excludes that
 link, whose target may contain dependency cycles; missing links still invalidate
 the export. JavaScript consumers and manifests depend on the export producer.
 Direct Kotlin distribution requests also finalize their corresponding export.
+
+Typed library tests declare JVM and Android unit suites separately. `TestDirectory` resolves a named property beneath isolated `State` or the original `HostHome`; state children are created by the existing reset action. Android unit output ownership comes from AGP public variants and task names, and runs on the build host.
+
+Pure JVM components declare `val unit by tests(environment = …)`. Their binding keeps top-level test discovery and headless JVM arguments. `TestInput.rerunWhen` records the exact environment value that requires a fresh run even when inputs match; its default only tracks the input for caching.

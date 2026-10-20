@@ -1,5 +1,11 @@
 package dev.shibasis.dependeasy.module
 
+import dev.shibasis.dependeasy.handles.node
+import dev.shibasis.dependeasy.model.CompilationRef
+import dev.shibasis.dependeasy.model.KernelSpec
+import dev.shibasis.dependeasy.model.OutputKind
+import dev.shibasis.dependeasy.process.KernelSpecOwner
+import org.gradle.api.provider.Property
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
@@ -13,7 +19,10 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.work.DisableCachingByDefault
 
 @DisableCachingByDefault(because = "Classpath files contain paths in this checkout")
-abstract class JvmClasspathTask : DefaultTask() {
+abstract class JvmClasspathTask : DefaultTask(), KernelSpecOwner {
+    @get:Input abstract val compilation: Property<String>
+    init { compilation.convention(CompilationRef.Test.name) }
+    override val kernelSpec get() = KernelSpec.JvmClasspath(CompilationRef(compilation.get()))
     @get:Classpath abstract val classpath: ConfigurableFileCollection
     @get:OutputFile abstract val destination: RegularFileProperty
     @get:Input val paths: List<String> get() = classpath.files.map { it.absolutePath }
@@ -27,10 +36,11 @@ abstract class JvmClasspathTask : DefaultTask() {
 }
 
 internal fun Project.jvmClasspath(name: String, output: String, compilation: String): TaskProvider<JvmClasspathTask> {
-    val execution = jvmExecution(compilation)
     return tasks.register<JvmClasspathTask>(name) {
+        val execution = project.jvmExecution(compilation)
+        this.compilation.set(compilation)
         dependsOn(execution.classes)
         classpath.from(execution.classpath)
         destination.set(layout.buildDirectory.file(output))
-    }
+    }.also { node(it, OutputKind.GeneratedContract) }
 }

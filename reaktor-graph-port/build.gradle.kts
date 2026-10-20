@@ -1,32 +1,11 @@
+import dev.shibasis.dependeasy.components.library
 import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.model.Targets
 import dev.shibasis.dependeasy.Versions
+
 plugins { id("dev.shibasis.dependeasy.library") }
 
-dependeasy {
-    javascript("graphPortTypeScript") {
-        kotlinLibraries(kotlinJsLibrary(Reaktor.GraphPort))
-        verify("checkGraphPortTypeScript", "ts/tsconfig.json")
-    }
-    module("dev.shibasis.reaktor.graph.port") {
-        common {
-            dependencies {
-                api(Versions.Kotlin.AtomicFu)
-                api(projects.reaktorCore)
-            }
-        }
-        android {}
-        apple {}
-        web {}
-        jvm {}
-    }
-
-
-    // The JVM test runner scans every class in the test source set, so a plain fixture class
-    // (no @Test methods) fails with initializationError. Restrict it to test classes by name.
-    tasks.withType<Test>().configureEach {
-        filter {
-            isFailOnNoMatchingTests = false
-            includeTestsMatching("*Test")
-        }
-    }
+library(namespace = "dev.shibasis.reaktor.graph.port", targets = Targets.All) {
+    dependencies { common { api(Versions.Kotlin.AtomicFu); api(Reaktor.Core) } }
+    val checkGraphPortTypeScript by typescript(kotlin = listOf(kotlinJsLibrary(Reaktor.GraphPort)))
 }

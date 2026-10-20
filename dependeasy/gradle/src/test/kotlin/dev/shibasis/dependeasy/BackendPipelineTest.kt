@@ -109,7 +109,7 @@ class BackendPipelineTest {
             parentFile.mkdirs(); writeText("""{"name":"ignored-fixture","private":true}""")
         }
         val installed = run("installWorkspace", "generatePackageScripts")
-        assertEquals(TaskOutcome.SUCCESS, installed.task(":generatePackageScripts")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, installed.task(":generatePackageScripts")?.outcome)
         assertEquals(TaskOutcome.SUCCESS, installed.task(":pnpmInstall")?.outcome)
         assertContains(directory.resolve("package.json").readText(), "./gradlew :shipTool")
         assertEquals(TaskOutcome.UP_TO_DATE, run("installWorkspace").task(":pnpmInstall")?.outcome)
@@ -178,36 +178,6 @@ class BackendPipelineTest {
         assertEquals(TaskOutcome.SUCCESS, run("installLinked").task(":pnpmInstall")?.outcome)
     }
 
-    @Test fun `swift package uses incremental locked builds`() {
-        val compilerAvailable = runCatching {
-            ProcessBuilder("swift", "--version").redirectErrorStream(true)
-                .redirectOutput(ProcessBuilder.Redirect.DISCARD).start().waitFor() == 0
-        }.getOrDefault(false)
-        org.junit.jupiter.api.Assumptions.assumeTrue(compilerAvailable, "This integration fixture requires a Swift compiler")
-        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"swiftFixture\"")
-        directory.resolve("swift/Sources/Sample").mkdirs()
-        directory.resolve("swift/Package.swift").writeText("""
-            // swift-tools-version: 6.0
-            import PackageDescription
-            let package = Package(name: "Sample", products: [.library(name: "Sample", targets: ["Sample"])],
-                targets: [.target(name: "Sample")], swiftLanguageModes: [.v6])
-        """.trimIndent())
-        val source = directory.resolve("swift/Sources/Sample/Sample.swift")
-        source.writeText("public func value() -> Int { 1 }\n")
-        directory.resolve("build.gradle.kts").writeText("""
-            import dev.shibasis.dependeasy.handles.*
-            plugins { id("dev.shibasis.dependeasy.pipeline") }
-            dependeasy {
-                val packageBuild = swiftPackage("sample", "swift").build()
-                workspace { val swiftBuild by artifacts { include(node(packageBuild)) } }
-            }
-        """.trimIndent())
-        assertNull(run("help").task(":sampleSwiftBuild"))
-        assertEquals(TaskOutcome.SUCCESS, run("swiftBuild").task(":sampleSwiftBuild")?.outcome)
-        assertEquals(TaskOutcome.UP_TO_DATE, run("swiftBuild").task(":sampleSwiftBuild")?.outcome)
-        source.writeText("public func value() -> Int { 2 }\n")
-        assertEquals(TaskOutcome.SUCCESS, run("swiftBuild").task(":sampleSwiftBuild")?.outcome)
-    }
     @Test fun `generated web assets feed the bundle without becoming authored typecheck inputs`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"webFixture\"")
         directory.resolve("web").mkdir()

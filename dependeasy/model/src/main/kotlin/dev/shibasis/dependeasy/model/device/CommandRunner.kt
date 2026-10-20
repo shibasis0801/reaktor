@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.model.device
 
+import dev.shibasis.dependeasy.model.BuildOption
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -61,17 +63,7 @@ object CommandRunner {
         }
     }
 
-    fun locate(name: String): String? {
-        val home = System.getProperty("user.home").orEmpty()
-        val candidates = buildList {
-            System.getenv("PATH").orEmpty().split(File.pathSeparator).filter(String::isNotBlank)
-                .forEach { add(File(it, name)) }
-            listOf("/usr/bin", "/opt/homebrew/bin", "/usr/local/bin").forEach { add(File(it, name)) }
-            add(File("$home/.local/bin", name))
-            File("$home/Library/Python").listFiles()
-                ?.sortedByDescending(File::getName)
-                ?.forEach { add(File(it, "bin/$name")) }
-        }
-        return candidates.firstOrNull { it.isFile && it.canExecute() }?.absolutePath
-    }
+    fun locate(name: String, directories: List<String> = BuildOption.environmentSnapshot()["PATH"].orEmpty().split(File.pathSeparator)): String? =
+        directories.asSequence().filter(String::isNotBlank).map { File(it, name) }
+            .firstOrNull { it.isFile && it.canExecute() }?.absolutePath
 }

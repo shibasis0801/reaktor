@@ -9,8 +9,16 @@ import org.gradle.api.tasks.TaskProvider
 class NodeHandle internal constructor(val id: NodeId, val task: TaskProvider<out Task>?, val outputKind: dev.shibasis.dependeasy.model.OutputKind? = null,
     internal val outputKinds: () -> List<dev.shibasis.dependeasy.model.OutputKind> = { listOfNotNull(outputKind) },
     private val owner: Project? = null,
+    internal val programEntry: KernelArtifact<org.gradle.api.file.RegularFile>? = null,
+    internal val programCompilation: dev.shibasis.dependeasy.model.CompilationRef? = null,
+    internal val programEnvironment: dev.shibasis.dependeasy.model.ProgramEnvironmentSpec? = null,
     internal val invocation: () -> Invocation) {
     val name get() = id.name
+
+    internal fun withProgram(entry: KernelArtifact<org.gradle.api.file.RegularFile>,
+        compilation: dev.shibasis.dependeasy.model.CompilationRef,
+        environment: dev.shibasis.dependeasy.model.ProgramEnvironmentSpec) =
+        NodeHandle(id, task, outputKind, outputKinds, owner, entry, compilation, environment, invocation)
 
     fun after(vararg prerequisites: NodeHandle): NodeHandle = apply {
         dev.shibasis.dependeasy.workspace.BuildWorkspace.get(requireNotNull(owner)).connect(this, prerequisites.toList())

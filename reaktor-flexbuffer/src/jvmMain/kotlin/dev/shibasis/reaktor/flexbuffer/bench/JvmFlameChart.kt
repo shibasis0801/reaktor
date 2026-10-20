@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.flexbuffer.bench
 
+import dev.shibasis.reaktor.core.build.Entry
+
 /**
  * JVM flamechart benchmark entry point.
  *
@@ -19,6 +21,7 @@ package dev.shibasis.reaktor.flexbuffer.bench
  *   - Object pool acquire/release patterns
  *   - GC safepoint stalls (if any)
  */
+@Entry
 fun main() {
     println("╔══════════════════════════════════════════╗")
     println("║   JVM FlameChart Benchmark               ║")

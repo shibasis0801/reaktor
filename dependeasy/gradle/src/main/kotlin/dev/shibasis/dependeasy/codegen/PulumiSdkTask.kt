@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.codegen
 
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.files.clearChildrenSafely
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
@@ -18,6 +20,8 @@ abstract class PulumiSdkTask : DefaultTask() {
     @get:Input abstract val server: Property<String>
     @get:Input abstract val executable: Property<String>
     @get:Input abstract val toolVersion: Property<String>
+    @get:Input abstract val processPath: Property<String>
+    init { processPath.convention(project.option(BuildOption.environment("PATH", ""))) }
     @get:OutputDirectory abstract val outputDirectory: DirectoryProperty
 
     @TaskAction fun generate() {
@@ -25,7 +29,7 @@ abstract class PulumiSdkTask : DefaultTask() {
         output.clearChildrenSafely()
         execOperations.exec {
             executable = this@PulumiSdkTask.executable.get()
-            environment("PATH", File(executable).parent + File.pathSeparator + System.getenv("PATH").orEmpty())
+            environment("PATH", File(executable).parent + File.pathSeparator + processPath.get())
             args("package", "gen-sdk", providerName.get(), "--language", "java",
                 "--version", providerVersion.get(), "--server", server.get(), "--out", output.absolutePath,
                 "--non-interactive")

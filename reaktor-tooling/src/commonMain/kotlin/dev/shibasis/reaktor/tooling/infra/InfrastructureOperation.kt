@@ -92,6 +92,7 @@ sealed interface InfrastructureOperation {
         val database: String,
         val windowMinutes: Int = 60,
         val limit: Int = 500,
+        val filter: SpanReadFilter = SpanReadFilter(),
     ) : InfrastructureOperation
 
     @Serializable

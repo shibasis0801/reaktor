@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.cloud
 
+import dev.shibasis.reaktor.core.build.Entry
 import dev.shibasis.reaktor.tooling.cloud.CloudInventory
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Paths
@@ -8,6 +9,7 @@ import java.nio.file.Paths
  * Dev verification entrypoint: dumps the Cloud inventory read from a repo's `wrangler.json`.
  * Run via `./gradlew :reaktor-cloud:verifyWrangler -PwranglerPath=/path/to/repo`.
  */
+@Entry
 fun main(args: Array<String>) {
     val root = Paths.get(args.firstOrNull() ?: ".")
     val resources = runBlocking { CloudInventory(listOf(WranglerInventoryProvider(root)), System::currentTimeMillis).read().resources }

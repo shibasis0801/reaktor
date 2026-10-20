@@ -11,6 +11,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import dev.shibasis.composeflow.compose.theme.FlowSizing
@@ -30,7 +33,7 @@ fun Controls(
     onZoomOut: () -> Unit,
     onFitView: () -> Unit,
 ) {
-    FlowControls(modifier, viewport, onZoomIn, onZoomOut, onFitView)
+    FlowControls(modifier, { viewport.zoom }, onZoomIn, onZoomOut, onFitView)
 }
 
 @Composable
@@ -53,7 +56,7 @@ fun BoxScope.ViewportPortal(
 @Composable
 internal fun FlowControls(
     modifier: Modifier,
-    viewport: Viewport,
+    zoom: () -> Double,
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
     onFitView: () -> Unit,
@@ -68,14 +71,20 @@ internal fun FlowControls(
             ControlButton(label = "-", onClick = onZoomOut)
             ControlButton(label = "+", onClick = onZoomIn)
             ControlButton(label = "Fit", onClick = onFitView)
-            Text(
-                text = "${(viewport.zoom * 100).roundToInt()}%",
-                color = FlowText.copy(alpha = FlowVisualDefaults.panelTextAlpha),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = FlowSizing.viewportLabelSpacing),
-            )
+            ZoomLabel(zoom)
         }
     }
+}
+
+@Composable
+private fun ZoomLabel(zoom: () -> Double) {
+    val percent by remember(zoom) { derivedStateOf { (zoom() * 100).roundToInt() } }
+    Text(
+        text = "$percent%",
+        color = FlowText.copy(alpha = FlowVisualDefaults.panelTextAlpha),
+        style = MaterialTheme.typography.labelSmall,
+        modifier = Modifier.padding(start = FlowSizing.viewportLabelSpacing),
+    )
 }
 
 @Composable

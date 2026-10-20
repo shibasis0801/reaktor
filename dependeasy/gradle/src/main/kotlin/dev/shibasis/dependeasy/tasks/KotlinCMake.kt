@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.tasks
 
+import dev.shibasis.dependeasy.toolchain.buildHost
 import dev.shibasis.dependeasy.handles.publishOutput
 import dev.shibasis.dependeasy.model.Apple
 import dev.shibasis.dependeasy.model.NativeContract
@@ -11,6 +12,7 @@ import dev.shibasis.dependeasy.native.cmakeSources
 import dev.shibasis.dependeasy.native.nativeBuildDirectory
 import dev.shibasis.dependeasy.native.nativeConfigurationOrNull
 import dev.shibasis.dependeasy.native.nativeProjectDependencies
+import dev.shibasis.dependeasy.toolchain.NativeBuildTools
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
@@ -26,7 +28,7 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
     val native = nativeConfigurationOrNull?.takeIf { it.isEnabled && it.supports(platform) } ?: return null
     native.android.declare(native.resolvedDependencies)
     val nativeDependencies = nativeProjectDependencies()
-    val appleHost = platform is CmakePlatform.Darwin || platform is CmakePlatform.Host && providers.systemProperty("os.name").get().contains("Mac", true)
+    val appleHost = platform is CmakePlatform.Darwin || platform is CmakePlatform.Host && buildHost.mac
     val sourceDependencies = (native.resolvedDependencies + nativeDependencies.flatMap { it.project.nativeConfigurationOrNull!!.resolvedDependencies }).distinctBy { it.name }
         .filter { (it.recipe != "foundation" || appleHost) && (it.recipe != "prefab" || platform is CmakePlatform.Android) }
     val dependencyTasks = nativeDependencies.mapNotNull { dependency ->
@@ -48,10 +50,10 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
         val contractPath = "dependeasy/cmake/${native.resolvedLibraryName}-${platform.variant.replace('/', '-')}"
         nativeContractFile.set(project.layout.buildDirectory.file("$contractPath.cmake"))
         nativeModelFile.set(project.layout.buildDirectory.file("$contractPath.json"))
-        val hostOpenSsl = if(platform !is CmakePlatform.Android && native.resolvedDependencies.any { it.name.startsWith("openssl-") })
-            project.providers.environmentVariable("OPENSSL_ROOT_DIR").orNull?.let { java.io.File(it) }
-                ?: listOf(java.io.File("/opt/homebrew/opt/openssl"), java.io.File("/usr/local/opt/openssl")).firstOrNull { it.isDirectory }
-            else null
+        val hostRoots = if (platform is CmakePlatform.Android) emptyMap() else
+            native.resolvedDependencies.flatMap { it.hostRoots }.distinct().mapNotNull { variable ->
+                NativeBuildTools.get(project).hostDirectory(variable).get().takeIf(String::isNotBlank)?.let { variable to it }
+            }.toMap()
         val includes = native.resolvedIncludeDirs
         val libraryName = native.resolvedLibraryName
         val sources = project.nativeSourceContracts(sourceDependencies.filter { it.recipe != "foundation" }, platform, emptyMap())
@@ -60,10 +62,8 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
             val hermes = sourceDependencies.any { it.recipe == "hermes" }
             val foundation = sourceDependencies.any { it.recipe == "foundation" }
             BuildModelReader.json.encodeToString(NativeContract(library = libraryName, platform = platform.variant,
-                settings = settings + (hostOpenSsl?.let {
-                    mapOf("OPENSSL_ROOT_DIR" to it.absolutePath) +
-                        if (platform is CmakePlatform.Darwin) mapOf("CMAKE_FIND_ROOT_PATH" to it.absolutePath) else emptyMap()
-                }.orEmpty()) + mapOf("CMAKE_CXX_STANDARD" to ToolchainVersions.CppStandard, "CMAKE_CXX_EXTENSIONS" to "OFF"),
+                settings = settings + hostRoots +
+                    (if (platform is CmakePlatform.Darwin && hostRoots.isNotEmpty()) mapOf("CMAKE_FIND_ROOT_PATH" to hostRoots.values.distinct().joinToString(";")) else emptyMap()) + mapOf("CMAKE_CXX_STANDARD" to ToolchainVersions.CppStandard, "CMAKE_CXX_EXTENSIONS" to "OFF"),
                 includeDirectories = includes,
                 linkLibraries = (if(platform is CmakePlatform.Android) listOf("android", "log") else emptyList()) +
                     (if(hermes) if(platform is CmakePlatform.Android) listOf("jsi") else listOf("hermesvm", "jsi") else emptyList()) +

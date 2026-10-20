@@ -12,7 +12,6 @@ private val pluginVersions = mapOf(
     "com.google.devtools.ksp" to Versions.Ksp,
     "com.google.firebase.crashlytics" to Versions.Crashlytics,
     "com.google.gms.google-services" to Versions.GoogleServices,
-    "com.codingfeline.buildkonfig" to Versions.BuildKonfig,
     "app.cash.sqldelight" to Versions.SqlDelight,
     "org.jetbrains.kotlinx.benchmark" to Versions.KotlinBenchmark,
 )

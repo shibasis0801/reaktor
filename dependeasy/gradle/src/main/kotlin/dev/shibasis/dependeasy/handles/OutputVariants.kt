@@ -13,11 +13,11 @@ import kotlinx.serialization.encodeToString
 fun Project.publishOutput(kind: OutputKind, location: Any, vararg qualifiers: Enum<*>,
     producer: TaskProvider<out Task>? = null) {
     val handle = OutputHandle(dependencies.project(mapOf("path" to path)), rootProject.name, path, kind, qualifiers.map { it.name })
-    publishOutput(handle, location, producer)
+    publishOutput(handle, location, producer, declaredAt = declarationSite()?.takeIf { it.file.endsWith(".gradle.kts") })
 }
 
-internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer: TaskProvider<out Task>? = null) {
-    val declared = declarationSite()
+internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer: TaskProvider<out Task>? = null, declaredAt: SourceSite? = null) {
+    val declared = declaredAt ?: declarationSite()
     val files = files(location).also { if (producer != null) it.builtBy(producer) }
     configurations.create(handle.nodeId.name) {
         isCanBeConsumed = true
@@ -27,18 +27,26 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
     }
     BuildWorkspace.get(this).graph.configure {
         nodes.add(provider {
-            val site = this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared
+            val site = declaredAt ?: this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared
             val tasks = files.buildDependencies.getDependencies(null).sortedBy { it.path }
             require(tasks.isNotEmpty()) { "Output ${handle.nodeId} has no producer" }
             require(tasks.all { it.project.path == this@publishOutput.path && it.project.rootDir == this@publishOutput.rootDir }) { "Publish outputs in their owning project: ${handle.nodeId}; found ${tasks.map { it.project.path }}" }
             BuildModelReader.encode(Node(handle.nodeId, NodeKind.Kernel, handle.nodeId.name,
-                if (handle.kind in setOf(OutputKind.VerificationResults, OutputKind.WorkspaceCompletion)) Effect.Verify else Effect.Build,
+                when (handle.kind) {
+                    OutputKind.VerificationResults -> Effect.Verify
+                    OutputKind.WorkspaceCompletion -> when (Workspace.valueOf(handle.qualifiers.single())) {
+                        Workspace.Verify -> Effect.Verify
+                        Workspace.Deploy -> Effect.Deploy
+                        else -> Effect.Build
+                    }
+                    else -> Effect.Build
+                },
                 HostRequirement(handle.kind.platform), site, tasks.singleOrNull()?.let(::kernelRef),
                 Invocation.Gradle(tasks.map { it.path }), outputs = listOf(FileSet(files.paths(this@publishOutput), handle.kind.name)),
                 artifactFamily = handle.kind.family))
         })
         omissions.addAll(provider {
-            val site = this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared
+            val site = declaredAt ?: this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared
             val tasks = files.buildDependencies.getDependencies(null)
             listOfNotNull(if (tasks.size != 1) Omission(handle.nodeId, "Output has multiple Gradle producers", tasks.map { it.path }.sorted().joinToString(", ")) else null,
                 if (site == null) Omission(handle.nodeId, "Output is declared by its owning plugin") else null)
@@ -51,5 +59,17 @@ internal fun FileCollection.paths(project: Project) = files.map {
     it.absoluteFile.relativeTo(project.rootDir.absoluteFile).invariantSeparatorsPath
 }.sorted()
 
-internal fun Project.publishRole(role: Workspace, target: NodeHandle, manifest: Any) =
-    publishOutput(OutputHandle("", rootProject.name, path, OutputKind.WorkspaceCompletion, listOf(role.name)), manifest, target.task)
+internal fun Project.publishRole(role: Workspace, target: NodeHandle, manifest: Any) {
+    val handle = OutputHandle("", rootProject.name, path, OutputKind.WorkspaceCompletion, listOf(role.name))
+    publishOutput(handle, manifest, target.task)
+    BuildWorkspace.get(this).graph.configure {
+        edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.Includes(handle.nodeId, target.id)))
+    }
+}
+
+internal fun Project.publishModuleOutput(kind: OutputKind, location: Any, vararg qualifiers: Enum<*>,
+    producer: TaskProvider<out Task>? = null) {
+    val handle = OutputHandle(dependencies.project(mapOf("path" to path)), rootProject.name, path, kind, qualifiers.map { it.name })
+    publishOutput(handle, location, producer)
+}
+

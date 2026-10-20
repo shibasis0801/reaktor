@@ -12,7 +12,8 @@ internal fun agentEvidenceTools(workspace: AgentWorkspace): List<McpTool> {
     fun result(task: AgentTaskEvidence) = AgentWorkspaceJson.encodeToJsonElement(AgentTaskEvidence.serializer(), task)
     return listOf(
         McpTool("agent_queue", "Queue an exact next submission behind this task's running turn. Interrupted or failed predecessors block the queue; owner restart never silently executes it.",
-            objectSchema(mapOf("afterRunId" to stringSchema("Active run id"), "submission" to buildJsonObject { put("type", "object"); put("additionalProperties", true) }), listOf("afterRunId", "submission")), false, true) {
+            objectSchema(mapOf("afterRunId" to stringSchema("Active run id"), "submission" to buildJsonObject { put("type", "object"); put("additionalProperties", true) }), listOf("afterRunId", "submission")),
+            readOnly = false, idempotent = true, destructive = true, openWorld = true) {
             AgentWorkspaceJson.encodeToJsonElement(AgentQueuedTurn.serializer(), workspace.queue(it.text("afterRunId"),
                 AgentWorkspaceJson.decodeFromJsonElement(AgentSubmission.serializer(), it.getValue("submission"))))
         },

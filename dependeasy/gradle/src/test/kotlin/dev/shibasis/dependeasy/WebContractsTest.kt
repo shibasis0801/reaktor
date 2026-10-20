@@ -188,6 +188,26 @@ class WebContractsTest {
         val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
         assertTrue(model.nodes.any { it.id.project == ":site" && it.id.name == "outputWorkspaceCompletionVerify" })
         assertTrue(model.nodes.any { it.id.project == ":site" && it.id.name == "outputBrowserBundle" })
+        for ((owner, role, producer) in listOf(
+            Triple(":site", "Build", "assembleWeb"),
+            Triple(":site", "Web", "assembleWeb"),
+            Triple(":site", "Verify", "checkWeb"),
+            Triple(":site", "Deploy", "siteDeploy"),
+            Triple(":", "Verify", "pr"),
+            Triple(":", "Build", "everything"),
+        )) {
+            val output = model.nodes.single { it.id.project == owner && it.id.name == "outputWorkspaceCompletion$role" }
+            val expected = when (role) {
+                "Verify" -> dev.shibasis.dependeasy.model.Effect.Verify
+                "Deploy" -> dev.shibasis.dependeasy.model.Effect.Deploy
+                else -> dev.shibasis.dependeasy.model.Effect.Build
+            }
+            assertEquals(expected, output.effect)
+            assertEquals(model.nodes.single { it.id.project == owner && it.id.name == producer }.effect, output.effect)
+            assertTrue(model.edges.any { edge -> edge is dev.shibasis.dependeasy.model.Edge.Includes &&
+                edge.from.project == owner && edge.from.name == "outputWorkspaceCompletion$role" &&
+                edge.to.project == owner && edge.to.name == producer }, "$owner $role must expose its producing node")
+        }
         assertEquals("site", json("site/build/dependeasy/web/site.json").getValue("component").jsonPrimitive.content)
         val aliases = json("site/build/dependeasy/web/site.json").getValue("aliases").jsonObject
         assertEquals("../../../../library/build/library/module.mjs", aliases.getValue("fixture-library").jsonPrimitive.content)
@@ -250,36 +270,38 @@ class WebContractsTest {
         assertContains(run("pr", "--dry-run").output, "Reusing configuration cache")
     }
 
-    @Test fun `fleet uses standalone dev and deep merged prod with arrays replaced`() {
+    @Test fun `fleet uses declared preview and deep merged stable with arrays replaced`() {
         val defaults = """{"compatibility_date":"2026-10-01","vars":{"shared":"yes","override":"base"},"services":[{"binding":"BASE","service":"base"}]}"""
-        val prod = """{"name":"fixture-prod","vars":{"override":"local"},"services":[{"binding":"LOCAL","service":"local"}]}"""
-        val dev = """{"name":"fixture-dev","vars":{"development":"only"}}"""
+        val stable = """{"name":"fixture-stable","vars":{"override":"local"},"services":[{"binding":"LOCAL","service":"local"}]}"""
+        val preview = """{"name":"fixture-preview","vars":{"previewelopment":"only"}}"""
         write("wrangler.json", defaults)
-        write("targets/worker/wrangler.json", prod)
-        write("targets/worker/wrangler.dev.json", dev)
+        write("targets/worker/wrangler.json", stable)
+        write("targets/worker/wrangler.preview.json", preview)
         prepare("""
             tasks.register<dev.shibasis.dependeasy.cloudflare.WorkerFleetTask>("fleet") {
                 root.set(layout.projectDirectory)
+                defaultEnvironment.set("stable")
                 defaults.set(layout.projectDirectory.file("wrangler.json"))
-                configurations.from("targets/worker/wrangler.json", "targets/worker/wrangler.dev.json")
-                declaration.set(""${'"'}{"schema":1,"workers":[{"name":"worker","node":{"build":"webFixture","project":":","name":"deployWorker"},"directory":"targets/worker","configurations":{"dev":"targets/worker/wrangler.dependeasy-dev.json","prod":"targets/worker/wrangler.dependeasy-prod.json"},"services":{"dev":"fixture-dev","prod":"fixture-prod"}}]}""${'"'})
-                finalConfigurations.from("targets/worker/wrangler.dependeasy-dev.json", "targets/worker/wrangler.dependeasy-prod.json")
+                configurations.from("targets/worker/wrangler.json", "targets/worker/wrangler.preview.json")
+                declaration.set(""${'"'}{"schema":1,"workers":[{"name":"worker","node":{"build":"webFixture","project":":","name":"deployWorker"},"directory":"targets/worker","configurations":{"preview":"targets/worker/wrangler.dependeasy-preview.json","stable":"targets/worker/wrangler.dependeasy-stable.json"},"services":{"preview":"fixture-preview","stable":"fixture-stable"}}]}""${'"'})
+                finalConfigurations.from("targets/worker/wrangler.dependeasy-preview.json", "targets/worker/wrangler.dependeasy-stable.json")
                 contract.set(layout.buildDirectory.file("cloudflare/fleet.json"))
             }
         """.trimIndent())
         assertEquals(TaskOutcome.SUCCESS, run("fleet").task(":fleet")?.outcome)
-        val result = json("targets/worker/wrangler.dependeasy-prod.json")
+        val result = json("targets/worker/wrangler.dependeasy-stable.json")
         assertEquals("yes", result.getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
         assertEquals("local", result.getValue("vars").jsonObject.getValue("override").jsonPrimitive.content)
         assertEquals("LOCAL", result.getValue("services").jsonArray.single().jsonObject.getValue("binding").jsonPrimitive.content)
-        assertEquals(Json.parseToJsonElement(dev), json("targets/worker/wrangler.dependeasy-dev.json"))
-        assertEquals(prod, directory.resolve("targets/worker/wrangler.json").readText())
+        assertEquals(Json.parseToJsonElement(preview), json("targets/worker/wrangler.dependeasy-preview.json"))
+        assertEquals(stable, directory.resolve("targets/worker/wrangler.json").readText())
+        assertFalse(Regex("bestbuds|manna", RegexOption.IGNORE_CASE).containsMatchIn(directory.resolve("build/cloudflare/fleet.json").readText()))
         val repeat = run("fleet")
         assertContains(repeat.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":fleet")?.outcome)
         write("wrangler.json", defaults.replace("yes", "changed"))
         assertEquals(TaskOutcome.SUCCESS, run("fleet").task(":fleet")?.outcome)
-        assertEquals("changed", json("targets/worker/wrangler.dependeasy-prod.json").getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
+        assertEquals("changed", json("targets/worker/wrangler.dependeasy-stable.json").getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
     }
 
     @Test fun `package aliases preserve runtime scripts and remove retired generated aliases`() {

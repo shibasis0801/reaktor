@@ -1,27 +1,16 @@
 import dev.shibasis.dependeasy.Versions
-import dev.shibasis.dependeasy.dependencies.useKoin
+import dev.shibasis.dependeasy.common.commonKoin
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
 
 plugins { id("dev.shibasis.dependeasy.compose-library") }
 
-dependeasy {
-    module("dev.shibasis.reaktor.location") {
+library(namespace = "dev.shibasis.reaktor.location", targets = Targets.All) {
+    dependencies {
         common {
-            dependencies {
-                api(projects.reaktorUi)
-            }
+            api(projects.reaktorUi)
+            commonKoin()
         }
-
-        android {
-            dependencies {
-                api(Versions.Android.Location)
-            }
-        }
-        apple {}
-        web {}
-        jvm {}
-
-        kotlin {
-            useKoin()
-        }
+        android { api(Versions.Android.Location) }
     }
 }

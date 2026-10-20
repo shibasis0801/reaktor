@@ -1,10 +1,6 @@
 package dev.shibasis.dependeasy.codegen
 
-import org.gradle.api.Project
+import dev.shibasis.dependeasy.model.ModuleHandle
+import dev.shibasis.dependeasy.model.ProcessorOption
 
-/** Declare the processor and its options; the kernel owns compilation wiring. */
-class KotlinProcessor internal constructor(private val project: Project, private val dependency: Any) {
-    internal val options = linkedMapOf<String, String>()
-    fun option(name: String, value: String) { options[name] = value }
-    internal fun install() = KotlinProcessorKernel(project, dependency, this).install()
-}
+internal data class KotlinProcessor(val module: ModuleHandle, val options: Map<ProcessorOption, String> = emptyMap())

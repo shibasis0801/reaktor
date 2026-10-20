@@ -2,43 +2,40 @@ package dev.shibasis.dependeasy.codegen
 
 import dev.shibasis.dependeasy.model.SourceSetRef
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
-/** Authored Kotlin stays in a template; the kernel embeds declared binary inputs. */
-class KotlinTemplate internal constructor(private val project: Project, private val name: String) {
-    var namespace: String = ""
-    var sourceSet: SourceSetRef = SourceSetRef.CommonMain
-    var template: Any = "src/${sourceSet.name}/kotlin/$name.kt.template"
-    private val assets = linkedMapOf<String, Any>()
-    private val producers = mutableListOf<TaskProvider<out Task>>()
+/** Authored Kotlin stays in a template; declared binary assets replace its tokens. */
+class KotlinTemplate(
+    val namespace: String,
+    assets: Map<String, String>,
+    val sourceSet: SourceSetRef = SourceSetRef.CommonMain,
+    val template: String? = null,
+) {
+    private val assets = assets.toMap()
 
-    fun base64(token: String, file: Any) { assets[token] = file }
-    fun from(vararg tasks: TaskProvider<out Task>) { producers.addAll(tasks) }
-
-    internal fun register(): TaskProvider<KotlinTemplateTask> {
+    internal fun register(project: Project, name: String): TaskProvider<KotlinTemplateTask> {
         require(namespace.isNotBlank()) { "Kotlin template namespace is required" }
         val task = project.tasks.register<KotlinTemplateTask>("generate$name") {
-            dependsOn(producers)
             root.set(project.layout.projectDirectory)
-            templateFile.set(project.file(this@KotlinTemplate.template))
+            templateFile.set(project.file(template ?: "src/${sourceSet.name}/kotlin/$name.kt.template"))
             assetPaths.set(assets.mapValues { (_, file) -> project.file(file).relativeTo(project.projectDir).invariantSeparatorsPath })
             assetFiles.from(assets.values)
-            fileName.set("${namespace.replace('.', '/')}/$name.kt")
-            outputDirectory.set(project.layout.buildDirectory.dir("generated/dependeasy/$name/kotlin"))
+            fileName.set("${namespace.replace('.', '/')}/${this.name}.kt")
+            outputDirectory.set(project.layout.buildDirectory.dir("generated/dependeasy/${this.name}/kotlin"))
         }
         project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
-            project.extensions.getByType<KotlinMultiplatformExtension>().sourceSets.named(sourceSet.name) {
-                kotlin.srcDir(task.flatMap { it.outputDirectory })
+            project.extensions.getByType<KotlinMultiplatformExtension>().sourceSets.configureEach {
+                if (this.name == sourceSet.name) kotlin.srcDir(task.flatMap { it.outputDirectory })
             }
         }
         project.pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-            project.extensions.getByType<KotlinJvmProjectExtension>().sourceSets.named(if (sourceSet == SourceSetRef.CommonMain) SourceSetRef.Main.name else sourceSet.name) {
-                kotlin.srcDir(task.flatMap { it.outputDirectory })
+            project.extensions.getByType<KotlinJvmProjectExtension>().sourceSets.configureEach {
+                if (this.name == (if (sourceSet == SourceSetRef.CommonMain) SourceSetRef.Main.name else sourceSet.name))
+                    kotlin.srcDir(task.flatMap { it.outputDirectory })
             }
         }
         return task

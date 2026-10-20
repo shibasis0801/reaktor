@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.verification
 
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.files.deleteTreeSafely
 import dev.shibasis.dependeasy.model.device.*
@@ -38,6 +40,7 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
     @get:Input @get:Optional abstract val team: Property<String>
     @get:Input @get:Optional abstract val wdaBundleId: Property<String>
     @get:Input abstract val environment: MapProperty<String, String>
+    @get:Input abstract val environmentAllowList: SetProperty<String>
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val environmentFiles: ConfigurableFileCollection
     @get:Input abstract val uninstallOnSignatureMismatch: Property<Boolean>
     @get:Input abstract val installApplication: Property<Boolean>
@@ -50,6 +53,13 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
     @get:OutputFile abstract val contractFile: RegularFileProperty
     init {
         runnerWorkspace.convention(project.layout.projectDirectory.dir("tmp/dependeasy/device/$name/runner"))
+        val path = project.option(BuildOption.environment("PATH", "")).map { value ->
+            CommandRunner.locate("adb", value.split(java.io.File.pathSeparator))?.let { java.io.File(it) }
+        }
+        val sdk = project.option(BuildOption.environment("ANDROID_HOME"))
+            .orElse(project.option(BuildOption.systemProperty("user.home")).map { "$it/Library/Android/sdk" })
+        adbExecutable.convention(project.layout.file(path.orElse(sdk.map { java.io.File(it, "platform-tools/adb") }).filter { it.isFile }))
+        environmentAllowList.convention(emptySet())
         environment.convention(emptyMap()); hook.convention(emptyList()); processPrefix.convention(emptyList()); installApplication.convention(false)
         platform.convention(DevicePlatform.Android)
         selectedFlow.convention("")
@@ -66,7 +76,7 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
     @get:Internal override val kernelEffect get() = Effect.Verify
     @get:Internal override val kernelHost get() = HostRequirement(execution = ExecutionHost.Local)
     @get:Internal override val kernelSpec get() = KernelSpec.DeviceFlow(platform.get().value, applicationId.get(), appOutput.get(),
-        flowPaths.get(), contractFile.get().asFile.absolutePath, (readEnvironment(environmentFiles.files).keys + environment.get().keys).sorted(), ToolRef("maestro-runner", runnerVersion.get()), installApplication.get(), uninstallOnSignatureMismatch.get(), artifacts.get().value)
+        flowPaths.get(), contractFile.get().asFile.absolutePath, (readEnvironment(environmentFiles.files).keys + environment.get().keys).sorted(), ToolRef("maestro-runner", runnerVersion.get()), installApplication.get(), uninstallOnSignatureMismatch.get(), artifacts.get().value, environmentAllowList.get().sorted())
     @TaskAction fun run() {
         val root = workingDirectory.get().asFile
         val developerToolsDirectory = if (platform.get() == DevicePlatform.Ios) {
@@ -98,7 +108,7 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
         var contract = DeviceFlowContract(platform = platform.get().value, applicationId = applicationId.get(), appOutput = appOutput.get(),
             appFile = appFile.orNull?.asFile?.absolutePath, flows = flowPaths.get(), runner = executable.absolutePath,
             reportDirectory = reportDirectory.get().asFile.absolutePath, team = team.orNull, wdaBundleId = wdaBundleId.orNull,
-            serial = device.id, environmentKeys = values.keys.sorted(), uninstallOnSignatureMismatch = uninstallOnSignatureMismatch.get(), processPrefix = processPrefix.get(), artifacts = artifacts.get().value)
+            serial = device.id, environmentKeys = values.keys.sorted(), uninstallOnSignatureMismatch = uninstallOnSignatureMismatch.get(), processPrefix = processPrefix.get(), artifacts = artifacts.get().value, environmentAllowList = environmentAllowList.get().sorted())
         fun writeContract() = contractFile.get().asFile.apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(contract)) }
         fun productHook(phase: String, succeeded: Boolean = true) {
             if (hook.get().isEmpty()) return
@@ -127,8 +137,7 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
                 val app = requireNotNull(contract.appFile) { "Build the declared app output before installation" }
                 require(java.io.File(app).exists()) { "Missing declared app output: $app" }
                 if (platform.get() == DevicePlatform.Android) {
-                    val adb = adbExecutable.orNull?.asFile?.absolutePath ?: CommandRunner.locate("adb") ?: System.getenv("ANDROID_HOME")?.let { "$it/platform-tools/adb" }
-                        ?: System.getProperty("user.home") + "/Library/Android/sdk/platform-tools/adb"
+                    val adb = requireNotNull(adbExecutable.orNull) { "Install adb in PATH or the declared Android SDK" }.asFile.absolutePath
                     val output = java.io.ByteArrayOutputStream()
                     val installed = execOperations.exec {
                         commandLine(adb, "-s", device.id, "install", "-r", app); standardOutput = output; errorOutput = output; isIgnoreExitValue = true
@@ -157,7 +166,7 @@ abstract class DeviceFlow : DefaultTask(), KernelSpecOwner {
                 productHook("beforeFlow")
                 var passed = false
                 try {
-                    val result = engine.testPhysicalBlocking(contract, environment.get() + values.filterKeys { it in setOf("MESSAGE", "TEXT", "LOGIN_USER", "CHAT_PEER") })
+                    val result = engine.testPhysicalBlocking(contract, environment.get() + values.filterKeys { it in environmentAllowList.get() })
                     logger.lifecycle(result.output)
                     passed = result.succeeded
                     check(passed) { "Physical device flow failed: ${flows.joinToString()}" }

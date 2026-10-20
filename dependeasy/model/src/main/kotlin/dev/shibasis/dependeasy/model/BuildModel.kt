@@ -33,8 +33,8 @@ data class BuildModel(
 
 @Serializable data class Producer(val name: String = "dependeasy", val version: String)
 @Serializable data class BuildIdentity(val name: String, val directory: String)
-@Serializable data class DeclarationInput(val build: String, val path: String, val sha256: String, val kind: DeclarationInputKind = DeclarationInputKind.File)
-@Serializable enum class DeclarationInputKind { File, Membership }
+@Serializable data class DeclarationInput(val build: String, val path: String, val sha256: String, val kind: DeclarationInputKind = DeclarationInputKind.File, val option: OptionValue? = null)
+@Serializable enum class DeclarationInputKind { File, Membership, Option }
 @Serializable data class SourceSite(val build: String, val file: String, val line: Int) {
     init { require(line > 0 && file.isNotBlank()) }
 }
@@ -86,6 +86,7 @@ sealed interface Edge {
     @Serializable data class Includes(override val from: NodeId, override val to: NodeId) : Edge
     @Serializable data class Consumes(override val from: NodeId, override val to: NodeId, val output: String) : Edge
     @Serializable data class After(override val from: NodeId, override val to: NodeId) : Edge
+    @Serializable data class OrderedAfter(override val from: NodeId, override val to: NodeId) : Edge
 }
 
 @Serializable
@@ -115,12 +116,12 @@ data class RunReceipt(
     val taskHosts: Map<String, HostRequirement> = emptyMap(),
     val xcodeEnvironment: List<String> = listOf("SDK_NAME", "CONFIGURATION", "ARCHS", "CURRENT_ARCH", "TARGET_BUILD_DIR", "FRAMEWORKS_FOLDER_PATH",
         "DEVELOPER_DIR", "PLATFORM_NAME", "BUILT_PRODUCTS_DIR", "UNLOCALIZED_RESOURCES_FOLDER_PATH", "EXPANDED_CODE_SIGN_IDENTITY",
-        "CODE_SIGNING_ALLOWED", "KOTLIN_FRAMEWORK_BUILD_TYPE", "BESTBUDS_GRADLE_ARGS", "ACTION", "DWARF_DSYM_FOLDER_PATH",
+        "CODE_SIGNING_ALLOWED", "KOTLIN_FRAMEWORK_BUILD_TYPE", "ACTION", "DWARF_DSYM_FOLDER_PATH",
         "ENABLE_USER_SCRIPT_SANDBOXING", "PROJECT_FILE_PATH"))
 
 fun BuildModel.requiredHost(id: NodeId): HostRequirement {
     val byId = nodes.associateBy { it.id }
-    val prerequisites = edges.groupBy { it.from }
+    val prerequisites = edges.filter { it !is Edge.OrderedAfter }.groupBy { it.from }
     fun resolve(node: NodeId, visited: Set<NodeId>): HostRequirement {
         val own = byId[node]?.host ?: HostRequirement()
         if (node in visited) return own

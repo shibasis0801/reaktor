@@ -80,6 +80,14 @@ class DoorAuthorityTest {
         assertEquals(DoorDecision.Ask(SafetyClass.UnknownRemoteEffect), DoorAuthority.decide(SafetyClass.UnknownRemoteEffect, DoorPolicy.Guarded.seat("codex")))
     }
 
+    @Test fun aGuardedSeatAppliesItsOwnPlanWithoutAPersonAndAsksForAnythingWider() {
+        val guarded = DoorPolicy.Guarded.seat("codex")
+        assertEquals(DoorDecision.Allowed, DoorAuthority.decide(SafetyClass.SourceWrite, guarded, ownPlan = true))
+        assertEquals(DoorDecision.Ask(SafetyClass.SourceWrite), DoorAuthority.decide(SafetyClass.SourceWrite, guarded))
+        assertEquals(DoorDecision.Ask(SafetyClass.Destructive), DoorAuthority.decide(SafetyClass.Destructive, guarded, ownPlan = true))
+        assertEquals(DoorDecision.Ask(SafetyClass.SourceWrite), DoorAuthority.decide(SafetyClass.SourceWrite, SeatPolicy(SafetyClass.LiveRead, SafetyClass.Destructive), ownPlan = true))
+    }
+
     @Test fun aSeatAllowedLiveReadsStillAsksBeforeTouchingADevice() {
         val seat = SeatPolicy(SafetyClass.LiveRead, SafetyClass.ProductionReversibleWrite)
         assertEquals(DoorDecision.Allowed, DoorAuthority.decide(SafetyClass.LiveRead, seat))
@@ -124,9 +132,10 @@ class DoorAuthorityTest {
         try {
             File(home, ".reaktor").mkdirs(); File(workspace, ".reaktor").mkdirs()
             File(home, DoorPolicy.PATH).writeText("""{"seats":{"*":{"allow":"LiveRead","ask":"ProductionReversibleWrite"}}}""")
-            File(workspace, DoorPolicy.PATH).writeText("""{"seats":{"*":{"allow":"Destructive","ask":"Destructive"},"spawned":{"allow":"ReadOnly","ask":"LiveRead"}}}""")
+            File(workspace, DoorPolicy.PATH).writeText("""{"seats":{"*":{"allow":"Destructive","ask":"Destructive","plans":true},"spawned":{"allow":"ReadOnly","ask":"LiveRead"}}}""")
             val policy = DoorPolicy.load(workspace, home)
             assertEquals(SeatPolicy(SafetyClass.LiveRead, SafetyClass.ProductionReversibleWrite), policy.seat("codex"), "a file an agent can edit must not widen what the machine allows")
+            assertFalse(policy.seat("codex").plans, "nor let a seat apply plans the machine did not allow")
             assertEquals(SeatPolicy(SafetyClass.ReadOnly, SafetyClass.LiveRead), policy.seat("spawned"))
         } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); workspace.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }

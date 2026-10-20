@@ -2,7 +2,7 @@ package dev.shibasis.dependeasy.web
 
 
 import dev.shibasis.dependeasy.common.KotlinDependencies
-import dev.shibasis.dependeasy.handles.publishOutput
+import dev.shibasis.dependeasy.handles.publishModuleOutput
 import dev.shibasis.dependeasy.model.OutputKind
 import dev.shibasis.dependeasy.model.Verification
 import org.gradle.language.base.plugins.LifecycleBasePlugin
@@ -125,11 +125,11 @@ fun KotlinMultiplatformExtension.web(
             contract.set(project.layout.buildDirectory.file("dependeasy/web/library.json"))
             typeScriptConfiguration.set(project.layout.buildDirectory.file("dependeasy/web/library.tsconfig.json"))
         }
-        project.publishOutput(OutputKind.KotlinJsLibrary, exports.flatMap { it.destination }, producer = exports)
+        project.publishModuleOutput(OutputKind.KotlinJsLibrary, exports.flatMap { it.destination }, producer = exports)
         nodejs {
             testRuns.configureEach {
                 if (name == org.jetbrains.kotlin.gradle.plugin.KotlinCompilation.TEST_COMPILATION_NAME) {
-                    project.publishOutput(OutputKind.VerificationResults, executionTask.map { it.reports.junitXml.outputLocation.get() },
+                    project.publishModuleOutput(OutputKind.VerificationResults, executionTask.map { it.reports.junitXml.outputLocation.get() },
                         Verification.JavaScript, producer = executionTask)
                 }
             }

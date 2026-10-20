@@ -36,7 +36,7 @@ abstract class GenerateDaggerTask : DefaultTask() {
         val targets = declared.map { it.copy(host = model.requiredHost(it.id)) }
             .filter { it.host.platform != HostPlatform.Macos && it.host.execution != ExecutionHost.Local && it.invocation is Invocation.Gradle }
         val nodes = model.nodes.associateBy { it.id }
-        val prerequisites = model.edges.filter { it !is Edge.After }.groupBy { it.from }
+        val prerequisites = model.edges.filter { it !is Edge.After && it !is Edge.OrderedAfter }.groupBy { it.from }
         val androidOutputs = setOf(OutputKind.AndroidApk, OutputKind.AndroidBundle, OutputKind.AndroidLibrary, OutputKind.AndroidInstrumentedTests)
             .map { it.name }.toSet()
         fun requiresAndroid(id: NodeId, visited: Set<NodeId> = emptySet()): Boolean {

@@ -55,19 +55,20 @@ internal class AppleHost(
             fun relative(file: java.io.File) = file.relativeTo(hostDirectory).invariantSeparatorsPath
             val targets = mutableListOf(AppleHostTarget(target, bundleId, declaration.name,
                 relative(owner.layout.buildDirectory.dir("xcode-frameworks").get().asFile),
-                declaration.exports.mapNotNull { adapters[it] }, backgroundTasks, declaration.linkFlags))
+                settingsPrefix, declaration.exports.mapNotNull { adapters[it] }, backgroundTasks, declaration.linkFlags))
             extension?.let { framework ->
                 val included = project.gradle.includedBuild(framework.module.build.name)
                 targets.add(AppleHostTarget(extensionTarget, "$bundleId.$extensionTarget", framework.name,
                     relative(included.projectDir.resolve(framework.module.name).resolve("build/xcode-frameworks")),
-                    linkFlags = listOf("-lsqlite3", "-framework", "CoreLocation")))
+                    settingsPrefix = requireNotNull(extensionSettingsPrefix), linkFlags = listOf("-lsqlite3", "-framework", "CoreLocation")))
             }
             if (Reaktor.Core in declaration.exports) { project.node(archiveCheck); project.node(symbolUploadCheck) }
             val pins = linkedMapOf("appauth-ios" to Versions.AppAuthDarwin, "gtmappauth" to Versions.GtmAppAuthDarwin)
             if (Reaktor.Core in declaration.exports) pins["firebase-ios-sdk"] = Versions.FirebaseDarwin
             val contract = BuildModelReader.json.encodeToString(AppleHostContract(deploymentTarget = Versions.SDK.targetDarwin,
-                swiftVersion = Versions.SDK.Swift, team = team, entryPoint = entryPoint, versionOption = version?.name.orEmpty(),
+                swiftVersion = Versions.SDK.Swift, team = team, applicationTarget = target, entryPoint = entryPoint, versionOption = version?.name.orEmpty(),
                 numberOption = number?.name.orEmpty(), developmentToolsOption = developmentTools?.name.orEmpty(), targets = targets, swiftPackages = pins))
+            signing.configure { host.set(contract) }
             val settings = rootLayout.projectDirectory.dir("config/apple-host")
             val versionValue = version?.let(project::option)?.get() ?: "1.0"
             val numberValue = number?.let(project::option)?.get() ?: 1
@@ -107,7 +108,10 @@ internal class AppleHost(
                 product.set(project.rootProject.name); host.set(contract); versionName.set(versionValue); buildNumber.set(numberValue)
                 xcodeDirectory.set(directory); xcodeProject.set("$target.xcodeproj"); scheme.set(target)
                 webWorker.set(web?.name.orEmpty())
-                fleet?.let { workerFleet.set(project.layout.file(project.outputFiles(it).elements.map { files -> files.single().asFile })) }
+                fleet?.let {
+                    workerFleetNode.set(it.nodeId)
+                    workerFleet.set(project.layout.file(project.outputFiles(it).elements.map { files -> files.single().asFile }))
+                }
                 archiveCheckTask.set(archiveCheck.get().path)
                 symbolUploadCheckTask.set(symbolUploadCheck.get().path)
                 signingTask.set(signing.get().path)

@@ -30,7 +30,7 @@ internal fun Project.springDefaults() {
     tasks.withType<Test>().configureEach { useJUnitPlatform() }
 }
 
-internal fun Project.springImage(image: String, configuration: BootBuildImage.() -> Unit) =
+internal fun Project.springImage(image: String) =
     tasks.withType(BootBuildImage::class.java).configureEach {
         builder.set(ToolchainVersions.BuildpackBuilder)
         runImage.set(ToolchainVersions.BuildpackRunImage)
@@ -41,5 +41,4 @@ internal fun Project.springImage(image: String, configuration: BootBuildImage.()
                 "-XX:+ExitOnOutOfMemoryError -XX:+UseG1GC -XX:MaxRAMPercentage=75 -XX:InitialRAMPercentage=50 -XX:MaxMetaspaceSize=256m"))
         imageName.set(image)
         publish.set(false)
-        configuration()
     }

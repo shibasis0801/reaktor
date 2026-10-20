@@ -126,9 +126,11 @@ class OperationKernelTest {
         assertEquals("Snapshot", kernel.describe(OperationId("graph.snapshot"))?.summary)
         assertEquals(SafetyClass.ReadOnly, ids["graph.snapshot"])
         assertEquals(SafetyClass.UnknownRemoteEffect, ids["tool.workspace"])
+        assertEquals(SafetyClass.LocalArtifactWrite, ids["board.note"])
         val read = kernel.invoke(Invocation(OperationId("graph.snapshot")))
         assertEquals(JsonPrimitive("apps"), assertIs<Outcome.Completed>(read).result)
         assertIs<Outcome.ApprovalRequired>(kernel.invoke(Invocation(OperationId("tool.workspace"))))
+        assertEquals(JsonPrimitive("noted"), assertIs<Outcome.Completed>(kernel.invoke(Invocation(OperationId("board.note")))).result)
     }
 
     @Test
@@ -205,7 +207,8 @@ class OperationKernelTest {
         )))
         graph.attach(ToolNode(graph, listOf(
             Tool(ToolDefinition("graph_snapshot", "Snapshot", readOnly = true)) { ToolResult(JsonPrimitive("apps")) },
-            Tool(ToolDefinition("workspace", "Everything")) { ToolResult(JsonObject(emptyMap())) },
+            Tool(ToolDefinition("workspace", "Everything", openWorld = true)) { ToolResult(JsonObject(emptyMap())) },
+            Tool(ToolDefinition("board_note", "Notes a task on this workspace's board", idempotent = true)) { ToolResult(JsonPrimitive("noted")) },
         )))
         val approvals = DoorApprovals(directory.resolve("approvals"))
         try {

@@ -37,6 +37,8 @@ internal fun Task.declaredFileInputs(): List<FileSet> {
         is dev.shibasis.dependeasy.process.ProcessTask -> sourceFiles.declarations()
         is dev.shibasis.dependeasy.tasks.KotlinCMakeTask -> sourceFiles.declarations()
         is dev.shibasis.dependeasy.tasks.ArtifactSizeReport -> artifacts.declarations()
+        is dev.shibasis.dependeasy.codegen.KotlinObjectTask -> extensions.findByType(GeneratedObject.Spec::class.java)?.texts?.values.orEmpty()
+            .map { FileInput(FileInputKind.File, project.rootProject.file(it.path).absolutePath) }
         else -> emptyList()
     }
     return if (declarations.isEmpty()) emptyList() else listOf(FileSet(emptyList(), declarations = declarations.map { declaration ->

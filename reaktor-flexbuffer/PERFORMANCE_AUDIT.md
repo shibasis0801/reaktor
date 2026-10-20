@@ -454,8 +454,9 @@ Ordered by expected return:
 # Build the JMH jar
 ./gradlew :reaktor-flexbuffer:jvmBenchmarkBenchmarkJar
 
-# Full JVM benchmark task (configured 3-fork JMH)
-./gradlew :reaktor-flexbuffer:jvmBenchmarkAllocationStats
+# JVM score and GC allocation reports (configured 3-fork JMH)
+./gradlew :reaktor-flexbuffer:jmhScores
+./gradlew :reaktor-flexbuffer:jmhAllocations
 
 # Correctness
 ./gradlew :reaktor-compiler:test

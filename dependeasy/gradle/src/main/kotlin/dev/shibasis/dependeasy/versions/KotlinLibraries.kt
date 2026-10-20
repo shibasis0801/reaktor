@@ -27,6 +27,7 @@ object KotlinLibraries {
     const val ArrowCore = "io.arrow-kt:arrow-core"
     const val ArrowCoroutines = "io.arrow-kt:arrow-fx-coroutines"
     const val ArrowResilience = "io.arrow-kt:arrow-resilience"
+    const val KarakumRuntime = "org.jetbrains.kotlin-wrappers:kotlin-js:2026.8.4"
     const val WrappersBom = "org.jetbrains.kotlin-wrappers:kotlin-wrappers-bom:${Versions.KotlinJSWrappers}"
     fun wrapper(name: String) = "org.jetbrains.kotlin-wrappers:kotlin-$name"
     const val AtomicFu = "org.jetbrains.kotlinx:atomicfu:0.28.0"

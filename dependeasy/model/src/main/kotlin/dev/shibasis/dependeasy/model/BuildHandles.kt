@@ -4,10 +4,12 @@ import java.io.Serializable as JavaSerializable
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
+@Serializable
 data class BuildHandle(val name: String, val group: String, val module: String = name) : JavaSerializable {
     val coordinate get() = "$group:$module"
 }
 
+@Serializable
 data class ModuleHandle(val build: BuildHandle, val name: String, val group: String = build.group) : JavaSerializable {
     val path get() = ":$name"
     val coordinate get() = "$group:$name"
@@ -16,7 +18,7 @@ data class ModuleHandle(val build: BuildHandle, val name: String, val group: Str
 enum class Workspace { Verify, Build, Android, Apple, Web, Deploy }
 enum class Build { Debug, Release }
 enum class Apple { IosArm64, IosSimulatorArm64 }
-enum class Verification { Jvm, JavaScript, TypeScript, InteropTypeScript, InteropHost, WebBridge, Hangar, Window, KernelBoundary, Plugin }
+enum class Verification { Jvm, AndroidUnit, JavaScript, TypeScript, InteropTypeScript, InteropHost, WebBridge, Hangar, Window, KernelBoundary, Plugin }
 enum class OutputKind(val family: String, val platform: HostPlatform = HostPlatform.Portable) {
     GeneratedContract("metadata"), KotlinJsLibrary("web"), AppleXcodeFramework("apple", HostPlatform.Macos), AppleFramework("apple", HostPlatform.Macos), AndroidApk("android"),
     AndroidBundle("android"), AndroidLibrary("android"), AndroidInstrumentedTests("android"),

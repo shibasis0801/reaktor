@@ -3,6 +3,7 @@ package dev.shibasis.dependeasy.workspace
 import dev.shibasis.dependeasy.configuration.resolve
 import dev.shibasis.dependeasy.handles.NodeHandle
 import dev.shibasis.dependeasy.handles.OutputHandle
+import dev.shibasis.dependeasy.handles.output
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.verification.devicePreparation
 import org.gradle.api.Project
@@ -13,7 +14,7 @@ import kotlin.reflect.KProperty
 @DslMarker
 annotation class WorkspaceDsl
 
-class NodeDeclaration internal constructor(private val declare: (String) -> NodeHandle) {
+class NodeDeclaration internal constructor(internal val declare: (String) -> NodeHandle) {
     operator fun provideDelegate(owner: Any?, property: KProperty<*>): ReadOnlyProperty<Any?, NodeHandle> {
         val node = declare(property.name)
         return ReadOnlyProperty { _, _ -> node }
@@ -29,6 +30,11 @@ class WorkspaceScope internal constructor(private val project: Project, private 
         workspace.alias(directory, name, node, options, before, settings)
 
     fun packageScripts() = workspace.packageScripts()
+
+    fun buildTooling() = dev.shibasis.dependeasy.web.buildTooling(project)
+
+    fun publishing(content: dev.shibasis.dependeasy.publishing.Publications.() -> Unit) =
+        dev.shibasis.dependeasy.publishing.Publications(project).apply(content).also { it.install() }
 
 
     fun prepare(hook: DeviceHook) = NodeDeclaration { name -> project.devicePreparation(name, hook) }
@@ -53,7 +59,7 @@ class WorkspaceScope internal constructor(private val project: Project, private 
         ProductScope(project, project.parts(listOf(shared))).apply(content).build()
 
     fun product(modules: List<ModuleHandle>, content: ProductScope.() -> Unit = {}) =
-        ProductScope(project, parts(modules)).apply(content).build()
+        ProductScope(project, project.parts(modules)).apply(content).build()
 
     fun include(build: BuildHandle): IncludedBuild {
         workspace.includedBuild(build)
@@ -64,10 +70,10 @@ class WorkspaceScope internal constructor(private val project: Project, private 
         if (project.resolve(option).get().value) include(build) else null
 
     fun verify(parts: Parts, role: Workspace? = null, run: Run = Run.Default, content: VerifySpec.() -> Unit = {}) =
-        verification(parts.roles[Workspace.Verify].orEmpty(), role, run, content)
+        verification(emptyList(), role, run, content).consuming(project, workspace, parts, Workspace.Verify)
 
     fun verify(part: ProjectDependency, role: Workspace? = null, run: Run = Run.Default, content: VerifySpec.() -> Unit = {}) =
-        verify(project.parts(listOf(part)), role, run, content)
+        verification(listOf(project.output(part, OutputKind.WorkspaceCompletion, Workspace.Verify)), role, run, content)
 
     fun verify(role: Workspace? = null, run: Run = Run.Default, content: VerifySpec.() -> Unit = {}) =
         verification(emptyList(), role, run, content)
@@ -79,10 +85,10 @@ class WorkspaceScope internal constructor(private val project: Project, private 
     }
 
     fun artifacts(parts: Parts, role: Workspace? = null, run: Run = Run.Default, content: ArtifactsSpec.() -> Unit = {}) =
-        artifacts(parts.roles[Workspace.Build].orEmpty(), role, run, content)
+        artifacts(emptyList(), role, run, content).consuming(project, workspace, parts, Workspace.Build)
 
     fun artifacts(part: ProjectDependency, role: Workspace? = null, run: Run = Run.Default, content: ArtifactsSpec.() -> Unit = {}) =
-        artifacts(project.parts(listOf(part)), role, run, content)
+        artifacts(listOf(project.output(part, OutputKind.WorkspaceCompletion, Workspace.Build)), role, run, content)
 
     fun artifacts(role: Workspace? = null, run: Run = Run.Default, content: ArtifactsSpec.() -> Unit = {}) =
         artifacts(emptyList(), role, run, content)
@@ -143,16 +149,15 @@ class DeliveryScope internal constructor(
     }
 
     fun deploy(parts: Parts, run: Run = this.run, content: DeploySpec.() -> Unit = {}) =
-        deploy(parts.roles[Workspace.Deploy].orEmpty(), run, content)
+        deploy(emptyList(), run, content).consuming(project, workspace, parts, Workspace.Deploy)
 
     fun deploy(part: ProjectDependency, run: Run = this.run, content: DeploySpec.() -> Unit = {}) =
-        deploy(project.parts(listOf(part)), run, content)
+        deploy(project.output(part, OutputKind.WorkspaceCompletion, Workspace.Deploy), run, content)
 
     fun deploy(output: OutputHandle, run: Run = this.run, content: DeploySpec.() -> Unit = {}) =
         deploy(listOf(output), run, content)
 
     private fun deploy(outputs: List<OutputHandle>, run: Run, content: DeploySpec.() -> Unit): NodeDeclaration {
-        require(outputs.isNotEmpty()) { "A deployment needs a component's declared deploy output" }
         val declaration = NodeContent(project, run).apply { consumes.addAll(outputs); after.add(gate) }
         DeploySpec(declaration).apply(content)
         val site = project.declarationSite()
@@ -206,4 +211,14 @@ internal class NodeContent(private val project: Project, private val run: Run) {
 
     fun spec(name: String, kind: NodeKind) = KernelSpec.WorkspaceNode(NodeId(project.rootProject.name, project.path, name), kind, run,
         includes.map { it.id }, consumes.map { it.nodeId }.distinct(), after.map { it.id }, requirements.toList())
+}
+
+private fun NodeDeclaration.consuming(project: Project, workspace: BuildWorkspace, parts: Parts, role: Workspace) = NodeDeclaration { name ->
+    val node = declare(name)
+    project.gradle.projectsEvaluated {
+        val outputs = parts.roles(role)
+        require(role != Workspace.Deploy || outputs.isNotEmpty()) { "A deployment needs a component's declared deploy output" }
+        workspace.configure(node) { consumes(*outputs.toTypedArray()) }
+    }
+    node
 }

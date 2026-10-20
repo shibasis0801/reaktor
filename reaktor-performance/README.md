@@ -157,3 +157,52 @@ CDP client at `http://localhost:9222/json`.
 The harness runs the same steps in the GPU-less browser that CI uses when you set
 `PERF_HEADLESS=1 PERF_EXECUTABLE=<path to chrome-headless-shell>`. Raster there is in
 software, so it shows raster costs that a GPU hides.
+
+## Compose web (Skiko)
+
+`tools/compose-web.mjs` instruments the linked Skiko renderer through
+`instrumentComposeWeb(source)`, used by Surface's existing dependency adapter.
+Install `installComposeWebProbe` as a browser init script before Compose mounts,
+reset `globalThis.__reaktorCompose` before each measured action, then pass its
+`snapshot()` to `composeWebSummary(snapshot, refreshMs)`.
+
+It reports actual Skiko render/flush CPU duration, canvas input queue and
+input-to-render-completion latency (with browser event delivery and listener-to-render queuing reported separately), backing/CSS canvas sizes and pixel density,
+failed frames, lost contexts, pending inputs and dropped samples. Samples are
+bounded. `composeWebMetrics(summary, prefix, scope)` exports the standard
+`ReaktorPerformanceMetric` shape for reports and budgets.
+
+The renderer sample also partitions CPU time into `prepareMs` (context setup and
+clear), `sceneMs` (the Compose render delegate, including measurement/drawing),
+and `submitMs` (Skia flush/submission). These are CPU boundaries, not GPU timers.
+`recomposerTasks` separately measures the synchronous Compose task flush, which
+can occur outside a render callback and can overlap scene work. Do not add its
+inclusive duration to the frame duration. Keep `snapshot().frames`, `.inputs`
+and `.phases` alongside the summary when attributing a slow interaction. The
+injection discovers generated method names and fails if the pinned source
+boundaries change.
+
+Set
+`textureUploads: true` only for GPU-upload investigations; it wraps WebGL uploads
+and adds CPU overhead. Upload totals remain exact while shape samples are bounded
+at 128 (the 32 busiest retained shapes are reported). `untrackedUploads` makes
+shape sampling loss explicit. Uninstalled probes collect nothing. CPU completion is **not** GPU or
+screen presentation; retain CDP frame-presentation and input traces alongside
+these metrics. Input timings describe the next successful render, not a causal
+response or INP: hover, touch slop, and zoom-limit input may not invalidate the
+canvas at all. Read the gesture and CDP interaction trace before treating a long
+wait as an application stall. An idle Compose canvas need not draw at the RAF cadence.
+
+Run the behavioral checks with `node --test tools/compose-web.test.mjs`.
+Set `COMPOSE_LINKED_MODULE` to the actual linked Kotlin module to qualify its
+Skiko instrumentation boundary too. Boundary drift fails visibly.
+
+`tools/worker-web.mjs` provides an independent, opt-in request/response probe for
+named workers (default `blueprint-elk`). Install it before the worker is created.
+`globalThis.__reaktorWorkers.snapshot()` reports bounded jobs with message-post
+CPU time, response elapsed time and the worker's reported compute time. Response
+elapsed time includes queuing, worker boot and message delivery; it is not main
+thread CPU. Requests are correlated by worker identity and numeric request id;
+payloads are never retained. Failed, canceled, pending and dropped work is explicit.
+The probe also counts created/terminated workers across resets. Run
+`node --test tools/worker-web.test.mjs` for its behavioral checks.

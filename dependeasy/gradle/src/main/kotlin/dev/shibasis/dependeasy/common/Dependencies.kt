@@ -33,3 +33,9 @@ fun KotlinDependencyHandler.arrow() {
     api(Versions.Kotlin.ArrowCoroutines)
     api(Versions.Kotlin.ArrowResilience)
 }
+
+fun KotlinDependencyHandler.commonKoin() {
+    api(Versions.Kotlin.KoinCore)
+    api(Versions.Kotlin.KoinCompose)
+    api(Versions.Kotlin.KoinAnnotations)
+}

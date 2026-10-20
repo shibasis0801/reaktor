@@ -16,10 +16,14 @@ object ToolchainVersions {
     const val Ksp = GradlePlugins.Ksp
     const val Crashlytics = GradlePlugins.Crashlytics
     const val GoogleServices = GradlePlugins.GoogleServices
-    const val BuildKonfig = GradlePlugins.BuildKonfig
     const val SqlDelight = GradlePlugins.SqlDelight
     const val SnakeYaml = BuildLibraries.SnakeYaml
     const val KotlinBenchmark = GradlePlugins.KotlinBenchmark
+    val HostPaths = mapOf(
+        "OPENSSL_ROOT_DIR" to listOf("/opt/homebrew/opt/openssl", "/usr/local/opt/openssl"),
+        "ASPROF_LIB" to listOf("/opt/homebrew/lib/libasyncProfiler.dylib", "/usr/local/lib/libasyncProfiler.dylib", "~/.local/lib/libasyncProfiler.dylib"),
+        "ASPROF_JAR" to listOf("/opt/homebrew/opt/async-profiler/libexec/async-profiler.jar", "/usr/local/opt/async-profiler/libexec/async-profiler.jar"),
+    )
     const val Jmh = "1.37"
     const val Gradle = "9.7.0"
     const val GradleSha256 = "84fbba45c7f4c64abc77460e1c00f541e9f960e3c7ed2538f1ede19eacd873ae"

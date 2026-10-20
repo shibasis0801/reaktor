@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isMetaPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
@@ -117,12 +118,12 @@ fun Modifier.flowPointerViewportGestures(
     onPaneClick: (() -> Unit)? = null,
     onPaneTap: ((Offset) -> Boolean)? = null,
 ): Modifier = pointerInput(config, onPaneClick, onPaneTap) {
-    val touchSlop = viewConfiguration.touchSlop
     awaitEachGesture {
         val down = awaitFirstDown(
             requireUnconsumed = false,
             pass = PointerEventPass.Initial,
         )
+        val pointerSlop = flowViewportPointerSlop(viewConfiguration.touchSlop, down.type)
         interactionState.updatePointerPosition(down.position)
         var activePointerId = down.id
         var accumulatedDrag = Offset.Zero
@@ -181,7 +182,7 @@ fun Modifier.flowPointerViewportGestures(
             val delta = change.position - change.previousPosition
             if (!dragStarted) {
                 accumulatedDrag += delta
-                if (secondaryButtonGesture || accumulatedDrag.distance() > touchSlop) {
+                if (secondaryButtonGesture || accumulatedDrag.distance() > pointerSlop) {
                     dragStarted = true
                 }
             }
@@ -194,6 +195,10 @@ fun Modifier.flowPointerViewportGestures(
         }
     }
 }
+
+internal fun flowViewportPointerSlop(touchSlop: Float, pointerType: PointerType): Float =
+    // Match Foundation's 0.125dp mouse / 18dp touch ratio; touch slop makes slow mouse pans stall.
+    if (pointerType == PointerType.Mouse) touchSlop / 144f else touchSlop
 
 fun ReactFlowState.zoomAroundCanvasCenter(
     factor: Double,

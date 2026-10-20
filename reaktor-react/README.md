@@ -15,6 +15,6 @@
 
 ## Status
 
-This module is not an active investment area. It is kept in the repo because parts of the older bridge/runtime work still live here. It targets React Native 0.68.5.
+This directory is excluded from Gradle. Its obsolete build script has been retired; the historical sources remain available for reference. This module is not an active investment area. It is kept in the repo because parts of the older bridge/runtime work still live here. It targets React Native 0.68.5.
 
 If you are adding new cross-platform app runtime features, prefer the actively maintained modules (`reaktor-graph`, `reaktor-ffi`, `reaktor-ui`) instead.

@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy.workspace
 
+import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.configuration.executionOption
 import dev.shibasis.dependeasy.model.*
 import kotlinx.serialization.encodeToString
 import org.gradle.api.Project
@@ -95,7 +97,7 @@ abstract class GradleReceiptService : BuildService<GradleReceiptService.Paramete
             modelOmission = loaded.exceptionOrNull()?.let { redact(it.message.orEmpty()).take(1024) }
                 ?: "Requested task identity is observed by Gradle; no exported build declaration".takeIf { observedRequests.any { it !in declared } },
             failures = generateSequence(buildFailure) { it.cause }.take(12).map { redact(it.message.orEmpty()).take(8192) }.toList(),
-            requestDigest = parameters.requestDigest.orNull, operationRunId = System.getenv(GradleProtocol.OperationRunVariable))
+            requestDigest = parameters.requestDigest.orNull, operationRunId = BuildOption.environmentSnapshot()[GradleProtocol.OperationRunVariable])
         val directory = parameters.output.get().asFile.toPath()
         Files.createDirectories(directory)
         val temporary = directory.resolve("$run.pending")
@@ -106,8 +108,8 @@ abstract class GradleReceiptService : BuildService<GradleReceiptService.Paramete
     private fun redact(message: String): String {
         val sensitive = Regex("(?i)(token|password|secret|credential|private.?key|api.?key)")
         val values = parameters.privateProperties.get().filterKeys { sensitive.containsMatchIn(it) }.values +
-            System.getenv().filterKeys { sensitive.containsMatchIn(it) }.values +
-            System.getProperties().entries.filter { sensitive.containsMatchIn(it.key.toString()) }.map { it.value.toString() }
+            BuildOption.environmentSnapshot().filterKeys { sensitive.containsMatchIn(it) }.values +
+            BuildOption.systemPropertySnapshot().entries.filter { sensitive.containsMatchIn(it.key.toString()) }.map { it.value.toString() }
         return values.filter { it.isNotBlank() }.distinct().sortedByDescending { it.length }
             .fold(message) { text, value -> text.replace(value, "[REDACTED]") }
             .replace(Regex("(?i)((?:token|password|secret|credential|private.?key|api.?key)[\\w.-]*\\s*[=:]\\s*)[^\\s,;]+"), "$1[REDACTED]")
@@ -136,7 +138,7 @@ abstract class GradleReceiptRegistration @Inject constructor(
             parameters.requestedTasks.set(project.gradle.startParameter.taskNames)
             parameters.dryRun.set(project.gradle.startParameter.isDryRun)
             parameters.privateProperties.set(project.gradle.startParameter.projectProperties)
-            parameters.requestDigest.set(project.providers.gradleProperty(GradleProtocol.CorrelationOption))
+            parameters.requestDigest.set(project.executionOption(BuildOption.property(GradleProtocol.CorrelationOption)))
         }
         events.onTaskCompletion(service)
         flows.always(GradleReceiptCompletion::class.java) {
