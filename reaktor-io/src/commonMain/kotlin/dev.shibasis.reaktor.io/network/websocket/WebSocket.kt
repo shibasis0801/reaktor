@@ -16,6 +16,7 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +47,15 @@ data class Heartbeat(
     val ping: String = "ping",
     val pong: String = "pong",
 )
+/**
+ * The last line under a socket's own coroutines. A transport failure that reached one of them was
+ * an uncaught exception, and on Android that ends the app; a socket is there to survive the
+ * network, so it is logged here and the socket goes on.
+ */
+internal val socketFailuresAreLogged = CoroutineExceptionHandler { _, error ->
+    Logger.w(error) { "Reaktor:WebSocket — a failure reached the socket's scope: ${error::class.simpleName}" }
+}
+
 typealias UrlProvider = suspend () -> String
 
 open class WebSocket(
@@ -56,7 +66,10 @@ open class WebSocket(
     // A single-threaded dispatcher is created from this.
     dispatcher: CoroutineDispatcher = Dispatchers.Async,
     val httpClient: HttpClient = http
-): ConcurrencyCapability by ConcurrencyCapabilityImpl(coroutineDispatcher = dispatcher.limitedParallelism(1)) {
+): ConcurrencyCapability by ConcurrencyCapabilityImpl(
+    context = socketFailuresAreLogged,
+    coroutineDispatcher = dispatcher.limitedParallelism(1),
+) {
     private val connection = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val state: StateFlow<ConnectionState> = connection
     private var reconnectJob: Job? = null
