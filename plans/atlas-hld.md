@@ -16,14 +16,14 @@ Written 16 October 2026 by Claude. Not published. Inputs: the Codex tool-experim
 
 **First steps.** Export compilations from dependeasy; extend the Kotlin producer to calls, types and compiler addresses with warm sessions in the kernel; ship `atlas.query`, `atlas.read` and a compiler-guided Kotlin `rename` through `change.plan` and `change.apply`; let agent seats apply deterministic in-scope plans without a person. The first gate is a real cross-module Kotlin rename done from both Claude and Codex with no whole-file reads and passing affected checks.
 
-### Status at a glance (20 October, 14:00)
+### Status at a glance (20 October, 15:30)
 
 ```mermaid
 flowchart TB
     subgraph faces["Faces"]
         claude["Claude Code<br/>gate met on both<br/>renames from the<br/>shell form"]
         codex["Codex<br/>gate met on both<br/>renames, through the<br/>MCP tools and the shell"]
-        hangar["Hangar<br/>Access and Atlas views<br/>ask the owner"]
+        hangar["Hangar<br/>Access, Atlas and<br/>Code graph views<br/>ask the owner"]
         cli["reaktor CLI<br/>generated face<br/>not wired"]
     end
     subgraph doors["Doors to the owner"]
@@ -32,7 +32,7 @@ flowchart TB
     end
     subgraph kernelBox["Kernel (BestBuds)"]
         gate["OperationKernel gate<br/>catalog, effects, seats;<br/>20 agent operations<br/>declare no effect"]
-        atlasOps["atlas.query, atlas.read<br/>plain-text answers"]
+        atlasOps["atlas.query, atlas.read<br/>plain-text answers;<br/>atlas.graph sends the<br/>code graph in parts"]
         changeOps["change.plan, change.apply<br/>many files, all or none,<br/>receipts, rollback<br/>across builds"]
         checkRun["check.run<br/>tests of the edited<br/>modules, compiler errors<br/>and failed tests"]
         ledger["Run ledger<br/>plans and receipts"]
@@ -46,6 +46,7 @@ flowchart TB
         sourceView["Source view<br/>names, literal text,<br/>positions"]
         semanticView["Semantic view<br/>names and references;<br/>renames ask the<br/>compiler, JVM only"]
         buildView["Build view<br/>build model plus<br/>exported compilations"]
+        codeView["Code graph<br/>one GraphShape: source<br/>sets as scopes, files<br/>as nodes, uses matched<br/>by name as wires"]
         laterViews["Reaktor view and<br/>runtime view"]
     end
     subgraph providers["Provider nodes"]
@@ -77,6 +78,7 @@ flowchart TB
     changeOps --> ledger
     atlasOps --> revisions
     atlasOps --> planner
+    atlasOps --> codeView
     changeOps --> engine
     checkRun --> buildView
     revisions --> segments
@@ -87,6 +89,8 @@ flowchart TB
     planner --> semanticView
     planner --> buildView
     planner -.-> laterViews
+    codeView --> sourceView
+    codeView --> buildView
     engine --> sourceView
     engine --> semanticView
     sourceView --> psi
@@ -105,7 +109,7 @@ flowchart TB
     classDef partial fill:#FEF3C7,stroke:#D97706,color:#78350F
     classDef problem fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
     classDef later fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-dasharray: 4 3
-    class claude,codex,hangar,mcp,shell,atlasOps,changeOps,checkRun,ledger,engine,sourceView,buildView,psi,kaa,dep live
+    class claude,codex,hangar,mcp,shell,atlasOps,changeOps,checkRun,ledger,engine,sourceView,buildView,codeView,psi,kaa,dep live
     class cli,gate,revisions,planner,identity,segments,semanticView,ts partial
     class p1,p2,p3 problem
     class laterViews,laterProviders,laterBuild later
@@ -114,6 +118,8 @@ flowchart TB
 Green works today for its stated scope. Amber exists but is narrow, incomplete or only under an older name. Grey, with a dashed border, is designed and not started; each grey box lists the parts of its tier that have not started. Red boxes are open problems, and each names the part it affects. Dotted arrows are connections the design plans and the code does not make yet. The boxes follow §4.2, and §9 has the detail.
 
 On 19 October: `change.plan` (an `edit` recipe and a Kotlin `rename`), `change.apply` (all files or none, across included builds, with receipts and rollback) and `check.run` (the tests of the edited modules, with compiler errors and failed tests) are MCP tools and shell commands. Compilations are exported by an init script, without build-script edits. A rename asks a warm Analysis API session which matches are uses, renames overrides and expect/actual partners with the target, and lists every match it leaves with the reason, including mentions outside Kotlin code. The three problems the eighth addendum found are fixed in the same staged dist: a window now shows the whole statement around a result, `path` beside `from` lists the uses in that file, and an answer stops within a time budget. Between 16:42 and 18:15 the first completion gate ran on a reaktor worktree with two renames, each across three modules. On a top-level function (24 edits), Codex through the MCP tools and Claude from the shell each used one query, one plan checked by the compiler, one apply and one check, with no whole-file reads, and the five affected checks passed. On an extension function (37 edits), the kind of symbol the gate names, Claude did the same and the seven affected checks passed. Codex cost the same with and without the Atlas there, and its pass with the change tools read the declaring file whole before planning. The extension rename's first plan was refused, because a test compilation saw its module's main code twice; the resolver now leaves a module's own build outputs off its test classpath. On 20 October at 13:13 the dist went live on the BestBuds, reaktor and Manna owners. From the BestBuds owner, a rename plan covers BestBuds and the reaktor build it includes: `emptyObjectSchema` gives 26 edits in 15 files, checked by the compiler, including the two BestBuds calls that the gate's worktree could not see. Between 13:32 and 13:45 the gate's flow was finished on the live dist. The guide now says a rename plan needs no lookup first. Codex made the plan its first Atlas call, then applied and checked it with no whole-file reads: 8 rounds, 207,000 input tokens and 48 seconds, and the seven checks passed. Claude's control renamed by hand and needed 29 rounds and 3.7 million input tokens to reach its first test run, against 16 rounds and 1.7 million with the Atlas. So the first completion gate is met on both renames, from both agents (§5.7).
+
+In the afternoon of 20 October the Atlas got its first view in the graph's own shape (§4.3). `atlas.graph` returns the code graph of BestBuds and the reaktor build it includes as one reaktor-graph `GraphShape`: modules and source sets are scopes, each Kotlin file is a node, its top-level declarations are the ports it provides, and each use of another file's declaration is a wire. Uses are matched by name, imports and package, not by the compiler, and an expect declaration also takes a wire from each of its actuals. On BestBuds that is 3,089 files in 252 source sets of 63 modules, with 9,722 declarations, 31,752 uses and 337 actuals. The owner builds it on a thread of its own in 6 to 7 seconds and sends it in 40 parts, each small enough for the MCP door. Hangar shows it as the Code graph view in Agent → MCP, drawn by the blueprint renderer the app graphs use (§4.9): ELK lays out every file in 1.4 seconds, and the Islands detail shows one card per module. The dist with `atlas.graph` went live on the BestBuds, reaktor and Manna owners at about 15:00, and the new Hangar was installed at 15:26. Read from the live BestBuds owner the way Hangar reads it, the first read of the graph took 10.1 seconds, most of it the owner's build, and a later read 0.6 seconds for all 40 parts.
 
 | Measured (eight passes per task unless the row says otherwise) | Total input against a same-time control |
 |---|---|
@@ -1471,6 +1477,7 @@ Started 16 October 2026 at the owner's request ("start building"). Codex keeps d
 | 4 | Hangar: an Access view in Agent → MCP, then an Atlas view | Done 16 Oct. Access view (`AgentAccess.kt`, the first view of Agent → MCP; it replaced the machine-evidence drawer). Atlas view (`AgentAtlas.kt`, the second): a question box that takes a name, a file or position, `node:`, `op:` or a handle, with Find, Uses, Contents or Build tree; the answer is drawn with blueprint as a map and listed in a table with its evidence, omissions and next questions; the inspector reads a result's exact source through `atlas.read`. Hangar asks the running owner as seat `hangar` through `KernelAgents.ask` (`KernelOwner.kt`), the same gate the agents use, and says in plain words when no owner runs or the owner predates the `kernel` tool. `KernelAtlasTest`, `AgentPaneRenderTest` (a real owner on a temporary workspace) and flows F-AGENT-20 and F-AGENT-28 pass. Installed in Hangar 16 Oct |
 | 5 | Build facts: compilations through a Gradle Tooling API model fetch; Kotlin compiler addresses; JS and Native compilations | Partly done 19 Oct, live since 20 Oct. Compilations come from an init script (`atlasCompilationsAll`, `tools/atlas/compilations.init.gradle`), so no build script changes; they are cached in `build/atlas/compilations.json` and stamped with a digest of the build scripts. For reaktor that is 661 compilations in 16 seconds. `KernelKotlinResolver` reads the JVM ones into a warm Analysis API session per owner. A test compilation leaves its module's own build outputs off its classpath, so an import of a main declaration resolves once (found by the gate's second task). Not yet: the Tooling API fetch, compiler addresses as ids, and JS and Native compilations (their files are renamed from syntax, with a note) |
 | 6 | Change engine: multi-file atomic apply, Kotlin `rename`, `edit`, seat policy for deterministic plans (decision 1) | Done 19 Oct, live since 20 Oct. `change.plan` has the recipes `edit` and Kotlin `rename`; the compiler decides which matches are uses, and every match left is listed with its reason. `change.apply` writes all files or none across included builds and leaves a receipt; after a revert it writes again. `check.run` runs the affected checks as one `--no-daemon` Gradle run. They are MCP tools and `reaktor-agent atlas plan`, `apply` and `check` (`KernelChanges.kt`, `KernelChangesTest`). The first completion gate is met from Codex and Claude on a top-level function and on an extension function (§5.7). Not yet: the seat policy for deterministic plans (decision 1) |
+| 7 | Code graph: the Atlas's first view as `GraphShape` scopes (§4.3), drawn by Hangar's blueprint renderer (§4.9) | Done 20 Oct; live on the owners since about 15:00 and in Hangar since 15:26. `atlas.graph` (`KernelCodeGraph.kt`) builds the graph from the PSI outline, the lexer's names and the exported compilations, keeps each file's scan by size, time and digest, and sends the graph in parts of at most 250,000 characters bound to a revision; a part of an older revision is refused. Hangar's Code graph view (`AgentCodeGraph.kt`, Agent → MCP) reads every part, joins them and draws them with `AppGraphPane`; the inspector shows a file's module, source set and platform and opens it. `KernelCodeGraphTest` and `AgentPaneRenderTest` pass. Not yet: uses resolved by the compiler (a rename's uses already are, through `change.plan`), class members as ports, other languages, and links to the app graph |
 
 **Open on the owner's Mac (16 Oct).**
 - Cut-over done 16 Oct. It surfaced a startup bug: an engineering descriptor (`kernel-connection.json`) left by a dead process made the new owner's `publish` throw, the owner then lost its lock and new sessions failed for about 15 minutes. `publish` and the server's `connect` now replace a descriptor whose endpoint is gone or answers as someone else, and the owner exits for launchd to restart it when startup fails after it opened the workspace. Still open: 20 `agent.*` operations declare no effect. Since 17 Oct the default seat policy allows every effect (the owner's "full access as default"; `DoorPolicy.Guarded` keeps the old decisions), so they no longer ask a person, but their effects still matter for the audit trail and for Guarded. remote-dev's appended `:exportBuildModel` failed on `kotlinAnalysisCompiler` resolution in dependeasy on 16 Oct.
