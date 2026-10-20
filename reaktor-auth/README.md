@@ -208,5 +208,6 @@ BestBuds live auth gates:
 
 ```bash
 npm run test:auth:karate:smoke
-KARATE_USE_SERVER_APPLICATION_DB=1 npm run test:auth:karate:live
+# Supply SUPABASE_DB_URL through the environment from your approved secret store.
+npm run test:auth:karate:live
 ```
