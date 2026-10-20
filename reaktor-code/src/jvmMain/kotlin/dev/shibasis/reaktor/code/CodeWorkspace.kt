@@ -2,11 +2,14 @@ package dev.shibasis.reaktor.code
 
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
+import java.nio.file.FileVisitResult
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
+import java.nio.file.SimpleFileVisitor
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 
 data class CodeDocument(val path: String, val digest: String, val text: String)
@@ -26,11 +29,30 @@ data class CodeChangePlan(val workspace: String, val recipe: String, val files: 
     val edits: Int get() = files.sumOf { it.edits.size }
 }
 
-class CodeWorkspace(root: Path) {
+class CodeWorkspace(root: Path, private val generatedRoots: () -> Collection<Path> = { emptyList() }) {
     val root: Path = root.toRealPath()
     private var semanticIndex: CodeSemanticIndex? = null
 
     init { require(Files.isDirectory(this.root)) }
+
+    fun generated(path: String): Boolean = runCatching { Path.of(path) }.getOrNull()
+        ?.takeIf { !it.isAbsolute }?.let { relative -> root.resolve(relative).normalize().let { file -> declared().any(file::startsWith) } } ?: false
+
+    fun generatedSources(): List<String> {
+        val found = sortedSetOf<String>()
+        declared().filter { Files.isDirectory(it, NOFOLLOW_LINKS) }.forEach { directory ->
+            Files.walkFileTree(directory, object : SimpleFileVisitor<Path>() {
+                override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+                    if (attrs.isRegularFile && file.fileName.toString().endsWith(".kt")) found += root.relativize(file).toString().replace('\\', '/')
+                    return if (found.size >= MAX_GENERATED_FILES) FileVisitResult.TERMINATE else FileVisitResult.CONTINUE
+                }
+            })
+        }
+        return found.toList()
+    }
+
+    private fun declared(): List<Path> = generatedRoots().map { (if (it.isAbsolute) it else root.resolve(it)).normalize() }
+        .filter { it.startsWith(root) && it != root && root.relativize(it).any { part -> part.toString() == "build" } }
 
     fun read(path: String): CodeDocument {
         val file = resolve(path)
@@ -107,6 +129,7 @@ class CodeWorkspace(root: Path) {
 
     fun renameLocal(indexPath: String, path: String, at: CodePosition, newName: String): CodeEditPlan {
         val index = index(indexPath)
+        resolve(path, writing = true)
         val before = read(path)
         val occurrences = index.localRename(before.path, at, newName)
         val after = StringBuilder(before.text)
@@ -171,6 +194,7 @@ class CodeWorkspace(root: Path) {
     fun plan(path: String, find: String, replacement: String): CodeEditPlan {
         require(find.isNotEmpty() && find.length <= 4096 && replacement.length <= 4096 && find != replacement)
         require(find !in replacement) { "Replacement must be idempotent for this literal recipe" }
+        resolve(path, writing = true)
         val before = read(path)
         var replacements = 0
         var offset = 0
@@ -210,6 +234,7 @@ class CodeWorkspace(root: Path) {
         require(edits.isNotEmpty() && edits.size <= MAX_CHANGE_EDITS) { "A change holds 1 to $MAX_CHANGE_EDITS edits" }
         val byPath = edits.groupBy { it.path }
         require(byPath.size <= MAX_CHANGE_FILES) { "A change touches at most $MAX_CHANGE_FILES files" }
+        byPath.keys.forEach { resolve(it, writing = true) }
         val files = byPath.toSortedMap().map { (path, fileEdits) ->
             val before = read(path)
             val starts = buildList { add(0); before.text.forEachIndexed { i, c -> if (c == '\n') add(i + 1) } }
@@ -264,7 +289,7 @@ class CodeWorkspace(root: Path) {
     }
 
     private fun write(path: String, text: String, expected: CodeDocument?) {
-        val file = resolve(path)
+        val file = resolve(path, writing = true)
         val temporary = Files.createTempFile(file.parent, ".reaktor-edit-", ".tmp")
         try {
             Files.writeString(temporary, text)
@@ -280,12 +305,16 @@ class CodeWorkspace(root: Path) {
         (listOf("change-v1", recipe, root.toString(), evidence) + files.sortedBy { it.before.path }.flatMap { listOf(it.before.path, it.before.digest, digest(it.after.toByteArray())) })
             .joinToString("\u0000").toByteArray())
 
-    private fun resolve(path: String): Path {
+    private fun resolve(path: String, writing: Boolean = false): Path {
         require(path.isNotBlank() && path.length <= 4096)
         val relative = Path.of(path)
-        require(!relative.isAbsolute && relative.none { it.toString() in setOf("..", ".git", ".gradle", "node_modules", "build", ".env") }) { "Source path is outside the permitted scope" }
+        require(!relative.isAbsolute && relative.none { it.toString() in Refused }) { "Source path is outside the permitted scope" }
         val file = root.resolve(relative).normalize()
         require(file.startsWith(root) && file != root)
+        if (relative.any { it.toString() == "build" }) {
+            require(declared().any(file::startsWith)) { "Source path is outside the permitted scope" }
+            require(!writing) { "$path is generated by the build, which writes it again; change what generates it" }
+        }
         var current = root
         root.relativize(file).forEach { part ->
             current = current.resolve(part)
@@ -308,6 +337,8 @@ class CodeWorkspace(root: Path) {
         const val MAX_OUTLINE_DECLARATIONS = 4096
         const val MAX_CHANGE_FILES = 256
         private const val MAX_CACHED_OUTLINES = 2048
+        private const val MAX_GENERATED_FILES = 4096
+        private val Refused = setOf("..", ".git", ".gradle", "node_modules", ".env")
         const val MAX_CHANGE_EDITS = 4096
         fun renameSelector(indexPath: String, at: CodePosition) = listOf(indexPath, at.line.toString(), at.column.toString()).joinToString("\u0000")
     }
