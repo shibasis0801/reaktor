@@ -34,14 +34,14 @@ node scip-index.mjs --facts /absolute/workspace app/tsconfig.json app/test/tscon
 node --test scip-index.test.mjs
 ```
 
-Through BestBuds' single workspace surface, use `operation.schema` to discover the exact arguments. Semantic positions use zero-based lines and UTF-16 columns with exclusive range ends, unlike the one-based match lines of literal/identifier searches.
+Through the shared operation catalog, use `reaktor operation describe code.query` to discover the exact arguments. Semantic positions use zero-based lines and UTF-16 columns with exclusive range ends, unlike the one-based match lines of literal/identifier searches.
 
 ```sh
-reaktor --workspace /absolute/workspace workspace code.query --args '{"kind":"references","index":"analysis/index.json","path":"src/example.ts","line":12,"column":8,"limit":20}'
-reaktor --workspace /absolute/workspace workspace code.investigate --args '{"index":"analysis/index.json","path":"src/example.ts","line":12,"column":8,"limit":20}'
-reaktor --workspace /absolute/workspace workspace code.investigate --args '{"index":"analysis/index.json","name":"compute","limit":20}'
-reaktor --workspace /absolute/workspace workspace context.query --args '{"kind":"references","index":"analysis/index.json","path":"src/example.ts","line":12,"column":8,"limit":20}'
-reaktor --workspace /absolute/workspace workspace code.plan --args '{"recipe":"scip-local-rename-v1","index":"analysis/index.json","path":"src/example.ts","line":12,"column":8,"newName":"computed"}'
+reaktor --dir /absolute/workspace code query --args '{"kind":"references","index":"analysis/index.json","path":"src/example.ts","line":12,"column":8,"limit":20}'
+reaktor --dir /absolute/workspace code investigate --args '{"index":"analysis/index.json","path":"src/example.ts","line":12,"column":8,"limit":20}'
+reaktor --dir /absolute/workspace code investigate --args '{"index":"analysis/index.json","name":"compute","limit":20}'
+reaktor --dir /absolute/workspace context query --args '{"kind":"references","index":"analysis/index.json","path":"src/example.ts","line":12,"column":8,"limit":20}'
+reaktor --dir /absolute/workspace code plan --args '{"recipe":"scip-local-rename-v1","index":"analysis/index.json","path":"src/example.ts","line":12,"column":8,"newName":"computed"}'
 ```
 
 The isolated Kotlin helper produces the same artifact and graph facts from explicit compilation inputs. This Code artifact reuses the SCIP-shaped JSON envelope; it is not an official Kotlin SCIP index. Its Analysis API/compiler is pinned separately to `2.5.0-Beta2-59`; it analyzes declared Kotlin `2.4.21` targets with language/API `2.4` and JVM `25`. This is qualification of the declared common/JVM source model, not equivalence to the project's 2.4.21 compiler or all KMP platforms/plugins. No Analysis API or IDE dependencies enter the ordinary Code/kernel classpath. The compiler field reports both the actual analyzer and declared target settings. Kotlin binary-binding checks require the updated Code consumer; validation through a freshly packaged owner does not upgrade existing running owners or harness registrations.
@@ -75,7 +75,7 @@ The producer rejects semantic errors and verifies inputs again before atomically
 `binaryInputs` binds canonical classpath files and the JDK's `release` and `lib/modules` bytes with SHA-256. `index(path)` validates them on every request, including cached-index reuse. The first implementation deliberately reads those bytes each time; its latency must be included in ROI measurements. Artifacts without binary bindings remain compatible for the existing TypeScript helper; Kotlin artifacts require them. Source/configuration and binary changes both require re-indexing.
 
 ```sh
-reaktor --workspace /absolute/workspace workspace code.investigate --args '{"index":"analysis/kotlin-index.json","name":"compute","limit":20}'
+reaktor --dir /absolute/workspace code investigate --args '{"index":"analysis/kotlin-index.json","name":"compute","limit":20}'
 ./gradlew :reaktor-code:kotlinSemanticTest :reaktor-code:jvmTest :reaktor-code:verifyCodeBoundary
 ```
 
