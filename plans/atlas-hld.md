@@ -59,7 +59,7 @@ flowchart TB
         laterBuild["Gradle Tooling API,<br/>CMake File API, pnpm<br/>and tsconfig references"]
     end
     subgraph problems["Open problems"]
-        p1["Install on hold<br/>the staged dist carries<br/>another session's<br/>untested change"]
+        p1["Install on hold<br/>the staged dist carries<br/>another session's<br/>uncommitted change"]
         p2["Shared Gradle lock<br/>device flows win every<br/>race; polled builds<br/>waited 47 minutes"]
         p3["JS and Native files<br/>renamed from syntax;<br/>the resolver reads<br/>JVM compilations only"]
     end
