@@ -16,54 +16,55 @@ Written 16 October 2026 by Claude. Not published. Inputs: the Codex tool-experim
 
 **First steps.** Export compilations from dependeasy; extend the Kotlin producer to calls, types and compiler addresses with warm sessions in the kernel; ship `atlas.query`, `atlas.read` and a compiler-guided Kotlin `rename` through `change.plan` and `change.apply`; let agent seats apply deterministic in-scope plans without a person. The first gate is a real cross-module Kotlin rename done from both Claude and Codex with no whole-file reads and passing affected checks.
 
-### Status at a glance (19 October)
+### Status at a glance (20 October, 13:00)
 
 ```mermaid
 flowchart TB
     subgraph faces["Faces"]
-        claude["Claude Code<br/>connected,<br/>not measured yet"]
-        codex["Codex<br/>MCP tools and shell<br/>form, measured"]
+        claude["Claude Code<br/>both renames from<br/>the shell form; no<br/>control on the second"]
+        codex["Codex<br/>gate met on the first<br/>rename, not the second,<br/>through the MCP tools"]
         hangar["Hangar<br/>Access and Atlas views<br/>ask the owner"]
         cli["reaktor CLI<br/>generated face<br/>not wired"]
     end
     subgraph doors["Doors to the owner"]
-        mcp["MCP server reaktor<br/>kernel, atlas_query,<br/>atlas_read"]
-        shell["Shell form<br/>reaktor-agent atlas<br/>query and read, set up<br/>by workspace install"]
+        mcp["MCP server reaktor<br/>kernel, atlas_query and<br/>atlas_read live; change<br/>and check tools staged"]
+        shell["Shell form<br/>reaktor-agent atlas<br/>query and read live;<br/>plan, apply and check<br/>staged"]
     end
-    subgraph kernelBox["Workspace kernel (BestBuds)"]
+    subgraph kernelBox["Kernel (BestBuds)"]
         gate["OperationKernel gate<br/>catalog, effects, seats;<br/>20 agent operations<br/>declare no effect"]
         atlasOps["atlas.query, atlas.read<br/>plain-text answers"]
-        changeOps["change.plan, change.apply<br/>only as code.plan<br/>and code.apply"]
-        checkRun["check.run<br/>named, not in<br/>the catalog"]
+        changeOps["change.plan, change.apply<br/>many files, all or none,<br/>receipts, rollback<br/>across builds"]
+        checkRun["check.run<br/>tests of the edited<br/>modules, compiler errors<br/>and failed tests"]
         ledger["Run ledger<br/>plans and receipts"]
         revisions["Revisions<br/>a digest of the files<br/>each answer read;<br/>no file watcher"]
     end
     subgraph atlasBox["Atlas (KernelAtlas.kt)"]
         planner["Query planner<br/>one fixed v0 pipeline"]
-        engine["Change engine<br/>literal edits and<br/>file-local TypeScript<br/>renames, one file<br/>at a time"]
+        engine["Change engine<br/>edit recipe and Kotlin<br/>rename across modules<br/>and included builds"]
         identity["Ids<br/>file offsets, no<br/>compiler addresses"]
         segments["Fact segments<br/>semantic artifacts<br/>bound to input digests"]
         sourceView["Source view<br/>names, literal text,<br/>positions"]
-        semanticView["Semantic view<br/>common and JVM names<br/>and explicit references"]
-        buildView["Build view<br/>declared build model,<br/>no compilations"]
+        semanticView["Semantic view<br/>names and references;<br/>renames ask the<br/>compiler, JVM only"]
+        buildView["Build view<br/>build model plus<br/>exported compilations"]
         laterViews["Reaktor view and<br/>runtime view"]
     end
     subgraph providers["Provider nodes"]
         psi["Kotlin PSI and git grep<br/>behind every answer"]
-        kaa["Kotlin Analysis API<br/>isolated producer,<br/>not warm"]
+        kaa["Kotlin Analysis API<br/>a warm session per<br/>owner, ready 7 s<br/>after it starts"]
         ts["scip-typescript<br/>one tsconfig"]
         laterProviders["ast-grep, scip-clang<br/>and clangd, Reaktor<br/>graph extractor, runtime<br/>overlay, OpenRewrite"]
     end
     subgraph buildFacts["Build facts"]
-        dep["dependeasy model<br/>no compilations<br/>section yet"]
+        dep["dependeasy model plus<br/>compilations from an<br/>init script, no<br/>build-script edits"]
         laterBuild["Gradle Tooling API,<br/>CMake File API, pnpm<br/>and tsconfig references"]
     end
     subgraph problems["Open problems"]
-        p1["atlas.query with read: true<br/>windows in long<br/>declarations hide the<br/>lines T2 edits: edits cost<br/>12% more, T2 35% more"]
-        p2["atlas.query, path with<br/>follow: Codex means the<br/>file to list uses in, the<br/>owner narrows the<br/>declaration, so the<br/>answer is empty"]
-        p3["Workspace owner<br/>a temporary owner stalls<br/>for 35 s under load:<br/>3 of 54 shell lookups<br/>timed out"]
+        p1["Install on hold<br/>the staged dist carries<br/>another session's<br/>untested change"]
+        p2["Shared Gradle lock<br/>device flows win every<br/>race; polled builds<br/>waited 47 minutes"]
+        p3["JS and Native files<br/>renamed from syntax;<br/>the resolver reads<br/>JVM compilations only"]
     end
     claude --> mcp
+    claude --> shell
     codex --> mcp
     codex --> shell
     mcp --> gate
@@ -77,6 +78,7 @@ flowchart TB
     atlasOps --> revisions
     atlasOps --> planner
     changeOps --> engine
+    checkRun --> buildView
     revisions --> segments
     ledger ~~~ engine
     ledger ~~~ identity
@@ -86,9 +88,11 @@ flowchart TB
     planner --> buildView
     planner -.-> laterViews
     engine --> sourceView
+    engine --> semanticView
     sourceView --> psi
     semanticView --> kaa
     semanticView --> ts
+    kaa --> dep
     laterViews -.-> laterProviders
     buildView --> dep
     buildView -.-> laterBuild
@@ -98,26 +102,32 @@ flowchart TB
     dep ~~~ p2
     laterBuild ~~~ p3
     classDef live fill:#DCFCE7,stroke:#15803D,color:#14532D
+    classDef built fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A
     classDef partial fill:#FEF3C7,stroke:#D97706,color:#78350F
     classDef problem fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
     classDef later fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-dasharray: 4 3
-    class claude,codex,hangar,mcp,shell,atlasOps,ledger,sourceView,psi live
-    class cli,gate,changeOps,revisions,planner,engine,identity,segments,semanticView,buildView,kaa,ts,dep partial
+    class claude,hangar,mcp,shell,atlasOps,ledger,sourceView,psi live
+    class changeOps,checkRun,engine,buildView,kaa,dep built
+    class codex,cli,gate,revisions,planner,identity,segments,semanticView,ts partial
     class p1,p2,p3 problem
-    class checkRun,laterViews,laterProviders,laterBuild later
+    class laterViews,laterProviders,laterBuild later
 ```
 
-Green works today for its stated scope. Amber exists but is narrow, incomplete or only under an older name. Grey, with a dashed border, is designed and not started; each grey box lists the parts of its tier that have not started. Red boxes are the open problems the eighth addendum to §5.6 found, and each names the part it affects. Dotted arrows are connections the design plans and the code does not make yet. Today the Kotlin producer reads hand-written manifests, not the dependeasy model. The boxes follow §4.2, and §9 has the detail. The only change since 18 October is that the background-owner fixes are now committed.
+Green works today for its stated scope. Blue is built and tested, but runs only from the staged dist on the gate's temporary owner; the live owner gets it when the install goes ahead (red box 1). Amber exists but is narrow, incomplete or only under an older name. Grey, with a dashed border, is designed and not started; each grey box lists the parts of its tier that have not started. Red boxes are open problems, and each names the part it affects. Dotted arrows are connections the design plans and the code does not make yet. The boxes follow §4.2, and §9 has the detail.
 
-| Measured with Codex, eight passes per task | Total input against a same-time control |
+On 19 October: `change.plan` (an `edit` recipe and a Kotlin `rename`), `change.apply` (all files or none, across included builds, with receipts and rollback) and `check.run` (the tests of the edited modules, with compiler errors and failed tests) are MCP tools and shell commands. Compilations are exported by an init script, without build-script edits. A rename asks a warm Analysis API session which matches are uses, renames overrides and expect/actual partners with the target, and lists every match it leaves with the reason, including mentions outside Kotlin code. The three problems the eighth addendum found are fixed in the same staged dist: a window now shows the whole statement around a result, `path` beside `from` lists the uses in that file, and an answer stops within a time budget. Between 16:42 and 18:15 the first completion gate ran on a reaktor worktree with two renames, each across three modules. On a top-level function (24 edits), Codex through the MCP tools and Claude from the shell each used one query, one plan checked by the compiler, one apply and one check, with no whole-file reads, and the five affected checks passed. On an extension function (37 edits), the kind of symbol the gate names, Claude did the same and the seven affected checks passed, but it has no control run. Codex cost the same with and without the Atlas there, and its pass with the change tools read the declaring file whole before planning. So the gate is met on the top-level function and not yet on the extension function (§5.7). The extension rename's first plan was refused, because a test compilation saw its module's main code twice; the resolver now leaves a module's own build outputs off its test classpath.
+
+| Measured (eight passes per task unless the row says otherwise) | Total input against a same-time control |
 |---|---|
 | Five code questions, Atlas through the MCP tools (17 October, 21:40) | 6% less, 9 rounds against 16 |
 | Five code questions, Atlas from the shell (18 October, 13:00) | 18.9% less, 9 rounds against 13.8; most of the gain came from outside the harness, because one MCP call now costs what one shell call costs |
 | Three edits, Atlas through the MCP tools (17 October, 23:15) | 15% more, 19.6 rounds against 15.2, because Codex runs each Atlas call in a round of its own |
 | Three edits, Atlas from the shell (18 October, 00:30) | 5% less, 14.2 rounds against 16.6; eight passes cannot rule out no difference |
 | Three edits, shell form with the long-declaration windows (18 October, 13:00) | 12% more, almost all in T2 (35% more) |
-| Claude | Not measured |
-| First completion gate: a cross-module Kotlin rename through `change.apply` from Claude and Codex | Not reached; there is no Kotlin rename recipe yet |
+| Gate, top-level function, Codex through the MCP tools, one pass (19 October, §5.7) | Met the gate. 85% less: 7 rounds against 18, 45 seconds against 299. Most of the control's cost went into a test crash caused by a stale Gradle daemon |
+| Gate, top-level function, Claude from the shell, one pass (19 October, §5.7) | Met the gate. 49% less up to the first test result: 13 rounds against 24, 149 seconds against 259. Claude ran as fresh subagents, because headless `claude -p` needs a new sign-in |
+| Gate, extension function, Codex, two passes with the same setup (19 October, §5.7) | Not met yet. About the same either way: 6 rounds and about 190,000 input tokens. One pass renamed with a script and ran only the JVM tests; the other used the change tools, which ran all seven checks, but read the declaring file whole first |
+| Gate, extension function, Claude from the shell, one pass (19 October, §5.7) | Met, apart from the comparison: no control was run. 16 rounds and 1.7 million input tokens up to its check, three rounds more than on the top-level function |
 
 ## 1. Where things stand
 
@@ -1303,6 +1313,65 @@ Where the edit rounds go, per three tasks: the control took 13.9 shell rounds an
 
 **What remains.** Claude has not run these tasks, and the shell form has not been tried in Claude Code's sandbox.
 
+### 5.7 The first completion gate (19 October)
+
+**Result.** The gate is met on a top-level function, and not yet on an extension function, the kind of symbol it names. On the first task, a top-level function, Codex through the MCP tools and Claude from the shell each made the cross-module rename with one Atlas query, one plan checked by the compiler, one apply and one check, with no whole-file reads, and the five affected checks passed. Codex finished in 45 seconds and 7 rounds with 215,000 input tokens, against 299 seconds, 18 rounds and 1.49 million for its control. Claude reached its check in 13 rounds with 1.3 million, against 24 rounds and 2.5 million for its control to reach its first test run. On the second task, an extension function, Claude took the same four steps with no whole-file reads, and the seven affected checks passed, but there is no Claude control to compare it with: the owner asked for no more subagent runs unless requested. Codex ran the second task twice with the same setup and cost about the same both times. In one pass it did not use the Atlas; in the other it used the change tools, but read the declaring file whole before planning. One or two passes per arm show what works; they do not measure the gain. On the first task, two of the four runs spent most of their effort after the check on tests that failed because of a stale Gradle daemon on this Mac, not because of the rename.
+
+**The first task.** At reaktor 4907be4f: "Rename the Kotlin function `emptyObjectSchema` (declared in reaktor-mcp's McpProtocol.kt) to `emptyInputSchema` everywhere in this repository. Then run the tests of the modules the rename touches and make sure they pass. Change nothing else, and do not commit." The function has 24 uses in 13 files across reaktor-mcp, reaktor-conductor and reaktor-tooling, in common, JS, JVM and test source sets. One line of this document (§5.6) also names it, in the description of T1.
+
+**How it ran.** One reaktor worktree at 4907be4f, served by a temporary owner from the staged dist (the BestBuds working tree, built at 16:32). Each run took the shared local Gradle lock for its whole length (it waited between 17 seconds and 18 minutes for it), started the owner fresh and waited until a rename plan came back checked by the compiler, which took 6 to 7 seconds after start. The worktree was reverted to 4907be4f between runs. Codex 0.163 ran `gpt-6.1-sol` at medium reasoning, once per arm, with the guide placed at `../bestbuds/AGENTS.md`: the Atlas arm had the `reaktor` server on the staged owner and the guide's items 2 and 10, and the control had the server switched off and neither item. Claude ran as fresh Claude Code subagents (Opus 5.5) with the same prompt and guide. Its Atlas arm used the shell form, because a subagent shares this session's MCP servers, and those reach the live owner on the old dist. A scripted run of the four shell commands went first, so the first build in the worktree is not charged to any agent.
+
+| Run | Calls | Rounds | Input tokens (uncached) | Output tokens | Time | Whole-file reads | Checks |
+|---|---|---|---|---|---|---|---|
+| Scripted: query, plan, apply, check | 4 | 4 | – | – | 0.9 s, 1.5 s, 0.2 s and 193 s | none | 5 of 5 passed, run for real |
+| Codex, Atlas | 4 Atlas, 3 shell | 7 | 215,157 (32,117) | 669 | 45 s | none | 5 of 5 passed in `check_run`; Gradle found them up to date, because the scripted run had tested the same files |
+| Codex, control | 31 shell | 18 | 1,485,196 (47,116) | 4,223 | 299 s | three build scripts, one test file and the guide | up to date, then failed in reaktor-tooling when it forced a rerun |
+| Claude, Atlas: up to its check | 4 Atlas commands, 9 other shell commands, 2 guide reads | 13 | 1,298,364 (127,329) | 16,532 | 149 s | none | 5 of 5 passed in `atlas check`; Gradle found them up to date |
+| Claude, Atlas: the whole run | 63 shell commands, 2 guide reads | 66 | 10,530,608 (221,559) | 84,670 | 1,165 s | none | then forced real runs, found the daemon problem below, and passed every test in a fresh Gradle process |
+| Claude, control: up to its first test run | 25 shell commands, 2 guide reads | 24 | 2,544,287 (129,840) | 24,496 | 259 s | three build scripts | 5 test tasks it chose, run with `--no-daemon`; Gradle found them up to date |
+| Claude, control: the whole run | 49 shell commands, 2 guide reads | 52 | 6,686,858 (163,239) | 45,732 | 548 s | three build scripts | then forced a real run with `--no-daemon`, and every test passed |
+
+**What the runs showed.**
+1. Every run made the same 24 edits in the 13 Kotlin files. The Codex control also changed the line in §5.6, because it replaced the name in every file `git grep` listed; the plan lists that line as left, with the reason "it mentions the name outside Kotlin code".
+2. The plan was checked by the compiler in every run: its first line says `uses checked by kotlin-analysis-api/2.5.0-Beta2-59`. The one use in a JavaScript source set (`BrowserToolHost.kt`) is renamed as the Atlas reads it, and a note says so.
+3. `check.run` chose the five checks a person would: the JVM tests of the three modules, and reaktor-mcp's JavaScript tests and TypeScript checks, as one Gradle run.
+4. Codex with the Atlas went straight from one `atlas_query` to the plan, the apply and the check, and finished in 45 seconds with 7 times less input than the control. The control did the rename with a Python one-liner in its fourth command, which also ran the tests; Gradle found them up to date in 7 seconds. Its seventh command forced a rerun with `--rerun`, and reaktor-tooling's JVM tests then failed in two ways the rename cannot cause: `AppleDeviceBackendLiveTest` needs `xcrun devicectl list devices` to succeed on this Mac, and another test crashed until the test JVM ran headless. 25 of its 31 commands came from that rerun on, and it reported that it could not say all tests pass.
+5. The scripted run ran the same tests for real in the owner's environment, and they passed. So the checks pass, but two of reaktor-tooling's JVM tests depend on the Mac and the process they run in, and Gradle reuses their results as if they did not.
+6. Claude with the Atlas took the same four steps, after reading both guides whole and spending three commands on checking the prompt's claim that the Gradle lock was held (it read the gate's own scripts to confirm it). Up to the check it used 13 rounds and 1.3 million input tokens. It then distrusted the up-to-date result, forced real runs, and found why reaktor-tooling's tests failed for the Codex control. The Codex control's plain `./gradlew` and this run's reached the same Gradle daemon (pid 38840, started on 18 October at 20:43). That daemon's test processes crash as soon as a test draws text (SIGABRT, exit 134), and `xcrun devicectl` fails inside it. The same tests in a fresh Gradle process (`--no-daemon`) passed: 6 JVM and 9 JavaScript tests in reaktor-mcp, 245 in reaktor-conductor and 222 in reaktor-tooling. The daemon's log records the same failure in earlier runs of `engine:jvmTest` and `reaktorDesktop:test`. `check.run` starts Gradle with `--no-daemon`, which is why the scripted run passed.
+7. Claude also found that BestBuds calls `emptyObjectSchema` twice, in `KernelAgentChecks.kt` and `KernelEngineering.kt`. The gate's worktree has no BestBuds checkout beside it, so its plan could not see them. Planned from the BestBuds owner, which reads BestBuds and the `../reaktor` build it includes, the rename covers them; planned from a reaktor checkout alone, it cannot, because reaktor does not include BestBuds.
+8. Claude without the Atlas did the rename in its twelfth round with one `perl` command over the Kotlin files `git grep` listed, and read three build scripts whole to learn which test tasks exist. Its test runs used `--no-daemon`, so it never met the daemon problem, and it also ran reaktor-mcp's Android unit tests. Up to its first test run it used 24 rounds and 2.5 million input tokens; Claude with the Atlas reached its check in 13 rounds and 1.3 million, 49% less input in 42% less time. Both Claude runs then distrusted the up-to-date result and ran every test again.
+
+**The second task: an extension function.** At the same commit: "Rename the Kotlin extension function `Attachable.addInterceptor` (declared in reaktor-graph-port's PortInterceptor.kt) to `addPortInterceptor` everywhere in this repository. Then run the tests of the modules the rename touches and make sure they pass. Change nothing else, and do not commit." It is the rename the experiments in §2 used. The function has 37 uses, imports included, in 11 files across reaktor-graph-port, reaktor-telemetry and reaktor-devtools, in common and JVM source sets, main and test. Seven lines of the plans also name it: six in this document's examples and one in the experiment handoff.
+
+The first plan for it was refused. The resolver found two declarations for the import in `PortInterceptorTest.kt`, because a test compilation saw its own module's main code twice: once as sources, and once as the built classes on its classpath. A test compilation now leaves its module's build outputs off its classpath (`KernelKotlinResolver`, with a test in `KernelChangesTest`, in bestbuds 28aa2ec6), and the dist was staged again at 18:05. The runs below used that dist, between 18:05 and 18:15, in the same way as the first task. The scripted run went first again. Codex ran twice with the same Atlas setup, because its first pass did not use the Atlas at all, which makes that pass a control of sorts. Claude ran once with the Atlas. Its control run was about to start when the owner asked for no more subagent runs unless requested, so this task has no Claude control.
+
+Whole-file reads in both tasks were checked against the length of each edited file: `cat`, `nl`, a `head` or `sed` range that covers the file, and a file read without a range all count. The first count looked only for `cat`-style commands, and it missed the one in Codex's second pass below. With the full check, the first task's figures do not change.
+
+| Run | Calls | Rounds | Input tokens (uncached) | Output tokens | Time | Whole-file reads | Checks |
+|---|---|---|---|---|---|---|---|
+| Scripted: query, plan, apply, check | 4 | 4 | – | – | 0.7 s, 2.4 s, 0.2 s and 34.6 s | none | 7 of 7 passed, compiled and run for real |
+| Codex, first pass: no Atlas calls | 6 shell | 6 | 190,066 (27,122) | 1,143 | 46 s | one build script | the JVM tests of the three modules: up to date, then passed with `--rerun`; no JavaScript tests or TypeScript checks |
+| Codex, second pass: the change tools | 3 Atlas, 3 shell | 6 | 188,604 (47,164) | 755 | 44 s | `PortInterceptor.kt`, which it edits, and three build scripts | 7 of 7 passed in `check_run`; Gradle found them up to date |
+| Claude, Atlas: up to its check | 4 Atlas commands, 12 other shell commands, 1 guide read | 16 | 1,678,723 (131,418) | 11,476 | 136 s | none of the code; two memory notes | 7 of 7 passed in `atlas check`; Gradle found them up to date |
+| Claude, Atlas: the whole run | 37 shell commands, 1 guide read | 38 | 5,007,115 (169,706) | 33,734 | 368 s | none of the code; two memory notes | then forced a rerun of all seven, and 183 tests passed |
+| Claude, control | not run | | | | | | |
+
+**What the second task showed.**
+9. The plan found the 37 uses, checked by the compiler, and listed the seven lines in the plans as left, with the reason "it mentions the name outside Kotlin code". Every run made the same 37 edits in the same 11 files.
+10. `check.run` chose seven checks: the JVM and JavaScript tests of the three modules, and reaktor-graph-port's TypeScript checks. The scripted run compiled and ran them for real in 34.6 seconds. Every later run found them up to date unless it forced a rerun.
+11. Codex cost about the same both ways: 6 rounds, about 190,000 input tokens and 45 seconds. Both passes had the Atlas guide and the `reaktor` server. In the first, Codex read parts of the guide, renamed with a Python script over the three modules' Kotlin files, and ran only their JVM tests. In the second, it found the uses with `rg` and printed `PortInterceptor.kt` with `sed -n '1,130p'`. The file has 83 lines, so that is a whole-file read of a file the rename edits, and it is why Codex has not met the gate on this task. It then called `change_plan`, `change_apply` and `check_run`, and the check also ran the JavaScript tests and TypeScript checks. Every match of the name in Kotlin code was a use, so a text replacement was safe here. The Atlas pays for itself on names that also mean something else, as in §2's experiment, and in choosing the checks.
+12. Claude reached its check in 16 rounds, three more than on the first task. One round looked at the checkout, four went to the guides and five to the rename. The other six did not touch the rename: three checked the prompt's claim that the Gradle lock was held, one checked disk space before the storage cleanup the workspace guide asks for, one printed the tool's help, and one read two of this Mac's Claude memory notes about the Atlas, which describe this experiment. It then forced a rerun of all seven checks, and 183 tests passed: 28 JVM and 19 JavaScript tests in reaktor-graph-port, 48 and 45 in reaktor-telemetry, and 35 and 8 in reaktor-devtools.
+13. BestBuds imports `addInterceptor` in five test files, in `app`, `engine` and `reaktorServer`. As in the first task, a plan from a reaktor checkout cannot see them.
+
+**What would help next.**
+- `check.run` should say which checks Gradle found up to date or took from its cache, so an agent knows whether the tests ran.
+- Stop the daemon started on 18 October (pid 38840); it was still running on 20 October. Until then, plain `./gradlew` test runs on this Mac fail in reaktor-tooling, `engine` and `reaktorDesktop` while `check.run` passes.
+- reaktor-tooling's live device tests should never be up to date, or should move out of `jvmTest` into a check of their own; its test JVMs should run headless.
+- To meet the gate on the extension function, Codex needs one pass that uses the change tools without reading a file whole, and Claude needs a control run. The guide could say that `change_plan` finds the declaration and its uses itself, so a rename needs no lookup or read before it. Both are agent runs, and they wait for the owner's go-ahead.
+- One or two passes per arm show what works; they do not measure the gain. Eight passes per arm, as in §5.6, would measure it, and they too wait for the owner's go-ahead.
+- Both renames also have uses in BestBuds: two calls of `emptyObjectSchema` and five test files that import `addInterceptor`. Planned from the BestBuds owner, which reads BestBuds and the `../reaktor` build it includes, a rename covers them.
+- The staged dist is not installed (§0, red box 1), so the live owner has none of this yet.
+
 ## 6. Delivery plan
 
 Domains are ordered by leverage. Each lists what is done and what comes next.
@@ -1396,8 +1465,8 @@ Started 16 October 2026 at the owner's request ("start building"). Codex keeps d
 | 2 | Access map: `access.map` shows each face (Hangar, terminal, Claude Code, Codex, Antigravity), the servers it is configured with, and every operation's decision for its seat | Code done 16 Oct: `KernelAccess` (faces from `.mcp.json`, `~/.claude.json`, `.codex/config.toml`, `~/.gemini/config/mcp_config.json`, the spawned-task config; seats `*`, `cli`, `claude-code`, `codex`, `gemini`, `spawned`; findings for retired servers, wrong seats, missing launchers and folders, Codex trust). Hangar asks the running owner and falls back to the files when none answers |
 | 3 | Atlas v0: `atlas.query` and `atlas.read` over today's facts (PSI outline, identifiers, the semantic index, the build model) with the shared envelope and `next` hints | Code done 16 Oct in the BestBuds kernel (`KernelAtlas.kt`). Since 17 Oct (live on the owner's Mac): it covers the builds BestBuds includes, such as `../reaktor`; finds names (`Type.member`), literal text and positions; returns every overload of a name; with `read: true` it carries the source of each declaration a result sits in, and with `context: N` the lines around each result; and it answers agents as plain text with line numbers (`AtlasText.kt`). Later on 17 Oct: uses of `Type.member` or `package.function` leave out other declarations with the same name and list text mentions; `references out` lists what a declaration calls, up to four calls deep; `atlas.read` takes `part: imports`. That night: text mentions for the uses of every declaration; a member's uses split into uses and possible uses, with the rest counted; each file searched on its own, so the list of uses is complete; `references out` from a file and through the types a declaration names; `atlas.read` takes `paths`. At 19:00: one `atlas.query` call carries more queries and reads, and `imports: true` adds the import lines of each file a result sits in. At 20:20: the MCP server sends each source block once per Codex session and prints one line for a repeat; `atlas_read` always sends it in full. At 00:30 on 18 Oct: `reaktor-agent atlas query|read` (`AtlasCli.kt`) gives the same answers from the shell, through the same gate. At 13:00: `workspace install` sets the shell form up for Codex (a permission profile that reaches only this machine, through Codex's network proxy, and `~/.local/bin/reaktor-agent`); the shell client connects over IPv4; `path` beside `from` is taken as `from.path`; with `read: true`, a result in a declaration longer than 24 lines comes with the lines around it instead of the whole declaration. Measured in §5.5, §5.6 and the eight addenda to §5.6; over eight runs per task the Atlas saves 6% on questions through the MCP tools and 18.9% from the shell, most of the difference from a change outside the harness. On edits it cost 15% more through the MCP tools, because Codex ran each Atlas call in a round of its own; from the shell a lookup shares a command with other reads, and the edits cost 5% less than the control (14.2 rounds against 16.6). With the long-declaration windows they cost 12% more, because the windows hid the lines T2 changes and two T2 lookups stalled (eighth addendum) |
 | 4 | Hangar: an Access view in Agent → MCP, then an Atlas view | Done 16 Oct. Access view (`AgentAccess.kt`, the first view of Agent → MCP; it replaced the machine-evidence drawer). Atlas view (`AgentAtlas.kt`, the second): a question box that takes a name, a file or position, `node:`, `op:` or a handle, with Find, Uses, Contents or Build tree; the answer is drawn with blueprint as a map and listed in a table with its evidence, omissions and next questions; the inspector reads a result's exact source through `atlas.read`. Hangar asks the running owner as seat `hangar` through `KernelAgents.ask` (`KernelOwner.kt`), the same gate the agents use, and says in plain words when no owner runs or the owner predates the `kernel` tool. `KernelAtlasTest`, `AgentPaneRenderTest` (a real owner on a temporary workspace) and flows F-AGENT-20 and F-AGENT-28 pass. Installed in Hangar 16 Oct |
-| 5 | Build facts: compilations through a Gradle Tooling API model fetch; Kotlin compiler addresses; JS and Native compilations | Later |
-| 6 | Change engine: multi-file atomic apply, Kotlin `rename`, `edit`, seat policy for deterministic plans (decision 1) | Later |
+| 5 | Build facts: compilations through a Gradle Tooling API model fetch; Kotlin compiler addresses; JS and Native compilations | Partly done 19 Oct, in the staged dist (not installed). Compilations come from an init script (`atlasCompilationsAll`, `tools/atlas/compilations.init.gradle`), so no build script changes; they are cached in `build/atlas/compilations.json` and stamped with a digest of the build scripts. For reaktor that is 661 compilations in 16 seconds. `KernelKotlinResolver` reads the JVM ones into a warm Analysis API session per owner. A test compilation leaves its module's own build outputs off its classpath, so an import of a main declaration resolves once (found by the gate's second task). Not yet: the Tooling API fetch, compiler addresses as ids, and JS and Native compilations (their files are renamed from syntax, with a note) |
+| 6 | Change engine: multi-file atomic apply, Kotlin `rename`, `edit`, seat policy for deterministic plans (decision 1) | Done 19 Oct, in the staged dist (not installed). `change.plan` has the recipes `edit` and Kotlin `rename`; the compiler decides which matches are uses, and every match left is listed with its reason. `change.apply` writes all files or none across included builds and leaves a receipt; after a revert it writes again. `check.run` runs the affected checks as one `--no-daemon` Gradle run. They are MCP tools and `reaktor-agent atlas plan`, `apply` and `check` (`KernelChanges.kt`, `KernelChangesTest`). The first completion gate is met from Codex and Claude on a top-level function, and not yet on an extension function (§5.7). Not yet: the seat policy for deterministic plans (decision 1) |
 
 **Open on the owner's Mac (16 Oct).**
 - Cut-over done 16 Oct. It surfaced a startup bug: an engineering descriptor (`kernel-connection.json`) left by a dead process made the new owner's `publish` throw, the owner then lost its lock and new sessions failed for about 15 minutes. `publish` and the server's `connect` now replace a descriptor whose endpoint is gone or answers as someone else, and the owner exits for launchd to restart it when startup fails after it opened the workspace. Still open: 20 `agent.*` operations declare no effect. Since 17 Oct the default seat policy allows every effect (the owner's "full access as default"; `DoorPolicy.Guarded` keeps the old decisions), so they no longer ask a person, but their effects still matter for the audit trail and for Guarded. remote-dev's appended `:exportBuildModel` failed on `kotlinAnalysisCompiler` resolution in dependeasy on 16 Oct.
