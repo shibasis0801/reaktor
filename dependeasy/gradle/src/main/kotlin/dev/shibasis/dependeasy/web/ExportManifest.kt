@@ -15,8 +15,7 @@ internal fun Project.exportManifest(name: String, script: Any, output: Any,
         arguments.addAll(listOf("--root", root, "--bundle", bundle, "--output", destination))
         arguments.addAll(sources.elements.map { locations -> locations.sortedBy { it.asFile.path }.flatMap { listOf("--source", it.asFile.absolutePath) } })
         dependsOn(runtime.install)
-        sourceFiles.from(rootProject.files("pnpm-workspace.yaml", "pnpm-lock.yaml",
-            runtime.file("api/workspace.ts")), runtime.sources, fileTree(directory()) {
+        sourceFiles.from(rootProject.files("pnpm-workspace.yaml", "pnpm-lock.yaml"), runtime.sources, fileTree(directory()) {
                 exclude("node_modules", "node_modules/**")
             }, inputs)
         outputFiles.from(file(output))

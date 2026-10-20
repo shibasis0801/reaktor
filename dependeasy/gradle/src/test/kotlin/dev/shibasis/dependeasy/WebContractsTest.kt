@@ -340,14 +340,23 @@ class WebContractsTest {
                 declaration.set(dev.shibasis.dependeasy.model.BuildModelReader.json.encodeToString(
                     dev.shibasis.dependeasy.model.KernelSpec.WorkerFleet(Environment("stable"), listOf(
                         dev.shibasis.dependeasy.model.FleetWorker(WorkerRef("worker", "targets/worker"), NodeId("webFixture", ":", "deployWorker"), listOf(
-                            WorkerDeployment(Environment("preview"), ServiceRef("fixture-preview")),
-                            WorkerDeployment(Environment("stable"), ServiceRef("fixture-stable"), listOf(WorkerServiceBinding.External("LOCAL", ServiceRef("local"))))))),
+                            WorkerDeployment(Environment("preview"), ServiceRef("fixture-preview"),
+                                secrets = listOf("PREVIEW_SECRET"), endpoint = "https://preview.example.test"),
+                            WorkerDeployment(Environment("stable"), ServiceRef("fixture-stable"), listOf(WorkerServiceBinding.External("LOCAL", ServiceRef("local"))),
+                                secrets = listOf("SERVICE_SECRET"), serviceClient = "fixture-service", endpoint = "https://stable.example.test")))),
                         FileSet(listOf("wrangler.json")), FileSet(listOf("build/cloudflare/fleet.json")))))
                 finalConfigurations.from("targets/worker/wrangler.dependeasy-preview.json", "targets/worker/wrangler.dependeasy-stable.json")
                 contract.set(layout.buildDirectory.file("cloudflare/fleet.json"))
             }
         """.trimIndent())
         assertEquals(TaskOutcome.SUCCESS, run("fleet").task(":fleet")?.outcome)
+        val fleet = json("build/cloudflare/fleet.json")
+        assertEquals("stable", fleet.getValue("defaultEnvironment").jsonPrimitive.content)
+        val deployments = fleet.getValue("workers").jsonArray.single().jsonObject.getValue("deployments").jsonArray.map { it.jsonObject }
+        assertEquals(listOf("preview", "stable"), deployments.map { it.getValue("environment").jsonPrimitive.content })
+        assertEquals("SERVICE_SECRET", deployments.last().getValue("secrets").jsonArray.single().jsonPrimitive.content)
+        assertEquals("fixture-service", deployments.last().getValue("serviceClient").jsonPrimitive.content)
+        assertEquals("https://preview.example.test", deployments.first().getValue("endpoint").jsonPrimitive.content)
         val result = json("targets/worker/wrangler.dependeasy-stable.json")
         assertEquals("yes", result.getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
         assertEquals("local", result.getValue("vars").jsonObject.getValue("override").jsonPrimitive.content)

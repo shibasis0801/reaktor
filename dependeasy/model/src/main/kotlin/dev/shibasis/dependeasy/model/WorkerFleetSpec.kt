@@ -14,7 +14,10 @@ sealed interface WorkerServiceBinding {
 
 @Serializable
 data class WorkerDeployment(val environment: Environment, val service: ServiceRef,
-    val bindings: List<WorkerServiceBinding> = emptyList())
+    val bindings: List<WorkerServiceBinding> = emptyList(),
+    val secrets: List<String> = emptyList(),
+    val serviceClient: String? = null,
+    val endpoint: String? = null)
 
 @Serializable
 data class FleetWorker(val ref: WorkerRef, val node: NodeId, val deployments: List<WorkerDeployment>)

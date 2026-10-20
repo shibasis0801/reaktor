@@ -18,7 +18,8 @@ data class WebContract(
 )
 
 @Serializable
-data class WorkerFleetContract(val schema: Int = 1, val workers: List<WorkerDeployable>)
+data class WorkerFleetContract(val schema: Int = 1, val workers: List<WorkerDeployable>,
+    val defaultEnvironment: String? = null)
 
 @Serializable
 data class WorkerDeployable(
@@ -27,4 +28,5 @@ data class WorkerDeployable(
     val directory: String,
     val configurations: Map<String, String>,
     val services: Map<String, String>,
+    val deployments: List<WorkerDeployment> = emptyList(),
 )

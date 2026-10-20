@@ -17,6 +17,14 @@ object WorkerFleetKernel {
             require(worker.deployments.any { it.environment == spec.defaultEnvironment }) { "${worker.ref.name}: missing default environment" }
             worker.deployments.forEach { deployment ->
                 require(deployment.service.name.isNotBlank()) { "${worker.ref.name}: empty service name" }
+                require(deployment.secrets.distinct().size == deployment.secrets.size && deployment.secrets.all {
+                    Regex("[A-Za-z_][A-Za-z0-9_]*").matches(it)
+                }) { "${worker.ref.name}: invalid or duplicate secret name" }
+                require(deployment.serviceClient == null || deployment.serviceClient.isNotBlank()) { "${worker.ref.name}: empty service client" }
+                deployment.endpoint?.let { endpoint ->
+                    val uri = java.net.URI(endpoint)
+                    require(uri.scheme in setOf("http", "https") && uri.host != null && uri.userInfo == null) { "${worker.ref.name}: invalid endpoint" }
+                }
                 require(deployment.bindings.map { it.binding }.distinct().size == deployment.bindings.size) { "${worker.ref.name}: duplicate service binding" }
                 deployment.bindings.forEach { binding ->
                     require(binding.binding.isNotBlank())
@@ -28,9 +36,9 @@ object WorkerFleetKernel {
             }
             WorkerDeployable(worker.ref.name, worker.node, worker.ref.directory,
                 worker.deployments.associate { it.environment.name to "${worker.ref.directory}/wrangler.dependeasy-${it.environment.name}.json" },
-                worker.deployments.associate { it.environment.name to it.service.name })
+                worker.deployments.associate { it.environment.name to it.service.name }, worker.deployments)
         }
-        return WorkerFleetContract(workers = records)
+        return WorkerFleetContract(workers = records, defaultEnvironment = spec.defaultEnvironment.name)
     }
 
     fun configurationSources(spec: KernelSpec.WorkerFleet): List<String> = spec.workers.flatMap { worker ->

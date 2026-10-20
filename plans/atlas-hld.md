@@ -1,6 +1,6 @@
 # Reaktor Atlas: one graph interface for coding agents
 
-Written 16 October 2026 by Claude. Not published. Inputs: the Codex tool-experiment handoff ([code-tooling-experiment-handoff.md](code-tooling-experiment-handoff.md)) and its [evidence file](audits/kotlin-tools-20261013-evidence.json), the external review the owner pasted on 16 October, the existing [code/agent HLD](code-agent-hld.md), [kernel plan](reaktor-kernel-plan.md), [kernel handoff](kernel-handoff.md) and [token ROI analysis](token-roi.md), and a source scan of reaktor-code, reaktor-tooling, reaktor-conductor, reaktor-mcp, the graph modules, dependeasy, the BestBuds kernel, the CLI and Hangar. Nothing was built or run for this document, and no model was called.
+Written 16 October 2026 by Claude. Not published. Inputs: the Codex tool-experiment handoff ([code-tooling-experiment-handoff.md](code-tooling-experiment-handoff.md)) and its [evidence file](../build/dependeasy/receipts/qualification/archive/kotlin-tools-20261013-evidence.json), the external review the owner pasted on 16 October, the existing [code/agent HLD](code-agent-hld.md), [kernel plan](reaktor-kernel-plan.md), [kernel handoff](kernel-handoff.md) and [token ROI analysis](token-roi.md), and a source scan of reaktor-code, reaktor-tooling, reaktor-conductor, reaktor-mcp, the graph modules, dependeasy, the BestBuds kernel, the CLI and Hangar. Nothing was built or run for this document, and no model was called.
 
 ## 0. Summary
 
@@ -1466,7 +1466,7 @@ Code that the design extends:
 
 Evidence:
 
-- [Experiment handoff](code-tooling-experiment-handoff.md) and [evidence JSON](audits/kotlin-tools-20261013-evidence.json) (13 October tools; 12 October native comparison).
+- [Experiment handoff](code-tooling-experiment-handoff.md) and [evidence JSON](../build/dependeasy/receipts/qualification/archive/kotlin-tools-20261013-evidence.json) (13 October tools; 12 October native comparison).
 - [Code/agent HLD](code-agent-hld.md) (11 October bounded-question sample) and [token ROI](token-roi.md) (7 October transcript analysis).
 - Maintenance dates read from the GitHub API on 16 October 2026: ast-grep 0.51.0 (15 October 2026); scip-typescript 0.4.0 (2 October 2025, commits to 15 October 2026); scip-clang 0.4.0 (23 February 2026, commits to 11 October 2026); scip 0.10.0 (3 September 2026); scip-java 0.13.1 (2 July 2026); OpenRewrite 8.93.8 (15 October 2026), whose `rewrite-javascript` module uses the Moderne source-available licence while the core is Apache-2.0, and whose old standalone `rewrite-javascript` repository was archived in May 2025; kotlin-lsp 263.6379.0 (3 October 2026); sourcekit-lsp swift-6.4.0 and swift-syntax 604.0.0 (15 September 2026); Joern 4.0.657 (16 October 2026); CodeQL CLI 2.27.2 (7 October 2026); TypeScript 7.0.2 (20 August 2026), with Manna on TypeScript 6.0.3.
 

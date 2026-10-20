@@ -12,7 +12,7 @@ The experiment used isolated copies, made **zero production edits** and invoked 
 
 `/Users/ovd/dev/offload/kotlin-tools-20261013`
 
-The local temporary reports linked in the earlier chat have expired. A compact durable recovery is now [kotlin-tools-20261013-evidence.json](audits/kotlin-tools-20261013-evidence.json). It contains original measurements, scope summaries, recipe outcomes, 31 named qualification assertions and SHA-256 identities of the underlying worker records. All 31 positive assertions replayed successfully over the retained results on 16 October; the original 3,059 authored-source hashes still matched. This was evidence recovery, not another compiler/analyzer run. Negative outcomes remain recorded separately.
+The local temporary reports linked in the earlier chat have expired. A compact durable recovery is now [kotlin-tools-20261013-evidence.json](../build/dependeasy/receipts/qualification/archive/kotlin-tools-20261013-evidence.json). It contains original measurements, scope summaries, recipe outcomes, 31 named qualification assertions and SHA-256 identities of the underlying worker records. All 31 positive assertions replayed successfully over the retained results on 16 October; the original 3,059 authored-source hashes still matched. This was evidence recovery, not another compiler/analyzer run. Negative outcomes remain recorded separately.
 
 Historical CodeQL/Joern and native task raw reports were no longer found in their original local directories. Their results below are prior recorded observations; they were not independently replayed during this handoff. Do not link those expired reports as accessible evidence.
 
