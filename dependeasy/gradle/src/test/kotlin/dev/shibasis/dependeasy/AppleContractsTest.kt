@@ -223,6 +223,10 @@ class AppleContractsTest {
             it.to == NodeId("appleFixture", ":", "outputGeneratedContractWorkerFleet") })
         assertTrue(model.nodes.none { it.id.project == ":" && it.id.name == "generateReleasePlan" })
         val hosts = BuildModelReader.json.decodeFromString<RemoteHostsContract>(directory.resolve("build/dependeasy/remote/hosts.json").readText())
+        assertEquals(listOf("build/dependeasy/release/appleFixture.json"), hosts.publicOutputs[":apple:generateReleasePlan"])
+        assertContains(hosts.publicOutputs.getValue(":apple:generateXcodeHost"), "config/apple-host/Bootstrap.swift")
+        assertContains(hosts.publicOutputs.getValue(":apple:generateXcodeHost"), "config/apple-host/iosApp-Release.xcconfig")
+        assertTrue(hosts.publicOutputs.values.flatten().none { it.endsWith("Signing.local.xcconfig") || it.contains("signing-request") })
         assertContains(hosts.xcodeEnvironment, "FIXTURE_GRADLE_ARGS")
         assertTrue(hosts.xcodeEnvironment.none { it.contains("BESTBUDS") || it.contains("MANNA") })
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("appleFixture", ":apple", "generateReleasePlan") &&

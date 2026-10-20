@@ -77,9 +77,30 @@ object BuildModelKernel {
     }
 
     fun routing(model: BuildModel, own: String): RemoteHostsContract {
+        val owned = model.nodes.filter { it.id.build == own }
+        val public = owned.flatMap { node ->
+            val paths = when (val spec = node.kernel?.spec) {
+                is KernelSpec.BuildModelExport -> spec.output.paths + spec.routing.paths
+                is KernelSpec.WebContract -> spec.output.paths + spec.typeScriptConfiguration.paths
+                is KernelSpec.KotlinExportCatalog -> spec.output.paths
+                is KernelSpec.ReleasePlan -> listOf(spec.output)
+                is KernelSpec.XcodeHost -> if (spec.checking) emptyList() else spec.files.drop(1) +
+                    AppleHostKernel.files(spec).keys.map { File(spec.files.first(), it).invariantSeparatorsPath }
+                is KernelSpec.WorkerFleet, is KernelSpec.PackageScripts, is KernelSpec.DaggerPipeline -> node.outputs.flatMap { it.paths }
+                is KernelSpec.DaggerVerification -> spec.expected.paths
+                else -> emptyList()
+            }.distinct().sorted()
+            paths.forEach { path -> require(path.isNotBlank() && !File(path).isAbsolute && ".." !in path.split('/')) { "Public transport output escapes $own: $path" } }
+            val tasks = (listOf(node.id.project.trimEnd(':') + ":" + node.id.name) +
+                (node.invocation as? Invocation.Gradle)?.tasks.orEmpty()).distinct()
+            tasks.map { it to paths }
+        }.filter { it.second.isNotEmpty() }.groupBy({ it.first }, { it.second })
+            .mapValues { (_, paths) -> paths.flatten().distinct().sorted() }.toSortedMap()
+        val exports = owned.mapNotNull { it.kernel?.spec as? KernelSpec.KotlinExportCatalog }
+            .flatMap { it.directories.paths }.distinct().sorted()
         val routing = RemoteHostsContract(builds = model.builds.associate { it.name to it.directory }.toSortedMap(),
             taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to model.requiredHost(it.id) }.toSortedMap(),
-            taskFamilies = taskFamilies(model, own))
+            taskFamilies = taskFamilies(model, own), publicOutputs = public, kotlinExports = exports)
         val appleVariables = model.nodes.mapNotNull { (it.kernel?.spec as? KernelSpec.XcodeHost)?.host }
             .map { host -> "${host.targets.single { it.name == host.applicationTarget }.settingsPrefix}_GRADLE_ARGS" }
         return routing.copy(xcodeEnvironment = (routing.xcodeEnvironment + appleVariables).distinct().sorted())

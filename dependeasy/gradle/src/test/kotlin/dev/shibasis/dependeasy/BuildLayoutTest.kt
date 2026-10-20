@@ -39,6 +39,9 @@ class BuildLayoutTest {
         assertEquals(2, report.schema)
         assertEquals(mapOf("product" to ".", "framework" to "framework", "Other" to "other"),
             report.builds)
+        assertEquals(listOf("build/dependeasy/model.json", "build/dependeasy/remote/hosts.json"), report.publicOutputs[":exportBuildModel"])
+        assertEquals(listOf("reports", "test-results"), report.outputRoots["web"])
+        assertTrue(report.kotlinExports.isEmpty())
         val expected = mapOf(":produceSite" to "web", ":emitPackage" to "web")
         assertEquals(expected, report.taskFamilies.filterKeys { it in expected })
         val model = BuildModelReader.read(directory)

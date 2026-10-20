@@ -121,6 +121,15 @@ data class RunReceipt(
 
 @Serializable data class RemoteHostsContract(val schema: Int = 2, val builds: Map<String, String>, val taskFamilies: Map<String, String>,
     val taskHosts: Map<String, HostRequirement> = emptyMap(),
+    val publicOutputs: Map<String, List<String>> = emptyMap(),
+    val kotlinExports: List<String> = emptyList(),
+    val outputRoots: Map<String, List<String>> = mapOf(
+        "all" to listOf("outputs", "libs", "distributions", "reports", "test-results", "bin", "xcode-frameworks", "XCFrameworks", "compose", "processedResources", "classes", "resources"),
+        "verification" to listOf("reports", "test-results", "hangar-flows", "hangar-shards"),
+        "android" to listOf("outputs", "libs", "reports", "test-results"),
+        "jvm" to listOf("agent-dist", "compose", "distributions", "reports", "test-results"),
+        "apple" to listOf("libs", "reports", "test-results", "bin", "xcode-frameworks", "XCFrameworks", "compose", "processedResources"),
+        "agent" to listOf("agent-dist"), "metadata" to emptyList(), "web" to listOf("reports", "test-results")),
     val xcodeEnvironment: List<String> = listOf("SDK_NAME", "CONFIGURATION", "ARCHS", "CURRENT_ARCH", "TARGET_BUILD_DIR", "FRAMEWORKS_FOLDER_PATH",
         "DEVELOPER_DIR", "PLATFORM_NAME", "BUILT_PRODUCTS_DIR", "UNLOCALIZED_RESOURCES_FOLDER_PATH", "EXPANDED_CODE_SIGN_IDENTITY",
         "CODE_SIGNING_ALLOWED", "KOTLIN_FRAMEWORK_BUILD_TYPE", "ACTION", "DWARF_DSYM_FOLDER_PATH",
