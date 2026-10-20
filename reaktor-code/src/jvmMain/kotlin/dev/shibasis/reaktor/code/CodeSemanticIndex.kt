@@ -135,7 +135,7 @@ class CodeSemanticIndex private constructor(val digest: String, val provider: St
 
     internal fun localRename(path: String, at: CodePosition, newName: String): List<CodeOccurrence> {
         require(provider == "scip-typescript/0.4.0") { "Local rename is qualified only for scip-typescript/0.4.0" }
-        require(compiler == "typescript/5.9.3") { "Local rename requires the qualified TypeScript compilation" }
+        require(compiler in QualifiedCompilers) { "Local rename requires a qualified TypeScript compilation: ${QualifiedCompilers.joinToString()}" }
         require(Regex("[A-Za-z_$][A-Za-z0-9_$]*").matches(newName) && newName !in reserved) { "Use an ordinary, non-keyword TypeScript identifier" }
         val selected = selected(path, at)
         require(selected.symbol.startsWith("local ")) { "This recipe renames file-local symbols; project-wide rename needs a multi-file recipe" }
@@ -173,6 +173,8 @@ class CodeSemanticIndex private constructor(val digest: String, val provider: St
     companion object {
         private fun occurrenceId(occurrence: CodeOccurrence) = listOf("code-occurrence", occurrence.path, occurrence.span.start.toString(),
             occurrence.span.end.toString(), occurrence.identity, occurrence.roles.toString()).joinToString("\u0000")
+
+        private val QualifiedCompilers = setOf("typescript/5.9.3", "typescript/6.0.3")
 
         private val reserved = ("break case catch class const continue debugger default delete do else enum export extends false finally for function if import in instanceof new null return super switch this throw true try typeof var void while with implements interface let package private protected public static yield any boolean constructor declare get module require number set string symbol type from of as async await abstract readonly never unknown namespace keyof infer is asserts satisfies using").split(' ').toSet()
 

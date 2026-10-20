@@ -156,12 +156,23 @@ class CodeSemanticIndexTest {
         assertFailsWith<IllegalArgumentException> { code.index("index.json") }
     }
 
-    private fun fixture(block: (Path, CodeWorkspace) -> Unit) {
+    @Test fun localRenameIsQualifiedOnTypeScript6WithTheSameOccurrences() = fixture("index-typescript-6.json") { _, code ->
+        val index = code.index("index.json")
+        assertEquals("typescript/6.0.3", index.compiler)
+        assertEquals(3, index.query("api.ts", CodePosition(0, 18), "references").total)
+        val plan = code.renameLocal("index.json", "api.ts", CodePosition(3, 28), "computed")
+        assertEquals(2, plan.replacements)
+        assertTrue(plan.after.contains("const computed = value") && plan.after.contains("return computed;") && plan.after.contains("const result = 7; return result;"))
+        assertEquals(plan.after, code.apply(plan, plan.fingerprint).text)
+    }
+
+    private fun fixture(artifact: String = "index.json", block: (Path, CodeWorkspace) -> Unit) {
         val root = Files.createTempDirectory("code-scip-").toRealPath()
         try {
-            listOf("api.ts", "use.ts", "tsconfig.json", "package.json", "index.json").forEach { name ->
+            listOf("api.ts", "use.ts", "tsconfig.json", "package.json").forEach { name ->
                 javaClass.getResourceAsStream("/scip/$name")!!.use { Files.copy(it, root.resolve(name)) }
             }
+            javaClass.getResourceAsStream("/scip/$artifact")!!.use { Files.copy(it, root.resolve("index.json")) }
             val artifact = Json.parseToJsonElement(Files.readString(root.resolve("index.json"))).jsonObject
             val index = artifact.getValue("index").jsonObject
             val metadata = JsonObject(index.getValue("metadata").jsonObject + ("project_root" to JsonPrimitive(root.toUri().toString().removeSuffix("/"))))
