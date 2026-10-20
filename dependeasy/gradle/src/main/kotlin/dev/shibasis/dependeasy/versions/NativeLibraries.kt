@@ -11,5 +11,4 @@ object NativeLibraries {
     const val Hermes = "com.facebook.react:hermes-android:${ToolchainVersions.HermesAndroid}"
     const val Jna = "net.java.dev.jna:jna:5.18.1"
     const val OpenSsl = "com.android.ndk.thirdparty:openssl:1.1.1q-beta-1"
-    const val ReactNative = "com.facebook.react:react-native:0.68.5"
 }

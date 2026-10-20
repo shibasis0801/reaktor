@@ -17,7 +17,7 @@ Reaktor's own briefing lives in `/Users/ovd/dev/reaktor/README.md` and `/Users/o
   - **Core/runtime**: `reaktor-core`, `reaktor-graph-port`, `reaktor-graph`
   - **Data/IO/auth**: `reaktor-db`, `reaktor-io`, `reaktor-auth`
   - **Interop**: `reaktor-flexbuffer`, `reaktor-ffi`, `reaktor-compiler`
-  - **Platform/service**: `reaktor-ui`, `reaktor-tactile`, `reaktor-media`, `reaktor-location`, `reaktor-work`, `reaktor-notification`, `reaktor-google`, `reaktor-cloudflare`, `reaktor-mcp`, `reaktor-telemetry`, `reaktor-web`, `reaktor-react`
+  - **Platform/service**: `reaktor-ui`, `reaktor-tactile`, `reaktor-media`, `reaktor-location`, `reaktor-work`, `reaktor-notification`, `reaktor-google`, `reaktor-cloudflare`, `reaktor-mcp`, `reaktor-telemetry`, `reaktor-web`
   - **UI/flow**: `compose-flow`, `reaktor-flow`
   - **Build**: `dependeasy` (composite-build plugin), `root.cmake`, module `cpp/` and `ts/` directories
 - Core patterns to reuse, not replace:

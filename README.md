@@ -179,7 +179,6 @@ Every module has a stability level indicating its maturity:
 | `dependeasy` | **Stable** | Gradle plugin | internal Gradle plugin for multiplatform target orchestration and native builds |
 | `reaktor-compiler` | **Early** | JVM (build-time) | KSP processor for JS Promise wrappers of suspend functions |
 | `reaktor-mcp` | **Brainstorming** | JVM | Model Context Protocol client and server stubs |
-| [reaktor-react](/Users/ovd/dev/reaktor/reaktor-react/README.md) | **Paused** | Android, iOS | React Native JSI bridge. Not actively maintained. |
 
 ---
 

@@ -44,7 +44,7 @@ keeps Compose; the graph, interactors, repositories, ports, routes and deep link
 | xyflow bindings | `compose-flow` jsMain | Working; used by `reaktor-flow`'s `toReactFlowData`. |
 | Workbench React renderer | `bestbuds/modules/engine` jsMain `render/react` (~19.7k lines) | Orphaned since `reaktorWeb` moved to Compose. Global-object bridges; `foundation/ReactInterop.kt`, the boot shims and the npm-injection pattern are the generic parts. |
 | Surface | `reaktor-surface` (behaviour kernels) + `reaktor-surface-compose` (~20 controls) | No React realization. R50–R55 (React Strict DOM) deferred; `experiments/rsd` is standalone. |
-| `reaktor-react` | React Native 0.68 bridge | Paused, out of the build, unrelated to React DOM. |
+| Historical React Native bridge | Retired in WP18 | Obsolete 0.68 integration; preserved in Git history. |
 | JS tests | | None cover React code. The JS target is red (`BUILD_HEALTH.md`) because Compose reaches Node runs. |
 
 Modules that drag Compose into a web consumer today, although what the web needs from them is not
