@@ -132,7 +132,7 @@ class DaggerPipelineTest {
             DaggerKernel.resolve(KernelSpec.ContainerNode(node.id, Environment("dev"), FileSet(emptyList()), FileSet(emptyList())), selected, secrets)
         assertFailsWith<IllegalArgumentException> { resolve(local) }
         assertFailsWith<IllegalArgumentException> { resolve(parent) }
-        assertEquals("linux/arm64", resolve(pr).platform)
+        assertEquals("linux/amd64", resolve(pr).platform)
         assertEquals("linux/amd64", resolve(androidParent).platform)
         assertContains(resolve(android).artifacts, "fixture/app.aab")
         val privateInput = pr.copy(inputs = listOf(FileSet(listOf("config/private.env"))))
@@ -146,7 +146,7 @@ class DaggerPipelineTest {
         assertFailsWith<IllegalArgumentException> { resolve(secret, setOf("FIXTURE_TOKEN"), secretModel.copy(nodes = secretModel.nodes.map { if (it.id == secret.id) it.copy(environments = listOf(Environment("prod"))) else it })) }
         assertEquals("fixture-browser", pipeline.toolchain.browserImage)
         assertEquals("false", pipeline.environment["ORG_GRADLE_PROJECT_fixture.option"])
-        assertEquals("linux/arm64", pipeline.environment["DEPE_CONTAINER_PLATFORM"])
+        assertEquals(resolve(pr).platform, pipeline.environment["DEPE_CONTAINER_PLATFORM"])
         assertFalse("DEPE_CONTAINER_PLATFORM_OVERRIDES" in pipeline.environment)
         assertEquals(2, pipeline.toolchain.schemaVersion)
         assertEquals(768, pipeline.toolchain.memory.gradle.heapMiB)

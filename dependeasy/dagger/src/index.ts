@@ -142,15 +142,10 @@ export class Dependeasy {
     const names = await Promise.all(secrets.map(secret => secret.name()))
     const inputs: Record<string, string> = { node: target, environment, secrets: names.join(",") }
     const resolve = pipeline.resolve.map(argument => argument.replace(/\{(node|environment|secrets)\}/g, (_, key: string) => inputs[key]))
-    let runtime = new BuildRuntime(this.source, this.reaktor, pipeline.toolchain, pipeline.build, pipeline.environment)
+    const runtime = new BuildRuntime(this.source, this.reaktor, pipeline.toolchain, pipeline.build, pipeline.environment)
     let container = (await runtime.workspace()).withExec(resolve)
-    let invocation: Invocation = JSON.parse(await container.file(pipeline.invocationFile).contents())
-    if (invocation.platform !== pipeline.environment.DEPE_CONTAINER_PLATFORM) {
-      runtime = new BuildRuntime(this.source, this.reaktor, pipeline.toolchain, pipeline.build,
-        { ...pipeline.environment, DEPE_CONTAINER_PLATFORM: invocation.platform })
-      container = (await runtime.workspace()).withExec(resolve)
-      invocation = JSON.parse(await container.file(pipeline.invocationFile).contents())
-    }
+    const invocation: Invocation = JSON.parse(await container.file(pipeline.invocationFile).contents())
+    if (invocation.platform !== pipeline.environment.DEPE_CONTAINER_PLATFORM) throw new Error("Container toolchain host differs from Kotlin invocation")
     if (invocation.runner === "browser") container = await runtime.browserWorkspace(container)
     for (const name of invocation.secrets) container = container.withSecretVariable(name, secrets[names.indexOf(name)])
     const completed = container.withExec(invocation.arguments, { expect: ReturnType.Any })

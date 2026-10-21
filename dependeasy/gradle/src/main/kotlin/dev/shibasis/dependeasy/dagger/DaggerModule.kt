@@ -24,7 +24,6 @@ internal class DaggerModule(private val project: Project, options: List<OptionAr
             engineVersion.set(ToolchainVersions.Dagger)
             gradleProperties.set(this@DaggerModule.gradleProperties)
             executionEnvironment.set(mapOf(
-                "DEPE_CONTAINER_PLATFORM" to "linux/arm64",
                 "PNPM_CONFIG_NETWORK_CONCURRENCY" to "4",
                 "PNPM_CONFIG_CHILD_CONCURRENCY" to "1",
             ))

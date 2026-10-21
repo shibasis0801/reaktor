@@ -3,10 +3,11 @@ package dev.shibasis.dependeasy.model
 import kotlinx.serialization.encodeToString
 
 object DaggerKernel {
+    private const val ToolPlatform = "linux/amd64"
     fun render(spec: KernelSpec.DaggerPipeline): Map<String, String> {
         val contract = DaggerPipelineContract(build = spec.build, engineVersion = spec.engineVersion,
             environment = spec.environment + spec.gradleProperties.mapKeys { "ORG_GRADLE_PROJECT_${it.key}" } +
-                ("NODE_OPTIONS" to "--max-old-space-size=${spec.toolchain.memory.nodeMiB}"),
+                mapOf("NODE_OPTIONS" to "--max-old-space-size=${spec.toolchain.memory.nodeMiB}", "DEPE_CONTAINER_PLATFORM" to ToolPlatform),
             toolchain = spec.toolchain.copy(
                 caches = mapOf("/root/.gradle" to "${spec.build}-gradle", "/root/.konan" to "${spec.build}-konan",
                     "/root/.local/share/pnpm/store" to "dependeasy-pnpm",
@@ -50,8 +51,6 @@ object DaggerKernel {
         }
         val secrets = closure.flatMap { it.requiredSecrets }.distinct().sorted()
         require(availableSecrets.containsAll(secrets)) { "Missing named container secrets: ${(secrets - availableSecrets).joinToString()}" }
-        val androidKinds = setOf(OutputKind.AndroidApk, OutputKind.AndroidBundle, OutputKind.AndroidLibrary, OutputKind.AndroidInstrumentedTests).map { it.name }.toSet()
-        val android = closure.any { current -> (current.inputs + current.outputs).any { it.kind in androidKinds } }
         val own = model.builds.single { it.directory == "." }.name
         fun artifact(build: String, path: String): String {
             val directory = model.builds.single { it.name == build }.directory
@@ -72,7 +71,7 @@ object DaggerKernel {
             .map { artifact(it.name, GradleProtocol.ReceiptDirectory) }
         val outputs = (artifacts + receipts).distinct().sorted().flatMap { listOf(it, "$it/**") }
         val tasks = invocation.tasks.map { if (node.id.build == own) it else ":${node.id.build}$it" }
-        return ContainerInvocation(node.id, environment, if (android) "linux/amd64" else "linux/arm64",
+        return ContainerInvocation(node.id, environment, ToolPlatform,
             if (closure.any { it.runner == Runner.Browser }) Runner.Browser else node.runner,
             listOf("./gradlew") + tasks + listOf("-P${GradleProtocol.EnvironmentOption}=${environment.name}", "--console=plain"), secrets, outputs)
     }
