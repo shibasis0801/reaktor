@@ -94,7 +94,7 @@ class CloudflareAiTest {
             second.writeText("""{"name":"b","account_id":"${"a".repeat(32)}"}""")
             File(root, "targets/decoy/wrangler.json").apply { parentFile.mkdirs() }
                 .writeText("""{"account_id":"${"b".repeat(32)}"}""")
-            val fleet = File(root, "build/dependeasy/cloudflare/fleet.json").apply { parentFile.mkdirs() }
+            val fleet = File(root, "build/dependeasy/contracts/cloudflare/fleet.json").apply { parentFile.mkdirs() }
             fleet.writeText("""{"schema":1,"defaultEnvironment":"prod","workers":[
                 {"name":"a","node":{"build":"fixture","project":":a","name":"deploy"},"directory":"targets/a",
                  "configurations":{"prod":"targets/a/final-prod.json"},"services":{"prod":"a"}},

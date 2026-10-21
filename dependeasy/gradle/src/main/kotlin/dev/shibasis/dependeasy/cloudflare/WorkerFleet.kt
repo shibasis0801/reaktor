@@ -34,7 +34,7 @@ class WorkerFleet internal constructor(
         require(environments.isNotEmpty()) { "Declare the fleet environments" }
         require(workers.values.all { declaration -> declaration.worker.deployments.all { it.environment in environments } }) { "A worker uses an undeclared fleet environment" }
         val fleetSpec = KernelSpec.WorkerFleet(environments.last(), workers.values.map { it.worker }, FileSet(listOf("wrangler.json")),
-            FileSet(listOf(project.rootProject.relativePath(project.rootProject.layout.buildDirectory.file("dependeasy/cloudflare/fleet.json").get().asFile))))
+            FileSet(listOf(project.rootProject.relativePath(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json").get().asFile))))
         val records = WorkerFleetKernel.plan(fleetSpec).workers
         val requestedEnvironment = project.option(environmentOption.copy(resolutionOrder = environmentOption.resolutionOrder - OptionSource.Default))
         val selectedName = requestedEnvironment.orElse(environments.last().name).get()
@@ -46,7 +46,7 @@ class WorkerFleet internal constructor(
             declaration.set(BuildModelReader.json.encodeToString(fleetSpec))
             configurations.from(WorkerFleetKernel.configurationSources(fleetSpec).map(project.rootProject::file))
             finalConfigurations.from(records.flatMap { it.configurations.values }.map(project.rootProject::file))
-            contract.set(project.rootProject.layout.buildDirectory.file("dependeasy/cloudflare/fleet.json"))
+            contract.set(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json"))
         }
         project.node(generate, OutputKind.GeneratedContract)
         project.publishOutput(OutputKind.GeneratedContract, generate.flatMap { it.contract }, Contract.WorkerFleet, producer = generate)

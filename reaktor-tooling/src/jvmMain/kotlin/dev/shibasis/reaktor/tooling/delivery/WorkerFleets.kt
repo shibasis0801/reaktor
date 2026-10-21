@@ -11,7 +11,7 @@ import kotlinx.serialization.json.jsonPrimitive
 /** Reads only the Kotlin-declared fleet and its final configurations. */
 object WorkerFleets {
     fun read(root: File, record: (File) -> File = { it }): WorkerFleetContract? {
-        val file = record(File(root, "build/dependeasy/cloudflare/fleet.json"))
+        val file = record(File(root, "build/dependeasy/contracts/cloudflare/fleet.json"))
         if (!file.isFile) return null
         require(file.length() <= 2_000_000) { "Worker fleet too large" }
         return Json.decodeFromString<WorkerFleetContract>(file.readText()).also { contract ->
