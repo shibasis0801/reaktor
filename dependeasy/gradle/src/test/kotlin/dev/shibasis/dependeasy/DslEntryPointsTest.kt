@@ -866,7 +866,7 @@ class DslEntryPointsTest {
 
     @Test fun `Android Spring and Desktop entries apply their typed component defaults without packaging`() {
         write("gradle.properties", "android.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true")
-        write("settings.gradle.kts", "rootProject.name = \"applicationFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"android\", \"server\", \"worker\", \"desktop\")")
+        write("settings.gradle.kts", "rootProject.name = \"applicationFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"android\", \"server\", \"worker\", \"desktop\", \"workers\")")
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.handles.verification
             import dev.shibasis.dependeasy.model.Verification
@@ -874,7 +874,7 @@ class DslEntryPointsTest {
             workspace {
                 val apiChecks by verify(projects.worker)
                 val hangarPublic by verify { include(verification(projects.desktop, Verification.Hangar)) }
-                delivery(after = apiChecks) { val deployApi by deploy(projects.worker) }
+                delivery(after = apiChecks) { val deployApi by deploy(projects.workers) }
                 packageScripts()
             }
         """)
@@ -882,12 +882,22 @@ class DslEntryPointsTest {
         write("worker/package.json", """{"name":"worker","scripts":{"test":"fixture test"}}""")
         write("worker/wrangler.json", """{"name":"fixture-worker","main":"src/index.ts"}""")
         write("worker/src/index.ts", "export default {}")
+        write("wrangler.json", "{}")
+        write("workers/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.workers
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.worker-fleet") }
+            workers(listOf(Environment("prod"))) {
+                worker(WorkerRef("api", "worker"), listOf(WorkerDeployment(Environment("prod"), ServiceRef("fixture-worker"))),
+                    output(projects.worker, OutputKind.WorkspaceCompletion, Workspace.Verify))
+            }
+        """)
         write("worker/build.gradle.kts", """
             import dev.shibasis.dependeasy.components.workerApp
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
-            workerApp(WorkerRef("fixture-worker", "worker"), listOf(Environment("prod")),
-                typescript = listOf("tsconfig.json", "test/tsconfig.json"), tests = PackageScript("test"))
+            workerApp(typescript = listOf("tsconfig.json", "test/tsconfig.json"), tests = PackageScript("test"))
         """)
         write("android/src/main/AndroidManifest.xml", "<manifest />")
         write("android/release-rules.pro", "")
@@ -1238,21 +1248,21 @@ class DslEntryPointsTest {
         assertTrue(model.edges.any { it is Edge.Includes && it.from == androidRole.id && it.to == androidBuild.id })
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == androidBuild.id && it.to.project == ":android" && it.to.name == "outputModuleBuild" })
         assertTrue(model.nodes.none { it.id.project == ":android" && it.id.name == "outputWorkspaceCompletionVerify" })
-        val published = model.nodes.single { it.id.project == ":worker" && it.id.name == "publishWorker" }
-        assertEquals("fixture-worker", published.worker?.name)
+        val published = model.nodes.single { it.id.project == ":workers" && it.id.name == "deployApi" }
+        assertEquals("api", published.worker?.name)
         assertEquals(listOf("prod"), published.environments.map { it.name })
         assertTrue(model.nodes.any { it.id.project == ":worker" && it.id.name == "outputWorkspaceCompletionVerify" })
         assertTrue(model.nodes.any { it.id.project == ":worker" && it.id.name == "outputWorkspaceCompletionBuild" })
-        assertTrue(model.nodes.any { it.id.project == ":worker" && it.id.name == "outputWorkspaceCompletionDeploy" })
+        assertTrue(model.nodes.none { it.id.project == ":worker" && it.effect == Effect.Deploy })
         assertTrue(model.nodes.none { it.id.project == ":worker" && it.id.name.contains("Bundle") })
         assertContains(directory.resolve("package.json").readText(), "./gradlew :worker:workerWorkerTypes")
         val plan = run("deployApi", "--dry-run").output
         assertContains(plan, ":worker:workerWorkerTypes SKIPPED")
         assertContains(plan, ":worker:workerTypes SKIPPED")
         assertContains(plan, ":worker:workerCheck SKIPPED")
-        assertContains(plan, ":worker:workerDeploy SKIPPED")
+        assertContains(plan, ":workers:apiWorkerDeploy SKIPPED")
         assertTrue(plan.indexOf(":worker:workerTypes SKIPPED") < plan.indexOf(":worker:workerCheck SKIPPED"))
-        assertTrue(plan.indexOf(":worker:workerCheck SKIPPED") < plan.indexOf(":worker:workerDeploy SKIPPED"))
+        assertTrue(plan.indexOf(":worker:workerCheck SKIPPED") < plan.indexOf(":workers:apiWorkerDeploy SKIPPED"))
         assertContains(run("deployApi", "--dry-run").output, "Reusing configuration cache")
     }
 }

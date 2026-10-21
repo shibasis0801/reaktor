@@ -165,7 +165,7 @@ class WebContractsTest {
         write("settings.gradle.kts", """
             rootProject.name = "webFixture"
             enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-            include("site", "library")
+            include("site", "library", "workers")
         """.trimIndent())
         write("package.json", """{"name":"fixture","private":true}""")
         write("pnpm-workspace.yaml", "packages: ['site', 'library']")
@@ -202,6 +202,18 @@ class WebContractsTest {
             publishOutput(OutputKind.WebResources, resources.flatMap { it.outputDirectory }, producer = resources)
             val sourcePackage by webPackage("source", "tools")
         """.trimIndent())
+        write("wrangler.json", "{}")
+        write("site/wrangler.json", """{"name":"fixture-site","main":"index.ts"}""")
+        write("workers/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.workers
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.worker-fleet") }
+            workers(listOf(Environment("production"))) {
+                worker(WorkerRef("site", "site"), listOf(WorkerDeployment(Environment("production"), ServiceRef("fixture-site"))),
+                    browserBundle(projects.site))
+            }
+        """.trimIndent())
         write("base.json", "{}")
         write("site/package.json", """{"name":"site","private":true,"imports":{"#keep":"./index.ts"},"dependencies":{"fixture-source":"workspace:*"},"scripts":{"bundle:assets":"node bundle.cjs"}}""")
         write("site/index.ts", "export const value = 1;")
@@ -225,11 +237,9 @@ class WebContractsTest {
                 assets(from = kotlinJsLibrary(projects.library), paths = listOf(WebAsset("parser.wasm", "@fixture/native/parser.wasm")))
                 assets(from = webResources(projects.library), paths = listOf(WebAsset("vitals.js", "vitals.js")))
                 packages(webPackage(projects.library))
-                val publish by deploy(WorkerRef("fixture-site", "site"), listOf(Environment("production")))
                 alias(PackageScript("previousBundle"), bundle)
                 alias(PackageScript("previousTypes"), typecheck)
                 alias(PackageScript("previousBuild"), build)
-                alias(PackageScript("previousDeploy"), publish)
             }
             tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
                 baseConfiguration.set(rootProject.layout.projectDirectory.file("base.json"))
@@ -248,7 +258,9 @@ class WebContractsTest {
                 val site = product(shared = projects.site)
                 val pr by verify(site, role = Workspace.Verify)
                 val everything by artifacts(site, role = Workspace.Build)
-                delivery(after = pr) { val ship by deploy(projects.site) }
+                delivery(after = pr) {
+                    val ship by deploy(projects.workers)
+                }
                 packageScripts()
             }
         """.trimIndent())
@@ -268,7 +280,7 @@ class WebContractsTest {
             Triple(":site", "Build", "assembleWeb"),
             Triple(":site", "Web", "assembleWeb"),
             Triple(":site", "Verify", "checkWeb"),
-            Triple(":site", "Deploy", "siteDeploy"),
+            Triple(":workers", "Deploy", "deployWorkers"),
             Triple(":", "Verify", "pr"),
             Triple(":", "Build", "everything"),
         )) {
@@ -305,7 +317,6 @@ class WebContractsTest {
         assertEquals("./gradlew :site:siteBundleAssets", scripts.getValue("previousBundle").jsonPrimitive.content)
         assertEquals("./gradlew :site:siteTypes", scripts.getValue("previousTypes").jsonPrimitive.content)
         assertEquals("./gradlew :site:assembleWeb", scripts.getValue("previousBuild").jsonPrimitive.content)
-        assertEquals("./gradlew :site:publish", scripts.getValue("previousDeploy").jsonPrimitive.content)
         val sitePackage = json("site/package.json")
         assertEquals("./build/dependeasy/web/site.json", sitePackage.getValue("imports").jsonObject.getValue("#dependeasy/web").jsonPrimitive.content)
         assertEquals("./index.ts", sitePackage.getValue("imports").jsonObject.getValue("#keep").jsonPrimitive.content)
@@ -327,8 +338,8 @@ class WebContractsTest {
         val artifacts = run("everything", "--dry-run").output
         assertContains(artifacts, ":site:siteBundleAssets SKIPPED")
         val shipping = run("ship", "--dry-run").output
-        assertContains(shipping, ":site:siteDeploy SKIPPED")
-        assertTrue(shipping.indexOf(":pr SKIPPED") < shipping.indexOf(":site:siteDeploy SKIPPED"))
+        assertContains(shipping, ":workers:siteWorkerDeploy SKIPPED")
+        assertTrue(shipping.indexOf(":pr SKIPPED") < shipping.indexOf(":workers:siteWorkerDeploy SKIPPED"))
         run(":site:siteWebContract", "exportBuildModel", "generatePackageScripts")
         assertContains(run(":site:siteWebContract", "exportBuildModel", "generatePackageScripts").output, "Reusing configuration cache")
         val lockedAndBuilt = run("pnpmLock", "everything")

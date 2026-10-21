@@ -5,10 +5,3 @@ data class WorkerContractTests(
     val environmentFiles: Map<Environment, String> = emptyMap(),
     val environment: Map<Environment, Map<String, String>> = emptyMap(),
 )
-
-data class WorkerAppSpec(
-    val worker: WorkerRef,
-    val environments: List<Environment>,
-    val typescript: List<String>,
-    val tests: PackageScript?,
-)
