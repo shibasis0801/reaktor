@@ -31,7 +31,9 @@ library(namespace = "dev.shibasis.reaktor.flexbuffer", targets = Targets.All, jv
     native(name = "ReaktorFlexbuffer", platforms = setOf(NativePlatform.Android, NativePlatform.Darwin, NativePlatform.Host),
         abis = listOf(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64)) {
         links(Native.Flatbuffers, Native.Foundation)
+        includeDirs("src/commonMain/cpp", "src/androidMain/cpp", "src/iosMain/cpp")
     }
+    appleInterop(packageName = "dev.shibasis.reaktor.native", headers = listOf("src/iosMain/cpp/darwin/Reaktor.h"))
     dependencies {
         processors(Reaktor.Compiler, options = mapOf(
             Reaktor.CompilerOptions.FlexCoderRegistrarPackage to "dev.shibasis.reaktor.flexbuffer.generated",

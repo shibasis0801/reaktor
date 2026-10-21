@@ -12,6 +12,8 @@ library(namespace = "dev.shibasis.reaktor.performance", targets = Targets.All) {
     val resources by webResources()
     dependencies { common { api(Reaktor.Core); commonSerialization() } }
     native(name = "ReaktorPerformance", platforms = setOf(NativePlatform.Android, NativePlatform.Darwin, NativePlatform.Host),
-        abis = listOf(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64))
+        abis = listOf(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64)) {
+        includeDirs("src/commonMain/cpp", "src/commonMain/cpp/include")
+    }
     val checkPerformanceTypeScript by typescript()
 }

@@ -19,6 +19,7 @@ library(namespace = "dev.shibasis.reaktor.security", targets = Targets.Android +
         val googleTest = NativeContract.Project("cpp/external/googletest", "GTest::gtest_main",
             mapOf("INSTALL_GTEST" to "OFF", "gtest_force_shared_crt" to "ON"), hostOnly = true)
         links(Native.OpenSslCrypto, Native.OpenSslSsl)
+        includeDirs("src/commonMain/cpp", "src/commonMain/cpp/include", "src/androidMain/cpp")
         uses(json)
         links(mls)
         tests("rsec_tests", listOf("src/commonTest/cpp/MlsEngineTest.cpp", "src/commonTest/cpp/RsecCapiTest.cpp"), googleTest)

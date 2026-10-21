@@ -3,7 +3,6 @@ package dev.shibasis.dependeasy.native
 import dev.shibasis.dependeasy.plugins.DependeasyExtension
 import dev.shibasis.dependeasy.settings.nativeTools
 import org.gradle.api.Project
-import org.gradle.api.artifacts.ProjectDependency
 import java.io.File
 
 open class NativeLibrary internal constructor(
@@ -37,18 +36,12 @@ open class NativeLibrary internal constructor(
     fun includeDirs(vararg directories: Any) { publicHeaders.addAll(directories) }
 
     internal val resolvedIncludeDirs: List<String>
-        get() = (sourceSetIncludeDirs + publicHeaders.map(project::file) +
+        get() = (publicHeaders.map(project::file) +
             libraries.flatMap { dependency -> dependency.source?.let { tool ->
                 val directory = project.nativeTools.sourceTasks.getValue(tool).get().checkout.get().asFile
                 dependency.includeRoots.map(directory::resolve)
             }.orEmpty() })
             .map { it.absolutePath }.distinct()
-
-    private val sourceSetIncludeDirs: List<File>
-        get() = listOf("commonMain", "androidMain", "iosMain").flatMap { sourceSet ->
-            val directory = project.file("src/$sourceSet/cpp")
-            listOf(directory, directory.resolve("include"))
-        }.filter(File::isDirectory)
 
     internal val android = AndroidNativeConfiguration()
     internal val darwin = DarwinNativeConfiguration(project)

@@ -24,7 +24,7 @@ internal fun Project.registerDarwinInterop(
     val targetName = target.name.replaceFirstChar(Char::uppercaseChar)
     val outputName = "$name-$sdk.def"
     val definition = tasks.register<GenerateNativeDefTask>("generate${targetName}NativeDef") {
-        native.darwin.resolvedDefFile.takeIf { it.isFile }?.let { baseDefFile.set(it) }
+        baseDefFile.set(native.darwin.resolvedDefFile)
         headerFiles.from(native.darwin.resolvedHeaders)
         build?.let { staticLibraryManifests.from(it.flatMap(KotlinCMakeTask::staticLibrariesManifest)) }
         dependencies.forEach {

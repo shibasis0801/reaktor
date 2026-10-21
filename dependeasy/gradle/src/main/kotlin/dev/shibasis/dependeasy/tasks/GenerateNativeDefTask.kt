@@ -8,7 +8,6 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Provider
 import java.io.File
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
@@ -19,7 +18,7 @@ import org.gradle.work.DisableCachingByDefault
 
 @DisableCachingByDefault(because = "Cinterop definitions contain absolute header and library paths")
 abstract class GenerateNativeDefTask : DefaultTask() {
-    @get:InputFile
+    @get:InputFiles
     @get:Optional
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val baseDefFile: RegularFileProperty

@@ -1,8 +1,6 @@
 package dev.shibasis.dependeasy.native
 
-import dev.shibasis.dependeasy.plugins.DependeasyExtension
 import org.gradle.api.Project
-import org.gradle.api.artifacts.ProjectDependency
 import java.io.File
 
 open class DarwinNativeConfiguration internal constructor(
@@ -30,22 +28,16 @@ open class DarwinNativeConfiguration internal constructor(
         get() = packageName != null ||
             includeDirectories.isNotEmpty() ||
             headerFiles.isNotEmpty() ||
-            compilerArguments.isNotEmpty() ||
-            defaultHeaders().isNotEmpty() ||
-            resolvedDefFile.exists()
+            compilerArguments.isNotEmpty()
 
     internal val resolvedPackageName: String
         get() = packageName ?: "dev.shibasis.reaktor.native"
 
     internal val resolvedDefFile: File
-        get() = project.file("src/iosMain/cinterop/reaktor.def").takeIf(File::isFile)
-            ?: requireNotNull(project.nativeConfigurationOrNull)
-            .resolvedSourceDirectory
-            .resolve("bindings.def")
+        get() = project.file("src/iosMain/cinterop/reaktor.def")
 
     internal val resolvedIncludeDirs: List<String>
         get() {
-            val nativeSourceDirectory = requireNotNull(project.nativeConfigurationOrNull).resolvedSourceDirectory
             return (
                 requireNotNull(project.nativeConfigurationOrNull).resolvedIncludeDirs +
                     includeDirectories.map(project::file).map { file -> file.absolutePath }
@@ -53,35 +45,9 @@ open class DarwinNativeConfiguration internal constructor(
         }
 
     internal val resolvedHeaders: List<File>
-        get() = headerFiles
-            .ifEmpty { defaultHeaders().map { file -> file.path } }
-            .map(project::file)
-            .filter { file -> file.exists() }
-            .map { file -> file.absoluteFile }
+        get() = headerFiles.map(project::file).map { it.absoluteFile }
 
     internal val resolvedCompilerArguments: List<String>
         get() = compilerArguments.toList()
 
-    private fun defaultHeaders(): List<File> {
-        val nativeSourceDirectory = requireNotNull(project.nativeConfigurationOrNull).resolvedSourceDirectory
-        val publicDirectories = listOf(
-            project.file("src/commonMain/cpp/include"),
-            project.file("src/iosMain/cpp/darwin"),
-            nativeSourceDirectory.resolve("include"),
-            nativeSourceDirectory.resolve("darwin"),
-            nativeSourceDirectory.resolve("common"),
-        ).filter(File::exists)
-
-        return publicDirectories
-            .asSequence()
-            .map { directory ->
-                directory
-                    .walkTopDown()
-                    .filter { it.isFile && it.extension == "h" }
-                    .sortedBy(File::getAbsolutePath)
-                    .toList()
-            }
-            .firstOrNull(List<File>::isNotEmpty)
-            .orEmpty()
-    }
 }

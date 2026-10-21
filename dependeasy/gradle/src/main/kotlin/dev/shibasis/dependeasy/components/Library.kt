@@ -446,6 +446,7 @@ internal fun Project.publishLibraryRoles(targets: Set<LibraryTarget>, verificati
 class LibraryNativeScope internal constructor(private val native: dev.shibasis.dependeasy.native.NativeLibrary) {
     fun links(vararg dependencies: dev.shibasis.dependeasy.native.NativeDependency) = native.dependencies(*dependencies)
     fun uses(vararg modules: ModuleHandle) = native.modules(*modules)
+    fun includeDirs(vararg directories: String) = native.includeDirs(*directories)
     fun uses(vararg projects: NativeContract.Project) { native.localProjects.addAll(projects) }
     fun links(vararg projects: NativeContract.Project) {
         uses(*projects)

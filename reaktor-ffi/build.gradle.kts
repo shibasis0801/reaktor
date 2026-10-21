@@ -10,9 +10,12 @@ library(namespace = "dev.shibasis.reaktor.ffi", targets = Targets.All) {
     native(name = "ReaktorFFI", platforms = setOf(NativePlatform.Android, NativePlatform.Darwin, NativePlatform.Host),
         abis = listOf(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64)) {
         links(Native.Hermes, Native.Fbjni)
+        includeDirs("src/commonMain/cpp", "src/commonMain/cpp/include", "src/androidMain/cpp")
         uses(Reaktor.Flexbuffer)
     }
+    appleInterop(packageName = "dev.shibasis.reaktor.native", headers = listOf("src/commonMain/cpp/include/reaktor/interop/Runtime.h"))
     interop {
+        hostTests(true)
         cppModule("api/Diagnostics.hpp", "reaktor::interop::diagnostics")
         typescript()
     }

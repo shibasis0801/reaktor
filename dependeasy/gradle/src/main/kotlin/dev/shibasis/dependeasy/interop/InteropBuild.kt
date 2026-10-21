@@ -10,7 +10,7 @@ class InteropBuild internal constructor(private val project: Project, private va
     internal var typescriptDirectory: String? = null
     internal var bundle = "${project.name}.js"
     internal var packageName = "${project.group}.${project.name.replace('-', '.')}.interop.generated"
-    internal var hostTests = project.file("src/commonTest/cpp").isDirectory
+    internal var hostTests = false
 
     fun typescript(directory: String = ".", bundle: String = this.bundle,
                    packageName: String = this.packageName) {
