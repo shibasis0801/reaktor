@@ -112,8 +112,6 @@ class JvmProjectDiscoverySealTest {
         assertTrue(prepared.request.definitionSeal!!.directories.any { it.directory == File(root, "targets/worker").canonicalFile })
         File(root, "targets/worker/src/index.ts").appendText("// Changed deploy source")
         assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(TaskId("npm/deploy"))) }
-        assertEquals("worker", PackageScriptCommands.exactWorkspaceDeploy("pnpm --filter worker run deploy"))
-        assertNull(PackageScriptCommands.exactWorkspaceDeploy("pnpm --filter worker run deploy && node other.mjs"))
     }
 
     @Test

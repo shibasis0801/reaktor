@@ -25,11 +25,6 @@ object PackageScriptCommands {
     fun workspaces(body: String): List<String> = selector.findAll(body)
         .map { it.groupValues[1].trim('"', '\'') }.distinct().toList()
 
-    fun exactWorkspaceDeploy(body: String): String? {
-        val match = run.matchEntire(body.trim()) ?: return null
-        return references(match.value).single().takeIf { it.script == "deploy" }?.workspace
-    }
-
     fun expand(body: String, lookup: (Reference) -> String?): String {
         val bodies = mutableListOf(body)
         val visited = mutableSetOf<Reference>()
