@@ -37,6 +37,7 @@ export class BuildRuntime {
       .withExec(["rm", "-rf", "/var/lib/apt/lists"])
       .withExec(["mkdir", "-p", contract.gradleArchive.substring(0, contract.gradleArchive.lastIndexOf("/"))])
       .withExec(["curl", "--http1.1", "-fsSL", "--retry", "5", "--retry-all-errors", "--retry-delay", "3", "--connect-timeout", "30",
+        "--speed-limit", "1024", "--speed-time", "60", "--max-time", "300",
         "-o", contract.gradleArchive, contract.gradleUrl])
       .withNewFile("/opt/gradle-dist/checksums", `${contract.gradleSha256}  ${contract.gradleArchive}\n`)
       .withExec(["sha256sum", "--check", "--status", "/opt/gradle-dist/checksums"])
