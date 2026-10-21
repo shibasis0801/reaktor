@@ -882,13 +882,12 @@ class DslEntryPointsTest {
         write("worker/package.json", """{"name":"worker","scripts":{"test":"fixture test"}}""")
         write("worker/wrangler.json", """{"name":"fixture-worker","main":"src/index.ts"}""")
         write("worker/src/index.ts", "export default {}")
-        write("wrangler.json", "{}")
         write("workers/build.gradle.kts", """
             import dev.shibasis.dependeasy.components.workers
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
-            workers(listOf(Environment("prod"))) {
+            workers(Delivery(listOf(Environment("prod")), Environment("prod"), Delivery.Cloudflare("fixture-account", emptyList(), true))) {
                 worker(WorkerRef("api", "worker"), listOf(WorkerDeployment(Environment("prod"), ServiceRef("fixture-worker"))),
                     output(projects.worker, OutputKind.WorkspaceCompletion, Workspace.Verify))
             }

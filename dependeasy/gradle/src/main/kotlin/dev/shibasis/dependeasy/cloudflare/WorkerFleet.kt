@@ -18,12 +18,13 @@ import dev.shibasis.dependeasy.model.*
 
 class WorkerFleet internal constructor(
     private val project: Project,
-    private val environments: List<Environment>,
+    private val delivery: Delivery,
     private val prerequisites: List<OutputHandle>,
     private val contracts: WorkerContractTests?,
 ) {
     private data class Declaration(val worker: FleetWorker, val directory: File, val prerequisites: List<OutputHandle>, val site: SourceSite?)
     private val workers = linkedMapOf<String, Declaration>()
+    private val environments get() = delivery.environments
     private val environmentOption = BuildOption.string("dependeasy.environment", environment = "TARGET_ENV")
     fun worker(ref: WorkerRef, deployments: List<WorkerDeployment>, vararg prerequisites: OutputHandle) {
         require(!File(ref.directory).isAbsolute) { "Worker directories must be relative" }
@@ -31,21 +32,19 @@ class WorkerFleet internal constructor(
     }
 
     internal fun register(workspace: BuildWorkspace): NodeHandle {
-        require(environments.isNotEmpty()) { "Declare the fleet environments" }
-        require(workers.values.all { declaration -> declaration.worker.deployments.all { it.environment in environments } }) { "A worker uses an undeclared fleet environment" }
-        val fleetSpec = KernelSpec.WorkerFleet(environments.last(), workers.values.map { it.worker }, FileSet(listOf("wrangler.json")),
+        val fleetSpec = KernelSpec.WorkerFleet(delivery, workers.values.map { it.worker },
             FileSet(listOf(project.rootProject.relativePath(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json").get().asFile))))
         val records = WorkerFleetKernel.plan(fleetSpec).workers
         val requestedEnvironment = project.option(environmentOption.copy(resolutionOrder = environmentOption.resolutionOrder - OptionSource.Default))
-        val selectedName = requestedEnvironment.orElse(environments.last().name).get()
-        val selectedEnvironment = environments.singleOrNull { it.name == selectedName } ?: environments.last()
+        val selectedName = requestedEnvironment.orElse(delivery.defaultEnvironment.name).get()
+        val selectedEnvironment = environments.singleOrNull { it.name == selectedName } ?: delivery.defaultEnvironment
         val generate = project.tasks.register<WorkerFleetTask>("generateWorkerFleet") {
             group = "code generation"
             root.set(project.rootProject.layout.projectDirectory)
-            defaults.set(project.rootProject.layout.projectDirectory.file("wrangler.json"))
             declaration.set(BuildModelReader.json.encodeToString(fleetSpec))
             configurations.from(WorkerFleetKernel.configurationSources(fleetSpec).map(project.rootProject::file))
             finalConfigurations.from(records.flatMap { it.configurations.values }.map(project.rootProject::file))
+            finalConfigurations.from(project.rootProject.file(WorkerFleetKernel.accountConfiguration(fleetSpec)))
             contract.set(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json"))
         }
         project.node(generate, OutputKind.GeneratedContract)
@@ -57,7 +56,7 @@ class WorkerFleet internal constructor(
             val directory = declaration.directory
             val configurations = worker.configurations
             val paths = configurations.mapValues { project.rootProject.file(it.value).relativeTo(directory).invariantSeparatorsPath }
-            val selected = if (selectedName in configurations) selectedEnvironment else environments.last()
+            val selected = if (selectedName in configurations) selectedEnvironment else delivery.defaultEnvironment
             val component = JavaScriptComponent(project, "${name}Worker", directory)
             val command = component.deploy(producers = arrayOf(generate))
             command.configure {
@@ -88,7 +87,7 @@ class WorkerFleet internal constructor(
             workspace.alias(directory, "logs", tail)
             workspace.alias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}", tail)
             worker.configurations.keys.forEach { environment ->
-                val suffix = if (environment == environments.last().name) "" else environment.replaceFirstChar(Char::uppercaseChar)
+                val suffix = if (environment == delivery.defaultEnvironment.name) "" else environment.replaceFirstChar(Char::uppercaseChar)
                 val settings = listOf(environmentOption.argument(environment))
                 workspace.alias(project.rootDir, "deploy${name.replaceFirstChar(Char::uppercaseChar)}$suffix", deploy, settings = settings)
                 workspace.alias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}$suffix", tail, settings = settings)
@@ -109,7 +108,7 @@ class WorkerFleet internal constructor(
                         val suite = project.karateSuite(name, if (mode == "public") "$directory/public.feature" else directory, contracts.configuration, tags,
                             listOfNotNull(contracts.environmentFiles[Environment(environment)]),
                               environment = contracts.environment[Environment(environment)].orEmpty())
-                        val suffix = if (environment == environments.last().name) "" else ":$environment"
+                        val suffix = if (environment == delivery.defaultEnvironment.name) "" else ":$environment"
                         val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
                         workspace.alias(project.rootDir, alias + suffix, suite)
                         groups.getOrPut("$mode:$environment") { mutableListOf() }.add(suite)
@@ -120,17 +119,17 @@ class WorkerFleet internal constructor(
                 val (mode, environment) = selection.split(':')
                 val name = "workerKarate" + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
                 val suite = workspace.aggregate(project, name, NodeKind.Verification, suites)
-                if (mode == "behaviour" && environment == environments.last().name) {
+                if (mode == "behaviour" && environment == delivery.defaultEnvironment.name) {
                     project.componentRole(Workspace.Verify, suite)
                     project.tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(requireNotNull(suite.task)) }
                 }
-                val suffix = (if (mode == "auth") "" else ":$mode") + if (environment == environments.last().name) "" else ":$environment"
+                val suffix = (if (mode == "auth") "" else ":$mode") + if (environment == delivery.defaultEnvironment.name) "" else ":$environment"
                 workspace.alias(project.rootDir, "test:workers:karate$suffix", suite)
             }
         }
         workers.forEach { (name, declaration) ->
             val bindings = (declaration.worker.deployments.singleOrNull { it.environment == selectedEnvironment }
-                ?: declaration.worker.deployments.single { it.environment == environments.last() }).bindings
+                ?: declaration.worker.deployments.single { it.environment == delivery.defaultEnvironment }).bindings
             workspace.configure(nodes.getValue(name)) {
                 includes(*bindings.filterIsInstance<WorkerServiceBinding.Worker>().map { it.target.name }.filter { it != name }.map(nodes::getValue).toTypedArray())
             }

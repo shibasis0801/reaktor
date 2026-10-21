@@ -202,14 +202,13 @@ class WebContractsTest {
             publishOutput(OutputKind.WebResources, resources.flatMap { it.outputDirectory }, producer = resources)
             val sourcePackage by webPackage("source", "tools")
         """.trimIndent())
-        write("wrangler.json", "{}")
         write("site/wrangler.json", """{"name":"fixture-site","main":"index.ts"}""")
         write("workers/build.gradle.kts", """
             import dev.shibasis.dependeasy.components.workers
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
-            workers(listOf(Environment("production"))) {
+            workers(Delivery(listOf(Environment("production")), Environment("production"), Delivery.Cloudflare("fixture-account", emptyList(), true))) {
                 worker(WorkerRef("site", "site"), listOf(WorkerDeployment(Environment("production"), ServiceRef("fixture-site"))),
                     browserBundle(projects.site))
             }
@@ -395,10 +394,8 @@ class WebContractsTest {
     }
 
     @Test fun `fleet deep merges every declared environment with arrays replaced`() {
-        val defaults = """{"compatibility_date":"2026-10-01","vars":{"shared":"yes","override":"base"},"services":[{"binding":"BASE","service":"base"}]}"""
-        val stable = """{"name":"fixture-stable","vars":{"override":"local"},"services":[{"binding":"LOCAL","service":"local"}]}"""
-        val preview = """{"name":"fixture-preview","vars":{"previewelopment":"only"},"services":[]}"""
-        write("wrangler.json", defaults)
+        val stable = """{"name":"fixture-stable","compatibility_flags":["local"],"vars":{"override":"local"},"services":[{"binding":"LOCAL","service":"local"}]}"""
+        val preview = """{"name":"fixture-preview","compatibility_flags":[],"vars":{"previewelopment":"only"},"services":[]}"""
         write("targets/worker/wrangler.json", stable)
         write("targets/worker/wrangler.preview.json", preview)
         prepare("""
@@ -406,17 +403,17 @@ class WebContractsTest {
             import kotlinx.serialization.encodeToString
             tasks.register<dev.shibasis.dependeasy.cloudflare.WorkerFleetTask>("fleet") {
                 root.set(layout.projectDirectory)
-                defaults.set(layout.projectDirectory.file("wrangler.json"))
                 configurations.from("targets/worker/wrangler.json", "targets/worker/wrangler.preview.json")
                 declaration.set(dev.shibasis.dependeasy.model.BuildModelReader.json.encodeToString(
-                    dev.shibasis.dependeasy.model.KernelSpec.WorkerFleet(Environment("stable"), listOf(
+                    dev.shibasis.dependeasy.model.KernelSpec.WorkerFleet(Delivery(listOf(Environment("stable"), Environment("preview")), Environment("stable"),
+                        Delivery.Cloudflare("fixture-account", listOf("shared"), true, "2026-10-01", mapOf("shared" to "yes", "override" to "base"))), listOf(
                         dev.shibasis.dependeasy.model.FleetWorker(WorkerRef("worker", "targets/worker"), NodeId("webFixture", ":", "deployWorker"), listOf(
                             WorkerDeployment(Environment("preview"), ServiceRef("fixture-preview"),
                                 secrets = listOf("PREVIEW_SECRET"), endpoint = "https://preview.example.test"),
                             WorkerDeployment(Environment("stable"), ServiceRef("fixture-stable"), listOf(WorkerServiceBinding.External("LOCAL", ServiceRef("local"))),
                                 secrets = listOf("SERVICE_SECRET"), serviceClient = "fixture-service", endpoint = "https://stable.example.test")))),
-                        FileSet(listOf("wrangler.json")), FileSet(listOf("build/cloudflare/fleet.json")))))
-                finalConfigurations.from("targets/worker/wrangler.dependeasy-preview.json", "targets/worker/wrangler.dependeasy-stable.json")
+                        FileSet(listOf("build/cloudflare/fleet.json")))))
+                finalConfigurations.from("targets/worker/wrangler.dependeasy-preview.json", "targets/worker/wrangler.dependeasy-stable.json", "build/cloudflare/wrangler.json")
                 contract.set(layout.buildDirectory.file("cloudflare/fleet.json"))
             }
         """.trimIndent())
@@ -431,6 +428,10 @@ class WebContractsTest {
         val result = json("targets/worker/wrangler.dependeasy-stable.json")
         assertEquals("yes", result.getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
         assertEquals("local", result.getValue("vars").jsonObject.getValue("override").jsonPrimitive.content)
+        assertEquals("local", result.getValue("compatibility_flags").jsonArray.single().jsonPrimitive.content)
+        assertEquals("fixture-account", result.getValue("account_id").jsonPrimitive.content)
+        assertEquals("fixture-account", json("build/cloudflare/wrangler.json").getValue("account_id").jsonPrimitive.content)
+        assertEquals("yes", json("build/cloudflare/wrangler.json").getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
         assertEquals("LOCAL", result.getValue("services").jsonArray.single().jsonObject.getValue("binding").jsonPrimitive.content)
         val previewResult = json("targets/worker/wrangler.dependeasy-preview.json")
         assertEquals("2026-10-01", previewResult.getValue("compatibility_date").jsonPrimitive.content)
@@ -438,16 +439,22 @@ class WebContractsTest {
         assertEquals("base", previewResult.getValue("vars").jsonObject.getValue("override").jsonPrimitive.content)
         assertEquals("only", previewResult.getValue("vars").jsonObject.getValue("previewelopment").jsonPrimitive.content)
         assertTrue(previewResult.getValue("services").jsonArray.isEmpty())
+        assertTrue(previewResult.getValue("compatibility_flags").jsonArray.isEmpty())
         assertEquals(preview, directory.resolve("targets/worker/wrangler.preview.json").readText())
         assertEquals(stable, directory.resolve("targets/worker/wrangler.json").readText())
         assertFalse(Regex("bestbuds|manna", RegexOption.IGNORE_CASE).containsMatchIn(directory.resolve("build/cloudflare/fleet.json").readText()))
         val repeat = run("fleet")
         assertContains(repeat.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":fleet")?.outcome)
-        write("wrangler.json", defaults.replace("yes", "changed"))
+        val script = directory.resolve("build.gradle.kts")
+        script.writeText(script.readText().replace("\"shared\" to \"yes\"", "\"shared\" to \"changed\""))
         assertEquals(TaskOutcome.SUCCESS, run("fleet").task(":fleet")?.outcome)
         assertEquals("changed", json("targets/worker/wrangler.dependeasy-stable.json").getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
         assertEquals("changed", json("targets/worker/wrangler.dependeasy-preview.json").getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
+        assertEquals("changed", json("build/cloudflare/wrangler.json").getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
+        val changedRepeat = run("fleet")
+        assertContains(changedRepeat.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, changedRepeat.task(":fleet")?.outcome)
     }
 
     @Test fun `package aliases preserve runtime scripts and remove retired generated aliases`() {
@@ -456,7 +463,6 @@ class WebContractsTest {
         write("targets/worker/package.json", """{"name":"worker","dependencies":{"vite":"8.3.4","local":"workspace:*"},"scripts":{"dev":"wrangler dev","retired":"old"},"dependeasy":{"generatedScripts":["retired"]}}""")
         write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts"}""")
         write("targets/worker/wrangler.dev.json", """{"name":"fixture-worker-dev","main":"index.ts"}""")
-        write("wrangler.json", "{}")
         prepare("")
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.handles.*
@@ -477,7 +483,7 @@ class WebContractsTest {
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
-            workers(environments = listOf(Environment("dev"), Environment("prod")),
+            workers(delivery = Delivery(listOf(Environment("dev"), Environment("prod")), Environment("prod"), Delivery.Cloudflare("fixture-account", emptyList(), true)),
                 prerequisites = listOf(kotlinJsLibrary(projects.webFixture))) {
                 worker(WorkerRef("worker", "targets/worker"), listOf(
                     WorkerDeployment(Environment("dev"), ServiceRef("fixture-worker-dev")),
@@ -568,14 +574,13 @@ class WebContractsTest {
         write("package.json", """{"name":"fixture"}""")
         write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts"}""")
         write("targets/worker/wrangler.dev.json", """{"name":"fixture-worker-dev","main":"index.ts"}""")
-        write("wrangler.json", "{}")
         prepare("")
         write("settings.gradle.kts", "rootProject.name = \"webFixture\"; include(\"workers\")")
         write("workers/build.gradle.kts", """
             import dev.shibasis.dependeasy.components.workers
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
-            workers(environments = listOf(Environment("dev"), Environment("prod"))) {
+            workers(delivery = Delivery(listOf(Environment("prod"), Environment("dev")), Environment("prod"), Delivery.Cloudflare("fixture-account", emptyList(), true))) {
                 worker(WorkerRef("worker", "targets/worker"), listOf(
                     WorkerDeployment(Environment("dev"), ServiceRef("fixture-worker-dev")),
                     WorkerDeployment(Environment("prod"), ServiceRef("fixture-worker"))))

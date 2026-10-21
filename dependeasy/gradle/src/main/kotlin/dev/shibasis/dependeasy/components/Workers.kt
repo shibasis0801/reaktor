@@ -10,14 +10,14 @@ import org.gradle.api.Project
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 fun Project.workers(
-    environments: List<Environment>,
+    delivery: Delivery,
     prerequisites: List<OutputHandle> = emptyList(),
     contracts: WorkerContractTests? = null,
     content: WorkerFleet.() -> Unit,
 ): NodeHandle {
     require(plugins.hasPlugin(WorkerFleetPlugin::class.java)) { "Apply dev.shibasis.dependeasy.worker-fleet" }
     require(this != rootProject) { "Declare workers in their component project" }
-    return WorkerFleet(this, environments.toList(), prerequisites.toList(), contracts?.copy(environmentFiles = contracts.environmentFiles.toMap()))
+    return WorkerFleet(this, delivery.copy(environments = delivery.environments.toList()), prerequisites.toList(), contracts?.copy(environmentFiles = contracts.environmentFiles.toMap()))
         .apply(content).register(BuildWorkspace.get(this))
 }
 

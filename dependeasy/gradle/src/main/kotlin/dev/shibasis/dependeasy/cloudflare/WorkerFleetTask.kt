@@ -11,7 +11,6 @@ import org.gradle.api.tasks.*
 abstract class WorkerFleetTask : DefaultTask(), KernelSpecOwner {
     @get:Input abstract val declaration: Property<String>
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val configurations: ConfigurableFileCollection
-    @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val defaults: RegularFileProperty
     @get:Internal abstract val root: DirectoryProperty
     @get:OutputFiles abstract val finalConfigurations: ConfigurableFileCollection
     @get:OutputFile abstract val contract: RegularFileProperty
@@ -27,7 +26,7 @@ abstract class WorkerFleetTask : DefaultTask(), KernelSpecOwner {
             return file.readText()
         }
         val sources = WorkerFleetKernel.configurationSources(spec).associateWith(::input)
-        val rendered = WorkerFleetKernel.render(spec, input(spec.defaults.paths.single()), sources)
+        val rendered = WorkerFleetKernel.render(spec, sources)
         val allowed = finalConfigurations.files + contract.get().asFile
         rendered.forEach { (path, text) ->
             val output = boundary.resolve(path)

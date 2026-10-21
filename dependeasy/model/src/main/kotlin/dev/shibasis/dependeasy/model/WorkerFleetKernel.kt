@@ -7,13 +7,13 @@ object WorkerFleetKernel {
     fun plan(spec: KernelSpec.WorkerFleet): WorkerFleetContract {
         require(spec.workers.map { it.ref.name }.distinct().size == spec.workers.size) { "Duplicate fleet worker" }
         val byRef = spec.workers.associateBy { it.ref }
-        spec.defaults.paths.forEach(::relative)
         spec.contract.paths.forEach(::relative)
-        require(spec.defaults.paths.size == 1 && spec.contract.paths.size == 1)
+        require(spec.contract.paths.size == 1)
         val records = spec.workers.map { worker ->
             relative(worker.ref.directory)
             require(worker.deployments.isNotEmpty()) { "${worker.ref.name}: declare deployment environments" }
             require(worker.deployments.map { it.environment }.distinct().size == worker.deployments.size) { "${worker.ref.name}: duplicate environment" }
+            require(worker.deployments.all { it.environment in spec.delivery.environments }) { "${worker.ref.name}: undeclared fleet environment" }
             require(worker.deployments.any { it.environment == spec.defaultEnvironment }) { "${worker.ref.name}: missing default environment" }
             worker.deployments.forEach { deployment ->
                 require(deployment.service.name.isNotBlank()) { "${worker.ref.name}: empty service name" }
@@ -46,6 +46,9 @@ object WorkerFleetKernel {
             if (deployment.environment == spec.defaultEnvironment) "wrangler.json" else "wrangler.${deployment.environment.name}.json" }
     }
 
+    fun accountConfiguration(spec: KernelSpec.WorkerFleet): String =
+        java.io.File(spec.contract.paths.single()).resolveSibling("wrangler.json").invariantSeparatorsPath
+
     fun bindings(spec: KernelSpec.WorkerFleet, worker: FleetWorker, environment: Environment): List<Pair<WorkerServiceBinding, ServiceRef>> {
         val byRef = spec.workers.associateBy { it.ref }
         return worker.deployments.single { it.environment == environment }.bindings.map { binding ->
@@ -56,10 +59,19 @@ object WorkerFleetKernel {
         }
     }
 
-    fun render(spec: KernelSpec.WorkerFleet, defaults: String, configurations: Map<String, String>): Map<String, String> {
+    fun render(spec: KernelSpec.WorkerFleet, configurations: Map<String, String>): Map<String, String> {
         val fleet = plan(spec)
-        val base = Json.parseToJsonElement(defaults).jsonObject
-        val outputs = linkedMapOf<String, String>()
+        val provider = spec.delivery.cloudflare
+        val base = buildJsonObject {
+            put("account_id", provider.accountId)
+            provider.compatibilityDate?.let { put("compatibility_date", it) }
+            put("compatibility_flags", JsonArray(provider.compatibilityFlags.map(::JsonPrimitive)))
+            putJsonObject("observability") { put("enabled", provider.observability) }
+            if (provider.vars.isNotEmpty()) putJsonObject("vars") {
+                provider.vars.forEach { (key, value) -> put(key, value) }
+            }
+        }
+        val outputs = linkedMapOf(accountConfiguration(spec) to (BuildModelReader.json.encodeToString(base) + "\n"))
         spec.workers.zip(fleet.workers).forEach { (worker, record) ->
             worker.deployments.forEach { deployment ->
                 val environment = deployment.environment

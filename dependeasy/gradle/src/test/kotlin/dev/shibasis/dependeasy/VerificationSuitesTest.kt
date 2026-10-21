@@ -216,14 +216,13 @@ class VerificationSuitesTest {
     @Test fun `worker contract membership tracks optional suites with cache reuse`() {
         write("settings.gradle.kts", """rootProject.name = "workerOptions"; include("workers")""")
         write("package.json", """{"name":"worker-options","private":true}""")
-        write("wrangler.json", "{}")
         write("build.gradle.kts", """plugins { id("dev.shibasis.dependeasy.workspace") }""")
         write("workers/build.gradle.kts", """
             import dev.shibasis.dependeasy.components.workers
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
             val prod = Environment("prod")
-            workers(listOf(prod), contracts = WorkerContractTests("config")) {
+            workers(Delivery(listOf(prod), prod, Delivery.Cloudflare("fixture-account", emptyList(), true)), contracts = WorkerContractTests("config")) {
                 worker(WorkerRef("fixture", "worker"), listOf(WorkerDeployment(prod, ServiceRef("fixture-worker"))))
             }
         """.trimIndent())
@@ -293,7 +292,6 @@ class VerificationSuitesTest {
             """.trimIndent())
             write("config/karate-config.js", "function fn() { return {}; }")
             write("config/required.env", "FIXTURE_PRIORITY=required\n")
-            write("wrangler.json", "{}")
             write("worker/wrangler.json", """{"main":"src/index.ts"}""")
             write("tests/worker/karate/input.feature", root.resolve("suite/input.feature").readText())
             write("workers/build.gradle.kts", """
@@ -301,7 +299,7 @@ class VerificationSuitesTest {
                 import dev.shibasis.dependeasy.model.*
                 plugins { id("dev.shibasis.dependeasy.worker-fleet") }
                 val prod = Environment("prod")
-                workers(listOf(prod), contracts = WorkerContractTests("config",
+                workers(Delivery(listOf(prod), prod, Delivery.Cloudflare("fixture-account", emptyList(), true)), contracts = WorkerContractTests("config",
                     environment = mapOf(prod to mapOf("FIXTURE_DECLARED" to "declared")))) {
                     worker(WorkerRef("fixture", "worker"), listOf(WorkerDeployment(prod, ServiceRef("fixture-worker"))))
                 }

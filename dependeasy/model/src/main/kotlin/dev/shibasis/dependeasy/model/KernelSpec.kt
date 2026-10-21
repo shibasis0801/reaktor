@@ -45,8 +45,10 @@ sealed interface KernelSpec {
         val tool: ToolRef, val output: FileSet) : KernelSpec
     @Serializable data class KotlinTemplate(val template: FileSet, val assets: Map<String, FileSet>, val output: FileSet) : KernelSpec
     @Serializable data class KotlinExportCatalog(val directories: FileSet, val output: FileSet) : KernelSpec
-    @Serializable data class WorkerFleet(val defaultEnvironment: Environment, val workers: List<FleetWorker>,
-        val defaults: FileSet, val contract: FileSet) : KernelSpec
+    @Serializable data class WorkerFleet(val delivery: Delivery, val workers: List<FleetWorker>,
+        val contract: FileSet) : KernelSpec {
+        val defaultEnvironment: Environment get() = delivery.defaultEnvironment
+    }
     @Serializable data class GradleInvocation(val planning: Boolean, val model: String, val requests: String,
         val output: String, val maxWorkers: Int, val tool: ToolRef) : KernelSpec
     @Serializable data class GeneratedObject(val namespace: String, val objectName: String,
