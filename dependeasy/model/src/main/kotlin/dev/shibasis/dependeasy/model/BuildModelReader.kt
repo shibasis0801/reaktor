@@ -63,6 +63,126 @@ object BuildModelReader {
         }
     }
 
+
+    fun affected(root: File, since: String, view: String = "nodes", offset: Int = 0, limit: Int = 10): JsonObject {
+        require(since.isNotBlank() && !since.startsWith('-') && since.none(Char::isISOControl)) { "Expected one Git commit reference" }
+        require(offset >= 0 && limit in 1..10)
+        require(view in setOf("nodes", "changes", "omissions", "revisions")) { "Expected nodes, changes, omissions or revisions" }
+        val model = declaredModel(root)
+        val directories = model.builds.associate { it.name to root.resolve(it.directory).canonicalFile }
+        val omissions = model.omissions.map { json.encodeToJsonElement(it).jsonObject }.toMutableList()
+        fun omission(node: NodeId?, reason: String, reference: String) {
+            omissions += buildJsonObject { node?.let { put("node", it.toString()) }; put("reason", reason); put("reference", reference) }
+        }
+        val revisions = mutableListOf<JsonObject>()
+        val changes = linkedMapOf<Pair<String, String>, java.nio.file.Path>()
+        for ((build, directory) in directories) {
+            val repository = runCatching { affectedGit(directory, listOf("rev-parse", "--show-toplevel")).trim() }.getOrNull()
+            if (repository == null || File(repository).canonicalFile != directory) {
+                omission(null, "Declared build has no independent readable Git repository", build)
+                continue
+            }
+            val base = affectedGit(directory, listOf("rev-parse", "--verify", "--end-of-options", "$since^{commit}")).trim()
+            require(base.matches(Regex("[0-9a-f]{40,64}"))) { "Git reference did not resolve to one commit in $build" }
+            revisions += buildJsonObject { put("build", build); put("since", base); put("head", affectedGit(directory, listOf("rev-parse", "HEAD")).trim()) }
+            val names = affectedGit(directory, listOf("diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z", base, "--")) +
+                affectedGit(directory, listOf("ls-files", "--others", "--exclude-standard", "-z"))
+            for (name in names.split('\u0000').filter(String::isNotEmpty).distinct().sorted()) {
+                val path = directory.toPath().resolve(name).normalize()
+                require(path.startsWith(directory.toPath())) { "Git path escapes $build" }
+                changes[build to name] = path
+            }
+        }
+        val reasons = linkedMapOf<NodeId, MutableList<JsonObject>>()
+        val matched = mutableSetOf<Pair<String, String>>()
+        fun select(id: NodeId, reason: String, change: Pair<String, String>? = null, via: NodeId? = null) {
+            val evidence = buildJsonObject {
+                put("id", id.toString()); put("reason", reason)
+                change?.let { put("build", it.first); put("path", it.second) }
+                via?.let { put("via", it.toString()) }
+            }
+            reasons.getOrPut(id) { mutableListOf() }.also { if (evidence !in it) it += evidence }
+            change?.let(matched::add)
+        }
+        val declaredFiles = model.declarations.filter { it.kind == DeclarationInputKind.File }.map {
+            directories.getValue(it.build).resolve(it.path).toPath().normalize()
+        }.toSet()
+        val declarationChanges = changes.filterValues { it in declaredFiles }.keys
+        for (change in declarationChanges) model.nodes.forEach { select(it.id, "Build declaration changed; conservatively select the composite", change) }
+        for (node in model.nodes) {
+            val owner = directories.getValue(node.id.build).toPath()
+            val inputs = node.inputs.flatMap { files -> files.paths.map { FileInput(FileInputKind.File, it) } + files.declarations }
+            if (inputs.isEmpty() && model.edges.none { it.from == node.id && it !is Edge.OrderedAfter })
+                omission(node.id, "No declared file input coverage for this leaf", node.id.toString())
+            for (input in inputs) {
+                if (input.kind !in setOf(FileInputKind.File, FileInputKind.Tree)) {
+                    omission(node.id, "Input identity needs its producer or configuration to resolve", input.identity)
+                    continue
+                }
+                val path = owner.resolve(input.identity).normalize()
+                if (input.includes.isNotEmpty() || input.excludes.isNotEmpty())
+                    omission(node.id, "Tree filters conservatively select the whole declared tree", input.identity)
+                for ((change, changed) in changes) if (changed == path || changed.startsWith(path)) {
+                    select(node.id, if (input.kind == FileInputKind.Tree) "Changed path is in a declared input tree" else "Changed path is a declared input", change)
+                }
+            }
+        }
+        val known = model.nodes.mapTo(hashSetOf()) { it.id }
+        val consumers = model.edges.filter { it !is Edge.OrderedAfter }.groupBy { it.to }
+        val queue = ArrayDeque(reasons.keys)
+        val visited = mutableSetOf<NodeId>()
+        while (queue.isNotEmpty()) {
+            val producer = queue.removeFirst()
+            if (!visited.add(producer)) continue
+            for (edge in consumers[producer].orEmpty()) if (edge.from in known) {
+                select(edge.from, "Depends on an affected node through " + when (edge) {
+                    is Edge.Includes -> "Includes"
+                    is Edge.Consumes -> "Consumes"
+                    is Edge.After -> "After"
+                    is Edge.OrderedAfter -> error("Ordering is not a dependency")
+                }, via = producer)
+                queue.addLast(edge.from)
+            }
+        }
+        val changeRows = changes.keys.map { (build, path) -> buildJsonObject {
+            put("build", build); put("path", path); put("matched", (build to path) in matched)
+        } }
+        val rows = when (view) {
+            "nodes" -> reasons.toSortedMap(compareBy(NodeId::toString)).values.flatten()
+            "changes" -> changeRows
+            "omissions" -> omissions.distinct()
+            else -> revisions
+        }
+        return buildJsonObject {
+            put("truth", if (changedDeclarations(root, model).isEmpty()) "source" else "stale")
+            put("selection", "conservative"); put("reuseAllowed", false)
+            put("since", since); put("modelDigest", digest(encode(model)))
+            put("selectedNodeCount", reasons.size); put("changedPathCount", changes.size)
+            put("unmatchedChangeCount", changes.keys.count { it !in matched })
+            put("omissionCount", omissions.distinct().size)
+            put("coverage", "partial")
+            put("coverageNote", "Declared inputs and dependency edges only; unresolved inputs, tree filters and unmatched changes remain explicit. This selection does not authorize receipt reuse.")
+            put("view", view); put("offset", offset); put("total", rows.size)
+            put(view, JsonArray(rows.drop(offset).take(limit)))
+            if (offset + limit < rows.size) put("nextOffset", offset + limit)
+        }
+    }
+
+    private fun affectedGit(root: File, arguments: List<String>): String {
+        val process = ProcessBuilder(listOf("git", "-C", root.path) + arguments)
+            .redirectError(ProcessBuilder.Redirect.DISCARD).apply { environment()["GIT_OPTIONAL_LOCKS"] = "0" }.start()
+        val output = java.util.concurrent.CompletableFuture.supplyAsync {
+            process.inputStream.use { it.readNBytes(MaxBytes + 1) }
+        }
+        try {
+            check(process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) { "Git inspection timed out in ${root.name}" }
+            val bytes = output.get(1, java.util.concurrent.TimeUnit.SECONDS)
+            require(process.exitValue() == 0) { "Cannot inspect Git reference or changes in ${root.name}; verify --since in that declared build" }
+            require(bytes.size <= MaxBytes) { "Git change inventory exceeds $MaxBytes bytes" }
+            return bytes.toString(Charsets.UTF_8)
+        } finally { process.destroyForcibly() }
+    }
+
     fun node(root: File, id: String): Node = read(root).nodes.single { it.id.toString() == id }
     fun nodeDetails(root: File, id: String, collection: String? = null, offset: Int = 0, limit: Int = 10): JsonObject {
         require(offset >= 0 && limit in 1..10)

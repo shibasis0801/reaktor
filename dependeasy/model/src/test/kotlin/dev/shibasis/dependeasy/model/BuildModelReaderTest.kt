@@ -138,6 +138,87 @@ class BuildModelReaderTest {
         assertFailsWith<IllegalArgumentException> { BuildModelReader.modelPage(root) }
     }
 
+
+    @Test fun `affected selection follows declared files and graph consumers with honest coverage`() {
+        fun git(directory: File, vararg arguments: String): String {
+            val process = ProcessBuilder(listOf("git", "-C", directory.path) + arguments).redirectErrorStream(true).start()
+            val output = process.inputStream.bufferedReader().readText()
+            check(process.waitFor() == 0) { output }
+            return output.trim()
+        }
+        val included = root.resolve("included").apply { mkdirs() }
+        for (directory in listOf(root, included)) {
+            git(directory, "init")
+            directory.resolve("src").mkdirs()
+            directory.resolve("src/A.kt").writeText("before")
+            directory.resolve(".gitignore").writeText("/build/\n/included/\nignored.kt\n/not-a-repository/\n")
+            directory.resolve("build.gradle.kts").writeText("plugins {}")
+            directory.resolve("src/Delete.kt").writeText("deleted")
+            directory.resolve("src/Old.kt").writeText("renamed")
+            git(directory, "add", ".")
+            git(directory, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "-c", "core.hooksPath=/dev/null", "commit", "-m", "baseline")
+        }
+        val source = node.copy(id = NodeId("fixture", ":", "compile"), inputs = listOf(FileSet(emptyList(), declarations = listOf(
+            FileInput(FileInputKind.Tree, "src", includes = listOf("**/*.kt"), excludes = listOf("Delete.kt")),
+            FileInput(FileInputKind.Configuration, "runtimeClasspath")))))
+        val dependency = source.copy(id = NodeId("included", ":", "compile"), inputs = listOf(FileSet(listOf("src/A.kt"))))
+        val ordered = node.copy(id = NodeId("fixture", ":", "ordered"))
+        val declaration = root.resolve("build.gradle.kts")
+        val model = model().copy(builds = listOf(BuildIdentity("fixture", "."), BuildIdentity("included", "included"), BuildIdentity("unresolved", "not-a-repository")),
+            declarations = listOf(DeclarationInput("fixture", declaration.name, BuildModelReader.digest(declaration))),
+            nodes = listOf(node, source, dependency, ordered),
+            edges = listOf(Edge.Consumes(node.id, source.id, "classes"), Edge.After(node.id, dependency.id),
+                Edge.After(source.id, node.id), Edge.OrderedAfter(ordered.id, source.id)))
+        root.resolve("not-a-repository").mkdirs()
+        root.resolve(BuildModelReader.RelativePath).apply { parentFile.mkdirs(); writeText(BuildModelReader.encode(model)) }
+        root.resolve("src/A.kt").writeText("after")
+        root.resolve("src/Delete.kt").delete()
+        root.resolve("src/Old.kt").renameTo(root.resolve("src/Renamed.kt"))
+        root.resolve("src/New file\nname.kt").writeText("new")
+        root.resolve("ignored.kt").writeText("ignored")
+        root.resolve("README.md").writeText("unmatched")
+        root.resolve("src2").mkdirs()
+        root.resolve("src2/Decoy.kt").writeText("unmatched")
+        included.resolve("src/A.kt").writeText("after")
+        fun pages(view: String): List<JsonObject> {
+            val result = mutableListOf<JsonObject>()
+            var offset = 0
+            do {
+                val page = BuildModelReader.affected(root, "HEAD", view, offset, 2)
+                result += page.getValue(view).jsonArray.map { it.jsonObject }
+                offset = page["nextOffset"]?.jsonPrimitive?.int ?: -1
+            } while (offset >= 0)
+            return result
+        }
+        val selection = pages("nodes")
+        assertEquals(setOf(node.id, source.id, dependency.id).map { it.toString() }.toSet(),
+            selection.map { it.getValue("id").jsonPrimitive.content }.toSet())
+        assertTrue(selection.any { it["via"]?.jsonPrimitive?.content == source.id.toString() })
+        assertTrue(selection.any { it["via"]?.jsonPrimitive?.content == dependency.id.toString() })
+        val changes = pages("changes")
+        val paths = changes.filter { it["build"]?.jsonPrimitive?.content == "fixture" }.map { it.getValue("path").jsonPrimitive.content }
+        assertTrue(paths.containsAll(listOf("src/Delete.kt", "src/Old.kt", "src/Renamed.kt", "src/New file\nname.kt")))
+        assertFalse("ignored.kt" in paths)
+        assertEquals(2, changes.count { !it.getValue("matched").jsonPrimitive.boolean })
+        val omissions = pages("omissions").toString()
+        assertContains(omissions, "Tree filters conservatively")
+        assertContains(omissions, "runtimeClasspath")
+        assertContains(omissions, "unresolved")
+        assertEquals(2, pages("revisions").size)
+        val observed = BuildModelReader.affected(root, "HEAD")
+        assertEquals("source", observed.getValue("truth").jsonPrimitive.content)
+        assertEquals("partial", observed.getValue("coverage").jsonPrimitive.content)
+        assertFalse(observed.getValue("reuseAllowed").jsonPrimitive.boolean)
+        for (bad in listOf("--help", "missing-reference", "HEAD\n--help")) assertFailsWith<IllegalArgumentException> {
+            BuildModelReader.affected(root, bad)
+        }
+        declaration.writeText("changed")
+        val stale = BuildModelReader.affected(root, "HEAD")
+        assertEquals("stale", stale.getValue("truth").jsonPrimitive.content)
+        assertEquals(4, stale.getValue("selectedNodeCount").jsonPrimitive.int)
+        assertTrue(pages("nodes").any { it.getValue("reason").jsonPrimitive.content.startsWith("Build declaration changed") })
+    }
+
     @Test fun `node identities preserve separators and round trip`() {
         val values = listOf("fixture:foo-bar", "fixture:foo_bar", "fixture:foo:bar")
         assertEquals(values, values.map { NodeId.parse(it).toString() })
