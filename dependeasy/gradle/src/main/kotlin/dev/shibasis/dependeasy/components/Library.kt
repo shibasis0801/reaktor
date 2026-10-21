@@ -12,6 +12,7 @@ import dev.shibasis.dependeasy.module.jvmClasspath
 import dev.shibasis.dependeasy.module.componentProgram
 import dev.shibasis.dependeasy.module.jvmExecution
 import dev.shibasis.dependeasy.codegen.pulumiSdk
+import dev.shibasis.dependeasy.codegen.kotlinObject
 import dev.shibasis.dependeasy.configuration.releaseRequirement
 import dev.shibasis.dependeasy.model.CompilationRef
 import dev.shibasis.dependeasy.model.ProgramEnvironment
@@ -87,6 +88,22 @@ class LibraryScope internal constructor(private val project: Project, private va
         dev.shibasis.dependeasy.codegen.GeneratedObjectKernel.install(project, name, definition).also {
             generatedProducers.add(it)
             generatedObjects.add(it to definition)
+        }
+    }
+
+    fun generated(fleet: OutputHandle): NodeDeclaration {
+        require(fleet.kind == dev.shibasis.dependeasy.model.OutputKind.GeneratedContract &&
+            fleet.qualifiers == listOf(dev.shibasis.dependeasy.model.Contract.WorkerFleet.name)) { "Generated endpoints need a Worker fleet contract" }
+        val site = project.declarationSite()
+        return NodeDeclaration { name ->
+            val task = project.kotlinObject(name, spec.namespace, name.replaceFirstChar(Char::uppercaseChar)) {
+                workerFleet.from(project.outputFiles(fleet))
+                site?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) }
+            }
+            project.node(task, dev.shibasis.dependeasy.model.OutputKind.GeneratedContract).also {
+                BuildWorkspace.get(project).consume(it, fleet)
+                generatedProducers.add(it)
+            }
         }
     }
 

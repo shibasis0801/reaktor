@@ -96,7 +96,7 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
     return when (this) {
         is KernelSpec.Profile -> copy(sources = files(sources), output = files(output), library = files(library), api = files(api))
         is KernelSpec.GradleInvocation -> copy(model = path(model), requests = path(requests), output = path(output))
-        is KernelSpec.GeneratedObject -> this
+        is KernelSpec.GeneratedObject -> copy(workerFleet = files(workerFleet))
         is KernelSpec.SourceIdentity -> copy(sources = sources.map { it.copy(directory = path(it.directory)) },
             revisions = revisions.map { it.copy(directory = path(it.directory)) })
         is KernelSpec.JvmClasspath -> this

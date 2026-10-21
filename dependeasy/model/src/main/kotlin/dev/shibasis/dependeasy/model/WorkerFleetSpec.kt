@@ -17,7 +17,8 @@ data class WorkerDeployment(val environment: Environment, val service: ServiceRe
     val bindings: List<WorkerServiceBinding> = emptyList(),
     val secrets: List<String> = emptyList(),
     val serviceClient: String? = null,
-    val endpoint: String? = null)
+    val endpoint: String? = null,
+    val publicEndpoint: String? = null)
 
 @Serializable
 data class FleetWorker(val ref: WorkerRef, val node: NodeId, val deployments: List<WorkerDeployment>)

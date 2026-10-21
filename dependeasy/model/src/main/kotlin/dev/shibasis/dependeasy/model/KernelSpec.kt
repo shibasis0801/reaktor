@@ -53,7 +53,7 @@ sealed interface KernelSpec {
     @Serializable data class GradleInvocation(val planning: Boolean, val model: String, val requests: String,
         val output: String, val maxWorkers: Int, val tool: ToolRef) : KernelSpec
     @Serializable data class GeneratedObject(val namespace: String, val objectName: String,
-        val options: Map<String, String>) : KernelSpec
+        val options: Map<String, String>, val workerFleet: FileSet = FileSet(emptyList())) : KernelSpec
     @Serializable data class SourceIdentity(val fileName: String, val sources: List<IdentitySource>,
         val revisions: List<IdentityRevision>, val recordTime: Boolean) : KernelSpec
     @Serializable data class JvmClasspath(val compilation: CompilationRef) : KernelSpec

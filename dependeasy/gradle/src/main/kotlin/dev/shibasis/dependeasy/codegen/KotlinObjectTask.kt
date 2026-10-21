@@ -11,14 +11,21 @@ import org.gradle.work.DisableCachingByDefault
 
 /** Generated values have declared inputs and a producer-backed source directory. */
 @DisableCachingByDefault(because = "Generated text can contain development credentials; use local incremental execution")
-abstract class KotlinObjectTask : DefaultTask() {
+abstract class KotlinObjectTask : DefaultTask(), dev.shibasis.dependeasy.process.KernelSpecOwner {
     @get:Input abstract val packageName: Property<String>
     @get:Input abstract val objectName: Property<String>
     @get:Input abstract val values: MapProperty<String, String>
     @get:Input abstract val strings: MapProperty<String, String>
     @get:Input abstract val booleans: MapProperty<String, Boolean>
     @get:Input abstract val texts: MapProperty<String, String>
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val workerFleet: org.gradle.api.file.ConfigurableFileCollection
     @get:OutputDirectory abstract val outputDirectory: DirectoryProperty
+
+    @get:Internal override val kernelSpec: dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject get() =
+        dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject(packageName.get(), objectName.get(),
+            (extensions.findByType(dev.shibasis.dependeasy.model.KernelSpec::class.java) as? dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject)?.options.orEmpty(),
+            dev.shibasis.dependeasy.model.FileSet(workerFleet.files.map { it.absolutePath }.sorted()))
 
     init {
         values.convention(emptyMap())
@@ -37,7 +44,8 @@ abstract class KotlinObjectTask : DefaultTask() {
     }
 
     @TaskAction fun generate() {
-        val spec = dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject(packageName.get(), objectName.get(), emptyMap())
+        val spec = dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject(packageName.get(), objectName.get(), emptyMap(),
+            dev.shibasis.dependeasy.model.FileSet(workerFleet.files.map { it.absolutePath }.sorted()))
         dev.shibasis.dependeasy.model.KotlinObjectKernel.generate(spec, values.get(), strings.get(),
             booleans.get(), texts.get(), outputDirectory.get().asFile)
     }
