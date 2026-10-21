@@ -17,7 +17,7 @@ Before this work (scan of 14 October): 4 kinds of kernel process, 6 kinds of end
 | 1 | One operation model | **Done.** `Operation<I,O>`, `OperationDescriptor`, `Invocation`, `Outcome`, schema from serializer, `OperationNode`, `OperationKernel` with door policy, single-use approvals, call log, request-id replay, legacy `ToolNode` adapter, built-in `operation.catalog`/`operation.describe` |
 | 2 | One kernel process per workspace | Not started. Today the agent owner (`owner.lock`) hosts it; Hangar's embedded control plane is still separate |
 | 3 | One catalog | **Started.** Typed `build.*` and `run.*`; 22 engineering operations (`code.*`, `context.query`, `task.*`, `check.*`, `peer.exchange`, `provider.*` reads and refresh) bridged with explicit effects; kernel reads join through the adapter; superseded `build_*` reads removed from the graph. Still to move: `code.apply` and `provider.call` (own approval paths), cloud, devices, database, telemetry writes, desktop reads |
-| 4 | The CLI | **Started.** Generated `reaktor <domain> <verb>` face (`KernelCli.kt`), schema-driven arguments, `--json`, `--args`, run following, terminal approval. Not yet wired into `Main.kt` (Codex owns it during WP11/WP18) |
+| 4 | The CLI | **In progress.** Primary `reaktor <domain> <verb>` face is installed: typed schema arguments, human/JSON output, shell completion and durable following qualify; old parsers/archive are removed. Full BuildOption/caller migration and K1 acceptance remain |
 | 5 | Dependeasy domain | **Started.** `build.list/show/tree/plan/run/receipts` read the model and use the control plane. `deploy.*` waits for WP16/WP21 kernels |
 | 6 | MCP | **Started.** The owner serves a `kernel` tool; the stdio bridge (`reaktor-agent workspace mcp --seat <harness>`) serves `kernel` beside `workspace` and stamps the harness's seat on every call |
 | 7 | Hangar | Kernel approvals and calls already appear in its door pane (same directories). Panes still use the embedded control plane |
@@ -25,7 +25,7 @@ Before this work (scan of 14 October): 4 kinds of kernel process, 6 kinds of end
 | 9 | Reaktor+ and framework hooks | Not started |
 | 10 | Identity and authority | Not started. Seat is caller-supplied attribution, as in the door |
 | 11 | Bugs | `provider.refresh` key fixed; `workspace serve --connector/--tunnel-origin` accepted; `workspace mcp --seat` now reaches the kernel. `reaktor mcp --stdio` still drops it (in `Main.kt`) |
-| 12 | Docs and rollout | K0 committed and pushed 15 Oct (Reaktor #18 / BestBuds #8); 746 cases, 27 existing skips, zero failures. Remaining K1–K12 status and handoff in `kernel-handoff.md` |
+| 12 | Docs and rollout | K0 and WP13/14/16/17 are qualified/pushed; current K1/K3 slices are installed and checked. Public CLI/build guides reflect the primary face. Remaining 23 implementation checkpoints, including required K1-TUI, are tracked in the handoff and full domain status |
 
 ## Domains, highest leverage first
 
@@ -85,6 +85,8 @@ Before this work (scan of 14 October): 4 kinds of kernel process, 6 kinds of end
 | CLI face | `bestbuds/targets/reaktorCli/src/main/kotlin/ai/bestbuds/reaktor/cli/KernelCli.kt`, tests `KernelCliTest.kt` (5, one over the real owner wire) |
 
 ## Log
+
+- 21 Oct 2026 — K3 installed request-context and immediate-plan follow-up qualified and pushed: Reaktor `ade8deef` / BestBuds `bfd5de2a`. The planner exports under the actual request context before sealing; immediate non-approved execution reuses its prepared plan, while approved execution still re-prepares and checks its reviewed fingerprint. Existing checks pass: 433 kernel cases (11 existing skips), 232 tooling cases (1 existing skip), 16 CLI cases and the kernel boundary. After priming the model with a different shell PATH/options, the installed CLI's first request succeeds without retry: `run-1792556166597-1`, five selected tests, zero failures, exact `--tests` in the sealed plan and correlated receipt. Coverage remains Partial for source identity. Proof: `build/dependeasy/receipts/qualification/wp13/k3-request-context-plan-20261021-v3-proof.json`. Full BuildOption projection, affected execution, parameterized aliases and K7 remain open; no provider write or approval bypass.
 
 - **14 Oct.** Plan written. Bugs fixed: `provider.refresh` sent `id` instead of `provider`; `workspace serve` rejected `--connector` and `--tunnel-origin`. Domain 1 done, 6 tests green, plus the 23 door tests. BestBuds kernel serves `build.*`, `run.*` and the adapted reads through `ReaktorKernel.invoke` and the owner's `kernel` tool; 4 CLI tests green. Backup of the uncommitted kernel and CLI work before editing: `~/.reaktor/backups/kernel-cli-wip-20261014-2143.tgz`. Coordination: Codex's dependeasy run broke `:exportBuildModel` at 21:48 and fixed it minutes later; `Main.kt` is left to Codex until WP11 is committed.
 - **14 Oct, later.** `catalog()` is now cheap and `describe()` lazy, so listing never starts the agent workspace. Engineering operations bridged through `rawOperation` with their existing schemas. The MCP stdio host serves `kernel` with the seat. End-to-end test: CLI and MCP reach the kernel through the authenticated owner, and the call log records seats `cli` and `claude`.

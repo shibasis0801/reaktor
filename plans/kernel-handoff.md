@@ -642,9 +642,9 @@ Stop and write the reason in the Log, instead of guessing, when:
 |---|---|
 | §3 | Written 15 Oct; `dependeasy-api.md` §4.4 points here |
 | K0 | Complete 15 Oct; four scoped commits pushed to Reaktor #18 and BestBuds #8, 746 reported cases / 27 existing skips / zero failures |
-| K1 | Outstanding; CLI face built 14 Oct, not wired |
+| K1 | In progress; installed primary catalog face, typed arguments, human/JSON output, shell completion, durable following and legacy parser/archive removal qualify. Current three-root CLI/MCP discovery parity and selected execution pass. Full BuildOption/caller migration and remaining K1 acceptance stay open. |
 | K2 | Outstanding (verify after WP12/WP13) |
-| K3 | Outstanding; `build.list/show/tree/plan/run/receipts` exist |
+| K3 | In progress; three-root inspection and conservative affected selection qualify; 681 task options project into the owning schemas. Installed first-context selected execution and single immediate-plan reuse qualify. Full BuildOption projection, affected execution and parameterized alias removal remain open |
 | K4 | Outstanding |
 | K5 | Outstanding; kernel approvals already show in the door pane |
 | K6 | Outstanding (waits for WP21) |
@@ -662,6 +662,8 @@ The owner pastes this when the dependeasy packages are done:
 > New round: the Reaktor kernel and its faces. Read `/Users/ovd/dev/reaktor/plans/kernel-handoff.md` in full, then `reaktor-kernel-plan.md` for the design. Do K0 first if it has not run, then the packages in the order of §5, following §7 after each. The owner approved the defaults in §6. Dependeasy, the kernel, the CLI, MCP and Hangar are one system: every package must leave a capability reachable from all three faces through the one gate, with a receipt. Stop and log the reason when §7 says to.
 
 ## Log
+
+- 21 Oct 2026 — K3 installed request-context and immediate-plan follow-up qualified and pushed: Reaktor `ade8deef` / BestBuds `bfd5de2a`. The planner exports under the actual request context before sealing; immediate non-approved execution reuses its prepared plan, while approved execution still re-prepares and checks its reviewed fingerprint. Existing checks pass: 433 kernel cases (11 existing skips), 232 tooling cases (1 existing skip), 16 CLI cases and the kernel boundary. After priming the model with a different shell PATH/options, the installed CLI's first request succeeds without retry: `run-1792556166597-1`, five selected tests, zero failures, exact `--tests` in the sealed plan and correlated receipt. Coverage remains Partial for source identity. Proof: `build/dependeasy/receipts/qualification/wp13/k3-request-context-plan-20261021-v3-proof.json`. Full BuildOption projection, affected execution, parameterized aliases and K7 remain open; no provider write or approval bypass.
 
 - **15 Oct 2026.** Handoff written. Measured the bestbuds root: 259 lines, 61 quoted paths, 35 string node names, 15 `packageAlias` calls, 15 `if`s, 6 loops, 14 file reads, 10 `HostRequirement`s, 5 near-identical device-flow blocks. `dependeasy-api.md` §4.4 now points to §3 so WP12 and WP13 build to the story altitude directly.
 
