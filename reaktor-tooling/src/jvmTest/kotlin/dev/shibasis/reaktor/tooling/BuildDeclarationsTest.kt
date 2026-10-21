@@ -209,7 +209,12 @@ class BuildDeclarationsTest {
                     from pathlib import Path
                     root=Path(__file__).parent
                     if 'exportBuildModel' in sys.argv:
+                      request=Path(next(arg.split('=',1)[1] for arg in sys.argv if arg.startswith('-Pdependeasy.gradleRequest=')))
+                      assert request.parent==root/'build/dependeasy/contracts/gradle/requests'
+                      assert request.name==hashlib.sha256(request.read_bytes()).hexdigest()+'.json'
+                      assert request.stat().st_mode & 0o077 == 0
                       report=root/'build/dependeasy/model.json';model=json.loads(report.read_text())
+                      assert any(node['id']==json.loads(request.read_text())['node'] for node in model['nodes'])
                       model['producer']['version']=os.environ.get('REAKTOR_ENVIRONMENT','fixture')
                       for declaration in model['declarations']:
                         declaration['sha256']=hashlib.sha256((root/declaration['path']).read_bytes()).hexdigest()

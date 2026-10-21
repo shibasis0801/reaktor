@@ -35,7 +35,24 @@ internal class GradleBuildPlanner {
                     (completed.failure?.message.orEmpty() + "\n" + tail.joinToString("\n")).takeLast(8192) }
             }
         }
-        gradle(listOf(GradleProtocol.ExportTask), ProcessDefinitionSeal.capture(seal.files, seal.directories),
+        fun write(value: GradleRequest): File {
+            val text = BuildModelReader.json.encodeToString(value) + "\n"
+            val path = root.resolve(GradleProtocol.RequestDirectory).toPath()
+            require(path.toFile().canonicalFile.toPath() == path.toAbsolutePath().normalize()) { "Gradle request path escapes its owner" }
+            Files.createDirectories(path)
+            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwx------"))
+            val file = path.resolve(BuildModelReader.digest(text) + ".json")
+            if (!Files.exists(file)) {
+                Files.createFile(file, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
+                Files.writeString(file, text)
+            }
+            require(Files.readString(file) == text && !Files.isSymbolicLink(file)) { "Gradle request content changed" }
+            return file.toFile()
+        }
+        val routing = write(GradleRequest(node = node.id, declaredAt = node.declaredAt,
+            modelDigest = BuildModelReader.digest(BuildModelReader.encode(previous)), arguments = arguments))
+        gradle(listOf(GradleProtocol.ExportTask, "-P${GradleProtocol.RequestOption}=${routing.absolutePath}"),
+            ProcessDefinitionSeal.capture(seal.files + routing, seal.directories),
             "Exporting the build model for the requested context failed")
         val model = BuildModelReader.readAllowingStale(root)
         val current = requireNotNull(model.nodes.singleOrNull { it.id == node.id }) {
@@ -53,20 +70,6 @@ internal class GradleBuildPlanner {
         }
         val request = GradleRequest(node = node.id, declaredAt = node.declaredAt,
             modelDigest = BuildModelReader.digest(BuildModelReader.encode(model)), arguments = arguments)
-        fun write(value: GradleRequest): File {
-            val text = BuildModelReader.json.encodeToString(value) + "\n"
-            val path = root.resolve(GradleProtocol.RequestDirectory).toPath()
-            require(path.toFile().canonicalFile.toPath() == path.toAbsolutePath().normalize()) { "Gradle request path escapes its owner" }
-            Files.createDirectories(path)
-            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwx------"))
-            val file = path.resolve(BuildModelReader.digest(text) + ".json")
-            if (!Files.exists(file)) {
-                Files.createFile(file, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
-                Files.writeString(file, text)
-            }
-            require(Files.readString(file) == text && !Files.isSymbolicLink(file)) { "Gradle request content changed" }
-            return file.toFile()
-        }
         val contract = write(request)
         gradle(listOf(GradleProtocol.PlanTask, "-P${GradleProtocol.RequestOption}=${contract.absolutePath}"),
             ProcessDefinitionSeal.capture(seal.files + contract, seal.directories), "Gradle planning failed")
