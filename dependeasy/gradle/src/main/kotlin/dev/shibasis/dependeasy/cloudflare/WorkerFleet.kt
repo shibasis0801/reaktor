@@ -47,7 +47,7 @@ class WorkerFleet internal constructor(
             finalConfigurations.from(project.rootProject.file(WorkerFleetKernel.accountConfiguration(fleetSpec)))
             contract.set(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json"))
         }
-        project.node(generate, OutputKind.GeneratedContract)
+        val generatedContract = KernelArtifact(generate.flatMap { it.contract }, project.node(generate, OutputKind.GeneratedContract))
         project.publishOutput(OutputKind.GeneratedContract, generate.flatMap { it.contract }, Contract.WorkerFleet, producer = generate)
         val nodes = linkedMapOf<String, NodeHandle>()
         records.forEach { worker ->
@@ -107,7 +107,7 @@ class WorkerFleet internal constructor(
                         val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
                         val suite = project.karateSuite(name, if (mode == "public") "$directory/public.feature" else directory, contracts.configuration, tags,
                             listOfNotNull(contracts.environmentFiles[Environment(environment)]),
-                              environment = contracts.environment[Environment(environment)].orEmpty())
+                              environment = contracts.environment[Environment(environment)].orEmpty()).consumes(generatedContract)
                         val suffix = if (environment == delivery.defaultEnvironment.name) "" else ":$environment"
                         val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
                         workspace.alias(project.rootDir, alias + suffix, suite)

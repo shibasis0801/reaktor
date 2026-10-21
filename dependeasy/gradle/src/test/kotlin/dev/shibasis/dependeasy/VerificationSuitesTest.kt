@@ -271,7 +271,7 @@ class VerificationSuitesTest {
             write("suite/input.feature", """
                 Feature: local service qualification
                 Scenario: fetch declared service
-                  Given url '$url'
+                  Given url fixtureBaseUrl
                   When method get
                   Then status 200
                   And match response.value == 'passed'
@@ -290,9 +290,14 @@ class VerificationSuitesTest {
                   });
                 }
             """.trimIndent())
-            write("config/karate-config.js", "function fn() { return {}; }")
+            write("config/karate-config.js", """
+                function fn() {
+                  var fleet = karate.read('file:build/dependeasy/contracts/cloudflare/fleet.json');
+                  return { fixtureBaseUrl: fleet.workers[0].deployments[0].endpoint };
+                }
+            """.trimIndent())
             write("config/required.env", "FIXTURE_PRIORITY=required\n")
-            write("worker/wrangler.json", """{"main":"src/index.ts"}""")
+            write("worker/wrangler.json", """{"name":"fixture-worker","main":"src/index.ts"}""")
             write("tests/worker/karate/input.feature", root.resolve("suite/input.feature").readText())
             write("workers/build.gradle.kts", """
                 import dev.shibasis.dependeasy.components.workers
@@ -301,11 +306,12 @@ class VerificationSuitesTest {
                 val prod = Environment("prod")
                 workers(Delivery(listOf(prod), prod, Delivery.Cloudflare("fixture-account", emptyList(), true)), contracts = WorkerContractTests("config",
                     environment = mapOf(prod to mapOf("FIXTURE_DECLARED" to "declared")))) {
-                    worker(WorkerRef("fixture", "worker"), listOf(WorkerDeployment(prod, ServiceRef("fixture-worker"))))
+                    worker(WorkerRef("fixture", "worker"), listOf(WorkerDeployment(prod, ServiceRef("fixture-worker"), endpoint = "$url")))
                 }
             """.trimIndent())
             write("load/build.gradle.kts", """
                 import dev.shibasis.dependeasy.components.loadTests
+                import dev.shibasis.dependeasy.handles.*
                 import dev.shibasis.dependeasy.model.*
                 plugins { id("dev.shibasis.dependeasy.load-tests") }
                 enum class Suites(val spec: LoadSuite) {
@@ -320,7 +326,8 @@ class VerificationSuitesTest {
                         optionalEnvironmentFiles = listOf("config/optional.env"),
                         aliases = listOf(PackageScript("k6:fixture"))));
                 }
-                loadTests(Suites.entries.associateWith { it.spec })
+                loadTests(Suites.entries.associateWith { it.spec },
+                    output(projects.workers, OutputKind.GeneratedContract, Contract.WorkerFleet))
             """.trimIndent())
             write("build.gradle.kts", """
                 plugins { id("dev.shibasis.dependeasy.workspace") }
@@ -345,7 +352,12 @@ class VerificationSuitesTest {
                 assertFalse(declared.nodes.any { it.id.project == ":load" && it.id.name == tool })
                 Edge.After(source, target).also { assertContains(declared.edges, it) }
             }
+            assertContains(declared.edges, Edge.Consumes(NodeId("pinnedVerificationFixture", ":load", "realKarate"),
+                NodeId("pinnedVerificationFixture", ":workers", "outputGeneratedContractWorkerFleet"), "GeneratedContract:WorkerFleet"))
+            val generatedContract = root.resolve("build/dependeasy/contracts/cloudflare/fleet.json")
+            assertFalse(generatedContract.exists())
             run()
+            assertTrue(generatedContract.isFile)
             assertEquals(2, requests.get())
             assertTrue(root.resolve("load/build/reports/karate/realKarate").walkTopDown().any { it.isFile })
             val summary = BuildModelReader.json.parseToJsonElement(root.resolve("load/build/reports/k6/realK6.json").readText())
@@ -371,8 +383,13 @@ class VerificationSuitesTest {
             assertFalse("PRIVATE_OPTIONAL" in withoutOptional.execution.environmentKeys)
             val workerSuite = model.nodes.single { it.id.project == ":workers" && it.id.name == "karateWorkerAuthProd" }
             assertContains(assertIs<KernelSpec.KarateSuite>(workerSuite.kernel?.spec).execution.environmentKeys, "FIXTURE_DECLARED")
+            val workerProducer = NodeId("pinnedVerificationFixture", ":workers", "generateWorkerFleet")
+            assertContains(model.edges, Edge.Consumes(workerSuite.id, workerProducer, "generateWorkerFleet"))
+            assertContains(model.edges, Edge.After(workerSuite.id, workerProducer))
+            assertTrue(generatedContract.delete())
             val beforeWorker = requests.get()
             run(":workers:karateWorkerAuthProd")
+            assertTrue(generatedContract.isFile)
             assertEquals(beforeWorker + 1, requests.get())
         } finally { server.stop(0) }
     }
