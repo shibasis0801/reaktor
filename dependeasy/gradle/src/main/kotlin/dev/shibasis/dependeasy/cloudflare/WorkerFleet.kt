@@ -30,7 +30,7 @@ class WorkerFleet internal constructor(
         observation = WorkerObservability(resources, exporter, externalServices)
     }
     private val environments get() = delivery.environments
-    private val environmentOption = BuildOption.string("dependeasy.environment")
+    private val environmentOption = BuildOption.string(GradleProtocol.EnvironmentOption)
     fun worker(ref: WorkerRef, deployments: List<WorkerDeployment>, vararg prerequisites: OutputHandle) {
         require(!File(ref.directory).isAbsolute) { "Worker directories must be relative" }
         require(workers.put(ref.name, Declaration(FleetWorker(ref, NodeId(project.rootProject.name, project.path, "deploy${ref.name.replaceFirstChar(Char::uppercaseChar)}"), deployments.toList()), project.rootProject.file(ref.directory), prerequisites.toList(), project.declarationSite())) == null) { "Duplicate worker: ${ref.name}" }
@@ -69,13 +69,16 @@ class WorkerFleet internal constructor(
             val paths = configurations.mapValues { project.rootProject.file(it.value).relativeTo(directory).invariantSeparatorsPath }
             val selected = if (selectedName in configurations) selectedEnvironment else delivery.defaultEnvironment
             val component = JavaScriptComponent(project, "${name}Worker", directory)
-            val command = component.deploy(producers = arrayOf(generate))
+            val command = component.deploy(worker.node, producers = arrayOf(generate))
             command.configure {
                 configuration.set(paths.getValue(selected.name))
                 this.requestedEnvironment.set(requestedEnvironment)
                 allowedEnvironments.set(configurations.keys.toList())
                 sourceFiles.from(generate.map { it.finalConfigurations })
-                arguments.add("--minify")
+                this.declaration.set(BuildModelReader.json.encodeToString(declaration.worker))
+                environmentName.set(selected.name)
+                this.bindings.set(WorkerFleetKernel.bindings(fleetSpec, declaration.worker, selected).map { it.second.name })
+                declaration.site?.let { extensions.add(SourceSite::class.java, "declarationSite", it) }
             }
             val logs = component.command("logs", null, "exec", "wrangler", "tail")
             logs.configure {
@@ -83,15 +86,10 @@ class WorkerFleet internal constructor(
                 dependsOn(generate)
                 outputs.upToDateWhen { false }
             }
-            val bindings = WorkerFleetKernel.bindings(fleetSpec, declaration.worker, selected).map { it.second }
-            val dependencies = listOf(project.node(command))
+            val deployNode = project.node(command)
             val outputs = prerequisites + declaration.prerequisites
-            outputs.forEach { workspace.consume(dependencies.single(), it) }
-            val spec = KernelSpec.WorkspaceNode(worker.node, NodeKind.Deploy, Run.onLinux().onWorker(),
-                dependencies.map { it.id }, outputs.map { it.nodeId }, emptyList(), emptyList(),
-                worker = WorkerRef(name, project.rootProject.relativePath(directory)),
-                environments = this@WorkerFleet.environments.filter { it.name in configurations }, bindings = bindings)
-            nodes[name] = workspace.emit(project, spec, DeployKernel, declaration.site, null, dependencies, outputs, emptyList())
+            outputs.forEach { workspace.consume(deployNode, it) }
+            nodes[name] = deployNode
             val deploy = nodes.getValue(name)
             val tail = project.node(logs)
             workspace.alias(directory, "deploy", deploy)
@@ -141,9 +139,8 @@ class WorkerFleet internal constructor(
         workers.forEach { (name, declaration) ->
             val bindings = (declaration.worker.deployments.singleOrNull { it.environment == selectedEnvironment }
                 ?: declaration.worker.deployments.single { it.environment == delivery.defaultEnvironment }).bindings
-            workspace.configure(nodes.getValue(name)) {
-                includes(*bindings.filterIsInstance<WorkerServiceBinding.Worker>().map { it.target.name }.filter { it != name }.map(nodes::getValue).toTypedArray())
-            }
+            workspace.order(nodes.getValue(name), bindings.filterIsInstance<WorkerServiceBinding.Worker>()
+                .map { it.target.name }.filter { it != name }.map(nodes::getValue))
         }
         project.tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(generate) }
         return workspace.aggregate(project, "deployWorkers", NodeKind.Deploy,

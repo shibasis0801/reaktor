@@ -74,6 +74,7 @@ internal fun kernelRef(task: Task): KernelRef {
         is dev.shibasis.dependeasy.verification.DeviceFlow -> dev.shibasis.dependeasy.model.DeviceFlowKernel::class.java
         is dev.shibasis.dependeasy.verification.KarateSuite -> dev.shibasis.dependeasy.model.KarateSuiteKernel::class.java
         is dev.shibasis.dependeasy.verification.K6Suite -> dev.shibasis.dependeasy.model.K6SuiteKernel::class.java
+        is dev.shibasis.dependeasy.web.WranglerDeploy -> dev.shibasis.dependeasy.model.WorkerDeployKernel::class.java
         is dev.shibasis.dependeasy.process.ProcessTask -> dev.shibasis.dependeasy.model.ProcessKernel::class.java
         is WorkspaceNodeTask -> task.kernel.javaClass
         is GradleInvocationTask -> dev.shibasis.dependeasy.model.GradleInvocationKernel::class.java
@@ -146,7 +147,7 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.ViteBundle -> copy(execution = execution(execution), configuration = configuration?.let(::path))
         is KernelSpec.KarakumBindings -> copy(execution = execution(execution), configuration = path(configuration))
         is KernelSpec.WorkerTypes -> copy(execution = execution(execution), configuration = path(configuration))
-        is KernelSpec.WranglerDeploy -> copy(execution = execution(execution), configuration = path(configuration))
+        is KernelSpec.WranglerDeploy -> copy(deployment = deployment.copy(execution = execution(deployment.execution), configuration = path(deployment.configuration)))
         is KernelSpec.NodeGenerator -> copy(execution = execution(execution), script = path(script), arguments = arguments.map(::path))
         is KernelSpec.PackageCommand -> copy(execution = execution(execution))
         is KernelSpec.Process -> copy(execution = execution(execution))

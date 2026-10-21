@@ -300,6 +300,14 @@ internal class BuildWorkspace(private val project: Project) {
         }
     }
 
+    internal fun order(node: NodeHandle, dependencies: List<NodeHandle>) {
+        require(node.id.build == project.rootProject.name && dependencies.all { it.id.build == node.id.build })
+        dependencies.distinctBy { it.id }.forEach { dependency ->
+            requireNotNull(node.task).configure { mustRunAfter(requireNotNull(dependency.task)) }
+            graph.configure { edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.OrderedAfter(node.id, dependency.id))) }
+        }
+    }
+
     internal fun orderAfter(node: NodeHandle, outputs: List<OutputHandle>) {
         require(node.id.build == project.rootProject.name && outputs.all { it.build == node.id.build }) { "Selected-only ordering stays within its build" }
         outputs.distinctBy { it.nodeId }.forEach { output ->
@@ -340,13 +348,16 @@ internal class BuildWorkspace(private val project: Project) {
                     val declaration = producer.extensions.findByType(SourceSite::class.java)
                         ?: if (evaluated) owner.extensions.findByType(SourceSite::class.java) ?: site else site
                     val typed = producer as? dev.shibasis.dependeasy.process.KernelSpecOwner
-                    listOf(BuildModelReader.encode(Node(id, NodeKind.Kernel, task.name,
+                    val worker = producer as? dev.shibasis.dependeasy.web.WranglerDeploy
+                    listOf(BuildModelReader.encode(Node(id, if (worker == null) NodeKind.Kernel else NodeKind.Deploy, task.name,
                         typed?.kernelEffect ?: if (producer.extensions.findByType(KernelSpec::class.java) is KernelSpec.JvmProgram) Effect.Develop
                         else if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
                         taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer),
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
                         tools = producer.declaredTools(), options = producer.declaredOptions(),
-                        artifactFamily = taskArtifactFamilies[id] ?: kind?.family)))
+                        artifactFamily = taskArtifactFamilies[id] ?: kind?.family,
+                        worker = worker?.worker?.ref, environments = worker?.worker?.deployments?.map { it.environment }.orEmpty(),
+                        bindings = worker?.bindings?.get()?.map(::ServiceRef).orEmpty())))
                 }
             })
         }

@@ -17,10 +17,10 @@ internal class JavaScriptCommandKernel(
     private val workspace = PnpmWorkspace.get(project)
     private val runtime = JavaScriptRuntime(project)
     private val install = workspace.install
-    fun <T : ProcessTask> register(type: Class<T>, suffix: String, output: String?, vararg arguments: String, fileOutput: String? = null): TaskProvider<T> {
+    fun <T : ProcessTask> register(type: Class<T>, suffix: String, output: String?, vararg arguments: String, fileOutput: String? = null, taskName: String? = null): TaskProvider<T> {
         output?.let { component.generatedOutputs.add("$it/**") }
         fileOutput?.let(component.generatedOutputs::add)
-        val taskName = name + suffix.split(Regex("[^A-Za-z0-9]+"))
+        val taskName = taskName ?: name + suffix.split(Regex("[^A-Za-z0-9]+"))
             .joinToString("") { it.replaceFirstChar(Char::uppercaseChar) }
         return project.tasks.register(taskName, type) {
             group = "dependeasy"
@@ -41,7 +41,7 @@ internal class JavaScriptCommandKernel(
             sourceFiles.from(component.contract.flatMap { it.contract }, component.contract.flatMap { it.typeScriptConfiguration })
             if (fileOutput != null) outputFiles.from(directory.resolve(fileOutput))
             else if (output != null) outputDirectories.from(directory.resolve(output))
-            else receiptFile.set(project.layout.buildDirectory.file("dependeasy/checks/$taskName.properties"))
+            else if (type != WranglerDeploy::class.java) receiptFile.set(project.layout.buildDirectory.file("dependeasy/checks/$taskName.properties"))
         }.also {
             val build = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
             build.reference(project, it, null)
@@ -51,7 +51,7 @@ internal class JavaScriptCommandKernel(
             component.commands.add(node)
             component.packageOutputs.forEach { output -> build.consume(node, output) }
             build.connect(node, listOf(project.node(component.contract), project.rootProject.node(install)))
-            if (type != PackageCommand::class.java) {
+            if (type != PackageCommand::class.java && type != WranglerDeploy::class.java) {
                 val node = project.node(it)
                 build.alias(directory, if (type == TypeScriptCheck::class.java && suffix == "types") "typecheck" else suffix, node)
                 build.alias(project.rootDir, taskName, node)

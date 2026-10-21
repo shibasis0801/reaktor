@@ -187,6 +187,8 @@ class CloudInventoryAssemblyTest {
                 path.endsWith("/cfd_tunnel") -> """{"result":[{"id":"tunnel-test","name":"fixture","status":"healthy"}]}"""
                 path.endsWith("/r2/buckets") -> """{"result":{"buckets":[]}}"""
                 path.endsWith("/settings") -> """{"result":{}}"""
+                path.endsWith("/zero/deployments") -> """{"result":{"deployments":[{"created_on":"2026-10-09T00:00:00Z","versions":[{"version_id":"full-version","percentage":100}]}]}}"""
+                path.endsWith("/partial/deployments") -> """{"result":{"deployments":[{"created_on":"2026-10-09T00:00:00Z","versions":[{"version_id":"first","percentage":50},{"version_id":"second","percentage":50}]}]}}"""
                 path.endsWith("/deployments") -> """{"result":{"deployments":[]}}"""
                 else -> """{"result":[]}"""
             }.toByteArray()
@@ -212,6 +214,9 @@ class CloudInventoryAssemblyTest {
             val workers = partial.resources.filter { it.kind == CloudKind.Worker }.associateBy { it.name }
             assertEquals(ResourceStatus.Idle, workers.getValue("zero").status)
             assertEquals(0.0, workers.getValue("zero").metric("requests")?.value)
+            assertEquals("full-version", workers.getValue("zero").attributes["activeVersion"])
+            assertEquals(null, workers.getValue("partial").attributes["activeVersion"])
+            assertEquals(null, workers.getValue("invalid").attributes["activeVersion"])
             assertEquals(ResourceStatus.Unknown, workers.getValue("partial").status)
             assertEquals(null, workers.getValue("partial").metric("requests"))
             assertEquals(5.0, workers.getValue("partial").metric("errors")?.value)

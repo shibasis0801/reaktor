@@ -103,6 +103,29 @@ class BuildDeclarationsTest {
             .message.orEmpty(), "no longer declared")
     }
 
+    @Test fun requestedContextMayChangeOnlySpecAndBindingsWithoutSourceDrift() = fixture { root ->
+        val execution = ProcessExecution(".", "tool", listOf("prod"), emptyList(), ToolRef("fixture", "1"), emptyList(), emptyList())
+        val target = node("deploy", Effect.Deploy).copy(kernel = KernelRef("fixture.Kernel", spec = KernelSpec.Process(execution)),
+            bindings = listOf(ServiceRef("fixture-prod")), environments = listOf(Environment("dev"), Environment("prod")))
+        report(root, target)
+        root.resolve("build/export-context").writeText("")
+        fun prepare(environment: String) = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(
+            TaskInvocation(TaskId("fixture:deploy"), arguments = listOf("-P${GradleProtocol.EnvironmentOption}=$environment")))
+        val prepared = prepare("dev")
+        val exported = BuildModelReader.readAllowingStale(root).nodes.single()
+        assertEquals(listOf("dev"), (exported.kernel!!.spec as KernelSpec.Process).execution.arguments)
+        assertEquals(listOf(ServiceRef("fixture-dev")), exported.bindings)
+        assertEquals(SafetyClass.ProductionReversibleWrite, prepared.plan.safety.classification)
+        assertFailsWith<IllegalArgumentException> { prepare("undeclared") }
+        report(root, target)
+        root.resolve("build/export-changes-host").writeText("")
+        assertFailsWith<IllegalArgumentException> { prepare("dev") }
+        root.resolve("build/export-changes-host").delete()
+        report(root, target)
+        root.resolve("build.gradle.kts").appendText("\n")
+        assertContains(assertFailsWith<IllegalArgumentException> { prepare("dev") }.message.orEmpty(), "refresh the catalog")
+    }
+
     @Test fun aModelFromANewerExporterKeepsTheWorkspaceDiscoverable() = fixture { root ->
         val file = report(root, node("artifacts"))
         file.writeText(file.readText().replace(Regex(""""type":\s*"[^"]+""""), """"type":"future""""))
@@ -173,6 +196,13 @@ class BuildDeclarationsTest {
                       if (root/'build/export-moves-nodes').exists():
                         for node in model['nodes']:node['declaredAt']['line']+=1
                       if (root/'build/export-drops-nodes').exists():model['nodes']=[]
+                      if (root/'build/export-context').exists():
+                        context=next(arg.split('=',1)[1] for arg in sys.argv if arg.startswith('-Pdependeasy.environment='))
+                        for node in model['nodes']:
+                          node['kernel']['spec']['execution']['arguments']=[context]
+                          node['bindings']=['fixture-'+context]
+                      if (root/'build/export-changes-host').exists():
+                        for node in model['nodes']:node['host']['execution']='Local'
                       report.write_text(json.dumps(model))
                       with open(root/'build/exports.txt','a') as exports:exports.write('export\n')
                       sys.exit(0)

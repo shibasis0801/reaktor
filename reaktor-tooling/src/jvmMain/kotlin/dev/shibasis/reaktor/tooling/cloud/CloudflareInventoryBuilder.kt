@@ -177,6 +177,7 @@ internal class CloudflareInventoryBuilder(
                     "deployedBy" to latest.text("author_email"),
                     "deploySource" to latest.text("source"),
                     "deployments" to list.size.toString(),
+                    "activeVersion" to latest.objects("versions").singleOrNull()?.takeIf { it.number("percentage") == 100.0 }?.text("version_id"),
                 ))
             }
         }

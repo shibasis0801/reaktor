@@ -20,7 +20,7 @@ class TypedKernelExecutionTest {
         write("settings.gradle.kts", "rootProject.name = \"kernelsFixture\"")
         write("source.txt", "first")
         write("tool", "#!/bin/sh\nprintf '%s\\n' \"$*\" >> executions\nmkdir -p result\nprintf '%s' \"$*\" > result/value\nprintf 'types' > worker.d.ts\n").setExecutable(true)
-        for (name in listOf("typescript", "vite", "bindings", "worker", "deploy", "generator")) {
+        for (name in listOf("typescript", "vite", "bindings", "worker", "generator")) {
             write("$name/entry.ts", "export const value = 1")
             write("$name/config.json", """{"input":"entry.ts","output":"result","libraryName":"fixture"}""")
             write("$name/generate.mjs", "")
@@ -46,11 +46,10 @@ class TypedKernelExecutionTest {
             val worker = tasks.register<WorkerTypes>("worker") {
                 fixture("worker"); configuration.set("config.json"); declarations.set(layout.projectDirectory.file("worker/worker.d.ts"))
             }
-            val deploy = tasks.register<WranglerDeploy>("deploy") { fixture("deploy"); configuration.set("config.json"); deploymentEnvironment.set("dev") }
             val generator = tasks.register<NodeGenerator>("generator") { fixture("generator"); script.set(layout.projectDirectory.file("generator/generate.mjs")) }
-            dependeasy { workspace { val allKernels by artifacts { include(node(typescript), node(vite), node(bindings), node(worker), node(deploy), node(generator)) } } }
+            dependeasy { workspace { val allKernels by artifacts { include(node(typescript), node(vite), node(bindings), node(worker), node(generator)) } } }
         """.trimIndent())
-        val names = arrayOf("typescript", "vite", "bindings", "worker", "deploy", "generator")
+        val names = arrayOf("typescript", "vite", "bindings", "worker", "generator")
         val first = run(*names, "exportBuildModel")
         names.forEach { assertEquals(TaskOutcome.SUCCESS, first.task(":$it")?.outcome) }
         val model = dev.shibasis.dependeasy.model.BuildModelReader.decode(directory.resolve("build/dependeasy/model.json").readText())
@@ -72,22 +71,84 @@ class TypedKernelExecutionTest {
         assertEquals(dev.shibasis.dependeasy.model.NodeKind.ArtifactSet, model.nodes.single { it.id.name == "allKernels" }.kind)
         assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode })
         assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.TypeScriptCheck && it.execution.directory == "typescript" })
-        assertTrue(specs.any { it is dev.shibasis.dependeasy.model.KernelSpec.WranglerDeploy && it.environment == "dev" })
         val repeated = run(*names, "exportBuildModel")
         assertContains(run(*names, "exportBuildModel").output, "Reusing configuration cache")
-        names.forEach { assertEquals(if (it == "deploy") TaskOutcome.SUCCESS else TaskOutcome.UP_TO_DATE, repeated.task(":$it")?.outcome) }
+        names.forEach { assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":$it")?.outcome) }
         assertContains(directory.resolve("typescript/result/value").readText(), "--projects config.json")
         assertContains(directory.resolve("vite/result/value").readText(), "vite build --config config.json")
         assertContains(directory.resolve("bindings/result/value").readText(), "await generate")
         assertContains(directory.resolve("bindings/result/value").readText(), "config.json")
         assertContains(directory.resolve("worker/result/value").readText(), "wrangler types")
-        assertContains(directory.resolve("deploy/result/value").readText(), "--env dev")
         write("source.txt", "second")
         val changed = run(*names)
         names.forEach { assertEquals(TaskOutcome.SUCCESS, changed.task(":$it")?.outcome) }
         names.forEach { directory.resolve("$it/result/value").delete() }
         val deleted = run(*names)
         names.forEach { assertEquals(TaskOutcome.SUCCESS, deleted.task(":$it")?.outcome) }
+    }
+
+    @Test fun `worker deploy plan seals bundle and live version and records apply and rollback`() {
+        val initial = "11111111-1111-1111-1111-111111111111"
+        val deployed = "22222222-2222-2222-2222-222222222222"
+        var live = initial
+        var message = "previous-run"
+        var writes = 0
+        val config = write("deploy/wrangler.json", """{"name":"fixture-dev","main":"entry.ts","compatibility_date":"2026-10-01","vars":{"PUBLIC":"private-value-not-recorded"},"routes":[]}""")
+        val spec = dev.shibasis.dependeasy.model.WorkerDeploySpec(
+            dev.shibasis.dependeasy.model.NodeId("fixture", ":workers", "deployFixture"),
+            dev.shibasis.dependeasy.model.Environment("dev"), dev.shibasis.dependeasy.model.ServiceRef("fixture-dev"),
+            dev.shibasis.dependeasy.model.ProcessExecution(config.parent, "pnpm", emptyList(), emptyList(),
+                dev.shibasis.dependeasy.model.ToolRef("wrangler", "4.148.0"), emptyList(), emptyList()), "wrangler.json")
+        val execute: (dev.shibasis.dependeasy.model.ProcessExecution) -> String = { execution ->
+            val args = execution.arguments
+            when {
+                args[2] == "deployments" -> """[{"versions":[{"version_id":"$live","percentage":100}]}]"""
+                args[2] == "versions" -> """{"id":"$live","annotations":{"workers/message":"$message"},"resources":{"script_runtime":{"compatibility_date":"2026-10-01","compatibility_flags":[]},"bindings":[{"name":"PUBLIC","type":"plain_text","text":"private-value-not-recorded"},{"name":"SECRET","type":"secret_text"}]}}"""
+                "--dry-run" in args -> { File(args[args.indexOf("--outdir") + 1]).apply { mkdirs(); resolve("entry.js").writeText("export default {}") }; "" }
+                args[2] == "deploy" -> { assertContains(args, "--no-bundle"); assertEquals("export default {}", File(args[3]).readText()); writes++; live = deployed; message = args[args.indexOf("--message") + 1]; "" }
+                args[2] == "rollback" -> { writes++; live = args[3]; "" }
+                else -> error("Unexpected command $args")
+            }
+        }
+        val plan = dev.shibasis.dependeasy.model.WorkerDeployKernel.plan(spec, directory.resolve("bundle"), "fixture-sha", "fixture-host", execute)
+        assertTrue(plan.differences.isEmpty())
+        assertEquals(listOf("routes"), plan.unobservedSettings)
+        val records = mutableListOf<dev.shibasis.dependeasy.model.DeployReceipt>()
+        fun apply(run: String) = dev.shibasis.dependeasy.model.WorkerDeployKernel.apply(plan, run, execute, records::add)
+        val contents = config.readText()
+        config.appendText(" ")
+        assertFailsWith<IllegalArgumentException> { apply("changed-config") }
+        config.writeText(contents)
+        File(plan.entry).appendText(" ")
+        assertFailsWith<IllegalArgumentException> { apply("changed-bundle") }
+        File(plan.entry).writeText("export default {}")
+        live = deployed
+        assertFailsWith<IllegalArgumentException> { apply("changed-live") }
+        assertEquals(0, writes)
+        assertTrue(records.all { it.result == dev.shibasis.dependeasy.model.ReceiptStatus.Failed && it.phase == "precondition" })
+        live = initial
+        val receipt = apply("apply-fixture")
+        assertEquals(deployed, receipt.remoteVersion)
+        assertEquals(initial, receipt.rollbackTarget)
+        assertEquals("fixture-sha", receipt.gitSha)
+        assertEquals("fixture-host", receipt.runner)
+        assertEquals(dev.shibasis.dependeasy.model.ReceiptStatus.Succeeded, receipt.result)
+        assertEquals(plan.artifactDigest, receipt.artifactDigest)
+        val rollbackPlan = dev.shibasis.dependeasy.model.WorkerDeployKernel.plan(spec, directory.resolve("rollback-bundle"), "fixture-sha", "fixture-host", execute)
+        val previous = receipt.copy(run = "previous-fixture", remoteVersion = initial, rollbackTarget = null,
+            startedAtEpochMillis = receipt.startedAtEpochMillis - 1, finishedAtEpochMillis = receipt.startedAtEpochMillis - 1)
+        assertFailsWith<IllegalArgumentException> {
+            dev.shibasis.dependeasy.model.WorkerDeployKernel.rollback(rollbackPlan, receipt, previous.copy(environment = dev.shibasis.dependeasy.model.Environment("prod")), "wrong-scope", execute, records::add)
+        }
+        val rollback = dev.shibasis.dependeasy.model.WorkerDeployKernel.rollback(rollbackPlan, receipt, previous, "rollback-fixture", execute, records::add)
+        assertEquals(initial, rollback.remoteVersion)
+        assertEquals(deployed, rollback.rollbackTarget)
+        assertEquals("rollback", rollback.action)
+        assertEquals(2, writes)
+        assertEquals(initial, live)
+        val evidence = dev.shibasis.dependeasy.model.BuildModelReader.json.encodeToString(kotlinx.serialization.serializer<List<dev.shibasis.dependeasy.model.DeployReceipt>>(), records)
+        assertFalse(evidence.contains("private-value-not-recorded"))
+        assertFailsWith<IllegalArgumentException> { dev.shibasis.dependeasy.model.HealthProbe("http://localhost") }
     }
 
     @Test fun `installed SDK tools and size reports rerun after deleted outputs`() {

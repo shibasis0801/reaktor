@@ -111,7 +111,7 @@ sealed interface KernelSpec {
     @Serializable data class ViteBundle(val execution: ProcessExecution, val configuration: String?) : KernelSpec
     @Serializable data class KarakumBindings(val execution: ProcessExecution, val configuration: String) : KernelSpec
     @Serializable data class WorkerTypes(val execution: ProcessExecution, val configuration: String) : KernelSpec
-    @Serializable data class WranglerDeploy(val execution: ProcessExecution, val configuration: String, val environment: String?) : KernelSpec
+    @Serializable data class WranglerDeploy(val deployment: WorkerDeploySpec) : KernelSpec
     @Serializable data class NodeGenerator(val execution: ProcessExecution, val script: String, val arguments: List<String>) : KernelSpec
     @Serializable data class PackageCommand(val execution: ProcessExecution) : KernelSpec
     @Serializable data class Process(val execution: ProcessExecution) : KernelSpec
@@ -145,7 +145,7 @@ fun KernelSpec.tools(): List<ToolRef> = when (this) {
     is KernelSpec.ViteBundle -> listOf(execution.tool)
     is KernelSpec.KarakumBindings -> listOf(execution.tool)
     is KernelSpec.WorkerTypes -> listOf(execution.tool)
-    is KernelSpec.WranglerDeploy -> listOf(execution.tool)
+    is KernelSpec.WranglerDeploy -> listOf(deployment.execution.tool)
     is KernelSpec.NodeGenerator -> listOf(execution.tool)
     is KernelSpec.PackageCommand -> listOf(execution.tool)
     is KernelSpec.Process -> listOf(execution.tool)

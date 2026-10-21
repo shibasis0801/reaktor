@@ -40,7 +40,7 @@ abstract class GradleInvocationTask : DefaultTask(), dev.shibasis.dependeasy.pro
         val context = GradleInvocationKernel.context(javaHome.get(), gradleHome.get().asFile,
             gradleUserHome.get().asFile, initScripts.files, environment, BuildOption.systemPropertySnapshot())
         val directory = outputDirectory.get().asFile.apply { mkdirs() }
-        if (planning.get() && GradlePlanCache.load(directory, invocation, context)) return
+        if (planning.get() && GradleInvocationKernel.deploymentNodes(model, invocation.node.id).isEmpty() && GradlePlanCache.load(directory, invocation, context)) return
         GradleToolingRunner.invoke(root, gradleHome.get().asFile, gradleUserHome.get().asFile,
             javaHome.get(), maxWorkers.get(), initScripts.files, environment, directory, planning.get(),
             model, invocation, context)

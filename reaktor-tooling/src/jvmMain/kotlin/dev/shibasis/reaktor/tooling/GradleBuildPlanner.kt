@@ -19,6 +19,7 @@ internal class GradleBuildPlanner {
                 seal: ProcessDefinitionSeal, redactions: Set<String>, environment: Map<String, String>,
                 sensitiveEnvironmentKeys: Set<String>): PreparedGradleBuild {
         val properties = arguments.filter { it.startsWith("-P") }
+        val previous = BuildModelReader.readAllowingStale(root)
         fun gradle(tasks: List<String>, definitions: ProcessDefinitionSeal, failure: String) = runBlocking {
             SupervisedProcessExecutor().use { executor ->
                 val prepared = AdHocProcessPlan.create(listOf(wrapper) + tasks + properties + "--console=plain", root, TaskId(node.id.toString()),
@@ -40,7 +41,13 @@ internal class GradleBuildPlanner {
         val current = requireNotNull(model.nodes.singleOrNull { it.id == node.id }) {
             "${node.id} is no longer declared in the build; refresh the catalog"
         }
-        require(current == node) {
+        val context = properties.singleOrNull { it.startsWith("-P${GradleProtocol.EnvironmentOption}=") }?.substringAfter('=')
+        val sourceInputs = previous.declarations.filterNot { it.kind == DeclarationInputKind.Option }
+        val contextOnly = context != null && node.environments.any { it.name == context } &&
+            previous.nodes.singleOrNull { it.id == node.id } == node && sourceInputs.isNotEmpty() &&
+            sourceInputs == model.declarations.filterNot { it.kind == DeclarationInputKind.Option } &&
+            current.copy(kernel = current.kernel?.copy(spec = node.kernel?.spec), bindings = node.bindings) == node
+        require(current == node || contextOnly) {
             "The declaration of ${node.id} changed" + (current.declaredAt?.let { " at ${it.build}/${it.file}:${it.line}" } ?: "") +
                 " since the catalog was read; refresh the catalog"
         }
@@ -66,7 +73,7 @@ internal class GradleBuildPlanner {
         val planFile = root.resolve("${GradleProtocol.PlanDirectory}/${contract.name}")
         val plan = BuildModelReader.readPlan(planFile)
         require(plan.node == node.id && plan.modelDigest == request.modelDigest && plan.requestDigest == BuildModelReader.digest(contract))
-        val executable = write(request.copy(expectedContextDigest = plan.contextDigest))
+        val executable = write(request.copy(expectedContextDigest = plan.contextDigest, deployments = plan.deployments))
         val argv = listOf(wrapper, GradleProtocol.RunTask, "-P${GradleProtocol.RequestOption}=${executable.absolutePath}", "--console=plain") + properties
         return PreparedGradleBuild(argv, ProcessDefinitionSeal.capture(seal.files + executable + planFile, seal.directories),
             plan, listOf(ArtifactExpectation("gradle-result", "${GradleProtocol.ResultDirectory}/${executable.name}", true)),

@@ -53,6 +53,7 @@ object GradleToolingRunner {
                     build.withArguments(inherited + workerArgument + tasks + request.arguments + listOf("--dry-run", "--no-configuration-cache",
                         "--init-script", script.absolutePath)).run()
                     val elapsed = (System.nanoTime() - started) / 1_000_000
+                    val preparationTasks = preparation.toSet()
                     val observed = selected.listFiles().orEmpty().filter { selectedFile -> selectedFile.extension == "json" }
                         .sortedBy { selectedFile -> selectedFile.name }.flatMap { selectedFile ->
                             BuildModelReader.json.decodeFromString<List<PlannedGradleTask>>(selectedFile.readText())
@@ -60,7 +61,23 @@ object GradleToolingRunner {
                             require(copies.distinct().size == 1) { "Conflicting selected task $id" }
                             copies.first()
                         }.sortedBy { task -> task.id.toString() }
-                    GradlePlanCache.store(directory, GradleInvocationKernel.plan(invocation, contextDigest, elapsed, observed, preparation))
+                    val deployments = GradleInvocationKernel.deploymentNodes(model, invocation.node.id).filter { node -> observed.any { task -> task.id == node.id } }
+                    if (deployments.isNotEmpty()) {
+                        val deployTasks = deployments.flatMap { node -> (node.invocation as Invocation.Gradle).tasks.map { task ->
+                            if (node.id.build == own) task else ":${node.id.build}$task"
+                        } }
+                        val arguments = request.arguments.toMutableList()
+                        val action = arguments.indexOf("--deploy-action")
+                        if (action >= 0) { require(action + 1 < arguments.size); arguments.removeAt(action + 1); arguments.removeAt(action) }
+                        arguments.removeAll { argument -> argument.startsWith("--deploy-action=") }
+                        build.withArguments(inherited + workerArgument + deployTasks + arguments + "-P${GradleProtocol.DeployActionOption}=plan").run()
+                    }
+                    val plans = deployments.map { node ->
+                        val spec = (node.kernel!!.spec as KernelSpec.WranglerDeploy).deployment
+                        val owner = root.resolve(model.builds.single { identity -> identity.name == node.id.build }.directory)
+                        WorkerDeployKernel.retained(owner, node.id, spec.environment)
+                    }
+                    GradlePlanCache.store(directory, GradleInvocationKernel.plan(invocation, contextDigest, elapsed, observed, preparationTasks).copy(deployments = plans))
                 } finally { scratch.deleteTreeSafely(within = root.resolve("tmp")) }
             } else {
                 GradleInvocationKernel.requireExecution(invocation, contextDigest)
@@ -84,7 +101,9 @@ object GradleToolingRunner {
                     }
                 }, OperationType.TASK)
                 try {
-                    build.withArguments(inherited + workerArgument + tasks + request.arguments + "-P${GradleProtocol.CorrelationOption}=$requestDigest").run()
+                    val deployRequest = root.resolve("${GradleProtocol.RequestDirectory}/$requestDigest.json")
+                    build.withArguments(inherited + workerArgument + tasks + request.arguments + listOf(
+                        "-P${GradleProtocol.CorrelationOption}=$requestDigest", "-P${GradleProtocol.DeployRequestOption}=${deployRequest.absolutePath}")).run()
                 } finally {
                     val receipts = root.resolve(GradleProtocol.ReceiptDirectory).listFiles().orEmpty()
                         .filter { receiptFile -> receiptFile.extension == "json" && receiptFile.name !in before }

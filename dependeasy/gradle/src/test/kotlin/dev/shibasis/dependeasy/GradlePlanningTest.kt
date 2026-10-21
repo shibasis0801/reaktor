@@ -4,6 +4,7 @@ import dev.shibasis.dependeasy.model.*
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class GradlePlanningTest {
@@ -202,6 +203,113 @@ class GradlePlanningTest {
         assertEquals("false|one|two", directory.resolve("build/selected.txt").readText())
         val selectedResult = BuildModelReader.readRunResult(directory.resolve("${GradleProtocol.ResultDirectory}/$executionDigest.json"))
         assertEquals(ReceiptStatus.Succeeded, BuildModelReader.readReceipt(directory.resolve(selectedResult.receipts.single())).status)
+    }
+
+    @Test fun `worker bridge plans without writes and executes only its sealed bundle`() {
+        fixture()
+        val initial = "11111111-1111-1111-1111-111111111111"
+        val deployed = "22222222-2222-2222-2222-222222222222"
+        directory.resolve("state.json").writeText("""{"version":"$initial","message":"baseline","writes":0}""")
+        directory.resolve("wrangler.json").writeText("""{"name":"fixture-dev","main":"entry.ts","compatibility_date":"2026-10-01"}""")
+        directory.resolve("tool").apply {
+            writeText("""
+                #!/usr/bin/env python3
+                import json,sys,pathlib
+                args=sys.argv[1:]
+                state=pathlib.Path('state.json'); value=json.loads(state.read_text())
+                if args[2]=='deployments': print(json.dumps([{'versions':[{'version_id':value['version'],'percentage':100}]}]))
+                elif args[2]=='versions': print(json.dumps({'id':value['version'],'annotations':{'workers/message':value['message']},'resources':{'script_runtime':{'compatibility_date':'2026-10-01','compatibility_flags':[]},'bindings':[]}}))
+                elif '--dry-run' in args:
+                    bundle=pathlib.Path(args[args.index('--outdir')+1]); bundle.mkdir(parents=True,exist_ok=True)
+                    (bundle/'entry.js').write_text('export default {}')
+                else:
+                    assert args[2] in ['deploy','rollback']
+                    if args[2]=='deploy': assert '--no-bundle' in args and pathlib.Path(args[3]).read_text()=='export default {}'
+                    value['version']='$deployed' if args[2]=='deploy' else args[3]
+                    value['message']=args[args.index('--message')+1]; value['writes']+=1
+                    state.write_text(json.dumps(value))
+            """.trimIndent())
+            setExecutable(true)
+        }
+        val metadata = java.util.Properties().apply {
+            GradlePlanningTest::class.java.classLoader.getResourceAsStream("plugin-under-test-metadata.properties")!!.use(::load)
+        }
+        val files = metadata.getProperty("implementation-classpath").split(File.pathSeparator)
+            .joinToString(",") { BuildModelReader.json.encodeToString(kotlinx.serialization.serializer<String>(), it) }
+        directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.model.*
+            import dev.shibasis.dependeasy.web.WranglerDeploy
+            import dev.shibasis.dependeasy.configuration.option
+            import dev.shibasis.dependeasy.handles.*
+            buildscript { dependencies { classpath(files($files)) } }
+            apply<dev.shibasis.dependeasy.plugins.PipelinePlugin>()
+            option(BuildOption.string(GradleProtocol.EnvironmentOption, "dev")).get()
+            val deployment = WorkerDeployment(Environment("dev"), ServiceRef("fixture-dev"))
+            val fleetWorker = FleetWorker(WorkerRef("fixture", "."), NodeId("receiptFixture", ":", "deployFixture"), listOf(deployment))
+            val deploy = tasks.register<WranglerDeploy>("deployFixture") {
+                workingDirectory.set(layout.projectDirectory)
+                executable.set(layout.projectDirectory.file("tool").asFile.absolutePath)
+                toolVersion.set("fixture")
+                configuration.set("wrangler.json")
+                declaration.set(BuildModelReader.json.encodeToString(FleetWorker.serializer(), fleetWorker))
+                environmentName.set("dev")
+                bindings.set(emptyList())
+            }
+            extensions.getByType<dev.shibasis.dependeasy.plugins.DependeasyExtension>().workspace {
+                val release by verify { include(node(deploy)) }
+            }
+        """.trimIndent())
+        fun git(vararg args: String) { assertEquals(0, ProcessBuilder("git", *args).directory(directory).redirectErrorStream(true).start().let { it.inputStream.readBytes(); it.waitFor() }) }
+        git("init", "--quiet")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.test", "commit", "--allow-empty", "--quiet", "-m", "fixture")
+        val environmentArgument = "-P${GradleProtocol.EnvironmentOption}=dev"
+        fun bridge(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
+            .withArguments(*tasks, environmentArgument, "--configuration-cache", "--stacktrace").build()
+        bridge("exportBuildModel")
+        val model = BuildModelReader.read(directory)
+        val node = model.nodes.single { it.id.name == "deployFixture" }
+        val spec = assertIs<KernelSpec.WranglerDeploy>(node.kernel?.spec)
+        assertEquals("dev.shibasis.dependeasy.model.WorkerDeployKernel", node.kernel?.className)
+        fun contract(request: GradleRequest): Pair<String,String> {
+            val text = BuildModelReader.json.encodeToString(GradleRequest.serializer(), request) + "\n"
+            val digest = BuildModelReader.digest(text)
+            val file = directory.resolve("${GradleProtocol.RequestDirectory}/$digest.json").apply { parentFile.mkdirs(); writeText(text) }
+            return digest to "-P${GradleProtocol.RequestOption}=${file.absolutePath}"
+        }
+        val request = GradleRequest(node = node.id, declaredAt = node.declaredAt,
+            modelDigest = BuildModelReader.digest(BuildModelReader.encode(model)), arguments = listOf("--configuration-cache", environmentArgument))
+        for (arguments in listOf(
+            listOf("-P${GradleProtocol.EnvironmentOption}=prod"),
+            listOf(environmentArgument, environmentArgument),
+            listOf(environmentArgument, "-P${GradleProtocol.RequestOption}=other.json"),
+            listOf(environmentArgument, "--project-dir=.."),
+        )) {
+            val (rejected, _) = contract(request.copy(arguments = arguments))
+            assertFailsWith<IllegalArgumentException> {
+                GradleInvocationKernel.validate(directory, directory.resolve("${GradleProtocol.RequestDirectory}/$rejected.json"), model)
+            }
+        }
+        val (digest, option) = contract(request)
+        bridge(GradleProtocol.PlanTask, option)
+        val plan = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json"))
+        assertEquals(setOf(node.id), plan.tasks.map { it.id }.toSet())
+        assertFalse(node.id in plan.preparationTasks)
+        assertEquals(node.id, plan.deployments.single().spec.node)
+        assertEquals(initial, plan.deployments.single().previousVersion)
+        assertEquals(0, BuildModelReader.json.parseToJsonElement(directory.resolve("state.json").readText()).jsonObject.getValue("writes").jsonPrimitive.int)
+        bridge(GradleProtocol.PlanTask, option)
+        val refreshed = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json"))
+        assertNotEquals(plan.deployments.single().bundle, refreshed.deployments.single().bundle)
+        val (_, execution) = contract(request.copy(expectedContextDigest = refreshed.contextDigest, deployments = refreshed.deployments))
+        bridge(GradleProtocol.RunTask, execution)
+        val receipt = WorkerDeployKernel.receipts(directory, node.id).single { it.action == "apply" }
+        assertEquals(deployed, receipt.remoteVersion)
+        assertEquals(initial, receipt.rollbackTarget)
+        assertEquals(1, BuildModelReader.json.parseToJsonElement(directory.resolve("state.json").readText()).jsonObject.getValue("writes").jsonPrimitive.int)
+        assertEquals(receipt.run, BuildModelReader.json.parseToJsonElement(directory.resolve("state.json").readText()).jsonObject.getValue("message").jsonPrimitive.content)
+        val details = BuildModelReader.nodeDetails(directory, node.id.toString())
+        assertTrue(details.getValue("deploymentReceipts").jsonArray.any { it.jsonObject["action"]?.jsonPrimitive?.content == "apply" })
+        assertEquals(spec.deployment.service, receipt.service)
     }
 
 }

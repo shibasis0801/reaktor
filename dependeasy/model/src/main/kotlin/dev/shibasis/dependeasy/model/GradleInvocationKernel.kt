@@ -34,11 +34,21 @@ object GradleInvocationKernel {
         require(tasks.none { it.substringAfterLast(':') in setOf(GradleProtocol.PlanTask, GradleProtocol.RunTask) }) {
             "Build planning and execution bridges cannot invoke themselves"
         }
+        val environmentPrefix = "-P${GradleProtocol.EnvironmentOption}="
+        val environments = request.arguments.filter { it.startsWith(environmentPrefix) }
+        require(environments.size <= 1) { "Invocation must select one environment" }
+        environments.singleOrNull()?.substringAfter('=')?.let { environment ->
+            require(node.environments.any { it.name == environment } && model.declarations.any { input ->
+                input.build == node.id.build && input.option?.let { option ->
+                    option.name == GradleProtocol.EnvironmentOption && option.scope == node.id.project && option.value == environment
+                } == true
+            }) { "Invocation environment must match the declared build context" }
+        }
         require(request.arguments.none { argument ->
             argument in setOf("-p", "--project-dir", "-g", "--gradle-user-home") ||
                 argument.startsWith("-p") || argument.startsWith("-g") ||
                 argument.startsWith("--project-dir=") || argument.startsWith("--gradle-user-home=") ||
-                argument.startsWith("-Pdependeasy.")
+                (argument.startsWith("-Pdependeasy.") && !argument.startsWith(environmentPrefix))
         }) { "Invocation arguments cannot change workspace ownership or the Gradle protocol" }
         val requestDigest = BuildModelReader.digest(file)
         require(file.name == "$requestDigest.json") { "Gradle request content changed; review a fresh plan" }
@@ -72,6 +82,14 @@ object GradleInvocationKernel {
         return GradlePlan(node = invocation.node.id, modelDigest = invocation.modelDigest, requestDigest = invocation.requestDigest,
             contextDigest = contextDigest, invocation = invocation.tasks + invocation.request.arguments, configuredMillis = elapsed, tasks = planned,
             preparationTasks = preparation.sortedBy { task -> task.toString() })
+    }
+
+    fun deploymentNodes(model: BuildModel, selected: NodeId): List<Node> {
+        val edges = model.edges.filter { it !is Edge.OrderedAfter }.groupBy { it.from }
+        val visited = mutableSetOf<NodeId>()
+        fun visit(id: NodeId) { if (visited.add(id)) edges[id].orEmpty().forEach { visit(it.to) } }
+        visit(selected)
+        return model.nodes.filter { it.id in visited && it.kernel?.spec is KernelSpec.WranglerDeploy }
     }
 
     fun requireExecution(invocation: ValidatedGradleInvocation, contextDigest: String) {

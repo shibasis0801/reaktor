@@ -336,8 +336,13 @@ class WebContractsTest {
         val artifacts = run("everything", "--dry-run").output
         assertContains(artifacts, ":site:siteBundleAssets SKIPPED")
         val shipping = run("ship", "--dry-run").output
-        assertContains(shipping, ":workers:siteWorkerDeploy SKIPPED")
-        assertTrue(shipping.indexOf(":pr SKIPPED") < shipping.indexOf(":workers:siteWorkerDeploy SKIPPED"))
+        assertContains(shipping, ":workers:deploySite SKIPPED")
+        assertTrue(shipping.indexOf(":pr SKIPPED") < shipping.indexOf(":workers:deploySite SKIPPED"))
+        assertFalse(model.nodes.any { it.id.name == "siteWorkerDeploy" })
+        val deployment = model.nodes.single { it.id.project == ":workers" && it.id.name == "deploySite" }
+        assertEquals("dev.shibasis.dependeasy.model.WorkerDeployKernel", deployment.kernel?.className)
+        assertIs<dev.shibasis.dependeasy.model.KernelSpec.WranglerDeploy>(deployment.kernel?.spec)
+        assertFalse(scripts.containsKey("siteWorkerDeploy"))
         run(":site:siteWebContract", "exportBuildModel", "generatePackageScripts")
         assertContains(run(":site:siteWebContract", "exportBuildModel", "generatePackageScripts").output, "Reusing configuration cache")
         val lockedAndBuilt = run("pnpmLock", "everything")
@@ -549,35 +554,40 @@ class WebContractsTest {
         assertFalse("retired" in local)
         assertEquals(TaskOutcome.UP_TO_DATE, run("generatePackageScripts").task(":generatePackageScripts")?.outcome)
         val deployment = run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev")
-        assertContains(deployment.output, ":workers:workerWorkerDeploy SKIPPED")
+        assertContains(deployment.output, ":workers:deployWorker SKIPPED")
         assertContains(deployment.output, ":compileFixture SKIPPED")
-        assertTrue(deployment.output.indexOf(":compileFixture SKIPPED") < deployment.output.indexOf(":workers:workerWorkerDeploy SKIPPED"))
+        assertTrue(deployment.output.indexOf(":compileFixture SKIPPED") < deployment.output.indexOf(":workers:deployWorker SKIPPED"))
         val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
         val worker = dev.shibasis.dependeasy.model.NodeId("webFixture", ":workers", "deployWorker")
         assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes && it.from == worker &&
             it.to == dev.shibasis.dependeasy.model.NodeId("webFixture", ":", "outputKotlinJsLibrary") })
-        assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Includes && it.from == worker &&
+        assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.OrderedAfter && it.from == worker &&
             it.to == dev.shibasis.dependeasy.model.NodeId("webFixture", ":workers", "deployBackend") })
-        listOf("workerWorkerDeploy", "backendWorkerDeploy").forEach { command ->
+        listOf("deployWorker", "deployBackend").forEach { command ->
             assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes &&
                 it.from == dev.shibasis.dependeasy.model.NodeId("webFixture", ":workers", command) &&
                 it.to == dev.shibasis.dependeasy.model.NodeId("webFixture", ":", "outputKotlinJsLibrary") })
         }
         assertEquals("targets/worker", model.nodes.single { it.id == worker }.worker?.directory)
+        assertFalse(scripts.keys.any { it.endsWith("WorkerDeploy") })
+        val individual = run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=prod").output
+        assertFalse(individual.contains(":workers:deployBackend SKIPPED"))
+        val prodFleet = run(":workers:deployWorkers", "--dry-run", "-Pdependeasy.environment=prod").output
+        assertTrue(prodFleet.indexOf(":workers:deployBackend SKIPPED") < prodFleet.indexOf(":workers:deployWorker SKIPPED"))
         assertEquals("./gradlew :workers:deployWorkers", scripts.getValue("deployWorkers").jsonPrimitive.content)
+        run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev")
         assertContains(run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev").output, "Reusing configuration cache")
         val aggregate = NodeId("webFixture", ":workers", "deployWorkers")
         val prodOnly = NodeId("webFixture", ":workers", "deployProdOnly")
         assertTrue(model.edges.any { it is Edge.Includes && it.from == aggregate && it.to == prodOnly })
         val devFleet = run(":workers:deployWorkers", "--dry-run", "-Pdependeasy.environment=dev").output
-        assertContains(devFleet, ":workers:workerWorkerDeploy SKIPPED")
-        assertContains(devFleet, ":workers:backendWorkerDeploy SKIPPED")
-        assertFalse(devFleet.contains(":workers:prodOnlyWorkerDeploy"))
+        assertContains(devFleet, ":workers:deployWorker SKIPPED")
+        assertContains(devFleet, ":workers:deployBackend SKIPPED")
         assertFalse(devFleet.contains(":workers:deployProdOnly"))
         run("exportBuildModel", "-Pdependeasy.environment=dev")
         val devModel = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
         assertFalse(devModel.edges.any { it is Edge.Includes && it.from == aggregate && it.to == prodOnly })
-        assertFalse(devModel.edges.any { it is Edge.Includes && it.from == worker && it.to.name == "deployBackend" })
+        assertFalse(devModel.edges.any { it is Edge.OrderedAfter && it.from == worker && it.to.name == "deployBackend" })
         assertTrue(devModel.nodes.single { it.id == worker }.bindings.isEmpty())
         assertContains(run("exportBuildModel", "-Pdependeasy.environment=dev").output, "Reusing configuration cache")
         val environmentKey = "ORG_GRADLE_PROJECT_dependeasy.environment"

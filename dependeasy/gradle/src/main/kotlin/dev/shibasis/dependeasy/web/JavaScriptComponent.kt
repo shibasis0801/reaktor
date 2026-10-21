@@ -159,13 +159,12 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         }
     }
 
-    fun deploy(config: String = "wrangler.json", vararg producers: Any): TaskProvider<WranglerDeploy> =
-        commandKernel.register(WranglerDeploy::class.java, "deploy", null).also {
+    internal fun deploy(node: NodeId, vararg producers: Any): TaskProvider<WranglerDeploy> =
+        commandKernel.register(WranglerDeploy::class.java, "deploy", null, taskName = node.name).also {
             it.configure {
                 val tasks = producers.map { if (it is NodeHandle) checkNotNull(it.task) else it }
                 dependsOn(tasks)
                 sourceFiles.from(tasks)
-                configuration.set(config)
                 outputs.upToDateWhen { false }
             }
         }

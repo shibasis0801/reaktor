@@ -196,6 +196,13 @@ object BuildModelReader {
             put("omissionCounts", json.encodeToJsonElement(omissionCounts(model)))
             put("node", json.encodeToJsonElement(Node.serializer(), selected))
             put("effectiveHost", json.encodeToJsonElement(HostRequirement.serializer(), model.requiredHost(selected.id)))
+            if (selected.kernel?.spec is KernelSpec.WranglerDeploy) {
+                val spec = selected.kernel.spec.deployment
+                val owner = root.resolve(model.builds.single { it.name == selected.id.build }.directory)
+                if (WorkerDeployKernel.planFile(owner, selected.id, spec.environment).isFile)
+                    put("deploymentPlan", json.encodeToJsonElement(WorkerDeployKernel.retained(owner, selected.id, spec.environment)))
+                put("deploymentReceipts", json.encodeToJsonElement(WorkerDeployKernel.receipts(owner, selected.id)))
+            }
             put("edges", buildJsonArray { model.edges.filter { it.from == selected.id || it.to == selected.id }
                 .forEach { add(json.encodeToJsonElement(Edge.serializer(), it)) } })
             put("omissions", buildJsonArray { model.omissions.filter { it.node == null || it.node == selected.id }

@@ -13,6 +13,7 @@ data class GradlePlan(
     val configuredMillis: Long,
     val tasks: List<PlannedGradleTask>,
     val preparationTasks: List<NodeId> = emptyList(),
+    val deployments: List<WorkerDeployPlan> = emptyList(),
 )
 
 @Serializable data class PlannedGradleTask(val id: NodeId, val dependencies: List<NodeId>, val dependenciesOutsideSelection: List<NodeId> = emptyList())
@@ -25,14 +26,18 @@ data class GradleRequest(
     val modelDigest: String,
     val arguments: List<String> = emptyList(),
     val expectedContextDigest: String? = null,
+    val deployments: List<WorkerDeployPlan> = emptyList(),
 )
 
 @Serializable data class GradleRunResult(val schema: Int = 1, val requestDigest: String, val receipts: List<String>, val operationRunId: String? = null)
 @Serializable data class GradleTaskProgress(val schema: Int = 1, val task: String, val outcome: TaskOutcome? = null)
 
 object GradleProtocol {
+    const val EnvironmentOption = "dependeasy.environment"
     const val RequestOption = "dependeasy.gradleRequest"
     const val CorrelationOption = "dependeasy.requestDigest"
+    const val DeployActionOption = "dependeasy.deployAction"
+    const val DeployRequestOption = "dependeasy.deployRequest"
     const val ExportTask = "exportBuildModel"
     const val PlanTask = "planBuildNode"
     const val RunTask = "runBuildNode"

@@ -63,6 +63,10 @@ abstract class ProcessTask : DefaultTask(), KernelSpecOwner {
     @TaskAction fun run() {
         outputFiles.files.forEach { it.parentFile.mkdirs() }
         outputDirectories.files.forEach { it.mkdirs() }
+        executeKernel()
+    }
+
+    protected open fun executeKernel() {
         ProcessKernel.run(executionSpec(), receiptFile.orNull?.asFile) { execution ->
             execOperations.exec {
                 workingDir = java.io.File(execution.directory)
