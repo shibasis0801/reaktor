@@ -95,12 +95,7 @@ class WorkerFleet internal constructor(
             workspace.alias(directory, "deploy", deploy)
             workspace.alias(directory, "logs", tail)
             workspace.alias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}", tail)
-            worker.configurations.keys.forEach { environment ->
-                val suffix = if (environment == delivery.defaultEnvironment.name) "" else environment.replaceFirstChar(Char::uppercaseChar)
-                val settings = listOf(environmentOption.argument(environment))
-                workspace.alias(project.rootDir, "deploy${name.replaceFirstChar(Char::uppercaseChar)}$suffix", deploy, settings = settings)
-                workspace.alias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}$suffix", tail, settings = settings)
-            }
+            workspace.alias(project.rootDir, "deploy${name.replaceFirstChar(Char::uppercaseChar)}", deploy)
         }
         contracts?.let { contracts ->
             require(environments.any { it.name == selectedName }) { "Unknown worker environment $selectedName" }

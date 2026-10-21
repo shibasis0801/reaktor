@@ -546,7 +546,9 @@ class WebContractsTest {
             .getValue(":workers:generateWorkerFleet").jsonPrimitive.content)
         val scripts = json("package.json").getValue("scripts").jsonObject
         assertEquals("node serve.mjs", scripts.getValue("serve").jsonPrimitive.content)
-        assertEquals("./gradlew :workers:deployWorker -Pdependeasy.environment=dev", scripts.getValue("deployWorkerDev").jsonPrimitive.content)
+        assertEquals("./gradlew :workers:deployWorker", scripts.getValue("deployWorker").jsonPrimitive.content)
+        assertEquals("./gradlew :workers:workerWorkerLogs", scripts.getValue("logsWorker").jsonPrimitive.content)
+        assertFalse(scripts.keys.any { it == "deployWorkerDev" || it == "logsWorkerDev" })
         assertFalse("retired" in scripts)
         val local = json("targets/worker/package.json").getValue("scripts").jsonObject
         assertEquals("wrangler dev", local.getValue("dev").jsonPrimitive.content)
