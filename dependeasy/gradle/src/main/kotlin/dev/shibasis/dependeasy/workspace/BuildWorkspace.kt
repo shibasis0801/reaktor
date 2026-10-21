@@ -345,7 +345,7 @@ internal class BuildWorkspace(private val project: Project) {
                         else if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
                         taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer),
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
-                        tools = producer.declaredTools(),
+                        tools = producer.declaredTools(), options = producer.declaredOptions(),
                         artifactFamily = taskArtifactFamilies[id] ?: kind?.family)))
                 }
             })
@@ -363,6 +363,12 @@ internal class BuildWorkspace(private val project: Project) {
         }
     }
 }
+
+internal fun Task.declaredOptions(): List<TaskOption> = org.gradle.api.internal.tasks.options.OptionReader().getOptions(this)
+    .values.sortedBy { it.name }.map { option ->
+        TaskOption(option.name, option.description, if (option.argumentType == Void.TYPE) OptionType.Boolean else OptionType.String,
+            option.availableValues.sorted(), List::class.java.isAssignableFrom(option.argumentType))
+    }
 
 internal fun Task.declaredTools(): List<ToolRef> = when (this) {
     is WorkspaceCommandTask -> when ((kernelSpec as KernelSpec.ExternalCommand).call) {

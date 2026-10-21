@@ -52,6 +52,10 @@ data class BuildModel(
 @Serializable data class HostRequirement(val platform: HostPlatform = HostPlatform.Portable, val execution: ExecutionHost? = null)
 
 @Serializable
+data class TaskOption(val name: String, val description: String, val type: OptionType,
+    val allowedValues: List<String> = emptyList(), val multiple: Boolean = false)
+
+@Serializable
 data class Node(
     val id: NodeId,
     val kind: NodeKind,
@@ -71,6 +75,7 @@ data class Node(
     val bindings: List<ServiceRef> = emptyList(),
     val environments: List<Environment> = emptyList(),
     val requirements: List<OptionRequirement> = emptyList(),
+    val options: List<TaskOption> = emptyList(),
 )
 
 @Serializable

@@ -176,6 +176,12 @@ class VerificationSuitesTest {
         assertEquals(listOf("FIXTURE_MESSAGE"), spec().environmentAllowList)
         assertFalse(Regex("bestbuds|manna", RegexOption.IGNORE_CASE).containsMatchIn(BuildModelReader.json.encodeToString(spec())))
         val model = BuildModelReader.read(root)
+        val options = model.nodes.single { it.id == NodeId("deviceOptions", ":phones", "flows") }.options.associateBy { it.name }
+        assertEquals(setOf("platform", "flow", "artifacts"), options.keys)
+        assertEquals(setOf("android", "ios"), options.getValue("platform").allowedValues.map(String::lowercase).toSet())
+        assertTrue(options.values.all { it.type == OptionType.String && !it.multiple && it.description.isNotBlank() })
+        assertTrue(options.getValue("flow").allowedValues.isEmpty())
+        assertTrue(options.getValue("artifacts").allowedValues.any { it.equals("always", ignoreCase = true) })
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("deviceOptions", ":phones", "flows") && it.to == NodeId("deviceOptions", ":apple", "outputGeneratedContractAppleRelease") })
         assertTrue(model.edges.any { it is Edge.After && it.from == NodeId("deviceOptions", ":phones", "flows") && it.to == NodeId("deviceOptions", ":", "maestroRunnerSetup") })
         assertEquals(ExecutionHost.Local, model.requiredHost(NodeId("deviceOptions", ":", "phoneChecks")).execution)
