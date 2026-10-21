@@ -7,6 +7,9 @@ import java.io.File
 @Serializable
 data class PackageAlias(val id: NodeId, val effect: Effect, val worker: WorkerRef?, val environments: List<Environment>)
 
+@Serializable
+data class PackageScriptInvocation(val node: NodeId, val command: String)
+
 object PackageScriptsKernel {
     fun authoredManifest(text: String, generated: Set<String> = emptySet()): String {
         val root = Json.parseToJsonElement(text).jsonObject.toMutableMap()
@@ -47,7 +50,13 @@ object PackageScriptsKernel {
         val base = Json.parseToJsonElement(manifest).jsonObject
         val root = base.toMutableMap()
         val scripts = base["scripts"]?.jsonObject.orEmpty().toMutableMap()
-        val commands = spec.targets.mapValues { "./gradlew " + it.value.id.project.trimEnd(':') + ":" + it.value.id.name } + spec.extraAliases
+        val declared = spec.additionalAliases + ("package.json" to (spec.targets.mapValues {
+            PackageScriptInvocation(it.value.id, "./gradlew " + it.value.id.project.trimEnd(':') + ":" + it.value.id.name)
+        } + spec.extraAliases))
+        val claimed = mutableSetOf<NodeId>()
+        val aliases = declared.entries.sortedWith(compareBy({ it.key == "package.json" }, { it.key.count { char -> char == '/' } }, { it.key }))
+            .associate { (path, commands) -> path to commands.toSortedMap().filterValues { claimed.add(it.node) } }
+        val commands = aliases.getValue("package.json").mapValues { it.value.command }
         val generatedScripts = JsonObject(commands.mapValues { JsonPrimitive(it.value) })
         scripts.putAll(generatedScripts)
         root["scripts"] = JsonObject(scripts)
@@ -55,7 +64,7 @@ object PackageScriptsKernel {
             putJsonArray("generatedScripts") { commands.keys.sorted().forEach { add(it) } }
             putJsonArray("generatedPackages") { (spec.additionalAliases.keys + spec.packageContracts.keys + spec.packageImports.keys).filter { it != "package.json" }.sorted().forEach { add(it) } }
             putJsonObject("generatedTargets") {
-                spec.targets.toSortedMap().forEach { (alias, node) ->
+                spec.targets.toSortedMap().filterKeys { it in commands }.forEach { (alias, node) ->
                     put(alias, buildJsonObject {
                         put("task", node.id.project.trimEnd(':') + ":" + node.id.name)
                         put("effect", node.effect.name.lowercase())
@@ -68,8 +77,8 @@ object PackageScriptsKernel {
         root["dependeasy"] = JsonObject(base["dependeasy"]?.jsonObject.orEmpty() + metadata)
         val formatter = Json { prettyPrint = true }
         val outputs = linkedMapOf(spec.output.paths.single() to (formatter.encodeToString(JsonObject.serializer(), JsonObject(root)) + "\n"))
-        spec.additionalAliases.forEach { (path, aliases) ->
-            val generated = JsonObject(aliases.mapValues { JsonPrimitive(it.value) })
+        aliases.filterKeys { it != "package.json" }.forEach { (path, commands) ->
+            val generated = JsonObject(commands.mapValues { JsonPrimitive(it.value.command) })
             val packageRoot = Json.parseToJsonElement(additionalManifests.getValue(path)).jsonObject.toMutableMap()
             packageRoot["scripts"] = JsonObject(packageRoot["scripts"]?.jsonObject.orEmpty() + generated)
             packageRoot["dependeasy"] = JsonObject(packageRoot["dependeasy"]?.jsonObject.orEmpty() + buildJsonObject {

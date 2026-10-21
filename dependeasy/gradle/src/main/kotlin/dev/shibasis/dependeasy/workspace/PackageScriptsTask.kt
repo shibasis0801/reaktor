@@ -29,7 +29,8 @@ abstract class PackageScriptsTask : DefaultTask(), KernelSpecOwner {
 
     @get:Internal override val kernelSpec get() = KernelSpec.PackageScripts(
         targets.get().mapValues { BuildModelReader.decodeNode(it.value).let { node -> PackageAlias(node.id, node.effect, node.worker, node.environments) } },
-        extraAliases.get(), additionalAliases.get().mapValues { BuildModelReader.json.decodeFromString<Map<String, String>>(it.value) },
+        extraAliases.get().mapValues { BuildModelReader.json.decodeFromString<PackageScriptInvocation>(it.value) },
+        additionalAliases.get().mapValues { BuildModelReader.json.decodeFromString<Map<String, PackageScriptInvocation>>(it.value) },
         FileSet(listOf(outputFile.get().asFile.absolutePath)), packageContracts.get().mapValues { FileSet(it.value) },
         packageImports.get().mapValues { BuildModelReader.json.decodeFromString<Map<String, String>>(it.value) }, dependencyVersions.get())
 

@@ -22,7 +22,7 @@ internal class BuildWorkspace(private val project: Project) {
     private val taskArtifactFamilies = linkedMapOf<NodeId, String>()
     private val taskHostRequirements = linkedMapOf<NodeId, HostRequirement>()
     private val prerequisites = linkedMapOf<NodeId, MutableSet<NodeId>>()
-    private val scriptAliases = linkedMapOf<String, MutableMap<String, String>>()
+    private val scriptAliases = linkedMapOf<String, MutableMap<String, PackageScriptInvocation>>()
     private var scriptGeneration: TaskProvider<PackageScriptsTask>? = null
     private val packageImports = linkedMapOf<String, Map<String, String>>()
     private val packageContracts = linkedMapOf<String, Pair<Project, MutableList<OutputHandle>>>()
@@ -73,14 +73,14 @@ internal class BuildWorkspace(private val project: Project) {
         outputs.forEach { consume(project.node(generation), it) }
     }
 
-    private fun recordAlias(directory: java.io.File, alias: String, command: String) {
+    private fun recordAlias(directory: java.io.File, alias: String, command: PackageScriptInvocation) {
         val file = directory.resolve("package.json")
         if (!project.hasBuildFile(file)) return
         val path = file.relativeTo(project.rootDir).invariantSeparatorsPath
         val aliases = scriptAliases.getOrPut(path) { linkedMapOf() }
         aliases[alias] = command
         scriptGeneration?.configure {
-            if (path == "package.json") extraAliases.putAll(aliases)
+            if (path == "package.json") extraAliases.putAll(aliases.mapValues { BuildModelReader.json.encodeToString(it.value) })
             else {
                 additionalAliases.put(path, BuildModelReader.json.encodeToString(aliases.toMap()))
                 additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { PackageScriptsKernel.authoredManifest(it, aliases.keys) })
@@ -107,7 +107,7 @@ internal class BuildWorkspace(private val project: Project) {
             }
             arguments.joinToString(" ", transform = ::shellToken)
         }
-        recordAlias(directory, alias, command)
+        recordAlias(directory, alias, PackageScriptInvocation(node.id, command))
     }
     val graph = project.tasks.register<ExportBuildModelTask>(GradleProtocol.ExportTask) {
         group = "dependeasy"
@@ -279,7 +279,7 @@ internal class BuildWorkspace(private val project: Project) {
                         .map { PackageScriptsKernel.authoredManifest(it) })
                 }
         }
-        extraAliases.putAll(scriptAliases["package.json"].orEmpty())
+        extraAliases.putAll(scriptAliases["package.json"].orEmpty().mapValues { BuildModelReader.json.encodeToString(it.value) })
         scriptAliases.filterKeys { it != "package.json" }.forEach { (path, aliases) ->
             additionalAliases.put(path, BuildModelReader.json.encodeToString(aliases.toMap()))
             additionalManifests.put(path, project.providers.fileContents(project.layout.projectDirectory.file(path)).asText.map { PackageScriptsKernel.authoredManifest(it, aliases.keys) })

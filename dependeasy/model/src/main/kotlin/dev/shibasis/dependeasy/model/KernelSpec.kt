@@ -25,8 +25,8 @@ sealed interface KernelSpec {
         val output: FileSet, val sharedDirectory: FileSet, val sharedMetadata: Map<String, String>) : KernelSpec
     @Serializable data class ContainerNode(val node: NodeId?, val environment: Environment?,
         val model: FileSet, val output: FileSet) : KernelSpec
-    @Serializable data class PackageScripts(val targets: Map<String, PackageAlias>, val extraAliases: Map<String, String>,
-        val additionalAliases: Map<String, Map<String, String>>, val output: FileSet,
+    @Serializable data class PackageScripts(val targets: Map<String, PackageAlias>, val extraAliases: Map<String, PackageScriptInvocation>,
+        val additionalAliases: Map<String, Map<String, PackageScriptInvocation>>, val output: FileSet,
         val packageContracts: Map<String, FileSet> = emptyMap(),
         val packageImports: Map<String, Map<String, String>> = emptyMap(),
         val versions: Map<String, List<String>> = emptyMap()) : KernelSpec
