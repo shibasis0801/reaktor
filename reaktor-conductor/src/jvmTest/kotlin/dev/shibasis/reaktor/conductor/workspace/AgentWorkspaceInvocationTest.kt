@@ -22,10 +22,31 @@ class AgentWorkspaceInvocationTest {
     @Test fun nativeWorkspaceOnlyInjectsTheHostSuppliedMcpCommand() {
         val root = Files.createTempDirectory("conductor-host-bridge").toRealPath()
         try {
+            val absent = root.resolve("absent")
+            assertFailsWith<IllegalArgumentException> {
+                AgentWorkspaceConnection.open(root.toFile(), absent, allowStart = false, discover = { error("Must not probe a runtime") })
+            }
+            assertFalse(Files.exists(absent))
+            Files.createDirectory(absent)
+            Files.writeString(absent.resolve("connection.json"), buildJsonObject {
+                put("version", 1); put("workspaceRoot", root.toString()); put("port", 9); put("token", "n".repeat(32)); put("invocationVersion", 1)
+            }.toString())
+            Files.writeString(absent.resolve("owner.lock"), "")
+            assertFailsWith<IllegalStateException> {
+                AgentWorkspaceConnection.open(root.toFile(), absent, allowStart = false, discover = { error("Must not probe a runtime") })
+            }
+            assertEquals(2L, Files.list(absent).use { it.count() })
             for (command in listOf(null, listOf("fixture-bridge", "--workspace", root.toString()))) {
                 val directory = root.resolve(if (command == null) "standalone" else "hosted")
                 AgentWorkspaceConnection.open(root.toFile(), directory, discover = { ProviderCapability(it) },
                     harnessMcpCommand = command).use {
+                    val endpoint = Files.readAllBytes(directory.resolve("connection.json"))
+                    val leaseModified = Files.getLastModifiedTime(directory.resolve("owner.lock"))
+                    AgentWorkspaceConnection.open(root.toFile(), directory, allowStart = false, discover = { error("Must not probe a runtime") }).use { client ->
+                        assertFalse(client.ownsService)
+                    }
+                    assertContentEquals(endpoint, Files.readAllBytes(directory.resolve("connection.json")))
+                    assertEquals(leaseModified, Files.getLastModifiedTime(directory.resolve("owner.lock")))
                     val config = directory.resolve("harness-mcp.json")
                     if (command == null) assertFalse(Files.exists(config)) else {
                         val server = ConductorJson.parseToJsonElement(Files.readString(config)).jsonObject

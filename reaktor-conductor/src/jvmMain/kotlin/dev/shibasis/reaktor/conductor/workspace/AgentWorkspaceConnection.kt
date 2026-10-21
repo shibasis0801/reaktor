@@ -217,8 +217,22 @@ class AgentWorkspaceConnection private constructor(
                  harnessMcpCommand: List<String>? = null): AgentWorkspaceConnection {
             require(root.isDirectory)
             require(harnessMcpCommand == null || harnessMcpCommand.isNotEmpty()) { "Harness MCP command needs an executable" }
-            privateDirectory(directory)
             val discovery = directory.resolve("connection.json")
+            if (!allowStart) {
+                require(Files.isRegularFile(discovery) && Files.isRegularFile(directory.resolve("owner.lock"))) { "No workspace owner is running" }
+                FileChannel.open(directory.resolve("owner.lock"), WRITE).use { channel ->
+                    val lock = try { channel.tryLock() } catch (_: OverlappingFileLockException) { null }
+                    if (lock != null) {
+                        lock.release()
+                        error("No workspace owner is running")
+                    }
+                    require(Files.size(discovery) <= 4096) { "Invalid workspace discovery file" }
+                    val endpoint = ConductorJson.decodeFromString(AgentEndpoint.serializer(), Files.readString(discovery))
+                    require(endpoint.version == 1 && endpoint.workspaceRoot == root.canonicalPath && endpoint.port in 1..65535 && endpoint.token.length >= 32)
+                    return AgentWorkspaceConnection(endpoint, discovery, false)
+                }
+            }
+            privateDirectory(directory)
             val channel = FileChannel.open(directory.resolve("owner.lock"), CREATE, WRITE)
             val ownerLock = try { channel.tryLock() } catch (_: OverlappingFileLockException) { null }
             if (ownerLock == null) {
@@ -228,11 +242,6 @@ class AgentWorkspaceConnection private constructor(
                 val endpoint = ConductorJson.decodeFromString(AgentEndpoint.serializer(), Files.readString(discovery))
                 require(endpoint.version == 1 && endpoint.workspaceRoot == root.canonicalPath && endpoint.port in 1..65535 && endpoint.token.length >= 32)
                 return AgentWorkspaceConnection(endpoint, discovery, false)
-            }
-            if (!allowStart) {
-                ownerLock.release()
-                channel.close()
-                error("No workspace owner is running. Open the desktop Agent pane or run workspace serve --dir <workspace>.")
             }
             var executor: SupervisedProcessExecutor? = null
             var workspace: AgentWorkspace? = null
