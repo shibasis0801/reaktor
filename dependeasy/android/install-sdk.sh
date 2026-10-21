@@ -18,7 +18,12 @@ if [ ! -x "$tools/android" ]; then
     mkdir -p "$sdk/android-cli"
     staging=$(mktemp -d "$sdk/android-cli/.install-XXXXXX")
     trap 'rm -rf "$staging"' EXIT HUP INT TERM
-    curl --http1.1 -fsSL --retry 5 --retry-all-errors --connect-timeout 30 "$url" -o "$staging/android"
+    for attempt in 1 2 3 4 5 6; do
+        if curl --http1.1 -fsSL --continue-at - --connect-timeout 30 --speed-limit 1024 --speed-time 60 --max-time 300 "$url" -o "$staging/android"; then
+            break
+        fi
+        [ "$attempt" -lt 6 ] || exit 1
+    done
     printf '%s  %s\n' "$expected" "$staging/android" | sha256sum --check --status
     chmod 755 "$staging/android"
     mv "$staging" "$tools"
