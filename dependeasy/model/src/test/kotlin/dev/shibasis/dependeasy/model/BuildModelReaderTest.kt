@@ -15,8 +15,27 @@ class BuildModelReaderTest {
     @Test fun `relations exact task plans and recorded receipts preserve the same node identities`() {
         val app = node.copy(id = NodeId("fixture", ":app", "outputVerificationResultsJvm"),
             invocation = Invocation.Gradle(listOf(":app:jvmTest")), host = HostRequirement(execution = ExecutionHost.Local))
-        val declared = model().copy(nodes = listOf(node, app), edges = listOf(Edge.Consumes(node.id, app.id, "VerificationResults:Jvm")))
+        val options = listOf(
+            OptionValue("fixture.enabled", OptionType.Boolean, "true", OptionSource.LocalProperties, "local.properties",
+                scope = ":", defaultValue = "false", resolutionOrder = BuildOption.boolean("fixture.enabled").resolutionOrder),
+            OptionValue("fixture.count", OptionType.Integer, "2", OptionSource.Default, scope = ":app", defaultValue = "2",
+                resolutionOrder = BuildOption.integer("fixture.count", 2).resolutionOrder),
+            OptionValue("fixture.unrelated", OptionType.String, "other", OptionSource.Default, scope = ":other"))
+            .map { option -> DeclarationInput("fixture", "option:${option.scope}:${option.name}", BuildModelReader.digest(option.toString()), DeclarationInputKind.Option, option) }
+        val declared = model().copy(nodes = listOf(node, app), edges = listOf(Edge.Consumes(node.id, app.id, "VerificationResults:Jvm")),
+            declarations = options)
+        assertEquals(setOf("fixture.enabled", "fixture.count"), declared.buildOptions(node.id).map { it.option!!.name }.toSet())
+        assertEquals(listOf("fixture.enabled"), declared.copy(edges = emptyList()).buildOptions(node.id).map { it.option!!.name })
+        assertEquals(listOf("fixture.enabled"), declared.copy(edges = listOf(Edge.OrderedAfter(node.id, app.id))).buildOptions(node.id).map { it.option!!.name })
         val file = root.resolve(BuildModelReader.RelativePath).apply { parentFile.mkdirs(); writeText(BuildModelReader.encode(declared)) }
+        val explanation = BuildModelReader.explain(root, node.id.toString(), limit = 1)
+        assertEquals(2, explanation.getValue("totalOptions").jsonPrimitive.int)
+        assertEquals(1, explanation.getValue("nextOffset").jsonPrimitive.int)
+        val effective = explanation.getValue("options").jsonArray.single().jsonObject
+        assertEquals("false", effective.getValue("defaultValue").jsonPrimitive.content)
+        assertEquals("LocalProperties", effective.getValue("source").jsonPrimitive.content)
+        assertEquals("fixture.count", BuildModelReader.explain(root, node.id.toString(), offset = 1, limit = 1)
+            .getValue("options").jsonArray.single().jsonObject.getValue("name").jsonPrimitive.content)
         val details = BuildModelReader.nodeDetails(root, node.id.toString())
         assertEquals(app.id, BuildModelReader.json.decodeFromJsonElement<Edge>(details.getValue("edges").jsonArray.single()).to)
         assertEquals(ExecutionHost.Local, BuildModelReader.json.decodeFromJsonElement<HostRequirement>(details.getValue("effectiveHost")).execution)
@@ -52,12 +71,17 @@ class BuildModelReaderTest {
         val receipt = RunReceipt(run = "observed", build = "fixture", requestedNodes = listOf(node.id), requestedTasks = listOf(":checks"),
             startedAtEpochMillis = 1, finishedAtEpochMillis = 2, status = ReceiptStatus.Failed,
             tasks = listOf(TaskObservation(NodeId("fixture", ":app", "jvmTest"), TaskOutcome.Failed, 1, 1)),
-            modelDigest = null, modelOmission = "No source identity available")
+            modelDigest = null, modelOmission = "No source identity available", resolvedOptions = declared.buildOptions(node.id))
         root.resolve(GradleProtocol.ReceiptDirectory + "/observed.json").apply { parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(receipt)) }
         val observed = BuildModelReader.receiptPage(root, app.id.toString())
         assertEquals("recorded", observed.getValue("truth").jsonPrimitive.content)
         assertFalse(observed.getValue("matchesCurrentModel").jsonPrimitive.boolean)
         assertEquals(receipt.modelOmission, observed.getValue("receipt").jsonObject.getValue("modelOmission").jsonPrimitive.content)
+        val receiptPage = BuildModelReader.receiptPage(root, app.id.toString(), limit = 1).getValue("receipt").jsonObject
+        assertEquals(2, receiptPage.getValue("totalOptions").jsonPrimitive.int)
+        assertEquals(1, receiptPage.getValue("nextOffset").jsonPrimitive.int)
+        assertEquals("LocalProperties", receiptPage.getValue("resolvedOptions").jsonArray.single().jsonObject
+            .getValue("option").jsonObject.getValue("source").jsonPrimitive.content)
         assertEquals("observed", BuildModelReader.receiptPage(root, node.id.toString()).getValue("receipt").jsonObject.getValue("run").jsonPrimitive.content)
         file.writeText(BuildModelReader.encode(declared.copy(omissions = listOf(Omission(app.id, "Changed declaration coverage")))))
         assertNull(BuildModelReader.retainedPlan(root, app.id.toString()))

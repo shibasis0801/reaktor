@@ -34,7 +34,8 @@ data class BuildOption<T : Any>(val name: String, val type: OptionType, val defa
 }
 
 @Serializable data class OptionValue(val name: String, val type: OptionType, val value: String,
-    val source: OptionSource, val file: String? = null, val sensitive: Boolean = false, val environment: String? = null)
+    val source: OptionSource, val file: String? = null, val sensitive: Boolean = false, val environment: String? = null,
+    val scope: String? = null, val defaultValue: String? = null, val resolutionOrder: List<OptionSource> = emptyList())
 @Serializable data class OptionRequirement(val option: OptionValue, val expected: String)
 
 class OptionArgument<T : Any> internal constructor(val option: BuildOption<T>, val value: T)

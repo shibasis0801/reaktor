@@ -18,9 +18,10 @@ internal class GradleBuildPlanner {
     fun prepare(root: File, wrapper: String, node: Node, arguments: List<String>,
                 seal: ProcessDefinitionSeal, redactions: Set<String>, environment: Map<String, String>,
                 sensitiveEnvironmentKeys: Set<String>): PreparedGradleBuild {
+        val properties = arguments.filter { it.startsWith("-P") }
         fun gradle(tasks: List<String>, definitions: ProcessDefinitionSeal, failure: String) = runBlocking {
             SupervisedProcessExecutor().use { executor ->
-                val prepared = AdHocProcessPlan.create(listOf(wrapper) + tasks + "--console=plain", root, TaskId(node.id.toString()),
+                val prepared = AdHocProcessPlan.create(listOf(wrapper) + tasks + properties + "--console=plain", root, TaskId(node.id.toString()),
                     SafetyPolicy(SafetyClass.LocalArtifactWrite), redactions = redactions, definitionSeal = definitions,
                     environment = environment, sensitiveEnvironmentKeys = sensitiveEnvironmentKeys)
                 val handle = executor.start(prepared)
@@ -66,7 +67,7 @@ internal class GradleBuildPlanner {
         val plan = BuildModelReader.readPlan(planFile)
         require(plan.node == node.id && plan.modelDigest == request.modelDigest && plan.requestDigest == BuildModelReader.digest(contract))
         val executable = write(request.copy(expectedContextDigest = plan.contextDigest))
-        val argv = listOf(wrapper, GradleProtocol.RunTask, "-P${GradleProtocol.RequestOption}=${executable.absolutePath}", "--console=plain")
+        val argv = listOf(wrapper, GradleProtocol.RunTask, "-P${GradleProtocol.RequestOption}=${executable.absolutePath}", "--console=plain") + properties
         return PreparedGradleBuild(argv, ProcessDefinitionSeal.capture(seal.files + executable + planFile, seal.directories),
             plan, listOf(ArtifactExpectation("gradle-result", "${GradleProtocol.ResultDirectory}/${executable.name}", true)),
             listOf("gradle-plan", BuildModelReader.digest(planFile), "configuration-ms=${plan.configuredMillis}"))

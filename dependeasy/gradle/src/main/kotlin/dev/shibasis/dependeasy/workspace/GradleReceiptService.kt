@@ -98,7 +98,9 @@ abstract class GradleReceiptService : BuildService<GradleReceiptService.Paramete
                 ?: "Requested task identity is observed by Gradle; no exported build declaration".takeIf { observedRequests.any { it !in declared } },
             failures = generateSequence(buildFailure) { it.cause }.take(12).map { redact(it.message.orEmpty()).take(8192) }.toList(),
             requestDigest = parameters.requestDigest.orNull, operationRunId = BuildOption.environmentSnapshot()[GradleProtocol.OperationRunVariable],
-            omissionCounts = model?.let(BuildModelReader::omissionCounts).orEmpty())
+            omissionCounts = model?.let(BuildModelReader::omissionCounts).orEmpty(),
+            resolvedOptions = model?.let { declaredModel -> declaredModel.nodes.filter { it.id in nodes }
+                .flatMap { declaredModel.buildOptions(it.id) }.distinct() }.orEmpty())
         val directory = parameters.output.get().asFile.toPath()
         Files.createDirectories(directory)
         val temporary = directory.resolve("$run.pending")

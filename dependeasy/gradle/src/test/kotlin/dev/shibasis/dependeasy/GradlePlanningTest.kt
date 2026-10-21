@@ -13,7 +13,11 @@ class GradlePlanningTest {
         directory.resolve("source.txt").writeText("first")
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.configuration.option
+            import dev.shibasis.dependeasy.model.BuildOption
             plugins { id("dev.shibasis.dependeasy.pipeline") }
+            option(BuildOption.boolean("fixture.feature")).get()
+            option(BuildOption.string("fixture.secret", "fixture-sensitive-default", sensitive = true)).get()
             abstract class OptionFixture : DefaultTask() {
                 @get:Input @get:org.gradle.api.tasks.options.Option(option = "active", description = "Enable fixture")
                 abstract val active: org.gradle.api.provider.Property<Boolean>
@@ -45,18 +49,29 @@ class GradlePlanningTest {
 
     @Test fun `ordinary runs record typed outcomes and reuse configuration cache`() {
         fixture()
-        runner("exportBuildModel", "checks").build()
+        runner("exportBuildModel", "checks", "-Pfixture.feature=true").build()
         val first = receipts().single()
         assertContains(first.requestedNodes, NodeId("receiptFixture", ":", "checks"))
         assertEquals(TaskOutcome.Executed, first.tasks.single { it.task.name == "copied" }.outcome)
         assertNotNull(first.modelDigest)
-        val repeated = runner("exportBuildModel", "checks").build()
+        val effective = first.resolvedOptions.single { it.option?.name == "fixture.feature" }.option!!
+        assertEquals("true", effective.value)
+        assertEquals("false", effective.defaultValue)
+        assertEquals(OptionSource.CommandLine, effective.source)
+        assertEquals(BuildOption.boolean("fixture.feature").resolutionOrder, effective.resolutionOrder)
+        assertEquals(":", effective.scope)
+        val privateDefault = first.resolvedOptions.single { it.option?.name == "fixture.secret" }.option!!
+        assertEquals("<redacted>", privateDefault.value)
+        assertEquals("<redacted>", privateDefault.defaultValue)
+        assertFalse(receipts().toString().contains("fixture-sensitive-default"))
+        val repeated = runner("exportBuildModel", "checks", "-Pfixture.feature=true").build()
         assertContains(repeated.output, "Reusing configuration cache")
         val second = receipts().single { it.run != first.run }
         assertEquals(TaskOutcome.UpToDate, second.tasks.single { it.task.name == "copied" }.outcome)
+        assertEquals(first.resolvedOptions, second.resolvedOptions)
         assertTrue(second.tasks.all { it.durationMillis >= 0 })
         directory.resolve("build/copied/source.txt").delete()
-        runner("exportBuildModel", "checks").build()
+        runner("exportBuildModel", "checks", "-Pfixture.feature=true").build()
         assertEquals(TaskOutcome.Executed, receipts().single { it.run !in setOf(first.run, second.run) }
             .tasks.single { it.task.name == "copied" }.outcome)
     }

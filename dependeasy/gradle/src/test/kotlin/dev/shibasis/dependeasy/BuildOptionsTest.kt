@@ -40,6 +40,7 @@ class BuildOptionsTest {
             import dev.shibasis.dependeasy.configuration.option
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
+            option(BuildOption.string("fixture.secret.default", "fixture-sensitive-default", sensitive = true)).get()
             val feature = BuildOption.boolean("fixture.feature")
             check((findProject(":enabled") != null) == option(feature).get())
             val producer = tasks.register<dev.shibasis.dependeasy.workspace.WorkspaceNodeTask>("producer") { bind(ArtifactSetKernel) }
@@ -68,7 +69,15 @@ class BuildOptionsTest {
         assertEquals(OptionSource.Default, requirement().option.source)
         assertEquals("false", requirement().option.value)
         val options = BuildModelReader.read(directory).declarations.mapNotNull { it.option }
-        assertTrue(options.any { it.name == "fixture.feature" && it.source == OptionSource.Absent })
+        assertEquals(setOf(":", "settings"), options.filter { it.name == "fixture.feature" && it.source == OptionSource.Default }.map { it.scope }.toSet())
+        val feature = options.first { it.name == "fixture.feature" && it.source == OptionSource.Default }
+        assertEquals("false", feature.defaultValue)
+        assertEquals(BuildOption.boolean("fixture.feature").resolutionOrder, feature.resolutionOrder)
+        val privateDefault = options.single { it.name == "fixture.secret.default" }
+        assertEquals("<redacted>", privateDefault.defaultValue)
+        assertEquals("<redacted>", privateDefault.value)
+        assertFalse(directory.resolve(BuildModelReader.RelativePath).readText().contains("fixture-sensitive-default"))
+        assertTrue(options.any { it.name == "fixture.feature" && it.source == OptionSource.Absent && it.defaultValue == null && it.resolutionOrder == listOf(OptionSource.JvmSystemProperty) })
         assertTrue(options.any { it.name == "FIXTURE_DIRECT" && it.source == OptionSource.Absent && it.environment == "FIXTURE_DIRECT" })
         val hosts = BuildModelReader.json.decodeFromString<RemoteHostsContract>(directory.resolve("build/dependeasy/remote/hosts.json").readText())
         assertContains(hosts.environment, "FIXTURE_DIRECT")

@@ -40,8 +40,11 @@ fun Project.resolvedBuildOptions(): ListProperty<Map<String, String>> {
 private fun <T : Any> Project.recordBuildOption(scope: String, option: BuildOption<T>, resolved: Provider<ResolvedOption<T>>) {
     fun fields(value: OptionValue) =
         mapOf("scope" to scope, "name" to value.name, "type" to value.type.name,
-            "value" to value.value, "source" to value.source.name, "sensitive" to value.sensitive.toString()) +
-            listOfNotNull(value.file?.let { "file" to it },
+            "value" to value.value, "source" to value.source.name, "sensitive" to value.sensitive.toString(),
+            "resolutionOrder" to option.resolutionOrder.joinToString(",") { it.name }) +
+            listOfNotNull(option.takeIf { OptionSource.Default in it.resolutionOrder }?.let {
+                "defaultValue" to if (it.sensitive) "<redacted>" else it.default.toString()
+            }, value.file?.let { "file" to it },
                 option.takeIf { OptionSource.Environment in it.resolutionOrder }?.let { "environment" to (it.environment ?: "ORG_GRADLE_PROJECT_${it.name}") }).toMap()
     resolvedBuildOptions().addAll(resolved.map { result ->
         val value = result.evidence

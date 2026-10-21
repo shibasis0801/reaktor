@@ -31,6 +31,23 @@ data class BuildModel(
     val omissions: List<Omission> = emptyList(),
 )
 
+fun BuildModel.buildOptions(id: NodeId): List<DeclarationInput> {
+    require(nodes.any { it.id == id }) { "Unknown build node $id" }
+    val dependencies = edges.filter { it !is Edge.OrderedAfter }.groupBy { it.from }
+    val selected = mutableSetOf<NodeId>()
+    fun visit(node: NodeId) {
+        if (selected.add(node)) dependencies[node].orEmpty().forEach { visit(it.to) }
+    }
+    visit(id)
+    val scopes = selected.groupBy({ it.build }, { it.project })
+    return declarations.filter { input ->
+        val scope = input.option?.scope
+        input.kind == DeclarationInputKind.Option && scope != null && scopes[input.build]?.let {
+            scope == ":" || scope == "settings" || scope in it
+        } == true
+    }
+}
+
 @Serializable data class Producer(val name: String = "dependeasy", val version: String)
 @Serializable data class BuildIdentity(val name: String, val directory: String)
 @Serializable data class DeclarationInput(val build: String, val path: String, val sha256: String, val kind: DeclarationInputKind = DeclarationInputKind.File, val option: OptionValue? = null)
@@ -118,6 +135,7 @@ data class RunReceipt(
     val requestDigest: String? = null,
     val operationRunId: String? = null,
     val omissionCounts: Map<String, Int> = emptyMap(),
+    val resolvedOptions: List<DeclarationInput> = emptyList(),
 )
 @Serializable enum class ReceiptStatus { Succeeded, Failed }
 @Serializable enum class TaskOutcome { Executed, UpToDate, FromCache, Skipped, Failed }

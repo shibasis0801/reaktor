@@ -20,7 +20,9 @@ object BuildModelKernel {
         val options = resolvedOptions.distinct().map { fields ->
             val value = OptionValue(fields.getValue("name"), OptionType.valueOf(fields.getValue("type")),
                 fields.getValue("value"), OptionSource.valueOf(fields.getValue("source")), fields["file"],
-                fields.getValue("sensitive").toBooleanStrict(), fields["environment"])
+                fields.getValue("sensitive").toBooleanStrict(), fields["environment"], scope = fields.getValue("scope"),
+                defaultValue = fields["defaultValue"], resolutionOrder = fields["resolutionOrder"]?.split(',')
+                    ?.filter(String::isNotEmpty)?.map(OptionSource::valueOf).orEmpty())
             val text = BuildModelReader.json.encodeToString(value)
             val hash = BuildModelReader.digest(text)
             DeclarationInput(own, "option:${fields.getValue("scope")}:${value.name}:${hash.take(16)}", hash, DeclarationInputKind.Option, value)

@@ -362,6 +362,7 @@ object BuildModelReader {
         val node = model.nodes.single { it.id.toString() == id }
         val spec = node.kernel?.spec
         val fields = spec?.let { json.encodeToJsonElement(KernelSpec.serializer(), it).jsonObject.filterKeys { key -> key != "type" } }.orEmpty()
+        val options = model.buildOptions(node.id)
         val nonDefaults = spec?.let { Json(json) { encodeDefaults = false }.encodeToJsonElement(KernelSpec.serializer(), it).jsonObject }.orEmpty()
         val definition = spec?.let {
             model.builds.firstNotNullOfOrNull { build ->
@@ -379,10 +380,14 @@ object BuildModelReader {
                 put("matchesDeclaredDefault", name !in nonDefaults)
                 put("definedAt", definition?.let { json.encodeToJsonElement(it) } ?: JsonNull)
             }) } })
-            put("provenance", "Values are retained spec facts. Default equality does not prove the caller omitted the argument.")
+            put("totalOptions", options.size)
+            put("options", buildJsonArray { options.drop(offset).take(limit).forEach { input -> add(buildJsonObject {
+                put("build", input.build); json.encodeToJsonElement(input.option).jsonObject.forEach { (key, value) -> put(key, value) }
+            }) } })
+            put("provenance", "Values are retained spec facts. Default equality does not prove the caller omitted the argument. Option source records the actual resolution origin.")
             put("collections", nodeDetails(root, id).getValue("collections"))
             if (spec == null) put("omission", "This node has no recorded kernel spec")
-            if (offset + limit < fields.size) put("nextOffset", offset + limit)
+            if (offset + limit < maxOf(fields.size, options.size)) put("nextOffset", offset + limit)
         }
     }
 
@@ -453,11 +458,13 @@ object BuildModelReader {
             val receipt = selected.second
             val encoded = json.encodeToJsonElement(RunReceipt.serializer(), receipt).jsonObject
             put("receipt", buildJsonObject {
-                encoded.filterKeys { it != "tasks" }.forEach { (key, value) -> put(key, value) }
+                encoded.filterKeys { it !in setOf("tasks", "resolvedOptions") }.forEach { (key, value) -> put(key, value) }
                 put("offset", offset); put("totalTasks", receipt.tasks.size)
+                put("totalOptions", receipt.resolvedOptions.size)
+                put("resolvedOptions", json.encodeToJsonElement(receipt.resolvedOptions.drop(offset).take(limit)))
                 put("tasks", buildJsonArray { receipt.tasks.drop(offset).take(limit).forEach {
                     add(json.encodeToJsonElement(TaskObservation.serializer(), it)) } })
-                if (offset + limit < receipt.tasks.size) put("nextOffset", offset + limit)
+                if (offset + limit < maxOf(receipt.tasks.size, receipt.resolvedOptions.size)) put("nextOffset", offset + limit)
             })
             put("path", selected.first.absolutePath); put("sha256", digest(selected.first))
             put("matchesCurrentModel", receipt.modelDigest == digest(root.resolve(RelativePath)) && changedDeclarations(root, declaredModel(root)).isEmpty())
