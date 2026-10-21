@@ -102,26 +102,40 @@ data class Invocation(
 )
 
 @Serializable
+data class InvocationReference(val operation: OperationId, val requestId: String?, val workspace: String, val run: String? = null)
+
+@Serializable
 sealed interface Outcome {
+    val reference: InvocationReference?
+
     @Serializable
     @SerialName("completed")
-    data class Completed(val result: JsonElement) : Outcome
+    data class Completed(val result: JsonElement, override val reference: InvocationReference? = null) : Outcome
 
     @Serializable
     @SerialName("approval-required")
-    data class ApprovalRequired(val approval: String, val effect: SafetyClass, val expiresAtEpochMillis: Long) : Outcome
+    data class ApprovalRequired(val approval: String, val effect: SafetyClass, val expiresAtEpochMillis: Long,
+        override val reference: InvocationReference? = null) : Outcome
 
     @Serializable
     @SerialName("denied")
-    data class Denied(val approval: String, val by: String?) : Outcome
+    data class Denied(val approval: String, val by: String?, override val reference: InvocationReference? = null) : Outcome
 
     @Serializable
     @SerialName("refused")
-    data class Refused(val effect: SafetyClass, val reason: String) : Outcome
+    data class Refused(val effect: SafetyClass, val reason: String, override val reference: InvocationReference? = null) : Outcome
 
     @Serializable
     @SerialName("failed")
-    data class Failed(val message: String) : Outcome
+    data class Failed(val message: String, val code: String? = null, override val reference: InvocationReference? = null) : Outcome
+}
+
+fun Outcome.withReference(reference: InvocationReference): Outcome = when (this) {
+    is Outcome.Completed -> copy(reference = reference)
+    is Outcome.ApprovalRequired -> copy(reference = reference)
+    is Outcome.Denied -> copy(reference = reference)
+    is Outcome.Refused -> copy(reference = reference)
+    is Outcome.Failed -> copy(reference = reference)
 }
 
 @Serializable
