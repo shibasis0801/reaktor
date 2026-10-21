@@ -16,7 +16,7 @@ Written 16 October 2026 by Claude. Not published. Inputs: the Codex tool-experim
 
 **First steps.** Export compilations from dependeasy; extend the Kotlin producer to calls, types and compiler addresses with warm sessions in the kernel; ship `atlas.query`, `atlas.read` and a compiler-guided Kotlin `rename` through `change.plan` and `change.apply`; let agent seats apply deterministic in-scope plans without a person. The first gate is a real cross-module Kotlin rename done from both Claude and Codex with no whole-file reads and passing affected checks.
 
-### Status at a glance (21 October, 02:45)
+### Status at a glance (21 October, 13:19)
 
 ```mermaid
 flowchart TB
@@ -27,39 +27,43 @@ flowchart TB
         cli["reaktor CLI<br/>generated face<br/>not wired (K1)"]
     end
     subgraph doors["Doors to the owner"]
-        mcp["MCP server reaktor<br/>kernel, Atlas, change<br/>and check tools, live;<br/>shorter instructions<br/>in the next install"]
+        mcp["MCP server reaktor<br/>kernel, Atlas, change<br/>and check tools, live;<br/>shorter instructions"]
         shell["Shell form<br/>reaktor-agent atlas<br/>query, read, plan,<br/>apply and check, live"]
     end
     subgraph kernelBox["Kernel (BestBuds)"]
-        gate["OperationKernel gate<br/>every operation declares<br/>its effect; next install:<br/>preferred operations first,<br/>argument errors told apart"]
+        gate["OperationKernel gate<br/>every operation declares<br/>its effect; preferred<br/>operations first; argument<br/>errors told apart"]
         status["kernel.status<br/>which build answers,<br/>its capabilities, the<br/>helper and indexing"]
         atlasOps["atlas.query, atlas.read<br/>plain-text answers; each<br/>use says how it was found;<br/>batch parts in parallel"]
         changeOps["change.plan, change.apply<br/>four recipes; a rename<br/>takes only what the compiler<br/>confirms unless told"]
-        checkRun["check.run<br/>says whether each ran;<br/>next install: failing phase,<br/>cause, local paths, source"]
+        checkRun["check.run<br/>says whether each ran,<br/>the failing phase and<br/>its cause, local paths<br/>and the source read"]
         ledger["Run ledger<br/>plans and receipts"]
         revisions["Revisions<br/>macOS file events wake<br/>indexing, the code graph<br/>and a compilations export"]
+        selection["check.run narrow<br/>only the test classes<br/>the change reaches in<br/>the code graph"]
     end
     subgraph atlasBox["Atlas (KernelAtlas.kt)"]
-        planner["Query planner<br/>one v0 pipeline, six<br/>presets; need refuses<br/>weaker evidence"]
+        planner["Query planner<br/>one v0 pipeline, eight<br/>presets; need refuses<br/>weaker evidence"]
         engine["Change engine<br/>four recipes across<br/>included builds; by-name<br/>sites only on request"]
         identity["Ids<br/>compiler addresses for<br/>Kotlin, SCIP symbols for<br/>TypeScript; lineage<br/>across renames"]
-        segments["Fact segments<br/>one per file and input<br/>digest; not shared<br/>with m1-worker yet"]
+        segments["Fact segments<br/>one per file and input<br/>digest; worker indexing<br/>waits on a remote-dev<br/>copy-back family"]
         sourceView["Source view<br/>each name bound to the<br/>nearest declaration it<br/>sees; text, positions,<br/>generated folders"]
-        semanticView["Semantic view<br/>uses, calls, overrides,<br/>types, expect/actual:<br/>Kotlin JVM, JS, Native<br/>and TypeScript"]
+        semanticView["Semantic view<br/>uses, calls, overrides,<br/>types, expect/actual:<br/>Kotlin JVM, JS, Native,<br/>Android, TypeScript, C++"]
         buildView["Build view<br/>build model read<br/>tolerantly; compilations<br/>pick each file's checks"]
         codeView["Code graph<br/>Kotlin, TypeScript and<br/>generated files; compiler<br/>wires; app graphs<br/>linked to their files"]
         reaktorView["Reaktor view<br/>syntax and compiler facts:<br/>lambdas, autoWire's graphs,<br/>connect(), services,<br/>port-bounded impact"]
-        laterViews["Runtime view"]
+        runtimeView["Runtime view<br/>runtime preset: nodes with<br/>retained spans; routes<br/>preset: the Maestro<br/>flows that open each route"]
     end
     subgraph providers["Provider nodes"]
         psi["Kotlin PSI and git grep<br/>behind every answer"]
-        kaa["Kotlin Analysis API<br/>the owners' helper is from<br/>19 Oct, before the facts<br/>request; the next install<br/>must rebuild it"]
+        kaa["Kotlin Analysis API<br/>helper takes 2,048 modules;<br/>2,611 of 2,975 files indexed<br/>on the BestBuds owner;<br/>Android sessions,<br/>not qualified"]
         ts["scip-typescript<br/>every tsconfig project<br/>of a pnpm workspace,<br/>TypeScript 5.9 and 6.0"]
-        laterProviders["Android sessions,<br/>ast-grep, scip-clang and<br/>clangd, runtime overlay,<br/>test recorder, OpenRewrite"]
+        clangd["clangd<br/>one per native module:<br/>names, uses, outlines,<br/>reads and renames;<br/>three modules live"]
+        telemetry["Retained telemetry<br/>spans joined to app<br/>graph nodes by<br/>definition id"]
+        laterProviders["ast-grep, scip-clang,<br/>test recorder,<br/>OpenRewrite"]
     end
     subgraph buildFacts["Build facts"]
         dep["dependeasy model plus<br/>compilations from an<br/>init script, generated<br/>folders included"]
-        laterBuild["Gradle Tooling API<br/>(waits on WP16 and a<br/>remote-dev lease), CMake<br/>File API, pnpm lockfile"]
+        pnpm["pnpm lockfile links<br/>and native compile<br/>commands, own<br/>sources only"]
+        laterBuild["Gradle Tooling API<br/>(waits on WP16 and a<br/>download), CMake<br/>File API targets"]
     end
     claude --> mcp
     claude --> shell
@@ -79,7 +83,8 @@ flowchart TB
     atlasOps --> codeView
     changeOps --> engine
     checkRun --> buildView
-    checkRun --> codeView
+    checkRun --> selection
+    selection --> codeView
     revisions --> segments
     ledger ~~~ engine
     ledger ~~~ identity
@@ -88,7 +93,7 @@ flowchart TB
     planner --> semanticView
     planner --> buildView
     planner --> reaktorView
-    planner -.-> laterViews
+    planner --> runtimeView
     codeView --> sourceView
     codeView --> semanticView
     codeView --> reaktorView
@@ -99,9 +104,13 @@ flowchart TB
     reaktorView --> kaa
     semanticView --> kaa
     semanticView --> ts
+    semanticView --> clangd
     kaa --> dep
-    laterViews -.-> laterProviders
+    clangd --> pnpm
+    runtimeView --> telemetry
+    runtimeView -.-> laterProviders
     buildView --> dep
+    buildView --> pnpm
     buildView -.-> laterBuild
     psi ~~~ dep
     ts ~~~ laterBuild
@@ -110,40 +119,44 @@ flowchart TB
     classDef partial fill:#FEF3C7,stroke:#D97706,color:#78350F
     classDef problem fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
     classDef later fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-dasharray: 4 3
-    class claude,codex,hangar,mcp,shell,atlasOps,changeOps,ledger,revisions,engine,identity,sourceView,buildView,codeView,reaktorView,psi,ts,dep live
-    class gate,status,checkRun ready
+    class claude,codex,hangar,mcp,shell,gate,status,atlasOps,changeOps,checkRun,ledger,revisions,engine,identity,sourceView,buildView,codeView,reaktorView,psi,ts,dep,selection,runtimeView,kaa,clangd,telemetry,pnpm live
     class cli,planner,segments,semanticView partial
-    class kaa problem
-    class laterViews,laterProviders,laterBuild later
+    class laterProviders,laterBuild later
 ```
 
-Green runs on the live owners. Blue is tested on m1-worker and waits for the next install. Amber exists but is narrow or incomplete. Red is an open problem, and grey, with a dashed border, is designed and not started. Dotted arrows are connections the design plans and the code does not make yet. The boxes follow §4.2, and §9 has the detail.
+Green runs on the live owners. Blue is tested on m1-worker and waits for the next install; no box is blue on 21 October at 13:19. Amber exists but is narrow or incomplete. Red is an open problem, and grey, with a dashed border, is designed and not started. Dotted arrows are connections the design plans and the code does not make yet. The boxes follow §4.2, and §9 has the detail.
 
-**Where things stand.** Every slice of §9 except row 18 is implemented and passes its tests on m1-worker. The owners restarted between 01:20 and 01:23 on 21 October on a dist that another session installed at about 01:19 from the working tree, so they run everything committed by then plus a middle state of the Codex review fixes (§11): the rename policy, the evidence on each use and the batch `next:` lines are in it; `kernel.status`, the check diagnosis, the catalog order and the search past the mention cap are not; and none of it was tested before that install. Agent sessions that started before that install reach the owners through MCP doors of the older build, which cannot read some of the new answer fields and print those answers as raw JSON until the session restarts its MCP server; from the next install on, a door reads owner answers tolerantly. Two problems block a full answer on the live owners. Their Kotlin helper (`reaktor-code/build/distributions/kotlin-semantics.zip`, built 19 October 14:51) predates the facts request, so they answer Kotlin questions from syntax, and the semantic view stays amber until an install rebuilds it with `:reaktor:reaktor-code:kotlinSemanticDistZip` (decision 11). And nothing past the first completion gate has been qualified: Codex's next milestone (§11) is one freshly installed query, plan, apply and check workflow measured against fixed inputs.
+**Where things stand.** Every slice of §9 is implemented except the Gradle Tooling API and indexing on m1-worker, which wait on work outside the kernel (decisions 3 and 9), and everything implemented passes its tests on m1-worker. Another session's install at 12:59 on 21 October carried this work to the BestBuds and Manna owners; the reaktor owner still runs a build from 10:38. On the BestBuds owner at 13:10 the Kotlin compiler had indexed 2,611 of 2,975 Kotlin files, where in the morning it indexed none (one session per platform family held 601 modules while the helper took 256, and the helper predated the facts request); TypeScript has indexed 204 of 204 files, and clangd serves three native modules. The same build answers C and C++ questions, reads Android files against android-37.0, narrows `check.run` to the test classes a change reaches, and has the `runtime` and `routes` presets and web checks chosen through the pnpm lockfile (§9 rows 23 to 28). Two fixes made after it wait for the next install: a C++ rename waits until clangd has indexed the module, and the routes answer groups the links that open no route by path (row 29). §12 reviews the whole design after this work and lists how it can be improved. Nothing past the first completion gate has been qualified: Codex's T15 (§11) is the next milestone.
 
 The four states below are kept apart: implemented means the code exists, tested means it passes its tests on m1-worker, installed means the live owners run it, and qualified means it was measured on fixed tasks against a control.
 
 | Part | Implemented | Tested | Installed | Qualified |
 |---|---|---|---|---|
 | Atlas questions: names, text, positions, uses, references out, batches | 16-21 Oct | yes | yes | five code questions, 17-18 Oct (§5.5, §5.6) |
-| How sure each use is: names bound by Kotlin scopes, evidence on each use, the coverage line | 21 Oct | yes | untested middle state (01:19) | no |
-| Search past the 400-file mention cap, owners first; named and unnamed companions, typealiases, extensions | 21 Oct | yes | no: the 01:19 build still misses `LoopbackMcpServer.start` | no |
-| Batch parts in parallel, each with its share of the text and a `next:` line when unfinished | 21 Oct | yes | untested middle state (01:19) | no |
+| How sure each use is: names bound by Kotlin scopes, evidence on each use, the coverage line | 21 Oct | yes | yes | no |
+| Search past the 400-file mention cap, owners first; named and unnamed companions, typealiases, extensions | 21 Oct | yes | yes | no |
+| Batch parts in parallel, each with its share of the text and a `next:` line when unfinished | 21 Oct | yes | yes | no |
 | Presets `map`, `impact`, `affected-checks`, `explain`, `wiring`, `investigate` | 20 Oct | yes | yes | no |
-| Kotlin compiler facts: addresses, calls, types, overrides, expect/actual | 20-21 Oct | yes | the kernel side yes; the helper is from 19 Oct | no |
+| Kotlin compiler facts: addresses, calls, types, overrides, expect/actual | 20-21 Oct | in fixtures, and a 602-module helper session on m1-worker | yes since 12:59 on the BestBuds and Manna owners: 2,611 of 2,975 BestBuds files indexed at 13:10 | no |
 | TypeScript facts | 20 Oct | yes | yes, 204 files in 20 projects | indexing qualified on TypeScript 5.9.3 and 6.0.3 |
 | Code graph, with app graphs and generated files | 20-21 Oct | yes | yes | no |
 | Kotlin `rename` checked by the compiler | 19 Oct | yes | yes | first completion gate, both agents (§5.7) |
-| A rename takes only what the compiler confirms unless told | 21 Oct | yes | untested middle state (01:19) | no |
+| A rename takes only what the compiler confirms unless told | 21 Oct | yes | yes | no |
 | `edit`, `structural`, `change-type` | 19-21 Oct | yes | yes | `edit` in the edit tasks (§5.6) |
 | `change.apply`, the seat policy, the board-task bound | 19-20 Oct | yes | yes | `change.apply` in the gate (§5.7) |
 | `check.run`: affected checks, ran or reused | 19-20 Oct | yes | yes | in the gate (§5.7) |
-| `check.run`: failing phase, cause, local paths, source snapshot | 21 Oct | yes | no | no |
-| `kernel.status`, and the helper named when no Kotlin file indexes | 21 Oct | yes | no | no |
-| Catalog with preferred operations first, shorter MCP instructions | 21 Oct | yes | no | no |
-| Argument errors told from data errors; owner answers read tolerantly | 21 Oct | yes | no | no |
+| `check.run`: failing phase, cause, local paths, source snapshot | 21 Oct | yes | yes | no |
+| `kernel.status`, and the helper named when no Kotlin file indexes | 21 Oct | yes | yes | no |
+| Catalog with preferred operations first, shorter MCP instructions | 21 Oct | yes | yes | no |
+| Argument errors told from data errors; owner answers read tolerantly | 21 Oct | yes | yes | no |
 | File watcher, generated sources | 21 Oct | yes | yes | no |
-| Gradle Tooling API, Android sessions, indexing on m1-worker | no | | | |
+| Kotlin sessions sized to the helper, the helper's capabilities, its rebuild when stale | 21 Oct | yes | yes, 12:59 build | no |
+| Android sessions: `.aar` classes, `R.jar`, `android.jar` | 21 Oct | in fixtures | yes, 12:59 build, read against android-37.0 | no; its qualification on `androidMain` is next |
+| C and C++ through clangd: names, uses, outlines, positions, reads, renames | 21 Oct | yes, with clangd 21 on m1-worker | yes, 12:59 build, three native modules; the rename's wait for the index is in the next install | no |
+| `check.run` narrowed to the test classes a change reaches | 21 Oct | yes | yes, 12:59 build | no |
+| Presets `runtime` and `routes`, and a runtime provider | 21 Oct | yes | yes, 12:59 build: 6 of 33 BestBuds routes are opened by a flow | no |
+| Web checks of packages that link an edited one, from the pnpm lockfile | 21 Oct | yes | yes, 12:59 build | no |
+| Gradle Tooling API, indexing on m1-worker | no: they wait on WP16, a download and a remote-dev copy-back family | | | |
 
 | Measured (eight passes per task unless the row says otherwise) | Total input against a same-time control |
 |---|---|
@@ -1416,8 +1429,9 @@ Domains are ordered by leverage. Each lists what is done and what comes next.
 - Done: the isolated Analysis API producer for common and JVM compilations (named declarations and explicit references), bound to source and binary digests; `code.investigate` within 12,000 characters.
 - Done 20 Oct: JS and Native compilations for renames, each family in a helper session of its own (Native on one target, with the platform libraries its files import).
 - Done 20-21 Oct: compiler addresses in place of offsets, with lineage across renames; resolved calls (infix calls and operators too), inferred types, receivers, overload identity, overrides and expect/actual, from a facts request kept as one segment per file and input digest (reaktor a925b37d, ae2132ae; bestbuds 0c242b31); generated sources from the folders the build declares (reaktor 34e8f6ac, bestbuds 49a490a4); background indexing woken by macOS file events (bestbuds 49a490a4).
-- Next: Android after its own qualification. The export already lists 164 Android compilations, but their classpaths hold `.aar` archives and no `android.jar`, so a session needs each archive's `classes.jar` extracted into a digest-keyed cache and the compileSdk's `android.jar`; then the qualification compares its answers on BestBuds' `androidMain` files. wasm needs no work until a wasm source set exists.
-- Next: worker indexing into segments shared by input digest, and the warm sessions as kernel graph nodes; today each owner indexes on this Mac under the two-session budget, and its provider node reports the sessions.
+- Done 21 Oct, live since the 12:59 install: Android sessions (decision 10, §9 row 24). Next: their qualification on BestBuds' `androidMain` files, which also has to explain why the export lists no other project among the 168 Android compilations' dependencies. wasm needs no work until a wasm source set exists.
+- Done 21 Oct, live since the 12:59 install: sessions sized to what the helper takes, and a helper rebuilt when it is stale (decision 11, §9 row 23).
+- Waits: worker indexing into segments shared by input digest. It needs a remote-dev copy-back family that brings `build/atlas` back from m1-worker and a dependeasy task family to name it, both owned by other sessions (decision 3). Today each owner indexes on this Mac under the two-session budget, and its provider node reports the sessions.
 
 **2. Build facts**
 - Done: the dependeasy schema-3 model of declared nodes, plan and run through `planBuildNode`/`runBuildNode`, Gradle receipts, the Hangar Build view and the `build.*` operations.
@@ -1425,9 +1439,10 @@ Domains are ordered by leverage. Each lists what is done and what comes next.
 - Done 20 Oct: stale-tolerant reads of the build model, in the kernel, the build operations and Hangar's views (bestbuds d6a27d4d, 9f179020).
 - Done 21 Oct: `check.run` names the phase that failed and Gradle's cause, with worker paths mapped to this checkout, and the source snapshot the run read (bestbuds aa2e2224, §11).
 - Next: the compilations section in the dependeasy model itself (WP16, Codex), retiring the init script and hand-written target manifests.
-- Next: checks chosen per test instead of per module. Today a change runs the checks of its modules and of every module that uses it (`ChangeChecks.kt`); the test recorder of decision 7 narrows that to the tests that reach the changed nodes.
-- Waits: the Gradle Tooling API connection (decision 9). Without WP16's `ToolingModelBuilder` it could only run the same init script, and without a remote-dev command that hands the local Gradle lease to another process it would bypass placement.
-- Later: reading the existing compile commands and extending the CMake File API reader; one reader for pnpm membership, the lockfile graph and tsconfig references.
+- Done 21 Oct, live since the 12:59 install: `check.run {narrow: true}` runs only the test classes that reach a change through the code graph (§9 row 25). Next: the test recorder of decision 7, which makes that selection exact, and one Gradle run for every narrowed check, which needs `--tests` after each task in the control plane's Gradle request (another session's file).
+- Waits: the Gradle Tooling API connection (decision 9). Without WP16's `ToolingModelBuilder` it could only run the same init script, and the Tooling API is a download that needs the owner's go-ahead. The lease command it needs exists since 21 October (`~/dev/tools/gradle-lease`).
+- Done 21 Oct, live since the 12:59 install: the compile commands dependeasy writes for native modules, read for clangd (domain 6), and the links in `pnpm-lock.yaml`, so a change to a workspace package also runs the web checks of the packages that link it (§9 row 27).
+- Later: the CMake File API reader; tsconfig references; the Kotlin/JS packages Gradle writes under `build/js`, which the lockfile's links do not map to modules yet.
 
 **3. Agent interface**
 - Done: the `workspace` and `kernel` MCP tools, `code.investigate`, `code.query`, `code.plan`/`code.apply`, `operation.catalog`/`operation.describe`, and the generated CLI face (not yet wired into `Main.kt`).
@@ -1440,18 +1455,21 @@ Domains are ordered by leverage. Each lists what is done and what comes next.
 - Done: `literal-v1`, `scip-local-rename-v1` for file-local TypeScript symbols, sealed proposals and receipts.
 - Done 19-21 Oct: multi-file atomic apply with lineage; Kotlin `rename` along the experiment's path; `edit`; `structural` with a resolution filter and `change-type` (7dfc0858, b79637ba); generated files are left to the build.
 - Done 21 Oct: a rename takes only the uses the compiler confirms unless the caller asks for name matches (decision 12, bestbuds aa2e2224).
-- Later: TypeScript rename through the language service, C++ rename through clangd, the OpenRewrite allow-list.
+- Done 21 Oct, live since the 12:59 install: C++ rename through clangd (`clangd-rename-v1`, §9 row 28).
+- Later: TypeScript rename through the language service, the OpenRewrite allow-list.
 
 **5. Reaktor facts**
 - Done 20 Oct: a syntactic extractor for graphs, nodes, ports, wiring and routes, and the `explain` and `wiring` presets.
 - Done 20-21 Oct: services and operations; port-bounded impact (7dfc0858); a compiler-backed reading of graphs built in lambdas, `connect()` and the graphs `autoWire` is given (6d7c90bb); app graphs in the code graph, linked to their files, with the definition ids running graphs carry (ae78dd2b).
 - Next: nodes made inside lambdas, and labels and port keys computed at run time, which neither syntax nor the facts request follows yet.
-- Later: the test recorder, the runtime overlay and FFI `binds` edges, with the extensions the Codex review lists (§11).
+- Done 21 Oct, live since the 12:59 install: the runtime view from retained telemetry, and route coverage from Maestro flows (§9 row 26).
+- Later: the test recorder, live activations from devtools and rgp/1, and FFI `binds` edges, with the extensions the Codex review lists (§11).
 
 **6. Other languages**
 - Done: scip-typescript for one tsconfig target.
 - Done 20 Oct night: TypeScript multi-project indexing for Manna, qualified on its TypeScript 6.0.3, with TypeScript questions answered and TypeScript files drawn in the code graph (reaktor 0e5f7598, 42dc2f73; bestbuds a816d5e5).
-- Later: scip-clang and clangd for the MLS, FFI and FlexBuffer code; Swift only if Swift code grows.
+- Done 21 Oct, live since the 12:59 install: C, C++ and Objective-C through clangd for the FFI, MLS and FlexBuffer code (§9 row 28).
+- Later: scip-clang, so C++ facts are kept in segments and drawn in the code graph; Swift only if Swift code grows.
 
 **7. Adoption and measurement**
 - Done: Codex comparisons on five code questions (§5.5) and three edit tasks (§5.6), and a same-evening rerun of both after one-call answers (addendum to §5.6), and a second rerun that night after complete answers (second addendum), and a third at 19:00 after one call could carry several lookups (third addendum), and a fourth at 20:20 after the MCP server sent each source block once per session (fourth addendum), and eight runs per task by 21:40 (fifth addendum), and eight edit passes in a harness that matches the real checkout at 23:15 (sixth addendum), and eight more with the Atlas called from the shell at 00:30 on 18 October (seventh addendum).
@@ -1467,15 +1485,15 @@ Domains are ordered by leverage. Each lists what is done and what comes next.
 
 1. Agent seats may apply deterministic plans inside their own checkout and the task's declared scope without a person. Recommended: yes. Without it, agents will keep using native edits. Done 20 Oct for the checkout (`SeatPolicy.plans`), and that night for the task's declared scope, through the caller's principal and the board task its session works on (bestbuds 7dfc0858, reaktor b79637ba).
 2. Kotlin identities move from file offsets to compiler addresses, and existing Kotlin artifacts are regenerated. Recommended: yes. Done 20 Oct night: facts carry compiler addresses, renames keep lineage, and segments are made again as files change (reaktor a925b37d, bestbuds 0c242b31).
-3. At most two warm semantic sessions on the Mac; heavier indexing on m1-worker; segments shared by input digest. Recommended. Done for the Mac (two sessions, segments by input digest, indexing woken by file events); indexing on m1-worker has not started.
+3. At most two warm semantic sessions on the Mac; heavier indexing on m1-worker; segments shared by input digest. Recommended. Done for the Mac (two sessions, segments by input digest, indexing woken by file events); indexing on m1-worker has not started. It waits on a remote-dev copy-back family for `build/atlas` and a dependeasy task family to name it, both owned by other sessions.
 4. MCP shape: one `reaktor` tool plus five direct tools. Recommended.
 5. OpenRewrite: only the Apache-licensed modules, an allow-list of qualified recipes, run on the worker. Recommended.
 6. The Atlas lives in reaktor-code (open), provider nodes in reaktor-tooling (open), composition in the closed kernel. Recommended.
 7. A graph recorder in test harnesses for node-level test selection. Recommended; it is small and makes affected checks exact.
 8. Names: `atlas.query`, `atlas.read`, `change.plan`, `change.apply`, `check.run`, with today's `code.*` names kept as aliases until every face has moved.
-9. The Gradle Tooling API waits for two things outside the kernel: WP16's `ToolingModelBuilder`, so a connection fetches a typed model instead of running the init script, and a `remote-dev` command that hands the local Gradle lease to another process (and streams a worker run's typed events), so a connection never bypasses placement. Until both exist, compilations come from the init script through `./gradlew`, which remote-dev places. Recommended.
-10. Android sessions extract each `.aar` on an Android compilation's classpath into a digest-keyed cache under `build/atlas`, add the compileSdk's `android.jar`, and turn on only after a qualification on BestBuds' `androidMain` files, as JS and Native did. Recommended.
-11. Every dist install rebuilds the Kotlin helper archive with the kernel, so no owner runs a helper older than its kernel; on 21 October the live owners' helper predated the facts request and every Kotlin file failed to index. Recommended.
+9. The Gradle Tooling API waits for two things outside the kernel: WP16's `ToolingModelBuilder`, so a connection fetches a typed model instead of running the init script, and a `remote-dev` command that hands the local Gradle lease to another process (and streams a worker run's typed events), so a connection never bypasses placement. Until both exist, compilations come from the init script through `./gradlew`, which remote-dev places. Recommended. The lease command exists since 21 October: `~/dev/tools/gradle-lease -- COMMAND` runs a command under the local Gradle lease, with `REMOTE_DEV_WORKER=1` so a `./gradlew` inside it runs Gradle here instead of queueing for the lease it already holds. The kernel does not use it, because `./gradlew` already takes the lease through remote-dev (§12).
+10. Android sessions extract each `.aar` on an Android compilation's classpath into a digest-keyed cache under `build/atlas`, add the compileSdk's `android.jar`, and turn on only after a qualification on BestBuds' `androidMain` files, as JS and Native did. Recommended. Done in code on 21 October and live since the 12:59 install, which ran ahead of the qualification; the qualification is next.
+11. Every dist install rebuilds the Kotlin helper archive with the kernel, so no owner runs a helper older than its kernel; on 21 October the live owners' helper predated the facts request and every Kotlin file failed to index. Recommended. Until installs do it, the kernel rebuilds the helper itself when its sources changed or it predates the facts request, and `kernel.status` says so (§9 row 23).
 12. A rename takes only the uses the compiler confirms. Uses found by name are renamed only when the caller asks for them (`need: "syntactic"`) or names their positions (`include`), and each is marked in the plan; the plan says it is incomplete while matches the Atlas reads as uses are left, and with no compiler facts and only name matches it is refused. Recommended; done 21 Oct after the Codex review (bestbuds aa2e2224, §11).
 13. The next milestone qualifies what exists before new views are added: a freshly installed owner runs one query, plan, apply and check workflow against fixed inputs and a control, measured by the tasks finished and accepted (Codex's T15, §11). Recommended.
 
@@ -1534,11 +1552,18 @@ Started 16 October 2026 at the owner's request ("start building"). Codex keeps d
 | 15 | App graphs in the code graph, and the compiler-backed Reaktor reading | Done 21 Oct (committed, next dist). `KernelAppGraph.kt` turns the graphs declared in the source into scopes of the code graph, each node wired to the file that declares it and carrying the definition id a running graph gives it, so telemetry spans join it (ae78dd2b; `KernelCodeGraphTest`). `KernelReaktorFacts.kt` reads graphs made inside lambdas, the graphs `autoWire` is given and `connect()` calls from the compiler's facts (6d7c90bb; `KernelReaktorFactsTest`) |
 | 16 | Generated sources (§4.8) | Done 21 Oct (committed, next dist). `CodeWorkspace` reads the generated folders the build declares, lists their Kotlin files, and refuses to plan or write them; every other `build/` path stays refused (reaktor 34e8f6ac; `CodeWorkspaceTest`). The kernel takes the folders from the exported compilations; the Atlas finds declarations and uses in them and says the build writes them, a rename or structural rewrite leaves them with the reason, and the code graph marks them (bestbuds 49a490a4; `KernelGeneratedSourcesTest`) |
 | 17 | Revisions: the kernel's file watcher (§4.3) | Done 21 Oct (committed, next dist). `KernelWatch.kt` opens one FSEvents stream over the checkout and its included builds through the JDK's foreign function API, drops `build/`, `.git` and the like except the declared generated folders, and delivers a batch after a quiet second. A batch wakes the Kotlin and TypeScript indexing and the code graph; a build-script change resets the compilations stamp and, after a quiet minute, exports them again. `atlas.providers` lists it as `file-watcher` (bestbuds 49a490a4; `KernelWatchTest`). On other systems it is off and says so; answers check digests either way |
-| 18 | Gradle Tooling API, Android sessions, indexing on m1-worker | Waiting. The Tooling API needs WP16's model builder and a remote-dev lease command (decision 9); Android needs the archives' classes and `android.jar` and its own qualification (decision 10); worker indexing has not started (decision 3) |
+| 18 | Gradle Tooling API, Android sessions, indexing on m1-worker | Android sessions done 21 Oct (row 24). The Tooling API waits on WP16's model builder and on the owner's go-ahead for its download; the lease command it needs exists (decision 9). Worker indexing waits on a remote-dev copy-back family for `build/atlas` and a dependeasy task family to name it, both owned by other sessions (decision 3) |
 | 19 | How sure each use is (§11) | Done 21 Oct (committed, next dist; the 01:19 install carried an earlier, untested version). `CodeWorkspace.bindings` reads each occurrence of a name in a Kotlin file and binds it by Kotlin's scope rules: block locals declared before it, function and lambda parameters, for, catch and when variables, setter parameters, class members and companions, and constructor parameters inside initializers; a named argument carries its call. The Atlas leaves parameters, locals and named arguments out of a declaration's uses and counts them; each use says whether the compiler confirmed it or a name match found it; an answer's first line says how many of the files searched the compiler checked. A name search reads the files that also name the owner first, so a member of a companion is found when its name is in more than 400 files (reaktor b15a715f, bestbuds aa2e2224 and c7db224a; `CodeWorkspaceTest`, `KernelAtlasTest`, `KernelAcceptanceTest`) |
 | 20 | A rename takes what the compiler confirms (decision 12) | Done 21 Oct (committed, next dist; the 01:19 install carried an earlier, untested version). `need: "syntactic"` or `include: ["path:line:col"]` renames name matches, each marked "by name" in the plan; the plan says it is incomplete while matches the Atlas reads as uses are left; with no compiler facts and only name matches it is refused. Codex's fixture, a function `greeting` beside a parameter `greeting` of `decoy`, renames the function and its calls and leaves the parameter, its use, a named argument and a lambda parameter, each with its reason (bestbuds aa2e2224; `KernelAcceptanceTest`, `KernelChangesTest`) |
 | 21 | `check.run` says why a check failed | Done 21 Oct (committed, next dist). Each "What went wrong" block of Gradle's output becomes a failure with its phase (configuration, dependencies, compilation, tests, task or build) and its cause; worker paths become paths in this checkout, `../reaktor/...` for the included build; the answer names the source snapshot the run read and says when files changed while it read them; a failed run with no Gradle report gives the run's own failure (bestbuds aa2e2224; `KernelChangesTest`) |
 | 22 | Which build answers, and what to call | Done 21 Oct (committed, next dist). `kernel.status` names the owner's kernel jar, its build time and the process start, a digest of its operations, recipes and presets, the commits since its build, each checkout's commit and uncommitted files, the build model and compilations it reads, the Kotlin helper's age against its sources, the indexing, and each provider that is not ready. When no Kotlin file indexes and most failed, the Kotlin provider names the helper as the likely cause, with the helper's most common answer. The catalog lists the preferred operations first and each name kept for older callers names the one to use; argument errors say so with a describe hint, and a failure to decode other data names the operation and says the data likely came from another build; the MCP door reads owner answers tolerantly, and its instructions are about 1,500 characters instead of 3,400; batch parts run in parallel within a 28-second deadline, each with an equal share of the text, and a part not ready comes back as a `next:` line (reaktor b15a715f, bestbuds aa2e2224 and c7db224a; `OperationKernelTest`, `KernelSemanticFactsTest`, `KernelAtlasTest`, `KernelAcceptanceTest`) |
+| 23 | The Kotlin helper's capacity and age (decision 11) | Done 21 Oct; live on the BestBuds and Manna owners since another session's 12:59 install. The helper answers `capabilities` with the requests it serves and takes 2,048 modules a session instead of 256 (reaktor cb9a51d4). The kernel asks it first, splits a family's compilations project by project into sessions of at most that many modules, and reads a use of a project in another session from its last built jar. When the helper predates the facts request, its sources changed after it was built, or none is built, the kernel rebuilds it with `kotlinSemanticDistZip` in the background, at most once per sources digest in 30 minutes, and `kernel.status` says so (bestbuds bac14f06; `KernelKotlinFamiliesTest`, `KernelSemanticFactsTest`). At 13:10 the BestBuds owner had indexed 2,611 of its 2,975 Kotlin files |
+| 24 | Android sessions (decision 10) | Done 21 Oct; live since the 12:59 install, not qualified. The compilations export asks Gradle for each Android compilation's class jars and records its boot classpath. Where the classpath still holds an `.aar`, the kernel unpacks its `classes.jar` and `libs/*.jar` into a cache under `build/atlas/aar` keyed by the archive's path, size and time, adds the module's compile `R.jar`, and uses the export's boot classpath or else the newest `android.jar` installed, which the answer names; the BestBuds owner reads against android-37.0 (bestbuds bac14f06; `KernelKotlinFamiliesTest`). The 21 October export lists no other project among the 168 Android compilations' dependencies, which the qualification has to explain |
+| 25 | Narrowed test selection | Done 21 Oct; live since the 12:59 install. `checks.affected` names, for each check, the test classes in its test source sets whose files reach the change through the code graph's uses, up to 600 files reached and 40 classes a check. `check.run {narrow: true}` runs each such check as a Gradle run of its own with `--tests` for those classes, the other checks in one run as before, and lists the narrowed runs with their classes (bestbuds bac14f06; `ChangeChecksTest`, `KernelChangesTest`). The selection is static, so a test that reaches the change only at run time is missed; the test recorder of decision 7 would make it exact |
+| 26 | Runtime view and route coverage | Done 21 Oct; live since the 12:59 install. The `runtime` preset joins the telemetry spans the kernel retained in the last hour to the app graphs' nodes by definition id and lists each node with its spans, as `observed` evidence; `from.name` narrows it to a graph or node. `atlas.providers` lists `retained telemetry` as the runtime provider with its state, and `need: "observed"` points to it. The `routes` preset lists each declared route with the Maestro flows whose `openLink` opens it, following `runFlow`, and the paths flows open that match no route (bestbuds bac14f06; `KernelAtlasPresetsTest`, `KernelFlowCoverageTest`, `KernelAtlasCompiledTest`). On the BestBuds owner 6 of 33 routes are opened by a flow; a flow that reaches a screen by tapping is not followed. No span of production was retained at 13:10, so the runtime preset had nothing to join |
+| 27 | Web checks through the pnpm lockfile | Done 21 Oct; live since the 12:59 install. `ChangeChecks` reads the `link:` entries of each build's `pnpm-lock.yaml`, so a change in a workspace package also runs the web checks of the packages that link it, with the package as the reason (bestbuds bac14f06; `ChangeChecksTest`). The Kotlin/JS packages Gradle writes under `build/js` are not mapped to modules yet |
+| 28 | C and C++ through clangd | Done 21 Oct; live since the 12:59 install. `ClangdLanguageServer` in reaktor-tooling finds clangd (`REAKTOR_CLANGD`, `xcrun --find clangd`, `PATH`, Homebrew's LLVM) and the LSP session gained outlines with extents, references, renames and indexing progress (reaktor 2fa97eac; `ClangdLanguageServerTest`). `KernelCppFacts` finds native modules by the compile commands dependeasy writes (`build/dependeasy/native/<target>/compile_commands.json`, host first), writes each module's commands for its own sources under `build/atlas/clangd`, starts one clangd per module at the first question about it and closes it after 15 idle minutes. The Atlas answers C and C++ names, uses grouped by line with the declaration each sits in, positions, file contents and reads from it, and `change.plan` renames a C++ declaration through it (`clangd-rename-v1`), refusing a rename that would edit vendored or built files and noting that Kotlin bound through cinterop or JNI keeps the old name (bestbuds bac14f06; `KernelCppFactsTest`, with clangd 21 on m1-worker). The BestBuds owner serves reaktor-ffi (3 own sources; 506 vendored Hermes files left out), reaktor-security (2) and reaktor-flexbuffer (6). C++ is not in the code graph or `impact`, and the cinterop and JNI bindings between Kotlin and C++ are not followed |
+| 29 | Fixes from the 21 October review (§12) | Done 21 Oct. An install at about 12:28 carried a kernel that ran its compilations export as `gradle-lease -- ./gradlew`; `./gradlew` takes the lease itself through remote-dev, so at 12:40 the Manna owner's export waited for the lease it held, and every Gradle job on this Mac waited behind it until that export was stopped at 12:55. The kernel runs `./gradlew` directly again (live since 12:59), and `gradle-lease` runs its command with `REMOTE_DEV_WORKER=1`, so a `./gradlew` inside it cannot wait on its own lease (`test_gradle_lease.py`). A C++ rename now waits until clangd has indexed the module and is refused while it still indexes, because a rename planned during indexing missed the header in one run on m1-worker; the routes answer groups the links that open no route by path. Also: a helper unpacked by two processes at once leaves no temporary folder; a rename tries C++ only when no Kotlin declaration has the name; a clangd that failed to start is tried again after five minutes; `need: "observed"` names the runtime preset and provider; the MCP tool descriptions list the new presets and C++ (bestbuds bac14f06, reaktor 2fa97eac) |
 
 **Open on the owner's Mac (16 Oct).**
 - Cut-over done 16 Oct. It surfaced a startup bug: an engineering descriptor (`kernel-connection.json`) left by a dead process made the new owner's `publish` throw, the owner then lost its lock and new sessions failed for about 15 minutes. `publish` and the server's `connect` now replace a descriptor whose endpoint is gone or answers as someone else, and the owner exits for launchd to restart it when startup fails after it opened the workspace. Fixed 20 Oct: every agent operation declares its effect (§9, row 9). Since 17 Oct the default seat policy allows every effect (the owner's "full access as default"; `DoorPolicy.Guarded` keeps the old decisions), so they no longer ask a person, but their effects still matter for the audit trail and for Guarded. remote-dev's appended `:exportBuildModel` failed on `kotlinAnalysisCompiler` resolution in dependeasy on 16 Oct.
@@ -1569,22 +1594,56 @@ In the night of 20 to 21 October the remaining items of §6 got their code, all 
 
 Early on 21 October Codex reviewed the tooling layer after using it, in two reviews (§11). The fixes are committed and tested on m1-worker (reaktor b15a715f, bestbuds aa2e2224 and c7db224a; run 20261021-015939-215e1b83 passed 676 tests in 153 classes, and run 20261021-023858-a1af17f7 every Atlas test class with the follow-up). Another session installed a dist from the working tree at about 01:19, before these fixes were tested, and the owners restarted on it between 01:20 and 01:23. Probed read-only at about 02:15, the owners answer with the evidence on each use, the rename policy and the batch `next:` lines, and `build.list` and `build.tree` answer again; they do not know `kernel.status`, list the catalog by name only, still miss `LoopbackMcpServer.start`, and index no Kotlin file, because their helper is from 19 October.
 
+From the late morning to the afternoon of 21 October the rest of §9 got its code (rows 23 to 29). The Kotlin helper says what it answers and takes 2,048 modules a session, and the kernel sizes its sessions to it and rebuilds a stale helper; Android compilations get their class jars, `R.jar` and a platform `android.jar`; C and C++ are answered and renamed through one clangd per native module; `check.run {narrow: true}` runs only the test classes that reach a change; the `runtime` and `routes` presets join retained telemetry spans and Maestro flows to the app graphs; and the pnpm lockfile's links choose web checks. The kernel suite passed on m1-worker (run 20261021-130601-2be8b020: 448 tests, none failed, 11 skipped), and the C++ tests passed with a real clangd 21 (run 20261021-131205-082f474c). Other sessions installed dists from the shared working tree at about 12:28 and at 12:59, so this work went live before it was committed. The 12:28 build wrapped the compilations export in `gradle-lease`, and at 12:40 the Manna owner's export waited for the lease it held, which stopped every Gradle job on this Mac until the export was stopped at 12:55; the 12:59 build no longer wraps it, and `gradle-lease` can no longer deadlock that way. On the 12:59 build the BestBuds owner had indexed 2,611 of its 2,975 Kotlin files by 13:10, answers C++ from three native modules, and finds 6 of its 33 routes opened by a Maestro flow. §12 is the review that followed.
+
 ## 11. Codex review, 21 October
 
 After using the tooling layer on 20 and 21 October, Codex wrote two reviews. This section lists what they found, what changed and what is still open. The changes are in reaktor b15a715f and bestbuds aa2e2224 and c7db224a, tested on m1-worker and not yet installed, apart from the parts the 01:19 install carried (§0).
 
 | # | Finding | What changed | Still open |
 |---|---|---|---|
-| 1 | An answer did not say how sure it was. A references query listed lambda parameters as uses while the compiler had checked none of 2,889 files, and a rename without the compiler took every use found by name. | Names are bound by Kotlin's scope rules before they count as uses, so parameters, locals, lambda parameters and named arguments of the same name are left out and counted. A use found only by name is shown as `use (name match)`, and an answer's first line says how many of the files searched the compiler checked. | The live owners' compiler checks no file until their helper is rebuilt (decision 11). Counts are of lines, so a line with two uses counts once. |
+| 1 | An answer did not say how sure it was. A references query listed lambda parameters as uses while the compiler had checked none of 2,889 files, and a rename without the compiler took every use found by name. | Names are bound by Kotlin's scope rules before they count as uses, so parameters, locals, lambda parameters and named arguments of the same name are left out and counted. A use found only by name is shown as `use (name match)`, and an answer's first line says how many of the files searched the compiler checked. | Fixed on the BestBuds and Manna owners by the 12:59 install, which indexed 2,611 of 2,975 BestBuds files by 13:10. A line with two uses now shows ×2 and counts twice. |
 | 2 | A rename should take only what the compiler binds; Codex's fixture puts `fun greeting() = "hello"` beside `fun decoy(greeting: String) = greeting`. | Decision 12. The fixture is in `KernelAcceptanceTest`: the function and its calls are renamed, and the parameter, its use, a named argument and a lambda parameter are left, each with its reason. | Qualifying it on a real change, in the next milestone. |
 | 3 | The documented first questions failed: `atlas_query` and `atlas_read` found no `LoopbackMcpServer.start`. | Two things stopped it. `start` is in more than 400 Kotlin files, the most a name search reads, and the declaring file was not among them; and Kotlin's syntax tree gives a member of an unnamed companion the owner `LoopbackMcpServer.Companion`, which the search did not take for `LoopbackMcpServer`. The search now reads the files that also name the owner first, and finds members of named and unnamed companions, typealiases and extensions; `KernelAcceptanceTest` covers these, overloads, and an expect/actual pair renamed together. | The 01:19 build on the live owners still misses it; the next install fixes it. |
 | 4 | A batch answered only "request timed out", and one lookup took about 17 seconds. | Batch parts run in parallel within a 28-second deadline, each with an equal share of the text. A part not ready in time comes back as a `next:` line to repeat, and a part with invalid arguments says so while the others answer. | The 17-second lookup has not been measured again. |
 | 5 | Finding the right operation cost too much: long instructions, and overlapping names (`code.*` and `atlas.*`, `check.*` and `checks.*`, `board.*` and `agent.board.*`). | The catalog lists the preferred operations first, and each name kept for older callers carries `prefer` with the operation to use. The MCP instructions are about 1,500 characters instead of 3,400. | The old names stay until every face has moved (decision 8). `checks.affected` has no single replacement, because it takes several paths and the preset takes one. |
 | 6 | Nothing said which build was answering: one owner did not know `atlas.providers`, the structural recipes were missing, and `build.list` and `build.tree` failed on a field named `environment`. | `kernel.status` says which build answers and what it can do (§9, row 22). An error in an operation's arguments says so; a failure to decode other data names the operation and says the data likely came from another build. The MCP door reads owner answers tolerantly. When no Kotlin file indexes and most failed, the Kotlin provider names the helper as the likely cause, with the helper's most common answer. | `build.list` and `build.tree` answer on the live owners again since the 01:19 install. MCP doors started before that install print some answers as raw JSON until their session restarts. |
 | 7 | `check.run` did not say why a check failed. In the receipt Codex cited (run 20261021-003649-8d025812), the cause, a configuration problem in `:reaktor` about a web contract import, was only in the log. | Each "What went wrong" block of Gradle's output becomes a failure with its phase and cause, worker paths become paths in this checkout, and the answer names the source snapshot the run read, or says that files changed while it read them. | None found. |
-| 8 | Checks are chosen per module and include every module that uses a change (`ChangeChecks.kt`). | No change. | Choosing tests needs the test recorder (decision 7). |
+| 8 | Checks are chosen per module and include every module that uses a change (`ChangeChecks.kt`). | `check.run {narrow: true}` runs only the test classes that reach the change through the code graph (§9 row 25). | The selection is static; the test recorder (decision 7) makes it exact. |
 | 9 | "Done" mixed implemented, tested, installed and qualified, and the history hid the current state. | §0 keeps the four states apart in a table, and the history moved to §10. | None. |
 
 **Next milestone.** Codex's T15, recorded as decision 13: a freshly installed owner runs one query, plan, apply and check workflow against fixed inputs, the same tasks and checkout each time with a control that does not use the Atlas, and the measure is the share of whole tasks finished and accepted. After that comes diagnosis from the graph to the runtime: a failing check or a crash joined to the nodes and ports that produced it. Then the measurement of complete, accepted tasks across the agents.
 
-**Extensions the review lists, for later.** Qualified contracts for ports; joins between source and runtime, beyond the definition ids running graphs already carry; a test recorder at the level of ports (decision 7); route coverage from Maestro flows; a manifest of FFI bindings between Kotlin and C++; change recipes stated over the architecture, such as graphs and ports, rather than text; and provider capabilities that can be run, so a provider shows on a fixture that it gives what it claims before it answers.
+**Extensions the review lists, for later.** Qualified contracts for ports; joins between source and runtime, beyond the definition ids running graphs already carry; a test recorder at the level of ports (decision 7); route coverage from Maestro flows (done for `openLink` on 21 October, §9 row 26); a manifest of FFI bindings between Kotlin and C++; change recipes stated over the architecture, such as graphs and ports, rather than text; and provider capabilities that can be run, so a provider shows on a fixture that it gives what it claims before it answers (§12).
+
+## 12. Review and design improvements, 21 October afternoon
+
+After the rest of §9 was built, the whole design was reviewed: correctness, reliability, performance and cost, operations, security and fit with the other plans. This section lists what the review found and how the design can be improved, the highest leverage first.
+
+**Found and fixed the same day.**
+- A lock taken twice. A kernel build wrapped its compilations export in `gradle-lease`, which takes the local Gradle lease, and the `./gradlew` inside it takes the same lease through remote-dev, so the export waited on itself and every Gradle job on this Mac waited behind it for 15 minutes. The lease has one owner, remote-dev; the kernel calls `./gradlew` directly, and `gradle-lease` gives its command `REMOTE_DEV_WORKER=1` so a nested `./gradlew` runs Gradle under the lease it already holds (§9 row 29).
+- A C++ rename raced clangd's index. Planned right after clangd started, a rename missed the declaration in the header, because the header is only known once the module's sources are indexed. A rename now waits for the index and is refused while clangd still indexes; uses say when they may be incomplete.
+- Smaller ones: a stale-helper rebuild could race another unpack and leave a folder; a Kotlin rename failure such as an ambiguity fell through to C++; a clangd that failed to start was never tried again; `need: "observed"` sent callers nowhere; the routes answer listed one dev link per query string.
+
+**Found and open.**
+- Installs run ahead of commits and qualification. Two installs on 21 October were built from the shared working tree while this work was uncommitted: the first carried the lock bug, and the second put Android sessions live before their qualification, the order decision 10 asked to avoid. Each install also carries every other session's uncommitted work.
+- Three provider lifecycles. Kotlin facts are kept as segments per file and digest, TypeScript facts as one index per project rebuilt when a file changes, and C++ answers come live from a clangd process. So the code graph, `impact` and the narrowed checks see Kotlin and TypeScript but not C++, and a C++ answer waits up to 15 seconds after clangd starts.
+- `KernelAtlas.kt` is about 2,000 lines with a branch per language in each kind of question (name, position, file, read, rename), so each new language touches every question.
+- No memory budget across providers: up to two Kotlin helpers of 6 GB, scip-typescript at about 2 GB for Manna, and one clangd per native module are each limited on their own.
+- Kotlin and C++ are not joined. reaktor-ffi's Kotlin binds its C functions through a cinterop `.def` file and JNI names, so a C++ rename can break Kotlin; `check.run` finds it, `impact` does not show it.
+- Selection and coverage are static. Narrowed checks miss tests that reach a change only at run time and run one Gradle run each, because the control plane's Gradle request puts `--tests` after all tasks; route coverage follows `openLink` only, so 27 of 33 BestBuds routes show no flow while flows reach most of them by tapping.
+- MCP doors keep the tool list they started with. A Claude or Codex session started before an install does not see new arguments such as `preset` and `need` on `atlas_query` until it restarts; the `kernel` tool and the shell form see them.
+- Android compilations list no other project among their dependencies in the export, so Android answers are unqualified; worker indexing and the Tooling API wait on other owners (§9 row 18).
+
+**How the design can be improved, highest leverage first.**
+1. Install from commits. An install builds the dist from committed heads, runs the kernel suite on m1-worker first, and records the commits in the dist; `kernel.status` names them. This keeps half-done work off the owners and qualification ahead of exposure.
+2. Qualify what is live (decision 13). The 12:59 build is the first with compiler facts indexed on the owners, so T15 can run on it now, and the Android qualification on `androidMain` goes with it.
+3. One language-provider contract. Each language provider answers the same questions (find by name, at a position, outline a file, uses, read, rename, and facts for the code graph) with its evidence, and the Atlas becomes one pipeline over providers, so Swift or scip-clang is one new provider rather than a branch in every question.
+4. Provider checks that run. Each provider ships a small fixture and the answers it must give; `atlas.providers {check: true}` runs them after an install, so "ready" means the provider answered its fixture, not that its process started.
+5. C++ in the facts and the graph. scip-clang segments with the same lifecycle as Kotlin's put C++ in the code graph and `impact`, and FFI `binds` edges from cinterop `.def` files and JNI names join Kotlin and C++ declarations, so a C++ rename lists the Kotlin that binds it.
+6. Exact tests in one run. The test recorder of decision 7 replaces the static selection, and the control plane's Gradle request puts `--tests` after each task (its owner's change), so all narrowed checks run in one Gradle run.
+7. One memory budget. The kernel decides how many Kotlin helpers, clangd processes and TypeScript indexes run from the Mac's free memory, and `kernel.status` shows the budget.
+8. Doors that follow the owner. The MCP door compares the owner's capability digest from `kernel.status` and, when it changes, fetches the tool list again and tells the client the list changed.
+9. Worker indexing through a remote-dev copy-back family for `build/atlas`, once its owners add it (decision 3).
+10. Route coverage from runs. Flows that tap reach routes the static reading cannot see; the routes a test run opens, read from telemetry or the test recorder, close that gap.
+11. Hangar views for the `runtime` and `routes` presets and for the clangd provider, in the Hangar session's Atlas view.
