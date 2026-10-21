@@ -36,7 +36,7 @@ export class BuildRuntime {
       .withExec(["ln", "-s", "/usr/bin/bsdtar", "/usr/local/bin/tar"])
       .withExec(["rm", "-rf", "/var/lib/apt/lists"])
       .withExec(["mkdir", "-p", contract.gradleArchive.substring(0, contract.gradleArchive.lastIndexOf("/"))])
-      .withExec(["curl", "-fsSL", "--retry", "5", "--retry-all-errors", "--retry-delay", "3", "--connect-timeout", "30",
+      .withExec(["curl", "--http1.1", "-fsSL", "--retry", "5", "--retry-all-errors", "--retry-delay", "3", "--connect-timeout", "30",
         "-o", contract.gradleArchive, contract.gradleUrl])
       .withNewFile("/opt/gradle-dist/checksums", `${contract.gradleSha256}  ${contract.gradleArchive}\n`)
       .withExec(["sha256sum", "--check", "--status", "/opt/gradle-dist/checksums"])
