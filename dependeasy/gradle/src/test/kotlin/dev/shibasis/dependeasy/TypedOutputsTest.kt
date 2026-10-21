@@ -25,11 +25,25 @@ class TypedOutputsTest {
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val result = layout.buildDirectory.file("result.txt")
-            val producer = tasks.register("producer") {
-                val destination = result
-                outputs.file(destination)
-                doLast { destination.get().asFile.apply { parentFile.mkdirs(); writeText("verified") } }
+            abstract class Producer : DefaultTask() {
+                @get:org.gradle.api.tasks.OutputFile abstract val destination: org.gradle.api.file.RegularFileProperty
+                @get:org.gradle.api.tasks.Input abstract val message: org.gradle.api.provider.Property<String>
+                @org.gradle.api.tasks.options.Option(option = "message", description = "Result contents")
+                fun message(value: String) { message.set(value) }
+                @org.gradle.api.tasks.TaskAction fun produce() {
+                    destination.get().asFile.apply { parentFile.mkdirs(); writeText(message.get()) }
+                }
             }
+            val producer = tasks.register<Producer>("producer") {
+                destination.set(result)
+                message.convention("verified")
+            }
+            val secondary = tasks.register<Producer>("secondary") {
+                destination.set(layout.buildDirectory.file("secondary.txt"))
+                message.convention("secondary")
+            }
+            val combined = files(result, secondary.flatMap { it.destination }).builtBy(producer, secondary)
+            publishOutput(OutputKind.VerificationResults, combined, Verification.Jvm)
             publishOutput(OutputKind.VerificationResults, result, Verification.TypeScript, producer = producer)
             publishOutput(OutputKind.AppleFramework, result, Apple.IosArm64, Build.Debug, producer = producer)
         """.trimIndent())
@@ -73,6 +87,14 @@ class TypedOutputsTest {
         val model = BuildModelReader.read(directory)
         val output = model.nodes.single { it.id == NodeId("fixture", ":library", "outputVerificationResultsTypeScript") }
         assertEquals(listOf(":library:producer"), (output.invocation as Invocation.Gradle).tasks)
+        val producer = model.nodes.single { it.id == NodeId("fixture", ":library", "producer") }
+        assertEquals(producer.options, output.options)
+        assertEquals("message", output.options.single().name)
+        assertEquals(OptionType.String, output.options.single().type)
+        val combined = model.nodes.single { it.id == NodeId("fixture", ":library", "outputVerificationResultsJvm") }
+        assertEquals(listOf(":library:producer", ":library:secondary"), (combined.invocation as Invocation.Gradle).tasks)
+        assertTrue(combined.options.isEmpty())
+        assertNull(export.task(":library:secondary"))
         assertEquals("library/build/result.txt", output.outputs.single().paths.single())
         assertTrue(model.edges.any { it is Edge.Consumes && it.to == output.id })
         assertTrue(model.omissions.none { it.reason == "foreign task path" })
@@ -90,6 +112,8 @@ class TypedOutputsTest {
         assertNotNull(execution.task(":other:checks"))
         assertEquals("verified", directory.resolve("library/build/result.txt").readText())
         assertContains(run("checks").build().output, "Reusing configuration cache")
+        run(":library:producer", "--message=selected").build()
+        assertEquals("selected", directory.resolve("library/build/result.txt").readText())
     }
 
     @Test fun `project rename fails at the typed use with its source location`() {
