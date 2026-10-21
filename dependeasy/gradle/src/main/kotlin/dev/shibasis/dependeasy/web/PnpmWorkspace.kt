@@ -8,11 +8,25 @@ import dev.shibasis.dependeasy.handles.publishOutput
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.model.OutputKind
 import org.gradle.api.Project
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.provider.ValueSource
+import org.gradle.api.provider.ValueSourceParameters
 import org.gradle.api.tasks.TaskProvider
 import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+
+internal abstract class PnpmPackageInventory : ValueSource<Map<File, String?>, PnpmPackageInventory.Parameters>, org.gradle.api.Describable {
+    override fun getDisplayName(): String = "Pnpm linked package inventory"
+    interface Parameters : ValueSourceParameters {
+        val manifests: ConfigurableFileCollection
+    }
+    override fun obtain(): Map<File, String?> = linkedPackageInputs(parameters.manifests.files).associateWith { file ->
+        if (file.isFile && file.name == "package.json")
+            Json.parseToJsonElement(file.readText()).jsonObject["name"]?.jsonPrimitive?.content else null
+    }
+}
 
 /** A repository owns one lockfile and installation, including its Kotlin-generated packages. */
 class PnpmWorkspace private constructor(private val project: Project) {
@@ -22,10 +36,10 @@ class PnpmWorkspace private constructor(private val project: Project) {
         else directory.resolve("dependeasy/javascript")
     val tools = JavaScriptTools.get(project)
     val manifests = workspaceManifests(project)
+    private val packageInputs = project.providers.of(PnpmPackageInventory::class.java) { parameters.manifests.from(manifests) }
     internal fun localPackages(): Map<String, File> =
-        linkedPackageInputs(manifests.files).filter { it.isFile && it.name == "package.json" }
-            .sortedBy { it.invariantSeparatorsPath.contains("/build/") }
-            .mapNotNull { file -> Json.parseToJsonElement(file.readText()).jsonObject["name"]?.jsonPrimitive?.content?.let { it to file.parentFile } }
+        packageInputs.get().entries.sortedBy { it.key.invariantSeparatorsPath.contains("/build/") }
+            .mapNotNull { (file, name) -> name?.let { it to file.parentFile } }
             .groupBy({ it.first }, { it.second }).mapValues { it.value.first() }
     private fun <T : ProcessTask> command(name: String, detail: String, type: Class<T>, vararg args: String): TaskProvider<T> =
         project.tasks.register(name, type) {
@@ -37,9 +51,9 @@ class PnpmWorkspace private constructor(private val project: Project) {
             environment.putAll(tools.environment)
             arguments.set(args.toList())
             toolVersion.set("pnpm ${ToolchainVersions.Pnpm} / node ${ToolchainVersions.Node}")
-            sourceFiles.from(manifests, linkedPackageInputs(manifests.files).filterNot {
+            sourceFiles.from(manifests, packageInputs.map { inputs -> inputs.keys.filterNot {
                 it.invariantSeparatorsPath.contains("/${KotlinPackageExport.RelativeDirectory}/")
-            })
+            } })
             sourceFiles.from(directory.resolve("pnpm-lock.yaml"), directory.resolve("pnpm-workspace.yaml"), directory.resolve(".npmrc"))
         }
     val install = command("pnpmInstall", "Install the repository workspace from its frozen pnpm lockfile",

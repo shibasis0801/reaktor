@@ -177,12 +177,27 @@ class BackendPipelineTest {
                 val web = javascript("linked", "web")
                 workspace { val installLinked by artifacts { include(node(web.install)) } }
             }
+            dev.shibasis.dependeasy.web.PnpmWorkspace.get(project).install.get().sourceFiles.files
         """.trimIndent())
         prepareLock("web")
         assertEquals(TaskOutcome.SUCCESS, run("installLinked").task(":pnpmInstall")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, run("installLinked").task(":pnpmInstall")?.outcome)
         generated.writeText("""{"name":"generated-library","version":"1.0.0","description":"changed"}""")
-        assertEquals(TaskOutcome.SUCCESS, run("installLinked").task(":pnpmInstall")?.outcome)
+        val changed = run("installLinked")
+        assertEquals(TaskOutcome.SUCCESS, changed.task(":pnpmInstall")?.outcome)
+        assertContains(changed.output, "Reusing configuration cache")
+        run("help")
+        assertContains(run("help").output, "Reusing configuration cache")
+        generated.writeText("""{"name":"renamed-library","version":"1.0.0"}""")
+        val renamed = run("help")
+        assertFalse(renamed.output.contains("Reusing configuration cache"))
+        assertContains(renamed.output, "Pnpm linked package inventory")
+        assertContains(run("help").output, "Reusing configuration cache")
+        assertTrue(generated.delete())
+        val removed = run("help")
+        assertFalse(removed.output.contains("Reusing configuration cache"))
+        assertContains(removed.output, "Pnpm linked package inventory")
+        assertContains(run("help").output, "Reusing configuration cache")
     }
 
     @Test fun `generated web assets feed the bundle without becoming authored typecheck inputs`() {
