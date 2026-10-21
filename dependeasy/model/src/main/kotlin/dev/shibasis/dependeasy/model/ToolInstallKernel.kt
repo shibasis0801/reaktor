@@ -19,71 +19,74 @@ object ToolInstallKernel {
         val checksum = requireNotNull(spec.checksum) { "Tool installation needs a checksum" }
         val directory = File(spec.installation)
         directory.mkdirs()
-        FileChannel.open(directory.resolve(".lock").toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE).use { channel ->
-            channel.lock().use {
-                val binary = directory.resolve(spec.executable)
-                val receipt = directory.resolve(".sha256")
-                if (binary.canExecute() && receipt.isFile && receipt.readText() == checksum) return
-                binary.parentFile.mkdirs()
-                if (spec.format == "Sdk") {
-                    val source = File(spec.source)
-                    check(source.canExecute()) { "SDK tool is not executable: $source" }
-                    check(dev.shibasis.dependeasy.model.BuildModelReader.digest(source) == checksum) { "SDK tool checksum changed: $source" }
-                    Files.deleteIfExists(binary.toPath())
-                    Files.createSymbolicLink(binary.toPath(), source.toPath())
-                    receipt.writeText(checksum)
-                    return
-                }
-                val archive = Files.createTempFile(directory.toPath(), "download-", ".tgz")
-                val executable = Files.createTempFile(directory.toPath(), "executable-", ".tmp")
-                try {
-                    download(spec.source, archive, warn)
-                    val digest = MessageDigest.getInstance("SHA-256")
-                    Files.newInputStream(archive).use { input ->
-                        val buffer = ByteArray(65536)
-                        while (true) { val size = input.read(buffer); if (size < 0) break; digest.update(buffer, 0, size) }
+        // Composite builds load this kernel more than once; file locks do not wait within one JVM.
+        synchronized(directory.canonicalPath.intern()) {
+            FileChannel.open(directory.resolve(".lock").toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE).use { channel ->
+                channel.lock().use {
+                    val binary = directory.resolve(spec.executable)
+                    val receipt = directory.resolve(".sha256")
+                    if (binary.canExecute() && receipt.isFile && receipt.readText() == checksum) return
+                    binary.parentFile.mkdirs()
+                    if (spec.format == "Sdk") {
+                        val source = File(spec.source)
+                        check(source.canExecute()) { "SDK tool is not executable: $source" }
+                        check(dev.shibasis.dependeasy.model.BuildModelReader.digest(source) == checksum) { "SDK tool checksum changed: $source" }
+                        Files.deleteIfExists(binary.toPath())
+                        Files.createSymbolicLink(binary.toPath(), source.toPath())
+                        receipt.writeText(checksum)
+                        return
                     }
-                    val actual = digest.digest().joinToString("") { "%02x".format(it) }
-                    check(actual == checksum) { "Tool checksum mismatch for ${spec.source}: $actual" }
-                    val prefix = spec.archivePrefix
-                    fun accept(name: String, input: java.io.InputStream, mode: Int): Boolean {
+                    val archive = Files.createTempFile(directory.toPath(), "download-", ".tgz")
+                    val executable = Files.createTempFile(directory.toPath(), "executable-", ".tmp")
+                    try {
+                        download(spec.source, archive, warn)
+                        val digest = MessageDigest.getInstance("SHA-256")
+                        Files.newInputStream(archive).use { input ->
+                            val buffer = ByteArray(65536)
+                            while (true) { val size = input.read(buffer); if (size < 0) break; digest.update(buffer, 0, size) }
+                        }
+                        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+                        check(actual == checksum) { "Tool checksum mismatch for ${spec.source}: $actual" }
+                        val prefix = spec.archivePrefix
+                        fun accept(name: String, input: java.io.InputStream, mode: Int): Boolean {
+                            if (prefix == null) {
+                                if (name != spec.archiveEntry) return false
+                                Files.copy(input, executable, StandardCopyOption.REPLACE_EXISTING)
+                                return true
+                            }
+                            if (!name.startsWith(prefix)) return false
+                            val relative = name.removePrefix(prefix)
+                            val target = directory.toPath().resolve(relative).normalize()
+                            require(target.startsWith(directory.toPath()) && target != directory.toPath()) { "Invalid tool archive entry: $name" }
+                            target.parent.toFile().mkdirs()
+                            Files.newOutputStream(target).use(input::copyTo)
+                            if (mode and 0b001001001 != 0 || relative == spec.executable) target.toFile().setExecutable(true, false)
+                            return relative == spec.executable
+                        }
+                        var found = false
+                        when (ToolArchive.valueOf(spec.format)) {
+                            ToolArchive.RawFile -> { Files.copy(archive, executable, StandardCopyOption.REPLACE_EXISTING); found = true }
+                            ToolArchive.TarGzip -> TarArchiveInputStream(GZIPInputStream(Files.newInputStream(archive))).use { tar ->
+                                while (true) {
+                                    val entry = tar.nextEntry ?: break
+                                    if (entry.isFile) found = accept(entry.name, tar, entry.mode) || found
+                                }
+                            }
+                            ToolArchive.Zip -> ZipInputStream(Files.newInputStream(archive)).use { zip ->
+                                while (true) {
+                                    val entry = zip.nextEntry ?: break
+                                    if (!entry.isDirectory) found = accept(entry.name, zip, 0) || found
+                                }
+                            }
+                        }
+                        check(found) { "Tool archive lacks ${spec.archiveEntry ?: spec.executable}" }
                         if (prefix == null) {
-                            if (name != spec.archiveEntry) return false
-                            Files.copy(input, executable, StandardCopyOption.REPLACE_EXISTING)
-                            return true
+                            executable.toFile().setExecutable(true, false)
+                            Files.move(executable, binary.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
                         }
-                        if (!name.startsWith(prefix)) return false
-                        val relative = name.removePrefix(prefix)
-                        val target = directory.toPath().resolve(relative).normalize()
-                        require(target.startsWith(directory.toPath()) && target != directory.toPath()) { "Invalid tool archive entry: $name" }
-                        target.parent.toFile().mkdirs()
-                        Files.newOutputStream(target).use(input::copyTo)
-                        if (mode and 0b001001001 != 0 || relative == spec.executable) target.toFile().setExecutable(true, false)
-                        return relative == spec.executable
-                    }
-                    var found = false
-                    when (ToolArchive.valueOf(spec.format)) {
-                        ToolArchive.RawFile -> { Files.copy(archive, executable, StandardCopyOption.REPLACE_EXISTING); found = true }
-                        ToolArchive.TarGzip -> TarArchiveInputStream(GZIPInputStream(Files.newInputStream(archive))).use { tar ->
-                            while (true) {
-                                val entry = tar.nextEntry ?: break
-                                if (entry.isFile) found = accept(entry.name, tar, entry.mode) || found
-                            }
-                        }
-                        ToolArchive.Zip -> ZipInputStream(Files.newInputStream(archive)).use { zip ->
-                            while (true) {
-                                val entry = zip.nextEntry ?: break
-                                if (!entry.isDirectory) found = accept(entry.name, zip, 0) || found
-                            }
-                        }
-                    }
-                    check(found) { "Tool archive lacks ${spec.archiveEntry ?: spec.executable}" }
-                    if (prefix == null) {
-                        executable.toFile().setExecutable(true, false)
-                        Files.move(executable, binary.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-                    }
-                    receipt.writeText(checksum)
-                } finally { Files.deleteIfExists(archive); Files.deleteIfExists(executable) }
+                        receipt.writeText(checksum)
+                    } finally { Files.deleteIfExists(archive); Files.deleteIfExists(executable) }
+                }
             }
         }
     }
