@@ -6,10 +6,10 @@ Written on 14 October 2026. This continues `dependeasy-handoff.md`: its work pac
 
 | WP | Package | State |
 |---|---|---|
-| WP19 | Fix what is broken, delete what is dead | Working: cleanup and dev fleet selection/bindings qualify (8 fixtures, real cold/warm graph dry runs). Pinned runtime Pulumi and its installer graph edge pass process-boundary checks; server live read-only preconditions pass. Dev bundle and live fleet acceptance remain. |
-| WP20 | One product delivery declaration | Outstanding (after WP12, WP13) |
+| WP19 | Fix what is broken, delete what is dead | Done: 16 real dev bundles and owner-approved live deployments pass; all 16 active Cloudflare versions match. Five prod-only workers excluded. Cleanup, current command checks, pinned Pulumi and read-only server preconditions qualify. Receipt metadata cache regression fixed; all 5 receipt/bridge cases pass. |
+| WP20 | One product delivery declaration | Working: canonical contract path/readers and shared config merge qualify (37 BestBuds configs preserved; 102 copied defaults removed). Manna fleet replaces standalone deployments: 9 fixtures, 2 final configs and warm generation/graph cache pass; committed/pushed. Typed delivery facts, remaining inventories and single environment input remain. |
 | WP21 | One deploy contract: plan, apply, verify, rollback, receipt; Cloudflare first | Outstanding |
-| WP22 | Dagger as a thin container host; one CI workflow | Outstanding |
+| WP22 | Dagger as a thin container host; local CI | Outstanding |
 | WP23 | Server releases by image digest | Outstanding |
 | WP24 | Data changes as nodes: secrets and migrations | Outstanding |
 | WP25 | One infrastructure-as-code path: Pulumi in Kotlin | Outstanding |
@@ -458,6 +458,10 @@ The owner approved all five defaults on 14 October 2026.
 5. **Production steps.** Default: the WP21 rollback test and the WP23 prod rollout run only with the owner's go at that moment. Everything else qualifies on dev first.
 
 ## Log
+
+- 21 Oct 2026 — WP19 live acceptance completed after the owner's explicit approval to deploy the 16 dev workers. The graph-owned fleet selected exactly the approved 16 and excluded all five production-only workers. All deployments succeeded; read-only Cloudflare deployment observations confirm every new version is active at 100%. The retained Gradle receipt incorrectly carries the preceding dry run's cached flag; it is preserved unchanged with the provider observations. The current-invocation bridge fixes that metadata bug and all five existing receipt/bridge cases pass, including a regression alternating dry/live/dry with cache reuse. No redeployment was needed. Evidence: `wp19-dev-live-20261021-v1-proof.json` and `wp19-receipt-dry-run-20261021-v2-proof.json` under the qualification receipts store. This closes WP19; WP21's typed deploy receipt, health probe and rollback remain separate acceptance.
+
+- 21 Oct 2026 — WP20 Manna fleet qualification completed and pushed (Reaktor `4f7c0bb7`, Manna `0d96748`). One fleet owns API/web deployments with typed API verification and browser bundle producer edges; obsolete standalone publish/deploy APIs are removed. Nine existing fixtures pass; both final configs match their pre-migration contents semantically, and actual generation/graph runs reuse the configuration cache. Six copied common defaults are removed. Manna has only its declared production environment; no Manna provider write occurred. Evidence: `wp20-manna-fleet-20261021-v5-proof.json`. The rest of WP20 remains open.
 
 - 21 Oct 2026 — WP19 runtime Pulumi qualification: the existing provider requires the graph-owned `InstallTool` spec, rejects absent/mismatched installation receipts before starting a process, and plans the exact binary path. SDK generation now records its `pulumiSetup` prerequisite in the canonical graph. Both existing SDK boundary fixtures and the existing cloud process-boundary executable pass; the actual installed binary reports `v3.268.0`. No provider write or live Pulumi adoption is claimed. The current server's read-only reviewed-rollout checks pass (manifest/live digest, capacity policy and ready-pod attestation); the obsolete one-shot release remains retired. Evidence: `wp19-runtime-pulumi-20261021-v2-proof.json` and `wp19-rollout-readonly-20261021-v2-proof.json` in the qualification receipts store. Real dev bundles and live fleet acceptance remain open.
 

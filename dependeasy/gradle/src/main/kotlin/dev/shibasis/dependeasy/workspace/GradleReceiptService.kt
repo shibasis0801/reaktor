@@ -5,6 +5,7 @@ import dev.shibasis.dependeasy.configuration.executionOption
 import dev.shibasis.dependeasy.model.*
 import kotlinx.serialization.encodeToString
 import org.gradle.api.Project
+import org.gradle.api.internal.BuildDefinition
 import org.gradle.api.flow.*
 import org.gradle.api.tasks.Input
 import org.gradle.api.services.ServiceReference
@@ -36,13 +37,16 @@ abstract class GradleReceiptService : BuildService<GradleReceiptService.Paramete
         val requestedTasks: ListProperty<String>
         val privateProperties: MapProperty<String, String>
         val requestDigest: Property<String>
-        val dryRun: Property<Boolean>
     }
     private val observations = ConcurrentHashMap<NodeId, TaskObservation>()
     private val run = UUID.randomUUID().toString()
     private val started = System.currentTimeMillis()
     private var buildFailure: Throwable? = null
-    fun finish(result: BuildWorkResult) { buildFailure = result.failure.orElse(null) }
+    private var dryRun = false
+    fun finish(result: BuildWorkResult, dryRun: Boolean) {
+        buildFailure = result.failure.orElse(null)
+        this.dryRun = dryRun
+    }
 
     override fun onFinish(event: FinishEvent) {
         if (event !is TaskFinishEvent) return
@@ -93,7 +97,7 @@ abstract class GradleReceiptService : BuildService<GradleReceiptService.Paramete
         val receipt = RunReceipt(run = run, build = own, requestedNodes = nodes, requestedTasks = requested,
             startedAtEpochMillis = tasks.minOfOrNull { it.startedAtEpochMillis } ?: started, finishedAtEpochMillis = System.currentTimeMillis(),
             status = if (buildFailure != null || tasks.any { it.outcome == TaskOutcome.Failed }) ReceiptStatus.Failed else ReceiptStatus.Succeeded,
-            tasks = tasks, dryRun = parameters.dryRun.get(), modelDigest = model?.let { BuildModelReader.digest(BuildModelReader.encode(it)) },
+            tasks = tasks, dryRun = dryRun, modelDigest = model?.let { BuildModelReader.digest(BuildModelReader.encode(it)) },
             modelOmission = loaded.exceptionOrNull()?.let { redact(it.message.orEmpty()).take(1024) }
                 ?: "Requested task identity is observed by Gradle; no exported build declaration".takeIf { observedRequests.any { it !in declared } },
             failures = generateSequence(buildFailure) { it.cause }.take(12).map { redact(it.message.orEmpty()).take(8192) }.toList(),
@@ -122,15 +126,21 @@ abstract class GradleReceiptService : BuildService<GradleReceiptService.Paramete
 abstract class GradleReceiptCompletion : FlowAction<GradleReceiptCompletion.Parameters> {
     interface Parameters : FlowParameters {
         @get:Input val result: Property<BuildWorkResult>
+        // Gradle 9.7 caches scalar StartParameter values; the service is rebound per invocation.
+        // Remove this internal bridge when Gradle exposes it publicly: gradle/gradle#39267.
+        @get:Input val invocation: Property<BuildDefinition>
         @get:ServiceReference val receipt: Property<GradleReceiptService>
     }
-    override fun execute(parameters: Parameters) { parameters.receipt.get().finish(parameters.result.get()) }
+    override fun execute(parameters: Parameters) {
+        parameters.receipt.get().finish(parameters.result.get(), parameters.invocation.get().startParameter.isDryRun)
+    }
 }
 
 abstract class GradleReceiptRegistration @Inject constructor(
     private val events: BuildEventsListenerRegistry,
     private val flows: FlowScope,
     private val providers: FlowProviders,
+    private val invocation: BuildDefinition,
 ) {
     fun register(project: Project) {
         val service = project.gradle.sharedServices.registerIfAbsent("dependeasyReceipts", GradleReceiptService::class.java) {
@@ -139,13 +149,13 @@ abstract class GradleReceiptRegistration @Inject constructor(
             parameters.build.set(project.rootProject.name)
             parameters.includedBuilds.set(project.gradle.includedBuilds.map { it.name })
             parameters.requestedTasks.set(project.gradle.startParameter.taskNames)
-            parameters.dryRun.set(project.gradle.startParameter.isDryRun)
             parameters.privateProperties.set(project.gradle.startParameter.projectProperties)
             parameters.requestDigest.set(project.executionOption(BuildOption.property(GradleProtocol.CorrelationOption)))
         }
         events.onTaskCompletion(service)
         flows.always(GradleReceiptCompletion::class.java) {
             parameters.result.set(providers.buildWorkResult)
+            parameters.invocation.set(invocation)
             parameters.receipt.set(service)
         }
     }

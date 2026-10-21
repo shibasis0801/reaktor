@@ -74,6 +74,16 @@ class GradlePlanningTest {
         runner("exportBuildModel", "checks", "-Pfixture.feature=true").build()
         assertEquals(TaskOutcome.Executed, receipts().single { it.run !in setOf(first.run, second.run) }
             .tasks.single { it.task.name == "copied" }.outcome)
+        for (dryRun in listOf(true, false, true)) {
+            val existing = receipts().map { it.run }.toSet()
+            val arguments = listOf("exportBuildModel", "checks", "-Pfixture.feature=true") +
+                if (dryRun) listOf("--dry-run") else emptyList()
+            val result = runner(*arguments.toTypedArray()).build()
+            assertContains(result.output, "Reusing configuration cache")
+            val receipt = receipts().single { it.run !in existing }
+            assertEquals(dryRun, receipt.dryRun)
+            assertEquals(dryRun, receipt.tasks.isEmpty())
+        }
     }
 
     @Test fun `external phase preserves observed identity without inventing a declaration`() {
