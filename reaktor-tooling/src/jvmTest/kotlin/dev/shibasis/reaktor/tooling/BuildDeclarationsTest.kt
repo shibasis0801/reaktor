@@ -18,7 +18,11 @@ class BuildDeclarationsTest {
         assertEquals("fixture-local", build.request.environment["REAKTOR_ENVIRONMENT"])
         assertEquals("private-fixture", build.request.environment["FIXTURE_SECRET"])
         assertContains(build.request.sensitiveEnvironmentKeys, "FIXTURE_SECRET")
-        val check = workspace.prepare(TaskInvocation(TaskId("fixture:checks")))
+        val exported = BuildModelReader.readAllowingStale(root)
+        assertEquals("fixture-local", exported.producer.version)
+        val request = BuildModelReader.json.decodeFromString<GradleRequest>(File(build.request.argv[2].substringAfter("=")).readText())
+        assertEquals(BuildModelReader.digest(BuildModelReader.encode(exported)), request.modelDigest)
+        val check = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(TaskInvocation(TaskId("fixture:checks")))
         assertEquals(root.resolve(wrapperName).canonicalPath, build.request.argv.first())
         assertEquals(GradleProtocol.RunTask, build.request.argv[1])
         assertEquals(SafetyClass.LocalArtifactWrite, build.plan.safety.classification)
@@ -30,7 +34,7 @@ class BuildDeclarationsTest {
         assertEquals(TaskKind.Build, task.kind)
         assertEquals(node("artifacts"), BuildModelReader.decodeNode(task.attributes.getValue("buildNode")))
         assertEquals(TaskProvenance("dependeasy", "fixture/build.gradle.kts:1"), task.provenance)
-        assertFalse(root.resolve("build/exports.txt").exists())
+        assertEquals(listOf("export", "export"), root.resolve("build/exports.txt").readLines())
         assertNull(task.attributes["buildModel"])
     }
 
@@ -163,6 +167,7 @@ class BuildDeclarationsTest {
                     root=Path(__file__).parent
                     if 'exportBuildModel' in sys.argv:
                       report=root/'build/dependeasy/model.json';model=json.loads(report.read_text())
+                      model['producer']['version']=os.environ.get('REAKTOR_ENVIRONMENT','fixture')
                       for declaration in model['declarations']:
                         declaration['sha256']=hashlib.sha256((root/declaration['path']).read_bytes()).hexdigest()
                       if (root/'build/export-moves-nodes').exists():

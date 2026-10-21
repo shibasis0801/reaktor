@@ -33,13 +33,9 @@ internal class GradleBuildPlanner {
                     (completed.failure?.message.orEmpty() + "\n" + tail.joinToString("\n")).takeLast(8192) }
             }
         }
-        val model = BuildModelReader.readAllowingStale(root).let { declared ->
-            if (BuildModelReader.changedDeclarations(root, declared).isEmpty()) declared else {
-                gradle(listOf(GradleProtocol.ExportTask), ProcessDefinitionSeal.capture(seal.files, seal.directories),
-                    "The build model was stale and exporting it again failed")
-                BuildModelReader.readAllowingStale(root)
-            }
-        }
+        gradle(listOf(GradleProtocol.ExportTask), ProcessDefinitionSeal.capture(seal.files, seal.directories),
+            "Exporting the build model for the requested context failed")
+        val model = BuildModelReader.readAllowingStale(root)
         val current = requireNotNull(model.nodes.singleOrNull { it.id == node.id }) {
             "${node.id} is no longer declared in the build; refresh the catalog"
         }
