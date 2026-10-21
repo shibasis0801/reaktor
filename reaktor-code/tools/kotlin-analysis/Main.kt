@@ -44,6 +44,12 @@ import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 
 private const val version = "2.5.0-Beta2-59"
+private const val MaxModules = 2048
+private val Capabilities = buildJsonObject {
+    put("provider", "kotlin-analysis-api/$version")
+    putJsonArray("ops") { add("capabilities"); add("resolve"); add("facts") }
+    put("maxModules", MaxModules)
+}
 private fun hash(path: Path): String {
     val digest = MessageDigest.getInstance("SHA-256")
     Files.newInputStream(path).use { stream ->
@@ -231,7 +237,9 @@ private fun serve(root: Path) {
             if (line.isBlank()) continue
             val started = System.nanoTime()
             val request = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull()
-            val reply = if (request == null) buildJsonObject { put("error", "Unreadable request") } else runCatching {
+            val reply = if (request == null) buildJsonObject { put("error", "Unreadable request") }
+            else if (request["op"]?.jsonPrimitive?.contentOrNull == "capabilities") Capabilities
+            else runCatching {
                 val digest = MessageDigest.getInstance("SHA-256").digest((request.getValue("modules").toString() + "\u0000" + request.string("jdkHome") + "\u0000" +
                     request["platform"] + "\u0000" + request["konanTarget"]).toByteArray())
                     .joinToString("") { "%02x".format(it) }
@@ -267,7 +275,7 @@ private fun open(root: Path, request: JsonObject, digest: String): Warm {
     val settings = LanguageVersionSettingsImpl(LanguageVersion.KOTLIN_2_4, requireNotNull(ApiVersion.parse("2.4")),
         specificFeatures = mapOf(LanguageFeature.MultiPlatformProjects to LanguageFeature.State.ENABLED))
     val modules = request.getValue("modules").jsonArray.map { it.jsonObject }
-    require(modules.size in 1..256) { "A session holds 1 to 256 modules" }
+    require(modules.size in 1..MaxModules) { "A session holds 1 to $MaxModules modules" }
     val stamps = linkedMapOf<Path, Pair<Long, Long>>()
     val skipped = mutableListOf<String>()
     val owners = HashMap<String, String>()

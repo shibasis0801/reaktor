@@ -128,7 +128,7 @@ class KotlinAnalysisIntegrationTest {
                 at(path, before.count { it == '\n' }, match.range.first - before.lastIndexOf('\n') - 1)
             }.toList()
             val stdlib = System.getProperty("reaktor.kotlin.stdlib")
-            fun request(id: Int, current: String) = buildJsonObject {
+            fun request(id: Int, current: String, empty: Int = 0) = buildJsonObject {
                 put("id", id)
                 put("jdkHome", Path.of(System.getProperty("java.home")).toRealPath().toString())
                 putJsonArray("modules") {
@@ -137,6 +137,7 @@ class KotlinAnalysisIntegrationTest {
                         put("name", "app"); put("platform", "jvm"); putJsonArray("sources") { add("app/Use.kt") }; putJsonArray("classpath") { add(stdlib) }
                         putJsonArray("dependencies") { add("lib") }
                     }
+                    repeat(empty) { index -> addJsonObject { put("name", "empty$index"); put("platform", "jvm"); putJsonArray("sources") {}; putJsonArray("classpath") { add(stdlib) } } }
                 }
                 put("declaration", at("lib/Api.kt", 3, 13))
                 put("candidates", JsonArray(places("lib/Api.kt", api) + places("app/Use.kt", current)))
@@ -147,6 +148,12 @@ class KotlinAnalysisIntegrationTest {
             try {
                 val input = process.outputStream.bufferedWriter()
                 val output = process.inputStream.bufferedReader()
+                fun send(request: JsonObject): JsonObject {
+                    input.write(request.toString())
+                    input.newLine()
+                    input.flush()
+                    return Json.parseToJsonElement(output.readLine() ?: fail(Files.readString(root.resolve("serve.log")))).jsonObject
+                }
                 fun ask(id: Int, current: String = use): JsonObject {
                     input.write(request(id, current).toString())
                     input.newLine()
@@ -154,6 +161,9 @@ class KotlinAnalysisIntegrationTest {
                     return Json.parseToJsonElement(output.readLine() ?: fail(Files.readString(root.resolve("serve.log")))).jsonObject
                 }
                 fun verdicts(reply: JsonObject) = reply.getValue("decisions").jsonArray.map { it.jsonObject.getValue("verdict").jsonPrimitive.content }
+                val capabilities = send(buildJsonObject { put("id", 0); put("op", "capabilities") })
+                assertEquals(listOf("capabilities", "resolve", "facts"), capabilities.getValue("ops").jsonArray.map { it.jsonPrimitive.content })
+                assertTrue(capabilities.getValue("maxModules").jsonPrimitive.int >= 1024, "$capabilities")
                 val first = ask(1)
                 assertNull(first["error"], "$first")
                 assertEquals(1, first.getValue("id").jsonPrimitive.int)
@@ -170,6 +180,9 @@ class KotlinAnalysisIntegrationTest {
                 val third = ask(3, changed)
                 assertFalse(third.getValue("warm").jsonPrimitive.boolean)
                 assertEquals(verdicts(first), verdicts(third))
+                val wide = send(request(4, changed, empty = 600))
+                assertNull(wide["error"], "a session of 602 modules opens: $wide")
+                assertEquals(verdicts(first), verdicts(wide))
             } finally {
                 process.destroy()
                 process.waitFor(10, TimeUnit.SECONDS)
