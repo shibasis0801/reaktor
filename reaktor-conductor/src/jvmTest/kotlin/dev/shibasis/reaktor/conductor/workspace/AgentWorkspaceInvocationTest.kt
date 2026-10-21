@@ -67,6 +67,12 @@ class AgentWorkspaceInvocationTest {
         }))
         assertEquals(java.time.Duration.ofMinutes(15), AgentWorkspaceConnection.patience(buildJsonObject { put("timeoutSeconds", 86400) }))
         assertEquals(java.time.Duration.ofSeconds(35), AgentWorkspaceConnection.patience(buildJsonObject { putJsonObject("timeoutSeconds") {} }))
+        assertEquals(java.time.Duration.ofMinutes(2), AgentWorkspaceConnection.patience(buildJsonObject {}, java.time.Duration.ofMinutes(2)))
+        assertEquals(java.time.Duration.ofMinutes(15), AgentWorkspaceConnection.patience(buildJsonObject {}, java.time.Duration.ofDays(1)))
+        assertEquals(java.time.Duration.ofSeconds(35), AgentWorkspaceConnection.patience(buildJsonObject {}, java.time.Duration.ofSeconds(1)))
+        assertEquals(java.time.Duration.ofSeconds(130), AgentWorkspaceConnection.patience(buildJsonObject {
+            put("timeoutSeconds", 120)
+        }, java.time.Duration.ofSeconds(60)))
     }
 
     @Test fun remoteTypedClientSelectsCompatibilityBridgeAndQuotesPaths() {

@@ -112,9 +112,9 @@ class AgentWorkspaceConnection private constructor(
     private fun boardEntry(value: JsonElement) = ConductorJson.decodeFromJsonElement(BoardEntry.serializer(), value)
     private fun actor(by: BoardActor) = ConductorJson.encodeToJsonElement(BoardActor.serializer(), by)
 
-    suspend fun call(name: String, args: JsonObject = buildJsonObject {}): JsonElement {
+    suspend fun call(name: String, args: JsonObject = buildJsonObject {}, timeout: Duration? = null): JsonElement {
         withContext(Dispatchers.IO) { refreshEndpoint() }
-        val patience = patience(args)
+        val patience = patience(args, timeout)
         if (remote != null || endpoint.invocationVersion == null) return callMcp(name, args, patience)
         check(endpoint.invocationVersion == 1) { "Unsupported workspace invocation version" }
         val payload = buildJsonObject {
@@ -182,11 +182,12 @@ class AgentWorkspaceConnection private constructor(
         private val Patience = Duration.ofSeconds(35)
         private val LongestPatience = Duration.ofMinutes(15)
 
-        internal fun patience(args: JsonObject): Duration {
+        internal fun patience(args: JsonObject, timeout: Duration? = null): Duration {
             fun JsonObject.seconds(): Long? = (this["timeoutSeconds"] as? JsonPrimitive)?.longOrNull
                 ?: (this["timeoutMillis"] as? JsonPrimitive)?.longOrNull?.let { (it + 999) / 1000 }
-            val asked = args.seconds() ?: (args["arguments"] as? JsonObject)?.seconds() ?: return Patience
-            return Duration.ofSeconds(asked + 10).coerceIn(Patience, LongestPatience)
+            val asked = args.seconds() ?: (args["arguments"] as? JsonObject)?.seconds()
+            val wait = asked?.let { Duration.ofSeconds(it + 10) } ?: Patience
+            return maxOf(wait, timeout ?: Patience).coerceIn(Patience, LongestPatience)
         }
 
         fun remote(profile: AgentRemoteProfile): AgentWorkspaceConnection = AgentWorkspaceConnection(
