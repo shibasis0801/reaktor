@@ -28,4 +28,12 @@ if [ ! -x "$tools/android" ]; then
     chmod 755 "$staging/android"
     mv "$staging" "$tools"
 fi
-"$tools/android" --no-metrics --sdk="$sdk" sdk install $missing
+for attempt in 1 2 3; do
+    if "$tools/android" --no-metrics --sdk="$sdk" sdk install $missing; then
+        exit 0
+    else
+        status=$?
+    fi
+    [ "$attempt" -lt 3 ] || exit "$status"
+    echo "Android SDK install failed; retrying pinned packages (attempt $((attempt + 1))/3)" >&2
+done
