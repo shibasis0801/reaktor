@@ -25,7 +25,7 @@ class WorkerFleet internal constructor(
     private data class Declaration(val worker: FleetWorker, val directory: File, val prerequisites: List<OutputHandle>, val site: SourceSite?)
     private val workers = linkedMapOf<String, Declaration>()
     private val environments get() = delivery.environments
-    private val environmentOption = BuildOption.string("dependeasy.environment", environment = "TARGET_ENV")
+    private val environmentOption = BuildOption.string("dependeasy.environment")
     fun worker(ref: WorkerRef, deployments: List<WorkerDeployment>, vararg prerequisites: OutputHandle) {
         require(!File(ref.directory).isAbsolute) { "Worker directories must be relative" }
         require(workers.put(ref.name, Declaration(FleetWorker(ref, NodeId(project.rootProject.name, project.path, "deploy${ref.name.replaceFirstChar(Char::uppercaseChar)}"), deployments.toList()), project.rootProject.file(ref.directory), prerequisites.toList(), project.declarationSite())) == null) { "Duplicate worker: ${ref.name}" }

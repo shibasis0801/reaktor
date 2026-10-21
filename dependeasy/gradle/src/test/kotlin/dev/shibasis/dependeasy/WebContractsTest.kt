@@ -544,6 +544,21 @@ class WebContractsTest {
         assertFalse(devModel.edges.any { it is Edge.Includes && it.from == worker && it.to.name == "deployBackend" })
         assertTrue(devModel.nodes.single { it.id == worker }.bindings.isEmpty())
         assertContains(run("exportBuildModel", "-Pdependeasy.environment=dev").output, "Reusing configuration cache")
+        val environmentKey = "ORG_GRADLE_PROJECT_dependeasy.environment"
+        val inherited = System.getenv() - environmentKey - "TARGET_ENV"
+        listOf(
+            Triple(mapOf(environmentKey to "dev"), emptyList<String>(), false),
+            Triple(mapOf("TARGET_ENV" to "dev"), emptyList<String>(), true),
+            Triple(mapOf(environmentKey to "dev"), listOf("-Pdependeasy.environment=prod"), true),
+        ).forEach { (environment, arguments, includesProdOnly) ->
+            val runner = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+                .withEnvironment(inherited + environment)
+                .withArguments(listOf("exportBuildModel", "--configuration-cache", "--stacktrace") + arguments)
+            runner.build()
+            val selected = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+            assertEquals(includesProdOnly, selected.edges.any { it is Edge.Includes && it.from == aggregate && it.to == prodOnly })
+            assertContains(runner.build().output, "Reusing configuration cache")
+        }
         write("targets/backend/package.json", """{"name":"backend","scripts":{"serve":"node index.mjs"}}""")
         val appeared = run("generatePackageScripts")
         assertFalse(appeared.output.contains("Reusing configuration cache"))

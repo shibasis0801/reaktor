@@ -190,7 +190,7 @@ export class Dependeasy {
     if (node.effect === "Deploy") {
       if (!cloudflareApiToken) throw new Error("Deploy requires cloudflare-api-token")
       container = container.withSecretVariable("CLOUDFLARE_API_TOKEN", cloudflareApiToken)
-        .withEnvVariable("TARGET_ENV", checkedEnvironment(targetEnv, node.environments))
+        .withEnvVariable("ORG_GRADLE_PROJECT_dependeasy.environment", checkedEnvironment(targetEnv, node.environments))
     }
     return container.withExec(["./gradlew", ...node.invocation.tasks, "--console=plain"]).stdout()
   }
