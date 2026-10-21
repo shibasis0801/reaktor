@@ -112,7 +112,7 @@ class SupervisedProcessExecutor(
 ) : AutoCloseable {
     private val activeRuns = ConcurrentHashMap<RunId, ActiveProcess>()
 
-    fun start(request: ProcessExecutionRequest): ProcessRunHandle {
+    fun start(request: ProcessExecutionRequest, sink: RunEventSink = NoOpRunEventSink): ProcessRunHandle {
         require(request.argv.isNotEmpty()) { "Process argv must not be empty" }
         require(request.workingDirectory.isDirectory) {
             "Working directory does not exist: ${request.workingDirectory.absolutePath}"
@@ -177,12 +177,16 @@ class SupervisedProcessExecutor(
             val terminal = RunEvent.Completed(runId, 0, clock(), completed)
             channel.trySend(terminal)
             channel.close()
-            result.complete(completed)
-            scope.launch(NonCancellable) { runCatching { eventSink.append(terminal) } }
+            scope.launch(NonCancellable) {
+                try {
+                    runCatching { eventSink.append(terminal) }
+                    sink.append(terminal)
+                } finally { result.complete(completed) }
+            }
         }
         val job = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
             executionEntered.set(true)
-            execute(request, initialRun, channel, result, process, cancelRequested, terminalized)
+            execute(request, initialRun, channel, result, process, cancelRequested, terminalized, sink)
         }
         val active = ActiveProcess(
             job, process, cancelRequested, executionEntered,
@@ -242,6 +246,7 @@ class SupervisedProcessExecutor(
         processReference: AtomicReference<Process?>,
         cancelRequested: AtomicBoolean,
         terminalized: AtomicBoolean,
+        sink: RunEventSink,
     ) {
         val redactor = ProcessRedactor(
             secrets = request.redactions + request.sensitiveEnvironmentKeys.mapNotNull { key ->
@@ -260,6 +265,8 @@ class SupervisedProcessExecutor(
                 } catch (_: Exception) {
                     // Process ownership must not be lost because an optional persistence adapter failed.
                 }
+                // Evidence consumes the event before the deliberately lossy viewer channel.
+                sink.append(event)
                 channel.send(event)
             }
         }
