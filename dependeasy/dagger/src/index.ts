@@ -63,7 +63,7 @@ export class BuildRuntime {
 
   private files(container: Container): Container {
     return Object.entries(this.toolchainContract.files).reduce((current, [path, contents]) =>
-      current.withNewFile(path, contents), container)
+      current.withMountedFile(path, dag.directory().withNewFile("contents", contents).file("contents")), container)
   }
 
   async androidToolchain(): Promise<Container> {
