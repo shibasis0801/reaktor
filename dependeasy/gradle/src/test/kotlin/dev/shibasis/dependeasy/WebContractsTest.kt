@@ -450,12 +450,18 @@ class WebContractsTest {
         val deployment = run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev")
         assertContains(deployment.output, ":workers:workerWorkerDeploy SKIPPED")
         assertContains(deployment.output, ":compileFixture SKIPPED")
+        assertTrue(deployment.output.indexOf(":compileFixture SKIPPED") < deployment.output.indexOf(":workers:workerWorkerDeploy SKIPPED"))
         val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
         val worker = dev.shibasis.dependeasy.model.NodeId("webFixture", ":workers", "deployWorker")
         assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes && it.from == worker &&
             it.to == dev.shibasis.dependeasy.model.NodeId("webFixture", ":", "outputKotlinJsLibrary") })
         assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Includes && it.from == worker &&
             it.to == dev.shibasis.dependeasy.model.NodeId("webFixture", ":workers", "deployBackend") })
+        listOf("workerWorkerDeploy", "backendWorkerDeploy").forEach { command ->
+            assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes &&
+                it.from == dev.shibasis.dependeasy.model.NodeId("webFixture", ":workers", command) &&
+                it.to == dev.shibasis.dependeasy.model.NodeId("webFixture", ":", "outputKotlinJsLibrary") })
+        }
         assertEquals("targets/worker", model.nodes.single { it.id == worker }.worker?.directory)
         assertEquals("./gradlew :workers:deployWorkers", scripts.getValue("deployWorkers").jsonPrimitive.content)
         assertContains(run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev").output, "Reusing configuration cache")

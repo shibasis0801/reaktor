@@ -73,6 +73,7 @@ class WorkerFleet internal constructor(
             val bindings = WorkerFleetKernel.bindings(fleetSpec, declaration.worker, environments.last()).map { it.second }
             val dependencies = listOf(project.node(command))
             val outputs = prerequisites + declaration.prerequisites
+            outputs.forEach { workspace.consume(dependencies.single(), it) }
             val spec = KernelSpec.WorkspaceNode(worker.node, NodeKind.Deploy, Run.onLinux().onWorker(),
                 dependencies.map { it.id }, outputs.map { it.nodeId }, emptyList(), emptyList(),
                 worker = WorkerRef(name, project.rootProject.relativePath(directory)),
