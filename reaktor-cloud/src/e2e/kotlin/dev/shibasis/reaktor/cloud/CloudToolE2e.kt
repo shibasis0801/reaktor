@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cloud
 
+import dev.shibasis.dependeasy.model.BuildModelReader
+import dev.shibasis.dependeasy.model.KernelSpec
 import dev.shibasis.reaktor.core.build.Entry
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 
@@ -27,7 +29,8 @@ fun main() = runBlocking {
     try {
         val invocationLog = fixture.resolve("cloud-invocations.log")
         val pulumiProgram = fixture.resolve("pulumi-program").apply { mkdirs() }
-        val executable = fixture.resolve("fake-cloud-tool.sh").apply {
+        val executable = fixture.resolve("tool/pulumi").apply {
+            parentFile.mkdirs()
             writeText(
                 """#!/bin/sh
                     |printf '%s\n' "${'$'}*" >> '${invocationLog.absolutePath}'
@@ -79,7 +82,10 @@ private suspend fun verifyPulumiApproval(
     executable: String,
     invocationLog: java.io.File,
 ) {
-    val provider = PulumiToolProvider(fixture, executable = executable)
+    val binary = java.io.File(executable)
+    val checksum = BuildModelReader.digest(binary)
+    val tool = KernelSpec.InstallTool(binary.absolutePath, checksum, binary.name, binary.parent, "Sdk", null, null)
+    val provider = PulumiToolProvider(fixture, tool)
     val command = CloudCommand(
         operationId = "pulumi.up",
         provider = "pulumi",
@@ -92,6 +98,14 @@ private suspend fun verifyPulumiApproval(
     check(runCatching { provider.run(command.copy(stack = null)) }.isFailure) {
         "Pulumi accepted a command without an explicit reviewed stack"
     }
+
+    val receipt = binary.parentFile.resolve(".sha256")
+    check(runCatching { provider.plan(command) }.isFailure) { "Pulumi accepted an unqualified installation" }
+    receipt.writeText("0".repeat(64))
+    check(runCatching { provider.plan(command) }.isFailure) { "Pulumi accepted a different tool checksum" }
+    receipt.writeText(checksum)
+    check(provider.plan(command).displayCommand.first() == binary.canonicalPath) { "Pulumi plan did not bind the installed tool" }
+    check(!invocationLog.exists()) { "Pulumi tool validation started a process" }
 
     val blocked = provider.run(command)
     check(provider.events(blocked.id).toList().completedCode() == 126) {
@@ -152,7 +166,7 @@ private suspend fun verifyPulumiApproval(
             val gatedProvider = PulumiToolProvider(
                 fixture,
                 runner = ProcessToolRunner(executor),
-                executable = executable,
+                tool = tool,
             )
             val gatedPlan = gatedProvider.plan(command)
             val gatedApproval = CloudExecutionApproval(

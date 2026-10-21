@@ -6,7 +6,7 @@ Written on 14 October 2026. This continues `dependeasy-handoff.md`: its work pac
 
 | WP | Package | State |
 |---|---|---|
-| WP19 | Fix what is broken, delete what is dead | Working: earlier cleanup committed; dev fleet selection/bindings qualify (8 fixtures, real cold/warm dry runs). Runtime Pulumi pin and live acceptance remain. |
+| WP19 | Fix what is broken, delete what is dead | Working: cleanup and dev fleet selection/bindings qualify (8 fixtures, real cold/warm graph dry runs). Pinned runtime Pulumi and its installer graph edge pass process-boundary checks; server live read-only preconditions pass. Dev bundle and live fleet acceptance remain. |
 | WP20 | One product delivery declaration | Outstanding (after WP12, WP13) |
 | WP21 | One deploy contract: plan, apply, verify, rollback, receipt; Cloudflare first | Outstanding |
 | WP22 | Dagger as a thin container host; one CI workflow | Outstanding |
@@ -458,6 +458,8 @@ The owner approved all five defaults on 14 October 2026.
 5. **Production steps.** Default: the WP21 rollback test and the WP23 prod rollout run only with the owner's go at that moment. Everything else qualifies on dev first.
 
 ## Log
+
+- 21 Oct 2026 — WP19 runtime Pulumi qualification: the existing provider requires the graph-owned `InstallTool` spec, rejects absent/mismatched installation receipts before starting a process, and plans the exact binary path. SDK generation now records its `pulumiSetup` prerequisite in the canonical graph. Both existing SDK boundary fixtures and the existing cloud process-boundary executable pass; the actual installed binary reports `v3.268.0`. No provider write or live Pulumi adoption is claimed. The current server's read-only reviewed-rollout checks pass (manifest/live digest, capacity policy and ready-pod attestation); the obsolete one-shot release remains retired. Evidence: `wp19-runtime-pulumi-20261021-v2-proof.json` and `wp19-rollout-readonly-20261021-v2-proof.json` in the qualification receipts store. Real dev bundles and live fleet acceptance remain open.
 
 - 21 Oct 2026 — WP19 dev fleet graph qualifies: all 8 existing web contract cases pass; BestBuds selects 16 dev workers and excludes 5 production-only workers. Dev binding edges use dev services. Actual aggregate dry runs pass cold/warm with configuration-cache reuse; production restores the same 1,625 canonical nodes and 1,609 edges. No Cloudflare write was performed. The read-only server deployment has one ready replica using the manifest's pinned digest; the obsolete reviewed release stays retired. Runtime Pulumi pinning and live dev acceptance remain open. Evidence: `build/dependeasy/receipts/qualification/wp13/wp19-dev-fleet-20261021-v4-proof.json` and `wp19-rollout-readonly-20261021-v1.json`.
 

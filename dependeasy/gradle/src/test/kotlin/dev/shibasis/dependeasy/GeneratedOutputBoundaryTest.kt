@@ -61,6 +61,13 @@ class GeneratedOutputBoundaryTest {
         val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
         assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Includes &&
             it.from.name == "componentBuild" && it.to.name == "fixtureSdkJar" })
+        val installation = model.nodes.single { it.id.name == "pulumiSetup" }
+        val tool = installation.kernel?.spec as dev.shibasis.dependeasy.model.KernelSpec.InstallTool
+        assertEquals("pulumi", tool.executable)
+        assertEquals(64, tool.checksum?.length)
+        assertContains(tool.source, "/v${dev.shibasis.dependeasy.toolchain.ToolchainVersions.Pulumi}/")
+        assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.After &&
+            it.from.name == "genFixtureSdk" && it.to == installation.id })
         val jar = directory.resolve("build/libs").listFiles()!!.single { it.extension == "jar" }
         java.util.jar.JarFile(jar).use {
             assertNotNull(it.getJarEntry("sdk/Fixture.class"))

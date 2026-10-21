@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.cloud
 
+import dev.shibasis.dependeasy.model.KernelSpec
 import dev.shibasis.reaktor.tooling.SafetyClass
 import dev.shibasis.reaktor.tooling.ProcessDefinitionDirectory
 import dev.shibasis.reaktor.tooling.ProcessDefinitionSeal
@@ -7,15 +8,10 @@ import kotlinx.coroutines.flow.Flow
 import java.io.File
 import java.util.UUID
 
-/**
- * Drives a Pulumi program (e.g. reaktor-cloud's observability stack) via the `pulumi` CLI as a
- * supervised subprocess. JVM-native, no Node sidecar. (A future upgrade can swap this for the
- * in-process Pulumi Java Automation API when that artifact is wired in.)
- */
 class PulumiToolProvider(
     private val programDir: File,
+    private val tool: KernelSpec.InstallTool,
     private val runner: ProcessToolRunner = ProcessToolRunner(),
-    private val executable: String = "pulumi",
 ) : CloudToolProvider {
     override val id = "pulumi"
 
@@ -88,7 +84,14 @@ class PulumiToolProvider(
             "Pulumi command '${command.operationId}' requires an explicit stack"
         }
         val args = buildList {
-            add(executable); add(command.fn)
+            val directory = File(tool.installation)
+            val executable = directory.resolve(tool.executable)
+            require(tool.executable == "pulumi" && tool.checksum?.matches(Regex("[0-9a-f]{64}")) == true &&
+                executable.isFile && executable.canExecute() &&
+                directory.resolve(".sha256").takeIf(File::isFile)?.readText() == tool.checksum) {
+                "Pulumi needs its checksum-qualified Dependeasy tool installation"
+            }
+            add(executable.canonicalPath); add(command.fn)
             add("--stack"); add(command.stack)
             add("--non-interactive")
             if (command.fn == "up" || command.fn == "refresh" || command.fn == "destroy") add("--yes")

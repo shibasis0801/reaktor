@@ -52,6 +52,6 @@ internal fun Project.pulumiSdk(name: String, version: String, server: String) = 
         from(generate.flatMap { it.outputDirectory }.map { it.dir("resources") })
     }
     BuildWorkspace.get(this).aggregate(this, "build${prefix}Sdk", NodeKind.ArtifactSet,
-        listOf(node(jar).after(node(compile).after(node(generate)))))
+        listOf(node(jar).after(node(compile).after(node(generate).after(rootProject.node(tool))))))
     jar
 }

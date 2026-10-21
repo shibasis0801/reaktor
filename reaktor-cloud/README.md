@@ -41,6 +41,8 @@ observability is managed by BestBuds' `cloud/k3s/observability` scripts; deliver
 covers adopting those existing resources into Pulumi. The program's presence is
 not evidence of a completed live migration.
 
-The runtime `PulumiToolProvider` still defaults to `pulumi` on PATH. Wiring it to
-the pinned toolchain is a remaining WP19 item; SDK generation already uses the
-pinned distribution.
+`PulumiToolProvider` requires the canonical `pulumiSetup` node's `InstallTool`
+spec. It checks the installation receipt before planning or starting a process,
+and plans name the exact installed binary. SDK generation declares that same
+installer as a graph prerequisite. The process-boundary check also rejects missing
+and mismatched installation receipts without starting Pulumi.
