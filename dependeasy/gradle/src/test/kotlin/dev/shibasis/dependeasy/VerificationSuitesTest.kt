@@ -212,6 +212,48 @@ class VerificationSuitesTest {
         assertContains(prepare().output, "Reusing configuration cache")
     }
 
+
+    @Test fun `worker contract membership tracks optional suites with cache reuse`() {
+        write("settings.gradle.kts", """rootProject.name = "workerOptions"; include("workers")""")
+        write("package.json", """{"name":"worker-options","private":true}""")
+        write("wrangler.json", "{}")
+        write("build.gradle.kts", """plugins { id("dev.shibasis.dependeasy.workspace") }""")
+        write("workers/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.workers
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.worker-fleet") }
+            val prod = Environment("prod")
+            workers(listOf(prod), contracts = WorkerContractTests("config")) {
+                worker(WorkerRef("fixture", "worker"), listOf(WorkerDeployment(prod, ServiceRef("fixture-worker"))))
+            }
+        """.trimIndent())
+        fun run() = GradleRunner.create().withProjectDir(root).withPluginClasspath()
+            .withArguments("exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        fun suites() = BuildModelReader.read(root).nodes.filter { it.id.project == ":workers" }
+            .mapNotNull { node -> (node.kernel?.spec as? KernelSpec.KarateSuite)?.let { node.id.name to it.tags } }.toMap()
+        run()
+        assertTrue(suites().isEmpty())
+        assertContains(run().output, "Reusing configuration cache")
+        write("tests/worker/karate/input.feature", "Feature: fixture")
+        assertFalse(run().output.contains("Reusing configuration cache"))
+        val base = mapOf("karateWorkerAuthProd" to emptyList<String>(), "karateWorkerSmokeProd" to listOf("@smoke"))
+        assertEquals(base, suites())
+        assertContains(run().output, "Reusing configuration cache")
+        write("tests/worker/karate/behaviour.feature", "Feature: fixture")
+        write("tests/worker/karate/public.feature", "Feature: fixture")
+        assertFalse(run().output.contains("Reusing configuration cache"))
+        assertEquals(base + mapOf("karateWorkerBehaviourProd" to listOf("@behaviour"), "karateWorkerPublicProd" to emptyList()), suites())
+        assertContains(run().output, "Reusing configuration cache")
+        assertTrue(root.resolve("tests/worker/karate/behaviour.feature").delete())
+        assertTrue(root.resolve("tests/worker/karate/public.feature").delete())
+        assertFalse(run().output.contains("Reusing configuration cache"))
+        assertEquals(base, suites())
+        assertTrue(root.resolve("tests/worker/karate").deleteRecursively())
+        assertFalse(run().output.contains("Reusing configuration cache"))
+        assertTrue(suites().isEmpty())
+        assertContains(run().output, "Reusing configuration cache")
+    }
+
     @Test fun `pinned Karate and k6 execute real HTTP suites`() {
         val requests = java.util.concurrent.atomic.AtomicInteger()
         val server = com.sun.net.httpserver.HttpServer.create(java.net.InetSocketAddress("127.0.0.1", 0), 0)

@@ -7,6 +7,8 @@ import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.verification.karateSuite
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.declarationSite
+import dev.shibasis.dependeasy.workspace.hasBuildDirectory
+import dev.shibasis.dependeasy.workspace.hasBuildFile
 import kotlinx.serialization.encodeToString
 import org.gradle.kotlin.dsl.register
 import org.gradle.api.Project
@@ -96,10 +98,10 @@ class WorkerFleet internal constructor(
             records.forEach { worker ->
                 val target = project.rootProject.file(worker.directory).name
                 val directory = "tests/$target/karate"
-                if (!project.rootProject.file(directory).isDirectory) return@forEach
+                if (!project.rootProject.hasBuildDirectory(project.rootProject.file(directory))) return@forEach
                 val modes = linkedMapOf("auth" to emptyList<String>(), "smoke" to listOf("@smoke"))
-                if (project.rootProject.file("$directory/behaviour.feature").isFile) modes["behaviour"] = listOf("@behaviour")
-                if (project.rootProject.file("$directory/public.feature").isFile) modes["public"] = emptyList()
+                if (project.rootProject.hasBuildFile(project.rootProject.file("$directory/behaviour.feature"))) modes["behaviour"] = listOf("@behaviour")
+                if (project.rootProject.hasBuildFile(project.rootProject.file("$directory/public.feature"))) modes["public"] = emptyList()
                 worker.configurations.keys.forEach { environment ->
                     modes.forEach { (mode, tags) ->
                         val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
