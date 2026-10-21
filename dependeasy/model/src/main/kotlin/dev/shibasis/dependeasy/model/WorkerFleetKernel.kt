@@ -70,8 +70,8 @@ object WorkerFleetKernel {
                     put("binding", binding.binding); put("service", service.name)
                     binding.entrypoint?.let { put("entrypoint", it) }
                 } })
-                check(local["services"]?.jsonArray.orEmpty() == expected.toList()) { "$source: service bindings differ from the Kotlin deployment declaration" }
-                val config = if (environment == spec.defaultEnvironment) merge(base, local) else local
+                val config = merge(base, local)
+                check(config["services"]?.jsonArray.orEmpty() == expected.toList()) { "$source: service bindings differ from the Kotlin deployment declaration" }
                 outputs[record.configurations.getValue(environment.name)] = BuildModelReader.json.encodeToString(config) + "\n"
             }
         }

@@ -383,10 +383,10 @@ class WebContractsTest {
         assertEquals(TaskOutcome.UP_TO_DATE, run(":library:sourcePackage").task(":library:sourcePackage")?.outcome)
     }
 
-    @Test fun `fleet uses declared preview and deep merged stable with arrays replaced`() {
+    @Test fun `fleet deep merges every declared environment with arrays replaced`() {
         val defaults = """{"compatibility_date":"2026-10-01","vars":{"shared":"yes","override":"base"},"services":[{"binding":"BASE","service":"base"}]}"""
         val stable = """{"name":"fixture-stable","vars":{"override":"local"},"services":[{"binding":"LOCAL","service":"local"}]}"""
-        val preview = """{"name":"fixture-preview","vars":{"previewelopment":"only"}}"""
+        val preview = """{"name":"fixture-preview","vars":{"previewelopment":"only"},"services":[]}"""
         write("wrangler.json", defaults)
         write("targets/worker/wrangler.json", stable)
         write("targets/worker/wrangler.preview.json", preview)
@@ -421,7 +421,13 @@ class WebContractsTest {
         assertEquals("yes", result.getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
         assertEquals("local", result.getValue("vars").jsonObject.getValue("override").jsonPrimitive.content)
         assertEquals("LOCAL", result.getValue("services").jsonArray.single().jsonObject.getValue("binding").jsonPrimitive.content)
-        assertEquals(Json.parseToJsonElement(preview), json("targets/worker/wrangler.dependeasy-preview.json"))
+        val previewResult = json("targets/worker/wrangler.dependeasy-preview.json")
+        assertEquals("2026-10-01", previewResult.getValue("compatibility_date").jsonPrimitive.content)
+        assertEquals("yes", previewResult.getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
+        assertEquals("base", previewResult.getValue("vars").jsonObject.getValue("override").jsonPrimitive.content)
+        assertEquals("only", previewResult.getValue("vars").jsonObject.getValue("previewelopment").jsonPrimitive.content)
+        assertTrue(previewResult.getValue("services").jsonArray.isEmpty())
+        assertEquals(preview, directory.resolve("targets/worker/wrangler.preview.json").readText())
         assertEquals(stable, directory.resolve("targets/worker/wrangler.json").readText())
         assertFalse(Regex("bestbuds|manna", RegexOption.IGNORE_CASE).containsMatchIn(directory.resolve("build/cloudflare/fleet.json").readText()))
         val repeat = run("fleet")
@@ -430,6 +436,7 @@ class WebContractsTest {
         write("wrangler.json", defaults.replace("yes", "changed"))
         assertEquals(TaskOutcome.SUCCESS, run("fleet").task(":fleet")?.outcome)
         assertEquals("changed", json("targets/worker/wrangler.dependeasy-stable.json").getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
+        assertEquals("changed", json("targets/worker/wrangler.dependeasy-preview.json").getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
     }
 
     @Test fun `package aliases preserve runtime scripts and remove retired generated aliases`() {
