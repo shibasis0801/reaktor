@@ -1,5 +1,6 @@
 package dev.shibasis.dependeasy.codegen
 
+import dev.shibasis.dependeasy.workspace.declarations
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.MapProperty
@@ -25,7 +26,7 @@ abstract class KotlinObjectTask : DefaultTask(), dev.shibasis.dependeasy.process
     @get:Internal override val kernelSpec: dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject get() =
         dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject(packageName.get(), objectName.get(),
             (extensions.findByType(dev.shibasis.dependeasy.model.KernelSpec::class.java) as? dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject)?.options.orEmpty(),
-            dev.shibasis.dependeasy.model.FileSet(workerFleet.files.map { it.absolutePath }.sorted()))
+            dev.shibasis.dependeasy.model.FileSet(emptyList(), declarations = workerFleet.declarations()))
 
     init {
         values.convention(emptyMap())

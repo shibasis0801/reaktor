@@ -1,7 +1,6 @@
 package dev.shibasis.dependeasy
 
-import dev.shibasis.dependeasy.model.Edge
-import dev.shibasis.dependeasy.model.NodeId
+import dev.shibasis.dependeasy.model.*
 import kotlinx.serialization.json.*
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
@@ -398,12 +397,16 @@ class WebContractsTest {
         val preview = """{"name":"fixture-preview","compatibility_flags":[],"vars":{"previewelopment":"only"},"services":[]}"""
         write("targets/worker/wrangler.json", stable)
         write("targets/worker/wrangler.preview.json", preview)
+        val resources = """{"databaseId":["fixture-database"]}"""
+        val exporter = """{"query":"scriptName_in:@@WORKER_SERVICES@@"}"""
+        write("observation/resources.json", resources)
+        write("observation/exporter.yaml", exporter)
         prepare("""
             import dev.shibasis.dependeasy.model.*
             import kotlinx.serialization.encodeToString
             tasks.register<dev.shibasis.dependeasy.cloudflare.WorkerFleetTask>("fleet") {
                 root.set(layout.projectDirectory)
-                configurations.from("targets/worker/wrangler.json", "targets/worker/wrangler.preview.json")
+                configurations.from("targets/worker/wrangler.json", "targets/worker/wrangler.preview.json", "observation/resources.json", "observation/exporter.yaml")
                 declaration.set(dev.shibasis.dependeasy.model.BuildModelReader.json.encodeToString(
                     dev.shibasis.dependeasy.model.KernelSpec.WorkerFleet(Delivery(listOf(Environment("stable"), Environment("preview")), Environment("stable"),
                         Delivery.Cloudflare("fixture-account", listOf("shared"), true, "2026-10-01", mapOf("shared" to "yes", "override" to "base"))), listOf(
@@ -412,8 +415,8 @@ class WebContractsTest {
                                 secrets = listOf("PREVIEW_SECRET"), endpoint = "https://preview.example.test"),
                             WorkerDeployment(Environment("stable"), ServiceRef("fixture-stable"), listOf(WorkerServiceBinding.External("LOCAL", ServiceRef("local"))),
                                 secrets = listOf("SERVICE_SECRET"), serviceClient = "fixture-service", endpoint = "https://stable.example.test")))),
-                        FileSet(listOf("build/cloudflare/fleet.json")))))
-                finalConfigurations.from("targets/worker/wrangler.dependeasy-preview.json", "targets/worker/wrangler.dependeasy-stable.json", "build/cloudflare/wrangler.json")
+                        FileSet(listOf("build/cloudflare/fleet.json")), WorkerObservability("observation/resources.json", "observation/exporter.yaml", listOf(ServiceRef("fixture-external"))))))
+                finalConfigurations.from("targets/worker/wrangler.dependeasy-preview.json", "targets/worker/wrangler.dependeasy-stable.json", "build/cloudflare/wrangler.json", "build/cloudflare/cloudflare-resource-scope.json", "build/cloudflare/cloudflare-json-exporter.yaml")
                 contract.set(layout.buildDirectory.file("cloudflare/fleet.json"))
             }
         """.trimIndent())
@@ -445,6 +448,23 @@ class WebContractsTest {
         assertEquals("stable.example.test", settings.getValue("stable").jsonObject.getValue("routes").jsonArray.single().jsonObject.getValue("pattern").jsonPrimitive.content)
         val decoded = dev.shibasis.dependeasy.model.BuildModelReader.json.decodeFromString<dev.shibasis.dependeasy.model.WorkerFleetContract>(directory.resolve("build/cloudflare/fleet.json").readText())
         assertEquals(result, decoded.workers.single().settings.getValue("stable"))
+        val services = listOf("fixture-external", "fixture-preview", "fixture-stable")
+        assertEquals(services, json("build/cloudflare/cloudflare-resource-scope.json").getValue("scriptName").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(json("observation/resources.json").getValue("databaseId"), json("build/cloudflare/cloudflare-resource-scope.json").getValue("databaseId"))
+        val generatedExporter = directory.resolve("build/cloudflare/cloudflare-json-exporter.yaml").readText()
+        assertContains(Json.parseToJsonElement(generatedExporter).jsonObject.getValue("query").jsonPrimitive.content, JsonArray(services.map(::JsonPrimitive)).toString())
+        val direct = KernelSpec.WorkerFleet(Delivery(listOf(Environment("stable"), Environment("preview")), Environment("stable"),
+            Delivery.Cloudflare("fixture-account", listOf("shared"), true, "2026-10-01", mapOf("shared" to "yes", "override" to "base"))),
+            decoded.workers.map { FleetWorker(WorkerRef(it.name, it.directory), it.node, it.deployments) }, FileSet(listOf("build/cloudflare/fleet.json")),
+            WorkerObservability("observation/resources.json", "observation/exporter.yaml", listOf(ServiceRef("fixture-external"))))
+        val sources = mapOf("targets/worker/wrangler.json" to stable, "targets/worker/wrangler.preview.json" to preview,
+            "observation/resources.json" to resources, "observation/exporter.yaml" to exporter)
+        val rendered = WorkerFleetKernel.render(direct, sources)
+        assertEquals(generatedExporter, rendered.getValue("build/cloudflare/cloudflare-json-exporter.yaml"))
+        assertEquals(directory.resolve("build/cloudflare/cloudflare-resource-scope.json").readText(), rendered.getValue("build/cloudflare/cloudflare-resource-scope.json"))
+        assertFailsWith<IllegalArgumentException> { WorkerFleetKernel.plan(direct.copy(observability = direct.observability!!.copy(resources = "../escape"))) }
+        assertFailsWith<IllegalArgumentException> { WorkerFleetKernel.render(direct, sources + ("observation/resources.json" to """{"scriptName":["copied"]}""")) }
+        assertFailsWith<IllegalArgumentException> { WorkerFleetKernel.render(direct, sources + ("observation/exporter.yaml" to "missing fleet input")) }
         assertTrue(previewResult.getValue("services").jsonArray.isEmpty())
         assertTrue(previewResult.getValue("compatibility_flags").jsonArray.isEmpty())
         assertEquals(preview, directory.resolve("targets/worker/wrangler.preview.json").readText())
@@ -462,6 +482,15 @@ class WebContractsTest {
         val changedRepeat = run("fleet")
         assertContains(changedRepeat.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, changedRepeat.task(":fleet")?.outcome)
+        write("observation/exporter.yaml", exporter + "\n")
+        assertEquals(TaskOutcome.SUCCESS, run("fleet").task(":fleet")?.outcome)
+        assertEquals(generatedExporter + "\n", directory.resolve("build/cloudflare/cloudflare-json-exporter.yaml").readText())
+        script.writeText(script.readText().replace("fixture-external", "fixture-external-changed"))
+        assertEquals(TaskOutcome.SUCCESS, run("fleet").task(":fleet")?.outcome)
+        assertEquals("fixture-external-changed", json("build/cloudflare/cloudflare-resource-scope.json").getValue("scriptName").jsonArray.first().jsonPrimitive.content)
+        val observedRepeat = run("fleet")
+        assertContains(observedRepeat.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, observedRepeat.task(":fleet")?.outcome)
     }
 
     @Test fun `package aliases preserve runtime scripts and remove retired generated aliases`() {

@@ -24,6 +24,11 @@ class WorkerFleet internal constructor(
 ) {
     private data class Declaration(val worker: FleetWorker, val directory: File, val prerequisites: List<OutputHandle>, val site: SourceSite?)
     private val workers = linkedMapOf<String, Declaration>()
+    private var observation: WorkerObservability? = null
+    fun observability(resources: String, exporter: String, externalServices: List<ServiceRef> = emptyList()) {
+        check(observation == null) { "Worker observability is already declared" }
+        observation = WorkerObservability(resources, exporter, externalServices)
+    }
     private val environments get() = delivery.environments
     private val environmentOption = BuildOption.string("dependeasy.environment")
     fun worker(ref: WorkerRef, deployments: List<WorkerDeployment>, vararg prerequisites: OutputHandle) {
@@ -33,7 +38,7 @@ class WorkerFleet internal constructor(
 
     internal fun register(workspace: BuildWorkspace): NodeHandle {
         val fleetSpec = KernelSpec.WorkerFleet(delivery, workers.values.map { it.worker },
-            FileSet(listOf(project.rootProject.relativePath(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json").get().asFile))))
+            FileSet(listOf(project.rootProject.relativePath(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json").get().asFile))), observation)
         val records = WorkerFleetKernel.plan(fleetSpec).workers
         val requestedEnvironment = project.option(environmentOption.copy(resolutionOrder = environmentOption.resolutionOrder - OptionSource.Default))
         val selectedName = requestedEnvironment.orElse(delivery.defaultEnvironment.name).get()
@@ -45,6 +50,7 @@ class WorkerFleet internal constructor(
             configurations.from(WorkerFleetKernel.configurationSources(fleetSpec).map(project.rootProject::file))
             finalConfigurations.from(records.flatMap { it.configurations.values }.map(project.rootProject::file))
             finalConfigurations.from(project.rootProject.file(WorkerFleetKernel.accountConfiguration(fleetSpec)))
+            finalConfigurations.from(WorkerFleetKernel.observabilityOutputs(fleetSpec).map(project.rootProject::file))
             contract.set(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json"))
         }
         val generatedContract = KernelArtifact(generate.flatMap { it.contract }, project.node(generate, OutputKind.GeneratedContract))

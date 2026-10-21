@@ -21,4 +21,8 @@ data class WorkerDeployment(val environment: Environment, val service: ServiceRe
     val publicEndpoint: String? = null)
 
 @Serializable
+data class WorkerObservability(val resources: String, val exporter: String,
+    val externalServices: List<ServiceRef> = emptyList())
+
+@Serializable
 data class FleetWorker(val ref: WorkerRef, val node: NodeId, val deployments: List<WorkerDeployment>)

@@ -8,6 +8,11 @@ object WorkerFleetKernel {
         require(spec.workers.map { it.ref.name }.distinct().size == spec.workers.size) { "Duplicate fleet worker" }
         val byRef = spec.workers.associateBy { it.ref }
         spec.contract.paths.forEach(::relative)
+        spec.observability?.let { observation ->
+            relative(observation.resources); relative(observation.exporter)
+            require(observation.externalServices.all { it.name.isNotBlank() } &&
+                observation.externalServices.distinct().size == observation.externalServices.size) { "Invalid external observation services" }
+        }
         require(spec.contract.paths.size == 1)
         val records = spec.workers.map { worker ->
             relative(worker.ref.directory)
@@ -44,10 +49,15 @@ object WorkerFleetKernel {
     fun configurationSources(spec: KernelSpec.WorkerFleet): List<String> = spec.workers.flatMap { worker ->
         worker.deployments.map { deployment -> "${worker.ref.directory}/" +
             if (deployment.environment == spec.defaultEnvironment) "wrangler.json" else "wrangler.${deployment.environment.name}.json" }
-    }
+    } + spec.observability?.let { listOf(it.resources, it.exporter) }.orEmpty()
 
     fun accountConfiguration(spec: KernelSpec.WorkerFleet): String =
         java.io.File(spec.contract.paths.single()).resolveSibling("wrangler.json").invariantSeparatorsPath
+
+    fun observabilityOutputs(spec: KernelSpec.WorkerFleet): List<String> = if (spec.observability == null) emptyList() else
+        listOf("cloudflare-resource-scope.json", "cloudflare-json-exporter.yaml").map {
+            java.io.File(spec.contract.paths.single()).resolveSibling(it).invariantSeparatorsPath
+        }
 
     fun bindings(spec: KernelSpec.WorkerFleet, worker: FleetWorker, environment: Environment): List<Pair<WorkerServiceBinding, ServiceRef>> {
         val byRef = spec.workers.associateBy { it.ref }
@@ -90,6 +100,18 @@ object WorkerFleetKernel {
             record.copy(settings = settings)
         }
         outputs[spec.contract.paths.single()] = BuildModelReader.json.encodeToString(fleet.copy(workers = resolved)) + "\n"
+        spec.observability?.let { observation ->
+            val services = (resolved.flatMap { it.services.values } + observation.externalServices.map { it.name }).distinct().sorted()
+            val resources = Json.parseToJsonElement(configurations.getValue(observation.resources)).jsonObject
+            require("scriptName" !in resources) { "Worker observation scope comes from the fleet declaration" }
+            val template = configurations.getValue(observation.exporter)
+            require("@@WORKER_SERVICES@@" in template) { "Worker exporter template is missing its fleet input" }
+            val names = JsonArray(services.map(::JsonPrimitive))
+            val escaped = JsonPrimitive(names.toString()).toString().removeSurrounding("\"")
+            val (scope, exporter) = observabilityOutputs(spec)
+            outputs[scope] = BuildModelReader.json.encodeToString(JsonObject(resources + ("scriptName" to names))) + "\n"
+            outputs[exporter] = template.replace("@@WORKER_SERVICES@@", escaped)
+        }
         return outputs
     }
 

@@ -12,13 +12,13 @@ class KotlinSourcesTest {
 
     private fun run(enabled: Boolean = true) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
         .withEnvironment(System.getenv().filterKeys { it != "CONFIGURATION" })
-        .withArguments("generateFlags", "compileKotlinJvm", "exportBuildModel", "-Penabled=$enabled", "--configuration-cache", "--stacktrace").build()
+        .withArguments("generateFlags", "compileKotlinJvm", ":consumer:workerEndpoints", "exportBuildModel", "-Penabled=$enabled", "--configuration-cache", "--stacktrace").build()
 
     @Test fun `generated sources track optional text and flags without capturing the project`() {
         assertEquals(0, ProcessBuilder("git", "init").directory(directory).redirectErrorStream(true).start().let { it.inputStream.readBytes(); it.waitFor() })
         assertEquals(0, ProcessBuilder("git", "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--allow-empty", "-m", "fixture")
             .directory(directory).redirectErrorStream(true).start().let { it.inputStream.readBytes(); it.waitFor() })
-        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"sourcesFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"workers\")")
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"sourcesFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"workers\", \"consumer\")")
         directory.resolve("workers").mkdirs()
         directory.resolve("targets/worker").mkdirs()
         directory.resolve("targets/worker/wrangler.json").writeText("""{"name":"fixture-worker","main":"index.ts"}""")
@@ -31,6 +31,17 @@ class KotlinSourcesTest {
                 worker(WorkerRef("worker", "targets/worker"), listOf(
                     WorkerDeployment(Environment("dev"), ServiceRef("fixture-worker-dev")),
                     WorkerDeployment(Environment("prod"), ServiceRef("fixture-worker"), publicEndpoint = "https://prod.example.test")))
+            }
+        """.trimIndent())
+        directory.resolve("consumer").mkdirs()
+        directory.resolve("consumer/build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.components.library
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.library") }
+            repositories { mavenCentral() }
+            library(namespace = "fixture.child", targets = Targets.Jvm) {
+                val workerEndpoints by generated(output(projects.workers, OutputKind.GeneratedContract, Contract.WorkerFleet))
             }
         """.trimIndent())
         directory.resolve("gradle.properties").writeText("android.builtInKotlin=false\nandroid.newDsl=false")
@@ -75,9 +86,18 @@ class KotlinSourcesTest {
         assertContains(endpoints.readText(), "const val ProdWorker: String = \"https://prod.example.test\"")
         assertContains(endpoints.readText(), "const val DevWorker: String = \"https://dev.example.test\"")
         val modelWithEndpoints = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
-        val endpointNode = modelWithEndpoints.nodes.single { it.id.name == "workerEndpoints" }
+        val endpointNode = modelWithEndpoints.nodes.single { it.id.name == "workerEndpoints" && it.id.project == ":" }
         val endpointSpec = assertIs<dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject>(endpointNode.kernel?.spec)
-        assertEquals(listOf("build/dependeasy/contracts/cloudflare/fleet.json"), endpointSpec.workerFleet.paths)
+        assertTrue(endpointSpec.workerFleet.paths.isEmpty())
+        assertEquals(dev.shibasis.dependeasy.model.FileInputKind.Configuration, endpointSpec.workerFleet.declarations.single().kind)
+        val child = modelWithEndpoints.nodes.single { it.id.name == "workerEndpoints" && it.id.project == ":consumer" }
+        val childSpec = assertIs<dev.shibasis.dependeasy.model.KernelSpec.GeneratedObject>(child.kernel?.spec)
+        assertEquals(endpointSpec.workerFleet, childSpec.workerFleet)
+        assertEquals(childSpec.workerFleet.declarations, child.inputs.single().declarations)
+        assertTrue(modelWithEndpoints.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes && it.from == child.id && it.to.name == "outputGeneratedContractWorkerFleet" })
+        val childEndpoints = directory.resolve("consumer/build/generated/workerEndpoints/kotlin/fixture/child/WorkerEndpoints.kt")
+        assertEquals(endpoints.readText().replace("package fixture", "package fixture.child"), childEndpoints.readText())
+        assertTrue(first.tasks.indexOfFirst { it.path == ":workers:generateWorkerFleet" } < first.tasks.indexOfFirst { it.path == ":consumer:workerEndpoints" })
         assertTrue(modelWithEndpoints.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes && it.from == endpointNode.id && it.to.name == "outputGeneratedContractWorkerFleet" })
         assertTrue(first.tasks.indexOfFirst { it.path == ":workers:generateWorkerFleet" } < first.tasks.indexOfFirst { it.path == ":workerEndpoints" })
         val sourceBytes = endpoints.readText()
@@ -87,6 +107,7 @@ class KotlinSourcesTest {
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":generateFlags")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":generateTypedFields")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":workerEndpoints")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":consumer:workerEndpoints")?.outcome)
         assertEquals(sourceBytes, endpoints.readText())
         directory.resolve("fixture.txt").writeText("token with \"quotes\", ${'$'}dollars and\nnewlines")
         assertEquals(TaskOutcome.SUCCESS, run().task(":generateFlags")?.outcome)
