@@ -72,8 +72,8 @@ object WorkerFleetKernel {
             }
         }
         val outputs = linkedMapOf(accountConfiguration(spec) to (BuildModelReader.json.encodeToString(base) + "\n"))
-        spec.workers.zip(fleet.workers).forEach { (worker, record) ->
-            worker.deployments.forEach { deployment ->
+        val resolved = spec.workers.zip(fleet.workers).map { (worker, record) ->
+            val settings = worker.deployments.associate { deployment ->
                 val environment = deployment.environment
                 val source = "${worker.ref.directory}/" + if (environment == spec.defaultEnvironment) "wrangler.json" else "wrangler.${environment.name}.json"
                 val local = Json.parseToJsonElement(configurations.getValue(source)).jsonObject
@@ -85,9 +85,11 @@ object WorkerFleetKernel {
                 val config = merge(base, local)
                 check(config["services"]?.jsonArray.orEmpty() == expected.toList()) { "$source: service bindings differ from the Kotlin deployment declaration" }
                 outputs[record.configurations.getValue(environment.name)] = BuildModelReader.json.encodeToString(config) + "\n"
+                environment.name to config
             }
+            record.copy(settings = settings)
         }
-        outputs[spec.contract.paths.single()] = BuildModelReader.json.encodeToString(fleet) + "\n"
+        outputs[spec.contract.paths.single()] = BuildModelReader.json.encodeToString(fleet.copy(workers = resolved)) + "\n"
         return outputs
     }
 

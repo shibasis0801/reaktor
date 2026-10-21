@@ -394,7 +394,7 @@ class WebContractsTest {
     }
 
     @Test fun `fleet deep merges every declared environment with arrays replaced`() {
-        val stable = """{"name":"fixture-stable","compatibility_flags":["local"],"vars":{"override":"local"},"services":[{"binding":"LOCAL","service":"local"}]}"""
+        val stable = """{"name":"fixture-stable","compatibility_flags":["local"],"vars":{"override":"local"},"services":[{"binding":"LOCAL","service":"local"}],"routes":[{"pattern":"stable.example.test","custom_domain":true}],"d1_databases":[{"binding":"DATA","database_id":"fixture-database","migrations_dir":"db/migrations"}]}"""
         val preview = """{"name":"fixture-preview","compatibility_flags":[],"vars":{"previewelopment":"only"},"services":[]}"""
         write("targets/worker/wrangler.json", stable)
         write("targets/worker/wrangler.preview.json", preview)
@@ -438,6 +438,13 @@ class WebContractsTest {
         assertEquals("yes", previewResult.getValue("vars").jsonObject.getValue("shared").jsonPrimitive.content)
         assertEquals("base", previewResult.getValue("vars").jsonObject.getValue("override").jsonPrimitive.content)
         assertEquals("only", previewResult.getValue("vars").jsonObject.getValue("previewelopment").jsonPrimitive.content)
+        val settings = fleet.getValue("workers").jsonArray.single().jsonObject.getValue("settings").jsonObject
+        assertEquals(result, settings.getValue("stable"))
+        assertEquals(previewResult, settings.getValue("preview"))
+        assertEquals("db/migrations", settings.getValue("stable").jsonObject.getValue("d1_databases").jsonArray.single().jsonObject.getValue("migrations_dir").jsonPrimitive.content)
+        assertEquals("stable.example.test", settings.getValue("stable").jsonObject.getValue("routes").jsonArray.single().jsonObject.getValue("pattern").jsonPrimitive.content)
+        val decoded = dev.shibasis.dependeasy.model.BuildModelReader.json.decodeFromString<dev.shibasis.dependeasy.model.WorkerFleetContract>(directory.resolve("build/cloudflare/fleet.json").readText())
+        assertEquals(result, decoded.workers.single().settings.getValue("stable"))
         assertTrue(previewResult.getValue("services").jsonArray.isEmpty())
         assertTrue(previewResult.getValue("compatibility_flags").jsonArray.isEmpty())
         assertEquals(preview, directory.resolve("targets/worker/wrangler.preview.json").readText())

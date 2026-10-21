@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class WebContract(
@@ -31,4 +32,5 @@ data class WorkerDeployable(
     val configurations: Map<String, String>,
     val services: Map<String, String>,
     val deployments: List<WorkerDeployment> = emptyList(),
+    val settings: Map<String, JsonObject> = emptyMap(),
 )
