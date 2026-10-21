@@ -1254,14 +1254,19 @@ class DslEntryPointsTest {
         assertTrue(model.nodes.any { it.id.project == ":worker" && it.id.name == "outputWorkspaceCompletionBuild" })
         assertTrue(model.nodes.none { it.id.project == ":worker" && it.effect == Effect.Deploy })
         assertTrue(model.nodes.none { it.id.project == ":worker" && it.id.name.contains("Bundle") })
-        assertContains(directory.resolve("package.json").readText(), "./gradlew :worker:workerWorkerTypes")
+        val rootScripts = BuildModelReader.json.parseToJsonElement(directory.resolve("package.json").readText()).jsonObject.getValue("scripts").jsonObject
+        val workerScripts = BuildModelReader.json.parseToJsonElement(directory.resolve("worker/package.json").readText()).jsonObject.getValue("scripts").jsonObject
+        val typeCommands = (rootScripts.values + workerScripts.values).map { it.jsonPrimitive.content }
+            .filter { it.endsWith(":worker:workerWorkerTypes") }
+        assertEquals(listOf("../gradlew :worker:workerWorkerTypes"), typeCommands)
         val plan = run("deployApi", "--dry-run").output
         assertContains(plan, ":worker:workerWorkerTypes SKIPPED")
         assertContains(plan, ":worker:workerTypes SKIPPED")
         assertContains(plan, ":worker:workerCheck SKIPPED")
-        assertContains(plan, ":workers:apiWorkerDeploy SKIPPED")
+        val deployTask = (published.invocation as Invocation.Gradle).tasks.single() + " SKIPPED"
+        assertContains(plan, deployTask)
         assertTrue(plan.indexOf(":worker:workerTypes SKIPPED") < plan.indexOf(":worker:workerCheck SKIPPED"))
-        assertTrue(plan.indexOf(":worker:workerCheck SKIPPED") < plan.indexOf(":workers:apiWorkerDeploy SKIPPED"))
+        assertTrue(plan.indexOf(":worker:workerCheck SKIPPED") < plan.indexOf(deployTask))
         assertContains(run("deployApi", "--dry-run").output, "Reusing configuration cache")
     }
 }
