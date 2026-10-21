@@ -28,6 +28,22 @@ import org.eclipse.lsp4j.DidChangeTextDocumentParams
 import org.eclipse.lsp4j.DidCloseTextDocumentParams
 import org.eclipse.lsp4j.DidOpenTextDocumentParams
 import org.eclipse.lsp4j.DiagnosticSeverity
+import org.eclipse.lsp4j.DocumentSymbol
+import org.eclipse.lsp4j.DocumentSymbolCapabilities
+import org.eclipse.lsp4j.DocumentSymbolParams
+import org.eclipse.lsp4j.ReferenceContext
+import org.eclipse.lsp4j.ReferenceParams
+import org.eclipse.lsp4j.ReferencesCapabilities
+import org.eclipse.lsp4j.RenameCapabilities
+import org.eclipse.lsp4j.RenameParams
+import org.eclipse.lsp4j.SymbolInformation
+import org.eclipse.lsp4j.WorkspaceSymbolParams
+import org.eclipse.lsp4j.ProgressParams
+import org.eclipse.lsp4j.WindowClientCapabilities
+import org.eclipse.lsp4j.WorkDoneProgressBegin
+import org.eclipse.lsp4j.WorkDoneProgressCreateParams
+import org.eclipse.lsp4j.WorkDoneProgressEnd
+import org.eclipse.lsp4j.WorkDoneProgressReport
 import org.eclipse.lsp4j.HoverParams
 import org.eclipse.lsp4j.InitializeParams
 import org.eclipse.lsp4j.InitializedParams
@@ -58,6 +74,8 @@ import kotlin.coroutines.resumeWithException
 
 /** A language server launched as a child process and spoken to over stdio. */
 data class LanguageServerLaunch(val name: String, val command: List<String>, val origin: String)
+
+data class LanguageSymbol(val name: String, val kind: String, val container: String?, val location: CodeLocation, val extent: CodeSpan? = null)
 
 /**
  * One LSP session behind reaktor's own [CodeIntelligence] contract. Document sync is full-text:
@@ -130,6 +148,38 @@ class LanguageServerSession private constructor(
         }
     }
 
+    suspend fun symbols(query: String): List<LanguageSymbol> {
+        if (!alive()) return emptyList()
+        val answer = server.workspaceService.symbol(WorkspaceSymbolParams(query)).awaitOrNull(RequestTimeoutMillis) ?: return emptyList()
+        return if (answer.isLeft) answer.left.orEmpty().map { it.toSymbol() } else answer.right.orEmpty().mapNotNull { symbol ->
+            symbol.location?.takeIf { it.isLeft }?.left?.let { LanguageSymbol(symbol.name, symbol.kind.shown(), symbol.containerName, CodeLocation(it.uri, it.range.toCode())) }
+        }
+    }
+
+    suspend fun outline(uri: String): List<LanguageSymbol> {
+        if (!alive() || uri !in open) return emptyList()
+        val answer = server.textDocumentService.documentSymbol(DocumentSymbolParams(TextDocumentIdentifier(uri))).awaitOrNull(RequestTimeoutMillis) ?: return emptyList()
+        fun flattened(symbol: DocumentSymbol, container: String?): List<LanguageSymbol> =
+            listOf(LanguageSymbol(symbol.name, symbol.kind.shown(), container, CodeLocation(uri, symbol.selectionRange.toCode()), symbol.range.toCode())) +
+                symbol.children.orEmpty().flatMap { flattened(it, listOfNotNull(container, symbol.name).joinToString("::")) }
+        return answer.orEmpty().flatMap { either -> if (either.isLeft) listOf(either.left.toSymbol().let { it.copy(extent = it.location.span) }) else flattened(either.right, null) }
+    }
+
+    suspend fun references(uri: String, at: CodePosition, declaration: Boolean = false): List<CodeLocation> {
+        if (!alive() || uri !in open) return emptyList()
+        val answer = server.textDocumentService.references(ReferenceParams(TextDocumentIdentifier(uri), at.toLsp(), ReferenceContext(declaration)))
+            .awaitOrNull(ReferencesTimeoutMillis) ?: return emptyList()
+        return answer.orEmpty().map { CodeLocation(it.uri, it.range.toCode()) }
+    }
+
+    suspend fun rename(uri: String, at: CodePosition, name: String): Map<String, List<Pair<CodeSpan, String>>> {
+        check(alive()) { "The language server stopped" }
+        check(uri in open) { "$uri is not open" }
+        val edit = server.textDocumentService.rename(RenameParams(TextDocumentIdentifier(uri), at.toLsp(), name)).awaitOrNull(ReferencesTimeoutMillis)
+            ?: error("The language server did not answer the rename within ${ReferencesTimeoutMillis / 1000}s")
+        return edit.changes.orEmpty().mapValues { (_, edits) -> edits.map { it.range.toCode() to it.newText } }
+    }
+
     override fun diagnostics(uri: String): Flow<List<CodeDiagnostic>> =
         client.published.map { it[uri].orEmpty() }.distinctUntilChanged()
 
@@ -137,6 +187,8 @@ class LanguageServerSession private constructor(
     fun alive() = process.isAlive
 
     fun errorTail(): String = client.stderr.toString()
+
+    fun working(): List<String> = client.progress.values.toList()
 
     override fun close() {
         runCatching { server.shutdown().get(2, java.util.concurrent.TimeUnit.SECONDS) }
@@ -149,6 +201,21 @@ class LanguageServerSession private constructor(
     internal class SessionClient : LanguageClient {
         val published = MutableStateFlow<Map<String, List<CodeDiagnostic>>>(emptyMap())
         val stderr = StringBuilder()
+        val progress = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+        override fun createProgress(params: WorkDoneProgressCreateParams?): CompletableFuture<Void> = CompletableFuture.completedFuture(null)
+
+        override fun notifyProgress(params: ProgressParams) {
+            val token = params.token?.let { if (it.isLeft) it.left else it.right?.toString() } ?: return
+            when (val value = params.value?.takeIf { it.isLeft }?.left) {
+                is WorkDoneProgressBegin -> progress[token] = listOfNotNull(value.title, value.message, value.percentage?.let { "$it%" }).joinToString(" ")
+                is WorkDoneProgressReport -> progress.computeIfPresent(token) { _, title ->
+                    listOfNotNull(title.substringBefore(" ·"), value.message, value.percentage?.let { "$it%" }).joinToString(" · ")
+                }
+                is WorkDoneProgressEnd -> progress.remove(token)
+                else -> Unit
+            }
+        }
 
         override fun telemetryEvent(payload: Any?) = Unit
 
@@ -173,6 +240,7 @@ class LanguageServerSession private constructor(
 
     companion object {
         private const val RequestTimeoutMillis = 4_000L
+        private const val ReferencesTimeoutMillis = 20_000L
         private const val StartTimeoutMillis = 180_000L
         private const val StderrTailBytes = 8_000
 
@@ -226,12 +294,16 @@ class LanguageServerSession private constructor(
             rootUri = root.toURI().toString()
             workspaceFolders = listOf(WorkspaceFolder(root.toURI().toString(), root.name))
             capabilities = ClientCapabilities().apply {
+                window = WindowClientCapabilities().apply { workDoneProgress = true }
                 textDocument = TextDocumentClientCapabilities().apply {
                     synchronization = SynchronizationCapabilities(false, false, false)
                     completion = CompletionCapabilities(CompletionItemCapabilities(false))
                     publishDiagnostics = PublishDiagnosticsCapabilities(false)
                     hover = org.eclipse.lsp4j.HoverCapabilities()
                     definition = org.eclipse.lsp4j.DefinitionCapabilities()
+                    documentSymbol = DocumentSymbolCapabilities().apply { hierarchicalDocumentSymbolSupport = true }
+                    references = ReferencesCapabilities()
+                    rename = RenameCapabilities()
                 }
             }
         }
@@ -254,6 +326,10 @@ class LanguageServerSession private constructor(
 }
 
 private fun CodePosition.toLsp() = Position(line, column)
+
+private fun org.eclipse.lsp4j.SymbolKind?.shown() = this?.name?.lowercase() ?: "symbol"
+
+private fun SymbolInformation.toSymbol() = LanguageSymbol(name, kind.shown(), containerName, CodeLocation(location.uri, location.range.toCode()))
 
 private fun Position.toCode() = CodePosition(line, character)
 
