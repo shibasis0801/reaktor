@@ -356,10 +356,12 @@ the frozen pnpm lockfile owns resolved packages. Kotlin owns toolchain versions.
 SwiftPM and Xcode retain their native package/link contracts. These are distinct
 domains, rather than competing copies of the same task list.
 
-`generateDagger` renders runner functions from Gradle entrypoints, copies the
-shared Dependeasy runtime, and emits `dagger.json` with the Kotlin-owned engine pin.
-CI reads that generated engine version. `verifyDagger` compares checked-in output with a separate
-generated reference and fails on drift. It does not repair a stale adapter during CI.
+`generateDagger` writes the Kotlin-owned engine pin and toolchain contract for the
+shared Dependeasy runner. The contract contains no target catalog. Inside the container,
+Kotlin resolves the requested node and environment from a fresh model, validates the
+host and named secrets, and supplies the command and result paths. Dagger runs the
+command and returns receipts and declared outputs. Local CI uses the same `pr` node
+as the CLI and Hangar; no GitHub Actions workflow, reference snapshot or verifier remains.
 `generatePackageScripts` owns only explicitly generated deployment aliases; it preserves
 authored scripts and dependencies and excludes its own aliases from its input identity.
 It also emits target metadata for Reaktor's delivery binding and a bounded alias

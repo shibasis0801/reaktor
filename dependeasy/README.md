@@ -2,7 +2,7 @@
 
 Dependeasy declares build artifacts and their dependencies. Gradle schedules them;
 Kotlin, pnpm/Vite, SwiftPM, and CMake keep ownership of compilation and dependency resolution.
-Gradle declares delivery entrypoints; generated Dagger functions and product release
+Gradle declares delivery entrypoints; the shared Dagger runner and product release
 tools invoke those declarations.
 
 See [DESIGN.md](DESIGN.md) for the architecture, domain status, and remaining work.
@@ -114,7 +114,7 @@ An `after` edge only orders work; it does not imply which files are consumed.
 | --- | --- |
 | `dag` | Lazy task nodes, typed artifacts, edges, cycle checks, readable plans |
 | `workspace` | Build entrypoints, included-build exports, package command inventory, generated aliases |
-| `dagger` | Gradle-derived Dagger module generation and drift verification |
+| `dagger` | Kotlin-owned container toolchain and a shared model-resolved runner |
 | `fastlane` | Frozen Bundler launcher and shared filesystem/artifact helpers; product signing and release policy stay in product domains |
 | `cloudflare` | Worker fleet dependencies and immutable Wrangler configuration merging |
 | `plugins` | Entry points, compiler bundles and the small declaration API |
@@ -269,31 +269,35 @@ for exceptional pipelines. The root plugin does not need a list of `apply false`
 Build and runner entrypoints share one workspace declaration:
 
 ```kotlin
-dependeasy {
-    workspace {
-        includedBuild("reaktor")
-        target("appChecks") { tasks(":app:jvmTest", ":engine:jvmTest"); effect = "verify" }
-        external("iosRelease") { fastlane("ios", "build_release"); platform = "macos" }
-        dagger()
-        packageScripts()
+workspace {
+    val framework = include(Reaktor.build)
+    val pr by verify(role = Workspace.Verify) {
+        include(verification(projects.app, Verification.Jvm), framework.verify)
     }
+    packageScripts(versions = Versions.Web.Libraries)
 }
 ```
 
-Run `:pipeline:generateDagger generatePackageScripts` after changing delivery declarations;
-Dagger source and `dagger.json` are generated together, including the Kotlin-owned
-engine pin. CI reads that generated version instead of keeping another literal.
-`:pipeline:verifyDagger` detects stale checked-in output. `buildGraph` imports active package
-scripts directly from authored manifests. Generated aliases point back to Gradle;
-manifest dependencies and other authored commands remain in `package.json`.
+The pipeline component declares `daggerPipeline()` in its own build file.
+
+`generateDagger` writes the engine pin and toolchain contract. The shared runner resolves
+its requested node and explicit environment from a fresh Kotlin build model inside
+the container. Adding a node does not change `dagger/pipeline.json`; there is no
+reference snapshot or drift-verification task. Kotlin checks host requirements and
+required secret names. Dagger returns the run receipts and declared outputs as a directory.
+
+Local CI starts through `reaktor build run pr` in each repository. No GitHub Actions
+workflow is required. `buildGraph` imports active package scripts directly from authored
+manifests. Generated aliases point back to Gradle; manifest dependencies and other
+authored commands remain in `package.json`.
 With `packageScripts()`, frozen pnpm installation depends on alias generation.
 Generation reads the declared targets without executing them, so frontend builds
 refresh their aliases without recursively building or installing the workspace.
 Their generated target metadata carries worker directories and environment tiers,
 so Hangar can inspect and bind delivery without parsing a shell selector.
-Mac-only entrypoints remain visible in the graph and are omitted from Linux Dagger
-functions. External recipes are metadata and runner commands, rather than Gradle
-tasks that recursively start Gradle. See [DESIGN.md](DESIGN.md) for the export contract.
+Mac and physical-device entrypoints remain visible in the graph. The Kotlin container
+resolver refuses them with a host requirement; the native local gate runs them on
+their declared host. External recipes remain metadata and runner commands. See [DESIGN.md](DESIGN.md) for the export contract.
 
 Fastlane uses the product's locked Gemfile through the shared launcher. Product
 lanes invoke Gradle delivery entrypoints for web publishing, so they inherit the

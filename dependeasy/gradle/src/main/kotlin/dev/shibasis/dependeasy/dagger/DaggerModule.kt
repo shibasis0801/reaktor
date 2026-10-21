@@ -1,6 +1,5 @@
 package dev.shibasis.dependeasy.dagger
 
-import dev.shibasis.dependeasy.workspace.BuildTarget
 import dev.shibasis.dependeasy.workspace.hasBuildFile
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.model.DaggerToolchainContract
@@ -14,8 +13,7 @@ import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.OptionArgument
 import dev.shibasis.dependeasy.model.OutputKind
 
-internal class DaggerModule(private val project: Project, private val targets: Map<String, BuildTarget>,
-    options: List<OptionArgument<*>>) {
+internal class DaggerModule(private val project: Project, options: List<OptionArgument<*>>) {
     private val gradleProperties = options.associate { it.option.name to it.value.toString() }
 
     internal fun register(): NodeHandle {
@@ -24,20 +22,20 @@ internal class DaggerModule(private val project: Project, private val targets: M
             group = "code generation"
             buildName.set(project.rootProject.name)
             engineVersion.set(ToolchainVersions.Dagger)
-            browserImage.set("mcr.microsoft.com/playwright:v1.64.0-noble")
             gradleProperties.set(this@DaggerModule.gradleProperties)
             executionEnvironment.set(mapOf(
                 "DEPE_CONTAINER_PLATFORM" to "linux/arm64",
-                "GRADLE_OPTS" to "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs='-Xmx768m -XX:NewRatio=5 -XX:MaxMetaspaceSize=768m -XX:ReservedCodeCacheSize=96m -XX:+UseSerialGC -Dkotlin.daemon.options=autoshutdownIdleSeconds=5' -Dorg.gradle.workers.max=1 -Dorg.gradle.parallel=false -Dorg.gradle.vfs.watch=false -Dorg.gradle.project.kotlin.compiler.execution.strategy=daemon -Dorg.gradle.project.kotlin.daemon.useFallbackStrategy=false -Dorg.gradle.project.kotlin.daemon.jvmargs='-Xmx2560m -XX:NewRatio=5 -XX:MaxMetaspaceSize=384m -XX:ReservedCodeCacheSize=96m -XX:+UseSerialGC' -Dorg.gradle.project.kotlin.mpp.commonizerJvmArgs='-Xmx512m -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC'",
-                "NODE_OPTIONS" to "--max-old-space-size=384",
                 "PNPM_CONFIG_NETWORK_CONCURRENCY" to "4",
                 "PNPM_CONFIG_CHILD_CONCURRENCY" to "1",
             ))
             toolchainContract.set(Json { encodeDefaults = true }.encodeToString(DaggerToolchainContract(
                 javaImage = ToolchainVersions.JavaBuildImage,
+                browserImage = "mcr.microsoft.com/playwright:v1.64.0-noble",
                 gradleUrl = "https://services.gradle.org/distributions/gradle-${ToolchainVersions.Gradle}-bin.zip",
                 gradleSha256 = ToolchainVersions.GradleSha256,
                 gradleArchive = "/opt/gradle-dist/gradle-bin.zip",
+                packages = listOf("git", "curl", "ca-certificates", "unzip", "cmake", "build-essential", "pkg-config",
+                    "sqlite3", "libgtk-3-dev", "libwebkit2gtk-4.1-dev", "libarchive-tools", "ninja-build"),
                 androidSdk = AndroidSdkContract(
                     directory = "/opt/android-sdk",
                     commandLineTools = ToolchainVersions.AndroidCommandLineTools,
@@ -47,12 +45,8 @@ internal class DaggerModule(private val project: Project, private val targets: M
                         "build-tools/${ToolchainVersions.AndroidBuildTools}", "ndk/${ToolchainVersions.Ndk}", "cmake/${ToolchainVersions.Cmake}"),
                 ),
             )))
-            modelFile.set(dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project).graph.flatMap { it.outputFile })
-            declarations.set(project.provider { targets.values.map { BuildModelReader.encode(it.model(project)) } })
-            edges.set(project.provider { targets.values.flatMap { it.edges() }.map { BuildModelReader.json.encodeToString(it) } })
             outputFile.set(project.file(output))
         }
-        val reference = generation("generateDaggerReference", project.layout.buildDirectory.file("dependeasy/dagger-reference/pipeline.json"))
         val generated = generation("generateDagger", project.rootProject.layout.projectDirectory.file("dagger/pipeline.json"))
         if (project.hasBuildFile(project.rootDir.resolve("dependeasy/dagger/src/index.ts"))) generated.configure {
             sharedDirectory.set(project.rootProject.layout.projectDirectory.dir("dependeasy/dagger"))
@@ -80,16 +74,6 @@ internal class DaggerModule(private val project: Project, private val targets: M
                 }.toString(),
             ))
         }
-        val verification = project.tasks.register<VerifyDaggerTask>("verifyDagger") {
-            group = "verification"
-            mustRunAfter(generated)
-            expected.set(reference.flatMap { it.outputFile })
-            actual.set(project.rootProject.layout.projectDirectory.file("dagger/pipeline.json"))
-        }
-        project.node(generated, OutputKind.GeneratedContract)
-        return project.node(verification, OutputKind.VerificationResults).also {
-            dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
-                .reference(project, verification, OutputKind.VerificationResults, family = "metadata")
-        }
+        return project.node(generated, OutputKind.GeneratedContract)
     }
 }

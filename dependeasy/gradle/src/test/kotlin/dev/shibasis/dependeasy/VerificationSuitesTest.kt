@@ -222,12 +222,13 @@ class VerificationSuitesTest {
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
             val prod = Environment("prod")
-            workers(Delivery(listOf(prod), prod, Delivery.Cloudflare("fixture-account", emptyList(), true)), contracts = WorkerContractTests("config")) {
-                worker(WorkerRef("fixture", "worker"), listOf(WorkerDeployment(prod, ServiceRef("fixture-worker"))))
+            val dev = Environment("dev")
+            workers(Delivery(listOf(dev, prod), prod, Delivery.Cloudflare("fixture-account", emptyList(), true)), contracts = WorkerContractTests("config")) {
+                worker(WorkerRef("fixture", "worker"), listOf(WorkerDeployment(dev, ServiceRef("fixture-worker-dev")), WorkerDeployment(prod, ServiceRef("fixture-worker"))))
             }
         """.trimIndent())
-        fun run() = GradleRunner.create().withProjectDir(root).withPluginClasspath()
-            .withArguments("exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        fun run(vararg options: String) = GradleRunner.create().withProjectDir(root).withPluginClasspath()
+            .withArguments("exportBuildModel", *options, "--configuration-cache", "--stacktrace").build()
         fun suites() = BuildModelReader.read(root).nodes.filter { it.id.project == ":workers" }
             .mapNotNull { node -> (node.kernel?.spec as? KernelSpec.KarateSuite)?.let { node.id.name to it.tags } }.toMap()
         run()
@@ -235,13 +236,17 @@ class VerificationSuitesTest {
         assertContains(run().output, "Reusing configuration cache")
         write("tests/worker/karate/input.feature", "Feature: fixture")
         assertFalse(run().output.contains("Reusing configuration cache"))
-        val base = mapOf("karateWorkerAuthProd" to emptyList<String>(), "karateWorkerSmokeProd" to listOf("@smoke"))
+        val base = mapOf("karateWorkerAuth" to emptyList<String>(), "karateWorkerSmoke" to listOf("@smoke"))
         assertEquals(base, suites())
         assertContains(run().output, "Reusing configuration cache")
+        run("-Pdependeasy.environment=dev")
+        assertEquals(base, suites())
+        assertContains(run("-Pdependeasy.environment=dev").output, "Reusing configuration cache")
+        run()
         write("tests/worker/karate/behaviour.feature", "Feature: fixture")
         write("tests/worker/karate/public.feature", "Feature: fixture")
         assertFalse(run().output.contains("Reusing configuration cache"))
-        assertEquals(base + mapOf("karateWorkerBehaviourProd" to listOf("@behaviour"), "karateWorkerPublicProd" to emptyList()), suites())
+        assertEquals(base + mapOf("karateWorkerBehaviour" to listOf("@behaviour"), "karateWorkerPublic" to emptyList()), suites())
         assertContains(run().output, "Reusing configuration cache")
         assertTrue(root.resolve("tests/worker/karate/behaviour.feature").delete())
         assertTrue(root.resolve("tests/worker/karate/public.feature").delete())
@@ -381,14 +386,14 @@ class VerificationSuitesTest {
             run()
             val withoutOptional = BuildModelReader.read(root).nodes.mapNotNull { it.kernel?.spec }.filterIsInstance<KernelSpec.K6Suite>().single()
             assertFalse("PRIVATE_OPTIONAL" in withoutOptional.execution.environmentKeys)
-            val workerSuite = model.nodes.single { it.id.project == ":workers" && it.id.name == "karateWorkerAuthProd" }
+            val workerSuite = model.nodes.single { it.id.project == ":workers" && it.id.name == "karateWorkerAuth" }
             assertContains(assertIs<KernelSpec.KarateSuite>(workerSuite.kernel?.spec).execution.environmentKeys, "FIXTURE_DECLARED")
             val workerProducer = NodeId("pinnedVerificationFixture", ":workers", "generateWorkerFleet")
             assertContains(model.edges, Edge.Consumes(workerSuite.id, workerProducer, "generateWorkerFleet"))
             assertContains(model.edges, Edge.After(workerSuite.id, workerProducer))
             assertTrue(generatedContract.delete())
             val beforeWorker = requests.get()
-            run(":workers:karateWorkerAuthProd")
+            run(":workers:karateWorkerAuth")
             assertTrue(generatedContract.isFile)
             assertEquals(beforeWorker + 1, requests.get())
         } finally { server.stop(0) }

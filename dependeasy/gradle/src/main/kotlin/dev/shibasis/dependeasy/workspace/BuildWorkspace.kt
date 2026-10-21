@@ -134,6 +134,17 @@ internal class BuildWorkspace(private val project: Project) {
     init {
         project.objects.newInstance(GradleReceiptRegistration::class.java).register(project)
         reference(project, graph, OutputKind.GeneratedContract)
+        val container = project.tasks.register<dev.shibasis.dependeasy.dagger.PrepareContainerNode>(DaggerProtocol.PrepareTask) {
+            group = "dependeasy"
+            rootDirectory.set(project.layout.projectDirectory)
+            buildName.set(project.name)
+            modelFile.set(graph.flatMap { it.outputFile })
+            selectedNode.set(project.executionOption(BuildOption.property(DaggerProtocol.NodeOption)))
+            selectedEnvironment.set(project.executionOption(BuildOption.property(GradleProtocol.EnvironmentOption)))
+            availableSecrets.set(project.executionOption(BuildOption.property(DaggerProtocol.SecretsOption)).orElse(""))
+            outputFile.set(project.layout.projectDirectory.file(DaggerProtocol.InvocationFile))
+        }
+        reference(project, container, OutputKind.GeneratedContract)
         for ((name, planning) in listOf(GradleProtocol.PlanTask to true, GradleProtocol.RunTask to false)) {
             val root = project.layout.projectDirectory
             val invocation = project.tasks.register<GradleInvocationTask>(name) {
@@ -357,7 +368,8 @@ internal class BuildWorkspace(private val project: Project) {
                         tools = producer.declaredTools(), options = producer.declaredOptions(),
                         artifactFamily = taskArtifactFamilies[id] ?: kind?.family,
                         worker = worker?.worker?.ref, environments = worker?.worker?.deployments?.map { it.environment }.orEmpty(),
-                        bindings = worker?.bindings?.get()?.map(::ServiceRef).orEmpty())))
+                        bindings = worker?.bindings?.get()?.map(::ServiceRef).orEmpty(),
+                          requiredSecrets = if (typed?.kernelSpec is KernelSpec.WranglerDeploy) listOf("CLOUDFLARE_API_TOKEN") else emptyList())))
                 }
             })
         }

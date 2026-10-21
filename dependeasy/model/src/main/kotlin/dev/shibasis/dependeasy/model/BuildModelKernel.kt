@@ -89,7 +89,7 @@ object BuildModelKernel {
                 is KernelSpec.XcodeHost -> if (spec.checking) emptyList() else spec.files.drop(1) +
                     AppleHostKernel.files(spec).keys.map { File(spec.files.first(), it).invariantSeparatorsPath }
                 is KernelSpec.WorkerFleet, is KernelSpec.PackageScripts, is KernelSpec.DaggerPipeline -> node.outputs.flatMap { it.paths }
-                is KernelSpec.DaggerVerification -> spec.expected.paths
+                is KernelSpec.ContainerNode -> spec.output.paths
                 else -> emptyList()
             }.distinct().sorted()
             paths.forEach { path -> require(path.isNotBlank() && !File(path).isAbsolute && ".." !in path.split('/')) { "Public transport output escapes $own: $path" } }

@@ -20,10 +20,11 @@ sealed interface KernelSpec {
         val outputEnvironment: String?, val library: FileSet, val api: FileSet, val java: ToolRef, val profiler: ToolRef, val run: Run) : KernelSpec
     @Serializable data class BuildModelExport(val build: String, val version: String, val directories: Map<String, String>,
         val declarations: FileSet, val includedModels: FileSet, val output: FileSet, val routing: FileSet) : KernelSpec
-    @Serializable data class DaggerPipeline(val build: String, val engineVersion: String, val browserImage: String,
+    @Serializable data class DaggerPipeline(val build: String, val engineVersion: String,
         val gradleProperties: Map<String, String>, val environment: Map<String, String>, val toolchain: DaggerToolchainContract,
-        val model: FileSet, val output: FileSet, val sharedDirectory: FileSet, val sharedMetadata: Map<String, String>) : KernelSpec
-    @Serializable data class DaggerVerification(val expected: FileSet, val actual: FileSet, val generator: NodeId) : KernelSpec
+        val output: FileSet, val sharedDirectory: FileSet, val sharedMetadata: Map<String, String>) : KernelSpec
+    @Serializable data class ContainerNode(val node: NodeId?, val environment: Environment?,
+        val model: FileSet, val output: FileSet) : KernelSpec
     @Serializable data class PackageScripts(val targets: Map<String, PackageAlias>, val extraAliases: Map<String, String>,
         val additionalAliases: Map<String, Map<String, String>>, val output: FileSet,
         val packageContracts: Map<String, FileSet> = emptyMap(),
@@ -157,5 +158,5 @@ fun KernelSpec.tools(): List<ToolRef> = when (this) {
     is KernelSpec.ReleasePlan, is KernelSpec.SigningXcconfig,
     is KernelSpec.InstallTool, is KernelSpec.WorkerFleet, is KernelSpec.KotlinTemplate, is KernelSpec.KotlinExportCatalog,
     is KernelSpec.WebContract, is KernelSpec.WebResources, is KernelSpec.KotlinPackage, is KernelSpec.Prefab, is KernelSpec.BuildModelExport,
-    is KernelSpec.DaggerPipeline, is KernelSpec.DaggerVerification, is KernelSpec.PackageScripts -> emptyList()
+    is KernelSpec.DaggerPipeline, is KernelSpec.ContainerNode, is KernelSpec.PackageScripts -> emptyList()
 }

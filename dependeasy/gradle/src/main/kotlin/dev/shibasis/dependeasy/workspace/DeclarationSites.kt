@@ -67,7 +67,7 @@ internal fun kernelRef(task: Task): KernelRef {
         is dev.shibasis.dependeasy.codegen.PulumiSdkTask -> dev.shibasis.dependeasy.model.PulumiSdkKernel::class.java
         is ExportBuildModelTask -> dev.shibasis.dependeasy.model.BuildModelKernel::class.java
         is PackageScriptsTask -> dev.shibasis.dependeasy.model.PackageScriptsKernel::class.java
-        is dev.shibasis.dependeasy.dagger.GenerateDaggerTask, is dev.shibasis.dependeasy.dagger.VerifyDaggerTask -> dev.shibasis.dependeasy.model.DaggerKernel::class.java
+        is dev.shibasis.dependeasy.dagger.GenerateDaggerTask, is dev.shibasis.dependeasy.dagger.PrepareContainerNode -> dev.shibasis.dependeasy.model.DaggerKernel::class.java
         is dev.shibasis.dependeasy.web.TypeScriptCheck, is dev.shibasis.dependeasy.web.ViteBundle,
         is dev.shibasis.dependeasy.web.KarakumBindings, is dev.shibasis.dependeasy.web.NodeGenerator,
         is dev.shibasis.dependeasy.web.PnpmInstallTask -> dev.shibasis.dependeasy.model.JavaScriptKernel::class.java
@@ -114,8 +114,8 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.WorkerFleet -> this
         is KernelSpec.BuildModelExport -> copy(declarations = files(declarations), includedModels = files(includedModels), output = files(output), routing = files(routing))
         is KernelSpec.PackageScripts -> copy(output = files(output), packageContracts = packageContracts.mapValues { files(it.value) })
-        is KernelSpec.DaggerPipeline -> copy(model = files(model), output = files(output), sharedDirectory = files(sharedDirectory))
-        is KernelSpec.DaggerVerification -> copy(expected = files(expected), actual = files(actual))
+        is KernelSpec.DaggerPipeline -> copy(output = files(output), sharedDirectory = files(sharedDirectory))
+        is KernelSpec.ContainerNode -> copy(model = files(model), output = files(output))
         is KernelSpec.WebContract -> copy(directory = path(directory), manifests = files(manifests), wrappers = files(wrappers),
             runtime = files(runtime), baseConfiguration = files(baseConfiguration), output = files(output),
             typeScriptConfiguration = files(typeScriptConfiguration), sourceManifests = files(sourceManifests),

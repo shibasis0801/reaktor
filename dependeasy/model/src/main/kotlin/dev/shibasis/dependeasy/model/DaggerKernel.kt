@@ -3,27 +3,23 @@ package dev.shibasis.dependeasy.model
 import kotlinx.serialization.encodeToString
 
 object DaggerKernel {
-    fun render(spec: KernelSpec.DaggerPipeline, provided: BuildModel?, declared: List<Node>, edges: List<Edge>): Map<String, String> {
-        val model = provided ?: BuildModel(producer = Producer(version = spec.engineVersion), builds = listOf(BuildIdentity(spec.build, ".")),
-            declarations = emptyList(), nodes = declared, edges = edges)
-        val targets = declared.map { it.copy(host = model.requiredHost(it.id)) }
-            .filter { it.host.platform != HostPlatform.Macos && it.host.execution != ExecutionHost.Local && it.invocation is Invocation.Gradle }
-        val nodes = model.nodes.associateBy { it.id }
-        val prerequisites = model.edges.filter { it !is Edge.After && it !is Edge.OrderedAfter }.groupBy { it.from }
-        val androidOutputs = setOf(OutputKind.AndroidApk, OutputKind.AndroidBundle, OutputKind.AndroidLibrary, OutputKind.AndroidInstrumentedTests)
-            .map { it.name }.toSet()
-        fun requiresAndroid(id: NodeId, visited: Set<NodeId> = emptySet()): Boolean {
-            if (id in visited) return false
-            val node = nodes[id] ?: return false
-            return (node.inputs + node.outputs).any { it.kind in androidOutputs } ||
-                prerequisites[id].orEmpty().any { requiresAndroid(it.to, visited + id) }
-        }
-        val platforms = targets.filter { requiresAndroid(it.id) }.associate { it.id.toString() to "linux/amd64" }.toSortedMap()
-        val platformEnvironment = if (platforms.isEmpty()) emptyMap() else
-            mapOf("DEPE_CONTAINER_PLATFORM_OVERRIDES" to BuildModelReader.json.encodeToString<Map<String, String>>(platforms))
-        val contract = DaggerPipelineContract(build = spec.build, engineVersion = spec.engineVersion, browserImage = spec.browserImage,
-            environment = spec.environment + platformEnvironment + spec.gradleProperties.mapKeys { "ORG_GRADLE_PROJECT_${it.key}" },
-            toolchain = spec.toolchain, targets = targets.sortedBy { it.id.toString() })
+    fun render(spec: KernelSpec.DaggerPipeline): Map<String, String> {
+        val contract = DaggerPipelineContract(build = spec.build, engineVersion = spec.engineVersion,
+            environment = spec.environment + spec.gradleProperties.mapKeys { "ORG_GRADLE_PROJECT_${it.key}" } +
+                ("NODE_OPTIONS" to "--max-old-space-size=${spec.toolchain.memory.nodeMiB}"),
+            toolchain = spec.toolchain.copy(
+                caches = mapOf("/root/.gradle" to "${spec.build}-gradle", "/root/.konan" to "${spec.build}-konan",
+                    "/root/.local/share/pnpm/store" to "dependeasy-pnpm",
+                    "/work/reaktor/build/dependeasy/tools/hermes" to "reaktor-hermes-host-{platform}", spec.toolchain.androidSdk.directory to "${spec.build}-android-sdk"),
+                files = mapOf("/root/.gradle/gradle.properties" to spec.toolchain.memory.gradleProperties()) +
+                    listOf(spec.build, "reaktor").distinct().associate { build ->
+                        "/work/$build/gradle/wrapper/gradle-wrapper.properties" to listOf(
+                            "distributionBase=GRADLE_USER_HOME", "distributionPath=wrapper/dists",
+                            "distributionUrl=file\\:${spec.toolchain.gradleArchive}", "distributionSha256Sum=${spec.toolchain.gradleSha256}",
+                            "validateDistributionUrl=false", "zipStoreBase=GRADLE_USER_HOME", "zipStorePath=wrapper/dists",
+                        ).joinToString("\n", postfix = "\n")
+                    },
+            ))
         val outputs = linkedMapOf(spec.output.paths.single() to (BuildModelReader.json.encodeToString(contract) + "\n"))
         if (spec.sharedDirectory.paths.isNotEmpty()) spec.sharedMetadata.forEach { (name, contents) ->
             require(name in setOf("dagger.json", "package.json", "tsconfig.json"))
@@ -32,9 +28,52 @@ object DaggerKernel {
         return outputs
     }
 
-    fun verify(spec: KernelSpec.DaggerVerification, expected: ByteArray, actual: ByteArray) {
-        require(actual.contentEquals(expected)) {
-            "Dagger pipeline is stale; run ./gradlew ${spec.generator.project.trimEnd(':')}:${spec.generator.name}"
+    fun resolve(spec: KernelSpec.ContainerNode, model: BuildModel, availableSecrets: Set<String>): ContainerInvocation {
+        val environment = requireNotNull(spec.environment) { "Choose a container environment" }
+        val nodes = model.nodes.associateBy { it.id }
+        val node = requireNotNull(nodes[spec.node]) { "Unknown container node ${spec.node}" }
+        val host = model.requiredHost(node.id)
+        require(host.platform != HostPlatform.Macos && host.execution != ExecutionHost.Local) {
+            "${node.id} requires a Mac or physical host; use the native local CI gate"
         }
+        val invocation = node.invocation as? Invocation.Gradle ?: error("${node.id} has no Gradle invocation")
+        require(invocation.tasks.isNotEmpty()) { "${node.id} has no Gradle tasks" }
+        val dependencies = model.edges.filter { it !is Edge.OrderedAfter }.groupBy { it.from }
+        val selected = linkedSetOf<NodeId>()
+        fun visit(id: NodeId) { if (selected.add(id)) dependencies[id].orEmpty().forEach { visit(it.to) } }
+        visit(node.id)
+        val closure = selected.map { requireNotNull(nodes[it]) { "Missing container dependency $it" } }
+        closure.forEach { current ->
+            require(current.environments.isEmpty() || environment in current.environments) {
+                "${current.id} has no environment ${spec.environment}"
+            }
+        }
+        val secrets = closure.flatMap { it.requiredSecrets }.distinct().sorted()
+        require(availableSecrets.containsAll(secrets)) { "Missing named container secrets: ${(secrets - availableSecrets).joinToString()}" }
+        val androidKinds = setOf(OutputKind.AndroidApk, OutputKind.AndroidBundle, OutputKind.AndroidLibrary, OutputKind.AndroidInstrumentedTests).map { it.name }.toSet()
+        val android = closure.any { current -> (current.inputs + current.outputs).any { it.kind in androidKinds } }
+        val own = model.builds.single { it.directory == "." }.name
+        fun artifact(build: String, path: String): String {
+            val directory = model.builds.single { it.name == build }.directory
+            val workspace = java.nio.file.Path.of("/work")
+            val resolved = workspace.resolve(own).resolve(directory).resolve(path).normalize()
+            require(resolved.startsWith(workspace)) { "Container output escapes workspace: $path" }
+            return workspace.relativize(resolved).toString().replace('\\', '/')
+        }
+        val included = model.edges.filterIsInstance<Edge.Includes>().groupBy { it.from }
+        val results = linkedSetOf<NodeId>()
+        fun include(id: NodeId) { if (results.add(id)) included[id].orEmpty().forEach { include(it.to) } }
+        include(node.id)
+        val kinds = OutputKind.entries.map { it.name }.toSet()
+        val artifacts = results.map(nodes::getValue).flatMap { current ->
+            (current.outputs + current.inputs.filter { it.kind in kinds }).flatMap { it.paths }.map { artifact(current.id.build, it) }
+        }
+        val receipts = model.builds.filter { it.name in selected.map { id -> id.build } }
+            .map { artifact(it.name, GradleProtocol.ReceiptDirectory) }
+        val outputs = (artifacts + receipts).distinct().sorted().flatMap { listOf(it, "$it/**") }
+        val tasks = invocation.tasks.map { if (node.id.build == own) it else ":${node.id.build}$it" }
+        return ContainerInvocation(node.id, environment, if (android) "linux/amd64" else "linux/arm64",
+            if (closure.any { it.runner == Runner.Browser }) Runner.Browser else node.runner,
+            listOf("./gradlew") + tasks + listOf("-P${GradleProtocol.EnvironmentOption}=${environment.name}", "--console=plain"), secrets, outputs)
     }
 }

@@ -103,36 +103,33 @@ class WorkerFleet internal constructor(
             }
         }
         contracts?.let { contracts ->
+            require(environments.any { it.name == selectedName }) { "Unknown worker environment $selectedName" }
             val groups = linkedMapOf<String, MutableList<NodeHandle>>()
-            records.forEach { worker ->
+            records.filter { selectedName in it.configurations }.forEach { worker ->
                 val target = project.rootProject.file(worker.directory).name
                 val directory = "tests/$target/karate"
                 if (!project.rootProject.hasBuildDirectory(project.rootProject.file(directory))) return@forEach
                 val modes = linkedMapOf("auth" to emptyList<String>(), "smoke" to listOf("@smoke"))
                 if (project.rootProject.hasBuildFile(project.rootProject.file("$directory/behaviour.feature"))) modes["behaviour"] = listOf("@behaviour")
                 if (project.rootProject.hasBuildFile(project.rootProject.file("$directory/public.feature"))) modes["public"] = emptyList()
-                worker.configurations.keys.forEach { environment ->
-                    modes.forEach { (mode, tags) ->
-                        val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
-                        val suite = project.karateSuite(name, if (mode == "public") "$directory/public.feature" else directory, contracts.configuration, tags,
-                            listOfNotNull(contracts.environmentFiles[Environment(environment)]),
-                              environment = contracts.environment[Environment(environment)].orEmpty()).consumes(generatedContract)
-                        val suffix = if (environment == delivery.defaultEnvironment.name) "" else ":$environment"
-                        val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
-                        workspace.alias(project.rootDir, alias + suffix, suite)
-                        groups.getOrPut("$mode:$environment") { mutableListOf() }.add(suite)
-                    }
+                modes.forEach { (mode, tags) ->
+                    val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.replaceFirstChar(Char::uppercaseChar)
+                    val suite = project.karateSuite(name, if (mode == "public") "$directory/public.feature" else directory, contracts.configuration, tags,
+                        listOfNotNull(contracts.environmentFiles[selectedEnvironment]),
+                        environment = contracts.environment[selectedEnvironment].orEmpty()).consumes(generatedContract)
+                    val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
+                    workspace.alias(project.rootDir, alias, suite)
+                    groups.getOrPut(mode) { mutableListOf() }.add(suite)
                 }
             }
-            groups.forEach { (selection, suites) ->
-                val (mode, environment) = selection.split(':')
-                val name = "workerKarate" + mode.replaceFirstChar(Char::uppercaseChar) + environment.replaceFirstChar(Char::uppercaseChar)
+            groups.forEach { (mode, suites) ->
+                val name = "workerKarate" + mode.replaceFirstChar(Char::uppercaseChar)
                 val suite = workspace.aggregate(project, name, NodeKind.Verification, suites)
-                if (mode == "behaviour" && environment == delivery.defaultEnvironment.name) {
+                if (mode == "behaviour") {
                     project.componentRole(Workspace.Verify, suite)
                     project.tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(requireNotNull(suite.task)) }
                 }
-                val suffix = (if (mode == "auth") "" else ":$mode") + if (environment == delivery.defaultEnvironment.name) "" else ":$environment"
+                val suffix = if (mode == "auth") "" else ":$mode"
                 workspace.alias(project.rootDir, "test:workers:karate$suffix", suite)
             }
         }

@@ -497,8 +497,7 @@ object BuildModelReader {
         require(it.finishedAtEpochMillis >= it.startedAtEpochMillis) { "Invalid receipt duration" }
     }
     fun readPipeline(file: File): DaggerPipelineContract = json.decodeFromString<DaggerPipelineContract>(boundedText(file)).also {
-        require(it.schema == 1) { "Unsupported Dagger pipeline schema" }
-        require(it.targets.map { node -> node.id }.distinct().size == it.targets.size) { "Duplicate pipeline target" }
+        require(it.schema == 2) { "Unsupported Dagger pipeline schema" }
     }
     fun readRequest(file: File): GradleRequest = json.decodeFromString<GradleRequest>(boundedText(file)).also {
         require(it.schema == 1) { "Unsupported Gradle request schema" }

@@ -93,6 +93,7 @@ data class Node(
     val environments: List<Environment> = emptyList(),
     val requirements: List<OptionRequirement> = emptyList(),
     val options: List<TaskOption> = emptyList(),
+    val requiredSecrets: List<String> = emptyList(),
 )
 
 @Serializable

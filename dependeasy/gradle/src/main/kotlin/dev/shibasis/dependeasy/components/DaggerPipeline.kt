@@ -14,7 +14,7 @@ fun Project.daggerPipeline(options: List<OptionArgument<*>> = emptyList()): Node
     pluginManager.apply("base")
     val workspace = BuildWorkspace.get(this)
     val verification = workspace.aggregate(this, "checkPipeline", NodeKind.Verification,
-        listOf(DaggerModule(this, workspace.declaredTargets, options).register()))
+        listOf(DaggerModule(this, options).register()))
     componentRole(Workspace.Verify, verification)
     tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(requireNotNull(verification.task)) }
     return verification

@@ -20,7 +20,7 @@ workspace {
             output(Reaktor.Ffi, OutputKind.AndroidInstrumentedTests, Build.Debug),
             output(Reaktor.Ffi, OutputKind.AppleCompilation, Apple.IosArm64))
     }
-    val frameworkChecks by verify(role = Workspace.Verify) {
+    val pr by verify(role = Workspace.Verify) {
         include(tooling)
         include(verification(Reaktor.Core, Verification.Jvm), verification(Reaktor.Graph, Verification.Jvm),
             verification(Reaktor.Performance, Verification.Jvm))
