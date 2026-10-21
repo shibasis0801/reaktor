@@ -7,7 +7,7 @@ Written on 14 October 2026. This continues `dependeasy-handoff.md`: its work pac
 | WP | Package | State |
 |---|---|---|
 | WP19 | Fix what is broken, delete what is dead | Done: 16 real dev bundles and owner-approved live deployments pass; all 16 active Cloudflare versions match. Five prod-only workers excluded. Cleanup, current command checks, pinned Pulumi and read-only server preconditions qualify. Receipt metadata cache regression fixed; all 5 receipt/bridge cases pass. |
-| WP20 | One product delivery declaration | Working: canonical contract path/readers and shared config merge qualify (37 BestBuds configs preserved; 102 copied defaults removed). Manna fleet replaces standalone deployments: 9 fixtures, 2 final configs and warm generation/graph cache pass; committed/pushed. Typed delivery facts, remaining inventories and single environment input remain. |
+| WP20 | One product delivery declaration | Working: typed delivery facts and one environment input qualify; both root defaults removed. Fleet contracts record all 39 resolved configs, with unchanged final configs and canonical graph IDs/edges. Karate/load consumers remove 26 endpoint entries and declare 72 fleet inputs. pnpm removes 22 authored Worker entries; 15 fixtures, both product install plans and current CLI reads pass. Coverage, exporter scope and app maps remain. Manna fleet and shared config merge qualify. |
 | WP21 | One deploy contract: plan, apply, verify, rollback, receipt; Cloudflare first | Outstanding |
 | WP22 | Dagger as a thin container host; local CI | Outstanding |
 | WP23 | Server releases by image digest | Outstanding |

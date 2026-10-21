@@ -37,7 +37,8 @@ sealed interface KernelSpec {
         val sourceManifests: FileSet = FileSet(emptyList()), val packageContracts: FileSet = FileSet(emptyList()),
         val packageLocations: Map<String, String> = emptyMap(), val dataSources: Map<String, String> = emptyMap(),
         val workspaceMetadata: FileSet = FileSet(emptyList()), val workspaceDefinition: FileSet = FileSet(emptyList()),
-        val target: String = "es2022", val assetFileNames: String = "assets/[name]-[hash][extname]") : KernelSpec
+        val target: String = "es2022", val assetFileNames: String = "assets/[name]-[hash][extname]",
+        val workerFleet: FileSet = FileSet(emptyList())) : KernelSpec
     @Serializable data class WebResources(val sources: FileSet, val output: FileSet) : KernelSpec
     @Serializable data class KotlinPackage(val sources: FileSet, val destination: FileSet, val dependencies: FileSet, val receipt: FileSet) : KernelSpec
     @Serializable data class Prefab(val archive: FileSet, val checksum: String, val module: String, val output: FileSet) : KernelSpec

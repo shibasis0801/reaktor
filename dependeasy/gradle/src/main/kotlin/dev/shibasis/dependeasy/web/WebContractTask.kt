@@ -25,6 +25,7 @@ abstract class WebContractTask : DefaultTask(), KernelSpecOwner {
     @get:InputFile @get:Optional @get:PathSensitive(PathSensitivity.RELATIVE) abstract val runtimeManifest: RegularFileProperty
     @get:InputFile @get:Optional @get:PathSensitive(PathSensitivity.RELATIVE) abstract val workspaceMetadata: RegularFileProperty
     @get:OutputFile @get:Optional abstract val workspaceDefinition: RegularFileProperty
+    @get:InputFile @get:Optional @get:PathSensitive(PathSensitivity.RELATIVE) abstract val workerFleet: RegularFileProperty
     @get:Input abstract val packageLocations: MapProperty<String, String>
     @get:Input abstract val typeScriptPaths: MapProperty<String, List<String>>
     @get:Input abstract val dataSources: MapProperty<String, String>
@@ -56,7 +57,8 @@ abstract class WebContractTask : DefaultTask(), KernelSpecOwner {
         FileSet(sourceManifests.files.map { it.absolutePath }.sorted()),
         FileSet(packageContracts.files.map { it.absolutePath }.sorted()), packageLocations.get(), dataSources.get(),
         FileSet(listOfNotNull(workspaceMetadata.orNull?.asFile?.absolutePath)),
-        FileSet(listOfNotNull(workspaceDefinition.orNull?.asFile?.absolutePath)), target.get(), assetFileNames.get())
+        FileSet(listOfNotNull(workspaceDefinition.orNull?.asFile?.absolutePath)), target.get(), assetFileNames.get(),
+        FileSet(listOfNotNull(workerFleet.orNull?.asFile?.absolutePath)))
 
     @TaskAction fun write() = WebContractKernel.write(kernelSpec)
 }

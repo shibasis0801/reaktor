@@ -10,13 +10,14 @@ import kotlin.test.*
 class KotlinWorkspaceMetadataTest {
     @TempDir lateinit var directory: File
 
-    private fun synchronize(root: File) {
+    private fun synchronize(root: File, fleet: File? = null) {
         WebContractKernel.write(KernelSpec.WebContract("workspace", directory.absolutePath,
             FileSet(emptyList()), FileSet(emptyList()), FileSet(emptyList()), emptyMap(), emptyMap(),
             FileSet(emptyList()), null, null, null,
             FileSet(listOf(directory.resolve("contract.json").absolutePath)), FileSet(emptyList()),
             workspaceMetadata = FileSet(listOf(root.resolve("package.json").absolutePath)),
-            workspaceDefinition = FileSet(listOf(directory.resolve("pnpm-workspace.yaml").absolutePath))))
+            workspaceDefinition = FileSet(listOf(directory.resolve("pnpm-workspace.yaml").absolutePath)),
+            workerFleet = FileSet(listOfNotNull(fleet?.absolutePath))))
     }
 
     @Test fun `synchronization removes obsolete packages and preserves active outputs and linked sources`() {
@@ -36,15 +37,27 @@ class KotlinWorkspaceMetadataTest {
         Files.createSymbolicLink(root.resolve("packages/linked").toPath(), source.toPath())
         Files.createSymbolicLink(root.resolve("packages_imported/linked").toPath(), source.parentFile.toPath())
 
+        val worker = directory.resolve("targets/worker").apply { mkdirs(); resolve("package.json").writeText("{}") }
+        val fleet = directory.resolve("fleet.json")
+        fleet.writeText("""{"schema":1,"workers":[{"name":"worker","node":{"build":"fixture","project":":workers","name":"worker"},"directory":"targets/worker","configurations":{},"services":{}},{"name":"unpackaged","node":{"build":"fixture","project":":workers","name":"unpackaged"},"directory":"targets/unpackaged","configurations":{},"services":{}}]}""")
         try {
-            synchronize(root)
+            synchronize(root, fleet)
             val first = directory.resolve("pnpm-workspace.yaml").readText()
-            synchronize(root)
+            synchronize(root, fleet)
             assertEquals(first, directory.resolve("pnpm-workspace.yaml").readText())
             assertTrue(first.contains("build/js/packages/active"))
             assertTrue(first.contains("build/js/packages_imported/library/2.0"))
             assertFalse(first.contains("removed"))
             assertTrue(first.endsWith("saveExact: true\n"))
+            assertContains(first, "targets/worker")
+            assertFalse(first.contains("targets/unpackaged"))
+            fleet.writeText(fleet.readText().replace("targets/worker", "../escape"))
+            assertFailsWith<IllegalArgumentException> { synchronize(root, fleet) }
+            assertEquals(first, directory.resolve("pnpm-workspace.yaml").readText())
+            fleet.writeText("""{"schema":1,"workers":[]}""")
+            synchronize(root, fleet)
+            assertFalse(directory.resolve("pnpm-workspace.yaml").readText().contains("targets/worker"))
+            assertTrue(worker.resolve("package.json").isFile)
 
             assertTrue(active.resolve("output.mjs").isFile)
             assertTrue(imported.isDirectory)

@@ -48,6 +48,11 @@ class WorkerFleet internal constructor(
             contract.set(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json"))
         }
         val generatedContract = KernelArtifact(generate.flatMap { it.contract }, project.node(generate, OutputKind.GeneratedContract))
+        project.rootProject.plugins.withType(org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin::class.java) {
+            val metadata = project.rootProject.tasks.named("syncKotlinPnpmMetadata", dev.shibasis.dependeasy.web.KotlinWorkspaceMetadata::class.java)
+            metadata.configure { workerFleet.set(generate.flatMap { it.contract }) }
+            project.rootProject.node(metadata).consumes(generatedContract)
+        }
         project.publishOutput(OutputKind.GeneratedContract, generate.flatMap { it.contract }, Contract.WorkerFleet, producer = generate)
         val nodes = linkedMapOf<String, NodeHandle>()
         records.forEach { worker ->

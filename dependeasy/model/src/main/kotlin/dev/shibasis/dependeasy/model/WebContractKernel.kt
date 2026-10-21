@@ -11,6 +11,19 @@ object WebContractKernel {
     fun write(spec: KernelSpec.WebContract) {
         val output = File(spec.output.paths.single())
         val base = output.parentFile
+        val root = File(spec.directory)
+        val workers = spec.workerFleet.paths.singleOrNull()?.let { path ->
+            val fleet = BuildModelReader.json.decodeFromString<WorkerFleetContract>(File(path).readText())
+            require(fleet.schema == 1) { "Unsupported worker fleet schema: ${fleet.schema}" }
+            fleet.workers.mapNotNull { worker ->
+                val directory = root.resolve(worker.directory)
+                require(!File(worker.directory).isAbsolute && ".." !in worker.directory.split('/') &&
+                    directory.canonicalFile.toPath().startsWith(root.canonicalFile.toPath())) {
+                    "Worker workspace escapes its owner: ${worker.directory}"
+                }
+                directory.takeIf { it.resolve("package.json").isFile }
+            }.sortedBy { it.path }
+        }.orEmpty()
         fun relative(file: File) = file.relativeTo(base).invariantSeparatorsPath
         val workspaces = spec.workspaceMetadata.paths.singleOrNull()?.let { path ->
             val metadata = File(path)
@@ -44,7 +57,7 @@ object WebContractKernel {
                     files.sorted(Comparator.reverseOrder()).forEach(java.nio.file.Files::delete)
                 } }
             listOf(owner) + members
-        }.orEmpty()
+        }.orEmpty() + workers
         val aliases = linkedMapOf<String, String>()
         val types = linkedMapOf<String, List<String>>()
         val producers = linkedMapOf<String, File>()
@@ -117,7 +130,6 @@ object WebContractKernel {
             }
         }
         spec.typeScriptPaths.forEach { (key, paths) -> types[key] = paths.map { relative(File(spec.directory).resolve(it)) } }
-        val root = File(spec.directory)
         val value = WebContract(component = spec.component, directory = relative(root), aliases = aliases.toSortedMap(compareByDescending<String> { it.length }.thenBy { it }),
             assets = spec.assets.mapValues { relative(root.resolve(it.value)) }, packages = packages,
             workspaces = workspaces.map(::relative), dataSources = spec.dataSources.toSortedMap(),

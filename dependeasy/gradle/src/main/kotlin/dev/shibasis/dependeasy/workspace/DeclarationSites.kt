@@ -119,7 +119,7 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
             runtime = files(runtime), baseConfiguration = files(baseConfiguration), output = files(output),
             typeScriptConfiguration = files(typeScriptConfiguration), sourceManifests = files(sourceManifests),
             packageContracts = files(packageContracts), packageLocations = packageLocations.mapValues { path(it.value) },
-            workspaceMetadata = files(workspaceMetadata), workspaceDefinition = files(workspaceDefinition))
+            workspaceMetadata = files(workspaceMetadata), workspaceDefinition = files(workspaceDefinition), workerFleet = files(workerFleet))
         is KernelSpec.WebResources -> copy(sources = files(sources), output = files(output))
         is KernelSpec.KotlinPackage -> copy(sources = files(sources), destination = files(destination), dependencies = files(dependencies), receipt = files(receipt))
         is KernelSpec.Prefab -> copy(archive = files(archive), output = files(output))
