@@ -310,6 +310,15 @@ class GradlePlanningTest {
         val details = BuildModelReader.nodeDetails(directory, node.id.toString())
         assertTrue(details.getValue("deploymentReceipts").jsonArray.any { it.jsonObject["action"]?.jsonPrimitive?.content == "apply" })
         assertEquals(spec.deployment.service, receipt.service)
+        bridge(GradleProtocol.PlanTask, option)
+        val rollbackPlan = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json"))
+        val (rollbackDigest, _) = contract(request.copy(expectedContextDigest = rollbackPlan.contextDigest, deployments = rollbackPlan.deployments))
+        bridge("deployFixture", "-P${GradleProtocol.DeployActionOption}=rollback",
+            "-P${GradleProtocol.DeployRequestOption}=${directory.resolve("${GradleProtocol.RequestDirectory}/$rollbackDigest.json").absolutePath}")
+        val rollback = WorkerDeployKernel.receipts(directory, node.id).single { it.action == "rollback" }
+        assertEquals(initial, rollback.remoteVersion)
+        assertEquals(deployed, rollback.rollbackTarget)
+        assertEquals(2, BuildModelReader.json.parseToJsonElement(directory.resolve("state.json").readText()).jsonObject.getValue("writes").jsonPrimitive.int)
     }
 
 }

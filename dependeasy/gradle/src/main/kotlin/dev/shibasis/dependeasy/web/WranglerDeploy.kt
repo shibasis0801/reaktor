@@ -62,7 +62,8 @@ abstract class WranglerDeploy : ProcessTask() {
             output.toString(Charsets.UTF_8)
         }
         val record: (DeployReceipt) -> Unit = { WorkerDeployKernel.record(root, it) }
-        when (protocolAction.orNull ?: action.get()) {
+        val requestedAction = protocolAction.orNull ?: action.get()
+        when (requestedAction) {
             "plan" -> {
                 val revision = ByteArrayOutputStream()
                 execOperations.exec { workingDir = root; executable = "git"; args("rev-parse", "HEAD"); standardOutput = revision }.assertNormalExitValue()
@@ -77,7 +78,7 @@ abstract class WranglerDeploy : ProcessTask() {
                     BuildModelReader.readRequest(File(request)).deployments.single { it.spec.node == spec.node }
                 } ?: WorkerDeployKernel.retained(root, spec.node, spec.environment)
                 require(plan.spec == spec) { "Deployment declaration changed after planning" }
-                if (action.get() == "rollback") {
+                if (requestedAction == "rollback") {
                     val receipts = WorkerDeployKernel.receipts(root, spec.node).filter { it.environment == spec.environment && it.result == ReceiptStatus.Succeeded }
                     val latest = receipts.first { it.remoteVersion == plan.previousVersion && it.action == "apply" }
                     val previous = receipts.first { it.remoteVersion == latest.rollbackTarget }
