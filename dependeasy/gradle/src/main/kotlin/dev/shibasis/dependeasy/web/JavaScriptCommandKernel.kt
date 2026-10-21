@@ -3,6 +3,7 @@ package dev.shibasis.dependeasy.web
 import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
+import dev.shibasis.dependeasy.workspace.hasBuildDirectory
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
@@ -30,7 +31,7 @@ internal class JavaScriptCommandKernel(
             this.arguments.set(arguments.toList())
             toolVersion.set("pnpm ${ToolchainVersions.Pnpm} / node ${ToolchainVersions.Node}")
             sourceFiles.from(project.fileTree(directory) {
-                if (directory == project.projectDir && project.file("src").isDirectory)
+                if (directory == project.projectDir && project.hasBuildDirectory(project.file("src")))
                     include("package.json", "*config.*", "src/**/typescript/**", "ts/**", "js/**", "scripts/**", "test/**")
                 exclude("**/node_modules/**", "**/dist/**", "**/build/**", "**/.git/**", "**/.gradle/**", "**/.kotlin/**", "**/*.tsbuildinfo", ".wrangler/**", ".vite/**", "coverage/**", ".cache-*/**", "logs/**", "*.log", "wrangler.dependeasy-*.json", "$output/**")
                 if (directory == project.projectDir) exclude("ts/export/**")

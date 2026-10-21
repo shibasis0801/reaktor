@@ -19,6 +19,45 @@ import kotlin.test.assertEquals
 class NativeInputsTest {
     @TempDir lateinit var directory: File
 
+    @Test fun `optional native tool files invalidate configuration only when selection changes`() {
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"optionalTool\"")
+        directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.toolchain.NativeBuildTools
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            val tools = NativeBuildTools.get(project)
+            tasks.register("selectedTool") {
+                val file = tools.hostFile("ASPROF_LIB").get()
+                val prefix = tools.hostDirectory("OPENSSL_ROOT_DIR").get()
+                inputs.property("file", file)
+                inputs.property("prefix", prefix)
+                val report = layout.buildDirectory.file("selected-tool.txt")
+                outputs.file(report)
+                doLast { report.get().asFile.writeText(listOf(file, prefix).joinToString("\n")) }
+            }
+        """.trimIndent())
+        val candidate = directory.resolve("optional profiler")
+        val explicitPrefix = directory.resolve("explicit missing directory")
+        fun run() = org.gradle.testkit.runner.GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withEnvironment(System.getenv() + mapOf("ASPROF_LIB" to candidate.path, "OPENSSL_ROOT_DIR" to explicitPrefix.path))
+            .withArguments("selectedTool", "--configuration-cache", "--stacktrace").build()
+        fun selected() = directory.resolve("build/selected-tool.txt").readLines()
+        run()
+        assertEquals(listOf("", explicitPrefix.path), selected())
+        assertContains(run().output, "Reusing configuration cache")
+        candidate.mkdir()
+        assertContains(run().output, "Reusing configuration cache")
+        candidate.delete()
+        candidate.writeText("fixture profiler")
+        val appeared = run()
+        assertFalse(appeared.output.contains("Reusing configuration cache"))
+        assertEquals(listOf(candidate.path, explicitPrefix.path), selected())
+        assertContains(run().output, "Reusing configuration cache")
+        candidate.delete()
+        assertFalse(run().output.contains("Reusing configuration cache"))
+        assertEquals(listOf("", explicitPrefix.path), selected())
+        assertContains(run().output, "Reusing configuration cache")
+    }
+
     @Test fun `native tool identity uses the configured executable`() {
         val executable = directory.resolve("cmake fixture").apply {
             writeText("#!/bin/sh\nprintf 'cmake version fixture\\n'\n")

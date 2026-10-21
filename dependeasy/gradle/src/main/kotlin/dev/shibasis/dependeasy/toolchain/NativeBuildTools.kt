@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.toolchain
 
 import dev.shibasis.dependeasy.model.BuildOption
+import dev.shibasis.dependeasy.workspace.selectBuildPath
 import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.model.ToolHandle
 import dev.shibasis.dependeasy.model.BuildModelReader
@@ -53,12 +54,12 @@ class NativeBuildTools private constructor(private val project: Project) {
         return InstalledTool(ToolHandle(name, version.get()), project.objects.fileProperty().fileValue(directory.resolve(name)), task, environment)
     }
     private fun defaultPaths(variable: String) = project.option(BuildOption.systemProperty("user.home")).map { home ->
-        ToolchainVersions.HostPaths.getValue(variable).map { java.io.File(if (it.startsWith("~/")) home + it.substring(1) else it) }
+        ToolchainVersions.HostPaths.getValue(variable).map { if (it.startsWith("~/")) home + it.substring(1) else it }
     }
-    fun hostFile(variable: String): Provider<String> = project.option(BuildOption.environment(variable)).map { listOf(java.io.File(it)) }
-        .orElse(defaultPaths(variable)).map { candidates -> candidates.firstOrNull { it.isFile }?.absolutePath.orEmpty() }
+    fun hostFile(variable: String): Provider<String> = project.selectBuildPath(
+        project.option(BuildOption.environment(variable)).map { listOf(it) }.orElse(defaultPaths(variable)), false)
     fun hostDirectory(variable: String): Provider<String> = project.option(BuildOption.environment(variable))
-        .orElse(defaultPaths(variable).map { candidates -> candidates.firstOrNull { it.isDirectory }?.absolutePath.orEmpty() })
+        .orElse(project.selectBuildPath(defaultPaths(variable), true))
     private fun xcode(name: String) = project.providers.exec { commandLine("/usr/bin/xcrun", "--find", name) }.standardOutput.asText.map { it.trim() }
     private val sdkGit = if (mac) xcode("git") else project.provider { "/usr/bin/git" }
     val git: InstalledTool by lazy {

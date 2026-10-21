@@ -69,6 +69,42 @@ class WebContractsTest {
         assertEquals("../../owned/generated/changed.mjs", json("build/web/site.json").getValue("aliases").jsonObject.getValue("owned-facade").jsonPrimitive.content)
     }
 
+    @Test fun `root JavaScript source selection follows optional source directory with cache reuse`() {
+        write("package.json", """{"name":"fixture","private":true}""")
+        write("index.ts", "export const root = 1")
+        write("node_modules/ignored/index.ts", "export {}")
+        prepare("""
+            dependeasy {
+                val site = javascript("site", ".")
+                val bundle = site.vite()
+                val paths = bundle.get().sourceFiles.files.filter { it.toPath().startsWith(projectDir.toPath()) }
+                    .map { it.relativeTo(projectDir).invariantSeparatorsPath }.sorted()
+                tasks.register("selectedSources") {
+                    inputs.property("paths", paths)
+                    val report = layout.buildDirectory.file("selected-sources.txt")
+                    outputs.file(report)
+                    doLast { report.get().asFile.writeText(paths.joinToString("\n")) }
+                }
+            }
+        """.trimIndent())
+        fun selected() = directory.resolve("build/selected-sources.txt").readLines()
+        run("selectedSources")
+        assertContains(selected(), "index.ts")
+        assertFalse(selected().any { it.startsWith("node_modules/") })
+        assertContains(run("selectedSources").output, "Reusing configuration cache")
+        write("src/commonMain/typescript/index.ts", "export const shared = 1")
+        write("src/commonMain/kotlin/Fixture.kt", "class Fixture")
+        assertFalse(run("selectedSources").output.contains("Reusing configuration cache"))
+        assertContains(selected(), "src/commonMain/typescript/index.ts")
+        assertFalse("index.ts" in selected())
+        assertFalse("src/commonMain/kotlin/Fixture.kt" in selected())
+        assertContains(run("selectedSources").output, "Reusing configuration cache")
+        assertTrue(directory.resolve("src").deleteRecursively())
+        assertFalse(run("selectedSources").output.contains("Reusing configuration cache"))
+        assertContains(selected(), "index.ts")
+        assertContains(run("selectedSources").output, "Reusing configuration cache")
+    }
+
     @Test fun `component contract names stay independent of Gradle task names`() {
         write("package.json", """{"name":"fixture","private":true}""")
         write("base.json", "{}")

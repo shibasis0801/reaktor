@@ -2,6 +2,7 @@ package dev.shibasis.dependeasy.web
 
 import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.workspace.hasBuildDirectory
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
@@ -54,7 +55,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
                 val locations = files.files.toList()
                 contract.configure {
                     packageContracts.from(locations.filter { it.extension == "json" })
-                    packageManifests.from(locations.filter { it.isDirectory }.map { it.resolve("package.json") })
+                    packageManifests.from(locations.filter(project::hasBuildDirectory).map { it.resolve("package.json") })
                 }
             }
             val model = BuildWorkspace.get(project)
@@ -81,7 +82,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         val root = directory
         contract.configure { dependsOn(files) }
         project.afterEvaluate {
-            val published = if (from.kind == OutputKind.JavaScriptPackage) files.files.single { it.isDirectory } else files.singleFile
+            val published = if (from.kind == OutputKind.JavaScriptPackage) files.files.single(project::hasBuildDirectory) else files.singleFile
             val dependencies = if (kotlinLibrary) published.parentFile.resolve("node_modules") else published
             val locations = paths.associate { it.destination to dependencies.resolve(it.source) }
             assets.set(locations)
