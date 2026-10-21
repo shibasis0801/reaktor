@@ -22,7 +22,7 @@ object GradleToolingRunner {
         val connection = GradleConnector.newConnector().forProjectDirectory(root)
             .useInstallation(gradleHome).useGradleUserHomeDir(gradleUserHome).connect()
         connection.use {
-            val build = it.newBuild().forTasks(*tasks.toTypedArray())
+            val build = it.newBuild()
                 .setJavaHome(File(javaHome))
                 .setEnvironmentVariables(environment)
                 .setStandardOutput(System.out).setStandardError(System.err)
@@ -50,7 +50,7 @@ object GradleToolingRunner {
                         }
                     }, OperationType.TASK)
                     val started = System.nanoTime()
-                    build.withArguments(inherited + request.arguments + workerArgument + listOf("--dry-run", "--no-configuration-cache",
+                    build.withArguments(inherited + workerArgument + tasks + request.arguments + listOf("--dry-run", "--no-configuration-cache",
                         "--init-script", script.absolutePath)).run()
                     val elapsed = (System.nanoTime() - started) / 1_000_000
                     val observed = selected.listFiles().orEmpty().filter { selectedFile -> selectedFile.extension == "json" }
@@ -84,7 +84,7 @@ object GradleToolingRunner {
                     }
                 }, OperationType.TASK)
                 try {
-                    build.withArguments(inherited + request.arguments + workerArgument + "-P${GradleProtocol.CorrelationOption}=$requestDigest").run()
+                    build.withArguments(inherited + workerArgument + tasks + request.arguments + "-P${GradleProtocol.CorrelationOption}=$requestDigest").run()
                 } finally {
                     val receipts = root.resolve(GradleProtocol.ReceiptDirectory).listFiles().orEmpty()
                         .filter { receiptFile -> receiptFile.extension == "json" && receiptFile.name !in before }

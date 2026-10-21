@@ -14,6 +14,16 @@ class GradlePlanningTest {
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
+            abstract class OptionFixture : DefaultTask() {
+                @get:Input @get:org.gradle.api.tasks.options.Option(option = "active", description = "Enable fixture")
+                abstract val active: org.gradle.api.provider.Property<Boolean>
+                @get:Input @get:org.gradle.api.tasks.options.Option(option = "label", description = "Fixture labels")
+                abstract val labels: org.gradle.api.provider.ListProperty<String>
+                @get:OutputFile abstract val result: org.gradle.api.file.RegularFileProperty
+                init { active.convention(true); labels.convention(emptyList()) }
+                @TaskAction fun write() { result.get().asFile.writeText(active.get().toString() + "|" + labels.get().joinToString("|")) }
+            }
+            val selection = tasks.register<OptionFixture>("selection") { result.set(layout.buildDirectory.file("selected.txt")) }
             val copied = tasks.register<Copy>("copied") {
                 from(layout.projectDirectory.file("source.txt"))
                 into(layout.buildDirectory.dir("copied"))
@@ -24,6 +34,7 @@ class GradlePlanningTest {
             dependeasy.workspace {
                 val checks by verify { include(node(copied)) }
                 val failureChecks by verify { include(node(failed)) }
+                val optionChecks by verify { include(node(selection)) }
             }
         """.trimIndent())
     }
@@ -145,6 +156,27 @@ class GradlePlanningTest {
         assertNotEquals(first.receipts, second.receipts)
         assertEquals(TaskOutcome.UpToDate, BuildModelReader.readReceipt(directory.resolve(second.receipts.single()))
             .tasks.single { it.task == copied }.outcome)
+        val selection = model.nodes.single { it.id.name == "selection" }
+        assertEquals(OptionType.Boolean, selection.options.single { it.name == "active" }.type)
+        assertTrue(selection.options.single { it.name == "label" }.multiple)
+        val selectedRequest = request.copy(node = selection.id, declaredAt = selection.declaredAt,
+            arguments = listOf("--no-active", "--label=one", "--label=two"))
+        fun selectedContract(value: GradleRequest): Pair<String, String> {
+            val encoded = BuildModelReader.json.encodeToString(GradleRequest.serializer(), value) + "\n"
+            val id = BuildModelReader.digest(encoded)
+            val file = contract.parentFile.resolve("$id.json").apply { writeText(encoded) }
+            return id to "-P${GradleProtocol.RequestOption}=${file.absolutePath}"
+        }
+        val (selectionDigest, selectionOption) = selectedContract(selectedRequest)
+        bridgeRunner(GradleProtocol.PlanTask, selectionOption).build()
+        assertFalse(directory.resolve("build/selected.txt").exists())
+        val selectedPlan = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$selectionDigest.json"))
+        assertEquals(listOf(":selection") + selectedRequest.arguments, selectedPlan.invocation)
+        val (executionDigest, executionOption) = selectedContract(selectedRequest.copy(expectedContextDigest = selectedPlan.contextDigest))
+        bridgeRunner(GradleProtocol.RunTask, executionOption).build()
+        assertEquals("false|one|two", directory.resolve("build/selected.txt").readText())
+        val selectedResult = BuildModelReader.readRunResult(directory.resolve("${GradleProtocol.ResultDirectory}/$executionDigest.json"))
+        assertEquals(ReceiptStatus.Succeeded, BuildModelReader.readReceipt(directory.resolve(selectedResult.receipts.single())).status)
     }
 
 }

@@ -70,7 +70,7 @@ object GradleInvocationKernel {
             dependencies = task.dependencies.filter(selectedIds::contains),
             dependenciesOutsideSelection = task.dependencies.filterNot(selectedIds::contains)) }
         return GradlePlan(node = invocation.node.id, modelDigest = invocation.modelDigest, requestDigest = invocation.requestDigest,
-            contextDigest = contextDigest, invocation = invocation.tasks, configuredMillis = elapsed, tasks = planned,
+            contextDigest = contextDigest, invocation = invocation.tasks + invocation.request.arguments, configuredMillis = elapsed, tasks = planned,
             preparationTasks = preparation.sortedBy { task -> task.toString() })
     }
 
