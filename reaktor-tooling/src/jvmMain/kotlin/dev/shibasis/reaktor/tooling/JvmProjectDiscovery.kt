@@ -198,9 +198,10 @@ class JvmProjectDiscovery(
             }.getOrNull()
         }
         val packageJson = declaration(File(root, "package.json")) ?: return null
-        val reaktor = packageJson["reaktor"] as? JsonObject ?: return null
+        val reaktor = packageJson["reaktor"] as? JsonObject ?: JsonObject(emptyMap())
         val name = reaktor.string("name") ?: packageJson.string("name") ?: root.name
         val scripts = packageJson.stringMap("scripts")
+        val authoredScripts = PackageScriptCommands.authoredScripts(packageJson)
         val workspaces = PackageWorkspaces.paths(root) { file ->
             declarationsText.getOrPut(file.canonicalFile) { file.readText() }
         }
@@ -232,7 +233,7 @@ class JvmProjectDiscovery(
         }
         val resources = buildResources(reaktor)
         val taskBuilder = TaskCatalogBuilder(root, scripts, declarationsText)
-        scripts.toSortedMap().forEach { (script, body) ->
+        authoredScripts.toSortedMap().forEach { (script, body) ->
             taskBuilder.npmTask(
                 id = "npm/$script",
                 label = script,
@@ -244,7 +245,7 @@ class JvmProjectDiscovery(
         }
         targets.forEach { target ->
             val targetDir = File(root, target.path)
-            declaration(File(targetDir, "package.json"))?.stringMap("scripts")?.toSortedMap()?.forEach { (script, body) ->
+            declaration(File(targetDir, "package.json"))?.let(PackageScriptCommands::authoredScripts)?.toSortedMap()?.forEach { (script, body) ->
                 taskBuilder.npmTask(
                     id = "target/${target.name}/npm/$script",
                     label = "${target.name}: $script",
@@ -260,7 +261,7 @@ class JvmProjectDiscovery(
             val target = targets.firstOrNull {
                 it.name == declaration.declaredName || it.path == declaration.workspace
             }
-            declaration.actions().forEach { (action, reference) ->
+            declaration.actions().filterNot { (_, reference) -> reference in scripts && reference !in authoredScripts }.forEach { (action, reference) ->
                 when {
                     reference in scripts -> taskBuilder.npmTask(
                         id = "target/${target?.name ?: declaration.declaredName}/$action",
@@ -311,7 +312,7 @@ class JvmProjectDiscovery(
             while (directory != null) {
                 val manifest = File(directory, "package.json")
                 val json = parseObject(manifest)
-                if (json?.containsKey("reaktor") == true) return directory.canonicalFile
+                if (json != null && (json.containsKey("reaktor") || readableBuildModel(directory) != null)) return directory.canonicalFile
                 directory = directory.parentFile
             }
             return null
@@ -471,8 +472,7 @@ private class TaskCatalogBuilder(
         val safety = safetyFor(script, expandedBody)
         val words = "$script $expandedBody".lowercase()
         val blockedReason = when {
-            Regex("(?:^|[\\s/])gradlew(?:\\.bat)?(?:\\s|$)").containsMatchIn(expandedBody) &&
-                dev.shibasis.reaktor.tooling.delivery.GradlePackageTargets.workerDeploy(root, parse(definitionFile) ?: JsonObject(emptyMap()), script, body) == null ->
+            Regex("(?:^|[\\s/])gradlew(?:\\.bat)?(?:\\s|$)").containsMatchIn(expandedBody) ->
                 "Gradle package alias has no sealed generated binding; use its canonical build node"
             "wrangler deploy" in words && definitionFile.parentFile == root && PackageScriptCommands.workspaces(expandedBody).isEmpty() ->
                 "Worker deploy target could not be resolved to a bounded workspace"
@@ -651,20 +651,6 @@ private class TaskCatalogBuilder(
         ROOT_DEPENDENCY_FILES.forEach { addFile(File(root, it)) }
 
         val workspacePackages = linkedSetOf<File>()
-        parse(packageFile)?.let { manifest ->
-            dev.shibasis.reaktor.tooling.delivery.GradlePackageTargets.workerDeploy(root, manifest, script, body)
-        }?.let { binding ->
-            addFile(binding.directory.resolve("package.json"))
-            workspacePackages += binding.directory.resolve("package.json").canonicalFile
-            val gradle = gradleDefinitionSeal.value
-            files.addAll(gradle.files)
-            directories.addAll(gradle.directories)
-            gradleSourceRoots(root).roots.forEach { source ->
-                val owner = if (source.name == "dependeasy") source else source.resolve("dependeasy")
-                addDirectory(owner, SCRIPT_DEFINITION_SUFFIXES + setOf(".kt", ".ts"))
-            }
-            addFile(root.resolve("wrangler.json"))
-        }
         PackageScriptCommands.workspaces(expandedBody).forEach { workspaceReference ->
             resolveWorkspacePackage(workspaceReference)?.canonicalFile?.let {
                 files += it

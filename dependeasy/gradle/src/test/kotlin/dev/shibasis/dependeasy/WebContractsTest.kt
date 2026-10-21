@@ -501,7 +501,7 @@ class WebContractsTest {
     }
 
     @Test fun `package aliases preserve runtime scripts and remove retired generated aliases`() {
-        write("package.json", """{"name":"root","devDependencies":{"vite":"8.3.4"},"scripts":{"serve":"node serve.mjs","retired":"old"},"dependeasy":{"generatedScripts":["retired"]}}""")
+        write("package.json", """{"name":"root","devDependencies":{"vite":"8.3.4"},"scripts":{"serve":"node serve.mjs","retired":"old"},"dependeasy":{"generatedScripts":["retired"],"generatedTargets":{"retired":{"task":":retired"}}}}""")
         write("pnpm-workspace.yaml", "packages:\n  - 'targets/*'\n")
         write("targets/worker/package.json", """{"name":"worker","dependencies":{"vite":"8.3.4","local":"workspace:*"},"scripts":{"dev":"wrangler dev","retired":"old"},"dependeasy":{"generatedScripts":["retired"]}}""")
         write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts"}""")
@@ -548,6 +548,7 @@ class WebContractsTest {
             .getValue(":workers:generateWorkerFleet").jsonPrimitive.content)
         val scripts = json("package.json").getValue("scripts").jsonObject
         assertEquals("node serve.mjs", scripts.getValue("serve").jsonPrimitive.content)
+        assertFalse("generatedTargets" in json("package.json").getValue("dependeasy").jsonObject)
         assertFalse("deployWorker" in scripts)
         assertFalse("logsWorker" in scripts)
         assertFalse(scripts.keys.any { it == "deployWorkerDev" || it == "logsWorkerDev" })

@@ -9,6 +9,15 @@ import kotlin.test.*
 
 class BuildDeclarationsTest {
     @Test fun declarationsRetainTheirIdentityFactsAndSealedWrapperBinding() = fixture { root ->
+        root.resolve("package.json").writeText("""{
+            "name":"fixture","reaktor":{"targets":{"site":{"workspace":"targets/site","gradle":":","build":"buildAlias"}}},
+            "workspaces":["targets/site"],"scripts":{"buildAlias":"./gradlew :artifacts","version":"node --version"},
+            "dependeasy":{"generatedScripts":["buildAlias"]}
+        }""")
+        root.resolve("targets/site/package.json").apply { parentFile.mkdirs(); writeText("""{
+            "name":"site","scripts":{"build":"../../gradlew :artifacts","preview":"node --version"},
+            "dependeasy":{"generatedScripts":["build"]}
+        }""") }
         report(root, node("artifacts"), node("checks", Effect.Verify))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         val build = workspace.prepare(TaskInvocation(TaskId("fixture:artifacts")),
@@ -36,6 +45,17 @@ class BuildDeclarationsTest {
         assertEquals(TaskProvenance("dependeasy", "fixture/build.gradle.kts:1"), task.provenance)
         assertEquals(listOf("export", "export"), root.resolve("build/exports.txt").readLines())
         assertNull(task.attributes["buildModel"])
+        val ids = workspace.catalog.tasks.map { it.id.value }.toSet()
+        assertFalse("npm/buildAlias" in ids)
+        assertFalse("target/site/build" in ids)
+        assertFalse("target/site/npm/build" in ids)
+        assertTrue("npm/version" in ids)
+        assertTrue("target/site/npm/preview" in ids)
+        assertEquals(2, workspace.catalog.tasks.count { "buildNode" in it.attributes })
+        root.resolve("package.json").writeText(root.resolve("package.json").readText().replace(
+            "\"reaktor\":{\"targets\":{\"site\":{\"workspace\":\"targets/site\",\"gradle\":\":\",\"build\":\"buildAlias\"}}},", ""))
+        val modelOwned = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root.resolve("targets/site")))
+        assertEquals(ids, modelOwned.catalog.tasks.map { it.id.value }.toSet())
     }
 
     @Test fun typedPrerequisitesCarryPhysicalHostAndWriteAuthorityWithoutTaskNameInference() = fixture { root ->

@@ -177,51 +177,6 @@ class JvmProjectDiscoverySealTest {
         assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(TaskId("npm/deploy"))) }
     }
 
-    @Test
-    fun generatedGradleWorkerAliasSealsBuildAndWorkerDefinitions() = fixture { root, included ->
-        worker(root)
-        File(root, "targets/worker/src/index.ts").writeText("export default {};")
-        val manifest = generatedWorkerManifest()
-        File(root, "package.json").writeText(manifest)
-        val helper = File(included, "dependeasy/javascript/cli/worker-deploy.ts").apply {
-            parentFile.mkdirs(); writeText("// Shared deployment implementation")
-        }
-        val binding = assertNotNull(dev.shibasis.reaktor.tooling.delivery.GradlePackageTargets.workerDeploy(
-            root, kotlinx.serialization.json.Json.parseToJsonElement(manifest).jsonObject, "deployWorker", "./gradlew :deployWorker"))
-        assertEquals(setOf("dev", "prod"), binding.environments)
-        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        val invocation = TaskInvocation(TaskId("npm/deployWorker"))
-        val prepared = workspace.prepare(invocation)
-        assertEquals(SafetyClass.ProductionReversibleWrite, prepared.plan.safety.classification)
-        val seal = assertNotNull(prepared.request.definitionSeal)
-        assertTrue(seal.files.any { it == File(root, "targets/worker/package.json").canonicalFile })
-        assertTrue(seal.directories.any { it.directory == included.canonicalFile })
-        assertTrue(seal.directories.any { it.directory == File(included, "dependeasy").canonicalFile })
-        helper.appendText("\n// Changed implementation")
-        assertFailsWith<IllegalStateException> { workspace.prepare(invocation) }
-        SupervisedProcessExecutor().use { executor -> assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) } }
-    }
-
-    @Test
-    fun generatedGradleWorkerAliasRejectsEscapingPathsAndCommandDrift() = fixture { root, _ ->
-        File(root, "targets/worker").mkdirs()
-        fun binding(directory: String = "targets/worker", command: String = "./gradlew :deployWorker") =
-            dev.shibasis.reaktor.tooling.delivery.GradlePackageTargets.workerDeploy(root,
-                kotlinx.serialization.json.Json.parseToJsonElement(generatedWorkerManifest(directory)).jsonObject, "deployWorker", command)
-        assertNotNull(binding())
-        assertNull(binding("../included"))
-        assertNull(binding(command = "./gradlew :deployWorker && node other.mjs"))
-        assertNull(binding(command = "./gradlew :different"))
-    }
-
-    private fun generatedWorkerManifest(directory: String = "targets/worker") = """{
-        "name":"gradle-worker","reaktor":{},"workspaces":["targets/worker"],
-        "scripts":{"deployWorker":"./gradlew :deployWorker"},
-        "dependeasy":{"generatedScripts":["deployWorker"],"generatedTargets":{"deployWorker":{
-            "task":":deployWorker","effect":"deploy","worker":"fixture","workerDirectory":"$directory","environments":["dev","prod"]
-        }}}
-    }"""
-
     private fun worker(root: File) {
         File(root, "package.json").writeText("""{"name":"worker-seal","reaktor":{},"workspaces":["targets/worker"]}""")
         File(root, "targets/worker/package.json").apply { parentFile.mkdirs(); writeText("""{"name":"worker","scripts":{"deploy":"wrangler deploy"}}""") }

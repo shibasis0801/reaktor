@@ -63,16 +63,6 @@ object PackageScriptsKernel {
         val metadata = buildJsonObject {
             putJsonArray("generatedScripts") { commands.keys.sorted().forEach { add(it) } }
             putJsonArray("generatedPackages") { (spec.additionalAliases.keys + spec.packageContracts.keys + spec.packageImports.keys).filter { it != "package.json" }.sorted().forEach { add(it) } }
-            putJsonObject("generatedTargets") {
-                spec.targets.toSortedMap().filterKeys { it in commands }.forEach { (alias, node) ->
-                    put(alias, buildJsonObject {
-                        put("task", node.id.project.trimEnd(':') + ":" + node.id.name)
-                        put("effect", node.effect.name.lowercase())
-                        node.worker?.let { put("worker", it.name); put("workerDirectory", it.directory) }
-                        putJsonArray("environments") { node.environments.forEach { add(it.name) } }
-                    })
-                }
-            }
         }
         root["dependeasy"] = JsonObject(base["dependeasy"]?.jsonObject.orEmpty() + metadata)
         val formatter = Json { prettyPrint = true }
