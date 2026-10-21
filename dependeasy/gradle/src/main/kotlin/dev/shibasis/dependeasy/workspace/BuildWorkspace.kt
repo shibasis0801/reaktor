@@ -28,7 +28,7 @@ internal class BuildWorkspace(private val project: Project) {
     private val packageContracts = linkedMapOf<String, Pair<Project, MutableList<OutputHandle>>>()
 
     internal fun packageImport(owner: Project, directory: java.io.File, contract: org.gradle.api.provider.Provider<org.gradle.api.file.RegularFile>) {
-        if (!directory.resolve("package.json").isFile) return
+        if (!project.hasBuildFile(directory.resolve("package.json"))) return
         owner.afterEvaluate {
             val path = directory.resolve("package.json").relativeTo(project.rootDir).invariantSeparatorsPath
             val target = contract.get().asFile.relativeTo(directory).invariantSeparatorsPath
@@ -75,7 +75,7 @@ internal class BuildWorkspace(private val project: Project) {
 
     private fun recordAlias(directory: java.io.File, alias: String, command: String) {
         val file = directory.resolve("package.json")
-        if (!file.isFile) return
+        if (!project.hasBuildFile(file)) return
         val path = file.relativeTo(project.rootDir).invariantSeparatorsPath
         val aliases = scriptAliases.getOrPut(path) { linkedMapOf() }
         aliases[alias] = command

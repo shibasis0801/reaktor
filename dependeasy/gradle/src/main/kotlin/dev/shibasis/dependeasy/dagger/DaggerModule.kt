@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.dagger
 
 import dev.shibasis.dependeasy.workspace.BuildTarget
+import dev.shibasis.dependeasy.workspace.hasBuildFile
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.model.DaggerToolchainContract
 import dev.shibasis.dependeasy.model.AndroidSdkContract
@@ -53,7 +54,7 @@ internal class DaggerModule(private val project: Project, private val targets: M
         }
         val reference = generation("generateDaggerReference", project.layout.buildDirectory.file("dependeasy/dagger-reference/pipeline.json"))
         val generated = generation("generateDagger", project.rootProject.layout.projectDirectory.file("dagger/pipeline.json"))
-        if (project.rootDir.resolve("dependeasy/dagger/src/index.ts").isFile) generated.configure {
+        if (project.hasBuildFile(project.rootDir.resolve("dependeasy/dagger/src/index.ts"))) generated.configure {
             sharedDirectory.set(project.rootProject.layout.projectDirectory.dir("dependeasy/dagger"))
             sharedMetadata.set(mapOf(
                 "dagger.json" to buildJsonObject {
