@@ -273,14 +273,6 @@ class JvmProjectDiscovery(
                         provenancePath = "package.json#reaktor.targets.${declaration.declaredName}.$action",
                         explicitKind = action.toTaskKind(),
                     )
-                    declaration.gradle != null -> taskBuilder.gradleTask(
-                        id = "target/${target?.name ?: declaration.declaredName}/$action",
-                        label = "${target?.name ?: declaration.declaredName}: $action",
-                        gradleTask = declaration.gradle + ":" + action.gradleAction(),
-                        targetId = target?.id,
-                        provenancePath = "package.json#reaktor.targets.${declaration.declaredName}.$action",
-                        explicitKind = action.toTaskKind(),
-                    )
                 }
             }
         }
@@ -394,7 +386,6 @@ private data class TargetDeclaration(
     val declaredName: String,
     val runtime: String?,
     val workspace: String?,
-    val gradle: String?,
     val dev: String?,
     val build: String?,
     val deploy: String?,
@@ -523,7 +514,7 @@ private class TaskCatalogBuilder(
         targetId: String?,
         provenancePath: String,
         explicitKind: TaskKind,
-        declaration: BuildDeclarations.Target? = null,
+        declaration: BuildDeclarations.Target,
     ) {
         val wrapper = File(root, if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew")
         if (!wrapper.isFile) return
@@ -535,18 +526,17 @@ private class TaskCatalogBuilder(
             kind = explicitKind,
             provider = "gradle",
             targetId = targetId,
-            safety = declaration?.let { SafetyPolicy(it.safety) } ?: safetyFor(gradleTask, gradleTask),
-            provenance = TaskProvenance(if (declaration == null) "gradle-settings" else "dependeasy", provenancePath),
-            attributes = mapOf("gradleTask" to gradleTask) + declaration?.node?.let { node ->
-                mapOf("buildNode" to dev.shibasis.dependeasy.model.BuildModelReader.encode(node))
-            }.orEmpty() + declaration?.staleAttributes.orEmpty(),
-            unavailableReason = declaration?.unavailableReason,
-            environments = declaration?.node?.environments.orEmpty().map { it.name }.toSet(),
+            safety = SafetyPolicy(declaration.safety),
+            provenance = TaskProvenance("dependeasy", provenancePath),
+            attributes = mapOf("gradleTask" to gradleTask,
+                "buildNode" to dev.shibasis.dependeasy.model.BuildModelReader.encode(declaration.node)) + declaration.staleAttributes,
+            unavailableReason = declaration.unavailableReason,
+            environments = declaration.node.environments.map { it.name }.toSet(),
         )
         bindings[taskId] = JvmTaskBinding(
-            argv = listOf(wrapper.absolutePath) + (declaration?.tasks ?: listOf(gradleTask)),
+            argv = listOf(wrapper.absolutePath) + declaration.tasks,
             workingDirectory = root,
-            definitionSeal = if (declaration == null) gradleDefinitionSeal else declaredGradleDefinitionSeal,
+            definitionSeal = declaredGradleDefinitionSeal,
         )
     }
 
@@ -864,7 +854,6 @@ private fun JsonObject.targetDeclarations(): Map<String, TargetDeclaration> =
             declaredName = name,
             runtime = target.string("runtime"),
             workspace = target.string("workspace"),
-            gradle = target.string("gradle"),
             dev = target.string("dev"),
             build = target.string("build"),
             deploy = target.string("deploy"),
@@ -886,11 +875,6 @@ private fun String.toTaskKind(): TaskKind {
         normalized in setOf("run", "start") -> TaskKind.Run
         else -> TaskKind.Custom
     }
-}
-
-private fun String.gradleAction(): String = when (this) {
-    "dev" -> "run"
-    else -> this
 }
 
 internal fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")

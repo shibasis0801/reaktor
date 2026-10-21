@@ -9,60 +9,18 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNotSame
-import kotlin.test.assertSame
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class JvmProjectDiscoverySealTest {
     @Test
-    fun gradleTasksShareOneCompleteDiscoverySealWhileProvenanceStaysTaskSpecific() = fixture { root, included ->
+    fun legacyPackageGradleReferencesCannotBypassDeclaredBuildNodes() = fixture { root, _ ->
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        val declared = workspace.prepare(TaskInvocation(TaskId("target/app/build")))
-        val module = workspace.prepare(TaskInvocation(TaskId("target/other/build")))
-        val first = assertNotNull(declared.request.definitionSeal)
-        val second = assertNotNull(module.request.definitionSeal)
-
-        assertSame(first.files, second.files, "One builder must reuse its captured Gradle definition")
-        assertSame(first.directories, second.directories)
-        assertEquals(declared.request.argv, module.request.argv)
-        assertNotEquals(declared.plan.fingerprint, module.plan.fingerprint,
-            "Distinct provenance paths must still bind distinct plans")
-        assertEquals("package.json#reaktor.targets.app.build",
-            workspace.catalog.tasks.first { it.id == declared.plan.taskId }.provenance.path)
-        assertEquals("package.json#reaktor.targets.other.build", workspace.catalog.tasks.first { it.id == module.plan.taskId }.provenance.path)
-
-        val expected = ProcessDefinitionSeal.capture(
-            files = listOf(File(root, wrapperName), File(root, "settings.gradle.kts"),
-                File(root, "build.gradle.kts"), File(root, "gradle.properties")),
-            directories = listOf(ProcessDefinitionDirectory(root, suffixes),
-                ProcessDefinitionDirectory(File(root, "buildSrc")), ProcessDefinitionDirectory(included, suffixes)),
-        )
-        assertEquals(expected, first, "Reuse must preserve the exact pre-existing definition closure")
-    }
-
-    @Test
-    fun laterDiscoveryAndBothExecutionGatesRecaptureChangedDefinitions() = fixture { root, included ->
-        val discovery = JvmProjectDiscovery()
-        val first = assertNotNull(discovery.discoverWorkspace(root))
-        val invocation = TaskInvocation(TaskId("target/other/build"))
-        val prepared = first.prepare(invocation)
-        val oldSeal = assertNotNull(prepared.request.definitionSeal)
-        File(included, "added.gradle.kts").writeText("// New included-build member\n")
-
-        assertFailsWith<IllegalStateException> { first.prepare(invocation) }
-        SupervisedProcessExecutor().use { executor ->
-            assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) }
+        assertTrue(workspace.catalog.tasks.none { it.provider == "gradle" })
+        assertFailsWith<IllegalArgumentException> {
+            workspace.prepare(TaskInvocation(TaskId("target/app/build")))
         }
-
-        val second = assertNotNull(discovery.discoverWorkspace(root))
-        val refreshed = assertNotNull(second.prepare(invocation).request.definitionSeal)
-        assertNotSame(oldSeal.files, refreshed.files, "The same discovery object must create a fresh builder per pass")
-        assertNotEquals(oldSeal.digest, refreshed.digest)
-        File(root, "buildSrc/Rules.kt").appendText("// Changed build logic\n")
-        assertFailsWith<IllegalStateException> { second.prepare(invocation) }
     }
 
     @Test
@@ -214,5 +172,4 @@ class JvmProjectDiscoverySealTest {
     }
 
     private val wrapperName = if (System.getProperty("os.name").startsWith("Windows")) "gradlew.bat" else "gradlew"
-    private val suffixes = setOf(".gradle", ".gradle.kts", ".toml", ".properties")
 }
