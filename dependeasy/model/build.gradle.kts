@@ -1,5 +1,6 @@
 import dev.shibasis.dependeasy.bootstrap.publishBootstrapOutputs
 import dev.shibasis.dependeasy.toolchain.BuildLibraries
+import dev.shibasis.dependeasy.toolchain.GradlePlugins
 
 plugins {
     id("org.gradle.kotlin.embedded-kotlin")
@@ -11,9 +12,10 @@ plugins {
 dependencies {
     api(projects.options)
     implementation(kotlin("stdlib", embeddedKotlinVersion))
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${BuildLibraries.Serialization}")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:${BuildLibraries.Serialization}")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${BuildLibraries.Coroutines}")
     implementation(BuildLibraries.CommonsCompress)
+    implementation("org.springframework.boot:spring-boot-buildpack-platform:${GradlePlugins.SpringBoot}")
     implementation("com.aayushatharva.brotli4j:brotli4j:${BuildLibraries.Brotli}")
     listOf("osx-aarch64", "osx-x86_64", "linux-aarch64", "linux-x86_64", "windows-aarch64", "windows-x86_64").forEach { platform ->
         runtimeOnly("com.aayushatharva.brotli4j:native-$platform:${BuildLibraries.Brotli}")

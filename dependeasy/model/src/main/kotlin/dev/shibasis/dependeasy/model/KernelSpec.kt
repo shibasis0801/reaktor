@@ -113,6 +113,9 @@ sealed interface KernelSpec {
     @Serializable data class KarakumBindings(val execution: ProcessExecution, val configuration: String) : KernelSpec
     @Serializable data class WorkerTypes(val execution: ProcessExecution, val configuration: String) : KernelSpec
     @Serializable data class WranglerDeploy(val deployment: WorkerDeploySpec) : KernelSpec
+    @Serializable data class ServerImageBuild(val image: ServerImageSpec) : KernelSpec
+    @Serializable data class ServerImagePush(val image: ServerImageSpec, val built: String) : KernelSpec
+    @Serializable data class ServerRollout(val deployment: ServerRolloutSpec, val published: String) : KernelSpec
     @Serializable data class NodeGenerator(val execution: ProcessExecution, val script: String, val arguments: List<String>) : KernelSpec
     @Serializable data class PackageCommand(val execution: ProcessExecution) : KernelSpec
     @Serializable data class Process(val execution: ProcessExecution) : KernelSpec
@@ -147,6 +150,9 @@ fun KernelSpec.tools(): List<ToolRef> = when (this) {
     is KernelSpec.KarakumBindings -> listOf(execution.tool)
     is KernelSpec.WorkerTypes -> listOf(execution.tool)
     is KernelSpec.WranglerDeploy -> listOf(deployment.execution.tool)
+    is KernelSpec.ServerImageBuild -> listOf(image.tool)
+    is KernelSpec.ServerImagePush -> listOf(image.tool)
+    is KernelSpec.ServerRollout -> listOf(deployment.execution.tool)
     is KernelSpec.NodeGenerator -> listOf(execution.tool)
     is KernelSpec.PackageCommand -> listOf(execution.tool)
     is KernelSpec.Process -> listOf(execution.tool)

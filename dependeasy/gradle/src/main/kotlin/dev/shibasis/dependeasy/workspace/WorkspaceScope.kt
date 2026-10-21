@@ -6,6 +6,7 @@ import dev.shibasis.dependeasy.handles.OutputHandle
 import dev.shibasis.dependeasy.handles.output
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.verification.devicePreparation
+import dev.shibasis.dependeasy.server.serverRelease
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import kotlin.properties.ReadOnlyProperty
@@ -136,6 +137,14 @@ class DeliveryScope internal constructor(
         val site = project.declarationSite()
         return NodeDeclaration { name -> workspace.emit(project, declaration.spec(name, NodeKind.Deploy).copy(worker = worker, environments = environments),
             DeployKernel, site, null, declaration.includes.toList(), emptyList(), declaration.after.toList()) }
+    }
+
+    fun server(archive: OutputHandle, repository: String, kubeconfig: BuildOption<String>, environment: Environment,
+        manifest: kotlinx.serialization.json.JsonObject): NodeDeclaration {
+        val config = project.resolve(kubeconfig)
+        return NodeDeclaration { name -> with(project) {
+            serverRelease(name, archive, repository, config.get().value, environment, manifest, gate)
+        } }
     }
 
     fun migrate(output: OutputHandle, run: Run = this.run, content: DeploySpec.() -> Unit = {}): NodeDeclaration {

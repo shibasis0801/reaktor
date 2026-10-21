@@ -1,13 +1,50 @@
 package dev.shibasis.dependeasy
 
 import dev.shibasis.dependeasy.handles.node
-import dev.shibasis.dependeasy.model.NodeKind
+import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.server.BuildServerImage
+import dev.shibasis.dependeasy.server.PushServerImage
+import kotlinx.serialization.encodeToString
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
 import kotlin.test.*
 
 class BuildPipelineTest {
+    @Test fun `image preparation refuses unsealed calls and preserves reviewed rollout artifacts`() {
+        val project = ProjectBuilder.builder().build()
+        val image = project.tasks.create("image", BuildServerImage::class.java)
+        val push = project.tasks.create("push", PushServerImage::class.java)
+        val requestFile = project.projectDir.resolve("request.json")
+        val node = NodeId("fixture", ":", "server")
+        val request = GradleRequest(node = node, declaredAt = null, modelDigest = "fixture")
+        val spec = ServerRolloutSpec(node, Environment("prod"), ServiceRef("server"),
+            ProcessExecution(".", "kubectl", emptyList(), emptyList(), ToolRef("kubectl", "fixture"), emptyList(), emptyList()),
+            "kubeconfig", "fixture", "server", "server", "registry/fixture")
+        val plan = ServerRolloutPlan(spec, "registry/fixture@sha256:" + "a".repeat(64),
+            "registry/fixture@sha256:" + "b".repeat(64), "previous", "uid", "1", 0, "git", "runner")
+        for (task in listOf(image, push)) {
+            val refused = assertFailsWith<GradleException> { task.onlyIf.isSatisfiedBy(task) }
+            val reason = generateSequence(refused as Throwable) { it.cause }.last()
+            assertIs<IllegalArgumentException>(reason)
+            assertContains(reason.message.orEmpty(), "canonical build run request")
+        }
+        image.protocolAction.set("plan")
+        push.protocolAction.set("plan")
+        assertFalse(image.onlyIf.isSatisfiedBy(image))
+        assertFalse(push.onlyIf.isSatisfiedBy(push))
+        image.protocolAction.set("apply")
+        push.protocolAction.set("apply")
+        image.protocolRequest.set(requestFile.absolutePath)
+        push.protocolRequest.set(requestFile.absolutePath)
+        requestFile.writeText(BuildModelReader.json.encodeToString(request))
+        assertTrue(image.onlyIf.isSatisfiedBy(image))
+        assertTrue(push.onlyIf.isSatisfiedBy(push))
+        requestFile.writeText(BuildModelReader.json.encodeToString(request.copy(serverDeployments = listOf(plan))))
+        assertFalse(image.onlyIf.isSatisfiedBy(image))
+        assertFalse(push.onlyIf.isSatisfiedBy(push))
+    }
+
     @Test fun `cycles fail while declaring kernel dependencies`() {
         val project = ProjectBuilder.builder().build()
         val source = project.node(project.tasks.register("source"))

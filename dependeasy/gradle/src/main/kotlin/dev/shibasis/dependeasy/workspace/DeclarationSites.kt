@@ -75,6 +75,8 @@ internal fun kernelRef(task: Task): KernelRef {
         is dev.shibasis.dependeasy.verification.KarateSuite -> dev.shibasis.dependeasy.model.KarateSuiteKernel::class.java
         is dev.shibasis.dependeasy.verification.K6Suite -> dev.shibasis.dependeasy.model.K6SuiteKernel::class.java
         is dev.shibasis.dependeasy.web.WranglerDeploy -> dev.shibasis.dependeasy.model.WorkerDeployKernel::class.java
+        is dev.shibasis.dependeasy.server.BuildServerImage, is dev.shibasis.dependeasy.server.PushServerImage -> dev.shibasis.dependeasy.model.ServerImageKernel::class.java
+        is dev.shibasis.dependeasy.server.RolloutServer -> dev.shibasis.dependeasy.model.ServerRolloutKernel::class.java
         is dev.shibasis.dependeasy.process.ProcessTask -> dev.shibasis.dependeasy.model.ProcessKernel::class.java
         is WorkspaceNodeTask -> task.kernel.javaClass
         is GradleInvocationTask -> dev.shibasis.dependeasy.model.GradleInvocationKernel::class.java
@@ -148,6 +150,9 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.KarakumBindings -> copy(execution = execution(execution), configuration = path(configuration))
         is KernelSpec.WorkerTypes -> copy(execution = execution(execution), configuration = path(configuration))
         is KernelSpec.WranglerDeploy -> copy(deployment = deployment.copy(execution = execution(deployment.execution), configuration = path(deployment.configuration)))
+        is KernelSpec.ServerImageBuild -> copy(image = image.copy(jar = path(image.jar)))
+        is KernelSpec.ServerImagePush -> copy(image = image.copy(jar = path(image.jar)), built = path(built))
+        is KernelSpec.ServerRollout -> copy(deployment = deployment.copy(execution = execution(deployment.execution), kubeconfig = path(deployment.kubeconfig)), published = path(published))
         is KernelSpec.NodeGenerator -> copy(execution = execution(execution), script = path(script), arguments = arguments.map(::path))
         is KernelSpec.PackageCommand -> copy(execution = execution(execution))
         is KernelSpec.Process -> copy(execution = execution(execution))

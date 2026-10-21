@@ -70,14 +70,22 @@ object GradleToolingRunner {
                         val action = arguments.indexOf("--deploy-action")
                         if (action >= 0) { require(action + 1 < arguments.size); arguments.removeAt(action + 1); arguments.removeAt(action) }
                         arguments.removeAll { argument -> argument.startsWith("--deploy-action=") }
-                        build.withArguments(inherited + workerArgument + deployTasks + arguments + "-P${GradleProtocol.DeployActionOption}=plan").run()
+                        build.withArguments(inherited + workerArgument + deployTasks + arguments + listOf(
+                            "-P${GradleProtocol.DeployActionOption}=plan",
+                            "-P${GradleProtocol.DeployRequestOption}=${root.resolve("${GradleProtocol.RequestDirectory}/$requestDigest.json").absolutePath}")).run()
                     }
-                    val plans = deployments.map { node ->
+                    val plans = deployments.filter { it.kernel?.spec is KernelSpec.WranglerDeploy }.map { node ->
                         val spec = (node.kernel!!.spec as KernelSpec.WranglerDeploy).deployment
                         val owner = root.resolve(model.builds.single { identity -> identity.name == node.id.build }.directory)
                         WorkerDeployKernel.retained(owner, node.id, spec.environment)
                     }
-                    GradlePlanCache.store(directory, GradleInvocationKernel.plan(invocation, contextDigest, elapsed, observed, preparationTasks).copy(deployments = plans))
+                    val servers = deployments.filter { it.kernel?.spec is KernelSpec.ServerRollout }.map { node ->
+                        val spec = (node.kernel!!.spec as KernelSpec.ServerRollout).deployment
+                        val owner = root.resolve(model.builds.single { identity -> identity.name == node.id.build }.directory)
+                        ServerRolloutKernel.retained(owner, node.id, spec.environment)
+                    }
+                    GradlePlanCache.store(directory, GradleInvocationKernel.plan(invocation, contextDigest, elapsed, observed, preparationTasks)
+                        .copy(deployments = plans, serverDeployments = servers))
                 } finally { scratch.deleteTreeSafely(within = root.resolve("tmp")) }
             } else {
                 GradleInvocationKernel.requireExecution(invocation, contextDigest)

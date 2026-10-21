@@ -14,6 +14,7 @@ data class GradlePlan(
     val tasks: List<PlannedGradleTask>,
     val preparationTasks: List<NodeId> = emptyList(),
     val deployments: List<WorkerDeployPlan> = emptyList(),
+    val serverDeployments: List<ServerRolloutPlan> = emptyList(),
 )
 
 @Serializable data class PlannedGradleTask(val id: NodeId, val dependencies: List<NodeId>, val dependenciesOutsideSelection: List<NodeId> = emptyList())
@@ -27,6 +28,7 @@ data class GradleRequest(
     val arguments: List<String> = emptyList(),
     val expectedContextDigest: String? = null,
     val deployments: List<WorkerDeployPlan> = emptyList(),
+    val serverDeployments: List<ServerRolloutPlan> = emptyList(),
 )
 
 @Serializable data class GradleRunResult(val schema: Int = 1, val requestDigest: String, val receipts: List<String>, val operationRunId: String? = null)

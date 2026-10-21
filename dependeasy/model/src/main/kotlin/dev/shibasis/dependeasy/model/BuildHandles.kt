@@ -22,7 +22,7 @@ enum class Verification { Jvm, AndroidUnit, JavaScript, TypeScript, InteropTypeS
 enum class OutputKind(val family: String, val platform: HostPlatform = HostPlatform.Portable) {
     GeneratedContract("metadata"), KotlinJsLibrary("web"), KotlinJsPackageMetadata("metadata"), WebResources("web"), JavaScriptPackage("web"), AppleXcodeFramework("apple", HostPlatform.Macos), AppleFramework("apple", HostPlatform.Macos), AndroidApk("android"),
     AndroidBundle("android"), AndroidLibrary("android"), AndroidInstrumentedTests("android"),
-    JvmDistribution("jvm"), WorkerBundle("web"), VerificationResults("verification"),
+    JvmDistribution("jvm"), ServerArchive("jvm"), WorkerBundle("web"), VerificationResults("verification"),
     ModuleBuild("verification"), NativeLibrary("apple", HostPlatform.Macos), AppleCompilation("apple", HostPlatform.Macos),
     DatabaseMigration("database"), BrowserBundle("web"), JavaScriptInstallation("web"), JavaScriptRuntime("web"), PublishedModules("publication"), WorkspaceCompletion("verification"), DeclaredBuildModel("verification")
 }
