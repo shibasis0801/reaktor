@@ -42,7 +42,7 @@ data class JvmMemory(val heapMiB: Int, val metaspaceMiB: Int, val codeCacheMiB: 
 @Serializable
 data class AndroidSdkContract(
     val directory: String,
-    val commandLineTools: String,
+    val cliVersion: String,
     val downloadUrl: String,
     val sha256: String,
     val packages: List<String>,

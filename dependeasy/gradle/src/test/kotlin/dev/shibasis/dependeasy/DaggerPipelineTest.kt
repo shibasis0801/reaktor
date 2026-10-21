@@ -120,7 +120,7 @@ class DaggerPipelineTest {
             gradleProperties.set(mapOf("fixture.option" to "false"))
             executionEnvironment.set(mapOf("DEPE_CONTAINER_PLATFORM" to "linux/arm64"))
             toolchainContract.set(BuildModelReader.json.encodeToString(DaggerToolchainContract(javaImage = "fixture-jdk", browserImage = "fixture-browser", gradleUrl = "fixture", gradleSha256 = "0".repeat(64), gradleArchive = "fixture",
-                androidSdk = AndroidSdkContract(directory = "fixture", commandLineTools = "fixture", downloadUrl = "fixture", sha256 = "0".repeat(64), packages = emptyList()))))
+                androidSdk = AndroidSdkContract(directory = "fixture", cliVersion = "fixture", downloadUrl = "fixture", sha256 = "0".repeat(64), packages = emptyList()))))
             outputFile.set(root.resolve("dagger/pipeline.json"))
         }
         task.generate()

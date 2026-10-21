@@ -32,9 +32,8 @@ object ToolchainVersions {
     const val AndroidCompileSdk = 37
     const val AndroidSdkPlatform = "37.0"
     const val AndroidBuildTools = "37.0.0"
-    const val AndroidCommandLineTools = "23.0"
-    const val AndroidCommandLineToolsArchive = "commandlinetools-linux-16111833_latest.zip"
-    const val AndroidCommandLineToolsSha256 = "0877a1d048fe4a24efe2eff536ca4223f7adeb58648bb81909d33c446918cfa8"
+    const val AndroidCli = "1.0.16625370"
+    const val AndroidCliSha256 = "0e56633db6aa75c6c6e8be89a1e4cb6d985258173d3f9d0c0ce5ee9a9d3b8165"
     const val Ndk = "30.0.16248370"
     const val Cmake = "4.0.3"
     const val Ninja = "1.13.1"

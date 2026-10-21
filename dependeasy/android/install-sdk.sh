@@ -13,14 +13,14 @@ if [ -z "$missing" ]; then
     echo "Pinned Android SDK packages are already installed"
     exit 0
 fi
-tools="$sdk/cmdline-tools/$version"
-if [ ! -x "$tools/bin/android" ]; then
-    mkdir -p "$sdk/cmdline-tools"
-    staging=$(mktemp -d "$sdk/cmdline-tools/.install-XXXXXX")
+tools="$sdk/android-cli/$version"
+if [ ! -x "$tools/android" ]; then
+    mkdir -p "$sdk/android-cli"
+    staging=$(mktemp -d "$sdk/android-cli/.install-XXXXXX")
     trap 'rm -rf "$staging"' EXIT HUP INT TERM
-    curl -fsSL --retry 5 --retry-all-errors --connect-timeout 30 "$url" -o "$staging/tools.zip"
-    printf '%s  %s\n' "$expected" "$staging/tools.zip" | sha256sum --check --status
-    unzip -q "$staging/tools.zip" -d "$staging"
-    mv "$staging/cmdline-tools" "$tools"
+    curl --http1.1 -fsSL --retry 5 --retry-all-errors --connect-timeout 30 "$url" -o "$staging/android"
+    printf '%s  %s\n' "$expected" "$staging/android" | sha256sum --check --status
+    chmod 755 "$staging/android"
+    mv "$staging" "$tools"
 fi
-"$tools/bin/android" --no-metrics --sdk="$sdk" sdk install $missing
+"$tools/android" --no-metrics --sdk="$sdk" sdk install $missing

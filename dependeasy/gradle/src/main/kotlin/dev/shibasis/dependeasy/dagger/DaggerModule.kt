@@ -37,9 +37,9 @@ internal class DaggerModule(private val project: Project, options: List<OptionAr
                     "sqlite3", "libgtk-3-dev", "libwebkit2gtk-4.1-dev", "libarchive-tools", "ninja-build"),
                 androidSdk = AndroidSdkContract(
                     directory = "/opt/android-sdk",
-                    commandLineTools = ToolchainVersions.AndroidCommandLineTools,
-                    downloadUrl = "https://dl.google.com/android/repository/${ToolchainVersions.AndroidCommandLineToolsArchive}",
-                    sha256 = ToolchainVersions.AndroidCommandLineToolsSha256,
+                    cliVersion = ToolchainVersions.AndroidCli,
+                    downloadUrl = "https://dl.google.com/android/cli/${ToolchainVersions.AndroidCli}/linux_x86_64/android-cli",
+                    sha256 = ToolchainVersions.AndroidCliSha256,
                     packages = listOf("platform-tools", "platforms/android-${ToolchainVersions.AndroidSdkPlatform}",
                         "build-tools/${ToolchainVersions.AndroidBuildTools}", "ndk/${ToolchainVersions.Ndk}", "cmake/${ToolchainVersions.Cmake}"),
                 ),

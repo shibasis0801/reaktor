@@ -16,7 +16,7 @@ type ToolchainContract = {
   files: Record<string, string>
   androidSdk: {
     directory: string
-    commandLineTools: string
+    cliVersion: string
     downloadUrl: string
     sha256: string
     packages: string[]
@@ -73,7 +73,7 @@ export class BuildRuntime {
       .withEnvVariable("ANDROID_HOME", sdk.directory)
       .withFile("/opt/dependeasy/android/install-sdk.sh", this.reaktor.file("dependeasy/android/install-sdk.sh"))
       .withExec([
-        "sh", "/opt/dependeasy/android/install-sdk.sh", sdk.directory, sdk.commandLineTools, sdk.downloadUrl, sdk.sha256, ...sdk.packages,
+        "sh", "/opt/dependeasy/android/install-sdk.sh", sdk.directory, sdk.cliVersion, sdk.downloadUrl, sdk.sha256, ...sdk.packages,
       ])
       .withEnvVariable(
         "PATH",
