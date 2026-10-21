@@ -36,6 +36,9 @@ class WorkerFleet internal constructor(
         val fleetSpec = KernelSpec.WorkerFleet(environments.last(), workers.values.map { it.worker }, FileSet(listOf("wrangler.json")),
             FileSet(listOf(project.rootProject.relativePath(project.rootProject.layout.buildDirectory.file("dependeasy/cloudflare/fleet.json").get().asFile))))
         val records = WorkerFleetKernel.plan(fleetSpec).workers
+        val requestedEnvironment = project.option(environmentOption.copy(resolutionOrder = environmentOption.resolutionOrder - OptionSource.Default))
+        val selectedName = requestedEnvironment.orElse(environments.last().name).get()
+        val selectedEnvironment = environments.singleOrNull { it.name == selectedName } ?: environments.last()
         val generate = project.tasks.register<WorkerFleetTask>("generateWorkerFleet") {
             group = "code generation"
             root.set(project.rootProject.layout.projectDirectory)
@@ -54,25 +57,23 @@ class WorkerFleet internal constructor(
             val directory = declaration.directory
             val configurations = worker.configurations
             val paths = configurations.mapValues { project.rootProject.file(it.value).relativeTo(directory).invariantSeparatorsPath }
-            val defaultEnvironment = environments.last().name
-            val selected = project.option(environmentOption.copy(resolutionOrder = environmentOption.resolutionOrder - dev.shibasis.dependeasy.model.OptionSource.Default)).orElse(defaultEnvironment)
-                .map { value -> value.takeIf { it in configurations } ?: defaultEnvironment }
+            val selected = if (selectedName in configurations) selectedEnvironment else environments.last()
             val component = JavaScriptComponent(project, "${name}Worker", directory)
             val command = component.deploy(producers = arrayOf(generate))
             command.configure {
-                configuration.set(selected.map { value -> paths.getValue(value) })
-                requestedEnvironment.set(project.option(environmentOption.copy(resolutionOrder = environmentOption.resolutionOrder - dev.shibasis.dependeasy.model.OptionSource.Default)))
+                configuration.set(paths.getValue(selected.name))
+                this.requestedEnvironment.set(requestedEnvironment)
                 allowedEnvironments.set(configurations.keys.toList())
                 sourceFiles.from(generate.map { it.finalConfigurations })
                 arguments.add("--minify")
             }
             val logs = component.command("logs", null, "exec", "wrangler", "tail")
             logs.configure {
-                arguments.addAll(selected.map { value -> listOf("--config", paths.getValue(value)) })
+                arguments.addAll("--config", paths.getValue(selected.name))
                 dependsOn(generate)
                 outputs.upToDateWhen { false }
             }
-            val bindings = WorkerFleetKernel.bindings(fleetSpec, declaration.worker, environments.last()).map { it.second }
+            val bindings = WorkerFleetKernel.bindings(fleetSpec, declaration.worker, selected).map { it.second }
             val dependencies = listOf(project.node(command))
             val outputs = prerequisites + declaration.prerequisites
             outputs.forEach { workspace.consume(dependencies.single(), it) }
@@ -128,13 +129,15 @@ class WorkerFleet internal constructor(
             }
         }
         workers.forEach { (name, declaration) ->
-            val bindings = declaration.worker.deployments.single { it.environment == environments.last() }.bindings
+            val bindings = (declaration.worker.deployments.singleOrNull { it.environment == selectedEnvironment }
+                ?: declaration.worker.deployments.single { it.environment == environments.last() }).bindings
             workspace.configure(nodes.getValue(name)) {
                 includes(*bindings.filterIsInstance<WorkerServiceBinding.Worker>().map { it.target.name }.filter { it != name }.map(nodes::getValue).toTypedArray())
             }
         }
         project.tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(generate) }
-        return workspace.aggregate(project, "deployWorkers", NodeKind.Deploy, nodes.values.toList(), Run.onLinux().onWorker()).also {
+        return workspace.aggregate(project, "deployWorkers", NodeKind.Deploy,
+            records.filter { selectedEnvironment.name in it.configurations }.map { nodes.getValue(it.name) }, Run.onLinux().onWorker()).also {
             project.componentRole(Workspace.Deploy, it)
             workspace.alias(project.rootDir, "deployWorkers", it)
         }

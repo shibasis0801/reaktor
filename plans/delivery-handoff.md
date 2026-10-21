@@ -6,7 +6,7 @@ Written on 14 October 2026. This continues `dependeasy-handoff.md`: its work pac
 
 | WP | Package | State |
 |---|---|---|
-| WP19 | Fix what is broken, delete what is dead | Partial: cleanup qualified, uncommitted; deployment wiring remains |
+| WP19 | Fix what is broken, delete what is dead | Working: earlier cleanup committed; dev fleet selection/bindings qualify (8 fixtures, real cold/warm dry runs). Runtime Pulumi pin and live acceptance remain. |
 | WP20 | One product delivery declaration | Outstanding (after WP12, WP13) |
 | WP21 | One deploy contract: plan, apply, verify, rollback, receipt; Cloudflare first | Outstanding |
 | WP22 | Dagger as a thin container host; one CI workflow | Outstanding |
@@ -250,7 +250,7 @@ secrets("workerSecrets") { fleet(projects.workers) }
 - **`pipeline.json`:** it shrinks to the engine version and the toolchain contract. The contract now includes the apt packages, cache volumes, memory policy and browser image.
 - **The target list goes.** `pipeline.json` changes only when the toolchain changes, and `verifyDagger` loses its reason to exist.
 - **Output:** `run` returns a directory with the run's receipts and the node's declared outputs. CI uploads it and Hangar's run ledger ingests it.
-- **CI:** one reusable workflow lives in reaktor, and each of the three repos has a short caller that names its gate and its manual deploy nodes.
+- **CI:** the gate runs locally through the shared runner; the owner's local-only decision in §6 supersedes reusable GitHub workflows and per-repository callers.
 
 ## 5. Work packages
 
@@ -458,6 +458,10 @@ The owner approved all five defaults on 14 October 2026.
 5. **Production steps.** Default: the WP21 rollback test and the WP23 prod rollout run only with the owner's go at that moment. Everything else qualifies on dev first.
 
 ## Log
+
+- 21 Oct 2026 — WP19 dev fleet graph qualifies: all 8 existing web contract cases pass; BestBuds selects 16 dev workers and excludes 5 production-only workers. Dev binding edges use dev services. Actual aggregate dry runs pass cold/warm with configuration-cache reuse; production restores the same 1,625 canonical nodes and 1,609 edges. No Cloudflare write was performed. The read-only server deployment has one ready replica using the manifest's pinned digest; the obsolete reviewed release stays retired. Runtime Pulumi pinning and live dev acceptance remain open. Evidence: `build/dependeasy/receipts/qualification/wp13/wp19-dev-fleet-20261021-v4-proof.json` and `wp19-rollout-readonly-20261021-v1.json`.
+
+- 21 Oct 2026 — WP19 dev-fleet follow-up budget before source edits: extend the existing fleet adapter and package/fleet fixture to resolve the declared environment once, filter the aggregate to supported workers and derive binding edges from that environment. No new API, flag, state, dependency or scheduler. Preserve the default production graph; prove dev exclusion, dev bindings, unknown-environment refusal and configuration-cache reuse, then inspect the real BestBuds dev graph. Live deployment follows its reviewable plan. Budget: `build/dependeasy/receipts/qualification/wp13/wp19-dev-fleet-20261021-v1-budget.json`. Initial fixture compilation exposed two missing imports; corrected without production behavior changes. Local CI wording in §4.3 now matches the owner's recorded decision.
 
 - 14 Oct 2026 — Review written from the Dagger/CI reading plus two read-only audits (Pulumi/k3s/observability, Cloudflare/consumers). Nothing was changed, run against a cloud, published or committed.
 - 14 Oct 2026 — The owner approved all five §6 decisions.

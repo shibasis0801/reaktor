@@ -1,5 +1,7 @@
 package dev.shibasis.dependeasy
 
+import dev.shibasis.dependeasy.model.Edge
+import dev.shibasis.dependeasy.model.NodeId
 import kotlinx.serialization.json.*
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
@@ -466,11 +468,14 @@ class WebContractsTest {
                 worker(WorkerRef("backend", "targets/backend"), listOf(
                     WorkerDeployment(Environment("dev"), ServiceRef("fixture-backend-dev")),
                     WorkerDeployment(Environment("prod"), ServiceRef("fixture-backend"))))
+                worker(WorkerRef("prodOnly", "targets/prodOnly"), listOf(
+                    WorkerDeployment(Environment("prod"), ServiceRef("fixture-prod-only"))))
             }
         """.trimIndent())
         write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts","services":[{"binding":"BACKEND","service":"fixture-backend"}]}""")
         write("targets/backend/wrangler.json", """{"name":"fixture-backend","main":"index.ts"}""")
         write("targets/backend/wrangler.dev.json", """{"name":"fixture-backend-dev","main":"index.ts"}""")
+        write("targets/prodOnly/wrangler.json", """{"name":"fixture-prod-only","main":"index.ts"}""")
         assertEquals(TaskOutcome.SUCCESS, run(":workers:generateWorkerFleet", "generatePackageScripts", "exportBuildModel").task(":generatePackageScripts")?.outcome)
         assertEquals("metadata", json("build/dependeasy/remote/hosts.json").getValue("taskFamilies").jsonObject
             .getValue(":workers:generateWorkerFleet").jsonPrimitive.content)
@@ -501,6 +506,20 @@ class WebContractsTest {
         assertEquals("targets/worker", model.nodes.single { it.id == worker }.worker?.directory)
         assertEquals("./gradlew :workers:deployWorkers", scripts.getValue("deployWorkers").jsonPrimitive.content)
         assertContains(run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev").output, "Reusing configuration cache")
+        val aggregate = NodeId("webFixture", ":workers", "deployWorkers")
+        val prodOnly = NodeId("webFixture", ":workers", "deployProdOnly")
+        assertTrue(model.edges.any { it is Edge.Includes && it.from == aggregate && it.to == prodOnly })
+        val devFleet = run(":workers:deployWorkers", "--dry-run", "-Pdependeasy.environment=dev").output
+        assertContains(devFleet, ":workers:workerWorkerDeploy SKIPPED")
+        assertContains(devFleet, ":workers:backendWorkerDeploy SKIPPED")
+        assertFalse(devFleet.contains(":workers:prodOnlyWorkerDeploy"))
+        assertFalse(devFleet.contains(":workers:deployProdOnly"))
+        run("exportBuildModel", "-Pdependeasy.environment=dev")
+        val devModel = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        assertFalse(devModel.edges.any { it is Edge.Includes && it.from == aggregate && it.to == prodOnly })
+        assertFalse(devModel.edges.any { it is Edge.Includes && it.from == worker && it.to.name == "deployBackend" })
+        assertTrue(devModel.nodes.single { it.id == worker }.bindings.isEmpty())
+        assertContains(run("exportBuildModel", "-Pdependeasy.environment=dev").output, "Reusing configuration cache")
         write("targets/backend/package.json", """{"name":"backend","scripts":{"serve":"node index.mjs"}}""")
         val appeared = run("generatePackageScripts")
         assertFalse(appeared.output.contains("Reusing configuration cache"))
