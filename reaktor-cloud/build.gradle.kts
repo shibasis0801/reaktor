@@ -17,6 +17,7 @@ library(namespace = "dev.shibasis.reaktor.cloud", targets = Targets.Android + Ta
             implementation(grafana)
             implementation(Versions.Server.Pulumi)
             implementation(Versions.Server.PulumiKubernetes)
+            implementation(Versions.Tooling.GrpcNettyShaded)
             implementation(Versions.Data.Gson)
             implementation(Versions.Tooling.Jsr305)
             implementation(Versions.Tooling.SnakeYaml)
