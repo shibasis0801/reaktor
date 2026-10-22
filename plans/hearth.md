@@ -123,15 +123,17 @@ front and it never restarts. If the bar ever flickers during navigation, the sco
 
 Three apps, three hand-rolled holders, and all three pass an `Activity` into something that lives
 longer than it. That is not an accident of style: `AndroidFileAdapter(activity: Activity)` and
-`AndroidSqlAdapter(activity: ComponentActivity)` accept nothing else. **No graph that owns storage
-can be built from an `Application` or a `Service` today.** That is the blocker for a player, because
-Android starts `MediaSessionService` on its own.
+`AndroidSqlAdapter(activity: ComponentActivity)` accept nothing else. And because `Adapter` holds
+its controller in a `WeakRef`, the result is not a leak but something quieter: once that first
+Activity is collected, anything the adapter does through its controller returns null and does
+nothing. **No graph that owns storage can be built from an `Application` or a `Service` today.**
+That is the blocker for a player, because Android starts `MediaSessionService` on its own.
 
 **The general version, into reaktor:**
 
 1. **Storage adapters take a `Context`** and keep its `applicationContext`. Source-compatible —
-   every caller passes an Activity, which is a Context — and it stops three apps leaking their first
-   Activity into a process-lifetime graph. (`reaktor-io`, `reaktor-db`.)
+   every caller passes an Activity, which is a Context — and it stops three apps holding their first
+   Activity weakly inside a process-lifetime graph. (`reaktor-io`, `reaktor-db`.)
 2. **`ProcessGraph<G>` in `reaktor-graph`** — the holder all three apps wrote: built once, by
    whichever entry point asks first, thread-safe, closeable. It replaces `object GymBuddy`,
    `CairnApp` and Lector's activity-scoped reader, none of which needs to change for this to land.
@@ -389,7 +391,26 @@ chapters.
 `reaktor-cli` has no `new` command (portfolio §9). Everything below was copied or retyped from Lector
 to stand Hearth up; this list is the template's specification. Updated as Phase 0 lands.
 
-*(Filled in by Phase 0 — see the status line in §13.)*
+| # | File | What was copied, and what had to change by hand |
+|---|---|---|
+| 1 | `settings.gradle.kts` | Lector's whole: plugin repositories, plugin versions read from `gradle.properties`, `includeBuild("../reaktor/dependeasy")`, `includeBuild("../reaktor")` with a `dependencySubstitution` list of every reaktor module. **The list is hand-kept and had drifted** — Lector's lacks `reaktor-tactile`, `reaktor-pdf`; Hearth added those and `reaktor-playback`. The template should generate it from reaktor's own `settings.gradle.kts`. |
+| 2 | `build.gradle.kts` | Verbatim: plugins `apply false`, repositories, `-Xexpect-actual-classes`, lint off, iOS release linking skipped. |
+| 3 | `gradle.properties` | Verbatim. AGP, Compose, Kotlin, KSP, Ktor, SQLDelight and `reaktorVersion` duplicated from reaktor by hand — a version bump in reaktor is a silent mismatch here. |
+| 4 | Gradle wrapper | `gradlew`, `gradlew.bat`, `gradle/wrapper/*` (Gradle 8.14.2). |
+| 5 | `.gitignore` | Verbatim (Pods, `*.xcworkspace`, `*.podspec`, `.github_modules`, build dirs, signing patterns). |
+| 6 | `local.properties` | `sdk.dir` and the CocoaPods binary path. Per machine, not committed. |
+| 7 | `modules/app/build.gradle.kts` | Shape from Lector; dependencies chosen per app. The darwin `podDependencies` line linking `sqlite3` is required by anything on `reaktor-db` and is easy to forget (link-time failure). |
+| 8 | `modules/app/src/androidMain/AndroidManifest.xml` | App-level permissions only. |
+| 9 | `targets/appAndroid/build.gradle.kts` | Verbatim except the application id. |
+| 10 | `targets/appAndroid/src/main/AndroidManifest.xml` | Application class (new for Hearth: the session is built in `Application.onCreate`), the launcher activity. |
+| 11 | `targets/appAndroid/src/main/res/values{,-night}/themes.xml` | NoActionBar theme with the window ground colour — which must match the app's palette by hand (CO9). |
+| 12 | `targets/appDarwin/` | `Podfile`; `regenerate-xcodeproj.rb` (bundle id edited, Lector's sample PDF removed); `iosApp/iOSApp.swift`; `Info.plist` (display name, `UIBackgroundModes`); `Assets.xcassets` with `LaunchBackground` and `AccentColor` colour sets matching the palette. `pod install` needs `LANG=en_US.UTF-8` on this machine. |
+| 13 | Entry points | `HearthApplication`, `HearthActivity`, `HearthViewController.kt`: the adapter install order (Dependency, File, Sql, Database, then capabilities), and the `ProcessGraph` pair. |
+| 14 | Design starter | `design/Theme.kt`, `Tokens.kt`, `Motion.kt` (with the house press), `Components.kt`, `Format.kt`, the contrast test, `DESIGN.md` — shape from Lector and GymBuddy, values new. |
+| 15 | First configure | dependeasy clones `hermes` and `flatbuffers` into `.github_modules/` of every new app on its first Gradle run. Nothing in Hearth uses either. |
+
+What the template should take from this: items 1, 3 and 11–12 are the ones that drift silently; items
+13–14 are the ones that differ per app but share a shape.
 
 ---
 
@@ -427,7 +448,7 @@ Where the risk is:
 
 | # | Decision | Options | Default if unresolved | Needed by |
 |---|---|---|---|---|
-| 1 | XML reader | own tolerant pull reader / xmlutil / platform / Ksoup | own reader in `reaktor-io` (§4.4) | Phase 0 |
+| 1 | XML reader | own tolerant pull reader / xmlutil / platform / Ksoup | **taken: own reader in `reaktor-io`** (§4.4, §13) | Phase 0 |
 | 2 | Android downloads | DownloadManager / WorkManager + Ktor ranges | DownloadManager | Phase 1 |
 | 3 | Skip intervals | 15/30, 10/30, configurable | 15 back, 30 forward, configurable in Phase 1 | Phase 0 |
 | 4 | Sync identity | `reaktor-auth` account / Cairn-style pairing | **none — the owner decides** | Phase 2 |
@@ -461,6 +482,33 @@ is settled; the bundle id changes with it.
 
 ## 13. Status
 
-Plan written 22 October 2026. Phase 0 next.
+**Phase 0 — done, 22 October 2026.** Framework: `3d191511` (Context adapters), `9a054c07`
+(`ProcessGraph`), `525c3c0d` (`XmlReader`), `ff1fd2ba` (`reaktor-playback`), `012ae36e` (skill).
+App: `hearth@1b83798`.
+
+Decision 1 (XML) is taken: the own reader. It read all seven sampled feeds identically to the
+JDK's strict StAX parser (`XmlCorpusTest`), the 20 MB one in 162 ms on the JVM, and its 17 tests
+pass on JVM, JS and the iOS simulator.
+
+What was checked, and where:
+
+| Check | Android (emulator, API 36) | iOS (simulator, iOS 26.3) |
+|---|---|---|
+| Feed fetched and parsed on device | yes | yes |
+| An episode streams and plays | yes | yes — CoreMedia log shows the audio queue running |
+| Navigating show → episode → back leaves it playing, bar intact | yes | yes |
+| Rotation (Activity recreated) leaves it playing, same process | yes | — (portrait only) |
+| App in the background keeps playing | yes (HOME, screen off) | yes — buffers still enqueuing 20 s after HOME and through lock, 3 min in |
+| Media session registered with the system | yes — `dumpsys media_session`: active, PLAYING, Back 15 / Forward 30 actions; service foreground as `mediaPlayback` | yes — `mediaremoted` logs Hearth as the active Now Playing app with its info and playing state |
+| Lock-screen controls drive the player | **yes** — card shows title, show, art, scrubber; pause, +30, −15, play each change the session state | **not verified** — the simulator draws no lock-screen media card and an empty Control Center |
+| Headphone buttons | **yes** — media keys via `cmd media_session dispatch`: pause, next = +30 s, previous = −15 s, headset hook = play | **not verified** — no way to send a remote command to the simulator |
+| Real device | no | no |
+
+The iOS remote-command path (lock screen, AirPods, CarPlay) is wired the way Lector's was and
+registers with the system, but nobody has pressed a button on it yet. It needs one run on a real
+iPhone before Phase 1 is called done. Whether iOS shows the skip buttons rather than track arrows
+with next/previous disabled is part of that run.
+
+Phase 1 next.
 
 Related: [app-portfolio.md](app-portfolio.md) · [lector.md](lector.md) · [cairn.md](cairn.md)
