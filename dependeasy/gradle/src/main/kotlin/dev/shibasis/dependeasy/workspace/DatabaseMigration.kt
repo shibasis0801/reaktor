@@ -31,7 +31,8 @@ abstract class DatabaseMigration : DefaultTask(), KernelSpecOwner {
     @get:Inject abstract val execOperations: ExecOperations
     @get:Internal val spec: MigrationSpec get() = BuildModelReader.json.decodeFromString(declaration.get())
     @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.DatabaseMigration(spec,
-        ToolRef("postgresql", DataLibraries.Postgres.substringAfterLast(':')))
+        if (spec.database is DatabaseMigrations.ClickHouse) ToolRef("kubectl", "host-provided (unversioned)")
+        else ToolRef("postgresql", DataLibraries.Postgres.substringAfterLast(':')))
     @get:Internal override val kernelEffect: Effect get() = Effect.Deploy
     @get:Internal override val kernelHost: HostRequirement get() = HostRequirement(HostPlatform.Portable, ExecutionHost.Local)
 
@@ -51,7 +52,17 @@ abstract class DatabaseMigration : DefaultTask(), KernelSpecOwner {
         val spec = spec
         val run = UUID.randomUUID().toString()
         val record: (DeployReceipt) -> Unit = { WorkerDeployKernel.record(root, it) }
-        val database = spec.database as DatabaseMigrations.Postgres
+        val database = spec.database
+        val execute: (ProcessExecution, String) -> String = { command, sql ->
+            val output = ByteArrayOutputStream()
+            val result = execOperations.exec {
+                workingDir = java.io.File(command.directory); executable = command.executable; args(command.arguments)
+                standardInput = sql.byteInputStream(); standardOutput = output; errorOutput = OutputStream.nullOutputStream()
+                isIgnoreExitValue = true
+            }
+            require(result.exitValue == 0) { "ClickHouse SQL tool failed; output withheld" }
+            output.toString(Charsets.UTF_8)
+        }
         when (protocolAction.orNull ?: action.get()) {
             "plan" -> {
                 val revision = ByteArrayOutputStream()
@@ -59,8 +70,13 @@ abstract class DatabaseMigration : DefaultTask(), KernelSpecOwner {
                     workingDir = root; executable = "git"; args("rev-parse", "HEAD")
                     standardOutput = revision; errorOutput = OutputStream.nullOutputStream()
                 }.assertNormalExitValue()
-                val plan = MigrationKernel.plan(spec, root, revision.toString().trim(),
-                    java.net.InetAddress.getLocalHost().hostName, Postgres.connect(root, database, spec.environment))
+                val sha = revision.toString().trim()
+                val runner = java.net.InetAddress.getLocalHost().hostName
+                val plan = when (database) {
+                    is DatabaseMigrations.Postgres -> MigrationKernel.plan(spec, root, sha, runner, Postgres.connect(root, database, spec.environment))
+                    is DatabaseMigrations.ClickHouse -> ClickHouseMigrationKernel.plan(spec, root, sha, runner, execute)
+                    is DatabaseMigrations.D1 -> error("Declare D1 migrations inside a worker fleet")
+                }
                 MigrationKernel.store(root, plan)
                 MigrationKernel.observe(plan, run, record)
                 logger.lifecycle("Migrations {}: pending {}", spec.node, plan.pending)
@@ -69,24 +85,31 @@ abstract class DatabaseMigration : DefaultTask(), KernelSpecOwner {
                 val request = requireNotNull(protocolRequest.orNull) { "Database migrations require a reviewed build plan" }
                 val plan = BuildModelReader.readRequest(java.io.File(request)).migrations.single { it.spec.node == spec.node }
                 require(plan.spec == spec) { "Database migration declaration changed after planning" }
-                MigrationKernel.apply(plan, root, run, Postgres.connect(root, database, spec.environment), record)
+                when (database) {
+                    is DatabaseMigrations.Postgres -> MigrationKernel.apply(plan, root, run, Postgres.connect(root, database, spec.environment), record)
+                    is DatabaseMigrations.ClickHouse -> ClickHouseMigrationKernel.apply(plan, root, run, execute, record)
+                    is DatabaseMigrations.D1 -> error("Declare D1 migrations inside a worker fleet")
+                }
             }
             else -> error("Unsupported database migration action")
         }
     }
 }
 
-internal fun Project.databaseMigration(name: String, database: DatabaseMigrations): NodeHandle {
+internal fun Project.databaseMigration(name: String, database: DatabaseMigrations, kubeconfig: BuildOption<String>? = null): NodeHandle {
     val selected = option(BuildOption.string(GradleProtocol.EnvironmentOption, "dev"))
+    require((database is DatabaseMigrations.ClickHouse) == (kubeconfig != null)) { "ClickHouse SQL needs its declared kubeconfig option" }
+    val access = kubeconfig?.let { option(it) } ?: providers.provider { "" }
     val site = declarationSite()
     val id = NodeId(rootProject.name, path, name)
     val migration = tasks.register(name, DatabaseMigration::class.java) {
         group = "delivery"
-        declaration.set(selected.map { environment -> BuildModelReader.json.encodeToString(
-            MigrationSpec(id, Environment(environment), database)) })
+        declaration.set(selected.zip(access) { environment, config -> BuildModelReader.json.encodeToString(
+            MigrationSpec(id, Environment(environment), database, config.takeIf { database is DatabaseMigrations.ClickHouse })) })
         when (database) {
             is DatabaseMigrations.Postgres -> migrations.from(fileTree(database.directory) { include("*.sql") })
             is DatabaseMigrations.D1 -> error("Declare D1 migrations inside a worker fleet")
+            is DatabaseMigrations.ClickHouse -> migrations.from(database.files.map { rootProject.file("${database.directory}/$it") })
         }
         site?.let { extensions.add(SourceSite::class.java, "declarationSite", it) }
     }

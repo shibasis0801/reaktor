@@ -70,14 +70,15 @@ object MigrationKernel {
         val service = when (val database = plan.spec.database) {
             is DatabaseMigrations.Postgres -> ServiceRef(plan.spec.node.name)
             is DatabaseMigrations.D1 -> database.deployment.service
+            is DatabaseMigrations.ClickHouse -> database.service
         }
         record(DeployReceipt(plan.spec.node, plan.spec.environment, service, run, "migrations-plan",
             plan.gitSha, plan.runner, BuildModelReader.digest(BuildModelReader.json.encodeToString(plan)),
             BuildModelReader.digest(BuildModelReader.json.encodeToString(plan.files)),
-            head(plan), null, ReceiptStatus.Succeeded, "ledger-observed", now, now))
+            head(plan), null, ReceiptStatus.Succeeded, if (plan.spec.database is DatabaseMigrations.ClickHouse) "schema-observed" else "ledger-observed", now, now))
     }
 
-    internal fun head(plan: MigrationPlan): String? = plan.applied.lastOrNull()?.let {
+    internal fun head(plan: MigrationPlan): String? = if (plan.spec.database is DatabaseMigrations.ClickHouse) plan.configurationDigest else plan.applied.lastOrNull()?.let {
         if (plan.spec.database is DatabaseMigrations.D1) it.name else "${it.version}:${it.checksum}"
     }
 
@@ -101,6 +102,11 @@ object MigrationKernel {
     internal fun files(spec: MigrationSpec, root: File): List<MigrationFile> {
         val directory = root.resolve(spec.database.directory).canonicalFile
         require(directory.toPath().startsWith(root.canonicalFile.toPath()) && directory.isDirectory)
+        if (spec.database is DatabaseMigrations.ClickHouse) return spec.database.files.map { name ->
+            val file = directory.resolve(name).canonicalFile
+            require(file.parentFile == directory && file.isFile)
+            MigrationFile(file.relativeTo(root).invariantSeparatorsPath, name.removeSuffix(".sql"), name, BuildModelReader.digest(file))
+        }
         return directory.listFiles().orEmpty().filter { it.name.matches(Regex("[0-9]{4}_[a-z0-9_]+\\.sql")) }.sortedBy { it.name }.map {
             require(it.canonicalFile.toPath().startsWith(directory.toPath()) && it.isFile)
             MigrationFile(it.relativeTo(root).invariantSeparatorsPath, it.name.take(4), it.name.substring(5).removeSuffix(".sql"), BuildModelReader.digest(it))

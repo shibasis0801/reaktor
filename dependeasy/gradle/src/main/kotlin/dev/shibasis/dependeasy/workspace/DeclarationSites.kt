@@ -76,7 +76,8 @@ internal fun kernelRef(task: Task): KernelRef {
         is dev.shibasis.dependeasy.verification.K6Suite -> dev.shibasis.dependeasy.model.K6SuiteKernel::class.java
         is dev.shibasis.dependeasy.web.WranglerDeploy -> dev.shibasis.dependeasy.model.WorkerDeployKernel::class.java
         is dev.shibasis.dependeasy.cloudflare.WorkerSecrets -> dev.shibasis.dependeasy.model.WorkerSecretsKernel::class.java
-        is DatabaseMigration -> dev.shibasis.dependeasy.model.MigrationKernel::class.java
+        is DatabaseMigration -> if (task.spec.database is dev.shibasis.dependeasy.model.DatabaseMigrations.ClickHouse)
+            dev.shibasis.dependeasy.model.ClickHouseMigrationKernel::class.java else dev.shibasis.dependeasy.model.MigrationKernel::class.java
         is dev.shibasis.dependeasy.cloudflare.D1Migration -> dev.shibasis.dependeasy.model.D1MigrationKernel::class.java
         is dev.shibasis.dependeasy.server.BuildServerImage, is dev.shibasis.dependeasy.server.PushServerImage -> dev.shibasis.dependeasy.model.ServerImageKernel::class.java
         is dev.shibasis.dependeasy.server.RolloutServer -> dev.shibasis.dependeasy.model.ServerRolloutKernel::class.java
@@ -118,6 +119,7 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.WorkspaceNode -> this
         is KernelSpec.DatabaseMigration -> when (val database = migration.database) {
             is dev.shibasis.dependeasy.model.DatabaseMigrations.Postgres -> this
+            is dev.shibasis.dependeasy.model.DatabaseMigrations.ClickHouse -> copy(migration = migration.copy(kubeconfig = migration.kubeconfig?.let(::path)))
             is dev.shibasis.dependeasy.model.DatabaseMigrations.D1 -> copy(migration = migration.copy(database = database.copy(
                 deployment = database.deployment.copy(execution = execution(database.deployment.execution), configuration = path(database.deployment.configuration)))))
         }

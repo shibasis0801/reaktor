@@ -107,6 +107,9 @@ class WorkspaceScope internal constructor(private val project: Project, private 
     fun migrate(database: DatabaseMigrations): NodeDeclaration = NodeDeclaration { name ->
         project.databaseMigration(name, database)
     }
+    fun migrate(database: DatabaseMigrations.ClickHouse, kubeconfig: BuildOption<String>): NodeDeclaration = NodeDeclaration { name ->
+        project.databaseMigration(name, database, kubeconfig)
+    }
 
     fun delivery(after: NodeHandle, run: Run = Run.Default, content: DeliveryScope.() -> Unit) {
         DeliveryScope(project, workspace, after, run).apply(content)

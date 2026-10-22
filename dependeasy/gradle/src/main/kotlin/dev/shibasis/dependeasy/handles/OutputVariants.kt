@@ -28,6 +28,9 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
         outgoing.artifacts(provider { files.files }) { builtBy(files) }
     }
     val workspace = BuildWorkspace.get(this)
+    workspace.outputProducers[handle.nodeId] = {
+        if (producer == null) files.buildDependencies.getDependencies(null) else setOf(producer.get())
+    }
     producer?.let {
         val source = node(it)
         val relationship = BuildModelReader.json.encodeToString<Edge>(Edge.Includes(handle.nodeId, source.id))

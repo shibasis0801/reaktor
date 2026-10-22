@@ -66,6 +66,13 @@ class BuildWorkspaceTest {
         assertNull(rejected.task(":internalReleaseLane"))
         assertFalse(directory.resolve("build/lane.txt").exists())
         assertFalse(directory.resolve("payload/build/publication.txt").exists())
+        val leaf = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments(":payload:publication", "exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        assertEquals(org.gradle.testkit.runner.TaskOutcome.SUCCESS, leaf.task(":payload:migration")?.outcome)
+        assertEquals("complete", directory.resolve("payload/build/publication.txt").readText())
+        val leafModel = BuildModelReader.read(directory)
+        assertTrue(leafModel.edges.any { it is Edge.After && it.from == NodeId("deliveryFixture", ":payload", "publication") &&
+            it.to == NodeId("deliveryFixture", ":", "schema") })
         val first = run()
         assertEquals(org.gradle.testkit.runner.TaskOutcome.SUCCESS, first.task(":internalReleaseLane")?.outcome)
         assertEquals("complete", directory.resolve("build/lane.txt").readText())

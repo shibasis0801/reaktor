@@ -432,4 +432,95 @@ class GradlePlanningTest {
         assertTrue(BuildModelReader.nodeDetails(directory, migration.id.toString()).containsKey("migrationPlan"))
     }
 
+    @Test fun `ClickHouse binding plans read only and applies the exact sealed SQL`() {
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"clickhouseFixture\"")
+        directory.resolve("sql").mkdirs()
+        directory.resolve("sql/setup.sql").writeText("CREATE DATABASE IF NOT EXISTS {database:Identifier};")
+        directory.resolve("access").writeText("fixture access")
+        directory.resolve("kubectl").apply {
+            writeText("""
+                #!/usr/bin/env python3
+                import sys,json,pathlib
+                args=sys.argv[1:]; root=pathlib.Path(__file__).parent
+                assert pathlib.Path(args[1]).resolve()==(root/'access').resolve()
+                assert args[0]=='--kubeconfig' and args[2]=='--request-timeout=20s'
+                if args[3:]==['get','namespace','reaktor','-o','jsonpath={.metadata.uid}']:
+                    print('fixture-namespace'); sys.exit(0)
+                assert args[3:8]==['exec','-i','-n','reaktor','clickhouse-0']
+                assert args[8:10]==['--','clickhouse-client']
+                state=root/'state.json'; writes=int(state.read_text()) if state.exists() else 0
+                sql=sys.stdin.read()
+                if '--readonly=1' in args:
+                    assert sql.startswith('SELECT ')
+                    rows=[{'name':'fixture'}] if writes and 'system.databases' in sql else []
+                    print(json.dumps({'data':rows}))
+                else:
+                    assert sql=='CREATE DATABASE IF NOT EXISTS fixture;'
+                    state.write_text(str(writes+1))
+            """.trimIndent())
+            setExecutable(true)
+        }
+        val metadata = java.util.Properties().apply {
+            GradlePlanningTest::class.java.classLoader.getResourceAsStream("plugin-under-test-metadata.properties")!!.use(::load)
+        }
+        val files = metadata.getProperty("implementation-classpath").split(File.pathSeparator)
+            .joinToString(",") { BuildModelReader.json.encodeToString(kotlinx.serialization.serializer<String>(), it) }
+        directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.model.*
+            buildscript { dependencies { classpath(files($files)) } }
+            apply<dev.shibasis.dependeasy.plugins.PipelinePlugin>()
+            extensions.getByType<dev.shibasis.dependeasy.plugins.DependeasyExtension>().workspace {
+                val sql by migrate(DatabaseMigrations.ClickHouse("sql", listOf("setup.sql"),
+                    mapOf(Environment("dev") to "fixture"), "reaktor", "clickhouse-0", ServiceRef("clickhouse")),
+                    kubeconfig = BuildOption.string("fixture.kubeconfig", "access"))
+            }
+        """.trimIndent())
+        fun git(vararg args: String) {
+            assertEquals(0, ProcessBuilder("git", *args).directory(directory).redirectErrorStream(true).start().let {
+                it.inputStream.readBytes(); it.waitFor()
+            })
+        }
+        git("init", "--quiet")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.test", "commit", "--allow-empty", "--quiet", "-m", "fixture")
+        fun bridge(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
+            .withTestKitDir(directory.resolve("test-kit"))
+            .withEnvironment(System.getenv() + ("PATH" to directory.absolutePath + File.pathSeparator + System.getenv("PATH")))
+            .withArguments(*tasks, "--configuration-cache", "--stacktrace").build()
+        bridge("exportBuildModel")
+        val model = BuildModelReader.read(directory)
+        val node = model.nodes.single { it.id.name == "sql" }
+        assertEquals("ClickHouseMigrationKernel", node.kernel?.className?.substringAfterLast('.'))
+        val spec = assertIs<KernelSpec.DatabaseMigration>(node.kernel?.spec)
+        assertIs<DatabaseMigrations.ClickHouse>(spec.migration.database)
+        assertEquals("access", spec.migration.kubeconfig)
+        assertEquals(ToolRef("kubectl", "host-provided (unversioned)"), spec.tool)
+        assertEquals(listOf(ServiceRef("clickhouse")), node.bindings)
+        assertTrue(node.inputs.flatMap { it.declarations }.any { it.kind == FileInputKind.File && it.identity == "sql/setup.sql" })
+        fun contract(request: GradleRequest): Pair<String, String> {
+            val text = BuildModelReader.json.encodeToString(GradleRequest.serializer(), request) + "\n"
+            val digest = BuildModelReader.digest(text)
+            val file = directory.resolve("${GradleProtocol.RequestDirectory}/$digest.json").apply { parentFile.mkdirs(); writeText(text) }
+            return digest to "-P${GradleProtocol.RequestOption}=${file.absolutePath}"
+        }
+        val request = GradleRequest(node = node.id, declaredAt = node.declaredAt,
+            modelDigest = BuildModelReader.digest(BuildModelReader.encode(model)), arguments = listOf("--configuration-cache"))
+        val (digest, option) = contract(request)
+        bridge(GradleProtocol.PlanTask, option)
+        val plan = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json"))
+        assertEquals(listOf("setup"), plan.migrations.single().pending)
+        assertFalse(directory.resolve("state.json").exists())
+        val repeat = bridge(GradleProtocol.PlanTask, option)
+        assertContains(repeat.output, "Reusing configuration cache")
+        val repeated = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json"))
+        assertEquals(plan.copy(configuredMillis = 0), repeated.copy(configuredMillis = 0))
+        val (_, execution) = contract(request.copy(expectedContextDigest = plan.contextDigest, migrations = plan.migrations))
+        bridge(GradleProtocol.RunTask, execution)
+        assertEquals("1", directory.resolve("state.json").readText())
+        val receipt = WorkerDeployKernel.receipts(directory, node.id).single { it.action == "migrations-apply" }
+        assertEquals(ReceiptStatus.Succeeded, receipt.result)
+        assertEquals("sql-applied", receipt.phase)
+        assertEquals(ServiceRef("clickhouse"), receipt.service)
+        assertTrue(BuildModelReader.nodeDetails(directory, node.id.toString()).containsKey("migrationPlan"))
+    }
+
 }

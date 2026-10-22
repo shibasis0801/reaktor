@@ -15,6 +15,7 @@ import dev.shibasis.dependeasy.handles.*
 
 internal class BuildWorkspace(private val project: Project) {
     private val targets = linkedMapOf<String, BuildTarget>()
+    internal val outputProducers = linkedMapOf<NodeId, () -> Set<Task>>()
     internal val declaredTargets: Map<String, BuildTarget> get() = targets
     private val declaredTasks = linkedSetOf<NodeId>()
     private val taskReferences = linkedSetOf<NodeId>()
@@ -186,19 +187,29 @@ internal class BuildWorkspace(private val project: Project) {
                 val outputs = consumedOutputs
                 val bindings = (includedNodes + ordering).associate { it.id to requireNotNull(it.task) } +
                     outputs.associate { it.nodeId to owner.resolve(it) }
-                val producerGates = kernel.producerGates(current).map { bindings.getValue(it) }
-                if (producerGates.isNotEmpty()) {
-                    val gated = mutableSetOf<NodeId>()
-                    fun gate(producer: Task) {
-                        val id = NodeId(producer.project.rootProject.name, producer.project.path, producer.name)
-                        if (!gated.add(id)) return
-                        targets[id.toString()]?.includedNodes?.forEach { gate(requireNotNull(it.task).get()) }
-                        producer.dependsOn(producerGates)
-                    }
-                    (outputs.flatMap { owner.resolve(it).buildDependencies.getDependencies(null) } + includedNodes.map { requireNotNull(it.task).get() }).forEach(::gate)
-                }
                 kernel.plan(current).map { bindings.getValue(it) }
             })
+        }.also {
+            owner.afterEvaluate { owner.gradle.projectsEvaluated {
+                val target = targets.getValue(spec.id.toString())
+                val current = requireNotNull(target.declaration)
+                val bindings = (target.includedNodes + target.ordering).associateBy { it.id }
+                val gates = kernel.producerGates(current).map { bindings.getValue(it) }
+                if (gates.isNotEmpty()) {
+                    val gated = mutableSetOf<NodeId>()
+                    fun gate(producer: Task) {
+                        val node = producer.project.node(producer.project.tasks.named(producer.name))
+                        if (!gated.add(node.id)) return
+                        targets[node.id.toString()]?.includedNodes?.forEach { gate(requireNotNull(it.task).get()) }
+                        connect(node, gates)
+                    }
+                    val producers = target.consumedOutputs.flatMap { output ->
+                        require(output.build == owner.rootProject.name) { "Delivery gates require outputs from this build" }
+                        outputProducers.getValue(output.nodeId).invoke()
+                    }
+                    (producers + target.includedNodes.map { requireNotNull(it.task).get() }).forEach(::gate)
+                }
+            } }
         }
     }
 
@@ -372,7 +383,7 @@ internal class BuildWorkspace(private val project: Project) {
                         tools = producer.declaredTools(), options = producer.declaredOptions(),
                         artifactFamily = taskArtifactFamilies[id] ?: kind?.family,
                         worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: migration?.database?.availableEnvironments ?: listOfNotNull(server?.environment ?: secrets?.environment),
-                        bindings = worker?.bindings?.get()?.map(::ServiceRef) ?: listOfNotNull(server?.service ?: secrets?.service),
+                        bindings = worker?.bindings?.get()?.map(::ServiceRef) ?: listOfNotNull(server?.service ?: secrets?.service ?: (migration?.database as? DatabaseMigrations.ClickHouse)?.service),
                           requiredSecrets = if (typed?.kernelSpec is KernelSpec.WranglerDeploy || secrets != null || migration?.database is DatabaseMigrations.D1) listOf("CLOUDFLARE_API_TOKEN") else emptyList())))
                 }
             })
