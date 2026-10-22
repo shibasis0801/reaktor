@@ -73,7 +73,8 @@ class DarwinSpeechSynthesizer : SpeechSynthesizer<Unit>(Unit) {
             (v as? AVSpeechSynthesisVoice)?.let { Voice(it.identifier, it.name, it.language) }
         }
 
-    override fun setVoice(id: String) {
+    // Null leaves the utterance's voice unset, which AVSpeech reads as the system's default voice.
+    override fun setVoice(id: String?) {
         voiceId = id
     }
 
