@@ -24,7 +24,6 @@ library(namespace = "dev.shibasis.reaktor.cloud", targets = Targets.Android + Ta
             implementation(Versions.Kotlin.SerializationJson)
         }
     }
-    val cloudToolE2e by program(compilation = CompilationRef("e2e"), verify = true)
     val run by program(sources = FileSet(listOf("reaktor-cloud/src/jvmMain/kotlin/dev/shibasis/reaktor/cloud/observability/Main.kt")))
     val verifyWrangler by program(
         environment = ProgramEnvironment(inputs = listOf(ProgramInput(FrameworkOptions.WranglerDirectory, whenBlank = ProgramFallback.BuildRoot))),

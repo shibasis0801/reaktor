@@ -1,30 +1,16 @@
 # reaktor-cloud
 
 Dependeasy configures this module as a Kotlin Multiplatform library with JVM,
-Android and Apple targets. Its JVM code contains:
-
-- `CloudToolProvider`, operation/plan/event models and `ProcessToolRunner` for
-  supervised process execution;
-- `PulumiToolProvider` for explicit-stack preview, refresh and apply operations,
-  with approval bound to the reviewed command and program contents;
-- the observability Pulumi program under `cloud/observability`.
-
-Build operations come from the Dependeasy model. The former per-product Dagger
-provider and `.dagger` module are removed. Local container CI uses the shared
-module at `dependeasy/dagger`; its entry is `run --target portableChecks`.
+Android and Apple targets. Cloud inventory uses the shared Reaktor tooling providers.
+Build and delivery operations come from canonical Dependeasy model nodes.
 
 ## Build and check
 
 From the Reaktor repository root:
 
 ```sh
-./gradlew :reaktor-cloud:compileKotlinJvm --console=plain
-./gradlew :reaktor-cloud:cloudToolE2e --console=plain
+./gradlew :reaktor-cloud:compileKotlinJvm :reaktor-cloud:jvmTest --console=plain
 ```
-
-The existing process-boundary check executes a local shell fixture. It checks
-single process ownership, exact Pulumi approval, and source changes before process
-admission; it does not access a cloud account.
 
 ## Generated Grafana SDK
 
@@ -35,14 +21,16 @@ JVM dependency of this module. Generated SDK files are not edited or vendored.
 
 ## Observability ownership
 
-The Pulumi entry point is `dev.shibasis.reaktor.cloud.observability.MainKt`, exposed
-as `:reaktor-cloud:run`. It currently has no checked-in stack configuration. Live
-observability is managed by BestBuds' `cloud/k3s/observability` scripts; delivery WP25
-covers adopting those existing resources into Pulumi. The program's presence is
-not evidence of a completed live migration.
+The Kotlin entry point is `dev.shibasis.reaktor.cloud.observability.MainKt`.
+Dependeasy's `PulumiStackKernel` owns preview, exact-plan apply and update receipts.
+Product declarations supply the stack, source inputs, named secrets and compiled
+program output through the build graph; the CLI, MCP and Hangar read that model.
 
-`PulumiToolProvider` requires the canonical `pulumiSetup` node's `InstallTool`
-spec. It checks the installation receipt before planning or starting a process,
-and plans name the exact installed binary. SDK generation declares that same
-installer as a graph prerequisite. The process-boundary check also rejects missing
-and mismatched installation receipts without starting Pulumi.
+The current live-resource adoption remains in qualification. BestBuds' existing
+observability scripts stay available until the protected import and subsequent
+production no-change preview pass. A compiled program or successful disposable
+stack check does not establish live migration.
+
+Local container CI uses `dependeasy/dagger` with `run --target portableChecks`.
+The unused legacy cloud operation catalog, Pulumi runner and parallel run registry
+are removed; their fixture did not exercise the canonical delivery path.
