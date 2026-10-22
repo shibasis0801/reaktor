@@ -14,6 +14,9 @@ import dev.shibasis.reaktor.db.sql.ReaktorSqliteHelper
  * [onUnreadable] is told when SQLite found the file corrupt and the platform replaced it — at open,
  * or at whichever later query first reached the damage. By then the old contents are gone; this is
  * the only notice anything gets.
+ *
+ * Takes any [Context] and keeps the application's, for the reason given on `AndroidFileAdapter`:
+ * a database belongs to the process, and the process can start without an Activity.
  */
 class AndroidSqlAdapter(
     context: Context,
