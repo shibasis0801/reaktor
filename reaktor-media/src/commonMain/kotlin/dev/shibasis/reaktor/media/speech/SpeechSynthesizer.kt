@@ -73,8 +73,12 @@ abstract class SpeechSynthesizer<Controller>(
      */
     abstract fun availableVoices(): List<Voice>
 
-    /** Select a voice by its [Voice.id] for subsequent [speak]s. Unknown ids are ignored. */
-    abstract fun setVoice(id: String)
+    /**
+     * Select a voice by its [Voice.id] for subsequent [speak]s, or null to go back to the engine's own
+     * default. Unknown ids are ignored. A choice made before the engine is ready is kept and applied
+     * once it is, so a voice restored at launch is not lost.
+     */
+    abstract fun setVoice(id: String?)
 
     abstract fun isSpeaking(): Boolean
 

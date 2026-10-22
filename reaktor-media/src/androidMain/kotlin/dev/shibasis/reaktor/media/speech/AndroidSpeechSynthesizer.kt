@@ -20,6 +20,7 @@ class AndroidSpeechSynthesizer(
 
     @Volatile private var ready = false
     private var rate = 1.0f
+    private var voiceId: String? = null
     private var pending: Utterance? = null
 
     private data class Utterance(val text: String, val id: String)
@@ -54,6 +55,7 @@ class AndroidSpeechSynthesizer(
             tts.setLanguage(Locale.getDefault())
             tts.setSpeechRate(rate)
             tts.setOnUtteranceProgressListener(listener)
+            if (voiceId != null) applyVoice()
             ready = true
             pending?.let { speak(it.text, it.id) }
             pending = null
@@ -97,9 +99,17 @@ class AndroidSpeechSynthesizer(
             .sortedBy { it.name }
     }
 
-    override fun setVoice(id: String) {
-        if (!ready) return
-        tts.voices?.firstOrNull { it.name == id }?.let { tts.voice = it }
+    override fun setVoice(id: String?) {
+        // Kept even before the engine is ready: the init callback applies it.
+        voiceId = id
+        if (ready) applyVoice()
+    }
+
+    // The default is whatever setLanguage picks for the device's locale, the same voice init starts with.
+    private fun applyVoice() {
+        val id = voiceId
+        if (id == null) tts.setLanguage(Locale.getDefault())
+        else tts.voices?.firstOrNull { it.name == id }?.let { tts.voice = it }
     }
 
     override fun isSpeaking(): Boolean = tts.isSpeaking
