@@ -155,8 +155,9 @@ object DefinitionDigestCache {
     private fun ignoredDirectories(directory: File): Set<String> {
         val root = generateSequence(directory) { it.parentFile }.firstOrNull { File(it, ".git").exists() } ?: return emptySet()
         val result = ProcessQuery.read(listOf("git", "ls-files", "--others", "--ignored", "--exclude-standard",
-            "--directory", "--no-empty-directory", "-z", "--", directory.relativeTo(root).invariantSeparatorsPath.ifEmpty { "." }), root)
-        check(result.succeeded) { "Could not resolve ignored task-definition directories" }
+            "--directory", "--no-empty-directory", "-z", "--", directory.relativeTo(root).invariantSeparatorsPath.ifEmpty { "." }), root,
+            timeoutMillis = 10_000)
+        check(result.succeeded) { "Could not resolve ignored task-definition directories for '${directory.name}' (${result.status})" }
         return result.output.split('\u0000').filter { it.endsWith('/') }.mapTo(mutableSetOf()) { root.resolve(it).canonicalPath }
     }
 
