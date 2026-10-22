@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        What a player needs to keep playing with the screen off, declared here because this module
+        is the player: an app should not have to remember them, and an app that does not play audio
+        never depends on this module and never inherits them.
+
+        Media3's ExoPlayer adds WAKE_LOCK and ACCESS_NETWORK_STATE through its own manifest.
+        POST_NOTIFICATIONS is deliberately absent: a media-session notification is exempt from it.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <application>
+        <!--
+            How Android learns a player exists: the lock screen, the notification shade, Bluetooth
+            and the car all find the session through this service. Exported because they are
+            other processes; Media3 checks every controller that connects.
+        -->
+        <service
+            android:name="dev.shibasis.reaktor.playback.ReaktorPlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>
