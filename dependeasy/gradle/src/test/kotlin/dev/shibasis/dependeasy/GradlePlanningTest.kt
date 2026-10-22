@@ -209,7 +209,10 @@ class GradlePlanningTest {
         fixture()
         val initial = "11111111-1111-1111-1111-111111111111"
         val deployed = "22222222-2222-2222-2222-222222222222"
-        directory.resolve("state.json").writeText("""{"version":"$initial","message":"baseline","writes":0}""")
+        directory.resolve("state.json").writeText("""{"version":"$initial","message":"baseline","writes":0,"secrets":["RETIRED","UNRELATED"]}""")
+        val secretCanary = "fixture-private-secret-canary"
+        directory.resolve("config").mkdirs()
+        directory.resolve("config/worker.json").writeText("""{"CLIENT_SECRET":"$secretCanary","unrelated":{"nested":true}}""")
         directory.resolve("wrangler.json").writeText("""{"name":"fixture-dev","main":"entry.ts","compatibility_date":"2026-10-01"}""")
         directory.resolve("tool").apply {
             writeText("""
@@ -217,7 +220,17 @@ class GradlePlanningTest {
                 import json,sys,pathlib
                 args=sys.argv[1:]
                 state=pathlib.Path('state.json'); value=json.loads(state.read_text())
-                if args[2]=='deployments': print(json.dumps([{'versions':[{'version_id':value['version'],'percentage':100}]}]))
+                if args[2]=='secret':
+                    if args[3]=='list': print(json.dumps([{'name':name} for name in value['secrets']]))
+                    else:
+                        assert args[3]=='bulk'
+                        payload=json.load(sys.stdin)
+                        assert payload=={'CLIENT_SECRET':'$secretCanary','RETIRED':None}
+                        value['secrets']=sorted((set(value['secrets']) | {name for name,text in payload.items() if text is not None}) - {name for name,text in payload.items() if text is None})
+                        value['writes']+=1
+                        state.write_text(json.dumps(value))
+                        print('$secretCanary')
+                elif args[2]=='deployments': print(json.dumps([{'versions':[{'version_id':value['version'],'percentage':100}]}]))
                 elif args[2]=='versions': print(json.dumps({'id':value['version'],'annotations':{'workers/message':value['message']},'resources':{'script_runtime':{'compatibility_date':'2026-10-01','compatibility_flags':[]},'bindings':[]}}))
                 elif '--dry-run' in args:
                     bundle=pathlib.Path(args[args.index('--outdir')+1]); bundle.mkdir(parents=True,exist_ok=True)
@@ -244,7 +257,7 @@ class GradlePlanningTest {
             buildscript { dependencies { classpath(files($files)) } }
             apply<dev.shibasis.dependeasy.plugins.PipelinePlugin>()
             option(BuildOption.string(GradleProtocol.EnvironmentOption, "dev")).get()
-            val deployment = WorkerDeployment(Environment("dev"), ServiceRef("fixture-dev"))
+            val deployment = WorkerDeployment(Environment("dev"), ServiceRef("fixture-dev"), secrets = listOf("CLIENT_SECRET"), retiredSecrets = listOf("RETIRED"))
             val fleetWorker = FleetWorker(WorkerRef("fixture", "."), NodeId("receiptFixture", ":", "deployFixture"), listOf(deployment))
             val deploy = tasks.register<WranglerDeploy>("deployFixture") {
                 workingDirectory.set(layout.projectDirectory)
@@ -255,8 +268,17 @@ class GradlePlanningTest {
                 environmentName.set("dev")
                 bindings.set(emptyList())
             }
+            val secrets = tasks.register<dev.shibasis.dependeasy.cloudflare.WorkerSecrets>("fixtureSecrets") {
+                workingDirectory.set(layout.projectDirectory)
+                executable.set(layout.projectDirectory.file("tool").asFile.absolutePath)
+                toolVersion.set("fixture")
+                configuration.set("wrangler.json")
+                declaration.set(BuildModelReader.json.encodeToString(FleetWorker.serializer(), fleetWorker))
+                environmentName.set("dev")
+                sourcePaths.set(listOf("config/worker.json"))
+            }
             extensions.getByType<dev.shibasis.dependeasy.plugins.DependeasyExtension>().workspace {
-                val release by verify { include(node(deploy)) }
+                val release by verify { include(node(deploy), node(secrets)) }
             }
         """.trimIndent())
         fun git(vararg args: String) { assertEquals(0, ProcessBuilder("git", *args).directory(directory).redirectErrorStream(true).start().let { it.inputStream.readBytes(); it.waitFor() }) }
@@ -319,6 +341,32 @@ class GradlePlanningTest {
         assertEquals(initial, rollback.remoteVersion)
         assertEquals(deployed, rollback.rollbackTarget)
         assertEquals(2, BuildModelReader.json.parseToJsonElement(directory.resolve("state.json").readText()).jsonObject.getValue("writes").jsonPrimitive.int)
+        val secrets = model.nodes.single { it.id.name == "fixtureSecrets" }
+        val secretsRequest = request.copy(node = secrets.id, declaredAt = secrets.declaredAt)
+        val (secretsDigest, secretsOption) = contract(secretsRequest)
+        val plannedSecrets = bridge(GradleProtocol.PlanTask, secretsOption)
+        val secretsPlan = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$secretsDigest.json"))
+        assertEquals(listOf("CLIENT_SECRET"), secretsPlan.secrets.single().missing)
+        assertEquals(listOf("RETIRED", "UNRELATED"), secretsPlan.secrets.single().extra)
+        assertEquals(listOf("RETIRED"), secretsPlan.secrets.single().spec.retiredNames)
+        assertFalse(secretCanary in plannedSecrets.output)
+        assertFalse(secretCanary in BuildModelReader.json.encodeToString(GradlePlan.serializer(), secretsPlan))
+        assertEquals(2, BuildModelReader.json.parseToJsonElement(directory.resolve("state.json").readText()).jsonObject.getValue("writes").jsonPrimitive.int)
+        val rejected = GradleRunner.create().withProjectDir(directory)
+            .withArguments("fixtureSecrets", environmentArgument, "--configuration-cache", "--stacktrace").buildAndFail()
+        assertContains(rejected.output, "Worker secrets require a reviewed build plan")
+        val (_, secretsExecution) = contract(secretsRequest.copy(expectedContextDigest = secretsPlan.contextDigest, secrets = secretsPlan.secrets))
+        val appliedSecrets = bridge(GradleProtocol.RunTask, secretsExecution)
+        assertFalse(secretCanary in appliedSecrets.output)
+        assertEquals(3, BuildModelReader.json.parseToJsonElement(directory.resolve("state.json").readText()).jsonObject.getValue("writes").jsonPrimitive.int)
+        val secretReceipt = WorkerDeployKernel.receipts(directory, secrets.id).single { it.action == "secrets-apply" }
+        assertEquals(ReceiptStatus.Succeeded, secretReceipt.result)
+        assertEquals(listOf("CLIENT_SECRET", "UNRELATED"), BuildModelReader.json.parseToJsonElement(directory.resolve("state.json").readText())
+            .jsonObject.getValue("secrets").jsonArray.map { it.jsonPrimitive.content })
+        val secretDetails = BuildModelReader.nodeDetails(directory, secrets.id.toString(), limit = 10)
+        assertEquals(secrets.id.name, secretDetails.getValue("secretsPlan").jsonObject.getValue("spec").jsonObject.getValue("deployment").jsonObject.getValue("node").jsonObject.getValue("name").jsonPrimitive.content)
+        assertTrue(secretDetails.getValue("deploymentReceipts").jsonArray.any { it.jsonObject["action"]?.jsonPrimitive?.content == "secrets-apply" })
+        assertFalse(secretCanary in secretDetails.toString())
     }
 
 }

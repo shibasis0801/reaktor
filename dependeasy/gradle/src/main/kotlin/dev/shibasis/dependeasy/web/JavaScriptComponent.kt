@@ -159,6 +159,9 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         }
     }
 
+    internal fun secrets(node: NodeId): TaskProvider<dev.shibasis.dependeasy.cloudflare.WorkerSecrets> =
+        commandKernel.register(dev.shibasis.dependeasy.cloudflare.WorkerSecrets::class.java, "secrets", null, taskName = node.name)
+
     internal fun deploy(node: NodeId, vararg producers: Any): TaskProvider<WranglerDeploy> =
         commandKernel.register(WranglerDeploy::class.java, "deploy", null, taskName = node.name).also {
             it.configure {

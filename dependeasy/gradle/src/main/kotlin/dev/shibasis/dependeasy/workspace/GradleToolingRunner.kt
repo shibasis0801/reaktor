@@ -84,8 +84,13 @@ object GradleToolingRunner {
                         val owner = root.resolve(model.builds.single { identity -> identity.name == node.id.build }.directory)
                         ServerRolloutKernel.retained(owner, node.id, spec.environment)
                     }
+                    val secrets = deployments.filter { it.kernel?.spec is KernelSpec.WorkerSecrets }.map { node ->
+                        val spec = (node.kernel!!.spec as KernelSpec.WorkerSecrets).secrets
+                        val owner = root.resolve(model.builds.single { identity -> identity.name == node.id.build }.directory)
+                        WorkerSecretsKernel.retained(owner, node.id, spec.deployment.environment)
+                    }
                     GradlePlanCache.store(directory, GradleInvocationKernel.plan(invocation, contextDigest, elapsed, observed, preparationTasks)
-                        .copy(deployments = plans, serverDeployments = servers))
+                        .copy(deployments = plans, serverDeployments = servers, secrets = secrets))
                 } finally { scratch.deleteTreeSafely(within = root.resolve("tmp")) }
             } else {
                 GradleInvocationKernel.requireExecution(invocation, contextDigest)

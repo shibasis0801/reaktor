@@ -650,9 +650,11 @@ class WebContractsTest {
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
             workers(delivery = Delivery(listOf(Environment("prod"), Environment("dev")), Environment("prod"), Delivery.Cloudflare("fixture-account", emptyList(), true))) {
+                secrets(Environment("dev"), "config/worker-dev.env")
+                secrets(Environment("prod"), "config/worker-prod.json")
                 worker(WorkerRef("worker", "targets/worker"), listOf(
-                    WorkerDeployment(Environment("dev"), ServiceRef("fixture-worker-dev")),
-                    WorkerDeployment(Environment("prod"), ServiceRef("fixture-worker"))))
+                    WorkerDeployment(Environment("dev"), ServiceRef("fixture-worker-dev"), secrets = listOf("SERVICE_SECRET")),
+                    WorkerDeployment(Environment("prod"), ServiceRef("fixture-worker"), secrets = listOf("SERVICE_SECRET"))))
             }
             tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
                 baseConfiguration.set(rootProject.layout.projectDirectory.file("base.json"))
@@ -665,6 +667,19 @@ class WebContractsTest {
         run("syncKotlinPnpmMetadata", "exportBuildModel", "-Pdependeasy.environment=local")
         val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
         assertTrue(model.nodes.any { it.id.name == "deployWorker" })
+        val secrets = model.nodes.single { it.id.name == "workerSecrets" }
+        assertEquals("dev.shibasis.dependeasy.model.WorkerSecretsKernel", secrets.kernel?.className)
+        val secretsSpec = assertIs<KernelSpec.WorkerSecrets>(secrets.kernel?.spec).secrets
+        assertEquals(listOf("SERVICE_SECRET"), secretsSpec.names)
+        assertEquals(listOf("config/worker-prod.json"), secretsSpec.sources)
+        assertEquals(Environment("prod"), secretsSpec.deployment.environment)
+        assertEquals(Effect.Deploy, secrets.effect)
+        assertEquals(NodeKind.Deploy, secrets.kind)
+        assertEquals("workers/build.gradle.kts", secrets.declaredAt?.file)
+        assertEquals(listOf(Environment("dev"), Environment("prod")), secrets.environments)
+        assertEquals(listOf("CLOUDFLARE_API_TOKEN"), secrets.requiredSecrets)
+        assertTrue(model.edges.any { it is Edge.Consumes && it.from == secrets.id && it.to.name == "generateWorkerFleet" })
+        assertTrue(model.edges.any { it is Edge.After && it.from == secrets.id && it.to.name == "generateWorkerFleet" })
         val metadata = model.nodes.single { it.id.name == "syncKotlinPnpmMetadata" }
         val spec = assertIs<dev.shibasis.dependeasy.model.KernelSpec.WebContract>(metadata.kernel?.spec)
         assertEquals(listOf("build/dependeasy/contracts/cloudflare/fleet.json"), spec.workerFleet.paths)

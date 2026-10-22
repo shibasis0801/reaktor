@@ -25,6 +25,11 @@ class WorkerFleet internal constructor(
     private data class Declaration(val worker: FleetWorker, val directory: File, val prerequisites: List<OutputHandle>, val site: SourceSite?)
     private val workers = linkedMapOf<String, Declaration>()
     private var observation: WorkerObservability? = null
+    private val secretSources = linkedMapOf<Environment, List<String>>()
+    fun secrets(environment: Environment, vararg configFiles: String) {
+        require(environment in environments) { "Secret environment is absent from the delivery declaration" }
+        require(secretSources.putIfAbsent(environment, configFiles.toList()) == null) { "Secret sources are already declared" }
+    }
     fun observability(resources: String, exporter: String, externalServices: List<ServiceRef> = emptyList()) {
         check(observation == null) { "Worker observability is already declared" }
         observation = WorkerObservability(resources, exporter, externalServices)
@@ -85,6 +90,21 @@ class WorkerFleet internal constructor(
                 arguments.addAll("--config", paths.getValue(selected.name))
                 dependsOn(generate)
                 outputs.upToDateWhen { false }
+            }
+            val secretDeployment = declaration.worker.deployments.single { it.environment == selected }
+            if (secretDeployment.secrets.isNotEmpty() || secretDeployment.retiredSecrets.isNotEmpty()) {
+                val secrets = component.secrets(worker.node.copy(name = "${name}Secrets"))
+                secrets.configure {
+                    receiptFile.unset()
+                    this.declaration.set(BuildModelReader.json.encodeToString(declaration.worker))
+                    environmentName.set(selected.name)
+                    configuration.set(paths.getValue(selected.name))
+                    sourcePaths.set(secretSources[selected].orEmpty())
+                    sourceFiles.from(generate.map { it.finalConfigurations })
+                    dependsOn(generate)
+                    declaration.site?.let { extensions.add(SourceSite::class.java, "declarationSite", it) }
+                }
+                project.node(secrets).consumes(generatedContract)
             }
             val deployNode = project.node(command)
             val outputs = prerequisites + declaration.prerequisites

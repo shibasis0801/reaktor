@@ -90,7 +90,7 @@ object GradleInvocationKernel {
         fun visit(id: NodeId) { if (visited.add(id)) edges[id].orEmpty().forEach { visit(it.to) } }
         visit(selected)
         return model.nodes.filter { it.id in visited &&
-            (it.kernel?.spec is KernelSpec.WranglerDeploy || it.kernel?.spec is KernelSpec.ServerRollout) }
+            (it.kernel?.spec is KernelSpec.WranglerDeploy || it.kernel?.spec is KernelSpec.ServerRollout || it.kernel?.spec is KernelSpec.WorkerSecrets) }
     }
 
     fun requireExecution(invocation: ValidatedGradleInvocation, contextDigest: String) {

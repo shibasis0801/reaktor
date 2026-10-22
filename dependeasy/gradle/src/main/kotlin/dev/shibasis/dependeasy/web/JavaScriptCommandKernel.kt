@@ -53,7 +53,8 @@ internal class JavaScriptCommandKernel(
             build.connect(node, listOf(project.node(component.contract), project.rootProject.node(install)))
             if (type != PackageCommand::class.java && type != WranglerDeploy::class.java) {
                 val node = project.node(it)
-                build.alias(directory, if (type == TypeScriptCheck::class.java && suffix == "types") "typecheck" else suffix, node)
+                if (type != dev.shibasis.dependeasy.cloudflare.WorkerSecrets::class.java)
+                    build.alias(directory, if (type == TypeScriptCheck::class.java && suffix == "types") "typecheck" else suffix, node)
                 build.alias(project.rootDir, taskName, node)
             }
         }

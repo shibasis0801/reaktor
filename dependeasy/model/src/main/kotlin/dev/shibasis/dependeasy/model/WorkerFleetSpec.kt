@@ -19,7 +19,8 @@ data class WorkerDeployment(val environment: Environment, val service: ServiceRe
     val serviceClient: String? = null,
     val endpoint: String? = null,
     val publicEndpoint: String? = null,
-    val health: HealthProbe? = null)
+    val health: HealthProbe? = null,
+    val retiredSecrets: List<String> = emptyList())
 
 @Serializable
 data class WorkerObservability(val resources: String, val exporter: String,
