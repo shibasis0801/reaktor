@@ -39,7 +39,7 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
     workspace.graph.configure {
         nodes.add(provider {
             val site = declaredAt ?: this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared
-            val tasks = files.buildDependencies.getDependencies(null).sortedBy { it.path }
+            val tasks = workspace.outputProducers.getValue(handle.nodeId).invoke().sortedBy { it.path }
             require(tasks.isNotEmpty()) { "Output ${handle.nodeId} has no producer" }
             require(tasks.all { it.project.path == this@publishOutput.path && it.project.rootDir == this@publishOutput.rootDir }) { "Publish outputs in their owning project: ${handle.nodeId}; found ${tasks.map { it.project.path }}" }
             BuildModelReader.encode(Node(handle.nodeId, NodeKind.Kernel, handle.nodeId.name,
@@ -59,7 +59,7 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
         })
         omissions.addAll(provider {
             val site = declaredAt ?: this@publishOutput.extensions.findByType(SourceSite::class.java) ?: declared
-            val tasks = files.buildDependencies.getDependencies(null)
+            val tasks = workspace.outputProducers.getValue(handle.nodeId).invoke()
             listOfNotNull(if (tasks.size != 1) Omission(handle.nodeId, "Output has multiple Gradle producers", tasks.map { it.path }.sorted().joinToString(", ")) else null,
                 if (site == null) Omission(handle.nodeId, "Output is declared by its owning plugin") else null)
                 .map { BuildModelReader.json.encodeToString(it) }

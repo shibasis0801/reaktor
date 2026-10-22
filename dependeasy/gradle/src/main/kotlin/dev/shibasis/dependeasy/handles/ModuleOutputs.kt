@@ -57,7 +57,9 @@ internal fun Project.moduleOutputs() {
                 }
                 if (apple != null) {
                     target.compilations.findByName(KotlinCompilation.MAIN_COMPILATION_NAME)?.let { main ->
-                        publishModuleOutput(OutputKind.AppleCompilation, main.output.classesDirs, apple)
+                        node(main.compileTaskProvider, OutputKind.AppleCompilation)
+                        publishModuleOutput(OutputKind.AppleCompilation, main.compileTaskProvider.flatMap { it.outputFile }, apple,
+                            producer = main.compileTaskProvider)
                     }
                     target.binaries.withType(Framework::class.java).forEach { framework ->
                         if (framework.compilation.name == KotlinCompilation.MAIN_COMPILATION_NAME) {

@@ -44,7 +44,7 @@ class TypedOutputsTest {
             }
             val combined = files(result, secondary.flatMap { it.destination }).builtBy(producer, secondary)
             publishOutput(OutputKind.VerificationResults, combined, Verification.Jvm)
-            publishOutput(OutputKind.VerificationResults, result, Verification.TypeScript, producer = producer)
+            publishOutput(OutputKind.VerificationResults, files(result).builtBy(secondary), Verification.TypeScript, producer = producer)
             publishOutput(OutputKind.AppleFramework, result, Apple.IosArm64, Build.Debug, producer = producer)
         """.trimIndent())
         directory.resolve("other").mkdir()
@@ -94,6 +94,8 @@ class TypedOutputsTest {
         val combined = model.nodes.single { it.id == NodeId("fixture", ":library", "outputVerificationResultsJvm") }
         assertEquals(listOf(":library:producer", ":library:secondary"), (combined.invocation as Invocation.Gradle).tasks)
         assertTrue(combined.options.isEmpty())
+        assertTrue(model.omissions.any { it.node == combined.id && it.reason == "Output has multiple Gradle producers" })
+        assertTrue(model.omissions.none { it.node == output.id && it.reason == "Output has multiple Gradle producers" })
         assertNull(export.task(":library:secondary"))
         assertEquals("library/build/result.txt", output.outputs.single().paths.single())
         assertTrue(model.edges.any { it is Edge.Consumes && it.to == output.id })
