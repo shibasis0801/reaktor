@@ -26,6 +26,8 @@ class InMemoryAudioPlayer(
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 64)
     override val events: Flow<PlayerEvent> = _events.asSharedFlow()
 
+    override var resumption: (suspend () -> Resumption?)? = null
+
     /** Every call made, in order, for asserting what a caller asked for. */
     val calls = mutableListOf<String>()
 

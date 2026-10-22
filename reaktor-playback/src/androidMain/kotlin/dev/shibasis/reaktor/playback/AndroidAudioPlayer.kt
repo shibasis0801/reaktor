@@ -19,6 +19,13 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.SettableFuture
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +68,10 @@ class AndroidAudioPlayer(
 
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 64)
     override val events: Flow<PlayerEvent> = _events.asSharedFlow()
+
+    override var resumption: (suspend () -> Resumption?)? = null
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private var current: MediaItem? = null
     private var error: PlaybackError? = null
@@ -119,6 +130,7 @@ class AndroidAudioPlayer(
 
         session = MediaSession.Builder(app, SkipInsteadOfChangingItem(exo))
             .setId(SESSION_ID)
+            .setCallback(Resume())
             .setMediaButtonPreferences(listOf(skipButton(back = true), skipButton(back = false)))
             .apply { (sessionActivity ?: launcher())?.let(::setSessionActivity) }
             .build()
@@ -178,11 +190,43 @@ class AndroidAudioPlayer(
     }
 
     override fun release() = onMain {
+        scope.cancel()
         unbindService()
         main.removeCallbacks(tick)
         if (PlaybackSessions.active === session) PlaybackSessions.active = null
         session.release()
         exo.release()
+    }
+
+    /**
+     * The system's "resume" — on the lock screen after the process died, or a media button with
+     * nothing loaded — answered from [resumption]. The item is adopted as [current] before Media3
+     * loads it, so the state reports the caller's own item, not an anonymous one.
+     */
+    private inner class Resume : MediaSession.Callback {
+        override fun onPlaybackResumption(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            val answer = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+            scope.launch {
+                val resume = try {
+                    resumption?.invoke()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    null
+                }
+                if (resume == null) {
+                    answer.setException(UnsupportedOperationException("Nothing to resume"))
+                } else {
+                    current = resume.item
+                    error = null
+                    answer.set(MediaSession.MediaItemsWithStartPosition(listOf(resume.item.toMedia3()), 0, resume.positionMs))
+                }
+            }
+            return answer
+        }
     }
 
     private fun publish() {

@@ -62,7 +62,9 @@ import platform.Foundation.NSURLErrorFileDoesNotExist
 import platform.Foundation.timeIntervalSince1970
 import platform.MediaPlayer.MPChangePlaybackPositionCommandEvent
 import platform.MediaPlayer.MPChangePlaybackRateCommandEvent
+import platform.MediaPlayer.MPMediaItemArtwork
 import platform.MediaPlayer.MPMediaItemPropertyAlbumTitle
+import platform.MediaPlayer.MPMediaItemPropertyArtwork
 import platform.MediaPlayer.MPMediaItemPropertyArtist
 import platform.MediaPlayer.MPMediaItemPropertyPlaybackDuration
 import platform.MediaPlayer.MPMediaItemPropertyTitle
@@ -78,7 +80,12 @@ import platform.MediaPlayer.MPRemoteCommandEvent
 import platform.MediaPlayer.MPRemoteCommandHandlerStatus
 import platform.MediaPlayer.MPRemoteCommandHandlerStatusCommandFailed
 import platform.MediaPlayer.MPRemoteCommandHandlerStatusSuccess
+import platform.Foundation.NSData
+import platform.Foundation.dataWithContentsOfURL
+import platform.UIKit.UIImage
+import platform.darwin.DISPATCH_QUEUE_PRIORITY_DEFAULT
 import platform.darwin.NSObjectProtocol
+import platform.darwin.dispatch_get_global_queue
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 
@@ -118,7 +125,12 @@ class DarwinAudioPlayer(
     private val _events = MutableSharedFlow<PlayerEvent>(extraBufferCapacity = 64)
     override val events: Flow<PlayerEvent> = _events.asSharedFlow()
 
+    override var resumption: (suspend () -> Resumption?)? = null
+
     private var current: MediaItem? = null
+
+    // The lock screen's artwork, decoded once per address.
+    private var artwork: Pair<String, MPMediaItemArtwork>? = null
     private var error: PlaybackError? = null
     private var speed = 1f
 
@@ -344,9 +356,9 @@ class DarwinAudioPlayer(
             }
             commandTargets += command to target
         }
-        on(center.playCommand) { play(); current != null }
+        on(center.playCommand) { playOrResume() }
         on(center.pauseCommand) { pause(); true }
-        on(center.togglePlayPauseCommand) { toggle(); current != null }
+        on(center.togglePlayPauseCommand) { if (state.value.playing) { pause(); true } else playOrResume() }
         center.skipForwardCommand.preferredIntervals = listOf(skipForwardMs / 1000.0)
         center.skipBackwardCommand.preferredIntervals = listOf(skipBackMs / 1000.0)
         on(center.skipForwardCommand) { skipForward(); current != null }
@@ -368,6 +380,36 @@ class DarwinAudioPlayer(
         center.previousTrackCommand.enabled = false
     }
 
+    /** Play, or — with nothing loaded, after a relaunch — ask the app what to resume. */
+    private fun playOrResume(): Boolean {
+        if (current != null) {
+            play()
+            return true
+        }
+        val ask = resumption ?: return false
+        scope.launch {
+            val resume = runCatching { ask() }.getOrNull() ?: return@launch
+            load(resume.item, resume.positionMs, play = true)
+        }
+        return true
+    }
+
+    /** Fetches the artwork off the main thread, then puts it on the lock screen. */
+    private fun loadArtwork(uri: String) {
+        if (artwork?.first == uri) return
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT.toLong(), 0u)) {
+            val url = if (uri.startsWith("/")) NSURL.fileURLWithPath(uri) else NSURL.URLWithString(uri)
+            val image = url?.let { NSData.dataWithContentsOfURL(it) }?.let { UIImage.imageWithData(it) }
+                ?: return@dispatch_async
+            val art = MPMediaItemArtwork(boundsSize = image.size) { _ -> image }
+            dispatch_async(dispatch_get_main_queue()) {
+                if (current?.artworkUri != uri) return@dispatch_async
+                artwork = uri to art
+                updateNowPlaying()
+            }
+        }
+    }
+
     private fun updateNowPlaying() {
         val item = current ?: return
         val info = mutableMapOf<Any?, Any?>(
@@ -379,6 +421,10 @@ class DarwinAudioPlayer(
             MPNowPlayingInfoPropertyMediaType to MPNowPlayingInfoMediaTypeAudio.toLong(),
         )
         if (item.album.isNotEmpty()) info[MPMediaItemPropertyAlbumTitle] = item.album
+        item.artworkUri?.let { uri ->
+            val art = artwork
+            if (art != null && art.first == uri) info[MPMediaItemPropertyArtwork] = art.second else loadArtwork(uri)
+        }
         (durationMs() ?: item.durationMs)?.let { info[MPMediaItemPropertyPlaybackDuration] = it / 1000.0 }
         MPNowPlayingInfoCenter.defaultCenter().nowPlayingInfo = info
     }

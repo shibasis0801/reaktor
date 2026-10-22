@@ -57,6 +57,9 @@ data class PlayerState(
     val error: PlaybackError? = null,
 )
 
+/** Where to pick up: an item and a position, for a player asked to resume with nothing loaded. */
+data class Resumption(val item: MediaItem, val positionMs: Long)
+
 /** Things that happen once, which a state would lose if two arrived between two reads. */
 sealed interface PlayerEvent {
     val itemId: String
@@ -88,6 +91,13 @@ interface AudioPlayer {
 
     val skipBackMs: Long
     val skipForwardMs: Long
+
+    /**
+     * What to play when the system asks to resume and nothing is loaded — Android's "resume" on the
+     * lock screen after the process was killed, a headphone or AirPods play press. The app answers
+     * from what it saved; null, or an answer of null, means there is nothing to resume.
+     */
+    var resumption: (suspend () -> Resumption?)?
 
     /** Replaces whatever is loaded. [startAtMs] is where to begin — a saved position. */
     fun load(item: MediaItem, startAtMs: Long = 0, play: Boolean = true)
