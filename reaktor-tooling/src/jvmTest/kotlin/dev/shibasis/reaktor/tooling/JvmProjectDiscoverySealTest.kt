@@ -88,6 +88,18 @@ class JvmProjectDiscoverySealTest {
         assertTrue(prepared.request.environment.getValue("PATH").startsWith(executable.canonicalFile.parent))
         assertEquals(SafetyClass.UnknownRemoteEffect, prepared.plan.safety.classification)
         assertTrue(prepared.request.definitionSeal!!.files.any { it.name == "check.mjs" })
+        assertEquals(TaskKind.Custom, workspace.catalog.tasks.single { it.id.value == "npm/check" }.kind)
+        val names = listOf("status", "build", "deploy", "delete", "testflight", "migrate")
+        val scripts = names.joinToString(",") { name -> "\"$name\":\"node --version\"" }
+        File(root, "package.json").writeText("""{"name":"opaque","reaktor":{},"scripts":{$scripts}}""")
+        val opaqueNames = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        for (name in names) {
+            val task = opaqueNames.catalog.tasks.single { it.id.value == "npm/$name" }
+            assertEquals(TaskKind.Custom, task.kind)
+            assertEquals(SafetyClass.UnknownRemoteEffect, task.safety.classification)
+            assertEquals(SafetyClass.UnknownRemoteEffect,
+                opaqueNames.prepare(TaskInvocation(task.id, arguments = listOf("--environment", "prod", "--delete", "fixture"))).plan.safety.classification)
+        }
         File(root, "package.json").writeText("""{"name":"opaque-gradle","reaktor":{},"scripts":{"check":"./gradlew :workers:karateAuthProd","build":"./gradlew :workers:build"}}""")
         val opaque = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         for (name in listOf("check", "build")) {
@@ -107,7 +119,7 @@ class JvmProjectDiscoverySealTest {
         File(root, "targets/worker/src/index.ts").writeText("export default {};")
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         val prepared = workspace.prepare(TaskInvocation(TaskId("npm/deploy")))
-        assertEquals(SafetyClass.ProductionReversibleWrite, prepared.plan.safety.classification)
+        assertEquals(SafetyClass.UnknownRemoteEffect, prepared.plan.safety.classification)
         assertTrue(prepared.request.definitionSeal!!.files.any { it == File(root, "targets/worker/package.json").canonicalFile })
         assertTrue(prepared.request.definitionSeal!!.directories.any { it.directory == File(root, "targets/worker").canonicalFile })
         File(root, "targets/worker/src/index.ts").appendText("// Changed deploy source")

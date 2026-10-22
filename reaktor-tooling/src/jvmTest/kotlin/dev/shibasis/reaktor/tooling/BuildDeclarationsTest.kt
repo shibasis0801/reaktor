@@ -31,7 +31,8 @@ class BuildDeclarationsTest {
         assertEquals("fixture-local", exported.producer.version)
         val request = BuildModelReader.json.decodeFromString<GradleRequest>(File(build.request.argv[2].substringAfter("=")).readText())
         assertEquals(BuildModelReader.digest(BuildModelReader.encode(exported)), request.modelDigest)
-        val check = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(TaskInvocation(TaskId("fixture:checks")))
+        val check = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(TaskInvocation(TaskId("fixture:checks"),
+            arguments = listOf("-Pfixture.label=delete-production-migration-secret")))
         assertEquals(root.resolve(wrapperName).canonicalPath, build.request.argv.first())
         assertEquals(GradleProtocol.RunTask, build.request.argv[1])
         assertEquals(SafetyClass.LocalArtifactWrite, build.plan.safety.classification)

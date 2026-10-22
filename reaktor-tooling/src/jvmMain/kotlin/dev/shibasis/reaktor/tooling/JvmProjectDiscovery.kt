@@ -57,21 +57,11 @@ class DiscoveredJvmWorkspace internal constructor(
                 dev.shibasis.dependeasy.model.BuildModelReader.decodeNode(encoded), invocation.arguments, definitionSeal, redactions, resolvedEnvironment, resolvedSensitiveKeys)
         }
         val argv = gradle?.argv ?: (binding.argv + invocation.arguments)
-        val invocationSafety = invocation.arguments.additionalSafety()
-        val effectiveSafety = invocationSafety?.let { added ->
-            val classification = maxSafety(task.safety.classification, added)
-            task.safety.copy(
-                classification = classification,
-                reason = if (classification.requiresApproval) {
-                    "Task definition or invocation arguments indicate a write or remote effect"
-                } else task.safety.reason,
-            )
-        } ?: task.safety
         val request = AdHocProcessPlan.create(
             argv = argv,
             workingDirectory = binding.workingDirectory,
             taskId = task.id,
-            safety = effectiveSafety,
+            safety = task.safety,
             invocation = invocation.redacted(task, argumentSecrets),
             environment = resolvedEnvironment,
             sensitiveEnvironmentKeys = resolvedSensitiveKeys,
@@ -129,48 +119,6 @@ private fun List<String>.pulumiConfigSetSecretValues(): Set<String> {
     return drop(set + 1).filterTo(linkedSetOf()) { it.isNotBlank() && it != "--" }
 }
 
-private fun List<String>.additionalSafety(): SafetyClass? {
-    val words = joinToString(" ").lowercase()
-    val normalized = map(String::lowercase)
-    val hasProductionSelector = normalized.indices.any { index ->
-        val token = normalized[index]
-        token in setOf("app_env=prod", "target_env=prod", "--env=prod", "--environment=prod") ||
-            token in setOf("app_env", "target_env", "--env", "--environment") &&
-                normalized.getOrNull(index + 1) in setOf("prod", "production", "live")
-    }
-    val hasExternalConfigSelector = normalized.any { token ->
-        token == "--config" || token.startsWith("--config=")
-    }
-    return when {
-        listOf("destroy", "delete", "purge", "drop", "teardown", "uninstall").any(words::contains) -> SafetyClass.Destructive
-        listOf("migrate", "migration", "schema:apply").any(words::contains) -> SafetyClass.DataMigration
-        listOf("secret", "credential", "rotate-key", "rotate_key").any(words::contains) -> SafetyClass.CredentialWrite
-        listOf("deploy", "publish", "release", "pulumi up", "wrangler deploy").any(words::contains) -> SafetyClass.ProductionReversibleWrite
-        listOf("--remote", "remote_data=true", "session:drive").any(words::contains) -> SafetyClass.UnknownRemoteEffect
-        hasProductionSelector || hasExternalConfigSelector ||
-            listOf(":prod", ":live").any(words::contains) -> SafetyClass.UnknownRemoteEffect
-        else -> null
-    }
-}
-
-private fun maxSafety(left: SafetyClass, right: SafetyClass): SafetyClass =
-    if (left.riskRank() >= right.riskRank()) left else right
-
-private fun SafetyClass.riskRank(): Int = when (this) {
-    SafetyClass.ReadOnly -> 0
-    SafetyClass.LocalEphemeral -> 1
-    SafetyClass.LocalArtifactWrite -> 2
-    SafetyClass.SourceWrite -> 4
-    SafetyClass.LiveRead -> 3
-    SafetyClass.DeviceWrite -> 5
-    SafetyClass.NonProductionWrite -> 6
-    SafetyClass.ProductionReversibleWrite -> 7
-    SafetyClass.CredentialWrite -> 8
-    SafetyClass.DataMigration -> 9
-    SafetyClass.Destructive -> 10
-    SafetyClass.UnknownRemoteEffect -> 11
-}
-
 internal data class JvmTaskBinding(
     val argv: List<String>,
     val workingDirectory: File,
@@ -225,7 +173,7 @@ class JvmProjectDiscovery(
             ToolingTarget(
                 id = "target/$targetName",
                 name = targetName,
-                kind = inferTargetKind(root, targetName, declaration?.runtime),
+                kind = inferTargetKind(declaration?.runtime),
                 path = path,
                 runtime = declaration?.runtime,
                 attributes = declaration?.declaredName?.let { mapOf("declaration" to it) }.orEmpty(),
@@ -271,7 +219,13 @@ class JvmProjectDiscovery(
                         workingDirectory = root,
                         targetId = target?.id,
                         provenancePath = "package.json#reaktor.targets.${declaration.declaredName}.$action",
-                        explicitKind = action.toTaskKind(),
+                        explicitKind = when (action) {
+                            "dev" -> TaskKind.Develop
+                            "build" -> TaskKind.Build
+                            "deploy" -> TaskKind.Deploy
+                            "test" -> TaskKind.Test
+                            else -> error("Unknown declared target action: $action")
+                        },
                     )
                 }
             }
@@ -372,18 +326,11 @@ class JvmProjectDiscovery(
             return (stores + cloud).sortedBy { it.id }
         }
 
-        private fun inferTargetKind(root: File, name: String, runtime: String?): TargetKind {
-            val normalizedRuntime = runtime?.lowercase().orEmpty()
-            val targetDir = File(root, "targets/$name")
-            return when {
-                normalizedRuntime in setOf("android", "ios", "js-web", "web") -> TargetKind.Application
-                normalizedRuntime in setOf("worker", "server", "jvm", "k3s") -> TargetKind.Service
-                File(targetDir, "wrangler.json").isFile || File(targetDir, "wrangler.jsonc").isFile -> TargetKind.Worker
-                name.endsWith("Worker", ignoreCase = true) -> TargetKind.Worker
-                name.endsWith("Server", ignoreCase = true) -> TargetKind.Service
-                name.startsWith("app", ignoreCase = true) || name.endsWith("Desktop", ignoreCase = true) -> TargetKind.Application
-                else -> TargetKind.Unknown
-            }
+        private fun inferTargetKind(runtime: String?): TargetKind = when (runtime?.lowercase()) {
+            "android", "ios", "js-web", "web" -> TargetKind.Application
+            "worker" -> TargetKind.Worker
+            "server", "k3s" -> TargetKind.Service
+            else -> TargetKind.Unknown
         }
     }
 }
@@ -466,7 +413,8 @@ private class TaskCatalogBuilder(
         if (bindings.containsKey(taskId)) return
         val definitionFile = File(workingDirectory, "package.json")
         val expandedBody = expandPackageScripts(body, workingDirectory)
-        val safety = safetyFor(script, expandedBody)
+        val safety = SafetyPolicy(SafetyClass.UnknownRemoteEffect,
+            reason = "Authored package command has no typed kernel effect")
         val words = "$script $expandedBody".lowercase()
         val blockedReason = when {
             Regex("(?:^|[\\s/])gradlew(?:\\.bat)?(?:\\s|$)").containsMatchIn(expandedBody) ->
@@ -494,7 +442,7 @@ private class TaskCatalogBuilder(
         tasks += ToolingTask(
             id = taskId,
             label = label,
-            kind = explicitKind ?: script.toTaskKind(),
+            kind = explicitKind ?: TaskKind.Custom,
             provider = "npm",
             targetId = targetId,
             safety = safety,
@@ -560,33 +508,6 @@ private class TaskCatalogBuilder(
                 detail = if (provider == "npm") "Resolved from package.json; executable checked at run time" else null,
             )
         }
-    }
-
-    private fun safetyFor(name: String, body: String): SafetyPolicy {
-        val words = "$name $body".lowercase()
-        val tokens = Regex("[a-z0-9_-]+").findAll(words).map { it.value }.toSet()
-        val deviceTask = "xcrun simctl" in words || "adb " in words
-        val safety = when {
-            DESTRUCTIVE_WORDS.any(words::contains) -> SafetyClass.Destructive
-            MIGRATION_WORDS.any(words::contains) -> SafetyClass.DataMigration
-            CREDENTIAL_WORDS.any(words::contains) -> SafetyClass.CredentialWrite
-            deviceTask -> SafetyClass.DeviceWrite
-            REMOTE_WRITE_WORDS.any(words::contains) -> SafetyClass.ProductionReversibleWrite
-            REMOTE_UNKNOWN_WORDS.any(words::contains) -> SafetyClass.UnknownRemoteEffect
-            LITERAL_DEFINITION_PATH.containsMatchIn(body) && "node" in tokens -> SafetyClass.UnknownRemoteEffect
-            "gradlew" in tokens || "gradle" in tokens -> SafetyClass.UnknownRemoteEffect
-            READ_PHRASES.any(words::contains) || READ_TOKENS.any(tokens::contains) -> SafetyClass.ReadOnly
-            LOCAL_EPHEMERAL_WORDS.any(words::contains) -> SafetyClass.LocalEphemeral
-            LOCAL_ARTIFACT_WORDS.any(words::contains) -> SafetyClass.LocalArtifactWrite
-            else -> SafetyClass.UnknownRemoteEffect
-        }
-        return SafetyPolicy(
-            classification = safety,
-            reason = when {
-                safety.requiresApproval -> "Command name or body indicates a write outside the local workspace"
-                else -> null
-            },
-        )
     }
 
     private data class DefinitionClosure(
@@ -803,21 +724,6 @@ private class TaskCatalogBuilder(
     companion object {
         private val WORKER_BUNDLE_IMPORT = Regex("""(?:from\s*|import\s*\(\s*|require\s*\(\s*|import\s*)['"](bestbuds-kt(?:/[^'"]+)?)['"]""")
         private val WORKER_RELATIVE_IMPORT = Regex("""(?:from\s*|import\s*\(\s*|require\s*\(\s*|import\s*|new\s+URL\s*\(\s*)['"](\.[^'"]+)['"]""")
-        private val DESTRUCTIVE_WORDS = listOf("destroy", "delete", "purge", "drop ", "teardown", "uninstall")
-        private val MIGRATION_WORDS = listOf("migrate", "migration", "schema:apply")
-        private val CREDENTIAL_WORDS = listOf(
-            "secret", "credential", "rotate-key", "rotate_key", "setup-signing", "setup_signing",
-            "import-signing", "import_signing", "import-repo-signing", "import_repo_signing",
-        )
-        private val REMOTE_WRITE_WORDS = listOf(
-            "deploy", "publish", "release", "pulumi up", "wrangler deploy", "distribute", "firebase",
-            "testflight", "appstore", "play:internal", "play_internal", "play:production", "play_production",
-        )
-        private val REMOTE_UNKNOWN_WORDS = listOf("--remote", "remote_data=true", "session:drive")
-        private val READ_TOKENS = setOf("status", "doctor", "inspect", "list", "logs", "check", "lint", "preview", "whoami", "functions")
-        private val READ_PHRASES = listOf("--version", "stack ls")
-        private val LOCAL_EPHEMERAL_WORDS = listOf(" dev", "serve", "watch", "vite", "localhost", "node -e")
-        private val LOCAL_ARTIFACT_WORDS = listOf("build", "compile", "assemble", "bundle", "package", "generate", "tsc", "vitest", "jest")
         private val ROOT_DEPENDENCY_FILES = listOf(
             "package.json", "package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".npmrc", "yarn.lock",
         )
@@ -866,22 +772,6 @@ private fun JsonObject.targetDeclarations(): Map<String, TargetDeclaration> =
             test = target.string("test"),
         )
     }?.toMap().orEmpty()
-
-private fun String.toTaskKind(): TaskKind {
-    val normalized = lowercase().substringAfterLast(':').substringAfterLast('/')
-    return when {
-        normalized in setOf("dev", "serve", "watch") -> TaskKind.Develop
-        normalized.startsWith("build") || normalized == "assemble" -> TaskKind.Build
-        normalized.startsWith("test") -> TaskKind.Test
-        normalized in setOf("check", "lint", "verify", "doctor") -> TaskKind.Check
-        normalized.startsWith("deploy") || normalized == "publish" || normalized == "release" -> TaskKind.Deploy
-        normalized in setOf("logs", "status", "inspect", "preview") -> TaskKind.Observe
-        normalized.startsWith("migrate") -> TaskKind.Migrate
-        normalized in setOf("delete", "destroy", "purge", "teardown") -> TaskKind.Delete
-        normalized in setOf("run", "start") -> TaskKind.Run
-        else -> TaskKind.Custom
-    }
-}
 
 internal fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
     .digest(value.toByteArray(Charsets.UTF_8))
