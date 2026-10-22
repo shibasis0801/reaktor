@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
 import dev.shibasis.reaktor.surface.compose.lineBox
 import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.Canvas
@@ -37,6 +39,8 @@ import dev.shibasis.reaktor.surface.compose.SparklineAppearance
 import dev.shibasis.reaktor.surface.compose.SparklineProperties
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
+import dev.shibasis.reaktor.ui.machinesignal.ProvenanceInk
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSnapshot
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 import dev.shibasis.reaktor.ui.machinesignal.signalOrBoard
@@ -45,11 +49,11 @@ fun toneBadge(tone: (MachineSignalColors) -> Color): BadgeAppearance = signalBad
 
 fun filledBadge(tone: (MachineSignalColors) -> Color): BadgeAppearance = signalBadge(filled = true, tone)
 
-fun toneBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = false)
+fun toneBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = false).withMatrix(MatrixBadge(ink))
 
-fun filledBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = true)
+fun filledBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = true).withMatrix(MatrixBadge(ink, filled = true))
 
-fun compactBadge(ink: InkRole): BadgeAppearance = CompactBadge(ink)
+fun compactBadge(ink: InkRole): BadgeAppearance = CompactBadge(ink).withMatrix(MatrixBadge(ink))
 
 private fun signalBadge(filled: Boolean, tone: (MachineSignalColors) -> Color): BadgeAppearance = object : BadgeAppearance {
     @Composable
@@ -64,11 +68,17 @@ private data class InkBadge(val ink: InkRole, val filled: Boolean) : BadgeAppear
 }
 
 @Composable
-private fun SignalBadge(signal: MachineSignalSnapshot, color: Color, filled: Boolean, slots: BadgeSlots) = Box(
-    Modifier.heightIn(min = 16.dp).clip(BadgeShape).background(if (filled) color else color.copy(alpha = .18f)).padding(horizontal = 5.dp),
+private fun SignalBadge(signal: MachineSignalSnapshot, color: Color, filled: Boolean, slots: BadgeSlots) {
+    if (signal.mode == MachineSignalMode.Matrix) {
+        MatrixBadgeFrame(signal, color, filled, slots)
+        return
+    }
+    Box(
+    Modifier.heightIn(min = 16.dp).clip(if (signal.mode == MachineSignalMode.Matrix) signal.shapes.control else BadgeShape).background(if (filled) color else color.copy(alpha = .18f)).padding(horizontal = 5.dp),
     contentAlignment = Alignment.Center,
 ) {
     ProvideLabel(Label(if (filled) signal.colors.canvas else color, signal.fonts.ui, MachineSignal.Editor.meta, FontWeight.Normal)) { slots.content() }
+    }
 }
 
 private data class CompactBadge(val ink: InkRole) : BadgeAppearance {
@@ -88,19 +98,20 @@ private data class CompactBadge(val ink: InkRole) : BadgeAppearance {
 fun provenanceBadge(truth: TruthClass): BadgeAppearance = object : BadgeAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) {
+        val signal = theme.signalOrBoard
         val colors = MachineSignal.provenance(truth)
+        val ink = signal.ink(ProvenanceInk(truth))
+        val background = if (signal.mode == MachineSignalMode.Dark) colors.soft else ink.copy(alpha = colors.soft.alpha)
         Box(
             Modifier
-                .background(colors.soft, MachineSignal.Shape.Tight)
-                .border(1.dp, colors.line, MachineSignal.Shape.Tight)
+                .background(background, MachineSignal.shapes.control)
                 .padding(horizontal = MachineSignal.Metrics.chipPaddingX, vertical = MachineSignal.Metrics.chipPaddingY),
             contentAlignment = Alignment.Center,
         ) {
-            val signal = theme.signalOrBoard
-            ProvideLabel(Label(if (truth == TruthClass.Unknown) signal.colors.textFaint else colors.base, signal.fonts.ui, MachineSignal.Type.micro, FontWeight.SemiBold)) { slots.content() }
+            ProvideLabel(Label(if (truth == TruthClass.Unknown) signal.colors.textFaint else ink, signal.fonts.ui, MachineSignal.Type.micro, FontWeight.SemiBold)) { slots.content() }
         }
     }
-}
+}.withMatrix(MatrixBadge(ProvenanceInk(truth)))
 
 fun kindBadge(kind: String): BadgeAppearance = object : BadgeAppearance {
     @Composable
@@ -108,7 +119,7 @@ fun kindBadge(kind: String): BadgeAppearance = object : BadgeAppearance {
         KindFrame(theme.signalOrBoard, MachineSignal.entityColor(kind), slots)
 }
 
-fun kindBadge(ink: InkRole): BadgeAppearance = InkKindBadge(ink)
+fun kindBadge(ink: InkRole): BadgeAppearance = InkKindBadge(ink).withMatrix(MatrixBadge(ink))
 
 private data class InkKindBadge(val ink: InkRole) : BadgeAppearance {
     @Composable
@@ -117,11 +128,15 @@ private data class InkKindBadge(val ink: InkRole) : BadgeAppearance {
 }
 
 @Composable
-private fun KindFrame(signal: MachineSignalSnapshot, color: Color, slots: BadgeSlots) = Box(
+private fun KindFrame(signal: MachineSignalSnapshot, color: Color, slots: BadgeSlots) {
+    if (signal.mode == MachineSignalMode.Matrix) {
+        MatrixBadgeFrame(signal, color, false, slots)
+        return
+    }
+    Box(
     Modifier
         .heightIn(min = MachineSignal.Metrics.kindBadgeHeight)
-        .background(color.copy(alpha = 0.16f), MachineSignal.Shape.Tight)
-        .border(1.dp, color.copy(alpha = 0.32f), MachineSignal.Shape.Tight)
+        .background(color.copy(alpha = 0.12f), MachineSignal.shapes.control)
         .padding(horizontal = MachineSignal.Metrics.kindBadgePaddingX),
     contentAlignment = Alignment.Center,
 ) {
@@ -134,11 +149,12 @@ private fun KindFrame(signal: MachineSignalSnapshot, color: Color, slots: BadgeS
             letterSpacing = MachineSignal.Type.kindTracking,
         ),
     ) { slots.content() }
+    }
 }
 
-fun pillBadge(ink: InkRole = Ink.Muted, code: Boolean = false): BadgeAppearance = PillBadge(ink, code, edged = false)
+fun pillBadge(ink: InkRole = Ink.Muted, code: Boolean = false): BadgeAppearance = PillBadge(ink, code, edged = false).withMatrix(MatrixBadge(ink))
 
-fun chipBadge(ink: InkRole): BadgeAppearance = PillBadge(ink, code = true, edged = true)
+fun chipBadge(ink: InkRole): BadgeAppearance = PillBadge(ink, code = true, edged = true).withMatrix(MatrixBadge(ink))
 
 private data class PillBadge(val ink: InkRole, val code: Boolean, val edged: Boolean) : BadgeAppearance {
     @Composable
@@ -147,8 +163,7 @@ private data class PillBadge(val ink: InkRole, val code: Boolean, val edged: Boo
         val color = signal.ink(ink)
         Box(
             Modifier
-                .background(signal.colors.surfaceAlt, MachineSignal.Shape.Tight)
-                .border(MachineSignal.Stroke.hairline, if (edged) color.copy(alpha = .45f) else signal.colors.lineSubtle, MachineSignal.Shape.Tight)
+                .background(if (edged) color.copy(alpha = .1f) else signal.colors.surfaceAlt.copy(alpha = .55f), MachineSignal.shapes.control)
                 .padding(horizontal = MachineSignal.Metrics.chipPaddingX, vertical = MachineSignal.Metrics.chipPaddingY),
         ) {
             ProvideLabel(Label(color, if (code) signal.fonts.mono else signal.fonts.ui, MachineSignal.Type.micro, FontWeight.Medium)) { slots.content() }
@@ -163,15 +178,15 @@ val KeyBadge: BadgeAppearance = object : BadgeAppearance {
         Box(
             Modifier
                 .heightIn(min = MachineSignal.Metrics.kbdHeight).lineBox(Type.Data.code, MachineSignal.Space.none)
-                .background(signal.colors.raised, MachineSignal.Shape.Tight)
-                .border(MachineSignal.Stroke.hairline, signal.colors.line, MachineSignal.Shape.Tight)
+                .background(signal.colors.raised, MachineSignal.shapes.tight)
+                .border(MachineSignal.Stroke.hairline, signal.colors.line, MachineSignal.shapes.tight)
                 .padding(horizontal = MachineSignal.Metrics.kbdPaddingX),
             contentAlignment = Alignment.Center,
         ) {
             ProvideLabel(Label(signal.colors.textMuted, signal.fonts.mono, MachineSignal.Type.data, FontWeight.SemiBold)) { slots.content() }
         }
     }
-}
+}.withMatrix(MatrixBadge(Ink.Muted))
 
 val NumberBadge: BadgeAppearance = object : BadgeAppearance {
     @Composable
@@ -179,19 +194,19 @@ val NumberBadge: BadgeAppearance = object : BadgeAppearance {
         val signal = theme.signalOrBoard
         Box(
             Modifier
-                .background(signal.colors.raisedAlt, RoundedCornerShape(MachineSignal.Radius.countBadge))
+                .background(signal.colors.raisedAlt, MachineSignal.shapes.countBadge)
                 .padding(horizontal = MachineSignal.Metrics.countBadgePaddingX, vertical = MachineSignal.Metrics.countBadgePaddingY),
             contentAlignment = Alignment.Center,
         ) {
             ProvideLabel(Label(signal.colors.text, signal.fonts.mono, MachineSignal.Type.dataMicro, FontWeight.SemiBold)) { slots.content() }
         }
     }
-}
+}.withMatrix(MatrixBadge(Ink.Strong))
 
 fun signalSparkline(tone: (MachineSignalColors) -> Color): SparklineAppearance = object : SparklineAppearance {
     @Composable
     override fun Content(properties: SparklineProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
-        SignalSparkline(properties, theme.machineSignal.colors, tone(theme.machineSignal.colors))
+        SignalSparkline(properties, theme.machineSignal, tone(theme.machineSignal.colors))
 }
 
 fun signalSparkline(ink: InkRole): SparklineAppearance = InkSparkline(ink)
@@ -199,19 +214,27 @@ fun signalSparkline(ink: InkRole): SparklineAppearance = InkSparkline(ink)
 private data class InkSparkline(val ink: InkRole) : SparklineAppearance {
     @Composable
     override fun Content(properties: SparklineProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
-        SignalSparkline(properties, theme.machineSignal.colors, theme.machineSignal.ink(ink))
+        SignalSparkline(properties, theme.machineSignal, theme.machineSignal.ink(ink))
 }
 
 @Composable
-private fun SignalSparkline(properties: SparklineProperties, colors: MachineSignalColors, color: Color) {
+private fun SignalSparkline(properties: SparklineProperties, signal: MachineSignalSnapshot, color: Color) {
+    val colors = signal.colors
     Canvas(Modifier.fillMaxSize()) {
         val step = size.width / (properties.values.size - 1)
+        if (signal.mode == MachineSignalMode.Matrix) {
+            for (row in 1..3) drawLine(colors.lineSubtle, Offset(0f, size.height * row / 4), Offset(size.width, size.height * row / 4), MachineSignal.Stroke.hairline.toPx())
+        }
         properties.threshold?.let { line ->
             val y = size.height - line * size.height
             drawLine(colors.line, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
         }
         properties.values.zipWithNext().forEachIndexed { index, (from, to) ->
-            drawLine(color, Offset(index * step, size.height - from * size.height), Offset((index + 1) * step, size.height - to * size.height), strokeWidth = 1.5f)
+            if (signal.mode == MachineSignalMode.Matrix) {
+                val corner = Offset((index + 1) * step, size.height - from * size.height)
+                drawLine(color, Offset(index * step, corner.y), corner, MachineSignal.Stroke.hairline.toPx())
+                drawLine(color, corner, Offset(corner.x, size.height - to * size.height), MachineSignal.Stroke.hairline.toPx())
+            } else drawLine(color, Offset(index * step, size.height - from * size.height), Offset((index + 1) * step, size.height - to * size.height), strokeWidth = 1.5f)
         }
     }
 }
@@ -219,17 +242,26 @@ private fun SignalSparkline(properties: SparklineProperties, colors: MachineSign
 fun signalBars(tone: (MachineSignalColors) -> Color): BarsAppearance = object : BarsAppearance {
     @Composable
     override fun Content(properties: List<Float>, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) {
-        val color = tone(theme.machineSignal.colors)
+        val signal = theme.machineSignal
+        val color = tone(signal.colors)
         Canvas(Modifier.fillMaxSize()) {
             val gap = 2.dp.toPx()
             val width = (size.width - gap * (properties.size - 1)) / properties.size
             properties.forEachIndexed { index, value ->
                 val height = if (value == 0f) 1.dp.toPx() else size.height * value
                 drawRect(
-                    color = if (value == 0f) MachineSignal.Chart.empty else color.copy(alpha = .35f + .5f * (index + 1) / properties.size),
+                    color = if (value == 0f) { if (signal.mode == MachineSignalMode.Matrix) signal.colors.lineSubtle else MachineSignal.Chart.empty } else if (signal.mode == MachineSignalMode.Matrix) color else color.copy(alpha = .35f + .5f * (index + 1) / properties.size),
                     topLeft = Offset(index * (width + gap), size.height - height),
                     size = Size(width, height),
                 )
+            }
+            if (signal.mode == MachineSignalMode.Matrix) {
+                val pitch = MachineSignal.Space.s1.toPx()
+                var y = pitch
+                while (y < size.height) {
+                    drawLine(signal.colors.canvas, Offset(0f, y), Offset(size.width, y), MachineSignal.Stroke.hairline.toPx())
+                    y += pitch
+                }
             }
         }
     }
@@ -238,7 +270,7 @@ fun signalBars(tone: (MachineSignalColors) -> Color): BarsAppearance = object : 
 fun signalRangeBar(tone: (MachineSignalColors) -> Color): RangeBarAppearance = object : RangeBarAppearance {
     @Composable
     override fun Content(properties: Range, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
-        SignalRangeBar(properties, tone(theme.machineSignal.colors))
+        SignalRangeBar(properties, tone(theme.machineSignal.colors), theme.machineSignal)
 }
 
 fun signalRangeBar(ink: InkRole): RangeBarAppearance = InkRangeBar(ink)
@@ -246,11 +278,15 @@ fun signalRangeBar(ink: InkRole): RangeBarAppearance = InkRangeBar(ink)
 private data class InkRangeBar(val ink: InkRole) : RangeBarAppearance {
     @Composable
     override fun Content(properties: Range, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
-        SignalRangeBar(properties, theme.machineSignal.ink(ink))
+        SignalRangeBar(properties, theme.machineSignal.ink(ink), theme.machineSignal)
 }
 
 @Composable
-private fun SignalRangeBar(properties: Range, color: Color) {
+private fun SignalRangeBar(properties: Range, color: Color, signal: MachineSignalSnapshot) {
+    if (signal.mode == MachineSignalMode.Matrix) {
+        MatrixSegments(signal, properties.start, properties.end, color, Modifier.fillMaxWidth().height(MachineSignal.Space.s3))
+        return
+    }
     Box(Modifier.fillMaxWidth().height(10.dp)) {
         Box(Modifier.fillMaxWidth(properties.end).fillMaxHeight(), contentAlignment = Alignment.CenterEnd) {
             Box(

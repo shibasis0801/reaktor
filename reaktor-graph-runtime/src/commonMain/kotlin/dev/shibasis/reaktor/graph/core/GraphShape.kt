@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.service.OperationDescriptor
+import dev.shibasis.reaktor.service.ServiceAccess
 import dev.shibasis.reaktor.service.ServiceExecutionPhase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.drop
@@ -56,6 +57,7 @@ data class NodeShape(
     val attributes: Map<String, String> = emptyMap(),
     val operations: List<OperationDescriptor> = emptyList(),
     val definitionId: String = "",
+    val access: ServiceAccess? = null,
 )
 
 @Serializable
@@ -123,6 +125,7 @@ fun Graph.shape(): GraphShape {
                 ports = node.portShapes(graph),
                 attributes = node.attributes(),
                 operations = (node as? ServiceNode)?.service?.operations.orEmpty(),
+                access = (node as? ServiceNode)?.service?.access?.takeIf { it.declared },
             )
             node.consumerPorts.flattenedValues().forEach { consumer ->
                 val edge = consumer.edge ?: return@forEach

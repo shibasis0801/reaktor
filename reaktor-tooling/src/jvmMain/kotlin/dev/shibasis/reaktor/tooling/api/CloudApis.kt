@@ -128,7 +128,10 @@ class CloudApis(
         api == "cloudflare" -> mapOf("Authorization" to "Bearer ${CloudflareLogin.forWorkspace(workspace).token()}")
         api == "supabase" -> mapOf("Authorization" to "Bearer ${supabaseToken() ?: throw CloudApiFailure(
             "Supabase needs a personal access token: set SUPABASE_ACCESS_TOKEN or save it as the first line of config/supabase.token")}")
-        api.startsWith("gcp:") -> mapOf("Authorization" to "Bearer ${googleToken(account)}")
+        api.startsWith("gcp:") -> buildMap {
+            put("Authorization", "Bearer ${googleToken(account)}")
+            (System.getenv("GOOGLE_CLOUD_QUOTA_PROJECT")?.takeIf(String::isNotBlank) ?: googleProject())?.let { put("x-goog-user-project", it) }
+        }
         else -> emptyMap()
     }
 

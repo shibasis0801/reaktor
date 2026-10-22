@@ -173,16 +173,17 @@ class BlueprintCanvasMotionTest {
             val centre = layout.cards.values.sortedBy { it.x + it.y }[layout.cards.size / 2]
             fun look(zoom: Double, x: Double = centre.x, y: Double = centre.y) =
                 canvas.flow.setViewport(Viewport(width / 2.0 - x * density * zoom, height / 2.0 - y * density * zoom, zoom * density))
+            fun zoom(zoom: Double) = canvas.flow.zoomTo(zoom * density, width / 2.0, height / 2.0, .01, 10.0)
             look(.9)
             repeat(30) { frame() }
             val results = mutableListOf<Motion>()
             val evaluated = looks.get()
             results += motion("detail pan", 90) { canvas.flow.panBy(-6.0 * density, -3.0 * density) }
-            results += motion("detail zoom", 90) { canvas.zoomTo(.9 - it * .004) }
-            results += motion("zoom out past far", 60) { canvas.zoomTo(.6 * Math.pow(.985, it.toDouble())) }
+            results += motion("detail zoom", 90) { zoom(.9 - it * .004) }
+            results += motion("zoom out past far", 60) { zoom(.6 * Math.pow(.985, it.toDouble())) }
             results += motion("settle after zoom", 10) { }
             results += motion("far pan", 60) { canvas.flow.panBy(-10.0 * density, -5.0 * density) }
-            results += motion("zoom back in", 60) { canvas.zoomTo(.25 * Math.pow(1.025, it.toDouble())) }
+            results += motion("zoom back in", 60) { zoom(.25 * Math.pow(1.025, it.toDouble())) }
             assertEquals(evaluated, looks.get(), "camera motion evaluated card looks")
             look(.9)
             repeat(10) { frame() }

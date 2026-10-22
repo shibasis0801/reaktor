@@ -13,6 +13,7 @@ import dev.shibasis.reaktor.ui.code.CodeViewer
 /** Bounded agent prose: headings, paragraphs, lists, quotes, code and safe web links; HTML stays text. */
 @Composable
 fun SignalMarkdown(text: String, modifier: Modifier = Modifier) {
+    val signalColors = MachineSignal.colors
     val blocks = remember(text) { markdownBlocks(text) }
     val fonts = (dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.fonts ?: LocalMachineSignalFonts.current
     SelectionContainer(modifier) {
@@ -23,12 +24,12 @@ fun SignalMarkdown(text: String, modifier: Modifier = Modifier) {
                         max = MachineSignal.Editor.toolbarHeight * 6).height(MachineSignal.Editor.statusHeight * (block.text.lines().size + 1)),
                         showGutter = false, tag = "prose-code-$index")
                 } else BasicText(
-                    inlineMarkdown(block.text, fonts),
-                    style = TextStyle(color = MachineSignal.Editor.Text, fontFamily = fonts.ui,
+                    inlineMarkdown(block.text, fonts, signalColors),
+                    style = TextStyle(color = signalColors.textStrong, fontFamily = fonts.ui,
                         fontSize = if (block.kind == "heading") MachineSignal.Type.title else MachineSignal.Type.body,
                         fontWeight = if (block.kind == "heading") FontWeight.SemiBold else FontWeight.Normal,
                         lineHeight = (if (block.kind == "heading") MachineSignal.Type.title else MachineSignal.Type.body) * MachineSignal.Editor.Code.lineHeight),
-                    modifier = Modifier.fillMaxWidth().then(if (block.kind == "quote") Modifier.background(MachineSignal.Editor.Surface).padding(MachineSignal.Space.s3) else Modifier),
+                    modifier = Modifier.fillMaxWidth().then(if (block.kind == "quote") Modifier.background(signalColors.surface).padding(MachineSignal.Space.s3) else Modifier),
                 )
             }
         }
@@ -60,18 +61,18 @@ internal fun markdownBlocks(text: String): List<MarkdownBlock> = buildList {
     }
 }
 
-internal fun inlineMarkdown(text: String, fonts: MachineSignalFonts) = buildAnnotatedString {
+internal fun inlineMarkdown(text: String, fonts: MachineSignalFonts, colors: MachineSignalColors = MachineSignalColors.Editor) = buildAnnotatedString {
     val pattern = Regex("(`[^`]+`|\\*\\*[^*]+\\*\\*|\\[[^\\]]+\\]\\(https?://[^)]+\\))")
     var offset = 0
     pattern.findAll(text).forEach { match ->
         append(text.substring(offset, match.range.first))
         val token = match.value
         when {
-            token.startsWith('`') -> withStyle(SpanStyle(fontFamily = fonts.mono, color = MachineSignal.Editor.Source, background = MachineSignal.Editor.Raised)) { append(token.drop(1).dropLast(1)) }
+            token.startsWith('`') -> withStyle(SpanStyle(fontFamily = fonts.mono, color = colors.source, background = colors.raised)) { append(token.drop(1).dropLast(1)) }
             token.startsWith("**") -> withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(token.drop(2).dropLast(2)) }
             else -> {
                 val end = token.indexOf("](")
-                withLink(LinkAnnotation.Url(token.substring(end + 2).dropLast(1), TextLinkStyles(SpanStyle(color = MachineSignal.Editor.Source)))) { append(token.substring(1, end)) }
+                withLink(LinkAnnotation.Url(token.substring(end + 2).dropLast(1), TextLinkStyles(SpanStyle(color = colors.source)))) { append(token.substring(1, end)) }
             }
         }
         offset = match.range.last + 1

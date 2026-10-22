@@ -8,7 +8,8 @@ Written on 15 October 2026 for Codex. Not published.
 
 **Documents.**
 - This file holds the work packages, their status and the log.
-- `reaktor-kernel-plan.md` holds the design, written on 14 Oct. Where the two differ, this file wins.
+- `reaktor-kernel-plan.md` holds the broader kernel design, written on 14 Oct. This file owns package sequencing and qualification.
+- `cli-kernel-hld.md`, refined 21 Oct, is the canonical CLI/TUI experience contract, including command grammar, discovery, typed input, output, lifecycle and interactions. It supersedes older CLI examples, including the root `build <target>` proposal. A design revision does not qualify runtime behavior.
 - `dependeasy-api.md` defines the build DSL.
 - `delivery-handoff.md` WP19–WP26 defines the deploy layer. This plan consumes its kernels and receipts and owns their CLI, MCP and Hangar faces.
 
@@ -311,55 +312,64 @@ Don't:
 
 ### K1 — The CLI is the kernel's face
 
-Goal: `reaktor` is generated from the catalog, the legacy commands are gone, and it starts instantly.
+Goal: one understandable and expressive command surface generated from the graph-owned catalog, with full typed access and qualified legacy removal. Implement the [CLI/TUI HLD](cli-kernel-hld.md); K1 covers shell commands, while K1-TUI below is a separate required delivery milestone.
 
 Steps:
-1. **Wire `KernelCli` into `Main.kt`:**
-   - pre-scan `--dir`, keeping `--workspace` as a compatibility spelling of the same option;
-   - root help lists the domains from the cached catalog (`~/.reaktor/agents/<digest>/kernel-catalog.json`) without starting an owner;
-   - an unknown domain or verb refreshes the catalog once.
-2. **Delete the legacy commands** `snapshot`, `tasks`, `connections`, `plan`, `run <task>`, `inspect`, `tools`, the `workspace OPERATION --args` form, and the old `build` group. Print one replacement line for each old spelling:
+1. **Wire the generated face into the primary entry point.** Use `reaktor <domain> <verb> [subject] [typed options]`, with one command per canonical operation. Reuse `KernelCli` and current owner transport. Parse help/version/`--dir` before heavy initialization; `--workspace` maps to the same root field during migration. Root/domain/operation help provides progressive discovery from validated cached descriptors. Extend the existing disposable catalog cache with schema/help metadata bound to workspace, wire version and catalog digest; missing live detail offers an explicit describe/refresh remedy. An explicit invocation may refresh an unknown command once; help/static completion never starts an owner.
+2. **Qualify and delete legacy command paths:** `snapshot`, `tasks`, `connections`, root `plan`, `run <task>`, `inspect`, `tools`, `workspace OPERATION --args`, and the old build parser/discovery. Inventory every existing caller first. Old spellings may print one replacement error, but must not remain executable aliases. The explicit workspace-root option mapping is the documented exception.
 
    | Old | New |
    |---|---|
    | `plan <node>` | `build plan <node>` |
-   | `run <node>` | `build run <node>` |
-   | `workspace code.query --args …` | `code query --paths … --literal …` |
-   | `inspect <tool>` | `<domain> <verb>` |
+   | `run <node>` or old `build <target>` proposal | `build run <node>` |
+   | `workspace code.query --args …` | `code query --paths … --literal …`, or the same operation's `--args` |
+   | `inspect <tool>` | The admitted owning `<domain> <verb>` |
    | `tools` | `operation catalog` |
-   | `snapshot` / `tasks` | `run list` and `build list` |
-   | `connections` | `connection status`, until K8 types it |
+   | `snapshot` / `tasks` | `run list` and `build list`, preserving the caller's intended subject |
+   | `connections` | `connection status`, through its owning schema |
 
-3. **`reaktor mcp --stdio --seat <harness>`** serves the same server as `KernelAgentMcpHost.serve(root, seat = ...)`.
-4. **Human output:**
-   - tables for lists, with id, status and summary;
-   - trees for `build.tree`;
-   - one-screen summaries for runs and plans;
-   - pretty JSON only for objects with no renderer.
-
-   `--json` is unchanged.
-5. **Completion.** `reaktor completion zsh|bash|fish` comes from the cached catalog. Subjects (build nodes, runs, tasks, environments) complete from a new kernel operation `operation.complete {operation, field, prefix}`. Each `OperationNode` can answer it for its own subjects.
-6. **Install** through `targets/reaktorCli/tools/install --build`, and record the startup facts:
-   - warm and cold `reaktor --help` outside a repository;
-   - no workspace files touched;
-   - no owner started.
+3. **Generate usable arguments and help.** Reuse serializer/descriptor metadata for subject position, named options, enums, arrays, variants, defaults, sensitivity, examples and effects. Support repeated collection fields and bounded `--args JSON` / `--args -`. Reject duplicate scalar/conflicting JSON fields, unknown options and invalid variants before effects. Common client options work before or after a command with identical semantics. Detect collisions with reserved client option names.
+4. **Implement the HLD output contract.** Human tables/trees and plan/run summaries include scope, evidence state and next actions. `--json` emits exactly one bounded typed outcome, progress goes to stderr, and exit codes distinguish failed work, rejected requests, approval-required, bounded-wait expiry and interruption. No picker or approval read occurs with redirected input/output. Mask sensitive fields in every renderer and diagnostic.
+5. **Complete from the catalog.** `reaktor completion zsh|bash|fish` provides static schema completion. Bounded `operation.complete {operation, field, prefix}` provides dynamic subject completion from an existing owner, without starting a service/build/provider on Tab.
+6. **Follow durable work correctly.** Normal execution follows its run to a receipt; `--detach` returns the accepted handle. Expose admitted `run list/show/wait/logs/cancel` operations through the same parser. Preserve request/run references on timeout, disconnect and Ctrl-C. `--request-id` maps to the existing invocation identity for explicit replay; K7 qualifies exact deduplication and approval semantics. Never retry an uncertain effect with a new ID automatically.
+7. **Keep MCP a projection.** `reaktor mcp --stdio --seat <harness>` uses the shared host/catalog. Seat remains attribution, not authority. Do not introduce another CLI-specific dispatcher or MCP schema.
+8. **Install and qualify real use.** Use `targets/reaktorCli/tools/install --build`. Capture help/version outside a repository, cold/warm latency and classpath against the existing fast startup path, workspace-write/owner-start observations, and installed shell results. Update the CLI README and migrate every script/package-alias caller before removing its implementation.
 
 Acceptance:
-- On bestbuds:
-  - `reaktor build tree` prints the story tree;
-  - `reaktor build run <a verify node>` follows to a receipt and exits with its status;
-  - `reaktor run list --json` is one JSON value;
-  - an effect above the CLI seat in a non-TTY returns exit 3 and the approval id.
-- Every former `packageAlias` command has a listed `reaktor` equivalent once WP13 has removed it.
+- With shipped help, an owner can discover a build, explain it, preview/run verification and inspect the receipt without reading Kotlin source.
+- BestBuds, Reaktor and Manna have exact canonical discovery/schema parity. Every former package alias has a documented, qualified `reaktor` equivalent before deletion.
+- Installed `build tree`, `build run <verify-node>`, `run list --json`, `run show` and log following use typed operations. A real failed verification returns exit 1; explicit detach returns an accepted run rather than a false passing check.
+- Captured stdout parses as one JSON value for success, failure, rejection, approval and detach. Conflicting inputs fail before process/provider effects. Common options, shell quoting, `--` and stdin behave as specified.
+- Noninteractive and agent-PTY calls cannot self-approve; approval-required returns exit 3 and the approval reference. Static help/completion performs no source scan, owner/model/provider/Gradle start or workspace write.
+- Removed parsers/discovery/executors have no remaining callers. Use existing CLI/kernel checks plus real installed shell scenarios; no source-scan tests or new kernel unit-test suite.
 
 Budget:
-- one new kernel operation (`operation.complete`);
-- no new flags beyond `--dir`, `--json`, `--args`, `--detach`, `--seat` and the completion command.
+- Extend the existing CLI host, serializers/descriptors, existing catalog-cache metadata, argument parser, renderers and installer; no new module, independent catalog, operation executor, approval store, config language or scheduler.
+- One new operation: `operation.complete`. Common invocation options remain `--dir`, `--json`, `--args`, `--detach`, existing `--seat`, plus `--request-id` for the existing request identity. `--help`/`--version` and the root-mapping compatibility spelling retain their ordinary roles.
+- Typed domain options come from their owning schemas. They are not hand-maintained CLI flags. Completion and the future `tui` launcher are explicit client entry points.
+- No dependency/library replacement selected by this design; measure the existing stack before changing it.
 
-Don't:
-- keep two spellings of one command;
-- generate top-level commands from scripts or folders;
-- start an owner for help, version or completion of static parts.
+### K1-TUI — The interactive terminal face
+
+Goal: a proper keyboard-first terminal application over the same operations, with inspectable plans and live receipts. This is required to complete the CLI/TUI design, but does not block shipping the K1 shell improvements. Execution waits for K1, K3, K4, K7 and K10's authenticated human authority; it does not bypass the existing WP18 start condition.
+
+Steps:
+1. Add explicit `reaktor tui` to the existing CLI distribution. Reject non-TTY use with CLI alternatives. Keep bare `reaktor` as help.
+2. Implement the [HLD screen and interaction contract](cli-kernel-hld.md#tui-experience): persistent context bar; Overview, Builds, Runs and Operations; content/details panes and bounded live events. Reuse graph identities and schema-derived forms, including typed defaults, variants, validation, sensitivity and availability.
+3. Support keyboard navigation, focused search, operation palette, inspect, explicit plan/run/cancel forms, contextual help and equivalent shell commands. Selecting a row or fuzzy match never executes an effect. Secret values do not enter history, copy or diagnostics.
+4. Follow owner snapshots/events and existing artifact pages. Preserve revision/completeness and selection on resize; show disconnect/stale states honestly. Reconnect reads without replaying effects. Exit restores the terminal and detaches durable work.
+5. Review exact scope/host/options/plan before effects. Reuse K7's approval path/ledger and K10's authenticated identity; the terminal cannot invent authority. Plans retain their original environment when the client changes context.
+
+Acceptance:
+- Installed PTY walkthrough on an actual declared node: browse → inspect → invalid form → valid plan/review → run → live events/logs → final receipt. The same run and receipt are visible in Hangar and the CLI.
+- Search, keyboard-only focus, command palette, safe shell equivalent, narrow resize, plain/no-color presentation, disconnect/reconnect and Ctrl-C terminal restoration work.
+- Exiting the terminal leaves work alive. A repeated request does not execute twice. An agent TTY cannot approve its own effect.
+- Canonical subjects, fields, defaults, effect and evidence match CLI/MCP/Hangar. There is no TUI-side policy, graph, operational store or task scheduler.
+
+Budget:
+- One launcher and terminal presentation inside the existing CLI target. Four views and schema-derived operation forms; ephemeral UI state only.
+- Reuse owner/catalog/invoke/watch/run/artifact capabilities. No new domain operation or persisted state just to support a screen.
+- Reuse the current terminal stack where it meets the requirement. A rendering dependency, if needed, must be named, justified against this interaction acceptance and pinned through the existing Kotlin version owner before implementation; this document adds none.
 
 ### K2 — Orchestration altitude (verify, or finish what WP12/WP13 did not)
 
@@ -380,27 +390,25 @@ Don't:
 
 ### K3 — The build domain at full power
 
-Goal: everything the model knows is an operation, and the kernel adds what only a runtime can.
+Goal: make the full canonical build model understandable, selectable and runnable through graph-owned operations. Preserve already-qualified WP16/WP17 list/show/tree/explain/kernels parity; qualify the remaining expressive selection, option and execution behavior against the [CLI HLD](cli-kernel-hld.md).
 
 Steps:
-1. **`build.explain <node>`:** the spec field by field, defaults marked with where each is defined, the call path, resolved children and the effective host. This uses WP16's tree fields.
-2. **`build.kernels`:** each kernel with its spec fields and tools.
-3. **`build.tree`** reads the model's parent and child fields once WP16 adds them, instead of following `Includes` edges.
-4. **`build.affected`:** `{since: <git ref>}` returns the nodes whose declared inputs changed, by digest.
-5. **`build.run`** takes `--affected` for verification nodes. Reuse a retained successful receipt only when its input identity is strong and identical, and say so in the result.
-6. **Typed options become operation arguments.** A node's `BuildOption` and `@Option` parameters appear in its `build.run` schema. CLI flags, MCP arguments and Hangar form fields follow from that schema. The receipt records the values used.
-7. **Environment is request scope,** validated against the delivery declaration (WP20). Nothing changes Hangar's selected environment as a side effect.
+1. **`build.explain <node>`:** resolved spec fields, defaults and their origins, call path, children, inputs/outputs and effective host. Distinguish declared facts from retained plans and observed runs.
+2. **`build.kernels`:** kernels, source locations, spec fields and tools, using the current model without a second reflection/registry mechanism.
+3. **`build.tree`:** declared parent/child hierarchy, with explicit expansion of qualified retained Gradle task-plan facts. A normal inspection never starts Gradle. Stale model inspection lists changed inputs and cannot authorize a run.
+4. **`build.affected --since <git-ref>`:** use declared input digests and relationships, include each selection reason and report omitted/unresolved scope. Reuse the domain's bounded selection/pagination capabilities; no CLI-side workspace scan or new query language.
+5. **`build.run --affected`:** verification nodes only, with exact selected scope and options recorded. Reuse a successful receipt only with strong identical input identity and explicit reuse evidence. No affected selection silently deploys work or treats incomplete input coverage as a complete green check.
+6. **Typed options become operation arguments.** `BuildOption` and `@Option` fields generate the build-run schema, CLI options, MCP arguments and TUI/Hangar forms. Validate names, variants, allowed environments and target scope before effects. The receipt records effective values and source/default origins, with sensitive values protected.
+7. **Plans and results round-trip.** Return canonical node, plan, run and artifact references; resolve qualified subjects through their graph owner. A reviewed plan is passed through the owning operation schema and rejected if stale; Gradle alone computes exact task closure.
+8. **Environment is request scope,** validated against delivery declarations when WP20 lands. It never changes Hangar's selected environment. Existing K1 output and K4/K7 lifecycle/approval contracts apply unchanged.
 
-Acceptance, on bestbuds:
-- `build explain pr` lists the expansion of `verify(bestbuds)`.
-- `build affected --since HEAD~1` after a one-file change in `modules/app` lists only the nodes that consume it.
-- `build run login --platform ios --flow login-screen` validates its options before any process starts.
+Acceptance on the supported three roots, with real BestBuds execution:
+- `build explain pr` explains the verification expansion, effective defaults and kernel source; `build tree` and Hangar show the same hierarchy.
+- `build affected --since HEAD~1` for a controlled one-file change selects its actual declared consumers with reasons and honest coverage.
+- `build run login --platform ios --flow login-screen` validates supported options before any process starts; unsupported or ambiguous targets return actionable errors.
+- CLI, MCP and forms agree on canonical subjects/options; returned plan/run references round-trip to the exact retained evidence. Changed inputs invalidate execution/reuse.
 
-Budget: three operations (`build.explain`, `build.kernels`, `build.affected`) and one option on `build.run`.
-
-Don't:
-- compute a task closure in the kernel; Gradle plans it;
-- reuse a receipt on weak identity.
+Budget: extend existing build operations/model readers and typed option projection. Retain the planned `build.affected` operation and `--affected` build-run field; reuse existing `build.explain`/`build.kernels` rather than adding replacements. No second graph, task scheduler, parser-specific policy or kernel unit-test suite.
 
 ### K4 — One kernel process per workspace
 
@@ -569,6 +577,7 @@ Goal: every invocation is visible and the story is documented from the model.
 Steps:
 1. **A `reaktor-telemetry` span per invocation,** carrying operation id, seat, effect, outcome, duration and run id. Hangar Telemetry shows CLI, MCP and agent calls next to app spans.
 2. **`reaktor build story --markdown`** renders the story tree with the last receipt states. A generated private docs page and Hangar home use it (K5 step 5).
+3. **Reconcile user documentation at each CLI cutover.** `cli-kernel-hld.md` is the CLI/TUI target contract; the CLI README describes shipped behavior only. Generate operation examples/help from the same descriptors, retain explicit planned/unavailable labels, and record old-to-new command/package-alias mappings and their completed removals. K1-TUI records its installed terminal walkthrough; do not report CLI/TUI completion from inspection parity alone.
 
 Acceptance:
 - A span for a `build.run` appears in Hangar Telemetry.
@@ -581,6 +590,7 @@ Acceptance:
 | §3 (spec) | — | now, inside WP12 and WP13 |
 | K0 | WP11 committed | right after WP11 (decision D2) |
 | K1 | K0 | after WP18 |
+| K1-TUI | K1, K3, K4, K7, K10 | after K10; shell K1 ships independently |
 | K2 | WP12, WP13, K1 for alias deletion | after WP18 |
 | K3 | WP12, WP15, WP16, WP20 for environments | after WP18 |
 | K4 | K0 | after WP18 |
@@ -593,7 +603,7 @@ Acceptance:
 | K11 | K4, K8 | last |
 | K12 | K4 | any time after K4 |
 
-Highest leverage first: K0 → K1 → K3 → K4 → K5 → K7 → K6 → K9 → K8 → K10 → K12 → K11. K2 runs wherever WP12 and WP13 left gaps.
+Highest leverage first: K0 → K1 → K3 → K4 → K5 → K7 → K6 → K9 → K8 → K10 → K1-TUI → K12 → K11. K2 runs wherever WP12 and WP13 left gaps.
 
 ## 6. Owner decisions (defaults Codex follows unless the owner says otherwise)
 
@@ -642,7 +652,8 @@ Stop and write the reason in the Log, instead of guessing, when:
 |---|---|
 | §3 | Written 15 Oct; `dependeasy-api.md` §4.4 points here |
 | K0 | Complete 15 Oct; four scoped commits pushed to Reaktor #18 and BestBuds #8, 746 reported cases / 27 existing skips / zero failures |
-| K1 | In progress; installed primary catalog face, typed arguments, human/JSON output, shell completion, durable following and legacy parser/archive removal qualify. Current three-root CLI/MCP discovery parity and selected execution pass. Full BuildOption/caller migration and remaining K1 acceptance stay open. |
+| K1 | In progress; installed primary catalog face, typed arguments, human/JSON output, shell completion, durable following and legacy parser/archive removal qualify. Current three-root CLI/MCP discovery parity and selected execution pass. Full BuildOption/caller migration and remaining K1 acceptance stay open. CLI/TUI design refined 21 Oct; no new runtime qualification |
+| K1-TUI | Outstanding; screen/interaction/lifecycle acceptance specified 21 Oct in `cli-kernel-hld.md`; implementation follows K1/K3/K4/K7/K10 |
 | K2 | Outstanding (verify after WP12/WP13) |
 | K3 | In progress; three-root inspection and conservative affected selection qualify; 681 task options project into the owning schemas. Installed first-context selected execution and single immediate-plan reuse qualify. Scoped BuildOption projection and installed property/task execution qualify (dfcf03ee/29233fe4); public output options are in qualification. Affected execution, reviewed option approvals, forms and parameterized alias removal remain open |
 | K4 | Outstanding |
@@ -666,6 +677,10 @@ The owner pastes this when the dependeasy packages are done:
 - **21 Oct 2026, Codex — K3 scoped build options.** Reaktor dfcf03ee and BestBuds 29233fe4 are pushed. Existing framework fixtures pass 16 cases; kernel 433 (11 existing skips), tooling 232 (one existing skip), CLI 16, zero failures. Three-root exports retain scoped type/default/source-order metadata; installed CLI/MCP schemas agree. Real run `run-1792559592142-3` passes five selected CLI tests: exact test filter and `-Pbestbuds.devTools=false` survive the sealed plan, and its receipt records the effective CommandLine value, declared default and scope. Source attestation remains Partial. Existing CLI fixture now bounds human table cells while preserving full JSON. Public output task options are the next bounded slice; affected execution, approval round-trip, forms and strict aliases remain open. Evidence: `build/dependeasy/receipts/qualification/wp13/k3-build-options-20261021-v6-proof.json`.
 
 - 21 Oct 2026 — K3 installed request-context and immediate-plan follow-up qualified and pushed: Reaktor `ade8deef` / BestBuds `bfd5de2a`. The planner exports under the actual request context before sealing; immediate non-approved execution reuses its prepared plan, while approved execution still re-prepares and checks its reviewed fingerprint. Existing checks pass: 433 kernel cases (11 existing skips), 232 tooling cases (1 existing skip), 16 CLI cases and the kernel boundary. After priming the model with a different shell PATH/options, the installed CLI's first request succeeds without retry: `run-1792556166597-1`, five selected tests, zero failures, exact `--tests` in the sealed plan and correlated receipt. Coverage remains Partial for source identity. Proof: `build/dependeasy/receipts/qualification/wp13/k3-request-context-plan-20261021-v3-proof.json`. Full BuildOption projection, affected execution, parameterized aliases and K7 remain open; no provider write or approval bypass.
+
+- 21 Oct 2026 — CLI/TUI plan refinement complete as documentation: canonical domain/verb grammar; progressive/offline help and completion; typed input and shell composition; bounded JSON, logs and exit codes; exact plan/request/run semantics; four TUI views, keys, forms and lifecycle; K1/K3 removals and K1-TUI dependencies through authenticated K10. Validation passed for all 14 local links/anchors across the three edited documents, balanced code fences, milestone references and `git diff --check`. Runtime status remains outstanding; no code, builds, installation, commit or publication occurred in this side conversation.
+
+- 21 Oct 2026 — CLI design refinement requested by the owner: make the CLI powerful, expressive and easy to understand, and close the HLD/TUI design gap. Documentation-only budget: refine `cli-kernel-hld.md`, align this file's K1/K3 delivery contracts and add an explicit TUI milestone, and correct the precedence pointer in `reaktor-kernel-plan.md`. No implementation, dependencies, runtime state, commits, external writes or changed qualification claims. Design acceptance: one command grammar; graph-owned operation/schema/authority parity; concrete discovery, typed arguments, output, execution and error contracts; a usable TUI interaction spec; package dependencies and legacy-removal gates; all local documentation links and whitespace checked. Runtime acceptance remains outstanding and is specified in the revised HLD and packages.
 
 - **15 Oct 2026.** Handoff written. Measured the bestbuds root: 259 lines, 61 quoted paths, 35 string node names, 15 `packageAlias` calls, 15 `if`s, 6 loops, 14 file reads, 10 `HostRequirement`s, 5 near-identical device-flow blocks. `dependeasy-api.md` §4.4 now points to §3 so WP12 and WP13 build to the story altitude directly.
 

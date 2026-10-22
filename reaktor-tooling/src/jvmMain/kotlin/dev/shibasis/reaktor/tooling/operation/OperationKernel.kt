@@ -29,7 +29,14 @@ class OperationAuthority(
     val approvals: DoorApprovals? = null,
     val log: CallLog? = null,
     val onApprovalNeeded: (DoorApproval) -> Unit = {},
+    val model: OperationModel? = null,
 )
+
+data class ModelVerdict(val allowed: Boolean, val enforced: Boolean, val rule: String, val record: JsonObject)
+
+fun interface OperationModel {
+    fun decide(caller: CallCaller, provider: String, operation: OperationId): ModelVerdict?
+}
 
 class OperationKernel(
     private val graph: Graph,
@@ -78,13 +85,16 @@ class OperationKernel(
         val key = invocation.requestId?.let { invocation.caller.seat to it }
         key?.let { synchronized(replies) { replies[it] } }?.let { return it }
 
+        var verdict: ModelVerdict? = null
         fun record(outcome: String, detail: String? = null) = authority.log?.record(
-            descriptor.provider, descriptor.id.value, invocation.arguments, (System.nanoTime() - started) / 1_000_000, outcome, detail, invocation.caller,
+            descriptor.provider, descriptor.id.value, invocation.arguments, (System.nanoTime() - started) / 1_000_000, outcome, detail, invocation.caller, verdict?.record,
         )
 
         val seat = invocation.caller.seat
         val effect = runCatching { entry.effect(invocation.arguments) }
             .getOrElse { failure -> return Outcome.Failed(failure.message ?: "Could not classify ${descriptor.id}").also { record("failed", it.message) } }
+        verdict = authority.model?.let { model -> runCatching { model.decide(invocation.caller, descriptor.provider, descriptor.id) }.getOrNull() }
+        verdict?.takeIf { it.enforced && !it.allowed }?.let { denied -> return Outcome.Refused(effect, denied.rule).also { record("refused", denied.rule) } }
         val ownPlan = runCatching { entry.ownPlan(invocation.arguments, invocation.caller) }.getOrDefault(false)
         var approval: DoorApproval? = null
         when (val decision = DoorAuthority.decide(effect, authority.policy.seat(seat), ownPlan)) {

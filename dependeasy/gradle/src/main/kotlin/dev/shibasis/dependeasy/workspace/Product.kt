@@ -20,7 +20,8 @@ class Product internal constructor(
 ) : Parts(combine(listOf(shared, clients, services, sites, tools, packages, native)))
 
 @WorkspaceDsl
-class ProductScope internal constructor(private val project: Project, private val shared: Parts) {
+class ProductScope internal constructor(private val project: Project, private val shared: Parts, sharedProjects: List<String>) {
+    private val recorded = linkedMapOf(ProductPart.Shared to sharedProjects.toMutableList())
     private var clients = emptyParts()
     private var services = emptyParts()
     private var sites = emptyParts()
@@ -28,16 +29,28 @@ class ProductScope internal constructor(private val project: Project, private va
     private var packages = emptyParts()
     private var native = emptyParts()
 
-    fun clients(vararg parts: ProjectDependency) { clients = Parts(combine(listOf(clients, project.parts(parts.toList())))) }
-    fun services(vararg parts: ProjectDependency) { services = Parts(combine(listOf(services, project.parts(parts.toList())))) }
-    fun sites(vararg parts: ProjectDependency) { sites = Parts(combine(listOf(sites, project.parts(parts.toList())))) }
-    fun tools(vararg parts: ProjectDependency) { tools = Parts(combine(listOf(tools, project.parts(parts.toList())))) }
+    fun clients(vararg parts: ProjectDependency) { clients = Parts(combine(listOf(clients, project.parts(record(ProductPart.Client, parts))))) }
+    fun services(vararg parts: ProjectDependency) { services = Parts(combine(listOf(services, project.parts(record(ProductPart.Service, parts))))) }
+    fun sites(vararg parts: ProjectDependency) { sites = Parts(combine(listOf(sites, project.parts(record(ProductPart.Site, parts))))) }
+    fun tools(vararg parts: ProjectDependency) { tools = Parts(combine(listOf(tools, project.parts(record(ProductPart.Tool, parts))))) }
     fun tools(vararg builds: BuildHandle) { tools = Parts(combine(listOf(tools, Parts { role -> if (role == Workspace.Build || role == Workspace.Verify) builds.map { output(it, role) } else emptyList() }))) }
-    fun packages(vararg parts: ProjectDependency) { packages = Parts(combine(listOf(packages, project.parts(parts.toList())))) }
-    fun packages(vararg modules: ModuleHandle) { packages = Parts(combine(listOf(packages, project.parts(modules.toList())))) }
-    fun native(vararg modules: ModuleHandle) { native = Parts(combine(listOf(native, project.parts(modules.toList())))) }
+    fun packages(vararg parts: ProjectDependency) { packages = Parts(combine(listOf(packages, project.parts(record(ProductPart.Package, parts))))) }
+    fun packages(vararg modules: ModuleHandle) { packages = Parts(combine(listOf(packages, project.parts(record(ProductPart.Package, modules))))) }
+    fun native(vararg modules: ModuleHandle) { native = Parts(combine(listOf(native, project.parts(record(ProductPart.Native, modules))))) }
 
-    internal fun build() = Product(shared, clients, services, sites, tools, packages, native)
+    private fun record(part: ProductPart, parts: Array<out ProjectDependency>) = parts.toList().also { dependencies ->
+        recorded.getOrPut(part) { mutableListOf() }.addAll(dependencies.map { it.path })
+    }
+
+    @JvmName("recordModules")
+    private fun record(part: ProductPart, modules: Array<out ModuleHandle>) = modules.toList().also { handles ->
+        recorded.getOrPut(part) { mutableListOf() }.addAll(handles.map { it.path })
+    }
+
+    internal fun build(): Product {
+        BuildWorkspace.get(project).product(ProductModel(project.rootProject.name, recorded.mapValues { (_, paths) -> paths.distinct() }))
+        return Product(shared, clients, services, sites, tools, packages, native)
+    }
 }
 
 class IncludedBuild internal constructor(build: BuildHandle) {

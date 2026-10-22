@@ -3,7 +3,6 @@ package dev.shibasis.reaktor.blueprint
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ElkFrameLayouterTest {
@@ -30,9 +29,8 @@ class ElkFrameLayouterTest {
     @Test
     fun backwardsLaneRoutingPreservesSemanticEndpointsAndArrowDirection() {
         val nodes = listOf(BlueprintNode("early", 0), BlueprintNode("late", 2))
-        val edge = FrameEdge("back", "late", "early", null, null, LinkKind.Wire, false, listOf("back"))
-        val layout = ElkFrameLayouter.lay(BlueprintGroup("lanes", "Lanes", nodes), nodes.associate { it.id to emptyList<Pin>() }, listOf(edge))
-        assertNull(layout.failure)
+        val layout = BlueprintEngine.layout("lanes", listOf(BlueprintGroup("lanes", "Lanes", nodes)), listOf(BlueprintEdge("back", "late", "early")), 1.6, ElkFrameLayouter)
+        assertTrue(layout.layoutFailures.isEmpty())
         val link = layout.links.single()
         assertEquals("late", link.from)
         assertEquals("early", link.to)
@@ -46,10 +44,10 @@ class ElkFrameLayouterTest {
 
     @Test
     fun invalidElkPinFallsBackAndCarriesFailureEvidence() {
-        val node = BlueprintNode("node", 0)
-        val grid = ElkFrameLayouter.lay(BlueprintGroup("bad", "Bad", listOf(node)), mapOf("node" to emptyList()), listOf(FrameEdge("bad", "missing", "node", null, null, LinkKind.Wire, false, emptyList())))
+        val graph = ElkGraph(emptyMap(), listOf(ElkBox("n0", 272.0, 46.0, listOf(ElkPin("n0w", -1.0, 23.0, false)), emptyMap())), listOf(ElkLine("e0", "missing", "n0w")))
+        val grid = ElkFrameLayouter.lay(FrameRequest("bad", BlueprintGroup("bad", "Bad", listOf(BlueprintNode("node", 0))), graph, emptyList(), emptySet()))
         assertNotNull(grid.failure)
-        assertEquals(setOf("node"), grid.cards.keys)
-        assertTrue(grid.links.isEmpty())
+        assertEquals(2, grid.nodes.size)
+        assertTrue(grid.edges.single().isEmpty())
     }
 }

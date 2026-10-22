@@ -13,6 +13,8 @@ import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
 import dev.shibasis.reaktor.service.ServiceContract
+import dev.shibasis.reaktor.service.Callers
+import dev.shibasis.reaktor.service.ServiceAccess
 
 
 @Serializable
@@ -29,6 +31,7 @@ sealed class AppResponse(
 
 abstract class AppService(baseUrl: String): Service(baseUrl) {
     override val contract = ServiceContract("reaktor.apps")
+    override val access = ServiceAccess(Callers.SignedIn)
 
     abstract val getAll: GetHandler<Request, AppResponse>
     abstract val getApp: GetHandler<Request, AppResponse>

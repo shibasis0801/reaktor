@@ -1,22 +1,21 @@
 package dev.shibasis.reaktor.blueprint.product
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.*
-import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.*
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
-import dev.shibasis.composeflow.compose.interaction.*
 import dev.shibasis.composeflow.model.*
 import dev.shibasis.reaktor.blueprint.BlueprintEngine
 import dev.shibasis.reaktor.blueprint.BlueprintLayout
@@ -26,6 +25,12 @@ import dev.shibasis.reaktor.blueprint.Frame
 import dev.shibasis.reaktor.blueprint.Link
 import dev.shibasis.reaktor.blueprint.LinkKind
 import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
+import dev.shibasis.reaktor.blueprint.canvas.GraphLevels
+import dev.shibasis.reaktor.blueprint.canvas.GraphMarkers
+import dev.shibasis.reaktor.blueprint.canvas.GraphView
+import dev.shibasis.reaktor.blueprint.canvas.at
+import dev.shibasis.reaktor.blueprint.editor.GraphEditor
+import dev.shibasis.reaktor.blueprint.editor.GraphEditorLayer
 import kotlin.math.*
 
 fun expandedSurfaceGraphPositions(nodes: List<SurfaceGraphNode>, width: Double = 220.0, height: Double = 88.0): Map<String, XYPosition> {
@@ -47,7 +52,7 @@ fun expandedSurfaceGraphPositions(nodes: List<SurfaceGraphNode>, width: Double =
 }
 
 @Stable
-class SurfaceGraphExplorerState : GraphCanvasState(0.03..3.0) {
+class SurfaceGraphExplorerState : GraphCanvasState(0.03..3.0, GraphLevels(.2, .16, .45, .39)) {
     internal var cards: List<Card> = emptyList()
     internal var frames: List<Frame> = emptyList()
     private var placed: List<Card>? = null
@@ -55,18 +60,7 @@ class SurfaceGraphExplorerState : GraphCanvasState(0.03..3.0) {
         private set
     var showing: List<SurfaceGraphNode>? = null
         private set
-    private var detailLevel: Int? = null
     init { insetTop = 48.0 }
-    internal fun detailLevel(zoom: Double): Int {
-        val next = when(detailLevel) {
-            0 -> if(zoom>=.45) 2 else if(zoom>=.2) 1 else 0
-            1 -> if(zoom<.16) 0 else if(zoom>=.45) 2 else 1
-            2 -> if(zoom<.16) 0 else if(zoom<.39) 1 else 2
-            else -> if(zoom<.18) 0 else if(zoom<.42) 1 else 2
-        }
-        detailLevel=next
-        return next
-    }
     fun fit(ids: Set<String> = emptySet()) {
         val boxes: List<Bounds> = if (ids.isEmpty()) frames.ifEmpty { cards } else cards.filter { it.id in ids }
         fit(boxes, maxZoom = if (ids.isEmpty()) 1.0 else 1.4, minZoom = .005)
@@ -86,25 +80,18 @@ class SurfaceGraphExplorerState : GraphCanvasState(0.03..3.0) {
     }
     internal fun place(geometry: List<Card>, shown: List<SurfaceGraphNode>? = null, key: Any? = null) {
         cards = geometry
+        extent = frames.ifEmpty { cards }
         if (flow.canvasSize == IntSize.Zero) return
         if (placed !== geometry) { placed = geometry; generation++ }
         fitOnce(key ?: generation) { fit() }
         showing = shown
     }
-    internal fun resize(size: IntSize) {
-        val previous = flow.canvasSize
-        val view = flow.viewport
-        val overview = frames.isNotEmpty() && frames.all { view.x + it.x * view.zoom >= -2 && view.y + it.y * view.zoom >= -2 && view.x + (it.x + it.width) * view.zoom <= previous.width + 2 && view.y + (it.y + it.height) * view.zoom <= previous.height + 2 }
-        flow.setCanvasSize(size)
-        if (previous != IntSize.Zero && previous != size && placed != null) {
-            if (overview) fit() else flow.setViewport(view.copy(x = view.x + (size.width - previous.width) / 2.0, y = view.y + (size.height - previous.height) / 2.0))
-        }
-    }
+    override fun overview() = fit()
 }
 
 @Composable
 fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, selectedId: String?, appearance: SurfaceGraphAppearance,
-    state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier = Modifier, layout: BlueprintLayout<*>? = null, resourceLinks: Boolean = true, chapterLinks: Boolean = true, areaCorridors: Boolean = true, highlighted: Set<String> = emptySet(), onClear: () -> Unit = {}, key: Any? = null, groups: List<SurfaceGraphGroup> = emptyList()) {
+    state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier = Modifier, layout: BlueprintLayout<*>? = null, resourceLinks: Boolean = true, chapterLinks: Boolean = true, areaCorridors: Boolean = true, highlighted: Set<String> = emptySet(), onClear: () -> Unit = {}, key: Any? = null, groups: List<SurfaceGraphGroup> = emptyList(), editor: GraphEditor? = null) {
     val fallback = remember(nodes, links, appearance, layout != null) {
         if (layout != null) return@remember null
         val positions = expandedSurfaceGraphPositions(nodes, appearance.width, appearance.height)
@@ -123,9 +110,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
     }
     val scene = layout ?: fallback!!.first
     val looks = fallback?.second ?: groups
-    val interaction = rememberFlowViewportInteractionState()
     val density = LocalDensity.current.density.toDouble()
-    val config = remember(density, state) { FlowViewportGestureConfig(minZoom = state.zoomRange.start * density, maxZoom = state.zoomRange.endInclusive * density) }
     val resolver = LocalFontFamilyResolver.current
     val direction = LocalLayoutDirection.current
     val graphics = LocalGraphicsContext.current
@@ -141,8 +126,6 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             TextStyle(color = appearance.text, fontFamily = font, letterSpacing = 0.sp, fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
         ).map { it.copy(platformStyle = appearance.textPlatformStyle) })
     }
-    DisposableEffect(painter) { onDispose { painter.release() } }
-    LaunchedEffect(painter) { painter.run() }
     SideEffect { painter.submit(nodes, links, looks, scene) }
     val model = painter.model.value
     val selection = remember(model, selectedId) {
@@ -160,36 +143,66 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
     SideEffect { state.density(density); if (model != null) { state.frames = model.layout.frames; state.place(model.cards, model.nodes, key) } }
     val select by rememberUpdatedState(onSelect)
     val clear by rememberUpdatedState(onClear)
-    var pointing by remember { mutableStateOf(false) }
-    val hit = remember(painter, state) { { point: Offset ->
-        val world = state.flow.screenToFlowPosition(point.x.toDouble(), point.y.toDouble())
-        painter.model.value?.cards?.asReversed()?.firstOrNull { world.x >= it.x && world.x <= it.x + it.width && world.y >= it.y && world.y <= it.y + it.height }?.let { it to world }
-    } }
-    val tap = remember(painter, state) { { point: Offset ->
-        val found = hit(point)
-        val shown = painter.model.value
-        if (shown != null && found != null) {
-            val (card, world) = found
-            val node = shown.byId.getValue(card.id)
-            val half = BlueprintEngine.RowHeight / 2
-            val pin = if (state.detailLevel(state.viewport().zoom) == 2) card.pins.firstOrNull { world.y - card.y - it.y in -half..<half } else null
-            select(pin?.id ?: node.id)
-        } else clear()
-        state.record(); found != null
-    } }
-    Canvas(modifier.clipToBounds().onSizeChanged { size -> state.resize(size); painter.model.value?.let { state.place(it.cards, it.nodes, key) } }
-        .pointerHoverIcon(if (pointing) PointerIcon.Hand else PointerIcon.Default)
-        .pointerInput(hit) { awaitPointerEventScope { while (true) {
-            val event = awaitPointerEvent(); val change = event.changes.first()
-            if (change.type == PointerType.Mouse) pointing = event.type != PointerEventType.Exit && !event.buttons.areAnyPressed && hit(change.position) != null
-        } } }
-        .flowWheelAndTrackpadViewportGestures(state.flow, interaction, config)
-        .flowPointerViewportGestures(state.flow, interaction, config, onPaneTap = tap)) {
-        painter.version.intValue
-        val scale = density.toFloat()
-        withTransform({ scale(scale, scale, Offset.Zero) }) {
-            val camera = state.viewport()
-            painter.draw(this, camera, Size(size.width / scale, size.height / scale), scale, state.detailLevel(camera.zoom), selection, highlight, resourceLinks, chapterLinks, areaCorridors)
+    fun cardAt(x: Float, y: Float) = painter.model.value?.cards?.asReversed()?.firstOrNull { x >= it.x && x <= it.x + it.width && y >= it.y && y <= it.y + it.height }
+    val chosen by rememberUpdatedState(selectedId)
+    fun cardOf(id: String) = painter.model.value?.let { shown -> shown.cards.firstOrNull { card -> shown.byId[card.id]?.let { it.id == id || it.owner == id || it.rows.any { row -> row.id == id || id in row.aliases } } == true } }
+    fun jump(id: String) { select(id); cardOf(id)?.let { state.reveal(it.x, it.y, it.width, it.height) } }
+    fun ownerOf(frame: Frame) = painter.model.value?.groups?.firstOrNull { it.key == frame.key }?.owner
+    val view: @Composable (Modifier) -> Unit = { shell ->
+    GraphView(painter, state,
+        hit = { x, y, reach -> painter.endAt(x, y) != null || painter.frameAt(x, y)?.let { ownerOf(it) != null } ?: (cardAt(x, y) != null || painter.follow(x, y, reach) != null) },
+        tap = { x, y, reach ->
+            val shown = painter.model.value
+            val handled = painter.endAt(x, y)?.let { jump(it); true } ?: painter.frameAt(x, y)?.let { frame -> ownerOf(frame)?.let(select); true } ?: cardAt(x, y)?.let { card ->
+                if (shown != null) select(painter.rowAt(x, y)?.takeUnless { chosen == it.id }?.id ?: shown.byId.getValue(card.id).id)
+                true
+            } ?: painter.follow(x, y, reach)?.let { jump(it); true } ?: false
+            state.record()
+            handled
+        },
+        modifier = shell,
+        onPane = { clear() },
+        onSize = { size -> state.resize(size); painter.model.value?.let { state.place(it.cards, it.nodes, key) } },
+        selection = { chosen?.let(::cardOf) },
+        step = { by -> painter.model.value?.let { shown ->
+            val order = shown.cards.sortedWith(compareBy({ it.y }, { it.x }))
+            val at = order.indexOfFirst { card -> shown.byId[card.id]?.let { it.id == chosen || it.owner == chosen } == true }
+            if (order.isNotEmpty()) order[(at + if (at < 0 && by < 0) 0 else by).mod(order.size)].let { card -> select(shown.byId.getValue(card.id).id); state.reveal(card.x, card.y, card.width, card.height) }
+        } },
+        open = { x, y -> painter.frameAt(x, y)?.let { state.fit(it.x, it.y, it.width, it.height, maxZoom = 1.4); true }
+            ?: cardAt(x, y)?.let { state.centre(it.x, it.y, it.width, it.height); true } ?: false },
+        editing = editor,
+        markers = { focus -> model?.let { SurfaceGraphMarkers(state, it, selectedId) { id -> focus(); select(id) } } },
+    ) { camera, viewport, scale ->
+        painter.draw(this, camera, viewport, scale, state.level(camera.zoom), selection, highlight, resourceLinks, chapterLinks, areaCorridors)
+    }
+    }
+    if (editor == null) view(modifier) else Box(modifier) { view(Modifier.fillMaxSize()); GraphEditorLayer(editor) }
+}
+
+@Composable
+private fun SurfaceGraphMarkers(state: SurfaceGraphExplorerState, model: SurfaceGraphModel, selectedId: String?, select: (String) -> Unit) {
+    GraphMarkers(state, model.cards, { model.cards[it].id }, MarkedZoom) { i, zoom ->
+        val card = model.cards[i]
+        val node = model.byId.getValue(card.id)
+        Box(Modifier.at(card.x, card.y, card.width, card.height).semantics {
+            selected = node.id == selectedId || node.owner == selectedId
+            text = AnnotatedString(node.title)
+            onClick(label = node.title) { select(node.id); true }
+        }) {
+            if (zoom < RowZoom) return@Box
+            if (node.subtitle.isNotEmpty()) Box(Modifier.at(0.0, BlueprintEngine.RowHeight * 1.5, card.width, BlueprintEngine.RowHeight).semantics { text = AnnotatedString(node.subtitle) })
+            node.rows.forEachIndexed { k, row ->
+                val pin = card.pins.getOrNull(k) ?: return@forEachIndexed
+                Box(Modifier.at(0.0, pin.y - BlueprintEngine.RowHeight / 2, card.width, BlueprintEngine.RowHeight).semantics {
+                    selected = row.id == selectedId || selectedId in row.aliases
+                    text = AnnotatedString(row.title)
+                    onClick(label = row.title) { select(row.id); true }
+                })
+            }
         }
     }
 }
+
+private const val MarkedZoom = .2
+private const val RowZoom = .45

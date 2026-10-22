@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.TextStyle
@@ -55,7 +57,7 @@ val ContextMenuPanel: PanelAppearance = object : PanelAppearance {
         val shape = RoundedCornerShape(MachineSignal.Editor.controlRadius)
         Column(
             Modifier
-                .shadow(3.dp, shape, clip = false)
+                .shadow(MachineSignal.Space.s4, shape, clip = false)
                 .clip(shape)
                 .background(colors.menu)
                 .padding(vertical = PaneMenuPadding)
@@ -65,7 +67,7 @@ val ContextMenuPanel: PanelAppearance = object : PanelAppearance {
             CompositionLocalProvider(LocalContentColor provides colors.onMenu, content = slots.content)
         }
     }
-}
+}.withMatrix(MatrixMenuPanel)
 
 val ContextMenuItem: ButtonAppearance = object : ButtonAppearance {
     @Composable
@@ -77,7 +79,7 @@ val ContextMenuItem: ButtonAppearance = object : ButtonAppearance {
                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .stateLayer(LocalContentColor.current, properties.enabled && state.hovered, feedback)
                 .fillMaxWidth()
-                .sizeIn(minWidth = PaneMenuMinWidth, maxWidth = PaneMenuMaxWidth, minHeight = PaneMenuRowHeight)
+                .sizeIn(minWidth = PaneMenuMinWidth, maxWidth = PaneMenuMaxWidth, minHeight = MachineSignal.Space.s6)
                 .padding(horizontal = PaneMenuInset),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -92,7 +94,7 @@ val ContextMenuItem: ButtonAppearance = object : ButtonAppearance {
             }
         }
     }
-}
+}.withMatrix(MatrixMenuItem)
 
 val DenseMenuPanel: PanelAppearance = object : PanelAppearance {
     @Composable
@@ -102,15 +104,16 @@ val DenseMenuPanel: PanelAppearance = object : PanelAppearance {
             Modifier
                 .widthIn(min = DenseMenuMinWidth, max = MachineSignal.Editor.navigatorWidth * 2)
                 .width(IntrinsicSize.Max)
-                .background(colors.surface, MachineSignal.Shape.Control)
-                .border(1.dp, colors.line, MachineSignal.Shape.Control)
-                .padding(vertical = MachineSignal.Space.s1)
+                .shadow(MachineSignal.Space.s4, MachineSignal.shapes.panel, clip = false)
+                .background(colors.surface, MachineSignal.shapes.panel)
+                .border(MachineSignal.Stroke.hairline, colors.lineSubtle, MachineSignal.shapes.panel)
+                .padding(MachineSignal.Space.s1)
                 .verticalScroll(rememberScrollState()),
         ) {
             CompositionLocalProvider(LocalContentColor provides colors.text, content = slots.content)
         }
     }
-}
+}.withMatrix(MatrixMenuPanel)
 
 val DenseMenuItem: ButtonAppearance = object : ButtonAppearance {
     @Composable
@@ -122,7 +125,7 @@ val DenseMenuItem: ButtonAppearance = object : ButtonAppearance {
                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .stateLayer(LocalContentColor.current, properties.enabled && state.hovered, feedback)
                 .fillMaxWidth()
-                .heightIn(min = signal.metrics.controlHeight)
+                .heightIn(min = MachineSignal.Space.s6)
                 .padding(horizontal = MachineSignal.Space.s3),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
             verticalAlignment = Alignment.CenterVertically,
@@ -130,7 +133,7 @@ val DenseMenuItem: ButtonAppearance = object : ButtonAppearance {
             ProvideLabel(Label(if (properties.enabled) colors.text else colors.textFaint, signal.fonts.ui, signal.metrics.label), slots.content)
         }
     }
-}
+}.withMatrix(MatrixMenuItem)
 
 val SignalCommand: CommandAppearance = object : CommandAppearance {
     @Composable
@@ -154,7 +157,7 @@ val SignalCommand: CommandAppearance = object : CommandAppearance {
             }
         }
     }
-}
+}.withMatrix(MatrixCommand)
 
 val RuleSeparator: SeparatorAppearance = object : SeparatorAppearance {
     @Composable
@@ -167,11 +170,10 @@ val RuleSeparator: SeparatorAppearance = object : SeparatorAppearance {
                 .background(theme.machineSignal.colors.line),
         )
     }
-}
+}.withMatrix(MatrixSeparator(dev.shibasis.reaktor.surface.Axis.Horizontal, false))
 
 private val PaneMenuPadding = 8.dp
 private val PaneMenuInset = 12.dp
-private val PaneMenuRowHeight = 48.dp
 private val PaneMenuMinWidth = 112.dp
 private val PaneMenuMaxWidth = 280.dp
 private val DenseMenuMinWidth = 160.dp

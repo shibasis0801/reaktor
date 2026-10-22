@@ -48,7 +48,7 @@ class CallSnapshots(private val directory: Path) {
  */
 class CallLog(private val file: Path, private val caller: CallCaller) {
     @Synchronized
-    fun record(provider: String, call: String, arguments: JsonObject, millis: Long, outcome: String, detail: String? = null, caller: CallCaller = this.caller) {
+    fun record(provider: String, call: String, arguments: JsonObject, millis: Long, outcome: String, detail: String? = null, caller: CallCaller = this.caller, access: JsonObject? = null) {
         runCatching {
             Files.createDirectories(file.parent)
             if (Files.isRegularFile(file) && Files.size(file) > ROTATE_BYTES)
@@ -63,6 +63,7 @@ class CallLog(private val file: Path, private val caller: CallCaller) {
                 put("millis", millis)
                 put("outcome", outcome)
                 detail?.let { put("detail", it.take(MAX_DETAIL)) }
+                access?.let { put("access", it) }
             }.toString() + "\n", CREATE, APPEND)
         }
     }

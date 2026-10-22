@@ -5,7 +5,8 @@ import kotlinx.serialization.encodeToString
 
 object BuildModelKernel {
     fun build(spec: KernelSpec.BuildModelExport, root: File, declaredNodes: List<Node>, edges: List<Edge>, omissions: List<Omission>,
-        resolvedOptions: List<Map<String, String>>, declarationFiles: Collection<File>, included: List<BuildModel>): BuildModel {
+        resolvedOptions: List<Map<String, String>>, declarationFiles: Collection<File>, included: List<BuildModel>,
+        products: List<ProductModel> = emptyList()): BuildModel {
         val own = spec.build
         val owners = spec.directories
         val builds = (owners.map { (name, directory) -> BuildIdentity(name, directory) } + included.flatMap { model ->
@@ -33,14 +34,16 @@ object BuildModelKernel {
         val declared = BuildModel(producer = Producer(version = spec.version), builds = builds,
             declarations = declarations.distinct().sortedWith(compareBy({ it.build }, { it.path })),
             nodes = (declaredNodes + included.flatMap { it.nodes }).groupBy { it.id }.map { (id, copies) ->
-                val facts = copies.map { it.copy(label = it.id.name, declaredAt = null, inputs = emptyList(), outputs = emptyList(), additionalDeclarations = emptyList()) }.distinct()
+                val facts = copies.map { it.copy(label = it.id.name, declaredAt = null, inputs = emptyList(), outputs = emptyList(), additionalDeclarations = emptyList(), coverage = null) }.distinct()
                 require(facts.size == 1) { "Conflicting kernel or invocation for $id" }
                 val sites = copies.flatMap { listOfNotNull(it.declaredAt) + it.additionalDeclarations }.distinct().sortedWith(compareBy({ it.build }, { it.file }, { it.line }))
                 copies.first().copy(label = id.name, declaredAt = sites.firstOrNull(), additionalDeclarations = sites.drop(1),
-                    inputs = copies.flatMap { it.inputs }.distinct(), outputs = copies.flatMap { it.outputs }.distinct())
+                    inputs = copies.flatMap { it.inputs }.distinct(), outputs = copies.flatMap { it.outputs }.distinct(),
+                    coverage = copies.mapNotNull { it.coverage }.reduceOrNull(Coverage::plus))
             }.sortedBy { it.id.toString() },
             edges = (edges + included.flatMap { it.edges }).distinct().sortedBy { it.toString() },
-            omissions = (omissions + included.flatMap { it.omissions }).distinct().sortedBy { it.toString() })
+            omissions = (omissions + included.flatMap { it.omissions }).distinct().sortedBy { it.toString() },
+            products = (products + included.flatMap { it.products }).distinctBy { it.build }.sortedBy { it.build })
         val identities = declared.nodes.map { it.id }.toSet()
         val model = declared.copy(nodes = declared.nodes.map { node ->
             node.copy(tools = (node.tools + node.kernel?.spec?.tools().orEmpty()).distinct())
@@ -48,7 +51,7 @@ object BuildModelKernel {
             Omission(it.from, "Referenced producer has no declaration model", it.to.toString())
         }).distinct().sortedBy { it.toString() })
         val owned = model.copy(omissions = (model.omissions + unownedInputs(model, root)).distinct().sortedBy { it.toString() })
-        return BuildModelReader.decode(BuildModelReader.encode(owned))
+        return BuildModelReader.decode(BuildModelReader.encode(CoverageKernel.apply(owned, own)))
     }
 
     private fun unownedInputs(model: BuildModel, root: File): List<Omission> {

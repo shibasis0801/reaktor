@@ -24,6 +24,16 @@ class NodeHandle internal constructor(val id: NodeId, val task: TaskProvider<out
         dev.shibasis.dependeasy.workspace.BuildWorkspace.get(requireNotNull(owner)).connect(this, prerequisites.toList())
     }
 
+    fun covers(domain: dev.shibasis.dependeasy.model.Domain, vararg aspects: dev.shibasis.dependeasy.model.Aspect): NodeHandle =
+        covers(dev.shibasis.dependeasy.model.Coverage(domain, *aspects))
+
+    fun covers(aspect: dev.shibasis.dependeasy.model.Aspect, vararg aspects: dev.shibasis.dependeasy.model.Aspect): NodeHandle =
+        covers(dev.shibasis.dependeasy.model.Coverage(aspects = setOf(aspect) + aspects))
+
+    fun covers(coverage: dev.shibasis.dependeasy.model.Coverage): NodeHandle = apply {
+        dev.shibasis.dependeasy.workspace.BuildWorkspace.get(requireNotNull(owner)).cover(id, coverage)
+    }
+
     fun consumes(vararg artifacts: KernelArtifact<*>): NodeHandle = apply {
         val project = requireNotNull(owner)
         artifacts.forEach { artifact ->

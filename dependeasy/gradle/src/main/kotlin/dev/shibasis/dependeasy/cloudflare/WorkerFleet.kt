@@ -160,7 +160,7 @@ class WorkerFleet internal constructor(
                     val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.replaceFirstChar(Char::uppercaseChar)
                     val suite = project.karateSuite(name, if (mode == "public") "$directory/public.feature" else directory, contracts.configuration, tags,
                         listOfNotNull(contracts.environmentFiles[selectedEnvironment]),
-                        environment = contracts.environment[selectedEnvironment].orEmpty()).consumes(generatedContract)
+                        environment = contracts.environment[selectedEnvironment].orEmpty()).consumes(generatedContract).covers(Coverage(Domain.Worker, system = target))
                     val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
                     workspace.alias(project.rootDir, alias, suite)
                     groups.getOrPut(mode) { mutableListOf() }.add(suite)

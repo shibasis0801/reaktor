@@ -16,13 +16,13 @@ import androidx.compose.ui.unit.dp
 fun SignalWorkspaceEmptyState(
     title: String, description: String, modifier: Modifier = Modifier,
     symbol: String = "◇", detail: String = "", actions: (@Composable RowScope.() -> Unit)? = null,
-) = BoxWithConstraints(modifier.fillMaxSize().background(MachineSignal.Editor.Canvas), contentAlignment = Alignment.Center) {
+) = BoxWithConstraints(modifier.fillMaxSize().background(MachineSignal.colors.canvas), contentAlignment = Alignment.Center) {
     val compact = maxHeight < MachineSignal.Editor.toolbarHeight * 7
     Column(Modifier.widthIn(max = MachineSignal.Editor.inspectorWidth + MachineSignal.Editor.navigatorWidth / 2)
         .padding(if (compact) MachineSignal.Space.s3 else MachineSignal.Space.s6), verticalArrangement = Arrangement.spacedBy(if (compact) MachineSignal.Space.s2 else MachineSignal.Space.s4)) {
         if (!compact) Box(Modifier.size(MachineSignal.Editor.toolHitSize + MachineSignal.Space.s3)
-            .background(MachineSignal.Editor.Surface, MachineSignal.Shape.Panel)
-            .border(1.dp, MachineSignal.Editor.Line, MachineSignal.Shape.Panel), contentAlignment = Alignment.Center) {
+            .background(MachineSignal.colors.surface, MachineSignal.shapes.panel)
+            .border(1.dp, MachineSignal.colors.line, MachineSignal.shapes.panel), contentAlignment = Alignment.Center) {
             Text(symbol, role = Type.Display, ink = Ink.Accent)
         }
         Text(title, role = Type.Title.strong, ink = Ink.Text, lines = 3)

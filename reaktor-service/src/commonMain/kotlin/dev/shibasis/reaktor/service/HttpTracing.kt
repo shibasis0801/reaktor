@@ -82,6 +82,10 @@ fun installHttpTracing(island: String, sink: SpanSink, owns: (ServiceCall?) -> B
             environment = metadata[ServiceCall.EnvironmentAttribute] as? String ?: "",
             build = metadata[ServiceCall.BuildAttribute] as? String ?: "",
             graphDigest = metadata[ServiceCall.GraphAttribute] as? String ?: "",
+            node = (caller?.attributes?.get(ServiceCall.NodeAttribute) as? String)?.takeIf { it.matches(Regex("[A-Za-z0-9_.:/-]{1,128}")) }.orEmpty(),
+            port = (caller?.attributes?.get(ServiceCall.PortAttribute) as? String)?.takeIf { it.matches(Regex("[A-Za-z0-9_.:/-]{1,128}")) }.orEmpty(),
+            edge = (caller?.attributes?.get(ServiceCall.EdgeAttribute) as? String)?.takeIf { it.matches(Regex("[A-Za-z0-9_.:/-]{1,128}")) }.orEmpty(),
+            activation = (caller?.attributes?.get(ServiceCall.ActivationAttribute) as? String)?.takeIf { it.matches(Regex("[A-Za-z0-9_.:/-]{1,128}")) }.orEmpty(),
         )) }
         outcome.getOrThrow()
     }

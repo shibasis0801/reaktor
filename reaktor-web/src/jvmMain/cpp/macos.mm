@@ -332,6 +332,7 @@ int reaktor_web_bounds(reaktor_web_handle handle, double x, double y, double wid
         auto bounds = s.parent.bounds;
         double native_y = s.parent.flipped ? y : bounds.size.height - y - height;
         s.widget.frame = NSMakeRect(x, native_y, width, height);
+        s.view.frame = s.widget.bounds;
         s.widget.hidden = !visible || width == 0 || height == 0;
     });
 }

@@ -73,12 +73,12 @@ class RetiredAtomParityTest {
             same("key/$variant", variant, { Kbd("⌘K") }, { Badge(appearance = KeyBadge) { Text("⌘K") } })
             same("count/$variant", variant, { CountBadge(7) }, { Badge(appearance = NumberBadge) { Text("7") } })
             listOf(TruthClass.Live, TruthClass.Source, TruthClass.Imported, TruthClass.Unknown).forEach { truth ->
-                same("provenance/$truth/$variant", variant, { ProvenanceBadge(truth) }, { Badge(appearance = provenanceBadge(truth)) { Text(truth.abbreviation) } })
+                same("provenance/$truth/$variant", variant, { ProvenanceBadge(truth) }, { Badge(appearance = provenanceBadge(truth)) { Text(truth.label) } })
             }
             same("provenance-detail/$variant", variant, { ProvenanceBadge(TruthClass.Live, detail = "observed on this node") }, {
                 Badge(appearance = provenanceBadge(TruthClass.Live)) {
                     Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(MachineSignal.Space.s1), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(TruthClass.Live.abbreviation)
+                        Text(TruthClass.Live.label)
                         Text("observed on this node", role = Type.Meta, ink = Ink.Unknown)
                     }
                 }

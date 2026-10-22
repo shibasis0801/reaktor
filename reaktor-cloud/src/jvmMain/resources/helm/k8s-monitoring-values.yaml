@@ -1,28 +1,14 @@
-# Grafana k8s-monitoring helm chart values.
-# This chart deploys Grafana Alloy (the successor to Grafana Agent) which scrapes
-# metrics + logs + traces from the cluster and remote_writes to Grafana Cloud.
-#
-# Tokens are populated at render time by src/k3s.ts — placeholders below.
-
 cluster:
   name: ${CLUSTER_NAME}
 
 destinations:
-  - name: grafana-cloud-metrics
+  - name: reaktor-metrics
     type: prometheus
     url: ${PROM_URL}
-    auth:
-      type: basic
-      username: "${PROM_USER}"
-      password: "${API_KEY}"
 
-  - name: grafana-cloud-logs
+  - name: reaktor-logs
     type: loki
     url: ${LOKI_URL}
-    auth:
-      type: basic
-      username: "${LOKI_USER}"
-      password: "${API_KEY}"
 
 clusterMetrics:
   enabled: true

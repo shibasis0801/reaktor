@@ -1,5 +1,9 @@
 package dev.shibasis.reaktor.ui.code
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
+import dev.shibasis.reaktor.ui.machinesignal.colors
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,6 +48,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.translate
@@ -170,6 +175,7 @@ private fun EditorSurface(
     onOpenExternally: (() -> Unit)?,
     tag: String,
 ) {
+    val signalColors = MachineSignal.colors
     val fonts = LocalMachineSignalFonts.current
     val density = LocalDensity.current
     val clipboard = LocalClipboardManager.current
@@ -179,12 +185,12 @@ private fun EditorSurface(
     val listState = rememberLazyListState()
     val hScroll = remember { CodeHorizontalViewport() }
 
-    val style = remember(fontSize, fonts) {
+    val style = remember(fontSize, fonts, signalColors.textStrong) {
         TextStyle(
             fontFamily = fonts.mono,
             fontSize = fontSize,
             lineHeight = fontSize * MachineSignal.Editor.Code.lineHeight,
-            color = MachineSignal.Editor.Text,
+            color = signalColors.textStrong,
         )
     }
     val metrics = remember(style, measurer, density) {
@@ -436,7 +442,7 @@ private fun EditorSurface(
     }
 
     Column(
-        modifier.background(MachineSignal.Editor.Canvas)
+        modifier.background(signalColors.canvas)
             // The editor keeps its own document and caret rather than wrapping a text field, so
             // no `SetText` action reached it and no harness could fill it in — which is how the
             // desktop MCP flow ended up unable to supply a tool's arguments. Reading is already
@@ -489,8 +495,8 @@ private fun EditorSurface(
             }
             val problem = state.diagnostics.firstOrNull { state.caret in it.span.ordered }
             when {
-                problem != null -> CodeTip(problem.message, problem.source, CodePalette.color(problem.severity), "$tag-diagnostic")
-                hover != null -> CodeTip(hover!!.text, intelligence.status.name, MachineSignal.Editor.Muted, "$tag-hover")
+                problem != null -> CodeTip(problem.message, problem.source, CodePalette.color(problem.severity).syntaxInk(signalColors), "$tag-diagnostic")
+                hover != null -> CodeTip(hover!!.text, intelligence.status.name, signalColors.textMuted, "$tag-hover")
             }
         }
         if (showStatusBar) CodeStatusBar(state, intelligence, onOpenExternally, tag)
@@ -512,6 +518,7 @@ private fun CodeLine(
     onViewportWidth: (Int) -> Unit,
     onPress: () -> Unit,
 ) {
+    val signalColors = MachineSignal.colors
     val text = state.document.line(index)
     val entry = state.entryState(index)
     val language = state.language
@@ -519,13 +526,13 @@ private fun CodeLine(
     var lineWidth by remember { mutableIntStateOf(0) }
     val firstColumn = (hScroll.value / metrics.charWidth).toInt().coerceIn(0, text.length)
     val lastColumn = (firstColumn + (lineWidth / metrics.charWidth).toInt() + 2).coerceAtMost(text.length)
-    val annotated = remember(text, spans, firstColumn, lastColumn) {
+    val annotated = remember(text, spans, firstColumn, lastColumn, signalColors) {
         AnnotatedString(
             text = text.substring(firstColumn, lastColumn),
             spanStyles = spans.mapNotNull {
                 val start = maxOf(it.start, firstColumn)
                 val end = minOf(it.end, lastColumn)
-                if (start < end) AnnotatedString.Range(SpanStyle(color = CodePalette.color(it.token)),
+                if (start < end) AnnotatedString.Range(SpanStyle(color = codeInk(it.token, signalColors)),
                     start - firstColumn, end - firstColumn) else null
             },
         )
@@ -540,13 +547,13 @@ private fun CodeLine(
     Row(Modifier.height(lineHeight).fillMaxWidth()) {
         if (showGutter) {
             Box(
-                Modifier.width(gutterWidth).fillMaxHeight().background(MachineSignal.Editor.Canvas),
+                Modifier.width(gutterWidth).fillMaxHeight().background(signalColors.canvas),
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 androidx.compose.material3.Text(
                     text = "${index + 1}",
                     style = style.copy(
-                        color = if (onCaretLine) MachineSignal.Editor.Code.GutterActive else MachineSignal.Editor.Code.Gutter,
+                        color = if (onCaretLine) signalColors.textMuted else signalColors.textFaint,
                         fontWeight = if (onCaretLine) FontWeight.Medium else FontWeight.Normal,
                     ),
                     maxLines = 1,
@@ -555,7 +562,7 @@ private fun CodeLine(
                 problems.minByOrNull { it.severity.ordinal }?.let { worst ->
                     Box(
                         Modifier.padding(start = 2.dp).width(3.dp).fillMaxHeight()
-                            .background(CodePalette.color(worst.severity))
+                            .background(CodePalette.color(worst.severity).syntaxInk(signalColors))
                             .align(Alignment.CenterStart),
                     )
                 }
@@ -571,12 +578,12 @@ private fun CodeLine(
                     .pointerHoverIcon(PointerIcon.Text)
                     .drawWithContent {
                         if (onCaretLine && selection == null) {
-                            drawRect(MachineSignal.Editor.Code.CurrentLine, size = Size(size.width, size.height))
+                            drawRect(signalColors.rowHover.copy(alpha = .6f), size = Size(size.width, size.height))
                         }
                         translate(left = -hScroll.value.toFloat()) {
-                        marks.forEach { fillColumns(it.start.column, it.end.column, metrics, MachineSignal.Editor.Code.Occurrence) }
-                        matches.forEach { fillColumns(it.start.column, it.end.column, metrics, MachineSignal.Editor.Code.Match) }
-                        selection?.let { fillColumns(it.first, it.last + 1, metrics, MachineSignal.Editor.Code.Selection) }
+                        marks.forEach { fillColumns(it.start.column, it.end.column, metrics, signalColors.textMuted.copy(alpha = .13f)) }
+                        matches.forEach { fillColumns(it.start.column, it.end.column, metrics, signalColors.warn.copy(alpha = .24f)) }
+                        selection?.let { fillColumns(it.first, it.last + 1, metrics, signalColors.selection) }
                         }
                         drawContent()
                         translate(left = -hScroll.value.toFloat()) {
@@ -584,11 +591,11 @@ private fun CodeLine(
                             val span = problem.span.ordered
                             val from = if (span.start.line == index) span.start.column else 0
                             val to = if (span.end.line == index) span.end.column else text.length
-                            squiggle(from, maxOf(to, from + 1), metrics, CodePalette.color(problem.severity))
+                            squiggle(from, maxOf(to, from + 1), metrics, CodePalette.color(problem.severity).syntaxInk(signalColors))
                         }
                         if (caretVisible && onCaretLine) {
                             drawRect(
-                                color = MachineSignal.Editor.Code.Caret,
+                                color = signalColors.controlAccent,
                                 topLeft = Offset(state.caret.column * metrics.charWidth, 1f),
                                 size = Size(MachineSignal.Editor.Code.caretWidth.toPx(), size.height - 2f),
                             )
@@ -624,7 +631,7 @@ private fun CodeLine(
 @Composable
 private fun CodeFindBar(state: CodeEditorState, modifier: Modifier, tag: String) = Row(
     modifier.height(MachineSignal.Editor.controlHeight + MachineSignal.Space.s2)
-        .background(MachineSignal.Editor.Surface)
+        .background(MachineSignal.colors.surface)
         .padding(horizontal = MachineSignal.Space.s3),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3),
@@ -647,11 +654,11 @@ private fun CodeFindBar(state: CodeEditorState, modifier: Modifier, tag: String)
                 }
             },
         textStyle = TextStyle(
-            color = MachineSignal.Editor.Text,
+            color = MachineSignal.colors.textStrong,
             fontFamily = fonts.mono,
             fontSize = MachineSignal.Type.dataStrong,
         ),
-        cursorBrush = SolidColor(MachineSignal.Editor.Source),
+        cursorBrush = SolidColor(MachineSignal.colors.source),
     )
     val matches = state.findMatches
     Text(if (matches.isEmpty()) "no matches" else "${state.findIndex + 1} of ${matches.size}", Modifier.testTag("$tag-find-count"),
@@ -669,7 +676,7 @@ private fun CodeStatusBar(
     tag: String,
 ) = Row(
     Modifier.fillMaxWidth().height(MachineSignal.Editor.statusHeight)
-        .background(MachineSignal.Editor.Surface)
+        .background(MachineSignal.colors.surface)
         .padding(horizontal = MachineSignal.Space.s3)
         .testTag("$tag-status"),
     verticalAlignment = Alignment.CenterVertically,
@@ -699,8 +706,8 @@ private fun CodeTip(message: String, origin: String?, accent: Color, tag: String
     contentAlignment = Alignment.BottomStart,
 ) {
     Column(
-        Modifier.background(MachineSignal.Editor.Raised, MachineSignal.Shape.Panel)
-            .border(1.dp, accent, MachineSignal.Shape.Panel)
+        Modifier.background(MachineSignal.colors.raised, MachineSignal.shapes.panel)
+            .border(1.dp, accent, MachineSignal.shapes.panel)
             .padding(MachineSignal.Space.s2)
             // One node, so the tip is announced as a sentence rather than two fragments.
             .semantics(mergeDescendants = true) {}
@@ -791,3 +798,16 @@ internal fun DrawScope.squiggle(from: Int, to: Int, metrics: CodeMetrics, color:
         up = !up
     }
 }
+
+private fun codeInk(token: CodeToken, colors: dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors): Color =
+    if (colors == dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors.Matrix) when (token) {
+        CodeToken.Keyword, CodeToken.Builtin, CodeToken.Annotation -> colors.accent
+        CodeToken.Type, CodeToken.Function -> colors.source
+        CodeToken.Text, CodeToken.Number -> colors.entities.service
+        CodeToken.Comment, CodeToken.Doc -> colors.textMuted
+        CodeToken.Operator, CodeToken.Bracket -> colors.entities.container
+        CodeToken.Plain -> colors.textStrong
+    } else CodePalette.color(token).syntaxInk(colors)
+
+private fun Color.syntaxInk(colors: dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors): Color =
+    if (colors.canvas.luminance() > .5f) Color(red * .45f, green * .45f, blue * .45f, alpha) else this

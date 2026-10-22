@@ -18,6 +18,8 @@ import kotlin.js.JsExport
 import kotlin.js.JsStatic
 import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 import dev.shibasis.reaktor.service.ServiceContract
+import dev.shibasis.reaktor.service.Callers
+import dev.shibasis.reaktor.service.ServiceAccess
 
 @JsExport
 @Serializable
@@ -337,7 +339,10 @@ data class DeactivateAccountResponse(
 
 @JsExport
 abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
-    override val contract = ServiceContract("reaktor.auth")
+    override val contract = Contract
+
+    @JsExport.Ignore
+    override val access = Access
 
     abstract val anonymous: PostHandler<AnonymousAuthRequest, LoginResponse>
     abstract val login: PostHandler<LoginRequest, LoginResponse>
@@ -351,6 +356,15 @@ abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
     abstract val accountDeactivate: PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>
     abstract val authorityGrants: PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>
     abstract val authorityResolve: PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>
+
+    companion object {
+        val Contract = ServiceContract("reaktor.auth")
+
+        @JsExport.Ignore
+        val Access = ServiceAccess(Callers.SignedIn, AuthService::anonymous to Callers.Everyone, AuthService::login to Callers.Everyone,
+            AuthService::token to Callers.Everyone, AuthService::mintPat to Callers.Everyone, AuthService::verifyPat to Callers.Everyone,
+            AuthService::sessionRefresh to Callers.Everyone, AuthService::sessionLogout to Callers.Everyone)
+    }
 }
 
 @JsExport

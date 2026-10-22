@@ -10,16 +10,16 @@ import dev.shibasis.reaktor.core.truth.TruthClass
 object MachineSignal {
     /** Living Graph editor tokens: reaktor.pen ms2-* variables and MG56E shell geometry. */
     object Editor {
-        val Canvas = Color(0xFF17191F)
-        val Surface = Color(0xFF202229)
-        val Raised = Color(0xFF292C35)
-        val Line = Color(0xFF3A3F4B)
-        val Text = Color(0xFFE5E7ED)
-        val Muted = Color(0xFFADB4C3)
+        val Canvas = Color(0xFF161719)
+        val Surface = Color(0xFF1D1E21)
+        val Raised = Color(0xFF2A2C31)
+        val Line = Color(0xFF3B3E46)
+        val Text = Color(0xFFEEEFF2)
+        val Muted = Color(0xFFA2A5AF)
         val Accent = Color(0xFF6F8FFF)
         val AccentSoft = Color(0x1F6F8FFF)
         val Source = Color(0xFF8DA7FF)
-        val Unknown = Color(0xFF9EABC1)
+        val Unknown = Color(0xFF9195A1)
         val menuHeight = 28.dp
         val toolbarHeight = 42.dp
         val documentTabHeight = 34.dp
@@ -41,7 +41,7 @@ object MachineSignal {
         val toolbarGap = 9.dp
         val controlGap = 6.dp
         val controlIconSize = 15.dp
-        val controlRadius = 4.dp
+        val controlRadius = 8.dp
         val projectControlWidth = 94.dp
         val branchControlWidth = 65.dp
         val searchControlWidth = 218.dp
@@ -237,10 +237,10 @@ object MachineSignal {
     }
 
     object Shape {
-        val Tight = RoundedCornerShape(3.dp)
-        val Control = RoundedCornerShape(5.dp)
-        val Panel = RoundedCornerShape(6.dp)
-        val Node = RoundedCornerShape(7.dp)
+        val Tight = RoundedCornerShape(Radius.tight)
+        val Control = RoundedCornerShape(Radius.control)
+        val Panel = RoundedCornerShape(Radius.panel)
+        val Node = RoundedCornerShape(Radius.node)
     }
 
     object Metrics {
@@ -368,11 +368,11 @@ object MachineSignal {
 
     object Radius {
         val mark = 2.dp
-        val tight = 3.dp
-        val control = 5.dp
-        val panel = 6.dp
-        val node = 7.dp
-        val card = 8.dp
+        val tight = 5.dp
+        val control = 8.dp
+        val panel = 12.dp
+        val node = 10.dp
+        val card = panel
         val countBadge = 9.dp
         val pill = 10.dp
         val statusPill = 12.dp
@@ -383,8 +383,8 @@ object MachineSignal {
         // design file, which authors chrome down to 9.5px — see the divergence ledger.
         val label = 11.sp
         val body = 13.sp
-        val title = 17.sp
-        val display = 24.sp
+        val title = 20.sp
+        val display = 28.sp
         val title2 = 16.sp
         val title3 = 15.sp
         val title4 = 14.sp
@@ -399,13 +399,21 @@ object MachineSignal {
 
         // Data ramp: monospaced values in badges, chips, rows and status bars, where density is
         // the point and the design's authored sizes are exactly right. These match reaktor.pen.
-        val data = 10.5.sp
+        val data = 11.5.sp
         val dataMicro = 9.5.sp
         val dataStrong = 11.sp
 
         val eyebrowTracking = 0.06.sp
         val kindTracking = 1.sp
         val base = TextStyle(fontSize = body2, lineHeight = 15.sp, letterSpacing = 0.sp)
+    }
+
+    object AccessWizard {
+        val summaryWidth = 340.dp
+        val groupWidth = 180.dp
+        val levelWidth = 170.dp
+        val formMaxWidth = 860.dp
+        val issuedHeight = 220.dp
     }
 
     object ActivityStrip {
@@ -582,7 +590,7 @@ object MachineSignal {
 
     object GatewayTable {
         val headerHeight = 28.dp
-        val rowHeight = 22.dp
+        val rowHeight = 32.dp
     }
 
     object DataResult {

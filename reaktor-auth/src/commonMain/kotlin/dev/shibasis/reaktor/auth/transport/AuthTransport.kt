@@ -1,18 +1,26 @@
 package dev.shibasis.reaktor.auth.transport
 
 import dev.shibasis.reaktor.core.network.StatusCode
+import dev.shibasis.reaktor.auth.fga.AccessDecision
+import dev.shibasis.reaktor.auth.fga.AccessDecisionSink
+import dev.shibasis.reaktor.auth.fga.AccessDecisions
+import dev.shibasis.reaktor.auth.fga.AccessMode
+import dev.shibasis.reaktor.auth.graph.CodeAccess
 import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthDecision
 import dev.shibasis.reaktor.auth.kernel.AuthRequirement
 import dev.shibasis.reaktor.auth.kernel.LocalAuthorizer
 import dev.shibasis.reaktor.auth.kernel.BearerHeaders
+import dev.shibasis.reaktor.service.HttpFailure
 import dev.shibasis.reaktor.service.InterceptorContext
 import dev.shibasis.reaktor.service.InterceptorStage
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
+import dev.shibasis.reaktor.service.ServiceCall
 import dev.shibasis.reaktor.service.ServiceChain
 import dev.shibasis.reaktor.service.ServiceInterceptor
 import kotlin.js.JsExport
+import kotlin.time.Clock
 import kotlin.js.JsName
 import dev.shibasis.reaktor.service.ServiceStatusException
 
@@ -102,16 +110,32 @@ class BearerAuthServerInterceptor(
 
 class AuthRequirementInterceptor(
     private val requirementProvider: (InterceptorContext<*, *>) -> AuthRequirement?,
+    private val decisions: AccessDecisionSink = AccessDecisions,
 ) : ServiceInterceptor {
     override val stages: Set<InterceptorStage> =
         setOf(InterceptorStage.SERVER_APPLICATION, InterceptorStage.CONNECTION_SETUP)
 
     override suspend fun <In : Request, Out : Response> intercept(chain: ServiceChain<In, Out>): Out {
         val requirement = requirementProvider(chain.context) ?: return chain.proceed()
-        when (val decision = LocalAuthorizer.authorize(chain.request.authContextOrNull(), requirement)) {
+        val context = chain.request.authContextOrNull()
+        val decision = LocalAuthorizer.authorize(context, requirement)
+        val contract = chain.handler.owner?.contract?.id.orEmpty()
+        val operation = CodeAccess.operationName(chain.handler.endpoint.operation, chain.handler.requestSerializer.descriptor.serialName)
+        runCatching {
+            val recorded = AccessDecision(CodeAccess.subject(context).toString(), Requirement, CodeAccess.operation(contract, operation).toString(),
+                decision is AuthDecision.Allow, AccessMode.Enforce, (decision as? AuthDecision.Deny)?.safeMessage ?: requirement.toString(),
+                tenant = context?.tenantId, atMillis = Clock.System.now().toEpochMilliseconds())
+            chain.request.attributes.getOrPut(ServiceCall.AccessAttribute) { recorded.encodeForSpan() }
+            decisions.record(recorded)
+        }
+        when (decision) {
             is AuthDecision.Allow -> return chain.proceed()
             is AuthDecision.Deny -> throw AuthRejectedException(decision)
         }
+    }
+
+    companion object {
+        const val Requirement = "requirement"
     }
 }
 
@@ -161,4 +185,4 @@ class DevAuthServerInterceptor(
 
 class AuthRejectedException(
     val decision: AuthDecision.Deny,
-) : RuntimeException(decision.safeMessage)
+) : HttpFailure(StatusCode(decision.statusCode), decision.safeMessage)

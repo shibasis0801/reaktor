@@ -1,17 +1,25 @@
 package dev.shibasis.reaktor.auth.runtime.nodes
 
+import dev.shibasis.reaktor.auth.api.AuthService
 import dev.shibasis.reaktor.auth.api.TokenRequest
 import dev.shibasis.reaktor.auth.api.TokenResponse
 import dev.shibasis.reaktor.auth.AuthAuditEventType
 import dev.shibasis.reaktor.auth.AuthCredentialType
 import dev.shibasis.reaktor.auth.AuthGrantType
+import dev.shibasis.reaktor.auth.fga.AccessDecision
+import dev.shibasis.reaktor.auth.graph.CodeAccess
 import dev.shibasis.reaktor.auth.jwt.JwtMinter
 import dev.shibasis.reaktor.auth.jwt.JwtVerifier
 import dev.shibasis.reaktor.auth.jwt.authAppId
 import dev.shibasis.reaktor.auth.jwt.authSessionId
+import dev.shibasis.reaktor.auth.kernel.PrincipalKind
+import dev.shibasis.reaktor.auth.kernel.PrincipalRef
+import dev.shibasis.reaktor.auth.runtime.AUTH_RUNTIME_CONFIG_DEPENDENCY
+import dev.shibasis.reaktor.auth.runtime.AuthRuntimeConfig
 import dev.shibasis.reaktor.auth.runtime.AuthTokenGrants
 import dev.shibasis.reaktor.auth.runtime.TOKEN_EXCHANGE_GRANT
 import dev.shibasis.reaktor.auth.runtime.audienceAllowed
+import dev.shibasis.reaktor.auth.runtime.audited
 import dev.shibasis.reaktor.auth.runtime.bearerOrRawToken
 import dev.shibasis.reaktor.auth.runtime.clampedAccessTokenTtl
 import dev.shibasis.reaktor.auth.runtime.normalizedAudience
@@ -22,12 +30,14 @@ import dev.shibasis.reaktor.auth.runtime.scopeList
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
+import dev.shibasis.reaktor.graph.di.dependency
 import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.portgraph.port.provides
 
 class AuthTokenGrantNode(
     graph: Graph,
 ) : BasicNode(graph), AuthTokenGrants {
+    private val config by dependency<AuthRuntimeConfig>(AUTH_RUNTIME_CONFIG_DEPENDENCY)
     val personalTokensPort by consumes<AuthPersonalTokens>()
     val serviceAccountsPort by consumes<AuthServiceAccounts>()
     val jwtMinterPort by consumes<JwtMinter>()
@@ -95,6 +105,25 @@ class AuthTokenGrantNode(
             return TokenResponse("", statusCode = StatusCode.UNAUTHORIZED)
         }
 
+        val decision = admitted(request, PrincipalRef(result.principalId, PrincipalKind.SERVICE), result.scopes)
+        if (decision?.blocks == true) {
+            auditPort.suspended {
+                auditFailure(
+                    request = request,
+                    subjectPrincipalId = result.principalId,
+                    appId = result.appId,
+                    credentialType = AuthCredentialType.CLIENT_CREDENTIALS.wireName,
+                    grantType = AuthGrantType.CLIENT_CREDENTIALS.wireName,
+                    tokenId = result.serviceAccountId,
+                    reason = AccessRefused,
+                    audience = result.audience,
+                    scopes = result.scopes,
+                    data = decision.audited,
+                )
+            }
+            return TokenResponse("", statusCode = StatusCode.FORBIDDEN)
+        }
+
         auditPort.suspended {
             auditSuccess(
                 request = request,
@@ -106,6 +135,7 @@ class AuthTokenGrantNode(
                 tokenId = result.serviceAccountId,
                 audience = result.audience,
                 scopes = result.scopes,
+                data = decision.audited,
             )
         }
 
@@ -231,6 +261,25 @@ class AuthTokenGrantNode(
         val ttlSeconds = request.ttlSeconds.clampedAccessTokenTtl()
         val scopes = serviceAccountsPort { scopesFor(actor, request.scopes) }
         val actorSubject = serviceAccountsPort { subjectOf(actor) }
+        val decision = admitted(request, PrincipalRef(actorSubject, PrincipalKind.SERVICE), scopes)
+        if (decision?.blocks == true) {
+            auditPort.suspended {
+                auditFailure(
+                    request = request,
+                    actorPrincipalId = actorSubject,
+                    subjectPrincipalId = subject,
+                    appId = actor.appId,
+                    sessionId = subjectClaims.authSessionId(),
+                    credentialType = AuthCredentialType.CLIENT_CREDENTIALS.wireName,
+                    grantType = TOKEN_EXCHANGE_GRANT,
+                    reason = AccessRefused,
+                    audience = audience,
+                    scopes = scopes,
+                    data = decision.audited,
+                )
+            }
+            return TokenResponse("", statusCode = StatusCode.FORBIDDEN)
+        }
         val token = jwtMinterPort {
             mintDelegatedToken(
                 subject = subject,
@@ -254,6 +303,7 @@ class AuthTokenGrantNode(
                 grantType = TOKEN_EXCHANGE_GRANT,
                 audience = audience,
                 scopes = scopes,
+                data = decision.audited,
             )
         }
         return TokenResponse(
@@ -313,6 +363,26 @@ class AuthTokenGrantNode(
             return TokenResponse("", statusCode = StatusCode.FORBIDDEN)
         }
 
+        val decision = admitted(request, pat.principalId?.let { PrincipalRef(it, PrincipalKind.USER) }, pat.scopeList())
+        if (decision?.blocks == true) {
+            auditPort.suspended {
+                auditFailure(
+                    request = request,
+                    subjectPrincipalId = pat.principalId,
+                    appId = pat.appId,
+                    contextId = pat.contextId,
+                    credentialType = AuthCredentialType.PERSONAL_ACCESS_TOKEN.wireName,
+                    grantType = AuthGrantType.PAT.wireName,
+                    tokenId = pat.id,
+                    reason = AccessRefused,
+                    audience = audience,
+                    scopes = pat.scopeList(),
+                    data = decision.audited,
+                )
+            }
+            return TokenResponse("", statusCode = StatusCode.FORBIDDEN)
+        }
+
         val ttlSeconds = request.ttlSeconds.clampedAccessTokenTtl()
         val token = personalTokensPort { createAccessToken(pat = pat, audience = audience, ttlSeconds = ttlSeconds) }
         auditPort.suspended {
@@ -327,6 +397,7 @@ class AuthTokenGrantNode(
                 tokenId = pat.id,
                 audience = audience,
                 scopes = pat.scopeList(),
+                data = decision.audited,
             )
         }
         return TokenResponse(
@@ -337,5 +408,15 @@ class AuthTokenGrantNode(
             audience = audience,
             contextId = pat.contextId,
         )
+    }
+
+    private fun admitted(request: TokenRequest, principal: PrincipalRef?, scopes: List<String>): AccessDecision? {
+        val access = config.access ?: return null
+        val subject = CodeAccess.subject(principal ?: return null)
+        return access.invoking(request, subject, CodeAccess.contextual(subject, permissions = scopes), AuthService::token.name)
+    }
+
+    private companion object {
+        const val AccessRefused = "access_model_refused"
     }
 }

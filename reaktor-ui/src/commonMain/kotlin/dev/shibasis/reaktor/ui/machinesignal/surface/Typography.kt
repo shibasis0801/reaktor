@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.em
 import dev.shibasis.reaktor.surface.InkRole
 import dev.shibasis.reaktor.surface.TextRole
 import dev.shibasis.reaktor.surface.ThemeSnapshot
@@ -15,6 +16,8 @@ import dev.shibasis.reaktor.surface.TypeFace
 import dev.shibasis.reaktor.surface.TypeScale
 import dev.shibasis.reaktor.surface.TypeWeight
 import dev.shibasis.reaktor.surface.compose.TextAppearance
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 
 val SignalTypography: TextAppearance = object : TextAppearance {
@@ -23,6 +26,10 @@ val SignalTypography: TextAppearance = object : TextAppearance {
         val signal = theme.machineSignal
         val base = LocalTextStyle.current
         val color = ink?.let(signal::ink) ?: base.color.takeOrElse { LocalContentColor.current }
+        if (signal.mode == MachineSignalMode.Matrix) {
+            val size = role?.let { signal.type.size(it.scale) } ?: if (base.fontSize == TextUnit.Unspecified) signal.metrics.label else base.fontSize
+            return base.merge(matrixTextStyle(signal, color, size, role?.weight?.font ?: FontWeight.Normal))
+        }
         if (role == null) return base.merge(color = color)
         val size = signal.type.size(role.scale)
         if (role.face == TypeFace.Chrome) return TextStyle(
@@ -39,7 +46,12 @@ val SignalTypography: TextAppearance = object : TextAppearance {
             fontSize = size,
             fontWeight = role.weight.font,
             fontFamily = if (role.face == TypeFace.Code) signal.fonts.mono else signal.fonts.ui,
-            letterSpacing = if (role.scale == TypeScale.Eyebrow) signal.type.eyebrowTracking else TextUnit.Unspecified,
+            lineHeight = MachineSignal.Editor.Code.lineHeight.em,
+            letterSpacing = when (role.scale) {
+                TypeScale.Display, TypeScale.Title -> (-.025).em
+                TypeScale.Eyebrow -> signal.type.eyebrowTracking
+                else -> TextUnit.Unspecified
+            },
         )
     }
 

@@ -12,19 +12,10 @@ import io.ktor.http.isSuccess
 import io.ktor.util.encodeBase64
 import kotlinx.atomicfu.atomic
 
-/**
- * Where a batch is sent, and how the request is authorised.
- *
- * Grafana Cloud's OTLP gateway takes HTTP Basic auth whose username is the numeric instance id
- * and whose password is a Cloud Access Policy token. Both come from the caller; nothing here
- * reads an environment variable or a file, so a token cannot be picked up by accident.
- */
 data class OtlpEndpoint(
-    /** Full traces URL, e.g. `https://otlp-gateway-prod-eu-west-2.grafana.net/otlp/v1/traces`. */
     val tracesUrl: String,
-    val instanceId: String,
-    val token: String,
-    /** Extra headers, for a self-hosted collector that authenticates differently. */
+    val instanceId: String = "",
+    val token: String = "",
     val headers: Map<String, String> = emptyMap(),
 ) {
     init {
@@ -33,8 +24,13 @@ data class OtlpEndpoint(
         }
     }
 
-    internal val authorization: String
-        get() = "Basic " + "$instanceId:$token".encodeToByteArray().encodeBase64()
+    internal val authorization: String?
+        get() = when {
+            headers.keys.any { it.equals(HttpHeaders.Authorization, ignoreCase = true) } -> null
+            instanceId.isNotBlank() -> "Basic " + "$instanceId:$token".encodeToByteArray().encodeBase64()
+            token.isNotBlank() -> "Bearer $token"
+            else -> null
+        }
 
     override fun toString() = "OtlpEndpoint($tracesUrl, instance=$instanceId, token=redacted)"
 }
@@ -97,7 +93,7 @@ class HttpOtlpTransport(
     private suspend fun post(body: String): HttpResponse = client.post(endpoint.tracesUrl) {
         contentType(ContentType.Application.Json)
         headers {
-            append(HttpHeaders.Authorization, endpoint.authorization)
+            endpoint.authorization?.let { append(HttpHeaders.Authorization, it) }
             endpoint.headers.forEach { (key, value) -> append(key, value) }
         }
         setBody(body)

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
 import dev.shibasis.reaktor.surface.compose.lineBox
 import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.ScrollState
@@ -69,6 +71,7 @@ import dev.shibasis.reaktor.surface.compose.TooltipAppearance
 import dev.shibasis.reaktor.surface.compose.TooltipSlots
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSnapshot
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
 import dev.shibasis.reaktor.ui.machinesignal.StatusDot
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 import dev.shibasis.reaktor.ui.machinesignal.signalOrBoard
@@ -76,7 +79,7 @@ import dev.shibasis.reaktor.ui.machinesignal.signalOrBoard
 private val ToolStripHeight = 32.dp
 private val ToolButtonSize = 24.dp
 private val PinTipWidth = 380.dp
-private val SectionHeading = 10.sp
+private val SectionHeading = MachineSignal.Editor.label
 private val PropertyLabelWidth = 132.dp
 private val DetailLabelWidth = 120.dp
 private val TileWidth = 150.dp
@@ -92,16 +95,22 @@ private val PanelHeaderHeight = 34.dp
 val SignalIcon: IconAppearance = object : IconAppearance {
     @Composable
     override fun tint(ink: InkRole?, theme: ThemeSnapshot): Color = ink?.let(theme.machineSignal::ink) ?: LocalContentColor.current
+
+    @Composable
+    override fun Content(painter: androidx.compose.ui.graphics.painter.Painter, modifier: Modifier, ink: InkRole?, theme: ThemeSnapshot) {
+        if ((theme as? MachineSignalSnapshot)?.mode == MachineSignalMode.Matrix) MatrixIcon(painter, modifier, tint(ink, theme))
+        else super.Content(painter, modifier, ink, theme)
+    }
 }
 
-val ToolStrip: BarAppearance = strip(ToolStripHeight, MachineSignal.Editor.controlGap)
+val ToolStrip: BarAppearance = strip(ToolStripHeight, MachineSignal.Editor.controlGap).withMatrix(MatrixBar(ToolStripHeight, MachineSignal.Editor.controlGap))
 
-val StatusStrip: BarAppearance = strip(MachineSignal.Editor.statusHeight, MachineSignal.Space.s3)
+val StatusStrip: BarAppearance = strip(MachineSignal.Editor.statusHeight, MachineSignal.Space.s3).withMatrix(MatrixBar(MachineSignal.Editor.statusHeight, MachineSignal.Space.s3))
 
 private fun strip(height: Dp, gap: Dp): BarAppearance = object : BarAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BarSlots) = Row(
-        Modifier.fillMaxWidth().heightIn(min = height).lineBox(Type.Meta, MachineSignal.Space.s1 / 2).background(theme.machineSignal.colors.surface).padding(horizontal = MachineSignal.Space.s2),
+        Modifier.fillMaxWidth().heightIn(min = height).lineBox(Type.Meta, MachineSignal.Space.s1 / 2).padding(horizontal = MachineSignal.Space.s2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(gap),
         content = slots.content,
@@ -112,14 +121,13 @@ val SegmentTrack: BarAppearance = object : BarAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BarSlots) {
         val colors = theme.machineSignal.colors
-        val shape = RoundedCornerShape(MachineSignal.Editor.controlRadius)
         Row(
-            Modifier.heightIn(min = MachineSignal.Editor.controlHeight).lineBox(Type.Label, MachineSignal.Space.s1 / 2).height(IntrinsicSize.Min).clip(shape).background(colors.canvas).border(MachineSignal.Stroke.hairline, colors.line, shape),
+            Modifier.heightIn(min = MachineSignal.Editor.controlHeight).lineBox(Type.Label, MachineSignal.Space.s1 / 2).height(IntrinsicSize.Min).clip(MachineSignal.shapes.panel).background(colors.canvas.copy(alpha = .65f)).padding(MachineSignal.Space.s0_75),
             verticalAlignment = Alignment.CenterVertically,
             content = slots.content,
         )
     }
-}
+}.withMatrix(MatrixSegmentTrack)
 
 val SegmentItem: ItemAppearance = object : ItemAppearance {
     @Composable
@@ -127,15 +135,15 @@ val SegmentItem: ItemAppearance = object : ItemAppearance {
         val signal = theme.machineSignal
         val colors = signal.colors
         Box(
-            Modifier.fillMaxHeight().background(if (properties.selected) colors.controlAccent else Color.Transparent)
+            Modifier.fillMaxHeight().clip(MachineSignal.shapes.control).background(when { properties.selected -> colors.raised; state.hovered -> colors.surfaceAlt; else -> Color.Transparent })
                 .then(if (state.focusVisible) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus)) else Modifier)
-                .padding(horizontal = MachineSignal.Space.s3),
+                .padding(horizontal = MachineSignal.Space.s2),
             contentAlignment = Alignment.Center,
         ) {
-            ProvideLabel(Label(if (properties.selected) colors.canvas else colors.textMuted, signal.fonts.ui, MachineSignal.Editor.label, FontWeight.Normal)) { slots.content() }
+            ProvideLabel(Label(if (properties.selected) colors.textStrong else colors.textMuted, signal.fonts.ui, MachineSignal.Editor.label, if (properties.selected) FontWeight.Medium else FontWeight.Normal)) { slots.content() }
         }
     }
-}
+}.withMatrix(MatrixTab)
 
 fun filterChip(ink: InkRole): ItemAppearance = AccentChip(ink)
 
@@ -147,7 +155,7 @@ private data class AccentChip(val ink: InkRole) : ItemAppearance {
     }
 }
 
-fun tintChip(ink: InkRole): ItemAppearance = TintChip(ink)
+fun tintChip(ink: InkRole): ItemAppearance = TintChip(ink).withMatrix(AccentChip(ink))
 
 private data class TintChip(val ink: InkRole) : ItemAppearance {
     @Composable
@@ -165,9 +173,9 @@ private data class TintChip(val ink: InkRole) : ItemAppearance {
 
 fun toolButton(active: Boolean): ButtonAppearance = if (active) ActiveToolButton else IdleToolButton
 
-private val IdleToolButton: ButtonAppearance = ToolButtonLook(active = false)
+private val IdleToolButton: ButtonAppearance = ToolButtonLook(active = false).withMatrix(MatrixButton(dev.shibasis.reaktor.ui.machinesignal.SignalTone.Ghost))
 
-private val ActiveToolButton: ButtonAppearance = ToolButtonLook(active = true)
+private val ActiveToolButton: ButtonAppearance = ToolButtonLook(active = true).withMatrix(MatrixButton(dev.shibasis.reaktor.ui.machinesignal.SignalTone.Ghost, active = true))
 
 private data class ToolButtonLook(val active: Boolean) : ButtonAppearance {
     @Composable
@@ -183,7 +191,7 @@ private data class ToolButtonLook(val active: Boolean) : ButtonAppearance {
                         else -> Color.Transparent
                     },
                 )
-                .then(if (state.focusVisible) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus), MachineSignal.Shape.Control) else Modifier),
+                .then(if (state.focusVisible) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus), MachineSignal.shapes.control) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             val tint = when {
@@ -200,13 +208,13 @@ val NavigationRow: RowAppearance = object : RowAppearance {
     @Composable
     override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) =
         NavigationFrame(theme.machineSignal, properties.selected, state.hovered, state.focusVisible, feedback, slots.content)
-}
+}.withMatrix(MatrixNavigationRow)
 
 fun navigationButton(selected: Boolean): ButtonAppearance = if (selected) SelectedNavigationButton else IdleNavigationButton
 
-private val IdleNavigationButton: ButtonAppearance = NavigationButton(selected = false)
+private val IdleNavigationButton: ButtonAppearance = NavigationButton(selected = false).withMatrix(MatrixNavigationButton(selected = false))
 
-private val SelectedNavigationButton: ButtonAppearance = NavigationButton(selected = true)
+private val SelectedNavigationButton: ButtonAppearance = NavigationButton(selected = true).withMatrix(MatrixNavigationButton(selected = true))
 
 private data class NavigationButton(val selected: Boolean) : ButtonAppearance {
     @Composable
@@ -218,14 +226,14 @@ private data class NavigationButton(val selected: Boolean) : ButtonAppearance {
 private fun NavigationFrame(signal: MachineSignalSnapshot, selected: Boolean, hovered: Boolean, focused: Boolean, feedback: ComposeFeedback, content: @Composable () -> Unit) {
     val colors = signal.colors
     Row(
-        Modifier.fillMaxWidth().heightIn(min = MachineSignal.Editor.layerRowHeight)
-            .background(when { selected -> colors.controlAccentSoft; hovered -> colors.raised; else -> Color.Transparent })
-            .then(if (focused) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus)) else Modifier),
+        Modifier.fillMaxWidth().padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s0_5)
+            .heightIn(min = MachineSignal.Editor.layerRowHeight).clip(MachineSignal.shapes.control)
+            .background(when { selected -> colors.raised; hovered -> colors.surfaceAlt.copy(alpha = .5f); else -> Color.Transparent })
+            .then(if (focused) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus), MachineSignal.shapes.control) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.width(MachineSignal.Stroke.bar).height(MachineSignal.Editor.layerRowHeight).background(if (selected) colors.controlAccent else Color.Transparent))
         Box(Modifier.weight(1f).padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2)) {
-            ProvideLabel(signal.label(colors.text, MachineSignal.Type.body, if (selected) FontWeight.SemiBold else FontWeight.Normal), content)
+            ProvideLabel(signal.label(if (selected) colors.textStrong else colors.textMuted, MachineSignal.Type.body, if (selected) FontWeight.Medium else FontWeight.Normal), content)
         }
     }
 }
@@ -238,7 +246,7 @@ private data class TabStrip(val scroll: ScrollState) : BarAppearance {
         val colors = theme.machineSignal.colors
         Column(Modifier.fillMaxWidth()) {
             Row(
-                Modifier.fillMaxWidth().background(colors.surface).horizontalScroll(scroll).padding(horizontal = MachineSignal.Metrics.shellPaddingX),
+                Modifier.fillMaxWidth().horizontalScroll(scroll).padding(horizontal = MachineSignal.Metrics.shellPaddingX),
                 horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
                 verticalAlignment = Alignment.CenterVertically,
                 content = slots.content,
@@ -250,13 +258,13 @@ private data class TabStrip(val scroll: ScrollState) : BarAppearance {
 
 val DropdownPlacement = Placement(Side.Below, Align.Start, gap = MachineSignal.Space.none, margin = DropdownMargin)
 
-fun pinTip(ink: InkRole): TooltipAppearance = PinTip(ink)
+fun pinTip(ink: InkRole): TooltipAppearance = PinTip(ink).withMatrix(MatrixTooltip)
 
 private data class PinTip(val ink: InkRole) : TooltipAppearance {
     @Composable
     override fun Content(properties: TipContent, state: TooltipState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: TooltipSlots) {
         val signal = theme.machineSignal
-        val shape = RoundedCornerShape(MachineSignal.Radius.panel)
+        val shape = MachineSignal.shapes.panel
         Column(
             Modifier.widthIn(max = PinTipWidth).clip(shape).background(signal.colors.raised)
                 .border(MachineSignal.Stroke.hairline, signal.ink(ink).copy(alpha = .5f), shape).padding(MachineSignal.Space.s2_5),
@@ -269,15 +277,15 @@ val InspectorSection: SectionAppearance = object : SectionAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SectionSlots) {
         val signal = theme.machineSignal
-        Column(Modifier.fillMaxWidth().padding(top = MachineSignal.Space.s2)) {
-            Row(Modifier.padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s1), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.fillMaxWidth().padding(top = MachineSignal.Space.s3)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = MachineSignal.Space.s4, vertical = MachineSignal.Space.s2), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f)) { ProvideLabel(signal.label(signal.colors.textMuted, SectionHeading, FontWeight.SemiBold), slots.heading) }
                 slots.trailing?.let { ProvideLabel(signal.label(signal.colors.textMuted, SectionHeading), it) }
             }
             slots.content(this)
         }
     }
-}
+}.withMatrix(MatrixSection(MachineSignal.Space.none, framed = false))
 
 val InlineSection: SectionAppearance = object : SectionAppearance {
     @Composable
@@ -289,7 +297,7 @@ val InlineSection: SectionAppearance = object : SectionAppearance {
             slots.content(this)
         }
     }
-}
+}.withMatrix(MatrixSection(MachineSignal.Space.none, framed = false))
 
 val StackSection: SectionAppearance = object : SectionAppearance {
     @Composable
@@ -300,35 +308,33 @@ val StackSection: SectionAppearance = object : SectionAppearance {
             slots.content(this)
         }
     }
-}
+}.withMatrix(MatrixSection(MachineSignal.Space.none, framed = false))
 
 val CardSection: SectionAppearance = object : SectionAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SectionSlots) {
         val signal = theme.machineSignal
         Column(
-            Modifier.fillMaxWidth().background(signal.colors.surface, MachineSignal.Shape.Panel).padding(MachineSignal.Space.s3),
+            Modifier.fillMaxWidth().background(signal.colors.surface, MachineSignal.shapes.panel).padding(MachineSignal.Space.s3),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
         ) {
             ProvideLabel(signal.label(signal.colors.textFaint, MachineSignal.Editor.meta), slots.heading)
             slots.content(this)
         }
     }
-}
+}.withMatrix(MatrixSection())
 
-val PanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.s3)
+val PanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.s3).withMatrix(MatrixSection())
 
-val FlushPanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.none)
+val FlushPanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.none).withMatrix(MatrixSection(MachineSignal.Space.none))
 
 private data class SignalPanelSection(val inset: Dp) : SectionAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SectionSlots) {
         val signal = theme.signalOrBoard
-        Column(Modifier.background(signal.colors.surface).then(
-            if (signal.variant == MachineSignalVariant.Editor) Modifier.border(MachineSignal.Stroke.hairline, signal.colors.lineSubtle) else Modifier,
-        )) {
+        Column(Modifier.clip(MachineSignal.shapes.panel).background(signal.colors.surface)) {
             Row(
-                Modifier.fillMaxWidth().heightIn(min = PanelHeaderHeight).lineBox(Type.Body, MachineSignal.Space.s1 / 2).padding(horizontal = inset),
+                Modifier.fillMaxWidth().heightIn(min = PanelHeaderHeight).lineBox(Type.Body, MachineSignal.Space.s1 / 2).padding(horizontal = MachineSignal.Space.s4, vertical = MachineSignal.Space.s2),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -337,28 +343,27 @@ private data class SignalPanelSection(val inset: Dp) : SectionAppearance {
                     Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2), verticalAlignment = Alignment.CenterVertically) { trailing() }
                 }
             }
-            Box(Modifier.fillMaxWidth().height(MachineSignal.Stroke.hairline).background(signal.colors.lineSubtle))
             Column(Modifier.padding(inset)) { slots.content(this) }
         }
     }
 }
 
-val InspectorProperty: PropertyAppearance = labelled(PropertyLabelWidth, MachineSignal.Space.none, Modifier.padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s0_75))
+val InspectorProperty: PropertyAppearance = labelled(PropertyLabelWidth, MachineSignal.Space.none, Modifier.padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s1_5)).withMatrix(MatrixProperty(PropertyLabelWidth))
 
-val DetailProperty: PropertyAppearance = labelled(DetailLabelWidth, MachineSignal.Space.s2, Modifier)
+val DetailProperty: PropertyAppearance = labelled(DetailLabelWidth, MachineSignal.Space.s2, Modifier).withMatrix(MatrixProperty(DetailLabelWidth))
 
 private fun labelled(width: Dp, gap: Dp, inset: Modifier): PropertyAppearance = object : PropertyAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: PropertySlots) {
         val signal = theme.machineSignal
         Row(Modifier.fillMaxWidth().then(inset), horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
-            Box(Modifier.width(width)) { ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.meta), slots.label) }
-            ProvideLabel(signal.label(signal.colors.text, MachineSignal.Editor.meta)) { slots.value(this) }
+            Box(Modifier.width(width)) { ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.label), slots.label) }
+            ProvideLabel(signal.label(signal.colors.textStrong, MachineSignal.Editor.label)) { slots.value(this) }
         }
     }
 }
 
-fun glanceProperty(labelWidth: Dp): PropertyAppearance = GlanceProperty(labelWidth)
+fun glanceProperty(labelWidth: Dp): PropertyAppearance = GlanceProperty(labelWidth).withMatrix(MatrixProperty(labelWidth))
 
 private data class GlanceProperty(val labelWidth: Dp) : PropertyAppearance {
     @Composable
@@ -382,55 +387,55 @@ val StatusProperty: PropertyAppearance = object : PropertyAppearance {
             ProvideLabel(signal.label(signal.colors.text, MachineSignal.Editor.meta)) { slots.value(this) }
         }
     }
-}
+}.withMatrix(MatrixProperty(MachineSignal.Editor.navigatorWidth / 3))
 
 val TileMetric: MetricAppearance = object : MetricAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: MetricSlots) {
         val signal = theme.machineSignal
         Column(
-            Modifier.width(TileWidth).clip(RoundedCornerShape(MachineSignal.Editor.controlRadius)).background(signal.colors.surface).padding(MachineSignal.Space.s2),
+            Modifier.width(TileWidth).padding(horizontal = MachineSignal.Space.s4, vertical = MachineSignal.Space.s3),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s0_5),
         ) {
             ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.meta), slots.label)
-            ProvideLabel(signal.label(signal.colors.text, MachineSignal.Type.body), slots.value)
+            ProvideLabel(signal.label(signal.colors.textStrong, MachineSignal.Type.display, FontWeight.SemiBold), slots.value)
             slots.trend?.let { Box(Modifier.fillMaxWidth().height(TileTrendHeight), propagateMinConstraints = true) { it() } }
             slots.detail?.let { ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.meta), it) }
         }
     }
-}
+}.withMatrix(MatrixMetric)
 
 val StatMetric: MetricAppearance = object : MetricAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: MetricSlots) {
         val signal = theme.machineSignal
         Column(
-            Modifier.clip(MachineSignal.Shape.Panel).background(signal.colors.surface).padding(horizontal = MachineSignal.Space.s2_5, vertical = MachineSignal.Space.s1_75),
+            Modifier.clip(MachineSignal.shapes.panel).background(signal.colors.surface).padding(horizontal = MachineSignal.Space.s2_5, vertical = MachineSignal.Space.s1_75),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s0_25),
         ) {
-            ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Type.dataMicro, FontWeight.SemiBold), slots.label)
-            ProvideLabel(signal.label(signal.colors.text, MachineSignal.Type.title2, FontWeight.SemiBold), slots.value)
+            ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.label), slots.label)
+            ProvideLabel(signal.label(signal.colors.textStrong, MachineSignal.Type.display, FontWeight.SemiBold), slots.value)
             slots.detail?.let { ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Type.fine), it) }
         }
     }
-}
+}.withMatrix(MatrixMetric)
 
 val KpiMetric: MetricAppearance = object : MetricAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: MetricSlots) {
         val signal = theme.machineSignal
-        val shape = RoundedCornerShape(MachineSignal.Radius.card)
+        val shape = MachineSignal.shapes.panel
         Column(
-            Modifier.clip(shape).background(signal.colors.surface).border(MachineSignal.Stroke.hairline, signal.colors.line, shape)
+            Modifier.clip(shape).background(signal.colors.raised.copy(alpha = .45f))
                 .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
         ) {
             ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.meta), slots.label)
             ProvideLabel(signal.label(signal.colors.text, KpiValue, FontWeight.SemiBold, mono = true), slots.value)
         }
     }
-}
+}.withMatrix(MatrixMetric)
 
-fun authFinding(ink: InkRole): FindingAppearance = AuthFinding(ink)
+fun authFinding(ink: InkRole): FindingAppearance = AuthFinding(ink).withMatrix(MatrixFinding(ink))
 
 private data class AuthFinding(val ink: InkRole) : FindingAppearance {
     @Composable
@@ -438,10 +443,10 @@ private data class AuthFinding(val ink: InkRole) : FindingAppearance {
         val signal = theme.machineSignal
         val colors = signal.colors
         val tone = signal.ink(ink)
-        val shape = MachineSignal.Shape.Panel
+        val shape = MachineSignal.shapes.panel
         Row(
             Modifier.fillMaxWidth().clip(shape).background(if (properties.selected) tone.copy(alpha = .12f) else colors.surface)
-                .border(MachineSignal.Stroke.hairline, if (properties.selected) tone.copy(alpha = .6f) else colors.line, shape).padding(MachineSignal.Space.s2_5),
+                .border(MachineSignal.Stroke.hairline, if (properties.selected) tone.copy(alpha = .4f) else Color.Transparent, shape).padding(MachineSignal.Space.s2_5),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2_5),
         ) {
             Column(Modifier.width(AuthFindingMarkWidth), verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1)) {
@@ -464,7 +469,7 @@ private data class AuthFinding(val ink: InkRole) : FindingAppearance {
     }
 }
 
-fun graphFinding(ink: InkRole): FindingAppearance = GraphFinding(ink)
+fun graphFinding(ink: InkRole): FindingAppearance = GraphFinding(ink).withMatrix(MatrixFinding(ink))
 
 private data class GraphFinding(val ink: InkRole) : FindingAppearance {
     @Composable
@@ -473,8 +478,8 @@ private data class GraphFinding(val ink: InkRole) : FindingAppearance {
         val colors = signal.colors
         val tone = signal.ink(ink)
         Column(
-            Modifier.fillMaxWidth().padding(vertical = MachineSignal.Space.s1_25).background(tone.copy(alpha = .06f), MachineSignal.Shape.Panel)
-                .border(MachineSignal.Stroke.hairline, tone.copy(alpha = .35f), MachineSignal.Shape.Panel).padding(MachineSignal.Space.s2_5),
+            Modifier.fillMaxWidth().padding(vertical = MachineSignal.Space.s1_25).background(tone.copy(alpha = .06f), MachineSignal.shapes.panel)
+                .padding(MachineSignal.Space.s2_5),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1_5), verticalAlignment = Alignment.CenterVertically) {
@@ -489,7 +494,7 @@ private data class GraphFinding(val ink: InkRole) : FindingAppearance {
     }
 }
 
-fun cloudFinding(ink: InkRole): FindingAppearance = CloudFinding(ink)
+fun cloudFinding(ink: InkRole): FindingAppearance = CloudFinding(ink).withMatrix(MatrixFinding(ink))
 
 private data class CloudFinding(val ink: InkRole) : FindingAppearance {
     @Composable
@@ -498,8 +503,8 @@ private data class CloudFinding(val ink: InkRole) : FindingAppearance {
         val colors = signal.colors
         val tone = signal.ink(ink)
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s0_75).clip(MachineSignal.Shape.Panel)
-                .background(tone.copy(alpha = .08f)).border(MachineSignal.Stroke.hairline, tone.copy(alpha = .35f), MachineSignal.Shape.Panel).padding(MachineSignal.Space.s2),
+            Modifier.fillMaxWidth().padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s0_75).clip(MachineSignal.shapes.panel)
+                .background(tone.copy(alpha = .06f)).padding(MachineSignal.Space.s2),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s0_75),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1_5)) {
@@ -514,7 +519,7 @@ private data class CloudFinding(val ink: InkRole) : FindingAppearance {
     }
 }
 
-fun glanceFinding(ink: InkRole): FindingAppearance = GlanceFinding(ink)
+fun glanceFinding(ink: InkRole): FindingAppearance = GlanceFinding(ink).withMatrix(MatrixFinding(ink))
 
 private data class GlanceFinding(val ink: InkRole) : FindingAppearance {
     @Composable
@@ -536,7 +541,7 @@ private data class GlanceFinding(val ink: InkRole) : FindingAppearance {
     }
 }
 
-fun analyticsFinding(ink: InkRole): FindingAppearance = AnalyticsFinding(ink)
+fun analyticsFinding(ink: InkRole): FindingAppearance = AnalyticsFinding(ink).withMatrix(MatrixFinding(ink))
 
 private data class AnalyticsFinding(val ink: InkRole) : FindingAppearance {
     @Composable
@@ -545,8 +550,7 @@ private data class AnalyticsFinding(val ink: InkRole) : FindingAppearance {
         val colors = signal.colors
         val tone = signal.ink(ink)
         Row(
-            Modifier.fillMaxWidth().clip(MachineSignal.Shape.Panel).background(tone.copy(alpha = .08f))
-                .border(MachineSignal.Stroke.hairline, tone.copy(alpha = .35f), MachineSignal.Shape.Panel)
+            Modifier.fillMaxWidth().clip(MachineSignal.shapes.panel).background(tone.copy(alpha = .08f))
                 .padding(horizontal = MachineSignal.Space.s2_5, vertical = MachineSignal.Space.s1_5),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
         ) {
@@ -559,9 +563,9 @@ private data class AnalyticsFinding(val ink: InkRole) : FindingAppearance {
     }
 }
 
-fun verdictFinding(ink: InkRole): FindingAppearance = VerdictFinding(ink, MachineSignal.Space.s3_5, VerdictLarge)
+fun verdictFinding(ink: InkRole): FindingAppearance = VerdictFinding(ink, MachineSignal.Space.s3_5, VerdictLarge).withMatrix(MatrixFinding(ink))
 
-fun bannerFinding(ink: InkRole): FindingAppearance = VerdictFinding(ink, MachineSignal.Space.s3, MachineSignal.Type.title3)
+fun bannerFinding(ink: InkRole): FindingAppearance = VerdictFinding(ink, MachineSignal.Space.s3, MachineSignal.Type.title3).withMatrix(MatrixFinding(ink))
 
 private data class VerdictFinding(val ink: InkRole, val inset: Dp, val verdict: TextUnit) : FindingAppearance {
     @Composable
@@ -569,7 +573,7 @@ private data class VerdictFinding(val ink: InkRole, val inset: Dp, val verdict: 
         val signal = theme.machineSignal
         val colors = signal.colors
         val tone = signal.ink(ink)
-        val shape = RoundedCornerShape(MachineSignal.Radius.card)
+        val shape = MachineSignal.shapes.panel
         Row(
             Modifier.fillMaxWidth().clip(shape).background(tone.copy(alpha = .12f)).border(MachineSignal.Stroke.hairline, tone.copy(alpha = .5f), shape).padding(inset),
             verticalAlignment = Alignment.CenterVertically,

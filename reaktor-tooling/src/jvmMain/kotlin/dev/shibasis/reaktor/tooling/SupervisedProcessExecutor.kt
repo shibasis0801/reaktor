@@ -48,6 +48,7 @@ data class ProcessExecutionRequest(
     val definitionSeal: ProcessDefinitionSeal? = null,
     /** Complete stdout payload for structured readers. Overflow fails without emitting a partial payload. */
     val captureStdoutChars: Int? = null,
+    val captureStdoutLineChars: Int? = null,
 )
 
 data class ProcessDefinitionSeal(
@@ -138,6 +139,12 @@ class SupervisedProcessExecutor(
 
         require(request.captureStdoutChars == null || request.captureStdoutChars in 1..8_388_608) {
             "Structured stdout capture must be bounded to at most 8,388,608 characters"
+        }
+        require(request.captureStdoutLineChars == null || request.captureStdoutLineChars in 1..8_388_608) {
+            "Structured stdout lines must be bounded to at most 8,388,608 characters"
+        }
+        require(request.captureStdoutChars == null || request.captureStdoutLineChars == null) {
+            "Choose complete stdout capture or structured line capture"
         }
         val runId = request.runId ?: idGenerator()
         val initialRun = TaskRun(
@@ -308,7 +315,7 @@ class SupervisedProcessExecutor(
             val processScope = CoroutineScope(currentCoroutineContext())
             outputJobs = listOf(
                 stream(process.inputStream, OutputChannel.Stdout, redactor, processScope, queuedRun.id, ::emit,
-                    request.captureStdoutChars, gradleProgress = gradle) { captureFailure.compareAndSet(null, it) },
+                    request.captureStdoutChars, request.captureStdoutLineChars, gradleProgress = gradle) { captureFailure.compareAndSet(null, it) },
                 stream(process.errorStream, OutputChannel.Stderr, redactor, processScope, queuedRun.id, ::emit),
             )
 
@@ -403,6 +410,7 @@ class SupervisedProcessExecutor(
         runId: RunId,
         emit: suspend (((Long, Long) -> RunEvent)) -> Unit,
         captureLimit: Int? = null,
+        captureLineLimit: Int? = null,
         gradleProgress: Boolean = false,
         onCaptureFailure: (String) -> Unit = {},
     ): Job = outputScope.launch(Dispatchers.IO) {
@@ -423,11 +431,18 @@ class SupervisedProcessExecutor(
                     return@use
                 }
                 val line = StringBuilder()
+                val lineLimit = captureLineLimit ?: MAX_OUTPUT_LINE_CHARS
                 var truncated = false
 
                 suspend fun emitLine() {
+                    if (truncated && captureLineLimit != null) {
+                        onCaptureFailure("Structured stdout line exceeded the $captureLineLimit character capture limit")
+                        line.clear()
+                        truncated = false
+                        return
+                    }
                     val suffix = if (truncated) " …[truncated]" else ""
-                    val available = (MAX_OUTPUT_LINE_CHARS - suffix.length).coerceAtLeast(0)
+                    val available = (lineLimit - suffix.length).coerceAtLeast(0)
                     val text = line.take(available).toString() + suffix
                     if (gradleProgress && text.startsWith(GradleProtocol.ProgressPrefix)) {
                         val progress = BuildModelReader.json.decodeFromString<GradleTaskProgress>(text.removePrefix(GradleProtocol.ProgressPrefix))
@@ -459,14 +474,14 @@ class SupervisedProcessExecutor(
                     when (val character = next.toChar()) {
                         '\n' -> emitLine()
                         '\r' -> Unit
-                        else -> if (line.length < MAX_OUTPUT_LINE_CHARS) line.append(character) else truncated = true
+                        else -> if (line.length < lineLimit) line.append(character) else truncated = true
                     }
                 }
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
-            if (captureLimit != null) onCaptureFailure("Structured stdout could not be captured completely")
+            if (captureLimit != null || captureLineLimit != null) onCaptureFailure("Structured stdout could not be captured completely")
             // Stream closure is expected when cancellation terminates the process tree.
         }
     }

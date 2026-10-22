@@ -26,7 +26,7 @@ class SpanJvmClientTest {
     }
 
     @Test fun newSchemaPreservesQualifiedJoinIdentity() = InfrastructureSession().use { session ->
-        val columns = base + listOf("application_session", "environment", "build", "node", "graph_digest", "port", "edge", "activation")
+        val columns = base + listOf("application_session", "environment", "build", "node", "graph_digest", "port", "edge", "activation", "application", "installation", "platform")
         val requests = mutableListOf<String>()
         val output = SpanJvmClient(session).readReceipt(op) { sql ->
             requests += sql

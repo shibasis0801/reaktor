@@ -32,31 +32,19 @@ open class DefaultSecurityConfig(
         http.addFilterAt(reaktorSecurityWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
         return http {
             authorizeExchange {
-                // Public: health/status must be open for infrastructure probes; credential
-                // exchange happens via the grant itself, and JWKS must be open.
-                authorize("/", permitAll)
-                authorize("/status", permitAll)
-                authorize("/auth/anonymous", permitAll)
-                authorize("/auth/sign-in", permitAll)
-                authorize("/auth/login/**", permitAll)
-                authorize("/auth/magic-link/**", permitAll)
-                authorize("/auth/session/refresh", permitAll)
-                authorize("/auth/session/logout", permitAll)
-                authorize("/auth/token", permitAll)
-                authorize("/auth/pat/mint", permitAll)
-                authorize("/auth/pat/verify", permitAll)
-                // Framework-public, route-guarded: reaktorServer's graph gateway enforces
-                // its own Worker service bearer because it is not a Reaktor user/session JWT.
-                authorize("/_graph/**", permitAll)
-                authorize("/_reaktor/**", permitAll)
-                authorize("/connect/*/callback", permitAll)
-                authorize("/.well-known/jwks.json", permitAll)
-                authorize("/actuator/health/**", permitAll)
-                // Everything else requires a valid Reaktor token (then per-route AuthRequirement applies).
+                PublicPaths.forEach { authorize(it, permitAll) }
                 authorize(anyExchange, authenticated)
             }
             csrf { disable() }
             securityContextRepository = NoOpServerSecurityContextRepository.getInstance()
         }
+    }
+
+    companion object {
+        val PublicPaths = listOf(
+            "/", "/status", "/auth/anonymous", "/auth/sign-in", "/auth/login/**", "/auth/magic-link/**", "/auth/session/refresh",
+            "/auth/session/logout", "/auth/token", "/auth/pat/mint", "/auth/pat/verify", "/_graph/**", "/_reaktor/**",
+            "/connect/*/callback", "/.well-known/jwks.json", "/actuator/health/**",
+        )
     }
 }

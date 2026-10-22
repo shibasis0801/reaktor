@@ -13,7 +13,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-internal expect fun DrawScope.drawSurfaceGraphMesh(mesh: SurfaceGraphMesh, shader: Shader?)
+internal expect fun DrawScope.drawSurfaceGraphMesh(mesh: SurfaceGraphMesh, shader: Shader?, from: Int = 0, to: Int = mesh.batchCount)
 
 internal class SurfaceGraphMesh(val textured: Boolean) {
     var positions = FloatArray(8192); private set
@@ -62,6 +62,14 @@ internal class SurfaceGraphMesh(val textured: Boolean) {
     }
 
     fun quad(a: Int, b: Int, c: Int, d: Int) { triangle(a, b, c); triangle(a, c, d) }
+
+    fun blank(from: Int, to: Int) = indices.fill(0, from, to)
+
+    fun batchAt(index: Int): Int {
+        var low = 0; var high = batchCount - 1
+        while (low < high) { val mid = (low + high + 1) / 2; if (batches[mid * 4 + 2] <= index) low = mid else high = mid - 1 }
+        return low
+    }
 }
 
 private fun norm(x: Float, y: Float) = sqrt(x * x + y * y)

@@ -72,7 +72,7 @@ class DesktopAppScope internal constructor(private val project: Project) {
 
     fun packagedRuntime(run: Run = Run.onDesktopSession()): NodeDeclaration {
         val site = project.declarationSite()
-        return NodeDeclaration { name -> project.packagedRuntime(name, run, site) }
+        return NodeDeclaration { name -> project.packagedRuntime(name, run, site).covers(Coverage(aspects = setOf(Aspect.Packaging))) }
     }
 
     fun tests(suite: Suite, environment: TestEnvironment = TestEnvironment(), run: Run = Run.onDesktopSession().timeout(60.minutes),

@@ -1,6 +1,6 @@
 # One Reaktor kernel for the CLI, MCP and Hangar
 
-Written 14 October 2026. Not published. It supersedes the operation-layer parts of `cli-kernel-hld.md`; that file stays the record of the earlier engineering-tools work.
+Written 14 October 2026. Not published. This file holds the broader kernel design; `kernel-handoff.md` owns work-package sequencing and qualification. The 21 October refinement of [cli-kernel-hld.md](cli-kernel-hld.md) is the canonical CLI/TUI experience contract and supersedes older CLI grammar/output examples here. It adds an explicit TUI milestone, K1-TUI; it does not qualify implementation. The status rows below retain the earlier implementation snapshot; use the handoff and Dependeasy domain status for current evidence.
 
 ## The idea
 
@@ -66,7 +66,7 @@ Before this work (scan of 14 October): 4 kinds of kernel process, 6 kinds of end
 11. **Bugs and cleanup**
     - Two door instances in one kernel process (`KernelDoor`, `KernelCrashes`). Two default state directories. Port 8765 contention.
 12. **Docs and rollout**
-    - Keep this file current. Retire `cli-kernel-hld.md` sections as they are replaced.
+    - Keep this file current. Keep package status in `kernel-handoff.md`, CLI/TUI experience in `cli-kernel-hld.md`, and shipped commands in the CLI README; reconcile references at each qualified cutover.
 
 ## Defaults taken (owner may change)
 

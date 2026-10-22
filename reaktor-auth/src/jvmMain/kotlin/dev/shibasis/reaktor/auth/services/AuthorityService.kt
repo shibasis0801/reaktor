@@ -7,6 +7,12 @@ import dev.shibasis.reaktor.auth.AuthCredentialType
 import dev.shibasis.reaktor.auth.api.*
 import dev.shibasis.reaktor.auth.jwt.*
 import dev.shibasis.reaktor.auth.kernel.*
+import dev.shibasis.reaktor.auth.fga.AccessDecision
+import dev.shibasis.reaktor.auth.fga.AccessMode
+import dev.shibasis.reaktor.auth.fga.RelationTuple
+import dev.shibasis.reaktor.auth.graph.CodeAccess
+import dev.shibasis.reaktor.auth.runtime.AuthAccess
+import dev.shibasis.reaktor.auth.runtime.audited
 import dev.shibasis.reaktor.auth.runtime.bearerToken
 import dev.shibasis.reaktor.auth.runtime.ports.*
 import dev.shibasis.reaktor.core.network.StatusCode
@@ -20,6 +26,7 @@ class AuthorityService(
     private val minter: JwtMinter,
     private val directory: AuthAuthorityDirectory,
     private val audit: AuthAuditSink,
+    private val access: AuthAccess? = null,
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) : AuthAuthority {
     private data class Source(val claims: JWTClaimsSet, val active: ActiveAuthoritySession)
@@ -55,17 +62,20 @@ class AuthorityService(
                 permissions = it.permissions.map { permission -> PermissionRef(name = permission) }.toSet(),
                 scopes = emptySet(), claims = JsonObject(emptyMap()))
         }
-        val allowed = context != null && LocalAuthorizer.authorize(context,
+        val granted = context != null && LocalAuthorizer.authorize(context,
             AuthRequirement(app = AppConstraint(request.target.appId), audience = Audience(request.target.appId),
                 tenant = TenantConstraint(request.target.tenantId), permissions = setOf(PermissionRef(name = request.permission)),
                 principalKinds = setOf(PrincipalKind.USER))) is AuthDecision.Allow
+        val decision = context?.let { modelled(it, request.permission, granted) }
+        val allowed = decision?.takeIf { it.mode == AccessMode.Enforce }?.allowed ?: granted
         val event = AuthAuditEventDraft(eventType = AuthAuditEventType.TOKEN_EXCHANGE,
             outcome = if (allowed) AuthAuditOutcome.SUCCESS else AuthAuditOutcome.FAILURE,
             actorPrincipalId = source.active.principal.id, subjectPrincipalId = grant?.principalId,
             appId = grant?.grant?.target?.appId ?: source.active.session.appId,
             tenantId = grant?.grant?.target?.tenantId, contextId = grant?.grant?.target?.contextId,
             sessionId = source.active.session.id, credentialType = AuthCredentialType.ACCESS_TOKEN.wireName,
-            grantType = "tenant_authority", audience = request.target.appId, reason = if (allowed) "current_tenant_grant" else "tenant_permission_denied")
+            grantType = "tenant_authority", audience = request.target.appId, data = decision.audited,
+            reason = if (!allowed) "tenant_permission_denied" else if (granted) "current_tenant_grant" else "access_model_grant")
         // A minted privileged credential must have its audit record; storage failure fails closed.
         if (audit.record(request, event).isFailure) return AuthorityResolveResponse(statusCode = StatusCode.INTERNAL_SERVER_ERROR)
         if (!allowed) return AuthorityResolveResponse(statusCode = StatusCode.FORBIDDEN)
@@ -76,9 +86,16 @@ class AuthorityService(
             appId = request.target.appId, audience = request.target.appId, tenantId = request.target.tenantId,
             contextId = request.target.contextId, identityId = source.active.principal.identityId,
             sessionId = source.active.session.id, roles = grant.grant.roles,
-            permissions = grant.permissions, scopes = listOf(request.permission), expiresAtEpochMillis = expiresAt)
+            permissions = if (granted) grant.permissions else (grant.permissions + request.permission).distinct(),
+            scopes = listOf(request.permission), expiresAtEpochMillis = expiresAt)
         val issued = verifier.verifyReaktorToken(token, listOf(request.target.appId)).getOrNull()
             ?: return AuthorityResolveResponse(statusCode = StatusCode.INTERNAL_SERVER_ERROR)
         return AuthorityResolveResponse(AuthorityResolution(issued.toAuthContext(), request.environment.name, expiresAt, token))
+    }
+
+    private fun modelled(context: AuthContext, permission: String, granted: Boolean): AccessDecision? {
+        val subject = CodeAccess.subject(context)
+        val held = RelationTuple(CodeAccess.permission(permission), CodeAccess.Holder, subject).takeIf { granted }
+        return access?.holding(subject, (CodeAccess.contextual(context) + listOfNotNull(held)).distinct(), permission, context.tenantId)
     }
 }

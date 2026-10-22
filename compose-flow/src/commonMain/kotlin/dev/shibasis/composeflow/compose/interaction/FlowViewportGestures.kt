@@ -135,8 +135,9 @@ fun Modifier.flowPointerViewportGestures(
         while (true) {
             val event = awaitPointerEvent()
             val pressedChanges = event.changes.filter(PointerInputChange::pressed)
+            val claimed = event.changes.any { it.isConsumed }
             secondaryButtonGesture = secondaryButtonGesture || event.buttons.isSecondaryPressed
-            clickEligible = clickEligible && !secondaryButtonGesture
+            clickEligible = clickEligible && !secondaryButtonGesture && !claimed
 
             if (pressedChanges.isEmpty()) {
                 if (!viewportManipulated && clickEligible) {
@@ -145,6 +146,8 @@ fun Modifier.flowPointerViewportGestures(
                 }
                 break
             }
+
+            if (claimed) continue
 
             if (pressedChanges.size > 1) {
                 clickEligible = false

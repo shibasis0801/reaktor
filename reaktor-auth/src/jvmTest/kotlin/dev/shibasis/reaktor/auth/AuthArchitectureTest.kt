@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth
 
+import dev.shibasis.reaktor.auth.spring.DefaultSecurityConfig
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -99,14 +100,8 @@ class AuthArchitectureTest {
 
     @Test
     fun springSecurityKeepsInfrastructureProbesPublic() {
-        val security = source("spring/DefaultSecurityConfig.kt")
-
-        assertTrue("authorize(\"/\", permitAll)" in security)
-        assertTrue("authorize(\"/status\", permitAll)" in security)
-        assertTrue("authorize(\"/auth/anonymous\", permitAll)" in security)
-        assertTrue("authorize(\"/_graph/**\", permitAll)" in security)
-        assertTrue("authorize(\"/connect/*/callback\", permitAll)" in security)
-        assertTrue("authorize(\"/actuator/health/**\", permitAll)" in security)
+        assertTrue("PublicPaths.forEach { authorize(it, permitAll) }" in source("spring/DefaultSecurityConfig.kt"))
+        assertTrue(DefaultSecurityConfig.PublicPaths.containsAll(listOf("/", "/status", "/auth/anonymous", "/_graph/**", "/connect/*/callback", "/actuator/health/**")))
     }
 
     @Test

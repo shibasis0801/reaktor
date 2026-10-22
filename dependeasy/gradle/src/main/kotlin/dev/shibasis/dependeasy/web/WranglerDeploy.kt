@@ -27,8 +27,8 @@ abstract class WranglerDeploy : ProcessTask() {
     @get:Input @get:Optional abstract val protocolAction: Property<String>
     @get:Input @get:Optional abstract val protocolRequest: Property<String>
 
-    @Option(option = "deploy-action", description = "plan, apply or rollback the declared Worker")
-    fun deployAction(value: String) { require(value in listOf("plan", "apply", "rollback")); action.set(value) }
+    @Option(option = "deploy-action", description = "plan, apply, publish from one checked build, or rollback the declared Worker")
+    fun deployAction(value: String) { require(value in listOf("plan", "apply", "publish", "rollback")); action.set(value) }
 
     @get:Internal val worker: FleetWorker get() = BuildModelReader.json.decodeFromString(declaration.get())
     @get:Internal val deployment: WorkerDeployment get() = worker.deployments.single { it.environment.name == environmentName.get() }
@@ -64,9 +64,14 @@ abstract class WranglerDeploy : ProcessTask() {
         val record: (DeployReceipt) -> Unit = { WorkerDeployKernel.record(root, it) }
         val requestedAction = protocolAction.orNull ?: action.get()
         when (requestedAction) {
-            "plan" -> {
+            "plan", "publish" -> {
                 val revision = ByteArrayOutputStream()
                 execOperations.exec { workingDir = root; executable = "git"; args("rev-parse", "HEAD"); standardOutput = revision }.assertNormalExitValue()
+                if (requestedAction == "publish") {
+                    WorkerDeployKernel.publish(spec, root, run, revision.toString().trim(),
+                        java.net.InetAddress.getLocalHost().hostName, execute, record)
+                    return
+                }
                 val plan = WorkerDeployKernel.plan(spec, root.resolve("${GradleProtocol.PlanDirectory}/deploy/bundles/$run"),
                     revision.toString().trim(), java.net.InetAddress.getLocalHost().hostName, execute)
                 WorkerDeployKernel.store(root, plan)

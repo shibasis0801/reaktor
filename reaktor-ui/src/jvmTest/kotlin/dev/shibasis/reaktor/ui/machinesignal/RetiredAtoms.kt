@@ -151,7 +151,7 @@ fun ProvenanceBadge(truth: TruthClass, modifier: Modifier = Modifier, detail: St
         horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SignalText(truth.abbreviation, color = colors.base, size = MachineSignal.Type.micro, weight = FontWeight.SemiBold)
+        SignalText(truth.label, color = colors.base, size = MachineSignal.Type.micro, weight = FontWeight.SemiBold)
         if (detail != null) SignalText(detail, color = MachineSignal.Text4, size = MachineSignal.Type.micro)
     }
 }

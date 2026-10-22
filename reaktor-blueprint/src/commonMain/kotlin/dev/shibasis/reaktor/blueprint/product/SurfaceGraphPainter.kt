@@ -34,10 +34,12 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import dev.shibasis.composeflow.model.Viewport
+import dev.shibasis.reaktor.blueprint.BlueprintEngine
 import dev.shibasis.reaktor.blueprint.BlueprintLayout
 import dev.shibasis.reaktor.blueprint.Card
 import dev.shibasis.reaktor.blueprint.Frame
 import dev.shibasis.reaktor.blueprint.Link
+import dev.shibasis.reaktor.blueprint.canvas.CanvasGrid
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.ceil
@@ -81,34 +83,17 @@ internal fun surfaceGraphCorridors(frames: List<Frame>, links: List<Link>, sourc
         }.sortedByDescending { it.count }
 }
 
-private class SurfaceGraphRoutes(routes: List<Link>, sources: List<SurfaceGraphLink>, fallback: Color, owners: Map<String, String?>) {
-    val count = routes.size
-    val from = Array(count) { sources[it].from }
-    val to = Array(count) { sources[it].to }
-    val fromOwner = Array(count) { owners[from[it]] }
-    val toOwner = Array(count) { owners[to[it]] }
-    val start = IntArray(count + 1)
-    val curve = BooleanArray(count) { routes[it].curve && routes[it].points.size >= 4 }
-    val bounds = FloatArray(count * 4)
-    val family = IntArray(count) { when (routes[it].family) { "chapter" -> CHAPTER; "prerequisite" -> PREREQUISITE; "optional" -> OPTIONAL; "related" -> RELATED; "draft" -> DRAFT; else -> OTHER } }
-    val rgb = IntArray(count) { (sources[it].color ?: fallback).toArgb() }
-    val cross = BooleanArray(count) { routes[it].cross }
+private class SurfaceGraphRoutes(links: List<Link>, sources: List<SurfaceGraphLink?>, fallback: Color, owners: Map<String, String?>) {
+    val count = links.size
+    val known = BooleanArray(count) { sources[it] != null }
+    val from = Array(count) { sources[it]?.from }
+    val to = Array(count) { sources[it]?.to }
+    val fromOwner = Array(count) { from[it]?.let(owners::get) }
+    val toOwner = Array(count) { to[it]?.let(owners::get) }
+    val family = IntArray(count) { when (links[it].family) { "chapter" -> CHAPTER; "prerequisite" -> PREREQUISITE; "optional" -> OPTIONAL; "related" -> RELATED; "draft" -> DRAFT; else -> OTHER } }
+    val rgb = IntArray(count) { (sources[it]?.color ?: fallback).toArgb() }
+    val cross = BooleanArray(count) { links[it].cross }
     val active = BooleanArray(count)
-    val points: FloatArray
-
-    init {
-        for (i in 0 until count) start[i + 1] = start[i] + routes[i].points.size * 2
-        points = FloatArray(start[count])
-        for (i in 0 until count) {
-            var l = Float.POSITIVE_INFINITY; var t = Float.POSITIVE_INFINITY; var r = Float.NEGATIVE_INFINITY; var b = Float.NEGATIVE_INFINITY
-            routes[i].points.forEachIndexed { k, (x, y) ->
-                val px = x.toFloat(); val py = y.toFloat()
-                points[start[i] + k * 2] = px; points[start[i] + k * 2 + 1] = py
-                l = min(l, px); t = min(t, py); r = max(r, px); b = max(b, py)
-            }
-            bounds[i * 4] = l; bounds[i * 4 + 1] = t; bounds[i * 4 + 2] = r; bounds[i * 4 + 3] = b
-        }
-    }
 
     companion object { const val CHAPTER = 0; const val PREREQUISITE = 1; const val OPTIONAL = 2; const val RELATED = 3; const val DRAFT = 4; const val OTHER = 5 }
 }
@@ -131,17 +116,15 @@ private class SurfaceGraphInput(val nodes: List<SurfaceGraphNode>, val links: Li
 private class SurfaceGraphBanner(val label: TextLayoutResult, val tally: TextLayoutResult, val natural: Float)
 
 private class SurfaceGraphPrepared(val model: SurfaceGraphModel, val corridors: List<SurfaceGraphCorridor>, val routes: SurfaceGraphRoutes,
-    val cards: Array<SurfaceGraphCard>, val cardBox: FloatArray, val cardFill: IntArray, val cardEdge: IntArray, val rowCards: Map<String, List<Int>>, val banners: Array<SurfaceGraphBanner?>, val frameLooks: List<SurfaceGraphGroup>)
+    val cards: Array<SurfaceGraphCard>, val cardBox: FloatArray, val cardFill: IntArray, val cardEdge: IntArray, val rowCards: Map<String, List<Int>>, val banners: Array<SurfaceGraphBanner?>, val frameLooks: List<SurfaceGraphGroup>,
+    val meanings: Map<String, String>, val names: Map<String, String>)
 
-internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val appearance: SurfaceGraphAppearance, styles: List<TextStyle>) : SurfaceGraphEngine(graphics, 5, scaled = false) {
+internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val appearance: SurfaceGraphAppearance, styles: List<TextStyle>) : SurfaceGraphEngine(graphics, scaled = false) {
     val model = mutableStateOf<SurfaceGraphModel?>(null)
     private val dark = appearance.canvas.luminance() < .2f
     private val ink = if (dark) Color(0xFF0E1311) else Color(0xFF203D35)
     private val selectedArgb = appearance.selected.toArgb()
-    private val gridRgb = appearance.text.toArgb()
     private val corridorRgb = (if (dark) Color(0xFF7E968A) else Color(0xFF6F8F7D)).toArgb()
-    private val grid = if (dark) floatArrayOf(16f, .035f, 128f, .08f) else floatArrayOf(16f, .045f, 128f, .09f)
-    private val glows = floatArrayOf(12f, .08f, 6f, .18f, 2f, .38f)
     private val titleStyle = styles[0].copy(letterSpacing = (-.065).sp)
     private val subtitleStyle = styles[1]
     private val smallStyle = styles[1].copy(fontSize = 9.5.sp)
@@ -153,9 +136,9 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
     private val tallyStyle = styles[1].copy(fontSize = 11.sp)
     private val domainTallyStyle = styles[1].copy(fontSize = 11.sp, lineHeight = 15.95.sp)
     private val corridorStyle = styles[2].copy(fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+    private val chipStyle = styles[2].copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, lineHeight = 14.sp)
     private val frameTitleStyles = Array(4) { styles[5].copy(color = styles[5].color.copy(alpha = if (it % 2 == 0) 1f else .3f), fontSize = (if (it < 2) 13.0 else 16.9).sp, fontWeight = FontWeight.Bold) }
     private val frameDetailStyles = Array(4) { styles[1].copy(color = styles[1].color.copy(alpha = if (it % 2 == 0) 1f else .3f), fontSize = if (it < 2) styles[1].fontSize else 14.3.sp) }
-    private val dashes = arrayOf(dash(6f, 4f), dash(2f, 4f), dash(5f, 4f))
 
     private var wanted: SurfaceGraphInput? = null
     private var slice = TimeSource.Monotonic.markNow()
@@ -165,32 +148,31 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
     private var cardFill = IntArray(0)
     private var cardEdge = IntArray(0)
     private var selectedCard = BooleanArray(0)
-    private var dimCard = BooleanArray(0)
     private var markCard = arrayOfNulls<String>(0)
     private var rowCards: Map<String, List<Int>> = emptyMap()
-    private var anyDim = false
-    private var frames: List<Frame> = emptyList()
     private var frameLooks: List<SurfaceGraphGroup> = emptyList()
-    private var frameBox = FloatArray(0)
     private var frameOpacity = FloatArray(0)
-    private var frameLayers = arrayOfNulls<GraphicsLayer>(0)
-    private var frameRecorded = FloatArray(0)
-    private var banners = arrayOfNulls<GraphicsLayer>(0)
-    private var bannerKeys = IntArray(0)
     private var bannerText = arrayOfNulls<SurfaceGraphBanner>(0)
-    private var labels = arrayOfNulls<GraphicsLayer>(0)
-    private var labelSizes = FloatArray(0)
+    private var meanings: Map<String, String> = emptyMap()
+    private var names: Map<String, String> = emptyMap()
+    private var tallies = arrayOfNulls<GraphicsLayer>(0)
 
     private var selection: SurfaceGraphSelection? = null
     private var activeFor: SurfaceGraphSelection? = null
     private var highlight: SurfaceGraphHighlight? = null
-    private var look = -1
     private var flags = -1
     private var budget: TimeSource.Monotonic.ValueTimeMark? = null
     private var partial = false
 
     override val warmups = WARMUPS.size + 7
     override val warmable get() = cards.isNotEmpty() && appearance.canvas.alpha == 1f
+    override val canvas = appearance.canvas
+    override val grid = if (!appearance.grid) null else appearance.text.let { tone ->
+        CanvasGrid(tone.copy(alpha = if (dark) .035f else .045f), tone.copy(alpha = if (dark) .08f else .09f), weight = 1f)
+    }
+    override val farZoom = .45
+    override val meshZoom = .2
+    override val cardRadius get() = if (level == 0) 6f else 10f
 
     fun submit(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, groups: List<SurfaceGraphGroup>, layout: BlueprintLayout<*>) {
         val input = SurfaceGraphInput(nodes, links, groups, layout)
@@ -208,20 +190,22 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         slice = TimeSource.Monotonic.markNow()
         val nodes = input.nodes; val links = input.links; val layout = input.layout
         val byId = HashMap<String, SurfaceGraphNode>(nodes.size * 2)
-        val owners = HashMap<String, String?>(); val colors = HashMap<String, Color?>()
+        val owners = HashMap<String, String?>(); val colors = HashMap<String, Color?>(); val names = HashMap<String, String>()
+        val heads = HashMap<String, String>(); for (group in input.groups) group.owner?.let { heads[it] = group.title }
         for (k in nodes.indices) {
-            val node = nodes[k]
-            byId[node.id] = node
+            val node = nodes[k]; val name = heads[node.owner] ?: node.title
+            byId[node.id] = node; names[node.id] = name
             owners[node.id] = node.owner; owners[node.owner] = node.owner; colors[node.id] = node.color; colors[node.owner] = node.color
-            for (row in node.rows) { owners[row.id] = node.owner; colors[row.id] = node.color; for (alias in row.aliases) { owners[alias] = node.owner; colors[alias] = node.color } }
+            for (row in node.rows) { owners[row.id] = node.owner; colors[row.id] = node.color; names[row.id] = name; for (alias in row.aliases) { owners[alias] = node.owner; colors[alias] = node.color; names[alias] = name } }
             if (k % 32 == 31 && !pause(input)) return null
         }
         val rects = layout.cards.values.filter { it.id in byId }
         if (!pause(input)) return null
         val linkById = HashMap<String, SurfaceGraphLink>(links.size * 2); for (link in links) linkById[link.id] = link
-        val routed = ArrayList<Link>(layout.links.size); val sources = ArrayList<SurfaceGraphLink>(layout.links.size)
-        for (link in layout.links) link.members.firstNotNullOfOrNull { linkById[it] }?.let { routed += link; sources += it }
-        val corridors = surfaceGraphCorridors(layout.frames, routed, sources, nodes)
+        val sources = layout.links.map { link -> link.members.firstNotNullOfOrNull { linkById[it] } }
+        val routed = ArrayList<Link>(layout.links.size); val known = ArrayList<SurfaceGraphLink>(layout.links.size)
+        for (i in layout.links.indices) sources[i]?.let { routed += layout.links[i]; known += it }
+        val corridors = surfaceGraphCorridors(layout.frames, routed, known, nodes)
         if (!pause(input)) return null
         val incoming = HashMap<String, Color?>(); val outgoing = HashSet<String>()
         for (link in links) { incoming[link.to] = colors[link.from]; outgoing += link.from }
@@ -257,8 +241,9 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
             if (!pause(input)) return null
         }
         if (!pause(input)) return null
-        val routes = SurfaceGraphRoutes(routed, sources, appearance.selected, owners)
-        return SurfaceGraphPrepared(SurfaceGraphModel(nodes, links, input.groups, layout, byId, rects), corridors, routes, ready, cardBox, cardFill, cardEdge, rowCards, banners, looks)
+        val routes = SurfaceGraphRoutes(layout.links, sources, appearance.selected, owners)
+        val meanings = HashMap<String, String>(); layout.links.forEachIndexed { i, link -> sources[i]?.label?.takeIf { it.isNotBlank() }?.let { meanings[link.id] = if (link.members.size > 1) "$it +${link.members.size - 1}" else it } }
+        return SurfaceGraphPrepared(SurfaceGraphModel(nodes, links, input.groups, layout, byId, rects), corridors, routes, ready, cardBox, cardFill, cardEdge, rowCards, banners, looks, meanings, names)
     }
 
     private fun show(prepared: SurfaceGraphPrepared) {
@@ -266,16 +251,14 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         val previous = HashMap<SurfaceGraphCard, Int>(cards.size * 2); cards.forEachIndexed { i, card -> previous[card] = i }
         remap(IntArray(next.size) { previous[next[it]] ?: -1 })
         corridors = prepared.corridors; routes = prepared.routes
-        cards = next; cardBox = prepared.cardBox; cardFill = prepared.cardFill; cardEdge = prepared.cardEdge; rowCards = prepared.rowCards
-        selectedCard = BooleanArray(next.size); dimCard = BooleanArray(next.size); markCard = arrayOfNulls(next.size)
-        frames = prepared.model.layout.frames; frameLooks = prepared.frameLooks
-        frameBox = FloatArray(frames.size * 4).also { box -> frames.forEachIndexed { i, f -> box[i * 4] = f.x.toFloat(); box[i * 4 + 1] = f.y.toFloat(); box[i * 4 + 2] = (f.x + f.width).toFloat(); box[i * 4 + 3] = (f.y + f.height).toFloat() } }
+        cards = next; cardFill = prepared.cardFill; cardEdge = prepared.cardEdge; rowCards = prepared.rowCards
+        selectedCard = BooleanArray(next.size); markCard = arrayOfNulls(next.size)
+        frameLooks = prepared.frameLooks
+        index(prepared.model.layout.frames, prepared.model.layout.links, prepared.cardBox)
         frameOpacity = FloatArray(frames.size) { 1f }
-        frameLayers.forEach { it?.let(graphics::releaseGraphicsLayer) }; frameLayers = arrayOfNulls(frames.size); frameRecorded = FloatArray(frames.size)
-        banners.forEach { it?.let(graphics::releaseGraphicsLayer) }; banners = arrayOfNulls(frames.size); bannerKeys = IntArray(frames.size) { Int.MIN_VALUE }; bannerText = prepared.banners
-        labels.forEach { it?.let(graphics::releaseGraphicsLayer) }; labels = arrayOfNulls(min(10, corridors.size)); labelSizes = FloatArray(labels.size * 2)
+        bannerText = prepared.banners; meanings = prepared.meanings; names = prepared.names
+        tallies.forEach { it?.let(graphics::releaseGraphicsLayer) }; tallies = arrayOfNulls(min(10, corridors.size))
         selection = null; activeFor = null; highlight = null
-        dirty.fill(true)
         model.value = prepared.model
         version.intValue++
     }
@@ -285,23 +268,8 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         if (highlight !== this@SurfaceGraphPainter.highlight) applyHighlight(highlight)
         val flags = (if (resourceLinks) 1 else 0) or (if (chapterLinks) 2 else 0) or (if (areaCorridors) 4 else 0)
         if (flags != this@SurfaceGraphPainter.flags) { this@SurfaceGraphPainter.flags = flags; dirty[WIRES] = true }
-        if (look != this@SurfaceGraphPainter.look) { this@SurfaceGraphPainter.look = look; dirty[CARDS] = true; dirty[OVER] = true; changed = true }
+        level = look
         frame(camera, viewport, density)
-    }
-
-    override fun DrawScope.paint(camera: Viewport, deadline: TimeSource.Monotonic.ValueTimeMark) {
-        drawRect(appearance.canvas, size = viewport)
-        mesh(UNDER, camera)
-        val l = (-camera.x / camera.zoom).toFloat(); val t = (-camera.y / camera.zoom).toFloat()
-        val r = ((viewport.width - camera.x) / camera.zoom).toFloat(); val b = ((viewport.height - camera.y) / camera.zoom).toFloat()
-        if (look == 2) world(camera) { for (i in frames.indices) if (inside(frameBox, i, l, t, r, b)) frameLayer(i, deadline)?.let { drawLayer(it) } }
-        mesh(WIRES, camera)
-        mesh(CARDS, camera)
-        if (look > 0) world(camera) { drawCards(look - 1, l, t, r, b, deadline) }
-        mesh(OVER, camera)
-        mesh(LIT, camera)
-        if (camera.zoom < .18 && flags and 4 != 0) drawLabels(camera)
-        if (look < 2) drawBanners(camera, viewport)
     }
 
     override suspend fun load(): Boolean {
@@ -319,10 +287,10 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
             return true
         }
         when (step - WARMUPS.size) {
-            0 -> if (frames.isNotEmpty()) frameLayer(0)?.let { prime(it, WARMUPS[0], .5f) }
+            0 -> if (frames.isNotEmpty()) headerLayer(0, ahead = true)?.let { prime(it, WARMUPS[0], .5f) }
             1 -> sample()
             2 -> frames.indices.firstOrNull { bannerText[it * 2] != null }?.let { i -> for (domain in 0..1) bannerText[i * 2 + domain]?.let { drawBanner(frameLooks[i], it, it.natural, domain == 1) } }
-            3 -> if (labels.isNotEmpty()) drawLayer(labels[0] ?: labelLayer(0, corridors[0]))
+            3 -> if (tallies.isNotEmpty()) drawLayer(tally(0))
             4 -> { drawContext.canvas.saveLayer(Rect(0f, 0f, 8f, 8f), dimPaint); drawRect(appearance.card, size = Size(8f, 8f)); drawRect(appearance.line, Offset(2f, 2f), Size(4f, 4f)); drawContext.canvas.restore() }
             5 -> clipPath(Path().apply { addRoundRect(RoundRect(0f, 0f, 8f, 8f, CornerRadius(3f))) }) { drawRect(appearance.card, size = Size(8f, 8f)) }
             else -> drawLine(appearance.line, Offset(0f, 4.3f), Offset(8f, 4.3f), 1f)
@@ -332,154 +300,101 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
 
     override fun release() {
         super.release()
-        (frameLayers + banners + labels).forEach { it?.let(graphics::releaseGraphicsLayer) }
-        frameLayers.fill(null); banners.fill(null); labels.fill(null)
+        tallies.forEach { it?.let(graphics::releaseGraphicsLayer) }
+        tallies.fill(null)
     }
 
     private fun applySelection(selection: SurfaceGraphSelection) {
         this.selection = selection
-        for (i in cards.indices) { selectedCard[i] = cards[i].node.id in selection.cards; markCard[i] = null }
+        for (i in cards.indices) { selectedCard[i] = cards[i].node.id in selection.cards; markCard[i] = null; halo[i] = if (selectedCard[i]) selectedArgb else 0 }
         selection.id?.let { id -> rowCards[id]?.forEach { markCard[it] = id } }
+        labels = if (selection.id != null && !selection.inGraph) meanings else emptyMap()
         dirty[WIRES] = true; dirty[CARDS] = true; dirty[OVER] = true; changed = true
     }
+
+    fun follow(x: Float, y: Float, tolerance: Float): String? {
+        val i = visibleLinkAt(x, y, tolerance).takeIf { it >= 0 && routes.known[it] } ?: return null
+        val selection = selection
+        return if (selection != null && (routes.to[i] in selection.keys || routes.toOwner[i] in selection.owners)) routes.from[i] else routes.to[i]
+    }
+
+    fun rowAt(x: Float, y: Float): SurfaceGraphRow? = cardIndex(x, y).takeIf { it >= 0 && level == 2 }?.let { row(it, y) }
+
+    override fun pinKey(i: Int, x: Float, y: Float) = row(i, y)?.key
+
+    private fun row(i: Int, y: Float): SurfaceGraphRow? = ((y - cardBox[i * 4 + 1] - BlueprintEngine.HeaderHeight.toFloat()) / BlueprintEngine.RowHeight.toFloat())
+        .takeIf { it >= 0f }?.let { cards[i].node.rows.getOrNull(it.toInt()) }
 
     private fun applyHighlight(highlight: SurfaceGraphHighlight) {
         this.highlight = highlight
         val any = highlight.ids.isNotEmpty()
         anyDim = false
-        for (i in cards.indices) { val node = cards[i].node; dimCard[i] = any && node.id !in highlight.ids && node.owner !in highlight.ids; anyDim = anyDim || dimCard[i] }
+        for (i in cards.indices) { val node = cards[i].node; dim[i] = any && node.id !in highlight.ids && node.owner !in highlight.ids; anyDim = anyDim || dim[i] }
         for (i in frames.indices) frameOpacity[i] = if (any && frames[i].key !in highlight.groups) .3f else 1f
         dirty[UNDER] = true; dirty[CARDS] = true; dirty[OVER] = true; changed = true
     }
 
-    override fun tessellate(wired: Boolean) {
-        val selection = selection ?: return
-        val z = zoom.toFloat(); val fringe = 1f / density; val tolerance = .2f / density
-        val l = wl / z; val t = wt / z; val r = wr / z; val b = wb / z
-        if (dirty[UNDER]) {
-            clear(false)
-            if (appearance.grid) for (k in 0..1) {
-                val spacing = grid[k * 2] * z
-                val alpha = grid[k * 2 + 1] * ((spacing - 5) / 4).coerceIn(0f, 1f)
-                if (alpha == 0f) continue
-                var x = ceil(wl / spacing) * spacing - wl
-                while (x <= wr - wl) { line(x, 0f, x, wb - wt, fringe, alpha); x += spacing }
-                var y = ceil(wt / spacing) * spacing - wt
-                while (y <= wb - wt) { line(0f, y, wr - wl, y, fringe, alpha); y += spacing }
-            }
-            for (i in frames.indices) {
-                if (!inside(frameBox, i, l, t, r, b)) continue
-                val look = frameLooks[i]; val nested = frames[i].parent != null; val opacity = frameOpacity[i]; val rgb = (look.color ?: appearance.selected).toArgb()
-                val x0 = frameBox[i * 4] * z - wl; val y0 = frameBox[i * 4 + 1] * z - wt; val x1 = frameBox[i * 4 + 2] * z - wl; val y1 = frameBox[i * 4 + 3] * z - wt
-                stroker.roundRect(x0, y0, x1, y1, (if (nested) 10f else 16f) * z, tolerance)
-                stroker.fill(solid, fringe, surfaceGraphArgb(rgb, (if (nested) .11f else if (look.muted) .03f else if (dark) .07f else .06f) * opacity), min(x1 - x0, y1 - y0))
-                stroker.outline(solid, .5f, fringe, rgb, (if (nested) .42f else if (dark) .32f else .28f) * opacity)
-            }
-            commit(UNDER, false)
-        }
-        if (dirty[WIRES]) { if (wired) wires(selection, z, fringe, tolerance) else pending = true }
-        if (dirty[CARDS]) {
-            clear(false)
-            val radius = (if (look == 0) 6f else 10f) * z
-            for (i in cards.indices) {
-                if (!inside(cardBox, i, l, t, r, b)) continue
-                val dim = if (dimCard[i]) .2f else 1f; val selected = selectedCard[i]
-                val x0 = cardBox[i * 4] * z - wl; val y0 = cardBox[i * 4 + 1] * z - wt; val x1 = cardBox[i * 4 + 2] * z - wl; val y1 = cardBox[i * 4 + 3] * z - wt
-                if (selected) for (k in 0..2) {
-                    val inset = glows[k * 2]
-                    stroker.roundRect(x0 - inset, y0 - inset, x1 + inset, y1 + inset, radius, tolerance)
-                    stroker.fill(solid, fringe, surfaceGraphArgb(selectedArgb, glows[k * 2 + 1] * dim), min(x1 - x0, y1 - y0) + 2 * inset)
-                }
-                if (look != 0) continue
-                stroker.roundRect(x0, y0, x1, y1, radius, tolerance)
-                stroker.fill(solid, fringe, surfaceGraphArgb(if (selected) selectedArgb else cardFill[i], dim), min(x1 - x0, y1 - y0))
-                val edge = if (selected) selectedArgb else cardEdge[i]
-                stroker.outline(solid, (if (selected) 2f else if (cards[i].node.activity != null) 1.6f else z) / 2, fringe, edge, (edge ushr 24) / 255f * dim)
-            }
-            commit(CARDS, false)
-        }
-        if (dirty[OVER]) {
-            clear(false)
-            if (look != 0) for (i in cards.indices) {
-                val selected = selectedCard[i]
-                if (!selected && cards[i].node.activity == null || !inside(cardBox, i, l, t, r, b)) continue
-                val x0 = cardBox[i * 4] * z - wl; val y0 = cardBox[i * 4 + 1] * z - wt; val x1 = cardBox[i * 4 + 2] * z - wl; val y1 = cardBox[i * 4 + 3] * z - wt
-                val edge = if (selected) selectedArgb else cardEdge[i]
-                stroker.roundRect(x0, y0, x1, y1, 10f * z, tolerance)
-                stroker.outline(solid, if (selected) 1f else .8f, fringe, edge, (edge ushr 24) / 255f * if (dimCard[i]) .2f else 1f)
-            }
-            commit(OVER, false)
-        }
+    override fun body(i: Int, x0: Float, y0: Float, x1: Float, y1: Float, z: Float, fringe: Float, tolerance: Float) {
+        val look = frameLooks[i]; val nested = frames[i].parent != null; val opacity = frameOpacity[i]; val rgb = (look.color ?: appearance.selected).toArgb()
+        stroker.roundRect(x0, y0, x1, y1, (if (nested) 10f else 16f) * z, tolerance)
+        stroker.fill(solid, fringe, surfaceGraphArgb(rgb, (if (nested) .11f else if (look.muted) .03f else if (dark) .07f else .06f) * opacity), min(x1 - x0, y1 - y0))
+        stroker.outline(solid, .5f, fringe, rgb, (if (nested) .42f else if (dark) .32f else .28f) * opacity)
     }
 
-    private fun line(x0: Float, y0: Float, x1: Float, y1: Float, fringe: Float, alpha: Float) {
-        stroker.clear(); stroker.point(x0, y0); stroker.point(x1, y1)
-        stroker.stroke(solid, fringe / 2, fringe, gridRgb, alpha)
-    }
-
-    private fun wires(selection: SurfaceGraphSelection, z: Float, fringe: Float, tolerance: Float) {
-        val routes = routes
-        if (activeFor !== selection) {
-            activeFor = selection
-            for (i in 0 until routes.count) routes.active[i] = routes.from[i] in selection.keys || routes.to[i] in selection.keys ||
-                (selection.inGraph && (routes.fromOwner[i] in selection.owners || routes.toOwner[i] in selection.owners))
-        }
-        val lift = selection.id != null && !selection.inGraph
-        clear(true)
-        if (zoom < .18 && flags and 4 != 0) corridors.forEach { c ->
+    override fun extra(z: Float, fringe: Float, tolerance: Float) {
+        if (zoom >= .18 || flags and 4 == 0) return
+        corridors.forEach { c ->
             if (c.right * z < wl || c.left * z > wr || c.bottom * z < wt || c.top * z > wb) return@forEach
             stroker.clear(); stroker.point(c.ax * z - wl, c.ay * z - wt)
             stroker.quad(c.cx * z - wl, c.cy * z - wt, c.bx * z - wl, c.by * z - wt, tolerance)
             stroker.stroke(solid, .5f + c.width * .18f, fringe, corridorRgb, .6f, round = true)
         }
-        for (i in 0 until routes.count) if (!lift || !routes.active[i]) route(i, selection, z, fringe, tolerance)
-        commit(WIRES, true)
-        clear(true)
-        if (lift) for (i in 0 until routes.count) if (routes.active[i]) route(i, selection, z, fringe, tolerance)
-        commit(LIT, true)
     }
 
-    private fun route(i: Int, selection: SurfaceGraphSelection, z: Float, fringe: Float, tolerance: Float) {
-        val routes = routes
+    override fun pen(i: Int, pen: SurfaceGraphPen): Boolean {
+        val routes = routes; val selection = selection ?: return false
+        if (!routes.known[i]) return false
+        if (activeFor !== selection) {
+            activeFor = selection
+            for (k in 0 until routes.count) routes.active[k] = routes.from[k] in selection.keys || routes.to[k] in selection.keys ||
+                (selection.inGraph && (routes.fromOwner[k] in selection.owners || routes.toOwner[k] in selection.owners))
+        }
         val overview = zoom < .18; val distant = zoom < .42
-        if (routes.bounds[i * 4 + 2] * z < wl || routes.bounds[i * 4] * z > wr || routes.bounds[i * 4 + 3] * z < wt || routes.bounds[i * 4 + 1] * z > wb) return
         val on = routes.active[i]; val kind = routes.family[i]; val chapter = kind == SurfaceGraphRoutes.CHAPTER
-        if (!on && (overview && routes.cross[i] && flags and 4 != 0 || chapter && flags and 2 == 0 || !chapter && flags and 1 == 0)) return
-        if (chapter && !on && (distant || routes.cross[i])) return
-        val first = routes.start[i]; val end = routes.start[i + 1]
-        if (end - first < 4) return
-        val points = routes.points
-        stroker.clear()
-        if (overview && !on) { stroker.point(points[first] * z - wl, points[first + 1] * z - wt); stroker.point(points[end - 2] * z - wl, points[end - 1] * z - wt) }
-        else if (routes.curve[i]) {
-            stroker.point(points[first] * z - wl, points[first + 1] * z - wt)
-            stroker.cubic(points[first + 2] * z - wl, points[first + 3] * z - wt, points[first + 4] * z - wl, points[first + 5] * z - wt, points[first + 6] * z - wl, points[first + 7] * z - wt, tolerance)
-        } else stroker.corners(points, first, end, z, wl, wt, 7f, tolerance)
-        val alpha = if (on) 1f else if (selection.id != null) .05f else if (chapter) .24f else if (routes.cross[i]) .3f else if (overview) .45f else .7f
-        val rgb = routes.rgb[i]
-        if (on) stroker.stroke(solid, 2.6f * 2.8f / 2, fringe, rgb, alpha * .35f)
-        val dash = when (kind) { SurfaceGraphRoutes.OPTIONAL -> 0; SurfaceGraphRoutes.RELATED -> 1; SurfaceGraphRoutes.DRAFT -> 2; else -> -1 }
-        stroker.stroke(if (dash < 0) solid else dashes[dash], (if (on) 2.6f else if (kind == SurfaceGraphRoutes.PREREQUISITE) 1.8f else 1.4f) / 2, fringe, rgb, alpha, dashed = dash >= 0)
-        if (kind == SurfaceGraphRoutes.PREREQUISITE && (on || !overview)) {
-            val ex = points[end - 2]; val ey = points[end - 1]
-            arrow(ex, ey, atan2(ey - points[end - 3], ex - points[end - 4]), 8 / z, z, fringe, rgb, alpha, .5f)
+        if (!on && (overview && routes.cross[i] && flags and 4 != 0 || chapter && flags and 2 == 0 || !chapter && flags and 1 == 0)) return false
+        if (chapter && !on && (distant || routes.cross[i])) return false
+        pen.round = false; pen.straight = overview && !on; pen.lifted = on && selection.id != null && !selection.inGraph; pen.lead = on && selection.id != null
+        pen.rgb = routes.rgb[i]
+        pen.alpha = if (on) 1f else if (selection.id != null) .05f else if (chapter) .24f else if (routes.cross[i]) .3f else if (overview) .45f else .7f
+        pen.width = if (on) 2.6f else if (kind == SurfaceGraphRoutes.PREREQUISITE) 1.8f else 1.4f
+        if (on) { pen.glow = routes.rgb[i]; pen.glowWidth = 2.6f * 2.8f - 2.6f }
+        when (kind) {
+            SurfaceGraphRoutes.OPTIONAL -> { pen.on = 6f; pen.off = 4f }
+            SurfaceGraphRoutes.RELATED -> { pen.on = 2f; pen.off = 4f }
+            SurfaceGraphRoutes.DRAFT -> { pen.on = 5f; pen.off = 4f }
         }
+        if (kind == SurfaceGraphRoutes.PREREQUISITE && (on || !overview)) { pen.head = 8f; pen.spread = .5f }
+        return true
     }
 
-    private fun DrawScope.drawCards(slot: Int, l: Float, t: Float, r: Float, b: Float, deadline: TimeSource.Monotonic.ValueTimeMark) {
-        var open = false
-        for (pass in 0..1) {
-            if (pass == 1 && !anyDim) break
-            for (i in cards.indices) {
-                if (dimCard[i] != (pass == 1) || !inside(cardBox, i, l, t, r, b)) continue
-                if (pass == 1 && !open) { drawContext.canvas.saveLayer(Rect(l, t, r, b), dimPaint); open = true }
-                val layer = layer(i, slot, deadline, selectedCard[i]) ?: layers[i * 2 + 1 - slot]
-                if (layer != null) drawLayer(layer)
-                else drawRoundRect(if (slot == 0) cards[i].shade else appearance.card, Offset(cardBox[i * 4], cardBox[i * 4 + 1]), Size(cards[i].width, cards[i].height), CornerRadius(10f))
-            }
-        }
-        if (open) drawContext.canvas.restore()
+    override fun face(i: Int, x0: Float, y0: Float, x1: Float, y1: Float, z: Float, fringe: Float, tolerance: Float) {
+        val alpha = if (dim[i]) .2f else 1f; val selected = selectedCard[i]
+        stroker.roundRect(x0, y0, x1, y1, 6f * z, tolerance)
+        stroker.fill(solid, fringe, surfaceGraphArgb(if (selected) selectedArgb else cardFill[i], alpha), min(x1 - x0, y1 - y0))
+        val edge = if (selected) selectedArgb else cardEdge[i]
+        stroker.outline(solid, (if (selected) 2f else if (cards[i].node.activity != null) 1.6f else z) / 2, fringe, edge, (edge ushr 24) / 255f * alpha)
     }
+
+    override fun edge(i: Int, x0: Float, y0: Float, x1: Float, y1: Float, z: Float, fringe: Float, tolerance: Float) {
+        val selected = selectedCard[i]
+        if (!selected && cards[i].node.activity == null) return
+        val edge = if (selected) selectedArgb else cardEdge[i]
+        stroker.roundRect(x0, y0, x1, y1, 10f * z, tolerance)
+        stroker.outline(solid, if (selected) 1f else .8f, fringe, edge, (edge ushr 24) / 255f * if (dim[i]) .2f else 1f)
+    }
+
+    override fun DrawScope.placeholder(i: Int, slot: Int) =
+        drawRoundRect(if (slot == 0) cards[i].shade else appearance.card, Offset(cardBox[i * 4], cardBox[i * 4 + 1]), Size(cards[i].width, cards[i].height), CornerRadius(10f))
 
     override fun current(i: Int, slot: Int): Boolean {
         val card = cards[i]
@@ -497,42 +412,18 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         if (partial) pending = true
     }
 
-    override fun slot(zoom: Double, ahead: Boolean) = if (!ahead) look - 1 else when {
-        look == 0 && zoom >= .12 -> 0; look == 1 && zoom >= .32 -> 1; look == 2 && zoom < .55 -> 0; else -> -1
-    }
+    override fun cardId(i: Int) = cards[i].node.id
 
-    override fun headers(deadline: TimeSource.Monotonic.ValueTimeMark?, zoom: Double, l: Float, t: Float, r: Float, b: Float): Boolean {
-        if (look != 2 && slot(zoom, true) != 1) return false
-        for (i in frames.indices) {
-            if (!inside(frameBox, i, l, t, r, b) || frameLayers[i] != null && frameRecorded[i] == frameOpacity[i]) continue
-            if (deadline == null || deadline.hasPassedNow()) return true
-            frameLayer(i)
-        }
-        return false
-    }
+    override fun end(i: Int, to: Boolean) = if (to) routes.to[i] else routes.from[i]
 
-    private fun frameLayer(i: Int, deadline: TimeSource.Monotonic.ValueTimeMark? = null): GraphicsLayer? {
-        val opacity = frameOpacity[i]
-        frameLayers[i]?.let { if (frameRecorded[i] == opacity) return it }
-        if (deadline?.hasPassedNow() == true) { pending = true; return frameLayers[i] }
-        val frame = frames[i]; val look = frameLooks[i]
-        val layer = frameLayers[i] ?: graphics.createGraphicsLayer().also { frameLayers[i] = it }
-        layer.place(frame.x, frame.y, frame.width, 40.0) { x, y -> drawFrameTitle(frame, look, opacity, x, y) }
-        frameRecorded[i] = opacity
-        return layer
-    }
+    override fun endTitle(i: Int, to: Boolean) = end(i, to)?.let(names::get)
 
-    private fun DrawScope.drawBanners(camera: Viewport, viewport: Size) {
-        val domain = camera.zoom < .18
-        for (i in frames.indices) {
-            val frame = frames[i]
-            if (frame.parent != null) continue
-            val x = (camera.x + frame.x * camera.zoom).toFloat(); val y = (camera.y + frame.y * camera.zoom).toFloat()
-            val width = (frame.width * camera.zoom).toFloat(); val height = (frame.height * camera.zoom).toFloat()
-            if (x >= viewport.width || y >= viewport.height || x + width <= 0f || y + height <= 0f) continue
-            val layer = bannerLayer(i, width, domain)
-            clipRect(floor(x), floor(y), ceil(x + width), ceil(y + height)) { translate(x, y) { drawLayer(layer) } }
-        }
+    override fun headerKey(i: Int): Any? = frameOpacity[i]
+
+    override fun DrawScope.header(i: Int, key: Any, x: Float, y: Float) = drawFrameTitle(frames[i], frameLooks[i], key as Float, x, y)
+
+    override fun DrawScope.overlay(camera: Viewport) {
+        if (camera.zoom < .18 && flags and 4 != 0) drawTallies(camera)
     }
 
     private fun banner(look: SurfaceGraphGroup, domain: Boolean): SurfaceGraphBanner {
@@ -541,37 +432,49 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         return SurfaceGraphBanner(label, tally, if (domain) max(label.size.width, tally.size.width) + 22f else label.size.width + tally.size.width + 28f)
     }
 
-    private fun bannerLayer(i: Int, width: Float, domain: Boolean): GraphicsLayer {
-        val banner = bannerText[i * 2 + if (domain) 1 else 0]!!
+    override fun banner(i: Int, width: Float, zoom: Double): GraphicsLayer? {
+        val domain = zoom < .18
+        val banner = bannerText[i * 2 + if (domain) 1 else 0] ?: return null
         val full = width >= banner.natural
-        val key = if (full) (if (domain) -1 else -2) else (width / 4).toInt() * 2 + if (domain) 1 else 0
-        banners[i]?.let { if (bannerKeys[i] == key) return it }
-        val layer = banners[i] ?: graphics.createGraphicsLayer().also { banners[i] = it }
-        val effective = if (full) banner.natural else max((width / 4).toInt() * 4f, 1f)
-        layer.record(unit, LayoutDirection.Ltr, IntSize(ceil(effective).toInt() + 1, 56)) { drawBanner(frameLooks[i], banner, effective, domain) }
-        bannerKeys[i] = key
-        return layer
-    }
-
-    private fun DrawScope.drawLabels(camera: Viewport) {
-        for (i in labels.indices) {
-            val c = corridors[i]
-            val layer = labels[i] ?: labelLayer(i, c)
-            val x = (camera.x + (.25f * c.ax + .5f * c.cx + .25f * c.bx) * camera.zoom).toFloat(); val y = (camera.y + (.25f * c.ay + .5f * c.cy + .25f * c.by) * camera.zoom).toFloat()
-            translate(x - labelSizes[i * 2] / 2, y - labelSizes[i * 2 + 1] / 2) { drawLayer(layer) }
+        return bannerLayer(i, if (full) (if (domain) -1 else -2) else (width / 4).toInt() * 2 + if (domain) 1 else 0) { layer ->
+            val effective = if (full) banner.natural else max((width / 4).toInt() * 4f, 1f)
+            layer.record(unit, LayoutDirection.Ltr, IntSize(ceil(effective).toInt() + 1, if (domain) 56 else 31)) { drawBanner(frameLooks[i], banner, effective, domain) }
         }
     }
 
-    private fun labelLayer(i: Int, c: SurfaceGraphCorridor): GraphicsLayer {
-        val label = measurer.measure("×${c.count}", corridorStyle)
-        val box = Size(label.size.width + 12f, label.size.height + 2f)
-        labelSizes[i * 2] = box.width; labelSizes[i * 2 + 1] = box.height
+    override fun bannerLift(height: Float, z: Float) = if (z < .18f) 0f else super.bannerLift(height, z)
+
+    private fun DrawScope.drawTallies(camera: Viewport) {
+        for (i in tallies.indices) {
+            val c = corridors[i]
+            val layer = tally(i)
+            val x = (camera.x + (.25f * c.ax + .5f * c.cx + .25f * c.bx) * camera.zoom).toFloat(); val y = (camera.y + (.25f * c.ay + .5f * c.cy + .25f * c.by) * camera.zoom).toFloat()
+            translate(x - layer.size.width / 2f, y - layer.size.height / 2f) { drawLayer(layer) }
+        }
+    }
+
+    private fun tally(i: Int) = tallies[i] ?: pill("×${corridors[i].count}", Color(corridorRgb)).also { tallies[i] = it }
+
+    override fun pill(label: String, color: Color): GraphicsLayer {
+        val text = measurer.measure(label, corridorStyle, TextOverflow.Ellipsis, maxLines = 1, constraints = Constraints(maxWidth = 220))
+        val box = Size(text.size.width + 12f, text.size.height + 2f)
         return graphics.createGraphicsLayer().also { layer ->
-            labels[i] = layer
             layer.record(unit, LayoutDirection.Ltr, IntSize(ceil(box.width).toInt() + 1, ceil(box.height).toInt() + 1)) {
                 drawRoundRect(appearance.card.copy(alpha = .94f), Offset.Zero, box, CornerRadius(99f))
-                drawRoundRect(Color(corridorRgb).copy(alpha = .55f), Offset.Zero, box, CornerRadius(99f), style = Stroke(1f))
-                drawText(label, topLeft = Offset(6f, 1f))
+                drawRoundRect(color.copy(alpha = .55f), Offset.Zero, box, CornerRadius(99f), style = Stroke(1f))
+                drawText(text, topLeft = Offset(6f, 1f))
+            }
+        }
+    }
+
+    override fun chip(label: String, color: Color): GraphicsLayer {
+        val text = measurer.measure(label, chipStyle.copy(color = if (color.luminance() > .55f) ink else Color.White), TextOverflow.Ellipsis, maxLines = 1, constraints = Constraints(maxWidth = 200))
+        val w = text.size.width + 18f; val h = text.size.height + 8f
+        return graphics.createGraphicsLayer().also { layer ->
+            layer.record(unit, LayoutDirection.Ltr, IntSize(ceil(w).toInt(), ceil(h + 2f).toInt())) {
+                drawRoundRect(Color.Black.copy(alpha = .18f), Offset(0f, 1.5f), Size(w, h), CornerRadius(h / 2))
+                drawRoundRect(color, Offset.Zero, Size(w, h), CornerRadius(h / 2))
+                drawText(text, topLeft = Offset(9f, 4f))
             }
         }
     }
@@ -594,6 +497,16 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
 
     private fun space(labels: List<TextLayoutResult>) = if (labels.isEmpty()) 0f else labels.sumOf { it.size.width + 13 } - 3f
 
+    private fun fit(badges: List<SurfaceGraphBadge>, title: String, w: Float): Pair<List<SurfaceGraphBadge>, List<TextLayoutResult>> {
+        if (badges.isEmpty()) return badges to emptyList()
+        val room = w - 42 - min(measurer.measure(title, titleStyle, maxLines = 1).size.width.toFloat(), (w - 42) / 2)
+        val labels = labels(badges, false)
+        return (badges.size downTo 0).asSequence().map { keep ->
+            if (keep == badges.size) badges to labels
+            else (badges.take(keep) + badges[keep].copy(text = "+${badges.size - keep}")).let { it to labels.take(keep) + labels(it.takeLast(1), false) }
+        }.firstOrNull { space(it.second) <= room } ?: (emptyList<SurfaceGraphBadge>() to emptyList())
+    }
+
     private fun DrawScope.badges(badges: List<SurfaceGraphBadge>, labels: List<TextLayoutResult>, x: Float, y: Float, row: Boolean) {
         var at = x
         badges.forEachIndexed { i, badge ->
@@ -610,7 +523,10 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         val radius = CornerRadius(10f); val corner = Offset(x, y); val size = Size(w, h)
         if (slot == 0) {
             drawRoundRect(Brush.horizontalGradient(listOf(mix(tone, ink, .5f), mix(tone, ink, .7f)), x, x + w), corner, size, radius)
-            text(n.farTitle, farStyle, x + 19, y + 15, w - 38, 3)
+            val room = h - 16f; val line = farStyle.lineHeight.value; val k = min(1f, room / line)
+            val title = measurer.measure(n.farTitle, if (k < 1f) farStyle.copy(fontSize = farStyle.fontSize * k, lineHeight = farStyle.lineHeight * k) else farStyle, TextOverflow.Ellipsis,
+                maxLines = (room / (line * k)).toInt().coerceIn(1, 3), constraints = Constraints(maxWidth = (w - 38).toInt().coerceAtLeast(1)))
+            paint(title, x + 19, y + (h - title.size.height) / 2)
         } else {
             drawRoundRect(appearance.card, corner, size, radius)
             drawPath(Path().apply { addRoundRect(RoundRect(x, y, x + w, y + 26f, radius, radius)) },
@@ -623,10 +539,10 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
                     else -> drawPath(Path().apply { moveTo(8f, 3.6f); cubicTo(6.4f, 2.6f, 4.3f, 2.3f, 1.8f, 2.6f); lineTo(1.8f, 12.6f); cubicTo(4.3f, 12.3f, 6.4f, 12.6f, 8f, 13.6f); cubicTo(9.6f, 12.6f, 11.7f, 12.3f, 14.2f, 12.6f); lineTo(14.2f, 2.6f); cubicTo(11.7f, 2.3f, 9.6f, 2.6f, 8f, 3.6f); moveTo(8f, 3.6f); lineTo(8f, 13.6f) }, white, style = Stroke(1.5f, join = StrokeJoin.Round))
                 }
             }
-            val titleBadges = labels(n.badges, false)
+            val (shown, titleBadges) = fit(n.badges, n.title, w)
             val badgeSpace = space(titleBadges)
-            text(n.title, titleStyle, x + 28, y + 4, w - 36 - if (n.badges.isEmpty()) 0f else badgeSpace + 6)
-            badges(n.badges, titleBadges, max(x + 34, x + w - 8 - badgeSpace), y + 5.5f, false)
+            text(n.title, titleStyle, x + 28, y + 4, w - 36 - if (shown.isEmpty()) 0f else badgeSpace + 6)
+            badges(shown, titleBadges, x + w - 8 - badgeSpace, y + 5.5f, false)
             val counts = n.counts.map { measurer.measure(it.text, smallStyle, maxLines = 1) }
             val countsWidth = if (counts.isEmpty()) 0f else counts.sumOf { it.size.width + 9 } + n.counts.count { it.mark != null } * 10f + 3f
             text(n.subtitle, subtitleStyle, x + 10, y + 28, w - (if (n.folded > 0) 90 else 20) - countsWidth)
@@ -689,5 +605,5 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         if (full) paint(banner.tally, x, y) else text(look.subtitle, if (domain) domainTallyStyle else tallyStyle, x, y, if (domain) bannerWidth - 22 else bannerWidth - label.size.width - 28)
     }
 
-    private companion object { const val UNDER = 0; const val WIRES = 1; const val CARDS = 2; const val OVER = 3; const val LIT = 4; val SLICE = 2.milliseconds }
+    private companion object { val SLICE = 2.milliseconds }
 }

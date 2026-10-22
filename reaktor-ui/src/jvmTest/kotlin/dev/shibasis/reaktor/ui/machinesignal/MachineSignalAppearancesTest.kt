@@ -62,15 +62,20 @@ class MachineSignalAppearancesTest {
         Appearance.Separator, Appearance.Tooltip, Appearance.Popover, Appearance.Command,
         Appearance.StateView, Appearance.Badge, Appearance.Sparkline, Appearance.Bars, Appearance.RangeBar, Appearance.Row, Appearance.Splitter, Appearance.DocumentTab, Appearance.TabClose,
         Appearance.TableRow, Appearance.TableHeader, Appearance.Scrollbar, Appearance.Island,
+        Appearance.Text, Appearance.Icon, Appearance.Bar, Appearance.Section, Appearance.Property,
+        Appearance.Metric, Appearance.Finding,
     )
 
     @Test
     fun bothShippedPairsDressEverySlot() {
-        listOf(MachineSignalSnapshot.Board, MachineSignalSnapshot.Editor).forEach { snapshot ->
-            val set = MachineSignalAppearances(snapshot)
-            keys.forEach { key ->
-                assertTrue(key in set, "${snapshot.id} leaves ${key.name} unset")
-                assertNotSame(key.default, set[key], "${snapshot.id} draws ${key.name} bare")
+        listOf(MachineSignalSnapshot.Board, MachineSignalSnapshot.Editor).forEach { base ->
+            MachineSignalMode.entries.forEach { mode ->
+                val snapshot = MachineSignalSnapshot.of(base.variant, base.density, mode = mode)
+                val set = MachineSignalAppearances(snapshot)
+                keys.forEach { key ->
+                    assertTrue(key in set, "${snapshot.id} leaves ${key.name} unset")
+                    assertNotSame(key.default, set[key], "${snapshot.id} draws ${key.name} bare")
+                }
             }
         }
     }
@@ -153,9 +158,9 @@ class MachineSignalAppearancesTest {
         var count = 0
         for (y in 0 until image.height) for (x in 0 until image.width) {
             val color = image[x, y]
-            val near = abs(color.red - MachineSignal.Accent.red) < 0.04f &&
-                abs(color.green - MachineSignal.Accent.green) < 0.04f &&
-                abs(color.blue - MachineSignal.Accent.blue) < 0.04f
+            val near = abs(color.red - MachineSignal.Editor.Accent.red) < 0.04f &&
+                abs(color.green - MachineSignal.Editor.Accent.green) < 0.04f &&
+                abs(color.blue - MachineSignal.Editor.Accent.blue) < 0.04f
             if (near) count++
         }
         return count

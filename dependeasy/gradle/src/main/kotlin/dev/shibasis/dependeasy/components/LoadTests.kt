@@ -27,6 +27,7 @@ fun <S : Enum<S>> Project.loadTests(suites: Map<S, LoadSuite>, vararg prerequisi
             requireNotNull(node.task).configure { inputs.files(files).withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE) }
         }
         spec.aliases.forEach { workspace.alias(rootProject.file(it.directory), it.name, node) }
+        spec.coverage?.let(node::covers)
         node
     }
     val verification = workspace.aggregate(this, "checkLoadTests", NodeKind.Verification, nodes)

@@ -22,9 +22,9 @@ import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 
 fun selectableRow(selected: Boolean): ListRowAppearance = if (selected) SelectedRow else SelectableRow
 
-val SelectableRow: ListRowAppearance = rowLook(selected = false)
+val SelectableRow: ListRowAppearance = rowLook(selected = false).withMatrix(MatrixListRow(selected = false))
 
-private val SelectedRow: ListRowAppearance = rowLook(selected = true)
+private val SelectedRow: ListRowAppearance = rowLook(selected = true).withMatrix(MatrixListRow(selected = true))
 
 private fun rowLook(selected: Boolean): ListRowAppearance = object : ListRowAppearance {
     @Composable

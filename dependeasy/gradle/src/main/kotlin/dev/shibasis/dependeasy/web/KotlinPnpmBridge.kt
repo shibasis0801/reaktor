@@ -84,6 +84,7 @@ internal fun installKotlinPnpmBridge(project: Project) {
             override val lockFileNameProvider: Provider<String> = project.providers.provider { "pnpm-lock.yaml" }
         }
         root.packageManagerExtension.set(bridge)
+        dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project).graph.configure { mustRunAfter(synchronize) }
         workspace.install.configure { dependsOn(synchronize) }
         workspace.updateLockfile.configure { dependsOn(synchronize) }
         root.npmInstallTaskProvider.configure { dependsOn(workspace.tools.nodeSetup, workspace.tools.pnpmSetup) }

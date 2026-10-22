@@ -17,6 +17,13 @@ import dev.shibasis.reaktor.surface.ThemeSnapshot
 interface IconAppearance {
     @Composable
     fun tint(ink: InkRole?, theme: ThemeSnapshot): Color
+
+    @Composable
+    fun Content(painter: Painter, modifier: Modifier, ink: InkRole?, theme: ThemeSnapshot) {
+        val tint = tint(ink, theme)
+        val filter = remember(tint) { if (tint == Color.Unspecified) null else ColorFilter.tint(tint) }
+        Box(modifier.paint(painter, colorFilter = filter, contentScale = ContentScale.Fit))
+    }
 }
 
 @Composable
@@ -34,9 +41,7 @@ fun Icon(
     ink: InkRole? = null,
     appearance: IconAppearance = LocalAppearances.current[Appearance.Icon],
 ) {
-    val tint = appearance.tint(ink, LocalThemeSnapshot.current)
-    val filter = remember(tint) { if (tint == Color.Unspecified) null else ColorFilter.tint(tint) }
-    Box(modifier.paint(painter, colorFilter = filter, contentScale = ContentScale.Fit))
+    appearance.Content(painter, modifier, ink, LocalThemeSnapshot.current)
 }
 
 val BareIcon: IconAppearance = object : IconAppearance {

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
 import dev.shibasis.reaktor.surface.compose.lineBox
 import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.layout.heightIn
@@ -56,10 +58,10 @@ fun toneButton(tone: SignalTone): ButtonAppearance = when (tone) {
     SignalTone.Danger -> DangerButton
 }
 
-val PrimaryButton: ButtonAppearance = toneLook(SignalTone.Primary)
-val SecondaryButton: ButtonAppearance = toneLook(SignalTone.Secondary)
-val GhostButton: ButtonAppearance = toneLook(SignalTone.Ghost)
-val DangerButton: ButtonAppearance = toneLook(SignalTone.Danger)
+val PrimaryButton: ButtonAppearance = toneLook(SignalTone.Primary).withMatrix(MatrixButton(SignalTone.Primary))
+val SecondaryButton: ButtonAppearance = toneLook(SignalTone.Secondary).withMatrix(MatrixButton(SignalTone.Secondary))
+val GhostButton: ButtonAppearance = toneLook(SignalTone.Ghost).withMatrix(MatrixButton(SignalTone.Ghost))
+val DangerButton: ButtonAppearance = toneLook(SignalTone.Danger).withMatrix(MatrixButton(SignalTone.Danger))
 
 val SendButton: ButtonAppearance = object : ButtonAppearance {
     @Composable
@@ -85,7 +87,7 @@ val SendButton: ButtonAppearance = object : ButtonAppearance {
             CompositionLocalProvider(LocalContentColor provides if (properties.enabled) colors.onAccent else colors.textFaint, content = slots.content)
         }
     }
-}
+}.withMatrix(MatrixButton(SignalTone.Primary))
 
 private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
     ComponentRecipe<PressProperties, PressState, ButtonLook> { properties, state, theme ->
@@ -114,7 +116,7 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
             ),
             busy = properties.busy,
             focused = state.focusVisible,
-            ring = FocusRing(colors.accent, metrics.focusRing, MachineSignal.Shape.Control),
+            ring = FocusRing(colors.accent, metrics.focusRing, signal.shapes.control),
         )
     },
 ) { look, feedback, slots ->
@@ -124,8 +126,8 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
             .focusRing(look.focused, feedback, look.ring)
             .then(if (look.busy) Modifier.alpha(BusyAlpha) else Modifier)
             .heightIn(min = look.height).lineBox(Type.Label, MachineSignal.Space.s1 / 2)
-            .background(look.fill, MachineSignal.Shape.Control)
-            .border(1.dp, look.line, MachineSignal.Shape.Control)
+            .background(look.fill, MachineSignal.shapes.control)
+            .border(1.dp, look.line, MachineSignal.shapes.control)
             .padding(horizontal = look.padding),
         horizontalArrangement = Arrangement.spacedBy(look.gap),
         verticalAlignment = Alignment.CenterVertically,
@@ -150,8 +152,8 @@ private fun MachineSignalColors.hover(tone: SignalTone): Color = when (tone) {
 
 private fun MachineSignalColors.line(tone: SignalTone): Color = when (tone) {
     SignalTone.Primary -> accentLine
-    SignalTone.Secondary -> line
-    SignalTone.Ghost -> lineSubtle
+    SignalTone.Secondary -> Color.Transparent
+    SignalTone.Ghost -> Color.Transparent
     SignalTone.Danger -> error.copy(alpha = DangerLine)
 }
 

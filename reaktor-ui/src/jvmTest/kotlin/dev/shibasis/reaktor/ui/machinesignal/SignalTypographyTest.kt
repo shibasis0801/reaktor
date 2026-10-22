@@ -151,7 +151,7 @@ class SignalTypographyTest {
     fun selectionUsesTheSignalAccentAndForeignInksFailLoudly() {
         var selection: TextSelectionColors? = null
         render(true) { selection = LocalTextSelectionColors.current }
-        assertEquals(TextSelectionColors(MachineSignal.Accent, MachineSignal.Accent.copy(alpha = .4f)), selection)
+        assertEquals(TextSelectionColors(MachineSignal.Editor.Accent, MachineSignal.Editor.Accent.copy(alpha = .4f)), selection)
         val foreign = object : InkRole {}
         assertFailsWith<ThemeMismatch> { MachineSignalSnapshot.Editor.ink(foreign) }
     }

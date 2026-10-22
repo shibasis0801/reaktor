@@ -2,6 +2,10 @@ package dev.shibasis.reaktor.auth.runtime
 
 import dev.shibasis.reaktor.auth.api.AppService
 import dev.shibasis.reaktor.auth.api.AuthService
+import dev.shibasis.reaktor.auth.jwt.toAuthContext
+import dev.shibasis.reaktor.auth.kernel.AuthContext
+import dev.shibasis.reaktor.auth.transport.guardRelations
+import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthAccountNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthAppServiceNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthAuditNode
@@ -65,7 +69,13 @@ class AuthRuntimeGraph(
         appHandlers = Node { ServiceNode(it, appService, "AuthAppHandlers") }
         autoWire()
         requireFullyWired()
+        config.access?.let { access ->
+            listOf(service, appService).forEach { it.guardRelations(access.policy, ::caller, access.decisions) }
+        }
     }
+
+    private fun caller(request: Request): AuthContext? =
+        request.bearerToken()?.let { jwt.verifier.verifyReaktorSignature(it).getOrNull()?.toAuthContext() }
 
     companion object {
         fun create(

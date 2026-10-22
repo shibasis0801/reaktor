@@ -44,6 +44,10 @@ sealed interface GraphSource {
         override val label = "Kotlin sources"
     }
 
+    data class Revision(val digest: String, override val label: String) : GraphSource {
+        override val id = "revision:$digest"
+    }
+
     data class Device(override val id: String, override val label: String) : GraphSource
 }
 

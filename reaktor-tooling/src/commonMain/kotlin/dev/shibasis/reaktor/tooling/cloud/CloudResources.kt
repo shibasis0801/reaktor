@@ -32,7 +32,7 @@ enum class CloudPlatform(val label: String) {
     Kubernetes("Kubernetes"),
     Supabase("Supabase"),
     Firebase("Firebase"),
-    Grafana("Grafana Cloud"),
+    Grafana("Grafana"),
 }
 
 @Serializable

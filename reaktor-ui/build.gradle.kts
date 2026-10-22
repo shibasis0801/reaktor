@@ -13,7 +13,7 @@ import dev.shibasis.dependeasy.model.Targets
 
 plugins { id("dev.shibasis.dependeasy.compose-library") }
 
-library(namespace = "dev.shibasis.reaktor.ui", targets = Targets.All, ui = Compose()) {
+library(namespace = "dev.shibasis.reaktor.ui", targets = Targets.All, ui = Compose(resources = "dev.shibasis.reaktor.ui.generated.resources")) {
     val packageSources by webPackage(".")
     val buildUiTypeScript by typescript(configuration = "ts/tsconfig.json", output = "ts/dist")
     val jvmComposeWebViewProbeClasspath by classpath(output = "reports/webview/compose-probe-classpath.txt")
@@ -21,6 +21,7 @@ library(namespace = "dev.shibasis.reaktor.ui", targets = Targets.All, ui = Compo
         common {
             api(Reaktor.Core, Reaktor.Code, Reaktor.Io, Reaktor.Web, Reaktor.SurfaceCompose)
             api(Versions.Compose.Runtime)
+            implementation(Versions.Compose.Resources)
             api(Versions.Compose.Foundation)
             api(Versions.Compose.Material3)
             api(Versions.Compose.MaterialIcons)

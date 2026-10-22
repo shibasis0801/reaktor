@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.json.JsonPrimitive
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.*
@@ -58,6 +59,23 @@ class AntigravityCapacityTest {
         Unit
     }
 
+    @Test fun aLongCompletedAnswerSurvivesTheProcessOutputBoundary() = runBlocking {
+        val root = Files.createTempDirectory("agy-long-answer").toFile()
+        val answer = ("A complete scan with \"quoted\" details.\n").repeat(600)
+        val binary = fakeAgy(root, full = emptySet(), response = answer)
+        try {
+            SupervisedProcessExecutor().use { executor ->
+                val events = AntigravityRuntime(executor, binary.absolutePath).run(request(root)).toList()
+                val outcome = (events.last() as AgentEvent.Finished).outcome
+                assertTrue(outcome.ok, outcome.failure)
+                assertEquals(answer, outcome.text)
+                assertEquals(1L, outcome.usage?.inputTokens)
+                assertEquals(1L, outcome.usage?.outputTokens)
+                assertEquals(1, File(root, "calls.txt").readLines().size)
+            }
+        } finally { root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     @Test fun theSeatNamesAModelRatherThanInheritingAStaleOne() {
         val argv = antigravityArgv(request(File("/tmp")).withPreferred())
         assertTrue("--model" in argv, "An unnamed model becomes whatever the CLI falls back to")
@@ -71,7 +89,7 @@ class AntigravityCapacityTest {
         AgentSpec(AgentId("hybrid"), "Hybrid", RuntimeKind.Gemini, ""), "Inspect the graph", root.absolutePath)
 
     /** Answers on agy's NDJSON contract, refusing the models named in [full] the way the service does. */
-    private fun fakeAgy(root: File, full: Set<String>, fail: String? = null): File {
+    private fun fakeAgy(root: File, full: Set<String>, fail: String? = null, response: String = "done"): File {
         val script = File(root, "fake-agy.sh")
         script.writeText(
             """
@@ -89,7 +107,7 @@ class AntigravityCapacityTest {
                 ;;
               *)
                 ${if (fail != null) """echo '{"event":"result","result":{"conversation_id":"c1","status":"ERROR","response":"","error":"$fail"}}'"""
-                  else """echo '{"event":"result","result":{"conversation_id":"c1","status":"SUCCESS","response":"done","usage":{"input_tokens":1,"output_tokens":1}}}'"""}
+                  else """echo '{"event":"result","result":{"conversation_id":"c1","status":"SUCCESS","response":${JsonPrimitive(response)},"usage":{"input_tokens":1,"output_tokens":1}}}'"""}
                 ;;
             esac
             exit 0

@@ -50,6 +50,7 @@ class ServiceCall(
         const val PortAttribute = "reaktor.port.id"
         const val EdgeAttribute = "reaktor.edge.id"
         const val ActivationAttribute = "reaktor.activation.id"
+        const val AccessAttribute = "reaktor.access"
 
         fun sessionFromBaggage(value: String?): String? {
             if (value == null || value.length > 512) return null
@@ -83,6 +84,10 @@ data class ServiceSpan(
     val port: String = "",
     val edge: String = "",
     val activation: String = "",
+    val application: String = "",
+    val installation: String = "",
+    val platform: String = "",
+    val access: String = "",
 )
 
 fun interface SpanSink {
@@ -164,6 +169,7 @@ class SpanRecorder(
                     port = (call.attributes[ServiceCall.PortAttribute] as? String).orEmpty(),
                     edge = (call.attributes[ServiceCall.EdgeAttribute] as? String).orEmpty(),
                     activation = (call.attributes[ServiceCall.ActivationAttribute] as? String).orEmpty(),
+                    access = (chain.request.attributes[ServiceCall.AccessAttribute] as? String)?.takeIf { chain.phase == ServiceExecutionPhase.SERVER }.orEmpty(),
                 ),
             )
         }

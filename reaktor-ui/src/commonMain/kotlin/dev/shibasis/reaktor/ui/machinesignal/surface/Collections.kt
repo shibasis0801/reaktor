@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
 import dev.shibasis.reaktor.surface.compose.lineBox
 import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.Canvas
@@ -18,9 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
@@ -52,21 +54,18 @@ val SignalItemRow: RowAppearance = object : RowAppearance {
         val metrics = signal.metrics
         Row(
             Modifier
-                .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, metrics.focusRing, RectangleShape))
+                .padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s0_5)
+                .clip(MachineSignal.shapes.control)
+                .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, metrics.focusRing, MachineSignal.shapes.control))
                 .fillMaxWidth()
                 .heightIn(min = metrics.itemRow).lineBox(Type.Body, MachineSignal.Space.s1 / 2)
                 .background(
                     when {
-                        properties.selected -> colors.controlAccentSoft
-                        state.hovered && properties.enabled -> colors.raised
+                        properties.selected -> colors.raised
+                        state.hovered && properties.enabled -> colors.surfaceAlt.copy(alpha = .5f)
                         else -> Color.Transparent
                     },
                 )
-                .drawBehind {
-                    if (!properties.selected) return@drawBehind
-                    val bar = SelectedBar.toPx()
-                    drawRect(colors.controlAccent, Offset(if (layoutDirection == LayoutDirection.Ltr) 0f else size.width - bar, 0f), Size(bar, size.height))
-                }
                 .padding(start = MachineSignal.Space.s3 + metrics.indent * properties.depth, end = MachineSignal.Space.s3),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
             verticalAlignment = Alignment.CenterVertically,
@@ -78,13 +77,13 @@ val SignalItemRow: RowAppearance = object : RowAppearance {
             }
             Box(Modifier.weight(1f)) {
                 ProvideLabel(
-                    Label(if (properties.enabled) colors.text else colors.textFaint, signal.fonts.ui, MachineSignal.Type.body, if (properties.selected) FontWeight.SemiBold else null),
+                    Label(when { !properties.enabled -> colors.textFaint; properties.selected -> colors.textStrong; else -> colors.text }, signal.fonts.ui, MachineSignal.Type.body, if (properties.selected) FontWeight.Medium else null),
                     slots.content,
                 )
             }
         }
     }
-}
+}.withMatrix(MatrixRow())
 
 val SignalTableRow: RowAppearance = object : RowAppearance {
     @Composable
@@ -96,11 +95,12 @@ val SignalTableRow: RowAppearance = object : RowAppearance {
             Modifier
                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .fillMaxWidth()
-                .heightIn(min = signal.metrics.tableRow).lineBox(Type.Meta, MachineSignal.Space.s1 / 2)
+                .heightIn(min = signal.metrics.tableRow).lineBox(Type.Label, MachineSignal.Space.s1)
+                .clip(MachineSignal.shapes.control)
                 .background(
                     when {
-                        properties.selected -> colors.controlAccent.copy(alpha = SelectedFill)
-                        hovered -> colors.raised
+                        properties.selected -> colors.rowSelected
+                        hovered -> colors.rowHover
                         properties.index % 2 == 1 -> colors.surface.copy(alpha = ZebraFill)
                         else -> Color.Transparent
                     },
@@ -108,10 +108,10 @@ val SignalTableRow: RowAppearance = object : RowAppearance {
                 .stateLayer(LocalContentColor.current, hovered, feedback),
             contentAlignment = Alignment.CenterStart,
         ) {
-            ProvideLabel(Label(if (properties.enabled) colors.text else colors.textFaint, signal.fonts.ui, MachineSignal.Editor.meta), slots.content)
+            ProvideLabel(Label(if (properties.enabled) colors.text else colors.textFaint, signal.fonts.ui, signal.type.label), slots.content)
         }
     }
-}
+}.withMatrix(MatrixRow(table = true))
 
 val SignalTableHeader: TableHeaderAppearance = object : TableHeaderAppearance {
     @Composable
@@ -123,28 +123,29 @@ val SignalTableHeader: TableHeaderAppearance = object : TableHeaderAppearance {
                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
                 .fillMaxWidth()
                 .heightIn(min = HeaderHeight).lineBox(Type.Meta, MachineSignal.Space.s1)
-                .background(colors.surface)
+                .background(Color.Transparent)
+                .drawBehind { drawLine(colors.lineSubtle, Offset(0f, size.height), Offset(size.width, size.height), MachineSignal.Stroke.hairline.toPx()) }
                 .stateLayer(LocalContentColor.current, properties.sortable && state.hovered, feedback)
                 .padding(horizontal = MachineSignal.Space.s2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ProvideLabel(Label(if (properties.descending == null) colors.textMuted else colors.controlAccent, signal.fonts.ui, MachineSignal.Editor.meta)) {
+            ProvideLabel(Label(if (properties.descending == null) colors.textMuted else colors.controlAccent, signal.fonts.ui, signal.type.label, FontWeight.Medium)) {
                 Box(Modifier.weight(1f, fill = false)) { slots.content() }
                 properties.descending?.let { Text(if (it) Descending else Ascending, maxLines = 1) }
             }
         }
     }
-}
+}.withMatrix(MatrixTableHeader)
 
 val SignalScrollbar: ScrollbarAppearance = object : ScrollbarAppearance {
     @Composable
     override fun Content(properties: ScrollbarProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ScrollbarSlots) {
         val colors = theme.machineSignal.colors
-        Box(Modifier.background(if (properties.scrollable) colors.line else Color.Transparent, ScrollbarShape)) {
+        Box(Modifier.background(if (properties.scrollable) colors.lineSubtle.copy(alpha = .35f) else Color.Transparent, ScrollbarShape)) {
             slots.thumb(ScrollbarThumb(ScrollbarThickness, colors.textMuted.copy(alpha = IdleThumb), colors.textMuted, ScrollbarShape))
         }
     }
-}
+}.withMatrix(MatrixScrollbar)
 
 @Composable
 private fun Chevron(expanded: Boolean, color: Color) = Canvas(Modifier.size(ChevronSize)) {
@@ -166,10 +167,8 @@ private fun Chevron(expanded: Boolean, color: Color) = Canvas(Modifier.size(Chev
     drawPath(path, color)
 }
 
-private val SelectedBar = 2.dp
-private val HeaderHeight = 24.dp
-private const val SelectedFill = .28f
-private const val ZebraFill = .45f
+private val HeaderHeight = MachineSignal.Editor.controlHeight
+private const val ZebraFill = .14f
 private const val Ascending = " ▲"
 private const val Descending = " ▼"
 private val ChevronSize = 8.dp

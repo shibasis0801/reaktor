@@ -49,7 +49,29 @@ fun GraphShape.withDefinitionIdentity(): GraphShape {
         wire.copy(definitionId = if (consumer.isEmpty() || provider.isEmpty() || consumerPort == null || providerPort == null) "" else
             "edge:" + digest(listOf("wire-v1", consumer, consumerPort, provider, providerPort, wire.type).joinToString("\u0000")))
     }
-    val canonical = GraphShape(
+    val canonical = copy(scopes = definedScopes, nodes = definedNodes, wires = definedWires).definitionStructure()
+    return copy(scopes = definedScopes, nodes = definedNodes, wires = definedWires,
+        definitionDigest = digest("graph-definition-v1\u0000" + Json.encodeToString(GraphShape.serializer(), canonical)))
+}
+
+
+
+fun GraphShape.definitionArtifact(): GraphShape {
+    val identified = withDefinitionIdentity()
+    require(definitionDigest.isNotEmpty() && definitionDigest == identified.definitionDigest) { "Graph definition digest does not match its topology" }
+    require(identified.scopes.all { it.definitionId.isNotEmpty() } && identified.nodes.all { it.definitionId.isNotEmpty() && it.ports.all { port -> port.definitionId.isNotEmpty() } } && identified.wires.all { it.definitionId.isNotEmpty() }) { "Ambiguous graph definitions cannot be retained as exact topology" }
+    return identified.definitionStructure().copy(definitionDigest = identified.definitionDigest)
+}
+
+private fun GraphShape.definitionStructure(): GraphShape {
+    val definedScopes = scopes
+    val definedNodes = nodes
+    val definedWires = wires
+    val scopeIds = scopes.associate { it.id to it.definitionId }
+    val nodeIds = nodes.associate { it.id to it.definitionId }
+    fun portKey(key: String, type: String): String? =
+        if (type == "NavBinding" && key in nodeIds) nodeIds[key]?.takeIf(String::isNotEmpty) else key
+    return GraphShape(
         definedScopes.map { it.copy(id = it.definitionId, parent = it.parent?.let(scopeIds::get), container = it.container?.let(nodeIds::get), active = false, backStack = emptyList()) }.sortedBy { it.id },
         definedNodes.map { it.copy(id = it.definitionId, scope = scopeIds[it.scope].orEmpty(), attachedTo = it.attachedTo?.let(nodeIds::get), lifecycle = null,
             ports = it.ports.map { port -> port.copy(key = portKey(port.key, port.type).orEmpty(), wiring = PortWiring.Unused, connections = 0) }.sortedWith(compareBy({ port -> port.key }, { port -> port.type }, { port -> port.provides })),
@@ -59,8 +81,6 @@ fun GraphShape.withDefinitionIdentity(): GraphShape {
             provider = nodeIds[it.provider].orEmpty(), providerPort = portKey(it.providerPort, it.type).orEmpty()) }.sortedBy { it.definitionId },
         routes.map { it.copy(from = nodeIds[it.from].orEmpty(), to = nodeIds[it.to].orEmpty()) }.sortedWith(compareBy({ it.from }, { it.to })),
     )
-    return copy(scopes = definedScopes, nodes = definedNodes, wires = definedWires,
-        definitionDigest = digest("graph-definition-v1\u0000" + Json.encodeToString(GraphShape.serializer(), canonical)))
 }
 
 private fun digest(value: String): String = value.encodeUtf8().sha256().hex()

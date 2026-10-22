@@ -79,11 +79,12 @@ abstract class CliAgentRuntime(
             taskId = TaskId("conductor:${kind.name.lowercase()}:${request.agent.id.value}"),
             safety = safety(request),
             timeoutMillis = request.agent.budget.timeoutMillis,
-        )
+        ).copy(captureStdoutLineChars = 8_388_608)
 
         val handle = executor.start(execution)
         val stderr = StringBuilder()
         var exitCode = -1
+        var processFailure: String? = null
         var completed = false
 
         try {
@@ -97,6 +98,7 @@ abstract class CliAgentRuntime(
                     is RunEvent.Completed -> {
                         completed = true
                         exitCode = event.run.exitCode ?: -1
+                        processFailure = event.run.failure?.message
                     }
                     else -> Unit
                 }
@@ -105,7 +107,8 @@ abstract class CliAgentRuntime(
             if (!completed) withContext(NonCancellable) { handle.cancel() }
         }
 
-        emit(AgentEvent.Finished(request.agent.id, parser.finish(exitCode, stderr.toString())))
+        val diagnostic = processFailure?.let { "$stderr\n$it" } ?: stderr.toString()
+        emit(AgentEvent.Finished(request.agent.id, parser.finish(exitCode, diagnostic)))
     }
 }
 

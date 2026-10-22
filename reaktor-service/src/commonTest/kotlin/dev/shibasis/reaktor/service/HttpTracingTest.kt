@@ -150,7 +150,7 @@ class HttpTracingTest {
             assertEquals(digest, second.graphDigest)
             assertEquals("dev", second.environment)
             assertEquals("fixture.build", second.build)
-            assertEquals("", second.node)
+            assertEquals("random-activation", second.node)
             assertEquals("vendor-key=opaque,reaktor-session=caller-session", headers[1].second)
             assertFalse("private-value" in Json.encodeToString(second))
             assertTrue(spans.snapshot().all { it.durationMillis >= 0 && it.durationMillis.isFinite() })
@@ -329,7 +329,7 @@ class HttpTracingTest {
                     assertEquals("", it.node)
                     assertEquals("", it.graphDigest)
                     assertFalse("private-value" in Json.encodeToString(it))
-                    assertFalse("owner-first" in Json.encodeToString(it) || "owner-second" in Json.encodeToString(it))
+                    assertTrue(it.activation in setOf("owner-first", "owner-second"))
                 }
                 removeSecond()
                 withContext(secondCall) { client.get("https://example.invalid/closed-owner") }

@@ -30,6 +30,19 @@ class GraphDefinitionTest {
         assertNotEquals(first.definitionDigest, first.copy(wires = emptyList()).withDefinitionIdentity().definitionDigest)
     }
 
+    @Test fun retainedArtifactsRemoveRuntimeIdentityAndRejectChangedTopology() {
+        val first = definition("launch-one", "p1", "c1")
+        val artifact = first.definitionArtifact()
+        assertEquals(first.definitionDigest, artifact.definitionDigest)
+        assertEquals(artifact, definition("launch-two", "p2", "c2").definitionArtifact())
+        assertEquals(artifact, artifact.definitionArtifact())
+        assertTrue(artifact.nodes.all { it.id == it.definitionId && it.lifecycle == null && it.ports.all { port -> port.wiring == PortWiring.Unused && port.connections == 0 } })
+        assertTrue(artifact.scopes.all { !it.active && it.backStack.isEmpty() })
+        assertFailsWith<IllegalArgumentException> { first.copy(wires = emptyList()).definitionArtifact() }
+        val ambiguous = first.copy(nodes = first.nodes + first.nodes.first().copy(id = "duplicate")).withDefinitionIdentity()
+        assertFailsWith<IllegalArgumentException> { ambiguous.definitionArtifact() }
+    }
+
     @Test fun ambiguousDeclarationsDoNotAcquireAnExactIdentity() {
         val shape = definition("root", "p", "c")
         val ambiguous = shape.copy(nodes = shape.nodes + shape.nodes.first().copy(id = "p-other")).withDefinitionIdentity()

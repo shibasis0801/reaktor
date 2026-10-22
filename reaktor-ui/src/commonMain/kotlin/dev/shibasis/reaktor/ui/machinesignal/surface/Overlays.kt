@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -49,8 +51,8 @@ val SignalTooltip: TooltipAppearance = object : TooltipAppearance {
         Column(
             Modifier
                 .widthIn(max = MachineSignal.Editor.navigatorWidth)
-                .background(colors.raised, MachineSignal.Shape.Tight)
-                .border(1.dp, colors.line, MachineSignal.Shape.Tight)
+                .background(colors.raised, MachineSignal.shapes.tight)
+                .border(1.dp, colors.line, MachineSignal.shapes.tight)
                 .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
         ) {
@@ -63,7 +65,7 @@ val SignalTooltip: TooltipAppearance = object : TooltipAppearance {
             properties.reason?.let { reason -> ProvideLabel(aside) { Text(reason) } }
         }
     }
-}
+}.withMatrix(MatrixTooltip)
 
 val RaisedPopover: PanelAppearance = object : PanelAppearance {
     @Composable
@@ -72,15 +74,15 @@ val RaisedPopover: PanelAppearance = object : PanelAppearance {
         Column(
             Modifier
                 .widthIn(max = MachineSignal.Editor.navigatorWidth * 2)
-                .background(signal.colors.raised, MachineSignal.Shape.Panel)
-                .border(1.dp, signal.colors.line, MachineSignal.Shape.Panel)
+                .background(signal.colors.raised, MachineSignal.shapes.panel)
+                .border(1.dp, signal.colors.line, MachineSignal.shapes.panel)
                 .padding(MachineSignal.Space.s3),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
         ) {
             ProvideLabel(Label(signal.colors.text, signal.fonts.ui, signal.metrics.label), slots.content)
         }
     }
-}
+}.withMatrix(MatrixPanel())
 
 val PanelDialog: PanelAppearance = object : PanelAppearance {
     @Composable
@@ -91,15 +93,15 @@ val PanelDialog: PanelAppearance = object : PanelAppearance {
                 .padding(MachineSignal.Space.s5)
                 .widthIn(max = DialogWidth)
                 .fillMaxWidth()
-                .background(signal.colors.raised, MachineSignal.Shape.Panel)
-                .border(1.dp, signal.colors.line, MachineSignal.Shape.Panel)
+                .background(signal.colors.raised, MachineSignal.shapes.panel)
+                .border(1.dp, signal.colors.line, MachineSignal.shapes.panel)
                 .padding(MachineSignal.Space.s4),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3),
         ) {
             ProvideLabel(Label(signal.colors.text, signal.fonts.ui, MachineSignal.Type.body), slots.content)
         }
     }
-}
+}.withMatrix(MatrixPanel(dialog = true))
 
 val PanelSheet: PanelAppearance = object : PanelAppearance {
     @Composable
@@ -121,14 +123,14 @@ val PanelSheet: PanelAppearance = object : PanelAppearance {
             }
         }
     }
-}
+}.withMatrix(MatrixPanel(sheet = true))
 
 fun statusToast(tone: (MachineSignalColors) -> Color): ToastAppearance = object : ToastAppearance {
     @Composable
     override fun Content(properties: ToastEntry, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ToastSlots) {
         val signal = theme.machineSignal
         val color = tone(signal.colors)
-        val shape = RoundedCornerShape(MachineSignal.Radius.statusPill)
+        val shape = MachineSignal.shapes.panel
         Row(
             Modifier
                 .focusRing(state.focusVisible, feedback, FocusRing(signal.colors.accent, signal.metrics.focusRing, shape))
@@ -143,7 +145,7 @@ fun statusToast(tone: (MachineSignalColors) -> Color): ToastAppearance = object 
             ProvideLabel(Label(signal.colors.textStrong, signal.fonts.mono, MachineSignal.Type.data, FontWeight.SemiBold), slots.message)
         }
     }
-}
+}.withMatrix(MatrixToast(tone))
 
 val StatusToast: ToastAppearance = statusToast { it.accent }
 

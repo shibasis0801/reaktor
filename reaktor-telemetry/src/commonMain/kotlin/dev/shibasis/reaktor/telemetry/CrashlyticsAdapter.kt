@@ -22,6 +22,20 @@ abstract class CrashlyticsAdapter<Controller>(controller: Controller): Adapter<C
         }
     }
 
+    fun logSpan(span: dev.shibasis.reaktor.service.ServiceSpan) {
+        val values = mapOf("reaktor.application" to span.application, "reaktor.installation" to span.installation,
+            "reaktor.environment" to span.environment, "reaktor.platform" to span.platform,
+            "reaktor.application_session" to span.applicationSession,
+            "reaktor.trace_id" to span.traceId, "reaktor.span_id" to span.spanId,
+            "reaktor.node" to span.node, "reaktor.graph_digest" to span.graphDigest)
+        require(span.traceId.matches(Regex("[0-9a-f]{32}")) && span.spanId.matches(Regex("[0-9a-f]{16}")))
+        require(values.values.all { it.length <= 128 && ContextValue.matches(it) })
+        synchronized(contextLock) {
+            setContext(values)
+            log(values.entries.joinToString(" ") { "${it.key}=${it.value}" })
+        }
+    }
+
     fun clearContext() = synchronized(contextLock) {
         ContextKeys.forEach { writeCustomKey(it, "") }
         setUserId("")
@@ -31,7 +45,8 @@ abstract class CrashlyticsAdapter<Controller>(controller: Controller): Adapter<C
         val ContextKeys: Set<String> = setOf(
             "reaktor.source_revision", "reaktor.artifact", "reaktor.configuration",
             "reaktor.environment", "reaktor.platform", "reaktor.application_session",
-            "reaktor.route", "reaktor.graph_digest",
+            "reaktor.route", "reaktor.graph_digest", "reaktor.application", "reaktor.installation",
+            "reaktor.trace_id", "reaktor.span_id", "reaktor.node",
         )
         private val ContextValue = Regex("[A-Za-z0-9._:/ ()-]*")
     }

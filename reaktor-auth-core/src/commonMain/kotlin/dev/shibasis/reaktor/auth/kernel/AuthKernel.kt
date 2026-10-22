@@ -453,8 +453,9 @@ object LocalAuthorizer {
         val capabilities = context.permissions + context.scopes
         val ids = capabilities.mapNotNull { it.id }.toSet()
         val names = capabilities.map { it.name }.toSet()
+        val held = names.mapNotNull(Capability::parse)
         return required.all { requiredPermission ->
-            requiredPermission.id?.let { it in ids } ?: (requiredPermission.name in names)
+            requiredPermission.id?.let { it in ids } ?: (requiredPermission.name in names || held.covers(requiredPermission.name))
         }
     }
 

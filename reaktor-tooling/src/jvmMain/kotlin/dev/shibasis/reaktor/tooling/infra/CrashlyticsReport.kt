@@ -42,9 +42,14 @@ fun crashlyticsReport(result: JsonObject, limit: Int = 50): CrashlyticsReport {
         val issue = group["issue"] as? Map<*, *> ?: error("Missing Crashlytics issue")
         val id = issue.text("id").ifBlank { issue.text("name") }
         require(id.isNotBlank()) { "Missing Crashlytics issue identity" }
-        val metrics = group["metrics"] as? Map<*, *> ?: group
+        val metrics = when (val value = group["metrics"]) {
+            is Map<*, *> -> value
+            is List<*> -> value.singleOrNull() as? Map<*, *> ?: emptyMap<Any, Any>()
+            null -> group
+            else -> emptyMap<Any, Any>()
+        }
         CrashlyticsIssue(id, issue.text("title"), issue.text("subtitle"), issue.text("errorType"),
-            number(metrics["eventsCount"]), number(metrics["impactedUsers"]))
+            number(metrics["eventsCount"]), number(metrics["impactedUsersCount"] ?: metrics["impactedUsers"]))
     }
     return CrashlyticsReport(name.take(1_024), issues, groups.size >= limit || !document["nextPageToken"].toString().let { it == "null" || it.isBlank() })
 }

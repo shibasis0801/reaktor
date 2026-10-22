@@ -76,15 +76,15 @@ class SurfaceGraphDetailTest {
 
     @Test fun detailDoesNotFlickerWhenFittingNearThresholds() {
         val state=SurfaceGraphExplorerState()
-        assertEquals(0,state.detailLevel(.07))
-        assertEquals(2,state.detailLevel(.9))
-        assertEquals(2,state.detailLevel(.41))
-        assertEquals(1,state.detailLevel(.38))
-        assertEquals(1,state.detailLevel(.43))
-        assertEquals(2,state.detailLevel(.46))
-        assertEquals(0,state.detailLevel(.15))
-        assertEquals(0,state.detailLevel(.19))
-        assertEquals(1,state.detailLevel(.21))
+        assertEquals(0,state.level(.07))
+        assertEquals(2,state.level(.9))
+        assertEquals(2,state.level(.41))
+        assertEquals(1,state.level(.38))
+        assertEquals(1,state.level(.43))
+        assertEquals(2,state.level(.46))
+        assertEquals(0,state.level(.15))
+        assertEquals(0,state.level(.19))
+        assertEquals(1,state.level(.21))
     }
 
     @Test fun cameraUsesTheSameWorldUnitsAtRetinaDensity() {

@@ -22,6 +22,7 @@ internal class BuildWorkspace(private val project: Project) {
     private val taskOutputKinds = linkedMapOf<NodeId, OutputKind>()
     private val taskArtifactFamilies = linkedMapOf<NodeId, String>()
     private val taskHostRequirements = linkedMapOf<NodeId, HostRequirement>()
+    private val coverage = linkedMapOf<NodeId, Coverage>()
     private val prerequisites = linkedMapOf<NodeId, MutableSet<NodeId>>()
     private val scriptAliases = linkedMapOf<String, MutableMap<String, PackageScriptInvocation>>()
     private var scriptGeneration: TaskProvider<PackageScriptsTask>? = null
@@ -119,6 +120,7 @@ internal class BuildWorkspace(private val project: Project) {
         nodes.convention(emptyList())
         edges.convention(emptyList())
         omissions.convention(emptyList())
+        products.convention(emptyList())
         nodes.finalizeValueOnRead()
         edges.finalizeValueOnRead()
         omissions.finalizeValueOnRead()
@@ -253,11 +255,19 @@ internal class BuildWorkspace(private val project: Project) {
         declaredTasks.add(target.id)
         graph.configure {
             nodes.add(project.provider { BuildModelReader.encode(target.model(project).let { node ->
-                (taskArtifactFamilies[node.id] ?: taskOutputKinds[node.id]?.family)?.let { node.copy(artifactFamily = it) } ?: node
+                ((taskArtifactFamilies[node.id] ?: taskOutputKinds[node.id]?.family)?.let { node.copy(artifactFamily = it) } ?: node).copy(coverage = coverage[node.id])
             }) })
             edges.addAll(project.provider { target.edges().map { BuildModelReader.json.encodeToString(it) } })
             omissions.addAll(project.provider { target.omissions().map { BuildModelReader.json.encodeToString(it) } })
         }
+    }
+
+    internal fun cover(id: NodeId, declared: Coverage) {
+        coverage[id] = coverage[id]?.plus(declared) ?: declared
+    }
+
+    internal fun product(model: ProductModel) {
+        graph.configure { products.add(BuildModelReader.json.encodeToString(model)) }
     }
 
     internal fun configure(node: NodeHandle, configuration: BuildTarget.() -> Unit) {
@@ -382,7 +392,7 @@ internal class BuildWorkspace(private val project: Project) {
                         taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer),
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
                         tools = producer.declaredTools(), options = producer.declaredOptions(),
-                        artifactFamily = taskArtifactFamilies[id] ?: kind?.family,
+                        artifactFamily = taskArtifactFamilies[id] ?: kind?.family, coverage = coverage[id],
                         worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: migration?.database?.availableEnvironments ?: infrastructure?.stack?.stacks?.keys?.toList() ?: listOfNotNull(server?.environment ?: secrets?.environment),
                         bindings = worker?.bindings?.get()?.map(::ServiceRef) ?: listOfNotNull(server?.service ?: secrets?.service ?: (migration?.database as? DatabaseMigrations.ClickHouse)?.service),
                           requiredSecrets = if (typed?.kernelSpec is KernelSpec.WranglerDeploy || secrets != null || migration?.database is DatabaseMigrations.D1) listOf("CLOUDFLARE_API_TOKEN") else infrastructure?.stack?.secretNames?.sorted().orEmpty())))

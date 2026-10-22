@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,9 +43,9 @@ val SignalIsland: IslandAppearance = object : IslandAppearance {
 val SignalStateView: StateViewAppearance = object : StateViewAppearance {
     @Composable
     override fun Content(properties: ViewState, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: StateViewSlots) {
-        if (properties == ViewState.Stale) Strip(properties, theme.machineSignal, slots) else Centred(theme.machineSignal, slots)
+        if (properties == ViewState.Stale) Strip(properties, theme.machineSignal, slots) else Centred(properties, theme.machineSignal, slots)
     }
-}
+}.withMatrix(MatrixStateView)
 
 val StripStateView: StateViewAppearance = object : StateViewAppearance {
     @Composable
@@ -51,23 +54,27 @@ val StripStateView: StateViewAppearance = object : StateViewAppearance {
 }
 
 @Composable
-private fun Centred(signal: MachineSignalSnapshot, slots: StateViewSlots) = Column(
+private fun Centred(state: ViewState, signal: MachineSignalSnapshot, slots: StateViewSlots) = Column(
     Modifier.fillMaxSize().padding(MachineSignal.Space.s5),
     verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2, Alignment.CenterVertically),
     horizontalAlignment = Alignment.CenterHorizontally,
 ) {
+    if (state == ViewState.Loading && signal.mode == MachineSignalMode.Matrix)
+        MatrixWaterfall(signal, Modifier.size(216.dp, 84.dp))
     ProvideLabel(Label(signal.colors.text, signal.fonts.ui, MachineSignal.Editor.label)) { slots.reason() }
     slots.action?.invoke()
 }
 
 @Composable
 private fun Strip(state: ViewState, signal: MachineSignalSnapshot, slots: StateViewSlots) = Row(
-    Modifier.fillMaxWidth().background(signal.colors.surface).padding(MachineSignal.Space.s3),
+    Modifier.fillMaxWidth().background(signal.colors.surface).then(if (signal.mode == MachineSignalMode.Matrix) Modifier.matrixFrame(signal, scanlines = true) else Modifier).padding(MachineSignal.Space.s3),
     horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
     verticalAlignment = Alignment.CenterVertically,
 ) {
     val color = signal.toneOf(state)
-    StatusDot(color)
+    if (state == ViewState.Loading && signal.mode == MachineSignalMode.Matrix)
+        MatrixWaterfall(signal, Modifier.size(72.dp, 28.dp))
+    else StatusDot(color)
     Box(Modifier.weight(1f)) { ProvideLabel(Label(color, signal.fonts.ui, MachineSignal.Type.caption)) { slots.reason() } }
     slots.action?.invoke()
 }

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.code
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -88,8 +90,8 @@ internal fun CodeCompletionPopup(
     }
     Column(
         Modifier.width(CompletionWidth).heightIn(max = CompletionMaxHeight)
-            .background(MachineSignal.Editor.Raised, MachineSignal.Shape.Panel)
-            .border(1.dp, MachineSignal.Editor.Line, MachineSignal.Shape.Panel)
+            .background(MachineSignal.Editor.Raised, MachineSignal.shapes.panel)
+            .border(1.dp, MachineSignal.Editor.Line, MachineSignal.shapes.panel)
             .testTag("$tag-completions"),
     ) {
         LazyColumn(state = listState) {

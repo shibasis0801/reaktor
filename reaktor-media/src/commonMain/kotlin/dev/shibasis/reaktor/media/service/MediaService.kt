@@ -9,6 +9,8 @@ import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
 import dev.shibasis.reaktor.service.ServiceContract
+import dev.shibasis.reaktor.service.Callers
+import dev.shibasis.reaktor.service.ServiceAccess
 
 @Serializable
 sealed class MediaRequest : Request() {
@@ -68,6 +70,7 @@ sealed class MediaResponse(
 
 abstract class MediaService(baseUrl: String = "") : Service(baseUrl) {
     override val contract = ServiceContract("reaktor.media")
+    override val access = ServiceAccess(Callers.SignedIn)
 
     abstract val downloadMedia: GetHandler<MediaRequest.Download, MediaResponse>
     abstract val uploadMedia: PostHandler<MediaRequest.Upload, MediaResponse>

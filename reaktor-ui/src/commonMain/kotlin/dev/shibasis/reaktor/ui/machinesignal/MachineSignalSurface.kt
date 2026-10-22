@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.ui.machinesignal
 
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -19,10 +20,13 @@ import dev.shibasis.reaktor.surface.compose.BareTheme
 import dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot
 import dev.shibasis.reaktor.surface.compose.SurfaceTheme
 import dev.shibasis.reaktor.ui.machinesignal.surface.MachineSignalAppearances
+import dev.shibasis.reaktor.ui.machinesignal.surface.matrixTextStyle
 
 enum class MachineSignalVariant { Board, Editor }
 
 enum class MachineSignalDensity { Comfortable, Compact }
+
+enum class MachineSignalMode(val label: String) { Dark("Dark"), Light("Light"), Matrix("Matrix") }
 
 @Immutable
 data class MachineSignalColors(
@@ -75,21 +79,108 @@ data class MachineSignalColors(
             controlAccentSoft = MachineSignal.AccentSoft,
         )
 
+        val Light = MachineSignalColors(
+            canvas = Color(0xFFF2F4F8),
+            surface = Color(0xFFFFFFFF),
+            surfaceAlt = Color(0xFFF5F7FA),
+            raised = Color(0xFFEBEEF4),
+            raisedAlt = Color(0xFFDCE1EA),
+            lineSubtle = Color(0xFFE6E9EF),
+            line = Color(0xFFD5DBE5),
+            lineStrong = Color(0xFFB4BDCC),
+            textStrong = Color(0xFF0B1220),
+            text = Color(0xFF1F2937),
+            textMuted = Color(0xFF4B5567),
+            textFaint = Color(0xFF5F687C),
+            controlAccent = Color(0xFF2F58F8),
+            controlAccentSoft = Color(0x122F58F8),
+            accent = Color(0xFF2F58F8),
+            accentHover = Color(0xFF2347E0),
+            accentSoft = Color(0x122F58F8),
+            accentLine = Color(0x662F58F8),
+            accentText = Color(0xFF2F58F8),
+            selection = Color(0x332F58F8),
+            ok = Color(0xFF087A4A),
+            warn = Color(0xFF8A5B00),
+            error = Color(0xFFB42333),
+            menu = Color(0xFFFFFFFF),
+            onMenu = Color(0xFF111827),
+            rowHover = Color(0xFFF0F2F5),
+            rowSelected = Color(0x122F58F8),
+            source = Color(0xFF2F58F8),
+            onAccent = Color.White,
+            entities = MachineSignalEntities(
+                route = Color(0xFF2F58F8), screen = Color(0xFF075985), container = Color(0xFF5B4CCB),
+                service = Color(0xFF087A4A), cloud = Color(0xFF075985), actor = Color(0xFF8A5B00),
+                auth = Color(0xFF6941C6), infra = Color(0xFF526078), agent = Color(0xFF2F58F8),
+                topic = Color(0xFF8A5B00), repo = Color(0xFF9A3412), interactor = Color(0xFF077571),
+                exec = Color(0xFF9A3412), navigation = Color(0xFF2F58F8), data = Color(0xFF075985),
+                attachment = Color(0xFF526078), containment = Color(0xFF5B4CCB), portOff = Color(0xFF526078),
+            ),
+        )
+
+        val Matrix = MachineSignalColors(
+            canvas = Color(0xFF020604),
+            surface = Color(0xFF040D08),
+            surfaceAlt = Color(0xFF07140D),
+            raised = Color(0xFF0A1E12),
+            raisedAlt = Color(0xFF10301C),
+            lineSubtle = Color(0xFF0C2314),
+            line = Color(0xFF174529),
+            lineStrong = Color(0xFF317848),
+            textStrong = Color(0xFFE0FFE7),
+            text = Color(0xFFBFECCD),
+            textMuted = Color(0xFF86B997),
+            textFaint = Color(0xFF78AA8A),
+            controlAccent = Color(0xFF64FF8F),
+            controlAccentSoft = Color(0x1464FF8F),
+            accent = Color(0xFF64FF8F),
+            accentHover = Color(0xFF9DFFB9),
+            accentSoft = Color(0x1464FF8F),
+            accentLine = Color(0x6664FF8F),
+            accentText = Color(0xFF9DFFB9),
+            selection = Color(0x4064FF8F),
+            ok = Color(0xFF64FF8F),
+            warn = Color(0xFFFFD47A),
+            error = Color(0xFFFF8C9A),
+            menu = Color(0xFF0B1E14),
+            onMenu = Color(0xFFE0FFE7),
+            rowHover = Color(0xFF10281B),
+            rowSelected = Color(0x2064FF8F),
+            source = Color(0xFF9DFFE0),
+            onAccent = Color(0xFF031208),
+            entities = MachineSignalEntities(
+                route = Color(0xFF64FF8F), screen = Color(0xFFA8F5C0), container = Color(0xFF7ADBA5),
+                service = Color(0xFFA3E874), cloud = Color(0xFF8CEBC7), actor = Color(0xFFD2E99B),
+                auth = Color(0xFFB6F4CC), infra = Color(0xFF86B997), agent = Color(0xFF64FF8F),
+                topic = Color(0xFFD2E99B), repo = Color(0xFFC4D98B), interactor = Color(0xFF76DFBA),
+                exec = Color(0xFFD2E99B), navigation = Color(0xFF64FF8F), data = Color(0xFF8CEBC7),
+                attachment = Color(0xFF86B997), containment = Color(0xFF7ADBA5), portOff = Color(0xFF78AA8A),
+            ),
+        )
+
         val Editor = MachineSignalColors(
             canvas = MachineSignal.Editor.Canvas,
             surface = MachineSignal.Editor.Surface,
-            surfaceAlt = MachineSignal.Editor.Surface,
+            surfaceAlt = MachineSignal.Editor.Raised,
             raised = MachineSignal.Editor.Raised,
-            raisedAlt = MachineSignal.Editor.Raised,
-            lineSubtle = MachineSignal.Editor.Code.GutterLine,
+            raisedAlt = MachineSignal.Editor.Line,
+            lineSubtle = MachineSignal.Editor.Line.copy(alpha = .32f),
             line = MachineSignal.Editor.Line,
             lineStrong = MachineSignal.Editor.Line,
             textStrong = MachineSignal.Editor.Text,
-            text = MachineSignal.Editor.Text,
+            text = MachineSignal.Editor.Text.copy(alpha = .84f),
             textMuted = MachineSignal.Editor.Muted,
             textFaint = MachineSignal.Editor.Unknown,
             controlAccent = MachineSignal.Editor.Accent,
             controlAccentSoft = MachineSignal.Editor.AccentSoft,
+            accent = MachineSignal.Editor.Accent,
+            accentHover = MachineSignal.Editor.Source,
+            menu = MachineSignal.Editor.Raised,
+            onMenu = MachineSignal.Editor.Text,
+            rowHover = MachineSignal.Editor.Raised,
+            rowSelected = MachineSignal.Editor.AccentSoft,
+            onAccent = MachineSignal.Editor.Canvas,
         )
     }
 }
@@ -225,7 +316,7 @@ data class MachineSignalMetrics(
             focusRing = MachineSignal.Space.s1 / 4,
             itemRow = MachineSignal.Editor.treeRowHeight,
             indent = MachineSignal.Editor.treeIndent,
-            tableRow = MachineSignal.Metrics.kvRowHeight,
+            tableRow = MachineSignal.Space.s6,
         )
     }
 }
@@ -238,8 +329,10 @@ data class MachineSignalSnapshot(
     val metrics: MachineSignalMetrics,
     val fonts: MachineSignalFonts,
     val type: MachineSignalType = MachineSignalType(),
+    val mode: MachineSignalMode = MachineSignalMode.Dark,
 ) : ThemeSnapshot {
-    override val id: String = "machine-signal/${variant.name.lowercase()}/${density.name.lowercase()}"
+    override val id: String = "machine-signal/${variant.name.lowercase()}/${density.name.lowercase()}" +
+        if (mode == MachineSignalMode.Dark) "" else "/${mode.name.lowercase()}"
 
     fun ink(ink: InkRole): Color = when (ink) {
         Ink.Strong -> colors.textStrong
@@ -256,19 +349,27 @@ data class MachineSignalSnapshot(
         Ink.OnAccent -> colors.onAccent
         is EntityInk -> colors.entities[ink]
         is EdgeInk -> colors.entities[ink]
-        is ProvenanceInk -> MachineSignal.provenance(ink.truth).base
-        BoardInk.Text1 -> MachineSignal.Text1
-        BoardInk.Text2 -> MachineSignal.Text2
-        BoardInk.Text3 -> MachineSignal.Text3
-        BoardInk.Text4 -> MachineSignal.Text4
-        BoardInk.AccentText -> MachineSignal.AccentText
+        is ProvenanceInk -> if (mode == MachineSignalMode.Dark) MachineSignal.provenance(ink.truth).base else when (ink.truth) {
+            TruthClass.Live -> colors.ok
+            TruthClass.Source -> colors.source
+            TruthClass.Inferred -> colors.entities.auth
+            TruthClass.Imported -> colors.entities.interactor
+            TruthClass.Stale, TruthClass.Partial -> colors.warn
+            TruthClass.Failed -> colors.error
+            TruthClass.Fixture, TruthClass.Unknown -> colors.textMuted
+        }
+        BoardInk.Text1 -> colors.textStrong
+        BoardInk.Text2 -> colors.text
+        BoardInk.Text3 -> colors.textMuted
+        BoardInk.Text4 -> colors.textFaint
+        BoardInk.AccentText -> colors.accentText
         SignalInk.Soft -> colors.text.copy(alpha = .9f)
         SignalInk.Dim -> colors.textMuted.copy(alpha = .6f)
         SignalInk.ScreenReadout -> colors.onAccent.copy(alpha = .9f)
         SignalInk.ScreenAction -> colors.onAccent.copy(alpha = .8f)
         SignalInk.ScreenNote -> colors.onAccent.copy(alpha = .78f)
-        SignalInk.Code -> MachineSignal.Editor.Code.Text
-        SignalInk.Gutter -> MachineSignal.Editor.Code.Gutter
+        SignalInk.Code -> if (mode == MachineSignalMode.Dark) MachineSignal.Editor.Code.Text else colors.text
+        SignalInk.Gutter -> if (mode == MachineSignalMode.Dark) MachineSignal.Editor.Code.Gutter else colors.textFaint
         SignalInk.Rule -> colors.line
         else -> throw ThemeMismatch("$ink ink", id)
     }
@@ -281,17 +382,29 @@ data class MachineSignalSnapshot(
             variant: MachineSignalVariant,
             density: MachineSignalDensity,
             fonts: MachineSignalFonts = MachineSignalFonts(),
-        ): MachineSignalSnapshot = when (variant to density) {
-            MachineSignalVariant.Board to MachineSignalDensity.Comfortable ->
-                MachineSignalSnapshot(variant, density, MachineSignalColors.Board, MachineSignalMetrics.Comfortable, fonts)
-            MachineSignalVariant.Editor to MachineSignalDensity.Compact ->
-                MachineSignalSnapshot(variant, density, MachineSignalColors.Editor, MachineSignalMetrics.Compact, fonts)
-            else -> throw IllegalArgumentException(
-                "Machine Signal ships Board with Comfortable and Editor with Compact; $variant with $density is not defined",
-            )
+            mode: MachineSignalMode = MachineSignalMode.Dark,
+        ): MachineSignalSnapshot {
+            val metrics = when (variant to density) {
+                MachineSignalVariant.Board to MachineSignalDensity.Comfortable -> MachineSignalMetrics.Comfortable
+                MachineSignalVariant.Editor to MachineSignalDensity.Compact -> MachineSignalMetrics.Compact
+                else -> throw IllegalArgumentException(
+                    "Machine Signal ships Board with Comfortable and Editor with Compact; $variant with $density is not defined",
+                )
+            }
+            val colors = when (mode) {
+                MachineSignalMode.Dark -> if (variant == MachineSignalVariant.Board) MachineSignalColors.Board else MachineSignalColors.Editor
+                MachineSignalMode.Light -> MachineSignalColors.Light
+                MachineSignalMode.Matrix -> MachineSignalColors.Matrix
+            }
+            return MachineSignalSnapshot(variant, density, colors, metrics,
+                if (mode == MachineSignalMode.Matrix) fonts.copy(ui = fonts.mono, graphLabel = fonts.mono) else fonts,
+                type = if (mode == MachineSignalMode.Matrix) MatrixType else MachineSignalType(), mode = mode)
         }
     }
 }
+
+val MachineSignal.colors: MachineSignalColors
+    @Composable get() = LocalThemeSnapshot.current.machineSignal.colors
 
 val InkRole.color: Color
     @Composable get() = LocalThemeSnapshot.current.machineSignal.ink(this)
@@ -312,15 +425,20 @@ fun MachineSignalSurface(
     variant: MachineSignalVariant,
     density: MachineSignalDensity,
     fonts: MachineSignalFonts = LocalMachineSignalFonts.current,
+    mode: MachineSignalMode = (LocalThemeSnapshot.current as? MachineSignalSnapshot)?.mode ?: MachineSignalMode.Dark,
     content: @Composable () -> Unit,
 ) {
-    val snapshot = remember(variant, density, fonts) { MachineSignalSnapshot.of(variant, density, fonts) }
+    val themeFonts = if (mode == MachineSignalMode.Matrix) matrixFonts(fonts) else fonts
+    val snapshot = remember(variant, density, themeFonts, mode) { MachineSignalSnapshot.of(variant, density, themeFonts, mode) }
     val appearances = remember(snapshot) { MachineSignalAppearances(snapshot) }
+    val resolvedFonts = snapshot.fonts
     SurfaceTheme(snapshot, appearances) {
         CompositionLocalProvider(
-            LocalMachineSignalFonts provides fonts,
-            LocalTextStyle provides (fonts.base?.let { LocalTextStyle.current.merge(it.copy(fontFamily = fonts.ui)) } ?: LocalTextStyle.current).let {
-                it.copy(fontFeatureSettings = listOfNotNull(it.fontFeatureSettings, "tnum").joinToString(","))
+            LocalMachineSignalFonts provides resolvedFonts,
+            LocalContentColor provides snapshot.colors.text,
+            LocalTextStyle provides (resolvedFonts.base?.let { LocalTextStyle.current.merge(it) } ?: LocalTextStyle.current).copy(fontFamily = resolvedFonts.ui).let {
+                if (mode == MachineSignalMode.Matrix) it.merge(matrixTextStyle(snapshot, snapshot.colors.text))
+                else it.copy(fontFeatureSettings = listOfNotNull(it.fontFeatureSettings, "tnum").joinToString(","))
             },
             content = content,
         )

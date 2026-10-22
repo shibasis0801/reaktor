@@ -93,7 +93,8 @@ class TypedKernelExecutionTest {
         var live = initial
         var message = "previous-run"
         var writes = 0
-        val config = write("deploy/wrangler.json", """{"name":"fixture-dev","main":"entry.ts","compatibility_date":"2026-10-01","vars":{"PUBLIC":"private-value-not-recorded"},"routes":[]}""")
+        val asset = write("deploy/assets/index.html", "first build")
+        val config = write("deploy/wrangler.json", """{"name":"fixture-dev","main":"entry.ts","compatibility_date":"2026-10-01","vars":{"PUBLIC":"private-value-not-recorded"},"assets":{"directory":"assets"},"routes":[]}""")
         val spec = dev.shibasis.dependeasy.model.WorkerDeploySpec(
             dev.shibasis.dependeasy.model.NodeId("fixture", ":workers", "deployFixture"),
             dev.shibasis.dependeasy.model.Environment("dev"), dev.shibasis.dependeasy.model.ServiceRef("fixture-dev"),
@@ -102,7 +103,10 @@ class TypedKernelExecutionTest {
         val execute: (dev.shibasis.dependeasy.model.ProcessExecution) -> String = { execution ->
             val args = execution.arguments
             when {
-                args[2] == "deployments" -> """[{"versions":[{"version_id":"$live","percentage":100}]}]"""
+                args[2] == "deployments" -> listOf(
+                    """{"created_on":"2026-10-20T09:00:00Z","versions":[{"version_id":"00000000-0000-0000-0000-000000000000","percentage":100}]}""",
+                    """{"created_on":"2026-10-21T09:00:00Z","versions":[{"version_id":"$live","percentage":100}]}""",
+                ).let { if (writes % 2 == 0) it else it.reversed() }.joinToString(",", "[", "]")
                 args[2] == "versions" -> """{"id":"$live","annotations":{"workers/message":"$message"},"resources":{"script_runtime":{"compatibility_date":"2026-10-01","compatibility_flags":[]},"bindings":[{"name":"PUBLIC","type":"plain_text","text":"private-value-not-recorded"},{"name":"SECRET","type":"secret_text"}]}}"""
                 "--dry-run" in args -> { File(args[args.indexOf("--outdir") + 1]).apply { mkdirs(); resolve("entry.js").writeText("export default {}") }; "" }
                 args[2] == "deploy" -> { assertContains(args, "--no-bundle"); assertEquals("export default {}", File(args[3]).readText()); writes++; live = deployed; message = args[args.indexOf("--message") + 1]; "" }
@@ -112,7 +116,7 @@ class TypedKernelExecutionTest {
         }
         val plan = dev.shibasis.dependeasy.model.WorkerDeployKernel.plan(spec, directory.resolve("bundle"), "fixture-sha", "fixture-host", execute)
         assertTrue(plan.differences.isEmpty())
-        assertEquals(listOf("routes"), plan.unobservedSettings)
+        assertEquals(listOf("assets", "routes"), plan.unobservedSettings)
         val records = mutableListOf<dev.shibasis.dependeasy.model.DeployReceipt>()
         fun apply(run: String) = dev.shibasis.dependeasy.model.WorkerDeployKernel.apply(plan, run, execute, records::add)
         val contents = config.readText()
@@ -122,6 +126,9 @@ class TypedKernelExecutionTest {
         File(plan.entry).appendText(" ")
         assertFailsWith<IllegalArgumentException> { apply("changed-bundle") }
         File(plan.entry).writeText("export default {}")
+        asset.writeText("changed build")
+        assertFailsWith<IllegalArgumentException> { apply("changed-assets") }
+        asset.writeText("first build")
         live = deployed
         assertFailsWith<IllegalArgumentException> { apply("changed-live") }
         assertEquals(0, writes)
@@ -146,6 +153,16 @@ class TypedKernelExecutionTest {
         assertEquals("rollback", rollback.action)
         assertEquals(2, writes)
         assertEquals(initial, live)
+        asset.writeText("rebuilt for publishing")
+        val published = dev.shibasis.dependeasy.model.WorkerDeployKernel.publish(
+            spec, directory, "publish-fixture", "fixture-sha", "fixture-host", execute, records::add)
+        assertEquals(dev.shibasis.dependeasy.model.ReceiptStatus.Succeeded, published.result)
+        assertEquals(deployed, published.remoteVersion)
+        assertEquals("publish-fixture", message)
+        assertEquals(3, writes)
+        assertEquals(listOf("observe", "apply"), records.takeLast(2).map { it.action })
+        assertEquals(published.artifactDigest,
+            dev.shibasis.dependeasy.model.WorkerDeployKernel.retained(directory, spec.node, spec.environment).artifactDigest)
         val evidence = dev.shibasis.dependeasy.model.BuildModelReader.json.encodeToString(kotlinx.serialization.serializer<List<dev.shibasis.dependeasy.model.DeployReceipt>>(), records)
         assertFalse(evidence.contains("private-value-not-recorded"))
         assertFailsWith<IllegalArgumentException> { dev.shibasis.dependeasy.model.HealthProbe("http://localhost") }

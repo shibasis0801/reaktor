@@ -6,8 +6,8 @@
     "scripts": {
         "build": "vite build",
         "test": "node --test src/commonTest/typescript/*.mjs",
-        "typecheck": "../gradlew :reaktor-ffi:interopTypeScriptTypes",
-        "bundle": "../gradlew :reaktor-ffi:interopTypeScriptBundle"
+        "bundle": "../gradlew :reaktor-ffi:interopTypeScriptBundle",
+        "typecheck": "../gradlew :reaktor-ffi:interopTypeScriptTypes"
     },
     "author": "",
     "license": "ISC",

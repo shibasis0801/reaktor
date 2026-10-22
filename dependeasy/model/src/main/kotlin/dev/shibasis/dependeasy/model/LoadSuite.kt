@@ -7,6 +7,7 @@ sealed interface LoadSuite {
     val environmentFiles: List<String>
     val optionalEnvironmentFiles: List<String>
     val aliases: List<PackageScript>
+    val coverage: Coverage?
     val environment: Map<String, String>
 
     @Serializable
@@ -17,6 +18,7 @@ sealed interface LoadSuite {
         override val environmentFiles: List<String> = emptyList(),
         override val optionalEnvironmentFiles: List<String> = emptyList(),
         override val aliases: List<PackageScript> = emptyList(),
+        override val coverage: Coverage? = null,
         override val environment: Map<String, String> = emptyMap(),
     ) : LoadSuite
 
@@ -26,6 +28,7 @@ sealed interface LoadSuite {
         override val environmentFiles: List<String> = emptyList(),
         override val optionalEnvironmentFiles: List<String> = emptyList(),
         override val aliases: List<PackageScript> = emptyList(),
+        override val coverage: Coverage? = null,
         override val environment: Map<String, String> = emptyMap(),
     ) : LoadSuite
 }

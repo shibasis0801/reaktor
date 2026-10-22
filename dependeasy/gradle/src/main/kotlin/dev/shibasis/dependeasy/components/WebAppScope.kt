@@ -33,6 +33,6 @@ class WebAppScope internal constructor(
     }
 
     fun performance(spec: WebPerformance): NodeDeclaration = NodeDeclaration { name ->
-        project.webPerformance(name, spec, bundle).also { verification.after(it) }
+        project.webPerformance(name, spec, bundle).covers(Aspect.Performance).also { verification.after(it) }
     }
 }

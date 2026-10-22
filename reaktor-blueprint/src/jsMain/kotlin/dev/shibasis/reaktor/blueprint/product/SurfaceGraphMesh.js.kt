@@ -1,9 +1,15 @@
 package dev.shibasis.reaktor.blueprint.product
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.graphics.skiaShader
+import androidx.compose.ui.platform.LocalPlatformPrefetchScheduler
+import androidx.compose.ui.platform.PlatformPrefetchRequest
+import androidx.compose.ui.platform.PlatformPrefetchRequestScope
 import org.jetbrains.skia.BlendMode
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skia.Paint
@@ -53,11 +59,11 @@ private object Heap {
     }
 }
 
-internal actual fun DrawScope.drawSurfaceGraphMesh(mesh: SurfaceGraphMesh, shader: Shader?) {
+internal actual fun DrawScope.drawSurfaceGraphMesh(mesh: SurfaceGraphMesh, shader: Shader?, from: Int, to: Int) {
     val canvas = drawContext.canvas.skiaCanvas
     val paint = if (shader == null) plain else textured.apply { this.shader = shader.skiaShader }
     val blend = if (shader == null) BlendMode.DST else BlendMode.MODULATE
-    for (b in 0 until mesh.batchCount) {
+    for (b in from until to) {
         val v0 = mesh.batches[b * 4]; val v1 = mesh.batches[b * 4 + 1]; val i0 = mesh.batches[b * 4 + 2]; val i1 = mesh.batches[b * 4 + 3]
         if (!Heap.draw(canvas, paint, mesh, shader != null, blend, v0, v1, i0, i1))
             canvas.drawVertices(VertexMode.TRIANGLES, mesh.positions.view(v0 * 2, v1 * 2), mesh.colors.view(v0, v1),
@@ -66,3 +72,11 @@ internal actual fun DrawScope.drawSurfaceGraphMesh(mesh: SurfaceGraphMesh, shade
 }
 
 internal actual fun surfaceGraphFrameElapsed(): Double = js("typeof document !== 'undefined' && document.timeline && document.timeline.currentTime != null ? performance.now() - document.timeline.currentTime : NaN").unsafeCast<Double>()
+internal actual val surfaceGraphMeshGrid = true
+
+@OptIn(InternalComposeUiApi::class)
+@Composable
+internal actual fun surfaceGraphIdle(): (((Long) -> Boolean) -> Unit)? {
+    val scheduler = LocalPlatformPrefetchScheduler.current
+    return remember(scheduler) { { work -> scheduler.scheduleHighPriorityPrefetch(object : PlatformPrefetchRequest { override fun PlatformPrefetchRequestScope.execute() = work(availableTimeNanos()) }) } }
+}

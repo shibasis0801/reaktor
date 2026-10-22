@@ -2232,6 +2232,8 @@ importers:
 
   build/js/packages_imported/coil-svg-js/3.6.3: {}
 
+  build/js/packages_imported/components-resources-js/1.12.1: {}
+
   build/js/packages_imported/koin-compose-js/4.1.0: {}
 
   build/js/packages_imported/kotlin-cssom-core/2025.10.4: {}

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
 import dev.shibasis.reaktor.surface.compose.lineBox
 import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.Canvas
@@ -65,7 +67,7 @@ private fun tabLook(selected: Boolean, enabled: Boolean, state: PressState, them
     val colors = signal.colors
     return TabLook(
         height = signal.metrics.tabHeight,
-        fill = if (selected && signal.variant == MachineSignalVariant.Editor) colors.controlAccentSoft else Color.Transparent,
+        fill = Color.Transparent,
         underline = if (selected) colors.accent else Color.Transparent,
         label = Label(
             color = when {
@@ -124,7 +126,7 @@ val UnderlineTab: ItemAppearance = object : ItemAppearance {
     @Composable
     override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) =
         UnderlineFrame(tabLook(properties.selected, properties.enabled, state, theme), feedback, slots.icon, slots.content)
-}
+}.withMatrix(MatrixTab)
 
 internal data class ChipLook(
     val fill: Color,
@@ -144,11 +146,11 @@ val FilterChip: ItemAppearance = composeAppearance(
         val hovered = properties.enabled && state.hovered
         ChipLook(
             fill = when {
-                properties.selected -> colors.controlAccent.copy(alpha = 0.22f)
+                properties.selected -> colors.controlAccentSoft
                 hovered -> colors.raised
                 else -> Color.Transparent
             },
-            line = if (properties.selected) colors.controlAccent.copy(alpha = 0.6f) else colors.line,
+            line = Color.Transparent,
             label = Label(
                 color = when {
                     !properties.enabled -> colors.textFaint
@@ -163,7 +165,7 @@ val FilterChip: ItemAppearance = composeAppearance(
             ring = FocusRing(colors.accent, signal.metrics.focusRing, ChipShape),
         )
     },
-) { look, feedback, slots ->
+) { look, feedback, slots: ItemSlots ->
     Box(
         Modifier
             .focusRing(look.focused, feedback, look.ring)
@@ -182,7 +184,7 @@ val FilterChip: ItemAppearance = composeAppearance(
             }
         }
     }
-}
+}.withMatrix(MatrixChip)
 
 internal data class MarkLook(
     val well: Color,
@@ -213,7 +215,7 @@ private fun markLook(on: Boolean, enabled: Boolean, state: PressState, theme: Th
         label = Label(if (enabled) colors.text else colors.textFaint, signal.fonts.ui, signal.metrics.label),
         height = signal.metrics.controlHeight,
         focused = state.focusVisible,
-        ring = FocusRing(colors.accent, signal.metrics.focusRing, MachineSignal.Shape.Control),
+        ring = FocusRing(colors.accent, signal.metrics.focusRing, signal.shapes.control),
     )
 }
 
@@ -241,7 +243,7 @@ val RadioRow: ItemAppearance = object : ItemAppearance {
             }
         }
     }
-}
+}.withMatrix(MatrixRadio)
 
 val TrackSwitch: SwitchAppearance = object : SwitchAppearance {
     @Composable
@@ -268,7 +270,7 @@ val TrackSwitch: SwitchAppearance = object : SwitchAppearance {
             }
         }
     }
-}
+}.withMatrix(MatrixSwitch)
 
 val CheckRow: CheckboxAppearance = object : CheckboxAppearance {
     @Composable
@@ -284,7 +286,7 @@ val CheckRow: CheckboxAppearance = object : CheckboxAppearance {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                Modifier.size(MarkSize).background(look.well, MachineSignal.Shape.Tight).border(1.dp, look.edge, MachineSignal.Shape.Tight),
+                Modifier.size(MarkSize).background(look.well, MachineSignal.shapes.tight).border(1.dp, look.edge, MachineSignal.shapes.tight),
                 contentAlignment = Alignment.Center,
             ) {
                 when (properties.state) {
@@ -296,7 +298,7 @@ val CheckRow: CheckboxAppearance = object : CheckboxAppearance {
             ProvideLabel(look.label, slots.content)
         }
     }
-}
+}.withMatrix(MatrixCheckbox)
 
 @Composable
 private fun Tick(color: Color) = Canvas(Modifier.size(10.dp)) {

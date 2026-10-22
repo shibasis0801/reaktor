@@ -1,6 +1,8 @@
 import dev.shibasis.dependeasy.components.library
 import dev.shibasis.dependeasy.handles.Reaktor
 import dev.shibasis.dependeasy.model.Targets
+import dev.shibasis.dependeasy.model.Suite
+import dev.shibasis.dependeasy.model.TestEnvironment
 import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.common.commonNetworking
 
@@ -22,4 +24,5 @@ library(namespace = "dev.shibasis.reaktor.telemetry", targets = Targets.All) {
             api(Versions.Android.FirebaseKotlinCrashlytics)
         }
     }
+    val node by tests(Suite.JavaScript, environment = TestEnvironment(caseTimeoutMillis = 10_000))
 }

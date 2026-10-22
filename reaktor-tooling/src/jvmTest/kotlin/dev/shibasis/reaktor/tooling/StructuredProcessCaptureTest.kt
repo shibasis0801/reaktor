@@ -8,14 +8,15 @@ import kotlinx.coroutines.flow.toList
 import kotlin.test.*
 
 class StructuredProcessCaptureTest {
-    private fun capture(content: String, limit: Int, secret: String? = null): Pair<TaskRun, List<RunEvent.Output>> = runBlocking {
+    private fun capture(content: String, limit: Int, secret: String? = null, lines: Boolean = false): Pair<TaskRun, List<RunEvent.Output>> = runBlocking {
         val directory = Files.createTempDirectory("structured-capture-").toFile()
         val source = directory.resolve("response.txt").apply { writeText(content) }
         val executor = SupervisedProcessExecutor()
         try {
             val plan = AdHocProcessPlan.create(listOf("/bin/cat", source.path), directory,
                 TaskId("structured-read"), safety = SafetyPolicy(SafetyClass.ReadOnly),
-                redactions = setOfNotNull(secret), timeoutMillis = 5000).copy(captureStdoutChars = limit)
+                redactions = setOfNotNull(secret), timeoutMillis = 5000).copy(
+                    captureStdoutChars = limit.takeUnless { lines }, captureStdoutLineChars = limit.takeIf { lines })
             val handle = executor.start(plan)
             val events = handle.events.toList()
             handle.await() to events.filterIsInstance<RunEvent.Output>()
@@ -36,6 +37,21 @@ class StructuredProcessCaptureTest {
         assertEquals(RunStatus.Failed, run.status)
         assertContains(run.failure?.message.orEmpty(), "capture limit")
         assertTrue(output.none { it.channel == OutputChannel.Stdout })
+    }
+
+    @Test fun streamedRecordsPreserveLongLinesAndRedactSecrets() {
+        val record = "{\"response\":\"" + "detail ".repeat(4000) + "private-token\"}"
+        val (run, output) = capture("$record\n$record\n", 100_000, "private-token", lines = true)
+        assertEquals(RunStatus.Succeeded, run.status)
+        assertEquals(List(2) { record.replace("private-token", "[REDACTED]") },
+            output.filter { it.channel == OutputChannel.Stdout }.map { it.text })
+    }
+
+    @Test fun oversizedStreamedRecordsFailWithoutPublishingAPartialDocument() {
+        val (run, output) = capture("x".repeat(50_000) + "\ncomplete\n", 20_000, lines = true)
+        assertEquals(RunStatus.Failed, run.status)
+        assertContains(run.failure?.message.orEmpty(), "capture limit")
+        assertEquals(listOf("complete"), output.filter { it.channel == OutputChannel.Stdout }.map { it.text })
     }
 
     @Test fun completePayloadStillUsesTheExecutorsSecretRedactionBoundary() {

@@ -18,4 +18,5 @@ data class AuthRuntimeConfig(
     // Optional bootstrap bearer permitted to mint the first PAT before any auth:pat:mint grant
     // exists. Read from the deploy environment at the composition root — never via getenv inside a node.
     val patBootstrapToken: String? = null,
+    val access: AuthAccess? = null,
 )

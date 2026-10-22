@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.auth.spring
 import dev.shibasis.reaktor.auth.api.AppServer
 import dev.shibasis.reaktor.auth.api.AuthServer
 import dev.shibasis.reaktor.auth.jwt.UserAuthenticationProvider
+import dev.shibasis.reaktor.auth.runtime.AuthAccess
 import dev.shibasis.reaktor.auth.runtime.AuthRuntimeConfig
 import dev.shibasis.reaktor.auth.runtime.AuthRuntimeGraph
 import dev.shibasis.reaktor.graph.di.SpringDependencyAdapter
@@ -22,6 +23,7 @@ open class AuthSpringConfiguration {
         exposedAdapter: ExposedAdapter,
         @Qualifier("authProviders") authProviderList: ObjectProvider<List<UserAuthenticationProvider>>,
         authProviderBeans: ObjectProvider<UserAuthenticationProvider>,
+        access: ObjectProvider<AuthAccess>,
         @Value("\${reaktor.jwt.ec-jwk:}") ecJwkJson: String,
         @Value("\${reaktor.jwt.ec-jwk-prev:}") ecJwkPrevJson: String,
         @Value("\${reaktor.auth.allow-ephemeral-signing-key:false}") allowEphemeralSigningKey: Boolean,
@@ -39,6 +41,7 @@ open class AuthSpringConfiguration {
                 allowEphemeralSigningKey = allowEphemeralSigningKey,
                 // Env read lives here at the composition root, not hidden inside a graph node.
                 patBootstrapToken = System.getenv("REAKTOR_PAT_BOOTSTRAP_TOKEN")?.takeIf { it.isNotBlank() },
+                access = access.ifAvailable(),
             ),
             dependencyAdapter = SpringDependencyAdapter(applicationContext),
         )

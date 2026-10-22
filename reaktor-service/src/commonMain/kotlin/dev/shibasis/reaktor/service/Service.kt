@@ -40,6 +40,9 @@ abstract class Service(
     open val contract: ServiceContract get() = ServiceContract.Unnamed
 
     @JsExport.Ignore
+    open val access: ServiceAccess get() = ServiceAccess.Undeclared
+
+    @JsExport.Ignore
     val operations: List<OperationDescriptor> get() = handlers.map { it.descriptor(contract) }
     private val interceptors = arrayListOf<ServiceInterceptor>()
 

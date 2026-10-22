@@ -29,6 +29,7 @@ data class BuildModel(
     val nodes: List<Node> = emptyList(),
     val edges: List<Edge> = emptyList(),
     val omissions: List<Omission> = emptyList(),
+    val products: List<ProductModel> = emptyList(),
 )
 
 fun BuildModel.buildOptions(id: NodeId): List<DeclarationInput> {
@@ -93,6 +94,7 @@ data class Node(
     val environments: List<Environment> = emptyList(),
     val requirements: List<OptionRequirement> = emptyList(),
     val options: List<TaskOption> = emptyList(),
+    val coverage: Coverage? = null,
     val requiredSecrets: List<String> = emptyList(),
 )
 

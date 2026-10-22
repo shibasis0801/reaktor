@@ -26,6 +26,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toOffset
 import kotlin.math.roundToInt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -64,6 +66,7 @@ data class MachineSignalFonts(
     val mono: FontFamily = FontFamily.Monospace,
     val chrome: PlatformTextStyle? = null,
     val base: TextStyle? = null,
+    val graphLabel: FontFamily = FontFamily.Monospace,
 )
 
 val LocalMachineSignalFonts = staticCompositionLocalOf { MachineSignalFonts() }
@@ -73,15 +76,17 @@ fun ProvideMachineSignalFonts(fonts: MachineSignalFonts, content: @Composable ()
     CompositionLocalProvider(LocalMachineSignalFonts provides fonts, content = content)
 
 @Composable
-fun rememberSignalGlyph(text: String, role: TextRole = Type.Body, ink: InkRole = Ink.Text): Modifier {
+fun rememberSignalGlyph(text: String, role: TextRole = Type.Body, ink: InkRole = Ink.Text, centred: Boolean = false): Modifier {
     val style = SignalTypography.style(role, ink, LocalThemeSnapshot.current.signalOrBoard)
     val measurer = rememberTextMeasurer(cacheSize = 0)
-    return remember(text, style, measurer) {
+    return remember(text, style, measurer, centred) {
         val glyph = SharedGlyph(text, style, measurer)
         Modifier
             .drawWithCache {
-                val layout = glyph.layout(Constraints.fixed(this.size.width.roundToInt(), this.size.height.roundToInt()), layoutDirection, this)
-                onDrawBehind { drawText(layout) }
+                val box = IntSize(size.width.roundToInt(), size.height.roundToInt())
+                val layout = glyph.layout(if (centred) Constraints(maxWidth = box.width, maxHeight = box.height) else Constraints.fixed(box.width, box.height), layoutDirection, this)
+                val topLeft = Alignment.Center.align(layout.size, box, layoutDirection).toOffset()
+                onDrawBehind { drawText(layout, topLeft = topLeft) }
             }
             .semantics { this.text = glyph.described }
     }
@@ -110,7 +115,7 @@ enum class SignalTone(val fill: Color, val text: Color, val line: Color, val hov
 
 @Composable
 fun StatusDot(color: Color, modifier: Modifier = Modifier) =
-    Box(modifier.size(6.dp).background(color, RoundedCornerShape(3.dp)))
+    Box(modifier.size(6.dp).background(color, if ((LocalThemeSnapshot.current as? MachineSignalSnapshot)?.mode == MachineSignalMode.Matrix) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(3.dp)))
 
 @Composable
 fun StatusDot(ink: InkRole, modifier: Modifier = Modifier) = StatusDot(LocalThemeSnapshot.current.machineSignal.ink(ink), modifier)
@@ -143,8 +148,8 @@ fun KeyValueRow(
 fun NotWiredYet(what: String, turnsOnWith: String, modifier: Modifier = Modifier) = Column(
     modifier
         .fillMaxWidth()
-        .background(signalColors().surface, MachineSignal.Shape.Panel)
-        .border(1.dp, signalColors().lineSubtle, MachineSignal.Shape.Panel)
+        .background(signalColors().surface, MachineSignal.shapes.panel)
+        .border(1.dp, signalColors().lineSubtle, MachineSignal.shapes.panel)
         .padding(MachineSignal.Space.s4)
         .testTag("not-wired-yet"),
     verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
@@ -206,8 +211,8 @@ fun StatusPill(
     Row(
         modifier
             .height(MachineSignal.Metrics.statusPillHeight)
-            .background(color.copy(alpha = 0.08f), RoundedCornerShape(MachineSignal.Radius.statusPill))
-            .border(1.dp, color.copy(alpha = 0.32f), RoundedCornerShape(MachineSignal.Radius.statusPill))
+            .background(color.copy(alpha = 0.08f), MachineSignal.shapes.panel)
+            .border(1.dp, color.copy(alpha = 0.32f), MachineSignal.shapes.panel)
             .padding(horizontal = MachineSignal.Metrics.statusPillPaddingX),
         horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.statusPillGap),
         verticalAlignment = Alignment.CenterVertically,
@@ -219,7 +224,7 @@ fun StatusPill(
 
 @Composable
 private fun Provenance(truth: TruthClass) =
-    Badge(Modifier.testTag("provenance-${truth.name.lowercase()}"), provenanceBadge(truth)) { Text(truth.abbreviation, appearance = PassiveText) }
+    Badge(Modifier.testTag("provenance-${truth.name.lowercase()}"), provenanceBadge(truth)) { Text(truth.label, appearance = PassiveText) }
 
 private val PassiveText: TextAppearance = object : TextAppearance {
     @Composable

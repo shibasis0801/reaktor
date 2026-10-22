@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.ui.machinesignal.surface
 
+import dev.shibasis.reaktor.ui.machinesignal.shapes
+
 import dev.shibasis.reaktor.surface.compose.lineBox
 import dev.shibasis.reaktor.surface.Type
 import androidx.compose.foundation.layout.heightIn
@@ -17,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -40,7 +43,7 @@ val ToolbarSearchField: FieldAppearance = object : FieldAppearance {
         return TextStyle(
             color = if (properties.enabled) signal.colors.text else signal.colors.textFaint,
             fontSize = signal.metrics.label,
-            fontFamily = signal.fonts.mono,
+            fontFamily = signal.fonts.ui,
         )
     }
 
@@ -57,20 +60,25 @@ val ToolbarSearchField: FieldAppearance = object : FieldAppearance {
                 .focusRing(state.focused, feedback, FocusRing(colors.accent, signal.metrics.focusRing, shape))
                 .heightIn(min = signal.metrics.controlHeight).lineBox(Type.Label, MachineSignal.Space.s1 / 2)
                 .clip(shape)
-                .background(colors.canvas)
-                .border(1.dp, if (properties.error) colors.error else colors.line, shape)
-                .padding(horizontal = MachineSignal.Space.s2),
+                .background(if (state.focused) colors.canvas else colors.raised.copy(alpha = .65f))
+                .border(MachineSignal.Stroke.hairline, when {
+                    properties.error -> colors.error
+                    state.focused -> colors.controlAccent
+                    state.hovered -> colors.lineSubtle
+                    else -> Color.Transparent
+                }, shape)
+                .padding(horizontal = MachineSignal.Space.s3),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             slots.leading?.invoke()
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (properties.empty) slots.placeholder?.let { ProvideLabel(Label(colors.line, signal.fonts.ui, signal.metrics.label), it) }
+                if (properties.empty) slots.placeholder?.let { ProvideLabel(Label(colors.textMuted, signal.fonts.ui, signal.metrics.label), it) }
                 slots.editor()
             }
             slots.trailing?.invoke()
         }
     }
-}
+}.withMatrixField()
 
 val BoardSearchField: FieldAppearance = object : FieldAppearance {
     @Composable
@@ -92,10 +100,10 @@ val BoardSearchField: FieldAppearance = object : FieldAppearance {
         val colors = signal.colors
         Row(
             Modifier
-                .focusRing(state.focused, feedback, FocusRing(colors.accent, signal.metrics.focusRing, MachineSignal.Shape.Control))
+                .focusRing(state.focused, feedback, FocusRing(colors.accent, signal.metrics.focusRing, MachineSignal.shapes.control))
                 .heightIn(min = signal.metrics.controlHeight).lineBox(Type.Label, MachineSignal.Space.s1 / 2)
-                .background(colors.surface, MachineSignal.Shape.Control)
-                .border(1.dp, if (properties.error) colors.error else colors.line, MachineSignal.Shape.Control)
+                .background(colors.surface, MachineSignal.shapes.control)
+                .border(1.dp, if (properties.error) colors.error else colors.line, MachineSignal.shapes.control)
                 .padding(horizontal = MachineSignal.Metrics.searchPaddingX),
             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.searchFieldGap),
             verticalAlignment = Alignment.CenterVertically,
@@ -108,12 +116,13 @@ val BoardSearchField: FieldAppearance = object : FieldAppearance {
             slots.trailing?.invoke()
         }
     }
-}
+}.withMatrixField()
 
 val LineProgress: ProgressAppearance = object : ProgressAppearance {
     @Composable
     override fun Content(properties: ProgressProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ProgressSlots) {
-        val colors = theme.machineSignal.colors
+        val signal = theme.machineSignal
+        val colors = signal.colors
         Box(
             Modifier
                 .fillMaxWidth()
@@ -124,6 +133,6 @@ val LineProgress: ProgressAppearance = object : ProgressAppearance {
             Box(Modifier.fillMaxHeight().fillMaxWidth(properties.value ?: IndeterminateSpan).background(if (properties.value == null) colors.accent.copy(alpha = 0.6f) else colors.accent))
         }
     }
-}
+}.withMatrix(MatrixProgress)
 
 private const val IndeterminateSpan = 0.3f

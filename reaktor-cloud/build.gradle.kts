@@ -25,6 +25,7 @@ library(namespace = "dev.shibasis.reaktor.cloud", targets = Targets.Android + Ta
         }
     }
     val run by program(sources = FileSet(listOf("reaktor-cloud/src/jvmMain/kotlin/dev/shibasis/reaktor/cloud/observability/Main.kt")))
+    val observabilityDist by distribution(run, "reaktor-observability")
     val verifyWrangler by program(
         environment = ProgramEnvironment(inputs = listOf(ProgramInput(FrameworkOptions.WranglerDirectory, whenBlank = ProgramFallback.BuildRoot))),
         sources = FileSet(listOf("reaktor-cloud/src/jvmMain/kotlin/dev/shibasis/reaktor/cloud/WranglerVerify.kt")))

@@ -1,16 +1,14 @@
 package dev.shibasis.reaktor.blueprint.product
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -26,14 +24,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -43,17 +39,17 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
-import dev.shibasis.composeflow.compose.interaction.FlowViewportGestureConfig
-import dev.shibasis.composeflow.compose.interaction.FlowViewportPlatformGestureEffect
-import dev.shibasis.composeflow.compose.interaction.LocalFlowViewportPlatformBridge
-import dev.shibasis.composeflow.compose.interaction.flowPointerViewportGestures
-import dev.shibasis.composeflow.compose.interaction.flowViewportPointerTracking
-import dev.shibasis.composeflow.compose.interaction.flowWheelAndTrackpadViewportGestures
-import dev.shibasis.composeflow.compose.interaction.rememberFlowViewportInteractionState
 import dev.shibasis.composeflow.model.Viewport
 import dev.shibasis.reaktor.blueprint.BlueprintEngine
+import dev.shibasis.reaktor.blueprint.Card
+import dev.shibasis.reaktor.blueprint.Link
+import dev.shibasis.reaktor.blueprint.LinkKind
 import dev.shibasis.reaktor.blueprint.Pin
 import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
+import dev.shibasis.reaktor.blueprint.canvas.GraphMarkers
+import dev.shibasis.reaktor.blueprint.canvas.GraphView
+import dev.shibasis.reaktor.blueprint.canvas.Said
+import dev.shibasis.reaktor.blueprint.canvas.at
 import dev.shibasis.reaktor.graph.core.PortWiring
 import kotlin.math.atan2
 import kotlin.math.roundToInt
@@ -99,7 +95,7 @@ fun surfaceGraphPositions(nodes: List<SurfaceGraphNode>, width: Double = 220.0, 
     return out
 }
 
-internal class SurfaceGraphSketch(val nodes: List<SurfaceGraphNode>, val box: FloatArray, val routes: FloatArray, val proposed: BooleanArray)
+internal class SurfaceGraphSketch(val nodes: List<SurfaceGraphNode>, val cards: List<Card>, val box: FloatArray, val links: List<Link>, val proposed: BooleanArray)
 
 @Composable
 fun SurfaceGraphCanvas(
@@ -112,120 +108,110 @@ fun SurfaceGraphCanvas(
     sceneKey: String = "",
 ) {
     val canvas = remember(sceneKey) { GraphCanvasState() }
-    val flow = canvas.flow
-    val density = LocalDensity.current.density
     val base = LocalTextStyle.current
     val resolver = LocalFontFamilyResolver.current
     val direction = LocalLayoutDirection.current
     val graphics = LocalGraphicsContext.current
     val painter = remember(graphics, resolver, direction, appearance, base) { SurfaceGraphCanvasPainter(graphics, TextMeasurer(resolver, Density(1f), direction), appearance, base) }
-    DisposableEffect(painter) { onDispose(painter::release) }
-    LaunchedEffect(painter) { painter.run() }
     val sketch = remember(nodes, links, appearance.width, appearance.height) {
         val at = surfaceGraphPositions(nodes, appearance.width, appearance.height)
         val byId = nodes.associateBy { it.id }
         val shown = at.keys.map(byId::getValue)
         val routed = links.filter { it.from in at && it.to in at }.distinctBy { it.id }
-        val box = FloatArray(shown.size * 4)
-        shown.forEachIndexed { i, node -> val (x, y) = at.getValue(node.id); doubleArrayOf(x, y, x + appearance.width, y + appearance.height).forEachIndexed { k, v -> box[i * 4 + k] = v.toFloat() } }
-        val routes = FloatArray(routed.size * 8)
-        routed.forEachIndexed { i, link ->
+        val cards = shown.map { node -> at.getValue(node.id).let { (x, y) -> Card(node.id, x, y, appearance.width, appearance.height, emptyList(), 0) } }
+        val box = FloatArray(cards.size * 4)
+        cards.forEachIndexed { i, card -> doubleArrayOf(card.x, card.y, card.x + card.width, card.y + card.height).forEachIndexed { k, v -> box[i * 4 + k] = v.toFloat() } }
+        val routes = routed.map { link ->
             val (fx, fy) = at.getValue(link.from); val (tx, ty) = at.getValue(link.to)
             val sx = fx + appearance.width / 2; val sy = fy + appearance.height; val ex = tx + appearance.width / 2; val mid = (sy + ty) / 2
-            doubleArrayOf(sx, sy, sx, mid, ex, mid, ex, ty).forEachIndexed { k, v -> routes[i * 8 + k] = v.toFloat() }
+            Link(link.id, link.from, link.to, null, null, LinkKind.Wire, listOf(link.id), listOf(sx to sy, sx to mid, ex to mid, ex to ty))
         }
-        SurfaceGraphSketch(shown, box, routes, BooleanArray(routed.size) { routed[it].proposed })
+        SurfaceGraphSketch(shown, cards, box, routes, BooleanArray(routed.size) { routed[it].proposed })
     }
-    SideEffect { canvas.density(density.toDouble()) }
+    SideEffect { canvas.extent = sketch.cards }
     val fitKey = sceneKey to nodes.size
-    LaunchedEffect(fitKey, flow.canvasSize, sketch) {
-        if (sketch.nodes.isEmpty()) return@LaunchedEffect
-        canvas.fitOnce(fitKey) {
-            val box = sketch.box; val cards = sketch.nodes.indices
-            val left = cards.minOf { box[it * 4] }; val top = cards.minOf { box[it * 4 + 1] }
-            canvas.fit(left.toDouble(), top.toDouble(), (cards.maxOf { box[it * 4 + 2] } - left).toDouble(), (cards.maxOf { box[it * 4 + 3] } - top).toDouble())
-        }
+    LaunchedEffect(fitKey, canvas.flow.canvasSize, sketch) {
+        if (sketch.nodes.isNotEmpty()) canvas.fitOnce(fitKey) { canvas.fit(sketch.cards) }
     }
-    val interaction = rememberFlowViewportInteractionState()
-    val bridge = LocalFlowViewportPlatformBridge.current
-    val config = remember(density) { FlowViewportGestureConfig(minZoom = .05 * density, maxZoom = 2.5 * density) }
-    FlowViewportPlatformGestureEffect(flow, interaction, config, bridge)
     val select by rememberUpdatedState(onSelect)
-    val tap = remember(canvas, painter) { { point: Offset ->
-        val at = flow.screenToFlowPosition(point.x.toDouble(), point.y.toDouble())
-        painter.cardAt(at.x.toFloat(), at.y.toFloat())?.let { select(it); true } ?: false
-    } }
-    Canvas(modifier.clipToBounds()
-        .onSizeChanged { flow.setCanvasSize(it) }
-        .onGloballyPositioned { interaction.updateCanvasGeometry(it.positionInWindow(), it.boundsInWindow(), density) }
-        .flowViewportPointerTracking(interaction)
-        .flowWheelAndTrackpadViewportGestures(flow, interaction, config, bridge)
-        .flowPointerViewportGestures(flow, interaction, config, onPaneTap = tap)) {
-        painter.version.intValue
+    GraphView(painter, canvas,
+        hit = { x, y, _ -> painter.cardAt(x, y) != null },
+        tap = { x, y, _ -> painter.cardAt(x, y)?.let { select(it); true } ?: false },
+        modifier = modifier,
+        selection = { sketch.cards.firstOrNull { it.id == selectedId } },
+        step = { by -> sketch.cards.sortedWith(compareBy({ it.y }, { it.x })).takeIf { it.isNotEmpty() }?.let { order ->
+            val at = order.indexOfFirst { it.id == selectedId }
+            order[(at + if (at < 0 && by < 0) 0 else by).mod(order.size)].let { select(it.id); canvas.reveal(it.x, it.y, it.width, it.height) }
+        } },
+        open = { x, y -> painter.cardAt(x, y)?.let { id -> sketch.cards.firstOrNull { it.id == id } }?.let { canvas.centre(it.x, it.y, it.width, it.height); true } ?: false },
+        markers = { focus ->
+            GraphMarkers(canvas, sketch.cards, { sketch.cards[it].id }) { i, _ ->
+                val node = sketch.nodes[i]; val card = sketch.cards[i]
+                Box(Modifier.at(card.x, card.y, card.width, card.height).semantics(mergeDescendants = true) {
+                    selected = node.id == selectedId
+                    onClick { focus(); select(node.id); true }
+                }) {
+                    Said(node.title)
+                    Said(node.subtitle)
+                }
+            }
+        },
+    ) { camera, viewport, scale ->
         painter.sync(sketch, selectedId)
-        withTransform({ scale(density, density, Offset.Zero) }) {
-            painter.draw(this, canvas.viewport(), Size(size.width / density, size.height / density), density)
-        }
+        painter.draw(this, camera, viewport, scale)
     }
 }
 
-internal class SurfaceGraphCanvasPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val appearance: SurfaceGraphAppearance, base: TextStyle) : SurfaceGraphEngine(graphics, 1, scaled = true) {
+internal class SurfaceGraphCanvasPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val appearance: SurfaceGraphAppearance, base: TextStyle) : SurfaceGraphEngine(graphics, scaled = true) {
     private val title = base.merge(color = appearance.text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     private val subtitle = base.merge(color = appearance.muted, fontSize = 11.sp)
     private val tone = appearance.selected.toArgb()
     private val dots = ShaderBrush(ImageShader(ImageBitmap(26, 26).also { image ->
         CanvasDrawScope().draw(unit, LayoutDirection.Ltr, androidx.compose.ui.graphics.Canvas(image), Size(26f, 26f)) { drawCircle(Color(0x1F8CA0C8), 1.2f, Offset(13.5f, 13.5f)) }
     }, TileMode.Repeated, TileMode.Repeated))
-    private var sketch = SurfaceGraphSketch(emptyList(), FloatArray(0), FloatArray(0), BooleanArray(0))
+    private var sketch = SurfaceGraphSketch(emptyList(), emptyList(), FloatArray(0), emptyList(), BooleanArray(0))
     private var selected: String? = null
-    private var shown = BooleanArray(0)
+    private var picked = BooleanArray(0)
 
     override val warmups = 0
     override val warmable = false
+    override val canvas = appearance.canvas
+    override val farZoom = Double.POSITIVE_INFINITY
+    override val cardRadius = 12f
 
     fun sync(sketch: SurfaceGraphSketch, selected: String?) {
         this.selected = selected
+        level = 1
         if (sketch === this.sketch) return
         remap(IntArray(sketch.nodes.size) { -1 })
-        this.sketch = sketch; cardBox = sketch.box; shown = BooleanArray(sketch.nodes.size); dirty.fill(true)
+        this.sketch = sketch; picked = BooleanArray(sketch.nodes.size)
+        index(emptyList(), sketch.links, sketch.box)
     }
 
-    fun cardAt(x: Float, y: Float) = sketch.nodes.indices.lastOrNull { x >= cardBox[it * 4] && x <= cardBox[it * 4 + 2] && y >= cardBox[it * 4 + 1] && y <= cardBox[it * 4 + 3] }?.let { sketch.nodes[it].id }
+    fun cardAt(x: Float, y: Float) = cardIndex(x, y).takeIf { it >= 0 }?.let { sketch.nodes[it].id }
 
     fun draw(scope: DrawScope, camera: Viewport, viewport: Size, density: Float) = with(scope) { frame(camera, viewport, density) }
 
-    override fun DrawScope.paint(camera: Viewport, deadline: TimeSource.Monotonic.ValueTimeMark) {
+    override fun DrawScope.background(camera: Viewport) {
         drawRect(appearance.canvas, size = viewport)
         val px = density; val dx = (camera.x * px).roundToInt().mod(26) - 39f; val dy = (camera.y * px).roundToInt().mod(26) - 39f
         withTransform({ scale(1 / px, 1 / px, Offset.Zero); translate(dx, dy) }) { drawRect(dots, size = Size(viewport.width * px + 52, viewport.height * px + 52)) }
-        mesh(0, camera)
-        val l = (-camera.x / camera.zoom).toFloat(); val t = (-camera.y / camera.zoom).toFloat()
-        val r = ((viewport.width - camera.x) / camera.zoom).toFloat(); val b = ((viewport.height - camera.y) / camera.zoom).toFloat()
-        world(camera) { for (i in sketch.nodes.indices) if (inside(cardBox, i, l, t, r, b)) layer(i, 0, deadline, urgent = true)?.let { drawLayer(it) } }
     }
 
-    override fun tessellate(wired: Boolean) {
-        if (!dirty[0]) return
-        if (!wired) { pending = true; return }
-        val z = zoom.toFloat(); val fringe = 1f / density; val routes = sketch.routes
-        clear(true)
-        for (i in sketch.proposed.indices) {
-            val at = i * 8
-            stroker.clear()
-            if (routes[at] == routes[at + 4]) { stroker.point(routes[at] * z - wl, routes[at + 1] * z - wt); stroker.point(routes[at + 6] * z - wl, routes[at + 7] * z - wt) }
-            else stroker.corners(routes, at, at + 8, z, wl, wt, 5f / density, .2f / density)
-            val mesh = if (sketch.proposed[i]) dash(7.4f, 2.6f) else solid
-            stroker.stroke(mesh, .7f * z, fringe, tone, .65f, round = mesh === solid, dashed = mesh !== solid)
-            arrow(routes[at + 6], routes[at + 7], atan2(routes[at + 7] - routes[at + 5], 0f), 10f / density, z, fringe, tone, .65f)
-        }
-        commit(0, true)
+    override fun pen(i: Int, pen: SurfaceGraphPen): Boolean {
+        pen.rgb = tone; pen.alpha = .65f; pen.width = 1.4f; pen.corner = 5f; pen.head = 10f
+        if (sketch.proposed[i]) { pen.on = 6f; pen.off = 4f }
+        return true
     }
+
+    override fun body(i: Int, x0: Float, y0: Float, x1: Float, y1: Float, z: Float, fringe: Float, tolerance: Float) {}
 
     override fun DrawScope.warm(step: Int) = true
 
-    override fun slot(zoom: Double, ahead: Boolean) = if (ahead) -1 else 0
+    override fun DrawScope.placeholder(i: Int, slot: Int) =
+        drawRoundRect(appearance.card, Offset(cardBox[i * 4], cardBox[i * 4 + 1]), Size(cardBox[i * 4 + 2] - cardBox[i * 4], cardBox[i * 4 + 3] - cardBox[i * 4 + 1]), CornerRadius(12f))
 
-    override fun current(i: Int, slot: Int) = layers[i * 2] != null && shown[i] == (sketch.nodes[i].id == selected)
+    override fun current(i: Int, slot: Int) = layers[i * 2] != null && picked[i] == (sketch.nodes[i].id == selected)
 
     override fun record(i: Int, slot: Int, deadline: TimeSource.Monotonic.ValueTimeMark?) {
         val node = sketch.nodes[i]; val chosen = node.id == selected
@@ -240,6 +226,6 @@ internal class SurfaceGraphCanvasPainter(graphics: GraphicsContext, private val 
             paint(heading, x + 12, y + 12)
             paint(detail, x + 12, y + 18 + heading.size.height)
         }
-        shown[i] = chosen
+        picked[i] = chosen
     }
 }

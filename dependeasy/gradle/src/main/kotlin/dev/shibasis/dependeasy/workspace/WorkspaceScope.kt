@@ -56,15 +56,15 @@ class WorkspaceScope internal constructor(private val project: Project, private 
             workspace.emit(project, declaration.spec(name, NodeKind.External).copy(
                 effect = if (call is ExternalCall.Fastlane) Effect.Build else Effect.Verify,
                 runner = runner), ExternalKernel, site, null,
-                declaration.includes.toList(), declaration.consumes.toList(), declaration.after.toList())
+                declaration.includes.toList(), declaration.consumes.toList(), declaration.after.toList()).also(declaration::covered)
         }
     }
 
     fun product(shared: ProjectDependency, content: ProductScope.() -> Unit = {}) =
-        ProductScope(project, project.parts(listOf(shared))).apply(content).build()
+        ProductScope(project, project.parts(listOf(shared)), listOf(shared.path)).apply(content).build()
 
     fun product(modules: List<ModuleHandle>, content: ProductScope.() -> Unit = {}) =
-        ProductScope(project, project.parts(modules)).apply(content).build()
+        ProductScope(project, project.parts(modules), modules.map { it.path }).apply(content).build()
 
     fun include(build: BuildHandle): IncludedBuild {
         workspace.includedBuild(build)
@@ -120,7 +120,7 @@ class WorkspaceScope internal constructor(private val project: Project, private 
     }
 
     private fun emit(content: NodeContent, kind: NodeKind, role: Workspace?, site: SourceSite?, kernel: WorkspaceKernel) =
-        NodeDeclaration { name -> workspace.emit(project, content.spec(name, kind), kernel, site, role, content.includes.toList(), content.consumes.toList(), content.after.toList()) }
+        NodeDeclaration { name -> workspace.emit(project, content.spec(name, kind), kernel, site, role, content.includes.toList(), content.consumes.toList(), content.after.toList()).also(content::covered) }
 }
 
 @WorkspaceDsl
@@ -196,6 +196,9 @@ class VerifySpec internal constructor(private val content: NodeContent) {
     fun include(output: OutputHandle, vararg others: OutputHandle) { content.consumes.addAll(listOf(output) + others) }
     fun after(vararg nodes: NodeHandle) { content.after.addAll(nodes) }
     fun <T : Any> require(option: BuildOption<T>, value: T) { content.require(option, value) }
+    fun covers(domain: Domain, vararg aspects: Aspect) { content.covers(Coverage(domain, *aspects)) }
+    fun covers(aspect: Aspect, vararg aspects: Aspect) { content.covers(Coverage(aspects = setOf(aspect) + aspects)) }
+    fun covers(coverage: Coverage) { content.covers(coverage) }
 }
 
 @WorkspaceDsl
@@ -221,6 +224,9 @@ class ExternalSpec internal constructor(private val content: NodeContent) {
     fun include(vararg nodes: NodeHandle) { content.includes.addAll(nodes) }
     fun after(vararg nodes: NodeHandle) { content.after.addAll(nodes) }
     fun <T : Any> require(option: BuildOption<T>, value: T) { content.require(option, value) }
+    fun covers(domain: Domain, vararg aspects: Aspect) { content.covers(Coverage(domain, *aspects)) }
+    fun covers(aspect: Aspect, vararg aspects: Aspect) { content.covers(Coverage(aspects = setOf(aspect) + aspects)) }
+    fun covers(coverage: Coverage) { content.covers(coverage) }
 }
 
 internal class NodeContent(private val project: Project, private val run: Run) {
@@ -228,6 +234,11 @@ internal class NodeContent(private val project: Project, private val run: Run) {
     val consumes = linkedSetOf<OutputHandle>()
     val after = linkedSetOf<NodeHandle>()
     private val requirements = mutableListOf<OptionRequirement>()
+    private var coverage: Coverage? = null
+
+    fun covers(declared: Coverage) { coverage = coverage?.plus(declared) ?: declared }
+
+    fun covered(node: NodeHandle) { coverage?.let { BuildWorkspace.get(project).cover(node.id, it) } }
 
     fun <T : Any> require(option: BuildOption<T>, value: T) {
         requirements.add(OptionRequirement(project.resolve(option).get().evidence, value.toString()))

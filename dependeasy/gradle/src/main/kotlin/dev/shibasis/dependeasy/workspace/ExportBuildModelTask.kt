@@ -19,6 +19,7 @@ abstract class ExportBuildModelTask : DefaultTask(), KernelSpecOwner {
     @get:Input abstract val nodes: ListProperty<String>
     @get:Input abstract val edges: ListProperty<String>
     @get:Input abstract val omissions: ListProperty<String>
+    @get:Input abstract val products: ListProperty<String>
     @get:Input abstract val directories: MapProperty<String, String>
     @get:Input abstract val resolvedOptions: ListProperty<Map<String, String>>
     @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val declarationFiles: ConfigurableFileCollection
@@ -43,7 +44,8 @@ abstract class ExportBuildModelTask : DefaultTask(), KernelSpecOwner {
         val model = BuildModelKernel.build(spec, workspaceDirectory.get().asFile, nodes.get().map(BuildModelReader::decodeNode),
             edges.get().map { BuildModelReader.json.decodeFromString<Edge>(it) },
             omissions.get().map { BuildModelReader.json.decodeFromString<Omission>(it) }, resolvedOptions.get(), declarationFiles.files,
-            includedModels.files.sortedBy { it.path }.map { BuildModelReader.decode(it.readText()) })
+            includedModels.files.sortedBy { it.path }.map { BuildModelReader.decode(it.readText()) },
+            products.get().map { BuildModelReader.json.decodeFromString<ProductModel>(it) })
         replaceAtomically(outputFile.get().asFile, BuildModelReader.encode(model))
         replaceAtomically(remoteHostsFile.get().asFile, BuildModelReader.json.encodeToString(BuildModelKernel.routing(model, spec.build)) + "\n")
         logger.lifecycle("Build model omissions: " + BuildModelReader.omissionCounts(model).entries.joinToString { "${it.key}: ${it.value}" }.ifEmpty { "none" })

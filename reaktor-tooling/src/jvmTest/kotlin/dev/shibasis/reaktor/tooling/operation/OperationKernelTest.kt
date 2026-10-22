@@ -17,6 +17,8 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -227,6 +229,42 @@ class OperationKernelTest {
                 kernel.catalog().map { it.id.value to it.prefer?.value })
             assertEquals(kernel.catalog().map { it.id }, kernel.access(listOf("*")).map { it.id })
         } finally { graph.close(); dependencies.close() }
+    }
+
+    @Test
+    fun theModelDecidesEveryCallAndOnlyItsEnforcedDenialStopsOne() = runTest {
+        val directory = Files.createTempDirectory("operation-model")
+        val dependencies = koinApplication {}
+        val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
+        val written = mutableListOf<String>()
+        graph.attach(OperationNode(graph, "build", listOf(
+            operation<Write, String>("build.read", "Read") { it.path },
+            operation<Write, Unit>("code.write", "Write a file", SafetyClass.SourceWrite) { written += it.path },
+        )))
+        val decided = mutableListOf<String>()
+        val model = OperationModel { caller, provider, operation ->
+            if (caller.seat == "broken") error("unreadable model")
+            decided += "${caller.seat} $provider $operation"
+            val allowed = caller.seat != "gemini"
+            ModelVerdict(allowed, enforced = operation.domain == "code", rule = if (allowed) "agent:${caller.seat}" else "Nothing grants can_invoke on operation:$operation",
+                record = buildJsonObject { put("subject", "agent:${caller.seat}"); put("allowed", allowed) })
+        }
+        val log = directory.resolve("calls.jsonl")
+        val kernel = OperationKernel(graph, OperationAuthority(DoorPolicy(mapOf("*" to SeatPolicy(allow = SafetyClass.SourceWrite))), log = CallLog(log, CallCaller()), model = model))
+        try {
+            fun call(id: String, seat: String, path: String) = Invocation(OperationId(id), buildJsonObject { put("path", path) }, CallCaller(seat))
+            assertEquals(JsonPrimitive("a"), assertIs<Outcome.Completed>(kernel.invoke(call("build.read", "gemini", "a"))).result)
+            assertEquals("Nothing grants can_invoke on operation:code.write", assertIs<Outcome.Refused>(kernel.invoke(call("code.write", "gemini", "b.kt"))).reason)
+            assertIs<Outcome.Completed>(kernel.invoke(call("code.write", "codex", "c.kt")))
+            assertIs<Outcome.Completed>(kernel.invoke(call("code.write", "broken", "d.kt")))
+            assertEquals(listOf("c.kt", "d.kt"), written)
+            assertEquals(listOf("gemini build build.read", "gemini build code.write", "codex build code.write"), decided)
+            val lines = Files.readAllLines(log).map { Json.parseToJsonElement(it).jsonObject }
+            assertEquals(listOf("ok", "refused", "ok", "ok"), lines.map { it.getValue("outcome").jsonPrimitive.content })
+            assertEquals(listOf(false, false, true, null), lines.map { line -> line["access"]?.jsonObject?.getValue("allowed")?.jsonPrimitive?.boolean })
+        } finally {
+            graph.close(); dependencies.close(); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
+        }
     }
 
     private fun kernel(policy: DoorPolicy = DoorPolicy.Guarded, body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {

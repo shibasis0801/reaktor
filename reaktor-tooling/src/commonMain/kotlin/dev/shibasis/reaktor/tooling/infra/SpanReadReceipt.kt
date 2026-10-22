@@ -23,10 +23,14 @@ data class SpanReadFilter(
     val graphDigest: String? = null,
     val port: String? = null,
     val activation: String? = null,
+    val application: String? = null,
+    val installation: String? = null,
+    val platform: String? = null,
 ) {
     fun columns(): Map<String, String> = listOf(
         "trace_id" to trace, "application_session" to session, "build" to build, "node" to node,
         "graph_digest" to graphDigest, "port" to port, "activation" to activation,
+        "application" to application, "installation" to installation, "platform" to platform,
     ).mapNotNull { (column, value) -> value?.let { column to it } }.toMap()
 
     fun validate() {

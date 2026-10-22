@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
 
 class OtlpTransportTest {
     private val endpoint = OtlpEndpoint(
-        tracesUrl = "https://otlp-gateway-prod-eu-west-2.grafana.net/otlp/v1/traces",
+        tracesUrl = "https://collector.example.com/v1/traces",
         instanceId = "123456",
         token = "glc_secret",
     )
@@ -40,6 +40,36 @@ class OtlpTransportTest {
         // base64("123456:glc_secret")
         assertEquals("Basic MTIzNDU2OmdsY19zZWNyZXQ=", seenAuth)
         assertTrue(seenType.orEmpty().contains("application/json"), "got $seenType")
+    }
+
+    @Test
+    fun ownedCollectorUsesOneBearerHeader() = runTest {
+        val collector = OtlpEndpoint("https://telemetry.reaktor.build/v1/traces", token = "collector-secret")
+        val client = HttpClient(MockEngine { request ->
+            assertEquals(listOf("Bearer collector-secret"), request.headers.getAll(HttpHeaders.Authorization))
+            respondOk()
+        })
+        assertTrue(HttpOtlpTransport(collector, client).send("{}"))
+    }
+
+    @Test
+    fun privateCollectorHasNoAuthorizationHeader() = runTest {
+        val client = HttpClient(MockEngine { request ->
+            assertEquals(null, request.headers[HttpHeaders.Authorization])
+            respondOk()
+        })
+        assertTrue(HttpOtlpTransport(OtlpEndpoint("http://localhost:4318/v1/traces"), client).send("{}"))
+    }
+
+    @Test
+    fun explicitAuthorizationReplacesGeneratedCredentials() = runTest {
+        val collector = endpoint.copy(headers = mapOf("authorization" to "Bearer explicit-secret"))
+        val client = HttpClient(MockEngine { request ->
+            assertEquals(listOf("Bearer explicit-secret"), request.headers.getAll(HttpHeaders.Authorization))
+            respondOk()
+        })
+        assertTrue(HttpOtlpTransport(collector, client).send("{}"))
+        assertFalse(collector.toString().contains("explicit-secret"))
     }
 
     @Test

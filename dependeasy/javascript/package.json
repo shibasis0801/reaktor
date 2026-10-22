@@ -14,8 +14,8 @@
     },
     "scripts": {
         "test": "node --test test/*.mjs",
-        "typecheck": "../../gradlew :buildToolingTypes",
-        "build": "../../gradlew :checkBuildTooling"
+        "build": "../../gradlew :checkBuildTooling",
+        "typecheck": "../../gradlew :buildToolingTypes"
     },
     "dependencies": {
         "yaml": "2.9.1",
