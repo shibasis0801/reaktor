@@ -7,4 +7,5 @@ object BuildLibraries {
     const val Brotli = "1.23.0"
     const val SnakeYaml = "2.7"
     const val CommonsCompress = "org.apache.commons:commons-compress:1.28.0"
+    const val Postgres = "org.postgresql:postgresql:42.7.13"
 }

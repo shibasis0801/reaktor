@@ -76,6 +76,7 @@ internal fun kernelRef(task: Task): KernelRef {
         is dev.shibasis.dependeasy.verification.K6Suite -> dev.shibasis.dependeasy.model.K6SuiteKernel::class.java
         is dev.shibasis.dependeasy.web.WranglerDeploy -> dev.shibasis.dependeasy.model.WorkerDeployKernel::class.java
         is dev.shibasis.dependeasy.cloudflare.WorkerSecrets -> dev.shibasis.dependeasy.model.WorkerSecretsKernel::class.java
+        is DatabaseMigration -> dev.shibasis.dependeasy.model.MigrationKernel::class.java
         is dev.shibasis.dependeasy.server.BuildServerImage, is dev.shibasis.dependeasy.server.PushServerImage -> dev.shibasis.dependeasy.model.ServerImageKernel::class.java
         is dev.shibasis.dependeasy.server.RolloutServer -> dev.shibasis.dependeasy.model.ServerRolloutKernel::class.java
         is dev.shibasis.dependeasy.process.ProcessTask -> dev.shibasis.dependeasy.model.ProcessKernel::class.java
@@ -114,6 +115,7 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.JvmDistribution -> this
         is KernelSpec.TestSuite -> this
         is KernelSpec.WorkspaceNode -> this
+        is KernelSpec.DatabaseMigration -> this
         is KernelSpec.WorkerFleet -> this
         is KernelSpec.BuildModelExport -> copy(declarations = files(declarations), includedModels = files(includedModels), output = files(output), routing = files(routing))
         is KernelSpec.PackageScripts -> copy(output = files(output), packageContracts = packageContracts.mapValues { files(it.value) })

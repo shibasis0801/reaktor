@@ -77,7 +77,7 @@ internal class GradleBuildPlanner {
         val plan = BuildModelReader.readPlan(planFile)
         require(plan.node == node.id && plan.modelDigest == request.modelDigest && plan.requestDigest == BuildModelReader.digest(contract))
         val executable = write(request.copy(expectedContextDigest = plan.contextDigest, deployments = plan.deployments,
-            serverDeployments = plan.serverDeployments, secrets = plan.secrets))
+            serverDeployments = plan.serverDeployments, secrets = plan.secrets, migrations = plan.migrations))
         val argv = listOf(wrapper, GradleProtocol.RunTask, "-P${GradleProtocol.RequestOption}=${executable.absolutePath}", "--console=plain") + properties
         return PreparedGradleBuild(argv, ProcessDefinitionSeal.capture(seal.files + executable + planFile, seal.directories),
             plan, listOf(ArtifactExpectation("gradle-result", "${GradleProtocol.ResultDirectory}/${executable.name}", true)),

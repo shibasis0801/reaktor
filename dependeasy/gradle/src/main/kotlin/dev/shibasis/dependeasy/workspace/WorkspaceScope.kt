@@ -104,6 +104,10 @@ class WorkspaceScope internal constructor(private val project: Project, private 
         return emit(declaration, NodeKind.ArtifactSet, role, project.declarationSite(), ArtifactSetKernel)
     }
 
+    fun migrate(database: DatabaseMigrations): NodeDeclaration = NodeDeclaration { name ->
+        project.databaseMigration(name, database)
+    }
+
     fun delivery(after: NodeHandle, run: Run = Run.Default, content: DeliveryScope.() -> Unit) {
         DeliveryScope(project, workspace, after, run).apply(content)
     }

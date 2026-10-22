@@ -12,6 +12,8 @@ class GradlePlanningTest {
     private fun fixture() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"receiptFixture\"")
         directory.resolve("source.txt").writeText("first")
+        directory.resolve("migrations").mkdirs()
+        directory.resolve("migrations/0001_fixture.sql").writeText("SELECT 1;")
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.configuration.option
@@ -40,6 +42,10 @@ class GradlePlanningTest {
                 val checks by verify { include(node(copied)) }
                 val failureChecks by verify { include(node(failed)) }
                 val optionChecks by verify { include(node(selection)) }
+                val schema by migrate(dev.shibasis.dependeasy.model.DatabaseMigrations.Postgres(
+                    directory = "migrations",
+                    connections = mapOf(dev.shibasis.dependeasy.model.Environment("dev") to "FIXTURE_DATABASE_URL"),
+                    sources = emptyList()))
             }
         """.trimIndent())
     }
@@ -52,6 +58,16 @@ class GradlePlanningTest {
         fixture()
         runner("exportBuildModel", "checks", "-Pfixture.feature=true").build()
         val first = receipts().single()
+        val schema = BuildModelReader.read(directory).nodes.single { it.id.name == "schema" }
+        assertEquals(NodeKind.Deploy, schema.kind)
+        assertEquals(Effect.Deploy, schema.effect)
+        assertEquals("MigrationKernel", schema.kernel?.className?.substringAfterLast('.'))
+        assertIs<KernelSpec.DatabaseMigration>(schema.kernel?.spec)
+        assertEquals(listOf(Environment("dev")), schema.environments)
+        assertTrue(BuildModelReader.read(directory).declarations.any {
+            it.option?.name == GradleProtocol.EnvironmentOption && it.option?.value == "dev" && it.option?.scope == ":" })
+        assertTrue(schema.inputs.flatMap { it.declarations }.any {
+            it.kind == FileInputKind.Tree && it.identity == "migrations" && "*.sql" in it.includes })
         assertContains(first.requestedNodes, NodeId("receiptFixture", ":", "checks"))
         assertEquals(TaskOutcome.Executed, first.tasks.single { it.task.name == "copied" }.outcome)
         assertNotNull(first.modelDigest)
@@ -85,6 +101,8 @@ class GradlePlanningTest {
             assertEquals(dryRun, receipt.dryRun)
             assertEquals(dryRun, receipt.tasks.isEmpty())
         }
+        val unreviewed = runner("schema").buildAndFail()
+        assertContains(unreviewed.output, "Database migrations require a reviewed build plan")
     }
 
     @Test fun `external phase preserves observed identity without inventing a declaration`() {

@@ -50,6 +50,19 @@ object GradleInvocationKernel {
                 argument.startsWith("--project-dir=") || argument.startsWith("--gradle-user-home=") ||
                 (argument.startsWith("-Pdependeasy.") && !argument.startsWith(environmentPrefix))
         }) { "Invocation arguments cannot change workspace ownership or the Gradle protocol" }
+        deploymentNodes(model, node.id).forEach { deployment ->
+            val environment = when (val spec = deployment.kernel?.spec) {
+                is KernelSpec.ServerRollout -> spec.deployment.environment
+                is KernelSpec.WranglerDeploy -> spec.deployment.environment
+                else -> null
+            }
+            if (environment != null) deploymentNodes(model, deployment.id).forEach { prerequisite ->
+                val migration = (prerequisite.kernel?.spec as? KernelSpec.DatabaseMigration)?.migration
+                require(migration == null || migration.environment == environment) {
+                    "Deployment and prerequisite migration must select the same environment"
+                }
+            }
+        }
         val requestDigest = BuildModelReader.digest(file)
         require(file.name == "$requestDigest.json") { "Gradle request content changed; review a fresh plan" }
         return ValidatedGradleInvocation(request, node, digest, requestDigest, own, tasks)
@@ -90,7 +103,7 @@ object GradleInvocationKernel {
         fun visit(id: NodeId) { if (visited.add(id)) edges[id].orEmpty().forEach { visit(it.to) } }
         visit(selected)
         return model.nodes.filter { it.id in visited &&
-            (it.kernel?.spec is KernelSpec.WranglerDeploy || it.kernel?.spec is KernelSpec.ServerRollout || it.kernel?.spec is KernelSpec.WorkerSecrets) }
+            (it.kernel?.spec is KernelSpec.WranglerDeploy || it.kernel?.spec is KernelSpec.ServerRollout || it.kernel?.spec is KernelSpec.WorkerSecrets || it.kernel?.spec is KernelSpec.DatabaseMigration) }
     }
 
     fun requireExecution(invocation: ValidatedGradleInvocation, contextDigest: String) {

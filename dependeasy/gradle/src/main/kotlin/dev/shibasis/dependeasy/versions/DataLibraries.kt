@@ -19,7 +19,7 @@ object DataLibraries {
     const val MockWebServer = "com.squareup.okhttp3:mockwebserver:5.4.0"
     const val Neo4j = "org.neo4j.driver:neo4j-java-driver:5.28.9"
     const val Postgis = "io.github.sebasbaumh:postgis-java-ng:23.2.0"
-    const val Postgres = "org.postgresql:postgresql:42.7.13"
+    const val Postgres = dev.shibasis.dependeasy.toolchain.BuildLibraries.Postgres
     const val SqlDelight = "app.cash.sqldelight:runtime:${Versions.SQLDelight}"
     const val SqlDelightAndroid = "app.cash.sqldelight:android-driver:${Versions.SQLDelight}"
     const val SqlDelightJdbc = "app.cash.sqldelight:jdbc-driver:${Versions.SQLDelight}"
