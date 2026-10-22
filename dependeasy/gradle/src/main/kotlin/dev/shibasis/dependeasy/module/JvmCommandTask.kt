@@ -32,8 +32,13 @@ abstract class JvmProcessTask : DefaultTask() {
     @TaskAction fun printCommand() {
         val command = dev.shibasis.dependeasy.model.JvmLaunchKernel.command(executable.get(), classpath.asPath,
             mainClass.get(), arguments.get(), jvmArguments.get(), relativeClasspath.orNull)
-        if (launcherFile.isPresent) dev.shibasis.dependeasy.model.JvmLaunchKernel.launcher(
-            command, relativeClasspath.isPresent, launcherFile.get().asFile) else println(command)
+        val output = launcherFile.orNull?.asFile
+        if (output?.extension == "jar") {
+            require(arguments.get().isEmpty()) { "An archive launcher accepts its arguments at invocation" }
+            dev.shibasis.dependeasy.model.JvmLaunchKernel.archive(mainClass.get(),
+                classpath.files.filter { it.extension == "jar" }, relativeClasspath.get(), jvmArguments.get(), output)
+        } else if (output != null) dev.shibasis.dependeasy.model.JvmLaunchKernel.launcher(
+            command, relativeClasspath.isPresent, output) else println(command)
     }
 }
 

@@ -115,6 +115,7 @@ sealed interface KernelSpec {
     @Serializable data class WranglerDeploy(val deployment: WorkerDeploySpec) : KernelSpec
     @Serializable data class WorkerSecrets(val secrets: WorkerSecretsSpec) : KernelSpec
     @Serializable data class DatabaseMigration(val migration: MigrationSpec, val tool: ToolRef) : KernelSpec
+    @Serializable data class PulumiStack(val infrastructure: PulumiStackSpec) : KernelSpec
     @Serializable data class ServerImageBuild(val image: ServerImageSpec) : KernelSpec
     @Serializable data class ServerImagePush(val image: ServerImageSpec, val built: String) : KernelSpec
     @Serializable data class ServerRollout(val deployment: ServerRolloutSpec, val published: String) : KernelSpec
@@ -134,6 +135,7 @@ fun KernelSpec.tools(): List<ToolRef> = when (this) {
     is KernelSpec.DarwinArchive -> if (verification) emptyList() else AppleArchiveTools.tools
     is KernelSpec.GradleInvocation -> listOf(tool)
     is KernelSpec.PulumiSdk -> listOf(tool)
+    is KernelSpec.PulumiStack -> listOf(infrastructure.execution.tool)
     is KernelSpec.Profile -> listOf(java, profiler)
     is KernelSpec.JvmProgram -> listOfNotNull(java)
     is KernelSpec.JvmCommand -> listOfNotNull(java)

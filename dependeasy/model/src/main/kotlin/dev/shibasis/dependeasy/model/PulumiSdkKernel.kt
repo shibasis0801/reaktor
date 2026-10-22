@@ -5,6 +5,17 @@ import java.io.File
 import kotlinx.serialization.json.*
 
 object Pulumi {
+    private fun command(spec: PulumiStackSpec, arguments: List<String>) = spec.execution.copy(arguments = arguments +
+        listOf("--stack", spec.stack.stacks.getValue(spec.environment), "--non-interactive", "--color", "never"))
+    fun version(spec: PulumiStackSpec) = spec.execution.copy(arguments = listOf("version"))
+    fun preview(spec: PulumiStackSpec, configuration: File, saved: File) = command(spec,
+        listOf("preview", "--json", "--config-file", configuration.absolutePath, "--save-plan", saved.absolutePath))
+    fun up(spec: PulumiStackSpec, configuration: File, saved: File, run: String) = command(spec,
+        listOf("up", "--yes", "--skip-preview", "--json", "--config-file", configuration.absolutePath,
+            "--plan", saved.absolutePath, "--message", "dependeasy:$run"))
+    fun export(spec: PulumiStackSpec) = command(spec, listOf("stack", "export"))
+    fun history(spec: PulumiStackSpec) = command(spec, listOf("stack", "history", "--json", "--page-size", "1"))
+
     fun generateSdk(spec: KernelSpec.PulumiSdk): List<String> = listOf("package", "gen-sdk", spec.provider,
         "--language", "java", "--version", spec.version, "--server", spec.server,
         "--out", spec.output.paths.single(), "--non-interactive")

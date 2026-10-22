@@ -1,6 +1,10 @@
 package dev.shibasis.dependeasy.module
 
+import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.file.FileCollection
+import org.gradle.api.file.FileCopyDetails
+import dev.shibasis.dependeasy.model.JvmLaunchKernel
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.Sync
 import org.gradle.kotlin.dsl.register
@@ -34,23 +38,41 @@ internal fun Project.jvmLauncher(name: String, program: NodeHandle, output: Stri
     return launcher
 }
 
+private class DistributionJarNames(private val jars: FileCollection) : Action<FileCopyDetails> {
+    @Transient private var names: Map<String, String>? = null
+
+    override fun execute(details: FileCopyDetails) {
+        val resolved = names ?: JvmLaunchKernel.archiveNames(jars.files.toList()).also { names = it }
+        details.name = resolved.getValue(details.file.canonicalPath)
+    }
+}
+
 internal fun Project.jvmDistribution(name: String, program: NodeHandle, executable: String): NodeHandle {
     val compilation = requireNotNull(program.programCompilation) { "A distribution needs a declared JVM program" }
     val entry = requireNotNull(program.programEntry)
-    val execution = jvmExecution(compilation.name)
     val launcher = jvmLauncher("generate${name.replaceFirstChar(Char::uppercase)}Launcher", program,
         "generated/dependeasy/$name/$executable", relativeClasspath = "lib")
-    val kotlin = extensions.findByType(KotlinMultiplatformExtension::class.java)
-    val api = if (kotlin == null) JavaPlugin.API_ELEMENTS_CONFIGURATION_NAME
-        else kotlin.targets.withType(KotlinJvmTarget::class.java).single().apiElementsConfigurationName
-    val artifacts = configurations.named(api).map { it.outgoing.artifacts }
+    val artifacts = provider {
+        val kotlin = extensions.findByType(KotlinMultiplatformExtension::class.java)
+        val api = if (kotlin == null) JavaPlugin.API_ELEMENTS_CONFIGURATION_NAME
+            else kotlin.targets.withType(KotlinJvmTarget::class.java).single().apiElementsConfigurationName
+        configurations.getByName(api).outgoing.artifacts
+    }
     val jars = files(artifacts.map { entries -> entries.map { it.file } })
         .builtBy(artifacts.map { entries -> entries.map { it.buildDependencies } })
+    val archive = jvmLauncher("generate${name.replaceFirstChar(Char::uppercase)}ArchiveLauncher", program,
+        "generated/dependeasy/$name/$executable.jar", relativeClasspath = "../lib")
+    archive.configure { classpath.from(jars) }
     val distribution = tasks.register<Sync>(name) {
+        val execution = jvmExecution(compilation.name)
         group = "distribution"
-        from(jars) { into("lib") }
-        from(execution.classpath.filter { it.extension == "jar" }) { into("lib") }
+        val runtimeJars = files(jars, execution.classpath.filter { it.extension == "jar" })
+        from(runtimeJars) {
+            into("lib")
+            eachFile(DistributionJarNames(runtimeJars))
+        }
         from(launcher.flatMap { it.launcherFile }) { into("bin") }
+        from(archive.flatMap { it.launcherFile }) { into("bin") }
         into(layout.buildDirectory.dir(name.replace(Regex("([a-z])([A-Z])"), "$1-$2").lowercase()))
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         preserve { include("bin/**") }
@@ -58,5 +80,7 @@ internal fun Project.jvmDistribution(name: String, program: NodeHandle, executab
             KernelSpec.JvmDistribution(program.id, compilation, entry.producer.id, executable))
     }
     publishOutput(OutputKind.JvmDistribution, distribution.map { it.destinationDir }, producer = distribution)
-    return node(distribution).consumes(KernelArtifact(launcher.flatMap { it.launcherFile }, node(launcher)))
+    return node(distribution)
+        .consumes(KernelArtifact(launcher.flatMap { it.launcherFile }, node(launcher)))
+        .consumes(KernelArtifact(archive.flatMap { it.launcherFile }, node(archive)))
 }

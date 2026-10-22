@@ -146,11 +146,21 @@ class ModuleWiringTest {
                 println("stdin:" + readln())
             }
         """.trimIndent())
+        listOf("first", "second").forEach { resource ->
+            val jar = directory.resolve("$resource/artifact.jar").apply { parentFile.mkdirs() }
+            java.util.jar.JarOutputStream(jar.outputStream()).use { output ->
+                output.putNextEntry(java.util.jar.JarEntry("$resource.txt")); output.write(resource.toByteArray()); output.closeEntry()
+            }
+        }
         directory.resolve("src/main/kotlin/Application.kt").writeText("""
             package fixture.application
             import dev.shibasis.reaktor.core.build.Entry
             @Entry fun main(args: Array<String>) {
-                check(Class.forName("fixture.application.ApplicationKt").module.isNativeAccessEnabled)
+                val type = Class.forName("fixture.application.ApplicationKt")
+                check(type.module.isNativeAccessEnabled)
+                if (args.firstOrNull() == "distribution-resources") {
+                    listOf("first", "second").forEach { check(type.classLoader.getResource(it + ".txt") != null) }
+                }
                 println("application:" + args.joinToString("|"))
             }
         """.trimIndent())
@@ -160,6 +170,7 @@ class ModuleWiringTest {
             import java.io.ByteArrayInputStream
             import java.io.InputStream
             plugins { id("dev.shibasis.dependeasy.jvm") }
+            dependencies { runtimeOnly(files("first/artifact.jar", "second/artifact.jar")) }
             library {
                 val service by program(environment = ProgramEnvironment(
                     inputs = listOf(ProgramInput(BuildOption.string("value"), required = true),
@@ -243,6 +254,15 @@ class ModuleWiringTest {
             assertEquals(0, process.waitFor())
             assertContains(service(name).output, "Reusing configuration cache")
         }
+        val archive = directory.resolve("build/application-dist/bin/application.jar")
+        val archiveProcess = ProcessBuilder(java.io.File(System.getProperty("java.home"), "bin/java").absolutePath,
+            "-jar", archive.absolutePath, value).redirectErrorStream(true).start()
+        assertEquals("application:$value", archiveProcess.inputStream.bufferedReader().readText().trim())
+        assertEquals(0, archiveProcess.waitFor())
+        val resources = ProcessBuilder(java.io.File(System.getProperty("java.home"), "bin/java").absolutePath,
+            "-jar", archive.absolutePath, "distribution-resources").redirectErrorStream(true).start()
+        assertEquals("application:distribution-resources", resources.inputStream.bufferedReader().readText().trim())
+        assertEquals(0, resources.waitFor())
         val external = java.nio.file.Files.createTempDirectory(directory.parentFile.toPath(), "owned-entry-").toFile()
         try {
             directory.resolve("src/main/kotlin/Service.kt").copyTo(external.resolve("Service.kt"))

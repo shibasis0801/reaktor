@@ -146,6 +146,7 @@ data class RunReceipt(
 @Serializable data class RemoteHostsContract(val schema: Int = 2, val builds: Map<String, String>, val taskFamilies: Map<String, String>,
     val taskHosts: Map<String, HostRequirement> = emptyMap(),
     val publicOutputs: Map<String, List<String>> = emptyMap(),
+    val distributionDirectories: List<String> = emptyList(),
     val kotlinExports: List<String> = emptyList(),
     val environment: List<String> = emptyList(),
     val outputRoots: Map<String, List<String>> = mapOf(

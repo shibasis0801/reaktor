@@ -11,6 +11,7 @@ import dev.shibasis.dependeasy.module.JvmModule
 import dev.shibasis.dependeasy.module.jvmClasspath
 import dev.shibasis.dependeasy.module.componentProgram
 import dev.shibasis.dependeasy.module.jvmExecution
+import dev.shibasis.dependeasy.module.jvmDistribution
 import dev.shibasis.dependeasy.codegen.pulumiSdk
 import dev.shibasis.dependeasy.codegen.kotlinObject
 import dev.shibasis.dependeasy.configuration.releaseRequirement
@@ -230,6 +231,9 @@ class LibraryScope internal constructor(private val project: Project, private va
             }
         }
     }
+
+    fun distribution(program: NodeHandle, executable: String) =
+        NodeDeclaration { name -> project.jvmDistribution(name, program, executable) }
 
     fun classpath(output: String) = NodeDeclaration { name ->
         require(LibraryTarget.Jvm in spec.targets) { "A classpath report needs the Jvm target" }

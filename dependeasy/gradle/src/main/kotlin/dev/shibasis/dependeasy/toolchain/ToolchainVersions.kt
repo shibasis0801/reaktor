@@ -53,4 +53,6 @@ object ToolchainVersions {
     const val Pnpm = "12.10.1"
     const val Dagger = "0.21.8"
     const val Pulumi = "3.268.0"
+    const val AlloyChart = "1.12.1"
+    const val KubeStateMetricsChart = "8.4.2"
 }

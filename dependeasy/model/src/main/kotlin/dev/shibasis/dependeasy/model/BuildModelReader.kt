@@ -224,6 +224,13 @@ object BuildModelReader {
                     put("migrationPlan", json.encodeToJsonElement(MigrationKernel.retained(owner, selected.id, spec.environment)))
                 put("deploymentReceipts", json.encodeToJsonElement(WorkerDeployKernel.receipts(owner, selected.id)))
             }
+            if (selected.kernel?.spec is KernelSpec.PulumiStack) {
+                val spec = selected.kernel.spec.infrastructure
+                val owner = root.resolve(model.builds.single { it.name == selected.id.build }.directory)
+                if (PulumiStackKernel.planFile(owner, selected.id, spec.environment).isFile)
+                    put("infrastructurePlan", json.encodeToJsonElement(PulumiStackKernel.retained(owner, selected.id, spec.environment)))
+                put("deploymentReceipts", json.encodeToJsonElement(WorkerDeployKernel.receipts(owner, selected.id)))
+            }
             put("edges", buildJsonArray { model.edges.filter { it.from == selected.id || it.to == selected.id }
                 .forEach { add(json.encodeToJsonElement(Edge.serializer(), it)) } })
             put("omissions", buildJsonArray { model.omissions.filter { it.node == null || it.node == selected.id }

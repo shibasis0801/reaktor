@@ -88,7 +88,8 @@ object BuildModelKernel {
                 is KernelSpec.ReleasePlan -> listOf(spec.output)
                 is KernelSpec.XcodeHost -> if (spec.checking) emptyList() else spec.files.drop(1) +
                     AppleHostKernel.files(spec).keys.map { File(spec.files.first(), it).invariantSeparatorsPath }
-                is KernelSpec.WorkerFleet, is KernelSpec.PackageScripts, is KernelSpec.DaggerPipeline -> node.outputs.flatMap { it.paths }
+                is KernelSpec.WorkerFleet, is KernelSpec.PackageScripts, is KernelSpec.DaggerPipeline,
+                is KernelSpec.JvmDistribution -> node.outputs.flatMap { it.paths }
                 is KernelSpec.ContainerNode -> spec.output.paths
                 else -> emptyList()
             }.distinct().sorted()
@@ -103,6 +104,8 @@ object BuildModelKernel {
         val routing = RemoteHostsContract(builds = model.builds.associate { it.name to it.directory }.toSortedMap(),
             taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to model.requiredHost(it.id) }.toSortedMap(),
             taskFamilies = taskFamilies(model, own), publicOutputs = public, kotlinExports = exports,
+            distributionDirectories = owned.filter { it.kernel?.spec is KernelSpec.JvmDistribution }
+                .flatMap { it.outputs }.flatMap { it.paths }.distinct().sorted(),
             environment = model.declarations.mapNotNull { it.option?.environment }.distinct().sorted())
         val appleVariables = model.nodes.mapNotNull { (it.kernel?.spec as? KernelSpec.XcodeHost)?.host }
             .map { host -> "${host.targets.single { it.name == host.applicationTarget }.settingsPrefix}_GRADLE_ARGS" }

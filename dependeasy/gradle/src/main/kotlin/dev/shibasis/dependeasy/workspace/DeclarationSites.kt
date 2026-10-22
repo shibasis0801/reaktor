@@ -76,6 +76,7 @@ internal fun kernelRef(task: Task): KernelRef {
         is dev.shibasis.dependeasy.verification.K6Suite -> dev.shibasis.dependeasy.model.K6SuiteKernel::class.java
         is dev.shibasis.dependeasy.web.WranglerDeploy -> dev.shibasis.dependeasy.model.WorkerDeployKernel::class.java
         is dev.shibasis.dependeasy.cloudflare.WorkerSecrets -> dev.shibasis.dependeasy.model.WorkerSecretsKernel::class.java
+        is PulumiInfrastructure -> dev.shibasis.dependeasy.model.PulumiStackKernel::class.java
         is DatabaseMigration -> if (task.spec.database is dev.shibasis.dependeasy.model.DatabaseMigrations.ClickHouse)
             dev.shibasis.dependeasy.model.ClickHouseMigrationKernel::class.java else dev.shibasis.dependeasy.model.MigrationKernel::class.java
         is dev.shibasis.dependeasy.cloudflare.D1Migration -> dev.shibasis.dependeasy.model.D1MigrationKernel::class.java
@@ -160,6 +161,8 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.KarakumBindings -> copy(execution = execution(execution), configuration = path(configuration))
         is KernelSpec.WorkerTypes -> copy(execution = execution(execution), configuration = path(configuration))
         is KernelSpec.WranglerDeploy -> copy(deployment = deployment.copy(execution = execution(deployment.execution), configuration = path(deployment.configuration)))
+        is KernelSpec.PulumiStack -> copy(infrastructure = infrastructure.copy(execution = execution(infrastructure.execution),
+            programDirectory = infrastructure.programDirectory?.let(::path)))
         is KernelSpec.WorkerSecrets -> copy(secrets = secrets.copy(deployment = secrets.deployment.copy(
             execution = execution(secrets.deployment.execution), configuration = path(secrets.deployment.configuration))))
         is KernelSpec.ServerImageBuild -> copy(image = image.copy(jar = path(image.jar)))

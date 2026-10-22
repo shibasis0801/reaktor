@@ -51,5 +51,30 @@ object JvmLaunchKernel {
         check(output.setExecutable(true)) { "Could not enable launcher $output" }
     }
 
+    fun archiveNames(jars: List<File>): Map<String, String> {
+        val files = jars.distinctBy { it.canonicalPath }
+        require(files.all { it.isFile && it.extension == "jar" })
+        val counts = files.groupingBy { it.name }.eachCount()
+        return files.associate { file -> file.canonicalPath to
+            if (counts.getValue(file.name) > 1) BuildModelReader.digest(file).take(16) + "-" + file.name else file.name }
+    }
+
+    fun archive(mainClass: String, jars: List<File>, relativeClasspath: String, jvmArguments: List<String>, output: File) {
+        require(mainClass.isNotBlank() && jars.isNotEmpty() && jars.all { it.isFile && it.extension == "jar" })
+        val names = archiveNames(jars)
+        require(jvmArguments.all { it == "--enable-native-access=ALL-UNNAMED" }) { "Unsupported JVM archive argument" }
+        val manifest = java.util.jar.Manifest().apply {
+            mainAttributes[java.util.jar.Attributes.Name.MANIFEST_VERSION] = "1.0"
+            mainAttributes[java.util.jar.Attributes.Name.MAIN_CLASS] = mainClass
+            if ("--enable-native-access=ALL-UNNAMED" in jvmArguments)
+                mainAttributes.putValue("Enable-Native-Access", "ALL-UNNAMED")
+            mainAttributes[java.util.jar.Attributes.Name.CLASS_PATH] = names.values.distinct().sorted().joinToString(" ") { name ->
+                java.net.URI(null, null, "$relativeClasspath/$name", null).toASCIIString()
+            }
+        }
+        output.parentFile.mkdirs()
+        java.util.jar.JarOutputStream(output.outputStream(), manifest).use { }
+    }
+
     private fun quote(value: String) = "'${value.replace("'", "'\"'\"'")}'"
 }

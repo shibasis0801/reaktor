@@ -94,8 +94,13 @@ object GradleToolingRunner {
                         val owner = root.resolve(model.builds.single { identity -> identity.name == node.id.build }.directory)
                         MigrationKernel.retained(owner, node.id, spec.environment)
                     }
+                    val infrastructure = deployments.filter { it.kernel?.spec is KernelSpec.PulumiStack }.map { node ->
+                        val spec = (node.kernel!!.spec as KernelSpec.PulumiStack).infrastructure
+                        val owner = root.resolve(model.builds.single { identity -> identity.name == node.id.build }.directory)
+                        PulumiStackKernel.retained(owner, node.id, spec.environment)
+                    }
                     GradlePlanCache.store(directory, GradleInvocationKernel.plan(invocation, contextDigest, elapsed, observed, preparationTasks)
-                        .copy(deployments = plans, serverDeployments = servers, secrets = secrets, migrations = migrations))
+                        .copy(deployments = plans, serverDeployments = servers, secrets = secrets, migrations = migrations, infrastructure = infrastructure))
                 } finally { scratch.deleteTreeSafely(within = root.resolve("tmp")) }
             } else {
                 GradleInvocationKernel.requireExecution(invocation, contextDigest)

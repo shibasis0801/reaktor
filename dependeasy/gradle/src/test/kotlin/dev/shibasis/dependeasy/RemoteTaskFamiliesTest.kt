@@ -12,7 +12,10 @@ class RemoteTaskFamiliesTest {
         val model = BuildModel(producer = Producer(version = "test"),
             builds = listOf(BuildIdentity("product", "."), BuildIdentity("framework", "../framework")),
             nodes = listOf(
-                node("product", ":kernel", "outputJvmDistribution", "jvm", ":kernel:agentDist"),
+                node("product", ":kernel", "outputJvmDistribution", "jvm", ":kernel:agentDist").copy(
+                    kernel = KernelRef("distribution", spec = KernelSpec.JvmDistribution(
+                        NodeId("product", ":kernel", "program"), CompilationRef.Main, NodeId("product", ":kernel", "entry"), "agent")),
+                    outputs = listOf(FileSet(listOf("kernel/build/custom-runtime")))),
                 node("product", ":kernel", "outputVerificationResultsJvm", "verification", ":kernel:test"),
                 node("product", ":", "exportBuildModel", "metadata", ":exportBuildModel"),
                 node("product", ":", "outputDeclaredBuildModel", "verification", ":exportBuildModel"),
@@ -24,7 +27,10 @@ class RemoteTaskFamiliesTest {
             ))
         val families = BuildModelKernel.taskFamilies(model, "product")
         assertEquals("jvm", families[":kernel:agentDist"])
-        val roots = BuildModelKernel.routing(model, "product").outputRoots
+        val routing = BuildModelKernel.routing(model, "product")
+        assertEquals(listOf("kernel/build/custom-runtime"), routing.distributionDirectories)
+        assertEquals(routing.distributionDirectories, routing.publicOutputs[":kernel:agentDist"])
+        val roots = routing.outputRoots
         check(roots.getValue("all").containsAll(roots.getValue("agent"))) {
             "Mixed build requests must retain complete agent distributions"
         }

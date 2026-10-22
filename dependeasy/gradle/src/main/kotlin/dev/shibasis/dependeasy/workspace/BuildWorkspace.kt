@@ -375,16 +375,17 @@ internal class BuildWorkspace(private val project: Project) {
                     val server = (typed?.kernelSpec as? KernelSpec.ServerRollout)?.deployment
                     val secrets = (typed?.kernelSpec as? KernelSpec.WorkerSecrets)?.secrets?.deployment
                     val migration = (typed?.kernelSpec as? KernelSpec.DatabaseMigration)?.migration
-                    listOf(BuildModelReader.encode(Node(id, if (worker != null || server != null || secrets != null || migration != null) NodeKind.Deploy else NodeKind.Kernel, task.name,
+                    val infrastructure = (typed?.kernelSpec as? KernelSpec.PulumiStack)?.infrastructure
+                    listOf(BuildModelReader.encode(Node(id, if (worker != null || server != null || secrets != null || migration != null || infrastructure != null) NodeKind.Deploy else NodeKind.Kernel, task.name,
                         typed?.kernelEffect ?: if (producer.extensions.findByType(KernelSpec::class.java) is KernelSpec.JvmProgram) Effect.Develop
                         else if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
                         taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer),
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
                         tools = producer.declaredTools(), options = producer.declaredOptions(),
                         artifactFamily = taskArtifactFamilies[id] ?: kind?.family,
-                        worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: migration?.database?.availableEnvironments ?: listOfNotNull(server?.environment ?: secrets?.environment),
+                        worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: migration?.database?.availableEnvironments ?: infrastructure?.stack?.stacks?.keys?.toList() ?: listOfNotNull(server?.environment ?: secrets?.environment),
                         bindings = worker?.bindings?.get()?.map(::ServiceRef) ?: listOfNotNull(server?.service ?: secrets?.service ?: (migration?.database as? DatabaseMigrations.ClickHouse)?.service),
-                          requiredSecrets = if (typed?.kernelSpec is KernelSpec.WranglerDeploy || secrets != null || migration?.database is DatabaseMigrations.D1) listOf("CLOUDFLARE_API_TOKEN") else emptyList())))
+                          requiredSecrets = if (typed?.kernelSpec is KernelSpec.WranglerDeploy || secrets != null || migration?.database is DatabaseMigrations.D1) listOf("CLOUDFLARE_API_TOKEN") else infrastructure?.stack?.secretNames?.sorted().orEmpty())))
                 }
             })
         }

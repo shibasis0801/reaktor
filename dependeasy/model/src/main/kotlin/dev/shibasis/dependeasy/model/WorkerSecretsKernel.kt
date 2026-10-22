@@ -27,7 +27,7 @@ object WorkerSecretsKernel {
             require(observed(spec, execute) == plan.observedNames)
             require(plan.missing == (spec.names - plan.observedNames.toSet()).sorted())
             require(plan.extra == (plan.observedNames - spec.names.toSet()).sorted())
-            val values = values(spec, root)
+            val values = values(spec.names, spec.sources, root)
             val retired = spec.retiredNames.intersect(plan.observedNames.toSet())
             if (values.isNotEmpty() || retired.isNotEmpty()) {
                 val payload = buildJsonObject {
@@ -82,14 +82,14 @@ object WorkerSecretsKernel {
         names.sorted()
     } catch (_: Exception) { error("Cannot read Worker secret names; tool output withheld") }
 
-    private fun values(spec: WorkerSecretsSpec, root: File): Map<String, String> {
+    fun values(names: Collection<String>, sources: List<String>, root: File): Map<String, String> {
         val directory = root.resolve("config").canonicalFile.toPath()
         val values = linkedMapOf<String, String>()
-        spec.sources.forEach { source ->
+        sources.forEach { source ->
             val file = root.resolve(source).canonicalFile
             require(file.toPath().startsWith(directory) && file.isFile)
             val entries = if (file.extension == "json") {
-                BuildModelReader.json.parseToJsonElement(file.readText()).jsonObject.filterKeys { it in spec.names }.mapValues { it.value.jsonPrimitive.content }
+                BuildModelReader.json.parseToJsonElement(file.readText()).jsonObject.filterKeys { it in names }.mapValues { it.value.jsonPrimitive.content }
             } else {
                 file.readLines().mapNotNull { line ->
                     Regex("^(?:export\\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$").matchEntire(line)?.let { match ->
@@ -103,12 +103,12 @@ object WorkerSecretsKernel {
                     }
                 }.toMap()
             }
-            entries.filterKeys { it in spec.names }.forEach { (name, value) ->
+            entries.filterKeys { it in names }.forEach { (name, value) ->
                 require(value.isNotEmpty() && (values[name] == null || values[name] == value))
                 values[name] = value
             }
         }
-        require(values.keys.containsAll(spec.names))
+        require(values.keys.containsAll(names))
         return values.toSortedMap()
     }
 }
