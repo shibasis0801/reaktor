@@ -24,6 +24,7 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.getByType
 import dev.shibasis.dependeasy.handles.NodeHandle
 import dev.shibasis.dependeasy.handles.OutputHandle
+import dev.shibasis.dependeasy.handles.outputFiles
 import dev.shibasis.dependeasy.handles.publishOutput
 import dev.shibasis.dependeasy.module.jvmExecution
 import dev.shibasis.dependeasy.verification.compiledJvmTests
@@ -75,7 +76,7 @@ class DesktopAppScope internal constructor(private val project: Project) {
     }
 
     fun tests(suite: Suite, environment: TestEnvironment = TestEnvironment(), run: Run = Run.onDesktopSession().timeout(60.minutes),
-        content: DesktopTestsScope.() -> Unit = {}): NodeDeclaration {
+        inputs: List<OutputHandle> = emptyList(), content: DesktopTestsScope.() -> Unit = {}): NodeDeclaration {
         val selection = DesktopTestsScope().apply(content)
         if (suite == Suite.Hangar) {
             require(selection.only.isEmpty() && selection.skip.isEmpty()) { "Process suites select their own flow manifest" }
@@ -83,6 +84,8 @@ class DesktopAppScope internal constructor(private val project: Project) {
             val site = project.declarationSite()
             return NodeDeclaration { name -> project.hangarTests(name, environment, run, site).after(*selection.after.toTypedArray()).also {
                 BuildWorkspace.get(project).orderAfter(it, selection.orderedAfter)
+                inputs.forEach { output -> BuildWorkspace.get(project).consume(it, output) }
+                it.task?.configure { inputs.forEach { output -> this.inputs.files(project.outputFiles(output)) } }
             } }
         }
         require(suite == Suite.Jvm) { "Desktop tests use JVM or Hangar suites" }
@@ -107,6 +110,8 @@ class DesktopAppScope internal constructor(private val project: Project) {
         project.taggedJvmTests(task, classes, environment, run, selection.only, selection.skip, site)
         project.node(task, OutputKind.VerificationResults).after(*selection.after.toTypedArray()).also {
             BuildWorkspace.get(project).orderAfter(it, selection.orderedAfter)
+            inputs.forEach { output -> BuildWorkspace.get(project).consume(it, output) }
+            task.configure { inputs.forEach { output -> this.inputs.files(project.outputFiles(output)) } }
         }
         val part = project.dependencies.project(mapOf("path" to project.path)) as org.gradle.api.artifacts.ProjectDependency
         val output = project.verification(part, role)

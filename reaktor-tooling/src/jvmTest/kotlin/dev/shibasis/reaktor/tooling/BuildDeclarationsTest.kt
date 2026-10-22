@@ -56,6 +56,17 @@ class BuildDeclarationsTest {
             "\"reaktor\":{\"targets\":{\"site\":{\"workspace\":\"targets/site\",\"gradle\":\":\",\"build\":\"buildAlias\"}}},", ""))
         val modelOwned = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root.resolve("targets/site")))
         assertEquals(ids, modelOwned.catalog.tasks.map { it.id.value }.toSet())
+
+        root.resolve("targets/CompanyOS/package.json").apply {
+            parentFile.mkdirs()
+            writeText("""{"name":"company-os","scripts":{"probe":"node --version"}}""")
+        }
+        report(root, node("artifacts"), node("checks", Effect.Verify),
+            node("component").copy(id = NodeId("fixture", ":companyOs", "component")))
+        val physicalTargets = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).catalog
+        assertEquals(listOf("CompanyOS"), physicalTargets.targets.filter { it.name.equals("companyOs", true) }.map { it.name })
+        assertEquals(listOf("target/CompanyOS/npm/probe"),
+            physicalTargets.tasks.filter { it.attributes["script"] == "probe" }.map { it.id.value })
     }
 
     @Test fun typedPrerequisitesCarryPhysicalHostAndWriteAuthorityWithoutTaskNameInference() = fixture { root ->

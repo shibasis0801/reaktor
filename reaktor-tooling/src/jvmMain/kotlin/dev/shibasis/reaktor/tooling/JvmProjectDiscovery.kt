@@ -335,6 +335,12 @@ class JvmProjectDiscovery(
                 ?.map(File::getName)
                 .orEmpty()
             return (workspaceTargets + declaredTargets + gradleTargets + filesystemTargets)
+                .map { name ->
+                    val directory = File(root, "targets/$name")
+                    filesystemTargets.firstOrNull { physical ->
+                        directory.isDirectory && java.nio.file.Files.isSameFile(directory.toPath(), File(root, "targets/$physical").toPath())
+                    } ?: name
+                }
                 .distinct()
                 .sorted()
         }
