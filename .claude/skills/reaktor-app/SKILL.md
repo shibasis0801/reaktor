@@ -111,6 +111,38 @@ val route = Route("/today", ::TodayBinding, ::TodayScreen)
 
 If the screen is genuinely global, it belongs in the root graph.
 
+## A scope that outlives every screen
+
+A player that keeps playing through navigation, a socket that must not drop on rotation, a download
+that finishes after the user left: none of these can live in a route's graph, and on Android none
+can live in an Activity. Three apps hand-rolled a holder for this (GymBuddy's `object` graph, Cairn's
+`CairnApp`, Lector's reader kept alive by a blanket `configChanges`). Use `ProcessGraph` instead:
+
+```kotlin
+object Hearth {
+    val session = ProcessGraph { HearthSession() }              // no routes: player, storage, sync
+    val ui = ProcessGraph { HearthUi(session.get()) }           // routes; a child of the session
+}
+```
+
+- **Long-lived nodes go in a graph with no routes; every UI graph is its child.** DI chains upward
+  only, so a screen can `consumes<Playback>("playback")` from the session and the session can never
+  hold a screen. Building the child through `session.get()` also orders the wiring: the parent is
+  exposed before the child's `autoWire()`.
+- **Install the adapters from the earliest entry point, with the application's context.** On
+  Android that is `Application.onCreate`: the system can start a `Service` (a media button, a sync)
+  with no Activity, and it will ask for the session. `AndroidFileAdapter` and `AndroidSqlAdapter`
+  take any `Context` and keep the application's; an adapter holds its controller *weakly*, so one
+  built from an Activity silently goes null once that Activity is collected.
+- **A platform object that registers global callbacks is built once per process.** iOS remote
+  commands registered from a view-controller factory are registered again every time SwiftUI
+  rebuilds the view, and every command then fires twice. Guard the install, not the caller.
+- **Anything drawn over every route — a mini player, a banner — goes around `GraphContent`, not in
+  a route**, and reads the session directly. A route-held copy is rebuilt by every navigation.
+- **Screen state the user expects back (a list's scroll position) lives in the screen node**, which
+  lasts as long as its graph — `LazyListState()` constructed in the node, not
+  `rememberLazyListState()`, which ends when a deeper route covers the screen.
+
 ## Node types
 
 | Type | Use for |
