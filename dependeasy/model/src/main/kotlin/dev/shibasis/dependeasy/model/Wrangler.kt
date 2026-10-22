@@ -9,6 +9,10 @@ object Wrangler {
         listOf("deploy", "--dry-run", "--outdir", directory, "--minify"))
     fun secrets(spec: WorkerDeploySpec) = command(spec, listOf("secret", "list", "--format", "json"))
     fun putSecrets(spec: WorkerDeploySpec) = command(spec, listOf("secret", "bulk"))
+    fun d1Query(spec: WorkerDeploySpec, binding: String, query: String) = command(spec,
+        listOf("d1", "execute", binding, "--remote", "--json", "--command", query))
+    fun d1Migrations(spec: WorkerDeploySpec, binding: String) = command(spec,
+        listOf("d1", "migrations", "apply", binding, "--remote"))
     fun deployments(spec: WorkerDeploySpec) = command(spec, listOf("deployments", "list", "--json"))
     fun version(spec: WorkerDeploySpec, version: String) = command(spec, listOf("versions", "view", version, "--json"))
     fun apply(spec: WorkerDeploySpec, entry: String, run: String) = command(spec,

@@ -86,6 +86,7 @@ internal fun Project.databaseMigration(name: String, database: DatabaseMigration
             MigrationSpec(id, Environment(environment), database)) })
         when (database) {
             is DatabaseMigrations.Postgres -> migrations.from(fileTree(database.directory) { include("*.sql") })
+            is DatabaseMigrations.D1 -> error("Declare D1 migrations inside a worker fleet")
         }
         site?.let { extensions.add(SourceSite::class.java, "declarationSite", it) }
     }

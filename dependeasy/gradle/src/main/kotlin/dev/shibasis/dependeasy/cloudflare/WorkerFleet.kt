@@ -26,6 +26,13 @@ class WorkerFleet internal constructor(
     private val workers = linkedMapOf<String, Declaration>()
     private var observation: WorkerObservability? = null
     private val secretSources = linkedMapOf<Environment, List<String>>()
+    private data class Migrations(val binding: String, val environments: List<Environment>, val site: SourceSite?)
+    private val migrations = linkedMapOf<WorkerRef, Migrations>()
+    fun migrations(worker: WorkerRef, binding: String, environments: List<Environment>) {
+        require(environments.isNotEmpty() && environments.distinct().size == environments.size)
+        require(binding.matches(Regex("[A-Za-z_][A-Za-z0-9_]*")))
+        require(migrations.putIfAbsent(worker, Migrations(binding, environments.toList(), project.declarationSite())) == null)
+    }
     fun secrets(environment: Environment, vararg configFiles: String) {
         require(environment in environments) { "Secret environment is absent from the delivery declaration" }
         require(secretSources.putIfAbsent(environment, configFiles.toList()) == null) { "Secret sources are already declared" }
@@ -45,6 +52,10 @@ class WorkerFleet internal constructor(
         val fleetSpec = KernelSpec.WorkerFleet(delivery, workers.values.map { it.worker },
             FileSet(listOf(project.rootProject.relativePath(project.rootProject.layout.buildDirectory.file("dependeasy/contracts/cloudflare/fleet.json").get().asFile))), observation)
         val records = WorkerFleetKernel.plan(fleetSpec).workers
+        migrations.forEach { (ref, migration) ->
+            require(workers[ref.name]?.worker?.ref == ref) { "D1 migrations need a declared worker" }
+            require(migration.environments.all { environment -> workers.getValue(ref.name).worker.deployments.any { it.environment == environment } })
+        }
         val requestedEnvironment = project.option(environmentOption.copy(resolutionOrder = environmentOption.resolutionOrder - OptionSource.Default))
         val selectedName = requestedEnvironment.orElse(delivery.defaultEnvironment.name).get()
         val selectedEnvironment = environments.singleOrNull { it.name == selectedName } ?: delivery.defaultEnvironment
@@ -107,6 +118,24 @@ class WorkerFleet internal constructor(
                 project.node(secrets).consumes(generatedContract)
             }
             val deployNode = project.node(command)
+            migrations[declaration.worker.ref]?.let { database ->
+                val environment = database.environments.firstOrNull { it.name == selectedName } ?: database.environments.first()
+                val migration = component.migrations(worker.node.copy(name = "${name}Migrations"))
+                migration.configure {
+                    receiptFile.unset()
+                    this.declaration.set(BuildModelReader.json.encodeToString(declaration.worker))
+                    binding.set(database.binding)
+                    environmentName.set(environment.name)
+                    environments.set(database.environments.map { it.name })
+                    configuration.set(paths.getValue(environment.name))
+                    sourceFiles.from(generate.map { it.finalConfigurations }, project.fileTree(directory.resolve("migrations")) { include("*.sql") })
+                    dependsOn(generate)
+                    database.site?.let { extensions.add(SourceSite::class.java, "declarationSite", it) }
+                }
+                val node = project.node(migration).consumes(generatedContract)
+                if (selectedName in database.environments.map { it.name }) deployNode.after(node)
+                workspace.alias(directory, "migrations", node)
+            }
             val outputs = prerequisites + declaration.prerequisites
             outputs.forEach { workspace.consume(deployNode, it) }
             nodes[name] = deployNode

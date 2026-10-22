@@ -640,6 +640,7 @@ class WebContractsTest {
     @Test fun `local model export does not enable an undeclared worker environment`() {
         write("base.json", "{}")
         write("targets/worker/index.ts", "export default {}")
+        write("targets/worker/migrations/0001_init.sql", "CREATE TABLE item (id INTEGER);")
         write("package.json", """{"name":"fixture"}""")
         write("targets/worker/wrangler.json", """{"name":"fixture-worker","main":"index.ts"}""")
         write("targets/worker/wrangler.dev.json", """{"name":"fixture-worker-dev","main":"index.ts"}""")
@@ -650,6 +651,7 @@ class WebContractsTest {
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
             workers(delivery = Delivery(listOf(Environment("prod"), Environment("dev")), Environment("prod"), Delivery.Cloudflare("fixture-account", emptyList(), true))) {
+                migrations(WorkerRef("worker", "targets/worker"), "DATA", listOf(Environment("prod")))
                 secrets(Environment("dev"), "config/worker-dev.env")
                 secrets(Environment("prod"), "config/worker-prod.json")
                 worker(WorkerRef("worker", "targets/worker"), listOf(
@@ -667,6 +669,17 @@ class WebContractsTest {
         run("syncKotlinPnpmMetadata", "exportBuildModel", "-Pdependeasy.environment=local")
         val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
         assertTrue(model.nodes.any { it.id.name == "deployWorker" })
+        val migration = model.nodes.single { it.id.name == "workerMigrations" }
+        assertEquals("dev.shibasis.dependeasy.model.D1MigrationKernel", migration.kernel?.className)
+        val database = assertIs<DatabaseMigrations.D1>(assertIs<KernelSpec.DatabaseMigration>(migration.kernel?.spec).migration.database)
+        assertEquals("DATA", database.binding)
+        assertEquals("targets/worker/migrations", database.directory)
+        assertEquals(listOf(Environment("prod")), migration.environments)
+        assertEquals(listOf("CLOUDFLARE_API_TOKEN"), migration.requiredSecrets)
+        assertEquals(NodeKind.Deploy, migration.kind)
+        assertEquals("workers/build.gradle.kts", migration.declaredAt?.file)
+        assertTrue(database.deployment.execution.fileInputs.any { it.kind == FileInputKind.Tree && it.identity == "targets/worker/migrations" && it.includes == listOf("*.sql") })
+        assertTrue(model.edges.none { it is Edge.After && it.from.name == "deployWorker" && it.to == migration.id })
         val secrets = model.nodes.single { it.id.name == "workerSecrets" }
         assertEquals("dev.shibasis.dependeasy.model.WorkerSecretsKernel", secrets.kernel?.className)
         val secretsSpec = assertIs<KernelSpec.WorkerSecrets>(secrets.kernel?.spec).secrets
@@ -695,6 +708,10 @@ class WebContractsTest {
         val rejected = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
             .withArguments(":workers:deployWorker", "-Pdependeasy.environment=local", "--configuration-cache", "--stacktrace").buildAndFail()
         assertContains(rejected.output, "Worker deployment has no environment 'local'")
+        run("exportBuildModel", "-Pdependeasy.environment=prod")
+        val production = BuildModelReader.read(directory)
+        assertTrue(production.edges.any { it is Edge.After && it.from.name == "deployWorker" && it.to.name == "workerMigrations" })
+        assertContains(run("exportBuildModel", "-Pdependeasy.environment=prod").output, "Reusing configuration cache")
     }
 
 }

@@ -67,10 +67,18 @@ object MigrationKernel {
 
     fun observe(plan: MigrationPlan, run: String, record: (DeployReceipt) -> Unit) {
         val now = System.currentTimeMillis()
-        record(DeployReceipt(plan.spec.node, plan.spec.environment, ServiceRef(plan.spec.node.name), run, "migrations-plan",
+        val service = when (val database = plan.spec.database) {
+            is DatabaseMigrations.Postgres -> ServiceRef(plan.spec.node.name)
+            is DatabaseMigrations.D1 -> database.deployment.service
+        }
+        record(DeployReceipt(plan.spec.node, plan.spec.environment, service, run, "migrations-plan",
             plan.gitSha, plan.runner, BuildModelReader.digest(BuildModelReader.json.encodeToString(plan)),
             BuildModelReader.digest(BuildModelReader.json.encodeToString(plan.files)),
-            plan.applied.lastOrNull()?.let { "${it.version}:${it.checksum}" }, null, ReceiptStatus.Succeeded, "ledger-observed", now, now))
+            head(plan), null, ReceiptStatus.Succeeded, "ledger-observed", now, now))
+    }
+
+    internal fun head(plan: MigrationPlan): String? = plan.applied.lastOrNull()?.let {
+        if (plan.spec.database is DatabaseMigrations.D1) it.name else "${it.version}:${it.checksum}"
     }
 
     fun planFile(root: File, node: NodeId, environment: Environment) = root.resolve(
@@ -90,9 +98,8 @@ object MigrationKernel {
         } finally { temporary.delete() }
     }
 
-    private fun files(spec: MigrationSpec, root: File): List<MigrationFile> {
-        val database = spec.database as DatabaseMigrations.Postgres
-        val directory = root.resolve(database.directory).canonicalFile
+    internal fun files(spec: MigrationSpec, root: File): List<MigrationFile> {
+        val directory = root.resolve(spec.database.directory).canonicalFile
         require(directory.toPath().startsWith(root.canonicalFile.toPath()) && directory.isDirectory)
         return directory.listFiles().orEmpty().filter { it.name.matches(Regex("[0-9]{4}_[a-z0-9_]+\\.sql")) }.sortedBy { it.name }.map {
             require(it.canonicalFile.toPath().startsWith(directory.toPath()) && it.isFile)

@@ -231,14 +231,30 @@ class GradlePlanningTest {
         val secretCanary = "fixture-private-secret-canary"
         directory.resolve("config").mkdirs()
         directory.resolve("config/worker.json").writeText("""{"CLIENT_SECRET":"$secretCanary","unrelated":{"nested":true}}""")
-        directory.resolve("wrangler.json").writeText("""{"name":"fixture-dev","main":"entry.ts","compatibility_date":"2026-10-01"}""")
+        directory.resolve("wrangler.json").writeText("""{"name":"fixture-dev","main":"entry.ts","compatibility_date":"2026-10-01","d1_databases":[{"binding":"DB","database_id":"fixture-db","migrations_dir":"migrations"}]}""")
+        directory.resolve("migrations").mkdirs()
+        directory.resolve("migrations/0001_fixture.sql").delete()
+        directory.resolve("migrations/0001_init.sql").writeText("CREATE TABLE item (id INTEGER);")
         directory.resolve("tool").apply {
             writeText("""
                 #!/usr/bin/env python3
-                import json,sys,pathlib
+                import json,sys,pathlib,sqlite3
                 args=sys.argv[1:]
                 state=pathlib.Path('state.json'); value=json.loads(state.read_text())
-                if args[2]=='secret':
+                if args[2]=='d1':
+                    db=sqlite3.connect('fixture.db'); db.row_factory=sqlite3.Row
+                    if args[3]=='execute':
+                        rows=[dict(row) for row in db.execute(args[args.index('--command')+1])]
+                        print(json.dumps([{'success':True,'results':rows}]))
+                    else:
+                        assert args[3:5]==['migrations','apply']
+                        db.executescript("CREATE TABLE IF NOT EXISTS d1_migrations (id INTEGER PRIMARY KEY, name TEXT UNIQUE);")
+                        for file in sorted(pathlib.Path('migrations').glob('*.sql')):
+                            if not db.execute('SELECT 1 FROM d1_migrations WHERE name=?',[file.name]).fetchall():
+                                db.executescript(file.read_text())
+                                db.execute('INSERT INTO d1_migrations(name) VALUES (?)',[file.name]);db.commit()
+                    db.close()
+                elif args[2]=='secret':
                     if args[3]=='list': print(json.dumps([{'name':name} for name in value['secrets']]))
                     else:
                         assert args[3]=='bulk'
@@ -295,8 +311,19 @@ class GradlePlanningTest {
                 environmentName.set("dev")
                 sourcePaths.set(listOf("config/worker.json"))
             }
+            val migrations = tasks.register<dev.shibasis.dependeasy.cloudflare.D1Migration>("fixtureMigrations") {
+                workingDirectory.set(layout.projectDirectory)
+                executable.set(layout.projectDirectory.file("tool").asFile.absolutePath)
+                toolVersion.set("fixture")
+                configuration.set("wrangler.json")
+                declaration.set(BuildModelReader.json.encodeToString(FleetWorker.serializer(), fleetWorker))
+                environmentName.set("dev")
+                environments.set(listOf("dev"))
+                binding.set("DB")
+                sourceFiles.from(fileTree("migrations") { include("*.sql") })
+            }
             extensions.getByType<dev.shibasis.dependeasy.plugins.DependeasyExtension>().workspace {
-                val release by verify { include(node(deploy), node(secrets)) }
+                val release by verify { include(node(deploy), node(secrets), node(migrations)) }
             }
         """.trimIndent())
         fun git(vararg args: String) { assertEquals(0, ProcessBuilder("git", *args).directory(directory).redirectErrorStream(true).start().let { it.inputStream.readBytes(); it.waitFor() }) }
@@ -385,6 +412,24 @@ class GradlePlanningTest {
         assertEquals(secrets.id.name, secretDetails.getValue("secretsPlan").jsonObject.getValue("spec").jsonObject.getValue("deployment").jsonObject.getValue("node").jsonObject.getValue("name").jsonPrimitive.content)
         assertTrue(secretDetails.getValue("deploymentReceipts").jsonArray.any { it.jsonObject["action"]?.jsonPrimitive?.content == "secrets-apply" })
         assertFalse(secretCanary in secretDetails.toString())
+        val migration = model.nodes.single { it.id.name == "fixtureMigrations" }
+        val migrationRequest = request.copy(node = migration.id, declaredAt = migration.declaredAt)
+        val (migrationDigest, migrationOption) = contract(migrationRequest)
+        val unreviewed = GradleRunner.create().withProjectDir(directory)
+            .withArguments("fixtureMigrations", environmentArgument, "--configuration-cache", "--stacktrace").buildAndFail()
+        assertContains(unreviewed.output, "D1 migrations require a reviewed build plan")
+        bridge(GradleProtocol.PlanTask, migrationOption)
+        val migrationPlan = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$migrationDigest.json"))
+        assertEquals(listOf("0001"), migrationPlan.migrations.single().pending)
+        assertTrue(migrationPlan.migrations.single().applied.isEmpty())
+        assertIs<DatabaseMigrations.D1>(migrationPlan.migrations.single().spec.database)
+        val (_, migrationExecution) = contract(migrationRequest.copy(expectedContextDigest = migrationPlan.contextDigest, migrations = migrationPlan.migrations))
+        bridge(GradleProtocol.RunTask, migrationExecution)
+        val migrationReceipt = WorkerDeployKernel.receipts(directory, migration.id).single { it.action == "migrations-apply" }
+        assertEquals(ReceiptStatus.Succeeded, migrationReceipt.result)
+        assertEquals("0001_init.sql", migrationReceipt.remoteVersion)
+        assertEquals("ledger-verified", migrationReceipt.phase)
+        assertTrue(BuildModelReader.nodeDetails(directory, migration.id.toString()).containsKey("migrationPlan"))
     }
 
 }

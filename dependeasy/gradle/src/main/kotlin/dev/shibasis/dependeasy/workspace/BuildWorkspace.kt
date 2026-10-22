@@ -371,9 +371,9 @@ internal class BuildWorkspace(private val project: Project) {
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
                         tools = producer.declaredTools(), options = producer.declaredOptions(),
                         artifactFamily = taskArtifactFamilies[id] ?: kind?.family,
-                        worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: (migration?.database as? DatabaseMigrations.Postgres)?.connections?.keys?.toList() ?: listOfNotNull(server?.environment ?: secrets?.environment),
+                        worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: migration?.database?.availableEnvironments ?: listOfNotNull(server?.environment ?: secrets?.environment),
                         bindings = worker?.bindings?.get()?.map(::ServiceRef) ?: listOfNotNull(server?.service ?: secrets?.service),
-                          requiredSecrets = if (typed?.kernelSpec is KernelSpec.WranglerDeploy || secrets != null) listOf("CLOUDFLARE_API_TOKEN") else emptyList())))
+                          requiredSecrets = if (typed?.kernelSpec is KernelSpec.WranglerDeploy || secrets != null || migration?.database is DatabaseMigrations.D1) listOf("CLOUDFLARE_API_TOKEN") else emptyList())))
                 }
             })
         }
