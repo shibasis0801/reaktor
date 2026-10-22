@@ -69,9 +69,10 @@ object CurrentObservability {
                 listOf("spec.clusterIP", "spec.clusterIPs", "spec.ipFamilies", "spec.ipFamilyPolicy") else emptyList()
             val restartField = if (kind == "Deployment")
                 listOf("spec.template.metadata.annotations[\"kubectl.kubernetes.io/restartedAt\"]") else emptyList()
+            val claimStatus = if (kind == "StatefulSet") listOf("spec.volumeClaimTemplates[*].status") else emptyList()
             ManifestResource(type, "${kind.lowercase()}-$name", ManifestArgs(document),
                 CustomResourceOptions.builder().provider(kubernetes).importId("$namespace/$name").protect(true)
-                    .ignoreChanges(clusterFields + restartField).build())
+                    .ignoreChanges(clusterFields + restartField + claimStatus).build())
         }
         context.export("folderUid", folder.uid())
         context.export("dashboardUids", Output.of(ObservabilitySources.dashboards(files).keys.sorted()))
