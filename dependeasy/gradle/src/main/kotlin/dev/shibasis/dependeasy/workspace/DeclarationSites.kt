@@ -149,7 +149,7 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.XcodeHost -> copy(files = files.map(::path), signingInclude = path(signingInclude))
         is KernelSpec.ReleasePlan -> copy(output = path(output), xcodeDirectory = path(xcodeDirectory),
             androidArtifacts = androidArtifacts.mapValues { path(it.value) }, apkDirectories = apkDirectories.mapValues { path(it.value) },
-            apkMetadata = apkMetadata.map(::path))
+            apkMetadata = apkMetadata.map(::path), androidFirebaseConfiguration = androidFirebaseConfiguration?.let(::path))
         is KernelSpec.DarwinArchive -> copy(ipa = path(ipa), archive = path(archive), firebaseConfig = path(firebaseConfig),
             uploader = path(uploader), scratch = path(scratch), receipt = path(receipt), qualification = qualification?.let(::path),
             providerResult = providerResult?.let(::path), packagedFirebaseConfig = packagedFirebaseConfig?.let(::path))

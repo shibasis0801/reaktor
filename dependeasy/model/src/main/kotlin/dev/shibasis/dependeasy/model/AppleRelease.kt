@@ -66,6 +66,9 @@ import kotlinx.serialization.Serializable
     val firebaseProjectId: String? = null,
     val firebaseProjectNumber: Long? = null,
     val firebaseAndroidAppId: String? = null,
+    val waitForTestflightProcessing: Boolean = false,
+    val firebaseGroupSetupStrict: Boolean = false,
+    val playProductionRollout: String? = null,
 ) {
     init {
         require(listOf(appleId, appStoreTeamId, firebaseGroup).all(String::isNotBlank))
