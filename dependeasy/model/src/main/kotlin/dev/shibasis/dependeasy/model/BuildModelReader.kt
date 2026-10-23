@@ -65,9 +65,20 @@ object BuildModelReader {
 
 
     fun affected(root: File, since: String, view: String = "nodes", offset: Int = 0, limit: Int = 10): JsonObject {
-        require(since.isNotBlank() && !since.startsWith('-') && since.none(Char::isISOControl)) { "Expected one Git commit reference" }
         require(offset >= 0 && limit in 1..10)
         require(view in setOf("nodes", "changes", "omissions", "revisions")) { "Expected nodes, changes, omissions or revisions" }
+        val inventory = affectedInputs(root, since)
+        val rows = inventory.getValue(view).jsonArray
+        return buildJsonObject {
+            (inventory - setOf("nodes", "changes", "omissions", "revisions")).forEach { (key, value) -> put(key, value) }
+            put("view", view); put("offset", offset); put("total", rows.size)
+            put(view, JsonArray(rows.drop(offset).take(limit)))
+            if (offset + limit < rows.size) put("nextOffset", offset + limit)
+        }
+    }
+
+    fun affectedInputs(root: File, since: String): JsonObject {
+        require(since.isNotBlank() && !since.startsWith('-') && since.none(Char::isISOControl)) { "Expected one Git commit reference" }
         val model = declaredModel(root)
         val directories = model.builds.associate { it.name to root.resolve(it.directory).canonicalFile }
         val omissions = model.omissions.map { json.encodeToJsonElement(it).jsonObject }.toMutableList()
@@ -147,12 +158,6 @@ object BuildModelReader {
         val changeRows = changes.keys.map { (build, path) -> buildJsonObject {
             put("build", build); put("path", path); put("matched", (build to path) in matched)
         } }
-        val rows = when (view) {
-            "nodes" -> reasons.toSortedMap(compareBy(NodeId::toString)).values.flatten()
-            "changes" -> changeRows
-            "omissions" -> omissions.distinct()
-            else -> revisions
-        }
         return buildJsonObject {
             put("truth", if (changedDeclarations(root, model).isEmpty()) "source" else "stale")
             put("selection", "conservative"); put("reuseAllowed", false)
@@ -162,9 +167,10 @@ object BuildModelReader {
             put("omissionCount", omissions.distinct().size)
             put("coverage", "partial")
             put("coverageNote", "Declared inputs and dependency edges only; unresolved inputs, tree filters and unmatched changes remain explicit. This selection does not authorize receipt reuse.")
-            put("view", view); put("offset", offset); put("total", rows.size)
-            put(view, JsonArray(rows.drop(offset).take(limit)))
-            if (offset + limit < rows.size) put("nextOffset", offset + limit)
+            put("nodes", JsonArray(reasons.toSortedMap(compareBy(NodeId::toString)).values.flatten()))
+            put("changes", JsonArray(changeRows))
+            put("omissions", JsonArray(omissions.distinct()))
+            put("revisions", JsonArray(revisions))
         }
     }
 
