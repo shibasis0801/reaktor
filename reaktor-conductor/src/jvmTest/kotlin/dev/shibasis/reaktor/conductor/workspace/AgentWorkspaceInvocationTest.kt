@@ -38,13 +38,28 @@ class AgentWorkspaceInvocationTest {
             assertEquals(2L, Files.list(absent).use { it.count() })
             for (command in listOf(null, listOf("fixture-bridge", "--workspace", root.toString()))) {
                 val directory = root.resolve(if (command == null) "standalone" else "hosted")
+                var owners = 0
                 AgentWorkspaceConnection.open(root.toFile(), directory, discover = { ProviderCapability(it) },
-                    harnessMcpCommand = command).use {
+                    graphOwner = {
+                        FileChannel.open(directory.resolve("owner.lock"), WRITE).use { channel ->
+                            assertFailsWith<java.nio.channels.OverlappingFileLockException> { channel.tryLock() }
+                        }
+                        owners++
+                        null
+                    }, harnessMcpCommand = command).use {
                     val endpoint = Files.readAllBytes(directory.resolve("connection.json"))
                     val leaseModified = Files.getLastModifiedTime(directory.resolve("owner.lock"))
-                    AgentWorkspaceConnection.open(root.toFile(), directory, allowStart = false, discover = { error("Must not probe a runtime") }).use { client ->
+                    AgentWorkspaceConnection.open(root.toFile(), directory, allowStart = false,
+                        graphOwner = { error("A read-only client must not construct an owner") },
+                        discover = { error("Must not probe a runtime") }).use { client ->
                         assertFalse(client.ownsService)
                     }
+                    AgentWorkspaceConnection.open(root.toFile(), directory,
+                        graphOwner = { error("A joining client must not construct an owner") },
+                        discover = { error("A joining client must not probe a runtime") }).use { client ->
+                        assertFalse(client.ownsService)
+                    }
+                    assertEquals(1, owners)
                     assertContentEquals(endpoint, Files.readAllBytes(directory.resolve("connection.json")))
                     assertEquals(leaseModified, Files.getLastModifiedTime(directory.resolve("owner.lock")))
                     val config = directory.resolve("harness-mcp.json")

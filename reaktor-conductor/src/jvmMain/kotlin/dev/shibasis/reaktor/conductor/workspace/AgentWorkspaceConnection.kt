@@ -228,7 +228,7 @@ class AgentWorkspaceConnection private constructor(
                  extraTools: (AgentWorkspace) -> List<dev.shibasis.reaktor.mcp.McpTool> = { emptyList() },
                  workflowCheck: (suspend (String, String, WorkflowStage) -> WorkflowCheckResult)? = null,
                  externalBusy: () -> Boolean = { false },
-                 graphOwner: dev.shibasis.reaktor.graph.core.Graph? = null,
+                 graphOwner: () -> dev.shibasis.reaktor.graph.core.Graph? = { null },
                  mcpProjection: Set<String>? = null,
                  bindOperations: (dev.shibasis.reaktor.mcp.ToolNode) -> AutoCloseable = { AutoCloseable {} },
                  // Injectable so a test states a capability instead of probing whichever CLIs the host has.
@@ -295,7 +295,7 @@ class AgentWorkspaceConnection private constructor(
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
                     harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead).also { workspace = it }
-                val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace)), graphOwner, mcpProjection).also { operations = it }
+                val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace)), graphOwner(), mcpProjection).also { operations = it }
                 operationBinding = bindOperations(registry.node)
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token, post = registry::post,
