@@ -100,7 +100,10 @@ class WebContractsTest {
         assertFalse("index.ts" in selected())
         assertFalse("src/commonMain/kotlin/Fixture.kt" in selected())
         assertContains(run("selectedSources").output, "Reusing configuration cache")
-        assertTrue(directory.resolve("src").deleteRecursively())
+        listOf("src/commonMain/typescript/index.ts", "src/commonMain/kotlin/Fixture.kt",
+            "src/commonMain/typescript", "src/commonMain/kotlin", "src/commonMain", "src").forEach {
+            assertTrue(directory.resolve(it).delete(), it)
+        }
         assertFalse(run("selectedSources").output.contains("Reusing configuration cache"))
         assertContains(selected(), "index.ts")
         assertContains(run("selectedSources").output, "Reusing configuration cache")
