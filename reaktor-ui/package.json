@@ -25,7 +25,6 @@
         }
     },
     "scripts": {
-        "build": "node ../dependeasy/javascript/cli/typecheck.ts --project ts/tsconfig.json",
         "dev": "node ../dependeasy/javascript/cli/typecheck.ts -p ts/tsconfig.json --watch",
         "compile": "../gradlew :reaktor-ui:buildUiTypeScriptCompile"
     },
