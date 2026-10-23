@@ -55,6 +55,7 @@ class DslEntryPointsTest {
             import dev.shibasis.dependeasy.components.library
             import dev.shibasis.dependeasy.common.commonKoin
             import dev.shibasis.dependeasy.handles.kotlinJsLibrary
+            import dev.shibasis.dependeasy.handles.node
             import kotlin.time.Duration.Companion.seconds
             import dev.shibasis.dependeasy.model.*
             import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -74,12 +75,12 @@ class DslEntryPointsTest {
                 val checkFixtureTypeScript by typescript(kotlin = listOf(kotlinJsLibrary(projects.library)), tests = PackageScript("test"))
                 val buildFixtureTypeScript by typescript(configuration = "js/tsconfig.json", output = "js/dist", kotlinConsumer = true)
                 val buildStandaloneTypeScript by typescript(directory = "ts", configuration = "tsconfig.json", output = "dist", kotlin = listOf(kotlinJsLibrary(projects.library)))
-                val unit by tests(Suite.Jvm, run = Run.timeout(90.seconds), environment = TestEnvironment(
+                val unit by tests(Suite.Jvm, run = Run.onLocal().timeout(90.seconds), environment = TestEnvironment(
                     classpathProperties = setOf("fixture.testClasspath"),
                     properties = dev.shibasis.dependeasy.configuration.ReaktorTests.Headless.properties,
                     inputs = listOf(TestInput("fixtureFlag", "REAKTOR_WP13_FIXTURE_FLAG", "absent")),
                 ))
-                val androidUnit by tests(Suite.AndroidUnit, environment = TestEnvironment(
+                val androidUnit by tests(Suite.AndroidUnit, run = Run.onWorker(), environment = TestEnvironment(
                     allowEmpty = true, discovery = TestDiscovery.Annotations,
                     state = BuildOption("fixture.state", OptionType.String, "test-state", resolutionOrder = listOf(OptionSource.Default)),
                     directories = listOf(
@@ -118,6 +119,8 @@ class DslEntryPointsTest {
             val probeFrameworks = extensions.getByType<KotlinMultiplatformExtension>().targets.withType(KotlinNativeTarget::class.java).flatMap { target -> target.binaries.withType(Framework::class.java).filter { it.baseName == "FixtureProbe" }.map { binary -> listOf(target.name, binary.compilation.name, binary.isStatic.toString(), binary.debuggable.toString(), binary.optimized.toString()) } }
             val jsCompilePrerequisites = extensions.getByType<KotlinMultiplatformExtension>().targets.getByName("js").compilations.getByName("main").compileTaskProvider.get().dependsOn
                 .filterIsInstance<org.gradle.api.tasks.TaskProvider<*>>().map { it.name }
+            node(tasks.named("jvmTest"))
+            node(tasks.named("jsNodeTest"))
             val jvmTest = tasks.named<org.gradle.api.tasks.testing.Test>("jvmTest").get()
             val nodeTest = tasks.named<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>("jsNodeTest").get()
             val manifest = tasks.named<dev.shibasis.dependeasy.web.NodeGenerator>("generateWorkerManifest").get()
@@ -213,6 +216,7 @@ class DslEntryPointsTest {
                 }
             }
             afterEvaluate {
+                node(tasks.named("testDebugUnitTest"))
                 val androidUnit = tasks.named<org.gradle.api.tasks.testing.Test>("testDebugUnitTest").get()
                 tasks.named("probe") {
                     inputs.property("androidDiscovery", listOf(androidUnit.isScanForTestClasses, androidUnit.includes.sorted(), androidUnit.failOnNoDiscoveredTests.get()))
@@ -311,7 +315,16 @@ class DslEntryPointsTest {
             assertEquals(suite != Suite.Jvm, spec.environment.allowEmpty)
             assertFalse(spec.environment.standardStreams)
             assertEquals(suite, spec.suite)
-            assertEquals(if (suite == Suite.Jvm) Run.timeout(kotlin.time.Duration.parse("90s")) else Run.Default, spec.run)
+            assertEquals(when (suite) {
+                Suite.Jvm -> Run.onLocal().timeout(kotlin.time.Duration.parse("90s"))
+                Suite.AndroidUnit -> Run.onWorker()
+                else -> Run.Default
+            }, spec.run)
+            val producer = model.nodes.single { it.id.project == ":library" && it.id.name == assertIs<Invocation.Gradle>(output.invocation).tasks.single().substringAfterLast(':') }
+            assertEquals(spec.run.host, producer.host)
+            assertEquals(spec.run.host, model.requiredHost(output.id))
+            val routing = BuildModelReader.json.decodeFromString<RemoteHostsContract>(directory.resolve("build/dependeasy/remote/hosts.json").readText())
+            assertEquals(spec.run.host, routing.taskHosts.getValue(":library:" + producer.id.name))
             if (suite == Suite.Jvm) {
                 assertEquals(setOf("fixture.testClasspath"), spec.environment.classpathProperties)
                 assertEquals("true", spec.environment.properties.single { it.name == "java.awt.headless" }.value)
@@ -367,6 +380,8 @@ class DslEntryPointsTest {
         assertContains(run("exportBuildModel").output, "Reusing configuration cache")
         assertEquals(TaskOutcome.SUCCESS, run(":library:probe").task(":library:probe")?.outcome)
         assertContains(run(":library:probe").output, "Reusing configuration cache")
+        val warmModel = BuildModelReader.read(directory)
+        assertEquals(model.nodes.associate { it.id to it.host }, warmModel.nodes.associate { it.id to it.host })
         val configuredLibrary = directory.resolve("library/build.gradle.kts").readText()
         write("library/build.gradle.kts", configuredLibrary.replace(", jvmNullChecks = false", "")
             .replace("reports = true", "reports = false")

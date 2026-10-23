@@ -42,6 +42,7 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
             val tasks = workspace.outputProducers.getValue(handle.nodeId).invoke().sortedBy { it.path }
             require(tasks.isNotEmpty()) { "Output ${handle.nodeId} has no producer" }
             require(tasks.all { it.project.path == this@publishOutput.path && it.project.rootDir == this@publishOutput.rootDir }) { "Publish outputs in their owning project: ${handle.nodeId}; found ${tasks.map { it.project.path }}" }
+            val kernel = tasks.singleOrNull()?.let(::kernelRef)
             BuildModelReader.encode(Node(handle.nodeId, NodeKind.Kernel, handle.nodeId.name,
                 when (handle.kind) {
                     OutputKind.VerificationResults -> Effect.Verify
@@ -52,7 +53,7 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
                     }
                     else -> Effect.Build
                 },
-                HostRequirement(handle.kind.platform), site, tasks.singleOrNull()?.let(::kernelRef),
+                (kernel?.spec as? KernelSpec.TestSuite)?.run?.host ?: HostRequirement(handle.kind.platform), site, kernel,
                 Invocation.Gradle(tasks.map { it.path }), outputs = listOf(FileSet(files.paths(this@publishOutput), handle.kind.name)),
                 tools = tasks.flatMap { it.declaredTools() }.distinct(), artifactFamily = handle.kind.family,
                 options = tasks.singleOrNull()?.declaredOptions().orEmpty()))
