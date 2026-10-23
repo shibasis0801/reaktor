@@ -117,6 +117,9 @@ internal class AppleHost(
                 symbolUploadCheckTask.set(symbolUploadCheck.get().path)
                 signingTask.set(signing.get().path)
                 this.distribution.set(BuildModelReader.json.encodeToString(spec.distribution))
+                spec.distribution?.artifacts?.get("androidFirebaseConfig")?.let {
+                    androidFirebaseConfiguration.set(rootLayout.projectDirectory.file(it))
+                }
                 output.set(rootLayout.buildDirectory.file("dependeasy/release/${project.rootProject.name}.json"))
             }
         }

@@ -100,7 +100,7 @@ sealed interface KernelSpec {
         val androidArtifacts: Map<String, String>, val androidTasks: Map<String, String>, val apkDirectories: Map<String, String>,
         val apkMetadata: List<String>, val webWorker: String, val workerFleet: NodeId?,
         val archiveCheckTask: String, val symbolUploadCheckTask: String, val signingTask: String,
-        val distribution: ReleaseDistribution? = null) : KernelSpec
+        val distribution: ReleaseDistribution? = null, val androidFirebaseConfiguration: String? = null) : KernelSpec
     @Serializable data class DarwinArchive(val bundleId: String, val ipa: String, val archive: String, val verification: Boolean,
         val versionName: String, val buildNumber: Int, val firebaseConfig: String, val uploader: String,
         val scratch: String, val receipt: String, val qualification: String? = null, val providerResult: String? = null,

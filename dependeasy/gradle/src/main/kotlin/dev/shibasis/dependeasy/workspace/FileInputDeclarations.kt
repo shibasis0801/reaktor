@@ -39,6 +39,9 @@ internal fun Task.declaredFileInputs(): List<FileSet> {
         is dev.shibasis.dependeasy.tasks.ArtifactSizeReport -> artifacts.declarations()
         is DatabaseMigration -> migrations.declarations()
         is PulumiInfrastructure -> sources.declarations()
+        is dev.shibasis.dependeasy.darwin.ReleasePlanTask -> androidFirebaseConfiguration.orNull?.let {
+            listOf(FileInput(FileInputKind.File, it.asFile.absolutePath))
+        }.orEmpty()
         is dev.shibasis.dependeasy.codegen.KotlinObjectTask -> workerFleet.declarations() +
             extensions.findByType(GeneratedObject.Spec::class.java)?.texts?.values.orEmpty()
                 .map { FileInput(FileInputKind.File, project.rootProject.file(it.path).absolutePath) }

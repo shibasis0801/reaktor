@@ -2,6 +2,8 @@ package dev.shibasis.dependeasy.model
 
 import dev.shibasis.dependeasy.model.tools.AppleGradle
 import dev.shibasis.dependeasy.model.tools.Xcodebuild
+import kotlinx.serialization.json.*
+import java.io.File
 
 object AppleReleaseKernel {
     fun plan(spec: KernelSpec.ReleasePlan, androidApks: Map<String, String>, worker: NodeId?): ReleasePlan {
@@ -40,6 +42,21 @@ object AppleReleaseKernel {
         commands["iosSigning"] = AppleGradle.verify(spec.signingTask, spec.host, spec.versionName, spec.buildNumber)
         return ReleasePlan(product = spec.product, versionName = spec.versionName, buildNumber = spec.buildNumber,
             bundleId = application.bundleId, extensionBundleId = spec.host.targets.singleOrNull { it.name != spec.host.applicationTarget }?.bundleId,
-            team = spec.host.team, artifacts = artifacts, commands = commands, distribution = spec.distribution)
+            team = spec.host.team, artifacts = artifacts, commands = commands, distribution = resolveDistribution(spec))
+    }
+
+    private fun resolveDistribution(spec: KernelSpec.ReleasePlan): ReleaseDistribution? {
+        val distribution = spec.distribution ?: return null
+        val path = spec.androidFirebaseConfiguration ?: return distribution
+        val config = BuildModelReader.json.parseToJsonElement(File(path).readText()).jsonObject
+        val project = config.getValue("project_info").jsonObject
+        val bundleId = spec.host.targets.single { it.name == spec.host.applicationTarget }.bundleId
+        val appId = distribution.firebaseAndroidAppId ?: config.getValue("client").jsonArray.firstOrNull {
+            it.jsonObject["client_info"]?.jsonObject?.get("android_client_info")?.jsonObject
+                ?.get("package_name")?.jsonPrimitive?.content == bundleId
+        }?.jsonObject?.get("client_info")?.jsonObject?.get("mobilesdk_app_id")?.jsonPrimitive?.content
+        require(!appId.isNullOrBlank()) { "Unable to resolve Android Firebase app id for $bundleId" }
+        return distribution.copy(firebaseProjectId = project.getValue("project_id").jsonPrimitive.content,
+            firebaseProjectNumber = project.getValue("project_number").jsonPrimitive.content.toLong(), firebaseAndroidAppId = appId)
     }
 }

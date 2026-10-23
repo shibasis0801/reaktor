@@ -14,7 +14,7 @@ abstract class ReleasePlanTask : DefaultTask(), KernelSpecOwner {
         product.get(), versionName.get(), buildNumber.get(), output.get().asFile.absolutePath,
         BuildModelReader.json.decodeFromString(host.get()), xcodeDirectory.get(), xcodeProject.get(), scheme.get(),
         androidArtifacts.get(), androidTasks.get(), apkDirectories.get(), apkMetadata.files.map { it.absolutePath }.sorted(),
-        webWorker.get(), workerFleetNode.orNull, archiveCheckTask.get(), symbolUploadCheckTask.get(), signingTask.get(), BuildModelReader.json.decodeFromString(distribution.get()))
+        webWorker.get(), workerFleetNode.orNull, archiveCheckTask.get(), symbolUploadCheckTask.get(), signingTask.get(), BuildModelReader.json.decodeFromString(distribution.get()), androidFirebaseConfiguration.orNull?.asFile?.absolutePath)
     @get:Input abstract val product: Property<String>
     @get:Input abstract val versionName: Property<String>
     @get:Input abstract val buildNumber: Property<Int>
@@ -35,6 +35,7 @@ abstract class ReleasePlanTask : DefaultTask(), KernelSpecOwner {
     @get:Input abstract val symbolUploadCheckTask: Property<String>
     @get:Input abstract val signingTask: Property<String>
     @get:Input abstract val distribution: Property<String>
+    @get:Optional @get:InputFile @get:PathSensitive(PathSensitivity.RELATIVE) abstract val androidFirebaseConfiguration: RegularFileProperty
     @get:OutputFile abstract val output: RegularFileProperty
     init { distribution.convention("null"); androidArtifacts.convention(emptyMap()); androidTasks.convention(emptyMap()); apkDirectories.convention(emptyMap()); rootDirectory.set(project.rootProject.layout.projectDirectory) }
     @TaskAction fun write() {
