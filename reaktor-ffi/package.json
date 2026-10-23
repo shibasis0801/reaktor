@@ -4,7 +4,6 @@
     "description": "JS FFI based on Hermes for Kotlin Multiplatform as well as React Native. Native apps can add some typescript, RN apps can add some KMM",
     "main": "./src/commonMain/typescript/index.ts",
     "scripts": {
-        "build": "vite build",
         "test": "node --test src/commonTest/typescript/*.mjs",
         "bundle": "../gradlew :reaktor-ffi:interopTypeScriptBundle",
         "typecheck": "../gradlew :reaktor-ffi:interopTypeScriptTypes"
