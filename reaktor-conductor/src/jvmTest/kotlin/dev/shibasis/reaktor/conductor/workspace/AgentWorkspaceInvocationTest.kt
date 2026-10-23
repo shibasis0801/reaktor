@@ -28,7 +28,7 @@ class AgentWorkspaceInvocationTest {
             }
             assertFalse(Files.exists(absent))
             Files.createDirectory(absent)
-            Files.writeString(absent.resolve("connection.json"), buildJsonObject {
+            Files.writeString(absent.resolve("owner.json"), buildJsonObject {
                 put("version", 1); put("workspaceRoot", root.toString()); put("port", 9); put("token", "n".repeat(32)); put("invocationVersion", 1)
             }.toString())
             Files.writeString(absent.resolve("owner.lock"), "")
@@ -47,7 +47,21 @@ class AgentWorkspaceInvocationTest {
                         owners++
                         null
                     }, harnessMcpCommand = command).use {
-                    val endpoint = Files.readAllBytes(directory.resolve("connection.json"))
+                    val endpoint = Files.readAllBytes(directory.resolve("owner.json"))
+                    val record = ConductorJson.parseToJsonElement(endpoint.decodeToString()).jsonObject
+                    assertEquals(2, record.getValue("version").jsonPrimitive.int)
+                    assertEquals(ProcessHandle.current().pid(), record.getValue("processId").jsonPrimitive.long)
+                    assertEquals("service", record.getValue("hostKind").jsonPrimitive.content)
+                    assertEquals(64, record.getValue("catalogDigest").jsonPrimitive.content.length)
+                    assertTrue(AgentWorkspaceConnection.ownerRecorded(root.toFile(), directory))
+                    assertFalse(Files.exists(directory.resolve("connection.json")))
+                    for ((key, value) in mapOf("version" to JsonPrimitive(1), "workspaceRoot" to JsonPrimitive("/wrong"),
+                        "port" to JsonPrimitive(0), "token" to JsonPrimitive("short"), "processId" to JsonPrimitive(0),
+                        "incarnation" to JsonPrimitive("invalid"), "catalogDigest" to JsonPrimitive("invalid"), "hostKind" to JsonPrimitive("unknown"))) {
+                        Files.writeString(directory.resolve("owner.json"), JsonObject(record + (key to value)).toString())
+                        assertFailsWith<IllegalArgumentException>(key) { AgentWorkspaceConnection.open(root.toFile(), directory, allowStart = false) }
+                    }
+                    Files.write(directory.resolve("owner.json"), endpoint)
                     val leaseModified = Files.getLastModifiedTime(directory.resolve("owner.lock"))
                     AgentWorkspaceConnection.open(root.toFile(), directory, allowStart = false,
                         graphOwner = { error("A read-only client must not construct an owner") },
@@ -60,7 +74,7 @@ class AgentWorkspaceInvocationTest {
                         assertFalse(client.ownsService)
                     }
                     assertEquals(1, owners)
-                    assertContentEquals(endpoint, Files.readAllBytes(directory.resolve("connection.json")))
+                    assertContentEquals(endpoint, Files.readAllBytes(directory.resolve("owner.json")))
                     assertEquals(leaseModified, Files.getLastModifiedTime(directory.resolve("owner.lock")))
                     val config = directory.resolve("harness-mcp.json")
                     if (command == null) assertFalse(Files.exists(config)) else {
@@ -103,8 +117,9 @@ class AgentWorkspaceInvocationTest {
             val mcpCalls = AtomicInteger()
             LoopbackMcpServer.start(0, { McpMessageHandler { mcpCalls.incrementAndGet(); error("MCP is unavailable") } }, token,
                 post = operations::post).use { server ->
-                Files.writeString(directory.resolve("connection.json"), buildJsonObject {
-                    put("version", 1); put("workspaceRoot", root.toString()); put("port", server.port()); put("token", token); put("invocationVersion", 1)
+                Files.writeString(directory.resolve("owner.json"), buildJsonObject {
+                    put("version", 2); put("workspaceRoot", root.toString()); put("port", server.port()); put("token", token)
+                    put("processId", ProcessHandle.current().pid()); put("incarnation", "11111111-1111-1111-1111-111111111111"); put("catalogDigest", "a".repeat(64)); put("hostKind", "service"); put("invocationVersion", 1)
                 }.toString())
                 FileChannel.open(directory.resolve("owner.lock"), CREATE, WRITE).use { channel ->
                     channel.lock().use {
@@ -166,8 +181,9 @@ class AgentWorkspaceInvocationTest {
             val token = "n".repeat(32)
             val mcpCalls = AtomicInteger()
             LoopbackMcpServer.start(0, { McpMessageHandler { mcpCalls.incrementAndGet(); operations.handle(it) } }, token).use { server ->
-                fun discovery(invocationVersion: Int? = null) = Files.writeString(directory.resolve("connection.json"), buildJsonObject {
-                    put("version", 1); put("workspaceRoot", root.toString()); put("port", server.port()); put("token", token)
+                fun discovery(invocationVersion: Int? = null) = Files.writeString(directory.resolve("owner.json"), buildJsonObject {
+                    put("version", 2); put("workspaceRoot", root.toString()); put("port", server.port()); put("token", token)
+                    put("processId", ProcessHandle.current().pid()); put("incarnation", "11111111-1111-1111-1111-111111111111"); put("catalogDigest", "a".repeat(64)); put("hostKind", "service")
                     invocationVersion?.let { put("invocationVersion", it) }
                 }.toString())
                 discovery()

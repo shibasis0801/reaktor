@@ -35,7 +35,8 @@ import java.util.Base64
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Serializable
-private data class AgentEndpoint(val version: Int = 1, val workspaceRoot: String, val port: Int, val token: String,
+private data class AgentEndpoint(val version: Int, val workspaceRoot: String, val port: Int, val token: String,
+    val processId: Long, val incarnation: String, val catalogDigest: String, val hostKind: String,
     val invocationVersion: Int? = null)
 
 /** Both embedded and external hosts attach to the same authenticated operation owner. */
@@ -176,10 +177,7 @@ class AgentWorkspaceConnection private constructor(
     private fun refreshEndpoint() {
         check(!closed.get()) { "Connection is closed" }
         if (!ownsService && Files.exists(discoveryFile)) {
-            require(Files.size(discoveryFile) <= 4096) { "Invalid workspace discovery file" }
-            val current = ConductorJson.decodeFromString(AgentEndpoint.serializer(), Files.readString(discoveryFile))
-            require(current.version == 1 && current.workspaceRoot == endpoint.workspaceRoot && current.port in 1..65535 && current.token.length >= 32)
-            endpoint = current
+            endpoint = readEndpoint(discoveryFile, endpoint.workspaceRoot)
         }
     }
 
@@ -218,12 +216,27 @@ class AgentWorkspaceConnection private constructor(
         }
 
         fun remote(profile: AgentRemoteProfile): AgentWorkspaceConnection = AgentWorkspaceConnection(
-            AgentEndpoint(workspaceRoot = profile.workspaceRoot, port = 0, token = ""), Path.of("."), false, remote = AgentRemoteWorkspace(profile))
+            AgentEndpoint(version = 2, workspaceRoot = profile.workspaceRoot, port = 0, token = "",
+                processId = 0, incarnation = "", catalogDigest = "", hostKind = "service"), Path.of("."), false, remote = AgentRemoteWorkspace(profile))
         fun defaultDirectory(root: File): Path = Path.of(System.getProperty("user.home"), ".reaktor", "agents", digest(root.canonicalPath))
+
+        /** A published record is a reason to attach and validate, never to create a replacement owner. */
+        fun ownerRecorded(root: File, directory: Path = defaultDirectory(root)): Boolean =
+            Files.exists(directory.resolve("owner.json"), java.nio.file.LinkOption.NOFOLLOW_LINKS)
+
+        private fun readEndpoint(discovery: Path, workspaceRoot: String): AgentEndpoint {
+            require(Files.isRegularFile(discovery, java.nio.file.LinkOption.NOFOLLOW_LINKS) && Files.size(discovery) <= 4096) { "Invalid workspace owner record" }
+            return ConductorJson.decodeFromString(AgentEndpoint.serializer(), Files.readString(discovery)).also {
+                require(it.version == 2 && it.workspaceRoot == workspaceRoot && it.port in 1..65535 && it.token.length >= 32 &&
+                    it.processId > 0 && it.incarnation.matches(Regex("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")) &&
+                    it.catalogDigest.matches(Regex("[0-9a-f]{64}")) && it.hostKind in setOf("service", "hangar")) { "Invalid workspace owner record" }
+            }
+        }
 
         fun open(root: File, directory: Path = defaultDirectory(root), runtimes: Map<RuntimeKind, AgentRuntime>? = null,
                  allowStart: Boolean = true,
                  background: Boolean = false,
+                 hostKind: String = "service",
                  graphUrl: String? = null,
                  extraTools: (AgentWorkspace) -> List<dev.shibasis.reaktor.mcp.McpTool> = { emptyList() },
                  workflowCheck: (suspend (String, String, WorkflowStage) -> WorkflowCheckResult)? = null,
@@ -244,8 +257,9 @@ class AgentWorkspaceConnection private constructor(
                  kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
                  harnessMcpCommand: List<String>? = null): AgentWorkspaceConnection {
             require(root.isDirectory)
+            require(hostKind in setOf("service", "hangar")) { "Unknown workspace owner host" }
             require(harnessMcpCommand == null || harnessMcpCommand.isNotEmpty()) { "Harness MCP command needs an executable" }
-            val discovery = directory.resolve("connection.json")
+            val discovery = directory.resolve("owner.json")
             if (!allowStart) {
                 require(Files.isRegularFile(discovery) && Files.isRegularFile(directory.resolve("owner.lock"))) { "No workspace owner is running" }
                 FileChannel.open(directory.resolve("owner.lock"), WRITE).use { channel ->
@@ -254,10 +268,7 @@ class AgentWorkspaceConnection private constructor(
                         lock.release()
                         error("No workspace owner is running")
                     }
-                    require(Files.size(discovery) <= 4096) { "Invalid workspace discovery file" }
-                    val endpoint = ConductorJson.decodeFromString(AgentEndpoint.serializer(), Files.readString(discovery))
-                    require(endpoint.version == 1 && endpoint.workspaceRoot == root.canonicalPath && endpoint.port in 1..65535 && endpoint.token.length >= 32)
-                    return AgentWorkspaceConnection(endpoint, discovery, false)
+                    return AgentWorkspaceConnection(readEndpoint(discovery, root.canonicalPath), discovery, false)
                 }
             }
             privateDirectory(directory)
@@ -267,9 +278,7 @@ class AgentWorkspaceConnection private constructor(
                 channel.close()
                 // A different process may hold the lock while it publishes its first endpoint.
                 repeat(100) { if (!Files.exists(discovery)) Thread.sleep(20) }
-                val endpoint = ConductorJson.decodeFromString(AgentEndpoint.serializer(), Files.readString(discovery))
-                require(endpoint.version == 1 && endpoint.workspaceRoot == root.canonicalPath && endpoint.port in 1..65535 && endpoint.token.length >= 32)
-                return AgentWorkspaceConnection(endpoint, discovery, false)
+                return AgentWorkspaceConnection(readEndpoint(discovery, root.canonicalPath), discovery, false)
             }
             var executor: SupervisedProcessExecutor? = null
             var workspace: AgentWorkspace? = null
@@ -301,7 +310,9 @@ class AgentWorkspaceConnection private constructor(
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token, post = registry::post,
                     read = registry::read, postWithHeaders = registry::peerPost).also { server = it }
                 registry.endpointUrl = "http://127.0.0.1:${hostedServer.port()}"
-                val endpoint = AgentEndpoint(workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token, invocationVersion = 1)
+                val endpoint = AgentEndpoint(version = 2, workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token, invocationVersion = 1,
+                    processId = ProcessHandle.current().pid(), incarnation = java.util.UUID.randomUUID().toString(),
+                    catalogDigest = digest(registry.node.definitions.sortedBy { it.name }.joinToString("\n")), hostKind = hostKind)
                 atomicWrite(discovery, ConductorJson.encodeToString(AgentEndpoint.serializer(), endpoint))
                 // Off unless the caller says otherwise. Opening a workspace must never publish it.
                 // Reuse the port and secret this workspace published before. A tunnel points at a
