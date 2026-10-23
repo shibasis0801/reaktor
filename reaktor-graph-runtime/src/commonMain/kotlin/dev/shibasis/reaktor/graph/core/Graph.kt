@@ -252,13 +252,13 @@ open class Graph(
         ownedGraphs.values().forEach { it.close() }
         ownedGraphs.clear()
         importedGraphs.clear()
+        parentGraph?.ownedGraphs?.remove(id)
         dependencyCapability.close()
         concurrencyCapability.close()
         lifecycleCapability.close()
     }
 
     override fun toString(): String {
-        parentGraph?.ownedGraphs?.remove(id)
         return "[Graph] label='$label' id='$id' nodes=${nodes.size} stackDepth=${backStack.entries.value.size}, sentinel=$sentinel"
     }
 }
