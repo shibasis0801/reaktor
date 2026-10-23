@@ -153,12 +153,7 @@ class JvmProjectDiscovery(
         val workspaces = PackageWorkspaces.paths(root) { file ->
             declarationsText.getOrPut(file.canonicalFile) { file.readText() }
         }
-        val declarations = reaktor.targetDeclarations()
-        val gradleModules = readableBuildModel(root)?.let { model ->
-            val main = model.builds.single { it.directory == "." }.name
-            model.nodes.filter { it.id.build == main && it.id.project != ":" }.map { it.id.project.trim(':') }.distinct()
-        }.orEmpty()
-        val targetNames = targetNames(root, workspaces, declarations, gradleModules)
+        val targetNames = targetNames(root, workspaces)
         val workspace = ToolingWorkspace(
             id = WorkspaceId("workspace-${sha256(root.canonicalFile.absolutePath).take(24)}"),
             name = name,
@@ -167,16 +162,11 @@ class JvmProjectDiscovery(
             attributes = mapOf("manifest" to "package.json"),
         )
         val targets = targetNames.map { targetName ->
-            val declaration = declarations[targetName]
-                ?: declarations.values.firstOrNull { it.workspace?.substringAfterLast('/') == targetName }
-            val path = declaration?.workspace ?: "targets/$targetName"
             ToolingTarget(
                 id = "target/$targetName",
                 name = targetName,
-                kind = inferTargetKind(declaration?.runtime),
-                path = path,
-                runtime = declaration?.runtime,
-                attributes = declaration?.declaredName?.let { mapOf("declaration" to it) }.orEmpty(),
+                kind = TargetKind.Unknown,
+                path = "targets/$targetName",
             )
         }
         val resources = buildResources(reaktor)
@@ -203,31 +193,6 @@ class JvmProjectDiscovery(
                     targetId = target.id,
                     provenancePath = "${target.path}/package.json#scripts.$script",
                 )
-            }
-        }
-        declarations.values.sortedBy { it.declaredName }.forEach { declaration ->
-            val target = targets.firstOrNull {
-                it.name == declaration.declaredName || it.path == declaration.workspace
-            }
-            declaration.actions().filterNot { (_, reference) -> reference in scripts && reference !in authoredScripts }.forEach { (action, reference) ->
-                when {
-                    reference in scripts -> taskBuilder.npmTask(
-                        id = "target/${target?.name ?: declaration.declaredName}/$action",
-                        label = "${target?.name ?: declaration.declaredName}: $action",
-                        script = reference,
-                        body = scripts.getValue(reference),
-                        workingDirectory = root,
-                        targetId = target?.id,
-                        provenancePath = "package.json#reaktor.targets.${declaration.declaredName}.$action",
-                        explicitKind = when (action) {
-                            "dev" -> TaskKind.Develop
-                            "build" -> TaskKind.Build
-                            "deploy" -> TaskKind.Deploy
-                            "test" -> TaskKind.Test
-                            else -> error("Unknown declared target action: $action")
-                        },
-                    )
-                }
             }
         }
         runCatching { BuildDeclarations.read(root) }.getOrDefault(emptyList()).also {
@@ -272,23 +237,15 @@ class JvmProjectDiscovery(
         private fun targetNames(
             root: File,
             workspaces: List<String>,
-            declarations: Map<String, TargetDeclaration>,
-            gradleModules: List<String>,
         ): List<String> {
             val workspaceTargets = workspaces
                 .filter { it.startsWith("targets/") && !it.contains('*') }
                 .map { it.substringAfterLast('/') }
-            val declaredTargets = declarations.values.map {
-                it.workspace?.substringAfterLast('/') ?: it.declaredName
-            }
-            val gradleTargets = gradleModules.map { it.substringAfterLast(':') }.filter {
-                File(root, "targets/$it").isDirectory
-            }
             val filesystemTargets = File(root, "targets").listFiles()
                 ?.filter(File::isDirectory)
                 ?.map(File::getName)
                 .orEmpty()
-            return (workspaceTargets + declaredTargets + gradleTargets + filesystemTargets)
+            return (workspaceTargets + filesystemTargets)
                 .map { name ->
                     val directory = File(root, "targets/$name")
                     filesystemTargets.firstOrNull { physical ->
@@ -325,31 +282,7 @@ class JvmProjectDiscovery(
                 .orEmpty()
             return (stores + cloud).sortedBy { it.id }
         }
-
-        private fun inferTargetKind(runtime: String?): TargetKind = when (runtime?.lowercase()) {
-            "android", "ios", "js-web", "web" -> TargetKind.Application
-            "worker" -> TargetKind.Worker
-            "server", "k3s" -> TargetKind.Service
-            else -> TargetKind.Unknown
-        }
     }
-}
-
-private data class TargetDeclaration(
-    val declaredName: String,
-    val runtime: String?,
-    val workspace: String?,
-    val dev: String?,
-    val build: String?,
-    val deploy: String?,
-    val test: String?,
-) {
-    fun actions(): List<Pair<String, String>> = listOfNotNull(
-        dev?.let { "dev" to it },
-        build?.let { "build" to it },
-        deploy?.let { "deploy" to it },
-        test?.let { "test" to it },
-    )
 }
 
 private class TaskCatalogBuilder(
@@ -407,7 +340,6 @@ private class TaskCatalogBuilder(
         workingDirectory: File,
         targetId: String? = null,
         provenancePath: String,
-        explicitKind: TaskKind? = null,
     ) {
         val taskId = TaskId(id)
         if (bindings.containsKey(taskId)) return
@@ -442,7 +374,7 @@ private class TaskCatalogBuilder(
         tasks += ToolingTask(
             id = taskId,
             label = label,
-            kind = explicitKind ?: TaskKind.Custom,
+            kind = TaskKind.Custom,
             provider = "npm",
             targetId = targetId,
             safety = safety,
@@ -757,20 +689,6 @@ private fun JsonObject.string(name: String): String? = this[name]?.jsonPrimitive
 private fun JsonObject.stringMap(name: String): Map<String, String> =
     (this[name] as? JsonObject)?.mapNotNull { (key, value) ->
         value.jsonPrimitive.contentOrNull?.let { key to it }
-    }?.toMap().orEmpty()
-
-private fun JsonObject.targetDeclarations(): Map<String, TargetDeclaration> =
-    (this["targets"] as? JsonObject)?.mapNotNull { (name, value) ->
-        val target = value as? JsonObject ?: return@mapNotNull null
-        name to TargetDeclaration(
-            declaredName = name,
-            runtime = target.string("runtime"),
-            workspace = target.string("workspace"),
-            dev = target.string("dev"),
-            build = target.string("build"),
-            deploy = target.string("deploy"),
-            test = target.string("test"),
-        )
     }?.toMap().orEmpty()
 
 internal fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")

@@ -10,7 +10,7 @@ import kotlin.test.*
 class BuildDeclarationsTest {
     @Test fun declarationsRetainTheirIdentityFactsAndSealedWrapperBinding() = fixture { root ->
         root.resolve("package.json").writeText("""{
-            "name":"fixture","reaktor":{"targets":{"site":{"workspace":"targets/site","gradle":":","build":"buildAlias"}}},
+            "name":"fixture","reaktor":{"targets":{"site":{"workspace":"targets/site","gradle":":","build":"buildAlias"},"obsolete":{"workspace":"targets/not-real","runtime":"worker","test":"version"}}},
             "workspaces":["targets/site"],"scripts":{"buildAlias":"./gradlew :artifacts","version":"node --version"},
             "dependeasy":{"generatedScripts":["buildAlias"]}
         }""")
@@ -50,11 +50,13 @@ class BuildDeclarationsTest {
         assertFalse("npm/buildAlias" in ids)
         assertFalse("target/site/build" in ids)
         assertFalse("target/site/npm/build" in ids)
+        assertFalse("target/not-real/test" in ids)
+        assertFalse(workspace.catalog.targets.any { it.name == "not-real" })
         assertTrue("npm/version" in ids)
         assertTrue("target/site/npm/preview" in ids)
         assertEquals(2, workspace.catalog.tasks.count { "buildNode" in it.attributes })
         root.resolve("package.json").writeText(root.resolve("package.json").readText().replace(
-            "\"reaktor\":{\"targets\":{\"site\":{\"workspace\":\"targets/site\",\"gradle\":\":\",\"build\":\"buildAlias\"}}},", ""))
+            "\"reaktor\":{\"targets\":{\"site\":{\"workspace\":\"targets/site\",\"gradle\":\":\",\"build\":\"buildAlias\"},\"obsolete\":{\"workspace\":\"targets/not-real\",\"runtime\":\"worker\",\"test\":\"version\"}}},", ""))
         val modelOwned = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root.resolve("targets/site")))
         assertEquals(ids, modelOwned.catalog.tasks.map { it.id.value }.toSet())
 
