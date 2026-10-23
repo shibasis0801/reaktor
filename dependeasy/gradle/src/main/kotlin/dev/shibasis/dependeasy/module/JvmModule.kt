@@ -7,6 +7,9 @@ import dev.shibasis.dependeasy.handles.NodeHandle
 import dev.shibasis.dependeasy.handles.verification
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.handles.publishOutput
+import dev.shibasis.dependeasy.handles.OutputHandle
+import dev.shibasis.dependeasy.handles.outputFiles
+import org.gradle.kotlin.dsl.named
 import dev.shibasis.dependeasy.verification.dependencyBoundary
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.verification.entryTests
@@ -24,10 +27,15 @@ class JvmModule internal constructor(private val project: Project, bytecode: Int
     internal val generatedResources = mutableListOf<NodeHandle>()
     private var testsDeclared = false
 
-    fun tests(environment: TestEnvironment = TestEnvironment(), run: Run = Run.Default): NodeDeclaration {
+    fun tests(environment: TestEnvironment = TestEnvironment(), run: Run = Run.Default,
+        inputs: List<OutputHandle> = emptyList()): NodeDeclaration {
         require(!testsDeclared) { "A JVM suite is declared once" }
         testsDeclared = true
         project.componentTests(Suite.Jvm, environment, run)
+        val task = project.tasks.named<org.gradle.api.tasks.testing.Test>(org.gradle.api.plugins.JavaPlugin.TEST_TASK_NAME)
+        val node = project.node(task, OutputKind.VerificationResults)
+        inputs.forEach { output -> BuildWorkspace.get(project).consume(node, output) }
+        task.configure { inputs.forEach { output -> this.inputs.files(project.outputFiles(output)) } }
         val part = project.dependencies.project(mapOf("path" to project.path)) as org.gradle.api.artifacts.ProjectDependency
         val output = project.verification(part, Verification.Jvm)
         val declaration = WorkspaceScope(project, BuildWorkspace.get(project)).verify(run = run) { include(output) }

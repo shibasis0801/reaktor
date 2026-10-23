@@ -2,7 +2,7 @@ package dev.shibasis.dependeasy.model
 
 data class AppleFrameworkSpec(val module: ModuleHandle, val name: String)
 
-enum class Contract { AppleHost, AppleRelease, WorkerFleet }
+enum class Contract { AppleHost, AppleRelease, WorkerFleet, WorkerConfigurations }
 
 data class AppleAppSpec(
     val entryPoint: String,

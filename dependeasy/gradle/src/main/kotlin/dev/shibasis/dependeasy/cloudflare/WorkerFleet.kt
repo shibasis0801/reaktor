@@ -76,6 +76,7 @@ class WorkerFleet internal constructor(
             project.rootProject.node(metadata).consumes(generatedContract)
         }
         project.publishOutput(OutputKind.GeneratedContract, generate.flatMap { it.contract }, Contract.WorkerFleet, producer = generate)
+        project.publishOutput(OutputKind.GeneratedContract, generate.map { it.finalConfigurations }, Contract.WorkerConfigurations, producer = generate)
         val nodes = linkedMapOf<String, NodeHandle>()
         records.forEach { worker ->
             val name = worker.name
