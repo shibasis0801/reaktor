@@ -4,7 +4,6 @@
     "description": "Port graph data structure with React Flow visualization",
     "main": "./ts/index.ts",
     "scripts": {
-        "bindings": "pnpm exec karakum --config ts/karakum.config.json",
         "typecheck": "../gradlew :reaktor-graph-port:checkGraphPortTypeScriptTypes"
     },
     "dependencies": {
@@ -15,7 +14,6 @@
         "@types/react": "^19.2.2",
         "@types/react-dom": "^19.2.0",
         "@xyflow/react": "12.10.0",
-        "karakum": "1.0.0-alpha.112",
         "typescript": "6.0.3",
         "typescript-native": "npm:typescript@7.0.2"
     },

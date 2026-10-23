@@ -2511,9 +2511,6 @@ importers:
       '@xyflow/react':
         specifier: 12.10.0
         version: 12.10.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      karakum:
-        specifier: 1.0.0-alpha.112
-        version: 1.0.0-alpha.112(typescript@6.0.3)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
