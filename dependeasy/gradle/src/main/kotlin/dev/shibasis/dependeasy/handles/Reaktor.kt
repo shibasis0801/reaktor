@@ -44,6 +44,7 @@ object Reaktor {
     val Work = ModuleHandle(build, "reaktor-work")
     val ComposeFlow = ModuleHandle(build, "compose-flow")
     val Blueprint = ModuleHandle(build, "reaktor-blueprint")
+    val Board = ModuleHandle(build, "reaktor-board")
     val Cloudflare = ModuleHandle(build, "reaktor-cloudflare")
     val Mcp = ModuleHandle(build, "reaktor-mcp")
     val Web = ModuleHandle(build, "reaktor-web")
@@ -58,7 +59,7 @@ object Reaktor {
     val AppleExport = ModuleHandle(build, "reaktor-apple-export")
     val modules = listOf(Compiler, Core, Code, Flexbuffer, Ffi, Io, Db, Ui, Tactile, Surface, SurfaceCompose,
         Auth, AuthCore, Media, Notification, NotificationFcm, NotificationService, GraphPort, GraphRuntime, Graph,
-        Service, Crypto, Telemetry, Performance, Location, Sensors, Health, Work, ComposeFlow, Blueprint,
+        Service, Crypto, Telemetry, Performance, Location, Sensors, Health, Work, ComposeFlow, Blueprint, Board,
         Cloudflare, Mcp, Web, Google, Secrets, Security, Tooling, Devtools, Idb, Conductor, Cloud, AppleExport)
 
     internal fun check(project: Project) {

@@ -21,6 +21,8 @@ packages:
   - "build/js/packages/reaktor-reaktor-auth-test"
   - "build/js/packages/reaktor-reaktor-blueprint"
   - "build/js/packages/reaktor-reaktor-blueprint-test"
+  - "build/js/packages/reaktor-reaktor-board"
+  - "build/js/packages/reaktor-reaktor-board-test"
   - "build/js/packages/reaktor-reaktor-cloudflare"
   - "build/js/packages/reaktor-reaktor-cloudflare-test"
   - "build/js/packages/reaktor-reaktor-code"

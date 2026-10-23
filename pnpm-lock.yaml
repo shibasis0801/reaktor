@@ -444,6 +444,59 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  build/js/packages/reaktor-reaktor-board:
+    dependencies:
+      '@js-joda/core':
+        specifier: 3.2.0
+        version: 3.2.0
+      react:
+        specifier: ^19.2.0
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.3.0(react@19.3.0)
+      reaktor-core:
+        specifier: link:../../../../reaktor-core
+        version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
+    devDependencies:
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+  build/js/packages/reaktor-reaktor-board-test:
+    dependencies:
+      '@js-joda/core':
+        specifier: 3.2.0
+        version: 3.2.0
+      react:
+        specifier: ^19.2.0
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.3.0(react@19.3.0)
+      reaktor-core:
+        specifier: link:../../../../reaktor-core
+        version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
+    devDependencies:
+      kotlin-web-helpers:
+        specifier: 3.3.0
+        version: 3.3.0
+      mocha:
+        specifier: 11.7.6
+        version: 11.7.6
+      source-map-support:
+        specifier: 0.5.21
+        version: 0.5.21
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   build/js/packages/reaktor-reaktor-cloudflare:
     dependencies:
       '@js-joda/core':
