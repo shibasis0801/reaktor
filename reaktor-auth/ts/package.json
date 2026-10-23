@@ -2,13 +2,14 @@
     "name": "reaktor-auth",
     "version": "1.0.0",
     "description": "",
-    "main": "./export/reaktor-reaktor-auth.mjs",
-    "types": "./export/reaktor-reaktor-auth.d.mts",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "types": "./export/reaktor-reaktor-auth.d.mts",
-            "import": "./export/reaktor-reaktor-auth.mjs",
-            "default": "./export/reaktor-reaktor-auth.mjs"
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
         }
     },
     "scripts": {

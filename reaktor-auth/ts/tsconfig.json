@@ -2,7 +2,7 @@
   "extends": "../../dependeasy/javascript/tsconfig/base.json",
   "compilerOptions": {
     "target": "es2019",
-    "module": "commonjs",
+    "module": "esnext",
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
