@@ -1,5 +1,5 @@
 import dev.shibasis.dependeasy.components.library
-import dev.shibasis.dependeasy.handles.Reaktor
+import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.native.*
 import dev.shibasis.dependeasy.native.NativePlatform
 import dev.shibasis.dependeasy.model.Targets
@@ -25,6 +25,7 @@ library(namespace = "dev.shibasis.reaktor.security", targets = Targets.Android +
         tests("rsec_tests", listOf("src/commonTest/cpp/MlsEngineTest.cpp", "src/commonTest/cpp/RsecCapiTest.cpp"), googleTest)
     }
     val generateBindings by bindings()
+    val buildTypeScript by typescript(directory = "ts", configuration = "tsconfig.json", output = "dist", kotlin = listOf(kotlinJsLibrary(Reaktor.Security)))
     appleInterop(packageName = "dev.shibasis.reaktor.security.native", headers = listOf("src/commonMain/cpp/include/rsec/rsec.h"))
     dependencies {
         common { commonCoroutines(); api(Reaktor.Core) }

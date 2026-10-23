@@ -8,6 +8,7 @@ plugins { id("dev.shibasis.dependeasy.library") }
 
 library(namespace = "dev.shibasis.reaktor.cloudflare", targets = Targets.Android + Targets.Apple + Targets.Web) {
     val generateBindings by bindings()
+    val buildTypeScript by typescript(directory = "ts", configuration = "tsconfig.json", output = "dist", kotlin = listOf(kotlinJsLibrary(Reaktor.Cloudflare)))
     dependencies {
         common { api(Reaktor.AuthCore, Reaktor.Core, Reaktor.Service, Reaktor.GraphRuntime, Reaktor.Io, Reaktor.Secrets) }
         web {

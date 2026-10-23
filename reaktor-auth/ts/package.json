@@ -1,32 +1,42 @@
 {
-  "name": "reaktor-auth",
-  "version": "1.0.0",
-  "description": "",
-  "main": "./export/reaktor-reaktor-auth.mjs",
-  "types": "./export/reaktor-reaktor-auth.d.mts",
-  "exports": {
-    ".": {
-      "types": "./export/reaktor-reaktor-auth.d.mts",
-      "import": "./export/reaktor-reaktor-auth.mjs",
-      "default": "./export/reaktor-reaktor-auth.mjs"
+    "name": "reaktor-auth",
+    "version": "1.0.0",
+    "description": "",
+    "main": "./export/reaktor-reaktor-auth.mjs",
+    "types": "./export/reaktor-reaktor-auth.d.mts",
+    "exports": {
+        ".": {
+            "types": "./export/reaktor-reaktor-auth.d.mts",
+            "import": "./export/reaktor-reaktor-auth.mjs",
+            "default": "./export/reaktor-reaktor-auth.mjs"
+        }
+    },
+    "scripts": {
+        "compile": "../../gradlew :reaktor-auth:buildTypeScriptCompile"
+    },
+    "dependencies": {
+        "reaktor-reaktor-auth": "link:../build/dependeasy/kotlin/library"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.2",
+        "karakum": "1.0.0-alpha.112",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "typescript": "6.0.3",
+        "typescript-native": "npm:typescript@7.0.2"
+    },
+    "peerDependencies": {
+        "react": ">=18"
+    },
+    "packageManager": "pnpm@12.10.1",
+    "dependeasy": {
+        "generatedScripts": [
+            "compile"
+        ],
+        "generatedLinks": {
+            "dependencies": [
+                "reaktor-reaktor-auth"
+            ]
+        }
     }
-  },
-  "scripts": {
-    "build": "node ../../dependeasy/javascript/cli/typecheck.ts -b"
-  },
-  "dependencies": {
-    "reaktor-reaktor-auth": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/react": "^19.2.2",
-    "karakum": "1.0.0-alpha.112",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "typescript": "6.0.3",
-    "typescript-native": "npm:typescript@7.0.2"
-  },
-  "peerDependencies": {
-    "react": ">=18"
-  },
-  "packageManager": "pnpm@12.10.1"
 }

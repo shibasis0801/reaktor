@@ -4,12 +4,12 @@
     "description": "",
     "main": "index.ts",
     "scripts": {
-        "build": "node ../../dependeasy/javascript/cli/typecheck.ts -b",
-        "bindings": "../../gradlew :reaktor-db:karakumBindings"
+        "bindings": "../../gradlew :reaktor-db:karakumBindings",
+        "compile": "../../gradlew :reaktor-db:buildTypeScriptCompile"
     },
     "dependencies": {
         "@google-cloud/pubsub": "^5.2.2",
-        "reaktor-reaktor-db": "workspace:*"
+        "reaktor-reaktor-db": "link:../build/dependeasy/kotlin/library"
     },
     "devDependencies": {
         "karakum": "1.0.0-alpha.112",
@@ -23,7 +23,13 @@
     },
     "dependeasy": {
         "generatedScripts": [
-            "bindings"
-        ]
+            "bindings",
+            "compile"
+        ],
+        "generatedLinks": {
+            "dependencies": [
+                "reaktor-reaktor-db"
+            ]
+        }
     }
 }

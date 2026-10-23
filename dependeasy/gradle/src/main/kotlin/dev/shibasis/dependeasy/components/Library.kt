@@ -296,9 +296,11 @@ class LibraryScope internal constructor(private val project: Project, private va
         web.verify(name, "ts/tsconfig.json", checks = checks).also(verifications::add)
     }
 
-    fun typescript(configuration: String, output: String, kotlinConsumer: Boolean = false) = NodeDeclaration { name ->
-        dev.shibasis.dependeasy.web.JavaScriptComponent(project, name, ".")
-            .library(name, configuration, output, kotlin = kotlinConsumer).covers(dev.shibasis.dependeasy.model.Aspect.Static).also(verifications::add)
+    fun typescript(configuration: String, output: String, kotlinConsumer: Boolean = false,
+        directory: String = ".", kotlin: List<OutputHandle> = emptyList()) = NodeDeclaration { name ->
+        val web = dev.shibasis.dependeasy.web.JavaScriptComponent(project, name, directory)
+        if (kotlin.isNotEmpty()) web.kotlinLibraries(*kotlin.toTypedArray())
+        web.library(name, configuration, output, kotlin = kotlinConsumer).covers(dev.shibasis.dependeasy.model.Aspect.Static).also(verifications::add)
     }
 
     fun tests(suite: dev.shibasis.dependeasy.model.Suite,

@@ -5,7 +5,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "declaration": true,
-    "outDir": "export"
+    "outDir": "dist"
   },
   "include": [
     "index.ts"

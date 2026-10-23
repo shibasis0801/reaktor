@@ -73,7 +73,7 @@ class DslEntryPointsTest {
                 val probeClasspath by classpath(output = "reports/probe-classpath.txt")
                 val checkFixtureTypeScript by typescript(kotlin = listOf(kotlinJsLibrary(projects.library)), tests = PackageScript("test"))
                 val buildFixtureTypeScript by typescript(configuration = "js/tsconfig.json", output = "js/dist", kotlinConsumer = true)
-                val buildStandaloneTypeScript by typescript(configuration = "ts/tsconfig.json", output = "ts/dist")
+                val buildStandaloneTypeScript by typescript(directory = "ts", configuration = "tsconfig.json", output = "dist", kotlin = listOf(kotlinJsLibrary(projects.library)))
                 val unit by tests(Suite.Jvm, run = Run.timeout(90.seconds), environment = TestEnvironment(
                     classpathProperties = setOf("fixture.testClasspath"),
                     properties = dev.shibasis.dependeasy.configuration.ReaktorTests.Headless.properties,
@@ -286,7 +286,7 @@ class DslEntryPointsTest {
         val typescript = model.nodes.single { it.id.project == ":library" && it.id.name == "checkFixtureTypeScript" }
         assertTrue(model.edges.any { it is Edge.Includes && it.from == NodeId(owner, ":library", "componentChecks") && it.to == typescript.id })
         assertTrue(model.nodes.any { it.id.project == ":library" && it.id.name == "checkFixtureTypeScriptCheck" && it.kernel?.spec is KernelSpec.PackageCommand })
-        for ((name, configuration) in listOf("buildFixtureTypeScript" to "js/tsconfig.json", "buildStandaloneTypeScript" to "ts/tsconfig.json")) {
+        for ((name, configuration) in listOf("buildFixtureTypeScript" to "js/tsconfig.json", "buildStandaloneTypeScript" to "tsconfig.json")) {
             val emitter = model.nodes.single { it.id.project == ":library" && it.id.name == name }
             val compile = model.nodes.single { it.id.project == ":library" && it.id.name == name + "Compile" }
             assertEquals(listOf(configuration), assertIs<KernelSpec.TypeScriptCheck>(compile.kernel?.spec).projects)
@@ -296,6 +296,11 @@ class DslEntryPointsTest {
             assertEquals(SourceSite(owner, "library/build.gradle.kts", line), emitter.declaredAt?.copy(symbol = null, callPath = emptyList()))
             assertEquals(emitter.declaredAt, compile.declaredAt)
         }
+        val standaloneTypeScript = model.nodes.single { it.id.project == ":library" && it.id.name == "buildStandaloneTypeScriptCompile" }
+        val standaloneSpec = assertIs<KernelSpec.TypeScriptCheck>(standaloneTypeScript.kernel?.spec)
+        assertEquals("library/ts", standaloneSpec.execution.directory)
+        assertEquals(listOf("library/ts/dist"), standaloneSpec.execution.outputs)
+        assertTrue(model.edges.any { it is Edge.Consumes && it.from == standaloneTypeScript.id && it.to == NodeId(owner, ":library", "outputKotlinJsLibrary") })
         for ((name, suite) in listOf("unit" to Suite.Jvm, "androidUnit" to Suite.AndroidUnit, "node" to Suite.JavaScript)) {
             val node = model.nodes.single { it.id.project == ":library" && it.id.name == name }
             val output = model.nodes.single { it.id.project == ":library" && it.id.name == "outputVerificationResults" + suite.name }

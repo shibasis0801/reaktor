@@ -2390,8 +2390,8 @@ importers:
   reaktor-auth/ts:
     dependencies:
       reaktor-reaktor-auth:
-        specifier: workspace:*
-        version: link:../../build/js/packages/reaktor-reaktor-auth
+        specifier: link:../build/dependeasy/kotlin/library
+        version: link:../build/dependeasy/kotlin/library
     devDependencies:
       '@types/react':
         specifier: ^19.2.2
@@ -2415,8 +2415,8 @@ importers:
   reaktor-cloudflare/ts:
     dependencies:
       reaktor-reaktor-cloudflare:
-        specifier: workspace:*
-        version: link:../../build/js/packages/reaktor-reaktor-cloudflare
+        specifier: link:../build/dependeasy/kotlin/library
+        version: link:../build/dependeasy/kotlin/library
     devDependencies:
       karakum:
         specifier: 1.0.0-alpha.112
@@ -2446,8 +2446,8 @@ importers:
         specifier: ^5.2.2
         version: 5.3.1(supports-color@10.2.2)
       reaktor-reaktor-db:
-        specifier: workspace:*
-        version: link:../../build/js/packages/reaktor-reaktor-db
+        specifier: link:../build/dependeasy/kotlin/library
+        version: link:../build/dependeasy/kotlin/library
     devDependencies:
       karakum:
         specifier: 1.0.0-alpha.112
@@ -2474,8 +2474,8 @@ importers:
         specifier: ^19.2.6
         version: 19.3.0
       reaktor-reaktor-google:
-        specifier: workspace:*
-        version: link:../../build/js/packages/reaktor-reaktor-google
+        specifier: link:../build/dependeasy/kotlin/library
+        version: link:../build/dependeasy/kotlin/library
     devDependencies:
       karakum:
         specifier: 1.0.0-alpha.112
@@ -2527,8 +2527,8 @@ importers:
         specifier: '>=18'
         version: 19.3.0
       reaktor-reaktor-graph:
-        specifier: workspace:*
-        version: link:../../build/js/packages/reaktor-reaktor-graph
+        specifier: link:../build/dependeasy/kotlin/library
+        version: link:../build/dependeasy/kotlin/library
     devDependencies:
       '@types/react':
         specifier: ^19.2.2
@@ -2583,8 +2583,8 @@ importers:
   reaktor-security/ts:
     dependencies:
       reaktor-reaktor-security:
-        specifier: workspace:*
-        version: link:../../build/js/packages/reaktor-reaktor-security
+        specifier: link:../build/dependeasy/kotlin/library
+        version: link:../build/dependeasy/kotlin/library
     devDependencies:
       karakum:
         specifier: 1.0.0-alpha.112

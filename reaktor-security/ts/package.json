@@ -6,11 +6,11 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "node ../../dependeasy/javascript/cli/typecheck.ts -b",
-        "bindings": "../../gradlew :reaktor-security:karakumBindings"
+        "bindings": "../../gradlew :reaktor-security:karakumBindings",
+        "compile": "../../gradlew :reaktor-security:buildTypeScriptCompile"
     },
     "dependencies": {
-        "reaktor-reaktor-security": "workspace:*"
+        "reaktor-reaktor-security": "link:../build/dependeasy/kotlin/library"
     },
     "devDependencies": {
         "karakum": "1.0.0-alpha.112",
@@ -20,7 +20,13 @@
     "packageManager": "pnpm@12.10.1",
     "dependeasy": {
         "generatedScripts": [
-            "bindings"
-        ]
+            "bindings",
+            "compile"
+        ],
+        "generatedLinks": {
+            "dependencies": [
+                "reaktor-reaktor-security"
+            ]
+        }
     }
 }
