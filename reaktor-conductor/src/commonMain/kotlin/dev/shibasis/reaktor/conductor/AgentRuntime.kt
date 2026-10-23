@@ -12,7 +12,14 @@ data class AgentRequest(
     val persistSession: Boolean = false,
     val executionId: String? = null,
     val subjectRefs: List<String> = emptyList(),
-)
+) {
+    val environment: Map<String, String>
+        get() = executionId?.substringBefore(':')?.takeIf(String::isNotBlank)?.let { mapOf(RunVariable to it) }.orEmpty()
+
+    companion object {
+        const val RunVariable = "REAKTOR_AGENT_RUN_ID"
+    }
+}
 
 /**
  * What a harness reports while it works. Deliberately small: agents exchange results, not their

@@ -70,7 +70,7 @@ class CodexAppServerRuntime(
             addAll(request.agent.harnessArgs)
             // Config overrides are global flags and must precede the subcommand, as with `exec`.
             add("app-server")
-        }).directory(directory).redirectErrorStream(false).start()
+        }).directory(directory).redirectErrorStream(false).apply { environment().putAll(request.environment) }.start()
 
         val stderr = StringBuilder()
         scope.launch(Dispatchers.IO) {

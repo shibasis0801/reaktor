@@ -109,6 +109,33 @@ class AgentWorkspaceConnection private constructor(
     suspend fun linkBoardWork(id: String, work: String, linked: Boolean, by: BoardActor): BoardEntry = boardEntry(call("agent_board_link", buildJsonObject {
         put("taskId", id); put("work", work); put("linked", linked); put("by", actor(by))
     }))
+    suspend fun taskGraphs(): List<TaskGraphSummary> = ConductorJson.decodeFromJsonElement(ListSerializer(TaskGraphSummary.serializer()),
+        call("agent_taskgraph_list").jsonObject.getValue("graphs"))
+    suspend fun taskGraph(id: String): TaskGraphView = ConductorJson.decodeFromJsonElement(TaskGraphView.serializer(), call("agent_taskgraph_read", buildJsonObject { put("graph", id) }))
+    suspend fun taskGraphShape(id: String): dev.shibasis.reaktor.graph.core.GraphShape =
+        ConductorJson.decodeFromJsonElement(dev.shibasis.reaktor.graph.core.GraphShape.serializer(), call("agent_taskgraph_shape", buildJsonObject { put("graph", id) }))
+    suspend fun proposeTaskGraph(draft: TaskGraphDraft, by: BoardActor): TaskGraphView = ConductorJson.decodeFromJsonElement(TaskGraphView.serializer(),
+        call("agent_taskgraph_propose", JsonObject(AgentWorkspaceJson.encodeToJsonElement(TaskGraphDraft.serializer(), draft).jsonObject + ("by" to actor(by)))))
+    suspend fun patchTaskGraph(id: String, patch: TaskGraphPatch, by: BoardActor): TaskGraph = graphOf(call("agent_taskgraph_patch", buildJsonObject {
+        put("graph", id); put("ops", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(TaskGraphOp.serializer()), patch.ops)); put("reason", patch.reason)
+        patch.expectedRevision?.let { put("expectedRevision", it) }; put("by", actor(by))
+    }).jsonObject.getValue("graph"))
+    suspend fun startTaskGraph(id: String, revision: Long?, by: BoardActor): TaskGraph = graphOf(call("agent_taskgraph_start", buildJsonObject {
+        put("graph", id); revision?.let { put("expectedRevision", it) }; put("by", actor(by))
+    }))
+    suspend fun pauseTaskGraph(id: String, reason: String, by: BoardActor): TaskGraph = graphOf(call("agent_taskgraph_pause", buildJsonObject {
+        put("graph", id); put("reason", reason); put("by", actor(by))
+    }))
+    suspend fun cancelTaskGraph(id: String, by: BoardActor): TaskGraph = graphOf(call("agent_taskgraph_cancel", buildJsonObject { put("graph", id); put("by", actor(by)) }))
+    suspend fun revertTaskGraph(id: String, revision: Long, by: BoardActor): TaskGraph = graphOf(call("agent_taskgraph_revert", buildJsonObject {
+        put("graph", id); put("revision", revision); put("by", actor(by))
+    }).jsonObject.getValue("graph"))
+    suspend fun reportTaskGraph(id: String, task: String, report: TaskReport, outcome: TaskOutcome, by: BoardActor): BoardTask =
+        ConductorJson.decodeFromJsonElement(BoardTask.serializer(), call("agent_taskgraph_report", buildJsonObject {
+            put("graph", id); put("task", task); put("status", report.name); put("summary", outcome.summary)
+            outcome.verdict?.let { put("verdict", it) }; put("by", actor(by))
+        }))
+    private fun graphOf(value: JsonElement) = ConductorJson.decodeFromJsonElement(TaskGraph.serializer(), value)
     private fun boardEntry(value: JsonElement) = ConductorJson.decodeFromJsonElement(BoardEntry.serializer(), value)
     private fun actor(by: BoardActor) = ConductorJson.encodeToJsonElement(BoardActor.serializer(), by)
 

@@ -15,7 +15,9 @@ internal fun codexMcpArgs(path: String?): List<String> {
         else -> value.toString()
     }
     return servers.flatMap { (name, value) ->
-        val entry = value.jsonObject.filterKeys { it != "type" }
+        val declared = value.jsonObject.filterKeys { it != "type" }
+        val forwarded = (declared["env_vars"] as? JsonArray).orEmpty() + JsonPrimitive(dev.shibasis.reaktor.conductor.AgentRequest.RunVariable)
+        val entry = if ("command" in declared) declared + ("env_vars" to JsonArray(forwarded.distinct())) else declared
         require(name.matches(Regex("[a-zA-Z0-9_-]+")))
         listOf("-c", "mcp_servers.$name=" + toml(JsonObject(entry)))
     }

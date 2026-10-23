@@ -78,6 +78,34 @@ class AgentBundleTest {
         } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
+    @Test fun theHangarSkillReachesEveryVendorAndAnEditedCopyIsLeftAlone() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
+        val root = Files.createTempDirectory("bundle-root").toFile()
+        try {
+            val targets = AgentBundle.targets(root, home)
+            val messages = AgentBundle.install(targets, command)
+            val claude = java.io.File(home, ".claude/skills/hangar/SKILL.md")
+            val codex = java.io.File(home, ".agents/skills/hangar/SKILL.md")
+            val antigravity = java.io.File(home, ".gemini/config/skills/hangar/SKILL.md")
+            assertTrue(listOf(claude, codex, antigravity, java.io.File(home, ".agents/skills/hangar/agents/openai.yaml")).all { it.isFile })
+            assertTrue("claude:${'$'}{CLAUDE_SESSION_ID}" in claude.readText())
+            assertTrue("disable-model-invocation: true" in claude.readText())
+            assertTrue("${'$'}hangar" in codex.readText() && "CLAUDE_SESSION_ID" !in codex.readText())
+            assertTrue("taskgraph.propose" in antigravity.readText() && "\nname: hangar\n" in antigravity.readText())
+            assertEquals(4, messages.count { it.startsWith("skill/") && "installed" in it })
+            assertTrue(AgentBundle.status(targets).skills)
+
+            assertTrue(AgentBundle.install(targets, command).filter { it.startsWith("skill/") }.all { it.endsWith("already installed") })
+            codex.writeText(codex.readText() + "\nMy own note.\n")
+            assertFalse(AgentBundle.status(targets).skills)
+            assertTrue(AgentBundle.install(targets, command).any { it.startsWith("skill/codex:") && "collision" in it })
+            AgentBundle.uninstall(targets)
+            assertFalse(claude.exists())
+            assertFalse(antigravity.exists())
+            assertTrue(codex.readText().endsWith("My own note.\n"), "An edited skill is the operator's now")
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     @Test fun aFileThisBundleCreatedIsRemovedRatherThanLeftEmpty() {
         val home = Files.createTempDirectory("bundle-home").toFile()
         val root = Files.createTempDirectory("bundle-root").toFile()

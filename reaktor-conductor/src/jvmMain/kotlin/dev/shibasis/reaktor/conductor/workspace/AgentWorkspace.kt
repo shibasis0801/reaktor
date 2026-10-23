@@ -66,6 +66,7 @@ class AgentWorkspace(
     }
     val entitlements = AgentEntitlements(directory.resolve("entitlements"))
     val board = AgentBoardStore(directory.resolve("board"))
+    @Volatile internal var graphs: TaskGraphRuntime? = null
     internal suspend fun readKernel(name: String, arguments: JsonObject): JsonElement =
         requireNotNull(kernelRead) { "This host has no kernel check reader" }.invoke(name, arguments)
     internal fun submission(id: String): AgentSubmission = synchronized(lock) {
@@ -552,7 +553,38 @@ class AgentWorkspace(
 
     private fun revision() = board.revision + changes.value
 
-    private fun revisions() = combine(board.changes, changes) { tasks, runs -> tasks + runs }
+    internal fun revisions() = combine(board.changes, changes) { tasks, runs -> tasks + runs }
+
+    internal fun freeSlots(): Int = synchronized(lock) {
+        if (closed || draining) 0 else maxActive - active.keys.sumOf { if (records[it]?.councilHybrid == true) 3 else if (records[it]?.collaboration == AgentCollaboration.Single) 1 else 2 }
+    }
+
+    internal fun latest(threadId: String): AgentRunRecord? = synchronized(lock) {
+        recent.mapNotNull { records[it] ?: load(it) }.filter { it.threadId == threadId }.maxByOrNull { it.startedAt }
+    }
+
+    internal suspend fun runCheck(threadId: String, requestId: String, stage: WorkflowStage): WorkflowCheckResult =
+        requireNotNull(workflowCheck) { "This host has no kernel check executor" }.invoke(threadId, requestId, stage)
+
+    internal suspend fun settled(runId: String): AgentRunRecord {
+        while (true) {
+            val before = changes.value
+            val current = get(runId)
+            if (current.status != AgentRunStatus.Running && current.recovery != AgentRecovery.Pending && current.recovery != AgentRecovery.Resuming) return current
+            changes.first { it != before }
+        }
+    }
+
+    internal fun threadOf(ref: String): String? {
+        val raw = ref.substringAfter(':')
+        return when {
+            ref.startsWith(BoardRefs.Hangar) && runCatching { UUID.fromString(raw).toString() == raw }.getOrDefault(false) -> raw
+            ref.startsWith(BoardRefs.Hangar) && raw.matches(Regex("[a-f0-9]{64}")) -> synchronized(lock) { (records[raw] ?: load(raw))?.threadId }
+            else -> synchronized(lock) { recent.mapNotNull { records[it] ?: load(it) }.firstOrNull { run ->
+                run.session?.sessionId == raw || run.participants.values.any { it.session?.sessionId == raw }
+            }?.threadId }
+        }
+    }
 
     fun boardPage(query: String = ""): BoardPage {
         val revision = revision()

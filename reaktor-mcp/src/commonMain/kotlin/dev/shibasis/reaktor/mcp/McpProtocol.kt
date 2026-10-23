@@ -33,6 +33,15 @@ data class McpReadResource(
     val read: () -> String,
 )
 
+data class McpPromptArgument(val name: String, val description: String, val required: Boolean = false)
+
+data class McpPrompt(
+    val name: String,
+    val description: String,
+    val arguments: List<McpPromptArgument> = emptyList(),
+    val render: (Map<String, String>) -> String,
+)
+
 fun interface McpMessageHandler {
     fun handle(body: String): JsonElement?
 }
@@ -79,11 +88,13 @@ class ReaktorMcpServer(
     /** True only for a host that can push `notifications/tools/list_changed` on its own channel. */
     private val toolsListChanged: Boolean = false,
     private val structuredContent: Boolean = true,
+    prompts: List<McpPrompt> = emptyList(),
 ) : McpMessageHandler {
     private val tools = tools.associateBy(McpTool::name)
     private val resources = resources.associateBy(McpReadResource::uri)
+    private val prompts = prompts.associateBy(McpPrompt::name)
 
-    init { require(this.tools.size == tools.size) { "Duplicate tool names" } }
+    init { require(this.tools.size == tools.size && this.prompts.size == prompts.size) { "Duplicate tool or prompt names" } }
 
     /**
      * What this server actually serves.
@@ -158,6 +169,8 @@ class ReaktorMcpServer(
             "tools/call" -> callTool(responseId, request["params"] as? JsonObject)
             "resources/list" -> rpcResult(responseId, listResources())
             "resources/read" -> readResource(responseId, request["params"] as? JsonObject)
+            "prompts/list" -> rpcResult(responseId, listPrompts())
+            "prompts/get" -> getPrompt(responseId, request["params"] as? JsonObject)
             "ping" -> rpcResult(responseId, buildJsonObject {})
             else -> rpcError(responseId, -32601, "Method not found: $method")
         }
@@ -174,6 +187,7 @@ class ReaktorMcpServer(
         putJsonObject("capabilities") {
             putJsonObject("tools") { put("listChanged", toolsListChanged) }
             putJsonObject("resources") { put("listChanged", false) }
+            if (prompts.isNotEmpty()) putJsonObject("prompts") { put("listChanged", false) }
         }
         putJsonObject("serverInfo") {
             put("name", name)
@@ -245,6 +259,39 @@ class ReaktorMcpServer(
                     put("uri", resource.uri)
                     put("mimeType", resource.mimeType)
                     put("text", text)
+                }
+            }
+        })
+    }
+
+    private fun listPrompts(): JsonObject = buildJsonObject {
+        putJsonArray("prompts") {
+            prompts.values.forEach { prompt ->
+                addJsonObject {
+                    put("name", prompt.name)
+                    put("description", prompt.description)
+                    putJsonArray("arguments") {
+                        prompt.arguments.forEach { argument ->
+                            addJsonObject { put("name", argument.name); put("description", argument.description); put("required", argument.required) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getPrompt(id: JsonElement, params: JsonObject?): JsonObject {
+        val name = (params?.get("name") as? JsonPrimitive)?.contentOrNull ?: return rpcError(id, -32602, "Missing prompt name")
+        val prompt = prompts[name] ?: return rpcError(id, -32602, "Unknown prompt: $name")
+        val arguments = (params?.get("arguments") as? JsonObject).orEmpty().mapNotNull { (key, value) -> (value as? JsonPrimitive)?.contentOrNull?.let { key to it } }.toMap()
+        prompt.arguments.firstOrNull { it.required && arguments[it.name].isNullOrBlank() }?.let { return rpcError(id, -32602, "Missing argument: ${it.name}") }
+        val text = runCatching { prompt.render(arguments) }.getOrElse { error -> return rpcError(id, -32603, error.message ?: "Prompt failed") }
+        return rpcResult(id, buildJsonObject {
+            put("description", prompt.description)
+            putJsonArray("messages") {
+                addJsonObject {
+                    put("role", "user")
+                    putJsonObject("content") { put("type", "text"); put("text", text) }
                 }
             }
         })

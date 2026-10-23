@@ -32,6 +32,12 @@ import dev.shibasis.dependeasy.verification.taggedJvmTests
 import dev.shibasis.dependeasy.verification.hangarTests
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.workspace.NodeDeclaration
+import dev.shibasis.dependeasy.process.ProcessTask
+import dev.shibasis.dependeasy.web.JavaScriptComponent
+import org.gradle.api.tasks.TaskProvider
+import org.gradle.language.jvm.tasks.ProcessResources
+import kotlin.properties.PropertyDelegateProvider
+import kotlin.properties.ReadOnlyProperty
 import kotlin.time.Duration.Companion.minutes
 
 fun Project.desktopApp(packageName: BuildOption<String>, installers: Set<Installer>,
@@ -47,7 +53,10 @@ fun Project.desktopApp(packageName: BuildOption<String>, installers: Set<Install
     desktopApplication(spec)
     val part = dependencies.project(mapOf("path" to path)) as org.gradle.api.artifacts.ProjectDependency
     WorkspaceScope(this, BuildWorkspace.get(this)).apply {
-        val componentBuild by artifacts(role = Workspace.Build) { outputs(jvmDistribution(part)) }
+        val componentBuild by artifacts(role = Workspace.Build) {
+            outputs(jvmDistribution(part))
+            scope.bundles.forEach { include(it) }
+        }
         val componentChecks by verify(role = Workspace.Verify) {
             if (scope.unit == null) include(this@desktopApp.verification(part, Verification.Jvm)) else include(requireNotNull(scope.unit))
         }
@@ -61,10 +70,23 @@ class DesktopAppScope internal constructor(private val project: Project) {
         private set
     internal var unit: NodeHandle? = null
         private set
+    internal val bundles = mutableListOf<NodeHandle>()
     private val suites = mutableSetOf<Verification>()
     private val classes by lazy { project.compiledJvmTests() }
 
     fun dependencies(content: DesktopAppDependencies.() -> Unit) { DesktopAppDependencies(project).content() }
+
+    fun javascript(directory: String) = PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, JavaScriptComponent>> { _, property ->
+        require(directory.isNotBlank() && !java.io.File(directory).isAbsolute && ".." !in directory.split('/')) { "A desktop package lives inside its app" }
+        val component = JavaScriptComponent(project, property.name, directory)
+        ReadOnlyProperty { _, _ -> component }
+    }
+
+    fun resources(bundle: TaskProvider<out ProcessTask>, folder: String) {
+        require(folder.isNotBlank() && folder.split('/').none { it.isEmpty() || it == "." || it == ".." }) { "Bundled resources need a relative folder" }
+        project.tasks.named<ProcessResources>(JavaPlugin.PROCESS_RESOURCES_TASK_NAME) { from(bundle) { into(folder) } }
+        bundles.add(project.node(bundle))
+    }
 
     fun runtime(initialHeap: Memory? = null, properties: List<BuildOption<*>> = emptyList()) {
         runtime = DesktopRuntime(initialHeap, properties.associate { it.name to project.option(it).get().toString() })

@@ -214,7 +214,12 @@ private fun Node.portShapes(graph: Graph): List<PortShape> =
 private fun Node.contractLabel(): String? =
     (this as? ServiceNode)?.takeIf { it::class == ServiceNode::class }?.let { node -> node.service.contract.id.ifBlank { node.serviceLabel } }
 
+interface ShapeAttributes {
+    val shapeAttributes: Map<String, String>
+}
+
 private fun Node.attributes(): Map<String, String> = when (this) {
+    is ShapeAttributes -> shapeAttributes
     is ServiceNode -> buildMap {
         put("service", serviceLabel)
         service.baseUrl.takeIf { it.isNotBlank() }?.let { put("baseUrl", it) }

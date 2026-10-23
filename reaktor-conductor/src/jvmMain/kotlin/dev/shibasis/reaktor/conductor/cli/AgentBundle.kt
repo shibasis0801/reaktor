@@ -23,22 +23,24 @@ object AgentBundle {
      * so [antigravityConfig] is a machine-wide file the operator shares with every other project,
      * and it is passed in rather than derived so no caller can reach the real home by accident.
      */
-    data class Targets(val codexConfig: File, val claudeProjectConfig: File, val antigravityConfig: File, val launcher: File) {
+    data class Targets(val codexConfig: File, val claudeProjectConfig: File, val antigravityConfig: File, val launcher: File, val skills: Map<String, File> = emptyMap()) {
         val manifest: File get() = File(claudeProjectConfig.parentFile, ".reaktor/agent-bundle.json")
     }
 
     fun targets(root: File, home: File = File(System.getProperty("user.home"))) = Targets(
-        File(root, ".codex/config.toml"), File(root, ".mcp.json"), File(home, ".gemini/config/mcp_config.json"), File(home, ".local/bin/$LAUNCHER_NAME"))
+        File(root, ".codex/config.toml"), File(root, ".mcp.json"), File(home, ".gemini/config/mcp_config.json"), File(home, ".local/bin/$LAUNCHER_NAME"),
+        HangarSkill.files(home))
 
     data class Status(val codex: Boolean, val claude: Boolean, val codexGraph: Boolean = false, val claudeGraph: Boolean = false,
-        val antigravity: Boolean = false, val antigravityGraph: Boolean = false, val codexSandbox: Boolean = false, val launcher: Boolean = false)
+        val antigravity: Boolean = false, val antigravityGraph: Boolean = false, val codexSandbox: Boolean = false, val launcher: Boolean = false, val skills: Boolean = false)
     fun status(targets: Targets): Status {
         val text = targets.codexConfig.takeIf { it.isFile }?.readText().orEmpty()
         val servers = readObject(targets.claudeProjectConfig).servers()
         return Status(hasTable(text, SERVER_NAME), SERVER_NAME in servers,
             hasTable(text, GRAPH_SERVER_NAME), GRAPH_SERVER_NAME in servers,
             SERVER_NAME in readObject(targets.antigravityConfig).servers(), GRAPH_SERVER_NAME in readObject(targets.antigravityConfig).servers(),
-            text.contains("# reaktor-bundle begin $SANDBOX_NAME\n"), targets.launcher.canExecute())
+            text.contains("# reaktor-bundle begin $SANDBOX_NAME\n"), targets.launcher.canExecute(),
+            targets.skills.isNotEmpty() && targets.skills.all { (key, file) -> file.isFile && file.readText() == HangarSkill.content(key) })
     }
 
     /**
@@ -179,6 +181,20 @@ object AgentBundle {
             writeText(targets.launcher, launcher)
             Files.setPosixFilePermissions(targets.launcher.toPath(), PosixFilePermissions.fromString("rwxr-xr-x"))
         }
+        targets.skills.forEach { (skill, file) ->
+            val skillKey = "skill/$skill"
+            val wanted = HangarSkill.content(skill)
+            val present = file.takeIf { it.isFile }?.readText()
+            when {
+                present == wanted -> { owned[skillKey] = JsonPrimitive(wanted); messages += "$skillKey: already installed" }
+                present != null && owned[skillKey] != JsonPrimitive(present) -> messages += "$skillKey: collision; preserved ${file.path}"
+                else -> {
+                    writeText(file, wanted)
+                    owned[skillKey] = JsonPrimitive(wanted)
+                    messages += "$skillKey: " + if (present == null) "installed ${file.path}" else "updated owned entry"
+                }
+            }
+        }
         writeObject(targets.manifest, JsonObject(manifest + ("entries" to JsonObject(owned))))
         messages
     }
@@ -226,6 +242,10 @@ object AgentBundle {
                 } else messages += "$key: modified; preserved"
             } else if (key.startsWith("path/")) {
                 if (targets.launcher.takeIf { it.isFile }?.readText() == value.jsonPrimitive.content) { targets.launcher.delete(); messages += "$key: removed" }
+                else messages += "$key: modified; preserved"
+            } else if (key.startsWith("skill/")) {
+                val file = targets.skills[key.removePrefix("skill/")]
+                if (file != null && file.takeIf { it.isFile }?.readText() == value.jsonPrimitive.content) { Files.deleteIfExists(file.toPath()); messages += "$key: removed" }
                 else messages += "$key: modified; preserved"
             }
         }

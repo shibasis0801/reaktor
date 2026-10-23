@@ -70,7 +70,7 @@ class ClaudeCodeSessionRuntime(
             addAll(argv)
         }
 
-        val process = ProcessBuilder(flags).directory(directory).redirectErrorStream(false).start()
+        val process = ProcessBuilder(flags).directory(directory).redirectErrorStream(false).apply { environment().putAll(request.environment) }.start()
         return ClaudeCodeSession(request, process, scope)
     }
 }

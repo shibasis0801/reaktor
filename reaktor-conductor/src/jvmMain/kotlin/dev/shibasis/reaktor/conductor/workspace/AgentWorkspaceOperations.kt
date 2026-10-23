@@ -24,6 +24,7 @@ internal class AgentWorkspaceOperations(private val workspace: AgentWorkspace, t
             ) else ToolResult(value)
         }
     }).also(graph::attach)
+    private val runtime = TaskGraphRuntime(workspace, graph).also { workspace.graphs = it }
     private val adapter = McpAdapter(node, "reaktor-agent-workspace", "1.0.0",
         "Authenticated local workspace agent control. Source records, provider sessions and retrieved context are distinct. Do not resubmit an uncertain action automatically; inspect the saved run and workspace first.", projection = projection)
 
@@ -68,7 +69,7 @@ internal class AgentWorkspaceOperations(private val workspace: AgentWorkspace, t
     }
 
     override fun close() {
-        try { adapter.close(); graph.detach(node) }
+        try { if (workspace.graphs === runtime) workspace.graphs = null; runtime.close(); adapter.close(); graph.detach(node) }
         finally { if (dependencies != null) try { graph.close() } finally { dependencies.close() } }
     }
 }

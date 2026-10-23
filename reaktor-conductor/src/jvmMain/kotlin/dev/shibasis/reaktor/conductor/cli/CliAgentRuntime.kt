@@ -79,6 +79,7 @@ abstract class CliAgentRuntime(
             taskId = TaskId("conductor:${kind.name.lowercase()}:${request.agent.id.value}"),
             safety = safety(request),
             timeoutMillis = request.agent.budget.timeoutMillis,
+            environment = request.environment,
         ).copy(captureStdoutLineChars = 8_388_608)
 
         val handle = executor.start(execution)

@@ -258,6 +258,7 @@ open class Graph(
     }
 
     override fun toString(): String {
+        parentGraph?.ownedGraphs?.remove(id)
         return "[Graph] label='$label' id='$id' nodes=${nodes.size} stackDepth=${backStack.entries.value.size}, sentinel=$sentinel"
     }
 }
