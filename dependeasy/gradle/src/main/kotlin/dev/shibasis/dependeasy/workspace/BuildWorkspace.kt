@@ -343,7 +343,7 @@ internal class BuildWorkspace(private val project: Project) {
     internal fun orderAfter(node: NodeHandle, outputs: List<OutputHandle>) {
         require(node.id.build == project.rootProject.name && outputs.all { it.build == node.id.build }) { "Selected-only ordering stays within its build" }
         outputs.distinctBy { it.nodeId }.forEach { output ->
-            requireNotNull(node.task).configure { mustRunAfter(project.resolve(output)) }
+            requireNotNull(node.task).configure { mustRunAfter(project.provider { project.resolve(output).buildDependencies.getDependencies(this) }) }
             graph.configure { edges.add(BuildModelReader.json.encodeToString<Edge>(Edge.OrderedAfter(node.id, output.nodeId))) }
         }
     }
