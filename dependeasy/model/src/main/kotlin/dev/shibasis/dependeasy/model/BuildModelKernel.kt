@@ -104,9 +104,17 @@ object BuildModelKernel {
             .mapValues { (_, paths) -> paths.flatten().distinct().sorted() }.toSortedMap()
         val exports = owned.mapNotNull { it.kernel?.spec as? KernelSpec.KotlinExportCatalog }
             .flatMap { it.directories.paths }.distinct().sorted()
+        val options = model.nodes.filter { it.options.isNotEmpty() }.flatMap { node ->
+            val prefix = if (node.id.build == own) "" else ":${node.id.build}"
+            val tasks = listOf(node.id.project.trimEnd(':') + ":" + node.id.name) +
+                listOfNotNull((node.invocation as? Invocation.Gradle)?.tasks?.singleOrNull())
+            tasks.distinct().map { prefix + it to node.options }
+        }.groupBy({ it.first }, { it.second }).mapNotNull { (task, declarations) ->
+            declarations.distinct().singleOrNull()?.let { task to it }
+        }.toMap().toSortedMap()
         val routing = RemoteHostsContract(builds = model.builds.associate { it.name to it.directory }.toSortedMap(),
             taskHosts = model.nodes.filter { it.id.build == own }.associate { (it.id.project.trimEnd(':') + ":" + it.id.name) to model.requiredHost(it.id) }.toSortedMap(),
-            taskFamilies = taskFamilies(model, own), publicOutputs = public, kotlinExports = exports,
+            taskFamilies = taskFamilies(model, own), taskOptions = options, publicOutputs = public, kotlinExports = exports,
             distributionDirectories = owned.filter { it.kernel?.spec is KernelSpec.JvmDistribution }
                 .flatMap { it.outputs }.flatMap { it.paths }.distinct().sorted(),
             environment = (model.declarations.mapNotNull { it.option?.environment } + GradleProtocol.OperationRunVariable).distinct().sorted())

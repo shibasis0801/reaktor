@@ -161,7 +161,8 @@ data class RunReceipt(
     val xcodeEnvironment: List<String> = listOf("SDK_NAME", "CONFIGURATION", "ARCHS", "CURRENT_ARCH", "TARGET_BUILD_DIR", "FRAMEWORKS_FOLDER_PATH",
         "DEVELOPER_DIR", "PLATFORM_NAME", "BUILT_PRODUCTS_DIR", "UNLOCALIZED_RESOURCES_FOLDER_PATH", "EXPANDED_CODE_SIGN_IDENTITY",
         "CODE_SIGNING_ALLOWED", "KOTLIN_FRAMEWORK_BUILD_TYPE", "ACTION", "DWARF_DSYM_FOLDER_PATH",
-        "ENABLE_USER_SCRIPT_SANDBOXING", "PROJECT_FILE_PATH"))
+        "ENABLE_USER_SCRIPT_SANDBOXING", "PROJECT_FILE_PATH"),
+    val taskOptions: Map<String, List<TaskOption>> = emptyMap())
 
 fun BuildModel.requiredHost(id: NodeId): HostRequirement {
     val byId = nodes.associateBy { it.id }
