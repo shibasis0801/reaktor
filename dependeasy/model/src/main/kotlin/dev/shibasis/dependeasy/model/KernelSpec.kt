@@ -52,7 +52,7 @@ sealed interface KernelSpec {
         val defaultEnvironment: Environment get() = delivery.defaultEnvironment
     }
     @Serializable data class GradleInvocation(val planning: Boolean, val model: String, val requests: String,
-        val output: String, val maxWorkers: Int, val tool: ToolRef) : KernelSpec
+        val output: String, val tool: ToolRef) : KernelSpec
     @Serializable data class GeneratedObject(val namespace: String, val objectName: String,
         val options: Map<String, String>, val workerFleet: FileSet = FileSet(emptyList())) : KernelSpec
     @Serializable data class SourceIdentity(val fileName: String, val sources: List<IdentitySource>,
@@ -98,7 +98,7 @@ sealed interface KernelSpec {
     @Serializable data class ReleasePlan(val product: String, val versionName: String, val buildNumber: Int, val output: String,
         val host: AppleHostContract, val xcodeDirectory: String, val xcodeProject: String, val scheme: String,
         val androidArtifacts: Map<String, String>, val androidTasks: Map<String, String>, val apkDirectories: Map<String, String>,
-        val apkMetadata: List<String>, val webWorker: String, val workerFleet: NodeId?,
+        val webWorker: String, val workerFleet: NodeId?,
         val archiveCheckTask: String, val symbolUploadCheckTask: String, val signingTask: String,
         val distribution: ReleaseDistribution? = null, val androidFirebaseConfiguration: String? = null) : KernelSpec
     @Serializable data class DarwinArchive(val bundleId: String, val ipa: String, val archive: String, val verification: Boolean,

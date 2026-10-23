@@ -115,12 +115,21 @@ class NativeInputsTest {
         DependeasyExtension.create(project).native.libraryName = "Fixture"
         val task = checkNotNull(project.kotlinCmake(CmakePlatform.Darwin("iphoneos"))).get()
         task.nativeContract.set(project.provider { error("SDK settings require the execution host") })
+        val executable = dev.shibasis.dependeasy.model.NativeContract.Executable("fixture",
+            sources = listOf(directory.resolve("src/main.cpp").absolutePath),
+            includes = listOf(directory.resolve("include").absolutePath))
+        task.nativeExecutables.set(listOf(executable))
+        val argument = "/" + "x".repeat(512)
+        task.configureArguments.add(argument)
         val kernel = dev.shibasis.dependeasy.workspace.kernelRef(task)
         val spec = kotlin.test.assertIs<dev.shibasis.dependeasy.model.KernelSpec.CMakeBuild>(kernel.spec)
         assertEquals(dev.shibasis.dependeasy.model.HostPlatform.Macos, task.kernelHost.platform)
         assertContains(spec.tool.version, "cmake ${ToolchainVersions.Cmake}")
         assertEquals(dev.shibasis.dependeasy.model.ToolRef("ninja", ToolchainVersions.Ninja), spec.ninja)
         assertEquals("build/dependeasy/cmake/${task.buildTarget.get()}-iphoneos.json", spec.nativeContract)
+        assertEquals(listOf(executable.copy(sources = listOf("src/main.cpp"), includes = listOf("include"))), spec.executables)
+        assertEquals(listOf(executable), task.nativeExecutables.get())
+        assertContains(spec.arguments, argument)
         assertContains(task.outputs.files.files, task.nativeModelFile.get().asFile)
         val failure = kotlin.test.assertFails { task.nativeContract.get() }
         assertEquals("SDK settings require the execution host", failure.cause?.message)

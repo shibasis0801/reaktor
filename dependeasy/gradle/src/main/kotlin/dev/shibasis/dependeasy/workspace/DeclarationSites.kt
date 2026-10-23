@@ -92,10 +92,14 @@ internal fun kernelRef(task: Task): KernelRef {
         ?: task.extensions.findByType(KernelSpec::class.java))?.relativeTo(task.project.rootDir))
 }
 
-private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
+internal fun modelPath(value: String, root: File): String {
     val owner = root.canonicalPath
-    val workspace = root.canonicalFile.parentFile.path + java.io.File.separator
-    fun path(value: String): String = if (value == owner) "." else value.replace(owner + java.io.File.separator, "").replace(workspace, "../")
+    val workspace = root.canonicalFile.parentFile.path + File.separator
+    return if (value == owner) "." else value.replace(owner + File.separator, "").replace(workspace, "../")
+}
+
+private fun KernelSpec.relativeTo(root: File): KernelSpec {
+    fun path(value: String): String = modelPath(value, root)
     fun execution(value: ProcessExecution) = value.copy(directory = path(value.directory), executable = path(value.executable),
         arguments = value.arguments.map(::path), inputs = value.inputs.map(::path), outputs = value.outputs.map(::path),
         fileInputs = value.fileInputs.map { it.copy(identity = path(it.identity)) })
@@ -149,7 +153,7 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.XcodeHost -> copy(files = files.map(::path), signingInclude = path(signingInclude))
         is KernelSpec.ReleasePlan -> copy(output = path(output), xcodeDirectory = path(xcodeDirectory),
             androidArtifacts = androidArtifacts.mapValues { path(it.value) }, apkDirectories = apkDirectories.mapValues { path(it.value) },
-            apkMetadata = apkMetadata.map(::path), androidFirebaseConfiguration = androidFirebaseConfiguration?.let(::path))
+            androidFirebaseConfiguration = androidFirebaseConfiguration?.let(::path))
         is KernelSpec.DarwinArchive -> copy(ipa = path(ipa), archive = path(archive), firebaseConfig = path(firebaseConfig),
             uploader = path(uploader), scratch = path(scratch), receipt = path(receipt), qualification = qualification?.let(::path),
             providerResult = providerResult?.let(::path), packagedFirebaseConfig = packagedFirebaseConfig?.let(::path))
@@ -172,7 +176,9 @@ private fun KernelSpec.relativeTo(root: java.io.File): KernelSpec {
         is KernelSpec.PackageCommand -> copy(execution = execution(execution))
         is KernelSpec.Process -> copy(execution = execution(execution))
         is KernelSpec.CMakeBuild -> copy(source = path(source), output = path(output), executable = path(executable),
-            arguments = arguments.map(::path), contract = path(contract), ninjaExecutable = path(ninjaExecutable), nativeContract = nativeContract?.let(::path), nativeConfiguration = nativeConfiguration?.let(::path))
+            arguments = arguments.map(::path), contract = path(contract), ninjaExecutable = path(ninjaExecutable), nativeContract = nativeContract?.let(::path), nativeConfiguration = nativeConfiguration?.let(::path),
+            executables = executables.map { it.copy(sources = it.sources.map { path(File(it).canonicalPath) },
+                includes = it.includes.map { path(File(it).canonicalPath) }) })
         is KernelSpec.GitSource -> copy(repository = path(repository), checkout = path(checkout))
         is KernelSpec.InstallTool -> copy(source = path(source), installation = path(installation))
         is KernelSpec.ArtifactSize -> copy(inputs = inputs.map(::path), report = path(report), fileInputs = fileInputs.map { it.copy(identity = path(it.identity)) })

@@ -32,7 +32,8 @@ class DiscoveredJvmWorkspace internal constructor(
     override suspend fun plan(invocation: TaskInvocation): TaskPlan = prepare(invocation).plan
 
     fun prepare(invocation: TaskInvocation, environment: Map<String, String> = emptyMap(),
-                sensitiveEnvironmentKeys: Set<String> = emptySet()): PreparedProcessExecution {
+                sensitiveEnvironmentKeys: Set<String> = emptySet(),
+                reviewedPlan: dev.shibasis.dependeasy.model.GradlePlan? = null): PreparedProcessExecution {
         val task = tasksById[invocation.taskId]
             ?: throw IllegalArgumentException("Unknown task '${invocation.taskId.value}'")
         task.unavailableReason?.let { reason ->
@@ -54,7 +55,7 @@ class DiscoveredJvmWorkspace internal constructor(
         val redactions = binding.redactions + inputSecrets + argumentSecrets + resolvedSensitiveKeys.mapNotNull(resolvedEnvironment::get)
         val gradle = task.attributes["buildNode"]?.let { encoded ->
             GradleBuildPlanner().prepare(binding.workingDirectory, binding.argv.first(),
-                dev.shibasis.dependeasy.model.BuildModelReader.decodeNode(encoded), invocation.arguments, definitionSeal, redactions, resolvedEnvironment, resolvedSensitiveKeys)
+                dev.shibasis.dependeasy.model.BuildModelReader.decodeNode(encoded), invocation.arguments, definitionSeal, redactions, resolvedEnvironment, resolvedSensitiveKeys, reviewedPlan)
         }
         val argv = gradle?.argv ?: (binding.argv + invocation.arguments)
         val request = AdHocProcessPlan.create(
@@ -72,7 +73,7 @@ class DiscoveredJvmWorkspace internal constructor(
             fingerprintContext = listOf(
                 task.provenance.source,
                 task.provenance.path.orEmpty(),
-                definitionSeal.digest,
+                (gradle?.seal ?: definitionSeal).digest,
             ) + gradle?.facts.orEmpty(),
             artifacts = gradle?.artifacts.orEmpty(),
             definitionSeal = gradle?.seal ?: definitionSeal,

@@ -28,6 +28,7 @@ class RemoteTaskFamiliesTest {
         val families = BuildModelKernel.taskFamilies(model, "product")
         assertEquals("jvm", families[":kernel:agentDist"])
         val routing = BuildModelKernel.routing(model, "product")
+        assertContains(routing.environment, GradleProtocol.OperationRunVariable)
         assertEquals(listOf("kernel/build/custom-runtime"), routing.distributionDirectories)
         assertEquals(routing.distributionDirectories, routing.publicOutputs[":kernel:agentDist"])
         val roots = routing.outputRoots

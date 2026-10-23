@@ -56,6 +56,8 @@ class AppleContractsTest {
                 symbolUploadCheckTask.set(":apple:verifyDarwinSymbolUpload")
                 signingTask.set(":apple:generateSigningXcconfig")
                 androidTasks.put("androidRelease", ":android:assembleRelease")
+                apkDirectories.put("release", "build/apk")
+                apkMetadata.from(fileTree("build/apk") { include("*.json") })
                 output.set(layout.buildDirectory.file("release.json"))
             })
             tasks.register<SigningXcconfigTask>("signing") {
@@ -112,7 +114,8 @@ class AppleContractsTest {
     }
     @Test fun `release command tokens share versions and isolate release options`() {
         prepare(); runner("release", "exportBuildModel").build()
-        val releaseSpec = BuildModelReader.read(directory).nodes.single { it.id == NodeId("appleFixture", ":", "release") }.kernel?.spec as KernelSpec.ReleasePlan
+        val model = BuildModelReader.read(directory)
+        val releaseSpec = model.nodes.single { it.id == NodeId("appleFixture", ":", "release") }.kernel?.spec as KernelSpec.ReleasePlan
         assertEquals("firebase.json", releaseSpec.androidFirebaseConfiguration)
         val plan = BuildModelReader.json.decodeFromString<ReleasePlan>(directory.resolve("build/release.json").readText())
         assertEquals(31, plan.buildNumber)
@@ -125,6 +128,12 @@ class AppleContractsTest {
         val repeat = runner("release", "exportBuildModel").build()
         assertContains(repeat.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":release")?.outcome)
+        val metadata = write("build/apk/output-metadata.json", "{}")
+        assertEquals(TaskOutcome.SUCCESS, runner("release", "exportBuildModel").build().task(":release")?.outcome)
+        assertEquals(model, BuildModelReader.read(directory))
+        assertTrue(metadata.delete())
+        assertEquals(TaskOutcome.SUCCESS, runner("release", "exportBuildModel").build().task(":release")?.outcome)
+        assertEquals(model, BuildModelReader.read(directory))
         val changed = BuildModelReader.json.decodeFromString<ReleaseDistribution>(directory.resolve("distribution.json").readText())
             .copy(firebaseGroup = "changed-testers")
         write("distribution.json", BuildModelReader.json.encodeToString(changed))

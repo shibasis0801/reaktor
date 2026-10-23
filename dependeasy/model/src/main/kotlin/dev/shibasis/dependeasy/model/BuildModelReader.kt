@@ -15,7 +15,7 @@ object BuildModelReader {
         require(text.toByteArray(Charsets.UTF_8).size <= MaxBytes) { "Build model exceeds $MaxBytes bytes" }
         val document = json.parseToJsonElement(text).jsonObject
         val schema = document["schema"]?.jsonPrimitive?.intOrNull
-        require(schema == 3) { "Unsupported build model schema $schema; exportBuildModel must be rerun" }
+        require(schema == 4) { "Unsupported build model schema $schema; exportBuildModel must be rerun" }
         val model = json.decodeFromJsonElement<BuildModel>(document)
         require(model.builds.map { it.name }.distinct().size == model.builds.size) { "Duplicate build identity" }
         require(model.nodes.map { it.id }.distinct().size == model.nodes.size) { "Duplicate build node identity" }

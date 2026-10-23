@@ -4,6 +4,7 @@ import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.declarationSite
 import dev.shibasis.dependeasy.workspace.kernelRef
+import dev.shibasis.dependeasy.workspace.modelPath
 import dev.shibasis.dependeasy.workspace.declaredTools
 import dev.shibasis.dependeasy.workspace.declaredOptions
 import org.gradle.api.Project
@@ -69,7 +70,7 @@ internal fun Project.publishOutput(handle: OutputHandle, location: Any, producer
 }
 
 internal fun FileCollection.paths(project: Project) = files.map {
-    it.absoluteFile.relativeTo(project.rootDir.absoluteFile).invariantSeparatorsPath
+    modelPath(it.canonicalPath, project.rootDir).replace(java.io.File.separatorChar, '/')
 }.sorted()
 
 internal fun Project.publishRole(role: Workspace, target: NodeHandle, manifest: Any) {

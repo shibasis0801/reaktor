@@ -15,7 +15,7 @@ import org.gradle.work.DisableCachingByDefault
 abstract class GradleInvocationTask : DefaultTask(), dev.shibasis.dependeasy.process.KernelSpecOwner {
     @get:Internal override val kernelSpec get() = KernelSpec.GradleInvocation(planning.get(),
         modelFile.get().asFile.absolutePath, rootDirectory.file(GradleProtocol.RequestDirectory).get().asFile.absolutePath,
-        outputDirectory.get().asFile.absolutePath, maxWorkers.get(), ToolRef("gradle", project.gradle.gradleVersion))
+        outputDirectory.get().asFile.absolutePath, ToolRef("gradle", project.gradle.gradleVersion))
     @get:Internal abstract val rootDirectory: DirectoryProperty
     @get:Internal abstract val gradleHome: DirectoryProperty
     @get:Internal abstract val gradleUserHome: DirectoryProperty

@@ -62,10 +62,12 @@ private fun properties(descriptor: SerialDescriptor, seen: Set<String>): JsonObj
         (0 until descriptor.elementsCount).forEach { index ->
             val element = descriptor.getElementDescriptor(index)
             val property = described(schema(element, seen), descriptor.getElementAnnotations(index))
-            put(descriptor.getElementName(index), if (element.isNullable && !descriptor.isElementOptional(index)) nullable(property) else property)
+            put(descriptor.getElementName(index), if (element.isNullable) nullable(property) else property)
         }
     }
-    val required = (0 until descriptor.elementsCount).filterNot(descriptor::isElementOptional).map(descriptor::getElementName)
+    val required = (0 until descriptor.elementsCount).filterNot {
+        descriptor.isElementOptional(it) || descriptor.getElementDescriptor(it).isNullable
+    }.map(descriptor::getElementName)
     if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(it) } }
     put("additionalProperties", false)
 }

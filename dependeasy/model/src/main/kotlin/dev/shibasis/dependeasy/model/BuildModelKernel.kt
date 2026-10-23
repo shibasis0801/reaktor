@@ -109,7 +109,7 @@ object BuildModelKernel {
             taskFamilies = taskFamilies(model, own), publicOutputs = public, kotlinExports = exports,
             distributionDirectories = owned.filter { it.kernel?.spec is KernelSpec.JvmDistribution }
                 .flatMap { it.outputs }.flatMap { it.paths }.distinct().sorted(),
-            environment = model.declarations.mapNotNull { it.option?.environment }.distinct().sorted())
+            environment = (model.declarations.mapNotNull { it.option?.environment } + GradleProtocol.OperationRunVariable).distinct().sorted())
         val appleVariables = model.nodes.mapNotNull { (it.kernel?.spec as? KernelSpec.XcodeHost)?.host }
             .map { host -> "${host.targets.single { it.name == host.applicationTarget }.settingsPrefix}_GRADLE_ARGS" }
         return routing.copy(xcodeEnvironment = (routing.xcodeEnvironment + appleVariables).distinct().sorted())

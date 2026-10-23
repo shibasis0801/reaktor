@@ -17,9 +17,9 @@ internal data class PreparedGradleBuild(
 internal class GradleBuildPlanner {
     fun prepare(root: File, wrapper: String, node: Node, arguments: List<String>,
                 seal: ProcessDefinitionSeal, redactions: Set<String>, environment: Map<String, String>,
-                sensitiveEnvironmentKeys: Set<String>): PreparedGradleBuild {
+                sensitiveEnvironmentKeys: Set<String>, reviewedPlan: GradlePlan? = null): PreparedGradleBuild {
         val properties = arguments.filter { it.startsWith("-P") }
-        val previous = BuildModelReader.readAllowingStale(root)
+        val previous = if (reviewedPlan == null) BuildModelReader.readAllowingStale(root) else BuildModelReader.read(root)
         fun gradle(tasks: List<String>, definitions: ProcessDefinitionSeal, failure: String) = runBlocking {
             SupervisedProcessExecutor().use { executor ->
                 val prepared = AdHocProcessPlan.create(listOf(wrapper) + tasks + properties + "--console=plain", root, TaskId(node.id.toString()),
@@ -49,12 +49,14 @@ internal class GradleBuildPlanner {
             require(Files.readString(file) == text && !Files.isSymbolicLink(file)) { "Gradle request content changed" }
             return file.toFile()
         }
-        val routing = write(GradleRequest(node = node.id, declaredAt = node.declaredAt,
-            modelDigest = BuildModelReader.digest(BuildModelReader.encode(previous)), arguments = arguments))
-        gradle(listOf(GradleProtocol.ExportTask, "-P${GradleProtocol.RequestOption}=${routing.absolutePath}"),
-            ProcessDefinitionSeal.capture(seal.files + routing, seal.directories),
-            "Exporting the build model for the requested context failed")
-        val model = BuildModelReader.readAllowingStale(root)
+        if (reviewedPlan == null) {
+            val routing = write(GradleRequest(node = node.id, declaredAt = node.declaredAt,
+                modelDigest = BuildModelReader.digest(BuildModelReader.encode(previous)), arguments = arguments))
+            gradle(listOf(GradleProtocol.ExportTask, "-P${GradleProtocol.RequestOption}=${routing.absolutePath}"),
+                ProcessDefinitionSeal.capture(seal.files + routing, seal.directories),
+                "Exporting the build model for the requested context failed")
+        }
+        val model = if (reviewedPlan == null) BuildModelReader.readAllowingStale(root) else previous
         val current = requireNotNull(model.nodes.singleOrNull { it.id == node.id }) {
             "${node.id} is no longer declared in the build; refresh the catalog"
         }
@@ -71,10 +73,14 @@ internal class GradleBuildPlanner {
         val request = GradleRequest(node = node.id, declaredAt = node.declaredAt,
             modelDigest = BuildModelReader.digest(BuildModelReader.encode(model)), arguments = arguments)
         val contract = write(request)
-        gradle(listOf(GradleProtocol.PlanTask, "-P${GradleProtocol.RequestOption}=${contract.absolutePath}"),
+        require(reviewedPlan == null || reviewedPlan.node == node.id && reviewedPlan.modelDigest == request.modelDigest &&
+            reviewedPlan.requestDigest == BuildModelReader.digest(contract)) { "Reviewed Gradle node, model or options changed; run build.plan again" }
+        if (reviewedPlan == null) gradle(listOf(GradleProtocol.PlanTask, "-P${GradleProtocol.RequestOption}=${contract.absolutePath}"),
             ProcessDefinitionSeal.capture(seal.files + contract, seal.directories), "Gradle planning failed")
         val planFile = root.resolve("${GradleProtocol.PlanDirectory}/${contract.name}")
+        require(planFile.isFile) { "Gradle plan is no longer retained; run build.plan again" }
         val plan = BuildModelReader.readPlan(planFile)
+        require(reviewedPlan == null || reviewedPlan == plan) { "Retained Gradle plan changed after review; run build.plan again" }
         require(plan.node == node.id && plan.modelDigest == request.modelDigest && plan.requestDigest == BuildModelReader.digest(contract))
         val executable = write(request.copy(expectedContextDigest = plan.contextDigest, deployments = plan.deployments,
             serverDeployments = plan.serverDeployments, secrets = plan.secrets, migrations = plan.migrations, infrastructure = plan.infrastructure))

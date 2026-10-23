@@ -2,6 +2,7 @@ package dev.shibasis.dependeasy
 
 import com.sun.net.httpserver.HttpServer
 import dev.shibasis.dependeasy.toolchain.InstallTool
+import dev.shibasis.dependeasy.handles.paths
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
 import org.gradle.testfixtures.ProjectBuilder
@@ -72,6 +73,12 @@ class InstallToolTest {
         }
         task.install()
         assertContentEquals(bytes, directory.resolve("tools/fixture.jar").readBytes())
+        val roots = listOf("workspace/build", "slots/job-1/workspace/build").map { path ->
+            ProjectBuilder.builder().withProjectDir(directory.resolve(path).apply { mkdirs() }).build()
+        }
+        val outputs = roots.map { project -> project.files(directory.resolve("tools/fixture.jar")).paths(project) }
+        assertEquals(listOf(directory.resolve("tools/fixture.jar").canonicalPath), outputs.first())
+        assertEquals(outputs.first(), outputs.last())
         task.install()
         directory.resolve("tools/.sha256").delete()
         source.writeText("tampered")

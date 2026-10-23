@@ -13,7 +13,7 @@ abstract class ReleasePlanTask : DefaultTask(), KernelSpecOwner {
     @get:Internal override val kernelSpec: KernelSpec.ReleasePlan get() = KernelSpec.ReleasePlan(
         product.get(), versionName.get(), buildNumber.get(), output.get().asFile.absolutePath,
         BuildModelReader.json.decodeFromString(host.get()), xcodeDirectory.get(), xcodeProject.get(), scheme.get(),
-        androidArtifacts.get(), androidTasks.get(), apkDirectories.get(), apkMetadata.files.map { it.absolutePath }.sorted(),
+        androidArtifacts.get(), androidTasks.get(), apkDirectories.get(),
         webWorker.get(), workerFleetNode.orNull, archiveCheckTask.get(), symbolUploadCheckTask.get(), signingTask.get(), BuildModelReader.json.decodeFromString(distribution.get()), androidFirebaseConfiguration.orNull?.asFile?.absolutePath)
     @get:Input abstract val product: Property<String>
     @get:Input abstract val versionName: Property<String>

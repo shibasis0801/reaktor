@@ -61,6 +61,7 @@ data class ShowRequest(
     val tags: List<String> = emptyList(),
     val limits: Map<String, Int> = emptyMap(),
     val note: String?,
+    val defaultNote: String? = null,
     val target: Target = Target.All,
 )
 
@@ -81,7 +82,9 @@ class OperationKernelTest {
         assertEquals(JsonPrimitive("array"), properties.getValue("tags").jsonObject["type"])
         assertEquals(JsonPrimitive("integer"), properties.getValue("limits").jsonObject.getValue("additionalProperties").jsonObject["type"])
         assertEquals(JsonArray(listOf(JsonPrimitive("string"), JsonPrimitive("null"))), properties.getValue("note").jsonObject["type"])
-        assertEquals(listOf("node", "note"), schema.input.getValue("required").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(JsonArray(listOf(JsonPrimitive("string"), JsonPrimitive("null"))), properties.getValue("defaultNote").jsonObject["type"])
+        assertEquals(listOf("node"), schema.input.getValue("required").jsonArray.map { it.jsonPrimitive.content })
+        assertNull(OperationJson.decodeFromString(ShowRequest.serializer(), """{"node":"fixture:check"}""").note)
         val variants = properties.getValue("target").jsonObject.getValue("oneOf").jsonArray.map { it.jsonObject }
         assertEquals(setOf("node", "all"), variants.map { it.getValue("properties").jsonObject.getValue("type").jsonObject.getValue("const").jsonPrimitive.content }.toSet())
         assertEquals(JsonPrimitive(false), schema.input["additionalProperties"])

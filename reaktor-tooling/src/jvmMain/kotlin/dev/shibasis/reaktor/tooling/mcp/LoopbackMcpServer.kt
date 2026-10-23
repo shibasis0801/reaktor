@@ -9,7 +9,7 @@ import java.security.MessageDigest
 import java.net.InetSocketAddress
 import java.net.URI
 import java.net.URLDecoder
-import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -51,7 +51,7 @@ class LoopbackMcpServer private constructor(
             require(port in 0..65535) { "Invalid port" }
             require(bearerToken == null || bearerToken.length >= 32) { "Bearer tokens must contain at least 32 characters" }
             val server = HttpServer.create(InetSocketAddress("127.0.0.1", port), 32)
-            val executor = ThreadPoolExecutor(4, 4, 0L, TimeUnit.MILLISECONDS, ArrayBlockingQueue(32),
+            val executor = ThreadPoolExecutor(4, 36, 0L, TimeUnit.MILLISECONDS, SynchronousQueue(),
                 { runnable -> Thread(runnable, "reaktor-mcp-http").apply { isDaemon = true } }, ThreadPoolExecutor.AbortPolicy())
             val transport = LoopbackMcpServer(server, executor)
             try {

@@ -22,7 +22,7 @@ data class NodeId(val build: String, val project: String, val name: String) {
 
 @Serializable
 data class BuildModel(
-    val schema: Int = 3,
+    val schema: Int = 4,
     val producer: Producer,
     val builds: List<BuildIdentity>,
     val declarations: List<DeclarationInput> = emptyList(),

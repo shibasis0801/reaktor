@@ -155,8 +155,10 @@ class GradlePlanningTest {
         fun bridgeRunner(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
             .withArguments(*tasks, "--configuration-cache", "--stacktrace")
             .withEnvironment(System.getenv() + (GradleProtocol.OperationRunVariable to operation) + (launcher to "launcher"))
-        bridgeRunner("exportBuildModel").build()
+        bridgeRunner("exportBuildModel", "--max-workers=1").build()
         val model = BuildModelReader.read(directory)
+        bridgeRunner("exportBuildModel", "--max-workers=2").build()
+        assertEquals(model, BuildModelReader.read(directory))
         val node = model.nodes.single { it.id.name == "checks" }
         val request = GradleRequest(node = node.id, declaredAt = node.declaredAt,
             modelDigest = BuildModelReader.digest(BuildModelReader.encode(model)), arguments = listOf("--configuration-cache"))

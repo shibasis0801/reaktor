@@ -2,6 +2,13 @@ package dev.shibasis.reaktor.tooling.mcp
 
 import dev.shibasis.reaktor.mcp.*
 import java.net.Socket
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.*
 import kotlin.test.*
 
@@ -13,6 +20,36 @@ class LoopbackMcpServerTest {
             assertEquals("tooling-test", inspection.server["serverInfo"]?.jsonObject?.get("name")?.jsonPrimitive?.content)
             assertEquals(listOf("echo"), inspection.tools.map { it["name"]?.jsonPrimitive?.content })
             assertFalse(client.callTool("echo", buildJsonObject { put("value", "hello") }).toString().isBlank())
+        }
+    }
+
+    @Test fun runReadsRemainAvailableWhileOperationsWait() {
+        val entered = CountDownLatch(4)
+        val release = CountDownLatch(1)
+        val token = "test-token-".repeat(4)
+        val client = HttpClient.newHttpClient()
+        LoopbackMcpServer.start(0, { registry() }, bearerToken = token, post = { _, _ ->
+            entered.countDown()
+            release.await(10, TimeUnit.SECONDS)
+            LoopbackHttpResponse(buildJsonObject { put("completed", true) })
+        }, read = { _, _ -> LoopbackHttpResponse(buildJsonObject { put("state", "Running") }) }).use { server ->
+            fun request(path: String) = HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port()}$path"))
+                .timeout(Duration.ofSeconds(3))
+            val operations = (1..4).map {
+                client.sendAsync(request("/operations").header("Authorization", "Bearer $token")
+                    .POST(HttpRequest.BodyPublishers.ofString("{}")).build(), HttpResponse.BodyHandlers.ofString())
+            }
+            try {
+                assertTrue(entered.await(3, TimeUnit.SECONDS))
+                assertEquals(401, client.send(request("/run").GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode())
+                val response = client.send(request("/run").header("Authorization", "Bearer $token").GET().build(),
+                    HttpResponse.BodyHandlers.ofString())
+                assertEquals(200, response.statusCode())
+                assertEquals("Running", Json.parseToJsonElement(response.body()).jsonObject["state"]?.jsonPrimitive?.content)
+            } finally {
+                release.countDown()
+            }
+            operations.forEach { assertEquals(200, it.get(3, TimeUnit.SECONDS).statusCode()) }
         }
     }
 
