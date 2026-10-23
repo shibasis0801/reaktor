@@ -351,8 +351,8 @@ private class TaskCatalogBuilder(
         val blockedReason = when {
             Regex("(?:^|[\\s/])gradlew(?:\\.bat)?(?:\\s|$)").containsMatchIn(expandedBody) ->
                 "Gradle package alias has no sealed generated binding; use its canonical build node"
-            "wrangler deploy" in words && definitionFile.parentFile == root && PackageScriptCommands.workspaces(expandedBody).isEmpty() ->
-                "Worker deploy target could not be resolved to a bounded workspace"
+            "wrangler deploy" in words || ("deploy" in words && PackageScriptCommands.workspaces(expandedBody).isNotEmpty()) ->
+                "Package deployment has no sealed generated binding; use its canonical build node"
             else -> null
         }
         val declarations = listOf(File(root, "package.json"), definitionFile, File(root, "pnpm-workspace.yaml"))
@@ -361,8 +361,7 @@ private class TaskCatalogBuilder(
         val definitionSeal = lazy {
             synchronized(this) {
                 checkDeclarations(declarations)
-                val closure = transitiveDefinitionClosure(definitionFile, workingDirectory, script, body)
-                check(closure.blockedReason == null) { requireNotNull(closure.blockedReason) }
+                val closure = transitiveDefinitionClosure(definitionFile, workingDirectory, body)
                 ProcessDefinitionSeal.capture(closure.files, closure.directories).also {
                     checkDeclarations(declarations)
                     check(sourceText.all { (file, cached) -> file.isFile && DefinitionDigestCache.metadataOf(file) == cached.first }) {
@@ -445,19 +444,16 @@ private class TaskCatalogBuilder(
     private data class DefinitionClosure(
         val files: List<File>,
         val directories: List<ProcessDefinitionDirectory>,
-        val blockedReason: String? = null,
     )
 
     private fun transitiveDefinitionClosure(
         packageFile: File,
         workingDirectory: File,
-        script: String,
         body: String,
     ): DefinitionClosure {
         val files = linkedSetOf<File>()
         val directories = linkedSetOf<ProcessDefinitionDirectory>()
         val expandedBody = expandPackageScripts(body, workingDirectory)
-        var blockedReason: String? = null
 
         fun addFile(file: File) {
             file.takeIf(File::isFile)?.canonicalFile?.let(files::add)
@@ -499,12 +495,8 @@ private class TaskCatalogBuilder(
         addFile(packageFile)
         ROOT_DEPENDENCY_FILES.forEach { addFile(File(root, it)) }
 
-        val workspacePackages = linkedSetOf<File>()
         PackageScriptCommands.workspaces(expandedBody).forEach { workspaceReference ->
-            resolveWorkspacePackage(workspaceReference)?.canonicalFile?.let {
-                files += it
-                workspacePackages += it
-            }
+            resolveWorkspacePackage(workspaceReference)?.let(::addFile)
         }
 
         LITERAL_DEFINITION_PATH.findAll(expandedBody).forEach { match ->
@@ -531,78 +523,10 @@ private class TaskCatalogBuilder(
                 }
             }
 
-        val words = "$script $expandedBody".lowercase()
-        val workerDeploy = "wrangler deploy" in words || ("deploy" in words && workspacePackages.isNotEmpty())
-        if (workerDeploy) {
-            if (workspacePackages.isEmpty() && packageFile.parentFile != root) workspacePackages += packageFile
-            if (workspacePackages.isEmpty()) {
-                blockedReason = blockedReason ?: "Worker deploy target could not be resolved to a bounded workspace"
-            }
-            workspacePackages.forEach { manifest ->
-                val targetDirectory = manifest.parentFile
-                addDirectory(targetDirectory)
-                val targetSources = targetDirectory.resolve("src")
-                generatedWorkerFiles(targetSources).forEach(::addFile)
-            }
-        }
-
         return DefinitionClosure(
             files = files.sortedBy(File::getAbsolutePath),
             directories = directories.sortedBy { it.directory.absolutePath },
-            blockedReason = blockedReason,
         )
-    }
-
-    private fun generatedWorkerFiles(source: File): List<File> {
-        val imports = if (!source.isDirectory) emptySet() else DefinitionDigestCache.listing(source,
-            setOf(".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"), setOf("node_modules", "build", "dist", ".git"))
-            .flatMap { file -> WORKER_BUNDLE_IMPORT.findAll(text(file)).map { it.groupValues[1] }.toList() }.toSet()
-        if (imports.isEmpty()) return emptyList()
-        val bundle = File(root, "modules/app/bestbuds-kt").canonicalFile
-        require(bundle.toPath().startsWith(root.canonicalFile.toPath())) { "Generated worker bundle escapes the workspace" }
-        val manifest = File(root, "modules/app/bestbuds-kt.manifest.json").canonicalFile
-        require(manifest.toPath().startsWith(root.canonicalFile.toPath()) && manifest.isFile) {
-            "Generated worker bundle manifest is unavailable; run :app:jsBrowserProductionLibraryDistribution"
-        }
-        require(manifest.length() <= 32L * 1024 * 1024) { "Generated worker bundle manifest is too large" }
-        val workerBundleManifest = Json.parseToJsonElement(text(manifest)).jsonObject
-        require(workerBundleManifest.string("format") == "1") { "Unsupported generated worker bundle manifest" }
-        val workerBundleFiles = mutableMapOf<String, List<File>>()
-        val workerModuleImports = mutableMapOf<File, List<File>>()
-        return listOf(manifest) + imports.flatMap { imported ->
-            workerBundleFiles.getOrPut(imported) {
-                val entries = (workerBundleManifest["imports"] as? JsonObject)?.get(imported) as? JsonArray
-                    ?: error("Generated worker bundle manifest has no $imported; rebuild :app:jsBrowserProductionLibraryDistribution")
-                require(entries.isNotEmpty() && entries.size <= 20_000) { "Generated worker import closure is empty or too large: $imported" }
-                val members = entries.map { element ->
-                    val entry = element.jsonObject
-                    val path = entry.string("path") ?: error("Generated worker bundle manifest has no path")
-                    require(!File(path).isAbsolute && path.split('/', '\\').none { it == ".." }) { "Generated worker bundle manifest path escapes the bundle" }
-                    val file = bundle.resolve(path).canonicalFile
-                    require(file.toPath().startsWith(bundle.toPath()) && file.isFile) { "Generated worker bundle member is missing or outside the bundle: $path" }
-                    val digest = entry.string("sha256") ?: error("Generated worker bundle manifest has no digest")
-                    require(digest.matches(Regex("[a-f0-9]{64}")) && DefinitionDigestCache.digestOf(file) == digest) {
-                        "Generated worker bundle manifest is stale: $path; rebuild :app:jsBrowserProductionLibraryDistribution"
-                    }
-                    file
-                }
-                val packageFile = bundle.resolve("package.json")
-                val entryFile = if (imported == "bestbuds-kt") bundle.resolve(
-                    parse(packageFile)?.string("main") ?: error("Generated worker bundle has no main module")
-                ) else bundle.resolve(imported.substringAfter("bestbuds-kt/"))
-                val included = members.toSet()
-                require(packageFile.canonicalFile in included && entryFile.canonicalFile in included) { "Generated worker bundle manifest omits its entry or package metadata: $imported" }
-                members.filter { it.extension in setOf("mjs", "js", "cjs") }.forEach { member ->
-                    val dependencies = workerModuleImports.getOrPut(member) {
-                        WORKER_RELATIVE_IMPORT.findAll(text(member)).map { match ->
-                            member.parentFile.resolve(match.groupValues[1]).canonicalFile
-                        }.toList()
-                    }
-                    require(dependencies.all { it in included }) { "Generated worker bundle manifest omits a dependency of ${member.relativeTo(bundle)}" }
-                }
-                members
-            }
-        }
     }
 
     private fun declarationDigest(file: File): String = declarationDigests.getOrPut(file.canonicalFile) {
@@ -654,8 +578,6 @@ private class TaskCatalogBuilder(
     }
 
     companion object {
-        private val WORKER_BUNDLE_IMPORT = Regex("""(?:from\s*|import\s*\(\s*|require\s*\(\s*|import\s*)['"](bestbuds-kt(?:/[^'"]+)?)['"]""")
-        private val WORKER_RELATIVE_IMPORT = Regex("""(?:from\s*|import\s*\(\s*|require\s*\(\s*|import\s*|new\s+URL\s*\(\s*)['"](\.[^'"]+)['"]""")
         private val ROOT_DEPENDENCY_FILES = listOf(
             "package.json", "package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".npmrc", "yarn.lock",
         )

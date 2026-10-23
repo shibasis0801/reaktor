@@ -10,7 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class JvmProjectDiscoverySealTest {
@@ -21,57 +20,6 @@ class JvmProjectDiscoverySealTest {
         assertFailsWith<IllegalArgumentException> {
             workspace.prepare(TaskInvocation(TaskId("target/app/build")))
         }
-    }
-
-    @Test
-    fun generatedWorkerSealsOnlyItsManifestClosureAndRejectsChangedImports() = fixture { root, _ ->
-        worker(root)
-        val bundle = File(root, "modules/app/bestbuds-kt").apply { mkdirs() }.canonicalFile
-        repeat(30_000) { File(bundle, "unused-$it.mjs").writeText("export const unused = $it;") }
-        val entry = File(bundle, "worker.mjs").apply { writeText("export { value } from './dependency.mjs';") }
-        val dependency = File(bundle, "dependency.mjs").apply { writeText("export const value = 1;") }
-        bundleManifest(root, listOf(entry, dependency))
-        DefinitionDigestCache.invalidate()
-        val start = System.nanoTime()
-        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        val elapsedMillis = (System.nanoTime() - start) / 1_000_000
-        assertTrue(elapsedMillis < 3_000, "30,000-file generated bundle discovery took $elapsedMillis ms")
-        val invocation = TaskInvocation(TaskId("target/worker/npm/deploy"))
-        assertNull(workspace.catalog.tasks.first { it.id == invocation.taskId }.unavailableReason)
-        val prepared = workspace.prepare(invocation)
-        val seal = assertNotNull(prepared.request.definitionSeal)
-        assertEquals(setOf("worker.mjs", "dependency.mjs", "package.json"), seal.files.filter { it.parentFile == bundle }.map { it.name }.toSet())
-        assertTrue(seal.directories.none { it.directory == bundle })
-        File(bundle, "unused-1.mjs").writeText("export const unrelated = 10;")
-        assertEquals(seal.digest, workspace.prepare(invocation).request.definitionSeal?.digest)
-        dependency.writeText("export const value = 2;")
-        assertFailsWith<IllegalStateException> { workspace.prepare(invocation) }
-        SupervisedProcessExecutor().use { executor -> assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) } }
-        val changed = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        assertTrue(assertFailsWith<IllegalArgumentException> { changed.prepare(invocation) }.message.orEmpty().contains("manifest is stale"))
-        println("worker-manifest discovery-ms=$elapsedMillis files=${seal.files.size}")
-    }
-
-    @Test
-    fun generatedWorkerMissingIncompleteAndEscapingManifestsFailClosed() = fixture { root, _ ->
-        worker(root)
-        val entry = File(root, "modules/app/bestbuds-kt/worker.mjs").apply { parentFile.mkdirs(); writeText("export const value = 1;") }
-        fun reason(): String = runCatching {
-            assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(TaskInvocation(TaskId("target/worker/npm/deploy")))
-        }.exceptionOrNull()?.message.orEmpty()
-        assertTrue(reason().contains("manifest is unavailable"))
-        bundleManifest(root, listOf(entry), imported = "bestbuds-kt/other.mjs")
-        assertTrue(reason().contains("manifest has no bestbuds-kt/worker.mjs"))
-        bundleManifest(root, listOf(entry), path = "../../../package.json")
-        assertTrue(reason().contains("path escapes"))
-        bundleManifest(root, listOf(entry), path = "missing.mjs")
-        assertTrue(reason().contains("member is missing"))
-        bundleManifest(root, listOf(entry))
-        assertEquals("", reason())
-        entry.writeText("export { value } from './unlisted.mjs';")
-        File(entry.parentFile, "unlisted.mjs").writeText("export const value = 1;")
-        bundleManifest(root, listOf(entry))
-        assertTrue(reason().contains("manifest omits a dependency"))
     }
 
     @Test
@@ -111,25 +59,23 @@ class JvmProjectDiscoverySealTest {
     }
 
     @Test
-    fun pnpmWorkspaceDeploySealsItsTargetAndRejectsLaterChanges() = fixture { root, _ ->
+    fun pnpmWorkspaceDeployRequiresItsCanonicalBuildNode() = fixture { root, _ ->
         worker(root)
-        val rootManifest = File(root, "package.json")
-        rootManifest.writeText("""{"name":"pnpm-workspace","packageManager":"pnpm@12.10.1","reaktor":{},"workspaces":["targets/worker"],"scripts":{"deploy":"pnpm --filter worker run deploy"}}""")
-        // This fixture needs only authored source, so it has no generated worker imports.
-        File(root, "targets/worker/src/index.ts").writeText("export default {};")
+        File(root, "package.json").writeText("""{"name":"pnpm-workspace","packageManager":"pnpm@12.10.1","reaktor":{},"workspaces":["targets/worker"],"scripts":{"deploy":"pnpm --filter worker run deploy"}}""")
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        val prepared = workspace.prepare(TaskInvocation(TaskId("npm/deploy")))
-        assertEquals(SafetyClass.UnknownRemoteEffect, prepared.plan.safety.classification)
-        assertTrue(prepared.request.definitionSeal!!.files.any { it == File(root, "targets/worker/package.json").canonicalFile })
-        assertTrue(prepared.request.definitionSeal!!.directories.any { it.directory == File(root, "targets/worker").canonicalFile })
-        File(root, "targets/worker/src/index.ts").appendText("// Changed deploy source")
-        assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(TaskId("npm/deploy"))) }
+        for (id in listOf("npm/deploy", "target/worker/npm/deploy")) {
+            val task = workspace.catalog.tasks.single { it.id.value == id }
+            assertEquals(SafetyClass.UnknownRemoteEffect, task.safety.classification)
+            assertTrue(task.unavailableReason.orEmpty().contains("canonical build node"))
+            assertTrue(assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(task.id)) }
+                .message.orEmpty().contains("canonical build node"))
+        }
     }
 
     @Test
     fun pnpmYamlMembershipBindsWorkspaceNamesAndSealsItsDefinition() = fixture { root, _ ->
         worker(root)
-        File(root, "package.json").writeText("""{"name":"pnpm-workspace","packageManager":"pnpm@12.10.1","reaktor":{},"scripts":{"deploy":"pnpm --filter worker run deploy"}}""")
+        File(root, "package.json").writeText("""{"name":"pnpm-workspace","packageManager":"pnpm@12.10.1","reaktor":{},"scripts":{"check":"pnpm --filter worker run check"}}""")
         val yaml = File(root, "pnpm-workspace.yaml").apply {
             writeText("packages: ['targets/*', '!targets/excluded'] # Authored workspace membership\n")
         }
@@ -138,24 +84,17 @@ class JvmProjectDiscoverySealTest {
         assertEquals(listOf("targets/worker"), PackageWorkspaces.paths(root))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         assertTrue(workspace.catalog.tasks.any { it.id.value == "target/worker/npm/deploy" })
-        val prepared = workspace.prepare(TaskInvocation(TaskId("npm/deploy")))
+        val prepared = workspace.prepare(TaskInvocation(TaskId("npm/check")))
         assertTrue(prepared.request.definitionSeal!!.files.any { it == yaml.canonicalFile })
         assertTrue(prepared.request.definitionSeal!!.files.any { it == File(root, "targets/worker/package.json").canonicalFile })
         yaml.writeText("packages: ['targets/*', 'packages/*']\n")
-        assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(TaskId("npm/deploy"))) }
+        assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(TaskId("npm/check"))) }
     }
 
     private fun worker(root: File) {
         File(root, "package.json").writeText("""{"name":"worker-seal","reaktor":{},"workspaces":["targets/worker"]}""")
-        File(root, "targets/worker/package.json").apply { parentFile.mkdirs(); writeText("""{"name":"worker","scripts":{"deploy":"wrangler deploy"}}""") }
-        File(root, "modules/app/bestbuds-kt/package.json").apply { parentFile.mkdirs(); writeText("""{"name":"bestbuds-kt","main":"worker.mjs"}""") }
-        File(root, "targets/worker/src/index.ts").apply { parentFile.mkdirs(); writeText("import { value } from 'bestbuds-kt/worker.mjs';") }
-    }
-
-    private fun bundleManifest(root: File, members: List<File>, imported: String = "bestbuds-kt/worker.mjs", path: String? = null) {
-        val bundle = File(root, "modules/app/bestbuds-kt").canonicalFile
-        val entries = (members + File(bundle, "package.json")).distinct().joinToString(",") { file -> """{"path":"${path ?: file.canonicalFile.relativeTo(bundle).invariantSeparatorsPath}","sha256":"${DefinitionDigestCache.digestOf(file)}"}""" }
-        File(root, "modules/app/bestbuds-kt.manifest.json").writeText("""{"format":1,"imports":{"$imported":[$entries]}}""")
+        File(root, "targets/worker/package.json").apply { parentFile.mkdirs(); writeText("""{"name":"worker","scripts":{"deploy":"wrangler deploy","check":"node --version"}}""") }
+        File(root, "targets/worker/src/index.ts").apply { parentFile.mkdirs(); writeText("export default {};") }
     }
 
     private fun fixture(modules: Int = 2, block: (File, File) -> Unit) {
