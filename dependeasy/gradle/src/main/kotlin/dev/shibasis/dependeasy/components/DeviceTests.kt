@@ -61,6 +61,7 @@ class DeviceTestsScope internal constructor(
                 directory.resolve(plan.artifacts.getValue("iosDebugApp"))
             })
         } ?: emptyFile
+        val emptyOutputs = project.files().elements
         val declared = spec.flows.mapValues { (_, selection) ->
             val directory = root.file(selection.directory)
             if (selection.files.isNotEmpty()) {
@@ -110,12 +111,13 @@ class DeviceTestsScope internal constructor(
             installApplication.set(install)
             appFile.set(platform.zip(install) { selected, installing -> selected == DevicePlatform.Ios && installing }
                 .flatMap { if (it) ios else emptyFile })
-            applicationOutputs.from(platform.zip(install) { selected, installing ->
-                if (!installing) emptyList<Any>() else when (selected) {
-                    DevicePlatform.Android -> requireNotNull(android)
-                    DevicePlatform.Ios -> ios
-                }
-            })
+            applicationOutputs.from(platform.zip(install) { selected, installing -> selected to installing }
+                .flatMap { (selected, installing) ->
+                    if (!installing) emptyOutputs else when (selected) {
+                        DevicePlatform.Android -> requireNotNull(android).elements
+                        DevicePlatform.Ios -> ios.map { setOf<org.gradle.api.file.FileSystemLocation>(it) }
+                    }
+                })
             uninstallOnSignatureMismatch.set(project.option(BuildOption.boolean("dependeasy.uninstallOnSignatureMismatch")))
             reportDirectory.set(project.layout.buildDirectory.dir("reports/device/$name"))
             contractFile.set(project.layout.buildDirectory.file("dependeasy/device/$name.json"))

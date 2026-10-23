@@ -119,14 +119,22 @@ class VerificationSuitesTest {
             val apk = tasks.register("apk") { outputs.dir(layout.buildDirectory.dir("apk")) }
             publishOutput(OutputKind.AndroidApk, layout.buildDirectory.dir("apk"), Build.Debug, producer = apk)
         """.trimIndent())
+        write("apple/release.input.json", BuildModelReader.json.encodeToString(ReleasePlan.serializer(),
+            ReleasePlan(product = "fixture", versionName = "1", buildNumber = 1, bundleId = "fixture.app",
+                team = "fixture", artifacts = mapOf("iosDebugApp" to "ios/app.bin"), commands = emptyMap())))
         write("apple/build.gradle.kts", """
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
             plugins { java }
-            val release = tasks.register("release") { outputs.file(layout.buildDirectory.file("release.json")) }
+            val release = tasks.register<Copy>("release") {
+                from(layout.projectDirectory.file("release.input.json"))
+                into(layout.buildDirectory)
+                rename { "release.json" }
+            }
             publishOutput(OutputKind.GeneratedContract, layout.buildDirectory.file("release.json"), Contract.AppleRelease, producer = release)
         """.trimIndent())
         write("android/login.yaml", "appId: fixture.android\n---\n- launchApp\n")
+        write("ios/app.bin", "fixture app output")
         write("ios/login.yaml", "appId: fixture.ios\n---\n- launchApp\n")
         write("ios/unused.yaml", "appId: fixture.ios\n---\n- launchApp\n")
         write("prepare.py", "from pathlib import Path\nPath('prepared').write_text('ready')\n")
@@ -142,6 +150,7 @@ class VerificationSuitesTest {
         """.trimIndent())
         write("phones/build.gradle.kts", """
             import dev.shibasis.dependeasy.components.deviceTests
+            import dev.shibasis.dependeasy.verification.DeviceFlow
             import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.device-tests") }
@@ -154,11 +163,15 @@ class VerificationSuitesTest {
                     optionalEnvironmentFiles = listOf("device.local.env")))
                 alias("test:phones", flows, DeviceOptions(DevicePlatform.Ios, "login", ArtifactPolicy.Always))
             }
+            tasks.register<Copy>("inspectIosApplication") {
+                from(tasks.named<DeviceFlow>("flows").get().applicationOutputs)
+                into(layout.buildDirectory.dir("inspected"))
+            }
         """.trimIndent())
-        fun runner(flow: String) = GradleRunner.create().withProjectDir(root).withPluginClasspath()
+        fun runner(flow: String, vararg extra: String) = GradleRunner.create().withProjectDir(root).withPluginClasspath()
             .withArguments(listOf(":phones:flows", "--platform", "ios") +
                 (if (flow.isBlank()) emptyList() else listOf("--flow", flow)) +
-                listOf("--artifacts", "always", "-x", ":phones:flows", "exportBuildModel", "generatePackageScripts", "--configuration-cache", "--stacktrace"))
+                listOf("--artifacts", "always", "-x", ":phones:flows", "exportBuildModel", "generatePackageScripts", "--configuration-cache", "--stacktrace") + extra)
         fun run(flow: String = "login") = runner(flow).build()
         fun spec(): KernelSpec.DeviceFlow = assertIs(BuildModelReader.read(root).nodes.single { it.id.project == ":phones" && it.id.name == "flows" }.kernel?.spec)
         GradleRunner.create().withProjectDir(root).withPluginClasspath()
@@ -201,6 +214,12 @@ class VerificationSuitesTest {
         run("")
         assertFalse("PRIVATE_FIXTURE_TOKEN" in spec().environmentKeys)
         assertContains(runner("undeclared").buildAndFail().output, "Select exactly one declared flow: undeclared")
+        fun installing() = runner("login", "-Pdependeasy.installApplication=true", ":phones:inspectIosApplication").build()
+        val installed = installing()
+        assertEquals(org.gradle.testkit.runner.TaskOutcome.SUCCESS, installed.task(":apple:release")?.outcome)
+        assertNull(installed.task(":app:apk"))
+        assertEquals("fixture app output", root.resolve("phones/build/inspected/app.bin").readText())
+        assertContains(installing().output, "Reusing configuration cache")
         fun prepare() = GradleRunner.create().withProjectDir(root).withPluginClasspath()
             .withArguments("prepared", "exportBuildModel", "--configuration-cache", "--stacktrace").build()
         prepare()
