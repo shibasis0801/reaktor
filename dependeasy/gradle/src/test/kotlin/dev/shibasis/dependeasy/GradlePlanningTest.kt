@@ -20,6 +20,7 @@ class GradlePlanningTest {
             import dev.shibasis.dependeasy.model.BuildOption
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             option(BuildOption.boolean("fixture.feature")).get()
+            option(BuildOption.boolean("dependeasy.installApplication")).get()
             option(BuildOption.string("fixture.secret", "fixture-sensitive-default", sensitive = true)).get()
             abstract class OptionFixture : DefaultTask() {
                 @get:Input @get:org.gradle.api.tasks.options.Option(option = "active", description = "Enable fixture")
@@ -152,8 +153,9 @@ class GradlePlanningTest {
 
         var operation = "planning"
         var launcher = "APP_ICON_100"
+        val propertyArgument = "-Pdependeasy.installApplication=true"
         fun bridgeRunner(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
-            .withArguments(*tasks, "--configuration-cache", "--stacktrace")
+            .withArguments(*tasks, propertyArgument, "--configuration-cache", "--stacktrace")
             .withEnvironment(System.getenv() + (GradleProtocol.OperationRunVariable to operation) + (launcher to "launcher"))
         bridgeRunner("exportBuildModel", "--max-workers=1").build()
         val model = BuildModelReader.read(directory)
@@ -206,12 +208,25 @@ class GradlePlanningTest {
         assertEquals(OptionType.Boolean, selection.options.single { it.name == "active" }.type)
         assertTrue(selection.options.single { it.name == "label" }.multiple)
         val selectedRequest = request.copy(node = selection.id, declaredAt = selection.declaredAt,
-            arguments = listOf("--no-active", "--label=one", "--label=two"))
+            arguments = listOf(propertyArgument, "--no-active", "--label=one", "--label=two"))
         fun selectedContract(value: GradleRequest): Pair<String, String> {
             val encoded = BuildModelReader.json.encodeToString(GradleRequest.serializer(), value) + "\n"
             val id = BuildModelReader.digest(encoded)
             val file = contract.parentFile.resolve("$id.json").apply { writeText(encoded) }
             return id to "-P${GradleProtocol.RequestOption}=${file.absolutePath}"
+        }
+        for (arguments in listOf(
+            listOf("-Pdependeasy.installApplication=false"),
+            listOf(propertyArgument, propertyArgument),
+            listOf("-Pdependeasy.installApplication"),
+            listOf("-Pdependeasy.unknown=true"),
+            listOf("-Pfixture.secret=fixture-sensitive-default"),
+            listOf("-P${GradleProtocol.RequestOption}=other.json"),
+        )) {
+            val (rejected, _) = selectedContract(selectedRequest.copy(arguments = arguments))
+            assertFailsWith<IllegalArgumentException> {
+                GradleInvocationKernel.validate(directory, directory.resolve("${GradleProtocol.RequestDirectory}/$rejected.json"), model)
+            }
         }
         val (selectionDigest, selectionOption) = selectedContract(selectedRequest)
         bridgeRunner(GradleProtocol.PlanTask, selectionOption).build()
@@ -222,7 +237,9 @@ class GradlePlanningTest {
         bridgeRunner(GradleProtocol.RunTask, executionOption).build()
         assertEquals("false|one|two", directory.resolve("build/selected.txt").readText())
         val selectedResult = BuildModelReader.readRunResult(directory.resolve("${GradleProtocol.ResultDirectory}/$executionDigest.json"))
-        assertEquals(ReceiptStatus.Succeeded, BuildModelReader.readReceipt(directory.resolve(selectedResult.receipts.single())).status)
+        val selectedReceipt = BuildModelReader.readReceipt(directory.resolve(selectedResult.receipts.single()))
+        assertEquals(ReceiptStatus.Succeeded, selectedReceipt.status)
+        assertEquals("true", selectedReceipt.resolvedOptions.single { it.option?.name == "dependeasy.installApplication" }.option?.value)
     }
 
     @Test fun `worker bridge plans without writes and executes only its sealed bundle`() {

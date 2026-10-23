@@ -44,11 +44,24 @@ object GradleInvocationKernel {
                 } == true
             }) { "Invocation environment must match the declared build context" }
         }
+        val properties = request.arguments.filter { it.startsWith("-P") && !it.startsWith(environmentPrefix) }
+        val declarations = model.buildOptions(node.id).mapNotNull { it.option }.groupBy { it.name }
+        val reserved = setOf(GradleProtocol.RequestOption, GradleProtocol.CorrelationOption,
+            GradleProtocol.DeployActionOption, GradleProtocol.DeployRequestOption)
+        require(properties.map { it.substringBefore('=') }.distinct().size == properties.size) {
+            "Invocation must select each build property once"
+        }
+        properties.forEach { argument ->
+            val name = argument.removePrefix("-P").substringBefore('=')
+            val options = declarations[name].orEmpty()
+            require('=' in argument && name !in reserved && options.isNotEmpty() && options.all {
+                !it.sensitive && OptionSource.CommandLine in it.resolutionOrder && it.value == argument.substringAfter('=')
+            }) { "Invocation build properties must match the declared build context" }
+        }
         require(request.arguments.none { argument ->
             argument in setOf("-p", "--project-dir", "-g", "--gradle-user-home") ||
                 argument.startsWith("-p") || argument.startsWith("-g") ||
-                argument.startsWith("--project-dir=") || argument.startsWith("--gradle-user-home=") ||
-                (argument.startsWith("-Pdependeasy.") && !argument.startsWith(environmentPrefix))
+                argument.startsWith("--project-dir=") || argument.startsWith("--gradle-user-home=")
         }) { "Invocation arguments cannot change workspace ownership or the Gradle protocol" }
         deploymentNodes(model, node.id).forEach { deployment ->
             val environment = when (val spec = deployment.kernel?.spec) {
