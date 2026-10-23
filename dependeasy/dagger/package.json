@@ -1,1 +1,1 @@
-{"name":"dependeasy-dagger","version":"0.0.0","type":"module","packageManager":"pnpm@12.10.1","dependencies":{"typescript":"6.0.3"},"devDependencies":{"typescript-native":"npm:typescript@7.0.2"},"scripts":{"typecheck":"node ../javascript/typecheck.mjs --noEmit"}}
+{"name":"dependeasy-dagger","version":"0.0.0","type":"module","packageManager":"pnpm@12.10.1","dependencies":{"typescript":"6.0.3"},"devDependencies":{"typescript-native":"npm:typescript@7.0.2"},"scripts":{"typecheck":"node ../javascript/cli/typecheck.ts --noEmit"}}

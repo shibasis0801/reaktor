@@ -59,7 +59,7 @@ internal class DaggerModule(private val project: Project, options: List<OptionAr
                     put("packageManager", "pnpm@" + ToolchainVersions.Pnpm)
                     putJsonObject("dependencies") { put("typescript", ToolchainVersions.TypeScriptApi) }
                     putJsonObject("devDependencies") { put("typescript-native", "npm:typescript@" + ToolchainVersions.TypeScript) }
-                    putJsonObject("scripts") { put("typecheck", "node ../javascript/typecheck.mjs --noEmit") }
+                    putJsonObject("scripts") { put("typecheck", "node ../javascript/cli/typecheck.ts --noEmit") }
                 }.toString(),
                 "tsconfig.json" to buildJsonObject {
                     putJsonObject("compilerOptions") {

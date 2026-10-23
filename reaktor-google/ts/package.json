@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.ts",
     "scripts": {
-        "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
+        "build": "node ../../dependeasy/javascript/cli/typecheck.ts -b",
         "bindings": "../../gradlew :reaktor-google:karakumBindings"
     },
     "dependencies": {

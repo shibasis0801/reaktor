@@ -25,8 +25,8 @@
         }
     },
     "scripts": {
-        "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
-        "dev": "node ../../dependeasy/javascript/typecheck.mjs -b --watch",
+        "build": "node ../../dependeasy/javascript/cli/typecheck.ts -b",
+        "dev": "node ../../dependeasy/javascript/cli/typecheck.ts -b --watch",
         "clean": "rm -rf dist",
         "bindings": "../../gradlew :reaktor-tactile:karakumBindings"
     },

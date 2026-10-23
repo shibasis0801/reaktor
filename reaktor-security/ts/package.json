@@ -6,7 +6,7 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "build": "node ../../dependeasy/javascript/typecheck.mjs -b",
+        "build": "node ../../dependeasy/javascript/cli/typecheck.ts -b",
         "bindings": "../../gradlew :reaktor-security:karakumBindings"
     },
     "dependencies": {

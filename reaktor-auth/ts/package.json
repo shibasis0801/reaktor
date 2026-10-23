@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "node ../../dependeasy/javascript/typecheck.mjs -b"
+    "build": "node ../../dependeasy/javascript/cli/typecheck.ts -b"
   },
   "dependencies": {
     "reaktor-reaktor-auth": "workspace:*"
