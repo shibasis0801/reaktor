@@ -145,6 +145,10 @@ class VerificationSuitesTest {
             dependeasy.workspace {
                 val prepared by prepare(DeviceHook.PythonDevice("prepare.py"))
                 val phoneChecks by verify(projects.phones)
+                val pr by verify()
+                delivery(after = pr) {
+                    val appRelease by release(output(projects.apple, OutputKind.GeneratedContract, Contract.AppleRelease), LaneHandle("fixture", "internal"))
+                }
                 packageScripts()
             }
         """.trimIndent())
@@ -189,6 +193,7 @@ class VerificationSuitesTest {
         assertEquals(listOf("FIXTURE_MESSAGE"), spec().environmentAllowList)
         assertFalse(Regex("bestbuds|manna", RegexOption.IGNORE_CASE).containsMatchIn(BuildModelReader.json.encodeToString(spec())))
         val model = BuildModelReader.read(root)
+        assertTrue(model.edges.any { it is Edge.After && it.from == NodeId("deviceOptions", ":", "appRelease") && it.to == NodeId("deviceOptions", ":", "pr") })
         val options = model.nodes.single { it.id == NodeId("deviceOptions", ":phones", "flows") }.options.associateBy { it.name }
         assertEquals(setOf("platform", "flow", "artifacts"), options.keys)
         assertEquals(setOf("android", "ios"), options.getValue("platform").allowedValues.map(String::lowercase).toSet())
@@ -217,6 +222,7 @@ class VerificationSuitesTest {
         fun installing() = runner("login", "-Pdependeasy.installApplication=true", ":phones:inspectIosApplication").build()
         val installed = installing()
         assertEquals(org.gradle.testkit.runner.TaskOutcome.SUCCESS, installed.task(":apple:release")?.outcome)
+        assertNull(installed.task(":pr"))
         assertNull(installed.task(":app:apk"))
         assertEquals("fixture app output", root.resolve("phones/build/inspected/app.bin").readText())
         assertContains(installing().output, "Reusing configuration cache")

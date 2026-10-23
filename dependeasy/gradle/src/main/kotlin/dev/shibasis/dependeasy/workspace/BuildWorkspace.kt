@@ -205,7 +205,7 @@ internal class BuildWorkspace(private val project: Project) {
                         targets[node.id.toString()]?.includedNodes?.forEach { gate(requireNotNull(it.task).get()) }
                         connect(node, gates)
                     }
-                    val producers = target.consumedOutputs.flatMap { output ->
+                    val producers = target.consumedOutputs.filter { it.kind != OutputKind.GeneratedContract }.flatMap { output ->
                         require(output.build == owner.rootProject.name) { "Delivery gates require outputs from this build" }
                         outputProducers.getValue(output.nodeId).invoke()
                     }
