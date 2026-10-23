@@ -206,15 +206,20 @@ object CliCapabilities {
     private const val ConfigLimit = 4L * 1024 * 1024
 
     private fun capture(binary: String, flag: String): String? = runCatching {
-        val process = ProcessBuilder(binary, flag)
-            .redirectErrorStream(true)
-            .start()
-        process.outputStream.close()
-        val text = process.inputStream.bufferedReader().readText()
-        if (!process.waitFor(10, TimeUnit.SECONDS)) {
-            process.destroyForcibly()
-            return null
+        val output = File.createTempFile("reaktor-capability-", ".log")
+        try {
+            val process = ProcessBuilder(binary, flag)
+                .redirectErrorStream(true)
+                .redirectOutput(output)
+                .start()
+            process.outputStream.close()
+            if (!process.waitFor(10, TimeUnit.SECONDS)) {
+                process.destroyForcibly()
+                return null
+            }
+            output.takeIf { process.exitValue() == 0 }?.let(::small)
+        } finally {
+            output.delete()
         }
-        text.takeIf { process.exitValue() == 0 }
     }.getOrNull()
 }

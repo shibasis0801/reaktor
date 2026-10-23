@@ -67,6 +67,22 @@ class CliCapabilitiesTest {
         val absent = CliCapabilities.probe(RuntimeKind.Codex, binary = "codex-does-not-exist-here")
         assertNull(absent.version)
         assertFalse(absent.effortControl.usable)
+        val binary = Files.createTempFile("capability-probe-", ".sh").toFile()
+        try {
+            assertTrue(binary.setExecutable(true))
+            binary.writeText("#!/bin/sh\nprintf 'probe 1.2.3\\n'\n/usr/bin/yes padding | /usr/bin/head -c 262144\n")
+            assertEquals("1.2.3", CliCapabilities.probe(RuntimeKind.Codex, binary.path, binary.parentFile, emptyMap()).version)
+            binary.writeText("#!/bin/sh\nprintf 'probe 1.2.3\\n'\nexit 3\n")
+            assertNull(CliCapabilities.probe(RuntimeKind.Codex, binary.path, binary.parentFile, emptyMap()).version)
+            binary.writeText("#!/bin/sh\nexec /bin/sleep 30\n")
+            val started = System.nanoTime()
+            val unresponsive = CliCapabilities.probe(RuntimeKind.Codex, binary.path, binary.parentFile, emptyMap())
+            assertNull(unresponsive.version)
+            assertFalse(unresponsive.effortControl.usable)
+            assertTrue((System.nanoTime() - started) / 1_000_000 in 9_000..20_000, "The process timeout must include waiting for output")
+        } finally {
+            binary.delete()
+        }
     }
 
     @Test
