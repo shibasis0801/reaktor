@@ -4,7 +4,6 @@
     "description": "Port graph data structure with React Flow visualization",
     "main": "./ts/index.ts",
     "scripts": {
-        "build": "node ../dependeasy/javascript/cli/typecheck.ts --projects ts/tsconfig.json",
         "bindings": "pnpm exec karakum --config ts/karakum.config.json",
         "typecheck": "../gradlew :reaktor-graph-port:checkGraphPortTypeScriptTypes"
     },
