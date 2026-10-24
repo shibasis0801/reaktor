@@ -51,7 +51,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             emptyObjectSchema(), true, true) {
             buildJsonObject { put("graphs", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(TaskGraphSummary.serializer()), workspace.board.summaries())) }
         },
-        McpTool("agent_taskgraph_read", "Read a task graph: its record, its tasks with status, agent, dependencies and outcomes, the ready tasks and blocked tasks with their reasons. " +
+        McpTool("agent_taskgraph_read", "Read a task graph: its record, its tasks with status, agent, dependencies and outcomes, latest handoffs, decisions, retained messages, the ready tasks and blocked tasks with their reasons. " +
             "format text returns the compact text an agent reads, at most about 60,000 characters.",
             objectSchema(mapOf(graphId, "format" to enumSchema("json or text", listOf("json", "text"))), listOf("graph")), true, true) { args ->
             args.only("graph", "format")

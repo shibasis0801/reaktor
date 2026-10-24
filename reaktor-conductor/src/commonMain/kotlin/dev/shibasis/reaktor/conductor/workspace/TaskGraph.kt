@@ -215,6 +215,9 @@ data class TaskGraphView(
     val tasks: List<BoardTask>,
     val ready: List<String> = emptyList(),
     val blocked: Map<String, List<String>> = emptyMap(),
+    val messages: List<AgentMessage> = emptyList(),
+    val handoffs: Map<String, TaskHandoff> = emptyMap(),
+    val decisions: List<TaskDecision> = emptyList(),
 )
 
 @Serializable

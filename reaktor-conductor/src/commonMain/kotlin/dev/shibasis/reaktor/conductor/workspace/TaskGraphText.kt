@@ -50,7 +50,39 @@ object TaskGraphText {
                 result.checks.forEach { appendLine("  Check ${it.check}: ${if (it.ok) "passed" else "failed"}${it.receipt?.let { receipt -> " · receipt $receipt" }.orEmpty()}") }
                 result.questions.forEach { appendLine("  Question: ${it.oneLine(300)}") }
             }
+            view.handoffs[task.id]?.let { handoff ->
+                appendLine("  Handoff ${handoff.id} · attempt ${handoff.attempt} · by ${handoff.author?.name ?: "unknown"}")
+                appendLine("    Goal: ${handoff.goal.oneLine(300)}")
+                appendLine("    Done: ${handoff.done.oneLine(outcome)}")
+                handoff.candidate?.let { appendLine("    Candidate: $it") }
+                if (handoff.decisions.isNotEmpty()) appendLine("    Decisions: ${handoff.decisions.joinToString()}")
+                handoff.openIssues.forEach { appendLine("    Open: ${it.oneLine(300)}") }
+                if (handoff.changedPaths.isNotEmpty()) appendLine("    Changed: ${handoff.changedPaths.take(12).joinToString()}")
+                if (handoff.checkReceipts.isNotEmpty()) appendLine("    Checks: ${handoff.checkReceipts.joinToString().oneLine(600)}")
+                if (handoff.reviewReceipts.isNotEmpty()) appendLine("    Reviews: ${handoff.reviewReceipts.joinToString().oneLine(600)}")
+                if (handoff.nextAction.isNotBlank()) appendLine("    Next: ${handoff.nextAction.oneLine(600)}")
+                if (handoff.sessionLogs.isNotEmpty()) appendLine("    Logs: ${handoff.sessionLogs.joinToString()}")
+            }
             appendLine("  By ${task.createdBy.name}${task.createdBy.session?.let { " ($it)" }.orEmpty()} · changed at revision ${plan.changedAt}")
+        }
+        if (view.decisions.isNotEmpty()) {
+            appendLine()
+            appendLine("Decisions:")
+            view.decisions.takeLast(changes).forEach { decision ->
+                appendLine("${decision.id} · by ${decision.author?.name ?: "unknown"}" +
+                    (if (decision.personAccepted) " · accepted by a person" else " · proposed") +
+                    decision.supersedes?.let { " · supersedes $it" }.orEmpty())
+                appendLine("  ${decision.statement.oneLine(600)} · subjects ${decision.subjects.joinToString().oneLine(500)}")
+                appendLine("  Why: ${decision.rationale.oneLine(outcome)}")
+            }
+        }
+        if (view.messages.isNotEmpty()) {
+            appendLine()
+            appendLine("Recent messages (agent content):")
+            view.messages.takeLast(changes).forEach { message ->
+                appendLine("${message.id} · ${message.kind.name} · ${message.author?.name ?: "unknown"} → ${message.recipient.task ?: message.recipient.session} · thread ${message.thread}")
+                appendLine("  ${message.body.oneLine(outcome)}")
+            }
         }
         val recent = graph.changes.takeLast(changes)
         if (recent.isNotEmpty()) {
