@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.*
 import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.CopyOnWriteArrayList
@@ -52,6 +53,78 @@ class TaskGraphRuntimeTest {
         val data = Files.createTempDirectory("taskgraph-data")
         try { AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude)).use { body(it) } }
         finally { root.deleteTreeSafely(within = temporary); data.toFile().deleteTreeSafely(within = temporary) }
+    }
+
+
+    @Test fun anAttemptPinsTheDiscoveredProfileAndOnlyARetryUsesItsRevision() = runBlocking {
+        val root = Files.createTempDirectory("taskgraph-profile-root").toFile()
+        val data = Files.createTempDirectory("taskgraph-profile-data")
+        val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val requests = CopyOnWriteArrayList<AgentRequest>()
+        val runtime = object : AgentRuntime {
+            override val kind = RuntimeKind.Codex
+            override fun run(request: AgentRequest) = flow {
+                requests += request
+                val first = requests.size == 1
+                val session = ProviderSession(kind, "profile-${requests.size}")
+                emit(AgentEvent.Started(request.agent.id, session))
+                if (first) release.await()
+                emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, "attempt ${requests.size}", !first,
+                    failure = if (first) "Try the next revision" else null, session = session)))
+            }
+        }
+        try {
+            AgentWorkspaceConnection.open(root, data, mapOf(runtime.kind to runtime),
+                discover = { ProviderCapability(it, defaultModel = "model-a",
+                    effort = EffortSupport(listOf(NativeEffort("low"), NativeEffort("high")), source = "fixture")) }).use { connection ->
+                suspend fun save(profile: AgentProfile, revision: Long? = null): AgentProfile {
+                    val result = connection.call("agent_profile_save", buildJsonObject {
+                        put("profile", AgentWorkspaceJson.encodeToJsonElement(AgentProfile.serializer(), profile))
+                        put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), person))
+                        revision?.let { put("expectedRevision", it) }
+                    })
+                    return AgentWorkspaceJson.decodeFromJsonElement(AgentProfile.serializer(), result)
+                }
+                val first = save(AgentProfile("builder", "Builder", RuntimeKind.Codex, "model-a", "high", "Find the smallest fix.",
+                    tools = ToolPolicy(allow = listOf("Read"), deny = listOf("Network"))))
+                val seat = TaskSeat(profile = first.id)
+                val discovered = connection.call("agent_taskgraph_seats", buildJsonObject {
+                    put("seat", AgentWorkspaceJson.encodeToJsonElement(TaskSeat.serializer(), seat))
+                }).jsonObject.getValue("resolved").let { AgentWorkspaceJson.decodeFromJsonElement(ResolvedTaskSeat.serializer(), it) }
+                val proposed = connection.proposeTaskGraph(TaskGraphDraft("Profile", tasks = listOf(
+                    TaskGraphOp.Add("Build it", key = "build", seat = seat),
+                    TaskGraphOp.Add("Accept it", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("build"))),
+                )), person)
+                connection.startTaskGraph("G1", proposed.graph.revision, person)
+                withTimeout(10_000) { while (requests.isEmpty()) delay(10) }
+                val pinned = connection.taskGraph("G1").task("Build it").graph!!.resolvedSeat
+                assertEquals(discovered, pinned)
+                assertEquals("Builder", requests.single().agent.name)
+                assertEquals("model-a", requests.single().agent.model)
+                assertEquals(NativeEffort("high"), requests.single().agent.effort)
+                assertTrue("Find the smallest fix." in requests.single().agent.instructions)
+                assertEquals(listOf("Network"), requests.single().agent.tools.deny)
+                assertFalse(requests.single().agent.tools.allowWrites)
+                save(first.copy(model = "model-b", effort = "low", instructions = "Test the boundary cases."), first.revision)
+                assertEquals(pinned, connection.taskGraph("G1").task("Build it").graph!!.resolvedSeat)
+                connection.pauseTaskGraph("G1", "Inspect the first attempt", person)
+                release.complete(Unit)
+                connection.until("G1") { it.task("Build it").graph?.state == TaskState.Failed }
+                connection.patchTaskGraph("G1", TaskGraphPatch(listOf(TaskGraphOp.Retry("T1")), "Use the updated profile"), person)
+                connection.startTaskGraph("G1", null, person)
+                val done = connection.until("G1") { it.task("Accept it").graph?.state == TaskState.Waiting }.task("Build it").graph!!
+                assertEquals(2, done.attempt)
+                assertEquals(2L, done.resolvedSeat?.profileRevision)
+                assertEquals("model-b", requests[1].agent.model)
+                assertEquals(NativeEffort("low"), requests[1].agent.effort)
+                assertTrue("Test the boundary cases." in requests[1].agent.instructions)
+                assertEquals(1L, pinned?.profileRevision)
+            }
+        } finally {
+            release.complete(Unit)
+            root.deleteTreeSafely(within = temporary)
+            data.toFile().deleteTreeSafely(within = temporary)
+        }
     }
 
     @Test fun aLateSettlementCannotChangeTheNextAttempt() = runBlocking {

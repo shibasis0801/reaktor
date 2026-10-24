@@ -60,7 +60,10 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
                 put("revision", workspace.board.graph(id).revision); put("text", TaskGraphText.render(workspace.board.view(id)))
             } else view(id)
         },
-        McpTool("agent_taskgraph_seats", "The agents, models and efforts this workspace can run, for a task's seat.", emptyObjectSchema(), true, true) {
+        McpTool("agent_taskgraph_seats", "Profiles, agents, models and efforts this workspace can run. Supply seat to resolve its profile and task overrides with the same resolver used by graph checks and dispatch.",
+            objectSchema(mapOf("seat" to any)), true, true) { args ->
+            args.only("seat")
+            val resolved = args["seat"]?.let { workspace.resolveSeat(AgentWorkspaceJson.decodeFromJsonElement(TaskSeat.serializer(), it)) }
             val info = workspace.info()
             buildJsonObject {
                 putJsonArray("agents") {
@@ -70,13 +73,33 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
                             put("agent", provider.name)
                             capability?.defaultModel?.let { put("defaultModel", it) }
                             putJsonArray("models") { capability?.models.orEmpty().forEach { add(it.id) } }
+                            put("modelChoices", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(dev.shibasis.reaktor.conductor.ModelChoice.serializer()), capability?.models.orEmpty()))
                             putJsonArray("efforts") { capability?.effort?.supported.orEmpty().forEach { add(it.value) } }
                         }
                     }
                 }
+                put("profiles", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(AgentProfile.serializer()), workspace.profiles.list()))
+                resolved?.let { put("resolved", AgentWorkspaceJson.encodeToJsonElement(ResolvedTaskSeat.serializer(), it)) }
                 put("access", JsonArray(TaskAccess.entries.map { JsonPrimitive(it.name) }))
                 put("lead", "A seat of {\"lead\": true} leaves the task to the session that proposed the graph")
             }
+        },
+        McpTool("agent_profile_list", "List built-in and saved agent profiles with their revisions, perspectives and default seats.", emptyObjectSchema(), true, true) {
+            buildJsonObject { put("profiles", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(AgentProfile.serializer()), workspace.profiles.list())) }
+        },
+        McpTool("agent_profile_read", "Read one agent profile and its revision. Copy a built-in profile with a new id to customize it.",
+            objectSchema(mapOf("id" to stringSchema("Profile id")), listOf("id")), true, true) { args ->
+            args.only("id")
+            AgentWorkspaceJson.encodeToJsonElement(AgentProfile.serializer(), workspace.profiles.read(args.text("id")))
+        },
+        McpTool("agent_profile_save", "Save a named agent profile. Updates name expectedRevision; built-ins cannot be edited. The owner records the author.",
+            objectSchema(mapOf("profile" to any, "expectedRevision" to buildJsonObject {
+                put("type", "integer"); put("minimum", 0); put("description", "The profile revision you read; required when updating an existing profile")
+            }, by), listOf("profile", "by")), readOnly = false, idempotent = false) { args ->
+            args.only("profile", "expectedRevision", "by")
+            val profile = args.decode(AgentProfile.serializer(), "profile")
+            workspace.resolveSeat(TaskSeat(profile.runtime, profile.model, profile.effort, profile.access))
+            AgentWorkspaceJson.encodeToJsonElement(AgentProfile.serializer(), workspace.profiles.save(profile, args.by(), args.long("expectedRevision")))
         },
         McpTool("agent_taskgraph_propose", "Propose a task graph: a title, the goal, its tasks with dependencies and seats, and an envelope. " +
             "It appears in Hangar as Proposed; nothing runs until a person approves it. Tasks name their dependencies by key.",

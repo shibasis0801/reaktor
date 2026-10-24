@@ -139,7 +139,8 @@ object TaskGraphRules {
 
     fun validSeat(seat: TaskSeat?) {
         if (seat == null) return
-        require(seat.lead != (seat.agent != null)) { "A seat is either lead or an agent with a model, effort and access" }
+        require(seat.lead != (seat.agent != null || seat.profile != null)) { "A seat is either lead or an agent/profile with model, effort and access overrides" }
+        seat.profile?.let { require(it.matches(Regex("[a-z][a-z0-9-]{0,63}"))) { "A profile id is 1 to 64 lowercase letters, digits or dashes, starting with a letter" } }
         seat.model?.let { require(it.length in 1..256) { "A model name has 1 to 256 characters" } }
         seat.effort?.let { require(it.length in 1..32) { "An effort is a short provider token" } }
     }
@@ -150,6 +151,7 @@ class TaskGraphEditing(
     tasks: List<BoardTask>,
     private val caller: TaskGraphCaller,
     private val now: Long,
+    private val resolveSeat: (TaskSeat) -> TaskSeat = { TaskSeatResolver().resolve(it).seat },
     private val allocate: () -> String,
 ) {
     private val members = tasks.filter { it.graph?.id == graph.id }.associateBy { it.id }.toMutableMap()
@@ -243,8 +245,9 @@ class TaskGraphEditing(
             if (anchored.none { ref -> members[ref]?.let(caller::owns) == true || ref in keys.values }) refuse("An agent adds tasks as subtasks of its own task or after it; name parent or a dependency on your task")
         }
         TaskGraphRules.validSeat(op.seat)
+        val effective = op.seat?.let(resolveSeat)
         if (op.kind == TaskKind.Check) require(!op.check.isNullOrBlank()) { "A Check task names the check it runs" }
-        if (!caller.person) outside += TaskGraphRules.outside(op.seat, op.scope, envelope)
+        if (!caller.person) outside += TaskGraphRules.outside(effective, op.scope, envelope)
         op.key?.let { require(it.matches(KeyPattern)) { "A key is 1 to 40 letters, digits, dashes or underscores" }; require(it !in keys) { "The key $it is used twice" } }
         val id = allocate()
         val task = BoardTask(
@@ -291,7 +294,7 @@ class TaskGraphEditing(
                 layout = op.layout ?: plan.layout,
             ),
         )
-        if (!caller.person && op.scope != null) outside += TaskGraphRules.outside(plan.seat, next.scope, envelope)
+        if (!caller.person && op.scope != null) outside += TaskGraphRules.outside(plan.seat?.let(resolveSeat), next.scope, envelope)
         val fields = listOfNotNull(
             "title".takeIf { next.title != task.title }, "intent".takeIf { next.intent != task.intent },
             "acceptance".takeIf { next.acceptance != task.acceptance }, "scope".takeIf { next.scope != task.scope },
@@ -396,9 +399,10 @@ class TaskGraphEditing(
         val task = task(op.task)
         val plan = plan(task)
         TaskGraphRules.validSeat(op.seat)
+        val effective = resolveSeat(op.seat)
         if (!caller.person && !caller.lead) refuse("Only a person or the lead changes who does a task")
         require(plan.state == TaskState.Pending) { "${task.id} has started; stop it before giving it to someone else" }
-        if (!caller.person) outside += TaskGraphRules.outside(op.seat, task.scope, envelope)
+        if (!caller.person) outside += TaskGraphRules.outside(effective, task.scope, envelope)
         if (plan.seat == op.seat) return
         put(task.copy(graph = plan.copy(seat = op.seat)))
         summary += "${task.id} goes to ${op.seat.describe()}"
@@ -440,6 +444,7 @@ class TaskGraphEditing(
     private fun restore(op: TaskGraphOp.Restore) {
         if (!caller.person) refuse("Only a person reverts a change")
         val task = task(op.task)
+        op.seat?.let(resolveSeat)
         put(task.copy(graph = plan(task).copy(dependsOn = op.dependsOn.filter { it.task in members }, seat = op.seat, state = op.state)))
         summary += "Restored ${task.id}"
     }
@@ -449,4 +454,4 @@ class TaskGraphEditing(
     }
 }
 
-fun TaskSeat.describe(): String = if (lead) "the lead session" else listOfNotNull(agent?.name, model, effort, access.name.lowercase()).joinToString(" · ")
+fun TaskSeat.describe(): String = if (lead) "the lead session" else listOfNotNull(profile?.let { "profile:$it" }, agent?.name, model, effort, access?.name?.lowercase()).joinToString(" · ")

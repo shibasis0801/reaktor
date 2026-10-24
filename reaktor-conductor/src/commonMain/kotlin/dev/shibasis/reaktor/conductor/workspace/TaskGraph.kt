@@ -25,8 +25,9 @@ data class TaskSeat(
     val agent: RuntimeKind? = null,
     val model: String? = null,
     val effort: String? = null,
-    val access: TaskAccess = TaskAccess.Read,
+    val access: TaskAccess? = null,
     val lead: Boolean = false,
+    val profile: String? = null,
 )
 
 @Serializable
@@ -70,6 +71,7 @@ data class TaskPlan(
     val note: String? = null,
     val held: Boolean = false,
     val workAttempts: Map<String, Int> = emptyMap(),
+    val resolvedSeat: ResolvedTaskSeat? = null,
 ) {
     fun attemptOf(refs: Set<String>): Int? = refs.mapNotNull(workAttempts::get).maxOrNull()
         ?: attempt.takeIf { run != null && run in refs }

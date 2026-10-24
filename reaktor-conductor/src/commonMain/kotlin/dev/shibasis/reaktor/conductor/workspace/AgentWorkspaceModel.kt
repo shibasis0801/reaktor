@@ -94,6 +94,7 @@ data class AgentSubmission(
      */
     val allowedChecks: List<String> = emptyList(),
     val parentRunId: String? = null,
+    val resolvedSeat: ResolvedTaskSeat? = null,
 )
 
 @Serializable

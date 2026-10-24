@@ -65,7 +65,10 @@ class AgentWorkspace(
         evidence.recordCandidate(get(runId).threadId, candidate)
     }
     val entitlements = AgentEntitlements(directory.resolve("entitlements"))
-    val board = AgentBoardStore(directory.resolve("board"))
+    val profiles = AgentProfileStore(directory.resolve("profiles"))
+    private val seatResolver = TaskSeatResolver(profiles::read) { provider -> capabilities.firstOrNull { it.runtime == provider } }
+    fun resolveSeat(seat: TaskSeat): ResolvedTaskSeat = seatResolver.resolve(seat)
+    val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat)
     @Volatile internal var graphs: TaskGraphRuntime? = null
     internal suspend fun readKernel(name: String, arguments: JsonObject): JsonElement =
         requireNotNull(kernelRead) { "This host has no kernel check reader" }.invoke(name, arguments)
@@ -271,9 +274,8 @@ class AgentWorkspace(
             if (batchRuntimes.isNotEmpty() || runtimes.values.any { it !is InteractiveAgentRuntime }) add(AgentTransport.Batch)
         }, service = AgentServiceInfo(ProcessHandle.current().pid(), serviceStartedAt, background, if (background) System.getenv("REAKTOR_AGENT_SUPERVISOR") else null))
 
-    private fun requireSupportedEffort(provider: RuntimeKind, effort: NativeEffort?) {
-        val resolution = capabilities.firstOrNull { it.runtime == provider }?.effort.resolve(effort)
-        if (resolution is EffortResolution.Unsupported) throw UnsupportedEffortException(resolution)
+    private fun requireSupportedEffort(provider: RuntimeKind, model: String?, effort: NativeEffort?) {
+        resolveSeat(TaskSeat(agent = provider, model = model, effort = effort?.value))
     }
 
     fun attach(runId: String): AgentAttachment = synchronized(lock) {
@@ -345,7 +347,7 @@ class AgentWorkspace(
             workflow.validate()
             require(request.collaboration == AgentCollaboration.Single && request.partner == null) { "A workflow supplies its own roster" }
             require(workflow.participants.all { it.runtime in runtimes }) { "Workflow provider unavailable" }
-            workflow.participants.forEach { requireSupportedEffort(it.runtime, it.effort) }
+            workflow.participants.forEach { requireSupportedEffort(it.runtime, it.model, it.effort) }
             require(workflow.stages.none { it.action == WorkflowAction.Check } || workflowCheck != null) { "This host has no kernel check executor" }
             require(request.isolation != AgentIsolation.Worktree || workflow.stages.none { it.action == WorkflowAction.Check }) { "Kernel checks currently target the source workspace; apply an isolated patch before checking it" }
         }
@@ -357,9 +359,16 @@ class AgentWorkspace(
             require(partner.provider in runtimes && partner.provider != request.provider) { "Choose two different configured providers" }
             require(partner.model == null || partner.model.length in 1..256)
             require(!request.allowWrites || request.isolation == AgentIsolation.Worktree) { "Parallel editing requires owned worktrees" }
-            requireSupportedEffort(partner.provider, partner.effort)
+            requireSupportedEffort(partner.provider, partner.model, partner.effort)
         }
-        requireSupportedEffort(request.provider, request.effort)
+        requireSupportedEffort(request.provider, request.model, request.effort)
+        request.resolvedSeat?.let { resolved ->
+            require(request.collaboration == AgentCollaboration.Single && request.workflow == null &&
+                resolved.seat.agent == request.provider && resolved.seat.model == request.model &&
+                resolved.seat.effort == request.effort?.value && (resolved.seat.access == TaskAccess.Write) == request.allowWrites) {
+                "The submission must match its pinned task seat"
+            }
+        }
         require(request.transport != AgentTransport.Batch || batchRuntimes.isNotEmpty() || runtimes[request.provider] !is InteractiveAgentRuntime) { "Batch transport is not configured" }
         require(request.transport != AgentTransport.Interactive || (runtimes[request.provider] as? InteractiveAgentRuntime)?.interactive?.usable == true) { "Interactive transport is not configured for this provider; use Automatic or Batch" }
         require(request.context == null || ConductorJson.encodeToString(ContextPacket.serializer(), request.context).length <= 24000)
@@ -688,9 +697,10 @@ class AgentWorkspace(
                 update(initial.id, true) { it.copy(context = context, candidateId = candidate.id) }
                 val agentId = AgentId(request.provider.name.lowercase())
                 fun spec(provider: RuntimeKind, model: String?, effort: NativeEffort?) = AgentSpec(
-                    AgentId(provider.name.lowercase()), provider.name, provider,
-                    "Follow the workspace's repository instructions.", model = model, effort = effort,
-                    tools = ToolPolicy(allowWrites = request.allowWrites, additionalDirectories = includedRoots, mcpConfig = harnessMcpConfig),
+                    AgentId(provider.name.lowercase()), request.resolvedSeat?.name ?: provider.name, provider,
+                    listOf("Follow the workspace's repository instructions.", request.resolvedSeat?.instructions.orEmpty()).filter(String::isNotBlank).joinToString("\n\n"), model = model, effort = effort,
+                    tools = (request.resolvedSeat?.tools ?: ToolPolicy()).let { policy -> policy.copy(allowWrites = request.allowWrites,
+                        additionalDirectories = (includedRoots + policy.additionalDirectories).distinct(), mcpConfig = policy.mcpConfig ?: harnessMcpConfig) },
                     budget = request.timeoutMillis?.let { AgentBudget(timeoutMillis = it) } ?: AgentBudget(),
                     attributes = (request.maxCycles?.let { mapOf("maxCycles" to it.toString()) }.orEmpty()) +
                         (request.allowedChecks.takeIf { it.isNotEmpty() }
