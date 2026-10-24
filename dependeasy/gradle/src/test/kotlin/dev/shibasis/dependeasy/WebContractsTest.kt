@@ -145,6 +145,11 @@ class WebContractsTest {
         assertTrue(model.edges.any { it is Edge.After && it.from == check.id && it.to == contract.id })
         assertEquals(declared, BuildModelReader.json.decodeFromJsonElement<WebContract>(json("build/dependeasy/web/site.json")).tests)
         assertFalse("maxWorkers" in json("build/dependeasy/web/site.json").getValue("tests").jsonObject)
+        GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("siteWebContract", "exportBuildModel", "--no-configuration-cache", "--stacktrace").build()
+        val uncached = BuildModelReader.read(directory)
+        assertEquals(model.nodes.associate { it.id to (it.inputs to it.kernel?.spec) },
+            uncached.nodes.associate { it.id to (it.inputs to it.kernel?.spec) }, "Configuration cache must preserve declared input metadata")
         val repeat = run("siteWebContract", "exportBuildModel")
         assertContains(repeat.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":siteWebContract")?.outcome)
