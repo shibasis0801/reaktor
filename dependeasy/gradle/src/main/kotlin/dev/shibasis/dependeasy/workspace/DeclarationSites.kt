@@ -66,7 +66,7 @@ internal fun kernelRef(task: Task, spec: KernelSpec? = (task as? dev.shibasis.de
         is dev.shibasis.dependeasy.tasks.KotlinCMakeTask -> dev.shibasis.dependeasy.model.CMakeBuildKernel::class.java
         is dev.shibasis.dependeasy.tasks.ExtractPrefabTask -> dev.shibasis.dependeasy.model.PrefabKernel::class.java
         is dev.shibasis.dependeasy.codegen.PulumiSdkTask -> dev.shibasis.dependeasy.model.PulumiSdkKernel::class.java
-        is ExportBuildModelTask -> dev.shibasis.dependeasy.model.BuildModelKernel::class.java
+        is ExportBuildModelTask, is ExportBuildNodesTask -> dev.shibasis.dependeasy.model.BuildModelKernel::class.java
         is PackageScriptsTask -> dev.shibasis.dependeasy.model.PackageScriptsKernel::class.java
         is dev.shibasis.dependeasy.dagger.GenerateDaggerTask, is dev.shibasis.dependeasy.dagger.PrepareContainerNode -> dev.shibasis.dependeasy.model.DaggerKernel::class.java
         is dev.shibasis.dependeasy.web.TypeScriptCheck, is dev.shibasis.dependeasy.web.ViteBundle,

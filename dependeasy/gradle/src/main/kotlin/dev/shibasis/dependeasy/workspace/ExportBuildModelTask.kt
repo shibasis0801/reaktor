@@ -2,6 +2,7 @@ package dev.shibasis.dependeasy.workspace
 
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.process.KernelSpecOwner
+import dev.shibasis.dependeasy.publishing.PublicationDefaults
 import kotlinx.serialization.encodeToString
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
@@ -50,6 +51,22 @@ abstract class ExportBuildModelTask : DefaultTask(), KernelSpecOwner {
         replaceAtomically(remoteHostsFile.get().asFile, BuildModelReader.json.encodeToString(BuildModelKernel.routing(model, spec.build)) + "\n")
         logger.lifecycle("Build model omissions: " + BuildModelReader.omissionCounts(model).entries.joinToString { "${it.key}: ${it.value}" }.ifEmpty { "none" })
         legacyFiles().filter { it.exists() }.forEach { require(it.delete()) { "Cannot remove obsolete export: $it" } }
+    }
+}
+
+@CacheableTask
+internal abstract class ExportBuildNodesTask : DefaultTask(), KernelSpecOwner {
+    @get:Input abstract val buildName: Property<String>
+    @get:Input abstract val nodes: ListProperty<String>
+    @get:OutputFile abstract val outputFile: RegularFileProperty
+
+    @get:Internal override val kernelSpec get() = KernelSpec.BuildModelExport(buildName.get(), PublicationDefaults.Version,
+        mapOf(buildName.get() to "."), FileSet(emptyList()), FileSet(emptyList()),
+        FileSet(listOf(outputFile.get().asFile.absolutePath)), FileSet(emptyList()))
+
+    @TaskAction fun write() {
+        replaceAtomically(outputFile.get().asFile, BuildModelReader.encode(
+            BuildModelKernel.nodes(kernelSpec, nodes.get().map(BuildModelReader::decodeNode))))
     }
 }
 

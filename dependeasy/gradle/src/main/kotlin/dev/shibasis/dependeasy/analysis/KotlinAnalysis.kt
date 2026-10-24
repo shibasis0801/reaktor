@@ -5,6 +5,8 @@ import dev.shibasis.dependeasy.handles.artifact
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.handles.publishOutput
 import dev.shibasis.dependeasy.model.OutputKind
+import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.workspace.ExportBuildNodesTask
 import org.gradle.api.Project
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.testing.Test
@@ -31,8 +33,6 @@ fun Project.kotlinAnalysis(
     dependencies.add(runtime.name, Versions.Kotlin.AnalysisStandalone)
     dependencies.add(runtime.name, Versions.Kotlin.SerializationJsonJvm)
     dependencies.add(metadata.name, "${Versions.Kotlin.Stdlib}:all")
-    val compilerFiles = compiler.files
-    val runtimeFiles = runtime.files
     val java = extensions.getByType<JavaToolchainService>().launcherFor {
         languageVersion.set(JavaLanguageVersion.of(Versions.SDK.Java.asInt))
     }
@@ -41,13 +41,22 @@ fun Project.kotlinAnalysis(
         workingDirectory.set(layout.projectDirectory)
         executable.set(java.map { it.executablePath.asFile.path })
         toolVersion.set(Versions.Kotlin.AnalysisStandaloneVersion)
-        compilerClasspath.from(compilerFiles)
-        runtimeClasspath.from(runtimeFiles)
+        compilerClasspath.from(compiler)
+        runtimeClasspath.from(runtime)
         bytecode.set(Versions.SDK.Java.asInt)
         classesDirectory.set(layout.buildDirectory.dir("kotlin-analysis/classes"))
         sourceFiles.from(fileTree(sources) { include("**/*.kt") }, runtime, compiler)
         outputDirectories.from(classesDirectory)
     }
+    val projection = tasks.register<ExportBuildNodesTask>("kotlinAnalysisModel") {
+        group = "dependeasy"
+        description = "Export analysis metadata under its owning project"
+        buildName.set(rootProject.name)
+        nodes.convention(emptyList())
+        nodes.finalizeValueOnRead()
+        outputFile.set(layout.buildDirectory.file("dependeasy/kotlin-analysis-model.json"))
+    }
+    BuildWorkspace.get(this).reference(this, compile, null, projection = projection)
     val archive = tasks.register<Zip>("kotlinSemanticDistZip") {
         dependsOn(compile)
         archiveFileName.set("kotlin-semantics.zip")

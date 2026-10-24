@@ -803,6 +803,8 @@ class DslEntryPointsTest {
                 val fixtureNative by desktopNative(target = "fixtureNative", source = "cpp", defines = mapOf("FIXTURE_SETTING" to "owned"))
             }
             kotlinAnalysis()
+            check(configurations.getByName("kotlinAnalysisCompiler").state == org.gradle.api.artifacts.Configuration.State.UNRESOLVED)
+            check(configurations.getByName("kotlinAnalysisRuntime").state == org.gradle.api.artifacts.Configuration.State.UNRESOLVED)
             val fixture = BuildHandle("fixture", "dev.fixture")
             val single = ModuleHandle(fixture, "single")
             kotlin.common {
@@ -845,6 +847,7 @@ class DslEntryPointsTest {
         """)
         write("browser/assets/fixture.txt", "fixture")
         val export = run("exportBuildModel")
+        assertEquals(TaskOutcome.SUCCESS, export.task(":desktop:kotlinAnalysisModel")?.outcome)
         assertNull(export.task(":desktop:compileKotlinAnalysis"))
         assertNull(export.task(":desktop:kotlinSemanticDistZip"))
         assertContains(run("exportBuildModel").output, "Reusing configuration cache")
@@ -888,6 +891,13 @@ class DslEntryPointsTest {
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == referenceConsumer && it.to == reference.id && it.output == "fixture_reference" })
         assertTrue(model.edges.any { it is Edge.After && it.from == referenceConsumer && it.to == reference.id })
         val analysis = model.nodes.single { it.id.project == ":desktop" && it.id.name == "compileKotlinAnalysis" }
+        val projection = analysis.id.copy(name = "kotlinAnalysisModel")
+        val projectionNode = model.nodes.single { it.id == projection }
+        assertEquals("dev.shibasis.dependeasy.model.BuildModelKernel", projectionNode.kernel?.className)
+        assertTrue(projectionNode.kernel?.spec is KernelSpec.BuildModelExport)
+        val exportNode = NodeId("componentFixture", ":", "exportBuildModel")
+        assertTrue(model.edges.any { it is Edge.Consumes && it.from == exportNode && it.to == projection })
+        assertTrue(model.edges.any { it is Edge.After && it.from == exportNode && it.to == projection })
         val process = analysis.kernel?.spec as dev.shibasis.dependeasy.model.KernelSpec.Process
         assertContains(process.execution.arguments, "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
         for ((consumer, producer) in listOf("kotlinSemanticDistZip" to "compileKotlinAnalysis", "kotlinSemanticTest" to "kotlinSemanticDistZip")) {

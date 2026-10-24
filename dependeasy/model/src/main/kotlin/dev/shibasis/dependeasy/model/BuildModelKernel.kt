@@ -4,6 +4,9 @@ import java.io.File
 import kotlinx.serialization.encodeToString
 
 object BuildModelKernel {
+    fun nodes(spec: KernelSpec.BuildModelExport, nodes: List<Node>): BuildModel = BuildModel(
+        producer = Producer(version = spec.version), builds = spec.directories.map { (name, directory) -> BuildIdentity(name, directory) }, nodes = nodes)
+
     fun build(spec: KernelSpec.BuildModelExport, root: File, declaredNodes: List<Node>, edges: List<Edge>, omissions: List<Omission>,
         resolvedOptions: List<Map<String, String>>, declarationFiles: Collection<File>, included: List<BuildModel>,
         products: List<ProductModel> = emptyList()): BuildModel {
@@ -12,7 +15,7 @@ object BuildModelKernel {
         val builds = (owners.map { (name, directory) -> BuildIdentity(name, directory) } + included.flatMap { model ->
             model.builds.map { build ->
                 val base = root.resolve(owners.getValue(model.builds.single { it.directory == "." }.name))
-                build.copy(directory = base.resolve(build.directory).canonicalFile.relativeTo(root.canonicalFile).invariantSeparatorsPath)
+                build.copy(directory = base.resolve(build.directory).canonicalFile.relativeTo(root.canonicalFile).invariantSeparatorsPath.ifEmpty { "." })
             }
         }).groupBy { it.name }.map { (name, copies) ->
             require(copies.distinct().size == 1) { "Conflicting build directories for $name" }
