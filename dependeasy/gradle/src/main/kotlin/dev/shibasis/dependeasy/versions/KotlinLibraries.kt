@@ -41,6 +41,7 @@ object KotlinLibraries {
     const val Io = "org.jetbrains.kotlinx:kotlinx-io-core:0.3.1"
     const val KtorMock = "io.ktor:ktor-client-mock:${Versions.Ktor}"
     const val KtorNetwork = "io.ktor:ktor-network:${Versions.Ktor}"
+    const val KtorWebSockets = "io.ktor:ktor-websockets:${Versions.Ktor}"
     const val Reflect = "org.jetbrains.kotlin:kotlin-reflect:${Versions.SDK.Kotlin}"
     const val CompilerEmbeddable = "org.jetbrains.kotlin:kotlin-compiler-embeddable:${Versions.SDK.Kotlin}"
     const val AnalysisStandaloneVersion = "2.5.0-Beta2-59"

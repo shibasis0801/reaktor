@@ -432,7 +432,7 @@ fun MachineSignalSurface(
     val snapshot = remember(variant, density, themeFonts, mode) { MachineSignalSnapshot.of(variant, density, themeFonts, mode) }
     val appearances = remember(snapshot) { MachineSignalAppearances(snapshot) }
     val resolvedFonts = snapshot.fonts
-    SurfaceTheme(snapshot, appearances) {
+    SurfaceTheme(snapshot, appearances, catalog = dev.shibasis.reaktor.ui.machinesignal.surface.MachineSignalCatalog) {
         CompositionLocalProvider(
             LocalMachineSignalFonts provides resolvedFonts,
             LocalContentColor provides snapshot.colors.text,

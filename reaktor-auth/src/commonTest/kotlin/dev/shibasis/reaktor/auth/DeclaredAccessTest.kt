@@ -17,28 +17,27 @@ import dev.shibasis.reaktor.auth.kernel.AuthMethod
 import dev.shibasis.reaktor.auth.kernel.PermissionRef
 import dev.shibasis.reaktor.auth.kernel.PrincipalKind
 import dev.shibasis.reaktor.auth.kernel.PrincipalRef
-import dev.shibasis.reaktor.auth.transport.guardRelations
+import dev.shibasis.reaktor.auth.transport.RelationAccess
 import dev.shibasis.reaktor.auth.transport.setAuthContext
 import dev.shibasis.reaktor.core.framework.json
-import dev.shibasis.reaktor.graph.ServiceNode
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.GraphShape
 import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.shape
+import dev.shibasis.reaktor.graph.serve
 import dev.shibasis.reaktor.service.Callers
-import dev.shibasis.reaktor.service.GetHandler
-import dev.shibasis.reaktor.service.PostHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
 import dev.shibasis.reaktor.service.ServiceAccess
-import dev.shibasis.reaktor.service.ServiceContract
+import dev.shibasis.reaktor.service.contract.over
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.LocalLink
 
 class DeclaredAccessTest {
     private val model = FgaDsl.parse(CodeAccess.starter).model!!
@@ -50,10 +49,9 @@ class DeclaredAccessTest {
         method = AuthMethod.SERVICE_CREDENTIAL, scopes = setOf(PermissionRef(name = "worker:server")))
 
     @Test fun aContractStatesWhoMayCallItAsTuplesTheModelReads() {
-        val lobby = LobbyContract()
         assertEquals(listOf("service:lobby#caller@role:authenticated#assignee", "operation:lobby.enter#invoker@role:everyone#assignee"),
-            CodeAccess.declared("lobby", lobby.access).map(RelationTuple::toString))
-        assertEquals(listOf("service:lobby#caller@role:authenticated#assignee"), CodeAccess.declared("lobby", lobby.access, "leave").map(RelationTuple::toString))
+            CodeAccess.declared("lobby", Lobby().access).map(RelationTuple::toString))
+        assertEquals(listOf("service:lobby#caller@role:authenticated#assignee"), CodeAccess.declared("lobby", Lobby().access, "leave").map(RelationTuple::toString))
         assertEquals(listOf("service:sweeps#caller@permission:worker:server#holder"),
             CodeAccess.declared("sweeps", ServiceAccess(Callers.Holding("worker:server"))).map(RelationTuple::toString))
         assertFalse(ServiceAccess.Undeclared.declared)
@@ -62,8 +60,7 @@ class DeclaredAccessTest {
 
     @Test fun aGuardedServiceNeedsNoStoredGrantForWhatItsContractDeclares() = runTest {
         val seen = mutableListOf<AccessDecision>()
-        val lobby = LobbyContract()
-        lobby.guardRelations({ nothingStored }, decisions = AccessDecisionSink(seen::add))
+        val lobby = Lobby() over LocalLink(LobbyRoom()).apply { served.intercept(RelationAccess({ nothingStored }, decisions = AccessDecisionSink(seen::add))) }
         lobby.enter(LobbyCall())
         lobby.leave(LobbyCall())
         lobby.leave(LobbyCall().apply { setAuthContext(person()) })
@@ -81,8 +78,9 @@ class DeclaredAccessTest {
 
     @Test fun permissionHoldersAreTheOnlyCallersOfAServiceDeclaredForThem() = runTest {
         val seen = mutableListOf<AccessDecision>()
-        val sweeps = SweepsContract()
-        sweeps.guardRelations({ nothingStored }, decisions = AccessDecisionSink(seen::add))
+        val sweeps = Sweeps() over LocalLink(object : Sweeps() {
+            override val sweep = super.sweep.handle { LobbyAnswer() }
+        }).apply { served.intercept(RelationAccess({ nothingStored }, decisions = AccessDecisionSink(seen::add))) }
         sweeps.sweep(LobbyCall().apply { setAuthContext(worker()) })
         sweeps.sweep(LobbyCall().apply { setAuthContext(person()) })
         assertEquals(listOf("allowed", "would deny"), seen.map { it.verdict })
@@ -92,12 +90,12 @@ class DeclaredAccessTest {
 
     @Test fun theShapeCarriesTheDeclarationSoTheMapShowsIt() {
         val graph = Graph(dependencyAdapter = AuthGraphDependencyFixture(), label = "Rooms")
-        graph.ServiceNode(LobbyContract(), "Lobby")
+        graph.serve(LobbyRoom())
         val shape = graph.shape()
-        assertEquals(LobbyContract().access, shape.nodes.single { it.kind == NodeKind.Service }.access)
+        assertEquals(Lobby().access, shape.nodes.single { it.kind == NodeKind.Service }.access)
         assertEquals(shape, json.decodeFromString(GraphShape.serializer(), json.encodeToString(GraphShape.serializer(), shape)))
         val code = CodeAccess.resources(shape)
-        assertEquals(CodeAccess.declared("lobby", LobbyContract().access), code.service(CodeAccess.service("lobby"))?.declared)
+        assertEquals(CodeAccess.declared("lobby", Lobby().access), code.service(CodeAccess.service("lobby"))?.declared)
         assertTrue(code.tuples.containsAll(code.declared + code.structure))
         assertTrue(CodeAccessPolicy(model, emptyList(), code).check(person(), "lobby", "leave").allowed)
         assertFalse(CodeAccessPolicy(model, emptyList(), code).check(null, "lobby", "leave").allowed)
@@ -107,15 +105,20 @@ class DeclaredAccessTest {
 @Serializable private class LobbyCall : Request()
 @Serializable private class LobbyAnswer : Response()
 
-private class LobbyContract : Service() {
-    override val contract = ServiceContract("lobby")
+private open class Lobby : Service("lobby") {
     override val access = ServiceAccess(Callers.SignedIn, ::enter to Callers.Everyone)
-    val enter by GetHandler<LobbyCall, LobbyAnswer>("/lobby") { LobbyAnswer() }
-    val leave by PostHandler<LobbyCall, LobbyAnswer>("/lobby/leave") { LobbyAnswer() }
+
+    open val enter by get<LobbyCall, LobbyAnswer>("/lobby")
+    open val leave by post<LobbyCall, LobbyAnswer>("/lobby/leave")
 }
 
-private class SweepsContract : Service() {
-    override val contract = ServiceContract("sweeps")
+private class LobbyRoom : Lobby() {
+    override val enter = super.enter.handle { LobbyAnswer() }
+    override val leave = super.leave.handle { LobbyAnswer() }
+}
+
+private open class Sweeps : Service("sweeps") {
     override val access = ServiceAccess(Callers.Holding("worker:server"))
-    val sweep by PostHandler<LobbyCall, LobbyAnswer>("/sweep") { LobbyAnswer() }
+
+    open val sweep by post<LobbyCall, LobbyAnswer>("/sweep")
 }

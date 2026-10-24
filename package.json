@@ -7,6 +7,7 @@
         "generatedScripts": [],
         "generatedPackages": [
             "dependeasy/javascript/package.json",
+            "reaktor-auth/ts/package.json",
             "reaktor-cloudflare/ts/package.json",
             "reaktor-core/package.json",
             "reaktor-db/ts/package.json",

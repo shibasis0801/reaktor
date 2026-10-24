@@ -1,9 +1,7 @@
 package dev.shibasis.reaktor.cloudflare
 
-import dev.shibasis.reaktor.service.GetHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
 import dev.shibasis.reaktor.service.ServiceCall
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
@@ -18,18 +16,20 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.Served
 
 @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
 class RawRouteTraceContextTest {
     @Test fun aRawRouteRetainsTheIncomingCallForNestedTypedEndpoints() = GlobalScope.promise {
         var observed: ServiceCall? = null
-        val service = object : Service() {
-            val inspect = GetHandler<RawTraceRequest, RawTraceResponse>("/inspect") {
+        val served = Served(object : RawInspect() {
+            override val inspect = super.inspect.handle {
                 observed = currentCoroutineContext()[ServiceCall]
                 RawTraceResponse()
             }
-        }
-        val app = Hono().get("/raw") { service.inspect(RawTraceRequest()); text("ok") }
+        })
+        val app = Hono().get("/raw") { served.call(RawInspect().inspect, RawTraceRequest()); text("ok") }
         val request: dynamic = js("new Request('https://fixture.invalid/raw', {headers:{traceparent:'00-11111111111111111111111111111111-2222222222222222-01', baggage:'reaktor-session=raw-session'}})")
         val response = app.fetch(request, js("({})"), js("({waitUntil:function(){}})")).unsafeCast<Promise<dynamic>>().await()
         assertEquals(200, response.status as Int)
@@ -71,3 +71,7 @@ class RawRouteTraceContextTest {
 
 @Serializable private class RawTraceRequest : Request()
 @Serializable private class RawTraceResponse : Response()
+
+private open class RawInspect : Service("test.raw-inspect") {
+    open val inspect by get<RawTraceRequest, RawTraceResponse>("/inspect")
+}

@@ -9,8 +9,10 @@ import dev.shibasis.reaktor.graph.core.NodeShape
 import dev.shibasis.reaktor.graph.core.ScopeShape
 import dev.shibasis.reaktor.service.Callers
 import dev.shibasis.reaktor.service.OperationDescriptor
-import dev.shibasis.reaktor.service.Service
+import dev.shibasis.reaktor.service.ServiceExecutionPhase
+import dev.shibasis.reaktor.service.contract.descriptors
 import dev.shibasis.reaktor.service.ServiceAccess
+import dev.shibasis.reaktor.service.contract.Service
 
 fun CodeAccess.resources(shape: GraphShape, rootLabel: String? = null): CodeResources {
     val scopes = shape.scopes.associateBy { it.id }
@@ -45,13 +47,12 @@ fun CodeAccess.resources(shape: GraphShape, rootLabel: String? = null): CodeReso
     return CodeResources(graphs, services)
 }
 
-fun CodeAccess.served(graph: CodeGraph, services: List<Service>): CodeResources =
-    CodeResources(listOf(graph), services.filter { it.contract.id.isNotBlank() }.map { served ->
-        val contract = served.contract.id
-        val ref = service(contract)
-        CodeService(ref, contract, contract, served.contract.version.toString(), null, emptySet(), listOf(graph.ref), emptyList(),
-            served.operations.distinctBy { it.operation }.map { operationOf(ref, contract, it) }.distinctBy { it.ref }.sortedBy { it.name },
-            declared(contract, served.access))
+fun CodeAccess.served(graph: CodeGraph, contracts: List<Service>): CodeResources =
+    CodeResources(listOf(graph), contracts.map { served ->
+        val ref = service(served.id)
+        CodeService(ref, served.id, served.id, served.version.toString(), null, emptySet(), listOf(graph.ref), emptyList(),
+            served.descriptors(ServiceExecutionPhase.SERVER).distinctBy { it.operation }.map { operationOf(ref, served.id, it) }.distinctBy { it.ref }.sortedBy { it.name },
+            declared(served.id, served.access))
     }.sortedBy { it.ref.id })
 
 fun CodeAccess.callers(callers: Callers): Subject = when (callers) {

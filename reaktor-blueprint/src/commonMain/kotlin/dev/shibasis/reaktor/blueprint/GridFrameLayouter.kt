@@ -6,15 +6,20 @@ import kotlin.math.sqrt
 
 object GridFrameLayouter : FrameLayouter {
     private const val LooseAspect = 1.4
+    private const val LayerConstraint = "elk.layered.layering.layerConstraint"
 
     override fun lay(request: FrameRequest): FrameResult {
         val boxes = request.graph.boxes
         if (boxes.isEmpty()) return FrameResult(0.0, 0.0, DoubleArray(0), request.graph.lines.map { DoubleArray(0) })
-        val columns = if (request.group.loose) looseColumns(boxes)
-        else boxes.indices.groupBy { request.group.nodes[it].lane }.entries.sortedBy { it.key }.map { it.value }
+        val real = request.group.nodes.size
+        val inner = boxes.indices.filter { it < real }
+        fun side(constraint: String) = boxes.indices.filter { it >= real && boxes[it].options[LayerConstraint] == constraint }
+        val columns = listOf(side("FIRST_SEPARATE")) +
+            (if (request.group.loose) looseColumns(inner, boxes) else inner.groupBy { request.group.nodes[it].lane }.entries.sortedBy { it.key }.map { it.value }) +
+            listOf(side("LAST_SEPARATE"))
         val at = DoubleArray(boxes.size * 2)
         var x = 0.0
-        columns.forEach { column ->
+        columns.filter { it.isNotEmpty() }.forEach { column ->
             var y = 0.0
             column.forEach { index ->
                 at[index * 2] = x
@@ -40,10 +45,11 @@ object GridFrameLayouter : FrameLayouter {
 
     private fun flatten(points: List<Pair<Double, Double>>) = DoubleArray(points.size * 2) { if (it % 2 == 0) points[it / 2].first else points[it / 2].second }
 
-    private fun looseColumns(boxes: List<ElkBox>): List<List<Int>> {
-        val averageHeight = boxes.sumOf { it.height } / boxes.size + BlueprintEngine.CardGap
+    private fun looseColumns(indices: List<Int>, boxes: List<ElkBox>): List<List<Int>> {
+        if (indices.isEmpty()) return emptyList()
+        val averageHeight = indices.sumOf { boxes[it].height } / indices.size + BlueprintEngine.CardGap
         val pitch = BlueprintEngine.CardWidth + BlueprintEngine.LayerGap
-        val count = sqrt(LooseAspect * boxes.size * averageHeight / pitch).roundToInt().coerceIn(1, boxes.size)
-        return boxes.indices.chunked(ceil(boxes.size / count.toDouble()).toInt())
+        val count = sqrt(LooseAspect * indices.size * averageHeight / pitch).roundToInt().coerceIn(1, indices.size)
+        return indices.chunked(ceil(indices.size / count.toDouble()).toInt())
     }
 }

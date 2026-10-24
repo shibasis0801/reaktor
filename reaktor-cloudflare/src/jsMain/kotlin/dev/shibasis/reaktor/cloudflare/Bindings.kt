@@ -54,6 +54,7 @@ external interface HonoRequest {
     val raw: dynamic
     fun text(): Promise<String>
     fun query(): dynamic
+    fun queries(): dynamic
     fun param(): dynamic
     fun header(): dynamic
 }

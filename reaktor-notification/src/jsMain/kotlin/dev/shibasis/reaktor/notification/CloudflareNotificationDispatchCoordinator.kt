@@ -6,12 +6,10 @@ import dev.shibasis.reaktor.cloudflare.Hono
 import dev.shibasis.reaktor.cloudflare.mount
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.graph.Reaktor
-import dev.shibasis.reaktor.graph.ServiceNode
+import dev.shibasis.reaktor.graph.serve
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.IslandShape
 import dev.shibasis.reaktor.graph.core.shape
-import dev.shibasis.reaktor.service.GetHandler
-import dev.shibasis.reaktor.service.PostHandler
 import kotlin.js.JsExport
 
 @JsExport
@@ -22,7 +20,8 @@ open class CloudflareNotificationDispatchCoordinator(
     private val app by lazy {
         Reaktor.web()
         val graph = Graph(label = DispatcherIsland)
-        Hono().mount(listOf(graph.ServiceNode(NotificationDispatcherService({ storage }, ::dispatchRemote))))
+        graph.serve(NotificationDispatcherService({ storage }, ::dispatchRemote))
+        Hono().mount(graph)
     }
 
     open fun fetch(request: Any): Any = app.fetch(request, env.asDynamic(), state.asDynamic())
@@ -39,8 +38,8 @@ open class CloudflareNotificationDispatchCoordinator(
 class NotificationDispatcherService(
     private val storage: () -> DurableObjectStorage,
     private val remote: suspend (NotificationDispatchPayload) -> NotificationDispatchResult,
-) : NotificationDispatcherApi() {
-    override val deliver by PostHandler<NotificationDispatchPayload, NotificationDispatchResult>("/deliver") { payload ->
+) : NotificationDispatcher() {
+    override val deliver = super.deliver.handle { payload ->
         val result = if (payload.dryRun) {
             payload.dispatchResult(status = NotificationDeliveryStatuses.DryRunAccepted, dispatched = false, dryRun = true)
         } else {
@@ -50,15 +49,13 @@ class NotificationDispatcherService(
         result.copy(statusCode = if (result.dispatched || result.dryRun) StatusCode.ACCEPTED else StatusCode.BAD_GATEWAY)
     }
 
-    override val state by GetHandler<NotificationDispatchStateRequest, NotificationDispatchStateSnapshot>("/state") {
-        NotificationDispatchStateSnapshot(storage().getJson<NotificationDispatchState>(LastDispatchKey))
-    }
+    override val state = super.state.handle { NotificationDispatchStateSnapshot(storage().getJson<NotificationDispatchState>(LastDispatchKey)) }
 }
 
 fun notificationDispatcherIsland(): IslandShape {
     Reaktor.web()
     val graph = Graph(label = DispatcherIsland)
-    graph.ServiceNode(NotificationDispatcherService({ error("A shape has no storage") }, { error("A shape does not dispatch") }))
+    graph.serve(NotificationDispatcherService({ error("A shape has no storage") }, { error("A shape does not dispatch") }))
     return IslandShape(DispatcherIsland, "cloudflare-durable-object", graph.shape())
 }
 

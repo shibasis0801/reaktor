@@ -3,19 +3,12 @@ package dev.shibasis.reaktor.auth.api
 import dev.shibasis.reaktor.auth.App
 import dev.shibasis.reaktor.core.network.ErrorMessage
 import dev.shibasis.reaktor.core.network.StatusCode
-import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.portgraph.graph.connect
-import dev.shibasis.reaktor.portgraph.port.provides
-import dev.shibasis.reaktor.portgraph.port.consumes
-import dev.shibasis.reaktor.service.GetHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
-import dev.shibasis.reaktor.service.ServiceContract
 import dev.shibasis.reaktor.service.Callers
 import dev.shibasis.reaktor.service.ServiceAccess
-
+import dev.shibasis.reaktor.service.contract.Service
 
 @Serializable
 sealed class AppResponse(
@@ -29,16 +22,9 @@ sealed class AppResponse(
 }
 
 
-abstract class AppService(baseUrl: String): Service(baseUrl) {
-    override val contract = ServiceContract("reaktor.apps")
+open class AppService : Service("reaktor.apps") {
     override val access = ServiceAccess(Callers.SignedIn)
 
-    abstract val getAll: GetHandler<Request, AppResponse>
-    abstract val getApp: GetHandler<Request, AppResponse>
+    open val getAll by get<Request, AppResponse>("/apps/")
+    open val getApp by get<Request, AppResponse>("/apps/{id}")
 }
-
-abstract class AppClient: AppService("http://cloudflare/api") {
-    override val getAll by GetHandler<Request, AppResponse>("/")
-    override val getApp by GetHandler<Request, AppResponse>("/{id}")
-}
-

@@ -1,7 +1,5 @@
 package dev.shibasis.reaktor.devtools
 
-import dev.shibasis.reaktor.service.GetHandler
-import dev.shibasis.reaktor.service.PostHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -14,6 +12,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.uuid.Uuid
+import dev.shibasis.reaktor.service.contract.Served
 
 /**
  * The server half of [DevToolsService], answered by a live [DevToolsAgent].
@@ -22,15 +21,11 @@ import kotlin.uuid.Uuid
  * agent knows how to take a screenshot, this knows what a screenshot request looks like.
  */
 class DevToolsHostService(private val agent: DevToolsAgent) : DevToolsService() {
-    val describe = GetHandler<DescribeRequest, DescribeResponse>(Describe, Describe) {
-        DescribeResponse(agent.describe())
-    }
+    override val describe = super.describe.handle { DescribeResponse(agent.describe()) }
 
-    val semantics = GetHandler<SemanticsRequest, SemanticsResponse>(Semantics, Semantics) { request ->
-        SemanticsResponse(agent.semantics(request))
-    }
+    override val semantics = super.semantics.handle { request -> SemanticsResponse(agent.semantics(request)) }
 
-    val logs = GetHandler<LogsRequest, LogsResponse>(Logs, Logs) { request ->
+    override val logs = super.logs.handle { request ->
         val page = agent.logs.since(request.sinceSequence, request.limit)
         val entries = page.facts.filterIsInstance<AgentFact.Log>()
             .filter { it.level.ordinal >= request.minimumLevel.ordinal }
@@ -38,13 +33,9 @@ class DevToolsHostService(private val agent: DevToolsAgent) : DevToolsService() 
         LogsResponse(entries, page.droppedSinceCursor)
     }
 
-    val screenshot = GetHandler<ScreenshotRequest, ScreenshotResponse>(Screenshot, Screenshot) {
-        agent.screenshot()
-    }
+    override val screenshot = super.screenshot.handle { agent.screenshot() }
 
-    val command = PostHandler<CommandRequest, CommandResponse>(Command, Command) { request ->
-        CommandResponse(agent.execute(request.command))
-    }
+    override val command = super.command.handle { request -> CommandResponse(agent.execute(request.command)) }
 }
 
 /**
@@ -78,7 +69,7 @@ class DevToolsHost(
     private val transport: AgentTransport,
     private val scope: CoroutineScope = agent.scope(),
 ) {
-    private val service = DevToolsHostService(agent)
+    private val service = Served(DevToolsHostService(agent))
     private var connection: Job? = null
     private var current: PeerChannel? = null
     private var listening: Job? = null

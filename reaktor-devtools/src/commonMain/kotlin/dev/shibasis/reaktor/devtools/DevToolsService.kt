@@ -1,23 +1,24 @@
 package dev.shibasis.reaktor.devtools
 
-import dev.shibasis.reaktor.service.GetHandler
-import dev.shibasis.reaktor.service.PostHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
-import dev.shibasis.reaktor.service.ServiceContract
+import dev.shibasis.reaktor.service.contract.Service
 
 /**
  * The agent's operation surface, declared once for both ends.
  *
- * The app subclasses this with server handlers; the workbench instantiates the client form. Because
+ * The app implements this; the workbench calls it through [DevToolsService.client]. Because
  * both compile against the same declarations, an operation that changes shape breaks the build
  * rather than the connection. Bounded reads live here; anything continuous lives on
  * [DevToolsCarrier], because a request that never ends is not a request.
  */
-abstract class DevToolsService(baseUrl: String = "") : Service(baseUrl) {
-    override val contract = ServiceContract("reaktor.devtools")
+open class DevToolsService : Service("reaktor.devtools") {
+    open val describe by get<DescribeRequest, DescribeResponse>(Describe, name = Describe)
+    open val semantics by get<SemanticsRequest, SemanticsResponse>(Semantics, name = Semantics)
+    open val logs by get<LogsRequest, LogsResponse>(Logs, name = Logs)
+    open val screenshot by get<ScreenshotRequest, ScreenshotResponse>(Screenshot, name = Screenshot)
+    open val command by post<CommandRequest, CommandResponse>(Command, name = Command)
 
     companion object {
         const val Describe = "/devtools/describe"
@@ -130,22 +131,4 @@ data class SemanticsNodeFact(
     val height: Float get() = bottom - top
 
     fun contains(x: Float, y: Float): Boolean = x in left..right && y in top..bottom
-}
-
-/**
- * The client half, for the workbench.
- *
- * Every call is a plain typed request; the transport underneath is whatever the attachment
- * negotiated — HTTP for a desktop or browser agent, the peer socket for a phone behind
- * `adb forward`.
- */
-class DevToolsClient(baseUrl: String = "") : DevToolsService(baseUrl) {
-    // Bound with an explicit operation equal to the route. The `by` delegate would rename the
-    // operation to `<serialName>.<propertyName>`, which couples the wire key to a Kotlin property
-    // name on both sides of a process boundary — fine inside one binary, wrong across a cable.
-    val describe = GetHandler<DescribeRequest, DescribeResponse>(Describe, Describe)
-    val semantics = GetHandler<SemanticsRequest, SemanticsResponse>(Semantics, Semantics)
-    val logs = GetHandler<LogsRequest, LogsResponse>(Logs, Logs)
-    val screenshot = GetHandler<ScreenshotRequest, ScreenshotResponse>(Screenshot, Screenshot)
-    val command = PostHandler<CommandRequest, CommandResponse>(Command, Command)
 }

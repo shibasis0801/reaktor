@@ -12,18 +12,23 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.*
 import org.koin.dsl.koinApplication
 import kotlin.test.*
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.Served
 
 @Serializable private class EchoRequest(val text: String) : Request()
 @Serializable private class EchoResponse(val text: String) : Response()
 
+private open class EchoApi : Service("web.test") {
+    open val echo by post<EchoRequest, EchoResponse>("/echo", name = "document.echo")
+}
+
 class WebBridgeTest {
-    private class Echo : Service() {
-        override val contract = ServiceContract("web.test")
+    private class Echo : EchoApi() {
         val entered = Channel<Request>(8)
         val events = MutableSharedFlow<String>(extraBufferCapacity = 4)
-        val echo = server(PostHandler, "/echo", "document.echo", EchoRequest.serializer(), EchoResponse.serializer()) {
-            entered.send(it)
-            EchoResponse(it.text)
+        override val echo = super.echo.handle { request ->
+            entered.send(request)
+            EchoResponse(request.text)
         }
     }
     private class Host : WebViewHost, WebViewController {
@@ -46,8 +51,8 @@ class WebBridgeTest {
         val service = Echo()
         val app = WebApp("test", "v1", WebAssets(mapOf("/index.html" to WebAsset("<p>test</p>".encodeToByteArray(), "text/html"))))
         val grants = MutableStateFlow<WebGrant?>(WebGrant("test", "v1", "alice", "workspace", Environment.STAGE, setOf("document.echo", "document.changed")))
-        val bridge = graph.Node { WebBridge(it, service, grants, authorize = { grant, _ -> grant.principal == "alice" },
-            events = listOf(WebEventBinding(service.contract, "document.changed", String.serializer(), service.events))) }
+        val bridge = graph.Node { WebBridge(it, Served(service), grants, authorize = { grant, _ -> grant.principal == "alice" },
+            events = listOf(WebEventBinding(EchoApi(), "document.changed", String.serializer(), service.events))) }
         val runtime = graph.Node { WebRuntime(it) }
         val host = Host()
         val session = runtime.open(host, bridge = bridge)
@@ -62,7 +67,7 @@ class WebBridgeTest {
         val config = requireNotNull(host.configuration)
         return WebMessageEnvelope(id = id, kind = "invoke", session = config.getValue("session").jsonPrimitive.content,
             epoch = config.getValue("epoch").jsonPrimitive.long, operation = "document.echo",
-            contract = service.contract.id, schema = service.echo.descriptor(service.contract).request.fingerprint,
+            contract = EchoApi().id, schema = EchoApi().echo.request.schemaRef().fingerprint,
             payload = buildJsonObject { put("text", "नमस्ते 🌍") })
     }
     private fun send(host: Host, message: WebMessageEnvelope, url: String = "https://test.reaktor.invalid/v1/index.html", main: Boolean = true) =
@@ -81,7 +86,7 @@ class WebBridgeTest {
             send(host, request(host, service))
             val entered = withTimeout(2_000) { service.entered.receive() }
             assertEquals(Environment.STAGE, entered.environment)
-            assertEquals("alice", (entered.attributes["reaktor.web.grant"] as WebGrant).principal)
+            assertEquals("alice", (entered.attributes[GrantAttribute] as WebGrant).principal)
             assertEquals("नमस्ते 🌍", answer(host).payload.jsonObject["text"]?.jsonPrimitive?.content)
             assertEquals("New title", session.state.value.title)
             send(host, request(host, service))

@@ -17,11 +17,11 @@ Nothing new that the app was not already carrying:
 
 | Concern | Comes from |
 | --- | --- |
-| Protocol | `reaktor-service` — one `Service` declaration compiled into both ends |
+| Protocol | `reaktor-service` — one `DevToolsService` contract compiled into both ends |
 | Streaming | newline-framed JSON over the platform's own socket |
 | Element tree | Compose, so Android and iOS share one implementation |
 | Port events | `reaktor-graph-port`'s K1 `PortInterceptor` and K2 attachments |
-| Traffic | a `ServiceInterceptor`, above TLS, with a correlation id |
+| Traffic | a contract `Interceptor`, above TLS, with a correlation id |
 
 ## Reaching it
 

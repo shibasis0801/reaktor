@@ -39,6 +39,25 @@ fun Button(
     appearance: ButtonAppearance = LocalAppearances.current.button,
     content: @Composable () -> Unit,
 ) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) PressButton(onActivate, modifier, enabled, busy, onHold, behavior, appearance, content)
+    else studio.Element(SurfaceCall("Button", modifier, listOf(SurfaceField.flag("enabled", enabled), SurfaceField.flag("busy", busy)), appearance, Appearance.Button, listOf("content"))) { edits ->
+        PressButton(edits.action("onActivate", onActivate), edits.modifier, edits.flag("enabled", enabled), edits.flag("busy", busy), onHold, behavior,
+            edits.appearance(appearance), edits.slot("content", content))
+    }
+}
+
+@Composable
+private fun PressButton(
+    onActivate: () -> Unit,
+    modifier: Modifier,
+    enabled: Boolean,
+    busy: Boolean,
+    onHold: (() -> Unit)?,
+    behavior: ButtonBehavior,
+    appearance: ButtonAppearance,
+    content: @Composable () -> Unit,
+) {
     val properties = PressProperties(enabled, busy, holdable = onHold != null)
     val machine = rememberMachine(behavior, properties) { pressed ->
         when (pressed) {
@@ -55,7 +74,7 @@ fun Button(
             },
         contentAlignment = Alignment.Center,
     ) {
-        val state = machine.state
+        val state = machine.state.forced()
         appearance.Content(properties, state, LocalThemeSnapshot.current, rememberFeedback(state.pressed, state.focusVisible), ButtonSlots(content))
     }
 }

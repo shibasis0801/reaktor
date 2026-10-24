@@ -120,6 +120,32 @@ class CodeWorkspace(root: Path, private val generatedRoots: () -> Collection<Pat
         return KotlinSyntax.statement(document, at)
     }
 
+    fun call(path: String, offset: Int, length: Int? = null, callee: String? = null): CodeCall? = KotlinCalls.at(kotlin(path), offset, length, callee)
+
+    fun calls(path: String, line: Int, callee: String? = null): List<CodeCall> = KotlinCalls.on(kotlin(path), line, callee)
+
+    fun anchored(path: String, owner: String, callee: String, ordinal: Int): CodeCall? = KotlinCalls.anchored(kotlin(path), owner, callee, ordinal)
+
+    fun importing(path: String, qualifiedName: String): CodeTextEdit? = KotlinCalls.importing(kotlin(path), qualifiedName)
+
+    fun signatures(path: String, name: String): List<CodeSignature> = KotlinCalls.signatures(kotlin(path), name)
+
+    fun components(path: String): List<CodeComponent> = KotlinCalls.components(kotlin(path))
+
+    fun statementOf(path: String, span: CodeSpan): CodeStatement? = KotlinCalls.statement(kotlin(path), span)
+
+    fun extract(path: String, span: CodeSpan): CodeExtract? = KotlinSyntax.extract(kotlin(path), span)
+
+    fun scope(path: String, span: CodeSpan, functions: Boolean = false): List<CodeValue>? = KotlinSyntax.scope(kotlin(path), span, functions)
+
+    fun entries(path: String, type: String): List<String>? = KotlinSyntax.entries(kotlin(path), type)
+
+    fun members(path: String, type: String): List<CodeValue>? = KotlinSyntax.members(kotlin(path), type)
+
+    fun imported(path: String): CodeImports = KotlinCalls.imported(kotlin(path))
+
+    private fun kotlin(path: String): CodeDocument = read(path).also(::requireKotlin)
+
     fun structural(path: String, pattern: String): List<CodeStructuralMatch> {
         val document = read(path)
         requireKotlin(document)

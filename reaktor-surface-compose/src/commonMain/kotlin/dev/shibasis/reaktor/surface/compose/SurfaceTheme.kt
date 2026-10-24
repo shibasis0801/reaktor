@@ -138,6 +138,7 @@ data class SurfaceEnvironment(
     val layoutDirection: LayoutDirection? = null,
     val reducedMotion: Boolean = false,
     val keys: KeyConvention = platformKeyConvention(),
+    val theme: String? = null,
 )
 
 val LocalSurfaceEnvironment = staticCompositionLocalOf { SurfaceEnvironment() }
@@ -160,11 +161,18 @@ fun SurfaceTheme(
     snapshot: ThemeSnapshot,
     appearances: Appearances,
     reducedMotion: Boolean = LocalSurfaceEnvironment.current.reducedMotion,
+    catalog: AppearanceCatalog? = LocalAppearanceCatalog.current,
     content: @Composable () -> Unit,
-) = CompositionLocalProvider(
-    LocalThemeSnapshot provides snapshot,
-    LocalAppearances provides appearances,
-    LocalReducedMotion provides reducedMotion,
-    LocalTextSelectionColors provides (appearances[Appearance.Text].selection(snapshot) ?: LocalTextSelectionColors.current),
-    content = content,
-)
+) {
+    val design = LocalSurfaceDesign.current
+    val shown = design?.snapshot(snapshot) ?: snapshot
+    val looks = design?.appearances(appearances, catalog) ?: appearances
+    CompositionLocalProvider(
+        LocalThemeSnapshot provides shown,
+        LocalAppearances provides looks,
+        LocalAppearanceCatalog provides catalog,
+        LocalReducedMotion provides reducedMotion,
+        LocalTextSelectionColors provides (looks[Appearance.Text].selection(shown) ?: LocalTextSelectionColors.current),
+        content = content,
+    )
+}

@@ -51,7 +51,7 @@ fun GraphShape.withDefinitionIdentity(): GraphShape {
     }
     val canonical = copy(scopes = definedScopes, nodes = definedNodes, wires = definedWires).definitionStructure()
     return copy(scopes = definedScopes, nodes = definedNodes, wires = definedWires,
-        definitionDigest = digest("graph-definition-v1\u0000" + Json.encodeToString(GraphShape.serializer(), canonical)))
+        definitionDigest = digest("graph-definition-v2\u0000" + Json.encodeToString(GraphShape.serializer(), canonical)))
 }
 
 
@@ -76,7 +76,8 @@ private fun GraphShape.definitionStructure(): GraphShape {
         definedNodes.map { it.copy(id = it.definitionId, scope = scopeIds[it.scope].orEmpty(), attachedTo = it.attachedTo?.let(nodeIds::get), lifecycle = null,
             ports = it.ports.map { port -> port.copy(key = portKey(port.key, port.type).orEmpty(), wiring = PortWiring.Unused, connections = 0) }.sortedWith(compareBy({ port -> port.key }, { port -> port.type }, { port -> port.provides })),
             attributes = it.attributes.filterKeys { key -> key in setOf("contract", "version", "role", "service") }.entries.sortedBy { entry -> entry.key }.associate { entry -> entry.toPair() },
-            operations = it.operations.sortedBy { operation -> operation.operation }) }.sortedWith(compareBy({ it.id }, { it.type }, { it.label })),
+            operations = it.operations.sortedBy { operation -> operation.operation },
+              contract = it.contract?.copy(operations = emptyList(), channels = emptyList())) }.sortedWith(compareBy({ it.id }, { it.type }, { it.label })),
         definedWires.map { it.copy(consumer = nodeIds[it.consumer].orEmpty(), consumerPort = portKey(it.consumerPort, it.type).orEmpty(),
             provider = nodeIds[it.provider].orEmpty(), providerPort = portKey(it.providerPort, it.type).orEmpty()) }.sortedBy { it.definitionId },
         routes.map { it.copy(from = nodeIds[it.from].orEmpty(), to = nodeIds[it.to].orEmpty()) }.sortedWith(compareBy({ it.from }, { it.to })),

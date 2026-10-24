@@ -1,13 +1,16 @@
 package dev.shibasis.reaktor.graph.core
 
-import dev.shibasis.reaktor.graph.ServiceNode
+import dev.shibasis.reaktor.graph.ChannelNode
+import dev.shibasis.reaktor.graph.ContractNode
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.service.OperationDescriptor
 import dev.shibasis.reaktor.service.ServiceAccess
-import dev.shibasis.reaktor.service.ServiceExecutionPhase
+import dev.shibasis.reaktor.service.contract.ChannelShape
+import dev.shibasis.reaktor.service.contract.ContractShape
+import dev.shibasis.reaktor.service.contract.InterceptorShape
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -58,6 +61,9 @@ data class NodeShape(
     val operations: List<OperationDescriptor> = emptyList(),
     val definitionId: String = "",
     val access: ServiceAccess? = null,
+    val contract: ContractShape? = null,
+    val channel: ChannelShape? = null,
+    val interceptors: List<InterceptorShape> = emptyList(),
 )
 
 @Serializable
@@ -124,8 +130,11 @@ fun Graph.shape(): GraphShape {
                 lifecycle = node.lifecycle.value::class.simpleName,
                 ports = node.portShapes(graph),
                 attributes = node.attributes(),
-                operations = (node as? ServiceNode)?.service?.operations.orEmpty(),
-                access = (node as? ServiceNode)?.service?.access?.takeIf { it.declared },
+                operations = (node as? ContractNode<*>)?.operations.orEmpty(),
+                access = (node as? ContractNode<*>)?.api?.access?.takeIf { it.declared },
+                contract = (node as? ContractNode<*>)?.api?.shape,
+                channel = (node as? ChannelNode<*>)?.shape,
+                interceptors = (node as? ContractNode<*>)?.interceptorShapes ?: (node as? ChannelNode<*>)?.interceptorShapes.orEmpty(),
             )
             node.consumerPorts.flattenedValues().forEach { consumer ->
                 val edge = consumer.edge ?: return@forEach
@@ -164,7 +173,7 @@ fun Graph.shape(): GraphShape {
 
 const val DormantLifecycle = "Dormant"
 
-private fun Node.shapeLabel(): String = label.ifBlank { contractLabel() ?: this::class.simpleName ?: "Node" }
+private fun Node.shapeLabel(): String = label.ifBlank { this::class.simpleName ?: "Node" }
 
 fun Graph.shapes(): Flow<GraphShape> = flow {
     while (true) {
@@ -211,23 +220,11 @@ private fun Node.portShapes(graph: Graph): List<PortShape> =
         )
     }
 
-private fun Node.contractLabel(): String? =
-    (this as? ServiceNode)?.takeIf { it::class == ServiceNode::class }?.let { node -> node.service.contract.id.ifBlank { node.serviceLabel } }
-
 interface ShapeAttributes {
     val shapeAttributes: Map<String, String>
 }
 
 private fun Node.attributes(): Map<String, String> = when (this) {
     is ShapeAttributes -> shapeAttributes
-    is ServiceNode -> buildMap {
-        put("service", serviceLabel)
-        service.baseUrl.takeIf { it.isNotBlank() }?.let { put("baseUrl", it) }
-        service.contract.id.takeIf { it.isNotBlank() }?.let {
-            put("contract", it)
-            put("version", service.contract.version.toString())
-        }
-        put("role", if (service.handlers.isNotEmpty() && service.handlers.all { it.phase == ServiceExecutionPhase.CLIENT }) "client" else "server")
-    }
     else -> emptyMap()
 }

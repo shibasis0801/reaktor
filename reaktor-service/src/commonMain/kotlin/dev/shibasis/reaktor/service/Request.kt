@@ -21,7 +21,7 @@ open class Request(
 
     companion object {
         /**
-         * Tier stamped onto requests that do not set [environment] themselves; Service.kt sends it
+         * Tier stamped onto requests that do not set [environment] themselves; every [dev.shibasis.reaktor.service.contract.Link] sends it
          * as `X-Environment`. Clients set this once at startup. Stays PROD on the server and in
          * workers, where the tier arrives per-request on the header instead.
          */

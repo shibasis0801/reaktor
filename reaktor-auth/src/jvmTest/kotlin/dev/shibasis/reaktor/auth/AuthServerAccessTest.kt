@@ -46,7 +46,7 @@ class AuthServerAccessTest {
         fun AuthRuntimeGraph.token() = jwt.minter.mintAccessToken(principalId, appId, emptyList())
 
         val signedIn = MeRequest(headers = bearer(runtime.token()))
-        runtime.service.sessionMe(signedIn)
+        runtime.api.sessionMe(signedIn)
         val seen = recorded.single()
         assertEquals("user:$principalId", seen.subject)
         assertEquals("operation:reaktor.auth.sessionMe", seen.target)
@@ -54,14 +54,14 @@ class AuthServerAccessTest {
         assertEquals("service:reaktor.auth#caller@role:authenticated#assignee", seen.rule)
         assertEquals(seen.encodeForSpan(), signedIn.attributes[ServiceCall.AccessAttribute])
 
-        assertEquals(StatusCode.UNAUTHORIZED, runtime.service.sessionMe(MeRequest()).statusCode)
+        assertEquals(StatusCode.UNAUTHORIZED, runtime.api.sessionMe(MeRequest()).statusCode)
         assertEquals("user:anonymous", recorded.last().subject)
         assertFalse(recorded.last().allowed)
         assertEquals(AccessMode.Shadow, recorded.last().mode)
 
         val enforced = runtime(store(enforce = true))
-        assertFailsWith<AuthRejectedException> { enforced.service.sessionMe(MeRequest()) }
-        assertEquals(StatusCode.OK, enforced.service.sessionMe(MeRequest(headers = bearer(enforced.token()))).statusCode)
+        assertFailsWith<AuthRejectedException> { enforced.api.sessionMe(MeRequest()) }
+        assertEquals(StatusCode.OK, enforced.api.sessionMe(MeRequest(headers = bearer(enforced.token()))).statusCode)
     }
 
     @Test
@@ -74,7 +74,7 @@ class AuthServerAccessTest {
         fun grant() = TokenRequest(grantType = "client_credentials", clientId = clientId, clientSecret = secret, audience = "manna-mcp",
             scopes = listOf("delegate:read"), environment = Environment.STAGE)
         val request = grant()
-        assertEquals(StatusCode.OK, runtime(store()).service.token(request).statusCode)
+        assertEquals(StatusCode.OK, runtime(store()).api.token(request).statusCode)
         val identified = recorded.last()
         assertEquals("service_account:$account", identified.subject)
         assertEquals("operation:reaktor.auth.token", identified.target)
@@ -85,7 +85,7 @@ class AuthServerAccessTest {
         assertEquals(identified.encodeForSpan(), audited { it.eventType == AuthAuditEventType.TOKEN_MINT && it.subjectPrincipalId == account })
 
         val blocked = runtime(store("operation:reaktor.auth.token#blocked@service_account:$account", enforce = true))
-        assertEquals(StatusCode.FORBIDDEN, blocked.service.token(grant()).statusCode)
+        assertEquals(StatusCode.FORBIDDEN, blocked.api.token(grant()).statusCode)
         assertEquals("Blocked by operation:reaktor.auth.token#blocked@service_account:$account", recorded.last().rule)
         assertTrue(AuthDbFixture.auditEvents().any { it.subjectPrincipalId == account && it.reason == "access_model_refused" })
     }
@@ -139,7 +139,7 @@ class AuthServerAccessTest {
             } }
         }
 
-        suspend fun resolve(permission: String) = runtime.service.authorityResolve(AuthorityResolveRequest(sourceApp, target, permission, headers = bearer(token)))
+        suspend fun resolve(permission: String) = runtime.api.authorityResolve(AuthorityResolveRequest(sourceApp, target, permission, headers = bearer(token)))
     }
 }
 

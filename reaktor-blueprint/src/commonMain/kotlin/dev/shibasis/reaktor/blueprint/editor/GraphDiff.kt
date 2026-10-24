@@ -50,10 +50,10 @@ class GraphDiff(val base: GraphShape, val shape: GraphShape, val terms: GraphTer
             }
             val scopesBefore = base.scopes.associateBy { it.id }
             val scopesAfter = shape.scopes.associateBy { it.id }
-            scopesAfter.values.filter { it.id !in scopesBefore }.forEach { add(Difference(Change.Added, it.id, null, it.label, "graph")) }
-            scopesBefore.values.filter { it.id !in scopesAfter }.forEach { add(Difference(Change.Removed, it.id, null, it.label, "graph")) }
+            scopesAfter.values.filter { it.id !in scopesBefore }.forEach { add(Difference(Change.Added, it.id, null, it.label, terms.scope)) }
+            scopesBefore.values.filter { it.id !in scopesAfter }.forEach { add(Difference(Change.Removed, it.id, null, it.label, terms.scope)) }
             scopesAfter.values.filter { scope -> scopesBefore[scope.id]?.let { it.label != scope.label || it.parent != scope.parent } == true }
-                .forEach { add(Difference(Change.Changed, it.id, null, it.label, "graph renamed or moved")) }
+                .forEach { scope -> add(Difference(Change.Changed, scope.id, null, scope.label, scopesBefore.getValue(scope.id).let { if (it.label != scope.label) "renamed from ${it.label}" else "${terms.scope} moved" })) }
         }.sortedWith(compareBy({ it.change.ordinal }, { it.title }))
     }
 
@@ -71,7 +71,7 @@ private fun NodeShape.describe(next: NodeShape, terms: GraphTerms): String = bui
     if (label != next.label) add("renamed from $label")
     if (terms.types && type != next.type) add("type $type → ${next.type}")
     if (terms.kinds && kind != next.kind) add("kind ${kind.name} → ${next.kind.name}")
-    if (scope != next.scope) add("moved to another graph")
+    if (scope != next.scope) add("moved to another ${terms.scope}")
     if (route != next.route) add("route ${route ?: "none"} → ${next.route ?: "none"}")
     val rows = terms.rows(this@describe); val rowsNext = terms.rows(next)
     if (rows != null && rowsNext != null) {
@@ -83,5 +83,8 @@ private fun NodeShape.describe(next: NodeShape, terms: GraphTerms): String = bui
         (now - old).forEach { add("+ ${if (it.third) "output" else "input"} ${it.first}: ${it.second}") }
         (old - now).forEach { add("− ${if (it.third) "output" else "input"} ${it.first}") }
     }
-    if (attributes != next.attributes) add("attributes edited")
+    (attributes.keys + next.attributes.keys).filter { attributes[it] != next.attributes[it] && !it.startsWith(PartPrefix) }.sorted().forEach { key ->
+        add(next.attributes[key]?.let { value -> attributes[key]?.let { "setting $key $it → $value" } ?: "+ setting $key = $value" } ?: "− setting $key")
+    }
+    if (attributes[PartRevisionKey] != next.attributes[PartRevisionKey]) add(next.attributes[PartRevisionKey]?.let { "part revision $it" } ?: "unlinked from its part")
 }.joinToString(" · ")

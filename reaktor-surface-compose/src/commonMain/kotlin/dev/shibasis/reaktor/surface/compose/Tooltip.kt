@@ -225,6 +225,7 @@ private class TooltipAnchorNode(var anchor: TooltipAnchor) :
             PointerEventType.Exit -> anchor.hover(false, uptime)
             PointerEventType.Press -> anchor.send(TooltipInput.Press)
             PointerEventType.Release -> anchor.send(TooltipInput.Release)
+            PointerEventType.Scroll -> if (anchor.shown) anchor.send(TooltipInput.Scroll)
         }
     }
 
@@ -257,6 +258,7 @@ private class TipHoverNode(var anchor: TooltipAnchor) : Modifier.Node(), Pointer
         when (pointerEvent.type) {
             PointerEventType.Enter -> anchor.send(TooltipInput.TipHover(true))
             PointerEventType.Exit -> anchor.send(TooltipInput.TipHover(false))
+            PointerEventType.Scroll -> anchor.send(TooltipInput.Scroll)
         }
     }
 

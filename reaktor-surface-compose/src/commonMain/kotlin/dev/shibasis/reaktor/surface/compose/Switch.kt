@@ -45,6 +45,23 @@ fun Switch(
     appearance: SwitchAppearance = LocalAppearances.current.switch,
     content: @Composable () -> Unit = {},
 ) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) ToggleSwitch(checked, onCheckedChange, modifier, enabled, behavior, appearance, content)
+    else studio.Element(SurfaceCall("Switch", modifier, listOf(SurfaceField.flag("checked", checked, editable = false), SurfaceField.flag("enabled", enabled)), appearance, Appearance.Switch, listOf("content"))) { edits ->
+        ToggleSwitch(checked, edits.handler("onCheckedChange", onCheckedChange), edits.modifier, edits.flag("enabled", enabled), behavior, edits.appearance(appearance), edits.slot("content", content))
+    }
+}
+
+@Composable
+private fun ToggleSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier,
+    enabled: Boolean,
+    behavior: ToggleBehavior,
+    appearance: SwitchAppearance,
+    content: @Composable () -> Unit,
+) {
     val properties = ToggleProperties(checked, enabled)
     val machine = rememberMachine(behavior, properties) { onCheckedChange(it.checked) }
     val source = rememberInteractions(machine)
@@ -54,7 +71,7 @@ fun Switch(
         },
         propagateMinConstraints = true,
     ) {
-        val state = machine.state
+        val state = machine.state.forced()
         appearance.Content(properties, state, LocalThemeSnapshot.current, rememberFeedback(state.pressed, state.focusVisible), SwitchSlots(content))
     }
 }

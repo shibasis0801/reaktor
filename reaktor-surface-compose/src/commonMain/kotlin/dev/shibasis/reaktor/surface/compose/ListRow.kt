@@ -41,6 +41,27 @@ fun ListRow(
     trailing: (@Composable () -> Unit)? = null,
     headline: @Composable () -> Unit,
 ) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) PressRow(onActivate, modifier, enabled, onHold, behavior, appearance, leading, supporting, trailing, headline)
+    else studio.Element(SurfaceCall("ListRow", modifier, listOf(SurfaceField.flag("enabled", enabled)), appearance, Appearance.ListRow, listOf("headline", "leading", "supporting", "trailing"))) { edits ->
+        PressRow(edits.action("onActivate", onActivate), edits.modifier, edits.flag("enabled", enabled), onHold, behavior, edits.appearance(appearance),
+            edits.optional("leading", leading), edits.optional("supporting", supporting), edits.optional("trailing", trailing), edits.slot("headline", headline))
+    }
+}
+
+@Composable
+private fun PressRow(
+    onActivate: () -> Unit,
+    modifier: Modifier,
+    enabled: Boolean,
+    onHold: (() -> Unit)?,
+    behavior: ButtonBehavior,
+    appearance: ListRowAppearance,
+    leading: (@Composable () -> Unit)?,
+    supporting: (@Composable () -> Unit)?,
+    trailing: (@Composable () -> Unit)?,
+    headline: @Composable () -> Unit,
+) {
     val properties = PressProperties(enabled, holdable = onHold != null)
     val machine = rememberMachine(behavior, properties) { pressed ->
         when (pressed) {
@@ -55,7 +76,7 @@ fun ListRow(
         },
         propagateMinConstraints = true,
     ) {
-        val state = machine.state
+        val state = machine.state.forced()
         appearance.Content(properties, state, LocalThemeSnapshot.current, rememberFeedback(state.pressed, state.focusVisible), ListRowSlots(leading, headline, supporting, trailing))
     }
 }

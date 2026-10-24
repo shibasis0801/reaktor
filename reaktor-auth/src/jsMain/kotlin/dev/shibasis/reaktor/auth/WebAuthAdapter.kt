@@ -1,12 +1,14 @@
 package dev.shibasis.reaktor.auth
 
 import co.touchlab.kermit.Logger
-import dev.shibasis.reaktor.auth.api.AuthServiceClient
+import dev.shibasis.reaktor.auth.api.AuthService
+import dev.shibasis.reaktor.service.contract.HttpLink
 import dev.shibasis.reaktor.core.utils.succeed
+import dev.shibasis.reaktor.service.contract.over
 
 class WebAuthAdapter(
     authService: String
-): AuthAdapter<Unit>(Unit, authClient = AuthServiceClient(authService)) {
+): AuthAdapter<Unit>(Unit, authClient = AuthService() over HttpLink(authService)) {
     override suspend fun logout(): Result<Unit> {
         logoutSession().onFailure {
             Logger.w { "The session was cleared here but the server did not confirm its revocation: $it" }

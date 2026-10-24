@@ -34,3 +34,21 @@ object Type {
 interface InkRole
 
 enum class Ink : InkRole { Strong, Text, Muted, Unknown, Accent, Source, Busy, Ok, Warn, Danger, Inverse, OnAccent }
+
+val TextRole.token: String
+    get() = listOfNotNull(scale.name, weight.takeIf { it != TypeWeight.Regular }?.name?.lowercase(), face.takeIf { it != TypeFace.Text }?.name?.lowercase()).joinToString(".")
+
+fun textRoleOf(token: String): TextRole? {
+    val parts = token.split('.')
+    val scale = TypeScale.entries.firstOrNull { it.name == parts.first() } ?: return null
+    val rest = parts.drop(1)
+    return TextRole(
+        scale,
+        TypeWeight.entries.firstOrNull { weight -> rest.any { it.equals(weight.name, ignoreCase = true) } } ?: TypeWeight.Regular,
+        TypeFace.entries.firstOrNull { face -> rest.any { it.equals(face.name, ignoreCase = true) } } ?: TypeFace.Text,
+    )
+}
+
+val InkRole.token: String get() = (this as? Ink)?.name ?: toString()
+
+fun inkOf(token: String): InkRole? = Ink.entries.firstOrNull { it.name == token }

@@ -2,9 +2,12 @@ package dev.shibasis.reaktor.graph
 
 import dev.shibasis.reaktor.graph.core.*
 import dev.shibasis.reaktor.service.*
+import dev.shibasis.reaktor.service.contract.Metadata
+import dev.shibasis.reaktor.service.contract.Spans
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
 import kotlin.test.*
+import dev.shibasis.reaktor.service.contract.Service
 
 class GraphDefinitionTest {
     private fun definition(root: String, producer: String, consumer: String) = GraphShape(
@@ -43,6 +46,30 @@ class GraphDefinitionTest {
         assertFailsWith<IllegalArgumentException> { ambiguous.definitionArtifact() }
     }
 
+    @Test fun retainedTopologyFitsTheUploadBudgetWithoutRepeatingServiceSchemas() {
+        val contract = dev.shibasis.reaktor.service.contract.ContractShape.of(DefinitionProbe()).let { shape ->
+            shape.copy(operations = shape.operations.map { operation ->
+                operation.copy(request = operation.request.copy(values = listOf("x".repeat(600_000))))
+            })
+        }
+        val first = definition("root", "producer", "consumer").let { shape ->
+            shape.copy(nodes = shape.nodes.map { if (it.label == "messaging") it.copy(contract = contract) else it })
+        }.withDefinitionIdentity()
+        val artifact = first.definitionArtifact()
+        val retained = requireNotNull(artifact.nodes.single { it.label == "messaging" }.contract)
+        assertTrue(kotlinx.serialization.json.Json.encodeToString(GraphShape.serializer(), first).encodeToByteArray().size > 600_000)
+        assertTrue(kotlinx.serialization.json.Json.encodeToString(GraphShape.serializer(), artifact).encodeToByteArray().size < 524_288)
+        assertEquals(contract.id, retained.id)
+        assertEquals(contract.version, retained.version)
+        assertEquals(contract.fingerprint, retained.fingerprint)
+        assertEquals(first.wires.single().definitionId, artifact.wires.single().definitionId)
+        assertEquals(artifact, artifact.definitionArtifact())
+        val changed = first.copy(nodes = first.nodes.map {
+            if (it.contract == null) it else it.copy(contract = it.contract.copy(fingerprint = "changed-schema"))
+        }).withDefinitionIdentity()
+        assertNotEquals(first.definitionDigest, changed.definitionDigest)
+    }
+
     @Test fun ambiguousDeclarationsDoNotAcquireAnExactIdentity() {
         val shape = definition("root", "p", "c")
         val ambiguous = shape.copy(nodes = shape.nodes + shape.nodes.first().copy(id = "p-other")).withDefinitionIdentity()
@@ -74,24 +101,19 @@ class GraphDefinitionTest {
         assertTrue(ambiguous.wires.single().definitionId.isEmpty())
     }
 
-    @Test fun serviceExecutionUsesItsOwnGraphSubjectAndPreservesTheRemoteParent() = runTest {
+    @Test fun servedExecutionUsesItsOwnGraphSubjectAndPreservesTheRemoteParent() = runTest {
         Reaktor.web()
         val sink = SpanBuffer()
-        val service = object : Service() {
-            override val contract = ServiceContract("test.messaging")
-            val ping = GetHandler<DefinitionRequest, DefinitionResponse>("/ping") { DefinitionResponse() }
-            init { use(SpanRecorder("worker", sink, mapOf(ServiceCall.BuildAttribute to "binary", ServiceCall.EnvironmentAttribute to "dev"))) }
-        }
         val graph = Graph(label = "worker")
-        val node = graph.ServiceNode(service)
+        val node = graph.serve(object : DefinitionProbe() {
+            override val ping = super.ping.handle { DefinitionResponse() }
+        }, Spans("worker", sink) { mapOf(ServiceCall.BuildAttribute to "binary", ServiceCall.EnvironmentAttribute to "dev") })
         val shape = graph.shape()
         val parent = TraceContext.root()
-        service.ping(DefinitionRequest().apply {
-            headers[TraceContext.Header] = parent.traceparent
-            headers["baggage"] = "reaktor-session=phone-session"
+        requireNotNull(node.served).call(DefinitionProbe().ping, DefinitionRequest().apply {
             attributes[ServiceCall.NodeAttribute] = "caller-node"
             attributes[ServiceCall.GraphAttribute] = "caller-graph"
-        })
+        }, Metadata(mapOf(TraceContext.Header to parent.traceparent, Metadata.Baggage to "reaktor-session=phone-session")))
         val recorded = sink.snapshot().single()
         assertEquals(parent.traceId, recorded.traceId)
         assertEquals(parent.spanId, recorded.parentId)
@@ -99,12 +121,15 @@ class GraphDefinitionTest {
         assertEquals(shape.definitionDigest, recorded.graphDigest)
         val subject = shape.nodes.single { it.id == node.id.toString() }
         assertEquals(subject.definitionId, recorded.node)
-        assertEquals(subject.ports.single().definitionId, recorded.port)
+        assertEquals(subject.ports.single { it.type == contractType(DefinitionProbe()).type }.definitionId, recorded.port)
         assertEquals(graph.id.toString(), recorded.activation)
         graph.close()
-        assertNull(service.ping.executionAttributes)
     }
 }
 
 @Serializable private class DefinitionRequest : Request()
 @Serializable private class DefinitionResponse : Response()
+
+private open class DefinitionProbe : Service("test.messaging") {
+    open val ping by get<DefinitionRequest, DefinitionResponse>("/ping")
+}

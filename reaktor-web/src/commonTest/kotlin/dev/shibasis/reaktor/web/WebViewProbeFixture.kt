@@ -2,17 +2,19 @@ package dev.shibasis.reaktor.web
 import dev.shibasis.reaktor.service.*
 import kotlinx.serialization.*
 import kotlinx.coroutines.flow.MutableStateFlow
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.Served
 
 @Serializable private class ProbeRequest(val text: String) : Request()
 @Serializable private class ProbeResponse(val text: String) : Response()
+private open class ProbeApi : Service("reaktor.probe") {
+    open val echo by post<ProbeRequest, ProbeResponse>("/echo", name = "probe.echo")
+}
 internal fun probeBridge(graph: dev.shibasis.reaktor.graph.core.Graph): WebBridge {
-    val service = object : Service() {
-        override val contract = ServiceContract("reaktor.probe")
-        val echo = server(PostHandler, "/echo", "probe.echo", ProbeRequest.serializer(), ProbeResponse.serializer()) {
-            ProbeResponse("Typed bridge received: " + it.text)
-        }
-    }
-    return WebBridge(graph, service, MutableStateFlow(WebGrant("probe", "v1", "local-probe", "probe",
+    val served = Served(object : ProbeApi() {
+        override val echo = super.echo.handle { request -> ProbeResponse("Typed bridge received: " + request.text) }
+    })
+    return WebBridge(graph, served, MutableStateFlow(WebGrant("probe", "v1", "local-probe", "probe",
         Environment.STAGE, setOf("probe.echo"))), authorize = { grant, operation ->
         grant.principal == "local-probe" && operation.operation == "probe.echo"
     })

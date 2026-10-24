@@ -9,6 +9,7 @@ object FrameworkOptions {
     val DeviceProbe = BuildOption.boolean("reaktor.web.deviceProbe")
     val ServerHost = BuildOption.string("reaktor.server.host", "0.0.0.0")
     val DesktopClassSharing = BuildOption.boolean("reaktor.desktop.cds", true)
+    val ComposeSourceInformation = BuildOption.boolean("reaktor.compose.sourceInformation", true)
     val Crashlytics = BuildOption.boolean("reaktor.crashlytics")
     val PublishCrashlytics = BuildOption.boolean("dependeasy.publishCrashlytics")
     val MavenLocal = BuildOption.boolean("dependeasy.useMavenLocal")

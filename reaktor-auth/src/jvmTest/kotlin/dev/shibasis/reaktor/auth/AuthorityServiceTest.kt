@@ -16,10 +16,10 @@ class AuthorityServiceTest {
 
     @Test fun resolvesFreshTenantSuperadminAcrossApplicationsForTheSameIdentity() = runBlocking {
         val fx = Fixture()
-        val grants = fx.runtime.service.authorityGrants(fx.grants())
+        val grants = fx.runtime.api.authorityGrants(fx.grants())
         assertEquals(StatusCode.OK, grants.statusCode)
         assertEquals(listOf(fx.target), grants.grants.map { it.target })
-        val response = fx.runtime.service.authorityResolve(fx.resolve("data:admin:future-permission"))
+        val response = fx.runtime.api.authorityResolve(fx.resolve("data:admin:future-permission"))
         assertEquals(StatusCode.OK, response.statusCode)
         val resolution = assertNotNull(response.resolution)
         assertEquals(fx.targetPrincipal, resolution.context.principal.id)
@@ -41,42 +41,42 @@ class AuthorityServiceTest {
     @Test fun incomingRolesCannotCreateGrantsOrCrossASelectedTenantBoundary() = runBlocking {
         val fx = Fixture()
         val otherTenant = AuthDbFixture.seedTenant(fx.target.appId)
-        assertEquals(StatusCode.FORBIDDEN, fx.runtime.service.authorityResolve(fx.resolve().copy(target = fx.target.copy(tenantId = otherTenant))).statusCode)
-        assertEquals(StatusCode.FORBIDDEN, fx.runtime.service.authorityResolve(fx.resolve().copy(target = fx.target.copy(appId = fx.sourceApp))).statusCode)
+        assertEquals(StatusCode.FORBIDDEN, fx.runtime.api.authorityResolve(fx.resolve().copy(target = fx.target.copy(tenantId = otherTenant))).statusCode)
+        assertEquals(StatusCode.FORBIDDEN, fx.runtime.api.authorityResolve(fx.resolve().copy(target = fx.target.copy(appId = fx.sourceApp))).statusCode)
         transaction { PrincipalRoles.update({ PrincipalRoles.principalId eq UUID.fromString(fx.targetPrincipal) }) { it[PrincipalRoles.tenantId] = null } }
-        assertEquals(StatusCode.FORBIDDEN, fx.runtime.service.authorityResolve(fx.resolve()).statusCode,
+        assertEquals(StatusCode.FORBIDDEN, fx.runtime.api.authorityResolve(fx.resolve()).statusCode,
             "An unscoped superadmin assignment must not become authority over every tenant")
     }
 
     @Test fun sourceLogoutAndCurrentMembershipRevocationTakeEffectBeforeAnotherResolution() = runBlocking {
         val fx = Fixture()
-        assertEquals(StatusCode.OK, fx.runtime.service.authorityResolve(fx.resolve()).statusCode)
+        assertEquals(StatusCode.OK, fx.runtime.api.authorityResolve(fx.resolve()).statusCode)
         transaction { Memberships.update({ Memberships.principalId eq UUID.fromString(fx.targetPrincipal) }) { it[Memberships.status] = MembershipStatus.SUSPENDED } }
-        assertEquals(StatusCode.FORBIDDEN, fx.runtime.service.authorityResolve(fx.resolve()).statusCode)
+        assertEquals(StatusCode.FORBIDDEN, fx.runtime.api.authorityResolve(fx.resolve()).statusCode)
         fx.runtime.sessionLifecycle.revokeByRefreshToken(fx.session.rawRefreshToken)
-        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.service.authorityGrants(fx.grants()).statusCode)
+        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.api.authorityGrants(fx.grants()).statusCode)
     }
 
     @Test fun missingExpiredServiceOrWrongAudienceCredentialsCannotResolveAuthority() = runBlocking {
         val fx = Fixture()
-        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.service.authorityGrants(fx.grants().copy(headers = mutableMapOf())).statusCode)
-        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.service.authorityGrants(fx.grants().copy(sourceAppId = fx.target.appId)).statusCode)
+        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.api.authorityGrants(fx.grants().copy(headers = mutableMapOf())).statusCode)
+        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.api.authorityGrants(fx.grants().copy(sourceAppId = fx.target.appId)).statusCode)
         val expired = fx.runtime.jwt.minter.mintAccessToken(fx.sourcePrincipal, fx.sourceApp, emptyList(),
             sessionId = fx.session.sessionId, expirationMs = -1000)
-        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.service.authorityGrants(fx.grants().copy(headers = bearer(expired))).statusCode)
+        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.api.authorityGrants(fx.grants().copy(headers = bearer(expired))).statusCode)
         val service = fx.runtime.jwt.minter.mintServiceToken(fx.sourcePrincipal, fx.sourceApp, listOf("*"))
-        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.service.authorityGrants(fx.grants().copy(headers = bearer(service))).statusCode)
-        assertEquals(StatusCode.BAD_REQUEST, fx.runtime.service.authorityResolve(fx.resolve(" ")).statusCode)
+        assertEquals(StatusCode.UNAUTHORIZED, fx.runtime.api.authorityGrants(fx.grants().copy(headers = bearer(service))).statusCode)
+        assertEquals(StatusCode.BAD_REQUEST, fx.runtime.api.authorityResolve(fx.resolve(" ")).statusCode)
     }
 
     @Test fun unrelatedIdentityAndDisabledTenantNeverAppearInAuthorityInventory() = runBlocking {
         val fx = Fixture()
         val otherUser = AuthDbFixture.seedUser(fx.target.appId)
         AuthDbFixture.grantPermissions(otherUser, fx.target.appId, emptyList(), "superadmin")
-        assertEquals(1, fx.runtime.service.authorityGrants(fx.grants()).grants.size)
+        assertEquals(1, fx.runtime.api.authorityGrants(fx.grants()).grants.size)
         transaction { Tenants.update({ Tenants.id eq UUID.fromString(fx.target.tenantId) }) { it[Tenants.status] = MembershipStatus.SUSPENDED } }
-        assertTrue(fx.runtime.service.authorityGrants(fx.grants()).grants.isEmpty())
-        assertEquals(StatusCode.FORBIDDEN, fx.runtime.service.authorityResolve(fx.resolve()).statusCode)
+        assertTrue(fx.runtime.api.authorityGrants(fx.grants()).grants.isEmpty())
+        assertEquals(StatusCode.FORBIDDEN, fx.runtime.api.authorityResolve(fx.resolve()).statusCode)
     }
 
     private class Fixture {

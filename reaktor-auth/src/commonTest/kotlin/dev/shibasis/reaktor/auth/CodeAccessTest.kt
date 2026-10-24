@@ -18,10 +18,10 @@ import dev.shibasis.reaktor.auth.kernel.PrincipalKind
 import dev.shibasis.reaktor.auth.kernel.PrincipalRef
 import dev.shibasis.reaktor.auth.kernel.RoleRef
 import dev.shibasis.reaktor.auth.transport.AuthRejectedException
-import dev.shibasis.reaktor.auth.transport.guardRelations
+import dev.shibasis.reaktor.auth.transport.RelationAccess
 import dev.shibasis.reaktor.auth.transport.setAuthContext
-import dev.shibasis.reaktor.graph.ServiceNode
 import dev.shibasis.reaktor.graph.api
+import dev.shibasis.reaktor.graph.serve
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.GraphShape
 import dev.shibasis.reaktor.graph.core.NodeKind
@@ -30,22 +30,22 @@ import dev.shibasis.reaktor.graph.core.ScopeShape
 import dev.shibasis.reaktor.graph.core.autoWire
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.shape
-import dev.shibasis.reaktor.service.GetHandler
 import dev.shibasis.reaktor.service.HttpBinding
 import dev.shibasis.reaktor.service.HttpMethod
 import dev.shibasis.reaktor.service.Interaction
 import dev.shibasis.reaktor.service.OperationDescriptor
-import dev.shibasis.reaktor.service.PostHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.SchemaRef
-import dev.shibasis.reaktor.service.Service
-import dev.shibasis.reaktor.service.ServiceContract
 import dev.shibasis.reaktor.service.ServiceExecutionPhase
+import dev.shibasis.reaktor.service.contract.LocalLink
+import dev.shibasis.reaktor.service.contract.over
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
 import kotlin.test.*
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.Served
 
 class CodeAccessTest {
     private fun descriptor(contract: String, operation: String, method: HttpMethod, route: String) = OperationDescriptor(contract, 1, "app.$contract.Request.$operation",
@@ -131,15 +131,16 @@ class CodeAccessTest {
 
     @Test fun servicesAndGraphPortsEnforceTheRelationsAtCallTime() = runTest {
         val graph = Graph(dependencyAdapter = AuthGraphDependencyFixture(), label = "BestBuds")
-        val service = CirclesFixture()
-        graph.ServiceNode(service, "Circles")
+        val served = Served(CirclesFixture())
+        graph.serve(served)
         val caller = CirclesCallerFixture(graph)
         graph.attach(caller)
         graph.autoWire()
         val live = CodeAccessPolicy(model, grants, CodeAccess.resources(graph.shape()))
         assertEquals(listOf("operation:circles.discover", "operation:circles.join"), live.resources.operations.map { it.ref.toString() })
-        service.guardRelations(live)
-        suspend fun serve(context: AuthContext?) = runCatching { service.discover(CircleRequest().apply { setAuthContext(context) }) }
+        served.intercept(RelationAccess({ live }))
+        val circles = Circles() over LocalLink(served)
+        suspend fun serve(context: AuthContext?) = runCatching { circles.discover(CircleRequest().apply { setAuthContext(context) }) }
         assertTrue(serve(person("member")).isSuccess)
         assertIs<AuthRejectedException>(serve(person()).exceptionOrNull())
         val current = MutableStateFlow<AuthContext?>(null)
@@ -157,12 +158,16 @@ class CodeAccessTest {
 @Serializable private class CircleRequest : Request()
 @Serializable private class CircleResponse : Response()
 
-private class CirclesFixture : Service() {
-    override val contract = ServiceContract("circles")
-    val discover by GetHandler<CircleRequest, CircleResponse>("/circles/discover") { CircleResponse() }
-    val join by PostHandler<CircleRequest, CircleResponse>("/circles/join") { CircleResponse() }
+private open class Circles : Service("circles") {
+    open val discover by get<CircleRequest, CircleResponse>("/circles/discover")
+    open val join by post<CircleRequest, CircleResponse>("/circles/join")
+}
+
+private class CirclesFixture : Circles() {
+    override val discover = super.discover.handle { CircleResponse() }
+    override val join = super.join.handle { CircleResponse() }
 }
 
 private class CirclesCallerFixture(graph: Graph) : BasicNode(graph) {
-    val discover by api(CirclesFixture::discover)
+    val discover by api(Circles().discover)
 }

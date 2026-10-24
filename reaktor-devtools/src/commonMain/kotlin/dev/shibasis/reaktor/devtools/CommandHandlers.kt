@@ -4,8 +4,8 @@ import dev.shibasis.reaktor.portgraph.attach.Attachable
 import dev.shibasis.reaktor.portgraph.graph.PortGraph
 import dev.shibasis.reaktor.portgraph.node.PortNode
 import dev.shibasis.reaktor.portgraph.port.PortCapability
-import dev.shibasis.reaktor.service.InterceptorStage
-import dev.shibasis.reaktor.service.Service
+import dev.shibasis.reaktor.service.contract.Interceptors
+import dev.shibasis.reaktor.service.contract.Link
 
 /**
  * A command handler assembled from a lambda.
@@ -25,8 +25,7 @@ fun commandHandler(
 }
 
 /** Wires the traffic tap into one service, for an app that would rather not install it globally. */
-fun DevToolsAgent.instrument(service: Service): Service =
-    service.use(setOf(InterceptorStage.CLIENT_APPLICATION), trafficTap)
+fun DevToolsAgent.instrument(link: Link): Link = link.intercept(trafficTap)
 
 /**
  * Captures every service in the process.
@@ -34,7 +33,7 @@ fun DevToolsAgent.instrument(service: Service): Service =
  * The default, because the alternative is remembering to instrument each service as it is written,
  * and the call that matters is always the one in the service nobody remembered.
  */
-fun DevToolsAgent.instrumentAllServices(): () -> Unit = Service.installGlobal(trafficTap)
+fun DevToolsAgent.instrumentAllServices(): () -> Unit = Interceptors.install(trafficTap)
 
 /**
  * Installs the graph taps on one port owner and everything it owns.

@@ -1,11 +1,12 @@
 package dev.shibasis.reaktor.auth.runtime
 
-import dev.shibasis.reaktor.auth.api.AppService
-import dev.shibasis.reaktor.auth.api.AuthService
 import dev.shibasis.reaktor.auth.jwt.toAuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthContext
-import dev.shibasis.reaktor.auth.transport.guardRelations
-import dev.shibasis.reaktor.service.Request
+import dev.shibasis.reaktor.auth.transport.AUTHORIZATION_HEADER
+import dev.shibasis.reaktor.auth.transport.RelationAccess
+import dev.shibasis.reaktor.auth.transport.bearerTokenFromHeader
+import dev.shibasis.reaktor.service.contract.Exchange
+import dev.shibasis.reaktor.service.contract.Served
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthAccountNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthAppServiceNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthAuditNode
@@ -26,7 +27,7 @@ import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.requireFullyWired
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
 import dev.shibasis.reaktor.graph.di.singleton
-import dev.shibasis.reaktor.graph.ServiceNode
+import dev.shibasis.reaktor.graph.serve
 import dev.shibasis.reaktor.db.service.ExposedAdapter
 
 class AuthRuntimeGraph(
@@ -58,24 +59,22 @@ class AuthRuntimeGraph(
     val account = Node(::AuthAccountNode)
     val authHttp = Node(::AuthHttpServiceNode)
     val appHttp = Node(::AuthAppServiceNode)
-    val authHandlers: ServiceNode
-    val appHandlers: ServiceNode
-
-    val service: AuthService get() = authHttp.service
-    val appService: AppService get() = appHttp.service
+    val service = Served(authHttp.service)
+    val appService = Served(appHttp.service)
+    val authHandlers = serve(service)
+    val appHandlers = serve(appService)
+    val served: List<Served<*>> get() = listOf(service, appService)
 
     init {
-        authHandlers = Node { ServiceNode(it, service, "AuthHandlers") }
-        appHandlers = Node { ServiceNode(it, appService, "AuthAppHandlers") }
         autoWire()
         requireFullyWired()
         config.access?.let { access ->
-            listOf(service, appService).forEach { it.guardRelations(access.policy, ::caller, access.decisions) }
+            served.forEach { it.intercept(RelationAccess(access.policy, ::caller, access.decisions)) }
         }
     }
 
-    private fun caller(request: Request): AuthContext? =
-        request.bearerToken()?.let { jwt.verifier.verifyReaktorSignature(it).getOrNull()?.toAuthContext() }
+    private fun caller(exchange: Exchange<*, *>): AuthContext? =
+        bearerTokenFromHeader(exchange.metadata[AUTHORIZATION_HEADER])?.let { jwt.verifier.verifyReaktorSignature(it).getOrNull()?.toAuthContext() }
 
     companion object {
         fun create(

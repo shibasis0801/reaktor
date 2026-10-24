@@ -87,6 +87,7 @@ class MaestroRunner(
             addAll(contract.processPrefix)
             addAll(listOf(binary, "--platform", contract.platform, "--device", contract.serial,
                 "--no-app-install", "--auto-start-emulator=false", "--driver-start-timeout", "180"))
+            if (contract.platform == "ios") contract.appFile?.let { addAll(listOf("--app-file", it)) }
             contract.team?.let { addAll(listOf("--team-id", it)) }
             contract.wdaBundleId?.let { addAll(listOf("--wda-bundle-id", it)) }
             addAll(listOf("test", "--output", directory.absolutePath, "--flatten", "--artifacts", contract.artifacts))

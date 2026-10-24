@@ -19,21 +19,19 @@ import dev.shibasis.reaktor.auth.kernel.PrincipalKind
 import dev.shibasis.reaktor.auth.kernel.PrincipalRef
 import dev.shibasis.reaktor.auth.kernel.RoleRef
 import dev.shibasis.reaktor.auth.transport.AuthRejectedException
-import dev.shibasis.reaktor.auth.transport.AuthRequirementInterceptor
-import dev.shibasis.reaktor.auth.transport.guardRelations
+import dev.shibasis.reaktor.auth.transport.AuthRequirements
+import dev.shibasis.reaktor.auth.transport.RelationAccess
 import dev.shibasis.reaktor.auth.transport.setAuthContext
 import dev.shibasis.reaktor.core.network.StatusCode
-import dev.shibasis.reaktor.service.GetHandler
-import dev.shibasis.reaktor.service.PostHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
 import dev.shibasis.reaktor.service.ServiceCall
-import dev.shibasis.reaktor.service.ServiceContract
 import dev.shibasis.reaktor.service.ServiceSpan
-import dev.shibasis.reaktor.service.SpanRecorder
 import dev.shibasis.reaktor.service.SpanSink
 import dev.shibasis.reaktor.service.TraceContext
+import dev.shibasis.reaktor.service.contract.Interceptor
+import dev.shibasis.reaktor.service.contract.Spans
+import dev.shibasis.reaktor.service.contract.over
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
@@ -41,6 +39,8 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.*
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.LocalLink
 
 class AccessDecisionTest {
     private val model = FgaDsl.parse(CodeAccess.starter).model!!
@@ -98,8 +98,7 @@ class AccessDecisionTest {
     @Test fun shadowRecordsWithoutBlockingAndEnforceBlocksWithTheRightStatus() = runTest {
         val seen = mutableListOf<AccessDecision>()
         var access = policy(FgaStore.EveryObject to AccessMode.Shadow)
-        val rooms = RoomsFixture()
-        rooms.guardRelations({ access }, decisions = AccessDecisionSink(seen::add))
+        val rooms = rooms(RelationAccess({ access }, decisions = AccessDecisionSink(seen::add)))
         suspend fun serve(context: AuthContext?) = runCatching { rooms.close(RoomRequest().apply { setAuthContext(context) }) }
         assertTrue(serve(null).isSuccess)
         assertEquals("would deny", seen.single().verdict)
@@ -113,14 +112,12 @@ class AccessDecisionTest {
 
     @Test fun aModelThatCannotAnswerFailsClosedAndNoModelLeavesCallsAlone() = runTest {
         val seen = mutableListOf<AccessDecision>()
-        val broken = RoomsFixture()
-        broken.guardRelations({ error("model missing") }, decisions = AccessDecisionSink(seen::add))
+        val broken = rooms(RelationAccess({ error("model missing") }, decisions = AccessDecisionSink(seen::add)))
         assertEquals(StatusCode.UNAUTHORIZED, (runCatching { broken.open(RoomRequest()) }.exceptionOrNull() as AuthRejectedException).statusCode)
         assertEquals(StatusCode.FORBIDDEN, (runCatching { broken.open(RoomRequest().apply { setAuthContext(caller()) }) }.exceptionOrNull() as AuthRejectedException).statusCode)
         assertEquals(listOf("The access model could not answer: model missing"), seen.map { it.rule }.distinct())
         assertEquals(listOf(AccessMode.Enforce), seen.map { it.mode }.distinct())
-        val unguarded = RoomsFixture()
-        unguarded.guardRelations({ null }, decisions = AccessDecisionSink(seen::add))
+        val unguarded = rooms(RelationAccess({ null }, decisions = AccessDecisionSink(seen::add)))
         assertTrue(runCatching { unguarded.open(RoomRequest()) }.isSuccess)
         assertEquals(2, seen.size)
     }
@@ -139,20 +136,17 @@ class AccessDecisionTest {
 
     @Test fun roleRequirementsRecordTheSameDecision() = runTest {
         val seen = mutableListOf<AccessDecision>()
-        val rooms = RoomsFixture()
-        rooms.use(AuthRequirementInterceptor({ AuthRequirement(roles = setOf(RoleRef(name = "host"))) }, AccessDecisionSink(seen::add)))
+        val rooms = rooms(AuthRequirements({ AuthRequirement(roles = setOf(RoleRef(name = "host"))) }, AccessDecisionSink(seen::add)))
         assertTrue(runCatching { rooms.open(RoomRequest().apply { setAuthContext(caller("host")) }) }.isSuccess)
         assertEquals(StatusCode.FORBIDDEN, (runCatching { rooms.open(RoomRequest().apply { setAuthContext(caller()) }) }.exceptionOrNull() as AuthRejectedException).statusCode)
         assertEquals(listOf(true, false), seen.map { it.allowed })
         assertEquals("operation:rooms.open", seen.first().target)
-        assertEquals(AuthRequirementInterceptor.Requirement, seen.first().relation)
+        assertEquals(AuthRequirements.Requirement, seen.first().relation)
     }
 
     @Test fun theServerSpanCarriesTheDecisionWithTheFactsTheCallBrought() = runTest {
         val spans = mutableListOf<ServiceSpan>()
-        val rooms = RoomsFixture()
-        rooms.use(SpanRecorder("rooms", SpanSink(spans::add)))
-        rooms.guardRelations({ policy(FgaStore.EveryObject to AccessMode.Shadow) }, decisions = AccessDecisionSink { })
+        val rooms = rooms(Spans("rooms", SpanSink(spans::add)), RelationAccess({ policy(FgaStore.EveryObject to AccessMode.Shadow) }, decisions = AccessDecisionSink { }))
         withContext(ServiceCall(TraceContext.root(), null, emptyMap())) {
             rooms.close(RoomRequest().apply { setAuthContext(caller("member", tenant = "acme")) })
             rooms.close(RoomRequest())
@@ -207,8 +201,12 @@ class AccessDecisionTest {
 @Serializable private class RoomRequest : Request()
 @Serializable private class RoomResponse : Response()
 
-private class RoomsFixture : Service() {
-    override val contract = ServiceContract("rooms")
-    val open by GetHandler<RoomRequest, RoomResponse>("/rooms/open") { RoomResponse() }
-    val close by PostHandler<RoomRequest, RoomResponse>("/rooms/close") { RoomResponse() }
+private open class RoomDoors : Service("rooms") {
+    open val open by get<RoomRequest, RoomResponse>("/rooms/open")
+    open val close by post<RoomRequest, RoomResponse>("/rooms/close")
 }
+
+private fun rooms(vararg interceptors: Interceptor): RoomDoors = RoomDoors() over LocalLink(object : RoomDoors() {
+    override val open = super.open.handle { RoomResponse() }
+    override val close = super.close.handle { RoomResponse() }
+}).also { it.served.intercept(*interceptors) }

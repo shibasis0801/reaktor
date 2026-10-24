@@ -7,8 +7,6 @@ import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.Environment
-import dev.shibasis.reaktor.service.PostHandler
-import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -17,9 +15,9 @@ import kotlin.js.ExperimentalJsStatic
 import kotlin.js.JsExport
 import kotlin.js.JsStatic
 import dev.shibasis.reaktor.auth.kernel.AuthDefaults
-import dev.shibasis.reaktor.service.ServiceContract
 import dev.shibasis.reaktor.service.Callers
 import dev.shibasis.reaktor.service.ServiceAccess
+import dev.shibasis.reaktor.service.contract.Service
 
 @JsExport
 @Serializable
@@ -337,48 +335,21 @@ data class DeactivateAccountResponse(
     override val headers: MutableMap<String, String> = mutableMapOf()
 ): Response()
 
-@JsExport
-abstract class AuthService(baseUrl: String = ""): Service(baseUrl) {
-    override val contract = Contract
+open class AuthService : Service("reaktor.auth") {
+    override val access = ServiceAccess(Callers.SignedIn, ::anonymous to Callers.Everyone, ::login to Callers.Everyone,
+        ::token to Callers.Everyone, ::mintPat to Callers.Everyone, ::verifyPat to Callers.Everyone,
+        ::sessionRefresh to Callers.Everyone, ::sessionLogout to Callers.Everyone)
 
-    @JsExport.Ignore
-    override val access = Access
-
-    abstract val anonymous: PostHandler<AnonymousAuthRequest, LoginResponse>
-    abstract val login: PostHandler<LoginRequest, LoginResponse>
-    abstract val token: PostHandler<TokenRequest, TokenResponse>
-    abstract val mintPat: PostHandler<MintPatRequest, MintPatResponse>
-    abstract val verifyPat: PostHandler<VerifyPatRequest, VerifyPatResponse>
-    abstract val sessionRefresh: PostHandler<RefreshRequest, RefreshResponse>
-    abstract val sessionLogout: PostHandler<LogoutRequest, LogoutResponse>
-    abstract val sessionMe: PostHandler<MeRequest, MeResponse>
-    abstract val sessionLogoutAll: PostHandler<LogoutAllRequest, LogoutAllResponse>
-    abstract val accountDeactivate: PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>
-    abstract val authorityGrants: PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>
-    abstract val authorityResolve: PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>
-
-    companion object {
-        val Contract = ServiceContract("reaktor.auth")
-
-        @JsExport.Ignore
-        val Access = ServiceAccess(Callers.SignedIn, AuthService::anonymous to Callers.Everyone, AuthService::login to Callers.Everyone,
-            AuthService::token to Callers.Everyone, AuthService::mintPat to Callers.Everyone, AuthService::verifyPat to Callers.Everyone,
-            AuthService::sessionRefresh to Callers.Everyone, AuthService::sessionLogout to Callers.Everyone)
-    }
-}
-
-@JsExport
-open class AuthServiceClient(baseUrl: String): AuthService(baseUrl) {
-    override val anonymous by PostHandler<AnonymousAuthRequest, LoginResponse>("/auth/anonymous")
-    override val login by PostHandler<LoginRequest, LoginResponse>("/auth/sign-in")
-    override val mintPat by PostHandler<MintPatRequest, MintPatResponse>("/auth/pat/mint")
-    override val token by PostHandler<TokenRequest, TokenResponse>("/auth/token")
-    override val verifyPat by PostHandler<VerifyPatRequest, VerifyPatResponse>("/auth/pat/verify")
-    override val sessionRefresh by PostHandler<RefreshRequest, RefreshResponse>("/auth/session/refresh")
-    override val sessionLogout by PostHandler<LogoutRequest, LogoutResponse>("/auth/session/logout")
-    override val sessionMe by PostHandler<MeRequest, MeResponse>("/auth/session/me")
-    override val sessionLogoutAll by PostHandler<LogoutAllRequest, LogoutAllResponse>("/auth/session/logout-all")
-    override val accountDeactivate by PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/auth/account/deactivate")
-    override val authorityGrants by PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>("/auth/authority/grants")
-    override val authorityResolve by PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>("/auth/authority/resolve")
+    open val anonymous by post<AnonymousAuthRequest, LoginResponse>("/auth/anonymous")
+    open val login by post<LoginRequest, LoginResponse>("/auth/sign-in")
+    open val token by post<TokenRequest, TokenResponse>("/auth/token")
+    open val mintPat by post<MintPatRequest, MintPatResponse>("/auth/pat/mint")
+    open val verifyPat by post<VerifyPatRequest, VerifyPatResponse>("/auth/pat/verify")
+    open val sessionRefresh by post<RefreshRequest, RefreshResponse>("/auth/session/refresh")
+    open val sessionLogout by post<LogoutRequest, LogoutResponse>("/auth/session/logout")
+    open val sessionMe by post<MeRequest, MeResponse>("/auth/session/me")
+    open val sessionLogoutAll by post<LogoutAllRequest, LogoutAllResponse>("/auth/session/logout-all")
+    open val accountDeactivate by post<DeactivateAccountRequest, DeactivateAccountResponse>("/auth/account/deactivate")
+    open val authorityGrants by post<AuthorityGrantsRequest, AuthorityGrantsResponse>("/auth/authority/grants")
+    open val authorityResolve by post<AuthorityResolveRequest, AuthorityResolveResponse>("/auth/authority/resolve")
 }

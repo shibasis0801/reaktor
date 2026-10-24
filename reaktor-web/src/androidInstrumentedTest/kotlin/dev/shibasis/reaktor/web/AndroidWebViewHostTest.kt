@@ -16,10 +16,16 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.dsl.koinApplication
 import org.junit.Assert.*
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.Served
 
 class WebViewProbeActivity : Activity()
 @Serializable private class DeviceRequest(val text: String) : Request()
 @Serializable private class DeviceResponse(val text: String) : Response()
+
+private open class DeviceProbe : Service("device.probe") {
+    open val echo by post<DeviceRequest, DeviceResponse>("/echo", name = "probe.echo")
+}
 
 @RunWith(AndroidJUnit4::class)
 class AndroidWebViewHostTest {
@@ -29,11 +35,10 @@ class AndroidWebViewHostTest {
         val koin = koinApplication {}
         val graph = Graph(dependencyAdapter = KoinDependencyAdapter(koin))
         val runtime = graph.Node { WebRuntime(it) }
-        val service = object : Service() {
-            override val contract = ServiceContract("device.probe")
-            val echo = server(PostHandler, "/echo", "probe.echo", DeviceRequest.serializer(), DeviceResponse.serializer()) { DeviceResponse(it.text) }
-        }
-        val bridge = graph.Node { WebBridge(it, service, MutableStateFlow(WebGrant(
+        val served = Served(object : DeviceProbe() {
+            override val echo = super.echo.handle { request -> DeviceResponse(request.text) }
+        })
+        val bridge = graph.Node { WebBridge(it, served, MutableStateFlow(WebGrant(
             "device", "v1", "physical-test", "test", Environment.STAGE, setOf("probe.echo"))),
             authorize = { grant, _ -> grant.principal == "physical-test" }) }
         val html = """<!doctype html><html><head><meta charset="utf-8">

@@ -49,7 +49,9 @@ fun Bar(
     modifier: Modifier = Modifier,
     appearance: BarAppearance = LocalAppearances.current[Appearance.Bar],
     content: @Composable RowScope.() -> Unit,
-) = Passive(modifier) { theme, feedback -> appearance.Content(Unit, Unit, theme, feedback, BarSlots(content)) }
+) = Studied("Bar", modifier, appearance, Appearance.Bar, listOf("content")) { edits, chosen ->
+    Passive(edits.modifier) { theme, feedback -> chosen.Content(Unit, Unit, theme, feedback, BarSlots(edits.scoped("content", content))) }
+}
 
 @Composable
 fun Section(
@@ -58,7 +60,9 @@ fun Section(
     trailing: (@Composable () -> Unit)? = null,
     appearance: SectionAppearance = LocalAppearances.current[Appearance.Section],
     content: @Composable ColumnScope.() -> Unit,
-) = Passive(modifier) { theme, feedback -> appearance.Content(Unit, Unit, theme, feedback, SectionSlots(heading, trailing, content)) }
+) = Studied("Section", modifier, appearance, Appearance.Section, listOf("heading", "trailing", "content")) { edits, chosen ->
+    Passive(edits.modifier) { theme, feedback -> chosen.Content(Unit, Unit, theme, feedback, SectionSlots(edits.slot("heading", heading), edits.optional("trailing", trailing), edits.scoped("content", content))) }
+}
 
 @Composable
 fun Property(
@@ -66,7 +70,9 @@ fun Property(
     modifier: Modifier = Modifier,
     appearance: PropertyAppearance = LocalAppearances.current[Appearance.Property],
     value: @Composable RowScope.() -> Unit,
-) = Passive(modifier) { theme, feedback -> appearance.Content(Unit, Unit, theme, feedback, PropertySlots(label, value)) }
+) = Studied("Property", modifier, appearance, Appearance.Property, listOf("label", "value")) { edits, chosen ->
+    Passive(edits.modifier) { theme, feedback -> chosen.Content(Unit, Unit, theme, feedback, PropertySlots(edits.slot("label", label), edits.scoped("value", value))) }
+}
 
 @Composable
 fun Metric(
@@ -76,7 +82,9 @@ fun Metric(
     trend: (@Composable () -> Unit)? = null,
     detail: (@Composable () -> Unit)? = null,
     appearance: MetricAppearance = LocalAppearances.current[Appearance.Metric],
-) = Passive(modifier) { theme, feedback -> appearance.Content(Unit, Unit, theme, feedback, MetricSlots(label, value, trend, detail)) }
+) = Studied("Metric", modifier, appearance, Appearance.Metric, listOf("label", "value", "trend", "detail")) { edits, chosen ->
+    Passive(edits.modifier) { theme, feedback -> chosen.Content(Unit, Unit, theme, feedback, MetricSlots(edits.slot("label", label), edits.slot("value", value), edits.optional("trend", trend), edits.optional("detail", detail))) }
+}
 
 @Composable
 fun Finding(
@@ -89,13 +97,32 @@ fun Finding(
     evidence: (@Composable () -> Unit)? = null,
     fix: (@Composable () -> Unit)? = null,
     appearance: FindingAppearance = LocalAppearances.current[Appearance.Finding],
-) = Passive(modifier) { theme, feedback ->
-    appearance.Content(FindingProperties(selected), Unit, theme, feedback, FindingSlots(mark, title, aside, detail, evidence, fix))
+) = Studied("Finding", modifier, appearance, Appearance.Finding, listOf("mark", "title", "aside", "detail", "evidence", "fix")) { edits, chosen ->
+    Passive(edits.modifier) { theme, feedback ->
+        chosen.Content(FindingProperties(selected), Unit, theme, feedback,
+            FindingSlots(edits.slot("mark", mark), edits.slot("title", title), edits.optional("aside", aside), edits.optional("detail", detail), edits.optional("evidence", evidence), edits.optional("fix", fix)))
+    }
+}
+
+@Composable
+private fun <A : Any> Studied(kind: String, modifier: Modifier, appearance: A, key: AppearanceKey<A>, slots: List<String>, content: @Composable (SurfaceEdits, A) -> Unit) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) content(Unedited(modifier), appearance)
+    else studio.Element(SurfaceCall(kind, modifier, appearance = appearance, appearanceKey = key, slots = slots)) { edits -> content(edits, edits.appearance(appearance)) }
 }
 
 @Composable
 private fun Passive(modifier: Modifier, content: @Composable (ThemeSnapshot, ComposeFeedback) -> Unit) =
     Box(modifier, propagateMinConstraints = true) { content(LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false)) }
+
+internal class Unedited(override val modifier: Modifier) : SurfaceEdits {
+    override fun value(field: String): String? = null
+    override fun <A : Any> appearance(original: A): A = original
+    override fun action(name: String, original: () -> Unit): () -> Unit = original
+    override fun <T> handler(name: String, original: (T) -> Unit): (T) -> Unit = original
+    override fun slot(name: String, content: @Composable () -> Unit): @Composable () -> Unit = content
+    override fun <S> scoped(name: String, content: @Composable S.() -> Unit): @Composable S.() -> Unit = content
+}
 
 val BareBar: BarAppearance = object : BarAppearance {
     @Composable

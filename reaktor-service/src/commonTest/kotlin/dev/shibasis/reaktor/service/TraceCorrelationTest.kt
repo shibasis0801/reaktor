@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.service
 
+import dev.shibasis.reaktor.service.contract.Metadata
+import dev.shibasis.reaktor.service.contract.Spans
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -12,6 +14,8 @@ import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.Served
 
 class TraceCorrelationTest {
     @Test
@@ -26,19 +30,15 @@ class TraceCorrelationTest {
     @Test
     fun concurrentRequestsKeepTheirOwnSessionAndTrace() = runTest {
         val spans = SpanBuffer()
-        val service = object : Service() {
-            val ping = GetHandler<CorrelationRequest, CorrelationResponse>("/ping") { request ->
-                delay(if (request.session == "one") 20 else 1)
-                CorrelationResponse()
-            }
-            init { use(SpanRecorder("test", spans, mapOf(ServiceCall.EnvironmentAttribute to "dev"))) }
-        }
+        val served = Served(Correlated { request ->
+            delay(if (request.session == "one") 20 else 1)
+        }).intercept(Spans("test", spans) { mapOf(ServiceCall.EnvironmentAttribute to "dev") })
         val parents = listOf(TraceContext.root(), TraceContext.root())
         listOf("one", "two").mapIndexed { index, session ->
-            async { service.ping(CorrelationRequest(session).apply {
-                headers[TraceContext.Header] = parents[index].traceparent
-                headers["baggage"] = "reaktor-session=$session,reaktor.environment=production"
-            }) }
+            async { served.call(Correlation().ping, CorrelationRequest(session), Metadata(mapOf(
+                TraceContext.Header to parents[index].traceparent,
+                Metadata.Baggage to "reaktor-session=$session,reaktor.environment=production",
+            ))) }
         }.awaitAll()
         val recorded = spans.drain().associateBy { it.applicationSession }
         assertEquals(setOf("one", "two"), recorded.keys)
@@ -52,20 +52,14 @@ class TraceCorrelationTest {
     @Test
     fun trustedRequestResourcesAreCapturedBeforeConcurrentWork() = runTest {
         val spans = SpanBuffer()
-        val service = object : Service() {
-            val ping = GetHandler<CorrelationRequest, CorrelationResponse>("/ping") { request ->
-                request.attributes[ServiceCall.EnvironmentAttribute] = "spoofed"
-                delay(10)
-                CorrelationResponse()
-            }
-            init { use(SpanRecorder("test", spans,
-                resourceAttributes = mapOf(ServiceCall.BuildAttribute to "revision"),
-                requestResourceAttributes = { request -> mapOf(
-                    ServiceCall.EnvironmentAttribute to (request as CorrelationRequest).session,
-                ) },
-            )) }
-        }
-        listOf("dev", "prod").map { tier -> async { service.ping(CorrelationRequest(tier)) } }.awaitAll()
+        val served = Served(Correlated { request ->
+            request.attributes[ServiceCall.EnvironmentAttribute] = "spoofed"
+            delay(10)
+        }).intercept(Spans("test", spans) { exchange -> mapOf(
+            ServiceCall.BuildAttribute to "revision",
+            ServiceCall.EnvironmentAttribute to (exchange.request as CorrelationRequest).session,
+        ) })
+        listOf("dev", "prod").map { tier -> async { served.call(Correlation().ping, CorrelationRequest(tier)) } }.awaitAll()
         assertEquals(setOf("dev", "prod"), spans.drain().also { recorded ->
             assertEquals(setOf("revision"), recorded.map { it.build }.toSet())
         }.map { it.environment }.toSet())
@@ -74,11 +68,7 @@ class TraceCorrelationTest {
     @Test
     fun oldSpanPayloadsDecodeWithoutInventedIdentity() = runTest {
         val spans = SpanBuffer()
-        val service = object : Service() {
-            val ping = GetHandler<CorrelationRequest, CorrelationResponse>("/ping") { CorrelationResponse() }
-            init { use(SpanRecorder("test", spans)) }
-        }
-        service.ping(CorrelationRequest())
+        Served(Correlated {}).intercept(Spans("test", spans)).call(Correlation().ping, CorrelationRequest())
         val encoded = Json.encodeToJsonElement(spans.drain().single()) as JsonObject
         val decoded = Json.decodeFromJsonElement<ServiceSpan>(JsonObject(encoded.filterKeys {
             it !in setOf("application_session", "environment", "build", "node", "graph_digest")
@@ -94,3 +84,14 @@ private data class CorrelationRequest(val session: String = "") : Request()
 
 @Serializable
 private class CorrelationResponse : Response()
+
+private open class Correlation : Service("test.correlation") {
+    open val ping by get<CorrelationRequest, CorrelationResponse>("/ping")
+}
+
+private class Correlated(private val work: suspend (CorrelationRequest) -> Unit) : Correlation() {
+    override val ping = super.ping.handle { request ->
+        work(request)
+        CorrelationResponse()
+    }
+}

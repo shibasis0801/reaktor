@@ -694,6 +694,8 @@ object MachineSignal {
         val swatchSize = 18.dp
         val tableHeight = 420.dp
         val tableStoryHeight = 480.dp
+        val timelineHeight = 120.dp
+        val timelineDot = 5.dp
         val wideStoryWidth = 1100.dp
     }
 
@@ -704,6 +706,37 @@ object MachineSignal {
     object LivePreview {
         val noticeMaxWidth = 520.dp
         val sidebarWidth = 440.dp
+    }
+
+    object Studio {
+        val panelWidth = 312.dp
+        val panelMinWidth = 200.dp
+        val panelMaxWidth = 440.dp
+        val inspectorWidth = 340.dp
+        val selectionOutline = 2.dp
+        val hoverOutline = 1.dp
+        val dropLine = 3.dp
+        val layerIndent = 14.dp
+        val tileHeight = 56.dp
+        val tagOffset = 18.dp
+        val desktopWidth = 1180.dp
+        val desktopHeight = 780.dp
+        val grip = 9.dp
+        val gripBar = 16.dp
+        val gripThin = 5.dp
+        val gripReach = 4.dp
+        val snap = 3.dp
+        val paletteWidth = 560.dp
+        val paletteHeight = 380.dp
+        val menuWidth = 260.dp
+        val themeLabel = 120.dp
+        val fieldLabel = 84.dp
+        val editedMark = 5.dp
+        val alignCell = 20.dp
+        val alignMark = 6.dp
+        val alignBar = 12.dp
+        val padField = 54.dp
+        val barGap = 6.dp
     }
 
     object LogRow {

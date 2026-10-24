@@ -140,7 +140,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             while (key != null && add(key)) key = parents[key]
         }
     }) }
-    SideEffect { state.density(density); if (model != null) { state.frames = model.layout.frames; state.place(model.cards, model.nodes, key) } }
+    SideEffect { state.density(density); editor?.font = appearance.fontFamily; if (model != null) { state.frames = model.layout.frames; state.place(model.cards, model.nodes, key) } }
     val select by rememberUpdatedState(onSelect)
     val clear by rememberUpdatedState(onClear)
     fun cardAt(x: Float, y: Float) = painter.model.value?.cards?.asReversed()?.firstOrNull { x >= it.x && x <= it.x + it.width && y >= it.y && y <= it.y + it.height }

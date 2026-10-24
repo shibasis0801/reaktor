@@ -26,6 +26,15 @@ fun Progress(
     modifier: Modifier = Modifier,
     appearance: ProgressAppearance = LocalAppearances.current.progress,
 ) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) ProgressBar(value, modifier, appearance)
+    else studio.Element(SurfaceCall("Progress", modifier, listOf(SurfaceField.fraction("value", value)), appearance, Appearance.Progress)) { edits ->
+        ProgressBar(edits.fraction("value", value), edits.modifier, edits.appearance(appearance))
+    }
+}
+
+@Composable
+private fun ProgressBar(value: Float?, modifier: Modifier, appearance: ProgressAppearance) {
     val clamped = value?.coerceIn(0f, 1f)
     Box(
         modifier.semantics { progressBarRangeInfo = clamped?.let { ProgressBarRangeInfo(it, 0f..1f) } ?: ProgressBarRangeInfo.Indeterminate },

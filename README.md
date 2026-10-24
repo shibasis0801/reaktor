@@ -281,11 +281,11 @@ This adapter model is what keeps the shared graph runtime portable across Androi
 
 Services are defined once and reused across client and server:
 
-- typed `Request` / `Response` with kotlinx.serialization
-- route-aware handlers such as `GetHandler`, `PostHandler`, `PutHandler`, `DeleteHandler`
-- transport metadata including status codes and headers
-- interceptor chains for auth, logging, and caching
-- mountable onto Spring WebFlux on JVM or Cloudflare Workers on JS
+- one Kotlin interface per service, implemented by the server and generated for the client from its `Contract` companion, so a mismatch fails to compile
+- typed `Request` / `Response` with kotlinx.serialization and routes bound per call (`call(Api::op, Get("/path"))`)
+- graph nodes through `graph.serve(Contract, implementation)` and `graph.remote(Contract, link)`
+- deadlines, retries, typed failures and interceptors for telemetry, security and application concerns
+- mountable onto Spring WebFlux on JVM (`toRouter()`) or Cloudflare Workers on JS (`Hono.mount`)
 
 ### Navigation
 

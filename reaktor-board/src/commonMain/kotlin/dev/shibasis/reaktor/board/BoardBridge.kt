@@ -2,15 +2,12 @@ package dev.shibasis.reaktor.board
 
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.contract.Contract
-import dev.shibasis.reaktor.service.contract.Link
-import dev.shibasis.reaktor.service.contract.Post
 import dev.shibasis.reaktor.service.contract.Served
-import dev.shibasis.reaktor.service.contract.serve
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import dev.shibasis.reaktor.service.contract.Service
 
 @Serializable
 data class BoardSnapshot(
@@ -117,35 +114,24 @@ interface BoardSource {
     suspend fun select(request: BoardSelect)
 }
 
-interface BoardService {
-    suspend fun read(request: BoardRead): BoardSnapshot
-    suspend fun change(request: BoardChange): BoardReceipt
-    suspend fun select(request: BoardSelect): BoardReceipt
+open class BoardService : Service("reaktor.board") {
+    open val read by post<BoardRead, BoardSnapshot>("/read", name = Read)
+    open val change by post<BoardChange, BoardReceipt>("/change", name = Change)
+    open val select by post<BoardSelect, BoardReceipt>("/select", name = Select)
 
-    companion object : Contract<BoardService>("reaktor.board") {
+    companion object {
         const val Read = "board.snapshot"
         const val Change = "board.change"
         const val Select = "board.select"
         const val Changed = "board.changed"
         val Operations = setOf(Read, Change, Select, Changed)
-
-        val read = call(BoardService::read, Post("/read"), name = Read)
-        val change = call(BoardService::change, Post("/change"), name = Change)
-        val select = call(BoardService::select, Post("/select"), name = Select)
-
-        operator fun invoke(source: BoardSource): Served<BoardService> = serve(object : BoardService {
-            override suspend fun read(request: BoardRead) = source.read()
-            override suspend fun change(request: BoardChange) = source.change(request)
-            override suspend fun select(request: BoardSelect): BoardReceipt {
+        operator fun invoke(source: BoardSource): Served<BoardService> = Served(object : BoardService() {
+            override val read = super.read.handle { source.read() }
+            override val change = super.change.handle { request -> source.change(request) }
+            override val select = super.select.handle { request ->
                 source.select(request)
-                return BoardReceipt()
+                BoardReceipt()
             }
         })
-
-        override fun client(link: Link): BoardService = object : BoardService {
-            override suspend fun read(request: BoardRead) = link(read, request)
-            override suspend fun change(request: BoardChange) = link(change, request)
-            override suspend fun select(request: BoardSelect) = link(select, request)
-        }
     }
 }

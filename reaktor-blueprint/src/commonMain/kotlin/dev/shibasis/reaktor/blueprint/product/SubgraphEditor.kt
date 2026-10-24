@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.testTag
@@ -33,6 +34,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.shibasis.reaktor.blueprint.Bounds
+import dev.shibasis.reaktor.blueprint.Layered
+import dev.shibasis.reaktor.blueprint.LayeredEdge
+import dev.shibasis.reaktor.blueprint.LayeredNode
+import dev.shibasis.reaktor.blueprint.LayeredSpacing
 import dev.shibasis.reaktor.blueprint.canvas.*
 import dev.shibasis.reaktor.graph.selection.*
 import dev.shibasis.reaktor.surface.*
@@ -257,7 +262,8 @@ fun SubgraphEditor(
 private fun SubgraphMap(nodes: List<SearchNode>, links: List<SearchEdge>, document: Subgraph, selected: String?, connection: String?,
     palette: SurfaceGraphAppearance, state: GraphCanvasState, onNode: (String) -> Unit, onEdge: (String) -> Unit,
     onClear: () -> Unit, modifier: Modifier, space: Dp, top: Dp) {
-    val positions = remember(nodes, links) { subgraphPositions(nodes, links) }
+    val placement = remember(nodes, links) { subgraphPlacement(nodes, links) }
+    val positions = placement.positions
     val indices = remember(nodes) { nodes.mapIndexed { i, node -> node.id to i }.toMap() }
     val boxes = remember(positions) { positions.map { p -> object : Bounds {
         override val x = p.x.toDouble() - 90; override val y = p.y.toDouble() - 12
@@ -265,12 +271,13 @@ private fun SubgraphMap(nodes: List<SearchNode>, links: List<SearchEdge>, docume
     } } }
     val related = remember(selected, links) { links.filter { it.from == selected || it.to == selected }.flatMap { listOf(it.from, it.to) }.toSet() }
     fun nodeAt(x: Float, y: Float) = boxes.indexOfFirst { x >= it.x && x <= it.x + it.width && y >= it.y && y <= it.y + it.height }.takeIf { it >= 0 }
-    fun edgeAt(x: Float, y: Float, reach: Float): SearchEdge? = links.firstOrNull { link ->
-        val a = positions[indices.getValue(link.from)]; val b = positions[indices.getValue(link.to)]
-        val dx = b.x - a.x; val dy = b.y - a.y
-        val t = (((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy).coerceAtLeast(1f)).coerceIn(0f, 1f)
-        hypot(x - a.x - t * dx, y - a.y - t * dy) < reach
-    }
+    fun edgeAt(x: Float, y: Float, reach: Float): SearchEdge? = links.indices.firstOrNull { i ->
+        placement.routes[i].zipWithNext().any { (a, b) ->
+            val dx = b.x - a.x; val dy = b.y - a.y
+            val t = (((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy).coerceAtLeast(1f)).coerceIn(0f, 1f)
+            hypot(x - a.x - t * dx, y - a.y - t * dy) < reach
+        }
+    }?.let { links[it] }
     SideEffect {
         state.extent = boxes; state.insetTop = top.value.toDouble(); state.insetBottom = (space * 8).value.toDouble()
         state.insetStart = (space * 3).value.toDouble(); state.insetEnd = (space * 3).value.toDouble()
@@ -304,48 +311,77 @@ private fun SubgraphMap(nodes: List<SearchNode>, links: List<SearchEdge>, docume
         },
     ) { view, _, _ ->
         withTransform({ translate(view.x.toFloat(), view.y.toFloat()); scale(view.zoom.toFloat(), view.zoom.toFloat(), Offset.Zero) }) {
-            links.forEach { link ->
-                val a = positions[indices.getValue(link.from)]; val b = positions[indices.getValue(link.to)]
+            val unit = 1 / view.zoom.toFloat().coerceAtLeast(.5f)
+            links.forEachIndexed { i, link ->
                 val included = link.from in document.nodes && link.to in document.nodes && (document.edges == null || link.id in document.edges.orEmpty())
                 val active = link.id == connection || selected != null && (link.from == selected || link.to == selected)
-                drawLine(palette.selected.copy(alpha = if (!included) .07f else if (active) .65f else if (selected != null) .1f else .22f), a, b,
-                    ((if (active) 1.5f else 1f) / view.zoom.toFloat().coerceAtLeast(.5f)), StrokeCap.Round)
+                val ink = palette.selected.copy(alpha = if (!included) .1f else if (active) .8f else if (selected != null) .12f else .38f)
+                drawPath(placement.paths[i], ink, style = Stroke((if (active) 1.8f else 1.1f) * unit, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                val route = placement.routes[i]
+                if (route.size >= 2) drawPath(arrowhead(route[route.size - 2], route.last(), 7f * unit), ink)
             }
         }
     }
 }
 
-private fun subgraphPositions(nodes: List<SearchNode>, links: List<SearchEdge>): List<Offset> {
-    val index = nodes.mapIndexed { i, n -> n.id to i }.toMap()
-    val points = nodes.indices.map { i ->
-        val angle = i * 2.399963229728653
-        val radius = 110 * sqrt(i.toDouble())
-        Offset((cos(angle) * radius).toFloat(), (sin(angle) * radius).toFloat())
-    }.toMutableList()
-    val forces = Array(nodes.size) { Offset.Zero }
-    repeat(140) { step ->
-        forces.fill(Offset.Zero)
-        for (i in points.indices) for (j in 0 until i) {
-            val delta = points[i] - points[j]
-            val distance = delta.getDistance().coerceAtLeast(1f)
-            val clearance = sqrt((delta.x / 200).pow(2) + (delta.y / 110).pow(2)).coerceAtLeast(.01f)
-            val strength = 6500 / (distance * distance) + if (clearance < 1.2f) (1.2f - clearance) * 18 else 0f
-            val force = delta / distance * strength
-            forces[i] += force; forces[j] -= force
-        }
-        links.forEach { link ->
-            val i = index.getValue(link.from); val j = index.getValue(link.to)
-            val delta = points[j] - points[i]; val distance = delta.getDistance().coerceAtLeast(1f)
-            val force = delta / distance * ((distance - 210) * .025f)
-            forces[i] += force; forces[j] -= force
-        }
-        for (i in points.indices) {
-            val force = forces[i] - points[i] * .006f
-            val limit = 14f * (1 - step / 160f)
-            points[i] += force / max(1f, force.getDistance() / limit)
+private class SubgraphPlacement(val positions: List<Offset>, val routes: List<List<Offset>>, val paths: List<Path>)
+
+private const val SubgraphNodeWidth = 180.0
+private const val SubgraphNodeHeight = 76.0
+private const val SubgraphDot = 12.0
+private const val SubgraphDotClearance = 7f
+private const val SubgraphContains = "contains"
+
+private fun subgraphPlacement(nodes: List<SearchNode>, links: List<SearchEdge>): SubgraphPlacement {
+    val layout = Layered.layout(
+        nodes.map { LayeredNode(it.id, SubgraphNodeWidth, SubgraphNodeHeight, anchor = SubgraphDot) },
+        links.map { LayeredEdge(it.id, it.from, it.to, weight = if (it.kind == SubgraphContains) 4 else 1) },
+        LayeredSpacing(node = 16.0, layer = 104.0, edge = 9.0, component = 72.0, aspect = 1.6, wrap = 12),
+    )
+    val positions = nodes.indices.map { Offset((layout.x[it] + SubgraphNodeWidth / 2).toFloat(), (layout.y[it] + SubgraphDot).toFloat()) }
+    val indices = nodes.mapIndexed { i, node -> node.id to i }.toMap()
+    val routes = links.mapIndexed { i, link ->
+        val flat = layout.routes[i]
+        val from = positions[indices.getValue(link.from)]
+        val to = positions[indices.getValue(link.to)]
+        val middle = (0 until flat.size / 2).map { Offset(flat[it * 2].toFloat(), flat[it * 2 + 1].toFloat()) }
+        if (middle.size < 2) listOf(from, to)
+        else {
+            val start = middle.first().let { first -> Offset(from.x + if (first.x >= from.x) SubgraphDotClearance else -SubgraphDotClearance, from.y) }
+            val end = middle.last().let { last -> Offset(to.x + if (last.x <= to.x) -SubgraphDotClearance else SubgraphDotClearance, to.y) }
+            (listOf(start) + middle + listOf(end)).fold(ArrayList<Offset>()) { kept, point -> if (kept.isEmpty() || (kept.last() - point).getDistance() > .5f) kept += point; kept }
         }
     }
-    return points
+    return SubgraphPlacement(positions, routes, routes.map(::roundedPath))
+}
+
+private fun roundedPath(points: List<Offset>, radius: Float = 9f): Path = Path().apply {
+    if (points.isEmpty()) return@apply
+    moveTo(points[0].x, points[0].y)
+    for (i in 1 until points.size - 1) {
+        val previous = points[i - 1]; val corner = points[i]; val next = points[i + 1]
+        val inbound = (corner - previous).getDistance()
+        val outbound = (next - corner).getDistance()
+        val reach = minOf(radius, inbound / 2, outbound / 2)
+        if (reach < .5f) { lineTo(corner.x, corner.y); continue }
+        val enter = corner - (corner - previous) / inbound * reach
+        val leave = corner + (next - corner) / outbound * reach
+        lineTo(enter.x, enter.y)
+        quadraticTo(corner.x, corner.y, leave.x, leave.y)
+    }
+    if (points.size > 1) lineTo(points.last().x, points.last().y)
+}
+
+private fun arrowhead(from: Offset, tip: Offset, length: Float): Path {
+    val direction = (tip - from).let { if (it.getDistance() < .01f) Offset(1f, 0f) else it / it.getDistance() }
+    val side = Offset(-direction.y, direction.x)
+    val base = tip - direction * length
+    return Path().apply {
+        moveTo(tip.x, tip.y)
+        lineTo(base.x + side.x * length * .45f, base.y + side.y * length * .45f)
+        lineTo(base.x - side.x * length * .45f, base.y - side.y * length * .45f)
+        close()
+    }
 }
 
 @Composable

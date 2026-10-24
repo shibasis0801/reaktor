@@ -75,6 +75,25 @@ class SpanJvmClientTest {
         assertEquals(1, requests)
     }
 
+    @Test fun exactTopologyIsReadOnlyForDigestsInTheSelectedSpanPage() = InfrastructureSession().use { session ->
+        val digest = "a".repeat(64)
+        val requests = mutableListOf<String>()
+        val output = SpanJvmClient(session).readReceipt(op) { sql ->
+            requests += sql
+            when {
+                sql.startsWith("SELECT name") && "table = 'service_spans'" in sql -> (base + "graph_digest").joinToString("\n") { "{\"name\":\"$it\"}" }
+                sql.startsWith("SELECT name") -> listOf("application", "graph_digest", "definition", "recorded_at").joinToString("\n") { "{\"name\":\"$it\"}" }
+                "FROM bestbuds_dev.service_spans" in sql -> """{"graph_digest":"$digest"}"""
+                else -> """{"application":"bestbuds","graph_digest":"$digest","definition":"{}"}"""
+            }
+        }
+        val receipt = Json.decodeFromString(SpanReadReceipt.serializer(), output)
+        assertEquals(digest, receipt.graphDefinitions.single().jsonObject.getValue("graph_digest").jsonPrimitive.content)
+        assertTrue("graph_digest IN ('$digest')" in requests.last())
+        assertTrue("LIMIT 8" in requests.last())
+        assertTrue(requests.none { "INSERT" in it || "ALTER" in it })
+    }
+
     @Test fun missingBaseSchemaOrInvalidScopeFailsBeforeReadingRows() = InfrastructureSession().use { session ->
         var requests = 0
         assertFails { SpanJvmClient(session).readReceipt(op) { requests++; "{\"name\":\"trace_id\"}" } }

@@ -17,14 +17,14 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.roundToIntRect
+import androidx.compose.ui.unit.round
 import dev.shibasis.reaktor.surface.DisclosureInput
 import dev.shibasis.reaktor.surface.DisclosureKernel
 import kotlin.math.roundToInt
@@ -41,7 +41,7 @@ fun Popover(
 ) {
     val disclosure = rememberDisclosure(expanded, onExpandedChange, enabled, behavior)
     val own = remember { mutableStateOf(IntRect.Zero) }
-    Box(modifier.onGloballyPositioned { own.value = it.boundsInWindow().roundToIntRect() }, propagateMinConstraints = true) {
+    Box(modifier.onGloballyPositioned { own.value = IntRect(it.positionInWindow().round(), it.size) }, propagateMinConstraints = true) {
         PopoverScope(disclosure, { own.value }, placement).content()
     }
 }
@@ -109,9 +109,14 @@ class PopoverScope internal constructor(
                 }
             }
             LaunchedEffect(focus) {
-                withFrameNanos {}
-                focus.requestFocus()
-                focusManager.moveFocus(FocusDirection.Enter)
+                host?.run { claims++ }
+                try {
+                    withFrameNanos {}
+                    focus.requestFocus()
+                    focusManager.moveFocus(FocusDirection.Enter)
+                } finally {
+                    host?.run { claims-- }
+                }
             }
         }
     }

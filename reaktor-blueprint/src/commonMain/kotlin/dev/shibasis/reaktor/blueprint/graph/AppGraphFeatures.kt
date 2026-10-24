@@ -8,6 +8,7 @@ data class Feature(val key: String, val label: String, val members: List<NodeSha
 object AppGraphFeatures {
     private const val Start = "start"
     private const val HubHops = 4
+    private const val SwitcherSize = 3
     private val ScopedSources = setOf(GraphSource.Build, GraphSource.Code)
 
     fun of(graph: AppGraph): List<Feature> {
@@ -54,6 +55,19 @@ object AppGraphFeatures {
         return features.filter { !it.shared }.sortedWith(compareBy<Feature> { it.key != Start }.thenByDescending { it.members.size }.thenBy { it.label }) +
             features.filter { it.shared }.sortedBy { feature -> Role.entries.first { shared(it) == feature.key }.lane } +
             islands
+    }
+
+    fun switchers(graph: AppGraph): List<Set<String>> {
+        val ids = graph.hops.mapTo(HashSet()) { it.id }
+        val partners = graph.hops.filter { Hop(it.to, it.from).id in ids }.groupBy({ it.from }, { it.to }).mapValues { it.value.toSet() }
+        val busiest = compareByDescending<String> { partners.getValue(it).size }.thenBy { it }
+        val taken = HashSet<String>()
+        return partners.keys.sortedWith(busiest).mapNotNull { seed ->
+            if (seed in taken) return@mapNotNull null
+            val group = linkedSetOf(seed)
+            partners.getValue(seed).filter { it !in taken }.sortedWith(busiest).forEach { candidate -> if (group.all { it in partners.getValue(candidate) }) group += candidate }
+            group.takeIf { it.size >= SwitcherSize }?.also { taken += it }
+        }
     }
 
     private fun shared(role: Role): String = "shared-${role.name.lowercase()}"

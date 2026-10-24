@@ -4,14 +4,17 @@ import dev.shibasis.reaktor.blueprint.BlueprintEngine
 import dev.shibasis.reaktor.blueprint.BlueprintLayout
 import dev.shibasis.reaktor.blueprint.Pin
 import dev.shibasis.reaktor.blueprint.editor.Change
+import dev.shibasis.reaktor.blueprint.editor.ChangeSet
 import dev.shibasis.reaktor.blueprint.editor.EditorInk
-import dev.shibasis.reaktor.blueprint.editor.GraphDraft
 import dev.shibasis.reaktor.blueprint.editor.GraphEditor
 import dev.shibasis.reaktor.blueprint.editor.GraphTerms
 import dev.shibasis.reaktor.blueprint.editor.Template
+import dev.shibasis.reaktor.blueprint.editor.fresh
 import dev.shibasis.reaktor.blueprint.editor.id
 import dev.shibasis.reaktor.blueprint.editor.port
 import dev.shibasis.reaktor.blueprint.editor.recounted
+import dev.shibasis.reaktor.blueprint.editor.replay
+import dev.shibasis.reaktor.blueprint.editor.with
 import dev.shibasis.reaktor.graph.core.GraphShape
 import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.NodeShape
@@ -30,15 +33,23 @@ class SurfaceGraphDocument(
     val title: String = "Atlas",
     val cardWidth: Double = 272.0,
     private val linkFamily: (SurfaceGraphLink) -> String = { "related" },
+    private val rowKey: (SurfaceGraphRow) -> String = { it.key },
 ) : GraphTerms {
     private val nodeById = nodes.associateBy { it.id }
     private val linkById = links.associateBy { it.id }
     private val groupByKey = groups.associateBy { it.key }
+    private val keys = HashMap<Pair<String, String>, String>().also { keys ->
+        for (node in nodes) {
+            val seen = HashMap<String, Int>()
+            for (row in node.rows) { val key = rowKey(row); val n = (seen[key] ?: 0) + 1; seen[key] = n; keys[node.id to row.key] = if (n == 1) key else "$key ($n)" }
+        }
+    }
+    private fun key(node: SurfaceGraphNode, row: SurfaceGraphRow) = keys[node.id to row.key] ?: row.key
     private val places = HashMap<String, Pair<String, String>>().also { places ->
-        for (node in nodes) for (row in node.rows) for (alias in listOf(row.id) + row.aliases) places.getOrPut(alias) { node.id to row.key }
+        for (node in nodes) for (row in node.rows) for (alias in listOf(row.id) + row.aliases) places.getOrPut(alias) { node.id to key(node, row) }
     }
     private val owners = HashMap<String, String>().also { owners -> for (node in nodes) owners.getOrPut(node.owner) { node.id } }
-    private val rowIds = HashMap<Pair<String, String>, SurfaceGraphRow>().also { rows -> for (node in nodes) for (row in node.rows) rows.getOrPut(node.id to row.key) { row } }
+    private val rowIds = HashMap<Pair<String, String>, SurfaceGraphRow>().also { rows -> for (node in nodes) for (row in node.rows) rows.getOrPut(node.id to key(node, row)) { row } }
 
     val shape: GraphShape = run {
         val scopes = LinkedHashMap<String, ScopeShape>()
@@ -55,20 +66,30 @@ class SurfaceGraphDocument(
     }
 
     val templates: List<Template> = nodes.groupingBy { it.symbol }.eachCount().entries.sortedByDescending { it.value }
-        .map { (symbol, _) -> Template("New $symbol", NodeKind.Node, symbol, ports(emptyList())) }
+        .map { (symbol, _) -> Template("New $symbol", NodeKind.Node, symbol, ports(emptyList()), category = symbol) }
 
-    fun editor(layout: BlueprintLayout<*>, ink: EditorInk, title: String): GraphEditor =
-        GraphEditor(shape, GraphEditor.placement(layout), title = title, ink = ink, cardWidth = cardWidth, single = false, pinZone = PinZone,
-            family = ::family, catalogue = { templates }, pins = ::pins, terms = this)
-
-    fun open(draft: GraphDraft, ink: EditorInk): GraphEditor = GraphEditor.open(draft, ink, cardWidth, false, PinZone, ::family, { templates }, ::pins, this)
+    fun editor(layout: BlueprintLayout<*>, ink: EditorInk, title: String, from: ChangeSet? = null): GraphEditor {
+        val placement = GraphEditor.placement(layout)
+        val part = from?.graph
+        val replay = part?.let(shape::replay)
+        return GraphEditor(shape, part?.layout?.let(placement::with) ?: placement, from?.id ?: fresh("draft"), from?.title ?: title, from?.revision ?: 0,
+            replay?.shape ?: shape, ink, cardWidth, single = false, pinZone = PinZone, family = ::family, catalogue = { templates },
+            pins = ::pins, terms = this, origin = placement, conflicts = replay?.conflicts.orEmpty())
+    }
 
     override val kinds = false
+    override val subgraphs = false
+    override val settings = false
     override val types = false
+    override val scope = "area"
+    override val upstream = "Select what it builds on"
+    override val downstream = "Select what it leads to"
 
     override fun port(node: NodeShape, key: String): String = if (key == CardPort) node.label else rowIds[node.id to key]?.title ?: key
 
     override fun end(node: NodeShape, key: String): String = if (key == CardPort) node.label else "${node.label} · ${port(node, key)}"
+
+    override fun cycle(names: List<String>): String = "${(names + names.first()).joinToString(" → ")} lead back to each other, so none of them can come first"
 
     override fun summary(node: NodeShape, change: Change): String = rows(node).size.let { "${node.type} · $it row${if (it == 1) "" else "s"}" }
 
@@ -88,13 +109,15 @@ class SurfaceGraphDocument(
         }
     }
 
+    fun row(node: String, key: String): SurfaceGraphRow? = rowIds[node to key]
+
     fun family(wire: WireShape): String = linkById[wire.definitionId]?.let(linkFamily) ?: "related"
 
     fun scene(editor: GraphEditor): SurfaceGraphScene {
         val shapes = editor.shape.nodes.associateBy { it.id }
         val frames = editor.layout.frames.associateBy { it.key }
         val shown = editor.layout.cards.keys.mapNotNull { id -> shapes[id]?.let(::nodeOf) ?: nodeById[id] }
-        val links = editor.shape.wires.map { wire ->
+        val links = editor.shape.wires.filter { it.provider in editor.layout.cards && it.consumer in editor.layout.cards }.map { wire ->
             val original = linkById[wire.definitionId]
             SurfaceGraphLink(wire.id, endpointOf(wire.provider, wire.providerPort), endpointOf(wire.consumer, wire.consumerPort), original?.label.orEmpty(), original?.proposed ?: false, original?.color)
         }
@@ -107,7 +130,7 @@ class SurfaceGraphDocument(
 
     private fun endpointOf(node: String, port: String) = if (port == CardPort) node else rowIds[node to port]?.id ?: "$node:$port"
 
-    private fun shapeOf(node: SurfaceGraphNode) = NodeShape(node.id, node.scope.ifBlank { root }, node.title, node.symbol, NodeKind.Node, ports = ports(node.rows.map { it.key }),
+    private fun shapeOf(node: SurfaceGraphNode) = NodeShape(node.id, node.scope.ifBlank { root }, node.title, node.symbol, NodeKind.Node, ports = ports(node.rows.map { key(node, it) }),
         attributes = buildMap { if (node.subtitle.isNotEmpty()) put("subtitle", node.subtitle); if (node.owner != node.id) put("owner", node.owner) })
 
     private fun nodeOf(shape: NodeShape): SurfaceGraphNode {

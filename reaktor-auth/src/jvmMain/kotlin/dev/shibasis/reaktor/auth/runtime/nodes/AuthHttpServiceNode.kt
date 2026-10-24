@@ -1,95 +1,36 @@
 package dev.shibasis.reaktor.auth.runtime.nodes
 
 import dev.shibasis.reaktor.auth.api.AuthService
-import dev.shibasis.reaktor.auth.api.AnonymousAuthRequest
-import dev.shibasis.reaktor.auth.api.DeactivateAccountRequest
-import dev.shibasis.reaktor.auth.api.DeactivateAccountResponse
-import dev.shibasis.reaktor.auth.api.LoginRequest
-import dev.shibasis.reaktor.auth.api.LoginResponse
-import dev.shibasis.reaktor.auth.api.LogoutAllRequest
-import dev.shibasis.reaktor.auth.api.LogoutAllResponse
-import dev.shibasis.reaktor.auth.api.LogoutRequest
-import dev.shibasis.reaktor.auth.api.LogoutResponse
-import dev.shibasis.reaktor.auth.api.MeRequest
-import dev.shibasis.reaktor.auth.api.MeResponse
-import dev.shibasis.reaktor.auth.api.MintPatRequest
-import dev.shibasis.reaktor.auth.api.MintPatResponse
-import dev.shibasis.reaktor.auth.api.RefreshRequest
-import dev.shibasis.reaktor.auth.api.RefreshResponse
-import dev.shibasis.reaktor.auth.api.TokenRequest
-import dev.shibasis.reaktor.auth.api.TokenResponse
-import dev.shibasis.reaktor.auth.api.VerifyPatRequest
-import dev.shibasis.reaktor.auth.api.VerifyPatResponse
-import dev.shibasis.reaktor.auth.api.AuthorityGrantsRequest
-import dev.shibasis.reaktor.auth.api.AuthorityGrantsResponse
-import dev.shibasis.reaktor.auth.api.AuthorityResolveRequest
-import dev.shibasis.reaktor.auth.api.AuthorityResolveResponse
 import dev.shibasis.reaktor.auth.runtime.AuthAccount
-import dev.shibasis.reaktor.auth.runtime.AuthHttpService
 import dev.shibasis.reaktor.auth.runtime.AuthLogin
 import dev.shibasis.reaktor.auth.runtime.AuthPat
 import dev.shibasis.reaktor.auth.runtime.AuthSessions
 import dev.shibasis.reaktor.auth.runtime.AuthTokenGrants
+import dev.shibasis.reaktor.auth.runtime.ports.AuthAuthority
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
-import dev.shibasis.reaktor.service.PostHandler
 import dev.shibasis.reaktor.portgraph.port.consumes
-import dev.shibasis.reaktor.portgraph.port.provides
 
-class AuthHttpServiceNode(graph: Graph) : BasicNode(graph), AuthHttpService {
+class AuthHttpServiceNode(graph: Graph) : BasicNode(graph) {
     val loginPort by consumes<AuthLogin>()
     val patPort by consumes<AuthPat>()
     val tokenGrantsPort by consumes<AuthTokenGrants>()
     val sessionsPort by consumes<AuthSessions>()
     val accountPort by consumes<AuthAccount>()
-    val authorityPort by consumes<dev.shibasis.reaktor.auth.runtime.ports.AuthAuthority>()
-    val httpServicePort by provides<AuthHttpService>(this)
+    val authorityPort by consumes<AuthAuthority>()
 
-    override val service: AuthService = object : AuthService() {
-        override val authorityGrants by PostHandler<AuthorityGrantsRequest, AuthorityGrantsResponse>("/authority/grants") {
-            authorityPort.suspended { grants(it) }
-        }
-        override val authorityResolve by PostHandler<AuthorityResolveRequest, AuthorityResolveResponse>("/authority/resolve") {
-            authorityPort.suspended { resolve(it) }
-        }
-        override val anonymous by PostHandler<AnonymousAuthRequest, LoginResponse>("/anonymous") {
-            loginPort.suspended { anonymous(it) }
-        }
-
-        override val login by PostHandler<LoginRequest, LoginResponse>("/sign-in") {
-            loginPort.suspended { login(it) }
-        }
-
-        override val mintPat by PostHandler<MintPatRequest, MintPatResponse>("/pat/mint") {
-            patPort.suspended { mint(it) }
-        }
-
-        override val verifyPat by PostHandler<VerifyPatRequest, VerifyPatResponse>("/pat/verify") {
-            patPort.suspended { verify(it) }
-        }
-
-        override val token by PostHandler<TokenRequest, TokenResponse>("/token") {
-            tokenGrantsPort.suspended { issue(it) }
-        }
-
-        override val sessionRefresh by PostHandler<RefreshRequest, RefreshResponse>("/session/refresh") {
-            sessionsPort.suspended { refresh(it) }
-        }
-
-        override val sessionLogout by PostHandler<LogoutRequest, LogoutResponse>("/session/logout") {
-            sessionsPort.suspended { logout(it) }
-        }
-
-        override val sessionMe by PostHandler<MeRequest, MeResponse>("/session/me") {
-            sessionsPort.suspended { me(it) }
-        }
-
-        override val sessionLogoutAll by PostHandler<LogoutAllRequest, LogoutAllResponse>("/session/logout-all") {
-            sessionsPort.suspended { logoutAll(it) }
-        }
-
-        override val accountDeactivate by PostHandler<DeactivateAccountRequest, DeactivateAccountResponse>("/account/deactivate") {
-            accountPort.suspended { deactivate(it) }
-        }
+    val service: AuthService = object : AuthService() {
+        override val authorityGrants = super.authorityGrants.handle { request -> authorityPort.suspended { grants(request) } }
+        override val authorityResolve = super.authorityResolve.handle { request -> authorityPort.suspended { resolve(request) } }
+        override val anonymous = super.anonymous.handle { request -> loginPort.suspended { anonymous(request) } }
+        override val login = super.login.handle { request -> loginPort.suspended { login(request) } }
+        override val mintPat = super.mintPat.handle { request -> patPort.suspended { mint(request) } }
+        override val verifyPat = super.verifyPat.handle { request -> patPort.suspended { verify(request) } }
+        override val token = super.token.handle { request -> tokenGrantsPort.suspended { issue(request) } }
+        override val sessionRefresh = super.sessionRefresh.handle { request -> sessionsPort.suspended { refresh(request) } }
+        override val sessionLogout = super.sessionLogout.handle { request -> sessionsPort.suspended { logout(request) } }
+        override val sessionMe = super.sessionMe.handle { request -> sessionsPort.suspended { me(request) } }
+        override val sessionLogoutAll = super.sessionLogoutAll.handle { request -> sessionsPort.suspended { logoutAll(request) } }
+        override val accountDeactivate = super.accountDeactivate.handle { request -> accountPort.suspended { deactivate(request) } }
     }
 }

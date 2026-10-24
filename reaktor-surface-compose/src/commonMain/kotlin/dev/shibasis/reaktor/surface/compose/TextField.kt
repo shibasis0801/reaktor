@@ -14,11 +14,14 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.BasicSecureTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.KeyboardActionHandler
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldDecorator
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.currentCompositeKeyHash
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
@@ -68,14 +71,21 @@ fun TextField(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     label: String? = null,
-) = Field(state, modifier, enabled, error, label, appearance, placeholder, leading, trailing) { field, style, source, cursor, decorator ->
+) = Field("TextField", state, modifier, enabled, error, label, appearance, placeholder, leading, trailing) { field, style, source, cursor, decorator ->
+    val observer = LocalSurfaceEventObserver.current
+    val element = currentCompositeKeyHash.toUInt().toString(16)
     BasicTextField(
         state = state,
         modifier = field,
         enabled = enabled,
         textStyle = style,
         keyboardOptions = keyboardOptions,
-        onKeyboardAction = onKeyboardAction,
+        onKeyboardAction = if (observer == null) onKeyboardAction else KeyboardActionHandler { default ->
+            observer.onEvent(element, "submit") { onKeyboardAction?.onKeyboardAction(default) ?: default() }
+        },
+        inputTransformation = observer?.let { observe -> object : InputTransformation {
+            override fun TextFieldBuffer.transformInput() { observe.onEvent(element, "edit") { } }
+        } },
         lineLimits = lineLimits,
         interactionSource = source,
         cursorBrush = cursor,
@@ -89,9 +99,14 @@ fun SecureTextField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     appearance: FieldAppearance = LocalAppearances.current.field,
-) = Field(state, modifier, enabled, false, null, appearance, null, null, null) { field, style, source, cursor, decorator ->
+) = Field("SecureTextField", state, modifier, enabled, false, null, appearance, null, null, null) { field, style, source, cursor, decorator ->
+    val observer = LocalSurfaceEventObserver.current
+    val element = currentCompositeKeyHash.toUInt().toString(16)
     BasicSecureTextField(
         state = state,
+        inputTransformation = observer?.let { observe -> object : InputTransformation {
+            override fun TextFieldBuffer.transformInput() { observe.onEvent(element, "edit") { } }
+        } },
         enabled = enabled,
         modifier = field,
         textStyle = style,
@@ -105,6 +120,30 @@ fun SecureTextField(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Field(
+    kind: String,
+    state: TextFieldState,
+    modifier: Modifier,
+    enabled: Boolean,
+    error: Boolean,
+    label: String?,
+    appearance: FieldAppearance,
+    placeholder: (@Composable () -> Unit)?,
+    leading: (@Composable () -> Unit)?,
+    trailing: (@Composable () -> Unit)?,
+    editor: @Composable (Modifier, TextStyle, MutableInteractionSource, Brush, TextFieldDecorator) -> Unit,
+) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) FieldBody(state, modifier, enabled, error, label, appearance, placeholder, leading, trailing, editor)
+    else studio.Element(SurfaceCall(kind, modifier, listOfNotNull(SurfaceField.text("label", label), SurfaceField.flag("enabled", enabled), SurfaceField.flag("error", error),
+        SurfaceField.text("value", state.text.toString()).copy(editable = false).takeIf { kind == "TextField" }), appearance, Appearance.Field, listOf("placeholder", "leading", "trailing"))) { edits ->
+        FieldBody(state, edits.modifier, edits.flag("enabled", enabled), edits.flag("error", error), edits.value("label")?.ifEmpty { null } ?: label, edits.appearance(appearance),
+            edits.optional("placeholder", placeholder), edits.optional("leading", leading), edits.optional("trailing", trailing), editor)
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FieldBody(
     state: TextFieldState,
     modifier: Modifier,
     enabled: Boolean,
@@ -120,7 +159,8 @@ private fun Field(
     val press = rememberMachine(PressKernel, PressProperties(enabled)) {}
     val source = rememberInteractions(press)
     val theme = LocalThemeSnapshot.current
-    val feedback = rememberFeedback(press.state.pressed, press.state.focused)
+    val shown = press.state.forced()
+    val feedback = rememberFeedback(shown.pressed, shown.focused)
     val reveal = remember { BringIntoViewRequester() }
     LaunchedEffect(press.state.focused, LocalWindowInfo.current.containerSize) {
         if (press.state.focused) {
@@ -133,7 +173,7 @@ private fun Field(
         appearance.textStyle(properties, theme),
         source,
         appearance.cursor(properties, theme),
-        TextFieldDecorator { inner -> appearance.Content(properties, press.state, theme, feedback, FieldSlots(inner, placeholder, leading, trailing)) },
+        TextFieldDecorator { inner -> appearance.Content(properties, shown, theme, feedback, FieldSlots(inner, placeholder, leading, trailing)) },
     )
 }
 

@@ -1,14 +1,10 @@
 package dev.shibasis.reaktor.devtools
 
-import kotlinx.coroutines.CompletableDeferred
-
 /**
  * Browser and worker runtimes.
  *
  * A page cannot listen on a socket, so the listen-and-be-dialled model that Android and Apple use
- * does not apply here: a browser agent connects *out* to the workbench over a WebSocket. That is a
- * different attachment shape rather than a missing feature, and until it is wired the transport
- * says so instead of pretending to accept connections.
+ * does not apply here: a browser agent connects *out* to the workbench over a WebSocket.
  */
 private object WebPlatformInfo : DevToolsPlatformInfo {
     override val name: String = "Browser"
@@ -26,14 +22,5 @@ private object WebPlatformInfo : DevToolsPlatformInfo {
 
 actual fun devToolsPlatformInfo(): DevToolsPlatformInfo = WebPlatformInfo
 
-actual fun devToolsTransport(port: Int): AgentTransport = WebDialOutTransport
-
-private object WebDialOutTransport : AgentTransport {
-    override val description: String =
-        "web agents dial the workbench; there is no listening socket in a browser"
-
-    /** Never completes: there is nothing to accept. Callers see a target that never attaches. */
-    override suspend fun accept(): PeerChannel = CompletableDeferred<PeerChannel>().await()
-
-    override fun close() = Unit
-}
+actual fun devToolsTransport(port: Int): AgentTransport =
+    BrowserDialTransport(if (port == DevToolsProtocol.DefaultLoopbackPort) DevToolsProtocol.BrowserPort else port)

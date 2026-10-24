@@ -67,6 +67,12 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
 
     fun viewport(): Viewport = flow.viewport.let { Viewport(it.x / density, it.y / density, it.zoom / density) }
 
+    fun seen(): Area? {
+        val view = viewport(); val width = flow.canvasSize.width / density; val height = flow.canvasSize.height / density
+        if (width <= 0 || height <= 0 || view.zoom <= 0) return null
+        return Area((insetStart - view.x) / view.zoom, (insetTop - view.y) / view.zoom, (width - insetStart - insetEnd) / view.zoom, (height - insetTop - insetBottom) / view.zoom)
+    }
+
     fun fit(x: Double, y: Double, width: Double, height: Double, padding: Double = 0.03, maxZoom: Double = 1.0, minZoom: Double = 0.05) {
         if (span <= 0 || room <= 0) return
         look(x + width / 2, y + height / 2, minOf(span * (1 - 2 * padding) / width.coerceAtLeast(1.0), room * (1 - 2 * padding) / height.coerceAtLeast(1.0)).coerceIn(minZoom, maxZoom))

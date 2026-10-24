@@ -8,9 +8,10 @@ import dev.shibasis.reaktor.portgraph.port.PortInterceptor
 import dev.shibasis.reaktor.portgraph.port.PortInvocation
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.Unique
-import dev.shibasis.reaktor.service.RequestHandler
 import dev.shibasis.reaktor.service.ServiceCall
 import dev.shibasis.reaktor.service.TraceContext
+import dev.shibasis.reaktor.graph.callName
+import dev.shibasis.reaktor.graph.contractId
 import dev.shibasis.reaktor.graph.core.GraphShape
 import kotlinx.atomicfu.atomic
 import dev.shibasis.reaktor.telemetry.export.asCoroutineContext
@@ -106,7 +107,7 @@ val TelemetryPolicy = AttachmentKey<TelemetryFacet>("reaktor.telemetry.policy")
 fun Port<*>.resolvedTelemetryFacet(fallback: TelemetryFacet = TelemetryFacet()): TelemetryFacet {
     val own = attachment(TelemetryPolicy)
     val owner = (owner as? dev.shibasis.reaktor.portgraph.attach.Attachable)?.attachment(TelemetryPolicy)
-    val merged = own ?: owner ?: if (requestHandler() != null) fallback.copy(semantics = PortSemantics.Request) else fallback
+    val merged = own ?: owner ?: if (type.callName != null) fallback.copy(semantics = PortSemantics.Request) else fallback
     if (merged.tracePolicy != TracePolicy.Inherit) return merged
     val inherited = owner?.tracePolicy?.takeIf { it != TracePolicy.Inherit }
         ?: fallback.tracePolicy.takeIf { it != TracePolicy.Inherit }
@@ -119,7 +120,7 @@ fun Port<*>.resolvedTelemetryFacet(fallback: TelemetryFacet = TelemetryFacet()):
  * from a runtime value, so it is safe as a span name and as a metric dimension.
  */
 fun Port<*>.telemetryOperationName(facet: TelemetryFacet = resolvedTelemetryFacet()): String =
-    facet.operation ?: requestHandler()?.endpoint?.operation ?: "${type.type}.${telemetryPortId()}"
+    facet.operation ?: type.callName ?: "${type.type}.${telemetryPortId()}"
 
 /**
  * D7 — one completed span per port call.
@@ -267,7 +268,7 @@ class PortTelemetryInterceptor(
             }
             val owner = invocation.port.owner as? Unique
             val binding = owner?.id?.toString()?.let(subjects.value::get)
-            put(ServiceCall.NodeAttribute, binding?.get(ServiceCall.NodeAttribute) ?: owner?.label.orEmpty())
+            put(ServiceCall.NodeAttribute, binding?.get(ServiceCall.NodeAttribute).orEmpty())
             binding?.get(ServiceCall.GraphAttribute)?.let { put(ServiceCall.GraphAttribute, it) }
             binding?.get(ReaktorAttributes.GraphId)?.let { put(ReaktorAttributes.GraphId, it) }
             val port = invocation.port
@@ -294,7 +295,7 @@ class PortTelemetryInterceptor(
             val portId = binding?.get("${port is ProviderPort<*>}:${port.key.key}:${port.type.type}")
             setStringAttribute(ReaktorAttributes.PortId, portId ?: port.telemetryPortId())
             setStringAttribute(ReaktorAttributes.PortKey, port.key.key)
-            setStringAttribute(ReaktorAttributes.ContractId, port.requestHandler()?.owner?.contract?.id ?: port.type.type)
+            setStringAttribute(ReaktorAttributes.ContractId, port.type.contractId ?: port.type.type)
             setStringAttribute(ReaktorAttributes.PortShape, facet.semantics.name.lowercase())
             setStringAttribute(
                 ReaktorAttributes.PortDirection,
@@ -337,7 +338,3 @@ fun Port<*>.telemetryPortId(): String = key.key.ifBlank { DefaultPortKey }
 /** What a port registered with no explicit key is called in telemetry. */
 const val DefaultPortKey = "default"
 
-private fun Port<*>.requestHandler(): RequestHandler<*, *>? = when (this) {
-    is ConsumerPort<*> -> impl as? RequestHandler<*, *>
-    is ProviderPort<*> -> impl as? RequestHandler<*, *>
-}

@@ -2,15 +2,12 @@ package dev.shibasis.reaktor.media.service
 
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.service.Environment
-import dev.shibasis.reaktor.service.GetHandler
-import dev.shibasis.reaktor.service.PostHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
-import dev.shibasis.reaktor.service.ServiceContract
 import dev.shibasis.reaktor.service.Callers
 import dev.shibasis.reaktor.service.ServiceAccess
+import dev.shibasis.reaktor.service.contract.Service
 
 @Serializable
 sealed class MediaRequest : Request() {
@@ -68,36 +65,30 @@ sealed class MediaResponse(
     }
 }
 
-abstract class MediaService(baseUrl: String = "") : Service(baseUrl) {
-    override val contract = ServiceContract("reaktor.media")
+open class MediaService : Service("reaktor.media") {
     override val access = ServiceAccess(Callers.SignedIn)
 
-    abstract val downloadMedia: GetHandler<MediaRequest.Download, MediaResponse>
-    abstract val uploadMedia: PostHandler<MediaRequest.Upload, MediaResponse>
+    open val downloadMedia by get<MediaRequest.Download, MediaResponse>("/download")
+    open val uploadMedia by post<MediaRequest.Upload, MediaResponse>("/upload")
 }
 
-open class MediaServiceClient(baseUrl: String) : MediaService(baseUrl) {
-    override val downloadMedia by GetHandler<MediaRequest.Download, MediaResponse>("/download")
-    override val uploadMedia by PostHandler<MediaRequest.Upload, MediaResponse>("/upload")
-
-    suspend fun download(filePath: String): Result<MediaResponse.Download> = runCatching {
-        when (val response = downloadMedia(MediaRequest.Download(filePath))) {
-            is MediaResponse.Download -> response
-            is MediaResponse.Failure -> failMedia(response)
-            else -> error("Unexpected response '${response::class.simpleName}'")
-        }
+suspend fun MediaService.download(filePath: String): Result<MediaResponse.Download> = runCatching {
+    when (val response = downloadMedia(MediaRequest.Download(filePath))) {
+        is MediaResponse.Download -> response
+        is MediaResponse.Failure -> failMedia(response)
+        else -> error("Unexpected response '${response::class.simpleName}'")
     }
+}
 
-    suspend fun upload(
-        filePath: String,
-        data: ByteArray,
-        contentType: String? = null,
-    ): Result<MediaResponse.Upload> = runCatching {
-        when (val response = uploadMedia(MediaRequest.Upload(filePath, data, contentType))) {
-            is MediaResponse.Upload -> response
-            is MediaResponse.Failure -> failMedia(response)
-            else -> error("Unexpected response '${response::class.simpleName}'")
-        }
+suspend fun MediaService.upload(
+    filePath: String,
+    data: ByteArray,
+    contentType: String? = null,
+): Result<MediaResponse.Upload> = runCatching {
+    when (val response = uploadMedia(MediaRequest.Upload(filePath, data, contentType))) {
+        is MediaResponse.Upload -> response
+        is MediaResponse.Failure -> failMedia(response)
+        else -> error("Unexpected response '${response::class.simpleName}'")
     }
 }
 

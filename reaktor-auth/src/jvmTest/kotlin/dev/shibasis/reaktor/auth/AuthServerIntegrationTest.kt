@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.auth
 
-import dev.shibasis.reaktor.auth.api.AuthServer
+import dev.shibasis.reaktor.auth.api.AuthService
 import dev.shibasis.reaktor.auth.api.AnonymousAuthRequest
 import dev.shibasis.reaktor.auth.api.LoginResponse
 import dev.shibasis.reaktor.auth.api.LogoutAllRequest
@@ -17,6 +17,8 @@ import dev.shibasis.reaktor.auth.kernel.PrincipalStatus
 import dev.shibasis.reaktor.auth.runtime.AuthRuntimeGraph
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.service.Environment
+import dev.shibasis.reaktor.service.contract.LocalLink
+import dev.shibasis.reaktor.service.contract.over
 import kotlinx.coroutines.runBlocking
 import java.security.MessageDigest
 import java.util.Base64
@@ -31,8 +33,8 @@ import kotlin.test.assertTrue
 import dev.shibasis.reaktor.auth.runtime.MAX_ACCESS_TOKEN_TTL_SECONDS
 
 /**
- * Handler-level integration for the AuthServer surface. These tests intentionally call the same
- * PostHandler objects the graph/runtime exposes, so policy around headers, grants, TTL clamping,
+ * Contract-level integration for the AuthService surface. These tests call through the same served
+ * contract the graph/runtime exposes, so policy around headers, grants, TTL clamping,
  * refresh rotation, logout, whoami, and PAT audience binding is covered above the raw services.
  */
 class AuthServerIntegrationTest {
@@ -468,7 +470,7 @@ private const val TOKEN_EXCHANGE_GRANT = "urn:ietf:params:oauth:grant-type:token
 
 private class AuthServerFixture {
     val runtime = AuthRuntimeGraph.create(AuthDbFixture.adapter())
-    val server = AuthServer(runtime.service)
+    val server = AuthService() over LocalLink(runtime.service)
 }
 
 private fun bearer(rawToken: String): MutableMap<String, String> =

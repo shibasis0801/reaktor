@@ -8,7 +8,6 @@ import dev.shibasis.reaktor.auth.fga.RelationTuple
 import dev.shibasis.reaktor.auth.fga.Subject
 import dev.shibasis.reaktor.auth.graph.CodeAccess
 import dev.shibasis.reaktor.auth.graph.CodeAccessPolicy
-import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.ServiceCall
 import kotlinx.coroutines.currentCoroutineContext
 import kotlin.coroutines.AbstractCoroutineContextElement
@@ -21,7 +20,7 @@ class ObjectAccess internal constructor(
     private val carried: List<RelationTuple>,
     private val contract: String,
     private val tenant: String?,
-    private val request: Request,
+    private val attributes: MutableMap<String, Any?>,
     private val decisions: AccessDecisionSink,
 ) : AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<ObjectAccess>
@@ -32,7 +31,7 @@ class ObjectAccess internal constructor(
             AccessDecision(subject.toString(), relation, target.toString(), false, runCatching { policy.mode(contract) }.getOrDefault(AccessMode.Enforce),
                 "The access model could not answer: ${failure.message ?: failure::class.simpleName}", atMillis = Clock.System.now().toEpochMilliseconds())
         }
-        if (!decision.allowed) request.attributes[ServiceCall.AccessAttribute] = decision.encodeForSpan()
+        if (!decision.allowed) attributes[ServiceCall.AccessAttribute] = decision.encodeForSpan()
         val call = currentCoroutineContext()[ServiceCall]
         runCatching { decisions.record(decision.copy(trace = call?.trace?.traceId, span = call?.trace?.spanId)) }
         return decision

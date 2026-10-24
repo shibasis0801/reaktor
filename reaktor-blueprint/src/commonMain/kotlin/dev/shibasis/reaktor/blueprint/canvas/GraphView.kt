@@ -62,6 +62,7 @@ import dev.shibasis.reaktor.surface.KeyName
 import dev.shibasis.reaktor.surface.compose.Island
 import dev.shibasis.reaktor.surface.compose.TooltipGroup
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
@@ -119,21 +120,40 @@ internal fun GraphView(
     val focus = remember { FocusRequester() }
     val origin = remember { floatArrayOf(0f, 0f) }
     val viewing = if (enterOpens) OpenGraphCommands else GraphCommands
-    val commands = remember(viewing, editing) { editing?.let { CommandSet(viewing.commands + it.commands.commands) } ?: viewing }
+    val own = editing?.commands
+    val commands = remember(viewing, editing, own) { if (editing != null && own != null) editing.keyed(CommandSet(viewing.commands + own.commands)) else viewing }
+    DisposableEffect(editing, state) {
+        val project = world
+        editing?.attach(object : CanvasCamera {
+            override val seen get() = state.seen()
+            override val zoom get() = state.zoom
+            override fun look(x: Double, y: Double) = state.look(x, y, state.zoom)
+            override fun reveal(box: Bounds) = state.reveal(box.x, box.y, box.width, box.height)
+            override fun frame(box: Bounds) = state.fit(box.x, box.y, box.width, box.height, padding = 0.0, maxZoom = state.zoomRange.endInclusive, minZoom = state.zoomRange.start)
+            override fun world(window: Offset): Offset? {
+                val local = window - Offset(origin[0], origin[1])
+                if (local.x < 0 || local.y < 0 || local.x > flow.canvasSize.width || local.y > flow.canvasSize.height) return null
+                return project(local).let { (x, y) -> Offset(x, y) }
+            }
+        })
+        onDispose { editing?.attach(null) }
+    }
+    fun look(boxes: List<Bounds>) = boxes.singleOrNull()?.let { state.centre(it.x, it.y, it.width, it.height) } ?: state.fit(boxes, padding = .08)
+    LaunchedEffect(state, editing) { editing?.let { edit -> snapshotFlow { edit.aim }.drop(1).collect { aim -> aim?.boxes?.takeIf { it.isNotEmpty() }?.let(::look) } } }
     TooltipGroup { Island(commands, { command ->
         when (command.value) {
             "fit" -> state.overview()
-            "centre" -> selected()?.let { state.centre(it.x, it.y, it.width, it.height) }
+            "centre" -> editing?.framed()?.takeIf { it.isNotEmpty() }?.let(::look) ?: selected()?.let { state.centre(it.x, it.y, it.width, it.height) }
             "open" -> selected()?.let { opens((it.x + it.width / 2).toFloat(), (it.y + it.height / 2).toFloat()) }
             "zoom-in" -> state.zoomBy(1.25)
             "zoom-out" -> state.zoomBy(1 / 1.25)
             "reset-zoom" -> state.zoomTo(1.0)
             "next-card" -> steps(1)
             "previous-card" -> steps(-1)
-            "pan-left" -> state.pan(Pan, 0.0)
-            "pan-right" -> state.pan(-Pan, 0.0)
-            "pan-up" -> state.pan(0.0, Pan)
-            "pan-down" -> state.pan(0.0, -Pan)
+            "pan-left" -> if (editing?.travel(-1, 0) != true) state.pan(Pan, 0.0)
+            "pan-right" -> if (editing?.travel(1, 0) != true) state.pan(-Pan, 0.0)
+            "pan-up" -> if (editing?.travel(0, -1) != true) state.pan(0.0, Pan)
+            "pan-down" -> if (editing?.travel(0, 1) != true) state.pan(0.0, -Pan)
             else -> editing?.invoke(command)
         }
     }, modifier.focusRequester(focus), focusable = focusable) {

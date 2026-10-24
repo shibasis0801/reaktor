@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.code
 
 import org.jetbrains.kotlin.CoreEnvironmentDeprecation
+import org.jetbrains.kotlin.KtNodeTypes
 import org.jetbrains.kotlin.cli.extensionsStorage
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
@@ -77,7 +78,7 @@ internal object KotlinSyntax {
         KotlinCoreEnvironment.createForProduction(Disposer.newDisposable("reaktor-code Kotlin syntax"), configuration, EnvironmentConfigFiles.JVM_CONFIG_FILES)
     }
 
-    private class Parsed(val file: KtFile, val text: String) {
+    internal class Parsed(val file: KtFile, val text: String) {
         private val starts = buildList { add(0); text.forEachIndexed { i, c -> if (c == '\n') add(i + 1) } }
 
         fun position(offset: Int): CodePosition {
@@ -90,9 +91,15 @@ internal object KotlinSyntax {
         fun span(element: PsiElement) = CodeSpan(position(element.textRange.startOffset), position(element.textRange.endOffset))
     }
 
-    private fun <T> parsed(path: String, text: String, read: (Parsed) -> T): T = synchronized(this) {
+    private val recent = object : LinkedHashMap<String, Parsed>(32, .75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Parsed>?) = size > 24
+    }
+
+    internal fun <T> parsed(path: String, text: String, read: (Parsed) -> T): T = synchronized(this) {
         val normalized = text.replace("\r\n", "\n")
-        read(Parsed(KtPsiFactory(environment.project).createFile(path.substringAfterLast('/'), normalized), normalized))
+        val key = path + "\u0000" + normalized.length + "\u0000" + normalized.hashCode()
+        read(recent[key]?.takeIf { it.text == normalized }
+            ?: Parsed(KtPsiFactory(environment.project).createFile(path.substringAfterLast('/'), normalized), normalized).also { recent[key] = it })
     }
 
     fun structural(document: CodeDocument, pattern: String): List<CodeStructuralMatch> = parsed(document.path, document.text) { parsed ->
@@ -251,6 +258,232 @@ internal object KotlinSyntax {
         is KtDestructuringDeclaration -> statement.entries.firstOrNull { it.name == name }
         is KtNamedDeclaration -> statement.takeIf { it.name == name }
         else -> null
+    }
+
+    private fun exact(parsed: Parsed, span: CodeSpan): KtExpression? {
+        val start = parsed.offset(span.start)
+        val end = parsed.offset(span.end)
+        return generateSequence<PsiElement>(parsed.file.findElementAt(start) ?: return null) { it.parent }.takeWhile { it !is KtFile }
+            .firstOrNull { it is KtExpression && it.textRange.startOffset == start && it.textRange.endOffset == end } as? KtExpression
+    }
+
+    fun extract(document: CodeDocument, span: CodeSpan): CodeExtract? = parsed(document.path, document.text) { parsed ->
+        val element = exact(parsed, span) ?: return@parsed null
+        val owner = generateSequence(element.parent) { it.parent }.takeWhile { it !is KtFile }
+            .firstOrNull { it is KtNamedFunction && !it.isLocal } as? KtNamedFunction ?: return@parsed null
+        var problem: String? = null
+        fun blocked(reason: String) { if (problem == null) problem = reason }
+        val captured = LinkedHashMap<PsiElement, CodeCapture>()
+        PsiTreeUtil.findChildrenOfType(element, KtSimpleNameExpression::class.java).forEach { reference ->
+            if (reference is KtOperationReferenceExpression || reference is KtLabelReferenceExpression) return@forEach
+            val name = reference.getReferencedName()
+            val found = bound(reference.getReferencedNameElement(), name)
+            val declaration = found.declaration
+            if (declaration == null) {
+                if (name == "it" && found.role == "value" && outerIt(reference, element)) blocked("It uses it from the lambda around it; name that parameter first")
+                return@forEach
+            }
+            if (PsiTreeUtil.isAncestor(element, declaration, false) || !PsiTreeUtil.isAncestor(owner, declaration, false)) return@forEach
+            if (assigned(reference)) blocked("It changes $name, which lives outside it")
+            if (declaration is KtNamedFunction) blocked("It calls $name, a function inside ${owner.name}")
+            if (declaration in captured) return@forEach
+            capture(declaration, name)?.let { captured[declaration] = it } ?: blocked("Studio cannot tell the type of $name")
+        }
+        PsiTreeUtil.findChildrenOfType(element, KtReturnExpression::class.java).forEach { exit ->
+            val label = exit.getTargetLabel()?.getReferencedName()
+            val target = if (label == null) generateSequence<PsiElement>(exit.parent) { it.parent }.firstOrNull { it is KtNamedFunction }
+            else generateSequence<PsiElement>(exit.parent) { it.parent }.firstOrNull { it is KtFunctionLiteral && labelOf(it) == label || it is KtNamedFunction && it.name == label }
+            if (target == null || !PsiTreeUtil.isAncestor(element, target, false)) blocked("It returns from code around it")
+        }
+        PsiTreeUtil.findChildrenOfType(element, KtExpressionWithLabel::class.java).filter { it is KtBreakExpression || it is KtContinueExpression }.forEach { jump ->
+            val label = jump.getLabelName()
+            val loop = generateSequence<PsiElement>(jump.parent) { it.parent }.firstOrNull { it is KtLoopExpression && (label == null || (it.parent as? KtLabeledExpression)?.getLabelName() == label) }
+            if (loop == null || !PsiTreeUtil.isAncestor(element, loop, false)) blocked("It breaks out of a loop around it")
+        }
+        PsiTreeUtil.findChildrenOfType(element, KtThisExpression::class.java).forEach { self ->
+            if (generateSequence<PsiElement>(self.parent) { it.parent }.takeWhile { it != element }.none { it is KtFunctionLiteral || it is KtClassOrObject }) blocked("It uses this from code around it")
+        }
+        val scopes = generateSequence<PsiElement>(element.parent) { it.parent }.takeWhile { it != owner }.filterIsInstance<KtLambdaExpression>()
+            .mapNotNull { lambda -> PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java)?.takeIf { call -> call.lambdaArguments.any { it.getLambdaExpression() == lambda } || call.valueArguments.any { it.getArgumentExpression() == lambda } } }
+            .map { (it.calleeExpression as? KtNameReferenceExpression)?.getReferencedName() ?: it.calleeExpression?.text.orEmpty() }.toList()
+        CodeExtract(captured.entries.sortedBy { it.key.textRange.startOffset }.map { it.value }, problem, scopes, parsed.span(owner))
+    }
+
+    fun scope(document: CodeDocument, span: CodeSpan, functions: Boolean = false): List<CodeValue>? = parsed(document.path, document.text) { parsed ->
+        val element = exact(parsed, span) ?: return@parsed null
+        val found = LinkedHashMap<String, CodeValue>()
+        fun add(name: String?, type: String?) {
+            if (name == null || name == "_" || type == null || (!functions && "->" in type) || name in found) return
+            found[name] = CodeValue(name, type)
+        }
+        var from: PsiElement = element
+        while (true) {
+            val scope = from.parent ?: break
+            if (scope is KtFile || scope is KtClassBody) break
+            when (scope) {
+                is KtBlockExpression -> scope.statements.asReversed().filter { it.textRange.endOffset <= from.textRange.startOffset }.forEach { statement ->
+                    when (statement) {
+                        is KtProperty -> add(statement.name, statement.typeReference?.text ?: statement.initializer?.let(::guessed))
+                        is KtDestructuringDeclaration -> statement.entries.forEach { add(it.name, it.typeReference?.text) }
+                    }
+                }
+                is KtFunctionLiteral -> if (scope.hasParameterSpecification()) scope.valueParameters.forEach { parameter ->
+                    val destructuring = parameter.destructuringDeclaration
+                    if (destructuring == null) add(parameter.name, parameter.typeReference?.text ?: elementOfLambda(parameter))
+                    else destructuring.entries.forEachIndexed { index, entry -> add(entry.name, entry.typeReference?.text ?: elementOfLambda(parameter)?.let { component(it, index) }) }
+                } else add("it", elementOfLiteral(scope, 0, 0))
+                is KtForExpression -> scope.loopParameter?.takeIf { inside(scope.body, element) }?.let { parameter ->
+                    add(parameter.name, parameter.typeReference?.text ?: scope.loopRange?.let { typeOf(it, 0) }?.let { elementOf(it, true) })
+                }
+                is KtNamedFunction -> scope.valueParameters.filter { !it.isVarArg }.forEach { add(it.name, it.typeReference?.text) }
+            }
+            if (scope is KtNamedFunction && !scope.isLocal) break
+            from = scope
+        }
+        found.values.toList()
+    }
+
+    fun entries(document: CodeDocument, type: String): List<String>? = parsed(document.path, document.text) { parsed ->
+        PsiTreeUtil.findChildrenOfType(parsed.file, KtClass::class.java).firstOrNull { it.name == type && it.isEnum() }
+            ?.declarations?.filterIsInstance<KtEnumEntry>()?.mapNotNull { it.name }
+    }
+
+    fun members(document: CodeDocument, type: String): List<CodeValue>? = parsed(document.path, document.text) { parsed ->
+        val owner = PsiTreeUtil.findChildrenOfType(parsed.file, KtClassOrObject::class.java).firstOrNull { it.name == type && it !is KtEnumEntry } ?: return@parsed null
+        if (owner is KtClass && owner.isEnum()) return@parsed listOf(CodeValue("name", "String"))
+        fun visible(declaration: KtModifierListOwner) = !declaration.hasModifier(KtTokens.PRIVATE_KEYWORD) && !declaration.hasModifier(KtTokens.PROTECTED_KEYWORD)
+        buildList {
+            owner.primaryConstructorParameters.filter { it.hasValOrVar() && visible(it) }.forEach { parameter ->
+                val name = parameter.name ?: return@forEach
+                parameter.typeReference?.text?.let { add(CodeValue(name, it)) }
+            }
+            owner.declarations.filterIsInstance<KtProperty>().filter { visible(it) && it.receiverTypeReference == null }.forEach { property ->
+                val name = property.name ?: return@forEach
+                (property.typeReference?.text ?: property.initializer?.let(::guessed))?.let { add(CodeValue(name, it)) }
+            }
+        }
+    }
+
+    private fun guessed(expression: KtExpression): String? = when (expression) {
+        is KtStringTemplateExpression -> "String"
+        is KtConstantExpression -> when (expression.node.elementType) {
+            KtNodeTypes.INTEGER_CONSTANT -> if (expression.text.endsWith("L")) "Long" else "Int"
+            KtNodeTypes.FLOAT_CONSTANT -> if (expression.text.endsWith("f") || expression.text.endsWith("F")) "Float" else "Double"
+            KtNodeTypes.BOOLEAN_CONSTANT -> "Boolean"
+            KtNodeTypes.CHARACTER_CONSTANT -> "Char"
+            else -> null
+        }
+        is KtCallExpression -> (expression.calleeExpression as? KtNameReferenceExpression)?.getReferencedName()?.takeIf { it.first().isUpperCase() }
+        else -> null
+    }
+
+    private fun outerIt(reference: KtSimpleNameExpression, element: KtExpression): Boolean =
+        generateSequence<PsiElement>(reference.parent) { it.parent }.takeWhile { it != element }.none { it is KtFunctionLiteral && !it.hasParameterSpecification() }
+
+    private fun assigned(reference: KtSimpleNameExpression): Boolean {
+        val parent = reference.parent
+        return parent is KtBinaryExpression && parent.left == reference && parent.operationToken in KtTokens.ALL_ASSIGNMENTS ||
+            parent is KtUnaryExpression && (parent.operationToken == KtTokens.PLUSPLUS || parent.operationToken == KtTokens.MINUSMINUS)
+    }
+
+    private fun labelOf(literal: KtFunctionLiteral): String? {
+        val lambda = literal.parent as? KtLambdaExpression ?: return null
+        (lambda.parent as? KtLabeledExpression)?.getLabelName()?.let { return it }
+        val call = PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java) ?: return null
+        return (call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName()
+    }
+
+    private fun capture(declaration: PsiElement, name: String): CodeCapture? = when (declaration) {
+        is KtParameter -> (declaration.typeReference?.text ?: elementOfLambda(declaration))?.takeIf { !declaration.isVarArg }?.let { CodeCapture(name, it) }
+        is KtDestructuringDeclarationEntry -> declaration.typeReference?.text?.let { CodeCapture(name, it) } ?: run {
+            val destructuring = declaration.parent as? KtDestructuringDeclaration ?: return@run null
+            val holder = destructuring.parent as? KtParameter ?: return@run null
+            elementOfLambda(holder)?.let { component(it, destructuring.entries.indexOf(declaration)) }?.let { CodeCapture(name, it) }
+        }
+        is KtProperty -> declaration.typeReference?.text?.let { CodeCapture(name, it) }
+            ?: declaration.initializer?.takeIf { !declaration.isVar && restatable(it) }?.let { CodeCapture(name, null, "val $name = ${it.text}") }
+        else -> null
+    }
+
+    private fun restatable(expression: KtExpression): Boolean = when (expression) {
+        is KtNameReferenceExpression -> expression.getReferencedName().firstOrNull()?.isUpperCase() == true &&
+            scoped(expression, expression.getReferencedName(), false) == null
+        is KtDotQualifiedExpression -> expression.selectorExpression is KtNameReferenceExpression && restatable(expression.receiverExpression)
+        else -> false
+    }
+
+    private fun elementOfLambda(parameter: KtParameter, depth: Int = 0): String? {
+        val literal = (parameter.parent as? KtParameterList)?.parent as? KtFunctionLiteral ?: return null
+        return elementOfLiteral(literal, literal.valueParameters.indexOf(parameter), depth)
+    }
+
+    private fun elementOfLiteral(literal: KtFunctionLiteral, index: Int, depth: Int): String? {
+        if (depth > 4) return null
+        val lambda = literal.parent as? KtLambdaExpression ?: return null
+        val call = PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java) ?: return null
+        val callee = (call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName() ?: return null
+        val receiver = ((call.parent as? KtQualifiedExpression)?.takeIf { it.selectorExpression == call })?.receiverExpression
+        val first = call.valueArguments.firstOrNull { it.getArgumentName() == null }?.getArgumentExpression()
+        fun itemsOf(source: KtExpression?): String? = source?.let { typeOf(it, depth + 1) }?.let { elementOf(it, callee == "forEach" || callee == "forEachIndexed") }
+        return when (callee) {
+            "forEach" -> if (index == 0) itemsOf(receiver) else null
+            "forEachIndexed" -> if (index == 0) "Int" else itemsOf(receiver)
+            "items" -> if (index == 0) itemsOf(first) else null
+            "itemsIndexed" -> if (index == 0) "Int" else itemsOf(first)
+            else -> null
+        }
+    }
+
+    private fun typeOf(expression: KtExpression, depth: Int): String? {
+        val reference = expression as? KtNameReferenceExpression ?: return null
+        val declaration = scoped(reference, reference.getReferencedName(), false)?.first ?: return null
+        return when (declaration) {
+            is KtParameter -> declaration.typeReference?.text ?: elementOfLambda(declaration, depth)
+            is KtProperty -> declaration.typeReference?.text
+            else -> null
+        }
+    }
+
+    private val Collections = setOf("List", "MutableList", "Collection", "MutableCollection", "Iterable", "Set", "MutableSet", "Sequence", "Array",
+        "ArrayList", "ImmutableList", "PersistentList", "SnapshotStateList")
+
+    private fun elementOf(type: String, entries: Boolean): String? {
+        val trimmed = type.trim().removeSuffix("?")
+        val outer = trimmed.substringBefore('<').substringAfterLast('.')
+        val arguments = arguments(trimmed) ?: return null
+        return when {
+            outer in Collections && arguments.size == 1 -> arguments[0].removePrefix("out ").trim()
+            entries && (outer == "Map" || outer == "MutableMap") && arguments.size == 2 -> "Map.Entry<${arguments[0]}, ${arguments[1]}>"
+            else -> null
+        }
+    }
+
+    private fun component(type: String, index: Int): String? {
+        val trimmed = type.trim().removeSuffix("?")
+        val outer = trimmed.substringBefore('<').substringAfterLast('.')
+        val arguments = arguments(trimmed) ?: return null
+        return when (outer) {
+            "Pair", "Triple", "Entry" -> arguments.getOrNull(index)
+            "IndexedValue" -> if (index == 0) "Int" else arguments.getOrNull(0)
+            else -> null
+        }
+    }
+
+    private fun arguments(type: String): List<String>? {
+        val open = type.indexOf('<').takeIf { it > 0 } ?: return null
+        if (!type.endsWith(">")) return null
+        val found = ArrayList<String>()
+        var depth = 0
+        var from = open + 1
+        for (at in open + 1 until type.length - 1) {
+            when (type[at]) {
+                '<', '(' -> depth++
+                '>', ')' -> depth--
+                ',' -> if (depth == 0) { found += type.substring(from, at).trim(); from = at + 1 }
+            }
+        }
+        found += type.substring(from, type.length - 1).trim()
+        return found.filter(String::isNotEmpty)
     }
 
     private fun named(parameter: KtParameter, name: String): KtNamedDeclaration? =

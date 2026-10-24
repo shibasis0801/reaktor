@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.cloudflare
 
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.framework.kSerializer
-import dev.shibasis.reaktor.service.Service
 
 sealed class Binding<T : Any>(
     val name: String,
@@ -82,7 +81,6 @@ class CloudflareWorker internal constructor(
 
 fun Hono.toWorker(): CloudflareWorker = CloudflareWorker(this)
 
-fun Service.toWorker(): CloudflareWorker = toHono().toWorker()
 
 open class CloudflareDurableObject(
     state: Any,

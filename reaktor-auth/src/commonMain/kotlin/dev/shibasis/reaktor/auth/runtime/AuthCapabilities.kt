@@ -1,7 +1,5 @@
 package dev.shibasis.reaktor.auth.runtime
 
-import dev.shibasis.reaktor.auth.api.AuthService
-import dev.shibasis.reaktor.auth.api.AppService
 import dev.shibasis.reaktor.auth.api.AnonymousAuthRequest
 import dev.shibasis.reaktor.auth.api.DeactivateAccountRequest
 import dev.shibasis.reaktor.auth.api.DeactivateAccountResponse
@@ -45,12 +43,4 @@ interface AuthSessions {
 
 interface AuthAccount {
     suspend fun deactivate(request: DeactivateAccountRequest): DeactivateAccountResponse
-}
-
-interface AuthHttpService {
-    val service: AuthService
-}
-
-interface AuthAppService {
-    val service: AppService
 }

@@ -67,10 +67,18 @@ object CurrentObservability {
             val type = "kubernetes:${if (version == "v1") "core/v1" else version}:$kind"
             val clusterFields = if (kind == "Service")
                 listOf("spec.clusterIP", "spec.clusterIPs", "spec.ipFamilies", "spec.ipFamilyPolicy") else emptyList()
-            val restartField = if (kind == "Deployment")
-                listOf("spec.template.metadata.annotations[\"kubectl.kubernetes.io/restartedAt\"]") else emptyList()
+            val restartField = when (kind) {
+                "StatefulSet" -> listOf("spec.template.metadata.annotations")
+                "Deployment" -> listOf("spec.template.metadata.annotations[\"kubectl.kubernetes.io/restartedAt\"]")
+                else -> emptyList()
+            }
             val claimStatus = if (kind == "StatefulSet") listOf("spec.volumeClaimTemplates[*].status") else emptyList()
-            ManifestResource(type, "${kind.lowercase()}-$name", ManifestArgs(document),
+            val adoptionMetadata = if (name == "cloudflare-metrics" && kind in setOf("ConfigMap", "Deployment")) {
+                @Suppress("UNCHECKED_CAST")
+                val annotations = (metadata["annotations"] as? Map<String, Any>).orEmpty()
+                metadata + ("annotations" to (annotations + ("pulumi.com/patchForce" to "true")))
+            } else metadata
+            ManifestResource(type, "${kind.lowercase()}-$name", ManifestArgs(document + ("metadata" to adoptionMetadata)),
                 CustomResourceOptions.builder().provider(kubernetes).importId("$namespace/$name").protect(true)
                     .ignoreChanges(clusterFields + restartField + claimStatus).build())
         }

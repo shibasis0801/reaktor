@@ -20,13 +20,12 @@ import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.navigation.Push
 import dev.shibasis.reaktor.graph.navigation.Pop
 import dev.shibasis.reaktor.graph.navigation.Return
+import dev.shibasis.reaktor.graph.navigation.Replace
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.portgraph.port.provides
-import dev.shibasis.reaktor.service.GetHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.Serializable
@@ -37,6 +36,7 @@ import kotlin.test.assertSame
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import dev.shibasis.reaktor.service.contract.Service
 
 class GraphLifecycleIntegrationTest {
     @Test
@@ -320,18 +320,52 @@ class GraphLifecycleIntegrationTest {
     }
 
     @Test
-    fun serviceApiConsumerAutoWiresToDelegatedHandlerProvider() = runTest {
+    fun crossGraphReplaceRemovesTheSourceDetailAndPreservesBothTabRoots() {
+        val root = Graph(dependencyAdapter = TestDependencyAdapter())
+        val circles = Graph(parentGraph = root, dependencyAdapter = root.diAdapter)
+        val messaging = Graph(parentGraph = root, dependencyAdapter = root.diAdapter)
+        val home = RouteNode(circles, "/circles") { RouteBinding(Payload()) }
+        val welcome = RouteNode(circles, "/welcome") { RouteBinding(Payload()) }
+        val chats = RouteNode(messaging, "/chats") { RouteBinding(Payload()) }
+        val room = RouteNode(messaging, "/room") { RouteBinding(Payload()) }
+        circles.attach(home)
+        circles.attach(welcome)
+        messaging.attach(chats)
+        messaging.attach(room)
+        circles.addRoot(home, Payload(hashMapOf("tab" to "circles")))
+        messaging.addRoot(chats, Payload())
+        val first = ContainerNode(root, "/first", arrayListOf(circles))
+        val second = ContainerNode(root, "/second", arrayListOf(messaging))
+        root.attach(first)
+        root.attach(second)
+        root.addRoot(first.route, Payload())
+        circles.dispatch(Push(home.edge(welcome), Payload(hashMapOf("id" to "coffee"))))
+
+        circles.dispatch(Replace(welcome.edge(room), Payload(hashMapOf("id" to "coffee"))))
+
+        assertEquals(home, circles.backStack.top.value?.edge?.end)
+        assertEquals(listOf(chats, room), messaging.backStack.entries.value.map { it.edge.end })
+        assertEquals("coffee", messaging.backStack.top.value?.payload?.routeParams?.get("id"))
+        messaging.dispatch(Pop)
+        assertEquals(first.route, root.backStack.top.value?.edge?.end)
+        assertEquals(home, circles.backStack.top.value?.edge?.end)
+        assertEquals("circles", circles.backStack.top.value?.payload?.routeParams?.get("tab"))
+        assertEquals(chats, messaging.backStack.top.value?.edge?.end)
+        root.close()
+    }
+
+    @Test
+    fun contractCallConsumerAutoWiresToTheServedProvider() = runTest {
         val graph = Graph(dependencyAdapter = TestDependencyAdapter())
-        val service = CatalogClient()
-        val serviceNode = ServiceNode(graph, service)
+        graph.serve(object : Catalog() {
+            override val fetch = super.fetch.handle { request -> CatalogResponse(request.id) }
+        })
         val consumer = CatalogConsumerNode(graph)
 
-        graph.attach(serviceNode)
         graph.attach(consumer)
         graph.autoWire()
 
-        assertTrue(consumer.fetchApi.isConnected())
-        assertEquals(service.fetch, consumer.fetchApi())
+        assertTrue(consumer.fetchApi.consumer.isConnected())
         assertEquals(CatalogResponse("catalog-1"), consumer.fetchApi(CatalogRequest("catalog-1")))
     }
 }
@@ -364,20 +398,14 @@ private class ConsumerNode(
     val textPort by consumes<String>()
 }
 
-private abstract class CatalogService : Service() {
-    abstract val fetch: GetHandler<CatalogRequest, CatalogResponse>
-}
-
-private class CatalogClient : CatalogService() {
-    override val fetch by GetHandler<CatalogRequest, CatalogResponse>("/catalog") { request ->
-        CatalogResponse(request.id)
-    }
+private open class Catalog : Service("test.catalog") {
+    open val fetch by get<CatalogRequest, CatalogResponse>("/catalog")
 }
 
 private class CatalogConsumerNode(
     graph: Graph,
 ) : BasicNode(graph) {
-    val fetchApi by api(CatalogService::fetch)
+    val fetchApi by api(Catalog().fetch)
 }
 
 @Serializable

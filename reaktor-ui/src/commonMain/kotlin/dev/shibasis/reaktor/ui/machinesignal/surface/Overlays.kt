@@ -125,7 +125,7 @@ val PanelSheet: PanelAppearance = object : PanelAppearance {
     }
 }.withMatrix(MatrixPanel(sheet = true))
 
-fun statusToast(tone: (MachineSignalColors) -> Color): ToastAppearance = object : ToastAppearance {
+fun statusToast(base: (MachineSignalColors) -> Color = { Color.Transparent }, tone: (MachineSignalColors) -> Color): ToastAppearance = object : ToastAppearance {
     @Composable
     override fun Content(properties: ToastEntry, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ToastSlots) {
         val signal = theme.machineSignal
@@ -135,6 +135,7 @@ fun statusToast(tone: (MachineSignalColors) -> Color): ToastAppearance = object 
             Modifier
                 .focusRing(state.focusVisible, feedback, FocusRing(signal.colors.accent, signal.metrics.focusRing, shape))
                 .height(MachineSignal.Metrics.statusPillHeight)
+                .background(base(signal.colors), shape)
                 .background(color.copy(alpha = 0.08f), shape)
                 .border(1.dp, color.copy(alpha = 0.32f), shape)
                 .padding(horizontal = MachineSignal.Metrics.statusPillPaddingX),
@@ -147,7 +148,7 @@ fun statusToast(tone: (MachineSignalColors) -> Color): ToastAppearance = object 
     }
 }.withMatrix(MatrixToast(tone))
 
-val StatusToast: ToastAppearance = statusToast { it.accent }
+val StatusToast: ToastAppearance = statusToast({ it.raised }) { it.accent }
 
 private val SheetShape = RoundedCornerShape(topStart = MachineSignal.Radius.panel, topEnd = MachineSignal.Radius.panel)
 private val DialogWidth = 440.dp

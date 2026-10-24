@@ -4,7 +4,9 @@ import androidx.activity.ComponentActivity
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import co.touchlab.kermit.Logger
-import dev.shibasis.reaktor.auth.api.AuthServiceClient
+import dev.shibasis.reaktor.auth.api.AuthService
+import dev.shibasis.reaktor.service.contract.HttpLink
+import dev.shibasis.reaktor.service.contract.over
 
 
 class AndroidAuthAdapter(
@@ -12,7 +14,7 @@ class AndroidAuthAdapter(
     authService: String
 ): AuthAdapter<ComponentActivity>(
     activity,
-    AuthServiceClient(authService)
+    AuthService() over HttpLink(authService)
 ) {
     val credentialManager = CredentialManager.create(controller!!)
     override suspend fun logout(): Result<Unit> = suspended {

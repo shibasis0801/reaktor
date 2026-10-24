@@ -43,6 +43,13 @@ class PhysicalRunnerTest {
             assertContains(arguments, "phone")
             assertFalse(arguments.any { it == "--app-file" || it == "uninstall" })
             assertContains(arguments, "APP_ENV=dev")
+            val app = root.resolve("Fixture.app").absolutePath
+            assertTrue(runner.testPhysicalBlocking(contract.copy(appFile = app), emptyMap()).succeeded)
+            val resetArguments = root.resolve("argv").readLines()
+            assertContains(resetArguments, "--no-app-install")
+            assertEquals(app, resetArguments[resetArguments.indexOf("--app-file") + 1])
+            assertTrue(runner.testPhysicalBlocking(contract.copy(platform = "android", appFile = app), emptyMap()).succeeded)
+            assertFalse("--app-file" in root.resolve("argv").readLines())
         } finally { root.walkBottomUp().forEach { it.delete() } }
     }
 }

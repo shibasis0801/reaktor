@@ -1,7 +1,5 @@
 package dev.shibasis.reaktor.auth.spring
 
-import dev.shibasis.reaktor.auth.api.AppServer
-import dev.shibasis.reaktor.auth.api.AuthServer
 import dev.shibasis.reaktor.auth.jwt.UserAuthenticationProvider
 import dev.shibasis.reaktor.auth.runtime.AuthAccess
 import dev.shibasis.reaktor.auth.runtime.AuthRuntimeConfig
@@ -46,14 +44,6 @@ open class AuthSpringConfiguration {
             dependencyAdapter = SpringDependencyAdapter(applicationContext),
         )
     }
-
-    @Bean
-    open fun authServer(runtime: AuthRuntimeGraph): AuthServer =
-        AuthServer(runtime.service)
-
-    @Bean
-    open fun appServer(runtime: AuthRuntimeGraph): AppServer =
-        AppServer(runtime.appService)
 
     @Bean
     open fun reaktorSecurityWebFilter(runtime: AuthRuntimeGraph): ReaktorSecurityWebFilter =

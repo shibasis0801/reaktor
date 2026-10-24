@@ -138,8 +138,8 @@ one-shot APIs.
 | `AuthPatNode` | Composes PAT mint/verify. |
 | `AuthTokenGrantNode` | Implements `/auth/token` grants: PAT, `client_credentials`, and token exchange. |
 | `AuthSessionNode` | Implements refresh, logout, me, and logout-all. |
-| `AuthHttpServiceNode` | Projects graph capabilities into `AuthService` handlers. |
-| `AuthAppServiceNode` | Projects app catalog into `AppService` handlers. |
+| `AuthHttpServiceNode` | Implements the `AuthService` contract from graph capabilities; the runtime serves it with `serve(AuthService, …)`. |
+| `AuthAppServiceNode` | Implements the `AppService` contract from the app catalog. |
 
 ## Token and Crypto Details
 
@@ -238,9 +238,9 @@ exposes framework beans:
 The filter verifies tokens locally and puts `AuthContext` at
 `ReaktorSecurityWebFilter.AUTH_CONTEXT_ATTR`.
 
-## HTTP Handlers
+## HTTP Routes
 
-`AuthHttpServiceNode` routes:
+`AuthService` routes, implemented by `AuthHttpServiceNode`:
 
 - `/sign-in`
 - `/token`

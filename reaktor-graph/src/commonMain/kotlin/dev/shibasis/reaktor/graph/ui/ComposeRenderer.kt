@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
+import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.navigation.BackStackEntry
 import dev.shibasis.reaktor.graph.navigation.Pop
 import dev.shibasis.reaktor.ui.themed
@@ -69,10 +70,11 @@ fun GraphContent(
         provided.retainAll(live)
     }
 
+    val observer = LocalGraphContentObserver.current
     BackHandlerContainer(
         modifier = Modifier.fillMaxSize(),
         intercept = entries.size > 1 && isFocused,
-        onBack = { graph.dispatch(Pop) }
+        onBack = { observer?.onBack(graph) { graph.dispatch(Pop) } ?: graph.dispatch(Pop) }
     ) { backProgress ->
         val revealing by remember(backProgress) { derivedStateOf { backProgress() > 0f } }
         val below = entries.getOrNull(entries.lastIndex - 1)?.takeIf { revealing }
@@ -106,10 +108,14 @@ private fun EntryContent(
     provided += entry.id
     saved.SaveableStateProvider(entry.id.toString()) {
         CompositionLocalProvider(LocalBackStackEntry provides entry) {
-            when (node) {
-                is ComposeContainer -> ContainerContent(node, isFocused)
-                is ComposeContent -> node.Content()
+            val observer = LocalGraphContentObserver.current
+            val content: @Composable () -> Unit = {
+                when (node) {
+                    is ComposeContainer -> ContainerContent(node, isFocused)
+                    is ComposeContent -> node.Content()
+                }
             }
+            if (observer == null || node !is Node) content() else observer.Content(node, isFocused, content)
         }
     }
 }

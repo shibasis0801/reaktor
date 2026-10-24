@@ -61,6 +61,8 @@ import dev.shibasis.reaktor.blueprint.canvas.Said
 import dev.shibasis.reaktor.blueprint.canvas.at
 import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
 import dev.shibasis.reaktor.blueprint.canvas.LinkStyle
+import dev.shibasis.reaktor.blueprint.editor.FoldSeparator
+import dev.shibasis.reaktor.blueprint.editor.Fold
 import dev.shibasis.reaktor.blueprint.editor.Gesture
 import dev.shibasis.reaktor.blueprint.editor.GraphEditor
 import dev.shibasis.reaktor.blueprint.editor.GraphEditorLayer
@@ -157,8 +159,9 @@ fun <K> BlueprintCanvas(
     val boxes = remember(layout) { layout.frames + cards }
     val wired = remember(layout, port) { port?.let { at -> layout.links.filter(at::carries).mapTo(hashSetOf()) { it.id } } }
     val shown = remember(layout, port, wired, highlight) { port?.let { at -> layout.links.filter { it.id in wired.orEmpty() }.flatMapTo(hashSetOf(at.card)) { listOf(it.from, it.to) } } ?: highlight }
+    val folds = editor?.folds.orEmpty()
     val looks = cards.map { card ->
-        cardLook(card)?.let { look -> port?.takeIf { it.card == card.id }?.let { at -> look.copy(pins = look.pins.mapIndexed { k, pin -> pin?.copy(selected = card.pins.getOrNull(k)?.let { at.matches(card.id, it) } == true) }) } ?: look }
+        (folds[card.id]?.let { folded(editor!!, card, it, frameLook) } ?: cardLook(card))?.let { look -> port?.takeIf { it.card == card.id }?.let { at -> look.copy(pins = look.pins.mapIndexed { k, pin -> pin?.copy(selected = card.pins.getOrNull(k)?.let { at.matches(card.id, it) } == true) }) } ?: look }
     }
     val glows = cards.map { glow(it.id) }
     val tints = editor?.placement?.notes?.associate { it.id to it.tint }
@@ -176,7 +179,7 @@ fun <K> BlueprintCanvas(
     val painter = remember(graphics, resolver, direction, fonts, base, colors) {
         BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors)
     }
-    SideEffect { canvas.insetTop = TopInset.value.toDouble(); canvas.insetStart = startInset.value.toDouble(); canvas.extent = boxes }
+    SideEffect { canvas.insetTop = TopInset.value.toDouble(); canvas.insetStart = startInset.value.toDouble(); canvas.extent = boxes; editor?.font = fonts.ui }
     LaunchedEffect(fitKey, canvas.flow.canvasSize, layout, density) {
         if (boxes.isEmpty()) return@LaunchedEffect
         canvas.fitOnce(fitKey, fitScene) { canvas.fit(boxes) }
@@ -230,6 +233,17 @@ fun <K> BlueprintCanvas(
     }
     }
     if (editor == null) view(modifier) else Box(modifier) { view(Modifier.fillMaxSize()); GraphEditorLayer(editor) }
+}
+
+@Composable
+private fun folded(editor: GraphEditor, card: Card, fold: Fold, frameLook: @Composable (Frame) -> BlueprintFrameLook): BlueprintCardLook {
+    val look = frameLook(Frame(fold.id, fold.title, card.x, card.y, card.width, card.height, fold.members, emptyList(), false))
+    val tone = look.lit ?: Blueprint.Container
+    val muted = MachineSignal.colors.textMuted
+    return BlueprintCardLook(tone, look.icon, fold.title, "${fold.members.size} node${if (fold.members.size == 1) "" else "s"} folded · double-click to expand",
+        selected = fold.id in editor.selection.notes, folded = "${card.pins.size} pins", marks = look.marks,
+        pins = card.pins.map { pin -> BlueprintPinLook(tone, pin.key.substringBefore(FoldSeparator).let { owner -> editor.node(owner)?.let { editor.terms.end(it, pin.key.substringAfter(FoldSeparator)) } } ?: pin.key, muted, true) },
+        tag = "graph-fold-${fold.id}", action = "Select ${fold.title}")
 }
 
 @Composable

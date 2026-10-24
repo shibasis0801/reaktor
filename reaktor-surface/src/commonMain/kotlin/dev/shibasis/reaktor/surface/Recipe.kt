@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.surface
 
 interface ThemeSnapshot {
     val id: String
+    val motion: SurfaceMotion get() = SurfaceMotion.Default
 }
 
 class ThemeMismatch(val expected: String, val actual: String) :

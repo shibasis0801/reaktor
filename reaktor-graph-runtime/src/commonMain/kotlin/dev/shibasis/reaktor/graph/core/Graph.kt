@@ -13,9 +13,15 @@ import dev.shibasis.reaktor.graph.capabilities.LifecycleCapabilityImpl
 import dev.shibasis.reaktor.graph.navigation.Forward
 import dev.shibasis.reaktor.graph.navigation.NavigationCapability
 import dev.shibasis.reaktor.graph.navigation.NavigationCapabilityImpl
+import dev.shibasis.reaktor.graph.navigation.NavigationActivation
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlin.coroutines.CoroutineContext
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.navigation.BackStackEntry
 import dev.shibasis.reaktor.graph.navigation.Push
+import dev.shibasis.reaktor.graph.navigation.Replace
 import dev.shibasis.reaktor.graph.navigation.Back
 import dev.shibasis.reaktor.graph.navigation.Pop
 import dev.shibasis.reaktor.graph.core.node.ActorNode
@@ -103,7 +109,26 @@ open class Graph(
 
     val sentinel = RouteNode(this, "")
 
-    private val navigationImpl = NavigationCapabilityImpl()
+    @JsExport.Ignore
+    var captureNavigationContext: (() -> CoroutineContext)? = null
+
+    private val _navigationActivation = MutableStateFlow<NavigationActivation?>(null)
+    @JsExport.Ignore
+    val navigationActivation: StateFlow<NavigationActivation?> = _navigationActivation.asStateFlow()
+
+    internal fun recordNavigationActivation(entry: BackStackEntry<*, *>?) {
+        var owner: Graph? = this
+        while (owner != null) {
+            val capture = owner.captureNavigationContext
+            if (capture != null) {
+                _navigationActivation.value = NavigationActivation(entry?.id, capture())
+                return
+            }
+            owner = owner.parentGraph
+        }
+    }
+
+    private val navigationImpl = NavigationCapabilityImpl(::recordNavigationActivation)
     override val backStack get() = navigationImpl.backStack
 
     @JsExport.Ignore
@@ -162,11 +187,16 @@ open class Graph(
             Logger.w("Cross-graph navigation failed: no container found for graph '${destGraph.label}' (${destGraph.id}).")
             return
         }
+        val source = navCommand.entry.edge.sourceGraph
+        if (navCommand is Replace<*, *> && source.backStack.entries.value.size > 1 &&
+            source.backStack.top.value?.edge?.end == navCommand.entry.edge.start) {
+            source.navigationImpl.dispatch(Pop)
+        }
         path.forEach { (container, child) ->
             container.graph.pushContainerEntry(container, navCommand.entry.payload)
             container.activate(child)
         }
-        destGraph.navigationImpl.dispatch(navCommand)
+        destGraph.navigationImpl.dispatch(if (navCommand is Replace<*, *>) Push(navCommand.entry) else navCommand)
     }
 
     private fun pushContainerEntry(
@@ -253,6 +283,8 @@ open class Graph(
         ownedGraphs.clear()
         importedGraphs.clear()
         parentGraph?.ownedGraphs?.remove(id)
+        _navigationActivation.value = null
+        captureNavigationContext = null
         dependencyCapability.close()
         concurrencyCapability.close()
         lifecycleCapability.close()

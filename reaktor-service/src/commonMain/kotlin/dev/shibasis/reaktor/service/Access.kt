@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.service
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlin.reflect.KProperty
+import kotlin.reflect.KCallable
 
 @Serializable
 sealed interface Callers {
@@ -28,5 +28,5 @@ data class ServiceAccess(val callers: Callers?, val operations: Map<String, Call
     }
 }
 
-fun ServiceAccess(callers: Callers, vararg operations: Pair<KProperty<*>, Callers>): ServiceAccess =
+fun ServiceAccess(callers: Callers, vararg operations: Pair<KCallable<*>, Callers>): ServiceAccess =
     ServiceAccess(callers, operations.associate { (operation, admitted) -> operation.name to admitted })

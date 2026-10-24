@@ -2,12 +2,13 @@ package dev.shibasis.reaktor.devtools
 
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.io.network.HttpExchange
-import dev.shibasis.reaktor.service.*
+import dev.shibasis.reaktor.service.contract.Service
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.PortCapabilityImpl
 import dev.shibasis.reaktor.portgraph.port.addInterceptor
 import dev.shibasis.reaktor.portgraph.port.registerConsumer
 import dev.shibasis.reaktor.portgraph.port.registerProvider
+import dev.shibasis.reaktor.service.contract.over
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,12 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlin.test.*
+import dev.shibasis.reaktor.service.contract.LocalLink
+import dev.shibasis.reaktor.service.contract.invoke
+
+private open class Circles : Service("test.circles") {
+    open val circles by get<Unit, String>("/circles")
+}
 
 class TrafficCancellationTest {
     @Test fun graphPortCapturePreservesCancellationAndLegacyWireDefaults() = runBlocking {
@@ -47,14 +54,14 @@ class TrafficCancellationTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val stream = FactStream(AgentCapability.Traffic).apply { start(scope) }
         val tap = TrafficTap(stream, newCorrelationId = { "call" })
-        val handler = GetHandler("/circles", requestSerializer = Request.serializer(), responseSerializer = Response.serializer()) { Response() }
         try {
             for (failure in listOf(CancellationException("leaving composition"), java.io.IOException("cancelled by upstream proxy"))) {
-                val caught = runCatching {
-                    runInterceptorChain(ServiceExecutionPhase.CLIENT, InterceptorStage.CLIENT_APPLICATION,
-                        handler, Request(), listOf(tap)) { throw failure }
-                }.exceptionOrNull()
-                assertSame(failure, caught)
+                val circles = Circles() over LocalLink(object : Circles() {
+                    override val circles = super.circles.handle { throw failure }
+                }).intercept(tap)
+                val caught = runCatching { circles.circles() }.exceptionOrNull()
+                assertEquals(failure::class, caught?.let { it::class })
+                assertTrue(generateSequence(caught) { it.cause }.any { it === failure })
                 val fact = stream.latest().facts.last() as AgentFact.Traffic
                 assertEquals(failure is CancellationException, fact.cancelled)
                 val encoded = json.encodeToJsonElement(AgentFact.serializer(), fact)

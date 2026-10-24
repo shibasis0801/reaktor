@@ -20,7 +20,10 @@ library(namespace = "dev.shibasis.reaktor.devtools", targets = Targets.All, ui =
             implementation(Versions.Kotlin.KtorNetwork)
         }
         apple { implementation(Versions.Kotlin.KtorNetwork) }
-        jvm { implementation(Versions.Kotlin.KtorNetwork) }
+        jvm {
+            implementation(Versions.Kotlin.KtorNetwork)
+            implementation(Versions.Kotlin.KtorWebSockets)
+        }
     }
     sources("src/socketMain/kotlin", targets = Targets.Android + Targets.Apple + Targets.Jvm)
     sources("src/jvmSharedMain/kotlin", targets = Targets.Android + Targets.Jvm)

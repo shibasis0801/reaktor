@@ -29,6 +29,16 @@ fun StateView(
     action: (@Composable () -> Unit)? = null,
     reason: @Composable () -> Unit,
 ) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) PlainStateView(state, modifier, appearance, action, reason)
+    else studio.Element(SurfaceCall("StateView", modifier, listOf(SurfaceField.choice("state", state.name, ViewState.entries.map { it.name })), appearance, Appearance.StateView, listOf("reason", "action"))) { edits ->
+        PlainStateView(edits.value("state")?.let { chosen -> ViewState.entries.firstOrNull { it.name == chosen } } ?: state, edits.modifier, edits.appearance(appearance),
+            edits.optional("action", action), edits.slot("reason", reason))
+    }
+}
+
+@Composable
+private fun PlainStateView(state: ViewState, modifier: Modifier, appearance: StateViewAppearance, action: (@Composable () -> Unit)?, reason: @Composable () -> Unit) {
     val announced = state in Announced
     Box(modifier.semantics { if (state == ViewState.Loading) progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate }, propagateMinConstraints = true) {
         appearance.Content(

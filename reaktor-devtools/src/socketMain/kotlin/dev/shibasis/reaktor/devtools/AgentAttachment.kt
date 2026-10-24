@@ -27,13 +27,13 @@ import kotlin.uuid.Uuid
  * Android, Apple and desktop agents without knowing which it is talking to.
  */
 class AgentAttachment(
-    private val host: String,
-    private val port: Int,
     private val scope: CoroutineScope,
+    private val dial: suspend () -> PeerChannel,
 ) : AutoCloseable {
 
-    private val selector = SelectorManager(Dispatchers.Async)
-    private val client = DevToolsClient()
+    constructor(host: String, port: Int, scope: CoroutineScope) : this(scope, { dialTcp(host, port) })
+
+    private val client = DevToolsService()
 
     private val descriptorState = MutableStateFlow<AgentDescriptor?>(null)
     val descriptor: StateFlow<AgentDescriptor?> = descriptorState
@@ -59,8 +59,7 @@ class AgentAttachment(
     private var reader: Job? = null
 
     suspend fun attach(): AgentDescriptor {
-        val socket = aSocket(selector).tcp().connect(host, port)
-        val opened = SocketPeerChannel(socket)
+        val opened = dial()
         channel = opened
         val peerClient = PeerServiceClient(opened, scope) { frame ->
             when (frame) {
@@ -134,7 +133,6 @@ class AgentAttachment(
         peer = null
         runCatching { channel?.close() }
         channel = null
-        selector.close()
     }
 
     override fun close() {
@@ -144,7 +142,16 @@ class AgentAttachment(
         val open = channel
         channel = null
         scope.launch { runCatching { open?.close() } }
+    }
+}
+
+private suspend fun dialTcp(host: String, port: Int): PeerChannel {
+    val selector = SelectorManager(Dispatchers.Async)
+    return try {
+        SocketPeerChannel(aSocket(selector).tcp().connect(host, port), selector)
+    } catch (failure: Throwable) {
         selector.close()
+        throw failure
     }
 }
 

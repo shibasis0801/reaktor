@@ -64,7 +64,7 @@ class TcpAgentTransport(private val port: Int) : AgentTransport {
  * contain a raw newline once serialised, so a line is a message. Writes are serialised through a
  * mutex because facts and replies are produced by different coroutines.
  */
-class SocketPeerChannel(private val socket: Socket) : PeerChannel {
+class SocketPeerChannel(private val socket: Socket, private val selector: SelectorManager? = null) : PeerChannel {
     private val read: ByteReadChannel = socket.openReadChannel()
     private val write: ByteWriteChannel = socket.openWriteChannel(autoFlush = true)
     private val writeLock = Mutex()
@@ -83,5 +83,6 @@ class SocketPeerChannel(private val socket: Socket) : PeerChannel {
 
     override suspend fun close() {
         runCatching { socket.close() }
+        selector?.close()
     }
 }

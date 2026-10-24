@@ -2,23 +2,18 @@ package dev.shibasis.reaktor.auth.runtime.nodes
 
 import dev.shibasis.reaktor.auth.api.AppResponse
 import dev.shibasis.reaktor.auth.api.AppService
-import dev.shibasis.reaktor.auth.runtime.AuthAppService
 import dev.shibasis.reaktor.auth.runtime.ports.AuthAppCatalog
 import dev.shibasis.reaktor.core.network.ErrorMessage
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
-import dev.shibasis.reaktor.service.GetHandler
-import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.portgraph.port.consumes
-import dev.shibasis.reaktor.portgraph.port.provides
 import java.util.UUID
 
-class AuthAppServiceNode(graph: Graph) : BasicNode(graph), AuthAppService {
+class AuthAppServiceNode(graph: Graph) : BasicNode(graph) {
     val appCatalogPort by consumes<AuthAppCatalog>()
-    val appServicePort by provides<AuthAppService>(this)
 
-    override val service: AppService = object : AppService("") {
-        override val getAll by GetHandler<Request, AppResponse>("/") { request ->
+    val service: AppService = object : AppService() {
+        override val getAll = super.getAll.handle { request ->
             appCatalogPort.suspended {
                 all(request).fold(
                     { AppResponse.Success(it) },
@@ -27,10 +22,8 @@ class AuthAppServiceNode(graph: Graph) : BasicNode(graph), AuthAppService {
             }
         }
 
-        override val getApp by GetHandler<Request, AppResponse>("/{id}") { request ->
-            val id = request.pathParams["id"]
-                ?: return@GetHandler AppResponse.Failure(ErrorMessage(1, "Invalid id"))
-
+        override val getApp = super.getApp.handle { request ->
+            val id = request.pathParams["id"] ?: return@handle AppResponse.Failure(ErrorMessage(1, "Invalid id"))
             appCatalogPort.suspended {
                 runCatching { UUID.fromString(id) }
                     .fold(

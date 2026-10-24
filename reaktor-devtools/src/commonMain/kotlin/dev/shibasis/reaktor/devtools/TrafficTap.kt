@@ -1,10 +1,13 @@
 package dev.shibasis.reaktor.devtools
 
-import dev.shibasis.reaktor.service.InterceptorStage
-import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.ServiceChain
-import dev.shibasis.reaktor.service.ServiceInterceptor
+import dev.shibasis.reaktor.service.contract.Call
+import dev.shibasis.reaktor.service.contract.CallFailure
+import dev.shibasis.reaktor.service.contract.Exchange
+import dev.shibasis.reaktor.service.contract.Interceptor
+import dev.shibasis.reaktor.service.contract.Next
+import dev.shibasis.reaktor.service.contract.Position
+import dev.shibasis.reaktor.service.contract.Side
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.CancellationException
 
@@ -23,45 +26,35 @@ class TrafficTap(
     private val stream: FactStream,
     private val portKeyFor: (operation: String) -> String? = { null },
     private val newCorrelationId: () -> String = { Uuid.random().toString() },
-) : ServiceInterceptor {
+) : Interceptor {
+    override val position: Int get() = Position.Telemetry
+    override val sides: Set<Side> get() = Clients
 
-    override val stages: Set<InterceptorStage> = setOf(InterceptorStage.CLIENT_APPLICATION)
-
-    override suspend fun <In : Request, Out : Response> intercept(chain: ServiceChain<In, Out>): Out {
-        if (!stream.enabled) return chain.proceed()
+    override suspend fun <In, R> intercept(exchange: Exchange<In, R>, next: Next<In, R>): R {
+        if (!stream.enabled) return next(exchange)
 
         val correlationId = newCorrelationId()
-        chain.request.headers[DevToolsProtocol.CorrelationHeader] = correlationId
-        chain.attributes[CorrelationAttribute] = correlationId
+        exchange.metadata[DevToolsProtocol.CorrelationHeader] = correlationId
+        exchange.attributes[CorrelationAttribute] = correlationId
 
         val start = DevToolsClock.nanos()
-        val context = chain.context
+        val route = exchange.operation?.binding
+        fun record(response: Any?, statusCode: Int?, failure: Throwable?) = emit(
+            correlationId = correlationId,
+            operation = exchange.subject,
+            method = route?.method?.name,
+            path = route?.path ?: exchange.subject,
+            startNanos = start,
+            statusCode = (response as? Response)?.transportStatusCode?.code ?: statusCode,
+            responseBytes = (response as? Response)?.transportHeaders?.contentLength() ?: if (failure == null) -1 else 0,
+            failure = failure?.let { it.message ?: it::class.simpleName ?: "failed" },
+            cancelled = failure is CancellationException,
+        )
         try {
-            val response = chain.proceed()
-            emit(
-                correlationId = correlationId,
-                operation = context.operation,
-                method = context.method,
-                path = context.path,
-                startNanos = start,
-                statusCode = response.transportStatusCode.code,
-                responseBytes = response.transportHeaders.contentLength(),
-                failure = null,
-                cancelled = false,
-            )
-            return response
+            return next(exchange).also { record(it, (exchange.operation as? Call<*, *>)?.status ?: 200, null) }
         } catch (failure: Throwable) {
-            emit(
-                correlationId = correlationId,
-                operation = context.operation,
-                method = context.method,
-                path = context.path,
-                startNanos = start,
-                statusCode = null,
-                responseBytes = 0,
-                failure = failure.message ?: failure::class.simpleName ?: "failed",
-                cancelled = failure is CancellationException,
-            )
+            val answer = (failure as? CallFailure)?.answer
+            record(answer, (failure as? CallFailure)?.status, failure.takeIf { answer == null })
             throw failure
         }
     }
@@ -107,5 +100,7 @@ class TrafficTap(
     companion object {
         /** Where the id is left for anything further down the same call to pick up. */
         const val CorrelationAttribute: String = "reaktor.devtools.correlation"
+
+        private val Clients = setOf(Side.Client)
     }
 }

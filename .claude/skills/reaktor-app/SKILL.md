@@ -134,6 +134,38 @@ class TodayBinding(
 // in Content(): routeBinding { workoutEdge.push(Payload()) }
 ```
 
+## Talking to a server: contracts
+
+A service is one interface that the server implements and the client gets from its companion, so a
+changed signature fails to compile on both ends:
+
+```kotlin
+interface PlansApi {
+    suspend fun plans(request: PlansRequest.Browse): PlansResponse
+    companion object : Contract<PlansApi>("app.plans") {
+        val plans = call(PlansApi::plans, Get("/plans"))
+        override fun client(link: Link): PlansApi = object : PlansApi {
+            override suspend fun plans(request: PlansRequest.Browse) = link(plans, request)
+        }
+    }
+}
+
+graph.serve(PlansApi, PlansServer())                // server node: Hono.mount / toRouter mount it
+graph.remote(PlansApi, HttpLink(baseUrl, http))     // client node
+class PlansScreen(graph: Graph) : BasicNode(graph) { val plans by uses(PlansApi) }   // plans { plans(r) }
+```
+
+What the compiler does not catch:
+
+- **Only `serve` makes a server.** `graph.remote(PlansApi, LocalLink(served))` is still a client
+  node; mounting skips it and graph interceptors run on its client side only.
+- **The serial name is the wire.** Responses carry their class name as `type`. Moving or renaming a
+  `@Serializable` request or response without a `@SerialName` breaks every installed client.
+- **Overlapping routes.** `/circles/discover` and `/circles/{id}` both match `/circles/discover`;
+  `Hono.mount` registers static segments first, but a raw route added before it still wins.
+- **`XApi.implementation(link)`** reaches the implementation only through a `LocalLink`; over HTTP
+  it throws.
+
 ## Platform slots: two patterns, different jobs
 
 Something with no shared implementation — a camera, a widget, a live activity — is a slot the

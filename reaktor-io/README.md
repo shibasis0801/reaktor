@@ -24,7 +24,6 @@ Android, iOS (Darwin), JVM, JavaScript/Web
 | `RoutePattern` | URL pattern parsing with regex and parameter extraction (e.g., `/{id}/something/{members}`) |
 | `Request` / `Response` | Base HTTP shapes with serialization support |
 | `Environment` | Runtime environment switching |
-| `GetHandler`, `PostHandler` | Typed route handlers |
 | `HttpClient` | Ktor-based HTTP client with middleware (logging, WebSocket, content negotiation) |
 | `PartySocket` | WebSocket abstraction with reconnection strategies |
 | `WebSocket` | Cross-platform WebSocket with Listener, Sender, Receiver |

@@ -99,6 +99,7 @@ object DeviceInspection {
                 visit(Json.parseToJsonElement(output), null, 0)
             }
             DeviceTransport.Simctl -> error("simctl does not expose an accessibility hierarchy; capture through idb")
+            DeviceTransport.Web -> error("A browser tab's element tree comes from its DevTools agent")
         }
         return DeviceViewSnapshot(elements)
     }

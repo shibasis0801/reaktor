@@ -1,7 +1,10 @@
 package dev.shibasis.reaktor.service
 
 import dev.shibasis.reaktor.io.network.HttpObservation
+import dev.shibasis.reaktor.service.contract.HttpLink
+import dev.shibasis.reaktor.service.contract.Spans
 import dev.shibasis.reaktor.io.network.middleware
+import dev.shibasis.reaktor.service.contract.over
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -37,6 +40,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.TimeSource
+import dev.shibasis.reaktor.service.contract.Service
 
 class HttpTracingTest {
     private val origins = { listOf("https://example.invalid") }
@@ -85,14 +89,10 @@ class HttpTracingTest {
         } finally { remove(); client.close() }
     }
 
-    @Test fun typedServiceAndRepeatedInstallDoNotDuplicateItsAlreadyPropagatedSpan() = runTest {
+    @Test fun typedCallsAndRepeatedInstallDoNotDuplicateTheirAlreadyPropagatedSpan() = runTest {
         val spans = SpanBuffer()
         val client = HttpClient(MockEngine { respond("{}", headers = headersOf("Content-Type", "application/json")) }) { middleware() }
-        val service = object : Service("https://example.invalid", client) {
-            override val contract = ServiceContract("test.typed")
-            val ping = GetHandler<RawTraceRequest, RawTraceResponse>("/ping")
-            init { use(TracePropagation, SpanRecorder("test-client", spans, resources)) }
-        }
+        val service = Typed() over HttpLink("https://example.invalid", client).intercept(Spans("test-client", spans) { resources })
         val first = installHttpTracing("test-client", spans, { true }, origins) { resources }
         val second = installHttpTracing("test-client", spans, { true }, origins) { resources }
         try {
@@ -102,11 +102,7 @@ class HttpTracingTest {
             client.get("https://example.invalid/raw")
             assertEquals(2, spans.pending)
             assertEquals(1, spans.snapshot().count { it.contract == "reaktor.http" })
-            val export = object : Service("https://example.invalid", client) {
-                override val contract = ServiceContract("bestbuds.analytics")
-                val ship = GetHandler<RawTraceRequest, RawTraceResponse>("/analytics")
-                init { use(TracePropagation) }
-            }
+            val export = Typed() over HttpLink("https://example.invalid", client)
             withContext(Dispatchers.Default) { export.ship(RawTraceRequest()) }
             assertEquals(2, spans.pending)
         } finally { first(); second(); client.close() }
@@ -422,3 +418,8 @@ class HttpTracingTest {
 
 @Serializable private class RawTraceRequest : Request()
 @Serializable private class RawTraceResponse : Response()
+
+private open class Typed : Service("test.typed") {
+    open val ping by get<RawTraceRequest, RawTraceResponse>("/ping")
+    open val ship by get<RawTraceRequest, RawTraceResponse>("/analytics")
+}

@@ -1,10 +1,10 @@
 package dev.shibasis.reaktor.devtools
 
 import dev.shibasis.reaktor.core.framework.json
-import dev.shibasis.reaktor.service.Request
-import dev.shibasis.reaktor.service.RequestHandler
-import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
+import dev.shibasis.reaktor.service.contract.Call
+import dev.shibasis.reaktor.service.contract.Exchange
+import dev.shibasis.reaktor.service.contract.Link
+import dev.shibasis.reaktor.service.contract.Served
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -66,19 +66,19 @@ sealed interface PeerEnvelope {
 }
 
 /**
- * Serves a [Service]'s handlers over a channel.
+ * Serves a contract over a channel.
  *
- * Handlers are matched on `endpoint.operation`, which [DevToolsService] pins to the route. An
+ * Calls are matched on their contract name, which [DevToolsService] pins to the route. An
  * unknown operation is answered with a failure rather than dropped, so a version mismatch reports
  * itself instead of hanging.
  */
 class PeerServiceHost(
-    private val service: Service,
+    private val served: Served<*>,
     private val channel: PeerChannel,
     private val scope: CoroutineScope,
     private val onCarrierFrame: suspend (CarrierFrame) -> Unit = {},
 ) {
-    private val handlers by lazy { service.handlers.associateBy { it.endpoint.operation } }
+    private val calls by lazy { served.calls.associateBy { it.name } }
 
     fun start(): Job = scope.launch {
         try {
@@ -98,11 +98,11 @@ class PeerServiceHost(
     }
 
     private suspend fun respond(call: PeerEnvelope.Call) {
-        val handler = handlers[call.operation]
-        val reply = if (handler == null) {
+        val operation = calls[call.operation]
+        val reply = if (operation == null) {
             PeerEnvelope.Reply(call.id, "", "No handler for operation '${call.operation}'")
         } else {
-            runCatching { invoke(handler, call.payload) }.fold(
+            runCatching { invoke(operation, call.payload) }.fold(
                 onSuccess = { PeerEnvelope.Reply(call.id, it) },
                 onFailure = { PeerEnvelope.Reply(call.id, "", it.message ?: it.toString()) },
             )
@@ -111,13 +111,10 @@ class PeerServiceHost(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private suspend fun <In : Request, Out : Response> invoke(
-        handler: RequestHandler<In, Out>,
-        payload: String,
-    ): String {
-        val request = json.decodeFromString(handler.requestSerializer, payload)
-        val response = handler(request)
-        return json.encodeToString(handler.responseSerializer, response)
+    private suspend fun invoke(operation: Call<*, *>, payload: String): String {
+        val typed = operation as Call<Any?, Any?>
+        val response = served.call(typed, json.decodeFromString(typed.request, payload))
+        return json.encodeToString(typed.response, response)
     }
 
     suspend fun emit(frame: CarrierFrame, id: String) =
@@ -125,21 +122,23 @@ class PeerServiceHost(
 }
 
 /**
- * Calls a remote [Service] over a channel.
+ * Calls a remote contract over a channel.
  *
  * Replies are correlated by id because the link is shared with fact streams; a pending call that
  * never gets an answer fails when the channel closes rather than waiting forever.
  */
 class PeerServiceClient(
     private val channel: PeerChannel,
-    private val scope: CoroutineScope,
+    private val runner: CoroutineScope,
     private val onCarrierFrame: suspend (CarrierFrame) -> Unit = {},
-) {
+) : Link() {
+    override val transport: String get() = "peer"
+
     private val pending = mutableMapOf<String, CompletableDeferred<PeerEnvelope.Reply>>()
     private val lock = Mutex()
     private var counter = 0L
 
-    fun start(): Job = scope.launch {
+    fun start(): Job = runner.launch {
         try {
             channel.incoming.collect { message ->
                 val envelope = runCatching { json.decodeFromString<PeerEnvelope>(message) }.getOrNull()
@@ -158,21 +157,14 @@ class PeerServiceClient(
         }
     }
 
-    suspend fun <In : Request, Out : Response> call(
-        handler: RequestHandler<In, Out>,
-        request: In,
-    ): Out {
+    override suspend fun <In, Out> transmit(operation: Call<In, Out>, exchange: Exchange<In, Out>): Out {
         val id = lock.withLock { (++counter).toString() }
         val deferred = CompletableDeferred<PeerEnvelope.Reply>()
         lock.withLock { pending[id] = deferred }
-        channel.send(
-            json.encodeToString<PeerEnvelope>(
-                PeerEnvelope.Call(id, handler.endpoint.operation, json.encodeToString(handler.requestSerializer, request))
-            )
-        )
+        channel.send(json.encodeToString<PeerEnvelope>(PeerEnvelope.Call(id, operation.name, json.encodeToString(operation.request, exchange.request))))
         val reply = deferred.await()
         reply.failure?.let { error(it) }
-        return json.decodeFromString(handler.responseSerializer, reply.payload)
+        return json.decodeFromString(operation.response, reply.payload)
     }
 
     suspend fun emit(frame: CarrierFrame) {

@@ -94,6 +94,19 @@ class TooltipKernelTest {
     }
 
     @Test
+    fun scrollingUnderTheTipHidesItAndItStaysHiddenUntilTheAnchorIsHoveredAfresh() {
+        val shown = TooltipState().after(hovered).elapse().state
+        val onTip = shown.after(left, TooltipInput.TipHover(true)).state
+        val scrolled = onTip.after(TooltipInput.Scroll)
+        assertEquals(listOf<TooltipEvent>(TooltipEvent.Hidden), scrolled.events)
+        assertFalse(scrolled.state.tipHovered)
+        val passed = scrolled.state.after(hovered, left)
+        assertFalse(passed.state.shown)
+        assertNull(passed.state.pending)
+        assertTrue(passed.state.after(hovered).elapse().state.shown)
+    }
+
+    @Test
     fun visibleKeyboardFocusShowsTheTipAtOnceAndBlurHidesIt() {
         val focused = TooltipState().after(TooltipInput.Focus(focused = true, visible = true))
         assertEquals(listOf<TooltipEvent>(TooltipEvent.Shown), focused.events)

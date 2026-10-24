@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.currentCompositeKeyHash
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
@@ -133,7 +134,13 @@ internal fun <P : Any, S : Any, I : Any, E : Any> rememberMachine(
     val scope = rememberCoroutineScope()
     val event by rememberUpdatedState(onEvent)
     val cue by rememberUpdatedState(LocalCuePlayer.current)
-    val machine = remember(kernel) { Machine(kernel, properties, scope, { event(it) }, { cue(it) }, executor) }
+    val observer by rememberUpdatedState(LocalSurfaceEventObserver.current)
+    val element = "${kernel::class.simpleName}/${currentCompositeKeyHash.toUInt().toString(16)}"
+    val machine = remember(kernel) { Machine(kernel, properties, scope, { value ->
+        val observe = observer
+        if (observe == null) event(value)
+        else observe.onEvent(element, value::class.simpleName ?: "event") { event(value) }
+    }, { cue(it) }, executor) }
     SideEffect { machine.reconcile(properties) }
     DisposableEffect(machine) { onDispose(machine::retire) }
     return machine

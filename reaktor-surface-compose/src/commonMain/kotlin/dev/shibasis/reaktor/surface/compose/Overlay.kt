@@ -53,6 +53,7 @@ class OverlayHost internal constructor(private val scope: CoroutineScope) {
     internal val content = FocusRequester()
     internal val tips = mutableSetOf<TooltipAnchor>()
     internal val contentFocus = mutableListOf<() -> Unit>()
+    internal var claims = 0
     private var contentFocused = false
     private var returning = false
     private var warmUntil = Long.MIN_VALUE
@@ -89,7 +90,7 @@ class OverlayHost internal constructor(private val scope: CoroutineScope) {
         layers -= layer
         if (layer.focused) scope.launch {
             withFrameNanos {}
-            if (returning && !contentFocused && layers.none { it.focused }) {
+            if (returning && !contentFocused && claims == 0 && layers.none { it.focused }) {
                 returning = false
                 content.restoreFocusedChild()
             }

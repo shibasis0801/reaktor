@@ -23,7 +23,7 @@ Reaktor's own briefing lives in `/Users/ovd/dev/reaktor/README.md` and `/Users/o
 - Core patterns to reuse, not replace:
   - Adapter + Capability composition (see `reaktor-core/.../framework/Adapter.kt`, `Feature.kt`)
   - ProviderPort / ConsumerPort wiring with `(Type, Key)` matching, `autoWire()` fallback to DI
-  - Sealed `Node` hierarchy: `BasicNode`, `ControllerNode`, `RouteNode`, `ContainerNode`, `ServiceNode`, `ActorNode`
+  - Sealed `Node` hierarchy: `BasicNode`, `ControllerNode`, `RouteNode`, `ContainerNode`, `ContractNode`, `ActorNode`
   - Koin per-Graph DI scopes via `DependencyAdapter`
   - `ObservableStack` navigation, `RouteBinding<P>`, nav commands `Push`/`Replace`/`Pop`/`Return`
   - Compose rendering via `ComposeContent` / `ComposeContainer`

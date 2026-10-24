@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
@@ -27,6 +28,7 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntRect
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -106,5 +108,44 @@ class PopoverTest {
         onRoot().performKeyInput { pressKey(Key.Escape) }
         assertFalse(open)
         onNodeWithTag("about").assertIsFocused()
+    }
+
+    @Test
+    fun aPopoverOpenedFromAMenuItemKeepsTheFocusTheClosingMenuWouldReturn() = runComposeUiTest {
+        var request by mutableStateOf<String?>(null)
+        setContent {
+            SurfaceEnvironmentProvider(SurfaceEnvironment()) {
+                Box(Modifier.requiredSize(600.dp, 400.dp)) {
+                    Button({ request = "menu" }, Modifier.testTag("canvas")) { BasicText("Canvas") }
+                    if (request == "menu") Menu(true, { if (!it && request == "menu") request = null }, anchor = OverlayAnchor.Point(Offset(120f, 120f))) {
+                        Popup { Item("group", { request = "naming" }, Modifier.testTag("group")) { BasicText("Group into a new graph") } }
+                    }
+                    if (request == "naming") Popover(true, { if (!it && request == "naming") request = null }) {
+                        Content { BasicTextField(TextFieldState(), Modifier.testTag("name")) }
+                    }
+                }
+            }
+        }
+        onNodeWithTag("canvas").performMouseInput { click() }
+        onNodeWithTag("group").performMouseInput { click() }
+        waitForIdle()
+        assertEquals("naming", request)
+        onNodeWithTag("name").assertIsFocused()
+    }
+
+    @Test
+    fun aPopoverOnAnEmptyAnchorOpensBesideItRatherThanAtTheCorner() = runComposeUiTest {
+        setContent {
+            SurfaceEnvironmentProvider(SurfaceEnvironment()) {
+                Box(Modifier.requiredSize(600.dp, 400.dp)) {
+                    Box(Modifier.offset(200.dp, 150.dp)) {
+                        Popover(true, {}) { Content { BasicText("Find", Modifier.testTag("find")) } }
+                    }
+                }
+            }
+        }
+        val panel = onNodeWithTag("find").fetchSemanticsNode().boundsInWindow
+        val anchor = with(density) { Offset(200.dp.toPx(), 150.dp.toPx()) }
+        assertTrue(panel.left >= anchor.x && panel.top >= anchor.y, "the popover opens at its empty anchor, not at $panel")
     }
 }

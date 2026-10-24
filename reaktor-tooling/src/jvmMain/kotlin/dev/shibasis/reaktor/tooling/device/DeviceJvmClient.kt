@@ -22,12 +22,14 @@ object DeviceBackends {
     private var adb: AdbDeviceBackend? = null
     private var apple: AppleDeviceBackend? = null
     private var simctl: SimctlDeviceBackend? = null
+    private var browser: BrowserDeviceBackend? = null
 
     suspend fun of(transport: DeviceTransport): DeviceBackend = lock.withLock {
         when (transport) {
             DeviceTransport.Adb -> adb ?: AdbDeviceBackend().also { adb = it }
             DeviceTransport.Idb -> apple ?: AppleDeviceBackend().also { apple = it }
             DeviceTransport.Simctl -> simctl ?: SimctlDeviceBackend().also { simctl = it }
+            DeviceTransport.Web -> browser ?: BrowserDeviceBackend().also { browser = it }
         }
     }
 
@@ -35,10 +37,11 @@ object DeviceBackends {
         DeviceTransport.entries.map { of(it) }
 
     fun close() {
-        listOfNotNull(adb, apple, simctl).forEach { runCatching { it.close() } }
+        listOfNotNull(adb, apple, simctl, browser).forEach { runCatching { it.close() } }
         adb = null
         apple = null
         simctl = null
+        browser = null
     }
 }
 

@@ -76,11 +76,12 @@ class AppGraph(
         .filter { it.attachedTo != null && it.kind != NodeKind.Route }
         .associate { it.attachedTo!! to it.id }
 
-    val nodes: Map<String, NodeShape> = shape.nodes.filter { it.kind != NodeKind.Route }.associateBy { it.id }
+    private val telemetryBindings = source == GraphSource.System || source is GraphSource.Revision
+    val nodes: Map<String, NodeShape> = shape.nodes.filter { telemetryBindings || it.kind != NodeKind.Route }.associateBy { it.id }
     val routes: Map<String, NodeShape> = shape.nodes.filter { it.kind == NodeKind.Route }.associateBy { it.id }
 
     val wires: List<Wire> = shape.wires.mapNotNull { wire ->
-        if (wire.consumerPort in InternalPorts || wire.providerPort in InternalPorts) return@mapNotNull null
+        if (!telemetryBindings && (wire.consumerPort in InternalPorts || wire.providerPort in InternalPorts)) return@mapNotNull null
         val provider = visibleFor(wire.provider) ?: return@mapNotNull null
         val consumer = visibleFor(wire.consumer) ?: return@mapNotNull null
         Wire("${provider}.${wire.providerPort}>${consumer}.${wire.consumerPort}", provider, wire.providerPort, consumer, wire.consumerPort, wire.type)
@@ -118,7 +119,30 @@ class AppGraph(
     fun hopsFrom(id: String): List<Hop> = hopsFrom[id].orEmpty()
     fun hopsTo(id: String): List<Hop> = hopsTo[id].orEmpty()
 
-    fun ports(node: NodeShape): List<PortShape> = node.ports.filterNot { it.internal }
+    fun connection(from: String, to: String): Set<String> {
+        if (from !in nodes || to !in nodes) return emptySet()
+        val edges = wires.flatMap { listOf(it.provider to it.consumer, it.consumer to it.provider) } +
+            hops.map { it.from to it.to }
+        fun distances(start: String, adjacency: Map<String, List<String>>): Map<String, Int> {
+            val seen = linkedMapOf(start to 0)
+            val frontier = ArrayDeque(listOf(start))
+            while (frontier.isNotEmpty()) {
+                val node = frontier.removeFirst()
+                adjacency[node].orEmpty().forEach { next ->
+                    if (next !in seen) { seen[next] = seen.getValue(node) + 1; frontier.addLast(next) }
+                }
+            }
+            return seen
+        }
+        val forward = distances(from, edges.groupBy({ it.first }, { it.second }))
+        val length = forward[to] ?: return emptySet()
+        val backward = distances(to, edges.groupBy({ it.second }, { it.first }))
+        return forward.keys.filterTo(linkedSetOf()) { node ->
+            backward[node]?.let { forward.getValue(node) + it == length } == true
+        }
+    }
+
+    fun ports(node: NodeShape): List<PortShape> = node.ports.filter { telemetryBindings || !it.internal }
 
     fun endpoint(port: PortShape): Boolean = port.type.startsWith("op:") || port.type.startsWith(CallPrefix)
 
@@ -147,7 +171,7 @@ class AppGraph(
 
     private fun visibleFor(id: String): String? {
         val node = allNodes[id] ?: return null
-        return if (node.kind == NodeKind.Route) attachedTo[id] else id
+        return if (!telemetryBindings && node.kind == NodeKind.Route) attachedTo[id] else id
     }
 
     companion object {

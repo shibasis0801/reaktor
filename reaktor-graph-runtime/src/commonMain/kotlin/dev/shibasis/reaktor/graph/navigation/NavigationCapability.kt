@@ -9,7 +9,9 @@ interface NavigationCapability: Capability {
     fun dispatch(navCommand: NavCommand)
 }
 
-open class NavigationCapabilityImpl: NavigationCapability {
+open class NavigationCapabilityImpl(
+    private val onNavigation: (BackStackEntry<*, *>?) -> Unit = {},
+): NavigationCapability {
     override val backStack = ObservableStack<BackStackEntry<*, *>>()
 
     protected open fun onPush(navCommand: Push<*, *>) {
@@ -41,6 +43,7 @@ open class NavigationCapabilityImpl: NavigationCapability {
     }
 
     override fun dispatch(navCommand: NavCommand) {
+        val previous = backStack.top.value
         when (navCommand) {
             is Forward<*, *> -> {
                 when (navCommand) {
@@ -56,6 +59,8 @@ open class NavigationCapabilityImpl: NavigationCapability {
                 }
             }
         }
+        val current = backStack.top.value
+        if (current !== previous || navCommand is Forward<*, *>) onNavigation(current)
     }
 
     class AutoClosed: Exception("Closed through AutoCloseable, debug if this was not expected")

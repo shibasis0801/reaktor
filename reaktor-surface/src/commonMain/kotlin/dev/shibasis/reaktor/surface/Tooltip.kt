@@ -23,6 +23,7 @@ sealed interface TooltipInput {
     data object Press : TooltipInput
     data object Release : TooltipInput
     data object Escape : TooltipInput
+    data object Scroll : TooltipInput
     data class Elapsed(val ticket: Ticket) : TooltipInput
 }
 
@@ -50,7 +51,7 @@ data class TooltipKernel(
             }
             TooltipInput.Press -> hold(settle(properties, state.copy(suppressed = true, pressed = true), at = Duration.ZERO))
             TooltipInput.Release -> Reduction(state.copy(pressed = false))
-            TooltipInput.Escape -> settle(properties, state.copy(suppressed = true), at = Duration.ZERO)
+            TooltipInput.Escape, TooltipInput.Scroll -> settle(properties, state.copy(suppressed = true, tipHovered = false), at = Duration.ZERO)
             is TooltipInput.Elapsed ->
                 if (input.ticket != state.pending) Reduction(state)
                 else {

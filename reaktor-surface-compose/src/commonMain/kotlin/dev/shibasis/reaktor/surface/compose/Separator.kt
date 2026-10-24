@@ -17,7 +17,16 @@ typealias SeparatorAppearance = ComposeAppearance<Unit, Unit, Unit>
 fun Separator(
     modifier: Modifier = Modifier,
     appearance: SeparatorAppearance = LocalAppearances.current[Appearance.Separator],
-) = Box(modifier, propagateMinConstraints = true) {
+) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) Rule(modifier, appearance)
+    else studio.Element(SurfaceCall("Separator", modifier, appearance = appearance, appearanceKey = Appearance.Separator)) { edits ->
+        Rule(edits.modifier, edits.appearance(appearance))
+    }
+}
+
+@Composable
+private fun Rule(modifier: Modifier, appearance: SeparatorAppearance) = Box(modifier, propagateMinConstraints = true) {
     appearance.Content(Unit, Unit, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), Unit)
 }
 

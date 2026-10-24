@@ -8,11 +8,9 @@ import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlin.js.JsExport
 
 @JsExport
-@Serializable
-data class ServiceContract(val id: String, val version: Int = 1) {
-    companion object {
-        val Unnamed = ServiceContract("")
-    }
+enum class ServiceExecutionPhase {
+    CLIENT,
+    SERVER,
 }
 
 @JsExport
@@ -38,16 +36,7 @@ data class OperationDescriptor(
     val request: SchemaRef,
     val response: SchemaRef,
     val http: HttpBinding?,
-) {
-    val portType: String
-        get() = operationPortType(operation, request.name, response.name)
-}
-
-fun operationPortType(operation: String, request: String, response: String): String =
-    "op:$operation:$request->$response"
-
-fun operationPortType(operation: String, request: KSerializer<*>, response: KSerializer<*>): String =
-    operationPortType(operation, request.descriptor.serialName, response.descriptor.serialName)
+)
 
 fun KSerializer<*>.schemaRef(): SchemaRef = SchemaRef(descriptor.serialName, descriptor.fingerprint())
 

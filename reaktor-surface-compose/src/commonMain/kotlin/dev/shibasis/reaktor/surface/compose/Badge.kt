@@ -19,7 +19,16 @@ fun Badge(
     modifier: Modifier = Modifier,
     appearance: BadgeAppearance = LocalAppearances.current[Appearance.Badge],
     content: @Composable () -> Unit,
-) = Box(modifier, propagateMinConstraints = true) {
+) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) PlainBadge(modifier, appearance, content)
+    else studio.Element(SurfaceCall("Badge", modifier, appearance = appearance, appearanceKey = Appearance.Badge, slots = listOf("content"))) { edits ->
+        PlainBadge(edits.modifier, edits.appearance(appearance), edits.slot("content", content))
+    }
+}
+
+@Composable
+private fun PlainBadge(modifier: Modifier, appearance: BadgeAppearance, content: @Composable () -> Unit) = Box(modifier, propagateMinConstraints = true) {
     appearance.Content(Unit, Unit, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), BadgeSlots(content))
 }
 

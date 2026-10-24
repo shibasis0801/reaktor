@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.surface.compose
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.spring
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -15,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import dev.shibasis.reaktor.surface.ComponentRecipe
+import dev.shibasis.reaktor.surface.Motion
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 
 interface ComposeAppearance<P : Any, S : Any, Slots : Any> {
@@ -48,17 +48,17 @@ class ComposeFeedback internal constructor(
     val press: Float get() = pressTrack?.value ?: initialPress
     val focus: Float get() = focusTrack?.value ?: initialFocus
 
-    internal fun update(pressed: Boolean, focusVisible: Boolean, reducedMotion: Boolean) {
+    internal fun update(pressed: Boolean, focusVisible: Boolean, reducedMotion: Boolean, motion: Motion) {
         this.reducedMotion = reducedMotion
         val press = if (pressed) 1f else 0f
         val focus = if (focusVisible) 1f else 0f
         if (pressTrack != null || press != initialPress) {
             val track = pressTrack ?: FeedbackTrack(scope, initialPress).also { pressTrack = it }
-            track.moveTo(press, reducedMotion)
+            track.moveTo(press, reducedMotion, motion)
         }
         if (focusTrack != null || focus != initialFocus) {
             val track = focusTrack ?: FeedbackTrack(scope, initialFocus).also { focusTrack = it }
-            track.moveTo(focus, reducedMotion)
+            track.moveTo(focus, reducedMotion, motion)
         }
     }
 }
@@ -70,7 +70,7 @@ private class FeedbackTrack(private val scope: CoroutineScope, initial: Float) {
 
     val value: Float get() = moving?.value ?: resting.floatValue
 
-    fun moveTo(next: Float, reducedMotion: Boolean) {
+    fun moveTo(next: Float, reducedMotion: Boolean, motion: Motion) {
         if (next == target) return
         target = next
         if (reducedMotion) {
@@ -80,7 +80,7 @@ private class FeedbackTrack(private val scope: CoroutineScope, initial: Float) {
         }
         val animatable = moving ?: Animatable(value).also { moving = it }
         scope.launch {
-            animatable.animateTo(next, FeedbackSpring)
+            animatable.animateTo(next, motion.spec())
             if (moving === animatable && target == next) {
                 resting.floatValue = next
                 moving = null
@@ -89,13 +89,12 @@ private class FeedbackTrack(private val scope: CoroutineScope, initial: Float) {
     }
 }
 
-private val FeedbackSpring = spring<Float>(dampingRatio = 0.78f, stiffness = 520f)
-
 @Composable
 fun rememberFeedback(pressed: Boolean, focusVisible: Boolean): ComposeFeedback {
     val reducedMotion = LocalReducedMotion.current
+    val motion = surfaceMotion.press
     val scope = rememberCoroutineScope()
     val feedback = remember(scope) { ComposeFeedback(scope, pressed, focusVisible, reducedMotion) }
-    SideEffect { feedback.update(pressed, focusVisible, reducedMotion) }
+    SideEffect { feedback.update(pressed, focusVisible, reducedMotion, motion) }
     return feedback
 }

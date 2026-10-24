@@ -28,7 +28,7 @@ val Request.contextOrNull: CloudflareContext?
         ?: attributes[CloudflareContextAttribute] as? CloudflareContext
 
 val Request.context: CloudflareContext
-    get() = contextOrNull ?: error("Cloudflare context is only available for CloudflareAwareRequest handlers mounted through Service.toHono()")
+    get() = contextOrNull ?: error("Cloudflare context is only available for requests served through Hono.mount")
 
 operator fun <T : Any> CloudflareRequest.get(binding: Binding<T>): T = context[binding]
 

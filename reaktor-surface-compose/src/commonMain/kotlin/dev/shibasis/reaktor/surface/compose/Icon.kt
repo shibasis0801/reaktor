@@ -41,7 +41,11 @@ fun Icon(
     ink: InkRole? = null,
     appearance: IconAppearance = LocalAppearances.current[Appearance.Icon],
 ) {
-    appearance.Content(painter, modifier, ink, LocalThemeSnapshot.current)
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) appearance.Content(painter, modifier, ink, LocalThemeSnapshot.current)
+    else studio.Element(SurfaceCall("Icon", modifier, listOf(SurfaceField.ink("ink", ink)), appearance, Appearance.Icon)) { edits ->
+        edits.appearance(appearance).Content(painter, edits.modifier, edits.ink("ink", ink), LocalThemeSnapshot.current)
+    }
 }
 
 val BareIcon: IconAppearance = object : IconAppearance {

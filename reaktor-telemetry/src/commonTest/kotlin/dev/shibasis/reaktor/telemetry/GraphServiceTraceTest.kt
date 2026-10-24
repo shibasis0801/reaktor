@@ -6,17 +6,15 @@ import dev.shibasis.reaktor.portgraph.port.PortCapabilityImpl
 import dev.shibasis.reaktor.portgraph.port.addInterceptor
 import dev.shibasis.reaktor.portgraph.port.registerConsumer
 import dev.shibasis.reaktor.portgraph.port.registerProvider
-import dev.shibasis.reaktor.service.GetHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
 import dev.shibasis.reaktor.service.ServiceCall
-import dev.shibasis.reaktor.service.ServiceContract
 import dev.shibasis.reaktor.service.SpanBuffer
-import dev.shibasis.reaktor.service.SpanRecorder
 import dev.shibasis.reaktor.service.SpanSink
 import dev.shibasis.reaktor.service.TraceContext
-import dev.shibasis.reaktor.service.TracePropagation
+import dev.shibasis.reaktor.service.contract.HttpLink
+import dev.shibasis.reaktor.service.contract.Spans
+import dev.shibasis.reaktor.service.contract.over
 import dev.shibasis.reaktor.telemetry.export.ClientServiceSpanProcessor
 import dev.shibasis.reaktor.telemetry.export.ResourceKeys
 import io.opentelemetry.kotlin.createOpenTelemetry
@@ -45,6 +43,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.Served
 
 @OptIn(ExperimentalApi::class)
 class GraphServiceTraceTest {
@@ -94,11 +94,7 @@ class GraphServiceTraceTest {
             baggage = request.headers["baggage"]
             respond("{}", headers = headersOf("Content-Type", "application/json"))
         })
-        val service = object : Service("https://example.invalid", http) {
-            override val contract = ServiceContract("test.service")
-            val ping = GetHandler<GraphTraceRequest, GraphTraceResponse>("/ping")
-            init { use(TracePropagation, SpanRecorder("reaktor-client", spans, resources)) }
-        }
+        val service = TraceProbe() over HttpLink("https://example.invalid", http).intercept(Spans("reaktor-client", spans) { resources })
         val sdk = createOpenTelemetry { tracerProvider {
             resource(mapOf(ResourceKeys.ServiceName to "reaktor-client")); export { ClientServiceSpanProcessor(spans) }
         } }
@@ -171,18 +167,17 @@ class GraphServiceTraceTest {
         val outer = wire("entry", interceptor)
         val inner = wire("endpointChild", interceptor)
         var endpointSpan: String? = null
-        val service = object : Service() {
-            override val contract = ServiceContract("test.callback")
-            val callback = GetHandler<GraphTraceRequest, GraphTraceResponse>("/callback", operation = "callback") {
+        val served = Served(object : TraceProbe() {
+            override val ping = super.ping.handle { GraphTraceResponse() }
+            override val callback = super.callback.handle {
                 endpointSpan = currentCoroutineContext()[ServiceCall]?.trace?.spanId
                 inner.suspended { sendLater("hello") }
                 GraphTraceResponse()
             }
-            init { use(SpanRecorder("reaktor-server", spans, resources)) }
-        }
-        outer.suspended { service.callback(GraphTraceRequest()) }
+        }).intercept(Spans("reaktor-server", spans) { resources })
+        outer.suspended { served.call(TraceProbe().callback, GraphTraceRequest()) }
         val parent = spans.snapshot().single { it.operation == "Sender.entry" }
-        val endpoint = spans.snapshot().single { it.contract == "test.callback" }
+        val endpoint = spans.snapshot().single { it.contract == "test.service" }
         val child = spans.snapshot().single { it.operation == "Sender.endpointChild" }
         assertEquals(parent.traceId, endpoint.traceId)
         assertEquals(parent.spanId, endpoint.parentId)
@@ -308,3 +303,8 @@ private class GraphTraceRequest : Request()
 
 @Serializable
 private class GraphTraceResponse : Response()
+
+private open class TraceProbe : Service("test.service") {
+    open val ping by get<GraphTraceRequest, GraphTraceResponse>("/ping")
+    open val callback by get<GraphTraceRequest, GraphTraceResponse>("/callback")
+}

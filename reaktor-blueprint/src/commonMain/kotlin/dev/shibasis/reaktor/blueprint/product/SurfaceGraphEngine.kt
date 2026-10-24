@@ -881,10 +881,16 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             val x = (camera.x + frame.x * camera.zoom).toFloat(); val y = (camera.y + frame.y * camera.zoom).toFloat()
             val width = (frame.width * camera.zoom).toFloat(); val height = (frame.height * camera.zoom).toFloat()
             if (x >= viewport.width || y - Above * z >= viewport.height || x + width <= 0f || y + height <= 0f) continue
-            val layer = banner(i, width, camera.zoom) ?: continue
+            val layer = banner(i, max(width, room(frame, z) * z - BannerGap), camera.zoom) ?: continue
             val top = y + bannerLift(layer.size.height.toFloat(), z)
-            clipRect(floor(x), floor(top), ceil(x + width), ceil(y + height)) { translate(x, top) { drawLayer(layer) } }
+            clipRect(floor(x), floor(top), ceil(x + max(width, layer.size.width.toFloat())), ceil(y + height)) { translate(x, top) { drawLayer(layer) } }
         }
+    }
+
+    private fun room(frame: Frame, z: Float): Float {
+        val band = frame.y - Above..frame.y + max(BlueprintEngine.FrameTop, (BannerHeight / z).toDouble())
+        return frames.filter { it !== frame && it.parent == null && it.x > frame.x && it.y - Above < band.endInclusive && it.y + it.height > band.start }
+            .minOfOrNull { (it.x - frame.x).toFloat() } ?: Float.MAX_VALUE
     }
 
     private fun DrawScope.drawCards(slot: Int, l: Float, t: Float, r: Float, b: Float, deadline: TimeSource.Monotonic.ValueTimeMark) {
@@ -1002,6 +1008,8 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         val WARMUPS = floatArrayOf(.4f, 1f, 2.5f, .1f, .35f)
         private val GLOWS = floatArrayOf(12f, .08f, 6f, .18f, 2f, .38f)
         private const val Above = (BlueprintEngine.GroupGap + BlueprintEngine.FrameSide).toFloat()
+        private const val BannerGap = 8f
+        private const val BannerHeight = 56f
         private val DashColors = listOf(.5f, 1f, 1f, 0f, 0f, .5f).map { Color.White.copy(alpha = it) }
     }
 }

@@ -38,6 +38,24 @@ fun Checkbox(
     appearance: CheckboxAppearance = LocalAppearances.current.checkbox,
     content: @Composable () -> Unit = {},
 ) {
+    val studio = LocalSurfaceStudio.current
+    if (studio == null) TriStateCheckbox(state, onCheckedChange, modifier, enabled, behavior, appearance, content)
+    else studio.Element(SurfaceCall("Checkbox", modifier, listOf(SurfaceField.choice("state", state.name, CheckState.entries.map { it.name }, editable = false), SurfaceField.flag("enabled", enabled)),
+        appearance, Appearance.Checkbox, listOf("content"))) { edits ->
+        TriStateCheckbox(state, edits.handler("onCheckedChange", onCheckedChange), edits.modifier, edits.flag("enabled", enabled), behavior, edits.appearance(appearance), edits.slot("content", content))
+    }
+}
+
+@Composable
+private fun TriStateCheckbox(
+    state: CheckState,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier,
+    enabled: Boolean,
+    behavior: ToggleBehavior,
+    appearance: CheckboxAppearance,
+    content: @Composable () -> Unit,
+) {
     val machine = rememberMachine(behavior, ToggleProperties(state == CheckState.Checked, enabled)) { onCheckedChange(it.checked) }
     val source = rememberInteractions(machine)
     Box(
@@ -46,7 +64,7 @@ fun Checkbox(
         },
         propagateMinConstraints = true,
     ) {
-        val pressState = machine.state
+        val pressState = machine.state.forced()
         appearance.Content(CheckProperties(state, enabled), pressState, LocalThemeSnapshot.current, rememberFeedback(pressState.pressed, pressState.focusVisible), SwitchSlots(content))
     }
 }

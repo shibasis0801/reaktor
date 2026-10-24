@@ -44,9 +44,22 @@ class SpanJvmClient(private val session: InfrastructureSession) {
         """.trimIndent()
         val rows = request(sql).lineSequence().filter(String::isNotBlank).map(Json::parseToJsonElement).toList()
         require(rows.size <= op.limit) { "Span response exceeds the requested row limit" }
+        val digests = rows.mapNotNull { it.jsonObject["graph_digest"]?.jsonPrimitive?.content }
+            .filter { it.matches(Regex("[0-9a-f]{64}")) }.distinct().take(8)
+        val catalog = if (digests.isEmpty()) emptyList() else {
+            val available = request("SELECT name FROM system.columns WHERE database = '${op.database}' AND table = 'graph_definitions' FORMAT JSONEachRow")
+                .lineSequence().filter(String::isNotBlank).map { Json.parseToJsonElement(it).jsonObject.getValue("name").jsonPrimitive.content }.toSet()
+            if (!available.containsAll(listOf("application", "graph_digest", "definition", "recorded_at"))) emptyList() else
+                request("SELECT application, graph_digest, argMax(definition, recorded_at) AS definition FROM ${op.database}.graph_definitions " +
+                    "WHERE graph_digest IN (${digests.joinToString { "'$it'" }}) AND length(definition) <= 524288 " +
+                    "GROUP BY application, graph_digest ORDER BY graph_digest LIMIT 8 SETTINGS max_result_bytes=8388608, result_overflow_mode='throw' FORMAT JSONEachRow")
+                    .lineSequence().filter(String::isNotBlank).map(Json::parseToJsonElement).toList().also { definitions ->
+                        require(definitions.size <= 8 && definitions.all { it.jsonObject["graph_digest"]?.jsonPrimitive?.content in digests })
+                    }
+        }
         return Json.encodeToString(SpanReadReceipt.serializer(), SpanReadReceipt(
             database = op.database, windowMinutes = op.windowMinutes, limit = op.limit,
-            columns = (RequiredColumns + JoinColumns).filter { it in columns }, rows = JsonArray(rows), filter = op.filter,
+            columns = (RequiredColumns + JoinColumns).filter { it in columns }, rows = JsonArray(rows), filter = op.filter, graphDefinitions = JsonArray(catalog),
         ))
     }
 

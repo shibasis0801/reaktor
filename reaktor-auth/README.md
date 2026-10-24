@@ -97,8 +97,8 @@ Lower-level graph consumers can use:
 | `AuthPatNode` | PAT mint/verify |
 | `AuthTokenGrantNode` | `pat`, `client_credentials`, token exchange |
 | `AuthSessionNode` | refresh, logout, me, logout-all |
-| `AuthHttpServiceNode` | `AuthService` route projection |
-| `AuthAppServiceNode` | `AppService` route projection |
+| `AuthHttpServiceNode` | `AuthService` contract implementation |
+| `AuthAppServiceNode` | `AppService` contract implementation |
 
 The graph registers only external runtime dependencies (`ExposedAdapter` and
 `AuthRuntimeConfig`). Nodes consume dependencies and ports from the graph rather

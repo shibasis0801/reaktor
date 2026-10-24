@@ -2,13 +2,11 @@ package dev.shibasis.reaktor.auth.api
 
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.service.Environment
-import dev.shibasis.reaktor.service.PostHandler
 import dev.shibasis.reaktor.service.Request
 import dev.shibasis.reaktor.service.Response
-import dev.shibasis.reaktor.service.Service
 import kotlinx.serialization.Serializable
 import kotlin.js.JsExport
-import dev.shibasis.reaktor.service.ServiceContract
+import dev.shibasis.reaktor.service.contract.Service
 
 const val REALTIME_CONNECT_SCOPE = "realtime:connect"
 const val DEFAULT_REALTIME_TOKEN_TTL_SECONDS = 60
@@ -40,14 +38,6 @@ data class RealtimeTokenResponse(
     override val headers: MutableMap<String, String> = mutableMapOf(),
 ) : Response()
 
-@JsExport
-abstract class RealtimeTokenService(baseUrl: String = "") : Service(baseUrl) {
-    override val contract = ServiceContract("reaktor.realtime-token")
-
-    abstract val realtimeToken: PostHandler<RealtimeTokenRequest, RealtimeTokenResponse>
-}
-
-@JsExport
-open class RealtimeTokenServiceClient(baseUrl: String) : RealtimeTokenService(baseUrl) {
-    override val realtimeToken by PostHandler<RealtimeTokenRequest, RealtimeTokenResponse>("/realtime/token")
+open class RealtimeTokenService : Service("reaktor.realtime-token") {
+    open val realtimeToken by post<RealtimeTokenRequest, RealtimeTokenResponse>("/realtime/token")
 }

@@ -38,17 +38,16 @@ Android (Compose), iOS (Compose), JVM (Spring WebFlux), JavaScript/Web
 | `ControllerNode<State>` | Stateful node (ViewModel equivalent) with `MutableStateFlow<State>` |
 | `RouteNode<P, Binding>` | Navigation destination with URL-like route pattern |
 | `ContainerNode` | Holds nested child `Graph` instances (e.g., bottom navigation tabs) |
-| `ServiceNode` | Wraps a `Service`, exposing each handler as a typed `ProviderPort` |
+| `ContractNode<Api>` | Serves or calls a contract; provides the whole API and one typed port per call |
 
 ### Services
 
-Services are HTTP/RPC abstractions that work identically on client and server:
+Services are contracts: one Kotlin interface that both the client and the server implement, so the compiler enforces the boundary:
 
-- `Service` - abstract base with a list of `RequestHandler` instances
-- `GetHandler`, `PostHandler`, `PutHandler`, `DeleteHandler` - typed route handlers
-- `ServiceEndpoint` - URL, operation, and transport type
-- Interceptor chains for auth, logging, caching, error handling
-- `ServiceNode` wraps services as graph nodes for port-based wiring
+- `Contract<Api>` - the interface's companion; `call(Api::op, Get("/path"))` binds each operation to its route
+- `graph.serve(Contract, implementation)` - a server node; `graph.remote(Contract, link)` - a client node over `HttpLink`, `LocalLink` or a socket
+- `by uses(Contract)` and `by api(Contract.op)` - consumer ports that `autoWire()` connects to those nodes
+- Interceptors installed on a graph reach every contract in it and its child graphs (telemetry, retry, security, application)
 
 ### Navigation
 
@@ -66,7 +65,7 @@ A graph owns nodes, DI scope, lifecycle state, coroutine scope, navigation state
 
 `dependsOn(config)` imports a graph's provider ports for this scope and its descendants. Imports borrow providers and do not transfer ownership. `autoWire(otherFeature)` adds providers for that wiring pass; sibling features remain isolated unless explicitly connected. Local providers take priority, followed by declared imports and the nearest ancestor scope.
 
-`input<T>(key)` selects a scoped provider for construction. `Node(configurationPort, key, ::ServiceNode) { config -> implementation(config) }` constructs only the selected implementation and connects its configuration port. A matching typed provider in scope replaces the default factory and is connected as an additional input, keeping substitutions inspectable through ordinary graph edges.
+`input<T>(key)` selects a scoped provider for construction. `Node(configurationPort, key, ::CatalogNode) { config -> link(config) }` constructs only the selected implementation and connects its configuration port. A matching typed provider in scope replaces the default factory and is connected as an additional input, keeping substitutions inspectable through ordinary graph edges.
 
 ### Nodes communicate through typed ports
 
@@ -78,7 +77,7 @@ Navigation is part of the graph runtime through route bindings, navigation edges
 
 ### Services are part of the same model
 
-Service contracts sit inside the graph model. A `ServiceNode` can be swapped transparently between a real server implementation and an HTTP client proxy.
+Service contracts sit inside the graph model. A contract node can be swapped transparently between a served implementation and a remote client, because both provide the same interface.
 
 ## Dependencies
 

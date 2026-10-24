@@ -141,6 +141,10 @@ class FrameLayout(
     val height: Double,
     val frames: List<Frame> = emptyList(),
     val failure: Throwable? = null,
+    val exits: Map<String, Pair<Double, Double>> = emptyMap(),
+    val entries: Map<String, Pair<Double, Double>> = emptyMap(),
+    val departures: Map<String, List<Pair<Double, Double>>> = emptyMap(),
+    val arrivals: Map<String, List<Pair<Double, Double>>> = emptyMap(),
 )
 
 class ElkPin(val id: String, val x: Double, val y: Double, val east: Boolean)
@@ -151,7 +155,19 @@ class ElkLine(val id: String, val source: String, val target: String)
 
 class ElkGraph(val options: Map<String, String>, val boxes: List<ElkBox>, val lines: List<ElkLine>)
 
-class FrameRequest(val key: String, val group: BlueprintGroup, val graph: ElkGraph, val routed: List<FrameEdge>, val flipped: Set<Int>)
+class FrameDoor(val root: String, val exit: Boolean, val box: Int)
+
+class FramePass(val line: Int, val door: Int, val member: String, val port: String?, val inner: Boolean, val edges: List<String>)
+
+class FrameRequest(
+    val key: String,
+    val group: BlueprintGroup,
+    val graph: ElkGraph,
+    val routed: List<FrameEdge>,
+    val flipped: Set<Int>,
+    val doors: List<FrameDoor> = emptyList(),
+    val passes: List<FramePass> = emptyList(),
+)
 
 data class FrameResult(val width: Double, val height: Double, val nodes: DoubleArray, val edges: List<DoubleArray>, val failure: Throwable? = null)
 

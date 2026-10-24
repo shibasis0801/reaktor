@@ -54,7 +54,8 @@ object AppGraphLayout {
         }
         val wires = graph.wires.sortedWith(compareBy({ graph[it.provider]?.label }, { it.providerPort }, { graph[it.consumer]?.label }, { it.consumerPort }))
             .map { BlueprintEdge(it.id, it.provider, it.consumer, it.providerPort, it.consumerPort) }
-        val hops = graph.hops.sortedWith(compareBy({ graph[it.from]?.label }, { graph[it.to]?.label }))
+        val switcherOf = AppGraphFeatures.switchers(graph).flatMap { group -> group.map { it to group } }.toMap()
+        val hops = graph.hops.filter { hop -> switcherOf[hop.from]?.contains(hop.to) != true }.sortedWith(compareBy({ graph[it.from]?.label }, { graph[it.to]?.label }))
             .map { BlueprintEdge(it.id, it.from, it.to, kind = LinkKind.Route) }
         return BlueprintEngine.layout(request, groups, wires + hops, request.aspect, layouter)
     }

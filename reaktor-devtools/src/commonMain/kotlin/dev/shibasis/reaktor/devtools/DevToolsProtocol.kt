@@ -20,6 +20,11 @@ object DevToolsProtocol {
     /** Loopback port the Apple and desktop agents listen on when no port is supplied. */
     const val DefaultLoopbackPort: Int = 47_821
 
+    const val BrowserPort: Int = 47_822
+    const val BrowserPath: String = "/agent"
+    const val BrowserTabParameter: String = "tab"
+    const val BrowserNameParameter: String = "name"
+
     /** Header the traffic tap stamps so proxy bytes can be attributed back to a graph port. */
     const val CorrelationHeader: String = "X-Reaktor-Correlation"
 }

@@ -15,6 +15,16 @@ data class ExecutionStep(
     val durationMillis: Double get() = span.durationMillis.coerceAtLeast(0.0)
 }
 
+data class ExecutionPathSample(
+    val traceId: String,
+    val spans: List<ServiceSpan>,
+    val elapsedMillis: Double,
+) {
+    val crossIsland: Boolean get() = spans.map { it.island }.distinct().size > 1
+    val failed: Boolean get() = spans.any { it.status >= 400 && it.status != 499 }
+    val cancelled: Boolean get() = spans.any { it.status == 499 }
+}
+
 data class ExecutionTrace(
     val id: String,
     val startedMillis: Long,
@@ -31,6 +41,28 @@ data class ExecutionTrace(
     val sessions: Set<String> get() = steps.map { it.span.applicationSession }.filter(String::isNotBlank).toSet()
     val title: String get() = steps.firstOrNull { it.parentCoverage == ParentCoverage.Root }?.span?.operation
         ?: steps.first().span.operation
+
+    fun between(from: String, to: String): List<ExecutionPathSample> {
+        val retained = steps.associateBy { it.span.spanId }
+        return steps.filter { it.span.node == to }.mapNotNull { destination ->
+            val chain = mutableListOf<ServiceSpan>()
+            val seen = hashSetOf<String>()
+            var current: ExecutionStep? = destination
+            while (current != null && seen.add(current.span.spanId)) {
+                if (current.parentCoverage == ParentCoverage.Cycle) return@mapNotNull null
+                val span = current.span
+                chain.add(span)
+                if (span.node == from) {
+                    val elapsed = if (span.spanId == destination.span.spanId) span.durationMillis
+                        else (destination.span.startedMillis - span.startedMillis).toDouble() + destination.durationMillis
+                    if (elapsed < 0 || !elapsed.isFinite()) return@mapNotNull null
+                    return@mapNotNull ExecutionPathSample(id, chain.asReversed().toList(), elapsed)
+                }
+                current = retained[span.parentId]
+            }
+            null
+        }
+    }
 
     companion object {
         fun retained(spans: List<ServiceSpan>): List<ExecutionTrace> = spans

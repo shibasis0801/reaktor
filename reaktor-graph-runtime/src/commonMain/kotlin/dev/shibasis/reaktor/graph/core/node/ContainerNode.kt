@@ -45,6 +45,7 @@ open class ContainerNode(
     open fun activate(graph: Graph): Boolean {
         val index = graphs.indexOf(graph)
         if (index < 0) return false
+        graph.recordNavigationActivation(graph.backStack.top.value)
         activeGraphIndex.value = index
         return true
     }

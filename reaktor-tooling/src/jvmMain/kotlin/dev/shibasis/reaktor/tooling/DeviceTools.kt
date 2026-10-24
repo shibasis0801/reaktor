@@ -5,7 +5,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 @Serializable
-enum class DeviceTransport { Adb, Simctl, Idb }
+enum class DeviceTransport { Adb, Simctl, Idb, Web }
 
 @Serializable
 data class DevelopmentDevice(
@@ -20,6 +20,7 @@ data class DevelopmentDevice(
         DeviceTransport.Adb -> state == "device"
         DeviceTransport.Simctl -> state.equals("Booted", true)
         DeviceTransport.Idb -> state.equals("Booted", true) || state.equals("Connected", true)
+        DeviceTransport.Web -> true
     }
 }
 

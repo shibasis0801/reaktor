@@ -1,9 +1,11 @@
 package dev.shibasis.reaktor.auth
 
 import co.touchlab.kermit.Logger
-import dev.shibasis.reaktor.auth.api.AuthServiceClient
+import dev.shibasis.reaktor.auth.api.AuthService
+import dev.shibasis.reaktor.service.contract.HttpLink
 import dev.shibasis.reaktor.core.framework.UrlHandler
 import dev.shibasis.reaktor.core.utils.*
+import dev.shibasis.reaktor.service.contract.over
 import platform.Foundation.NSURL
 import platform.UIKit.UIViewController
 
@@ -12,7 +14,7 @@ class DarwinAuthAdapter(
     authService: String
 ): AuthAdapter<UIViewController>(
     controller,
-    AuthServiceClient(authService)
+    AuthService() over HttpLink(authService)
 ), UrlHandler {
     /**
      * Feeds inbound OAuth callback URLs to Google Sign-In. Wired automatically when the

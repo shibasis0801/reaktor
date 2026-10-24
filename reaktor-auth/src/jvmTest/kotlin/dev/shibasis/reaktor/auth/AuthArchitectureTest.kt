@@ -13,7 +13,6 @@ class AuthArchitectureTest {
     @Test
     fun jvmAuthRuntimeUsesContextualPackages() {
         listOf(
-            "api",
             "db",
             "jwt",
             "runtime",

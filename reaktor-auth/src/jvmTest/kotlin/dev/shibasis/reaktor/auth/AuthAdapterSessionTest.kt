@@ -3,19 +3,18 @@ package dev.shibasis.reaktor.auth
 import dev.shibasis.reaktor.auth.api.*
 import dev.shibasis.reaktor.auth.kernel.*
 import dev.shibasis.reaktor.service.Environment
-import dev.shibasis.reaktor.service.PostHandler
+import dev.shibasis.reaktor.service.contract.HttpLink
+import dev.shibasis.reaktor.service.contract.over
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.JsonObject
 import kotlin.test.*
 
 class AuthAdapterSessionTest {
-    private fun client(login: suspend (LoginRequest) -> LoginResponse, logout: suspend (LogoutRequest) -> LogoutResponse = { LogoutResponse(success = true) }) =
-        object : AuthServiceClient("https://unused.example.test") {
-            override val login by PostHandler("/fixture/login", requestSerializer = LoginRequest.serializer(),
-                responseSerializer = LoginResponse.serializer(), handler = { login(it) })
-            override val sessionLogout by PostHandler("/fixture/logout", requestSerializer = LogoutRequest.serializer(),
-                responseSerializer = LogoutResponse.serializer(), handler = { logout(it) })
-        }
+    private fun client(onLogin: suspend (LoginRequest) -> LoginResponse, onLogout: suspend (LogoutRequest) -> LogoutResponse = { LogoutResponse(success = true) }): AuthService =
+        object : AuthService() {
+            override val login = super.login.handle { request -> onLogin(request) }
+            override val sessionLogout = super.sessionLogout.handle { request -> onLogout(request) }
+        } over HttpLink("https://unused.example.test")
     private fun DesktopAuthAdapter.provider(block: suspend () -> Result<GoogleUser>) {
         register(UserProvider.GOOGLE, object : GoogleAuthProvider<DesktopAuthAdapter>(this) {
             override suspend fun login() = block()

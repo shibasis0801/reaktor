@@ -86,7 +86,7 @@ private fun tabLook(selected: Boolean, enabled: Boolean, state: PressState, them
 }
 
 @Composable
-private fun UnderlineFrame(look: TabLook, feedback: ComposeFeedback, icon: (@Composable () -> Unit)?, content: @Composable () -> Unit) {
+private fun UnderlineFrame(look: TabLook, feedback: ComposeFeedback, icon: (@Composable () -> Unit)?, content: @Composable () -> Unit, inset: Dp = MachineSignal.Metrics.subTabPaddingX) {
     Column(
         Modifier
             .focusRing(look.focused, feedback, look.ring)
@@ -97,8 +97,8 @@ private fun UnderlineFrame(look: TabLook, feedback: ComposeFeedback, icon: (@Com
             .background(look.fill)
             .stateLayer(LocalContentColor.current, look.hovered, feedback)
             .padding(
-                start = MachineSignal.Metrics.subTabPaddingX,
-                end = MachineSignal.Metrics.subTabPaddingX,
+                start = inset,
+                end = inset,
                 top = MachineSignal.Metrics.subTabPaddingTop,
             ),
         verticalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
@@ -126,6 +126,12 @@ val UnderlineTab: ItemAppearance = object : ItemAppearance {
     @Composable
     override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) =
         UnderlineFrame(tabLook(properties.selected, properties.enabled, state, theme), feedback, slots.icon, slots.content)
+}.withMatrix(MatrixTab)
+
+val CompactUnderlineTab: ItemAppearance = object : ItemAppearance {
+    @Composable
+    override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) =
+        UnderlineFrame(tabLook(properties.selected, properties.enabled, state, theme), feedback, slots.icon, slots.content, MachineSignal.Space.s2)
 }.withMatrix(MatrixTab)
 
 internal data class ChipLook(

@@ -9,7 +9,7 @@ import dev.shibasis.reaktor.auth.kernel.AuthRequirement
 import dev.shibasis.reaktor.auth.kernel.Capability
 import dev.shibasis.reaktor.auth.kernel.LocalAuthorizer
 import dev.shibasis.reaktor.auth.kernel.PermissionRef
-import dev.shibasis.reaktor.graph.ServiceNode
+import dev.shibasis.reaktor.graph.ContractNode
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.portgraph.attach.attachment
@@ -20,14 +20,13 @@ import dev.shibasis.reaktor.portgraph.port.PortInterceptors
 import dev.shibasis.reaktor.portgraph.port.PortInvocation
 import dev.shibasis.reaktor.portgraph.port.addInterceptor
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
-import dev.shibasis.reaktor.service.RequestHandler
 import kotlin.time.Clock
 
 val Graph.accessPath: List<String>
     get() = parentGraph?.accessPath.orEmpty() + listOfNotNull(label.takeIf(String::isNotBlank))
 
 val Node.accessPath: List<String>
-    get() = graph.accessPath + ((this as? ServiceNode)?.serviceLabel ?: label.ifBlank { this::class.simpleName.orEmpty() })
+    get() = graph.accessPath + label.ifBlank { this::class.simpleName.orEmpty() }
 
 val Port<*>.accessPath: List<String>
     get() = (owner as? Node)?.accessPath.orEmpty() + key.key.ifBlank { type.type }
@@ -59,10 +58,9 @@ class AccessGuard(
             if (decision is AuthDecision.Deny) throw UnauthorizedException("Unauthorized at ${path.joinToString("/")}: ${decision.safeMessage}")
         }
         val relations = policy ?: return
-        val node = provider.owner as? ServiceNode ?: return
-        val handler = provider.handler ?: return
-        val operation = CodeAccess.operationName(handler.endpoint.operation, handler.requestSerializer.descriptor.serialName)
-        val decision = relations.check(current, node.service.contract.id.ifBlank { node.serviceLabel }, operation)
+        val node = provider.owner as? ContractNode<*> ?: return
+        val operation = provider.operation ?: return
+        val decision = relations.check(current, node.api.id, operation)
         record(decision)
         if (decision.blocks) throw UnauthorizedException("Unauthorized at ${path.joinToString("/")}: ${CodeAccessPolicy.denial(decision, current).safeMessage}")
     }
@@ -82,7 +80,7 @@ class AccessGuard(
 
 fun Graph.guard(context: AuthContextProvider, policy: CodeAccessPolicy? = null, decisions: AccessDecisionSink = AccessDecisions): AccessGuard =
     AccessGuard(context, policy, decisions).also { guard ->
-        fun guarded(port: Port<*>) = port.requirement != null || policy != null && port.handler != null
+        fun guarded(port: Port<*>) = port.requirement != null || policy != null && port.operation != null
         nodes.forEach { node ->
             node.providerPorts.flattenedValues().filter(::guarded).forEach { provider ->
                 guard.watch(provider)
@@ -102,8 +100,8 @@ fun Graph.guard(context: AuthContextProvider, policy: CodeAccessPolicy? = null, 
         }
     }
 
-private val Port<*>.handler: RequestHandler<*, *>?
-    get() = (owner as? ServiceNode)?.service?.handlers?.firstOrNull { it.endpoint.portKey == key.key }
+private val Port<*>.operation: String?
+    get() = (owner as? ContractNode<*>)?.api?.operation(key.key)?.name
 
 private val Port<*>.requirement: AuthRequirement?
     get() = (this as? SecuredProviderPort<*>)?.requirement ?: (this as? SecuredConsumerPort<*>)?.requirement

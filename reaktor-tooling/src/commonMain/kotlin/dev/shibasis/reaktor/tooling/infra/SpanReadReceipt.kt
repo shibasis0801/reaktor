@@ -12,6 +12,7 @@ data class SpanReadReceipt(
     val columns: List<String>,
     val rows: JsonArray,
     val filter: SpanReadFilter = SpanReadFilter(),
+    val graphDefinitions: JsonArray = JsonArray(emptyList()),
 )
 
 @Serializable

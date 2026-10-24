@@ -22,14 +22,14 @@ class AuthAccess(
 ) {
     fun invoking(request: Request, subject: Subject, contextual: List<RelationTuple>, operation: String, tenant: String? = null): AccessDecision? =
         runCatching {
-            policy()?.check(subject, (contextual + CodeAccess.declared(AuthService.Contract.id, AuthService.Access, operation)).distinct(), AuthService.Contract.id, operation, tenant)
+            policy()?.check(subject, (contextual + CodeAccess.declared(AuthService().id, AuthService().access, operation)).distinct(), AuthService().id, operation, tenant)
         }.getOrNull()?.also { decision ->
             request.attributes[ServiceCall.AccessAttribute] = decision.encodeForSpan()
             record(decision)
         }
 
     fun holding(subject: Subject, contextual: List<RelationTuple>, permission: String, tenant: String? = null): AccessDecision? =
-        runCatching { policy()?.holds(subject, contextual, permission, AuthService.Contract.id, tenant) }.getOrNull()?.also(::record)
+        runCatching { policy()?.holds(subject, contextual, permission, AuthService().id, tenant) }.getOrNull()?.also(::record)
 
     private fun record(decision: AccessDecision) {
         runCatching { decisions.record(decision) }

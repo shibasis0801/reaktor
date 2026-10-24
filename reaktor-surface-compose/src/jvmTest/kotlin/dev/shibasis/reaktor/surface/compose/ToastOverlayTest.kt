@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicText
@@ -75,6 +76,31 @@ class ToastOverlayTest {
         onNodeWithText("Saved").assertExists()
         mainClock.advanceTimeBy(1_500)
         onNodeWithText("Saved").assertDoesNotExist()
+    }
+
+    @Composable
+    private fun Area() = Column(Modifier.fillMaxSize()) {
+        toasts = rememberToastQueue()
+        ToastArea(toasts, Modifier.weight(1f).fillMaxWidth(), message = { BasicText(it.message, Modifier.size(80.dp, 20.dp)) }) { Box(Modifier.fillMaxSize()) }
+        Spacer(Modifier.height(40.dp))
+    }
+
+    @Test
+    fun aToastAreaFloatsItsToastAtTheAreasBottomEndAboveWhatFollowsIt() = runComposeUiTest {
+        setContent { Box(Modifier.size(400.dp, 300.dp)) { SurfaceEnvironmentProvider(SurfaceEnvironment()) { Area() } } }
+        runOnIdle { toasts.show("Saved") }
+        val bounds = onNodeWithText("Saved").fetchSemanticsNode().boundsInRoot
+        val (right, bottom) = with(density) { (400.dp - 16.dp).toPx() to (260.dp - 16.dp).toPx() }
+        assertTrue(abs(bounds.right - right) < 1f && abs(bounds.bottom - bottom) < 1f, "toast at $bounds")
+    }
+
+    @Test
+    fun withNoOverlayHostAToastAreaStillPutsItsToastAtItsBottomEnd() = runComposeUiTest {
+        setContent { Box(Modifier.size(400.dp, 300.dp)) { Area() } }
+        runOnIdle { toasts.show("Saved") }
+        val bounds = onNodeWithText("Saved").fetchSemanticsNode().boundsInRoot
+        val (right, bottom) = with(density) { (400.dp - 16.dp).toPx() to (260.dp - 16.dp).toPx() }
+        assertTrue(abs(bounds.right - right) < 1f && abs(bounds.bottom - bottom) < 1f, "toast at $bounds")
     }
 
     @Test

@@ -3,11 +3,15 @@ package dev.shibasis.reaktor.web
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.service.*
+import dev.shibasis.reaktor.service.contract.Call
+import dev.shibasis.reaktor.service.contract.Served
+import dev.shibasis.reaktor.service.contract.descriptors
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
+import dev.shibasis.reaktor.service.contract.Service
 
 @Serializable
 data class WebMessageEnvelope(
@@ -38,7 +42,7 @@ data class WebGrant(
 }
 
 class WebEventBinding<T>(
-    val contract: ServiceContract,
+    val contract: Service,
     val operation: String,
     val serializer: KSerializer<T>,
     val events: Flow<T>,
@@ -52,16 +56,15 @@ class WebEventBinding<T>(
 
 class WebBridge(
     graph: Graph,
-    internal val service: Service,
+    internal val served: Served<*>,
     internal val grants: StateFlow<WebGrant?>,
     internal val authorize: suspend (WebGrant, OperationDescriptor) -> Boolean,
     events: List<WebEventBinding<*>> = emptyList(),
 ) : BasicNode(graph) {
     internal val eventBindings = events.associateBy { it.operation }
+    internal val operations = served.service.descriptors(ServiceExecutionPhase.SERVER).associateBy { it.operation }
     private val connections = MutableStateFlow<List<WebBridgeConnection>?>(emptyList())
     init {
-        require(service.contract.id.isNotBlank()) { "Bridge services need a named contract" }
-        require(service.handlers.map { it.endpoint.operation }.distinct().size == service.handlers.size)
         require(events.map { it.operation }.distinct().size == events.size)
     }
     internal fun connect(id: String, epoch: Long, app: WebApp, scope: CoroutineScope, send: suspend (String) -> Unit): WebBridgeConnection {
@@ -123,7 +126,7 @@ internal class WebBridgeConnection(
             put("protocol", 1)
             put("session", sessionId)
             put("epoch", epoch)
-            put("operations", JsonArray(bridge.service.operations.map {
+            put("operations", JsonArray(bridge.operations.values.map {
                 json.encodeToJsonElement(OperationDescriptor.serializer(), it)
             }))
             put("events", JsonArray(bridge.eventBindings.values.map {
@@ -156,9 +159,9 @@ internal class WebBridgeConnection(
             return
         }
         if (message.kind !in setOf("invoke", "subscribe")) { reply(message, error = "invalid_kind"); return }
-        val handler = bridge.service.handlers.firstOrNull { it.endpoint.operation == message.operation }
+        val call = bridge.served.calls.firstOrNull { it.name == message.operation }
         val event = bridge.eventBindings[message.operation]
-        val descriptor = if (message.kind == "invoke") handler?.descriptor(bridge.service.contract) else event?.descriptor
+        val descriptor = if (message.kind == "invoke") bridge.operations[message.operation] else event?.descriptor
         if (descriptor == null) { reply(message, error = "unknown_operation"); return }
         val schema = if (message.kind == "invoke") descriptor.request.fingerprint else descriptor.response.fingerprint
         if (message.contract != descriptor.contract || message.version != descriptor.version || message.schema != schema) {
@@ -178,7 +181,7 @@ internal class WebBridgeConnection(
                     return@launch
                 }
                 if (message.kind == "invoke") {
-                    val response = withTimeout(15_000) { invoke(requireNotNull(handler), message.payload, currentGrant) }
+                    val response = withTimeout(15_000) { invoke(requireNotNull(call), message.payload, currentGrant) }
                     reply(message, response)
                 } else {
                     reply(message)
@@ -204,12 +207,12 @@ internal class WebBridgeConnection(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private suspend fun invoke(handler: RequestHandler<*, *>, payload: JsonElement, grant: WebGrant): JsonElement {
-        val typed = handler as RequestHandler<Request, Response>
-        val request = json.decodeFromJsonElement(typed.requestSerializer, payload)
-        request.environment = grant.environment
-        request.attributes["reaktor.web.grant"] = grant
-        return json.encodeToJsonElement(typed.responseSerializer, typed(request))
+    private suspend fun invoke(call: Call<*, *>, payload: JsonElement, grant: WebGrant): JsonElement {
+        val typed = call as Call<Any?, Any?>
+        val request = json.decodeFromJsonElement(typed.request, payload)
+        (request as? Request)?.environment = grant.environment
+        val response = bridge.served.call(typed, request, attributes = mapOf(GrantAttribute to grant))
+        return json.encodeToJsonElement(typed.response, response)
     }
     private suspend fun reply(message: WebMessageEnvelope, payload: JsonElement = JsonNull, error: String? = null) =
         emit(message.copy(kind = "reply", replyTo = message.id, payload = payload, error = error))
@@ -233,6 +236,8 @@ internal class WebBridgeConnection(
         onClosed(this)
     }
 }
+
+const val GrantAttribute = "reaktor.web.grant"
 
 internal fun boundedWebJson(body: String): Boolean {
     if (body.length > 65_536 || body.encodeToByteArray().size > 65_536) return false
