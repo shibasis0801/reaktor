@@ -128,7 +128,10 @@ class NativeCompositionTest {
             import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
-                val compile = cmake("sample") { source = "cpp" }
+                val compile = cmake("sample") {
+                    source = "cpp"
+                    configuration = providers.gradleProperty("fixtureConfiguration").orElse("Release").get()
+                }
                 val value = providers.gradleProperty("fixtureValue").orElse("42")
                 val contract = BuildModelReader.json.encodeToString(NativeContract(
                     library = "sample", platform = "host", settings = mapOf("FIXTURE_VALUE" to value.get(), "ANDROID_ABI" to "arm64-v8a")))
@@ -148,16 +151,27 @@ class NativeCompositionTest {
                 workspace { val nativeBuild by artifacts { include(node(compile)) } }
             }
         """.trimIndent())
-        fun run(value: Int) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
-            .withArguments("nativeBuild", "-PfixtureValue=$value", "--configuration-cache", "--stacktrace").build()
-        fun result(): String {
-            val process = ProcessBuilder(directory.resolve("build/dependeasy/native/sample/Release/sample").path).start()
+        fun run(value: Int, configuration: String = "Release") = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("nativeBuild", "-PfixtureValue=$value", "-PfixtureConfiguration=$configuration", "--configuration-cache", "--stacktrace").build()
+        fun result(configuration: String = "Release"): String {
+            val process = ProcessBuilder(directory.resolve("build/dependeasy/native/sample/$configuration/sample").path).start()
             val value = process.inputStream.bufferedReader().readText()
             assertEquals(0, process.waitFor())
             return value
         }
-        assertEquals(TaskOutcome.SUCCESS, run(42).task(":sampleCMake")?.outcome)
+        val first = run(42)
+        assertEquals(TaskOutcome.SUCCESS, first.task(":sampleCMake")?.outcome)
+        assertNull(first.task(":generateCMakeToolchain"))
         assertEquals("42", result())
+        val cache = directory.resolve("build/dependeasy/native/sample/Release/CMakeCache.txt").readLines()
+        mapOf("DEPE_CMAKE_MINIMUM" to dev.shibasis.dependeasy.toolchain.ToolchainVersions.Cmake.substringBeforeLast('.'),
+            "CMAKE_CXX_STANDARD" to dev.shibasis.dependeasy.toolchain.ToolchainVersions.CppStandard,
+            "CMAKE_CXX_EXTENSIONS" to "OFF", "CMAKE_CXX_STANDARD_REQUIRED" to "ON",
+            "CMAKE_CXX_SCAN_FOR_MODULES" to "OFF", "CMAKE_BUILD_TYPE" to "Release",
+            "CMAKE_EXPORT_COMPILE_COMMANDS" to "ON").forEach { (name, value) ->
+            assertTrue(cache.any { it.startsWith("$name:") && it.substringAfter('=') == value }, "$name=$value")
+        }
+        assertTrue(directory.resolve("build/dependeasy/native/sample/Release/compile_commands.json").isFile)
         val generated = directory.resolve("build/dependeasy/cmake/sample-host.json").readText()
         val contract = dev.shibasis.dependeasy.model.BuildModelReader.json.decodeFromString<dev.shibasis.dependeasy.model.NativeContract>(generated)
         val alpha = contract.imports.single { it.target == "Fixture::Alpha" }
@@ -173,6 +187,14 @@ class NativeCompositionTest {
         val repeated = run(43)
         assertContains(repeated.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":sampleCMake")?.outcome)
+        val debug = run(43, "Debug")
+        assertEquals(TaskOutcome.SUCCESS, debug.task(":sampleCMake")?.outcome)
+        assertNull(debug.task(":generateCMakeToolchain"))
+        assertEquals("43", result("Debug"))
+        assertContains(directory.resolve("build/dependeasy/native/sample/Debug/CMakeCache.txt").readText(), "CMAKE_BUILD_TYPE:STRING=Debug")
+        val debugWarm = run(43, "Debug")
+        assertContains(debugWarm.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, debugWarm.task(":sampleCMake")?.outcome)
     }
 
 

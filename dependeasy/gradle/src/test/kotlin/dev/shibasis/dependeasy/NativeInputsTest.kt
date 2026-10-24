@@ -134,6 +134,12 @@ class NativeInputsTest {
             relative.copy(sources = listOf("cpp/source.cpp"), includes = listOf("cpp/include"))), spec.executables)
         assertEquals(listOf(executable, relative), task.nativeExecutables.get())
         assertContains(spec.arguments, argument)
+        assertEquals(spec.nativeConfiguration, spec.contract)
+        val plan = dev.shibasis.dependeasy.model.CMakeBuildKernel.plan(spec)
+        assertEquals(1, plan.first().arguments.count { it == "-C" })
+        assertEquals(1, plan.first().inputs.count { it == spec.nativeConfiguration })
+        assertFalse(plan.first().arguments.any { "DEPE_TOOLCHAIN_CONTRACT" in it })
+        assertContains(spec.arguments, "-DCMAKE_CXX_STANDARD=${ToolchainVersions.CppStandard}")
         assertContains(task.outputs.files.files, task.nativeModelFile.get().asFile)
         val failure = kotlin.test.assertFails { task.nativeContract.get() }
         assertEquals("SDK settings require the execution host", failure.cause?.message)

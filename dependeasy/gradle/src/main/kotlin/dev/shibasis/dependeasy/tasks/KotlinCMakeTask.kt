@@ -10,7 +10,8 @@ import dev.shibasis.dependeasy.native.AndroidPrefabConfiguration
 import dev.shibasis.dependeasy.native.CMakeLibraries
 import dev.shibasis.dependeasy.model.NativeContract
 import dev.shibasis.dependeasy.model.BuildModelReader
-import dev.shibasis.dependeasy.toolchain.cmakeToolchainContract
+import dev.shibasis.dependeasy.model.CMake
+import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
@@ -19,7 +20,6 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
@@ -33,7 +33,7 @@ import javax.inject.Inject
 
 @DisableCachingByDefault(because = "CMake build trees contain absolute host paths; use incremental local builds")
 abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
-    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.CMakeBuild(sourceDirectory.get().asFile.absolutePath, buildDirectory.get().asFile.absolutePath, cmakeExecutable.get(), generator.get(), configuration.get(), buildTarget.get(), configureArguments.get(), environment.get().keys.sorted(), ToolRef("cmake", toolVersion.get()), toolchainContract.get().asFile.absolutePath, ninjaExecutable.get(), parallelism.get(), nativeModelFile.get().asFile.absolutePath, nativeContractFile.get().asFile.absolutePath, ToolRef("ninja", ninjaVersion.get()), nativeExecutables.get())
+    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.CMakeBuild(sourceDirectory.get().asFile.absolutePath, buildDirectory.get().asFile.absolutePath, cmakeExecutable.get(), generator.get(), configuration.get(), buildTarget.get(), CMake.toolchain(ToolchainVersions.Cmake.substringBeforeLast('.'), ToolchainVersions.CppStandard.toInt(), configuration.get()) + configureArguments.get(), environment.get().keys.sorted(), ToolRef("cmake", toolVersion.get()), nativeContractFile.get().asFile.absolutePath, ninjaExecutable.get(), parallelism.get(), nativeModelFile.get().asFile.absolutePath, nativeContractFile.get().asFile.absolutePath, ToolRef("ninja", ninjaVersion.get()), nativeExecutables.get())
 
     @get:Inject
     abstract val providers: org.gradle.api.provider.ProviderFactory
@@ -56,10 +56,6 @@ abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
 
     @get:Internal
     abstract val staticLibrariesManifest: RegularFileProperty
-
-    @get:InputFile
-    @get:PathSensitive(PathSensitivity.NONE)
-    abstract val toolchainContract: RegularFileProperty
 
     @get:Input
     abstract val cmakeExecutable: Property<String>
@@ -113,7 +109,6 @@ abstract class KotlinCMakeTask : DefaultTask(), KernelSpecOwner {
         ninjaExecutable.convention(tools.ninja.executable.map { it.asFile.absolutePath })
         ninjaVersion.convention(tools.ninja.handle.version)
         inputs.files(tools.cmake.executable, tools.ninja.executable)
-        toolchainContract.convention(project.cmakeToolchainContract().flatMap { it.contract })
         staticLibrariesManifest.convention(buildDirectory.file(CMakeLibraries.MANIFEST))
         environment.convention(emptyMap())
         configuration.convention("Release")

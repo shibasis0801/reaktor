@@ -5,10 +5,14 @@ object CMake {
     fun tests(directory: String, results: String): List<String> =
         listOf("--test-dir", directory, "--output-on-failure", "--no-tests=error", "--output-junit", results)
 
+    fun toolchain(minimum: String, standard: Int, configuration: String): List<String> = listOf(
+        "-DDEPE_CMAKE_MINIMUM=$minimum", "-DCMAKE_CXX_STANDARD=$standard", "-DCMAKE_CXX_EXTENSIONS=OFF",
+        "-DCMAKE_CXX_STANDARD_REQUIRED=ON", "-DCMAKE_BUILD_TYPE=$configuration", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
+
     fun configure(spec: KernelSpec.CMakeBuild): List<String> {
         val native = CMakeBuildKernel.nativeConfiguration(spec)
-        return listOf("-C", spec.contract, "-C", native, "-DDEPE_NATIVE_CONTRACT=$native",
-            "-DDEPE_TOOLCHAIN_CONTRACT=${spec.contract}", "-S", spec.source, "-B", spec.output,
+        return listOf("-DCMAKE_CXX_SCAN_FOR_MODULES=OFF", "-C", native, "-DDEPE_NATIVE_CONTRACT=$native",
+            "-S", spec.source, "-B", spec.output,
             "-G", spec.generator, "-DCMAKE_MAKE_PROGRAM=${spec.ninjaExecutable}") + spec.arguments
     }
 

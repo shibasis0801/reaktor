@@ -16,6 +16,7 @@ fun NativeContract.cmake(): String {
     }
     return buildString {
         fun setting(name: String, value: String) { append("set(${variable(name)} ${quote(value)} CACHE STRING \"\" FORCE)\n") }
+        append("if(NOT DEPE_NATIVE_CONFIGURE_TARGETS)\n")
         setting("DEPE_NATIVE_SCHEMA", schema.toString())
         setting("DEPE_NATIVE_TARGET", library)
         setting("DEPE_NATIVE_TESTS", if (executables.any { it.discoverTests }) "ON" else "OFF")
@@ -36,6 +37,7 @@ fun NativeContract.cmake(): String {
         setting("DEPE_NATIVE_LINK_LIBRARIES", linkLibraries.joinToString(";"))
         setting("DEPE_NATIVE_COMPILE_OPTIONS", compileOptions.joinToString(";"))
         setting("DEPE_NATIVE_LINK_OPTIONS", linkOptions.joinToString(";"))
+        append("endif()\n")
         append("if(DEPE_NATIVE_CONFIGURE_TARGETS)\n")
         imports.forEach { library ->
             require(library.kind in setOf("STATIC", "SHARED")) { "Unsupported native library kind" }

@@ -60,7 +60,7 @@ object CMakeBuildKernel {
 
     fun plan(spec: KernelSpec.CMakeBuild): List<ProcessExecution> {
         require(spec.parallelism > 0 && spec.target.isNotBlank())
-        val inputs = listOf(spec.source, spec.contract, nativeConfiguration(spec))
+        val inputs = listOf(spec.source, spec.contract, nativeConfiguration(spec)).distinct()
         val outputs = listOf(spec.output, requireNotNull(spec.nativeContract), nativeConfiguration(spec))
         return listOf(CMake.configure(spec), CMake.build(spec)).map { arguments ->
             ProcessExecution(spec.source, spec.executable, arguments, spec.environmentKeys, spec.tool, inputs, outputs)
@@ -76,7 +76,7 @@ object CMakeBuildKernel {
         val generatedContract = contract.cmake()
         File(nativeConfiguration(spec)).apply { parentFile.mkdirs(); writeText(generatedContract) }
         val identity = (listOf(File(spec.source).canonicalPath, spec.generator, spec.executable, spec.ninjaExecutable,
-            spec.tool.version, environment.toSortedMap().toString(), File(spec.contract).readText(), generatedContract) + spec.arguments).joinToString("\n")
+            spec.tool.version, environment.toSortedMap().toString(), generatedContract) + spec.arguments).joinToString("\n")
         val configured = build.resolve("configure-arguments.txt")
         if (!configured.isFile || configured.readText() != identity) {
             build.resolve("CMakeCache.txt").delete()
