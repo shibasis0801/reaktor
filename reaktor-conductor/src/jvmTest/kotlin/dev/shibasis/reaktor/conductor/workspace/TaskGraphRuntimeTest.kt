@@ -48,10 +48,21 @@ class TaskGraphRuntimeTest {
 
     private fun TaskGraphView.task(title: String) = tasks.single { it.title == title }
 
-    private fun workspace(codex: Scripted, claude: Scripted, body: suspend (AgentWorkspaceConnection) -> Unit) = runBlocking {
+    private fun workspace(codex: Scripted, claude: Scripted, body: suspend (AgentWorkspaceConnection, File, AgentWorktrees) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("taskgraph-root").toFile()
         val data = Files.createTempDirectory("taskgraph-data")
-        try { AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude)).use { body(it) } }
+        try {
+            File(root, "Source.kt").writeText("val baseline = 1\n")
+            listOf(listOf("init", "--quiet"), listOf("add", "."),
+                listOf("-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Baseline")).forEach { args ->
+                val process = ProcessBuilder(listOf("git", "-C", root.path) + args).redirectErrorStream(true).start()
+                val output = process.inputStream.bufferedReader().readText()
+                check(process.waitFor() == 0) { output }
+            }
+            AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude)).use {
+                body(it, root, AgentWorktrees(root, data.resolve("worktrees"), LocalAgentArtifacts(data.resolve("artifacts"))))
+            }
+        }
         finally { root.deleteTreeSafely(within = temporary); data.toFile().deleteTreeSafely(within = temporary) }
     }
 
@@ -170,7 +181,7 @@ class TaskGraphRuntimeTest {
         val codex = Scripted(RuntimeKind.Codex, listOf("Built the parser in Parser.kt", "Handled empty input"))
         val claude = Scripted(RuntimeKind.ClaudeCode, listOf("Empty input crashes.\n{\"verdict\": \"repair\", \"summary\": \"Empty input crashes the parser\"}",
             "Looks right now.\n{\"verdict\":\"pass\",\"summary\":\"ok\"}"))
-        workspace(codex, claude) { connection ->
+        workspace(codex, claude) { connection, root, worktrees ->
             val proposed = connection.proposeTaskGraph(draft(), person)
             assertEquals(TaskGraphStatus.Draft, proposed.graph.status)
             connection.startTaskGraph("G1", proposed.graph.revision, person)
@@ -197,6 +208,17 @@ class TaskGraphRuntimeTest {
             val runs = connection.list().map { it.id }.toSet()
             assertTrue((codex.requests + claude.requests).all { it.environment[AgentRequest.RunVariable] in runs })
             assertTrue(waiting.task("Build the parser").work.single().startsWith(BoardRefs.Hangar))
+            assertTrue(claude.requests.all { File(it.workingDirectory).canonicalFile == root.canonicalFile && !it.agent.tools.allowWrites })
+            val writerRuns = listOf(waiting.task("Build the parser"), repair).map { requireNotNull(it.graph?.runId) }
+            assertEquals(writerRuns.toSet(), codex.requests.map { it.environment.getValue(AgentRequest.RunVariable) }.toSet())
+            writerRuns.forEach { id ->
+                val isolated = worktrees.list(id).single()
+                assertEquals(id, isolated.runId)
+                assertTrue(codex.requests.any { request -> request.environment[AgentRequest.RunVariable] == id &&
+                    request.agent.tools.allowWrites && File(request.workingDirectory).canonicalFile == File(isolated.roots.single().path).canonicalFile })
+            }
+            assertEquals("val baseline = 1\n", File(root, "Source.kt").readText())
+            assertTrue(listOf(waiting.task("Review the parser"), rereview).all { worktrees.list(requireNotNull(it.graph?.runId)).isEmpty() })
 
             val shape = connection.taskGraphShape("G1")
             assertEquals(setOf("T1", "T2", "T3", "T4", "T5"), shape.nodes.mapNotNull { it.attributes["task"] }.toSet())
@@ -216,7 +238,7 @@ class TaskGraphRuntimeTest {
         val codex = Scripted(RuntimeKind.Codex, listOf("Built it"))
         val claude = Scripted(RuntimeKind.ClaudeCode, listOf("{\"verdict\":\"pass\",\"summary\":\"ok\"}"))
         codex.failing.set(true)
-        workspace(codex, claude) { connection ->
+        workspace(codex, claude) { connection, _, _ ->
             val proposed = connection.proposeTaskGraph(draft(), person)
             connection.startTaskGraph("G1", proposed.graph.revision, person)
             val paused = connection.until("G1") { it.graph.status == TaskGraphStatus.Paused }
@@ -242,6 +264,8 @@ class TaskGraphRuntimeTest {
             assertEquals(TaskState.Succeeded, waiting.task("Build the parser").graph?.state)
             assertEquals("pass", waiting.task("Review the parser").graph?.outcome?.verdict)
             assertEquals(2, waiting.task("Build the parser").graph?.outcome?.attempt)
+            assertNotEquals(build.runId, waiting.task("Build the parser").graph?.runId)
+            assertNotNull(waiting.task("Build the parser").graph?.runId)
             assertEquals(setOf(1, 2), waiting.task("Build the parser").graph?.workAttempts?.values?.toSet())
             val beforeReport = connection.taskGraph("G1")
             val oldSession = BoardActor(BoardActorKind.Agent, "codex", build.run)

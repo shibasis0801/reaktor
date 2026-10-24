@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.ConductorJson
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -41,27 +42,67 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
         Files.deleteIfExists(directory.resolve(id))
         Files.delete(file(id))
     }
-    @Synchronized fun prepare(runId: String, participant: String): AgentWorktree {
+    fun prepare(runId: String, participant: String): AgentWorktree =
+        prepare(runId, participant) { SourceCandidates(root, artifacts).capture() }
+
+    @Synchronized internal fun prepare(runId: String, participant: String, capture: () -> AgentCandidate): AgentWorktree {
         val id = digest("$runId:$participant")
         if (Files.exists(file(id))) return read(id).also(::register)
-        val source = SourceCandidates(root, artifacts).capture()
-        require(source.baseCommit != null) { "Worktree isolation needs a Git baseline" }
-        require(source.complete) { "Worktree baseline coverage is incomplete: ${source.notices.joinToString()}" }
-        require(source.sourceRoots.size <= 16)
-        val sources = source.sourceRoots.map { File(it).canonicalFile }
-        require(sources.all { it.parentFile == root.canonicalFile.parentFile }) { "Isolation currently requires sibling source repositories; inspect the source-root graph" }
-        require(sources.map { it.name }.distinct().size == sources.size)
-        val location = directory.resolve(id).also(::privateDirectory)
-        val roots = sources.map { sourceRoot ->
-            val tree = snapshot(sourceRoot)
-            val head = git(sourceRoot, listOf("rev-parse", "HEAD")).trim()
-            val commit = git(sourceRoot, listOf("-c", "user.name=Reaktor", "-c", "user.email=agents@localhost", "commit-tree", tree, "-p", head, "-m", "Reaktor isolated source baseline")).trim()
-            val path = location.resolve(sourceRoot.name)
-            git(sourceRoot, listOf("worktree", "add", "--detach", path.toString(), commit))
-            AgentWorktreeRoot(sourceRoot.path, path.toString(), commit)
+        repeat(3) { attempt ->
+            val source = capture()
+            if (!source.complete && source.moving() && attempt < 2) return@repeat
+            require(source.baseCommit != null) { "Worktree isolation needs a Git baseline" }
+            require(source.complete) { "Worktree baseline coverage is incomplete: ${source.notices.joinToString()}" }
+            require(source.sourceRoots.size <= 16)
+            val sources = source.sourceRoots.map { File(it).canonicalFile }
+            require(sources.all { it.parentFile == root.canonicalFile.parentFile }) { "Isolation currently requires sibling source repositories; inspect the source-root graph" }
+            require(sources.map { it.name }.distinct().size == sources.size)
+            val location = directory.resolve(id).also(::privateDirectory)
+            val roots = mutableListOf<AgentWorktreeRoot>()
+            try {
+                sources.forEach { sourceRoot ->
+                    val tree = snapshot(sourceRoot)
+                    val head = git(sourceRoot, listOf("rev-parse", "HEAD")).trim()
+                    val commit = git(sourceRoot, listOf("-c", "user.name=Reaktor", "-c", "user.email=agents@localhost", "commit-tree", tree, "-p", head, "-m", "Reaktor isolated source baseline")).trim()
+                    val path = location.resolve(sourceRoot.name)
+                    require(!Files.exists(path)) { "An unfinished worktree needs inspection: $path" }
+                    roots += AgentWorktreeRoot(sourceRoot.path, path.toString(), commit)
+                    git(sourceRoot, listOf("worktree", "add", "--detach", path.toString(), commit))
+                }
+                val current = capture()
+                if (!current.complete || current.sourceDigest != source.sourceDigest) {
+                    discard(roots, location)
+                    require(current.complete || current.moving()) { "Worktree baseline coverage is incomplete: ${current.notices.joinToString()}" }
+                    check(attempt < 2) { "Source moved during all three isolation attempts; retry after the source settles" }
+                    return@repeat
+                }
+                return AgentWorktree(id, runId, participant, source.sourceDigest, roots).also { save(it); register(it) }
+            } catch (failure: Exception) {
+                runCatching {
+                    discard(roots, location)
+                    Files.deleteIfExists(file(id))
+                    registration(id)?.let(Files::deleteIfExists)
+                }.onFailure(failure::addSuppressed)
+                throw failure
+            }
         }
-        require(SourceCandidates(root, artifacts).capture().sourceDigest == source.sourceDigest) { "Source moved during isolation; retry with a new request" }
-        return AgentWorktree(id, runId, participant, source.sourceDigest, roots).also { save(it); register(it) }
+        error("Source did not settle for worktree isolation")
+    }
+
+    private fun AgentCandidate.moving() = notices.isNotEmpty() && notices.all {
+        "Source changed during capture:" in it || "Source grew beyond capture budget:" in it || it == "Included source coverage is incomplete"
+    }
+
+    private fun discard(roots: List<AgentWorktreeRoot>, location: Path) {
+        roots.asReversed().forEach { entry ->
+            val path = File(entry.path).toPath()
+            require(path.parent == location && location.parent == directory)
+            if (Files.exists(path)) {
+                if (Files.exists(path.resolve(".git"))) git(File(entry.source), listOf("worktree", "remove", "--force", path.toString()))
+                else path.toFile().deleteTreeSafely(within = location.toFile())
+            }
+        }
+        Files.deleteIfExists(location)
     }
     fun list(runId: String): List<AgentWorktree> = Files.list(directory).use { files -> files
         .filter { it.fileName.toString().matches(Regex("[a-f0-9]{64}\\.json")) }.toList()
@@ -114,7 +155,7 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
         return try {
             val env = mapOf("GIT_INDEX_FILE" to index.toString())
             git(directory, listOf("read-tree", "HEAD"), env)
-            git(directory, listOf("add", "-A", "--", "."), env)
+            git(directory, listOf("add", "-A", "--") + CandidateSourceInputs.paths, env)
             git(directory, listOf("write-tree"), env).trim()
         } finally { Files.deleteIfExists(index) }
     }
