@@ -30,7 +30,7 @@ library(namespace = "dev.shibasis.reaktor.web", targets = Targets.All) {
         environment = ProgramEnvironment(nativeAccess = true), run = Run.onDesktopSession())
     val webBridge by javascript()
     val webBridgeBuild by typescript(configuration = "js/tsconfig.json", output = "js/dist")
-    val testBridge = webBridge.tests(after = webBridgeBuild)
+    val testBridge = webBridge.tests(FileSet(listOf("js/test/*.mjs")), after = webBridgeBuild)
     val installWebBridge by artifacts(webBridge.installation)
     val compileWebBridge by artifacts(webBridgeBuild)
     val testWebBridge by verify(Verification.WebBridge, testBridge)

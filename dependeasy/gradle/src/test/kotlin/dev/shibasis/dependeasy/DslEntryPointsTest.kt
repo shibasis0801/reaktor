@@ -72,7 +72,7 @@ class DslEntryPointsTest {
                 val bench by appleBenchmarks()
                 val probeFramework by appleTestFramework(baseName = "FixtureProbe")
                 val probeClasspath by classpath(output = "reports/probe-classpath.txt")
-                val checkFixtureTypeScript by typescript(kotlin = listOf(kotlinJsLibrary(projects.library)), tests = PackageScript("test"))
+                val checkFixtureTypeScript by typescript(kotlin = listOf(kotlinJsLibrary(projects.library)), tests = FileSet(listOf("ts/test/*.test.mjs")))
                 val buildFixtureTypeScript by typescript(configuration = "js/tsconfig.json", output = "js/dist", kotlinConsumer = true)
                 val buildStandaloneTypeScript by typescript(directory = "ts", configuration = "tsconfig.json", output = "dist", kotlin = listOf(kotlinJsLibrary(projects.library)))
                 val unit by tests(Suite.Jvm, run = Run.onLocal().timeout(90.seconds), environment = TestEnvironment(
@@ -289,7 +289,9 @@ class DslEntryPointsTest {
         assertNull(exported.task(":library:generateWorkerManifest"))
         val typescript = model.nodes.single { it.id.project == ":library" && it.id.name == "checkFixtureTypeScript" }
         assertTrue(model.edges.any { it is Edge.Includes && it.from == NodeId(owner, ":library", "componentChecks") && it.to == typescript.id })
-        assertTrue(model.nodes.any { it.id.project == ":library" && it.id.name == "checkFixtureTypeScriptCheck" && it.kernel?.spec is KernelSpec.PackageCommand })
+        val typeScriptCheck = model.nodes.single { it.id.project == ":library" && it.id.name == "checkFixtureTypeScriptCheck" }
+        assertEquals(listOf("exec", "node", "--test", "ts/test/*.test.mjs"),
+            assertIs<KernelSpec.PackageCommand>(typeScriptCheck.kernel?.spec).execution.arguments)
         for ((name, configuration) in listOf("buildFixtureTypeScript" to "js/tsconfig.json", "buildStandaloneTypeScript" to "tsconfig.json")) {
             val emitter = model.nodes.single { it.id.project == ":library" && it.id.name == name }
             val compile = model.nodes.single { it.id.project == ":library" && it.id.name == name + "Compile" }

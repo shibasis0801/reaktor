@@ -1,6 +1,6 @@
 import dev.shibasis.dependeasy.components.library
 import dev.shibasis.dependeasy.handles.Reaktor
-import dev.shibasis.dependeasy.model.Targets
+import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.native.*
 import dev.shibasis.dependeasy.native.NativePlatform
 
@@ -17,7 +17,7 @@ library(namespace = "dev.shibasis.reaktor.ffi", targets = Targets.All) {
     interop {
         hostTests(true)
         cppModule("api/Diagnostics.hpp", "reaktor::interop::diagnostics")
-        typescript()
+        typescript(tests = FileSet(listOf("src/commonTest/typescript/*.mjs")))
     }
     dependencies {
         common { api(Reaktor.Core); api(Reaktor.Flexbuffer) }

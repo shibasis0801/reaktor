@@ -9,7 +9,6 @@
         "./pagefind/build": "./ts/scripts/pagefind.mjs"
     },
     "scripts": {
-        "test": "node --test ts/test/*.test.mjs",
         "typecheck": "../gradlew :reaktor-mcp:checkMcpTypeScriptTypes"
     },
     "dependencies": {

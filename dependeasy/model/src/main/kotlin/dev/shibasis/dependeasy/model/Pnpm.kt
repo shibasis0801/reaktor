@@ -9,6 +9,8 @@ object Pnpm {
 
     fun node(script: String, arguments: List<String>) = listOf(script) + arguments
 
+    fun tests(paths: List<String>) = listOf("exec", "node", "--test") + paths
+
     fun repair(arguments: List<String>) = arguments + "--force"
 
     fun bindings(configuration: String) = listOf("exec", "node", "--input-type=module", "-e",

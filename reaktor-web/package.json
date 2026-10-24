@@ -9,7 +9,6 @@
         ".": "./js/dist/index.js"
     },
     "scripts": {
-        "test": "node --test js/test/*.mjs",
         "compile": "../gradlew :reaktor-web:webBridgeBuildCompile"
     },
     "license": "MIT",

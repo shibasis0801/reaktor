@@ -24,7 +24,7 @@ internal class InteropBuildKernel(private val project: Project, private val name
         typescript.sources("src/commonMain/typescript")
         val types = typescript.types()
         val bundle = typescript.vite()
-        val checks = typescript.check()
+        val checks = typescript.check(declaration.typescriptTests)
         val production = project.node(bundle).after(project.node(types))
         val verification = BuildWorkspace.get(project).aggregate(project, "${name}TypeScriptVerify", NodeKind.Verification,
             listOf(project.node(checks).after(production)))

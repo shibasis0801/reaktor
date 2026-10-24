@@ -288,11 +288,10 @@ class LibraryScope internal constructor(private val project: Project, private va
         verifications.addAll(dev.shibasis.dependeasy.interop.InteropBuild(project, "interop").apply(content).install())
     }
 
-    fun typescript(kotlin: List<OutputHandle> = emptyList(), tests: dev.shibasis.dependeasy.model.PackageScript? = null) = NodeDeclaration { name ->
-        require(tests == null || tests.directory == ".") { "TypeScript checks run in their library's package" }
+    fun typescript(kotlin: List<OutputHandle> = emptyList(), tests: dev.shibasis.dependeasy.model.FileSet? = null) = NodeDeclaration { name ->
         val web = dev.shibasis.dependeasy.web.JavaScriptComponent(project, name, ".")
         if (kotlin.isNotEmpty()) web.kotlinLibraries(*kotlin.toTypedArray())
-        val checks = listOfNotNull(tests?.let { web.check(it.name) }).onEach { project.node(it).covers(dev.shibasis.dependeasy.model.Aspect.Unit) }
+        val checks = listOfNotNull(tests?.let { web.check(it) }).onEach { project.node(it).covers(dev.shibasis.dependeasy.model.Aspect.Unit) }
         web.verify(name, "ts/tsconfig.json", checks = checks).also(verifications::add)
     }
 

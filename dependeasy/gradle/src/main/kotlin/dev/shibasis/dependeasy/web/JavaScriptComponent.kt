@@ -137,7 +137,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     }
 
     internal fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
-    fun tests(after: NodeHandle): NodeHandle = project.node(check()).after(after)
+    fun tests(files: FileSet, after: NodeHandle): NodeHandle = project.node(check(files)).after(after)
     fun vite(output: String = "dist"): TaskProvider<ViteBundle> = commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build")
     fun types(vararg projects: String, generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): TaskProvider<TypeScriptCheck> =
         commandKernel.register(TypeScriptCheck::class.java, "types", null, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
@@ -148,6 +148,10 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         commandKernel.register(WorkerTypes::class.java, "workerTypes", null, "exec", "wrangler", "types", output, "--config", config, fileOutput = output)
             .also { it.configure { configuration.set(config); declarations.set(directory.resolve(output)); outputFiles.setFrom(emptyList<Any>()) } }
     fun check(script: String = "test"): TaskProvider<PackageCommand> = command("check", null, "run", script).also { it.configure { executionEffect.set(Effect.Verify) } }
+    internal fun check(files: FileSet): TaskProvider<PackageCommand> {
+        require(files.paths.isNotEmpty()) { "Node tests need declared test paths" }
+        return command("check", null, *Pnpm.tests(files.paths).toTypedArray()).also { it.configure { executionEffect.set(Effect.Verify) } }
+    }
     fun bindings(config: String, output: String): TaskProvider<KarakumBindings> {
         project.pluginManager.apply("io.github.turansky.seskar")
         return commandKernel.register(KarakumBindings::class.java, "bindings", output, "exec", "karakum", "--config", config).also {
