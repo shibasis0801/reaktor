@@ -30,7 +30,8 @@ internal fun installKotlinPnpmBridge(project: Project) {
         val localPackages = workspace.localPackages()
         val packagesDirectory = workspace.directory.resolve("build/js/packages")
         val generatedDirectory = packagesDirectory.parentFile
-        val synchronize = project.tasks.register("syncKotlinPnpmMetadata", KotlinWorkspaceMetadata::class.java) {
+        val synchronize = workspace.kotlinMetadata
+        synchronize.configure {
             group = "dependeasy"
             description = "Generate exact workspace membership and remove obsolete compiler package metadata"
             dependsOn(root.rootPackageJsonTaskProvider)

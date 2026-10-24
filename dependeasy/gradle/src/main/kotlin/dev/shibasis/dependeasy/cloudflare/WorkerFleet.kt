@@ -71,7 +71,7 @@ class WorkerFleet internal constructor(
         }
         val generatedContract = KernelArtifact(generate.flatMap { it.contract }, project.node(generate, OutputKind.GeneratedContract))
         project.rootProject.plugins.withType(org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin::class.java) {
-            val metadata = project.rootProject.tasks.named("syncKotlinPnpmMetadata", dev.shibasis.dependeasy.web.KotlinWorkspaceMetadata::class.java)
+            val metadata = dev.shibasis.dependeasy.web.PnpmWorkspace.get(project.rootProject).kotlinMetadata
             metadata.configure { workerFleet.set(generate.flatMap { it.contract }) }
             project.rootProject.node(metadata).consumes(generatedContract)
         }
