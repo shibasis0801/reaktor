@@ -49,10 +49,11 @@ internal fun agentEvidenceTools(workspace: AgentWorkspace): List<McpTool> {
             }), listOf("taskId", "finding")), false, true) {
             result(workspace.addFinding(it.task(), AgentWorkspaceJson.decodeFromJsonElement(AgentFinding.serializer(), it.getValue("finding"))))
         },
-        McpTool("agent_finding_resolve", "Record how a finding was addressed by a candidate. This is a resolution claim; acceptance still requires current checks.",
-            objectSchema(mapOf("taskId" to stringSchema("Task id"), "findingId" to stringSchema("Exact finding id"), "candidateId" to stringSchema("Repair candidate id"),
-                "reason" to stringSchema("Concrete resolution and evidence")), listOf("taskId", "findingId", "candidateId", "reason")), false, true) {
-            result(workspace.evidence.resolve(it.task(), it.text("findingId"), it.text("candidateId"), it.text("reason")))
+        McpTool("agent_finding_resolve", "Record a repair claim, or dismiss a disputed finding using a passing retained kernel check for that candidate. Acceptance still requires current checks.",
+            objectSchema(mapOf("taskId" to stringSchema("Task id"), "findingId" to stringSchema("Exact finding id"), "candidateId" to stringSchema("Resolution candidate id"),
+                "reason" to stringSchema("Concrete resolution and evidence"), "checkId" to stringSchema("Passing kernel check required to dismiss a finding on the same candidate")),
+                listOf("taskId", "findingId", "candidateId", "reason")), false, true) {
+            result(workspace.evidence.resolve(it.task(), it.text("findingId"), it.text("candidateId"), it.text("reason"), it["checkId"]?.jsonPrimitive?.contentOrNull))
         },
         McpTool("agent_acceptance_checks", "Set the kernel check task ids required for acceptance. Changing the checklist invalidates previous acceptance.",
             objectSchema(mapOf("taskId" to stringSchema("Task id"), "checks" to buildJsonObject { put("type", "array"); put("items", stringSchema("Kernel task id")) }), listOf("taskId", "checks")), false, true) {

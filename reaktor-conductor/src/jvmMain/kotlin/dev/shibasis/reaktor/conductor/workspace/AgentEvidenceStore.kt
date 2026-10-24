@@ -29,30 +29,57 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
         require(checks.size <= 30 && checks.all { it.isNotBlank() && it.length <= 200 })
         return save(get(taskId).copy(requiredChecks = checks.distinct(), acceptedCandidate = null))
     }
-    @Synchronized fun finding(taskId: String, finding: AgentFinding): AgentTaskEvidence {
+    @Synchronized fun finding(taskId: String, finding: AgentFinding): AgentTaskEvidence = findings(taskId, listOf(finding))
+
+    @Synchronized internal fun findings(taskId: String, findings: List<AgentFinding>): AgentTaskEvidence {
         val task = get(taskId)
-        val candidate = task.candidates.single { it.id == finding.candidateId }
-        require(finding.id.matches(Regex("[a-zA-Z0-9_-]{1,100}")))
-        require(finding.severity in listOf("blocker", "high", "medium", "low"))
-        require(finding.title.isNotBlank() && finding.title.length <= 300 && finding.detail.length <= 8000)
-        require(finding.resolvedByCandidate == null && finding.resolution == null)
-        finding.sourcePath?.let { path ->
-            require(!File(path).isAbsolute && candidate.sourceRoots.any { File(candidate.workspaceRoot, path).canonicalFile.toPath().startsWith(File(it).canonicalFile.toPath()) })
-            require(path in candidate.changedFiles || candidate.subjects.any { it.sourcePath == path }) { "Finding source is outside candidate evidence" }
+        require(findings.map { it.id }.distinct().size == findings.size) { "Duplicate finding ids" }
+        findings.forEach { finding ->
+            val candidate = task.candidates.single { it.id == finding.candidateId }
+            require(finding.id.matches(Regex("[a-zA-Z0-9_-]{1,100}")))
+            require(finding.severity in listOf("blocker", "high", "medium", "low"))
+            require(finding.title.isNotBlank() && finding.title.length <= 300 && finding.detail.isNotBlank() && finding.detail.length <= 8000)
+            require(finding.resolvedByCandidate == null && finding.resolution == null)
+            finding.subject?.let { require(it in candidate.subjects) { "Unknown graph subject" } }
+            require(finding.line == null || finding.line > 0)
+            val path = finding.sourcePath ?: finding.subject?.sourcePath
+            require(finding.line == null || path != null) { "A finding line requires a source file" }
+            path?.let {
+                val file = File(candidate.workspaceRoot, path).canonicalFile
+                require(!File(path).isAbsolute && candidate.sourceRoots.any { file.toPath().startsWith(File(it).canonicalFile.toPath()) })
+                require(path in candidate.changedFiles || candidate.subjects.any { it.sourcePath == path }) { "Finding source is outside candidate evidence" }
+                require(file.isFile) { "Finding source does not exist in the candidate" }
+                finding.line?.let { line ->
+                    require(file.useLines { lines -> lines.take(line).count() == line }) { "Finding line is outside the source file" }
+                }
+            }
+            val existing = task.findings.firstOrNull { it.id == finding.id }
+            require(existing == null || existing == finding) { "Finding id already has different content" }
         }
-        finding.subject?.let { require(it in candidate.subjects) { "Unknown graph subject" } }
-        require(finding.line == null || finding.line > 0)
-        val existing = task.findings.firstOrNull { it.id == finding.id }
-        require(existing == null || existing == finding) { "Finding id already has different content" }
-        return if (existing != null) task else save(task.copy(findings = task.findings + finding, acceptedCandidate = null))
+        val added = findings.filter { finding -> task.findings.none { it.id == finding.id } }
+        return if (added.isEmpty()) task else save(task.copy(findings = task.findings + added, acceptedCandidate = null))
     }
-    @Synchronized fun resolve(taskId: String, findingId: String, candidateId: String, reason: String): AgentTaskEvidence {
+    @Synchronized fun resolve(taskId: String, findingId: String, candidateId: String, reason: String,
+        checkId: String? = null, by: BoardActor? = null): AgentTaskEvidence {
         val task = get(taskId)
         require(task.candidates.any { it.id == candidateId })
         require(reason.isNotBlank() && reason.length <= 4000)
-        require(task.findings.any { it.id == findingId })
+        val finding = task.findings.single { it.id == findingId }
+        val checked = checkId?.let { id ->
+            require(task.checks.any { it.id == id && it.candidateId == candidateId && it.source == "kernel" && it.result.outcome == CheckOutcome.Passed }) {
+                "Resolution check has not passed for this candidate"
+            }
+            "Kernel check $id: "
+        }
+        val person = by?.takeIf { it.kind == BoardActorKind.Person }?.let {
+            require(it.name.isNotBlank() && it.name.length <= 100) { "Name the person deciding the finding" }
+            "Person ${it.name}: "
+        }
+        require(finding.candidateId != candidateId || checked != null || person != null) {
+            "Dismissing a finding without a repair requires a passing kernel check or a person decision"
+        }
         return save(task.copy(findings = task.findings.map {
-            if (it.id == findingId) it.copy(resolvedByCandidate = candidateId, resolution = reason) else it
+            if (it.id == findingId) it.copy(resolvedByCandidate = candidateId, resolution = (person ?: checked).orEmpty() + reason) else it
         }, acceptedCandidate = null))
     }
     @Synchronized fun check(taskId: String, check: AgentCandidateCheck): AgentTaskEvidence {

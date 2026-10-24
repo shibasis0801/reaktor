@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.serialization.json.JsonObject
 
 /** One turn's worth of work for one agent. The prompt is already compiled; see [ContextCompiler]. */
 data class AgentRequest(
@@ -12,6 +13,7 @@ data class AgentRequest(
     val persistSession: Boolean = false,
     val executionId: String? = null,
     val subjectRefs: List<String> = emptyList(),
+    val outputSchema: JsonObject? = null,
 ) {
     val environment: Map<String, String>
         get() = executionId?.substringBefore(':')?.takeIf(String::isNotBlank)?.let { mapOf(RunVariable to it) }.orEmpty()
