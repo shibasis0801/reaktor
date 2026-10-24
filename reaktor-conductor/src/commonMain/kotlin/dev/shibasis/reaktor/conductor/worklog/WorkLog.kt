@@ -160,3 +160,23 @@ fun WorkStep.edits(): List<WorkStep.Edit> = when (this) {
     is WorkStep.Subagent -> steps.flatMap(WorkStep::edits)
     else -> emptyList()
 }
+
+data class TurnEdit(val turn: Int, val edit: WorkStep.Edit)
+
+data class FileChange(val file: String, val edits: List<TurnEdit>) {
+    val added: Int get() = edits.sumOf { it.edit.added }
+    val removed: Int get() = edits.sumOf { it.edit.removed }
+    val line: Int? get() = edits.firstNotNullOfOrNull { it.edit.line }
+    val movedTo: String? get() = edits.last().edit.movedTo
+    val kind: EditKind get() = when {
+        edits.last().edit.kind == EditKind.Delete -> EditKind.Delete
+        edits.first().edit.kind == EditKind.Add -> EditKind.Add
+        else -> EditKind.Update
+    }
+}
+
+val WorkLog.changes: List<FileChange>
+    get() = turns.flatMapIndexed { index, turn -> turn.steps.flatMap(WorkStep::edits).map { TurnEdit(index + 1, it) } }
+        .filter { it.edit.status == StepStatus.Done || it.edit.status == StepStatus.Running }
+        .groupBy { it.edit.file }
+        .map { (file, edits) -> FileChange(file, edits) }

@@ -232,5 +232,29 @@ class WorkLogsTest {
         assertEquals(null, WorkLogs.limits(home.resolve("missing.jsonl")))
     }
 
+    @Test fun aSessionsChangesGroupEveryAppliedEditByFileInTheOrderItHappened() {
+        fun edit(id: String, file: String, kind: EditKind, lines: List<String>, status: StepStatus = StepStatus.Done, movedTo: String? = null) =
+            WorkStep.Edit(id, null, file, kind, listOf(DiffHunk(1, 1, lines)), status, movedTo = movedTo)
+        val log = WorkLog(listOf(
+            WorkTurn("t1", "Start", null, null, listOf(edit("e1", "app/A.kt", EditKind.Update, listOf("-x", "+y")), edit("e2", "app/B.kt", EditKind.Add, listOf("+new")))),
+            WorkTurn("t2", "Continue", null, null, listOf(
+                edit("e3", "app/A.kt", EditKind.Update, listOf("+z")),
+                edit("e4", "app/C.kt", EditKind.Update, listOf("+refused"), StepStatus.Failed),
+                WorkStep.Subagent("s1", null, "helper", steps = listOf(edit("e5", "app/B.kt", EditKind.Update, listOf("-new", "+newer"))), status = StepStatus.Done),
+                edit("e6", "app/D.kt", EditKind.Update, emptyList(), movedTo = "app/E.kt"),
+                edit("e7", "app/A.kt", EditKind.Delete, listOf("-y", "-z")),
+                edit("e8", "app/F.kt", EditKind.Update, listOf("+pending"), StepStatus.Running),
+            ), open = true),
+        ))
+        val changes = log.changes
+        assertEquals(listOf("app/A.kt", "app/B.kt", "app/D.kt", "app/F.kt"), changes.map { it.file })
+        val first = changes.first()
+        assertEquals(listOf(1 to "e1", 2 to "e3", 2 to "e7"), first.edits.map { it.turn to it.edit.id })
+        assertEquals(Triple(EditKind.Delete, 2, 3), Triple(first.kind, first.added, first.removed))
+        assertEquals(EditKind.Add to listOf("e2", "e5"), changes[1].kind to changes[1].edits.map { it.edit.id })
+        assertEquals("app/E.kt", changes[2].movedTo)
+        assertEquals(listOf("app/A.kt", "app/B.kt", "app/D.kt"), log.settled().changes.map { it.file })
+    }
+
     private fun lines(vararg records: String) = records.joinToString("\n", postfix = "\n")
 }
