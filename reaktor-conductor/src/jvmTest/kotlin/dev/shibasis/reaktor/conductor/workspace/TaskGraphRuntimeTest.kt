@@ -1,6 +1,9 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
+import org.koin.dsl.koinApplication
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
@@ -49,6 +52,45 @@ class TaskGraphRuntimeTest {
         val data = Files.createTempDirectory("taskgraph-data")
         try { AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude)).use { body(it) } }
         finally { root.deleteTreeSafely(within = temporary); data.toFile().deleteTreeSafely(within = temporary) }
+    }
+
+    @Test fun aLateSettlementCannotChangeTheNextAttempt() = runBlocking {
+        val root = Files.createTempDirectory("taskgraph-late-root").toFile()
+        val data = Files.createTempDirectory("taskgraph-late-data")
+        val dependencies = koinApplication {}
+        val owner = Graph(dependencyAdapter = KoinDependencyAdapter(dependencies))
+        try {
+            AgentWorkspace(root, data, emptyMap()).use { workspace ->
+                workspace.board.propose(draft(), person)
+                workspace.board.advance("G1", "T1") { task, plan ->
+                    task.copy(graph = plan.copy(state = TaskState.Running, attempt = 2))
+                }
+                val scope = TaskGraphScope(owner, workspace, "G1")
+                try {
+                    val before = workspace.board.view("G1")
+                    val revision = workspace.board.revision
+                    scope.coordinator.send(CoordinatorMessage.Settled("T1", 1, TaskState.Failed,
+                        TaskOutcome(summary = "Late failure", tokens = 100, files = listOf("wrong.kt"), log = "hangar:old")))
+                    scope.coordinator.send(CoordinatorMessage.Settled("T1", 2, TaskState.Succeeded, TaskOutcome(summary = "Current")))
+                    withTimeout(5_000) {
+                        while (workspace.board.get("T1").graph?.outcome?.summary != "Current") delay(10)
+                    }
+                    val settled = workspace.board.get("T1").graph!!
+                    assertEquals(revision + 1, workspace.board.revision)
+                    assertEquals(before.graph.revision + 1, workspace.board.graph("G1").revision)
+                    assertEquals(2, settled.outcome?.attempt)
+                    assertEquals(TaskState.Succeeded, settled.state)
+                    assertTrue(settled.outcome?.files.orEmpty().isEmpty())
+                    assertNull(settled.outcome?.tokens)
+                    assertNull(settled.outcome?.log)
+                } finally { scope.close() }
+            }
+        } finally {
+            owner.close()
+            dependencies.close()
+            root.deleteTreeSafely(within = temporary)
+            data.toFile().deleteTreeSafely(within = temporary)
+        }
     }
 
     @Test fun aReviewThatAsksForARepairAddsARepairRoundAndTheGateWaitsForAPerson() {
@@ -126,6 +168,18 @@ class TaskGraphRuntimeTest {
             assertEquals(2, waiting.task("Build the parser").graph?.attempt)
             assertEquals(TaskState.Succeeded, waiting.task("Build the parser").graph?.state)
             assertEquals("pass", waiting.task("Review the parser").graph?.outcome?.verdict)
+            assertEquals(2, waiting.task("Build the parser").graph?.outcome?.attempt)
+            assertEquals(setOf(1, 2), waiting.task("Build the parser").graph?.workAttempts?.values?.toSet())
+            val beforeReport = connection.taskGraph("G1")
+            val oldSession = BoardActor(BoardActorKind.Agent, "codex", build.run)
+            val refused = assertFailsWith<Exception> {
+                connection.reportTaskGraph("G1", "T1", TaskReport.Failed, TaskOutcome(summary = "Late first run"), oldSession)
+            }.message.orEmpty()
+            assertTrue("current attempt 2" in refused && "caller attempt 1" in refused, refused)
+            assertEquals(beforeReport, connection.taskGraph("G1"))
+            val currentSession = oldSession.copy(session = waiting.task("Build the parser").graph?.run)
+            assertEquals(2, connection.reportTaskGraph("G1", "T1", TaskReport.Review,
+                TaskOutcome(summary = "Current run confirmed", attempt = 2), currentSession).graph?.outcome?.attempt)
             assertTrue(waiting.graph.changes.any { it.reason == "Resumed" })
         }
     }

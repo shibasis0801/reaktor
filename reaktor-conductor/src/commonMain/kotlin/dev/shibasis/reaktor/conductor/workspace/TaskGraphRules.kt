@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.WorkflowContract
 
-data class TaskGraphCaller(val by: BoardActor, val lead: Boolean = false, val own: Set<String> = emptySet()) {
+data class TaskGraphCaller(val by: BoardActor, val lead: Boolean = false, val own: Set<String> = emptySet(), val refs: Set<String> = setOfNotNull(by.session)) {
     val person: Boolean get() = by.kind == BoardActorKind.Person
     val agent: Boolean get() = by.kind == BoardActorKind.Agent
 

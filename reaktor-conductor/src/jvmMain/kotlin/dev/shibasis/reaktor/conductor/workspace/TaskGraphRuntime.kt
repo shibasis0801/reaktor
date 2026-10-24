@@ -200,27 +200,30 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 inputs.joinToString("\n\n") { "${it.id} ${it.title}: ${it.graph?.outcome?.summary.orEmpty().take(1_500)}" }).take(TaskGraphRules.OutcomeChars),
             files = inputs.flatMap { it.graph?.outcome?.files.orEmpty() }.distinct(),
             at = System.currentTimeMillis(),
+            attempt = task.graph?.attempt,
         )
     }
 
-    private fun settle(message: CoordinatorMessage.Settled) {
-        val task = runCatching { store.get(message.task) }.getOrNull() ?: return
-        val plan = task.graph ?: return
-        if (plan.attempt != message.attempt) return
+    private fun settle(message: CoordinatorMessage.Settled): Unit = synchronized(store) {
+        val task = runCatching { store.get(message.task) }.getOrNull() ?: return@synchronized
+        val plan = task.graph ?: return@synchronized
+        if (plan.attempt != message.attempt || plan.state == TaskState.Pending) return@synchronized
+        val outcome = message.outcome.copy(attempt = message.attempt)
         if (plan.state != TaskState.Running) {
-            store.advance(graphId, task.id) { value, current -> value.copy(graph = current.copy(outcome = (current.outcome ?: message.outcome).copy(
+            store.advance(graphId, task.id) { value, current -> value.copy(graph = current.copy(outcome = (current.outcome ?: outcome).copy(
+                attempt = message.attempt,
                 log = current.outcome?.log ?: message.outcome.log, tokens = current.outcome?.tokens ?: message.outcome.tokens,
                 files = current.outcome?.files?.ifEmpty { null } ?: message.outcome.files))) }
-            return
+            return@synchronized
         }
         if (message.transient && plan.attempt < MaxAttempts) {
-            store.advance(graphId, task.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending, outcome = message.outcome,
+            store.advance(graphId, task.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending, outcome = outcome,
                 note = "Retrying: ${message.outcome.summary.take(200)}")) }
             return
         }
         val stage = if (message.state == TaskState.Succeeded && plan.kind == TaskKind.Agent && task.stage != BoardStage.Done) BoardStage.Review else task.stage
         val settled = store.advance(graphId, task.id) { value, current ->
-            value.copy(graph = current.copy(state = message.state, outcome = message.outcome), stage = stage,
+            value.copy(graph = current.copy(state = message.state, outcome = outcome), stage = stage,
                 stageChangedAt = if (stage != value.stage) System.currentTimeMillis() else value.stageChangedAt,
                 history = (value.history + BoardEvent(System.currentTimeMillis(), scope.by, "${message.state.name} after attempt ${current.attempt}")).takeLast(50))
         }
@@ -365,8 +368,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
                 timeoutMillis = 60 * 60 * 1000L,
             ))
             val ref = BoardRefs.Hangar + record.threadId
-            store.link(task.id, ref, true, scope.by)
-            store.advance(scope.graphId, task.id) { value, current -> value.copy(graph = current.copy(run = ref)) }
+            store.link(task.id, ref, true, scope.by, attempt = plan.attempt)
             record
         }
         val done = scope.workspace.settled(run.id)

@@ -10,8 +10,10 @@ fun AgentWorkspace.taskGraphCaller(graph: String?, by: BoardActor): TaskGraphCal
     val session = by.session ?: return TaskGraphCaller(by)
     val refs = setOfNotNull(session, threadOf(session)?.let { BoardRefs.Hangar + it })
     val record = graph?.let(board::graph)
-    val own = record?.let { board.members(it.id).filter { task -> task.work.any(refs::contains) || task.graph?.run in refs }.map { it.id }.toSet() }.orEmpty()
-    return TaskGraphCaller(by, lead = record?.lead != null && record.lead in refs, own = own)
+    val own = record?.let { board.members(it.id).filter { task ->
+        task.graph?.let { it.state != TaskState.Pending && it.attemptOf(refs) == it.attempt } == true
+    }.map { it.id }.toSet() }.orEmpty()
+    return TaskGraphCaller(by, lead = record?.lead != null && record.lead in refs, own = own, refs = refs)
 }
 
 internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
@@ -108,16 +110,18 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             applied(workspace.board.patch(id, patch, workspace.taskGraphCaller(id, args.by()), approvedBy = (args["approvedBy"] as? JsonPrimitive)?.contentOrNull))
         },
         McpTool("agent_taskgraph_report", "Report on a task: Running, NeedsInput, Blocked, Review, Succeeded or Failed, with a summary and evidence. " +
-            "An agent reports on its own task; the lead on its tasks; only a person passes a gate.",
+            "Reports belong to the current attempt and its linked session; the lead reports on its lead tasks; only a person passes a gate.",
             objectSchema(mapOf(graphId, "task" to stringSchema("Task id"), "status" to enumSchema("The task's status", TaskReport.entries.map { it.name }),
+                "attempt" to buildJsonObject { put("type", "integer"); put("minimum", 0); put("description", "The attempt observed by the caller; stale reports are refused") },
                 "summary" to stringSchema("What happened, at most 8,000 characters"), "verdict" to stringSchema("pass, repair or fail for a Decision task; accepted for a gate"),
                 "files" to buildJsonObject { put("type", "array"); put("items", stringSchema("A changed file")) },
                 "questions" to buildJsonObject { put("type", "array"); put("items", stringSchema("A question for the person")) }, by),
                 listOf("graph", "task", "status", "by")), readOnly = false, idempotent = true) { args ->
-            args.only("graph", "task", "status", "summary", "verdict", "files", "questions", "by")
+            args.only("graph", "task", "status", "attempt", "summary", "verdict", "files", "questions", "by")
             val id = args.text("graph")
             val outcome = TaskOutcome(summary = (args["summary"] as? JsonPrimitive)?.contentOrNull.orEmpty(), verdict = (args["verdict"] as? JsonPrimitive)?.contentOrNull,
-                files = (args["files"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(), questions = (args["questions"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty())
+                files = (args["files"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(), questions = (args["questions"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(),
+                attempt = (args["attempt"] as? JsonPrimitive)?.intOrNull)
             val task = workspace.board.report(id, args.text("task"), TaskReport.valueOf(args.text("status")), outcome, workspace.taskGraphCaller(id, args.by()))
             AgentWorkspaceJson.encodeToJsonElement(BoardTask.serializer(), task)
         },

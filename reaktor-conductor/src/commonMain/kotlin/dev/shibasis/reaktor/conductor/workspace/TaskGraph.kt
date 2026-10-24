@@ -48,6 +48,7 @@ data class TaskOutcome(
     val log: String? = null,
     val tokens: Long? = null,
     val at: Long = 0,
+    val attempt: Int? = null,
 )
 
 @Serializable
@@ -68,7 +69,11 @@ data class TaskPlan(
     val changedAt: Long = 0,
     val note: String? = null,
     val held: Boolean = false,
-)
+    val workAttempts: Map<String, Int> = emptyMap(),
+) {
+    fun attemptOf(refs: Set<String>): Int? = refs.mapNotNull(workAttempts::get).maxOrNull()
+        ?: attempt.takeIf { run != null && run in refs }
+}
 
 @Serializable
 data class TaskEnvelope(
