@@ -46,7 +46,10 @@ class PublishingTest {
             model.nodes.filter { it.id.project == ":library" && it.id.name.startsWith("outputPublishedModules") }.map { it.id.name }.toSet())
         val publicationSite = SourceSite("publicationFixture", "build.gradle.kts",
             directory.resolve("build.gradle.kts").readLines().indexOfFirst { it.trim() == "publishing {" } + 1)
-        assertTrue(model.nodes.filter { it.id.name.startsWith("outputPublishedModules") }.all { it.declaredAt?.copy(symbol = null, callPath = emptyList()) == publicationSite })
+        val names = setOf("outputPublishedModulesLocal", "outputPublishedModulesRemote", "completeLocalPublication", "completeRemotePublication")
+        val publications = model.nodes.filter { it.id.name in names }
+        assertEquals(names, publications.map { it.id.name }.toSet())
+        assertTrue(publications.all { it.declaredAt?.copy(symbol = null, callPath = emptyList()) == publicationSite })
         assertEquals(null, first.task(":completeModuleBuild"))
         assertContains(run().output, "Reusing configuration cache")
     }

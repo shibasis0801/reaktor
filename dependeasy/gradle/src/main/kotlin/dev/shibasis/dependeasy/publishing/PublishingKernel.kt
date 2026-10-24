@@ -48,6 +48,7 @@ internal class PublishingKernel(
         val site = project.declarationSite()
         val outputs = project.subprojects.map { module ->
             val completed = module.tasks.register<WorkspaceNodeTask>("complete${destination.name}Publication") {
+                site?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) }
                 bind(ReleaseKernel)
                 dependsOn(module.tasks.withType(type))
             }
