@@ -468,6 +468,23 @@ class WebContractsTest {
         assertContains(changedGenerator.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.SUCCESS, changedGenerator.task(":site:siteFixtureDocs")?.outcome)
         assertEquals("second", directory.resolve("site/generated/docs/index.json").readText())
+        write("site/scripts/graph-check.cjs", "require('node:assert/strict').equal(2 + 2, 4)")
+        write("site/build.gradle.kts", directory.resolve("site/build.gradle.kts").readText()
+            .replace("alias(PackageScript(\"previousBundle\"), bundle)", "val publicGraph by tests(FileSet(listOf(\"scripts/graph-check.cjs\")))"))
+        run("generatePackageScripts")
+        val nodeChecks = arrayOf(":site:sitePublicGraph", "exportBuildModel", "generatePackageScripts")
+        assertEquals(TaskOutcome.SUCCESS, run(*nodeChecks).task(":site:sitePublicGraph")?.outcome)
+        val checked = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        val graphCheck = checked.nodes.single { it.id.project == ":site" && it.id.name == "sitePublicGraph" }
+        assertEquals(dev.shibasis.dependeasy.model.Effect.Verify, graphCheck.effect)
+        val execution = assertIs<dev.shibasis.dependeasy.model.KernelSpec.PackageCommand>(graphCheck.kernel?.spec).execution
+        assertEquals(listOf("exec", "node", "--test", "scripts/graph-check.cjs"), execution.arguments)
+        assertTrue(checked.edges.any { it is dev.shibasis.dependeasy.model.Edge.After &&
+            it.from.project == ":site" && it.from.name == "checkWeb" && it.to == graphCheck.id })
+        assertEquals("../gradlew :site:sitePublicGraph", json("site/package.json").getValue("scripts").jsonObject.getValue("publicGraph").jsonPrimitive.content)
+        val sameNodeChecks = run(*nodeChecks)
+        assertContains(sameNodeChecks.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, sameNodeChecks.task(":site:sitePublicGraph")?.outcome)
     }
 
     @Test fun `fleet deep merges every declared environment with arrays replaced`() {

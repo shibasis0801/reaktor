@@ -171,9 +171,9 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         contract.configure { testPolicy.set(BuildModelReader.json.encodeToString(policy)) }
         return command("check", null, *Pnpm.vitest().toTypedArray()).also { it.configure { executionEffect.set(Effect.Verify) } }
     }
-    internal fun check(files: FileSet): TaskProvider<PackageCommand> {
+    internal fun check(files: FileSet, name: String = "check"): TaskProvider<PackageCommand> {
         require(files.paths.isNotEmpty()) { "Node tests need declared test paths" }
-        return command("check", null, *Pnpm.tests(files.paths).toTypedArray()).also { it.configure { executionEffect.set(Effect.Verify) } }
+        return command(name, null, *Pnpm.tests(files.paths).toTypedArray()).also { it.configure { executionEffect.set(Effect.Verify) } }
     }
     fun bindings(config: String, output: String): TaskProvider<KarakumBindings> {
         project.pluginManager.apply("io.github.turansky.seskar")
