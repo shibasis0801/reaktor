@@ -21,6 +21,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import java.io.File
 
 /**
  * Claude Code as a runtime.
@@ -45,6 +47,34 @@ class ClaudeCodeRuntime(
         // The result envelope reports no effective effort, so `observed` stays unknown.
         request.agent.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none,
     )
+}
+
+private fun claudeHarnessArgs(request: AgentRequest): List<String> = buildList {
+    var settings = JsonObject(emptyMap())
+    val arguments = request.agent.harnessArgs
+    var index = 0
+    while (index < arguments.size) {
+        val argument = arguments[index++]
+        val value = when {
+            argument == "--settings" -> arguments.getOrNull(index++) ?: error("--settings needs a JSON object or file")
+            argument.startsWith("--settings=") -> argument.substringAfter('=')
+            else -> { add(argument); continue }
+        }
+        val text = if (value.trimStart().startsWith("{")) value else {
+            val file = File(value)
+            (if (file.isAbsolute) file else File(request.workingDirectory, value)).readText()
+        }
+        settings = Json.parseToJsonElement(text).jsonObject
+    }
+    val plugins = (settings["pluginConfigs"] as? JsonObject).orEmpty().toMutableMap()
+    val keys = setOf("agents-md@builtin") + listOf("cc-plugin-agents-md@builtin").filter { it in plugins }
+    keys.forEach { key ->
+        val plugin = (plugins[key] as? JsonObject).orEmpty()
+        val options = (plugin["options"] as? JsonObject).orEmpty()
+        plugins[key] = JsonObject(plugin + ("options" to JsonObject(options + ("instructionFiles" to JsonPrimitive("claude-md-and-agents-md")))))
+    }
+    add("--settings")
+    add(JsonObject(settings + ("pluginConfigs" to JsonObject(plugins))).toString())
 }
 
 /** The exact argv a Claude turn runs with, lifted out so the flag set can be asserted directly. */
@@ -96,7 +126,7 @@ internal fun claudeArgv(request: AgentRequest, binary: String = "claude"): List<
         if (tools.strictMcpConfig) add("--strict-mcp-config")
     }
 
-    addAll(request.agent.harnessArgs)
+    addAll(claudeHarnessArgs(request))
 
     // The provider session is a cache: resuming is an optimization, never a requirement.
     request.resume?.takeIf { it.runtime == RuntimeKind.ClaudeCode }?.let {
