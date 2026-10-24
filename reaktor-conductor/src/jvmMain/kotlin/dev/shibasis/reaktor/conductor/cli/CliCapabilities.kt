@@ -80,17 +80,42 @@ object CliCapabilities {
 
     private fun flagText(help: String, flag: String): String? {
         val lines = help.lines()
-        val start = lines.indexOfFirst { it.trimStart().startsWith(flag) }
+        val option = Regex("""^\s*(?:-\w,\s*)?--[\w-]+(?:[ ,=<\[]|$)""")
+        val wanted = Regex("""(?:^|[ ,])${Regex.escape(flag)}(?:[ ,=<\[]|$)""")
+        val start = lines.indexOfFirst { option.containsMatchIn(it) && wanted.containsMatchIn(it.trim()) }
         if (start < 0) return null
-        // Continuation lines are indented further than the flag and start no new flag of their own.
-        return buildString {
-            append(lines[start])
-            for (index in start + 1 until lines.size) {
-                val line = lines[index]
-                if (line.isBlank() || line.trimStart().startsWith("-")) break
-                append(' ').append(line.trim())
-            }
-        }
+        return lines.drop(start).take(1).plus(lines.drop(start + 1).takeWhile { !option.containsMatchIn(it) }).joinToString("\n")
+    }
+
+    fun parseFlagChoices(help: String, flag: String): List<String>? {
+        val text = flagText(help, flag) ?: return null
+        val bullets = Regex("""(?m)^\s+- ([\w-]+):""").findAll(text).map { it.groupValues[1] }.toList()
+        if (bullets.isNotEmpty()) return bullets.distinct()
+        val choices = Regex("""(?:choices|possible values):\s*([^\]\)]+)""", RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)
+            ?: Regex("""\(([^)]*)\)""").find(text)?.groupValues?.get(1).orEmpty()
+        return choices.split(',', '|').map { it.trim().trim('"', '\'') }
+            .filter { it.isNotEmpty() && it.all { char -> char.isLetterOrDigit() || char == '-' } }.distinct()
+    }
+
+    fun parseCodexFeature(output: String?, feature: String): Qualification {
+        val match = output?.lineSequence()?.map(String::trim)?.firstOrNull { it.substringBefore(' ') == feature }
+            ?.let { Regex("""^\S+\s+(.+?)\s+(true|false)$""").matchEntire(it) }
+        val advertised = match != null && match.groupValues[1] !in setOf("removed", "deprecated")
+        return Qualification(advertised, advertised && match.groupValues[2] == "true")
+    }
+
+    private fun nativeControls(runtime: RuntimeKind, help: String?, features: String? = null): Map<String, Qualification> {
+        fun flag(name: String) = help?.let { flagText(it, name) } != null
+        fun command(name: String) = help?.lineSequence()?.any { Regex("""^\s*${Regex.escape(name)}(?:\s|$)""").containsMatchIn(it) } == true
+        return mapOf(
+            "steer" to Qualification(advertised = if (runtime == RuntimeKind.Codex) command("app-server")
+                else flagText(help.orEmpty(), "--input-format")?.contains("stream-json") == true),
+            "queue" to Qualification(advertised = command("queue")),
+            "subagents" to if (runtime == RuntimeKind.Codex) parseCodexFeature(features, "multi_agent")
+                else Qualification(advertised = runtime == RuntimeKind.ClaudeCode && flag("--agents")),
+            "worktrees" to if (runtime == RuntimeKind.Codex && features != null) parseCodexFeature(features, "worktrees")
+                else Qualification(advertised = flag("--worktree")),
+        )
     }
 
     /**
@@ -124,9 +149,12 @@ object CliCapabilities {
             ),
             notes = buildList {
                 if (!advertised) add("This CLI advertises no --effort flag; effort selection is unavailable.")
+                add("Hangar passes bypassPermissions for writing turns; inspection disables built-in editors. These permissions are not an OS sandbox.")
             },
             models = help?.let(::parseClaudeModels).orEmpty(),
             defaultModel = defaultModel,
+            permissionModes = help?.let { parseFlagChoices(it, "--permission-mode") }.orEmpty(),
+            controls = nativeControls(RuntimeKind.ClaudeCode, help),
         )
     }
 
@@ -139,7 +167,7 @@ object CliCapabilities {
      * this transport emits no reasoning items of any kind, so its fidelity is Unavailable; the
      * summaries live on the App Server transport instead.
      */
-    fun codex(version: String?, models: List<ModelChoice> = emptyList(), defaultModel: String? = null, defaultEffort: NativeEffort? = null): ProviderCapability = ProviderCapability(
+    fun codex(version: String?, models: List<ModelChoice> = emptyList(), defaultModel: String? = null, defaultEffort: NativeEffort? = null, help: String? = null, features: String? = null): ProviderCapability = ProviderCapability(
         runtime = RuntimeKind.Codex,
         executable = "codex",
         version = version,
@@ -155,41 +183,60 @@ object CliCapabilities {
         notes = listOf(
             "exec --json reports no effective effort, so the granted value stays unverified.",
             "exec --json carries no reasoning items; summaries need the App Server transport.",
+            "Hangar selects read-only, workspace-write or danger-full-access from the task tool policy. Approval responses require the interactive adapter.",
         ),
         models = models,
         defaultModel = defaultModel,
+        permissionModes = help?.let { parseFlagChoices(it, "--ask-for-approval") }.orEmpty(),
+        sandboxModes = help?.let { parseFlagChoices(it, "--sandbox") }.orEmpty(),
+        controls = nativeControls(RuntimeKind.Codex, help, features),
     )
 
-    /**
-     * Asks the installed binaries directly. A missing or unresponsive binary yields a capability
-     * with no version and nothing enabled, which is the correct answer rather than an error.
-     */
+    fun antigravity(runtime: RuntimeKind, version: String?, help: String?): ProviderCapability {
+        val efforts = help?.let { parseFlagChoices(it, "--effort") }
+        return ProviderCapability(runtime, "agy", version,
+            effort = efforts?.let { EffortSupport(it.map(::NativeEffort).ifEmpty { null }, source = "agy --help") },
+            effortControl = Qualification(efforts != null, version != null && efforts != null, true),
+            permissionModes = help?.let { parseFlagChoices(it, "--mode") }.orEmpty(),
+            sandboxModes = if (help?.let { flagText(it, "--sandbox") } != null) listOf("--sandbox") else emptyList(),
+            controls = nativeControls(runtime, help),
+            notes = listOf(
+                "Hangar uses accept-edits for writing and plan for inspection, with dangerously-skip-permissions. Plan mode is not an OS sandbox; the adapter does not enable --sandbox.",
+                "Models shown are Hangar's configured ladder. The live agy models catalog requires a signed-in account and is not qualified by this probe.",
+                if (runtime == RuntimeKind.ChatGptGemini) "One composite seat: ChatGPT plans and reviews each cycle around Gemini execution. The Codex planner spends the ChatGPT pool."
+                    else "Antigravity uses the saved Google account and native credit policies; remaining capacity is unknown."),
+            models = if (runtime == RuntimeKind.Gemini) antigravityModelNames.map { (id, name) -> ModelChoice(id, name) } else emptyList(),
+            defaultModel = if (runtime == RuntimeKind.Gemini) defaultAntigravityModels.first() else null)
+    }
+
     fun probe(
         runtime: RuntimeKind,
         binary: String = defaultBinary(runtime),
         home: File = File(System.getProperty("user.home")),
         environment: Map<String, String> = System.getenv(),
-    ): ProviderCapability = when (runtime) {
-        RuntimeKind.ClaudeCode -> claude(parseVersion(capture(binary, "--version").orEmpty()), capture(binary, "--help"),
-            small(configHome(environment["CLAUDE_CONFIG_DIR"], home, ".claude").resolve("settings.json"))?.let(::parseSettingsModel))
-        RuntimeKind.Codex -> configHome(environment["CODEX_HOME"], home, ".codex").let { codexHome ->
-            val config = small(codexHome.resolve("config.toml"))
-            codex(parseVersion(capture(binary, "--version").orEmpty()), small(codexHome.resolve("models_cache.json"))?.let(::parseCodexModels).orEmpty(),
-                config?.let { parseTomlString(it, "model") }, config?.let { parseTomlString(it, "model_reasoning_effort") }?.effortOrNull())
+    ): ProviderCapability {
+        val version = if (runtime in listOf(RuntimeKind.ClaudeCode, RuntimeKind.Codex, RuntimeKind.Gemini, RuntimeKind.ChatGptGemini))
+            parseVersion(capture(binary, "--version", environment = environment)) else null
+        val help = version?.let { capture(binary, "--help", environment = environment) }
+        val capability = when (runtime) {
+            RuntimeKind.ClaudeCode -> claude(version, help,
+                small(configHome(environment["CLAUDE_CONFIG_DIR"], home, ".claude").resolve("settings.json"))?.let(::parseSettingsModel))
+            RuntimeKind.Codex -> configHome(environment["CODEX_HOME"], home, ".codex").let { codexHome ->
+                val config = small(codexHome.resolve("config.toml"))
+                codex(version, small(codexHome.resolve("models_cache.json"))?.let(::parseCodexModels).orEmpty(),
+                    config?.let { parseTomlString(it, "model") }, config?.let { parseTomlString(it, "model_reasoning_effort") }?.effortOrNull(),
+                    help, version?.let { capture(binary, "features", "list", environment = environment) })
+            }
+            RuntimeKind.Gemini, RuntimeKind.ChatGptGemini -> antigravity(runtime, version, help)
+            RuntimeKind.Gateway -> ProviderCapability(RuntimeKind.Gateway, executable = null, version = "Cloudflare AI REST",
+                effort = EffortSupport(listOf("low", "medium", "high").map(::NativeEffort), source = "reasoning_effort on models that list it"),
+                effortControl = Qualification(true, true, true),
+                reasoning = ReasoningFidelity.Thinking,
+                notes = listOf("An open model on the workspace's Cloudflare account, reached through the REST inference API and an AI Gateway when one is named. It reads the workspace through confined read, search and list tools and never edits files."))
+            RuntimeKind.Echo -> ProviderCapability(runtime = RuntimeKind.Echo, executable = null, version = "in-process")
         }
-        RuntimeKind.Gemini, RuntimeKind.ChatGptGemini -> ProviderCapability(runtime, "agy", parseVersion(capture(binary, "--version")),
-            effort = EffortSupport(listOf("low", "medium", "high").map(::NativeEffort), source = "agy --help"),
-            effortControl = Qualification(true, true, true),
-            notes = listOf("Gemini through Antigravity headless. Native permissions apply; missing permissions fail the turn. Plan mode requests inspection; it is not an OS sandbox. No live steering or permission responses on this transport.",
-                if (runtime == RuntimeKind.ChatGptGemini) "One composite seat: ChatGPT plans and reviews each cycle around Gemini execution, looping until it says the work is done or the cycle cap stops it. The programmatic planner is Codex on its ChatGPT account and spends that pool; pausing it falls back to operator-transferred planning rather than to another provider." else "Antigravity uses the saved Google account and native credit policies; remaining capacity is unknown."),
-            models = if (runtime == RuntimeKind.Gemini) antigravityModelNames.map { (id, name) -> ModelChoice(id, name) } else emptyList(),
-            defaultModel = if (runtime == RuntimeKind.Gemini) defaultAntigravityModels.first() else null)
-        RuntimeKind.Gateway -> ProviderCapability(RuntimeKind.Gateway, executable = null, version = "Cloudflare AI REST",
-            effort = EffortSupport(listOf("low", "medium", "high").map(::NativeEffort), source = "reasoning_effort on models that list it"),
-            effortControl = Qualification(true, true, true),
-            reasoning = ReasoningFidelity.Thinking,
-            notes = listOf("An open model on the workspace's Cloudflare account, reached through the REST inference API and an AI Gateway when one is named. It reads the workspace through confined read, search and list tools and never edits files."))
-        RuntimeKind.Echo -> ProviderCapability(runtime = RuntimeKind.Echo, executable = null, version = "in-process")
+        return capability.copy(probedAt = System.currentTimeMillis(),
+            executable = if (runtime in listOf(RuntimeKind.Gateway, RuntimeKind.Echo)) capability.executable else binary)
     }
 
     private fun defaultBinary(runtime: RuntimeKind) = when (runtime) {
@@ -205,10 +252,11 @@ object CliCapabilities {
 
     private const val ConfigLimit = 4L * 1024 * 1024
 
-    private fun capture(binary: String, flag: String): String? = runCatching {
+    private fun capture(binary: String, vararg arguments: String, environment: Map<String, String> = System.getenv()): String? = runCatching {
         val output = File.createTempFile("reaktor-capability-", ".log")
         try {
-            val process = ProcessBuilder(binary, flag)
+            val process = ProcessBuilder(listOf(binary) + arguments)
+                .apply { environment().putAll(environment) }
                 .redirectErrorStream(true)
                 .redirectOutput(output)
                 .start()

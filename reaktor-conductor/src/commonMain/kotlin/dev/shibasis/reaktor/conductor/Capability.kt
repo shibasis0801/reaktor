@@ -100,6 +100,9 @@ data class ProviderCapability(
     val entitlements: List<AgentEntitlement> = runtime.entitlements(),
     val models: List<ModelChoice> = emptyList(),
     val defaultModel: String? = null,
+    val probedAt: Long? = null,
+    val permissionModes: List<String> = emptyList(),
+    val sandboxModes: List<String> = emptyList(),
 ) {
     fun model(id: String?): ModelChoice? = id?.let { wanted -> models.firstOrNull { it.id == wanted } }
 }
