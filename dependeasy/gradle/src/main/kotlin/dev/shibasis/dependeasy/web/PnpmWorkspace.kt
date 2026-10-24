@@ -35,6 +35,9 @@ class PnpmWorkspace private constructor(private val project: Project) {
         project.outputFiles(dev.shibasis.dependeasy.handles.output(dev.shibasis.dependeasy.handles.Reaktor.build, OutputKind.JavaScriptRuntime)).singleFile
         else directory.resolve("dependeasy/javascript")
     val tools = JavaScriptTools.get(project)
+    internal val kotlinMetadata: TaskProvider<KotlinWorkspaceMetadata> by lazy {
+        project.tasks.register("syncKotlinPnpmMetadata", KotlinWorkspaceMetadata::class.java)
+    }
     val manifests = workspaceManifests(project)
     private val packageInputs = project.providers.of(PnpmPackageInventory::class.java) { parameters.manifests.from(manifests) }
     internal fun localPackages(): Map<String, File> =
