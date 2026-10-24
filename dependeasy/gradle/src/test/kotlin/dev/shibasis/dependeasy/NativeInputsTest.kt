@@ -118,7 +118,9 @@ class NativeInputsTest {
         val executable = dev.shibasis.dependeasy.model.NativeContract.Executable("fixture",
             sources = listOf(directory.resolve("src/main.cpp").absolutePath),
             includes = listOf(directory.resolve("include").absolutePath))
-        task.nativeExecutables.set(listOf(executable))
+        task.sourceDirectory.set(directory.resolve("cpp").canonicalFile)
+        val relative = executable.copy(name = "relative", sources = listOf("source.cpp"), includes = listOf("include"))
+        task.nativeExecutables.set(listOf(executable, relative))
         val argument = "/" + "x".repeat(512)
         task.configureArguments.add(argument)
         val kernel = dev.shibasis.dependeasy.workspace.kernelRef(task)
@@ -127,8 +129,10 @@ class NativeInputsTest {
         assertContains(spec.tool.version, "cmake ${ToolchainVersions.Cmake}")
         assertEquals(dev.shibasis.dependeasy.model.ToolRef("ninja", ToolchainVersions.Ninja), spec.ninja)
         assertEquals("build/dependeasy/cmake/${task.buildTarget.get()}-iphoneos.json", spec.nativeContract)
-        assertEquals(listOf(executable.copy(sources = listOf("src/main.cpp"), includes = listOf("include"))), spec.executables)
-        assertEquals(listOf(executable), task.nativeExecutables.get())
+        assertEquals("cpp", spec.source)
+        assertEquals(listOf(executable.copy(sources = listOf("src/main.cpp"), includes = listOf("include")),
+            relative.copy(sources = listOf("cpp/source.cpp"), includes = listOf("cpp/include"))), spec.executables)
+        assertEquals(listOf(executable, relative), task.nativeExecutables.get())
         assertContains(spec.arguments, argument)
         assertContains(task.outputs.files.files, task.nativeModelFile.get().asFile)
         val failure = kotlin.test.assertFails { task.nativeContract.get() }

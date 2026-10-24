@@ -177,8 +177,8 @@ private fun KernelSpec.relativeTo(root: File): KernelSpec {
         is KernelSpec.Process -> copy(execution = execution(execution))
         is KernelSpec.CMakeBuild -> copy(source = path(source), output = path(output), executable = path(executable),
             arguments = arguments.map(::path), contract = path(contract), ninjaExecutable = path(ninjaExecutable), nativeContract = nativeContract?.let(::path), nativeConfiguration = nativeConfiguration?.let(::path),
-            executables = executables.map { it.copy(sources = it.sources.map { path(File(it).canonicalPath) },
-                includes = it.includes.map { path(File(it).canonicalPath) }) })
+            executables = executables.map { it.copy(sources = it.sources.map { path(File(source).resolve(it).canonicalPath) },
+                includes = it.includes.map { path(File(source).resolve(it).canonicalPath) }) })
         is KernelSpec.GitSource -> copy(repository = path(repository), checkout = path(checkout))
         is KernelSpec.InstallTool -> copy(source = path(source), installation = path(installation))
         is KernelSpec.ArtifactSize -> copy(inputs = inputs.map(::path), report = path(report), fileInputs = fileInputs.map { it.copy(identity = path(it.identity)) })
