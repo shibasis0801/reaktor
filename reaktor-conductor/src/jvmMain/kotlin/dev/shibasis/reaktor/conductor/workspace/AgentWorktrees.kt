@@ -1,6 +1,9 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.ConductorJson
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,9 +15,35 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
     private fun file(id: String): Path { require(id.matches(Regex("[a-f0-9]{64}"))); return directory.resolve("$id.json") }
     fun read(id: String): AgentWorktree = ConductorJson.decodeFromString(AgentWorktree.serializer(), Files.readString(file(id)))
     private fun save(value: AgentWorktree) = atomicWrite(file(value.id), ConductorJson.encodeToString(AgentWorktree.serializer(), value))
+    private fun registration(id: String): Path? {
+        val state = root.canonicalFile.parentFile.toPath().resolve(".remote-dev")
+        return if (Files.isRegularFile(state.resolve("config.json")))
+            state.resolve("worktrees").resolve("${digest(root.canonicalPath + ":" + id)}.json") else null
+    }
+    private fun register(value: AgentWorktree) {
+        val target = registration(value.id) ?: return
+        val config = ConductorJson.parseToJsonElement(Files.readString(target.parent.parent.resolve("config.json"))).jsonObject
+        val projects = config.getValue("projects").jsonArray.map { it.jsonPrimitive.content }.toSet()
+        require(value.roots.all { File(it.source).canonicalFile.parentFile == root.canonicalFile.parentFile && File(it.source).name in projects }) {
+            "Worktree sources must belong to the configured build workspace"
+        }
+        privateDirectory(target.parent)
+        atomicWrite(target, ConductorJson.encodeToString(AgentWorktree.serializer(), value))
+    }
+    @Synchronized fun remove(id: String) {
+        val value = read(id)
+        value.roots.forEach { entry ->
+            val path = File(entry.path).canonicalFile.toPath()
+            require(path.parent == directory.resolve(id).toRealPath())
+            if (Files.exists(path)) git(File(entry.source), listOf("worktree", "remove", path.toString()))
+        }
+        registration(id)?.let(Files::deleteIfExists)
+        Files.deleteIfExists(directory.resolve(id))
+        Files.delete(file(id))
+    }
     @Synchronized fun prepare(runId: String, participant: String): AgentWorktree {
         val id = digest("$runId:$participant")
-        if (Files.exists(file(id))) return read(id)
+        if (Files.exists(file(id))) return read(id).also(::register)
         val source = SourceCandidates(root, artifacts).capture()
         require(source.baseCommit != null) { "Worktree isolation needs a Git baseline" }
         require(source.complete) { "Worktree baseline coverage is incomplete: ${source.notices.joinToString()}" }
@@ -32,7 +61,7 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
             AgentWorktreeRoot(sourceRoot.path, path.toString(), commit)
         }
         require(SourceCandidates(root, artifacts).capture().sourceDigest == source.sourceDigest) { "Source moved during isolation; retry with a new request" }
-        return AgentWorktree(id, runId, participant, source.sourceDigest, roots).also(::save)
+        return AgentWorktree(id, runId, participant, source.sourceDigest, roots).also { save(it); register(it) }
     }
     fun list(runId: String): List<AgentWorktree> = Files.list(directory).use { files -> files
         .filter { it.fileName.toString().matches(Regex("[a-f0-9]{64}\\.json")) }.toList()
