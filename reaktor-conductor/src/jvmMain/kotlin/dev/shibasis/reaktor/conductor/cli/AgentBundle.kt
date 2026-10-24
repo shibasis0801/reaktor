@@ -13,7 +13,6 @@ object AgentBundle {
     const val GRAPH_SERVER_NAME = "reaktor-graph"
     const val SANDBOX_NAME = "reaktor-sandbox"
     const val LAUNCHER_NAME = "reaktor-agent"
-    const val DEFAULT_GRAPH_URL = "http://127.0.0.1:8765/mcp"
 
     /**
      * Where each harness actually reads its servers from.
