@@ -146,6 +146,17 @@ class BackendPipelineTest {
         """.trimIndent())
         assertNull(run("help").task(":sampleCMake"))
         assertFalse(directory.resolve("build/dependeasy/native").exists())
+        run("exportBuildModel")
+        val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("exportBuildModel", "--no-configuration-cache", "--stacktrace").build()
+        val uncached = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        assertEquals(model.nodes.associate { it.id to (it.inputs to it.kernel?.spec) },
+            uncached.nodes.associate { it.id to (it.inputs to it.kernel?.spec) }, "Configuration cache must preserve CMake input metadata")
+        assertContains(run("exportBuildModel").output, "Reusing configuration cache")
+        val restored = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        assertEquals(model.nodes.associate { it.id to (it.inputs to it.kernel?.spec) },
+            restored.nodes.associate { it.id to (it.inputs to it.kernel?.spec) })
         assertEquals(TaskOutcome.SUCCESS, run("nativeBuild").task(":sampleCMake")?.outcome)
         val repeat = run("nativeBuild")
         assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":sampleCMake")?.outcome)
