@@ -42,7 +42,7 @@ private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, run
     })
     val generated = spec.generators.map { generator ->
         when (generator) {
-            is WebGenerator.Package -> web.script(generator.script.name, generator.output)
+            is WebGenerator.Node -> web.generator(generator.alias, generator.script, generator.output)
             is WebGenerator.WorkerTypes -> web.workerTypes(generator.configuration, "${generator.output}/worker-configuration.d.ts")
         }
     }

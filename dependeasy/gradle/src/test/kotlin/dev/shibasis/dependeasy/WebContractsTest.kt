@@ -432,11 +432,14 @@ class WebContractsTest {
         assertEquals("../../../source/detail.ts", json("library/build/dependeasy/web/sourcePackage.json")
             .getValue("aliases").jsonObject.getValue("fixture-source").jsonPrimitive.content)
         assertEquals(TaskOutcome.UP_TO_DATE, run(":library:sourcePackage").task(":library:sourcePackage")?.outcome)
+        write("site/docs.cjs", "require('node:fs').mkdirSync('generated/docs', {recursive:true}); require('node:fs').writeFileSync('generated/docs/index.json', 'first')")
         val generatedTypesScript = directory.resolve("site/build.gradle.kts").readText()
         write("site/build.gradle.kts", generatedTypesScript.replace("paths = listOf(TypeScriptPath", """
-            generators = listOf(WebGenerator.WorkerTypes(output = "worker/types")),
+            generators = listOf(WebGenerator.WorkerTypes(output = "worker/types"),
+                WebGenerator.Node(PackageScript("fixture:docs"), "docs.cjs", "generated/docs")),
             paths = listOf(TypeScriptPath
         """.trimIndent()))
+        run("generatePackageScripts")
         run("exportBuildModel")
         val withWorkerTypes = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
         val workerTypes = withWorkerTypes.nodes.single { it.id.project == ":site" && it.id.name == "siteWorkerTypes" }
@@ -447,6 +450,24 @@ class WebContractsTest {
         assertTrue(withWorkerTypes.edges.any { it is dev.shibasis.dependeasy.model.Edge.After &&
             it.from.project == ":site" && it.from.name == "siteTypes" && it.to == workerTypes.id })
         assertContains(run("exportBuildModel").output, "Reusing configuration cache")
+        val docs = withWorkerTypes.nodes.single { it.id.project == ":site" && it.id.name == "siteFixtureDocs" }
+        val docsSpec = assertIs<dev.shibasis.dependeasy.model.KernelSpec.NodeGenerator>(docs.kernel?.spec)
+        assertEquals("site/docs.cjs", docsSpec.script)
+        assertEquals(listOf("site/docs.cjs"), docsSpec.execution.arguments)
+        assertTrue(withWorkerTypes.edges.any { it is dev.shibasis.dependeasy.model.Edge.After &&
+            it.from.project == ":site" && it.from.name == "siteTypes" && it.to == docs.id })
+        val generate = arrayOf(":site:siteFixtureDocs", "exportBuildModel", "generatePackageScripts")
+        assertEquals(TaskOutcome.SUCCESS, run(*generate).task(":site:siteFixtureDocs")?.outcome)
+        assertEquals("first", directory.resolve("site/generated/docs/index.json").readText())
+        assertEquals("../gradlew :site:siteFixtureDocs", json("site/package.json").getValue("scripts").jsonObject.getValue("fixture:docs").jsonPrimitive.content)
+        val unchanged = run(*generate)
+        assertContains(unchanged.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, unchanged.task(":site:siteFixtureDocs")?.outcome)
+        write("site/docs.cjs", directory.resolve("site/docs.cjs").readText().replace("'first'", "'second'"))
+        val changedGenerator = run(*generate)
+        assertContains(changedGenerator.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.SUCCESS, changedGenerator.task(":site:siteFixtureDocs")?.outcome)
+        assertEquals("second", directory.resolve("site/generated/docs/index.json").readText())
     }
 
     @Test fun `fleet deep merges every declared environment with arrays replaced`() {

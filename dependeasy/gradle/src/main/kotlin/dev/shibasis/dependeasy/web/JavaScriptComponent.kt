@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.web
 
 import dev.shibasis.dependeasy.process.ProcessTask
+import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.hasBuildDirectory
 import org.gradle.api.Project
@@ -147,6 +148,14 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     }
 
     internal fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
+    internal fun generator(alias: PackageScript, script: String, output: String): TaskProvider<NodeGenerator> =
+        commandKernel.register(NodeGenerator::class.java, alias.name, output).also {
+            it.configure {
+                this.script.set(directory.resolve(script))
+                executable.set(workspace.tools.node.map { it.asFile.absolutePath })
+                toolVersion.set("node ${ToolchainVersions.Node}")
+            }
+        }
     fun tests(files: FileSet, after: NodeHandle): NodeHandle = project.node(check(files)).after(after)
     fun vite(output: String = "dist"): TaskProvider<ViteBundle> = commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build")
     fun types(vararg projects: String, generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): TaskProvider<TypeScriptCheck> =

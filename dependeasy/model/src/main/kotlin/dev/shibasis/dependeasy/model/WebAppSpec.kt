@@ -15,7 +15,7 @@ sealed interface WebBundle {
 @Serializable
 sealed interface WebGenerator {
     val output: String
-    @Serializable data class Package(val script: PackageScript, override val output: String) : WebGenerator
+    @Serializable data class Node(val alias: PackageScript, val script: String, override val output: String) : WebGenerator
     @Serializable data class WorkerTypes(val configuration: String = "wrangler.json",
         override val output: String = "worker/types") : WebGenerator
 }
