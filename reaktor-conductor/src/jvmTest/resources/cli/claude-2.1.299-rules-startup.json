@@ -1,0 +1,141 @@
+{
+  "version": "2.1.299",
+  "recordedAt": "2026-10-25",
+  "source": "Native Claude Code stream-json system/init, synthetic /context response and result records. Paths are redacted; memory-file contents are not retained.",
+  "command": [
+    "claude",
+    "-p",
+    "/context",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--settings",
+    "<settings>",
+    "--tools",
+    "",
+    "--strict-mcp-config",
+    "--mcp-config",
+    "{\"mcpServers\":{}}",
+    "--max-budget-usd",
+    "0.01"
+  ],
+  "before": {
+    "session": "32fcf35e-a07e-4c31-b163-fb1c274a34ed",
+    "settings": {
+      "disableAllHooks": true
+    },
+    "contextTokens": "2.1k / 500k",
+    "memoryFiles": [
+      {
+        "path": "${workspace}/CLAUDE.md",
+        "tokens": 175
+      },
+      {
+        "path": "${probe}/CLAUDE.md",
+        "tokens": 19
+      }
+    ],
+    "result": {
+      "subtype": "success",
+      "duration_api_ms": 0,
+      "num_turns": 0,
+      "total_cost_usd": 0
+    }
+  },
+  "shared": {
+    "session": "1c6c6e7c-4a93-49c3-9bb2-09b0c0f78181",
+    "settings": {
+      "disableAllHooks": true,
+      "pluginConfigs": {
+        "agents-md@builtin": {
+          "options": {
+            "instructionFiles": "claude-md-and-agents-md"
+          }
+        }
+      }
+    },
+    "contextTokens": "3k / 500k",
+    "memoryFiles": [
+      {
+        "path": "${workspace}/CLAUDE.md",
+        "tokens": 175
+      },
+      {
+        "path": "${probe}/CLAUDE.md",
+        "tokens": 19
+      },
+      {
+        "path": "${workspace}/AGENTS.md",
+        "tokens": 835
+      },
+      {
+        "path": "${probe}/AGENTS.md",
+        "tokens": 19
+      }
+    ],
+    "result": {
+      "subtype": "success",
+      "duration_api_ms": 0,
+      "num_turns": 0,
+      "total_cost_usd": 0
+    }
+  },
+  "bestbuds": {
+    "before": {
+      "session": "57ebdbf3-da44-46cd-93b3-bde5c2d6c732",
+      "contextTokens": "2.6k / 500k",
+      "memoryTokens": "702",
+      "memoryFiles": [
+        {
+          "path": "${workspace}/CLAUDE.md",
+          "tokens": "175"
+        },
+        {
+          "path": "${bestbuds}/CLAUDE.md",
+          "tokens": "127"
+        },
+        {
+          "path": "${autoMemory}/MEMORY.md",
+          "tokens": "400"
+        }
+      ],
+      "result": {
+        "duration_api_ms": 0,
+        "num_turns": 0,
+        "total_cost_usd": 0
+      }
+    },
+    "shared": {
+      "session": "5a39b018-6188-436c-916c-27e31905e742",
+      "contextTokens": "24.2k / 500k",
+      "memoryTokens": "22.3k",
+      "memoryFiles": [
+        {
+          "path": "${workspace}/CLAUDE.md",
+          "tokens": "175"
+        },
+        {
+          "path": "${bestbuds}/CLAUDE.md",
+          "tokens": "127"
+        },
+        {
+          "path": "${autoMemory}/MEMORY.md",
+          "tokens": "400"
+        },
+        {
+          "path": "${workspace}/AGENTS.md",
+          "tokens": "835"
+        },
+        {
+          "path": "${bestbuds}/AGENTS.md",
+          "tokens": "20.7k"
+        }
+      ],
+      "result": {
+        "duration_api_ms": 0,
+        "num_turns": 0,
+        "total_cost_usd": 0
+      }
+    }
+  }
+}
