@@ -34,7 +34,8 @@ internal fun Project.declarationSite(): SourceSite? {
     return declaration.copy(callPath = calls.asReversed())
 }
 
-internal fun kernelRef(task: Task): KernelRef {
+internal fun kernelRef(task: Task, spec: KernelSpec? = (task as? dev.shibasis.dependeasy.process.KernelSpecOwner)?.kernelSpec
+    ?: task.extensions.findByType(KernelSpec::class.java)): KernelRef {
     val type = generateSequence<Class<*>>(task.javaClass) { it.superclass }
         .firstOrNull { !it.name.endsWith("_Decorated") } ?: task.javaClass
     val implementation = when (task) {
@@ -88,8 +89,7 @@ internal fun kernelRef(task: Task): KernelRef {
         is dev.shibasis.dependeasy.tasks.ArtifactSizeReport -> dev.shibasis.dependeasy.model.ArtifactSizeKernel::class.java
         else -> type
     }
-    return kernelRef(task.project, implementation).copy(spec = ((task as? dev.shibasis.dependeasy.process.KernelSpecOwner)?.kernelSpec
-        ?: task.extensions.findByType(KernelSpec::class.java))?.relativeTo(task.project.rootDir))
+    return kernelRef(task.project, implementation).copy(spec = spec?.relativeTo(task.project.rootDir))
 }
 
 internal fun modelPath(value: String, root: File): String {

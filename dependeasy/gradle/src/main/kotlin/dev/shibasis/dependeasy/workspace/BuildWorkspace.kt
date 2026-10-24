@@ -380,23 +380,24 @@ internal class BuildWorkspace(private val project: Project) {
                     val declaration = producer.extensions.findByType(SourceSite::class.java)
                         ?: if (evaluated) owner.extensions.findByType(SourceSite::class.java) ?: site else site
                     val typed = producer as? dev.shibasis.dependeasy.process.KernelSpecOwner
+                    val spec = typed?.kernelSpec
                     val suite = producer.extensions.findByType(KernelSpec::class.java) as? KernelSpec.TestSuite
                     val worker = producer as? dev.shibasis.dependeasy.web.WranglerDeploy
                     val fleetWorker = worker?.worker ?: (producer as? dev.shibasis.dependeasy.cloudflare.WorkerSecrets)?.worker
-                    val server = (typed?.kernelSpec as? KernelSpec.ServerRollout)?.deployment
-                    val secrets = (typed?.kernelSpec as? KernelSpec.WorkerSecrets)?.secrets?.deployment
-                    val migration = (typed?.kernelSpec as? KernelSpec.DatabaseMigration)?.migration
-                    val infrastructure = (typed?.kernelSpec as? KernelSpec.PulumiStack)?.infrastructure
+                    val server = (spec as? KernelSpec.ServerRollout)?.deployment
+                    val secrets = (spec as? KernelSpec.WorkerSecrets)?.secrets?.deployment
+                    val migration = (spec as? KernelSpec.DatabaseMigration)?.migration
+                    val infrastructure = (spec as? KernelSpec.PulumiStack)?.infrastructure
                     listOf(BuildModelReader.encode(Node(id, if (worker != null || server != null || secrets != null || migration != null || infrastructure != null) NodeKind.Deploy else NodeKind.Kernel, task.name,
                         typed?.kernelEffect ?: if (producer.extensions.findByType(KernelSpec::class.java) is KernelSpec.JvmProgram) Effect.Develop
                         else if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
-                        taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: suite?.run?.host ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer),
+                        taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: suite?.run?.host ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer, spec ?: producer.extensions.findByType(KernelSpec::class.java)),
                         Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
                         tools = producer.declaredTools(), options = producer.declaredOptions(),
                         artifactFamily = taskArtifactFamilies[id] ?: kind?.family, coverage = coverage[id],
                         worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: migration?.database?.availableEnvironments ?: infrastructure?.stack?.stacks?.keys?.toList() ?: listOfNotNull(server?.environment ?: secrets?.environment),
                         bindings = worker?.bindings?.get()?.map(::ServiceRef) ?: listOfNotNull(server?.service ?: secrets?.service ?: (migration?.database as? DatabaseMigrations.ClickHouse)?.service),
-                          requiredSecrets = if (typed?.kernelSpec is KernelSpec.WranglerDeploy || secrets != null || migration?.database is DatabaseMigrations.D1) listOf("CLOUDFLARE_API_TOKEN") else infrastructure?.stack?.secretNames?.sorted().orEmpty())))
+                          requiredSecrets = if (spec is KernelSpec.WranglerDeploy || secrets != null || migration?.database is DatabaseMigrations.D1) listOf("CLOUDFLARE_API_TOKEN") else infrastructure?.stack?.secretNames?.sorted().orEmpty())))
                 }
             })
         }
