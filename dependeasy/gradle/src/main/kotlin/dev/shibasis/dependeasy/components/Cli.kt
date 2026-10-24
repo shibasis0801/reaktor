@@ -10,6 +10,7 @@ import dev.shibasis.dependeasy.verification.testClasses
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.declarationSite
 import org.gradle.api.Project
+import org.gradle.api.distribution.plugins.DistributionPlugin
 import org.gradle.api.plugins.ApplicationPlugin
 import org.gradle.api.plugins.JavaApplication
 import org.gradle.api.plugins.JavaPlugin
@@ -41,7 +42,7 @@ fun Project.cli(name: String, checks: List<OutputHandle> = emptyList(), content:
     }
     BuildWorkspace.get(this).reference(this, run, null, Run.Default.host, "jvm")
     node(run).consumes(entry)
-    val installed = tasks.named<Sync>("installDist")
+    val installed = tasks.named<Sync>(DistributionPlugin.TASK_INSTALL_NAME)
     publishOutput(OutputKind.JvmDistribution, installed.map { it.destinationDir }, producer = installed)
     testClasses(emptyArray())
     tasks.withType(Test::class.java).configureEach { exclude("**/*$*") }
