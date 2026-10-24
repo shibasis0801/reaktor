@@ -440,18 +440,31 @@ class WebContractsTest {
         write("site/docs.cjs", "require('node:fs').mkdirSync('generated/docs', {recursive:true}); require('node:fs').writeFileSync('generated/docs/index.json', 'first')")
         val generatedTypesScript = directory.resolve("site/build.gradle.kts").readText()
         write("site/build.gradle.kts", generatedTypesScript.replace("paths = listOf(TypeScriptPath", """
-            generators = listOf(WebGenerator.WorkerTypes(output = "worker/types"),
+            generators = listOf(WebGenerator.WorkerTypes(configuration = "wrangler.dependeasy-production.json", output = "worker/types"),
                 WebGenerator.Node(PackageScript("fixture:docs"), "docs.cjs", "generated/docs")),
             paths = listOf(TypeScriptPath
+        """.trimIndent()).replace("packages(webPackage(projects.library))", """
+            packages(webPackage(projects.library))
+            consumes(output(projects.workers, OutputKind.GeneratedContract, Contract.WorkerConfigurations))
         """.trimIndent()))
         run("generatePackageScripts")
         run("exportBuildModel")
         val withWorkerTypes = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
         val workerTypes = withWorkerTypes.nodes.single { it.id.project == ":site" && it.id.name == "siteWorkerTypes" }
         val workerTypesSpec = assertIs<dev.shibasis.dependeasy.model.KernelSpec.WorkerTypes>(workerTypes.kernel?.spec)
-        assertEquals("wrangler.json", workerTypesSpec.configuration)
-        assertEquals(listOf("exec", "wrangler", "types", "worker/types/worker-configuration.d.ts", "--config", "wrangler.json"),
+        val workerTypesHosts = BuildModelReader.json.decodeFromString<RemoteHostsContract>(directory.resolve("build/dependeasy/remote/hosts.json").readText())
+        assertEquals(listOf("site/worker/types/worker-configuration.d.ts"), workerTypesHosts.publicOutputs[":site:siteWorkerTypes"])
+        assertEquals("wrangler.dependeasy-production.json", workerTypesSpec.configuration)
+        assertEquals(listOf("exec", "wrangler", "types", "worker/types/worker-configuration.d.ts", "--config", "wrangler.dependeasy-production.json"),
             workerTypesSpec.execution.arguments)
+        val configurations = withWorkerTypes.nodes.single { it.id.project == ":workers" && it.id.name == "outputGeneratedContractWorkerConfigurations" }
+        val configurationInput = "dependeasy" + configurations.id.toString().toByteArray(Charsets.UTF_8).joinToString("") { "%02x".format(it) }
+        assertContains(workerTypesSpec.execution.fileInputs, FileInput(FileInputKind.Configuration, configurationInput))
+        assertTrue(withWorkerTypes.edges.any { it is Edge.Consumes && it.from == workerTypes.id &&
+            it.to.project == ":workers" && it.to.name == "outputGeneratedContractWorkerConfigurations" })
+        val typesPlan = run(":site:siteWorkerTypes", "--dry-run").output
+        assertTrue(typesPlan.indexOf(":workers:generateWorkerFleet SKIPPED") in 0 until typesPlan.indexOf(":site:siteWorkerTypes SKIPPED"))
+        assertFalse(typesPlan.contains(":workers:deploySite SKIPPED"))
         assertTrue(withWorkerTypes.edges.any { it is dev.shibasis.dependeasy.model.Edge.After &&
             it.from.project == ":site" && it.from.name == "siteTypes" && it.to == workerTypes.id })
         assertContains(run("exportBuildModel").output, "Reusing configuration cache")
@@ -463,6 +476,7 @@ class WebContractsTest {
             it.from.project == ":site" && it.from.name == "siteTypes" && it.to == docs.id })
         val generate = arrayOf(":site:siteFixtureDocs", "exportBuildModel", "generatePackageScripts")
         assertEquals(TaskOutcome.SUCCESS, run(*generate).task(":site:siteFixtureDocs")?.outcome)
+        assertTrue(directory.resolve("site/wrangler.dependeasy-production.json").isFile)
         assertEquals("first", directory.resolve("site/generated/docs/index.json").readText())
         assertEquals("../gradlew :site:siteFixtureDocs", json("site/package.json").getValue("scripts").jsonObject.getValue("fixture:docs").jsonPrimitive.content)
         val unchanged = run(*generate)

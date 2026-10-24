@@ -49,7 +49,7 @@ internal class JavaScriptCommandKernel(
             component.kotlinOutputs.forEach { output -> build.consume(project.node(it), output) }
             val node = project.node(it)
             component.commands.add(node)
-            component.packageOutputs.forEach { output -> build.consume(node, output) }
+            component.consumedOutputs.forEach { output -> build.consume(node, output) }
             build.connect(node, listOf(project.node(component.contract), project.rootProject.node(install)))
             if (type != PackageCommand::class.java && type != WranglerDeploy::class.java) {
                 val node = project.node(it)
