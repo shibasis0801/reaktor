@@ -13,6 +13,7 @@ import kotlinx.serialization.encodeToString
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.kotlin.dsl.*
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 internal data class AppleFrameworkDeclaration(val name: String, val exports: List<Any>, val linkFlags: List<String>)
 internal class AppleHost(
@@ -167,8 +168,8 @@ internal class AppleHost(
         project.componentRole(Workspace.Verify, verification)
         project.componentRole(Workspace.Build, assembled)
         project.componentRole(Workspace.Apple, assembled)
-        project.tasks.named("check") { dependsOn(requireNotNull(verification.task)) }
-        project.tasks.named("assemble") { dependsOn(requireNotNull(assembled.task)) }
+        project.tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(requireNotNull(verification.task)) }
+        project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(requireNotNull(assembled.task)) }
         releaseNode
     }
 }

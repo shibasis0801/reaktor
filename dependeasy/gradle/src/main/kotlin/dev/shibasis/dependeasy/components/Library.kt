@@ -49,6 +49,7 @@ import dev.shibasis.dependeasy.provenance.identity
 import dev.shibasis.dependeasy.benchmark.jvmBenchmarks
 import dev.shibasis.dependeasy.native.nativeHostTests
 import dev.shibasis.dependeasy.native.NativeDependency
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 @DslMarker
 annotation class LibraryDsl
@@ -227,7 +228,7 @@ class LibraryScope internal constructor(private val project: Project, private va
             project.componentProgram(name, environment, run, sources, compilation, verify).also { program ->
                 if (verify) {
                     verifications.add(program)
-                    project.tasks.named("check").configure { dependsOn(requireNotNull(program.task)) }
+                    project.tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME).configure { dependsOn(requireNotNull(program.task)) }
                 }
             }
         }
