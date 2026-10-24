@@ -55,6 +55,7 @@ object TaskGraphRules {
         data object Waiting : Readiness
         data object Ready : Readiness
         data object Skip : Readiness
+        data class Blocked(val reasons: List<String>) : Readiness
     }
 
     fun readiness(task: BoardTask, tasks: Map<String, BoardTask>): Readiness {
@@ -63,7 +64,12 @@ object TaskGraphRules {
         val dependencies = plan.dependsOn.filter { tasks[it.task]?.graph?.kind != TaskKind.Note }
         if (dependencies.isEmpty()) return Readiness.Ready
         if (!dependencies.all { settled(it, tasks[it.task]) }) return Readiness.Waiting
-        return if (dependencies.any { active(it, tasks[it.task]) }) Readiness.Ready else Readiness.Skip
+        val unmet = dependencies.filter { it.required && !active(it, tasks[it.task]) }
+        if (unmet.isNotEmpty()) return Readiness.Blocked(unmet.map {
+            "${task.id} requires ${it.task} ${it.condition.name}, but ${it.task} is ${tasks[it.task]?.graph?.state?.name ?: "missing"}"
+        })
+        val alternatives = dependencies.filterNot { it.required }
+        return if (alternatives.isEmpty() || alternatives.any { active(it, tasks[it.task]) }) Readiness.Ready else Readiness.Skip
     }
 
     fun ready(tasks: Map<String, BoardTask>): List<BoardTask> {
@@ -314,8 +320,8 @@ class TaskGraphEditing(
         val created = op.into.map { sub -> add(sub.copy(dependsOn = (plan.dependsOn + sub.dependsOn).distinctBy { it.task }), parent = task.id) }
         dependents.forEach { dependent ->
             val existing = plan(dependent).dependsOn
-            val condition = existing.first { it.task == task.id }.condition
-            val extra = created.map { TaskDependency(it.id, condition) }
+            val dependency = existing.first { it.task == task.id }
+            val extra = created.map { dependency.copy(task = it.id) }
             val next = if (plan.state == TaskState.Pending) existing.filterNot { it.task == task.id } + extra else existing + extra
             put(dependent.copy(graph = plan(dependent).copy(dependsOn = next.distinctBy { it.task })))
         }
@@ -341,7 +347,7 @@ class TaskGraphEditing(
                 dependents.forEach { dependent ->
                     val dependency = plan(dependent).dependsOn.first { it.task == task.id }
                     put(dependent.copy(graph = plan(dependent).copy(dependsOn = plan(dependent).dependsOn - dependency)))
-                    undo += TaskGraphOp.Connect(task.id, dependent.id, dependency.condition)
+                    undo += TaskGraphOp.Connect(task.id, dependent.id, dependency.condition, dependency.required)
                 }
                 members.remove(task.id); removed += task.id; touched -= task.id
                 summary += "Removed ${task.id} ${task.title}"
@@ -360,16 +366,17 @@ class TaskGraphEditing(
         val from = task(op.from); val to = task(op.to)
         require(from.id != to.id) { "A task cannot depend on itself" }
         if (!caller.person) when {
-            caller.lead -> if (plan(from).state != TaskState.Pending || plan(to).state != TaskState.Pending) refuse("The lead connects pending tasks")
+            caller.lead -> if (plan(to).state != TaskState.Pending || plan(from).state != TaskState.Pending &&
+                plan(to).dependsOn.none { it.task == from.id && it.condition == op.condition }) refuse("The lead connects pending tasks or updates an existing route to a pending task")
             !(caller.owns(from) && to.createdBy.session != null && to.createdBy.session == caller.by.session) -> refuse("An agent connects its own task to tasks it added")
         }
         require(plan(to).state == TaskState.Pending) { "${to.id} has started; its dependencies stay as they are" }
         val existing = plan(to).dependsOn.firstOrNull { it.task == from.id }
-        if (existing?.condition == op.condition) return
+        if (existing?.condition == op.condition && existing.required == op.required) return
         if (op.condition in setOf(TaskCondition.Pass, TaskCondition.Repair)) require(plan(from).contract == WorkflowContract.Decision) { "${from.id} needs the Decision contract for a ${op.condition.name} dependency" }
-        put(to.copy(graph = plan(to).copy(dependsOn = plan(to).dependsOn.filterNot { it.task == from.id } + TaskDependency(from.id, op.condition))))
-        summary += "${to.id} depends on ${from.id}" + if (op.condition == TaskCondition.Succeeded) "" else " (${op.condition.name})"
-        undo += existing?.let { TaskGraphOp.Connect(from.id, to.id, it.condition) } ?: TaskGraphOp.Disconnect(from.id, to.id)
+        put(to.copy(graph = plan(to).copy(dependsOn = plan(to).dependsOn.filterNot { it.task == from.id } + TaskDependency(from.id, op.condition, op.required))))
+        summary += "${to.id} depends on ${from.id}" + (if (op.condition == TaskCondition.Succeeded) "" else " (${op.condition.name})") + if (op.required) "" else " (alternative)"
+        undo += existing?.let { TaskGraphOp.Connect(from.id, to.id, it.condition, it.required) } ?: TaskGraphOp.Disconnect(from.id, to.id)
     }
 
     private fun disconnect(op: TaskGraphOp.Disconnect) {
@@ -382,7 +389,7 @@ class TaskGraphEditing(
         require(plan(to).state == TaskState.Pending) { "${to.id} has started; its dependencies stay as they are" }
         put(to.copy(graph = plan(to).copy(dependsOn = plan(to).dependsOn - existing)))
         summary += "${to.id} no longer depends on ${from.id}"
-        undo += TaskGraphOp.Connect(from.id, to.id, existing.condition)
+        undo += TaskGraphOp.Connect(from.id, to.id, existing.condition, existing.required)
     }
 
     private fun seat(op: TaskGraphOp.Seat) {

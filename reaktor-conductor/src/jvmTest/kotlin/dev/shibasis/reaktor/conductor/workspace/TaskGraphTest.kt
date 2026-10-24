@@ -113,7 +113,7 @@ class TaskGraphTest {
         val store = store()
         proposed(store)
         store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Add("Fix what review found", key = "fix", seat = TaskSeat(RuntimeKind.Codex, access = TaskAccess.Write), scope = listOf(":engine"),
-            dependsOn = listOf(TaskDependency("T2", TaskCondition.Repair)))), "Repair branch"), TaskGraphCaller(person))
+            dependsOn = listOf(TaskDependency("T2", TaskCondition.Repair, required = false)))), "Repair branch"), TaskGraphCaller(person))
         fun ready() = TaskGraphRules.ready(store.members("G1").associateBy { it.id }).map { it.id }
         assertEquals(listOf("T1"), ready())
         fun settle(id: String, state: TaskState, verdict: String? = null) =
@@ -125,8 +125,73 @@ class TaskGraphTest {
         val members = store.members("G1").associateBy { it.id }
         assertEquals(TaskGraphRules.Readiness.Skip, TaskGraphRules.readiness(members.getValue("T5"), members))
         settle("T3", TaskState.Failed)
-        assertEquals(listOf("T4"), ready())
+        assertTrue(ready().isEmpty())
+        assertIs<TaskGraphRules.Readiness.Blocked>(TaskGraphRules.readiness(store.get("T4"), store.members("G1").associateBy { it.id }))
         assertTrue(TaskGraphRules.unhandledFailure(store.get("T3"), store.members("G1").associateBy { it.id }))
+    }
+
+    @Test fun requiredJoinsAndAlternativeRoutesAreIndependent() {
+        val store = store()
+        proposed(store)
+        val original = store.get("T4")
+        val required = store.get("T1")
+        val first = store.get("T2")
+        val second = store.get("T3")
+        fun upstream(task: BoardTask, state: TaskState, verdict: String? = null) =
+            task.copy(graph = task.graph!!.copy(state = state, outcome = TaskOutcome(verdict = verdict)))
+        data class Case(val dependencies: List<TaskDependency>, val states: List<BoardTask>, val expected: TaskGraphRules.Readiness)
+        val success = upstream(required, TaskState.Succeeded)
+        val failed = upstream(second, TaskState.Failed)
+        val pass = upstream(first, TaskState.Succeeded, "pass")
+        val repair = upstream(first, TaskState.Succeeded, "repair")
+        val alternative = TaskDependency(first.id, TaskCondition.Pass, required = false)
+        val other = TaskDependency(second.id, required = false)
+        val cases = listOf(
+            Case(listOf(TaskDependency(required.id), TaskDependency(second.id)), listOf(success, failed),
+                TaskGraphRules.Readiness.Blocked(listOf("T4 requires T3 Succeeded, but T3 is Failed"))),
+            Case(listOf(TaskDependency(required.id), alternative, other), listOf(success, repair, failed), TaskGraphRules.Readiness.Skip),
+            Case(listOf(TaskDependency(required.id), alternative, other), listOf(success, pass, failed), TaskGraphRules.Readiness.Ready),
+            Case(listOf(TaskDependency(required.id), alternative, other), listOf(success, pass, upstream(second, TaskState.Succeeded)), TaskGraphRules.Readiness.Ready),
+            Case(listOf(TaskDependency(required.id), alternative), listOf(upstream(required, TaskState.Failed), pass),
+                TaskGraphRules.Readiness.Blocked(listOf("T4 requires T1 Succeeded, but T1 is Failed"))),
+            Case(listOf(TaskDependency(required.id), alternative), listOf(upstream(required, TaskState.Failed), first), TaskGraphRules.Readiness.Waiting),
+            Case(listOf(alternative), listOf(pass), TaskGraphRules.Readiness.Ready),
+            Case(listOf(alternative), listOf(repair), TaskGraphRules.Readiness.Skip),
+            Case(listOf(alternative.copy(condition = TaskCondition.Repair)), listOf(repair), TaskGraphRules.Readiness.Ready),
+            Case(listOf(alternative.copy(condition = TaskCondition.Repair)), listOf(pass), TaskGraphRules.Readiness.Skip),
+            Case(listOf(TaskDependency(first.id)), listOf(first.copy(graph = first.graph!!.copy(kind = TaskKind.Note))), TaskGraphRules.Readiness.Ready),
+            Case(listOf(TaskDependency("missing")), emptyList(), TaskGraphRules.Readiness.Blocked(listOf("T4 requires missing Succeeded, but missing is missing"))),
+        )
+        cases.forEachIndexed { index, case ->
+            val task = original.copy(graph = original.graph!!.copy(dependsOn = case.dependencies))
+            val members = (case.states + task).associateBy { it.id }
+            assertEquals(case.expected, TaskGraphRules.readiness(task, members), "case $index")
+            if (case.expected is TaskGraphRules.Readiness.Blocked) {
+                val entry = task.entry(emptyList(), members)
+                assertEquals(BoardColumn.NeedsYou, entry.column)
+                assertEquals(case.expected.reasons.joinToString("; "), entry.blocked)
+            }
+        }
+    }
+
+    @Test fun legacyDependenciesAreRequiredAndRouteEditsKeepTheirMeaningThroughUndoAndSplit() {
+        assertTrue(AgentWorkspaceJson.decodeFromString(TaskDependency.serializer(), """{"task":"T1"}""").required)
+        val store = store()
+        proposed(store)
+        val caller = TaskGraphCaller(person)
+        store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Connect("T2", "T4", TaskCondition.Pass, required = false)), "Alternative"), caller)
+        assertFalse(store.get("T4").graph!!.dependsOn.first { it.task == "T2" }.required)
+        val revision = store.graph("G1").revision
+        store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Disconnect("T2", "T4")), "Remove route"), caller)
+        store.revert("G1", store.graph("G1").revision, person)
+        assertFalse(store.get("T4").graph!!.dependsOn.first { it.task == "T2" }.required)
+        store.revert("G1", revision, person)
+        assertTrue(store.get("T4").graph!!.dependsOn.first { it.task == "T2" }.required)
+        store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Connect("T1", "T3", required = false),
+            TaskGraphOp.Split("T1", listOf(build.copy(title = "Part one", key = "one"), build.copy(title = "Part two", key = "two")))), "Split"), caller)
+        assertTrue(store.get("T3").graph!!.dependsOn.all { !it.required })
+        val reopened = AgentBoardStore(made.single(), clock::incrementAndGet)
+        assertEquals(store.view("G1"), reopened.view("G1"))
     }
 
     @Test fun onlyAPersonStartsAGraphAndOnlyAPersonPassesAGate() {

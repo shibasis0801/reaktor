@@ -142,11 +142,6 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         graph.envelope.tokens?.let { budget ->
             if (graph.tokensUsed >= budget) { store.hold(graphId, TaskGraphStatus.Paused, "The token budget is used: ${graph.tokensUsed} of $budget", scope.by); return }
         }
-        members.values.firstOrNull { TaskGraphRules.unhandledFailure(it, members) }?.let { failed ->
-            store.advance(graphId, failed.id) { task, plan -> task.copy(graph = plan.copy(held = true)) }
-            store.hold(graphId, TaskGraphStatus.Paused, "${failed.id} failed: ${failed.graph?.outcome?.summary?.take(200).orEmpty()}. Retry it, or resume to go on without it", scope.by)
-            return
-        }
         while (true) {
             val skipped = members.values.filter { TaskGraphRules.readiness(it, members) == TaskGraphRules.Readiness.Skip }
             if (skipped.isEmpty()) break
@@ -180,6 +175,12 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                     scope.actor(task.id)?.let { actor -> actor.task = started; actor.trySend(TaskMessage.Start) }
                 }
             }
+        }
+        members = members()
+        if (members.values.none { it.graph?.state in setOf(TaskState.Running, TaskState.Waiting) } && TaskGraphRules.ready(members).isEmpty()) {
+            val blocked = store.view(graphId).blocked.values.flatten()
+            if (blocked.isNotEmpty()) store.hold(graphId, TaskGraphStatus.Paused,
+                blocked.joinToString("; ") + ". Retry the prerequisite or edit its dependency.", scope.by)
         }
     }
 
@@ -247,7 +248,10 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 acceptance = builder.acceptance, scope = builder.scope, seat = builder.graph?.seat, parent = builder.id, dependsOn = listOf(TaskDependency(review.id, TaskCondition.Repair))),
             TaskGraphOp.Add("Review the repair of ${builder.id}".take(200), key = "rereview", intent = "Review the repair against the original task and the earlier review. Pass only if it now meets the task.",
                 acceptance = builder.acceptance, scope = builder.scope, seat = plan.seat, contract = WorkflowContract.Decision, dependsOn = listOf(TaskDependency("repair"))),
-        ) + passing.map { TaskGraphOp.Connect("rereview", it.id, TaskCondition.Pass) }
+        ) + passing.flatMap {
+            listOf(TaskGraphOp.Connect(review.id, it.id, TaskCondition.Pass, required = false),
+                TaskGraphOp.Connect("rereview", it.id, TaskCondition.Pass, required = false))
+        }
         val applied = store.patch(graphId, TaskGraphPatch(ops, "${review.id} asked for a repair", graph.revision), TaskGraphCaller(scope.by, lead = true), approvedBy = "the envelope's repair rounds")
         applied.tasks.filter { it.graph?.state == TaskState.Pending && it.createdBy == scope.by && it.graph.repairOf == null && it.id !in members }.forEach { added ->
             store.advance(graphId, added.id) { value, current -> value.copy(graph = current.copy(repairOf = root)) }

@@ -130,7 +130,11 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
 
     @Synchronized fun view(id: String): TaskGraphView {
         val members = members(id).associateBy { it.id }
-        return TaskGraphView(graph(id), members.values.toList(), if (graph(id).status == TaskGraphStatus.Running) TaskGraphRules.ready(members).map { it.id } else emptyList())
+        return TaskGraphView(graph(id), members.values.toList(),
+            if (graph(id).status == TaskGraphStatus.Running) TaskGraphRules.ready(members).map { it.id } else emptyList(),
+            members.values.mapNotNull { task ->
+                (TaskGraphRules.readiness(task, members) as? TaskGraphRules.Readiness.Blocked)?.let { task.id to it.reasons }
+            }.toMap())
     }
 
     @Synchronized fun summaries(): List<TaskGraphSummary> = graphs().map { graph ->

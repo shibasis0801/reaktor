@@ -41,7 +41,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
         put("type", "array"); put("items", any)
         put("description", "Operations, each with type: add {title, key?, intent?, acceptance?, scope?, kind?, seat?, contract?, check?, dependsOn?, layout?, parent?}, " +
             "update {task, title?, intent?, acceptance?, scope?, kind?, contract?, check?, layout?}, split {task, into: [add…]}, remove {task}, " +
-            "connect {from, to, condition?}, disconnect {from, to}, seat {task, seat}, note {text, layout?}, retry {task}, envelope {envelope}. " +
+            "connect {from, to, condition?, required?}, disconnect {from, to}, seat {task, seat}, note {text, layout?}, retry {task}, envelope {envelope}. " +
             "A key names a task added in the same change so later operations can refer to it.")
     }
     return listOf(
@@ -49,7 +49,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             emptyObjectSchema(), true, true) {
             buildJsonObject { put("graphs", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(TaskGraphSummary.serializer()), workspace.board.summaries())) }
         },
-        McpTool("agent_taskgraph_read", "Read a task graph: its record, its tasks with status, agent, dependencies and outcomes, and the ready tasks. " +
+        McpTool("agent_taskgraph_read", "Read a task graph: its record, its tasks with status, agent, dependencies and outcomes, the ready tasks and blocked tasks with their reasons. " +
             "format text returns the compact text an agent reads, at most about 60,000 characters.",
             objectSchema(mapOf(graphId, "format" to enumSchema("json or text", listOf("json", "text"))), listOf("graph")), true, true) { args ->
             args.only("graph", "format")
@@ -81,7 +81,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             objectSchema(mapOf(
                 "title" to stringSchema("One line, at most 200 characters"),
                 "goal" to stringSchema("What the graph is for and what done looks like"),
-                "tasks" to buildJsonObject { put("type", "array"); put("items", any); put("description", "Tasks as add operations: {key, title, intent, acceptance, scope, kind, seat, contract, check, dependsOn: [{task: key, condition}]}") },
+                "tasks" to buildJsonObject { put("type", "array"); put("items", any); put("description", "Tasks as add operations: {key, title, intent, acceptance, scope, kind, seat, contract, check, dependsOn: [{task: key, condition, required?: true}]}") },
                 "envelope" to any,
                 "lead" to stringSchema("The lead session, such as claude:<session>; defaults to the caller's session"),
                 by,

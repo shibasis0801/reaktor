@@ -110,9 +110,10 @@ val BoardStage.column: BoardColumn get() = when (this) {
 fun BoardTask.blockedBy(tasks: Map<String, BoardTask>): String? = when (val blocker = blocker) {
     is BoardBlocker.Task -> tasks[blocker.task]?.takeIf { it.stage != BoardStage.Done }?.let { "Waiting on ${it.id}: ${it.title}" }
     is BoardBlocker.Owner -> "Waiting on ${blocker.owner} to ${blocker.action}"
-    null -> graph?.takeIf { it.state == TaskState.Pending }?.dependsOn
-        ?.filter { dependency -> tasks[dependency.task]?.graph?.state.let { it == null || it == TaskState.Pending || it == TaskState.Running || it == TaskState.Waiting } }
-        ?.takeIf { it.isNotEmpty() }?.let { open -> "Waiting on ${open.joinToString(", ") { it.task }}" }
+    null -> (TaskGraphRules.readiness(this, tasks) as? TaskGraphRules.Readiness.Blocked)?.reasons?.joinToString("; ")
+        ?: graph?.takeIf { it.state == TaskState.Pending }?.dependsOn
+            ?.filter { tasks[it.task]?.graph?.kind != TaskKind.Note && !TaskGraphRules.settled(it, tasks[it.task]) }
+            ?.takeIf { it.isNotEmpty() }?.let { open -> "Waiting on ${open.joinToString(", ") { it.task }}" }
 }
 
 fun BoardTask.entry(work: List<BoardWork>, tasks: Map<String, BoardTask>): BoardEntry {
@@ -126,6 +127,7 @@ fun BoardTask.entry(work: List<BoardWork>, tasks: Map<String, BoardTask>): Board
         planned == TaskState.Skipped || planned == TaskState.Cancelled -> BoardColumn.Done to updatedAt
         planned == TaskState.Succeeded && graph?.kind != TaskKind.Agent -> BoardColumn.Done to updatedAt
         planned == TaskState.Failed || planned == TaskState.Waiting -> BoardColumn.NeedsYou to updatedAt
+        TaskGraphRules.readiness(this, tasks) is TaskGraphRules.Readiness.Blocked -> BoardColumn.NeedsYou to updatedAt
         asking != null -> BoardColumn.NeedsYou to asking
         executing != null -> BoardColumn.Running to executing
         planned == TaskState.Running -> BoardColumn.Running to updatedAt
