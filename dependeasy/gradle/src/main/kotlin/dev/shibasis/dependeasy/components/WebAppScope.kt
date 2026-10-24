@@ -32,6 +32,13 @@ class WebAppScope internal constructor(
         }
     }
 
+    fun tests(files: FileSet): NodeDeclaration = NodeDeclaration { name ->
+        project.node(web.check(files, name)).also {
+            verification.after(it)
+            BuildWorkspace.get(project).alias(project.projectDir, name, it)
+        }
+    }
+
     fun performance(spec: WebPerformance): NodeDeclaration = NodeDeclaration { name ->
         project.webPerformance(name, spec, bundle).covers(Aspect.Performance).also { verification.after(it) }
     }
