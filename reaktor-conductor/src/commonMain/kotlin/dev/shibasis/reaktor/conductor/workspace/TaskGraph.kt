@@ -30,7 +30,7 @@ data class TaskSeat(
 )
 
 @Serializable
-data class TaskDependency(val task: String, val condition: TaskCondition = TaskCondition.Succeeded)
+data class TaskDependency(val task: String, val condition: TaskCondition = TaskCondition.Succeeded, val required: Boolean = true)
 
 @Serializable
 data class TaskLayout(val x: Double, val y: Double)
@@ -160,7 +160,7 @@ sealed interface TaskGraphOp {
 
     @Serializable
     @SerialName("connect")
-    data class Connect(val from: String, val to: String, val condition: TaskCondition = TaskCondition.Succeeded) : TaskGraphOp
+    data class Connect(val from: String, val to: String, val condition: TaskCondition = TaskCondition.Succeeded, val required: Boolean = true) : TaskGraphOp
 
     @Serializable
     @SerialName("disconnect")
@@ -203,7 +203,12 @@ data class TaskGraphDraft(
 enum class TaskReport { Running, NeedsInput, Review, Blocked, Failed, Succeeded }
 
 @Serializable
-data class TaskGraphView(val graph: TaskGraph, val tasks: List<BoardTask>, val ready: List<String> = emptyList())
+data class TaskGraphView(
+    val graph: TaskGraph,
+    val tasks: List<BoardTask>,
+    val ready: List<String> = emptyList(),
+    val blocked: Map<String, List<String>> = emptyMap(),
+)
 
 @Serializable
 data class TaskGraphSummary(

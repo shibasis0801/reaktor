@@ -71,7 +71,7 @@ class TaskGraphRuntimeTest {
             assertEquals("T1", repair.parent)
             val rereview = waiting.task("Review the repair of T1")
             assertEquals("pass", rereview.graph?.outcome?.verdict)
-            assertTrue(TaskDependency(rereview.id, TaskCondition.Pass) in waiting.task("Land it").graph!!.dependsOn)
+            assertTrue(TaskDependency(rereview.id, TaskCondition.Pass, required = false) in waiting.task("Land it").graph!!.dependsOn)
             assertEquals(BoardStage.Review, waiting.task("Build the parser").stage)
             assertEquals(480, waiting.graph.tokensUsed)
             assertEquals(2, codex.requests.size)
@@ -105,13 +105,18 @@ class TaskGraphRuntimeTest {
             val proposed = connection.proposeTaskGraph(draft(), person)
             connection.startTaskGraph("G1", proposed.graph.revision, person)
             val paused = connection.until("G1") { it.graph.status == TaskGraphStatus.Paused }
-            assertTrue(paused.graph.reason!!.startsWith("T1 failed"))
+            assertTrue(paused.graph.reason!!.contains("T2 requires T1 Succeeded, but T1 is Failed"))
             assertEquals(1, codex.requests.size)
             val build = paused.task("Build the parser").graph!!
             assertEquals(TaskState.Failed, build.state)
-            assertTrue(build.held)
             assertEquals(1, build.attempt)
             assertEquals(TaskState.Pending, paused.task("Review the parser").graph?.state)
+            assertTrue(claude.requests.isEmpty())
+
+            assertEquals(listOf("T2 requires T1 Succeeded, but T1 is Failed"), paused.blocked["T2"])
+            connection.startTaskGraph("G1", null, person)
+            val stillHeld = connection.until("G1") { it.graph.status == TaskGraphStatus.Paused }
+            assertEquals(TaskState.Pending, stillHeld.task("Review the parser").graph?.state)
             assertTrue(claude.requests.isEmpty())
 
             codex.failing.set(false)

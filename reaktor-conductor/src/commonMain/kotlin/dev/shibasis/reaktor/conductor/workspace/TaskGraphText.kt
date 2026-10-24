@@ -34,7 +34,7 @@ object TaskGraphText {
             append(" · ${plan.state.name}")
             if (plan.attempt > 0) append(" (attempt ${plan.attempt})")
             if (plan.dependsOn.isNotEmpty()) append(" · after ${plan.dependsOn.joinToString { dependency ->
-                dependency.task + if (dependency.condition == TaskCondition.Succeeded) "" else " if ${dependency.condition.name}" }}")
+                dependency.task + (if (dependency.condition == TaskCondition.Succeeded) "" else " if ${dependency.condition.name}") + if (dependency.required) "" else " (alternative)" }}")
             task.blockedBy(members)?.takeIf { plan.state == TaskState.Pending }?.let { append(" · $it") }
             appendLine()
             if (task.intent.isNotBlank()) appendLine("  Intent: ${task.intent.oneLine(600)}")
