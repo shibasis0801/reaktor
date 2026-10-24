@@ -54,6 +54,70 @@ class AgentEvidenceTest {
             assertFails { reopened.artifact("task", "../outside") }
         } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
+    @Test fun worktreeCandidatesValidateAndAcceptTheirOwnMaterializedSourceRoots() {
+        val parent = Files.createTempDirectory("candidate-owned").toFile()
+        val data = Files.createTempDirectory("candidate-owned-data")
+        val temporary = File(System.getProperty("java.io.tmpdir"))
+        try {
+            val root = File(parent, "app").apply { mkdirs() }
+            val dependency = File(parent, "framework").apply { mkdirs() }
+            listOf(root, dependency).forEach {
+                git(it, "init", "-q")
+                File(it, ".gitignore").writeText("build/\n")
+                File(it, "Source.kt").writeText("val original = 1\n")
+            }
+            File(root, "settings.gradle.kts").writeText("includeBuild(\"../framework\")\n")
+            root.resolve(BuildModelReader.RelativePath).apply {
+                parentFile.mkdirs()
+                writeText(BuildModelReader.encode(BuildModel(producer = Producer(version = "fixture"),
+                    builds = listOf(BuildIdentity("app", "."), BuildIdentity("framework", "../framework")), nodes = emptyList())))
+            }
+            listOf(root, dependency).forEach {
+                git(it, "add", ".")
+                git(it, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "fixture")
+            }
+            val store = AgentEvidenceStore(root, data.resolve("evidence"))
+            val worktrees = AgentWorktrees(root, data.resolve("worktrees"), store.artifacts)
+            val owned = worktrees.prepare("writing-attempt", "workspace")
+            val checkout = File(owned.roots.single { it.source == root.canonicalPath }.path)
+            val framework = File(owned.roots.single { it.source == dependency.canonicalPath }.path)
+            assertFalse(checkout.resolve(BuildModelReader.RelativePath).exists())
+            File(checkout, "Source.kt").writeText("val repaired = 2\n")
+            File(framework, "Source.kt").writeText("val included = 2\n")
+            val first = worktrees.capture(owned.id)
+            assertTrue(first.complete, first.notices.joinToString())
+            assertEquals(setOf(checkout.canonicalPath, framework.canonicalPath), first.sourceRoots.toSet())
+            assertEquals(setOf("Source.kt", "../framework/Source.kt"), first.changedFiles.toSet())
+            store.recordCandidate("T1", first)
+            File(root, "Source.kt").delete()
+            File(dependency, "Source.kt").writeText("another session")
+            store.finding("T1", AgentFinding("included", first.id, "review-attempt", "claudecode",
+                "Included defect", "Repair the included source", "high", sourcePath = "../framework/Source.kt", line = 1))
+            val escape = AgentFinding("escape", first.id, "review-attempt", "claudecode",
+                "Outside", "Not this candidate", "high", sourcePath = "../../outside.kt", line = 1)
+            assertFailsWith<IllegalArgumentException> { store.finding("T1", escape) }
+            File(framework, "Source.kt").writeText("val included = 3\n")
+            val second = worktrees.capture(owned.id)
+            assertTrue(second.complete)
+            assertNotEquals(first.id, second.id)
+            store.recordCandidate("T1", second)
+            store.resolve("T1", "included", second.id, "The second attempt repairs the included source")
+            store.requireChecks("T1", listOf("source-test"))
+            store.check("T1", AgentCandidateCheck("source-test", first.id,
+                CheckResult(listOf("source-test"), CheckOutcome.Passed, revision = first.id), "kernel"))
+            assertFailsWith<IllegalArgumentException> { store.accept("T1", second.id) }
+            store.check("T1", AgentCandidateCheck("source-test", second.id,
+                CheckResult(listOf("source-test"), CheckOutcome.Passed, revision = second.id), "kernel"))
+            assertEquals(second.id, store.accept("T1", second.id).acceptedCandidate)
+            File(framework, "Source.kt").writeText("val included = 4\n")
+            assertFailsWith<IllegalArgumentException> { store.accept("T1", second.id) }
+            owned.roots.forEach { entry -> git(File(entry.source), "worktree", "remove", "--force", entry.path) }
+        } finally {
+            parent.deleteTreeSafely(within = temporary)
+            data.toFile().deleteTreeSafely(within = temporary)
+        }
+    }
+
     @Test fun artifactRangesReassembleUnicodeWithoutDroppingBytes() {
         val data = Files.createTempDirectory("artifact-unicode")
         try {

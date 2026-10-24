@@ -7,7 +7,7 @@ import kotlinx.serialization.builtins.ListSerializer
 
 internal fun agentEvidenceTools(workspace: AgentWorkspace): List<McpTool> {
     fun JsonObject.text(key: String) = getValue(key).jsonPrimitive.content
-    val taskSchema = objectSchema(mapOf("taskId" to stringSchema("Reaktor task/thread id")), listOf("taskId"))
+    val taskSchema = objectSchema(mapOf("taskId" to stringSchema("Board task id (such as T12) for graph evidence, or a conversation id")), listOf("taskId"))
     fun JsonObject.task(): String = text("taskId").also { workspace.taskEvidence(it) }
     fun result(task: AgentTaskEvidence) = AgentWorkspaceJson.encodeToJsonElement(AgentTaskEvidence.serializer(), task)
     return listOf(

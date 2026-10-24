@@ -164,22 +164,34 @@ class AgentWorkspace(
     }
 
     fun taskEvidence(taskId: String): AgentTaskEvidence {
-        require(Files.exists(threadPath(taskId)) || synchronized(lock) { records.values.any { it.threadId == taskId } }) { "Task not found in this workspace" }
+        require(runCatching { board.get(taskId).graph != null }.getOrDefault(false) ||
+            Files.exists(threadPath(taskId)) || synchronized(lock) { records.values.any { it.threadId == taskId } }) { "Task not found in this workspace" }
         return evidence.get(taskId)
     }
 
     fun captureCandidate(taskId: String): AgentCandidate {
         taskEvidence(taskId)
-        val context = list(50).firstOrNull { it.threadId == taskId }?.context
+        val plan = runCatching { board.get(taskId).graph }.getOrNull()
+        val run = plan?.runId?.let(::get) ?: list(50).firstOrNull { record ->
+            record.threadId == taskId || plan != null && submission(record.id).task?.let { it.task == taskId && it.attempt == plan.attempt } == true
+        }
+        val context = run?.context
         val subjects = context?.entries.orEmpty().filter { it.kind == "graph-subject" }
             .map { AgentGraphSubject(it.ref, context?.revision) }
-        return evidence.capture(taskId, subjects)
+        val isolated = plan?.worktreeId?.let(worktrees::read) ?: run?.id?.let(::worktreeFor)
+        require((plan?.resolvedSeat?.seat ?: plan?.seat)?.access != TaskAccess.Write || isolated != null) { "The writing task has no prepared worktree yet" }
+        return if (isolated == null) evidence.capture(taskId, subjects)
+            else worktrees.capture(isolated.id, subjects).also { evidence.recordCandidate(taskId, it) }
     }
 
     fun addFinding(taskId: String, finding: AgentFinding): AgentTaskEvidence {
         taskEvidence(taskId)
         val run = get(finding.producerRunId)
-        require(run.threadId == taskId && (finding.participant in run.participants || finding.participant == run.provider.name.lowercase())) {
+        val target = submission(run.id).task
+        val belongs = if (target == null) run.threadId == taskId else target.evidenceTask == taskId &&
+            board.get(target.task).graph?.let { it.id == target.graph && it.attempt == target.attempt } == true &&
+            (target.candidate == null || target.candidate == finding.candidateId)
+        require(belongs && (finding.participant in run.participants || finding.participant == run.provider.name.lowercase())) {
             "Finding producer does not belong to this task"
         }
         return evidence.finding(taskId, finding)
@@ -329,6 +341,37 @@ class AgentWorkspace(
         }
     }
 
+    internal fun worktreeFor(runId: String): AgentWorktree? = submission(runId).task?.worktree?.let(worktrees::read)
+        ?: worktrees.list(runId).singleOrNull { it.participant == "workspace" }
+
+    private fun validateTaskTarget(request: AgentSubmission) {
+        val target = request.task ?: return
+        val task = board.get(target.task)
+        val plan = requireNotNull(task.graph)
+        require(plan.id == target.graph && plan.attempt == target.attempt && plan.state == TaskState.Running) { "Task target names a stale attempt" }
+        require(request.collaboration == AgentCollaboration.Single && request.workflow == null) { "Task targets require a single task seat" }
+        val pinned = requireNotNull(plan.resolvedSeat)
+        require(request.resolvedSeat == pinned && request.allowWrites == (pinned.seat.access == TaskAccess.Write)) { "Task target does not match its pinned seat" }
+        if (request.allowWrites) {
+            require(target.evidenceTask == task.id && target.candidate == null && target.worktree == plan.worktreeId)
+            require(request.isolation == AgentIsolation.Worktree)
+        } else if (target.candidate != null) {
+            require(target.worktree != null)
+            val members = board.members(target.graph).associateBy { it.id }
+            val seen = mutableSetOf<String>()
+            val pending = ArrayDeque(plan.dependsOn.map { it.task })
+            while (pending.isNotEmpty()) {
+                val next = pending.removeFirst()
+                if (seen.add(next)) pending.addAll(members[next]?.graph?.dependsOn.orEmpty().map { it.task })
+            }
+            require(target.evidenceTask in seen) { "Review evidence is not an input of this task" }
+            val input = requireNotNull(members[target.evidenceTask]?.graph)
+            require(input.worktreeId == target.worktree && input.outcome?.candidateId == target.candidate) { "Review candidate is stale" }
+            val candidate = evidence.get(target.evidenceTask).candidates.single { it.id == target.candidate }
+            require(worktrees.read(target.worktree).roots.any { it.source == root.canonicalPath && File(it.path).canonicalPath == candidate.workspaceRoot })
+        } else require(target.evidenceTask == task.id && target.worktree == null)
+    }
+
     private fun admit(request: AgentSubmission, seed: ProtocolCheckpoint? = null, forkedFrom: String? = null): AgentRunRecord = synchronized(lock) {
         check(!closed) { "Workspace is closed" }
         check(!draining) { "Workspace is draining for a service upgrade" }
@@ -378,6 +421,7 @@ class AgentWorkspace(
             require(it.requestFingerprint == fingerprint) { "Request id already belongs to a different submission" }
             return@synchronized recover(it)
         }
+        validateTaskTarget(request)
         request.parentRunId?.let { parentId ->
             val parent = get(parentId)
             require(parent.provider != request.provider && !request.allowWrites) { "Peer delegation requires another provider and read-only execution" }
@@ -579,7 +623,8 @@ class AgentWorkspace(
         while (true) {
             val before = changes.value
             val current = get(runId)
-            if (current.status != AgentRunStatus.Running && current.recovery != AgentRecovery.Pending && current.recovery != AgentRecovery.Resuming) return current
+            if (current.status != AgentRunStatus.Running && current.recovery != AgentRecovery.Pending && current.recovery != AgentRecovery.Resuming &&
+                synchronized(lock) { runId !in active }) return current
             changes.first { it != before }
         }
     }
@@ -673,22 +718,30 @@ class AgentWorkspace(
         val self = currentCoroutineContext()[Job]
         try {
             FileThreadStore.open(threadPath(initial.threadId)).use { store ->
-                val isolated = if (request.isolation == AgentIsolation.Worktree) worktrees.prepare(initial.id, "workspace") else null
+                val isolated = request.task?.worktree?.let { if (request.allowWrites) worktrees.attach(it, initial.id) else worktrees.read(it) }
+                    ?: if (request.isolation == AgentIsolation.Worktree) worktrees.prepare(initial.id, "workspace") else null
                 val workingRoot = isolated?.roots?.first { it.source == root.canonicalPath }?.path?.let(::File) ?: root
                 val includedRoots = isolated?.roots?.filter { it.source != root.canonicalPath }?.map { it.path } ?: includedBuildRoots(root)
                 update(initial.id, true) { it.copy(workingDirectory = workingRoot.canonicalPath) }
                 val supplied = request.context
                 val subjects = supplied?.entries.orEmpty().filter { it.kind == "graph-subject" }
                     .map { AgentGraphSubject(it.ref, supplied?.revision) }
-                val candidate = if (isolated == null) evidence.capture(initial.threadId, subjects) else SourceCandidates(workingRoot, evidence.artifacts).capture(subjects)
-                val prior = evidence.get(initial.threadId)
+                val evidenceTask = request.task?.evidenceTask ?: initial.threadId
+                val candidate = request.task?.candidate?.let { id -> evidence.get(evidenceTask).candidates.single { it.id == id } }
+                    ?: if (isolated == null) evidence.capture(evidenceTask, subjects)
+                    else worktrees.capture(isolated.id, subjects).also { evidence.recordCandidate(evidenceTask, it) }
+                if (request.task?.candidate != null) {
+                    val current = worktrees.capture(requireNotNull(isolated).id, candidate.subjects)
+                    require(current.complete && current.id == candidate.id) { "The review handoff candidate is stale or incomplete" }
+                }
+                val prior = evidence.get(evidenceTask)
                 val context = ContextPacket(workspaceId = root.canonicalPath, principalId = supplied?.principalId ?: "local-operator",
                     source = "Reaktor agent workspace", observedAt = System.currentTimeMillis().toString(),
                     revision = supplied?.revision, freshness = "captured-before-turn", partial = !candidate.complete || supplied?.partial == true,
                     entries = listOf(ContextEntry("candidate:${candidate.id}", "candidate", "Source candidate",
-                        "Task: ${initial.threadId}\nCandidate: ${candidate.id}\nBase commit: ${candidate.baseCommit}\nChanged paths: ${candidate.changedFiles.take(50).joinToString()}\n" +
-                            (if (isolated == null) "Use agent_candidate_capture after editing, agent_task_graph for findings/checks and agent_artifact for the exact diff. Report findings through agent_finding with producerRunId=${initial.id}."
-                             else "This candidate belongs to the isolated checkout. Use agent_worktrees(runId=${initial.id}) and agent_worktree_review for its task-only diff. Generic candidate/check tools refer to the original workspace; do not claim they verify this worktree. Applying the exact reviewed patch is a separate operation."),
+                        "Task: $evidenceTask\nCandidate: ${candidate.id}\nBase commit: ${candidate.baseCommit}\nChanged paths: ${candidate.changedFiles.take(50).joinToString()}\n" +
+                            "Use taskId=$evidenceTask with agent_candidate_capture, agent_task_graph and agent_artifact. Report findings through agent_finding against candidateId=${candidate.id}, producerRunId=${initial.id}. " +
+                            "Evidence targets this exact checkout. Landing is a separate person-only operation.",
                         "Binds this attempt to local source evidence")) + supplied?.entries.orEmpty().take(20) +
                         prior.findings.filter { it.resolvedByCandidate == null }.take(10).map { ContextEntry(it.id, "finding", it.title,
                             it.detail.take(600), "Unresolved finding from ${it.participant} on ${it.candidateId}") },
@@ -768,9 +821,16 @@ class AgentWorkspace(
                     val answer = result.answer
                     val failures = result.added.filter { it.kind == EventKind.Failure }
                     val workflowFailed = request.workflow?.failed(lastWorkflow ?: WorkflowProgress())
+                    if (request.task != null) validateTaskTarget(request)
+                    val completedCandidate = if (request.allowWrites && failures.isEmpty() && workflowFailed != true &&
+                        get(initial.id).status == AgentRunStatus.Running && get(initial.id).participants.values.none { it.status == AgentRunStatus.Interrupted }) {
+                        (if (isolated == null) evidence.capture(evidenceTask, subjects) else worktrees.capture(isolated.id, subjects).also { evidence.recordCandidate(evidenceTask, it) })
+                            .also { require(request.task == null || it.complete) { "Post-turn candidate coverage is incomplete: ${it.notices.joinToString()}" } }
+                    } else null
                     update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (it.participants.values.any { p -> p.status == AgentRunStatus.Interrupted }) AgentRunStatus.Interrupted else if (workflowFailed ?: failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
                         pending = emptyList(), recovery = AgentRecovery.None, recoveryReason = null,
                         output = answer?.text.orEmpty().takeLast(12000), outputTruncated = answer?.text.orEmpty().length > 12000,
+                        candidateId = completedCandidate?.id ?: it.candidateId,
                         usage = answer?.usage?.takeIf { request.collaboration == AgentCollaboration.Single },
                         reportedUsage = answer?.reportedUsage?.takeIf { request.collaboration == AgentCollaboration.Single },
                         failure = failures.takeIf { it.isNotEmpty() }?.joinToString("\n") { it.text }?.take(2000)) }
