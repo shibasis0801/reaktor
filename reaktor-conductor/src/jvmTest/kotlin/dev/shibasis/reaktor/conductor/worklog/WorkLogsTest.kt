@@ -12,6 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class WorkLogsTest {
@@ -54,7 +55,7 @@ class WorkLogsTest {
         val turn = log.turns.single()
         assertEquals("Fix the login graph", turn.prompt)
         assertFalse(turn.open)
-        assertEquals(WorkUsage(910, 40, null), turn.usage)
+        assertEquals(WorkUsage(910, 40, null, input = 910), turn.usage)
         val steps = turn.steps
         assertIs<WorkStep.Reasoning>(steps[0])
         val command = assertIs<WorkStep.Command>(steps[1])
@@ -73,6 +74,9 @@ class WorkLogsTest {
         assertEquals("Search", assertIs<WorkStep.Tool>(agent.steps.single()).name)
         assertEquals("Fixed the login route.", assertIs<WorkStep.Message>(steps.last()).text)
         assertEquals(listOf("app/Login.kt"), log.files)
+        val score = log.score()
+        assertEquals(WorkScore(1792231200000, 1792231231000, 31_000, 31_000, 0, 0, 1, 0, 4, 1, 1, 1, 1, 1,
+            listOf("app/Login.kt"), 2, 1, 910, 40, null, 0, null, 1, WorkOutcome.Open, false, score.notes), score)
 
         file.appendText(lines("""{"type":"user","timestamp":"2026-10-17T10:05:00Z","message":{"role":"user","content":"Now the logout"}}"""))
         assertEquals(listOf("Fix the login graph", "Now the logout"), WorkLogs.read(RuntimeKind.ClaudeCode, file, root).turns.map { it.prompt })
@@ -108,7 +112,10 @@ class WorkLogsTest {
         assertEquals("reaktor", tool.server)
         assertEquals("3 tasks", tool.output)
         assertEquals(PlanState.Active, assertIs<WorkStep.Plan>(turn.steps[4]).items.last().state)
-        assertEquals(WorkUsage(5000, 300, 100), turn.usage)
+        assertEquals(WorkUsage(5000, 300, 100, input = 5000), turn.usage)
+        val score = WorkLog(listOf(turn)).score()
+        assertEquals(WorkScore(1792231200000, 1792231211000, 11_000, 11_000, 0, 0, 1, 0, 3, 1, 0, 0, 0, 0,
+            listOf("gateway/Route.kt"), 1, 1, 5000, 300, 100, 0, null, 1, WorkOutcome.Open, false, score.notes), score)
     }
 
     @Test fun codexReadsSearchesAndListingsBecomeExplorationSteps() {
@@ -155,6 +162,9 @@ class WorkLogsTest {
         assertEquals(StepStatus.Done, edit.status)
         assertEquals(listOf("-Old", "+New"), edit.hunks.single().lines)
         assertEquals("Renamed it.", assertIs<WorkStep.Message>(turn.steps.last()).text)
+        val score = WorkLog(listOf(turn)).score()
+        assertEquals(WorkScore(1792231200000, 1792231205000, 5_000, 5_000, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0,
+            listOf("ui/Screen.kt"), 1, 1, null, null, null, 1, null, 1, WorkOutcome.Open, false, score.notes), score)
 
         val now = Instant.parse("2026-10-17T10:01:00Z").toEpochMilli()
         file.setLastModified(now - 30_000)
@@ -254,6 +264,51 @@ class WorkLogsTest {
         assertEquals(EditKind.Add to listOf("e2", "e5"), changes[1].kind to changes[1].edits.map { it.edit.id })
         assertEquals("app/E.kt", changes[2].movedTo)
         assertEquals(listOf("app/A.kt", "app/B.kt", "app/D.kt"), log.settled().changes.map { it.file })
+    }
+
+    @Test fun claudeUsageUpdatesAndQuestionReceiptsDoNotCountTwice() {
+        val file = home.resolve("claude-usage.jsonl")
+        file.writeText(lines(
+            """{"type":"user","timestamp":"2026-10-17T10:00:00Z","message":{"role":"user","content":"Choose a route"}}""",
+            """{"type":"assistant","timestamp":"2026-10-17T10:00:01Z","message":{"id":"m1","content":[]}}""",
+            """{"type":"assistant","timestamp":"2026-10-17T10:00:02Z","costUSD":0.01,"message":{"id":"m1","usage":{"input_tokens":10,"cache_read_input_tokens":90,"output_tokens":10},"content":[{"type":"tool_use","id":"q1","name":"AskUserQuestion","input":{"questions":[{"question":"Which route?"}]}}]}}""",
+            """{"type":"assistant","timestamp":"2026-10-17T10:00:03Z","costUSD":0.02,"message":{"id":"m1","usage":{"input_tokens":10,"cache_read_input_tokens":90,"output_tokens":20},"content":[]}}""",
+            """{"type":"user","timestamp":"2026-10-17T10:00:08Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"q1","content":"Route A"}]}}""",
+            """{"type":"assistant","timestamp":"2026-10-17T10:00:10Z","message":{"id":"done","stop_reason":"end_turn","content":[{"type":"text","text":"Chosen."}]}}""",
+        ))
+        val card = WorkLogs.read(RuntimeKind.ClaudeCode, file, root).score()
+        assertEquals(100L, card.inputTokens)
+        assertEquals(20L, card.outputTokens)
+        assertEquals(0.02, card.costUsd)
+        assertEquals(6_000L, card.personWaitMillis)
+        assertEquals(4_000L, card.workingMillis)
+        assertEquals(1, card.toolCalls)
+        assertEquals(0, card.unknownWaits)
+        assertEquals(0, card.unknownUsageTurns)
+    }
+
+    @Test fun codexCumulativeUsageIsDifferencedAcrossTurnsAndRepeatedRecordsAreIgnored() {
+        val file = home.resolve("codex-usage.jsonl")
+        file.writeText(lines(
+            """{"timestamp":"2026-10-17T10:00:00Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"Build"}]}}}""",
+            """{"timestamp":"2026-10-17T10:00:01Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":100,"output_tokens":10,"reasoning_output_tokens":5},"total_token_usage":{"input_tokens":1000,"output_tokens":100,"reasoning_output_tokens":50}}}}""",
+            """{"timestamp":"2026-10-17T10:00:02Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":100,"output_tokens":10,"reasoning_output_tokens":5},"total_token_usage":{"input_tokens":1000,"output_tokens":100,"reasoning_output_tokens":50}}}}""",
+            """{"timestamp":"2026-10-17T10:00:03Z","type":"event_msg","payload":{"type":"task_complete"}}""",
+            """{"timestamp":"2026-10-17T10:00:10Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","content":[{"type":"text","text":"Test"}]}}}""",
+            """{"timestamp":"2026-10-17T10:00:11Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":200,"output_tokens":20,"reasoning_output_tokens":10},"total_token_usage":{"input_tokens":1200,"output_tokens":120,"reasoning_output_tokens":60}}}}""",
+            """{"timestamp":"2026-10-17T10:00:12Z","type":"event_msg","payload":{"type":"task_complete"}}""",
+        ))
+        val card = WorkLogs.read(RuntimeKind.Codex, file, root).score()
+        assertEquals(300L, card.inputTokens)
+        assertEquals(30L, card.outputTokens)
+        assertEquals(15L, card.reasoningTokens)
+        assertEquals(2, card.turns)
+        assertEquals(1, card.personPromptsAfterFirst)
+        assertEquals(12_000L, card.wallMillis)
+        assertEquals(5_000L, card.workingMillis)
+        assertEquals(7_000L, card.personWaitMillis)
+        assertNull(card.costUsd)
+        assertEquals(2, card.unknownCostTurns)
     }
 
     private fun lines(vararg records: String) = records.joinToString("\n", postfix = "\n")

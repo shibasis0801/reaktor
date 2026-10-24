@@ -29,8 +29,9 @@ data class WorkTurn(
 }
 
 @Serializable
-data class WorkUsage(val context: Long? = null, val output: Long? = null, val reasoning: Long? = null) {
-    operator fun plus(next: WorkUsage) = WorkUsage(next.context ?: context, sum(output, next.output), sum(reasoning, next.reasoning))
+data class WorkUsage(val context: Long? = null, val output: Long? = null, val reasoning: Long? = null, val input: Long? = null, val costUsd: Double? = null) {
+    operator fun plus(next: WorkUsage) = WorkUsage(next.context ?: context, sum(output, next.output), sum(reasoning, next.reasoning), sum(input, next.input),
+        if (costUsd == null && next.costUsd == null) null else (costUsd ?: 0.0) + (next.costUsd ?: 0.0))
 
     private fun sum(a: Long?, b: Long?) = if (a == null && b == null) null else (a ?: 0) + (b ?: 0)
 }
@@ -134,7 +135,7 @@ sealed interface WorkStep {
     ) : WorkStep
 
     @Serializable @SerialName("question")
-    data class Question(override val id: String, override val at: Long?, val text: String, val answer: String? = null, override val status: StepStatus = StepStatus.Running) : WorkStep
+    data class Question(override val id: String, override val at: Long?, val text: String, val answer: String? = null, override val status: StepStatus = StepStatus.Running, val answeredAt: Long? = null) : WorkStep
 
     @Serializable @SerialName("note")
     data class Note(override val id: String, override val at: Long?, val kind: NoteKind, val text: String) : WorkStep
