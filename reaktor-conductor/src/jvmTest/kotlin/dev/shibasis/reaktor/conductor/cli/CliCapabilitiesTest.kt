@@ -1,8 +1,10 @@
 package dev.shibasis.reaktor.conductor.cli
 
-import dev.shibasis.reaktor.conductor.NativeEffort
-import dev.shibasis.reaktor.conductor.ReasoningFidelity
-import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.workspace.workspaceCapabilities
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+import kotlinx.coroutines.flow.emptyFlow
+import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -139,6 +141,100 @@ class CliCapabilitiesTest {
         assertEquals("sonnet", claude.defaultModel)
         assertTrue(CliCapabilities.probe(RuntimeKind.ChatGptGemini, "agy-does-not-exist-here", home, emptyMap()).models.isEmpty())
     }
+
+    @Test
+    fun capturedClaudeListsNativeModesAndDefinitionsWithoutClaimingAdapterSupport() {
+        val capability = CliCapabilities.claude(CliCapabilities.parseVersion(fixture("claude-2.1.289.version")),
+            fixture("claude-2.1.289.help"))
+        assertEquals("2.1.289", capability.version)
+        assertEquals(listOf("low", "medium", "high", "xhigh", "max"), capability.effort?.supported?.map { it.value })
+        assertEquals(listOf("acceptEdits", "auto", "bypassPermissions", "manual", "dontAsk", "plan"), capability.permissionModes)
+        assertEquals(listOf("fable", "opus", "sonnet"), capability.models.map { it.id })
+        assertTrue(capability.sandboxModes.isEmpty())
+        listOf("steer", "subagents", "worktrees").forEach { name ->
+            assertTrue(capability.controls.getValue(name).advertised, name)
+            assertFalse(capability.controls.getValue(name).usable, name)
+        }
+    }
+
+    @Test
+    fun capturedCodexKeepsFeatureEnablementAndNativeModesSeparate() {
+        val capability = CliCapabilities.codex(CliCapabilities.parseVersion(fixture("codex-0.163.0.version")),
+            help = fixture("codex-0.163.0.help"), features = fixture("codex-0.163.0.features"))
+        assertEquals("0.163.0", capability.version)
+        assertEquals(listOf("read-only", "workspace-write", "danger-full-access"), capability.sandboxModes)
+        assertEquals(listOf("on-request", "never"), capability.permissionModes)
+        listOf("subagents", "worktrees").forEach { name ->
+            assertTrue(capability.controls.getValue(name).advertised, name)
+            assertTrue(capability.controls.getValue(name).configured, name)
+            assertFalse(capability.controls.getValue(name).usable, name)
+        }
+        assertTrue(capability.controls.getValue("queue").advertised)
+        assertFalse(CliCapabilities.parseCodexFeature(fixture("codex-0.163.0.features"), "steer").advertised)
+        assertFalse(CliCapabilities.parseCodexFeature(fixture("codex-0.163.0.features"), "multi_agent_v2").configured)
+        assertFalse(CliCapabilities.parseCodexFeature(null, "multi_agent").advertised)
+    }
+
+    @Test
+    fun capturedAntigravityEffortsAreNotCappedByAnOldList() {
+        val capability = CliCapabilities.antigravity(RuntimeKind.Gemini, CliCapabilities.parseVersion(fixture("agy-1.4.7.version")),
+            fixture("agy-1.4.7.help"))
+        assertEquals("1.4.7", capability.version)
+        assertEquals(listOf("low", "medium", "high", "xhigh", "max"), capability.effort?.supported?.map { it.value })
+        assertEquals(listOf("accept-edits", "auto", "plan"), capability.permissionModes)
+        assertEquals(listOf("--sandbox"), capability.sandboxModes)
+        assertTrue(capability.controls.getValue("steer").advertised)
+        assertFalse(capability.controls.getValue("subagents").advertised)
+        assertFalse(capability.controls.getValue("worktrees").advertised)
+        assertTrue(capability.notes.any { it.contains("configured ladder") })
+        val absent = CliCapabilities.probe(RuntimeKind.Gemini, "agy-does-not-exist-here")
+        assertFalse(absent.effortControl.usable)
+        assertNull(absent.effort)
+        assertTrue(absent.probedAt!! > 0)
+    }
+
+    @Test
+    fun wiredSessionControlsPreserveDiscoveryAndOnlyQualifyTheTestedVersion() {
+        val discovered = CliCapabilities.codex("0.163.0", help = fixture("codex-0.163.0.help"),
+            features = fixture("codex-0.163.0.features")).copy(probedAt = 123)
+        val runtime = object : InteractiveAgentRuntime {
+            override val kind = RuntimeKind.Codex
+            override val interactive = Qualification.qualified("old live receipt")
+            override fun run(request: AgentRequest) = emptyFlow<AgentEvent>()
+            override suspend fun open(request: AgentRequest): AgentSession = error("not dispatched")
+        }
+        val capability = workspaceCapabilities(mapOf(RuntimeKind.Codex to runtime)) { discovered }.single()
+        assertEquals(123L, capability.probedAt)
+        assertEquals(discovered.sandboxModes, capability.sandboxModes)
+        assertEquals(discovered.controls.getValue("subagents"), capability.controls.getValue("subagents"))
+        assertTrue(capability.controls.getValue("steer").usable)
+        assertTrue(capability.controls.getValue("queue").usable)
+        assertNull(capability.controls.getValue("commandApproval").qualifiedBy)
+        assertNull(capability.session.qualifiedBy)
+    }
+
+    @Test
+    fun probeCapturesFactsAndTimestampWithoutStartingAnAgentTurn() {
+        val directory = Files.createTempDirectory("capability-fixture").toFile()
+        try {
+            directory.resolve("help.txt").writeText(fixture("agy-1.4.7.help"))
+            val binary = directory.resolve("agy")
+            binary.writeText("#!/bin/sh\ncase \"$1\" in\n--version) printf '1.4.7\\n';;\n--help) cat \"\$CAPABILITY_HELP\";;\n*) exit 19;;\nesac\n")
+            assertTrue(binary.setExecutable(true))
+            val before = System.currentTimeMillis()
+            val capability = CliCapabilities.probe(RuntimeKind.Gemini, binary.path, directory,
+                mapOf("CAPABILITY_HELP" to directory.resolve("help.txt").path))
+            assertEquals(binary.path, capability.executable)
+            assertEquals("1.4.7", capability.version)
+            assertTrue(capability.probedAt!! in before..System.currentTimeMillis())
+            assertTrue(capability.effortControl.usable)
+            assertEquals(NativeEffort("max"), capability.effort!!.supported!!.last())
+        } finally {
+            directory.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
+        }
+    }
+
+    private fun fixture(name: String) = checkNotNull(javaClass.getResource("/cli/$name.txt")).readText()
 
     private val codexCache = """
         {"client_version":"0.154.0","etag":"e","fetched_at":"2026-10-18T00:00:00Z","models":[

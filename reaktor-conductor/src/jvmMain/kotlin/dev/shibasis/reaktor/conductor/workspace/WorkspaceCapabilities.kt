@@ -24,5 +24,5 @@ internal fun workspaceCapabilities(runtimes: Map<RuntimeKind, AgentRuntime>, dis
                 Qualification(true, true, true, qualification?.takeIf { sameVersion })
             }
         }
-        discovered.copy(session = session.copy(qualifiedBy = session.qualifiedBy?.takeIf { sameVersion }), controls = controls)
+        discovered.copy(session = session.copy(qualifiedBy = session.qualifiedBy?.takeIf { sameVersion }), controls = discovered.controls + controls + ("queue" to Qualification(true, true, true)))
     }
