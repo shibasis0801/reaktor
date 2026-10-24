@@ -33,6 +33,17 @@ class ToastKernelTest {
     }
 
     @Test
+    fun replacingShowsTheNewToastAtOnceAndDropsTheQueue() {
+        val waiting = ToastEntry(3, "Waiting", 3.seconds)
+        val (_, queued, replaced) = run(ToastInput.Show(saved), ToastInput.Show(waiting), ToastInput.Show(copied, replace = true))
+        assertEquals(listOf(waiting), queued.state.waiting)
+        assertEquals(copied, replaced.state.shown)
+        assertEquals(emptyList(), replaced.state.waiting)
+        assertEquals(listOf(ToastEvent.Hidden(saved), ToastEvent.Shown(copied)), replaced.events)
+        assertEquals(listOf(LocalCommand.Cancel(Ticket(1)), LocalCommand.Schedule(Ticket(2), 2.seconds, ToastInput.Elapsed(Ticket(2)))), replaced.commands)
+    }
+
+    @Test
     fun theNextToastStaysHeldWhileThePointerIsStillOnIt() {
         val reductions = run(
             ToastInput.Show(saved),

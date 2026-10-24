@@ -16,15 +16,22 @@ import dev.shibasis.reaktor.board.BoardRule
 import dev.shibasis.reaktor.board.BoardShape
 import dev.shibasis.reaktor.board.BoardTheme
 import dev.shibasis.reaktor.board.BoardView
+import dev.shibasis.reaktor.board.SketchMark
 import dev.shibasis.reaktor.board.creationPoint
+import dev.shibasis.reaktor.board.groups
+import dev.shibasis.reaktor.board.order
 import dev.shibasis.reaktor.board.positions
-import dev.shibasis.reaktor.board.reflow
-import dev.shibasis.reaktor.board.scene
+import dev.shibasis.reaktor.board.read
+import dev.shibasis.reaktor.board.reorder
+import dev.shibasis.reaktor.board.summary
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 
 private const val ReadableZoom = 0.85
 private const val Margin = 24.0
+private const val SketchMarks = 5000
+private const val SketchBytes = 2_000_000
 
 class BoardCanvas {
     var board = Board(emptyList(), emptyList())
@@ -41,6 +48,11 @@ class BoardCanvas {
     var message: (String) -> Unit = {}
     var onTool: (String) -> Unit = {}
     var onView: () -> Unit = {}
+    var onZoom: (Int) -> Unit = {}
+    var onWire: () -> Unit = {}
+    var onSketch: () -> Unit = {}
+    var sketchTool = "selection"
+        private set
     var onCreate: (BoardPoint?, String?, String) -> Unit = { _, _, _ -> }
     var onRename: (BoardItem) -> Unit = {}
     var onChooseConnection: (String) -> Unit = {}
@@ -50,6 +62,8 @@ class BoardCanvas {
     private var tappedAt = -1.0
     private var overview = false
     var element: dynamic = null
+    var layer: dynamic = null
+        set(value) { field = value; placedZoom = 0.0; place() }
     var api: dynamic = null
     private var kit: BoardKit? = null
     private var theme = BoardTheme()
@@ -58,8 +72,12 @@ class BoardCanvas {
     private var revision = 1
     private val layouts = mutableMapOf<BoardView, MutableMap<String, BoardPoint>>()
     private val pending = mutableMapOf<String, Placed>()
+    private val moving = mutableMapOf<String, Pair<String, String>>()
+    private val converted = HashMap<String, Converted>()
     private var loaded: String? = null
+    private var items: List<BoardItem> = emptyList()
     private var elements: Array<dynamic> = emptyArray()
+    private var drawn: Array<dynamic>? = null
     private var positions = emptyMap<String, BoardPoint>()
     private var drag: Drag? = null
     private var frame: dynamic = null
@@ -68,8 +86,16 @@ class BoardCanvas {
     private var spaceHeld = false
     private var wire: Wire? = null
     private var reveal: String? = null
+    private var zoomShown = -1
+    private var placedZoom = 0.0
+    private var hovering = false
+    private var sketch: Array<dynamic> = emptyArray()
+    private var sketchVersion = -1.0
+    private var sketchTimer: dynamic = null
+    private var turned: Array<dynamic> = emptyArray()
 
     private data class Placed(val at: BoardPoint, val was: BoardPoint?)
+    private class Converted(val shapes: List<BoardShape>, val elements: Array<dynamic>)
     private data class Wire(val from: String, val start: BoardPoint, val pointer: Int, var point: BoardPoint, var moved: Boolean = false)
     data class Anchor(val item: BoardItem, val x: Double, val y: Double, val width: Double, val height: Double)
     data class Preview(val from: Anchor, val point: BoardPoint, val target: Anchor?, val problem: String?)
@@ -81,17 +107,55 @@ class BoardCanvas {
         board = model.board; shown = model.shown; host = model.host; kit = model.kit; theme = model.theme; layoutKey = model.layout
         if (model.active != active) { active = model.active; selected = model.active }
         pending.entries.removeAll { (key, placed) -> board.item(key)?.let { it.at != placed.was } ?: true }
+        moving.entries.removeAll { (key, lanes) -> board.item(key)?.lane != lanes.first }
     }
 
     fun all() = board.items
-    fun visible() = if (view == BoardView.Dag) shown.filter { it.dag } else shown
+    fun visible() = if (view.scene) shown.filter { it.dag } else shown
     fun editable(item: BoardItem) = item.editable && board.locked.isBlank()
-    private fun layout() = layouts.getOrPut(view) { mutableMapOf() }
-    private fun saved(): Map<String, BoardPoint> = if (view == BoardView.Dag && host.places) pending.mapValues { it.value.at } else layout()
+    private fun dag() = layouts.getOrPut(BoardView.Dag) { mutableMapOf() }
+    private fun kanban() = layouts.getOrPut(BoardView.Kanban) { mutableMapOf() }
+    private fun saved(): Map<String, BoardPoint> = if (host.places) pending.mapValues { it.value.at } else dag()
+    private fun placed(): List<BoardItem> = if (moving.isEmpty()) shown else shown.map { item -> moving[item.key]?.let { item.copy(lane = it.second) } ?: item }
 
     private fun load() {
         if (loaded == layoutKey) return
         loaded = layoutKey; layouts.clear()
+        restoreLayout(); restoreSketch()
+    }
+
+    private fun sketchKey() = "$layoutKey:sketch"
+
+    private fun restoreSketch() {
+        sketch = emptyArray(); sketchVersion = -1.0
+        try {
+            val storage: dynamic = js("globalThis.localStorage")
+            val stored = storage?.getItem(sketchKey()) as String? ?: return
+            val parsed = JSON.parse<dynamic>(stored)
+            if (js("Array").isArray(parsed) != true) return
+            sketch = values(parsed).filter { jsTypeOf(it) == "object" && it != null && jsTypeOf(it.id) == "string" && jsTypeOf(it.type) == "string" && !BoardIds.generated(text(it.id)) }
+                .take(SketchMarks).toTypedArray()
+        } catch (_: Throwable) { message("The saved sketch could not be opened. ${words.manyTitle} are safe.") }
+    }
+
+    private fun keepSketch() {
+        val kept = sketch.filter { it.isDeleted != true }.toTypedArray()
+        try {
+            val storage: dynamic = js("globalThis.localStorage")
+            if (kept.isEmpty()) { storage?.removeItem(sketchKey()); return }
+            val stored = JSON.stringify(kept)
+            if (stored.length > SketchBytes) { message("This sketch is too large to keep in this browser. Turn it into ${words.many} or erase part of it."); return }
+            storage?.setItem(sketchKey(), stored)
+        } catch (_: Throwable) { message("The sketch could not be saved in this browser. ${words.manyTitle} are safe.") }
+    }
+
+    private fun flushSketch() {
+        if (sketchTimer == null) return
+        js("clearTimeout")(sketchTimer); sketchTimer = null
+        keepSketch()
+    }
+
+    private fun restoreLayout() {
         try {
             val storage: dynamic = js("globalThis.localStorage")
             val stored = storage?.getItem(layoutKey) as String? ?: return
@@ -114,19 +178,173 @@ class BoardCanvas {
         } catch (_: Throwable) { message("Layout could not be saved in this browser. ${words.oneTitle} edits still sync.") }
     }
 
-    fun generate(reset: Boolean = false): Array<dynamic> {
+    fun lanes(): Map<String, List<BoardItem>> {
         load()
-        if (reset) { layout().clear(); pending.clear() }
-        val items = visible()
-        val locations = board.positions(view, items, saved()).toMutableMap()
+        val saved = kanban()
+        val items = placed()
+        return board.lanes.associate { lane -> lane.id to board.order(lane.id, items, saved) }
+    }
+
+    fun drop(item: BoardItem, lane: String, index: Int) {
+        val now = board.item(item.key) ?: return
+        val target = board.lane(lane) ?: return
+        val from = moving[now.key]?.second ?: now.lane
+        selected = now.key
+        host.select(now.key)
+        when {
+            !editable(now) -> message(board.locked.ifBlank { "This ${words.one} is read only." })
+            from != item.lane -> message("This ${words.one} changed elsewhere. The latest ${words.lane} is shown.")
+            target.id != from && !target.drop -> message("${words.manyTitle} cannot be moved to ${target.title}.")
+            target.review && target.id != from -> review(now)
+            else -> {
+                load()
+                kanban().putAll(board.reorder(target.id, placed(), kanban(), now.copy(lane = target.id), index))
+                persist()
+                if (target.id != from) {
+                    val problem = host.edit(BoardEdit.Move(now.key, target.id), now).problem
+                    when {
+                        problem != null -> message(problem)
+                        board.item(now.key)?.lane == target.id || target.id == now.lane -> moving.remove(now.key)
+                        else -> moving[now.key] = now.lane to target.id
+                    }
+                }
+            }
+        }
+        onView()
+    }
+
+    fun unmove(key: String) { if (moving.remove(key) != null) onView() }
+
+    fun shift(item: BoardItem, step: Int) {
+        val at = board.lanes.indexOfFirst { it.id == item.lane }
+        val target = board.lanes.getOrNull(at + step) ?: return
+        drop(item, target.id, lanes()[target.id].orEmpty().size)
+    }
+
+    fun generate(): Array<dynamic> {
+        load()
+        items = shown.filter { it.dag }
+        val locations = board.positions(BoardView.Dag, items, saved()).toMutableMap()
         drag?.let { if (it.moved) locations[it.item.key] = it.point }
         positions = locations
-        val hover = drag?.takeIf { it.moved && view == BoardView.Kanban }?.let { board.laneAt(it.point.x + BoardGeometry.CardWidth / 2)?.id }
-        val draft = inline?.let { BoardDraft(it.at, it.after, it.lane, it.editing?.key) }
-        val skeleton = board.scene(BoardFrame(view, items, locations, selected, source, draft, hover), theme).map(::skeleton).toTypedArray()
         val convert = kit?.convert ?: return emptyArray()
-        elements = values(convert(skeleton, obj("regenerateIds" to false)))
+        val draft = inline?.let { BoardDraft(it.at, it.after, it.lane, it.editing?.key) }
+        val live = HashSet<String>()
+        val next = ArrayList<dynamic>()
+        board.groups(BoardFrame(items, locations, selected, source, draft), theme).forEach { group ->
+            live.add(group.id)
+            val cached = converted[group.id]?.takeIf { it.shapes == group.shapes }
+            val made = cached?.elements ?: values(convert(group.shapes.map(::skeleton).toTypedArray(), obj("regenerateIds" to false))).also {
+                converted[group.id] = Converted(group.shapes, it)
+            }
+            made.forEach { next.add(it) }
+        }
+        converted.keys.retainAll(live)
+        elements = next.toTypedArray()
         return elements
+    }
+
+    fun scene(): Array<dynamic> {
+        val made = generate()
+        return if (view == BoardView.Sketch) made + sketch else made
+    }
+
+    private fun mine(): Array<dynamic> = values(api?.getSceneElementsIncludingDeleted()).filter { !BoardIds.generated(text(it.id)) }.toTypedArray()
+
+    fun hasSketch() = sketch.any { it.isDeleted != true }
+
+    fun noticed(elements: dynamic, state: dynamic) {
+        if (view != BoardView.Sketch || api == null) return
+        val tool = text(state?.activeTool?.type).ifBlank { "selection" }
+        if (tool != sketchTool) { sketchTool = tool; unhover(); onSketch() }
+        val all = values(elements)
+        var version = all.size.toDouble()
+        all.forEach { version += number(it.version) }
+        if (version == sketchVersion) return
+        sketchVersion = version
+        val had = hasSketch()
+        sketch = all.filter { !BoardIds.generated(text(it.id)) }.toTypedArray()
+        if (hasSketch() != had) onSketch()
+        if (sketchTimer != null) js("clearTimeout")(sketchTimer)
+        sketchTimer = js("setTimeout")({ sketchTimer = null; keepSketch() }, 500)
+    }
+
+    fun pick(tool: String) {
+        val api = api ?: return
+        if (view != BoardView.Sketch) return
+        api.setActiveTool(obj("type" to tool))
+        sketchTool = tool; unhover(); onSketch()
+    }
+
+    private fun drawing() = view == BoardView.Sketch && sketchTool != "selection"
+
+    private fun mark(element: dynamic): SketchMark = SketchMark(text(element.id), text(element.type), number(element.x), number(element.y),
+        number(element.width), number(element.height), optional(element.originalText) ?: text(element.text), optional(element.containerId),
+        optional(element.startBinding?.elementId), optional(element.endBinding?.elementId), values(element.points).map { BoardPoint(number(it[0]), number(it[1])) })
+
+    private fun erased(element: dynamic): dynamic {
+        val copy = js("Object.assign({}, element)")
+        copy.isDeleted = true
+        copy.version = number(element.version) + 1
+        copy.versionNonce = js("Math.floor(Math.random() * 2147483647)")
+        copy.updated = js("Date.now()")
+        return copy
+    }
+
+    fun turn() {
+        val api = api ?: return
+        if (view != BoardView.Sketch || !host.canLeave()) return
+        val scene = values(api.getSceneElementsIncludingDeleted())
+        val reading = board.read(scene.filter { it.isDeleted != true && !BoardIds.generated(text(it.id)) }.map(::mark), positions)
+        val edit = reading.edit
+        if (edit == null) { message(board.summary(reading)); return }
+        val outcome = host.edit(edit, null)
+        outcome.problem?.let { message(it); return }
+        adopt(edit, outcome.created)
+        turned = scene.filter { text(it.id) in reading.consumed }.toTypedArray()
+        api.updateScene(obj("elements" to scene.map { if (text(it.id) in reading.consumed) erased(it) else it }.toTypedArray(), "captureUpdate" to kit?.neverCapture))
+        api.history?.clear()
+        message(board.summary(reading))
+    }
+
+    fun restore() {
+        val back = turned.associateBy { text(it.id) }
+        turned = emptyArray()
+        if (back.isEmpty()) return
+        fun revived(element: dynamic): dynamic {
+            val original = back[text(element.id)] ?: return element
+            val copy = js("Object.assign({}, original)")
+            copy.isDeleted = false
+            copy.version = number(element.version) + 1
+            copy.versionNonce = js("Math.floor(Math.random() * 2147483647)")
+            return copy
+        }
+        val api = api
+        if (view == BoardView.Sketch && api != null) {
+            api.updateScene(obj("elements" to values(api.getSceneElementsIncludingDeleted()).map { revived(it) }.toTypedArray(), "captureUpdate" to kit?.neverCapture))
+            return
+        }
+        val present = sketch.mapTo(HashSet()) { text(it.id) }
+        sketch = (sketch.map { revived(it) } + back.values.filter { text(it.id) !in present }).toTypedArray()
+        keepSketch()
+    }
+
+    fun adopt(edit: BoardEdit.Sketch, created: Map<String, String>) {
+        if (host.places || created.isEmpty()) return
+        load()
+        positions.forEach { (other, point) -> if (other !in dag()) dag()[other] = point }
+        edit.cards.forEach { card -> created[card.ref]?.let { dag()[it] = card.at } }
+        persist(); sync()
+    }
+
+    fun erase() {
+        val api = api ?: return
+        if (view != BoardView.Sketch) return
+        val scene = values(api.getSceneElementsIncludingDeleted())
+        if (scene.none { it.isDeleted != true && !BoardIds.generated(text(it.id)) }) { message("The sketch is already empty."); return }
+        api.updateScene(obj("elements" to scene.map { if (it.isDeleted == true || BoardIds.generated(text(it.id))) it else erased(it) }.toTypedArray(),
+            "captureUpdate" to "IMMEDIATELY"))
+        message("Sketch cleared. Undo on the canvas brings it back.")
     }
 
     private fun skeleton(shape: BoardShape): dynamic = when (shape) {
@@ -152,20 +370,28 @@ class BoardCanvas {
 
     private fun bend(dx: Double, dy: Double) = arrayOf(arrayOf(0.0, 0.0), arrayOf(dx / 2, 0.0), arrayOf(dx / 2, dy), arrayOf(dx, dy))
 
-    fun sync(reset: Boolean = false) {
-        if (api == null || disposed || drag != null) return
-        api.updateScene(obj("elements" to generate(reset), "captureUpdate" to kit?.neverCapture, "appState" to obj("selectedElementIds" to obj())))
+    fun sync() {
+        if (api == null || disposed || drag != null || !view.scene) return
+        val before = items
+        val next = generate()
+        val previous = drawn
+        val same = previous != null && previous.size == next.size && next.indices.all { previous[it] === next[it] }
+        if (!same) {
+            drawn = next
+            if (view == BoardView.Sketch) api.updateScene(obj("elements" to next + mine(), "captureUpdate" to kit?.neverCapture))
+            else api.updateScene(obj("elements" to next, "captureUpdate" to kit?.neverCapture, "appState" to obj("selectedElementIds" to obj())))
+        }
         if (fitPending && api.getAppState().isLoading != true) { fitPending = false; settle() }
         reveal?.let { key ->
             val target = elements.filter { it.id == BoardIds.card(key) }.toTypedArray()
             if (target.isNotEmpty()) { reveal = null; follow = false; api.scrollToContent(target, obj("fitToViewport" to true, "minZoom" to 0.85, "maxZoom" to 1, "animate" to false)) }
         }
-        onView()
+        if (!same || items != before) onView()
     }
 
     fun ready(value: dynamic) {
         if (value == null || api === value) return
-        api = value; fitPending = true
+        api = value; fitPending = true; drawn = null
         mount()
     }
 
@@ -176,9 +402,42 @@ class BoardCanvas {
         mountFrame = js("requestAnimationFrame")({ _: dynamic -> mountFrame = null; if (!disposed && api === current) sync() })
     }
 
-    fun switch(value: BoardView) { cancelDrag(); source = null; view = value; tool = "select"; api = null; overview = false; fitPending = true; onTool(tool) }
+    fun viewport(state: dynamic) {
+        place(state)
+        val percent = (zoomOf(state) * 100).roundToInt()
+        if (percent != zoomShown) { zoomShown = percent; onZoom(percent) }
+    }
+
+    fun percent() = zoomShown.takeIf { it > 0 } ?: 100
+
+    private fun zoomOf(state: dynamic) = number(state?.zoom?.value).takeIf { it > 0 } ?: 1.0
+
+    private fun place(state: dynamic = api?.getAppState()) {
+        val target = layer ?: return
+        if (state == null) return
+        val zoom = zoomOf(state)
+        target.style.transform = "translate(${number(state.scrollX) * zoom}px, ${number(state.scrollY) * zoom}px) scale($zoom)"
+        if (zoom != placedZoom) {
+            placedZoom = zoom
+            target.style.setProperty("--board-zoom", zoom.toString())
+            target.style.setProperty("--board-unzoom", (1 / zoom).toString())
+        }
+    }
+
+    fun switch(value: BoardView) {
+        flushSketch()
+        cancelDrag(); source = null; view = value; tool = "select"; sketchTool = "selection"; api = null; drawn = null; overview = false; fitPending = true; zoomShown = -1; hovering = false
+        onTool(tool)
+    }
+
     fun setInteraction(value: String) { cancelDrag(); source = null; tool = if (value == "connect" && view != BoardView.Dag) "select" else value; onTool(tool); sync() }
-    fun reset() { cancelDrag(); sync(true); persist(); fit(); message("Layout reset. ${words.manyTitle} are unchanged.") }
+
+    fun reset() {
+        cancelDrag(); load()
+        if (view == BoardView.Kanban) { kanban().clear(); persist(); onView(); message("Order reset. ${words.manyTitle} are unchanged."); return }
+        dag().clear(); pending.clear(); persist(); sync(); fit()
+        message("Layout reset. ${words.manyTitle} are unchanged.")
+    }
 
     fun fit(animate: Boolean = true) {
         if (api == null) return
@@ -200,9 +459,7 @@ class BoardCanvas {
         api.scrollToContent(elements, obj("fitToViewport" to true, "viewportZoomFactor" to 0.9, "animate" to animate, "minZoom" to 0.25, "maxZoom" to 1))
     }
 
-    private fun opening(): BoardItem? =
-        if (view != BoardView.Kanban) visible().minWithOrNull(compareBy<BoardItem>({ positions[it.key]?.x ?: 0.0 }, { positions[it.key]?.y ?: 0.0 }))
-        else visible().minWithOrNull(compareBy<BoardItem>({ item -> board.lanes.indexOfFirst { it.id == item.lane }.takeIf { it >= 0 } ?: Int.MAX_VALUE }, { positions[it.key]?.y ?: 0.0 }))
+    private fun opening(): BoardItem? = items.minWithOrNull(compareBy<BoardItem>({ positions[it.key]?.x ?: 0.0 }, { positions[it.key]?.y ?: 0.0 }))
 
     private fun anchor(): Boolean {
         val state = api.getAppState(); val width = number(state.width); val height = number(state.height)
@@ -216,8 +473,7 @@ class BoardCanvas {
     }
 
     private fun start(width: Double): Boolean {
-        val item = opening()
-        val id = if (view == BoardView.Kanban) (item?.lane ?: board.lanes.firstOrNull()?.id)?.let(BoardIds::lane) else item?.let { BoardIds.card(it.key) }
+        val id = opening()?.let { BoardIds.card(it.key) }
         val box = elements.firstOrNull { it.id == id } ?: return false
         show(number(box.x), number(box.y), ((width - 2 * Margin) / number(box.width)).coerceIn(ReadableZoom, 1.0))
         return true
@@ -237,7 +493,9 @@ class BoardCanvas {
 
     fun focus(item: BoardItem) {
         if (!onSelect(item.key)) return
-        selected = item.key; follow = false; sync()
+        selected = item.key; follow = false
+        if (!view.scene) { onView(); return }
+        sync()
         val target = elements.filter { it.id == BoardIds.card(item.key) }.toTypedArray()
         if (target.isNotEmpty()) api?.scrollToContent(target, obj("fitToViewport" to true, "minZoom" to 0.85, "maxZoom" to 1, "animate" to true, "duration" to 160))
     }
@@ -253,27 +511,19 @@ class BoardCanvas {
         return BoardPoint((at.x + number(state.scrollX)) * zoom, (at.y + number(state.scrollY)) * zoom)
     }
 
-    fun scale(): Double = if (api == null) 1.0 else number(api.getAppState().zoom.value)
-
     fun anchors(): List<Anchor> {
         if (api == null || disposed) return emptyList()
-        val zoom = number(api.getAppState().zoom.value)
-        return visible().mapNotNull { item ->
-            val at = drag?.takeIf { it.item.key == item.key && it.moved }?.point ?: positions[item.key] ?: return@mapNotNull null
-            val pixel = pixel(at)
-            Anchor(item, pixel.x, pixel.y, BoardGeometry.CardWidth * zoom, BoardGeometry.CardHeight * zoom)
+        return items.mapNotNull { item ->
+            val at = positions[item.key] ?: return@mapNotNull null
+            Anchor(item, at.x, at.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight)
         }
-    }
-
-    fun laneAnchors(): List<Pair<String, BoardPoint>> = if (api == null) emptyList() else board.creatable.filter { inline?.lane != it.id }.map { lane ->
-        lane.id to pixel(BoardPoint(board.laneX(lane.id) + 170, 140.0 + visible().count { it.lane == lane.id } * BoardGeometry.CardPitch))
     }
 
     fun preview(): Preview? {
         val held = wire?.takeIf { it.moved } ?: return null
         val anchors = anchors(); val from = anchors.find { it.item.key == held.from } ?: return null
         val target = hit(held.point)?.let { item -> anchors.find { it.item.key == item.key } }
-        return Preview(from, pixel(held.point), target, target?.let { problem(held.from, it.item.key) })
+        return Preview(from, held.point, target, target?.let { problem(held.from, it.item.key) })
     }
 
     fun chooseConnection(from: String) {
@@ -289,36 +539,48 @@ class BoardCanvas {
         val at = point(event)
         wire = Wire(from, at, number(event.pointerId).toInt(), at)
         event.currentTarget.setPointerCapture(event.pointerId)
-        onView()
+        onWire()
     }
 
     private fun ui(event: dynamic) = event.target?.closest != null && event.target.closest("[data-board-ui]") != null
 
     fun doubleClick(event: dynamic): Boolean {
         if (api == null || ui(event)) return false
+        val at = point(event); val item = hit(at)
+        if (view == BoardView.Sketch && item == null) return false
         event.preventDefault(); event.stopPropagation()
         if (!host.canLeave()) return false
-        val at = point(event); val item = hit(at)
         if (item != null) { onRename(item); return false }
-        val lane = (if (view == BoardView.Kanban) board.laneAt(at.x) else null) ?: board.creatable.firstOrNull() ?: board.lanes.firstOrNull() ?: return false
+        val lane = board.creatable.firstOrNull() ?: board.lanes.firstOrNull() ?: return false
         board.creationProblem(lane.id)?.let { message(it); return false }
         onCreate(at, null, lane.id)
         return false
     }
 
-    private fun hit(at: BoardPoint): BoardItem? = visible().lastOrNull { item ->
+    private fun hit(at: BoardPoint): BoardItem? = items.lastOrNull { item ->
         positions[item.key]?.let { at.x >= it.x && at.x <= it.x + BoardGeometry.CardWidth && at.y >= it.y && at.y <= it.y + BoardGeometry.CardHeight } == true
     }
 
+    private fun unhover() { if (hovering) { hovering = false; element?.removeAttribute("data-hover") } }
+
+    private fun hover(event: dynamic) {
+        if (drawing()) return unhover()
+        if (api == null || event.pointerType == "touch" || ui(event)) return
+        val over = hit(point(event)) != null
+        if (over == hovering) return
+        hovering = over
+        if (over) element?.setAttribute("data-hover", "card") else element?.removeAttribute("data-hover")
+    }
+
     fun down(event: dynamic) {
-        if (ui(event) || api == null) return
+        if (ui(event) || api == null || drawing()) return
         follow = false
         val at = point(event); val item = hit(at)
-        if (event.button != 0 || spaceHeld || tool == "pan" || event.isPrimary == false || item == null) return
+        if (event.button != 0 || spaceHeld || event.isPrimary == false || item == null) return
         event.preventDefault(); event.stopPropagation(); event.currentTarget.focus()
         if (!host.canLeave()) return
         if (tool == "connect") {
-            if (source == null) { source = item.key; selected = item.key; message("Choose the ${words.one} that this ${words.after} unlocks."); sync() }
+            if (source == null) { source = item.key; selected = item.key; message("Choose the ${words.one} that this ${words.after} unlocks. Esc cancels."); sync() }
             else { val from = source!!; source = null; connect(from, item.key); sync() }
             return
         }
@@ -331,45 +593,41 @@ class BoardCanvas {
             if (number(event.pointerId).toInt() != held.pointer) return
             event.preventDefault(); event.stopPropagation(); held.point = point(event)
             if (hypot(held.point.x - held.start.x, held.point.y - held.start.y) >= 5) held.moved = true
-            if (frame == null) frame = js("requestAnimationFrame")({ _: dynamic -> frame = null; if (!disposed) onView() })
+            if (frame == null) frame = js("requestAnimationFrame")({ _: dynamic -> frame = null; if (!disposed) onWire() })
             return
         }
-        val held = drag ?: return
+        val held = drag ?: return hover(event)
         if (number(event.pointerId).toInt() != held.pointer) return
         event.preventDefault(); event.stopPropagation()
         val at = point(event); val dx = at.x - held.start.x; val dy = at.y - held.start.y
         if (!editable(held.item) || (!held.moved && hypot(dx, dy) < 5)) return
-        held.moved = true; held.point = BoardPoint(held.origin.x + dx, maxOf(if (view == BoardView.Kanban) BoardGeometry.CardTop else -1e6, held.origin.y + dy))
+        if (!held.moved) layer?.setAttribute("data-dragging", "true")
+        held.moved = true; held.point = BoardPoint(held.origin.x + dx, held.origin.y + dy)
         if (frame == null) frame = js("requestAnimationFrame")({ _: dynamic -> frame = null; if (!disposed) drag?.let(::drawDrag) })
     }
 
     private fun drawDrag(held: Drag) {
         val id = BoardIds.card(held.item.key)
         val dx = held.point.x - held.origin.x; val dy = held.point.y - held.origin.y
-        val hover = if (view == BoardView.Kanban) board.laneAt(held.point.x + BoardGeometry.CardWidth / 2)?.id else null
-        val lanes = board.lanes.associateBy { BoardIds.lane(it.id) }
         val moved = held.original.map { element ->
             val eid = text(element.id)
             val edge = element.type == "arrow" && (element.customData?.from == held.item.key || element.customData?.to == held.item.key)
-            if (eid == id || eid.startsWith("$id:") || edge || eid in lanes) {
+            if (eid == id || eid.startsWith("$id:") || edge) {
                 val updated = js("Object.assign({}, element)")
                 updated.version = ++revision
-                if (eid == id || eid.startsWith("$id:")) { updated.x = number(element.x) + dx; updated.y = number(element.y) + dy }
-                else if (edge) {
+                if (!edge) { updated.x = number(element.x) + dx; updated.y = number(element.y) + dy }
+                else {
                     val from = if (element.customData.from == held.item.key) held.point else positions[text(element.customData.from)]!!
                     val to = if (element.customData.to == held.item.key) held.point else positions[text(element.customData.to)]!!
                     val width = to.x - from.x - BoardGeometry.CardWidth; val height = to.y - from.y
                     updated.x = from.x + BoardGeometry.CardWidth; updated.y = from.y + BoardGeometry.CardHeight / 2; updated.width = width; updated.height = height
                     updated.points = bend(width, height)
-                } else {
-                    val lit = lanes[eid]?.id == hover
-                    updated.backgroundColor = if (lit) theme.laneLitFill else theme.laneFill; updated.strokeColor = if (lit) theme.laneLit else theme.laneLine
                 }
                 updated
             } else element
         }.toTypedArray()
-        api?.updateScene(obj("elements" to moved, "captureUpdate" to kit?.neverCapture))
-        onView()
+        drawn = null
+        api?.updateScene(obj("elements" to if (view == BoardView.Sketch) moved + mine() else moved, "captureUpdate" to kit?.neverCapture))
     }
 
     private fun tapped(event: dynamic) { if (event.pointerType == "touch") tappedAt = number(event.timeStamp) }
@@ -391,12 +649,13 @@ class BoardCanvas {
             else if (target != null) connect(held.from, target.key)
             else if (lane == null) message(board.locked.ifBlank { "${words.manyTitle} cannot be created here." })
             else onCreate(BoardPoint(held.point.x, held.point.y - BoardGeometry.CardHeight / 2), held.from, lane.id)
-            sync(); return
+            onWire(); sync(); return
         }
         val held = drag ?: return
         if (number(event.pointerId).toInt() != held.pointer) return
         event.preventDefault(); event.stopPropagation()
         drag = null
+        layer?.removeAttribute("data-dragging")
         if (!held.moved) tapped(event)
         if (event.currentTarget.hasPointerCapture(event.pointerId) == true) event.currentTarget.releasePointerCapture(event.pointerId)
         if (!held.moved) { if (onSelect(held.item.key)) selected = held.item.key; sync(); return }
@@ -404,32 +663,20 @@ class BoardCanvas {
         host.select(held.item.key)
         val now = board.item(held.item.key)
         if (now == null || !editable(now)) { sync(); return }
-        if (view == BoardView.Kanban) {
-            val lane = board.laneAt(held.point.x + BoardGeometry.CardWidth / 2)
-            when {
-                lane == null -> message("Drop inside a lane to move this ${words.one}.")
-                now.lane != held.item.lane -> message("This ${words.one} changed elsewhere. The latest ${words.lane} is shown.")
-                lane.id != now.lane && !lane.drop -> message("${words.manyTitle} cannot be moved to ${lane.title}.")
-                lane.review && now.lane != lane.id -> review(now)
-                else -> {
-                    layout().putAll(board.reflow(lane.id, visible(), positions, now, held.point.y))
-                    if (lane.id != now.lane) host.edit(BoardEdit.Move(now.key, lane.id), now).problem?.let(message)
-                }
-            }
-        } else place(now, held.point)
+        place(now, held.point)
         persist(); sync()
     }
 
     private fun place(item: BoardItem, at: BoardPoint) {
-        if (!host.places) { layout()[item.key] = at; return }
+        if (!host.places) { dag()[item.key] = at; return }
         pending[item.key] = Placed(at, item.at)
         host.edit(BoardEdit.Place(item.key, at), item).problem?.let { pending.remove(item.key); message(it) }
     }
 
     fun unplace(key: String) { if (pending.remove(key) != null) sync() }
 
-    fun cancelDrag() { drag = null; wire = null; if (frame != null) js("cancelAnimationFrame")(frame); frame = null }
-    fun cancel() { cancelDrag(); source = null; spaceHeld = false; sync() }
+    fun cancelDrag() { drag = null; wire = null; layer?.removeAttribute("data-dragging"); if (frame != null) js("cancelAnimationFrame")(frame); frame = null }
+    fun cancel() { cancelDrag(); source = null; spaceHeld = false; drawn = null; sync(); onWire() }
 
     fun keyboard(event: dynamic, down: Boolean) {
         val target = text(event.target?.tagName).lowercase()
@@ -437,6 +684,7 @@ class BoardCanvas {
         val key = text(event.key)
         if (key == " ") spaceHeld = down
         if (!down) return
+        if (view == BoardView.Sketch) { if (key == "Escape") cancelDrag(); return }
         if (key == "Escape") { cancel(); setInteraction("select"); return }
         if (key.lowercase() == "n" && event.ctrlKey != true && event.metaKey != true && event.altKey != true) {
             event.preventDefault()
@@ -460,19 +708,22 @@ class BoardCanvas {
         if (problem != null) { message(problem); return false }
         val item = board.item(to)!!; val prerequisite = board.item(from)!!
         host.edit(BoardEdit.Connect(from, to), item).problem?.let { message(it); return false }
-        if (visible().none { it.key == to }) { selected = to; reveal = to; host.reveal(to) }
+        if (items.none { it.key == to }) { selected = to; reveal = to; host.reveal(to) }
         message("Connected ${quoted(prerequisite.title)} → ${quoted(item.title)}."); return true
     }
 
     fun creationPoint(at: BoardPoint?, after: String?, lane: String): BoardPoint {
+        if (view == BoardView.Kanban) return board.slot(lane, lanes()[lane].orEmpty().size)
         val state = api?.getAppState(); val zoom = number(state?.zoom?.value).takeIf { it > 0 } ?: 1.0
         val centre = BoardPoint(number(state?.width) / (2 * zoom) - number(state?.scrollX) - BoardGeometry.CardWidth / 2,
             number(state?.height) / (2 * zoom) - number(state?.scrollY) - BoardGeometry.CardHeight / 2)
-        return board.creationPoint(view, visible(), saved(), positions, at, after, lane, centre)
+        return board.creationPoint(BoardView.Dag, items, saved(), positions, at, after, lane, centre)
     }
 
     fun showInline(request: BoardCreation) {
-        inline = request; sync()
+        inline = request
+        if (!view.scene) { onView(); return }
+        sync()
         val id = request.editing?.let { BoardIds.card(it.key) } ?: BoardIds.Draft
         val convert = kit?.convert
         val target = if (convert == null) null else convert(arrayOf(obj("type" to "rectangle", "x" to request.at.x - 16, "y" to request.at.y - 16, "width" to 332, "height" to 290, "id" to "$id:focus")), obj("regenerateIds" to false))
@@ -486,13 +737,14 @@ class BoardCanvas {
         board.titleProblem(title)?.let { return it }
         board.creationProblem(lane)?.let { return it }
         val before = after?.let { key -> board.item(key) ?: return "The ${words.after} is no longer available." }
-        if (before != null && view != BoardView.Dag) return "Switch to DAG to connect a new ${words.one}."
+        if (before != null && !view.scene) return "Switch to DAG to connect a new ${words.one}."
+        load()
         val place = creationPoint(at, after, lane)
-        val outcome = host.edit(BoardEdit.Create(title.trim(), lane, after, place.takeIf { view == BoardView.Dag }, fields), before)
+        val outcome = host.edit(BoardEdit.Create(title.trim(), lane, after, place.takeIf { view.scene }, fields), before)
         outcome.problem?.let { return it }
         outcome.key?.let { key ->
-            positions.forEach { (other, point) -> if (other !in layout()) layout()[other] = point }
-            layout()[key] = place
+            if (view.scene) { positions.forEach { (other, point) -> if (other !in dag()) dag()[other] = point }; dag()[key] = place }
+            else kanban()[key] = place
             selected = key; reveal = key; persist()
         }
         message(if (before == null) "${words.oneTitle} created. Select its card to add details." else "${words.oneTitle} created and connected after ${quoted(before.title)}.")
@@ -506,7 +758,7 @@ class BoardCanvas {
     }
 
     fun disconnect(item: BoardItem, prerequisite: String) {
-        if (view != BoardView.Dag || !editable(item)) { message("Switch to DAG to edit ${words.afters} on writable ${words.many}."); return }
+        if (!view.scene || !editable(item)) { message("Switch to DAG to edit ${words.afters} on writable ${words.many}."); return }
         val now = board.item(item.key) ?: return
         host.edit(BoardEdit.Disconnect(prerequisite, now.key), now).problem?.let { message(it); return }
         message("${words.afterTitle} removed.")
@@ -520,7 +772,7 @@ class BoardCanvas {
         if (target.review) review(item) else host.edit(BoardEdit.Move(item.key, lane), item).problem?.let(message)
     }
 
-    fun close() { disposed = true; cancelDrag(); if (mountFrame != null) js("cancelAnimationFrame")(mountFrame); mountFrame = null; api = null }
+    fun close() { flushSketch(); disposed = true; cancelDrag(); if (mountFrame != null) js("cancelAnimationFrame")(mountFrame); mountFrame = null; api = null; drawn = null }
 
     private object Detached : BoardHost {
         override fun edit(edit: BoardEdit, before: BoardItem?) = BoardOutcome("This board is not connected.")

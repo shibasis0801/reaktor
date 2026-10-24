@@ -1,8 +1,10 @@
 package dev.shibasis.reaktor.board.web
 
+import dev.shibasis.reaktor.board.BoardPoint
 import dev.shibasis.reaktor.board.indefinite
 import react.useEffectOnce
 import react.useEffectOnceWithCleanup
+import react.useMemo
 import react.useRef
 import react.useState
 import kotlin.math.max
@@ -33,11 +35,11 @@ internal val BoardComposer: dynamic = { props: dynamic ->
         if (problem != null) { setError(problem); return false }
         close(); return true
     }
+    val token = useMemo { js("({})") }
     props.guard.current = { finish() }
-    props.guard.key = request.id
-    useEffectOnceWithCleanup { onCleanup { if (props.guard.key == request.id) props.guard.current = null } }
-    val pixel = canvas.pixel(request.at)
-    val scale = canvas.scale()
+    props.guard.key = token
+    useEffectOnceWithCleanup { onCleanup { if (props.guard.key === token) props.guard.current = null } }
+    val flow = props.flow == true
     fun field(field: BoardField): dynamic =
         if (field.fixed) el("span", obj("key" to field.id, "className" to "board-inline-label"), field.value)
         else if (field.options.isEmpty()) el("input", obj("key" to field.id, "className" to "board-inline-field", "aria-label" to field.label, "placeholder" to field.placeholder,
@@ -47,8 +49,8 @@ internal val BoardComposer: dynamic = { props: dynamic ->
             *field.options.map { el("option", obj("key" to it.value, "value" to it.value), it.label) }.toTypedArray())
     val heading = if (request.editing != null) "Edit ${words.one} title" else if (before == null) "Add ${words.one}" else "Add next ${words.one}"
     val choices = board.creatable
-    el("div", obj("className" to "board-inline-editor", "data-board-ui" to true, "role" to "group", "aria-label" to heading,
-        "style" to obj("left" to pixel.x, "top" to pixel.y, "transform" to "scale($scale)"),
+    el("div", obj("className" to if (flow) "board-inline-editor is-flow" else "board-inline-editor", "data-board-ui" to true, "role" to "group", "aria-label" to heading,
+        "style" to if (flow) null else obj("left" to request.at.x, "top" to request.at.y),
         "onBlur" to { event: dynamic -> if (event.currentTarget.contains(event.relatedTarget) != true) finish() },
         "onKeyDown" to { event: dynamic ->
             if (event.nativeEvent?.isComposing != true && number(event.keyCode) != 229.0) {
@@ -93,11 +95,11 @@ internal val BoardConnector: dynamic = { props: dynamic ->
         onCleanup { document.removeEventListener("pointerdown", outside, true) }
     }
     val candidates = board.items.filter { it.key != from && it.title.contains(query, ignoreCase = true) }.sortedBy { canvas.problem(from, it.key) != null }
-    val anchor = canvas.anchors().find { it.item.key == from }
+    val corner = canvas.anchors().find { it.item.key == from }?.let { canvas.pixel(BoardPoint(it.x + it.width, it.y)) }
     val width = min(320.0, max(240.0, number(canvas.element?.clientWidth) - 24))
     val height = max(200.0, min(380.0, number(canvas.element?.clientHeight) - 24))
-    val left = (anchor?.let { it.x + it.width + 18 } ?: 12.0).coerceIn(12.0, max(12.0, number(canvas.element?.clientWidth) - width - 12))
-    val top = (anchor?.y ?: 12.0).coerceIn(12.0, max(12.0, number(canvas.element?.clientHeight) - height - 12))
+    val left = (corner?.let { it.x + 18 } ?: 12.0).coerceIn(12.0, max(12.0, number(canvas.element?.clientWidth) - width - 12))
+    val top = (corner?.y ?: 12.0).coerceIn(12.0, max(12.0, number(canvas.element?.clientHeight) - height - 12))
     fun dismiss() { props.close(); canvas.element?.focus(obj("preventScroll" to true)) }
     fun connect(key: String) {
         if (canvas.connect(from, key)) { canvas.sync(); dismiss() }

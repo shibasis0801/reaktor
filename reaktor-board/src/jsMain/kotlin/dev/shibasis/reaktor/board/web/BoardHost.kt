@@ -8,7 +8,7 @@ import dev.shibasis.reaktor.board.BoardTheme
 
 class BoardKit(val canvas: dynamic, val convert: dynamic, val neverCapture: dynamic)
 
-data class BoardOutcome(val problem: String? = null, val key: String? = null)
+data class BoardOutcome(val problem: String? = null, val key: String? = null, val created: Map<String, String> = emptyMap())
 
 data class BoardOption(val value: String, val label: String)
 
@@ -59,6 +59,7 @@ class BoardSlots(
     val graph: (((String) -> Unit) -> dynamic)? = null,
     val tabs: Boolean = true,
     val empty: String = "",
+    val toolbar: ((dynamic) -> dynamic)? = null,
 )
 
 class BoardModel(
@@ -75,6 +76,7 @@ class BoardModel(
     val label: String = "",
     val onView: (dev.shibasis.reaktor.board.BoardView) -> Unit = {},
     val canvas: BoardCanvas? = null,
+    val notices: List<String> = emptyList(),
 )
 
 data class BoardCreation(val id: Int, val at: BoardPoint, val after: String?, val lane: String, val fields: Map<String, String>, val editing: BoardItem? = null)

@@ -15,6 +15,7 @@ internal fun obj(vararg entries: Pair<String, Any?>): dynamic {
 internal fun values(value: dynamic): Array<dynamic> = value as Array<dynamic>? ?: emptyArray()
 internal fun text(value: dynamic): String = value as String? ?: ""
 internal fun number(value: dynamic): Double = (value as Number?)?.toDouble() ?: 0.0
+internal fun optional(value: dynamic): String? = if (jsTypeOf(value) == "string") value.unsafeCast<String>() else null
 
 internal fun el(type: dynamic, props: dynamic = null, vararg children: dynamic): dynamic =
     createElement(type.unsafeCast<ElementType<Props>>(), props.unsafeCast<Props?>(), *children.unsafeCast<Array<ReactNode?>>())
@@ -29,3 +30,5 @@ internal fun toolAction(label: String, path: String, callback: () -> Unit, varar
         el("span", obj("className" to "board-tool-label"), label))
 
 internal fun quoted(value: String) = "“$value”"
+
+internal fun closest(target: dynamic, selector: String): dynamic = if (target?.closest == null) null else target.closest(selector)

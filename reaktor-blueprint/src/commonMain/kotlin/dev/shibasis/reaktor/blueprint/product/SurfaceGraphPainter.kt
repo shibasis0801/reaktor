@@ -536,6 +536,18 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
                 when (n.symbol) {
                     "course" -> { drawRoundRect(white, Offset(1.5f, 2.5f), Size(13f, 11f), CornerRadius(2.5f), style = Stroke(1.6f)); drawPath(Path().apply { moveTo(6.5f, 5.6f); lineTo(6.5f, 10.4f); lineTo(10.6f, 8f); close() }, white) }
                     "mission" -> { drawCircle(white, 6f, Offset(8f, 8f), style = Stroke(1.6f)); drawCircle(white, 2.4f, Offset(8f, 8f)) }
+                    "plan" -> {
+                        drawRoundRect(white, Offset(1.5f, 3f), Size(13f, 11.5f), CornerRadius(2f), style = Stroke(1.5f))
+                        drawLine(white, Offset(1.5f, 6.6f), Offset(14.5f, 6.6f), 1.5f)
+                        drawLine(white, Offset(5f, 1.4f), Offset(5f, 4.4f), 1.5f, StrokeCap.Round)
+                        drawLine(white, Offset(11f, 1.4f), Offset(11f, 4.4f), 1.5f, StrokeCap.Round)
+                    }
+                    "rhythm" -> {
+                        drawArc(white, -50f, 290f, false, Offset(2f, 2f), Size(12f, 12f), style = Stroke(1.6f, cap = StrokeCap.Round))
+                        drawPath(Path().apply { moveTo(10.4f, 1.6f); lineTo(14.2f, 3.4f); lineTo(11f, 5.8f); close() }, white)
+                    }
+                    "chapter" -> drawPath(Path().apply { moveTo(4f, 2f); lineTo(12f, 2f); lineTo(12f, 14f); lineTo(8f, 10.8f); lineTo(4f, 14f); close() }, white,
+                        style = Stroke(1.5f, join = StrokeJoin.Round))
                     else -> drawPath(Path().apply { moveTo(8f, 3.6f); cubicTo(6.4f, 2.6f, 4.3f, 2.3f, 1.8f, 2.6f); lineTo(1.8f, 12.6f); cubicTo(4.3f, 12.3f, 6.4f, 12.6f, 8f, 13.6f); cubicTo(9.6f, 12.6f, 11.7f, 12.3f, 14.2f, 12.6f); lineTo(14.2f, 2.6f); cubicTo(11.7f, 2.3f, 9.6f, 2.6f, 8f, 3.6f); moveTo(8f, 3.6f); lineTo(8f, 13.6f) }, white, style = Stroke(1.5f, join = StrokeJoin.Round))
                 }
             }

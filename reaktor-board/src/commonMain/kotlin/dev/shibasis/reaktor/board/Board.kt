@@ -10,7 +10,11 @@ data class BoardPoint(val x: Double, val y: Double)
 enum class BoardInk { Muted, Accent, Busy, Warn, Ok, Danger, Topic }
 
 @Serializable
-enum class BoardView(val label: String, val storage: String) { Dag("DAG", "graph"), Kanban("Kanban", "kanban"), Graph("Graph", "relations") }
+enum class BoardView(val label: String, val storage: String) {
+    Dag("DAG", "graph"), Sketch("Sketch", "sketch"), Kanban("Kanban", "kanban"), Graph("Graph", "relations");
+
+    val scene: Boolean get() = this == Dag || this == Sketch
+}
 
 @Serializable
 data class BoardLane(
@@ -84,6 +88,7 @@ data class Board(
     val views: List<BoardView> = listOf(BoardView.Dag, BoardView.Kanban),
     val locked: String = "",
     val titleLimit: Int = 300,
+    val notes: Boolean = false,
 ) {
     @Transient private val keyed: Map<String, BoardItem> = items.associateBy { it.key }
     @Transient private val laneIndex: Map<String, Int> = lanes.withIndex().associate { it.value.id to it.index }
@@ -91,7 +96,6 @@ data class Board(
     fun item(key: String?): BoardItem? = key?.let(keyed::get)
     fun lane(id: String?): BoardLane? = id?.let(laneIndex::get)?.let(lanes::get)
     fun laneX(id: String): Double = BoardGeometry.LaneLeft + (laneIndex[id] ?: 0) * BoardGeometry.LanePitch
-    fun laneAt(centerX: Double): BoardLane? = lanes.firstOrNull { centerX >= laneX(it.id) && centerX < laneX(it.id) + BoardGeometry.LaneWidth }
     fun slot(lane: String, index: Int) = BoardPoint(laneX(lane) + BoardGeometry.LaneInset, BoardGeometry.CardTop + index * BoardGeometry.CardPitch)
     val creatable: List<BoardLane> get() = if (locked.isNotBlank()) emptyList() else lanes.filter { it.create }
     val reviewLane: BoardLane? get() = lanes.firstOrNull { it.review }
@@ -101,7 +105,7 @@ data class Board(
         val target = item(to) ?: return "This ${words.one} is no longer available."
         return when {
             locked.isNotBlank() -> locked
-            view != BoardView.Dag ->"Switch to DAG to edit ${words.afters}."
+            !view.scene -> "Switch to DAG to edit ${words.afters}."
             !target.editable -> "This ${words.one} is read only."
             from in target.after -> "This ${words.after} is already connected."
             target.after.size >= limit -> "A ${words.one} can have up to $limit ${if (limit == 1) words.after else words.afters}."

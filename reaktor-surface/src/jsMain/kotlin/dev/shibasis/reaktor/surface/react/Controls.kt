@@ -242,7 +242,7 @@ object SurfaceReact {
         val machine = useSurfaceMachine(ToastKernel, Unit) { _: ToastEvent -> }
         useEffectWithCleanup(props.messageId) {
             if (props.message != null) machine.send(ToastInput.Show(ToastEntry((props.messageId as Number).toLong(), props.message as String,
-                ((props.duration as Int?) ?: 5000).milliseconds)))
+                ((props.duration as Int?) ?: 5000).milliseconds), replace = props.replace == true))
         }
         val toast = machine.state.shown
         return surfaceAppearance("ToastHost", props, element("div", attrs("role" to "status", "aria-live" to "polite", "className" to "surface-toasts",

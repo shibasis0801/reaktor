@@ -75,6 +75,27 @@ sealed class BoardEdit {
 
     @Serializable @SerialName("review")
     data class Review(val key: String) : BoardEdit()
+
+    @Serializable @SerialName("sketch")
+    data class Sketch(val lane: String, val cards: List<SketchCard>, val links: List<SketchLink> = emptyList(), val notes: List<SketchNote> = emptyList()) : BoardEdit() {
+        fun prerequisites(key: String): List<String> = links.filter { it.to == key }.map { it.from }
+
+        fun ordered(): List<SketchCard> {
+            val refs = cards.mapTo(HashSet()) { it.ref }
+            val waiting = cards.associate { card -> card.ref to prerequisites(card.ref).count(refs::contains) }.toMutableMap()
+            val ready = ArrayDeque(cards.filter { waiting[it.ref] == 0 })
+            val placed = ArrayList<SketchCard>(cards.size)
+            while (ready.isNotEmpty()) {
+                val card = ready.removeFirst()
+                placed += card
+                links.filter { it.from == card.ref && it.to in refs }.forEach { link ->
+                    waiting[link.to] = waiting.getValue(link.to) - 1
+                    if (waiting[link.to] == 0) ready.addLast(cards.first { it.ref == link.to })
+                }
+            }
+            return placed + cards.filter { it !in placed }
+        }
+    }
 }
 
 @Serializable
@@ -87,7 +108,7 @@ data class BoardChange(val edit: BoardEdit, val revision: Long? = null) : Reques
 data class BoardSelect(val key: String? = null, val open: Boolean = false) : Request()
 
 @Serializable
-data class BoardReceipt(val revision: Long? = null, val error: String? = null, val key: String? = null) : Response()
+data class BoardReceipt(val revision: Long? = null, val error: String? = null, val key: String? = null, val created: Map<String, String> = emptyMap()) : Response()
 
 interface BoardSource {
     val changes: Flow<BoardSnapshot>

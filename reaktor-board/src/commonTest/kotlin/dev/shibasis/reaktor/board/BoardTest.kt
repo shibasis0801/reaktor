@@ -75,41 +75,48 @@ class BoardTest {
     }
 
     @Test
-    fun kanbanSceneMatchesTheMissionGeometry() {
+    fun kanbanOrderKeepsSavedSlotsAndAppendsTheRest() {
         val shown = items
         val at = board.positions(BoardView.Kanban, shown, emptyMap())
         assertEquals(BoardPoint(68.0, 126.0), at["c"])
         assertEquals(BoardPoint(68.0, 326.0), at["d"])
         assertEquals(BoardPoint(432.0, 126.0), at["b"])
-        val shapes = board.scene(BoardFrame(BoardView.Kanban, shown, at, selected = "b")).associateBy { it.id }
-        assertEquals(BoardBox("lane:next", 48.0, 32.0, 340.0, 700.0, "#e6eaf1", "#f6f7fb"), shapes["lane:next"])
-        assertEquals(BoardLabel("lane:count:next", "2", 349.0, 58.0, 14, "#8591a6"), shapes["lane:count:next"])
-        assertEquals(BoardBox("card:b", 432.0, 126.0, 300.0, 180.0, "#8370e7", "#ffffff", 1.8), shapes["card:b"])
-        assertEquals(BoardLabel("card:b:code", "MANNA", 454.0, 149.0, 12, "#93a0b5"), shapes["card:b:code"])
-        assertEquals(BoardLabel("card:b:initials", "SH", 685.0, 274.0, 11, "#7868b1"), shapes["card:b:initials"])
-        assertEquals(BoardLabel("card:c:dependencies", "1 prerequisite", 90.0, 277.0, 12, "#94a0b5"), shapes["card:c:dependencies"])
+        assertEquals(listOf("d", "c"), board.order("next", shown, mapOf("d" to BoardPoint(68.0, 126.0))).map { it.key })
         assertEquals("No prerequisites", board.words.count(0))
-        assertTrue("card:c:code" !in shapes && "card:b:halo" in shapes)
+    }
+
+    @Test
+    fun dagCardsGroupTheirShapesAndShowLaneAndPrerequisites() {
+        val at = board.positions(BoardView.Dag, items, emptyMap())
+        val groups = board.groups(BoardFrame(items, at, selected = "b")).associateBy { it.id }
+        val card = groups.getValue("card:b").shapes.associateBy { it.id }
+        assertEquals(BoardBox("card:b", 448.0, 80.0, 300.0, 180.0, "#8370e7", "#ffffff", 1.8), card["card:b"])
+        assertEquals(BoardLabel("card:b:code", "MANNA", 470.0, 103.0, 12, "#93a0b5"), card["card:b:code"])
+        assertEquals(BoardLabel("card:b:initials", "SH", 701.0, 228.0, 11, "#7868b1"), card["card:b:initials"])
+        assertEquals(BoardLabel("card:b:dependencies", "In progress · 1 prerequisite", 470.0, 231.0, 12, "#94a0b5"), card["card:b:dependencies"])
+        assertTrue("card:b:halo" in card && "card:c:halo" !in groups.getValue("card:c").shapes.map { it.id })
+        assertEquals(listOf("dependency:card:a:card:b", "dependency:card:b:card:c", "dependency:card:b:card:d", "card:a", "card:b", "card:c", "card:d"), groups.keys.toList())
         val status = board.copy(items = items.map { if (it.key == "c") it.copy(footer = "Codex · running the parser checks again") else it })
-        assertEquals("Codex · running the parser checks…", (status.scene(BoardFrame(BoardView.Kanban, status.items, at)).first { it.id == "card:c:dependencies" } as BoardLabel).text)
+        assertEquals("Codex · running the parser checks…", (status.scene(BoardFrame(status.items, at)).first { it.id == "card:c:dependencies" } as BoardLabel).text)
     }
 
     @Test
     fun dagSceneDrawsElbowArrows() {
         val at = board.positions(BoardView.Dag, items, mapOf("c" to BoardPoint(900.0, 400.0)))
-        val shapes = board.scene(BoardFrame(BoardView.Dag, items, at)).associateBy { it.id }
+        val shapes = board.scene(BoardFrame(items, at)).associateBy { it.id }
         assertEquals(BoardArrow("dependency:card:b:card:c", 748.0, 170.0, 152.0, 320.0, "#b4bad0", ends = BoardEnds("b", "c")), shapes["dependency:card:b:card:c"])
         assertEquals(BoardLabel("card:c:dependencies", "To do · 1 prerequisite", 922.0, 551.0, 12, "#94a0b5"), shapes["card:c:dependencies"])
     }
 
     @Test
-    fun reflowInsertsWithoutOverlap() {
+    fun reorderInsertsAtTheIndexAndRenumbersTheLane() {
         val laid = board.positions(BoardView.Kanban, items, emptyMap())
         val moving = items.first { it.key == "b" }
-        val placed = board.reflow("next", items, laid, moving, 300.0)
+        val placed = board.reorder("next", items, laid, moving, 1)
         assertEquals(BoardPoint(68.0, 126.0), placed["c"])
         assertEquals(BoardPoint(68.0, 326.0), placed["b"])
         assertEquals(BoardPoint(68.0, 526.0), placed["d"])
+        assertEquals(BoardPoint(68.0, 526.0), board.reorder("next", items, laid, moving, 99)["b"])
     }
 
     @Test

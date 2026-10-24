@@ -160,7 +160,9 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     }
 
     internal fun migrations(node: NodeId): TaskProvider<dev.shibasis.dependeasy.cloudflare.D1Migration> =
-        commandKernel.register(dev.shibasis.dependeasy.cloudflare.D1Migration::class.java, "migrations", null, taskName = node.name)
+        commandKernel.register(dev.shibasis.dependeasy.cloudflare.D1Migration::class.java, "migrations", null, taskName = node.name).also {
+            it.configure { sourceFiles.setFrom(project.fileTree(directory.resolve("migrations"))) }
+        }
 
     internal fun secrets(node: NodeId): TaskProvider<dev.shibasis.dependeasy.cloudflare.WorkerSecrets> =
         commandKernel.register(dev.shibasis.dependeasy.cloudflare.WorkerSecrets::class.java, "secrets", null, taskName = node.name)

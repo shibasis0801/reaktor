@@ -40,12 +40,15 @@ private class BridgeHost(private val client: BoardClient, private val canvas: Bo
         sending(1)
         client.change(BoardChange(edit, revision)).then({ receipt ->
             sending(-1)
-            receipt.error?.let { refused(edit, it) }
+            val error = receipt.error
+            if (error != null) refused(edit, error) else if (edit is BoardEdit.Sketch) canvas.adopt(edit, receipt.created)
         }, { failure -> sending(-1); refused(edit, failure.message ?: "The change could not be sent.") })
         return BoardOutcome()
     }
     private fun refused(edit: BoardEdit, reason: String) {
         if (edit is BoardEdit.Place) canvas.unplace(edit.key)
+        if (edit is BoardEdit.Move) canvas.unmove(edit.key)
+        if (edit is BoardEdit.Sketch) canvas.restore()
         canvas.message(reason)
     }
 }
@@ -70,7 +73,7 @@ object ReaktorBoardWeb {
         val current = snapshot ?: return el("p", obj("className" to "board-waiting", "role" to "status"), failure ?: "Opening the board…")
         val theme = current.theme ?: BoardTheme()
         val model = BoardModel(current.board, current.board.items, host, kit, "reaktor-board:${current.layout}", current.active, current.view,
-            BoardSync(pending = inFlight > 0), theme, BoardSlots(tabs = false, empty = current.empty), canvas = canvas)
+            BoardSync(pending = inFlight > 0), theme, BoardSlots(tabs = false, empty = current.empty, toolbar = { null }), canvas = canvas)
         return el(BoardWorkbench, obj("model" to model))
     }
 }

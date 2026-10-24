@@ -40,6 +40,7 @@ internal fun installKotlinPnpmBridge(project: Project) {
             workspaceDefinition.set(workspace.directory.resolve("pnpm-workspace.yaml"))
             contract.set(project.layout.buildDirectory.file("dependeasy/web/workspace.json"))
         }
+        root.rootPackageJsonTaskProvider.configure { outputs.upToDateWhen { false } }
         dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project).reference(project, synchronize,
             dev.shibasis.dependeasy.model.OutputKind.GeneratedContract)
         project.allprojects.forEach { child ->

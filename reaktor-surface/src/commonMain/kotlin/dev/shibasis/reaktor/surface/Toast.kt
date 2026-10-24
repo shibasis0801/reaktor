@@ -12,7 +12,7 @@ data class ToastState(
 )
 
 sealed interface ToastInput {
-    data class Show(val entry: ToastEntry) : ToastInput
+    data class Show(val entry: ToastEntry, val replace: Boolean = false) : ToastInput
     data class Elapsed(val ticket: Ticket) : ToastInput
     data class Dismiss(val id: Long) : ToastInput
     data class Hold(val holding: Boolean) : ToastInput
@@ -27,9 +27,14 @@ object ToastKernel : BehaviorKernel<Unit, ToastState, ToastInput, ToastEvent> {
     override fun initial(properties: Unit) = ToastState()
 
     override fun reduce(properties: Unit, state: ToastState, input: ToastInput): Reduction<ToastState, ToastEvent> = when (input) {
-        is ToastInput.Show ->
-            if (state.shown == null) present(state, input.entry, emptyList(), emptyList())
-            else Reduction(state.copy(waiting = state.waiting + input.entry))
+        is ToastInput.Show -> {
+            val shown = state.shown
+            when {
+                shown == null -> present(state, input.entry, emptyList(), emptyList())
+                input.replace -> present(state.copy(waiting = emptyList()), input.entry, listOf(ToastEvent.Hidden(shown)), listOfNotNull(state.ticket?.let { LocalCommand.Cancel(it) }))
+                else -> Reduction(state.copy(waiting = state.waiting + input.entry))
+            }
+        }
         is ToastInput.Elapsed ->
             if (input.ticket != state.ticket) Reduction(state)
             else next(state, emptyList())
