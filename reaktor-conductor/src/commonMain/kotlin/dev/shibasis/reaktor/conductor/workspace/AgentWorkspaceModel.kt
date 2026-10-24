@@ -95,6 +95,17 @@ data class AgentSubmission(
     val allowedChecks: List<String> = emptyList(),
     val parentRunId: String? = null,
     val resolvedSeat: ResolvedTaskSeat? = null,
+    val task: AgentTaskTarget? = null,
+)
+
+@Serializable
+data class AgentTaskTarget(
+    val graph: String,
+    val task: String,
+    val attempt: Int,
+    val evidenceTask: String = task,
+    val worktree: String? = null,
+    val candidate: String? = null,
 )
 
 @Serializable

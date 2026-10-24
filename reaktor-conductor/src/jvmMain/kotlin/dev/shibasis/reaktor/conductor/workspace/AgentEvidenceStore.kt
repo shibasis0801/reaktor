@@ -22,7 +22,8 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
     }
     @Synchronized internal fun recordCandidate(taskId: String, candidate: AgentCandidate) {
         val task = get(taskId)
-        save(task.copy(candidates = (task.candidates.filterNot { it.id == candidate.id } + candidate).takeLast(100)))
+        save(task.copy(candidates = (task.candidates.filterNot { it.id == candidate.id } + candidate).takeLast(100),
+            acceptedCandidate = task.acceptedCandidate?.takeIf { it == candidate.id }))
     }
     @Synchronized fun requireChecks(taskId: String, checks: List<String>): AgentTaskEvidence {
         require(checks.size <= 30 && checks.all { it.isNotBlank() && it.length <= 200 })
@@ -36,7 +37,7 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
         require(finding.title.isNotBlank() && finding.title.length <= 300 && finding.detail.length <= 8000)
         require(finding.resolvedByCandidate == null && finding.resolution == null)
         finding.sourcePath?.let { path ->
-            require(!File(path).isAbsolute && candidate.sourceRoots.any { File(root, path).canonicalFile.toPath().startsWith(File(it).toPath()) })
+            require(!File(path).isAbsolute && candidate.sourceRoots.any { File(candidate.workspaceRoot, path).canonicalFile.toPath().startsWith(File(it).canonicalFile.toPath()) })
             require(path in candidate.changedFiles || candidate.subjects.any { it.sourcePath == path }) { "Finding source is outside candidate evidence" }
         }
         finding.subject?.let { require(it in candidate.subjects) { "Unknown graph subject" } }
@@ -63,7 +64,8 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
     @Synchronized fun accept(taskId: String, candidateId: String): AgentTaskEvidence {
         val task = get(taskId)
         val candidate = task.candidates.single { it.id == candidateId }
-        val now = candidates.capture(candidate.subjects)
+        val now = if (File(candidate.workspaceRoot).canonicalFile == root.canonicalFile) candidates.capture(candidate.subjects)
+            else SourceCandidates(File(candidate.workspaceRoot), artifacts, candidate.sourceRoots.map(::File)).capture(candidate.subjects)
         require(candidate.complete && now.complete && now.id == candidate.id) { "Source changed or candidate coverage is incomplete" }
         require(task.requiredChecks.isNotEmpty()) { "Declare acceptance checks first" }
         require(task.requiredChecks.all { id -> task.checks.any {

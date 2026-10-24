@@ -9,6 +9,11 @@ import dev.shibasis.reaktor.tooling.gradleSourceRoots
 
 /** Captures working files, not just HEAD. A budget miss prevents an acceptance claim. */
 class SourceCandidates(private val root: File, private val artifacts: LocalAgentArtifacts) {
+    private var materializedRoots: List<File>? = null
+    internal constructor(root: File, artifacts: LocalAgentArtifacts, roots: List<File>) : this(root, artifacts) {
+        require(roots.size in 1..16 && roots.any { it.canonicalFile == root.canonicalFile })
+        materializedRoots = roots.map(File::getCanonicalFile).distinct()
+    }
     fun capture(subjects: List<AgentGraphSubject> = emptyList()): AgentCandidate = capture(subjects, mutableSetOf())
     private fun capture(subjects: List<AgentGraphSubject>, visited: MutableSet<String>): AgentCandidate {
         visited += root.canonicalPath
@@ -68,14 +73,14 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
             }
             hash.update(0)
         }
-        val declared = gradleSourceRoots(root)
-        if (declared.unresolved) notices += "Dynamic included-build roots require an evaluated build graph"
-        val outside = declared.roots.map(File::getCanonicalFile).distinct()
+        val declared = if (materializedRoots == null) gradleSourceRoots(root) else null
+        if (declared?.unresolved == true) notices += "Dynamic included-build roots require an evaluated build graph"
+        val outside = (materializedRoots ?: requireNotNull(declared).roots).map(File::getCanonicalFile).distinct()
             .filter { it.canonicalPath !in visited && !it.toPath().startsWith(root.canonicalFile.toPath()) }
         val dependencies = outside.filter { dependency -> outside.none { it != dependency && dependency.toPath().startsWith(it.toPath()) } }
         val captured = dependencies.take((16 - visited.size).coerceAtLeast(0)).mapNotNull { dependency ->
             if (!dependency.isDirectory) { notices += "Missing included source root: ${dependency.path}"; null }
-            else SourceCandidates(dependency, artifacts).capture(emptyList(), visited).also {
+            else (materializedRoots?.let { SourceCandidates(dependency, artifacts, it) } ?: SourceCandidates(dependency, artifacts)).capture(emptyList(), visited).also {
                 hash.update(it.id.toByteArray())
                 if (!it.complete) notices += it.notices.map { notice -> "${dependency.name}: $notice" }
             }
@@ -104,7 +109,7 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
             if (it.toByteArray().size > 16_000_000) { notices += "Combined diff exceeds 16 MB"; null } else artifacts.put(it, "source-diff")
         }
         val allChanged = changed.filter { it.isNotBlank() } + captured.flatMap { child ->
-            val prefix = File(child.workspaceRoot).relativeTo(root).path
+            val prefix = File(child.workspaceRoot).relativeTo(root.canonicalFile).path
             child.changedFiles.map { "$prefix/$it" }
         }
         return AgentCandidate(digest(root.canonicalPath + "\n" + base + "\n" + sourceDigest), root.canonicalPath,

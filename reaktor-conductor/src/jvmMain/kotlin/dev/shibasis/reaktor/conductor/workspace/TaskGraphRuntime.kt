@@ -232,6 +232,20 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 stageChangedAt = if (stage != value.stage) System.currentTimeMillis() else value.stageChangedAt,
                 history = (value.history + BoardEvent(System.currentTimeMillis(), scope.by, "${message.state.name} after attempt ${current.attempt}")).takeLast(50))
         }
+        if (message.state == TaskState.Succeeded && plan.kind == TaskKind.Agent) {
+            val evidence = scope.workspace.evidence.get(task.id)
+            val candidate = evidence.candidates.firstOrNull { it.id == outcome.candidateId }
+            val records = store.coordination(graphId)
+            store.appendHandoff(TaskHandoff(graphId, task.id, plan.attempt,
+                goal = task.intent.ifBlank { task.title }.take(4000), done = outcome.summary.ifBlank { "Completed the task" }.take(8000),
+                candidate = outcome.candidateId,
+                changedPaths = (candidate?.changedFiles ?: outcome.files).take(100),
+                checkReceipts = evidence.checks.filter { it.candidateId == outcome.candidateId }.map { it.id }.distinct().take(50),
+                reviewReceipts = if (plan.contract == WorkflowContract.Decision) listOfNotNull(outcome.log) else emptyList(),
+                openIssues = (outcome.questions + evidence.findings.filter { it.resolvedByCandidate != outcome.candidateId }.map { it.title }).take(30).map { it.take(1000) },
+                decisions = records.decisions.takeLast(50).map { it.id },
+                sessionLogs = listOfNotNull(outcome.log)), scope.by)
+        }
         if (message.state == TaskState.Succeeded && plan.contract == WorkflowContract.Decision && message.outcome.verdict == "repair") repair(settled)
     }
 
@@ -239,31 +253,22 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         val members = members()
         val plan = requireNotNull(review.graph)
         if (members.values.any { member -> member.graph?.dependsOn?.any { it.task == review.id && it.condition == TaskCondition.Repair } == true }) return
-        val root = plan.repairOf ?: review.id
-        val rounds = members.values.count { it.graph?.repairOf == root && it.graph.contract == WorkflowContract.Text }
         val graph = store.graph(graphId)
-        if (rounds >= graph.envelope.repairRounds) {
-            store.advance(graphId, review.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Failed, note = "The review still asks for a repair and the envelope's ${graph.envelope.repairRounds} repair rounds are used")) }
+        if (plan.attempt > graph.envelope.repairRounds) {
+            store.advance(graphId, review.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Failed,
+                note = "The review still asks for a repair and the envelope's ${graph.envelope.repairRounds} repair rounds are used")) }
             return
         }
-        val builder = upstreamBuilder(review, members) ?: run {
-            store.advance(graphId, review.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Failed, note = "The review asks for a repair, but no agent task comes before it")) }
+        val builder = upstreamBuilder(review, members)
+        if (builder?.graph?.worktreeId == null) {
+            store.advance(graphId, review.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Failed,
+                note = "The review asks for a repair, but no owned writing task comes before it")) }
             return
         }
-        val passing = members.values.filter { member -> member.graph?.state == TaskState.Pending && member.graph.dependsOn.any { it.task == review.id && it.condition == TaskCondition.Pass } }
-        val ops = listOf<TaskGraphOp>(
-            TaskGraphOp.Add("Repair: ${builder.title}".take(200), key = "repair", intent = "Fix only what the review of ${builder.id} found, and keep unrelated changes.\n\nThe review said:\n${review.graph?.outcome?.summary.orEmpty().take(4_000)}",
-                acceptance = builder.acceptance, scope = builder.scope, seat = builder.graph?.seat, parent = builder.id, dependsOn = listOf(TaskDependency(review.id, TaskCondition.Repair))),
-            TaskGraphOp.Add("Review the repair of ${builder.id}".take(200), key = "rereview", intent = "Review the repair against the original task and the earlier review. Pass only if it now meets the task.",
-                acceptance = builder.acceptance, scope = builder.scope, seat = plan.seat, contract = WorkflowContract.Decision, dependsOn = listOf(TaskDependency("repair"))),
-        ) + passing.flatMap {
-            listOf(TaskGraphOp.Connect(review.id, it.id, TaskCondition.Pass, required = false),
-                TaskGraphOp.Connect("rereview", it.id, TaskCondition.Pass, required = false))
-        }
-        val applied = store.patch(graphId, TaskGraphPatch(ops, "${review.id} asked for a repair", graph.revision), TaskGraphCaller(scope.by, lead = true), approvedBy = "the envelope's repair rounds")
-        applied.tasks.filter { it.graph?.state == TaskState.Pending && it.createdBy == scope.by && it.graph.repairOf == null && it.id !in members }.forEach { added ->
-            store.advance(graphId, added.id) { value, current -> value.copy(graph = current.copy(repairOf = root)) }
-        }
+        store.advance(graphId, builder.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending,
+            repairOf = review.id, readySince = null, note = "Repair requested by ${review.id}: ${plan.outcome?.summary.orEmpty().take(1000)}")) }
+        store.advance(graphId, review.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending,
+            readySince = null, note = "Waiting for ${builder.id} to produce the repair candidate")) }
     }
 
     private fun upstreamBuilder(review: BoardTask, members: Map<String, BoardTask>): BoardTask? {
@@ -273,7 +278,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             val next = members[queue.removeFirst()] ?: continue
             if (!seen.add(next.id)) continue
             val plan = next.graph ?: continue
-            if (plan.kind == TaskKind.Agent && plan.contract == WorkflowContract.Text && plan.seat?.agent != null) return next
+            if (plan.kind == TaskKind.Agent && plan.contract == WorkflowContract.Text && (plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write) return next
             queue.addAll(plan.dependsOn.map { it.task })
         }
         return null
@@ -359,34 +364,68 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
 
     private fun Exception.transient() = message.orEmpty().let { "capacity is busy" in it || "draining" in it || "closed" in it }
 
+    private fun reviewInput(plan: TaskPlan): BoardTask? {
+        if (plan.contract != WorkflowContract.Decision) return null
+        val members = store.members(scope.graphId).associateBy { it.id }
+        val pending = ArrayDeque(plan.dependsOn.map { it.task })
+        val seen = mutableSetOf<String>()
+        val inputs = mutableListOf<BoardTask>()
+        while (pending.isNotEmpty()) {
+            val input = members[pending.removeFirst()] ?: continue
+            if (!seen.add(input.id)) continue
+            val source = requireNotNull(input.graph)
+            if (source.worktreeId != null && source.outcome?.candidateId != null && (source.resolvedSeat?.seat ?: source.seat)?.access == TaskAccess.Write) inputs += input
+            else pending.addAll(source.dependsOn.map { it.task })
+        }
+        require(inputs.size <= 1) { "Review requires one integrated input candidate" }
+        return inputs.singleOrNull()
+    }
+
     private suspend fun agent(task: BoardTask, plan: TaskPlan): CoordinatorMessage.Settled {
         val resolved = plan.resolvedSeat ?: requireNotNull(plan.seat?.let(scope.workspace::resolveSeat)) { "${task.id} has no seat" }
         val seat = resolved.seat
         requireNotNull(seat.agent) { "${task.id} has no agent" }
-        val adopted = plan.runId?.let(scope.workspace::get)
+        val input = reviewInput(plan)
+        val target = AgentTaskTarget(scope.graphId, task.id, plan.attempt, input?.id ?: task.id,
+            input?.graph?.worktreeId ?: plan.worktreeId, input?.graph?.outcome?.candidateId)
+        val request = AgentSubmission(
+            requestId = "taskgraph:${scope.graphId}:${task.id}:${plan.attempt}",
+            provider = requireNotNull(seat.agent), prompt = brief(task, plan), model = seat.model,
+            allowWrites = seat.access == TaskAccess.Write,
+            isolation = if (seat.access == TaskAccess.Write) AgentIsolation.Worktree else AgentIsolation.Shared,
+            effort = seat.effort?.let(::NativeEffort), resolvedSeat = resolved, timeoutMillis = 60 * 60 * 1000L, task = target,
+        )
+        var run = plan.runId?.let(scope.workspace::get)
             ?: plan.run?.takeIf { it.startsWith(BoardRefs.Hangar) }?.let(scope.workspace::threadOf)?.let(scope.workspace::latest)
-        val run = adopted ?: run {
-            val record = scope.workspace.submit(AgentSubmission(
-                requestId = "taskgraph:${scope.graphId}:${task.id}:${plan.attempt}",
-                provider = requireNotNull(seat.agent),
-                prompt = brief(task, plan),
-                model = seat.model,
-                allowWrites = seat.access == TaskAccess.Write,
-                isolation = if (seat.access == TaskAccess.Write) AgentIsolation.Worktree else AgentIsolation.Shared,
-                effort = seat.effort?.let(::NativeEffort),
-                resolvedSeat = resolved,
-                timeoutMillis = 60 * 60 * 1000L,
-            ))
-            val ref = BoardRefs.Hangar + record.threadId
-            store.link(task.id, ref, true, scope.by, attempt = plan.attempt)
-            record
+            ?: scope.workspace.submit(request)
+        var tokens = 0L
+        while (true) {
+            store.link(task.id, BoardRefs.Hangar + run.threadId, true, scope.by, attempt = plan.attempt)
+            store.advance(scope.graphId, task.id) { value, current ->
+                require(current.attempt == plan.attempt && current.state == TaskState.Running) { "The task attempt changed before its run was attached" }
+                value.copy(graph = current.copy(runId = run.id))
+            }
+            val done = scope.workspace.settled(run.id)
+            val isolated = scope.workspace.worktreeFor(done.id)
+            if (seat.access == TaskAccess.Write && isolated != null) store.advance(scope.graphId, task.id) { value, current ->
+                require(current.attempt == plan.attempt && current.state == TaskState.Running) { "The writing attempt changed before its worktree was attached" }
+                value.copy(graph = current.copy(worktreeId = isolated.id))
+            }
+            tokens += done.usage?.let { (it.inputTokens ?: 0) + (it.outputTokens ?: 0) } ?: 0
+            val decision = if (done.status == AgentRunStatus.Completed && target.candidate != null) decision(done.output) else null
+            if (decision != null && decision.third != target.candidate) {
+                val reason = "Stale Decision for ${decision.third ?: "an unspecified candidate"}; review candidate ${target.candidate}."
+                store.advance(scope.graphId, task.id) { value, current ->
+                    require(current.attempt == plan.attempt && current.state == TaskState.Running)
+                    value.copy(graph = current.copy(note = reason))
+                }
+                run = scope.workspace.submit(request.copy(requestId = "${request.requestId}:stale:${done.id}",
+                    threadId = done.threadId, prompt = "$reason\nKeep reviewing the assigned checkout. End with {\"verdict\":\"pass\" | \"repair\" | \"fail\",\"summary\":\"what you found\",\"candidate\":\"${target.candidate}\"}."))
+                continue
+            }
+            val result = settled(task, plan, done)
+            return result.copy(outcome = result.outcome.copy(tokens = tokens.takeIf { it > 0 }))
         }
-        store.advance(scope.graphId, task.id) { value, current ->
-            require(current.attempt == plan.attempt && current.state == TaskState.Running) { "The task attempt changed before its run was attached" }
-            value.copy(graph = current.copy(runId = run.id))
-        }
-        val done = scope.workspace.settled(run.id)
-        return settled(task, plan, done)
     }
 
     private fun settled(task: BoardTask, plan: TaskPlan, run: AgentRunRecord): CoordinatorMessage.Settled {
@@ -397,11 +436,12 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             log = ref,
             tokens = run.usage?.let { (it.inputTokens ?: 0) + (it.outputTokens ?: 0) }?.takeIf { it > 0 },
             at = System.currentTimeMillis(),
+            candidateId = run.candidateId,
         )
         fun settled(state: TaskState, outcome: TaskOutcome, transient: Boolean = false) = CoordinatorMessage.Settled(task.id, plan.attempt, state, outcome, transient)
         return when {
             run.status == AgentRunStatus.Completed && plan.contract == WorkflowContract.Decision ->
-                decision(run.output)?.let { (verdict, summary) -> settled(if (verdict == "fail") TaskState.Failed else TaskState.Succeeded, base.copy(verdict = verdict, summary = summary.take(TaskGraphRules.OutcomeChars))) }
+                decision(run.output)?.let { (verdict, summary, _) -> settled(if (verdict == "fail") TaskState.Failed else TaskState.Succeeded, base.copy(verdict = verdict, summary = summary.take(TaskGraphRules.OutcomeChars))) }
                     ?: settled(TaskState.Failed, base.copy(summary = "The review did not end with a Decision object {\"verdict\": \"pass\" | \"repair\" | \"fail\", \"summary\": \"...\"}.\n\n${base.summary}".take(TaskGraphRules.OutcomeChars)))
             run.status == AgentRunStatus.Completed -> settled(TaskState.Succeeded, base)
             run.recovery == AgentRecovery.NeedsReview -> settled(TaskState.Waiting, base.copy(
@@ -445,51 +485,66 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
     }.getOrDefault(emptyList())
 
     private fun brief(task: BoardTask, plan: TaskPlan): String = buildString {
-        val graph = store.graph(scope.graphId)
-        appendLine("You are doing task ${task.id} of the task graph ${graph.id}, \"${graph.title}\", which Hangar runs.")
-        if (graph.goal.isNotBlank()) { appendLine(); appendLine("The graph's goal: ${graph.goal}") }
-        appendLine(); appendLine("Your task: ${task.title}")
-        if (task.intent.isNotBlank()) appendLine(task.intent)
-        if (task.acceptance.isNotEmpty()) { appendLine(); appendLine("Done when:"); task.acceptance.forEach { appendLine("- $it") } }
-        if (task.scope.isNotEmpty()) { appendLine(); appendLine("It touches: ${task.scope.joinToString()}") }
-        val inputs = upstream().map { it.task }.filter { it.graph?.state == TaskState.Succeeded || it.graph?.state == TaskState.Failed }
-        if (inputs.isNotEmpty()) {
-            appendLine(); appendLine("What the tasks before yours produced:")
-            inputs.forEach { input ->
-                val outcome = input.graph?.outcome
-                appendLine(); appendLine("## ${input.id} ${input.title} (${input.graph?.state?.name}${outcome?.verdict?.let { ", verdict $it" }.orEmpty()})")
-                appendLine(outcome?.summary.orEmpty().take(TaskGraphRules.OutcomeChars).ifEmpty { "No summary." })
-                outcome?.files?.takeIf { it.isNotEmpty() }?.let { appendLine("Files: ${it.take(40).joinToString()}") }
-                outcome?.log?.let { appendLine("Read its session with the kernel operation session.log {\"session\": \"$it\"}.") }
-            }
+        val view = store.view(scope.graphId)
+        val graph = view.graph
+        val input = reviewInput(plan)
+        appendLine("You are doing task ${task.id} of task graph ${graph.id}, \"${graph.title}\", which Hangar runs.")
+        appendLine("Your task: ${task.title}")
+        if (plan.contract == WorkflowContract.Decision) {
+            appendLine("Review read-only. End with one JSON object: {\"verdict\": \"pass\" | \"repair\" | \"fail\", \"summary\": \"what you found\", \"candidate\": \"${input?.graph?.outcome?.candidateId.orEmpty()}\"}.")
+            appendLine("Use repair for specific fixes. A Decision for another candidate is stale and cannot complete this review.")
         }
-        appendLine()
-        appendLine("The person approved this envelope: agents ${graph.envelope.agents.joinToString().ifEmpty { "as listed" }}; " +
-            "tasks may write ${graph.envelope.writes.joinToString().ifEmpty { "nothing" }}; at most ${graph.envelope.maxTasks} tasks.")
         appendLine("Always leave these to a person: ${TaskEnvelope.PersonOnly.joinToString()}.")
-        appendLine()
-        appendLine("Through the reaktor MCP server's kernel tool you can call:")
-        appendLine("- taskgraph.read {\"graph\": \"${graph.id}\"} to see the graph and its revision;")
-        appendLine("- taskgraph.patch {\"graph\": \"${graph.id}\", \"expectedRevision\": <revision>, \"reason\": \"...\", \"ops\": [...]} to add subtasks after your task, split your task or remove pending tasks you added, without asking;")
-        appendLine("- taskgraph.report {\"graph\": \"${graph.id}\", \"task\": \"${task.id}\", \"status\": \"NeedsInput\" | \"Blocked\" | \"Failed\", \"summary\": \"...\"} when you are stuck.")
-        appendLine()
-        if (plan.contract == WorkflowContract.Decision) appendLine("End your final message with one JSON object: {\"verdict\": \"pass\" | \"repair\" | \"fail\", \"summary\": \"what you found\"}. " +
-            "Use repair when the work needs specific fixes, and fail when it cannot be repaired.")
-        else appendLine("When you finish, end with a short summary: what you did, the files you changed and the checks you ran.")
-    }
+        appendLine("Approved envelope: agents ${graph.envelope.agents.joinToString().ifEmpty { "as listed" }}; writes ${graph.envelope.writes.joinToString().ifEmpty { "nothing" }}; at most ${graph.envelope.maxTasks} tasks.")
+        appendLine("Kernel: taskgraph.read {\"graph\":\"${graph.id}\"}; taskgraph.patch {\"graph\":\"${graph.id}\",\"expectedRevision\":<revision>,\"reason\":\"...\",\"ops\":[...]}; taskgraph.report {\"graph\":\"${graph.id}\",\"task\":\"${task.id}\",\"status\":\"NeedsInput\" | \"Blocked\" | \"Failed\",\"summary\":\"...\"}.")
+        if (graph.goal.isNotBlank()) appendLine("Graph goal: ${graph.goal.take(800)}")
+        if (task.intent.isNotBlank()) appendLine(task.intent.take(1200))
+        if (task.acceptance.isNotEmpty()) appendLine("Done when: ${task.acceptance.joinToString("; ").take(1000)}")
+        if (task.scope.isNotEmpty()) appendLine("Touches: ${task.scope.joinToString().take(400)}")
+        plan.repairOf?.let { review ->
+            view.handoffs[review]?.let { appendLine("Repair requested by $review: ${it.done.take(1000)}. Keep the existing candidate's unrelated changes.") }
+        }
+        val inputs = upstream().map { it.task }.filter { it.graph?.state == TaskState.Succeeded || it.graph?.state == TaskState.Failed }
+        val budget = ((8000 - length - 200).coerceAtLeast(0) / inputs.size.coerceAtLeast(1)).coerceAtMost(3500)
+        inputs.forEach { source ->
+            val handoff = view.handoffs[source.id]?.takeIf { it.attempt == source.graph?.attempt }
+            appendLine(buildString {
+                appendLine("Input ${source.id} ${source.title}:")
+                if (handoff != null) {
+                    appendLine("Handoff ${handoff.id}; candidate ${handoff.candidate ?: "none"}; attempt ${handoff.attempt}")
+                    appendLine("Goal: ${handoff.goal.take(400)}")
+                    appendLine("Done: ${handoff.done.take(1200)}")
+                    appendLine("Changed paths: ${handoff.changedPaths.joinToString().take(500)}")
+                    appendLine("Checks: ${handoff.checkReceipts.joinToString().take(300)}")
+                    appendLine("Open questions: ${handoff.openIssues.joinToString().take(300)}")
+                    appendLine("Decisions: ${handoff.decisions.joinToString().take(300)}")
+                    appendLine("Session logs: ${handoff.sessionLogs.joinToString()}; read with kernel session.log.")
+                } else {
+                    appendLine(source.graph?.outcome?.summary.orEmpty().take(1500))
+                    source.graph?.outcome?.log?.let { appendLine("Read with kernel session.log {\"session\":\"$it\"}.") }
+                }
+            }.take(budget))
+        }
+        if (plan.contract != WorkflowContract.Decision) appendLine("Finish with the changes, checks and open questions.")
+    }.take(8000)
 
     companion object {
         val Editing = setOf("edit", "write", "multiedit", "notebookedit", "apply_patch", "write_file", "replace", "create_file", "str_replace_based_edit_tool")
         val Patched = Regex("\\*\\*\\* (?:Update|Add|Delete) File: ([^\\n]+)")
 
-        fun decision(text: String): Pair<String, String>? {
+        fun decision(text: String): Triple<String, String, String?>? {
+            fun parse(value: String): Triple<String, String, String?> {
+                val (verdict, summary) = workflowDecision(value)
+                val candidate = dev.shibasis.reaktor.conductor.ConductorJson.parseToJsonElement(value).jsonObject["candidate"]?.jsonPrimitive?.contentOrNull
+                return Triple(verdict, summary, candidate)
+            }
             val trimmed = text.trim()
-            runCatching { return workflowDecision(trimmed) }
+            runCatching { return parse(trimmed) }
             val end = trimmed.lastIndexOf('}').takeIf { it >= 0 } ?: return null
             var start = trimmed.lastIndexOf('{', end)
             var tries = 0
             while (start >= 0 && tries++ < 64) {
-                runCatching { return workflowDecision(trimmed.substring(start, end + 1)) }
+                runCatching { return parse(trimmed.substring(start, end + 1)) }
                 start = trimmed.lastIndexOf('{', start - 1)
             }
             return null

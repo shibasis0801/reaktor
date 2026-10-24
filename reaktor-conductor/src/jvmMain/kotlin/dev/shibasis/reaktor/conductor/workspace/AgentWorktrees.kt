@@ -15,6 +15,24 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
     init { privateDirectory(directory) }
     private fun file(id: String): Path { require(id.matches(Regex("[a-f0-9]{64}"))); return directory.resolve("$id.json") }
     fun read(id: String): AgentWorktree = ConductorJson.decodeFromString(AgentWorktree.serializer(), Files.readString(file(id)))
+    @Synchronized internal fun attach(id: String, runId: String): AgentWorktree {
+        require(runId.isNotBlank() && runId.length <= 200)
+        val value = read(id)
+        if (runId == value.runId || runId in value.attemptRuns) return value
+        require(value.attemptRuns.size < 100) { "Worktree attempt reference budget exhausted" }
+        return value.copy(attemptRuns = value.attemptRuns + runId).also { save(it); register(it) }
+    }
+    internal fun capture(id: String, subjects: List<AgentGraphSubject> = emptyList()): AgentCandidate {
+        val value = read(id)
+        val location = directory.resolve(id).toRealPath()
+        val roots = value.roots.map { entry ->
+            File(entry.path).canonicalFile.also { path ->
+                require(path.toPath().parent == location && File(path, ".git").isFile) { "Worktree source is no longer owned" }
+            }
+        }
+        val workingRoot = File(value.roots.single { it.source == root.canonicalPath }.path)
+        return SourceCandidates(workingRoot, artifacts, roots).capture(subjects)
+    }
     private fun save(value: AgentWorktree) = atomicWrite(file(value.id), ConductorJson.encodeToString(AgentWorktree.serializer(), value))
     private fun registration(id: String): Path? {
         val state = root.canonicalFile.parentFile.toPath().resolve(".remote-dev")
@@ -106,7 +124,7 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
     }
     fun list(runId: String): List<AgentWorktree> = Files.list(directory).use { files -> files
         .filter { it.fileName.toString().matches(Regex("[a-f0-9]{64}\\.json")) }.toList()
-        .map { read(it.fileName.toString().removeSuffix(".json")) }.filter { it.runId == runId } }
+        .map { read(it.fileName.toString().removeSuffix(".json")) }.filter { it.runId == runId || runId in it.attemptRuns } }
 
     @Synchronized fun review(id: String): AgentWorktreeReview {
         val worktree = read(id)
