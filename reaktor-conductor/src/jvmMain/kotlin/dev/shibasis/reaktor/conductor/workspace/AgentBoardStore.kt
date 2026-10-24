@@ -8,7 +8,11 @@ import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
 
-class AgentBoardStore(private val directory: Path, private val clock: () -> Long = System::currentTimeMillis) {
+class AgentBoardStore(
+    private val directory: Path,
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val resolveSeat: (TaskSeat) -> ResolvedTaskSeat = TaskSeatResolver()::resolve,
+) {
     @Serializable
     private data class Ledger(val revision: Long = 0, val next: Int = 1, val graphs: Int = 1)
 
@@ -150,7 +154,7 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
         fun count(vararg states: TaskState) = members.count { it.graph?.state in states }
         TaskGraphSummary(graph.id, graph.title, graph.status, graph.revision, members.size,
             count(TaskState.Succeeded, TaskState.Skipped, TaskState.Cancelled), count(TaskState.Running), count(TaskState.Waiting), count(TaskState.Failed),
-            members.mapNotNull { it.graph?.seat?.agent }.distinct(), graph.tokensUsed, graph.envelope.tokens, graph.lead, graph.changedSinceApproval, graph.updatedAt,
+            members.mapNotNull { task -> task.graph?.let { it.resolvedSeat?.seat?.agent ?: it.seat?.let { seat -> runCatching { resolveSeat(seat).seat.agent }.getOrNull() } } }.distinct(), graph.tokensUsed, graph.envelope.tokens, graph.lead, graph.changedSinceApproval, graph.updatedAt,
             graph.reason, graph.createdBy.name)
     }
 
@@ -158,10 +162,11 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
         require(draft.tasks.size in 1..TaskGraphRules.MaxTasks) { "A graph has 1 to ${TaskGraphRules.MaxTasks} tasks" }
         by.checked()
         val now = clock()
-        val seats = draft.tasks.mapNotNull { it.seat }.filterNot { it.lead }
+        val effective = draft.tasks.associateWith { it.seat?.let(resolveSeat)?.seat }
+        val seats = effective.values.filterNotNull().filterNot { it.lead }
         val envelope = draft.envelope.copy(
             agents = draft.envelope.agents.ifEmpty { seats.mapNotNull { it.agent }.distinct() },
-            writes = draft.envelope.writes.ifEmpty { draft.tasks.filter { it.seat?.access == TaskAccess.Write }.flatMap { it.scope }.distinct() },
+            writes = draft.envelope.writes.ifEmpty { draft.tasks.filter { effective[it]?.access == TaskAccess.Write }.flatMap { it.scope }.distinct() },
             maxTasks = maxOf(draft.envelope.maxTasks, draft.tasks.size),
         )
         val shell = TaskGraph(
@@ -178,7 +183,7 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
         )
         var next = ledger.next
         val applied = try {
-            TaskGraphEditing(shell, emptyList(), TaskGraphCaller(by, lead = true), now) { "T${next++}" }
+            TaskGraphEditing(shell, emptyList(), TaskGraphCaller(by, lead = true), now, { resolveSeat(it).seat }) { "T${next++}" }
                 .apply(TaskGraphPatch(draft.tasks, "Proposed ${shell.title}", expectedRevision = 0))
         } catch (outside: TaskGraphOutside) {
             throw IllegalArgumentException("The proposal's tasks fall outside its own envelope: ${outside.reasons.joinToString("; ")}")
@@ -190,14 +195,14 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
     @Synchronized fun patch(id: String, patch: TaskGraphPatch, caller: TaskGraphCaller, approvedBy: String? = null): TaskGraphApplied {
         val graph = graph(id)
         var next = ledger.next
-        val applied = TaskGraphEditing(graph, members(id), caller, clock()) { "T${next++}" }.apply(patch, approvedBy)
+        val applied = TaskGraphEditing(graph, members(id), caller, clock(), { resolveSeat(it).seat }) { "T${next++}" }.apply(patch, approvedBy)
         commit(applied.graph, applied.tasks, applied.removed, next)
         return applied
     }
 
     @Synchronized fun outside(id: String, patch: TaskGraphPatch, caller: TaskGraphCaller): List<String> {
         var next = ledger.next
-        return try { TaskGraphEditing(graph(id), members(id), caller, clock()) { "T${next++}" }.apply(patch); emptyList() }
+        return try { TaskGraphEditing(graph(id), members(id), caller, clock(), { resolveSeat(it).seat }) { "T${next++}" }.apply(patch); emptyList() }
         catch (outside: TaskGraphOutside) { outside.reasons }
     }
 
@@ -309,7 +314,7 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
         val now = clock()
         return advance(id, task) { value, _ ->
             value.copy(work = (value.work + session).distinct(), graph = plan.copy(state = TaskState.Running, attempt = plan.attempt + 1, run = session,
-                outcome = null, workAttempts = plan.workAttempts + (session to plan.attempt + 1)),
+                outcome = null, workAttempts = plan.workAttempts + (session to plan.attempt + 1), resolvedSeat = resolveSeat(requireNotNull(plan.seat))),
                 revision = value.revision + 1, history = (value.history + BoardEvent(now, caller.by, "Claimed by the lead")).takeLast(50))
         }
     }

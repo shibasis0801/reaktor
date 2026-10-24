@@ -156,20 +156,25 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         var free = scope.workspace.freeSlots()
         for (task in TaskGraphRules.ready(members)) {
             val plan = requireNotNull(task.graph)
+            val resolved = try { plan.seat?.let(scope.workspace::resolveSeat) } catch (failure: IllegalArgumentException) {
+                store.hold(graphId, TaskGraphStatus.Paused, "${task.id}: ${failure.message}", scope.by)
+                return
+            }
+            val seat = resolved?.seat
             if (plan.readySince == null) store.advance(graphId, task.id) { value, current -> value.copy(graph = current.copy(readySince = System.currentTimeMillis())) }
             when {
                 plan.kind == TaskKind.Gate -> store.advance(graphId, task.id) { value, current ->
                     value.copy(graph = current.copy(state = TaskState.Waiting, note = "Waiting for a person to pass this gate")) }
                 plan.kind == TaskKind.Merge -> store.advance(graphId, task.id) { value, current ->
                     value.copy(graph = current.copy(state = TaskState.Succeeded, outcome = merged(task, members))) }
-                plan.seat?.lead == true -> Unit
-                plan.kind == TaskKind.Agent && plan.seat?.agent == null -> store.advance(graphId, task.id) { value, current ->
+                seat?.lead == true -> Unit
+                plan.kind == TaskKind.Agent && seat?.agent == null -> store.advance(graphId, task.id) { value, current ->
                     value.copy(graph = current.copy(state = TaskState.Waiting, note = "Choose who does this task, then retry it")) }
                 plan.kind == TaskKind.Agent && free <= 0 -> Unit
-                fits(task, members) -> {
+                fits(task, members, seat) -> {
                     if (plan.kind == TaskKind.Agent) free--
                     val started = store.advance(graphId, task.id) { value, current ->
-                        value.copy(graph = current.copy(state = TaskState.Running, attempt = current.attempt + 1, note = null, outcome = null, held = false, run = null))
+                        value.copy(graph = current.copy(state = TaskState.Running, attempt = current.attempt + 1, note = null, outcome = null, held = false, run = null, resolvedSeat = resolved))
                     }
                     members = members + (started.id to started)
                     scope.actor(task.id)?.let { actor -> actor.task = started; actor.trySend(TaskMessage.Start) }
@@ -184,12 +189,12 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         }
     }
 
-    private fun fits(task: BoardTask, members: Map<String, BoardTask>): Boolean {
+    private fun fits(task: BoardTask, members: Map<String, BoardTask>, seat: TaskSeat?): Boolean {
         val plan = requireNotNull(task.graph)
         val running = members.values.filter { it.graph?.state == TaskState.Running }
-        val agent = plan.seat?.agent
-        if (plan.kind == TaskKind.Agent && agent != null && running.count { it.graph?.kind == TaskKind.Agent && it.graph.seat?.agent == agent } >= store.graph(graphId).envelope.perAgent) return false
-        if (plan.seat?.access == TaskAccess.Write && running.any { other -> other.graph?.seat?.access == TaskAccess.Write && TaskGraphRules.overlaps(other.scope, task.scope) }) return false
+        val agent = seat?.agent
+        if (plan.kind == TaskKind.Agent && agent != null && running.count { it.graph?.kind == TaskKind.Agent && (it.graph.resolvedSeat?.seat ?: it.graph.seat)?.agent == agent } >= store.graph(graphId).envelope.perAgent) return false
+        if (seat?.access == TaskAccess.Write && running.any { other -> (other.graph?.resolvedSeat?.seat ?: other.graph?.seat)?.access == TaskAccess.Write && TaskGraphRules.overlaps(other.scope, task.scope) }) return false
         return true
     }
 
@@ -355,7 +360,9 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
     private fun Exception.transient() = message.orEmpty().let { "capacity is busy" in it || "draining" in it || "closed" in it }
 
     private suspend fun agent(task: BoardTask, plan: TaskPlan): CoordinatorMessage.Settled {
-        val seat = requireNotNull(plan.seat?.takeIf { it.agent != null }) { "${task.id} has no agent" }
+        val resolved = plan.resolvedSeat ?: requireNotNull(plan.seat?.let(scope.workspace::resolveSeat)) { "${task.id} has no seat" }
+        val seat = resolved.seat
+        requireNotNull(seat.agent) { "${task.id} has no agent" }
         val adopted = plan.run?.takeIf { it.startsWith(BoardRefs.Hangar) }?.let(scope.workspace::threadOf)?.let(scope.workspace::latest)
         val run = adopted ?: run {
             val record = scope.workspace.submit(AgentSubmission(
@@ -365,6 +372,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
                 model = seat.model,
                 allowWrites = seat.access == TaskAccess.Write,
                 effort = seat.effort?.let(::NativeEffort),
+                resolvedSeat = resolved,
                 timeoutMillis = 60 * 60 * 1000L,
             ))
             val ref = BoardRefs.Hangar + record.threadId
