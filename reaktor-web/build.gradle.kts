@@ -29,15 +29,15 @@ library(namespace = "dev.shibasis.reaktor.web", targets = Targets.All) {
     val desktopWebViewProbe by program(compilation = CompilationRef.Test,
         environment = ProgramEnvironment(nativeAccess = true), run = Run.onDesktopSession())
     val webBridge by javascript()
-    val compileBridge = webBridge.script(PackageScript("build"), "js/dist")
-    val testBridge = webBridge.tests(after = compileBridge)
+    val webBridgeBuild by typescript(configuration = "js/tsconfig.json", output = "js/dist")
+    val testBridge = webBridge.tests(after = webBridgeBuild)
     val installWebBridge by artifacts(webBridge.installation)
-    val compileWebBridge by artifacts(compileBridge)
+    val compileWebBridge by artifacts(webBridgeBuild)
     val testWebBridge by verify(Verification.WebBridge, testBridge)
     if (project.option(FrameworkOptions.DeviceProbe).get()) {
         val webViewProbe by appleTestFramework(baseName = "ReaktorWebProbe")
     }
     val WebBridgeAssets by generated(KotlinTemplate(namespace = "dev.shibasis.reaktor.web", assets = mapOf(
         "entry" to "js/dist/browser-entry.js", "client" to "js/dist/index.js",
-    )), from = compileBridge)
+    )), from = webBridgeBuild)
 }

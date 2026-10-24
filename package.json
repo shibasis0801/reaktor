@@ -18,7 +18,8 @@
             "reaktor-performance/package.json",
             "reaktor-security/ts/package.json",
             "reaktor-tactile/ts/package.json",
-            "reaktor-ui/package.json"
+            "reaktor-ui/package.json",
+            "reaktor-web/package.json"
         ]
     }
 }

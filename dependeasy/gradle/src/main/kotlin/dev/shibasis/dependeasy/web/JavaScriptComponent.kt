@@ -136,11 +136,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         }
     }
 
-    fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
-    fun script(script: PackageScript, output: String): NodeHandle {
-        require(project.file(script.directory) == directory) { "A package script must belong to this component" }
-        return project.node(command(script.name, output, "run", script.name))
-    }
+    internal fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
     fun tests(after: NodeHandle): NodeHandle = project.node(check()).after(after)
     fun vite(output: String = "dist"): TaskProvider<ViteBundle> = commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build")
     fun types(vararg projects: String, generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): TaskProvider<TypeScriptCheck> =
