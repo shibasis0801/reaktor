@@ -35,6 +35,44 @@ class TaskGraphTest {
     private fun caller(store: AgentBoardStore, by: BoardActor, own: Set<String> = emptySet()) =
         TaskGraphCaller(by, lead = store.graph("G1").lead == by.session, own = own)
 
+    @Test fun reportOwnershipFollowsTheAttemptAndHistoryDoesNotGrantOwnership() {
+        val store = store()
+        proposed(store)
+        val scheduler = BoardActor(BoardActorKind.Schedule, "Task graph G1")
+        val next = BoardActor(BoardActorKind.Agent, "claude", "claude:next-session")
+        fun start(attempt: Int, by: BoardActor) {
+            store.advance("G1", "T1") { task, plan ->
+                task.copy(graph = plan.copy(state = TaskState.Running, attempt = attempt, run = null, outcome = null))
+            }
+            store.link("T1", by.session!!, true, scheduler, attempt)
+        }
+        start(1, codex)
+        assertEquals(1, store.report("G1", "T1", TaskReport.Failed, TaskOutcome(summary = "First run"), caller(store, codex)).graph?.outcome?.attempt)
+        store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Retry("T1")), "Try again"), TaskGraphCaller(person))
+        val pending = store.view("G1")
+        assertFailsWith<IllegalStateException> { store.report("G1", "T1", TaskReport.Succeeded, TaskOutcome(), caller(store, codex)) }
+        assertEquals(pending, store.view("G1"))
+        start(2, next)
+        val before = store.view("G1")
+        val revision = store.revision
+        val refused = assertFailsWith<IllegalStateException> {
+            store.report("G1", "T1", TaskReport.Succeeded, TaskOutcome(summary = "Late first run", attempt = 2), caller(store, codex, setOf("T1")))
+        }.message.orEmpty()
+        assertTrue("T1 current attempt 2" in refused && "caller attempt 1" in refused, refused)
+        assertEquals(before, store.view("G1"))
+        assertEquals(revision, store.revision)
+        store.link("T1", stranger.session!!, true, stranger)
+        assertFailsWith<IllegalStateException> { store.report("G1", "T1", TaskReport.Succeeded, TaskOutcome(), caller(store, stranger, setOf("T1"))) }
+        assertFailsWith<IllegalStateException> { store.report("G1", "T1", TaskReport.Succeeded, TaskOutcome(attempt = 1), caller(store, next)) }
+        val result = store.report("G1", "T1", TaskReport.Review, TaskOutcome(summary = "Second run"), caller(store, next))
+        assertEquals(TaskState.Succeeded, result.graph?.state)
+        assertEquals(2, result.graph?.outcome?.attempt)
+        assertTrue(result.work.containsAll(listOfNotNull(codex.session, next.session)))
+        assertEquals(mapOf(codex.session!! to 1, next.session!! to 2), result.graph?.workAttempts)
+        assertEquals(2, store.report("G1", "T1", TaskReport.Failed, TaskOutcome(summary = "Owner inspected it"), TaskGraphCaller(person)).graph?.outcome?.attempt)
+        assertEquals(store.view("G1"), AgentBoardStore(made.single(), clock::incrementAndGet).view("G1"))
+    }
+
     @Test fun aProposalBecomesPlannedBoardTasksWithAnEnvelopeAroundThem() {
         val store = store()
         val view = proposed(store)

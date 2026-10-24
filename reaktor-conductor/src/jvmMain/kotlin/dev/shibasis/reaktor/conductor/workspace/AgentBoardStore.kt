@@ -114,10 +114,18 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
         return save(task.copy(stage = stage, stageChangedAt = now).changed(now, by, change))
     }
 
-    @Synchronized fun link(id: String, ref: String, linked: Boolean, by: BoardActor): BoardTask {
+    @Synchronized fun link(id: String, ref: String, linked: Boolean, by: BoardActor, attempt: Int? = null): BoardTask {
         val task = get(id)
         val work = if (linked) (task.work + listOf(ref).refs()).distinct() else task.work - ref
         require(work.size <= 50) { "A task links at most 50 runs and sessions" }
+        if (attempt != null) {
+            val plan = requireNotNull(task.graph) { "$id is not in a task graph" }
+            require(linked && plan.state == TaskState.Running && attempt == plan.attempt) { "$id current attempt ${plan.attempt}, linking attempt $attempt" }
+            return advance(plan.id, id) { value, current ->
+                value.copy(work = work, graph = current.copy(run = ref, workAttempts = current.workAttempts + (ref to attempt)))
+                    .changed(clock(), by.checked(), "Linked $ref to attempt $attempt")
+            }
+        }
         if (work == task.work) return task
         return save(task.copy(work = work).changed(clock(), by.checked(), if (linked) "Linked $ref" else "Unlinked $ref"))
     }
@@ -257,13 +265,12 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
     @Synchronized fun report(id: String, task: String, report: TaskReport, outcome: TaskOutcome, caller: TaskGraphCaller): BoardTask {
         val current = get(task)
         val plan = requireNotNull(current.graph?.takeIf { it.id == id }) { "$task is not in $id" }
-        when {
-            plan.kind == TaskKind.Gate -> require(caller.person) { "Only a person passes a gate" }
-            caller.person -> Unit
-            caller.lead && plan.seat?.lead == true -> Unit
-            task in caller.own -> Unit
-            else -> error("An agent reports only on its own task; $task belongs to another session")
-        }
+        val callerAttempt = plan.attemptOf(caller.refs)
+        val refusal = "An agent reports only on its own task's current attempt; $task current attempt ${plan.attempt}, caller attempt ${callerAttempt ?: "unlinked"}${outcome.attempt?.let { ", reported attempt $it" }.orEmpty()}"
+        if (plan.kind == TaskKind.Gate) require(caller.person) { "Only a person passes a gate" }
+        check(caller.person || plan.state != TaskState.Pending &&
+            (callerAttempt == plan.attempt || caller.lead && plan.seat?.lead == true)) { refusal }
+        check(outcome.attempt == null || outcome.attempt == plan.attempt) { refusal }
         require(plan.state !in setOf(TaskState.Cancelled, TaskState.Skipped)) { "$task is ${plan.state.name.lowercase()}" }
         val bounded = outcome.bounded()
         val now = clock()
@@ -280,7 +287,7 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
         val finalState = if (verdict == "fail") TaskState.Failed else state
         val merged = (plan.outcome ?: TaskOutcome()).let { old ->
             bounded.copy(summary = bounded.summary.ifEmpty { old.summary }, verdict = verdict ?: old.verdict, files = bounded.files.ifEmpty { old.files },
-                checks = bounded.checks.ifEmpty { old.checks }, log = bounded.log ?: old.log, tokens = bounded.tokens ?: old.tokens, at = now)
+                checks = bounded.checks.ifEmpty { old.checks }, log = bounded.log ?: old.log, tokens = bounded.tokens ?: old.tokens, at = now, attempt = plan.attempt)
         }
         val stage = if (finalState == TaskState.Succeeded && plan.kind == TaskKind.Agent && current.stage != BoardStage.Done) BoardStage.Review else current.stage
         return advance(id, task) { value, _ ->
@@ -301,7 +308,8 @@ class AgentBoardStore(private val directory: Path, private val clock: () -> Long
         require(TaskGraphRules.readiness(current, members) == TaskGraphRules.Readiness.Ready) { "$task is not ready: ${current.blockedBy(members) ?: "it is ${plan.state.name.lowercase()}"}" }
         val now = clock()
         return advance(id, task) { value, _ ->
-            value.copy(work = (value.work + session).distinct(), graph = plan.copy(state = TaskState.Running, attempt = plan.attempt + 1, run = session),
+            value.copy(work = (value.work + session).distinct(), graph = plan.copy(state = TaskState.Running, attempt = plan.attempt + 1, run = session,
+                outcome = null, workAttempts = plan.workAttempts + (session to plan.attempt + 1)),
                 revision = value.revision + 1, history = (value.history + BoardEvent(now, caller.by, "Claimed by the lead")).takeLast(50))
         }
     }
