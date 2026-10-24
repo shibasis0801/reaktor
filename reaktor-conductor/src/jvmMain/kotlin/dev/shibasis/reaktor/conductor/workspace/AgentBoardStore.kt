@@ -19,6 +19,7 @@ class AgentBoardStore(
     private val ledgerFile = directory.resolve("board.json")
     private val tasks = mutableMapOf<String, BoardTask>()
     private val graphs = mutableMapOf<String, TaskGraph>()
+    private val coordination = mutableMapOf<String, TaskCoordination>()
     private var ledger: Ledger
     private val _changes: MutableStateFlow<Long>
     val changes: StateFlow<Long> get() = _changes.asStateFlow()
@@ -142,11 +143,107 @@ class AgentBoardStore(
 
     @Synchronized fun view(id: String): TaskGraphView {
         val members = members(id).associateBy { it.id }
+        val records = coordination(id)
         return TaskGraphView(graph(id), members.values.toList(),
             if (graph(id).status == TaskGraphStatus.Running) TaskGraphRules.ready(members).map { it.id } else emptyList(),
             members.values.mapNotNull { task ->
                 (TaskGraphRules.readiness(task, members) as? TaskGraphRules.Readiness.Blocked)?.let { task.id to it.reasons }
-            }.toMap())
+            }.toMap(), records.messages, records.handoffs.associateBy { it.task }, records.decisions)
+    }
+
+    @Synchronized fun coordination(id: String): TaskCoordination {
+        graph(id)
+        return coordination.getOrPut(id) {
+            val file = directory.resolve("graphs/$id-coordination.json")
+            if (Files.exists(file)) {
+                require(Files.size(file) <= TaskCoordination.Retained.toLong() * 3 * (TaskCoordination.RecordBytes + 4096) + 4096)
+                ConductorJson.decodeFromString(TaskCoordination.serializer(), Files.readString(file))
+            } else TaskCoordination()
+        }
+    }
+
+    @Synchronized fun appendMessage(draft: AgentMessage, by: BoardActor, ownedSessions: Set<String> = emptySet()): AgentMessage {
+        val records = coordination(draft.graph)
+        coordinationTask(draft.graph, draft.task, draft.attempt)
+        require((draft.recipient.task == null) != (draft.recipient.session == null)) { "Name one recipient: a task or an owned session" }
+        draft.recipient.task?.let { coordinationTask(draft.graph, it, null) }
+        draft.recipient.session?.let { require(BoardRefs.pattern.matches(it) && it in ownedSessions) { "$it is not an owned session" } }
+        require(draft.body.isNotBlank() && draft.body.encodeToByteArray().size <= TaskCoordination.MessageBytes) { "A message body is 1 to ${TaskCoordination.MessageBytes} UTF-8 bytes" }
+        val id = "${draft.graph}-M${records.next}"
+        val reply = draft.replyTo?.let { reply -> records.messages.firstOrNull { it.id == reply } ?: error("Unknown retained message $reply") }
+        val thread = draft.thread ?: reply?.thread ?: id
+        require(thread == id || records.messages.any { it.thread == thread }) { "Unknown retained thread $thread" }
+        require(reply == null || reply.thread == thread) { "A reply stays in its message's thread" }
+        val value = draft.copy(id = id, thread = thread, author = by.checked(), at = clock(),
+            artifacts = coordinationRefs(draft.artifacts, "artifacts", 100))
+        recordSize(ConductorJson.encodeToString(AgentMessage.serializer(), value))
+        saveCoordination(draft.graph, records.copy(next = records.next + 1,
+            messages = (records.messages + value).takeLast(TaskCoordination.Retained)), by, "Message $id · ${draft.kind.name}")
+        return value
+    }
+
+    @Synchronized fun appendHandoff(draft: TaskHandoff, by: BoardActor): TaskHandoff {
+        val records = coordination(draft.graph)
+        coordinationTask(draft.graph, draft.task, draft.attempt)
+        require(draft.attempt > 0) { "A handoff names a started attempt" }
+        val value = draft.copy(id = "${draft.graph}-H${records.next}", author = by.checked(), at = clock(),
+            goal = BoardText.bounded(draft.goal, "goal", 4_000),
+            done = BoardText.bounded(draft.done, "done", 8_000),
+            candidate = draft.candidate?.let { BoardText.bounded(it, "candidate", 500).also { value -> require(value.isNotEmpty()) } },
+            decisions = coordinationRefs(draft.decisions, "decisions", 50),
+            openIssues = coordinationRefs(draft.openIssues, "open issues", 30, 1_000),
+            changedPaths = coordinationRefs(draft.changedPaths, "changed paths", 100),
+            checkReceipts = coordinationRefs(draft.checkReceipts, "check receipts", 50),
+            reviewReceipts = coordinationRefs(draft.reviewReceipts, "review receipts", 50),
+            nextAction = BoardText.bounded(draft.nextAction, "next action", 2_000),
+            sessionLogs = coordinationRefs(draft.sessionLogs, "session logs", 50).also { logs ->
+                require(logs.all(BoardRefs.pattern::matches)) { "Session logs name session refs" }
+            })
+        require(value.goal.isNotEmpty() && value.done.isNotEmpty()) { "A handoff names its goal and what was done" }
+        require(value.decisions.all { id -> records.decisions.any { it.id == id } }) { "A handoff names retained decisions from its graph" }
+        recordSize(ConductorJson.encodeToString(TaskHandoff.serializer(), value))
+        saveCoordination(draft.graph, records.copy(next = records.next + 1,
+            handoffs = (records.handoffs + value).takeLast(TaskCoordination.Retained)), by, "Handoff ${value.id} · ${value.task} attempt ${value.attempt}")
+        return value
+    }
+
+    @Synchronized fun appendDecision(draft: TaskDecision, by: BoardActor): TaskDecision {
+        val records = coordination(draft.graph)
+        by.checked()
+        require(!draft.personAccepted || by.kind == BoardActorKind.Person) { "Only a person accepts a decision" }
+        draft.supersedes?.let { id -> require(records.decisions.any { it.id == id }) { "Unknown retained decision $id" } }
+        val value = draft.copy(id = "${draft.graph}-D${records.next}", author = by, at = clock(),
+            statement = BoardText.bounded(draft.statement, "statement", 2_000),
+            rationale = BoardText.bounded(draft.rationale, "rationale", 8_000),
+            subjects = coordinationRefs(draft.subjects, "subjects", 50))
+        require(value.statement.isNotEmpty() && value.rationale.isNotEmpty() && value.subjects.isNotEmpty()) { "A decision names its statement, rationale and subjects" }
+        recordSize(ConductorJson.encodeToString(TaskDecision.serializer(), value))
+        saveCoordination(draft.graph, records.copy(next = records.next + 1,
+            decisions = (records.decisions + value).takeLast(TaskCoordination.Retained)), by, "Decision ${value.id}")
+        return value
+    }
+
+    private fun coordinationTask(graph: String, task: String?, attempt: Int?) {
+        require(task != null || attempt == null) { "An attempt names its task" }
+        task?.let {
+            val plan = requireNotNull(get(it).graph?.takeIf { it.id == graph }) { "$it is not in $graph" }
+            require(attempt == null || attempt in 0..plan.attempt) { "$it has attempts 0 to ${plan.attempt}, not $attempt" }
+        }
+    }
+
+    private fun coordinationRefs(values: List<String>, name: String, count: Int, length: Int = 500): List<String> {
+        require(values.size <= count) { "$name has at most $count items" }
+        return BoardText.lines(values, name, count, length)
+    }
+
+    private fun recordSize(json: String) {
+        require(json.encodeToByteArray().size <= TaskCoordination.RecordBytes) { "A coordination record is at most ${TaskCoordination.RecordBytes} UTF-8 bytes" }
+    }
+
+    private fun saveCoordination(id: String, value: TaskCoordination, by: BoardActor, change: String) {
+        atomicWrite(directory.resolve("graphs/$id-coordination.json"), ConductorJson.encodeToString(TaskCoordination.serializer(), value))
+        coordination[id] = value
+        settleGraph(graph(id), by, clock(), change)
     }
 
     @Synchronized fun summaries(): List<TaskGraphSummary> = graphs().map { graph ->
