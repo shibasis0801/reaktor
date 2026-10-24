@@ -14,12 +14,16 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         visited += root.canonicalPath
         val notices = mutableListOf<String>()
         val base = git("rev-parse", "HEAD")?.trim()
-        val files = git("ls-files", "-z", "--cached", "--others", "--exclude-standard")
+        val files = git(*(listOf("ls-files", "-z", "--cached", "--others", "--exclude-standard", "--") + CandidateSourceInputs.paths).toTypedArray())
         if (files == null) notices += "Git source inventory unavailable"
         val names = files.orEmpty().split('\u0000').filter { it.isNotEmpty() }.distinct().sorted()
+        val stages = git(*(listOf("ls-files", "--stage", "-z", "--") + CandidateSourceInputs.paths).toTypedArray())
+        if (stages == null) notices += "Git source modes unavailable"
+        val gitlinks = stages.orEmpty()
+            .split('\u0000').filter { it.startsWith("160000 ") && '\t' in it }
+            .associate { it.substringAfter('\t') to it.substringBefore('\t').split(' ')[1] }
         val hash = MessageDigest.getInstance("SHA-256")
-        val nestedRoots = mutableListOf<File>()
-        var remaining = 256_000_000L
+        var remaining = 512_000_000L
         var bulky = 0
         for (name in names) {
             hash.update(name.toByteArray()); hash.update(0)
@@ -27,8 +31,17 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
             if (!file.toPath().normalize().startsWith(root.toPath().normalize())) { notices += "Source outside workspace: $name"; continue }
             when {
                 Files.isSymbolicLink(file.toPath()) -> hash.update(Files.readSymbolicLink(file.toPath()).toString().toByteArray())
+                name in gitlinks -> {
+                    val initialized = File(file, ".git").exists()
+                    val revision = if (initialized) git("-C", file.canonicalPath, "rev-parse", "HEAD")?.trim() else gitlinks[name]
+                    if (revision == null) notices += "Submodule revision unavailable: $name" else hash.update(revision.toByteArray())
+                    if (initialized) {
+                        val dirty = git("-C", file.canonicalPath, "status", "--porcelain=v1", "--untracked-files=all")
+                        if (dirty == null || dirty.isNotBlank()) notices += "Submodule source is not clean: $name; commit its source before isolation"
+                    }
+                }
                 !file.exists() -> hash.update("deleted".toByteArray())
-                !file.isFile -> if (File(file, ".git").exists()) nestedRoots += file else notices += "Non-file source: $name"
+                !file.isFile -> notices += if (File(file, ".git").exists()) "Unregistered nested repository source: $name" else "Non-file source: $name"
                 // An APK, a vendored framework or a checked-in archive is not source, and reading one
                 // costs the snapshot a hundred megabytes of budget that the code it exists to cover
                 // then cannot have. Fingerprinting it by size keeps it in the revision — a replaced
@@ -40,7 +53,7 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
                 else -> {
                     hash.update(if (file.canExecute()) 1 else 0)
                     val before = file.lastModified() to file.length()
-                    file.inputStream().use { input ->
+                    try { file.inputStream().use { input ->
                         val buffer = ByteArray(65536)
                         while (true) {
                             val count = input.read(buffer)
@@ -49,7 +62,7 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
                             if (remaining < 0) { notices += "Source grew beyond capture budget: $name"; break }
                             hash.update(buffer, 0, count)
                         }
-                    }
+                    } } catch (_: java.io.IOException) { notices += "Source changed during capture: $name" }
                     if (before != file.lastModified() to file.length()) notices += "Source changed during capture: $name"
                 }
             }
@@ -57,7 +70,9 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         }
         val declared = gradleSourceRoots(root)
         if (declared.unresolved) notices += "Dynamic included-build roots require an evaluated build graph"
-        val dependencies = (declared.roots + nestedRoots).distinctBy { it.canonicalPath }.filter { it.canonicalPath !in visited }
+        val outside = declared.roots.map(File::getCanonicalFile).distinct()
+            .filter { it.canonicalPath !in visited && !it.toPath().startsWith(root.canonicalFile.toPath()) }
+        val dependencies = outside.filter { dependency -> outside.none { it != dependency && dependency.toPath().startsWith(it.toPath()) } }
         val captured = dependencies.take((16 - visited.size).coerceAtLeast(0)).mapNotNull { dependency ->
             if (!dependency.isDirectory) { notices += "Missing included source root: ${dependency.path}"; null }
             else SourceCandidates(dependency, artifacts).capture(emptyList(), visited).also {
@@ -67,9 +82,9 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         }
         if (dependencies.size > captured.size) notices += "Included source coverage is incomplete"
         val sourceDigest = hash.digest().joinToString("") { "%02x".format(it) }
-        val untracked = (git("ls-files", "-z", "--others", "--exclude-standard") ?: "").split('\u0000').filter { it.isNotEmpty() }
-        val changed = (git("diff", "--name-only", "-z", base ?: "--cached") ?: "").split('\u0000') + untracked
-        val diff = git("diff", "--no-ext-diff", "--no-textconv", "--no-color", base ?: "--cached")
+        val untracked = (git(*(listOf("ls-files", "-z", "--others", "--exclude-standard", "--") + CandidateSourceInputs.paths).toTypedArray()) ?: "").split('\u0000').filter { it.isNotEmpty() }
+        val changed = (git(*(listOf("diff", "--name-only", "-z", base ?: "--cached", "--") + CandidateSourceInputs.paths).toTypedArray()) ?: "").split('\u0000') + untracked
+        val diff = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base ?: "--cached", "--") + CandidateSourceInputs.paths).toTypedArray())
         val additions = StringBuilder()
         var diffBytes = diff?.toByteArray()?.size ?: 0
         for (name in untracked.take(200)) {
@@ -121,14 +136,14 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         if (wanted.isEmpty()) return ScopedDiff("", emptyList())
         val bounded = wanted.take(SCOPE_LIMIT)
         if (wanted.size > bounded.size) notices += "Diff scoped to the first ${bounded.size} of ${wanted.size} changed paths"
-        val untracked = (git("ls-files", "-z", "--others", "--exclude-standard") ?: "")
+        val untracked = (git(*(listOf("ls-files", "-z", "--others", "--exclude-standard", "--") + CandidateSourceInputs.paths).toTypedArray()) ?: "")
             .split(NUL).filter { it.isNotEmpty() }.toSet()
         val base = git("rev-parse", "HEAD")?.trim() ?: "--cached"
         val text = StringBuilder()
         // Chunked because a path list is argv, and a turn that touches hundreds of files would
         // otherwise run into the platform's argument limit and produce nothing at all.
         bounded.filter { it !in untracked }.chunked(ARGV_CHUNK).forEach { chunk ->
-            val part = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base, "--") + chunk).toTypedArray())
+            val part = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base, "--") + chunk + CandidateSourceInputs.exclusions).toTypedArray())
             if (part == null) notices += "Diff unavailable for ${chunk.size} tracked ${if (chunk.size == 1) "path" else "paths"}"
             else text.append(part)
         }
@@ -153,7 +168,7 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
      * cycle on a real repository.
      */
     fun dirtyManifest(): SourceManifest {
-        val status = git("status", "--porcelain=v1", "-z", "--untracked-files=all")
+        val status = git(*(listOf("status", "--porcelain=v1", "-z", "--untracked-files=all", "--") + CandidateSourceInputs.paths).toTypedArray())
             ?: return SourceManifest(emptyMap(), available = false)
         // Porcelain v1 with -z emits "XY path" records separated by NUL; a rename or copy adds a
         // second record holding the original path, which is not itself a changed file.
@@ -199,6 +214,13 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
 
 /** A diff narrowed to one turn's paths, honest about what narrowing it cost. */
 data class ScopedDiff(val text: String, val notices: List<String>)
+
+internal object CandidateSourceInputs {
+    private val renders = listOf("png", "jpg", "jpeg", "webp", "xml", "json", "html", "txt", "properties", "zip", "mp4", "pdf")
+    val exclusions = listOf(".claude/worktrees", ".claude/worktrees/**", ".reaktor/libexec", ".reaktor/libexec/**").map { ":(top,exclude,glob)$it" } +
+        listOf("agent", "reports").flatMap { root -> renders.map { extension -> ":(top,exclude,glob)$root/*[0-9][0-9][0-9][0-9]*/**/*.$extension" } }
+    val paths = listOf(".") + exclusions
+}
 
 private const val MANIFEST_LIMIT = 5000
 /** Above this a file is fingerprinted by size. Source files are far below it; binaries are not. */

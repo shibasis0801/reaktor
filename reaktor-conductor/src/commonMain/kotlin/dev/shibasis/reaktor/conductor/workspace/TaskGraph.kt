@@ -72,6 +72,7 @@ data class TaskPlan(
     val held: Boolean = false,
     val workAttempts: Map<String, Int> = emptyMap(),
     val resolvedSeat: ResolvedTaskSeat? = null,
+    val runId: String? = null,
 ) {
     fun attemptOf(refs: Set<String>): Int? = refs.mapNotNull(workAttempts::get).maxOrNull()
         ?: attempt.takeIf { run != null && run in refs }

@@ -174,7 +174,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 fits(task, members, seat) -> {
                     if (plan.kind == TaskKind.Agent) free--
                     val started = store.advance(graphId, task.id) { value, current ->
-                        value.copy(graph = current.copy(state = TaskState.Running, attempt = current.attempt + 1, note = null, outcome = null, held = false, run = null, resolvedSeat = resolved))
+                        value.copy(graph = current.copy(state = TaskState.Running, attempt = current.attempt + 1, note = null, outcome = null, held = false, run = null, runId = null, resolvedSeat = resolved))
                     }
                     members = members + (started.id to started)
                     scope.actor(task.id)?.let { actor -> actor.task = started; actor.trySend(TaskMessage.Start) }
@@ -363,7 +363,8 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         val resolved = plan.resolvedSeat ?: requireNotNull(plan.seat?.let(scope.workspace::resolveSeat)) { "${task.id} has no seat" }
         val seat = resolved.seat
         requireNotNull(seat.agent) { "${task.id} has no agent" }
-        val adopted = plan.run?.takeIf { it.startsWith(BoardRefs.Hangar) }?.let(scope.workspace::threadOf)?.let(scope.workspace::latest)
+        val adopted = plan.runId?.let(scope.workspace::get)
+            ?: plan.run?.takeIf { it.startsWith(BoardRefs.Hangar) }?.let(scope.workspace::threadOf)?.let(scope.workspace::latest)
         val run = adopted ?: run {
             val record = scope.workspace.submit(AgentSubmission(
                 requestId = "taskgraph:${scope.graphId}:${task.id}:${plan.attempt}",
@@ -371,6 +372,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
                 prompt = brief(task, plan),
                 model = seat.model,
                 allowWrites = seat.access == TaskAccess.Write,
+                isolation = if (seat.access == TaskAccess.Write) AgentIsolation.Worktree else AgentIsolation.Shared,
                 effort = seat.effort?.let(::NativeEffort),
                 resolvedSeat = resolved,
                 timeoutMillis = 60 * 60 * 1000L,
@@ -378,6 +380,10 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             val ref = BoardRefs.Hangar + record.threadId
             store.link(task.id, ref, true, scope.by, attempt = plan.attempt)
             record
+        }
+        store.advance(scope.graphId, task.id) { value, current ->
+            require(current.attempt == plan.attempt && current.state == TaskState.Running) { "The task attempt changed before its run was attached" }
+            value.copy(graph = current.copy(runId = run.id))
         }
         val done = scope.workspace.settled(run.id)
         return settled(task, plan, done)
