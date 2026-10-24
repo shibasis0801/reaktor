@@ -420,7 +420,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
                     value.copy(graph = current.copy(note = reason))
                 }
                 run = scope.workspace.submit(request.copy(requestId = "${request.requestId}:stale:${done.id}",
-                    threadId = done.threadId, prompt = "$reason\nKeep reviewing the assigned checkout. End with {\"verdict\":\"pass\" | \"repair\" | \"fail\",\"summary\":\"what you found\",\"candidate\":\"${target.candidate}\"}."))
+                    threadId = done.threadId, prompt = "$reason\nKeep reviewing the assigned checkout. End with {\"verdict\":\"pass\" | \"repair\" | \"fail\",\"summary\":\"what you found\",\"candidate\":\"${target.candidate}\",\"findings\":[]}. Include typed findings for any defects."))
                 continue
             }
             val result = settled(task, plan, done)
@@ -428,7 +428,9 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         }
     }
 
-    private fun settled(task: BoardTask, plan: TaskPlan, run: AgentRunRecord): CoordinatorMessage.Settled {
+    private fun settled(task: BoardTask, plan: TaskPlan, run: AgentRunRecord): CoordinatorMessage.Settled = synchronized(store) {
+        val current = requireNotNull(store.get(task.id).graph)
+        require(current.attempt == plan.attempt && current.state == TaskState.Running && current.runId == run.id) { "The review attempt changed before settlement" }
         val ref = BoardRefs.Hangar + run.threadId
         val base = TaskOutcome(
             summary = run.output.trim().take(TaskGraphRules.OutcomeChars),
@@ -439,7 +441,24 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             candidateId = run.candidateId,
         )
         fun settled(state: TaskState, outcome: TaskOutcome, transient: Boolean = false) = CoordinatorMessage.Settled(task.id, plan.attempt, state, outcome, transient)
-        return when {
+        when {
+            run.status == AgentRunStatus.Completed && plan.contract == WorkflowContract.Decision && scope.workspace.submission(run.id).task?.candidate != null -> {
+                runCatching {
+                    val review = TaskReview.parse(run.output)
+                    val target = requireNotNull(scope.workspace.submission(run.id).task)
+                    require(review.candidate == target.candidate && review.candidate == run.candidateId) { "Review candidate does not match its assigned checkout" }
+                    val findings = review.findings.mapIndexed { index, finding ->
+                        AgentFinding("review-${java.util.UUID.nameUUIDFromBytes("${run.id}:$index".toByteArray())}", review.candidate,
+                            run.id, run.provider.name.lowercase(), finding.title, finding.detail, finding.severity,
+                            sourcePath = finding.sourcePath, line = finding.line)
+                    }
+                    val evidence = scope.workspace.evidence.findings(target.evidenceTask, findings)
+                    require(review.verdict != "pass" || evidence.findings.none {
+                        it.resolvedByCandidate != review.candidate && it.severity in listOf("blocker", "high")
+                    }) { "A passing review cannot leave blocking findings unresolved" }
+                    settled(if (review.verdict == "fail") TaskState.Failed else TaskState.Succeeded, base.copy(verdict = review.verdict, summary = review.summary))
+                }.getOrElse { failure -> settled(TaskState.Failed, base.copy(summary = "Invalid structured review: ${failure.message}".take(TaskGraphRules.OutcomeChars))) }
+            }
             run.status == AgentRunStatus.Completed && plan.contract == WorkflowContract.Decision ->
                 decision(run.output)?.let { (verdict, summary, _) -> settled(if (verdict == "fail") TaskState.Failed else TaskState.Succeeded, base.copy(verdict = verdict, summary = summary.take(TaskGraphRules.OutcomeChars))) }
                     ?: settled(TaskState.Failed, base.copy(summary = "The review did not end with a Decision object {\"verdict\": \"pass\" | \"repair\" | \"fail\", \"summary\": \"...\"}.\n\n${base.summary}".take(TaskGraphRules.OutcomeChars)))
@@ -493,6 +512,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         if (plan.contract == WorkflowContract.Decision) {
             appendLine("Review read-only. End with one JSON object: {\"verdict\": \"pass\" | \"repair\" | \"fail\", \"summary\": \"what you found\", \"candidate\": \"${input?.graph?.outcome?.candidateId.orEmpty()}\"}.")
             appendLine("Use repair for specific fixes. A Decision for another candidate is stale and cannot complete this review.")
+            if (input != null) appendLine("Include findings: [{\"title\":\"specific defect\",\"detail\":\"evidence, impact and fix\",\"severity\":\"blocker\" | \"high\" | \"medium\" | \"low\",\"sourcePath\":\"changed file relative to this checkout\",\"line\":1}]. Use [] when none. Return only the schema object, within 12,000 characters. Hangar validates and records findings; disputed findings require a kernel check or a person decision.")
         }
         appendLine("Always leave these to a person: ${TaskEnvelope.PersonOnly.joinToString()}.")
         appendLine("Approved envelope: agents ${graph.envelope.agents.joinToString().ifEmpty { "as listed" }}; writes ${graph.envelope.writes.joinToString().ifEmpty { "nothing" }}; at most ${graph.envelope.maxTasks} tasks.")

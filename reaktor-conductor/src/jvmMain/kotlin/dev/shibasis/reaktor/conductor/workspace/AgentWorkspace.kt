@@ -789,6 +789,7 @@ class AgentWorkspace(
                         resumeFrom = restored,
                         executionPrefix = initial.id,
                         workingDirectoryFor = { directories.getValue(it) },
+                        outputSchema = request.task?.candidate?.let(TaskReview::schema),
                         runCheck = { stage -> requireNotNull(workflowCheck).invoke(initial.threadId, "${initial.id}:${stage.id}", stage) },
                         onProgress = { progress ->
                             if (request.workflow != null && progress.workflow != lastWorkflow && progress.workflow.stages.values.none { it.status == WorkflowStageStatus.Running })
@@ -822,6 +823,10 @@ class AgentWorkspace(
                     val failures = result.added.filter { it.kind == EventKind.Failure }
                     val workflowFailed = request.workflow?.failed(lastWorkflow ?: WorkflowProgress())
                     if (request.task != null) validateTaskTarget(request)
+                    if (request.task?.candidate != null) {
+                        val current = worktrees.capture(requireNotNull(isolated).id, candidate.subjects)
+                        require(current.complete && current.id == candidate.id) { "The review candidate changed during the turn" }
+                    }
                     val completedCandidate = if (request.allowWrites && failures.isEmpty() && workflowFailed != true &&
                         get(initial.id).status == AgentRunStatus.Running && get(initial.id).participants.values.none { it.status == AgentRunStatus.Interrupted }) {
                         (if (isolated == null) evidence.capture(evidenceTask, subjects) else worktrees.capture(isolated.id, subjects).also { evidence.recordCandidate(evidenceTask, it) })

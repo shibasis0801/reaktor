@@ -19,6 +19,7 @@ import dev.shibasis.reaktor.conductor.ActivityStatus
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -85,6 +86,7 @@ internal fun claudeArgv(request: AgentRequest, binary: String = "claude"): List<
     add("--output-format")
     add("stream-json")
     add("--verbose")
+    request.outputSchema?.let { add("--json-schema"); add(it.toString()) }
 
     request.agent.model?.let {
         add("--model")
@@ -218,7 +220,7 @@ class ClaudeCodeEventParser(
                     session = ProviderSession(RuntimeKind.ClaudeCode, it)
                 }
                 val isError = root.boolean("is_error") != false || root.string("subtype") != "success"
-                val body = root.string("result")
+                val body = root["structured_output"]?.takeIf { it !is JsonNull }?.toString() ?: root.string("result")
                 if (isError) failed = body ?: "Claude Code reported an error" else result = body
                 val reported = root.nested("usage")
                 val input = reported?.long("input_tokens")

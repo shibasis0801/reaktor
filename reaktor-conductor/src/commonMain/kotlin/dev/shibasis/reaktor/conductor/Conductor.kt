@@ -5,6 +5,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonObject
 
 /** Everything one turn added to the thread, plus the thread it produced. */
 data class ConductorResult(
@@ -53,6 +54,7 @@ class Conductor(
         onSessionClosed: (AgentId, AgentSession) -> Unit = { _, _ -> },
         runCheck: suspend (WorkflowStage) -> WorkflowCheckResult = { error("Named kernel checks are not connected to this host") },
         workingDirectoryFor: (AgentId) -> String = { workingDirectory },
+        outputSchema: JsonObject? = null,
         onEvent: (AgentEvent) -> Unit = {},
     ): ConductorResult {
         require(!resumeProviderSession || protocol is Protocol.Ask) { "Provider continuation is supported only for Ask" }
@@ -136,7 +138,7 @@ class Conductor(
             val outcome = runtime.awaitSession(
                 AgentRequest(agent = agent, prompt = compiled, workingDirectory = workingDirectoryFor(agent.id),
                     resume = resume, persistSession = resumeProviderSession, executionId = "$executionPrefix:$executionKey",
-                    subjectRefs = context?.entries.orEmpty().filter { it.kind == "graph-subject" }.map { it.ref }),
+                    subjectRefs = context?.entries.orEmpty().filter { it.kind == "graph-subject" }.map { it.ref }, outputSchema = outputSchema),
                 onSession = { session -> onSession(agent.id, session) },
                 onClosed = { session -> onSessionClosed(agent.id, session) },
             ) { event ->

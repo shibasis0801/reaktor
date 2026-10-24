@@ -186,8 +186,8 @@ class TaskGraphRuntimeTest {
     @Test fun repairReusesTheWritingTaskAndCandidateCheckoutBeforeThePersonGate() {
         val codex = Scripted(RuntimeKind.Codex, listOf("Built the parser in Source.kt", "Handled empty input"))
         val claude = Scripted(RuntimeKind.ClaudeCode, listOf(
-            "{\"verdict\":\"repair\",\"summary\":\"Empty input crashes the parser\",\"candidate\":\"{{candidate}}\"}",
-            "{\"verdict\":\"pass\",\"summary\":\"ok\",\"candidate\":\"{{candidate}}\"}"))
+            "{\"verdict\":\"repair\",\"summary\":\"Empty input crashes the parser\",\"candidate\":\"{{candidate}}\",\"findings\":[{\"title\":\"Empty input\",\"detail\":\"Handle empty input\",\"severity\":\"high\",\"sourcePath\":\"Source.kt\",\"line\":1}]}",
+            "{\"verdict\":\"pass\",\"summary\":\"ok\",\"candidate\":\"{{candidate}}\",\"findings\":[]}"))
         workspace(codex, claude) { connection, root, worktrees ->
             suspend fun evidence() = connection.call("agent_task_graph", buildJsonObject { put("taskId", "T1") })
                 .jsonObject.getValue("task").let { AgentWorkspaceJson.decodeFromJsonElement(AgentTaskEvidence.serializer(), it) }
@@ -204,12 +204,7 @@ class TaskGraphRuntimeTest {
                                 "Wrong checkout", "This was not assigned to the reviewer", "high")))
                         })
                     }
-                    connection.call("agent_finding", buildJsonObject {
-                        put("taskId", "T1")
-                        put("finding", AgentWorkspaceJson.encodeToJsonElement(AgentFinding.serializer(), AgentFinding("empty-input",
-                            candidate.id, request.environment.getValue(AgentRequest.RunVariable), "claudecode",
-                            "Empty input", "Handle empty input", "high", sourcePath = "Source.kt", line = 1)))
-                    })
+                    assertEquals(candidate.id, request.outputSchema!!.getValue("properties").jsonObject.getValue("candidate").jsonObject.getValue("enum").jsonArray.single().jsonPrimitive.content)
                 }
             }
             codex.onRun = { request, number ->
@@ -218,7 +213,7 @@ class TaskGraphRuntimeTest {
                     val captured = connection.call("agent_candidate_capture", buildJsonObject { put("taskId", "T1") })
                         .let { AgentWorkspaceJson.decodeFromJsonElement(AgentCandidate.serializer(), it) }
                     connection.call("agent_finding_resolve", buildJsonObject {
-                        put("taskId", "T1"); put("findingId", "empty-input"); put("candidateId", captured.id)
+                        put("taskId", "T1"); put("findingId", evidence().findings.single().id); put("candidateId", captured.id)
                         put("reason", "The second attempt handles empty input")
                     })
                 }
@@ -288,8 +283,8 @@ class TaskGraphRuntimeTest {
     @Test fun aStaleDecisionContinuesTheSameReviewAttemptUntilItNamesTheCandidate() {
         val codex = Scripted(RuntimeKind.Codex, listOf("Built it"))
         val claude = Scripted(RuntimeKind.ClaudeCode, listOf(
-            "{\"verdict\":\"pass\",\"summary\":\"Old checkout\",\"candidate\":\"stale\"}",
-            "{\"verdict\":\"pass\",\"summary\":\"Reviewed the assigned candidate\",\"candidate\":\"{{candidate}}\"}"))
+            "{\"verdict\":\"pass\",\"summary\":\"Old checkout\",\"candidate\":\"stale\",\"findings\":[]}",
+            "{\"verdict\":\"pass\",\"summary\":\"Reviewed the assigned candidate\",\"candidate\":\"{{candidate}}\",\"findings\":[]}"))
         workspace(codex, claude) { connection, _, _ ->
             claude.onRun = { _, number ->
                 if (number == 2) {
@@ -312,9 +307,51 @@ class TaskGraphRuntimeTest {
         }
     }
 
+    @Test fun malformedAndInvalidStructuredReviewsHoldThePersonGate() {
+        val valid = """{"title":"Defect","detail":"Fix the value","severity":"high","sourcePath":"Source.kt","line":1}"""
+        val invalid = valid.replace("\"line\":1", "\"line\":999")
+        val reviews = listOf(
+            """{"verdict":"pass","summary":"Missing findings","candidate":"{{candidate}}"}""" to 0,
+            """{"verdict":"repair","summary":"Invalid location","candidate":"{{candidate}}","findings":[$valid,$invalid]}""" to 0,
+            """{"verdict":"pass","summary":"Contradicts findings","candidate":"{{candidate}}","findings":[$valid]}""" to 1,
+        )
+        reviews.forEach { (reply, retained) ->
+            val codex = Scripted(RuntimeKind.Codex, listOf("Built it"))
+            val claude = Scripted(RuntimeKind.ClaudeCode, listOf(reply))
+            workspace(codex, claude) { connection, _, _ ->
+                val proposed = connection.proposeTaskGraph(draft(), person)
+                connection.startTaskGraph("G1", proposed.graph.revision, person)
+                val stopped = connection.until("G1") { it.task("Review the parser").graph?.state == TaskState.Failed }
+                assertEquals(TaskState.Pending, stopped.task("Land it").graph?.state)
+                assertTrue(stopped.task("Review the parser").graph?.outcome?.summary.orEmpty().startsWith("Invalid structured review:"))
+                val evidence = connection.call("agent_task_graph", buildJsonObject { put("taskId", "T1") })
+                    .jsonObject.getValue("task").let { AgentWorkspaceJson.decodeFromJsonElement(AgentTaskEvidence.serializer(), it) }
+                assertEquals(retained, evidence.findings.size)
+                evidence.findings.forEach { assertEquals(claude.requests.single().environment.getValue(AgentRequest.RunVariable), it.producerRunId) }
+            }
+        }
+    }
+
+    @Test fun aReviewCannotChangeItsCandidateDuringTheTurn() {
+        val codex = Scripted(RuntimeKind.Codex, listOf("Built it"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf("""{"verdict":"pass","summary":"Changed it","candidate":"{{candidate}}","findings":[]}"""))
+        claude.onRun = { request, _ -> File(request.workingDirectory, "Source.kt").writeText("val changedByReviewer = 1\n") }
+        workspace(codex, claude) { connection, root, _ ->
+            val proposed = connection.proposeTaskGraph(draft(), person)
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val stopped = connection.until("G1") { it.task("Review the parser").graph?.state == TaskState.Failed }
+            val reason = stopped.task("Review the parser").graph?.outcome?.summary.orEmpty()
+            assertEquals("The review handoff candidate is stale or incomplete", reason)
+            assertEquals(1, claude.requests.size)
+            assertTrue(connection.list(50).any { it.failure == "The review candidate changed during the turn" })
+            assertEquals(TaskState.Pending, stopped.task("Land it").graph?.state)
+            assertEquals("val baseline = 1\n", File(root, "Source.kt").readText())
+        }
+    }
+
     @Test fun aFailedTaskPausesTheGraphUntilAPersonRetriesIt() {
         val codex = Scripted(RuntimeKind.Codex, listOf("Built it"))
-        val claude = Scripted(RuntimeKind.ClaudeCode, listOf("{\"verdict\":\"pass\",\"summary\":\"ok\",\"candidate\":\"{{candidate}}\"}"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf("{\"verdict\":\"pass\",\"summary\":\"ok\",\"candidate\":\"{{candidate}}\",\"findings\":[]}"))
         codex.failing.set(true)
         workspace(codex, claude) { connection, _, _ ->
             val proposed = connection.proposeTaskGraph(draft(), person)

@@ -301,6 +301,7 @@ private class CodexAppServerSession(
 
         rpc.request("turn/start", buildJsonObject {
             put("threadId", threadId)
+            request.outputSchema?.let { put("outputSchema", it) }
             putJsonArray("input") { addJsonObject { put("type", "text"); put("text", request.prompt) } }
             request.agent.effort?.let { put("effort", it.value) }
             request.agent.model?.let { put("model", it) }

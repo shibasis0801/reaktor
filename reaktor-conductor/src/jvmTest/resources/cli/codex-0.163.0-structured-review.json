@@ -1,0 +1,19 @@
+{
+  "method": "turn/completed",
+  "params": {
+    "turn": {
+      "status": "completed",
+      "items": [
+        {
+          "type": "agentMessage",
+          "id": "msg_0035cf6130115fe1016add3cc535a08191a0c6bca6fe6a52fa",
+          "text": "{\"verdict\":\"repair\",\"summary\":\"Source.kt contains a division by zero.\",\"candidate\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"findings\":[{\"title\":\"Division by zero\",\"detail\":\"The expression `10 / 0` divides by zero and will throw an ArithmeticException.\",\"severity\":\"high\",\"sourcePath\":\"Source.kt\",\"line\":1}]}",
+          "phase": "final_answer",
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        }
+      ]
+    }
+  }
+}

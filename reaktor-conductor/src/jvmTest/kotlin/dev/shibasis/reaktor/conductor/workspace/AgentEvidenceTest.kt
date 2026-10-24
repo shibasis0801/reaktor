@@ -38,7 +38,7 @@ class AgentEvidenceTest {
             store.finding("task", AgentFinding("f1", repaired.id, "attempt-1", "claude", "Lost draft", "Restore the tab draft", "high", subject, "Tabs.kt", 1))
             store.check("task", AgentCandidateCheck("tabs-test", repaired.id, CheckResult(listOf("tabs-test"), CheckOutcome.Passed, revision = repaired.id), "kernel"))
             assertFailsWith<IllegalArgumentException> { store.accept("task", repaired.id) }
-            store.resolve("task", "f1", repaired.id, "Verified draft restoration in tabs-test")
+            store.resolve("task", "f1", repaired.id, "Verified draft restoration in tabs-test", checkId = "tabs-test")
             val accepted = store.accept("task", repaired.id)
             assertEquals(repaired.id, accepted.acceptedCandidate)
             assertFalse(accepted.approverVerified)
@@ -116,6 +116,39 @@ class AgentEvidenceTest {
             parent.deleteTreeSafely(within = temporary)
             data.toFile().deleteTreeSafely(within = temporary)
         }
+    }
+
+    @Test fun findingsValidateLocationsAtomicallyAndDismissalsRequireEvidence() {
+        val root = Files.createTempDirectory("finding-location").toFile()
+        val data = Files.createTempDirectory("finding-location-data")
+        val temporary = File(System.getProperty("java.io.tmpdir"))
+        try {
+            git(root, "init", "-q")
+            File(root, "Source.kt").writeText("val first = 1\nval second = 2\n")
+            val store = AgentEvidenceStore(root, data)
+            val candidate = store.capture("T1")
+            val finding = AgentFinding("f1", candidate.id, "review", "claude", "Wrong value", "The second value is wrong", "high", sourcePath = "Source.kt", line = 2)
+            assertFailsWith<IllegalArgumentException> { store.finding("T1", finding.copy(line = 3)) }
+            assertFailsWith<IllegalArgumentException> { store.finding("T1", finding.copy(sourcePath = "missing.kt")) }
+            assertFailsWith<IllegalArgumentException> { store.finding("T1", finding.copy(sourcePath = null)) }
+            assertFailsWith<IllegalArgumentException> {
+                store.findings("T1", listOf(finding, finding.copy(id = "f2", line = 100)))
+            }
+            assertTrue(store.get("T1").findings.isEmpty())
+            store.finding("T1", finding)
+            assertFailsWith<IllegalArgumentException> { store.resolve("T1", "f1", candidate.id, "I disagree") }
+            assertFailsWith<IllegalArgumentException> { store.resolve("T1", "f1", candidate.id, "I disagree", by = BoardActor(BoardActorKind.Agent, "claude")) }
+            store.check("T1", AgentCandidateCheck("check", candidate.id, CheckResult(listOf("check"), CheckOutcome.Failed, revision = candidate.id), "kernel"))
+            assertFailsWith<IllegalArgumentException> { store.resolve("T1", "f1", candidate.id, "The check proves it", checkId = "check") }
+            store.check("T1", AgentCandidateCheck("check", candidate.id, CheckResult(listOf("check"), CheckOutcome.Passed, revision = candidate.id), "claim"))
+            assertFailsWith<IllegalArgumentException> { store.resolve("T1", "f1", candidate.id, "The check proves it", checkId = "check") }
+            store.check("T1", AgentCandidateCheck("check", candidate.id, CheckResult(listOf("check"), CheckOutcome.Passed, revision = candidate.id), "kernel"))
+            assertEquals("Kernel check check: Verified the expected value", store.resolve("T1", "f1", candidate.id, "Verified the expected value", checkId = "check").findings.single().resolution)
+            store.finding("T1", finding.copy(id = "person"))
+            val decided = store.resolve("T1", "person", candidate.id, "Expected behaviour", by = BoardActor(BoardActorKind.Person, "owner"))
+            assertEquals("Person owner: Expected behaviour", decided.findings.last().resolution)
+            assertEquals(decided, AgentEvidenceStore(root, data).get("T1"))
+        } finally { root.deleteTreeSafely(within = temporary); data.toFile().deleteTreeSafely(within = temporary) }
     }
 
     @Test fun artifactRangesReassembleUnicodeWithoutDroppingBytes() {
