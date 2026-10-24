@@ -12,7 +12,7 @@ internal fun workspaceCapabilities(runtimes: Map<RuntimeKind, AgentRuntime>, dis
         val sameVersion = testedVersion != null && discovered.version?.contains(testedVersion) == true
         val controls = if (runtime !is InteractiveAgentRuntime || !session.implemented) emptyMap() else {
             val implemented = if (kind == RuntimeKind.Codex) listOf("start", "steer", "interrupt", "commandApproval", "fileApproval", "questions", "permissions", "elicitation")
-                else if (kind in listOf(RuntimeKind.Gemini, RuntimeKind.ChatGptGemini)) listOf("start", "interrupt", "permissions")
+                else if (kind in listOf(RuntimeKind.Gemini, RuntimeKind.ChatGptGemini)) listOf("start", "interrupt")
                 else listOf("start", "steer", "interrupt", "questions", "permissions")
             implemented.associateWith { name ->
                 val qualification = when {

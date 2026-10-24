@@ -38,13 +38,7 @@ class AntigravityRuntime(
     override val kind = RuntimeKind.Gemini
 
     override fun argv(request: AgentRequest): List<String> {
-        val file = File(System.getProperty("user.home"), ".gemini/antigravity-cli/settings.json")
-        val settings = if (file.isFile) Json.parseToJsonElement(file.readText()).jsonObject else JsonObject(emptyMap())
-        // The one guard that decides which pool pays. A configured API provider would bill the
-        // operator directly, which is the opposite of what a spare-capacity seat is for.
-        require(settings["modelProvider"]?.jsonPrimitive?.contentOrNull.isNullOrBlank()) {
-            "The hybrid seat requires Antigravity Google-account authentication. Its configuration currently selects a model API provider."
-        }
+        requireAntigravityGoogleAccount()
         return antigravityArgv(request.withModel(request.agent.model ?: candidates.first()), binary)
     }
 
@@ -58,8 +52,7 @@ class AntigravityRuntime(
      * re-running it on another model would spend the allowance to get the same answer again.
      */
     override fun run(request: AgentRequest): Flow<AgentEvent> = flow {
-        val requested = request.agent.model
-        val order = if (requested != null) listOf(requested) + candidates.filter { it != requested } else candidates
+        val order = antigravityModelOrder(request.agent.model, candidates)
         for ((index, model) in order.withIndex()) {
             var outcome: AgentOutcome? = null
             val pending = mutableListOf<AgentEvent>()
@@ -76,12 +69,27 @@ class AntigravityRuntime(
                 emit(AgentEvent.Finished(request.agent.id, finished))
                 return@flow
             }
-            emit(AgentEvent.Activity(request.agent.id, AgentActivityItem("antigravity-capacity-$index",
-                ActivityKind.Control, "$model is at capacity; trying ${order[index + 1]}",
-                ActivityStatus.Recorded, output = finished.failure?.take(2000))))
+            emit(antigravityCapacitySwitch(request.agent.id, index, model, order[index + 1], finished))
         }
     }
 }
+
+internal fun requireAntigravityGoogleAccount() {
+    val file = File(System.getProperty("user.home"), ".gemini/antigravity-cli/settings.json")
+    val settings = if (file.isFile) Json.parseToJsonElement(file.readText()).jsonObject else JsonObject(emptyMap())
+    // The one guard that decides which pool pays. A configured API provider would bill the
+    // operator directly, which is the opposite of what a spare-capacity seat is for.
+    require(settings["modelProvider"]?.jsonPrimitive?.contentOrNull.isNullOrBlank()) {
+        "The hybrid seat requires Antigravity Google-account authentication. Its configuration currently selects a model API provider."
+    }
+}
+
+internal fun antigravityModelOrder(requested: String?, candidates: List<String>): List<String> =
+    if (requested != null) listOf(requested) + candidates.filter { it != requested } else candidates
+
+internal fun antigravityCapacitySwitch(agent: AgentId, index: Int, model: String, next: String, refused: AgentOutcome) =
+    AgentEvent.Activity(agent, AgentActivityItem("antigravity-capacity-$index", ActivityKind.Control,
+        "$model is at capacity; trying $next", ActivityStatus.Recorded, output = refused.failure?.take(2000)))
 
 /**
  * Antigravity's preference order for this seat, best first.
@@ -122,11 +130,11 @@ fun parseAntigravityModels(output: String): Map<String, String> = output.lineSeq
     .mapNotNull { line -> line.split('\t').takeIf { it.size >= 2 && it[0].isNotBlank() }?.let { it[0].trim() to it[1].trim() } }
     .toMap(linkedMapOf())
 
-private fun AgentRequest.withModel(model: String) =
+internal fun AgentRequest.withModel(model: String) =
     if (agent.model == model) this else copy(agent = agent.copy(model = model))
 
 /** Whether the service refused because a model is full, rather than because the turn was bad. */
-private fun AgentOutcome.outOfCapacity(): Boolean {
+internal fun AgentOutcome.outOfCapacity(): Boolean {
     val text = failure.orEmpty()
     return text.contains("No capacity available", ignoreCase = true) ||
         text.contains("UNAVAILABLE (code 503)", ignoreCase = true) ||
@@ -198,6 +206,14 @@ internal fun antigravitySessionArgv(request: AgentRequest, binary: String = "agy
     add(binary); add("--print=")
     add("--input-format"); add("stream-json")
     addAll(antigravityFlags(request))
+}
+
+internal fun antigravityUserMessage(text: String): JsonObject = buildJsonObject {
+    put("event", "user")
+    putJsonObject("message") {
+        put("role", "user")
+        putJsonArray("content") { addJsonObject { put("type", "text"); put("text", text) } }
+    }
 }
 
 class AntigravityEventParser(

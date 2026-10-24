@@ -29,13 +29,12 @@ object AgentRuntimes {
         RuntimeKind.Gateway to GatewayRuntime(),
     )
 
-    /** Interactive turns with native continuation: Codex over its App Server, Claude over stream-json stdin. */
     fun interactive(
         scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     ): Map<RuntimeKind, AgentRuntime> = mapOf(
         RuntimeKind.Codex to CodexAppServerRuntime(scope = scope),
         RuntimeKind.ClaudeCode to ClaudeCodeSessionRuntime(scope = scope),
-        RuntimeKind.Gemini to AntigravityRuntime(SupervisedProcessExecutor(scope = scope)),
+        RuntimeKind.Gemini to AntigravitySessionRuntime(scope = scope),
         RuntimeKind.Gateway to GatewayRuntime(),
     )
 }
