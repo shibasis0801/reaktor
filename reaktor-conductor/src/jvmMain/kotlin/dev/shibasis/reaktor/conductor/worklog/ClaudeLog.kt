@@ -10,7 +10,7 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
 
     private val turns = Turns("claude-")
     private val pending = mutableMapOf<String, Pending>()
-    private val counted = mutableSetOf<String>()
+    private val counted = mutableMapOf<String, WorkUsage>()
     private val agents = mutableMapOf<String, Pair<Int, Int>>()
     private var plan = listOf<PlanItem>()
 
@@ -67,10 +67,19 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
         val message = record.obj("message") ?: return
         val turn = turns.ensure(at)
         val index = turns.lastIndex
-        message.str("id")?.takeIf(counted::add)?.let { id ->
+        message.str("id")?.let { id ->
             message.obj("usage")?.let { usage ->
+                val previous = counted[id]
                 val context = listOf("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens").sumOf { usage.num(it) ?: 0 }
-                turn.use(WorkUsage(context.takeIf { it > 0 }, usage.num("output_tokens"), usage.obj("output_tokens_details")?.num("thinking_tokens")))
+                fun high(value: Long?, old: Long?) = listOfNotNull(value, old).maxOrNull()
+                val next = WorkUsage(context.takeIf { it > 0 }, high(usage.num("output_tokens"), previous?.output),
+                    high(usage.obj("output_tokens_details")?.num("thinking_tokens"), previous?.reasoning),
+                    high(context.takeIf { usage.num("input_tokens") != null }, previous?.input),
+                    listOfNotNull(record.text("costUSD")?.toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0 }, previous?.costUsd).maxOrNull())
+                fun delta(value: Long?, old: Long?) = value?.minus(old ?: 0)
+                turn.use(WorkUsage(next.context, delta(next.output, previous?.output), delta(next.reasoning, previous?.reasoning),
+                    delta(next.input, previous?.input), next.costUsd?.minus(previous?.costUsd ?: 0.0)))
+                counted[id] = next
             }
         }
         when (message.str("stop_reason")) {
@@ -212,7 +221,7 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
                 step.copy(steps = nested, result = if (running) null else LogText.cut(text).first, model = structured?.str("resolvedModel") ?: step.model,
                     status = when { failed -> StepStatus.Failed; running -> StepStatus.Running; else -> StepStatus.Done })
             }
-            is WorkStep.Question -> step.copy(answer = LogText.oneLine(text), status = if (failed) StepStatus.Failed else StepStatus.Done)
+            is WorkStep.Question -> step.copy(answer = LogText.oneLine(text), status = if (failed) StepStatus.Failed else StepStatus.Done, answeredAt = at)
             is WorkStep.Tool -> {
                 val (shown, cut) = LogText.cut(if (step.kind == ToolKind.Read && !failed) null else text)
                 step.copy(output = shown, cut = cut, millis = millis, status = if (failed) StepStatus.Failed else StepStatus.Done)

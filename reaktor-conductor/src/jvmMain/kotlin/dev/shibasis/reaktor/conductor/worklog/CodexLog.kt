@@ -9,6 +9,8 @@ private val ExploreTypes = setOf("read", "search", "list_files")
 internal class CodexLog(private val root: String?) : LogParser {
     private val turns = Turns("codex-")
     private val asked = mutableListOf<Pair<Int, Int>>()
+    private var totalUsage: JsonObject? = null
+    private var lastUsage: Pair<Long?, JsonObject>? = null
 
     override fun line(record: JsonObject) {
         val at = instant(record.str("timestamp"))
@@ -34,8 +36,16 @@ internal class CodexLog(private val root: String?) : LogParser {
                 turn.add(WorkStep.Note("${turn.id}:aborted:${turn.steps.size}", at, NoteKind.Interrupted, "Turn interrupted"))
                 turn.open = false
             }
-            "token_count" -> payload.obj("info")?.obj("last_token_usage")?.let { usage ->
-                turns.current?.use(WorkUsage(usage.num("input_tokens"), usage.num("output_tokens"), usage.num("reasoning_output_tokens")))
+            "token_count" -> payload.obj("info")?.let { info ->
+                val total = info.obj("total_token_usage")
+                val usage = info.obj("last_token_usage") ?: return@let
+                if (total != null && total == totalUsage || total == null && lastUsage == (at to usage)) return@let
+                fun count(key: String): Long? = if (total != null && totalUsage != null) total.num(key)?.let { value ->
+                    (value - (totalUsage?.num(key) ?: 0)).takeIf { it >= 0 }
+                } else usage.num(key)
+                turns.current?.use(WorkUsage(usage.num("input_tokens"), count("output_tokens"), count("reasoning_output_tokens"), input = count("input_tokens")))
+                totalUsage = total
+                lastUsage = at to usage
             }
             "exec_approval_request", "apply_patch_approval_request", "request_user_input" -> {
                 val turn = turns.ensure(at)
@@ -126,7 +136,7 @@ internal class CodexLog(private val root: String?) : LogParser {
     private fun answered(at: Long?) {
         asked.forEach { (turn, step) ->
             val question = turns.at(turn).steps[step] as? WorkStep.Question ?: return@forEach
-            if (question.at == null || at == null || at > question.at) turns.at(turn).steps[step] = question.copy(status = StepStatus.Done, answer = question.answer ?: "Answered")
+            if (question.at == null || at == null || at > question.at) turns.at(turn).steps[step] = question.copy(status = StepStatus.Done, answer = question.answer ?: "Answered", answeredAt = at)
         }
         asked.removeAll { (turn, step) -> (turns.at(turn).steps[step] as? WorkStep.Question)?.status != StepStatus.Running }
     }
