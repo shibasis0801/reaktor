@@ -31,7 +31,7 @@ internal fun Project.declarationSite(): SourceSite? {
         } else null
     }.distinct().take(16)
     val declaration = calls.firstOrNull { it.file.endsWith(".gradle.kts") } ?: calls.firstOrNull() ?: return null
-    return declaration.copy(callPath = calls.asReversed())
+    return declaration.copy(callPath = calls.filter { !it.file.endsWith(".gradle.kts") || it == declaration }.asReversed())
 }
 
 internal fun kernelRef(task: Task, spec: KernelSpec? = (task as? dev.shibasis.dependeasy.process.KernelSpecOwner)?.kernelSpec

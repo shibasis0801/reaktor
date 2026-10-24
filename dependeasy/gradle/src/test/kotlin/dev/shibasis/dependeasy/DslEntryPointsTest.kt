@@ -126,6 +126,8 @@ class DslEntryPointsTest {
             val manifest = tasks.named<dev.shibasis.dependeasy.web.NodeGenerator>("generateWorkerManifest").get()
             val composeCompiler = extensions.getByType<org.jetbrains.kotlin.compose.compiler.gradle.ComposeCompilerGradlePluginExtension>()
             tasks.register("probe") {
+                inputs.property("rootDeclaration", rootProject.node(rootProject.tasks.named("crossProject")).id.toString())
+                inputs.property("expectedRootDeclaration", NodeId("libraryFixture", ":", "crossProject").toString())
                 inputs.property("composeReportsEnabled", true)
                 inputs.property("composeReports", listOf(composeCompiler.reportsDestination.orNull?.asFile?.name.orEmpty(), composeCompiler.metricsDestination.orNull?.asFile?.name.orEmpty()))
                 inputs.property("manifestArguments", manifest.arguments.get())
@@ -163,6 +165,7 @@ class DslEntryPointsTest {
                 inputs.property("probeFrameworks", probeFrameworks)
                 inputs.property("dependencies", declared)
                 doLast {
+                    check(inputs.properties["rootDeclaration"] == inputs.properties["expectedRootDeclaration"])
                     check(inputs.properties["composeReports"] == if (inputs.properties["composeReportsEnabled"] == true) listOf("compose-reports", "compose-metrics") else listOf("", ""))
                     check(inputs.properties["manifestSources"] == listOf("targets/worker/src/index.ts"))
                     check((inputs.properties["manifestArguments"] as List<*>).takeLast(2).first() == "--source")
@@ -236,6 +239,14 @@ class DslEntryPointsTest {
         val foreign = model.nodes.filter { it.id.project == ":legacy" && (it.id.name == "probe" || it.id.name.startsWith("output")) }
         assertTrue(foreign.any { it.id.name == "probe" })
         assertTrue(foreign.all { it.declaredAt?.copy(symbol = null, callPath = emptyList()) == legacySite }, foreign.joinToString { it.id.name + "=" + it.declaredAt })
+        val root = model.nodes.single { it.id == NodeId("libraryFixture", ":", "crossProject") }
+        val rootLine = directory.resolve("build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val crossProject by") } + 1
+        assertEquals(SourceSite("libraryFixture", "build.gradle.kts", rootLine), root.declaredAt?.copy(symbol = null, callPath = emptyList()))
+        for (site in model.nodes.mapNotNull { it.declaredAt }) {
+            val scripts = site.callPath.filter { it.file.endsWith(".gradle.kts") }
+            assertTrue(scripts.size <= 1, site.toString())
+            assertTrue(scripts.all { it.copy(symbol = null) == site.copy(symbol = null, callPath = emptyList()) }, site.toString())
+        }
         for (name in listOf("outputModuleBuild", "outputVerificationResultsJvm", "outputVerificationResultsJavaScript")) {
             assertEquals(1, model.nodes.count { it.id.project == ":library" && it.id.name == name })
         }
