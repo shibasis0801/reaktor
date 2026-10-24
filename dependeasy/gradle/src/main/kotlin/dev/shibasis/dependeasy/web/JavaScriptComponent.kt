@@ -41,14 +41,14 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     val installation get() = project.rootProject.node(install)
     internal val prerequisites = mutableListOf<Any>(contract)
     internal val kotlinOutputs = mutableListOf<OutputHandle>()
-    internal val packageOutputs = mutableListOf<OutputHandle>()
+    internal val consumedOutputs = mutableListOf<OutputHandle>()
     internal val commands = mutableListOf<NodeHandle>()
     fun packages(vararg outputs: OutputHandle, directory: String = ".") {
         require(outputs.all { it.kind in setOf(OutputKind.JavaScriptPackage, OutputKind.BrowserBundle) }) { "Declare JavaScript package sources or compiled outputs" }
         outputs.forEach { output ->
             if (output.kind == OutputKind.BrowserBundle) {
-                if (packageOutputs.any { it.nodeId == output.nodeId }) return@forEach
-                packageOutputs.add(output)
+                if (consumedOutputs.any { it.nodeId == output.nodeId }) return@forEach
+                consumedOutputs.add(output)
                 val files = project.outputFiles(output)
                 sourceInputs.add(files)
                 prerequisites.add(files)
@@ -56,8 +56,8 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
                 return@forEach
             }
             BuildWorkspace.get(project).packageSources(project, this.directory.resolve(directory), output)
-            if (packageOutputs.any { it.nodeId == output.nodeId }) return@forEach
-            packageOutputs.add(output)
+            if (consumedOutputs.any { it.nodeId == output.nodeId }) return@forEach
+            consumedOutputs.add(output)
             val files = project.outputFiles(output)
             sourceInputs.add(files.asFileTree.matching {
                 exclude("**/build/**", "**/node_modules/**", "**/dist/**", "**/.git/**", "**/.gradle/**", "**/.kotlin/**")

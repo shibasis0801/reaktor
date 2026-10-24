@@ -25,6 +25,11 @@ class RemoteTaskFamiliesTest {
                 node("product", ":desktop", "test", "jvm", ":desktop:test").copy(options = debug),
                 node("product", ":desktop", "outputVerificationResultsJvm", "verification", ":desktop:test").copy(options = tests),
                 node("product", ":web", "outputBrowserBundle", "web", ":web:bundle"),
+                node("product", ":web", "workerTypes", "web", ":web:workerTypes").copy(
+                    kernel = KernelRef("types", spec = KernelSpec.WorkerTypes(ProcessExecution(
+                        directory = "web", executable = "pnpm", arguments = listOf("exec", "wrangler", "types"),
+                        environmentKeys = emptyList(), tool = ToolRef("wrangler", "test"), inputs = emptyList(),
+                        outputs = listOf("web/worker/types/worker-configuration.d.ts")), "web/wrangler.json"))),
                 node("product", ":web", "outputVerificationResults", "verification", ":web:bundle"),
                 node("framework", ":conductor", "outputVerificationResultsJvm", "verification", ":conductor:jvmTest").copy(options = count),
                 node("product", ":", "combined", "verification", ":first", ":second").copy(options = tests),
@@ -35,6 +40,7 @@ class RemoteTaskFamiliesTest {
         assertContains(routing.environment, GradleProtocol.OperationRunVariable)
         assertEquals(listOf("kernel/build/custom-runtime"), routing.distributionDirectories)
         assertEquals(routing.distributionDirectories, routing.publicOutputs[":kernel:agentDist"])
+        assertEquals(listOf("web/worker/types/worker-configuration.d.ts"), routing.publicOutputs[":web:workerTypes"])
         assertEquals(tests, routing.taskOptions[":kernel:test"])
         assertEquals(tests, routing.taskOptions[":kernel:outputVerificationResultsJvm"])
         assertEquals(count, routing.taskOptions[":framework:conductor:jvmTest"])

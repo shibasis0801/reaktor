@@ -91,6 +91,7 @@ object BuildModelKernel {
                 is KernelSpec.BuildModelExport -> spec.output.paths + spec.routing.paths
                 is KernelSpec.WebContract -> spec.output.paths + spec.typeScriptConfiguration.paths
                 is KernelSpec.KotlinExportCatalog -> spec.output.paths
+                is KernelSpec.WorkerTypes -> spec.execution.outputs
                 is KernelSpec.ReleasePlan -> listOf(spec.output)
                 is KernelSpec.XcodeHost -> if (spec.checking) emptyList() else spec.files.drop(1) +
                     AppleHostKernel.files(spec).keys.map { File(spec.files.first(), it).invariantSeparatorsPath }

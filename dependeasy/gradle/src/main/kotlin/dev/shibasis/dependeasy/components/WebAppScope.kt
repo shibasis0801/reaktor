@@ -24,6 +24,15 @@ class WebAppScope internal constructor(
 
     fun packages(vararg outputs: OutputHandle, directory: String = ".") = web.packages(*outputs, directory = directory)
 
+    fun consumes(vararg outputs: OutputHandle) {
+        outputs.forEach { output ->
+            val files = project.outputFiles(output)
+            web.sources(files)
+            web.consumedOutputs.add(output)
+            web.commands.forEach { BuildWorkspace.get(project).consume(it, output) }
+        }
+    }
+
     fun assets(from: OutputHandle, paths: List<WebAsset>) {
         val files = web.dependencyAssets(from, paths)
         BuildWorkspace.get(project).consume(bundle, from)
