@@ -13,7 +13,7 @@ fun Project.webApp(
     kotlin: List<OutputHandle> = emptyList(),
     typescript: List<String> = listOf("tsconfig.json"),
     bundle: WebBundle = WebBundle.Vite(),
-    tests: PackageScript? = null,
+    tests: Vitest? = null,
     generators: List<WebGenerator> = emptyList(),
     paths: List<TypeScriptPath> = emptyList(),
     assets: List<WebAsset> = emptyList(),
@@ -41,7 +41,7 @@ private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, run
         exclude(spec.generators.map { "${it.output}/**" })
     })
     val generated = spec.generators.map { web.script(it.script.name, it.output) }
-    val checks = listOfNotNull(spec.tests?.let { web.check(it.name) })
+    val checks = listOfNotNull(spec.tests?.let { web.check(it) })
     val types = web.types(*spec.typescript.toTypedArray(), generators = generated)
     val bundle = when (val bundle = spec.bundle) {
         is WebBundle.Vite -> web.vite(bundle.output)

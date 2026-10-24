@@ -1,5 +1,8 @@
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package dev.shibasis.dependeasy.model
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -14,10 +17,18 @@ sealed interface WebBundle {
 @Serializable data class WebAsset(val destination: String, val source: String)
 
 @Serializable
+data class Vitest(
+    val include: List<String> = listOf("**/*.{test,spec}.?(c|m)[jt]s?(x)"),
+    val exclude: List<String> = listOf("**/node_modules/**", "**/.git/**"),
+    val setupFiles: List<String> = emptyList(),
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val maxWorkers: Int? = null,
+)
+
+@Serializable
 data class WebAppSpec(
     val typescript: List<String> = listOf("tsconfig.json"),
     val bundle: WebBundle = WebBundle.Vite(),
-    val tests: PackageScript? = null,
+    val tests: Vitest? = null,
     val generators: List<WebGenerator> = emptyList(),
     val paths: List<TypeScriptPath> = emptyList(),
     val assets: List<WebAsset> = emptyList(),

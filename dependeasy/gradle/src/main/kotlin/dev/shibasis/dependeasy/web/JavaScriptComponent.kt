@@ -8,6 +8,7 @@ import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.*
+import kotlinx.serialization.encodeToString
 import dev.shibasis.dependeasy.tasks.registeredTask
 
 /** Common commands are declarative; arbitrary package commands keep the same input/output contract. */
@@ -42,8 +43,17 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     internal val packageOutputs = mutableListOf<OutputHandle>()
     internal val commands = mutableListOf<NodeHandle>()
     fun packages(vararg outputs: OutputHandle, directory: String = ".") {
-        require(outputs.all { it.kind == OutputKind.JavaScriptPackage }) { "Declare JavaScript package outputs" }
+        require(outputs.all { it.kind in setOf(OutputKind.JavaScriptPackage, OutputKind.BrowserBundle) }) { "Declare JavaScript package sources or compiled outputs" }
         outputs.forEach { output ->
+            if (output.kind == OutputKind.BrowserBundle) {
+                if (packageOutputs.any { it.nodeId == output.nodeId }) return@forEach
+                packageOutputs.add(output)
+                val files = project.outputFiles(output)
+                sourceInputs.add(files)
+                prerequisites.add(files)
+                commands.forEach { BuildWorkspace.get(project).consume(it, output) }
+                return@forEach
+            }
             BuildWorkspace.get(project).packageSources(project, this.directory.resolve(directory), output)
             if (packageOutputs.any { it.nodeId == output.nodeId }) return@forEach
             packageOutputs.add(output)
@@ -147,7 +157,10 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     fun workerTypes(config: String = "wrangler.json", output: String = "worker-configuration.d.ts"): TaskProvider<WorkerTypes> =
         commandKernel.register(WorkerTypes::class.java, "workerTypes", null, "exec", "wrangler", "types", output, "--config", config, fileOutput = output)
             .also { it.configure { configuration.set(config); declarations.set(directory.resolve(output)); outputFiles.setFrom(emptyList<Any>()) } }
-    fun check(script: String = "test"): TaskProvider<PackageCommand> = command("check", null, "run", script).also { it.configure { executionEffect.set(Effect.Verify) } }
+    fun check(policy: Vitest): TaskProvider<PackageCommand> {
+        contract.configure { testPolicy.set(BuildModelReader.json.encodeToString(policy)) }
+        return command("check", null, *Pnpm.vitest().toTypedArray()).also { it.configure { executionEffect.set(Effect.Verify) } }
+    }
     internal fun check(files: FileSet): TaskProvider<PackageCommand> {
         require(files.paths.isNotEmpty()) { "Node tests need declared test paths" }
         return command("check", null, *Pnpm.tests(files.paths).toTypedArray()).also { it.configure { executionEffect.set(Effect.Verify) } }
@@ -209,6 +222,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     fun library(target: String, config: String, output: String, kotlin: Boolean = false): NodeHandle {
         val compile = commandKernel.register(TypeScriptCheck::class.java, "compile", output, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
             "--project", config).also { it.configure { adapter.set(runtime.file("cli/typecheck.ts")); emit.set(true); projects.set(listOf(config)) } }
+        project.publishOutput(OutputKind.BrowserBundle, compile.map { it.outputDirectories }, producer = compile)
         val result = BuildWorkspace.get(project).aggregate(project, target, NodeKind.Verification, listOf(project.node(compile)))
         return project.node(requireNotNull(result.task), OutputKind.BrowserBundle).also {
             if (kotlin) project.javascriptLibraryConsumer(checkNotNull(it.task))

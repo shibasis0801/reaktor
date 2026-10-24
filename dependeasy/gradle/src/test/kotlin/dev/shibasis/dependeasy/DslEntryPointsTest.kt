@@ -949,7 +949,7 @@ class DslEntryPointsTest {
             }
         """)
         write("package.json", """{"name":"fixture"}""")
-        write("worker/package.json", """{"name":"worker","scripts":{"test":"fixture test"}}""")
+        write("worker/package.json", """{"name":"worker"}""")
         write("worker/wrangler.json", """{"name":"fixture-worker","main":"src/index.ts"}""")
         write("worker/src/index.ts", "export default {}")
         write("workers/build.gradle.kts", """
@@ -966,7 +966,7 @@ class DslEntryPointsTest {
             import dev.shibasis.dependeasy.components.workerApp
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.worker-fleet") }
-            workerApp(typescript = listOf("tsconfig.json", "test/tsconfig.json"), tests = PackageScript("test"))
+            workerApp(typescript = listOf("tsconfig.json", "test/tsconfig.json"), tests = Vitest())
         """)
         write("android/src/main/AndroidManifest.xml", "<manifest />")
         write("android/release-rules.pro", "")

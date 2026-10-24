@@ -22,6 +22,7 @@ export interface WebContract {
   moduleName?: string | null;
   target: string;
   assetFileNames: string;
+  tests?: { include: string[]; exclude: string[]; setupFiles: string[]; maxWorkers?: number };
 }
 
 export function webContract(source: string | URL): Omit<WebContract, 'aliases'> & { aliases: { find: RegExp; replacement: string }[] } {

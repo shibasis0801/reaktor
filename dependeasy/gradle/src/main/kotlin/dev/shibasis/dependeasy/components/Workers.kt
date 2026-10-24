@@ -25,11 +25,12 @@ fun Project.workerApp(
     kotlin: List<OutputHandle> = emptyList(),
     packages: List<OutputHandle> = emptyList(),
     typescript: List<String> = listOf("tsconfig.json"),
-    tests: PackageScript? = null,
+    tests: Vitest? = null,
 ): NodeHandle {
     require(plugins.hasPlugin(WorkerFleetPlugin::class.java)) { "Apply dev.shibasis.dependeasy.worker-fleet" }
     require(this != rootProject) { "Declare the worker application in its component project" }
     val web = JavaScriptComponent(this, name, ".")
+    BuildWorkspace.get(this).packageImport(this, projectDir, web.contractLocation)
     web.kotlinLibraries(*kotlin.toTypedArray())
     web.packages(*packages.toTypedArray())
     web.sources(fileTree(projectDir) {
@@ -37,7 +38,7 @@ fun Project.workerApp(
         exclude("**/node_modules/**", "**/build/**", "**/dist/**")
     })
     val verification = web.verify("checkApi", *typescript.toTypedArray(),
-        generators = listOf(web.workerTypes()), checks = listOfNotNull(tests?.let { web.check(it.name) }))
+        generators = listOf(web.workerTypes()), checks = listOfNotNull(tests?.let { web.check(it) }))
     componentRole(Workspace.Verify, verification)
     componentRole(Workspace.Build, verification)
     tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(requireNotNull(verification.task)) }

@@ -36,6 +36,7 @@ abstract class WebContractTask : DefaultTask(), KernelSpecOwner {
     @get:Input @get:Optional abstract val moduleName: Property<String>
     @get:Input abstract val target: Property<String>
     @get:Input abstract val assetFileNames: Property<String>
+    @get:Input @get:Optional abstract val testPolicy: Property<String>
     @get:OutputFile abstract val contract: RegularFileProperty
     @get:OutputFile @get:Optional abstract val typeScriptConfiguration: RegularFileProperty
 
@@ -58,7 +59,8 @@ abstract class WebContractTask : DefaultTask(), KernelSpecOwner {
         FileSet(packageContracts.files.map { it.absolutePath }.sorted()), packageLocations.get(), dataSources.get(),
         FileSet(listOfNotNull(workspaceMetadata.orNull?.asFile?.absolutePath)),
         FileSet(listOfNotNull(workspaceDefinition.orNull?.asFile?.absolutePath)), target.get(), assetFileNames.get(),
-        FileSet(listOfNotNull(workerFleet.orNull?.asFile?.absolutePath)))
+        FileSet(listOfNotNull(workerFleet.orNull?.asFile?.absolutePath)),
+        testPolicy.orNull?.let { BuildModelReader.json.decodeFromString<Vitest>(it) })
 
     @TaskAction fun write() = WebContractKernel.write(kernelSpec)
 }

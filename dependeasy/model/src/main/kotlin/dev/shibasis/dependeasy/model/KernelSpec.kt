@@ -1,5 +1,8 @@
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package dev.shibasis.dependeasy.model
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -39,7 +42,8 @@ sealed interface KernelSpec {
         val packageLocations: Map<String, String> = emptyMap(), val dataSources: Map<String, String> = emptyMap(),
         val workspaceMetadata: FileSet = FileSet(emptyList()), val workspaceDefinition: FileSet = FileSet(emptyList()),
         val target: String = "es2022", val assetFileNames: String = "assets/[name]-[hash][extname]",
-        val workerFleet: FileSet = FileSet(emptyList())) : KernelSpec
+        val workerFleet: FileSet = FileSet(emptyList()),
+        @EncodeDefault(EncodeDefault.Mode.NEVER) val tests: Vitest? = null) : KernelSpec
     @Serializable data class WebResources(val sources: FileSet, val output: FileSet) : KernelSpec
     @Serializable data class KotlinPackage(val sources: FileSet, val destination: FileSet, val dependencies: FileSet, val receipt: FileSet) : KernelSpec
     @Serializable data class Prefab(val archive: FileSet, val checksum: String, val module: String, val output: FileSet) : KernelSpec

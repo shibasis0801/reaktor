@@ -42,6 +42,7 @@ fun Project.appleXcodeFramework(module: ProjectDependency) = output(module, Outp
 fun appleXcodeFramework(module: ModuleHandle) = output(module, OutputKind.AppleXcodeFramework)
 fun Project.jvmDistribution(module: ProjectDependency) = output(module, OutputKind.JvmDistribution)
 fun Project.browserBundle(module: ProjectDependency) = output(module, OutputKind.BrowserBundle)
+fun browserBundle(module: ModuleHandle) = output(module, OutputKind.BrowserBundle)
 fun nativeLibrary(module: ModuleHandle, target: Apple) = output(module, OutputKind.NativeLibrary, target)
 fun Project.moduleBuild(module: ProjectDependency) = output(module, OutputKind.ModuleBuild)
 

@@ -1,5 +1,8 @@
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package dev.shibasis.dependeasy.model
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
@@ -18,6 +21,7 @@ data class WebContract(
     val moduleName: String? = null,
     val target: String = "es2022",
     val assetFileNames: String = "assets/[name]-[hash][extname]",
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val tests: Vitest? = null,
 )
 
 @Serializable

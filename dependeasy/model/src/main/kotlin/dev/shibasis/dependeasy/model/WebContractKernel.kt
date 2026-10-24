@@ -135,7 +135,7 @@ object WebContractKernel {
             workspaces = workspaces.map(::relative), dataSources = spec.dataSources.toSortedMap(),
             kotlinDirectory = spec.kotlinDirectory?.let { relative(root.resolve(it)) },
             resources = spec.resources?.let { relative(root.resolve(it)) }, moduleName = spec.moduleName,
-            target = spec.target, assetFileNames = spec.assetFileNames)
+            target = spec.target, assetFileNames = spec.assetFileNames, tests = spec.tests)
         output.parentFile.mkdirs()
         val contract = BuildModelReader.json.encodeToString(value) + "\n"
         if (!output.isFile || output.readText() != contract) output.writeText(contract)

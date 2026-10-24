@@ -122,6 +122,38 @@ class WebContractsTest {
         assertEquals("site", json("build/dependeasy/web/site.json").getValue("component").jsonPrimitive.content)
         assertTrue(directory.resolve("build/dependeasy/web/site.tsconfig.json").isFile)
         assertEquals(TaskOutcome.UP_TO_DATE, run("siteWebContract").task(":siteWebContract")?.outcome)
+        assertFalse("tests" in json("build/dependeasy/web/site.json"))
+        fun policy(workers: Int?) {
+            prepare("""
+                dependeasy {
+                    val site = javascript("site", "web")
+                    site.contract.configure { baseConfiguration.set(layout.projectDirectory.file("base.json")) }
+                    site.check(dev.shibasis.dependeasy.model.Vitest(include = listOf("test/**/*.test.ts"),
+                        setupFiles = listOf("./test/setup.ts"), maxWorkers = $workers))
+                }
+            """.trimIndent())
+        }
+        policy(null)
+        assertEquals(TaskOutcome.SUCCESS, run("siteWebContract", "exportBuildModel").task(":siteWebContract")?.outcome)
+        val declared = Vitest(include = listOf("test/**/*.test.ts"), setupFiles = listOf("./test/setup.ts"))
+        val model = BuildModelReader.read(directory)
+        val contract = model.nodes.single { it.id.name == "siteWebContract" }
+        val check = model.nodes.single { it.id.name == "siteCheck" }
+        assertEquals(declared, assertIs<KernelSpec.WebContract>(contract.kernel?.spec).tests)
+        assertEquals(Effect.Verify, check.effect)
+        assertEquals(Pnpm.vitest(), assertIs<KernelSpec.PackageCommand>(check.kernel?.spec).execution.arguments)
+        assertTrue(model.edges.any { it is Edge.After && it.from == check.id && it.to == contract.id })
+        assertEquals(declared, BuildModelReader.json.decodeFromJsonElement<WebContract>(json("build/dependeasy/web/site.json")).tests)
+        assertFalse("maxWorkers" in json("build/dependeasy/web/site.json").getValue("tests").jsonObject)
+        val repeat = run("siteWebContract", "exportBuildModel")
+        assertContains(repeat.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":siteWebContract")?.outcome)
+        policy(2)
+        val changed = run("siteWebContract", "exportBuildModel")
+        assertEquals(declared.copy(maxWorkers = 2), BuildModelReader.json.decodeFromJsonElement<WebContract>(json("build/dependeasy/web/site.json")).tests, changed.output)
+        assertEquals(TaskOutcome.SUCCESS, changed.task(":siteWebContract")?.outcome, changed.output)
+        assertFalse(changed.output.contains("Reusing configuration cache"))
+        assertContains(run("siteWebContract", "exportBuildModel").output, "Reusing configuration cache")
     }
 
     @Test fun `one browser runtime owns the Kotlin package and facade identities`() {
