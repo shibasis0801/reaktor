@@ -313,6 +313,16 @@ class DslEntryPointsTest {
             assertEquals(SourceSite(owner, "library/build.gradle.kts", line), emitter.declaredAt?.copy(symbol = null, callPath = emptyList()))
             assertEquals(emitter.declaredAt, compile.declaredAt)
         }
+        val compiled = model.nodes.single { it.id == NodeId(owner, ":library", "outputBrowserBundle") }
+        assertEquals(setOf("library/js/dist", "library/ts/dist"), compiled.outputs.single().paths.toSet())
+        val compiledProducer = model.nodes.single { it.id == NodeId(owner, ":library", "compiledTypeScript") }
+        val compiledSpec = assertIs<KernelSpec.WorkspaceNode>(compiledProducer.kernel?.spec)
+        assertEquals(NodeKind.ArtifactSet, compiledSpec.kind)
+        assertEquals(setOf("buildFixtureTypeScriptCompile", "buildStandaloneTypeScriptCompile"), compiledSpec.includes.map { it.name }.toSet())
+        assertTrue(model.edges.any { it is Edge.Includes && it.from == compiled.id && it.to == compiledProducer.id })
+        for (compiler in compiledSpec.includes) {
+            assertTrue(model.edges.any { it is Edge.Includes && it.from == compiledProducer.id && it.to == compiler })
+        }
         val standaloneTypeScript = model.nodes.single { it.id.project == ":library" && it.id.name == "buildStandaloneTypeScriptCompile" }
         val standaloneSpec = assertIs<KernelSpec.TypeScriptCheck>(standaloneTypeScript.kernel?.spec)
         assertEquals("library/ts", standaloneSpec.execution.directory)

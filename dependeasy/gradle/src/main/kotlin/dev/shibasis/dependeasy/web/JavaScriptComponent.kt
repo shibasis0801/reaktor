@@ -153,6 +153,7 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         commandKernel.register(TypeScriptCheck::class.java, "types", null, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
             "--projects", *(projects.toList().ifEmpty { listOf("tsconfig.json") }).toTypedArray()).also {
             it.configure { adapter.set(runtime.file("cli/typecheck.ts")); this.projects.set(projects.toList().ifEmpty { listOf("tsconfig.json") }); dependsOn(generators); sourceFiles.from(generators) }
+            BuildWorkspace.get(project).connect(project.node(it), generators.map { generator -> project.node(generator) })
         }
     fun workerTypes(config: String = "wrangler.json", output: String = "worker-configuration.d.ts"): TaskProvider<WorkerTypes> =
         commandKernel.register(WorkerTypes::class.java, "workerTypes", null, "exec", "wrangler", "types", output, "--config", config, fileOutput = output)
@@ -219,14 +220,13 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         }
 
     /** Emit a package and make it available to this module's Kotlin/JS compilations. */
-    fun library(target: String, config: String, output: String, kotlin: Boolean = false): NodeHandle {
+    fun library(target: String, config: String, output: String, kotlin: Boolean = false): Pair<NodeHandle, TaskProvider<TypeScriptCheck>> {
         val compile = commandKernel.register(TypeScriptCheck::class.java, "compile", output, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
             "--project", config).also { it.configure { adapter.set(runtime.file("cli/typecheck.ts")); emit.set(true); projects.set(listOf(config)) } }
-        project.publishOutput(OutputKind.BrowserBundle, compile.map { it.outputDirectories }, producer = compile)
         val result = BuildWorkspace.get(project).aggregate(project, target, NodeKind.Verification, listOf(project.node(compile)))
         return project.node(requireNotNull(result.task), OutputKind.BrowserBundle).also {
             if (kotlin) project.javascriptLibraryConsumer(checkNotNull(it.task))
             verificationConsumer(checkNotNull(it.task))
-        }
+        } to compile
     }
 }

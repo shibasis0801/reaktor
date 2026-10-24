@@ -12,7 +12,13 @@ sealed interface WebBundle {
     @Serializable data class Package(val script: PackageScript, override val output: String = "dist") : WebBundle
 }
 
-@Serializable data class WebGenerator(val script: PackageScript, val output: String)
+@Serializable
+sealed interface WebGenerator {
+    val output: String
+    @Serializable data class Package(val script: PackageScript, override val output: String) : WebGenerator
+    @Serializable data class WorkerTypes(val configuration: String = "wrangler.json",
+        override val output: String = "worker/types") : WebGenerator
+}
 @Serializable data class TypeScriptPath(val alias: String, val paths: List<String>)
 @Serializable data class WebAsset(val destination: String, val source: String)
 

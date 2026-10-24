@@ -432,6 +432,21 @@ class WebContractsTest {
         assertEquals("../../../source/detail.ts", json("library/build/dependeasy/web/sourcePackage.json")
             .getValue("aliases").jsonObject.getValue("fixture-source").jsonPrimitive.content)
         assertEquals(TaskOutcome.UP_TO_DATE, run(":library:sourcePackage").task(":library:sourcePackage")?.outcome)
+        val generatedTypesScript = directory.resolve("site/build.gradle.kts").readText()
+        write("site/build.gradle.kts", generatedTypesScript.replace("paths = listOf(TypeScriptPath", """
+            generators = listOf(WebGenerator.WorkerTypes(output = "worker/types")),
+            paths = listOf(TypeScriptPath
+        """.trimIndent()))
+        run("exportBuildModel")
+        val withWorkerTypes = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        val workerTypes = withWorkerTypes.nodes.single { it.id.project == ":site" && it.id.name == "siteWorkerTypes" }
+        val workerTypesSpec = assertIs<dev.shibasis.dependeasy.model.KernelSpec.WorkerTypes>(workerTypes.kernel?.spec)
+        assertEquals("wrangler.json", workerTypesSpec.configuration)
+        assertEquals(listOf("exec", "wrangler", "types", "worker/types/worker-configuration.d.ts", "--config", "wrangler.json"),
+            workerTypesSpec.execution.arguments)
+        assertTrue(withWorkerTypes.edges.any { it is dev.shibasis.dependeasy.model.Edge.After &&
+            it.from.project == ":site" && it.from.name == "siteTypes" && it.to == workerTypes.id })
+        assertContains(run("exportBuildModel").output, "Reusing configuration cache")
     }
 
     @Test fun `fleet deep merges every declared environment with arrays replaced`() {

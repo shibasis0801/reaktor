@@ -75,6 +75,7 @@ fun Project.webPackage(vararg directories: String): NodeDeclaration {
 class LibraryScope internal constructor(private val project: Project, private var spec: LibrarySpec) {
     private val verifications = mutableListOf<NodeHandle>()
     private val generatedProducers = mutableListOf<NodeHandle>()
+    private val typeScriptOutputs = mutableListOf<org.gradle.api.tasks.TaskProvider<dev.shibasis.dependeasy.web.TypeScriptCheck>>()
     private val generatedObjects = mutableListOf<Pair<NodeHandle, dev.shibasis.dependeasy.model.GeneratedObject.Spec>>()
     private val releaseRequirements = linkedMapOf<dev.shibasis.dependeasy.model.BuildOption<Boolean>, Pair<Boolean, SourceSite?>>()
     private val workerManifests = mutableListOf<org.gradle.api.tasks.TaskProvider<dev.shibasis.dependeasy.web.NodeGenerator>>()
@@ -299,7 +300,9 @@ class LibraryScope internal constructor(private val project: Project, private va
         directory: String = ".", kotlin: List<OutputHandle> = emptyList()) = NodeDeclaration { name ->
         val web = dev.shibasis.dependeasy.web.JavaScriptComponent(project, name, directory)
         if (kotlin.isNotEmpty()) web.kotlinLibraries(*kotlin.toTypedArray())
-        web.library(name, configuration, output, kotlin = kotlinConsumer).covers(dev.shibasis.dependeasy.model.Aspect.Static).also(verifications::add)
+        val (verification, compile) = web.library(name, configuration, output, kotlin = kotlinConsumer)
+        typeScriptOutputs.add(compile)
+        verification.covers(dev.shibasis.dependeasy.model.Aspect.Static).also(verifications::add)
     }
 
     fun tests(suite: dev.shibasis.dependeasy.model.Suite,
@@ -442,6 +445,12 @@ class LibraryScope internal constructor(private val project: Project, private va
                 dev.shibasis.dependeasy.codegen.GeneratedObjectKernel.inputs(project,
                     this as dev.shibasis.dependeasy.codegen.KotlinObjectTask, definition, requirements)
             }
+        }
+        if (typeScriptOutputs.isNotEmpty()) {
+            val producer = typeScriptOutputs.singleOrNull() ?: requireNotNull(BuildWorkspace.get(project).aggregate(project,
+                "compiledTypeScript", dev.shibasis.dependeasy.model.NodeKind.ArtifactSet, typeScriptOutputs.map(project::node)).task)
+            project.publishOutput(dev.shibasis.dependeasy.model.OutputKind.BrowserBundle,
+                typeScriptOutputs.map { output -> output.map { it.outputDirectories } }, producer = producer)
         }
         project.publishLibraryRoles(spec.targets, verifications, generatedResources = generatedProducers)
     }

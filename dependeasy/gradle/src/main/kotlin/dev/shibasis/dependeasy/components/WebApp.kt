@@ -40,7 +40,12 @@ private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, run
         exclude("**/node_modules/**", "**/build/**", "**/dist/**")
         exclude(spec.generators.map { "${it.output}/**" })
     })
-    val generated = spec.generators.map { web.script(it.script.name, it.output) }
+    val generated = spec.generators.map { generator ->
+        when (generator) {
+            is WebGenerator.Package -> web.script(generator.script.name, generator.output)
+            is WebGenerator.WorkerTypes -> web.workerTypes(generator.configuration, "${generator.output}/worker-configuration.d.ts")
+        }
+    }
     val checks = listOfNotNull(spec.tests?.let { web.check(it) })
     val types = web.types(*spec.typescript.toTypedArray(), generators = generated)
     val bundle = when (val bundle = spec.bundle) {
