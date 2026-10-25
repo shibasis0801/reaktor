@@ -5,6 +5,17 @@ import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.deleteRecursively
 
+object BrowserSuiteKernel {
+    fun plan(spec: KernelSpec.BrowserSuite): ProcessExecution {
+        require(spec.suite.configuration.isNotBlank()) { "Browser tests need a Playwright configuration" }
+        require(spec.suite.workers == null || spec.suite.workers > 0) { "Browser workers must be positive" }
+        return spec.execution.copy(arguments = Pnpm.playwright(spec.suite))
+    }
+
+    fun run(spec: KernelSpec.BrowserSuite, receipt: File?, execute: (ProcessExecution) -> Unit) =
+        ProcessKernel.run(plan(spec), receipt, execute)
+}
+
 object JavaScriptKernel {
     fun plan(spec: KernelSpec.TypeScriptCheck) = spec.execution.copy(
         arguments = Pnpm.typeScript(spec.adapter, spec.projects, spec.emit))

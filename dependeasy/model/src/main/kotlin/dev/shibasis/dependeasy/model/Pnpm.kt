@@ -13,6 +13,10 @@ object Pnpm {
 
     fun tests(paths: List<String>) = listOf("exec", "node", "--test") + paths
 
+    fun playwright(suite: Playwright) = listOf("exec", "playwright", "test", "--config", suite.configuration) +
+        suite.files + (if (suite.headed) listOf("--headed") else emptyList()) +
+        suite.workers?.let { listOf("--workers", it.toString()) }.orEmpty()
+
     fun repair(arguments: List<String>) = arguments + "--force"
 
     fun bindings(configuration: String) = listOf("exec", "node", "--input-type=module", "-e",

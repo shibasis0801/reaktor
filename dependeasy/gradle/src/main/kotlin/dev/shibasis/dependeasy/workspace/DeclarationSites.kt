@@ -75,6 +75,7 @@ internal fun kernelRef(task: Task, spec: KernelSpec? = (task as? dev.shibasis.de
         is dev.shibasis.dependeasy.verification.DeviceFlow -> dev.shibasis.dependeasy.model.DeviceFlowKernel::class.java
         is dev.shibasis.dependeasy.verification.KarateSuite -> dev.shibasis.dependeasy.model.KarateSuiteKernel::class.java
         is dev.shibasis.dependeasy.verification.K6Suite -> dev.shibasis.dependeasy.model.K6SuiteKernel::class.java
+        is dev.shibasis.dependeasy.verification.BrowserSuite -> dev.shibasis.dependeasy.model.BrowserSuiteKernel::class.java
         is dev.shibasis.dependeasy.web.WranglerDeploy -> dev.shibasis.dependeasy.model.WorkerDeployKernel::class.java
         is dev.shibasis.dependeasy.cloudflare.WorkerSecrets -> dev.shibasis.dependeasy.model.WorkerSecretsKernel::class.java
         is PulumiInfrastructure -> dev.shibasis.dependeasy.model.PulumiStackKernel::class.java
@@ -173,6 +174,7 @@ private fun KernelSpec.relativeTo(root: File): KernelSpec {
         is KernelSpec.ServerImagePush -> copy(image = image.copy(jar = path(image.jar)), built = path(built))
         is KernelSpec.ServerRollout -> copy(deployment = deployment.copy(execution = execution(deployment.execution), kubeconfig = path(deployment.kubeconfig)), published = path(published))
         is KernelSpec.NodeGenerator -> copy(execution = execution(execution), script = path(script), arguments = arguments.map(::path))
+        is KernelSpec.BrowserSuite -> copy(execution = execution(execution), suite = suite.copy(configuration = path(suite.configuration)))
         is KernelSpec.PackageCommand -> copy(execution = execution(execution))
         is KernelSpec.Process -> copy(execution = execution(execution))
         is KernelSpec.CMakeBuild -> copy(source = path(source), output = path(output), executable = path(executable),

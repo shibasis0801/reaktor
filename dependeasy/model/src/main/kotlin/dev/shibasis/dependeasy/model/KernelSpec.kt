@@ -125,6 +125,7 @@ sealed interface KernelSpec {
     @Serializable data class ServerImagePush(val image: ServerImageSpec, val built: String) : KernelSpec
     @Serializable data class ServerRollout(val deployment: ServerRolloutSpec, val published: String) : KernelSpec
     @Serializable data class NodeGenerator(val execution: ProcessExecution, val script: String, val arguments: List<String>) : KernelSpec
+    @Serializable data class BrowserSuite(val execution: ProcessExecution, val suite: Playwright) : KernelSpec
     @Serializable data class PackageCommand(val execution: ProcessExecution) : KernelSpec
     @Serializable data class Process(val execution: ProcessExecution) : KernelSpec
     @Serializable data class CMakeBuild(val source: String, val output: String, val executable: String,
@@ -165,6 +166,7 @@ fun KernelSpec.tools(): List<ToolRef> = when (this) {
     is KernelSpec.ServerImagePush -> listOf(image.tool)
     is KernelSpec.ServerRollout -> listOf(deployment.execution.tool)
     is KernelSpec.NodeGenerator -> listOf(execution.tool)
+    is KernelSpec.BrowserSuite -> listOf(execution.tool)
     is KernelSpec.PackageCommand -> listOf(execution.tool)
     is KernelSpec.Process -> listOf(execution.tool)
     is KernelSpec.GeneratedObject, is KernelSpec.JvmClasspath,

@@ -253,6 +253,7 @@ class WebContractsTest {
             }
         """.trimIndent())
         write("base.json", "{}")
+        write("tests/playwright.config.mjs", "export default {}")
         write("site/package.json", """{"name":"site","private":true,"imports":{"#keep":"./index.ts"},"dependencies":{"fixture-source":"workspace:*"},"scripts":{"bundle:assets":"node bundle.cjs"}}""")
         write("site/index.ts", "export const value = 1;")
         write("site/tsconfig.json", """{"files":["index.ts"]}""")
@@ -289,6 +290,7 @@ class WebContractsTest {
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.model.*
             import dev.shibasis.dependeasy.components.webPackage
+            import dev.shibasis.dependeasy.handles.*
             plugins { id("dev.shibasis.dependeasy.workspace") }
             val sourcePackage by webPackage("library/source")
             workspace {
@@ -296,6 +298,8 @@ class WebContractsTest {
                 val site = product(shared = projects.site)
                 val pr by verify(site, role = Workspace.Verify)
                 val everything by artifacts(site, role = Workspace.Build)
+                val browser by browserTests(Playwright("tests/playwright.config.mjs", files = listOf("smoke.spec.ts"), workers = 2), browserBundle(projects.site))
+                val headed by browserTests(Playwright("tests/playwright.config.mjs", headed = true), after = listOf(browser))
                 delivery(after = pr) {
                     val ship by deploy(projects.workers)
                 }
@@ -335,6 +339,15 @@ class WebContractsTest {
                 edge.to.project == owner && edge.to.name == producer }, "$owner $role must expose its producing node")
         }
         assertEquals("site", json("site/build/dependeasy/web/site.json").getValue("component").jsonPrimitive.content)
+        val browser = model.nodes.single { it.id.project == ":" && it.id.name == "browser" }
+        val browserSpec = assertIs<KernelSpec.BrowserSuite>(browser.kernel?.spec)
+        assertEquals("dev.shibasis.dependeasy.model.BrowserSuiteKernel", browser.kernel?.className)
+        assertEquals(Effect.Verify, browser.effect)
+        assertEquals(Playwright("tests/playwright.config.mjs", files = listOf("smoke.spec.ts"), workers = 2), browserSpec.suite)
+        assertEquals(Pnpm.playwright(browserSpec.suite), browserSpec.execution.arguments)
+        assertTrue(model.edges.any { it is Edge.Consumes && it.from == browser.id && it.to.project == ":site" && it.to.name == "outputBrowserBundle" })
+        assertTrue(model.edges.any { it is Edge.After && it.from.name == "headed" && it.to == browser.id })
+        assertContains(assertIs<KernelSpec.BrowserSuite>(model.nodes.single { it.id.name == "headed" }.kernel?.spec).execution.arguments, "--headed")
         val publishedPackage = model.nodes.single { it.id.project == ":library" && it.id.name == "outputJavaScriptPackage" }
         assertIs<dev.shibasis.dependeasy.model.KernelSpec.WebContract>(publishedPackage.kernel?.spec)
         assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes &&

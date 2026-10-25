@@ -6,6 +6,7 @@ import dev.shibasis.dependeasy.handles.OutputHandle
 import dev.shibasis.dependeasy.handles.output
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.verification.devicePreparation
+import dev.shibasis.dependeasy.verification.browserSuite
 import dev.shibasis.dependeasy.server.serverRelease
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
@@ -43,6 +44,15 @@ class WorkspaceScope internal constructor(private val project: Project, private 
 
 
     fun prepare(hook: DeviceHook) = NodeDeclaration { name -> project.devicePreparation(name, hook) }
+
+    fun browserTests(suite: Playwright, vararg artifacts: OutputHandle, after: List<NodeHandle> = emptyList(),
+        run: Run = Run.Default): NodeDeclaration = NodeDeclaration { name ->
+        project.browserSuite(name, suite, run).after(*after.toTypedArray()).also { node ->
+            artifacts.forEach { workspace.consume(node, it) }
+            node.covers(Coverage(setOf(Domain.Web, Domain.Site), setOf(Aspect.EndToEnd)))
+            workspace.alias(project.projectDir, name, node)
+        }
+    }
 
     fun external(call: ExternalCall, removal: String, run: Run = Run.Default,
         runner: Runner = when (call) { is ExternalCall.Fastlane -> Runner.Fastlane; is ExternalCall.Package -> Runner.Pnpm; is ExternalCall.BashScript -> Runner.Shell }, content: ExternalSpec.() -> Unit = {}): NodeDeclaration {
