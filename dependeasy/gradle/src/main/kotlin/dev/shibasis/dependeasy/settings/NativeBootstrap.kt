@@ -5,7 +5,11 @@ import dev.shibasis.dependeasy.handles.Tools
 import dev.shibasis.dependeasy.model.ToolHandle
 import org.gradle.api.tasks.TaskProvider
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
-import dev.shibasis.dependeasy.workspace.declarationSources
+import dev.shibasis.dependeasy.workspace.declarationSite
+import dev.shibasis.dependeasy.model.ArtifactSetKernel
+import dev.shibasis.dependeasy.model.KernelSpec
+import dev.shibasis.dependeasy.model.NodeId
+import dev.shibasis.dependeasy.model.Run
 import dev.shibasis.dependeasy.handles.node
 import dev.shibasis.dependeasy.model.NodeKind
 import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
@@ -14,16 +18,18 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.register
 import dev.shibasis.dependeasy.native.Native
 
-/** Registers optional native preparation. Settings evaluation performs no I/O or builds. */
+/** Source declarations register preparation before any consuming task is configured. */
 internal class NativeBootstrap(private val project: Project) {
     val sourceTasks = linkedMapOf<ToolHandle, TaskProvider<GitSourceTask>>()
     lateinit var hermesCompiler: TaskProvider<KotlinCMakeTask>
         private set
-    fun register() = with(project) {
-        if (rootDir.resolve("dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/NativeSources.kt").absolutePath !in declarationSources(rootDir)) return@with
+    fun register(declaration: Project) = with(project) {
+        if (sourceTasks.isNotEmpty()) return@with
+        val site = declaration.declarationSite()
         val sources = Native.sources.associate { it.source!! to it }.mapValues { (tool, source) ->
             val name = tool.name
             tasks.register<GitSourceTask>("prepare${name.replaceFirstChar(Char::uppercaseChar)}Source") {
+                site?.let { extensions.add("dependeasyDeclaration", it) }
                 group = "dependeasy"
                 repository.set(source.repository)
                 revision.set(source.revision)
@@ -33,6 +39,7 @@ internal class NativeBootstrap(private val project: Project) {
         sourceTasks.putAll(sources)
         val hermes = sources.getValue(Tools.Hermes)
         val compiler = tasks.register<KotlinCMakeTask>("buildHermesHostCompiler") {
+            site?.let { extensions.add("dependeasyDeclaration", it) }
             group = "dependeasy"
             dependsOn(hermes)
             sourceDirectory.set(hermes.flatMap { it.checkout })
@@ -56,9 +63,13 @@ internal class NativeBootstrap(private val project: Project) {
             ))
         }
         hermesCompiler = compiler
-        BuildWorkspace.get(this).aggregate(this, "prepareNativeTools", NodeKind.ArtifactSet,
-            listOf(node(compiler).after(node(hermes)), node(sources.getValue(Tools.Flatbuffers))))
+        val steps = listOf(node(compiler).after(node(hermes)), node(sources.getValue(Tools.Flatbuffers)))
+        BuildWorkspace.get(this).emit(this,
+            KernelSpec.WorkspaceNode(NodeId(rootProject.name, path, "prepareNativeTools"), NodeKind.ArtifactSet,
+                Run.Default, steps.map { it.id }, emptyList(), emptyList(), emptyList()),
+            ArtifactSetKernel, site, null, steps, emptyList(), emptyList())
     }
 }
 
-internal val Project.nativeTools get() = rootProject.extensions.getByType(NativeBootstrap::class.java)
+internal val Project.nativeTools get() = rootProject.extensions.findByType(NativeBootstrap::class.java)
+    ?: NativeBootstrap(rootProject).also { rootProject.extensions.add("nativeTools", it) }

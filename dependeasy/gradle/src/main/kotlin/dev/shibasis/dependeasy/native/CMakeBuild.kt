@@ -21,7 +21,10 @@ class CMakeBuild internal constructor(private val project: Project, private val 
     private val sourceLibraries = linkedMapOf<ToolHandle, String>()
     internal val executables = mutableListOf<NativeContract.Executable>()
 
-    fun sourceLibrary(tool: ToolHandle, includeVariable: String) { sourceLibraries[tool] = includeVariable }
+    fun sourceLibrary(tool: ToolHandle, includeVariable: String) {
+        project.nativeTools.register(project)
+        sourceLibraries[tool] = includeVariable
+    }
 
     internal fun register(taskName: String = "${name}CMake"): TaskProvider<KotlinCMakeTask> = project.tasks.register<KotlinCMakeTask>(taskName) {
         group = "dependeasy"
