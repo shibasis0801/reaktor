@@ -8,15 +8,11 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.process.nodeScript
-import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.handles.moduleOutputs
-import dev.shibasis.dependeasy.model.BuildOption
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.WorkspaceScope
 import dev.shibasis.dependeasy.workspace.declarationSite
 import dev.shibasis.dependeasy.model.SourceSite
-import dev.shibasis.dependeasy.compose.composeConfiguration
-import dev.shibasis.dependeasy.module.jvmConfiguration
 import dev.shibasis.dependeasy.verification.testClasses
 
 open class DependeasyExtension internal constructor(
@@ -40,13 +36,10 @@ open class DependeasyExtension internal constructor(
         }
         return dev.shibasis.dependeasy.module.MultiplatformModule(project, namespace).apply(configure)
     }
-    fun compose(stability: Any? = null, reports: BuildOption<Boolean>? = null) =
-        project.composeConfiguration(stability, reports)
     fun jvm(bytecode: Int = dev.shibasis.dependeasy.Versions.SDK.Java.asInt,
             configuration: dev.shibasis.dependeasy.module.JvmModule.() -> Unit = {}) =
         dev.shibasis.dependeasy.module.JvmModule(project, bytecode).apply(configuration)
     fun testClasses(vararg patterns: String) = project.testClasses(patterns)
-    fun <T : Any> option(option: BuildOption<T>) = project.option(option)
 
     fun nodeScript(name: String, script: Any, configuration: ProcessTask.() -> Unit): TaskProvider<dev.shibasis.dependeasy.web.NodeGenerator> =
         project.nodeScript(name, script, configuration)
@@ -56,10 +49,6 @@ open class DependeasyExtension internal constructor(
 
     fun javascript(name: String, directory: Any = ".", configuration: JavaScriptComponent.() -> Unit = {}): JavaScriptComponent =
         JavaScriptComponent(project, name, directory).apply(configuration)
-
-
-
-
 
 
     companion object {
