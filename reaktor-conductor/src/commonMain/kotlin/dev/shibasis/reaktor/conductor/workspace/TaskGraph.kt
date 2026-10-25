@@ -57,6 +57,7 @@ data class TaskOutcome(
     val attempt: Int? = null,
     val candidateId: String? = null,
     val usageLimit: AgentUsageLimit? = null,
+    val inputCandidates: Map<String, String> = emptyMap(),
 )
 
 @Serializable
@@ -130,6 +131,7 @@ data class TaskGraph(
     val tokensUsed: Long = 0,
     val reason: String? = null,
     val changes: List<TaskGraphChange> = emptyList(),
+    val baseCommits: Map<String, String> = emptyMap(),
 ) {
     val number: Int get() = id.removePrefix("G").toIntOrNull() ?: 0
     val changedSinceApproval: Int get() = approvedRevision?.let { approved -> changes.count { it.revision > approved } } ?: 0

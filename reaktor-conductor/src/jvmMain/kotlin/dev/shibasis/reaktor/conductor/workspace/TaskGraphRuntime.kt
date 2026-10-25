@@ -183,8 +183,6 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             when {
                 plan.kind == TaskKind.Gate -> store.advance(graphId, task.id) { value, current ->
                     value.copy(graph = current.copy(state = TaskState.Waiting, note = "Waiting for a person to pass this gate")) }
-                plan.kind == TaskKind.Merge -> store.advance(graphId, task.id) { value, current ->
-                    value.copy(graph = current.copy(state = TaskState.Succeeded, outcome = merged(task, members))) }
                 seat?.lead == true -> Unit
                 plan.kind == TaskKind.Agent && seat?.agent == null -> store.advance(graphId, task.id) { value, current ->
                     value.copy(graph = current.copy(state = TaskState.Waiting, note = "Choose who does this task, then retry it")) }
@@ -209,17 +207,6 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         }
     }
 
-    private fun merged(task: BoardTask, members: Map<String, BoardTask>): TaskOutcome {
-        val inputs = task.graph?.dependsOn.orEmpty().mapNotNull { members[it.task] }.filter { it.graph?.state == TaskState.Succeeded }
-        return TaskOutcome(
-            summary = ("Joined ${inputs.joinToString { it.id }}. The tasks share this checkout, so their changes are already together.\n\n" +
-                inputs.joinToString("\n\n") { "${it.id} ${it.title}: ${it.graph?.outcome?.summary.orEmpty().take(1_500)}" }).take(TaskGraphRules.OutcomeChars),
-            files = inputs.flatMap { it.graph?.outcome?.files.orEmpty() }.distinct(),
-            at = System.currentTimeMillis(),
-            attempt = task.graph?.attempt,
-        )
-    }
-
     private fun settle(message: CoordinatorMessage.Settled): Unit = synchronized(store) {
         val task = runCatching { store.get(message.task) }.getOrNull() ?: return@synchronized
         val plan = task.graph ?: return@synchronized
@@ -237,13 +224,13 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 note = "Retrying: ${message.outcome.summary.take(200)}")) }
             return
         }
-        val stage = if (message.state == TaskState.Succeeded && plan.kind == TaskKind.Agent && task.stage != BoardStage.Done) BoardStage.Review else task.stage
+        val stage = if (message.state == TaskState.Succeeded && plan.kind in setOf(TaskKind.Agent, TaskKind.Merge) && task.stage != BoardStage.Done) BoardStage.Review else task.stage
         val settled = store.advance(graphId, task.id) { value, current ->
             value.copy(graph = current.copy(state = message.state, outcome = outcome, recovery = message.recovery), stage = stage,
                 stageChangedAt = if (stage != value.stage) System.currentTimeMillis() else value.stageChangedAt,
                 history = (value.history + BoardEvent(System.currentTimeMillis(), scope.by, "${message.state.name} after attempt ${current.attempt}")).takeLast(50))
         }
-        if (message.state == TaskState.Succeeded && plan.kind == TaskKind.Agent) {
+        if (message.state == TaskState.Succeeded && plan.kind in setOf(TaskKind.Agent, TaskKind.Merge)) {
             val evidence = scope.workspace.evidence.get(task.id)
             val candidate = evidence.candidates.firstOrNull { it.id == outcome.candidateId }
             val records = store.coordination(graphId)
@@ -276,7 +263,17 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 note = "The review asks for a repair, but no owned writing task comes before it")) }
             return
         }
-        store.advance(graphId, builder.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending,
+        if (builder.graph.kind == TaskKind.Merge) {
+            val tree = scope.workspace.worktrees.read(requireNotNull(builder.graph.worktreeId))
+            try {
+                store.resolveIntegration(builder.id, builder.graph.attempt, tree, plan.outcome?.files.orEmpty(),
+                    "Repair requested by ${review.id}: ${plan.outcome?.summary.orEmpty().take(1000)}", scope.by)
+            } catch (failure: Exception) {
+                store.advance(graphId, review.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Failed,
+                    note = "Integration repair could not be scheduled: ${failure.message}")) }
+                return
+            }
+        } else store.advance(graphId, builder.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending,
             repairOf = review.id, readySince = null, note = "Repair requested by ${review.id}: ${plan.outcome?.summary.orEmpty().take(1000)}")) }
         val pending = ArrayDeque(plan.dependsOn.map { it.task })
         val seen = mutableSetOf<String>()
@@ -300,6 +297,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             val next = members[queue.removeFirst()] ?: continue
             if (!seen.add(next.id)) continue
             val plan = next.graph ?: continue
+            if (plan.kind == TaskKind.Merge) return next
             if (plan.kind == TaskKind.Agent && plan.contract == WorkflowContract.Text && (plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write) return next
             queue.addAll(plan.dependsOn.map { it.task })
         }
@@ -308,7 +306,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
 
     companion object {
         const val MaxAttempts = 2
-        val Dispatched = setOf(TaskKind.Agent, TaskKind.Check)
+        val Dispatched = setOf(TaskKind.Agent, TaskKind.Check, TaskKind.Merge)
     }
 }
 
@@ -374,6 +372,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             when (plan.kind) {
                 TaskKind.Agent -> agent(current, plan)
                 TaskKind.Check -> check(current, plan)
+                TaskKind.Merge -> merge(current, plan)
                 else -> return
             }
         } catch (cancelled: CancellationException) { throw cancelled }
@@ -388,17 +387,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
 
     private fun reviewInput(plan: TaskPlan): BoardTask? {
         if (plan.contract != WorkflowContract.Decision && plan.kind != TaskKind.Check) return null
-        val members = store.members(scope.graphId).associateBy { it.id }
-        val pending = ArrayDeque(plan.dependsOn.map { it.task })
-        val seen = mutableSetOf<String>()
-        val inputs = mutableListOf<BoardTask>()
-        while (pending.isNotEmpty()) {
-            val input = members[pending.removeFirst()] ?: continue
-            if (!seen.add(input.id)) continue
-            val source = requireNotNull(input.graph)
-            if (source.worktreeId != null && source.outcome?.candidateId != null && (source.resolvedSeat?.seat ?: source.seat)?.access == TaskAccess.Write) inputs += input
-            else pending.addAll(source.dependsOn.map { it.task })
-        }
+        val inputs = store.sourceInputs(task.id)
         require(inputs.size <= 1) { "Review requires one integrated input candidate" }
         return inputs.singleOrNull()
     }
@@ -449,6 +438,9 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
                     threadId = done.threadId, prompt = "$reason\nKeep reviewing the assigned checkout. End with {\"verdict\":\"pass\" | \"repair\" | \"fail\",\"summary\":\"what you found\",\"candidate\":\"${target.candidate}\",\"findings\":[]}. Include typed findings for any defects."))
                 continue
             }
+            if (done.status == AgentRunStatus.Completed && seat.access == TaskAccess.Write &&
+                plan.repairOf?.let { store.get(it).graph?.kind } == TaskKind.Merge && isolated != null)
+                scope.workspace.worktrees.requireResolved(isolated.id)
             val result = settled(task, plan, done)
             return result.copy(outcome = result.outcome.copy(tokens = tokens.takeIf { it > 0 }))
         }
@@ -513,14 +505,40 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         }
     }
 
+    private fun merge(task: BoardTask, plan: TaskPlan): CoordinatorMessage.Settled {
+        val inputs = store.sourceInputs(task.id)
+        require(inputs.isNotEmpty()) { "Merge requires exact source candidates" }
+        val tree = scope.workspace.prepareTaskWorktree("taskgraph:${scope.graphId}:${task.id}:${plan.attempt}",
+            AgentTaskTarget(scope.graphId, task.id, plan.attempt, task.id, plan.worktreeId))
+        val resolution = inputs.singleOrNull()?.graph?.repairOf == task.id
+        if (tree.conflicts.isNotEmpty() && !resolution) {
+            val reason = "Conflicting paths: ${tree.conflicts.joinToString().take(3000)}"
+            val detail = try {
+                val next = store.resolveIntegration(task.id, plan.attempt, tree, tree.conflicts, reason, scope.by)
+                "Resolve the integration in ${next.id}. $reason"
+            } catch (outside: TaskGraphOutside) {
+                "Resolution needs a person to expand the graph envelope. ${outside.message}. $reason"
+            }
+            return CoordinatorMessage.Settled(task.id, plan.attempt, TaskState.Waiting,
+                TaskOutcome(summary = detail.take(TaskGraphRules.OutcomeChars), files = tree.conflicts,
+                    questions = listOf(detail.take(1000)), at = System.currentTimeMillis()))
+        }
+        scope.workspace.worktrees.requireResolved(tree.id)
+        val candidate = scope.workspace.captureCandidate(task.id)
+        require(candidate.complete) { "Integrated candidate coverage is incomplete" }
+        return CoordinatorMessage.Settled(task.id, plan.attempt, TaskState.Succeeded, TaskOutcome(
+            summary = "Integrated ${inputs.joinToString { it.id }} as candidate ${candidate.id}.",
+            files = candidate.changedFiles, candidateId = candidate.id, at = System.currentTimeMillis(),
+            inputCandidates = inputs.associate { it.id to requireNotNull(it.graph?.outcome?.candidateId) }))
+    }
+
     private suspend fun check(task: BoardTask, plan: TaskPlan): CoordinatorMessage.Settled {
-        val thread = upstream().mapNotNull { it.task.graph?.run }.firstNotNullOfOrNull(scope.workspace::threadOf)
-            ?: return CoordinatorMessage.Settled(task.id, plan.attempt, TaskState.Failed,
-                TaskOutcome(summary = "A check runs after the agent task whose work it checks; connect ${task.id} after one.", at = System.currentTimeMillis()))
         val check = requireNotNull(plan.check) { "${task.id} names no check" }
         val input = reviewInput(plan)
         val candidate = input?.graph?.outcome?.candidateId
-        val subject = input?.id ?: thread
+        val subject = input?.id ?: upstream().mapNotNull { it.task.graph?.run }.firstNotNullOfOrNull(scope.workspace::threadOf)
+            ?: return CoordinatorMessage.Settled(task.id, plan.attempt, TaskState.Failed,
+                TaskOutcome(summary = "A check requires an upstream candidate or agent run.", at = System.currentTimeMillis()))
         if (input != null) {
             val required = scope.workspace.taskEvidence(subject).requiredChecks
             scope.workspace.evidence.requireChecks(subject, required + check)

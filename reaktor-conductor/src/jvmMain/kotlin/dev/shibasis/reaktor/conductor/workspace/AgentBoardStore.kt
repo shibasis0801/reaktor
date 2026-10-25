@@ -379,6 +379,75 @@ class AgentBoardStore(
         return next
     }
 
+    @Synchronized internal fun resolveIntegration(task: String, attempt: Int, tree: AgentWorktree,
+        paths: List<String>, reason: String, by: BoardActor): BoardTask {
+        val current = get(task)
+        val plan = requireNotNull(current.graph)
+        val graph = graph(plan.id)
+        require(by.kind == BoardActorKind.Schedule && plan.kind == TaskKind.Merge &&
+            plan.attempt == attempt && plan.worktreeId == tree.id &&
+            plan.state in setOf(TaskState.Running, TaskState.Succeeded)) { "The integration attempt changed" }
+        require(graph.status == TaskGraphStatus.Running && tree.inputs.isNotEmpty()) { "Resolution requires a running graph and retained inputs" }
+        require(paths.size <= 200 && paths.all { it.length <= 4000 })
+        val original = members(plan.id)
+        val inputs = tree.inputs.keys.map(::get).sortedBy { it.number }
+        val scope = current.scope.ifEmpty { inputs.flatMap { it.scope }.distinct() }
+        val seat = (listOfNotNull(plan.seat) + inputs.mapNotNull { it.graph?.resolvedSeat?.seat ?: it.graph?.seat })
+            .firstOrNull { request ->
+                runCatching { resolveSeat(request).seat }.getOrNull()?.let { effective ->
+                    effective.access == TaskAccess.Write && !effective.lead &&
+                        TaskGraphRules.outside(effective, scope, graph.envelope).isEmpty()
+                } == true
+            }
+        val pending = current.copy(graph = plan.copy(state = TaskState.Pending, worktreeId = null, readySince = null,
+            outcome = null, note = "Waiting for integration resolution: ${reason.take(1000)}"))
+        var next = ledger.next
+        val applied = TaskGraphEditing(graph, original.map { if (it.id == task) pending else it },
+            TaskGraphCaller(by, lead = true), clock(), { resolveSeat(it).seat }) { "T${next++}" }.apply(TaskGraphPatch(
+            ops = listOf(TaskGraphOp.Add("Resolve $task: ${current.title}".take(200), key = "resolution",
+                intent = ("Resolve the integration in the assigned owned checkout. Preserve every input's intended change. " +
+                    "Remove conflict markers and leave the combined result for independent review and checks.\n" +
+                    "Reason: $reason\nConflicting paths:\n${paths.joinToString("\n").take(8000)}\n" +
+                    "Exact inputs:\n${tree.inputs.entries.joinToString("\n") { "${it.key}: ${it.value}" }}").take(20000),
+                acceptance = listOf("All named integration conflicts are resolved", "Every input's intended change is retained",
+                    "The combined candidate is independently reviewed and checked"),
+                scope = scope, seat = seat, dependsOn = inputs.map { TaskDependency(it.id) }, parent = task)) +
+                plan.dependsOn.map { TaskGraphOp.Disconnect(it.task, task) } +
+                TaskGraphOp.Connect("resolution", task),
+            reason = "Resolve integration $task within its approved envelope", expectedRevision = graph.revision))
+        val resolution = applied.tasks.single { value -> original.none { it.id == value.id } }
+            .let { value -> value.copy(graph = requireNotNull(value.graph).copy(repairOf = task, worktreeId = tree.id)) }
+        commit(applied.graph, applied.tasks.map { if (it.id == resolution.id) resolution else it }, applied.removed, next)
+        return resolution
+    }
+
+    @Synchronized internal fun freezeBase(id: String, commits: Map<String, String>): Map<String, String> {
+        val current = graph(id)
+        if (current.baseCommits.isNotEmpty()) {
+            require(current.baseCommits == commits) { "The graph baseline is already frozen" }
+            return current.baseCommits
+        }
+        require(commits.size in 1..16 && commits.all { (source, commit) -> source.length in 1..4096 && commit.matches(Regex("[a-f0-9]{40,64}")) })
+        commit(current.copy(baseCommits = commits, revision = current.revision + 1, updatedAt = clock()), emptyList(), emptyList(), ledger.next)
+        return commits
+    }
+
+    @Synchronized internal fun sourceInputs(task: String): List<BoardTask> {
+        val plan = requireNotNull(get(task).graph)
+        val members = members(plan.id).associateBy { it.id }
+        val pending = ArrayDeque(plan.dependsOn.filter { it.required }.map { it.task })
+        val seen = mutableSetOf<String>()
+        val inputs = mutableListOf<BoardTask>()
+        while (pending.isNotEmpty()) {
+            val next = members.getValue(pending.removeFirst())
+            if (!seen.add(next.id)) continue
+            val source = requireNotNull(next.graph)
+            if (source.state == TaskState.Succeeded && source.worktreeId != null && source.outcome?.candidateId != null) inputs += next
+            else pending.addAll(source.dependsOn.filter { it.required }.map { it.task })
+        }
+        return inputs.sortedBy { it.id.removePrefix("T").toIntOrNull() ?: Int.MAX_VALUE }
+    }
+
     @Synchronized fun hold(id: String, status: TaskGraphStatus, reason: String, by: BoardActor): TaskGraph {
         val graph = graph(id)
         if (graph.status == status && graph.reason == reason) return graph
