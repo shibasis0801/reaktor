@@ -61,7 +61,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
                 put("revision", workspace.board.graph(id).revision); put("text", TaskGraphText.render(workspace.board.view(id)))
             } else view(id)
         },
-        McpTool("agent_taskgraph_seats", "Profiles, agents, models and efforts this workspace can run. Supply seat to resolve its profile and task overrides with the same resolver used by graph checks and dispatch.",
+        McpTool("agent_taskgraph_seats", "Profiles, agents, models and efforts this workspace can run. Supply seat to resolve its profile and task overrides. A read-only Decision seat may name lenses: [profile ids], two to six profiles from both Codex and Claude Code; its main seat independently verifies the findings. Resolved profiles are pinned at dispatch.",
             objectSchema(mapOf("seat" to any)), true, true) { args ->
             args.only("seat")
             val resolved = args["seat"]?.let { workspace.resolveSeat(AgentWorkspaceJson.decodeFromJsonElement(TaskSeat.serializer(), it)) }

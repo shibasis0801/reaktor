@@ -201,6 +201,8 @@ object TaskGraphRules {
         seat.profile?.let { require(it.matches(Regex("[a-z][a-z0-9-]{0,63}"))) { "A profile id is 1 to 64 lowercase letters, digits or dashes, starting with a letter" } }
         seat.model?.let { require(it.length in 1..256) { "A model name has 1 to 256 characters" } }
         seat.effort?.let { require(it.length in 1..32) { "An effort is a short provider token" } }
+        require(seat.lenses.isEmpty() || !seat.lead && seat.access != TaskAccess.Write && seat.lenses.size in 2..6) { "A read-only panel has two to six lens profiles" }
+        require(seat.lenses.distinct().size == seat.lenses.size && seat.lenses.all { it.matches(Regex("[a-z][a-z0-9-]{0,63}")) }) { "Use distinct lens profile ids" }
     }
 }
 
@@ -232,6 +234,10 @@ class TaskGraphEditing(
         }
         if (!caller.person) requireNotNull(patch.expectedRevision) { "Name the graph revision you read as expectedRevision; taskgraph.read shows it" }
         patch.ops.forEach { op -> conflicts(op, patch.expectedRevision); apply(op) }
+        members.values.forEach { task ->
+            val plan = task.graph ?: return@forEach
+            if (!plan.seat?.lenses.isNullOrEmpty()) require(plan.kind == TaskKind.Agent && plan.contract == WorkflowContract.Decision && resolveSeat(requireNotNull(plan.seat)).access == TaskAccess.Read) { "Lens profiles belong to a read-only Decision task" }
+        }
         TaskGraphRules.cycle(members)?.let { cycle -> error("This change would make a cycle: ${cycle.joinToString(" → ")}") }
         val size = members.values.count { it.graph?.kind != TaskKind.Note }
         require(size <= TaskGraphRules.MaxTasks) { "A graph holds at most ${TaskGraphRules.MaxTasks} tasks" }
@@ -305,7 +311,7 @@ class TaskGraphEditing(
         TaskGraphRules.validSeat(op.seat)
         val effective = op.seat?.let(resolveSeat)
         if (op.kind == TaskKind.Check) require(!op.check.isNullOrBlank()) { "A Check task names the check it runs" }
-        if (!caller.person) outside += TaskGraphRules.outside(effective, op.scope, envelope)
+        if (!caller.person) outside += (listOfNotNull(effective) + op.seat?.lenses.orEmpty().map { resolveSeat(TaskSeat(profile = it, access = TaskAccess.Read)) }).flatMap { TaskGraphRules.outside(it, op.scope, envelope) }
         op.key?.let { require(it.matches(KeyPattern)) { "A key is 1 to 40 letters, digits, dashes or underscores" }; require(it !in keys) { "The key $it is used twice" } }
         val id = allocate()
         val task = BoardTask(
@@ -460,7 +466,7 @@ class TaskGraphEditing(
         val effective = resolveSeat(op.seat)
         if (!caller.person && !caller.lead) refuse("Only a person or the lead changes who does a task")
         require(plan.state == TaskState.Pending) { "${task.id} has started; stop it before giving it to someone else" }
-        if (!caller.person) outside += TaskGraphRules.outside(effective, task.scope, envelope)
+        if (!caller.person) outside += (listOf(effective) + op.seat.lenses.map { resolveSeat(TaskSeat(profile = it, access = TaskAccess.Read)) }).flatMap { TaskGraphRules.outside(it, task.scope, envelope) }
         if (plan.seat == op.seat) return
         put(task.copy(graph = plan.copy(seat = op.seat)))
         summary += "${task.id} goes to ${op.seat.describe()}"
@@ -514,4 +520,4 @@ class TaskGraphEditing(
     }
 }
 
-fun TaskSeat.describe(): String = if (lead) "the lead session" else listOfNotNull(profile?.let { "profile:$it" }, agent?.name, model, effort, access?.name?.lowercase()).joinToString(" · ")
+fun TaskSeat.describe(): String = if (lead) "the lead session" else listOfNotNull(profile?.let { "profile:$it" }, agent?.name, model, effort, access?.name?.lowercase(), lenses.takeIf { it.isNotEmpty() }?.joinToString(prefix = "panel: ")).joinToString(" · ")

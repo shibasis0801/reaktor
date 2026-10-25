@@ -27,6 +27,7 @@ data class ResolvedTaskSeat(
     val tools: ToolPolicy = ToolPolicy(),
     val notes: List<String> = emptyList(),
     val name: String? = null,
+    val lenses: List<ResolvedTaskSeat> = emptyList(),
 )
 
 class TaskSeatResolver(
@@ -48,10 +49,17 @@ class TaskSeatResolver(
         val resolution = support.resolve(effort?.let(::NativeEffort))
         if (resolution is EffortResolution.Unsupported) throw UnsupportedEffortException(resolution)
         val access = request.access ?: profile?.access ?: TaskAccess.Read
+        val lenses = request.lenses.map { resolve(TaskSeat(profile = it, access = TaskAccess.Read)) }
+        if (lenses.isNotEmpty()) {
+            require(access == TaskAccess.Read) { "A review panel is read-only" }
+            require(lenses.map { it.seat.agent }.toSet() == setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode)) { "A review panel uses lenses from both Codex and Claude Code" }
+            require(runtime in setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode)) { "The panel verifier uses Codex or Claude Code" }
+        }
         return ResolvedTaskSeat(
             request.copy(agent = runtime, model = model, effort = effort, access = access),
             profileRevision = profile?.revision,
             name = profile?.name,
+            lenses = lenses,
             instructions = profile?.instructions.orEmpty(),
             tools = (profile?.tools ?: ToolPolicy()).copy(allowWrites = access == TaskAccess.Write),
             notes = buildList {

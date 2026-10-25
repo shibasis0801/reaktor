@@ -58,7 +58,7 @@ class TaskSeatResolverTest {
         val directory = Files.createTempDirectory("agent-profiles")
         try {
             val store = AgentProfileStore(directory) { 42L }
-            assertEquals(Rosters.default.map { it.id.value }.toSet(), store.list().map { it.id }.toSet())
+            assertEquals(Rosters.default.map { it.id.value }.toSet() + ReviewLenses.profiles.map { it.id }, store.list().map { it.id }.toSet())
             val builtIn = store.read("reviewer")
             assertTrue(builtIn.builtIn)
             assertFailsWith<IllegalArgumentException> { store.save(builtIn.copy(instructions = "changed"), person, 1) }

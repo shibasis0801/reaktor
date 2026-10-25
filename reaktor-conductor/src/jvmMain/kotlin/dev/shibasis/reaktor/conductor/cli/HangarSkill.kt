@@ -80,6 +80,7 @@ object HangarSkill {
         |  - `seat` is `{"agent": "Codex" | "ClaudeCode" | "Gemini", "access": "Write" | "Read"}`, with `model` and `effort` when the work needs them. Only tasks that change code get `Write`.
         |  - `dependsOn` is `[{"task": "<key>", "condition": "Succeeded", "required": true}]`. Every required dependency must meet its condition or the task stays blocked. The other conditions are `Failed`, `Always`, `Pass`, `Repair` and `Accepted`. Use `required: false` for alternative routes: at least one must match, after all dependencies settle.
         |  - A review task has `"contract": "Decision"` and ends with a verdict, pass or repair. The task after it waits on `Pass`. When a review asks for a repair, Hangar adds the repair and a second review by itself.
+        |  - A review panel adds `seat.lenses`, two to six saved read-only profile ids from both ClaudeCode and Codex, such as `["codex-correctness", "claude-security"]`. The main seat verifies their blind claims against the exact candidate; only confirmed findings reach repair and acceptance.
         |  - `{"kind": "Check", "check": "<check id>"}` runs one check on the work of the task it depends on.
         |  - `{"kind": "Gate"}` waits for the person. Put one before anything lands: landing in the main checkout, pushing, pull requests, deploys and production writes are the person's.
         |  - For `${vendor.call} here`, the tasks you keep get the seat `{"lead": true}`.

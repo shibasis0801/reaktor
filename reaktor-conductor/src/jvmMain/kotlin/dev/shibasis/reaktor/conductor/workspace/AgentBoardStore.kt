@@ -268,8 +268,9 @@ class AgentBoardStore(
         require(draft.tasks.size in 1..TaskGraphRules.MaxTasks) { "A graph has 1 to ${TaskGraphRules.MaxTasks} tasks" }
         by.checked()
         val now = clock()
-        val effective = draft.tasks.associateWith { it.seat?.let(resolveSeat)?.seat }
-        val seats = effective.values.filterNotNull().filterNot { it.lead }
+        val resolved = draft.tasks.associateWith { it.seat?.let(resolveSeat) }
+        val effective = resolved.mapValues { it.value?.seat }
+        val seats = resolved.values.filterNotNull().flatMap { listOf(it.seat) + it.lenses.map { lens -> lens.seat } }.filterNot { it.lead }
         val envelope = draft.envelope.copy(
             agents = draft.envelope.agents.ifEmpty { seats.mapNotNull { it.agent }.distinct() },
             writes = draft.envelope.writes.ifEmpty { draft.tasks.filter { effective[it]?.access == TaskAccess.Write }.flatMap { it.scope }.distinct() },

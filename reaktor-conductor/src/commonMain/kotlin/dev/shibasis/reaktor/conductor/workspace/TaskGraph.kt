@@ -32,6 +32,7 @@ data class TaskSeat(
     val access: TaskAccess? = null,
     val lead: Boolean = false,
     val profile: String? = null,
+    val lenses: List<String> = emptyList(),
 )
 
 @Serializable
