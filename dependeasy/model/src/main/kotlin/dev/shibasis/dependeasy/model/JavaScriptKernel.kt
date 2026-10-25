@@ -16,6 +16,29 @@ object BrowserSuiteKernel {
         ProcessKernel.run(plan(spec), receipt, execute)
 }
 
+object LighthouseKernel {
+    private const val BundleUrl = "http://127.0.0.1:8776/"
+
+    fun plan(spec: KernelSpec.LighthouseAudit): ProcessExecution {
+        val audit = spec.audit
+        require(audit.target.isNotBlank() && audit.report.isNotBlank()) { "Lighthouse needs a target and report" }
+        require(audit.runs > 0) { "Lighthouse runs must be positive" }
+        val url = when (val page = audit.page) {
+            is Lighthouse.Page.Remote -> page.url
+            is Lighthouse.Page.Bundle -> {
+                require(page.directory.isNotBlank() && page.server.isNotBlank()) { "Lighthouse needs a bundle and static server" }
+                BundleUrl
+            }
+        }
+        val location = java.net.URI(url)
+        require(location.scheme in setOf("http", "https") && !location.host.isNullOrBlank()) { "Lighthouse needs an HTTP URL" }
+        return spec.execution.copy(arguments = Pnpm.lighthouse(audit, url, spec.execution.executable))
+    }
+
+    fun run(spec: KernelSpec.LighthouseAudit, receipt: File?, execute: (ProcessExecution) -> Unit) =
+        ProcessKernel.run(plan(spec), receipt, execute)
+}
+
 object JavaScriptKernel {
     fun plan(spec: KernelSpec.TypeScriptCheck) = spec.execution.copy(
         arguments = Pnpm.typeScript(spec.adapter, spec.projects, spec.emit))

@@ -31,6 +31,38 @@ abstract class BrowserSuite : ProcessTask() {
     }
 }
 
+@DisableCachingByDefault(because = "Lighthouse observes browser timing")
+abstract class LighthouseAudit : ProcessTask() {
+    @get:Input abstract val policy: org.gradle.api.provider.Property<String>
+    @get:Optional @get:InputDirectory @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val bundleDirectory: org.gradle.api.file.DirectoryProperty
+    init { executionEffect.set(Effect.Verify); outputs.upToDateWhen { false } }
+    @get:Internal override val kernelSpec: KernelSpec get() {
+        val declared = BuildModelReader.json.decodeFromString<Lighthouse>(policy.get())
+        val audit = declared.copy(page = when (val page = declared.page) {
+            is Lighthouse.Page.Remote -> page
+            is Lighthouse.Page.Bundle -> {
+                val root = bundleDirectory.get().asFile.canonicalFile
+                val directory = root.resolve(page.directory).canonicalFile
+                require(directory.toPath().startsWith(root.toPath())) { "Lighthouse must serve its published bundle" }
+                page.copy(directory = directory.absolutePath)
+            }
+        })
+        val spec = KernelSpec.LighthouseAudit(executionSpec(arguments.get()), audit)
+        return spec.copy(execution = LighthouseKernel.plan(spec))
+    }
+    override fun executeKernel() {
+        LighthouseKernel.run(kernelSpec as KernelSpec.LighthouseAudit, receiptFile.orNull?.asFile) { execution ->
+            execOperations.exec {
+                workingDir = java.io.File(execution.directory)
+                executable = execution.executable
+                args(execution.arguments)
+                environment(executionEnvironment())
+            }.assertNormalExitValue()
+        }
+    }
+}
+
 @DisableCachingByDefault(because = "Verification may contact a live service")
 abstract class KarateSuite : ProcessTask() {
     @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val jar: RegularFileProperty

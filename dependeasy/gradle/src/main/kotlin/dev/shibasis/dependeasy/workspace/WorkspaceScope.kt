@@ -8,6 +8,7 @@ import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.verification.devicePreparation
 import dev.shibasis.dependeasy.verification.browserSuite
 import dev.shibasis.dependeasy.verification.nodeSuite
+import dev.shibasis.dependeasy.verification.lighthouseAudit
 import dev.shibasis.dependeasy.server.serverRelease
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
@@ -59,6 +60,14 @@ class WorkspaceScope internal constructor(private val project: Project, private 
         project.browserSuite(name, suite, run).after(*after.toTypedArray()).also { node ->
             artifacts.forEach { workspace.consume(node, it) }
             node.covers(Coverage(setOf(Domain.Web, Domain.Site), setOf(Aspect.EndToEnd)))
+            workspace.alias(project.projectDir, name, node)
+        }
+    }
+
+    fun lighthouse(audit: Lighthouse, vararg artifacts: OutputHandle, after: List<NodeHandle> = emptyList(),
+        run: Run = Run.Default): NodeDeclaration = NodeDeclaration { name ->
+        project.lighthouseAudit(name, audit, artifacts.toList(), run).after(*after.toTypedArray()).also { node ->
+            node.covers(Coverage(Domain.Web, Aspect.EndToEndPerformance))
             workspace.alias(project.projectDir, name, node)
         }
     }

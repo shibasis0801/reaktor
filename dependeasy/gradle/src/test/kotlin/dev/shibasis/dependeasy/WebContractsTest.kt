@@ -255,6 +255,7 @@ class WebContractsTest {
         write("base.json", "{}")
         write("tests/playwright.config.mjs", "export default {}")
         write("coverage/fixture.spec.ts", "export {}")
+        write("tests/support/server.mjs", "export {}")
         write("checks/src/value.cjs", "module.exports = 42")
         write("checks/policy.cjs", "require('node:assert/strict').equal(require('./src/value.cjs'), 42)")
         write("coverage/node_modules/ignored.spec.ts", "export {}")
@@ -306,6 +307,10 @@ class WebContractsTest {
                     sources = listOf(FileInput(FileInputKind.Tree, "coverage", includes = listOf("**/*.spec.ts")))), browserBundle(projects.site))
                 val headed by browserTests(Playwright("tests/playwright.config.mjs", headed = true), after = listOf(browser))
                 val integration by nodeTests(FileSet(listOf("checks/policy.cjs")), kotlinJsLibrary(projects.library))
+                val localAudit by lighthouse(Lighthouse("fixture", Lighthouse.Page.Bundle(".", "tests/support/server.mjs"),
+                    "build/reports/local.json"), browserBundle(projects.site), after = listOf(browser))
+                val remoteAudit by lighthouse(Lighthouse("fixture-live", Lighthouse.Page.Remote("https://example.test/"),
+                    "build/reports/remote.json", Lighthouse.Profile.Desktop, 5))
                 delivery(after = pr) {
                     val ship by deploy(projects.workers)
                 }
@@ -349,6 +354,7 @@ class WebContractsTest {
         val browserSpec = assertIs<KernelSpec.BrowserSuite>(browser.kernel?.spec)
         assertEquals("dev.shibasis.dependeasy.model.BrowserSuiteKernel", browser.kernel?.className)
         assertEquals(Effect.Verify, browser.effect)
+        assertEquals(Runner.Browser, browser.runner)
         assertEquals(Playwright("tests/playwright.config.mjs", files = listOf("smoke.spec.ts"), workers = 2,
             sources = listOf(FileInput(FileInputKind.Tree, "coverage", includes = listOf("**/*.spec.ts")))), browserSpec.suite)
         assertTrue(browserSpec.execution.fileInputs.any { it.identity == "coverage" &&
@@ -359,6 +365,33 @@ class WebContractsTest {
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == browser.id && it.to.project == ":site" && it.to.name == "outputBrowserBundle" })
         assertTrue(model.edges.any { it is Edge.After && it.from.name == "headed" && it.to == browser.id })
         assertContains(assertIs<KernelSpec.BrowserSuite>(model.nodes.single { it.id.name == "headed" }.kernel?.spec).execution.arguments, "--headed")
+        val localAudit = model.nodes.single { it.id.project == ":" && it.id.name == "localAudit" }
+        val localSpec = assertIs<KernelSpec.LighthouseAudit>(localAudit.kernel?.spec)
+        assertEquals("dev.shibasis.dependeasy.model.LighthouseKernel", localAudit.kernel?.className)
+        assertEquals(Effect.Verify, localAudit.effect)
+        assertEquals(Runner.Browser, localAudit.runner)
+        assertEquals(Coverage(Domain.Web, Aspect.EndToEndPerformance), localAudit.coverage)
+        assertEquals(Lighthouse("fixture", Lighthouse.Page.Bundle("site/dist", "tests/support/server.mjs"),
+            "build/reports/local.json"), localSpec.audit)
+        assertEquals(listOf("exec", "node", "tests/support/server.mjs", "site/dist", "8776",
+            localSpec.execution.executable, "exec", "reaktor-lighthouse", "--target", "fixture", "--url",
+            "http://127.0.0.1:8776/", "--preset", "mobile", "--runs", "3", "--assert", "--out",
+            "build/reports/local.json"), localSpec.execution.arguments)
+        assertTrue("build/reports/local.json" in localSpec.execution.outputs)
+        assertTrue(model.edges.any { it is Edge.Consumes && it.from == localAudit.id &&
+            it.to.project == ":site" && it.to.name == "outputBrowserBundle" })
+        assertTrue(model.edges.any { it is Edge.After && it.from == localAudit.id && it.to == browser.id })
+        val remoteAudit = model.nodes.single { it.id.name == "remoteAudit" }
+        val remoteSpec = assertIs<KernelSpec.LighthouseAudit>(remoteAudit.kernel?.spec)
+        assertEquals(Runner.Browser, remoteAudit.runner)
+        assertEquals(Runner.Browser, DaggerKernel.resolve(KernelSpec.ContainerNode(remoteAudit.id, Environment("dev"),
+            FileSet(emptyList()), FileSet(emptyList())), model, emptySet()).runner)
+        assertEquals(listOf("exec", "reaktor-lighthouse", "--target", "fixture-live", "--url", "https://example.test/",
+            "--preset", "desktop", "--runs", "5", "--assert", "--out", "build/reports/remote.json"),
+            remoteSpec.execution.arguments)
+        assertEquals("./gradlew :localAudit", json("package.json").getValue("scripts").jsonObject.getValue("localAudit").jsonPrimitive.content)
+        assertNull(result.task(":localAudit"))
+        assertNull(result.task(":remoteAudit"))
         val integration = model.nodes.single { it.id.project == ":" && it.id.name == "integration" }
         val integrationSpec = assertIs<KernelSpec.PackageCommand>(integration.kernel?.spec)
         assertEquals(Effect.Verify, integration.effect)
