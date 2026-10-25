@@ -130,7 +130,11 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
                     val path = location.resolve(sourceRoot.name)
                     require(!Files.exists(path)) { "An unfinished worktree needs inspection: $path" }
                     roots += AgentWorktreeRoot(sourceRoot.path, path.toString(), commit)
-                    git(sourceRoot, listOf("worktree", "add", "--detach", path.toString(), commit))
+                    git(sourceRoot, listOf("worktree", "add") + (if (sourceRoot.name == "bestbuds") listOf("--no-checkout") else emptyList()) + listOf("--detach", path.toString(), commit))
+                    if (sourceRoot.name == "bestbuds") {
+                        git(path.toFile(), listOf("sparse-checkout", "set", "--no-cone", "--", "/*", "!/agent/"))
+                        git(path.toFile(), listOf("read-tree", "-mu", "HEAD"))
+                    }
                 }
                 val current = capture()
                 if (!current.complete || current.sourceDigest != source.sourceDigest) {
@@ -309,7 +313,7 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
         return try {
             val env = mapOf("GIT_INDEX_FILE" to index.toString())
             git(directory, listOf("read-tree", "HEAD"), env)
-            git(directory, listOf("add", "-A", "--") + CandidateSourceInputs.paths, env)
+            git(directory, listOf("add", "-A", "--") + CandidateSourceInputs.paths(directory), env)
             git(directory, listOf("write-tree"), env).trim()
         } finally { Files.deleteIfExists(index) }
     }
