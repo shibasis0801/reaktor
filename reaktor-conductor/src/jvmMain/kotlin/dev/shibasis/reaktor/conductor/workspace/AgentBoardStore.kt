@@ -12,6 +12,7 @@ class AgentBoardStore(
     private val directory: Path,
     private val clock: () -> Long = System::currentTimeMillis,
     private val resolveSeat: (TaskSeat) -> ResolvedTaskSeat = TaskSeatResolver()::resolve,
+    private val scopeModules: (List<String>) -> List<String> = { emptyList() },
 ) {
     @Serializable
     private data class Ledger(val revision: Long = 0, val next: Int = 1, val graphs: Int = 1)
@@ -148,7 +149,7 @@ class AgentBoardStore(
             if (graph(id).status == TaskGraphStatus.Running) TaskGraphRules.ready(members).map { it.id } else emptyList(),
             members.values.mapNotNull { task ->
                 (TaskGraphRules.readiness(task, members) as? TaskGraphRules.Readiness.Blocked)?.let { task.id to it.reasons }
-            }.toMap(), records.messages, records.handoffs.associateBy { it.task }, records.decisions)
+            }.toMap(), records.messages, records.handoffs.associateBy { it.task }, records.decisions, warnings(members))
     }
 
     @Synchronized fun coordination(id: String): TaskCoordination {
@@ -297,11 +298,27 @@ class AgentBoardStore(
         return applied
     }
 
-    @Synchronized fun outside(id: String, patch: TaskGraphPatch, caller: TaskGraphCaller): List<String> {
-        var next = ledger.next
-        return try { TaskGraphEditing(graph(id), members(id), caller, clock(), { resolveSeat(it).seat }) { "T${next++}" }.apply(patch); emptyList() }
-        catch (outside: TaskGraphOutside) { outside.reasons }
+    private fun warnings(members: Map<String, BoardTask>): List<TaskGraphWarning> = TaskGraphRules.warnings(members,
+        members.mapValues { (_, task) -> scopeModules(task.scope) })
+
+    @Synchronized fun check(id: String, patch: TaskGraphPatch, caller: TaskGraphCaller): TaskGraphCheck {
+        val before = members(id).associateBy { it.id }
+        fun preview(approvedBy: String? = null): TaskGraphApplied {
+            var next = ledger.next
+            return TaskGraphEditing(graph(id), before.values.toList(), caller, clock(), { resolveSeat(it).seat }) { "T${next++}" }.apply(patch, approvedBy)
+        }
+        var outside = emptyList<String>()
+        val applied = try { preview() } catch (error: TaskGraphOutside) {
+            outside = error.reasons
+            preview("Preview only")
+        }
+        val projected = before.toMutableMap()
+        applied.removed.forEach(projected::remove)
+        applied.tasks.forEach { projected[it.id] = it }
+        return TaskGraphCheck(outside, warnings(projected))
     }
+
+    @Synchronized fun outside(id: String, patch: TaskGraphPatch, caller: TaskGraphCaller): List<String> = check(id, patch, caller).outside
 
     @Synchronized fun revert(id: String, revision: Long, by: BoardActor): TaskGraphApplied {
         require(by.kind == BoardActorKind.Person) { "Only a person reverts a change" }
