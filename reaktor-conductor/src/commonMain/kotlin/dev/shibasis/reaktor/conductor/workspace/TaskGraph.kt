@@ -58,6 +58,7 @@ data class TaskOutcome(
     val candidateId: String? = null,
     val usageLimit: AgentUsageLimit? = null,
     val inputCandidates: Map<String, String> = emptyMap(),
+    val selectedTask: String? = null,
 )
 
 @Serializable
@@ -84,6 +85,7 @@ data class TaskPlan(
     val worktreeId: String? = null,
     val recovery: AgentRecovery = AgentRecovery.None,
     val resumeAtReset: Long? = null,
+    val choices: Map<String, String> = emptyMap(),
 ) {
     fun attemptOf(refs: Set<String>): Int? = refs.mapNotNull(workAttempts::get).maxOrNull()
         ?: attempt.takeIf { run != null && run in refs }
@@ -99,6 +101,7 @@ data class TaskEnvelope(
     val writes: List<String> = emptyList(),
     val tokens: Long? = null,
     val repairRounds: Int = 1,
+    val chooseTop: Boolean = false,
 ) {
     companion object {
         val PersonOnly = listOf("landing in the main checkout", "pushing", "opening or merging a pull request", "deploying", "writing to production")
@@ -154,6 +157,7 @@ sealed interface TaskGraphOp {
         val dependsOn: List<TaskDependency> = emptyList(),
         val layout: TaskLayout? = null,
         val parent: String? = null,
+        val alternatives: TaskAlternatives? = null,
     ) : TaskGraphOp
 
     @Serializable
@@ -233,6 +237,7 @@ data class TaskGraphView(
     val decisions: List<TaskDecision> = emptyList(),
     val warnings: List<TaskGraphWarning> = emptyList(),
     val summaries: Map<String, TaskWorkSummary> = emptyMap(),
+    val choices: Map<String, List<TaskChoiceRank>> = emptyMap(),
 )
 
 @Serializable

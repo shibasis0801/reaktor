@@ -62,9 +62,11 @@ object TaskGraphRules {
         val plan = task.graph ?: return Readiness.Waiting
         if (plan.state != TaskState.Pending || plan.kind == TaskKind.Note) return Readiness.Waiting
         val dependencies = plan.dependsOn.filter { tasks[it.task]?.graph?.kind != TaskKind.Note }
+        if (plan.choices.isNotEmpty()) return if (plan.choices.values.all { tasks[it]?.graph?.state in Settled }) Readiness.Ready else Readiness.Waiting
         if (dependencies.isEmpty()) return Readiness.Ready
         if (!dependencies.all { settled(it, tasks[it.task]) }) return Readiness.Waiting
         val unmet = dependencies.filter { it.required && !active(it, tasks[it.task]) }
+        if (unmet.isNotEmpty() && TaskChoices.owner(task.id, tasks) != null) return Readiness.Skip
         if (unmet.isNotEmpty()) return Readiness.Blocked(unmet.map {
             "${task.id} requires ${it.task} ${it.condition.name}, but ${it.task} is ${tasks[it.task]?.graph?.state?.name ?: "missing"}"
         })
@@ -106,7 +108,8 @@ object TaskGraphRules {
         val working = tasks.values.filter { it.graph?.kind != TaskKind.Note }
         if (working.isEmpty() || working.any { it.graph?.state in Open }) return null
         val dependents = dependents(tasks)
-        val unhandled = working.filter { task -> task.graph?.state == TaskState.Failed && dependents[task.id].orEmpty().none { id ->
+        val unhandled = working.filter { task -> task.graph?.state == TaskState.Failed &&
+            TaskChoices.owner(task.id, tasks)?.graph?.state != TaskState.Succeeded && dependents[task.id].orEmpty().none { id ->
             tasks[id]?.graph?.dependsOn?.any { it.task == task.id && (it.condition == TaskCondition.Failed || it.condition == TaskCondition.Always) } == true &&
                 tasks[id]?.graph?.state == TaskState.Succeeded
         } }
@@ -114,7 +117,7 @@ object TaskGraphRules {
     }
 
     fun unhandledFailure(task: BoardTask, tasks: Map<String, BoardTask>): Boolean =
-        task.graph?.state == TaskState.Failed && task.graph.held.not() && dependents(tasks)[task.id].orEmpty().any { id ->
+        task.graph?.state == TaskState.Failed && task.graph.held.not() && TaskChoices.owner(task.id, tasks) == null && dependents(tasks)[task.id].orEmpty().any { id ->
             tasks[id]?.graph?.dependsOn?.any { it.task == task.id && it.condition != TaskCondition.Failed && it.condition != TaskCondition.Always } == true
         }
 
@@ -238,6 +241,7 @@ class TaskGraphEditing(
             val plan = task.graph ?: return@forEach
             if (!plan.seat?.lenses.isNullOrEmpty()) require(plan.kind == TaskKind.Agent && plan.contract == WorkflowContract.Decision && resolveSeat(requireNotNull(plan.seat)).access == TaskAccess.Read) { "Lens profiles belong to a read-only Decision task" }
         }
+        TaskChoices.validate(members, resolveSeat)
         TaskGraphRules.cycle(members)?.let { cycle -> error("This change would make a cycle: ${cycle.joinToString(" → ")}") }
         val size = members.values.count { it.graph?.kind != TaskKind.Note }
         require(size <= TaskGraphRules.MaxTasks) { "A graph holds at most ${TaskGraphRules.MaxTasks} tasks" }
@@ -301,6 +305,7 @@ class TaskGraphEditing(
     }
 
     private fun add(op: TaskGraphOp.Add, parent: String? = op.parent?.let(::id)): BoardTask {
+        op.alternatives?.let { return alternatives(op, it, parent) }
         val dependsOn = op.dependsOn.map { it.copy(task = id(it.task)) }.distinctBy { it.task }
         dependsOn.forEach { require(it.task in members) { "${it.task} is not a task in ${graph.id}" } }
         parent?.let { require(it in members) { "$it is not a task in ${graph.id}" } }
@@ -334,6 +339,26 @@ class TaskGraphEditing(
         summary += "Added $id ${task.title}" + dependsOn.takeIf { it.isNotEmpty() }?.let { list -> " after ${list.joinToString { it.task }}" }.orEmpty()
         undo += TaskGraphOp.Remove(id)
         return task
+    }
+
+    private fun alternatives(op: TaskGraphOp.Add, alternatives: TaskAlternatives, parent: String?): BoardTask {
+        require(op.kind == TaskKind.Agent && op.contract == WorkflowContract.Text && op.seat == null) { "Alternatives belong to a writing task; put its seats in alternatives" }
+        require(alternatives.seats.size in 2..3 && alternatives.check.isNotBlank()) { "Alternatives name two or three writing seats and a check" }
+        require(alternatives.seats.all { !it.lead && resolveSeat(it).access == TaskAccess.Write && it.lenses.isEmpty() }) { "Every alternative is an owned writing seat" }
+        require(!alternatives.review.lead && resolveSeat(alternatives.review).access == TaskAccess.Read && alternatives.review.lenses.size in 2..6) { "Each alternative needs a read-only review panel with two to six lenses" }
+        val choices = alternatives.seats.mapIndexed { index, seat ->
+            val writer = add(op.copy(title = op.title.take(170) + " · attempt ${index + 1}", key = null, seat = seat, alternatives = null), parent)
+            val check = add(TaskGraphOp.Add("Check ${writer.id}", scope = op.scope, kind = TaskKind.Check, check = alternatives.check,
+                dependsOn = listOf(TaskDependency(writer.id)), parent = writer.id))
+            val review = add(TaskGraphOp.Add("Review ${writer.id}", intent = op.intent, acceptance = op.acceptance, scope = op.scope,
+                seat = alternatives.review, contract = WorkflowContract.Decision, dependsOn = listOf(TaskDependency(check.id)), parent = writer.id))
+            writer.id to review.id
+        }.toMap()
+        val selection = add(op.copy(kind = TaskKind.Gate, seat = null, alternatives = null,
+            dependsOn = choices.values.map { TaskDependency(it, TaskCondition.Always, required = false) }), parent)
+        put(selection.copy(graph = requireNotNull(selection.graph).copy(choices = choices)))
+        choices.keys.forEach { writer -> put(members.getValue(writer).copy(parent = selection.id)) }
+        return members.getValue(selection.id)
     }
 
     private fun update(op: TaskGraphOp.Update) {
@@ -403,10 +428,22 @@ class TaskGraphEditing(
     private fun remove(ref: String) {
         val task = task(ref)
         val plan = plan(task)
+        val choice = plan.choices.isNotEmpty() || TaskChoices.owner(task.id, members) != null
+        if (choice && plan.state == TaskState.Cancelled) return
+        if (plan.choices.isNotEmpty() && plan.state in TaskGraphRules.Open) {
+            members.values.filter { TaskChoices.owner(it.id, members)?.id == task.id && it.graph?.state in TaskGraphRules.Open }
+                .map { it.id }.forEach(::remove)
+        }
         if (!caller.person) when {
             caller.lead -> if (task.createdBy.kind != BoardActorKind.Agent || plan.state != TaskState.Pending) refuse("The lead removes only pending tasks that agents added")
             task.createdBy.session == null || task.createdBy.session != caller.by.session -> refuse("An agent removes only pending tasks it added")
             plan.state != TaskState.Pending -> refuse("${task.id} has started; it can only be cancelled")
+        }
+        if (plan.state == TaskState.Pending && (plan.choices.isNotEmpty() || TaskChoices.owner(task.id, members) != null)) {
+            undo += TaskGraphOp.Restore(task.id, plan.dependsOn, plan.seat, plan.state)
+            put(task.copy(graph = plan.copy(state = TaskState.Cancelled, note = "Cancelled by ${caller.by.name}; alternatives retain their evidence")))
+            summary += "Cancelled ${task.id} ${task.title}"
+            return
         }
         when (plan.state) {
             TaskState.Pending -> {
@@ -498,6 +535,7 @@ class TaskGraphEditing(
     }
 
     private fun envelope(next: TaskEnvelope) {
+        require(caller.person || next.chooseTop == envelope.chooseTop) { "Only a person changes automatic candidate selection" }
         require(next.maxTasks in 1..TaskGraphRules.MaxTasks && next.perAgent in 1..8 && next.repairRounds in 0..5) { "An envelope allows 1 to ${TaskGraphRules.MaxTasks} tasks, 1 to 8 at once per agent and 0 to 5 repair rounds" }
         require(next.tokens == null || next.tokens > 0) { "A token budget is positive" }
         require(next.writes.size <= 100 && next.models.size <= 50 && next.efforts.size <= 20) { "An envelope names at most 100 writable modules, 50 models and 20 efforts" }

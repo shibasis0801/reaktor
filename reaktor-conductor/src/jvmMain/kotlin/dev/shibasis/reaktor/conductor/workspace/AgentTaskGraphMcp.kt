@@ -42,7 +42,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
     val any = buildJsonObject { put("type", "object"); put("additionalProperties", true) }
     val ops = "ops" to buildJsonObject {
         put("type", "array"); put("items", any)
-        put("description", "Operations, each with type: add {title, key?, intent?, acceptance?, scope?, kind?, seat?, contract?, check?, dependsOn?, layout?, parent?}, " +
+        put("description", "Operations, each with type: add {title, key?, intent?, acceptance?, scope?, kind?, seat?, contract?, check?, dependsOn?, layout?, parent?, alternatives?: {seats: [two or three write seats], check, review: read-only Decision seat with two to six lenses}}, " +
             "update {task, title?, intent?, acceptance?, scope?, kind?, contract?, check?, layout?}, split {task, into: [add…]}, remove {task}, " +
             "connect {from, to, condition?, required?}, disconnect {from, to}, seat {task, seat}, note {text, layout?}, retry {task}, envelope {envelope}. " +
             "A key names a task added in the same change so later operations can refer to it.")
@@ -107,8 +107,8 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             objectSchema(mapOf(
                 "title" to stringSchema("One line, at most 200 characters"),
                 "goal" to stringSchema("What the graph is for and what done looks like"),
-                "tasks" to buildJsonObject { put("type", "array"); put("items", any); put("description", "Tasks as add operations: {key, title, intent, acceptance, scope, kind, seat, contract, check, dependsOn: [{task: key, condition, required?: true}]}") },
-                "envelope" to any,
+                "tasks" to buildJsonObject { put("type", "array"); put("items", any); put("description", "Tasks as add operations: {key, title, intent, acceptance, scope, kind, seat, contract, check, dependsOn: [{task: key, condition, required?: true}], alternatives?: {seats: [two or three write seats], check, review: read-only Decision seat with two to six lenses}}. An alternatives key resolves to its selection; only the chosen candidate feeds downstream work.") },
+                "envelope" to buildJsonObject { put("type", "object"); put("additionalProperties", true); put("description", "Graph limits and permitted seats; chooseTop defaults false and only a person may enable it to choose the highest-ranked eligible alternative") },
                 "lead" to stringSchema("The lead session, such as claude:<session>; defaults to the caller's session"),
                 by,
             ), listOf("title", "tasks", "by")), readOnly = false, idempotent = false) { args ->
@@ -134,18 +134,20 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             applied(workspace.board.patch(id, patch, workspace.taskGraphCaller(id, args.by()), approvedBy = (args["approvedBy"] as? JsonPrimitive)?.contentOrNull))
         },
         McpTool("agent_taskgraph_report", "Report on a task: Running, NeedsInput, Blocked, Review, Succeeded or Failed, with a summary and evidence. " +
-            "Reports belong to the current attempt and its linked session; the lead reports on its lead tasks; only a person passes a gate.",
+            "Reports belong to the current attempt and its linked session; the lead reports on its lead tasks; only a person passes a gate. A candidate selection names selectedTask and the exact candidate; the owner verifies checks and panel evidence.",
             objectSchema(mapOf(graphId, "task" to stringSchema("Task id"), "status" to enumSchema("The task's status", TaskReport.entries.map { it.name }),
                 "attempt" to buildJsonObject { put("type", "integer"); put("minimum", 0); put("description", "The attempt observed by the caller; stale reports are refused") },
+                "selectedTask" to stringSchema("Eligible writing task chosen by a person"), "candidate" to stringSchema("Exact candidate id displayed in choices"),
                 "summary" to stringSchema("What happened, at most 8,000 characters"), "verdict" to stringSchema("pass, repair or fail for a Decision task; accepted for a gate"),
                 "files" to buildJsonObject { put("type", "array"); put("items", stringSchema("A changed file")) },
                 "questions" to buildJsonObject { put("type", "array"); put("items", stringSchema("A question for the person")) }, by),
                 listOf("graph", "task", "status", "by")), readOnly = false, idempotent = true) { args ->
-            args.only("graph", "task", "status", "attempt", "summary", "verdict", "files", "questions", "by")
+            args.only("graph", "task", "status", "attempt", "summary", "verdict", "files", "questions", "selectedTask", "candidate", "by")
             val id = args.text("graph")
             val outcome = TaskOutcome(summary = (args["summary"] as? JsonPrimitive)?.contentOrNull.orEmpty(), verdict = (args["verdict"] as? JsonPrimitive)?.contentOrNull,
                 files = (args["files"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(), questions = (args["questions"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(),
-                attempt = (args["attempt"] as? JsonPrimitive)?.intOrNull)
+                attempt = (args["attempt"] as? JsonPrimitive)?.intOrNull,
+                selectedTask = (args["selectedTask"] as? JsonPrimitive)?.contentOrNull, candidateId = (args["candidate"] as? JsonPrimitive)?.contentOrNull)
             val task = workspace.reportTask(id, args.text("task"), TaskReport.valueOf(args.text("status")), outcome, workspace.taskGraphCaller(id, args.by()))
             AgentWorkspaceJson.encodeToJsonElement(BoardTask.serializer(), task)
         },

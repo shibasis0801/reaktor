@@ -181,6 +181,15 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             if (panelOutside.isNotEmpty()) { store.hold(graphId, TaskGraphStatus.Paused, "${task.id}: ${panelOutside.distinct().joinToString()}", scope.by); return }
             if (plan.readySince == null) store.advance(graphId, task.id) { value, current -> value.copy(graph = current.copy(readySince = System.currentTimeMillis())) }
             when {
+                plan.choices.isNotEmpty() && graph.envelope.chooseTop -> {
+                    try { scope.workspace.selectTask(graphId, task.id, null, null, scope.by) }
+                    catch (failure: IllegalArgumentException) {
+                        store.advance(graphId, task.id) { value, current ->
+                            value.copy(graph = current.copy(state = TaskState.Waiting, note = (failure.message ?: "Refresh candidate evidence before choosing").take(500))) }
+                    }
+                }
+                plan.choices.isNotEmpty() -> store.advance(graphId, task.id) { value, current ->
+                    value.copy(graph = current.copy(state = TaskState.Waiting, note = "Choose an eligible candidate from the ranked alternatives")) }
                 plan.kind == TaskKind.Gate -> store.advance(graphId, task.id) { value, current ->
                     value.copy(graph = current.copy(state = TaskState.Waiting, note = "Waiting for a person to pass this gate")) }
                 seat?.lead == true -> Unit

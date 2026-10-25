@@ -157,7 +157,8 @@ class AgentBoardStore(
             if (graph(id).status == TaskGraphStatus.Running) TaskGraphRules.ready(members).map { it.id } else emptyList(),
             members.values.mapNotNull { task ->
                 (TaskGraphRules.readiness(task, members) as? TaskGraphRules.Readiness.Blocked)?.let { task.id to it.reasons }
-            }.toMap(), records.messages, handoffs, records.decisions, warnings(members), summaries)
+            }.toMap(), records.messages, handoffs, records.decisions, warnings(members), summaries,
+            members.values.filter { !it.graph?.choices.isNullOrEmpty() }.associate { it.id to TaskChoices.rank(it, members, summaries) })
     }
 
     @Synchronized fun coordination(id: String): TaskCoordination {
@@ -268,13 +269,16 @@ class AgentBoardStore(
         require(draft.tasks.size in 1..TaskGraphRules.MaxTasks) { "A graph has 1 to ${TaskGraphRules.MaxTasks} tasks" }
         by.checked()
         val now = clock()
-        val resolved = draft.tasks.associateWith { it.seat?.let(resolveSeat) }
-        val effective = resolved.mapValues { it.value?.seat }
-        val seats = resolved.values.filterNotNull().flatMap { listOf(it.seat) + it.lenses.map { lens -> lens.seat } }.filterNot { it.lead }
+        val resolved = draft.tasks.associateWith { task ->
+            (listOfNotNull(task.seat) + task.alternatives?.seats.orEmpty() + listOfNotNull(task.alternatives?.review)).map(resolveSeat)
+        }
+        val seats = resolved.values.flatten().flatMap { listOf(it.seat) + it.lenses.map { lens -> lens.seat } }.filterNot { it.lead }
+        val expanded = draft.tasks.sumOf { task -> task.alternatives?.let { 3 * it.seats.size + 1 } ?: 1 }
+        require(expanded <= TaskGraphRules.MaxTasks) { "Expanded alternatives exceed the graph task limit" }
         val envelope = draft.envelope.copy(
             agents = draft.envelope.agents.ifEmpty { seats.mapNotNull { it.agent }.distinct() },
-            writes = draft.envelope.writes.ifEmpty { draft.tasks.filter { effective[it]?.access == TaskAccess.Write }.flatMap { it.scope }.distinct() },
-            maxTasks = maxOf(draft.envelope.maxTasks, draft.tasks.size),
+            writes = draft.envelope.writes.ifEmpty { draft.tasks.filter { task -> resolved[task].orEmpty().any { it.seat.access == TaskAccess.Write } }.flatMap { it.scope }.distinct() },
+            maxTasks = maxOf(draft.envelope.maxTasks, expanded),
         )
         val shell = TaskGraph(
             id = "G${ledger.graphs}",
@@ -442,7 +446,13 @@ class AgentBoardStore(
             val next = members.getValue(pending.removeFirst())
             if (!seen.add(next.id)) continue
             val source = requireNotNull(next.graph)
-            if (source.state == TaskState.Succeeded && source.worktreeId != null && source.outcome?.candidateId != null) inputs += next
+            if (source.choices.isNotEmpty()) {
+                val selected = requireNotNull(source.outcome?.selectedTask) { "Choose the candidate for ${next.id} first" }
+                val chosen = requireNotNull(members[selected]?.graph)
+                require(source.state == TaskState.Succeeded && selected in source.choices && chosen.state == TaskState.Succeeded &&
+                    chosen.outcome?.candidateId == source.outcome?.inputCandidates?.get(selected)) { "The selected candidate changed; refresh the selection" }
+                pending.addLast(selected)
+            } else if (source.state == TaskState.Succeeded && source.worktreeId != null && source.outcome?.candidateId != null) inputs += next
             else pending.addAll(source.dependsOn.filter { it.required }.map { it.task })
         }
         return inputs.sortedBy { it.id.removePrefix("T").toIntOrNull() ?: Int.MAX_VALUE }
@@ -462,6 +472,8 @@ class AgentBoardStore(
     @Synchronized fun report(id: String, task: String, report: TaskReport, outcome: TaskOutcome, caller: TaskGraphCaller): BoardTask {
         val current = get(task)
         val plan = requireNotNull(current.graph?.takeIf { it.id == id }) { "$task is not in $id" }
+        require(plan.choices.isEmpty() || report !in setOf(TaskReport.Succeeded, TaskReport.Review)) { "A selection verifies the exact candidate through the workspace" }
+        require(outcome.selectedTask == null) { "Only a verified selection records selectedTask" }
         require(plan.recovery != AgentRecovery.NeedsReview) { "Reconcile the interrupted attempt in Hangar before reporting a result" }
         require(plan.state != TaskState.Limited) { "A Limited attempt waits for a person to retry it" }
         val callerAttempt = plan.attemptOf(caller.refs)

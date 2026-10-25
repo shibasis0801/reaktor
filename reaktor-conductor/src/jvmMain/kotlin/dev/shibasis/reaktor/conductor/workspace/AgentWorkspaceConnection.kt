@@ -134,7 +134,9 @@ class AgentWorkspaceConnection private constructor(
     suspend fun reportTaskGraph(id: String, task: String, report: TaskReport, outcome: TaskOutcome, by: BoardActor): BoardTask =
         ConductorJson.decodeFromJsonElement(BoardTask.serializer(), call("agent_taskgraph_report", buildJsonObject {
             put("graph", id); put("task", task); put("status", report.name); put("summary", outcome.summary)
-            outcome.verdict?.let { put("verdict", it) }; outcome.attempt?.let { put("attempt", it) }; put("by", actor(by))
+            outcome.verdict?.let { put("verdict", it) }; outcome.attempt?.let { put("attempt", it) }
+            outcome.selectedTask?.let { put("selectedTask", it) }; outcome.candidateId?.let { put("candidate", it) }
+            put("by", actor(by))
         }))
     suspend fun recoverTaskGraph(id: String, task: String, revision: Long, attempt: Int, action: TaskRecoveryAction, by: BoardActor): TaskGraphView =
         ConductorJson.decodeFromJsonElement(TaskGraphView.serializer(), call("agent_taskgraph_recover", buildJsonObject {
