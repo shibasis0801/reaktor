@@ -10,12 +10,14 @@ sealed interface WebBundle {
     val output: String
     @Serializable data class Vite(override val output: String = "dist", val excludedAssets: List<String> = emptyList()) : WebBundle
     @Serializable data class Package(val script: PackageScript, override val output: String = "dist") : WebBundle
+    @Serializable data class Node(val script: String, override val output: String = "dist", val arguments: List<String> = emptyList()) : WebBundle
 }
 
 @Serializable
 sealed interface WebGenerator {
     val output: String
-    @Serializable data class Node(val alias: PackageScript, val script: String, override val output: String) : WebGenerator
+    @Serializable data class Node(val alias: PackageScript, val script: String, override val output: String,
+        val arguments: List<String> = emptyList()) : WebGenerator
     @Serializable data class WorkerTypes(val configuration: String = "wrangler.json",
         override val output: String = "worker/types") : WebGenerator
 }

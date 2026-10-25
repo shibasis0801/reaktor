@@ -41,6 +41,22 @@ class WebAppScope internal constructor(
         }
     }
 
+    fun generate(script: String, output: String, arguments: List<String> = emptyList(),
+                 consumes: List<KernelArtifact<*>> = emptyList()): ArtifactDeclaration<org.gradle.api.file.Directory> = ArtifactDeclaration { name ->
+        val task = web.generator(PackageScript(name), script, output, arguments)
+        val node = project.node(task).consumes(*consumes.toTypedArray())
+        val location = project.layout.projectDirectory.dir(output)
+        KernelArtifact(project.providers.provider { location }, node).also {
+            bundle.consumes(it)
+        }
+    }
+
+    fun check(script: String, arguments: List<String> = emptyList()): NodeDeclaration = NodeDeclaration { name ->
+        val task = web.generator(PackageScript(name), script, null, arguments)
+        task.configure { executionEffect.set(Effect.Verify) }
+        project.node(task).also { verification.after(it); bundle.after(it) }
+    }
+
     fun tests(files: FileSet): NodeDeclaration = NodeDeclaration { name ->
         project.node(web.check(files, name)).also {
             verification.after(it)
