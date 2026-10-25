@@ -14,7 +14,6 @@ import dev.shibasis.dependeasy.process.nodeScript
 import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.handles.moduleOutputs
 import dev.shibasis.dependeasy.model.BuildOption
-import dev.shibasis.dependeasy.model.CompilationRef
 import dev.shibasis.dependeasy.configuration.releaseProperty
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.WorkspaceScope
@@ -22,7 +21,6 @@ import dev.shibasis.dependeasy.workspace.declarationSite
 import dev.shibasis.dependeasy.model.SourceSite
 import dev.shibasis.dependeasy.compose.composeConfiguration
 import dev.shibasis.dependeasy.module.jvmConfiguration
-import dev.shibasis.dependeasy.module.jvmEntryPoint
 import dev.shibasis.dependeasy.verification.testClasses
 
 open class DependeasyExtension internal constructor(
@@ -59,10 +57,6 @@ open class DependeasyExtension internal constructor(
                      configuration: KotlinObjectTask.() -> Unit): TaskProvider<KotlinObjectTask> =
         project.kotlinObject(name, namespace, objectName, configuration)
 
-
-    fun jvmEntryPoint(name: String, main: String, compilation: CompilationRef = CompilationRef.Main, verify: Boolean = false,
-                      configuration: org.gradle.api.tasks.JavaExec.() -> Unit = {}) =
-        project.jvmEntryPoint(name, main, compilation.name, verify, configuration)
 
     fun nodeScript(name: String, script: Any, configuration: ProcessTask.() -> Unit): TaskProvider<dev.shibasis.dependeasy.web.NodeGenerator> =
         project.nodeScript(name, script, configuration)

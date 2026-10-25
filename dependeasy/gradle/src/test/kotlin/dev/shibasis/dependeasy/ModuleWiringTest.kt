@@ -44,18 +44,24 @@ class ModuleWiringTest {
     @Test fun `JVM entry points share ordinary source sets and produce safely quoted commands`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"executionFixture\"")
         directory.resolve("build.gradle.kts").writeText("""
-            import dev.shibasis.dependeasy.module.arguments
+            import dev.shibasis.dependeasy.components.library
+            import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.jvm") }
-            dependeasy {
-                jvm(bytecode = 21)
-                val values = providers.gradleProperty("value").map { listOf(it) }
-                jvmEntryPoint("probe", "fixture.ProbeKt", dev.shibasis.dependeasy.model.CompilationRef("probe"), verify = true) { arguments(values) }
+            library(bytecode = 21) {
+                val probe by program(compilation = CompilationRef("probe"),
+                    environment = ProgramEnvironment(inputs = listOf(ProgramInput(BuildOption.string("value"), required = true))))
             }
         """.trimIndent())
         directory.resolve("src/main/kotlin").mkdirs()
         directory.resolve("src/main/kotlin/Value.kt").writeText("package fixture\nfun prefix() = \"echo:\"")
         directory.resolve("src/probe/kotlin").mkdirs()
-        directory.resolve("src/probe/kotlin/Probe.kt").writeText("package fixture\nfun main(args: Array<String>) { println(prefix() + args.single()) }")
+        directory.resolve("src/probe/kotlin/Entry.kt").writeText("""
+            package dev.shibasis.reaktor.core.build
+            @Target(AnnotationTarget.FUNCTION)
+            @Retention(AnnotationRetention.BINARY)
+            annotation class Entry
+        """.trimIndent())
+        directory.resolve("src/probe/kotlin/Probe.kt").writeText("package fixture\n@dev.shibasis.reaktor.core.build.Entry\nfun main(args: Array<String>) { println(prefix() + args.single()) }")
         val value = "a space; \$HOME ' apostrophe"
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
             .withArguments("probe", "-Pvalue=$value", "--configuration-cache", "--stacktrace").build()
@@ -70,12 +76,6 @@ class ModuleWiringTest {
             plugins { id("dev.shibasis.dependeasy.jvm") }
             library(bytecode = 21) { val probe by program(compilation = CompilationRef("probe")) }
         """.trimIndent())
-        directory.resolve("src/probe/kotlin/Entry.kt").writeText("""
-            package dev.shibasis.reaktor.core.build
-            @Target(AnnotationTarget.FUNCTION)
-            @Retention(AnnotationRetention.BINARY)
-            annotation class Entry
-        """.trimIndent())
         val source = directory.resolve("src/probe/kotlin/Probe.kt")
         source.writeText("""
             @file:JvmName("RenamedProgram")
@@ -88,6 +88,7 @@ class ModuleWiringTest {
             .withArguments(task, "--configuration-cache", "--console=plain", "--stacktrace")
             .let { if (failed) it.buildAndFail() else it.build() }
         val contract = directory.resolve("build/dependeasy/entries/probe.json")
+        kotlin.test.assertTrue(contract.delete(), "The preceding typed program produced its entry contract")
         val export = typed("exportBuildModel")
         kotlin.test.assertFalse(contract.exists())
         assertNull(export.task(":compileProbeKotlin"))
