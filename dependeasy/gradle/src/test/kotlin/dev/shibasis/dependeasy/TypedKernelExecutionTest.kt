@@ -19,7 +19,7 @@ class TypedKernelExecutionTest {
     @Test fun `typed process kernels track sources outputs and selected arguments`() {
         write("settings.gradle.kts", "rootProject.name = \"kernelsFixture\"")
         write("source.txt", "first")
-        write("tool", "#!/bin/sh\nprintf '%s\\n' \"$*\" >> executions\nmkdir -p result\nprintf '%s' \"$*\" > result/value\nprintf 'types' > worker.d.ts\n").setExecutable(true)
+        write("tool", "#!/bin/sh\nprintf '%s\\n' \"$*\" >> executions\nmkdir -p result/reference\nprintf 'private' > result/reference/photo\nprintf '%s' \"$*\" > result/value\nprintf 'types' > worker.d.ts\n").setExecutable(true)
         for (name in listOf("typescript", "vite", "bindings", "worker", "generator")) {
             write("$name/entry.ts", "export const value = 1")
             write("$name/config.json", """{"input":"entry.ts","output":"result","libraryName":"fixture"}""")
@@ -41,7 +41,7 @@ class TypedKernelExecutionTest {
             val typescript = tasks.register<TypeScriptCheck>("typescript") {
                 fixture("typescript"); projects.set(listOf("config.json")); adapter.set(layout.projectDirectory.file("typescript/adapter.mjs"))
             }
-            val vite = tasks.register<ViteBundle>("vite") { fixture("vite"); configuration.set("config.json") }
+            val vite = tasks.register<ViteBundle>("vite") { fixture("vite"); configuration.set("config.json"); excludedAssets.set(listOf("reference")) }
             val bindings = tasks.register<KarakumBindings>("bindings") { fixture("bindings"); configuration.set("config.json") }
             val worker = tasks.register<WorkerTypes>("worker") {
                 fixture("worker"); configuration.set("config.json"); declarations.set(layout.projectDirectory.file("worker/worker.d.ts"))
@@ -76,6 +76,37 @@ class TypedKernelExecutionTest {
         names.forEach { assertEquals(TaskOutcome.UP_TO_DATE, repeated.task(":$it")?.outcome) }
         assertContains(directory.resolve("typescript/result/value").readText(), "--projects config.json")
         assertContains(directory.resolve("vite/result/value").readText(), "vite build --config config.json")
+        assertFalse(directory.resolve("vite/result/reference").exists())
+        val viteSpec = specs.filterIsInstance<dev.shibasis.dependeasy.model.KernelSpec.ViteBundle>().single()
+        assertEquals("result", viteSpec.output)
+        assertEquals(listOf("reference"), viteSpec.excludedAssets)
+        val direct = viteSpec.copy(execution = viteSpec.execution.copy(directory = directory.resolve("vite").absolutePath))
+        val receipt = directory.resolve("vite-receipt")
+        val outside = write("outside/secret", "keep")
+        dev.shibasis.dependeasy.model.JavaScriptKernel.run(direct, receipt) {
+            assertContains(it.arguments, "vite")
+            write("vite/result/reference/photo", "private")
+            java.nio.file.Files.createSymbolicLink(directory.resolve("vite/result/reference/link").toPath(), outside.parentFile.toPath())
+        }
+        assertFalse(directory.resolve("vite/result/reference").exists())
+        assertEquals("keep", outside.readText())
+        assertTrue(receipt.exists())
+        for (path in listOf("", ".", "../outside", outside.absolutePath)) {
+            assertFailsWith<IllegalArgumentException> {
+                dev.shibasis.dependeasy.model.JavaScriptKernel.run(direct.copy(excludedAssets = listOf(path)), receipt) {
+                    error("Invalid exclusions must fail before running the tool")
+                }
+            }
+            assertFalse(receipt.exists())
+        }
+        java.nio.file.Files.createSymbolicLink(directory.resolve("vite/result/escape").toPath(), outside.parentFile.toPath())
+        assertFailsWith<IllegalArgumentException> {
+            dev.shibasis.dependeasy.model.JavaScriptKernel.run(direct.copy(excludedAssets = listOf("escape/secret")), receipt) {
+                error("Escaping symlinks must fail before running the tool")
+            }
+        }
+        java.nio.file.Files.delete(directory.resolve("vite/result/escape").toPath())
+        assertEquals("keep", outside.readText())
         assertContains(directory.resolve("bindings/result/value").readText(), "await generate")
         assertContains(directory.resolve("bindings/result/value").readText(), "config.json")
         assertContains(directory.resolve("worker/result/value").readText(), "wrangler types")

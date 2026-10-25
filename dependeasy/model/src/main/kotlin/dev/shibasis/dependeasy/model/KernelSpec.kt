@@ -113,7 +113,8 @@ sealed interface KernelSpec {
     @Serializable data class PnpmInstall(val execution: ProcessExecution, val manifests: List<String>) : KernelSpec
     @Serializable data class PnpmLock(val execution: ProcessExecution) : KernelSpec
     @Serializable data class TypeScriptCheck(val execution: ProcessExecution, val projects: List<String>, val adapter: String, val emit: Boolean) : KernelSpec
-    @Serializable data class ViteBundle(val execution: ProcessExecution, val configuration: String?) : KernelSpec
+    @Serializable data class ViteBundle(val execution: ProcessExecution, val configuration: String?,
+        val output: String = "dist", val excludedAssets: List<String> = emptyList()) : KernelSpec
     @Serializable data class KarakumBindings(val execution: ProcessExecution, val configuration: String) : KernelSpec
     @Serializable data class WorkerTypes(val execution: ProcessExecution, val configuration: String) : KernelSpec
     @Serializable data class WranglerDeploy(val deployment: WorkerDeploySpec) : KernelSpec

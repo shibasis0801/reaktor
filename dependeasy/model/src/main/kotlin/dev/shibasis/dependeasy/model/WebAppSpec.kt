@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface WebBundle {
     val output: String
-    @Serializable data class Vite(override val output: String = "dist") : WebBundle
+    @Serializable data class Vite(override val output: String = "dist", val excludedAssets: List<String> = emptyList()) : WebBundle
     @Serializable data class Package(val script: PackageScript, override val output: String = "dist") : WebBundle
 }
 

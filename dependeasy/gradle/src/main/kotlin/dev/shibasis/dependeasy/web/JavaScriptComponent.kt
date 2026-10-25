@@ -157,7 +157,10 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
             }
         }
     fun tests(files: FileSet, after: NodeHandle): NodeHandle = project.node(check(files)).after(after)
-    fun vite(output: String = "dist"): TaskProvider<ViteBundle> = commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build")
+    fun vite(output: String = "dist", excludedAssets: List<String> = emptyList()): TaskProvider<ViteBundle> =
+        commandKernel.register(ViteBundle::class.java, "bundle", output, "exec", "vite", "build").also {
+            it.configure { this.excludedAssets.set(excludedAssets) }
+        }
     fun types(vararg projects: String, generators: List<TaskProvider<out org.gradle.api.Task>> = emptyList()): TaskProvider<TypeScriptCheck> =
         commandKernel.register(TypeScriptCheck::class.java, "types", null, "exec", "node", runtime.file("cli/typecheck.ts").canonicalPath,
             "--projects", *(projects.toList().ifEmpty { listOf("tsconfig.json") }).toTypedArray()).also {
