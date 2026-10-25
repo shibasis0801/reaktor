@@ -10,7 +10,8 @@ class NativeCompositionTest {
     @TempDir lateinit var directory: File
 
     @Test fun `a module root CMake build does not consume an unrelated JavaScript bundle`() {
-        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"nativeAndJavaScript\"")
+        directory.resolve("sourceHeaders").mkdirs()
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"nativeAndJavaScript\"\ninclude(\"sourceHeaders\")")
         val source = directory.resolve("src/commonMain/cpp/main.cpp")
         source.parentFile.mkdirs()
         source.writeText("int main() { return 0; }\n")
@@ -43,6 +44,32 @@ class NativeCompositionTest {
         val changed = run()
         assertEquals(TaskOutcome.SUCCESS, changed.task(":bundle")?.outcome)
         assertEquals(TaskOutcome.UP_TO_DATE, changed.task(":sampleCMake")?.outcome)
+        fun export() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        export()
+        assertFalse(dev.shibasis.dependeasy.model.BuildModelReader.read(directory).nodes.any { it.id.name == "prepareNativeTools" })
+        val script = directory.resolve("sourceHeaders/build.gradle.kts")
+        script.writeText("""
+            import dev.shibasis.dependeasy.handles.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            dependeasy.cmake("headers") {
+                sourceLibrary(Tools.Flatbuffers, "FLATBUFFERS_INCLUDE_DIR")
+                sourceLibrary(Tools.Flatbuffers, "FLATBUFFERS_INCLUDE_DIR")
+            }
+        """.trimIndent())
+        val declared = export()
+        val model = dev.shibasis.dependeasy.model.BuildModelReader.read(directory)
+        val line = script.readLines().indexOfFirst { it.contains("sourceLibrary(") } + 1
+        val preparation = setOf("prepareNativeTools", "prepareFlatbuffersSource", "prepareHermesSource", "buildHermesHostCompiler")
+        assertEquals(preparation, model.nodes.filter { it.id.name in preparation }.map { it.id.name }.toSet())
+        model.nodes.filter { it.id.name in preparation }.forEach { node ->
+            assertEquals("sourceHeaders/build.gradle.kts", node.declaredAt?.file)
+            assertEquals(line, node.declaredAt?.line)
+            assertNull(declared.task(":" + node.id.name))
+        }
+        assertFalse(directory.resolve(".github_modules").exists())
+        assertContains(export().output, "Reusing configuration cache")
+        assertEquals(model, dev.shibasis.dependeasy.model.BuildModelReader.read(directory))
     }
 
     @Test fun `declarative native exports compile and retain their producer with configuration cache`() {

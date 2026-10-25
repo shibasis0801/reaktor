@@ -18,7 +18,10 @@ open class NativeLibrary internal constructor(
     private var supportedPlatforms = NativePlatform.entries.toSet()
     private var supportedAbis = NativeAbi.defaults
 
-    fun dependencies(vararg dependencies: NativeDependency) { libraries.addAll(dependencies) }
+    fun dependencies(vararg dependencies: NativeDependency) {
+        if (dependencies.any { it.source != null }) project.nativeTools.register(project)
+        libraries.addAll(dependencies)
+    }
     fun modules(vararg modules: dev.shibasis.dependeasy.model.ModuleHandle) { nativeModules.addAll(modules) }
     fun platforms(vararg platforms: NativePlatform) { supportedPlatforms = platforms.toSet() }
     fun abis(vararg abis: NativeAbi) { supportedAbis = abis.toList() }

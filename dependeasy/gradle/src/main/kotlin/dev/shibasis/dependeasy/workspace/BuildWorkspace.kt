@@ -200,7 +200,7 @@ internal class BuildWorkspace(private val project: Project) {
                 kernel.plan(current).map { bindings.getValue(it) }
             })
         }.also {
-            owner.afterEvaluate { owner.gradle.projectsEvaluated {
+            if (kernel != ArtifactSetKernel) owner.afterEvaluate { owner.gradle.projectsEvaluated {
                 val target = targets.getValue(spec.id.toString())
                 val current = requireNotNull(target.declaration)
                 val bindings = (target.includedNodes + target.ordering).associateBy { it.id }
