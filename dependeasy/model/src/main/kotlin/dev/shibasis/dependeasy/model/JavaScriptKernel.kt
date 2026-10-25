@@ -3,7 +3,7 @@ package dev.shibasis.dependeasy.model
 import dev.shibasis.dependeasy.web.PnpmInstallation
 import java.io.File
 import java.nio.file.Path
-import kotlin.io.path.deleteRecursively
+import dev.shibasis.dependeasy.files.deleteTreeSafely
 
 object BrowserSuiteKernel {
     fun plan(spec: KernelSpec.BrowserSuite): ProcessExecution {
@@ -45,7 +45,6 @@ object JavaScriptKernel {
 
     fun plan(spec: KernelSpec.ViteBundle) = spec.execution.copy(arguments = Pnpm.vite(spec.configuration))
 
-    @OptIn(kotlin.io.path.ExperimentalPathApi::class)
     fun run(spec: KernelSpec.ViteBundle, receipt: File?, execute: (ProcessExecution) -> Unit) {
         ProcessKernel.run(plan(spec), receipt) { execution ->
             val output = File(execution.directory).resolve(spec.output).canonicalFile.toPath()
@@ -65,7 +64,7 @@ object JavaScriptKernel {
                 require(it.toFile().canonicalFile.toPath().startsWith(output)) {
                     "An excluded asset must stay inside the bundle"
                 }
-                it.deleteRecursively()
+                it.toFile().deleteTreeSafely(within = output.toFile())
             }
         }
     }
