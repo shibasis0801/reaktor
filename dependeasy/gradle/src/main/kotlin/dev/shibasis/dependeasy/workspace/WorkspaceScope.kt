@@ -27,8 +27,6 @@ class NodeDeclaration internal constructor(internal val declare: (String) -> Nod
 
 @WorkspaceDsl
 class WorkspaceScope internal constructor(private val project: Project, private val workspace: BuildWorkspace) {
-    val model get() = workspace.graph.flatMap { it.outputFile }
-
     fun alias(name: String, node: NodeHandle, directory: java.io.File = project.rootDir, options: DeviceOptions? = null,
         before: List<NodeHandle> = emptyList(), settings: List<OptionArgument<*>> = emptyList()) =
         workspace.alias(directory, name, node, options, before, settings)
@@ -37,7 +35,9 @@ class WorkspaceScope internal constructor(private val project: Project, private 
         outputs.forEach { dev.shibasis.dependeasy.web.PnpmWorkspace.get(project).packages(it) }
     }
 
-    fun packageScripts(versions: Map<String, List<String>> = emptyMap()) = workspace.packageScripts(versions)
+    fun packageScripts(versions: Map<String, List<String>> = emptyMap()) {
+        workspace.packageScripts(versions)
+    }
 
     fun buildTooling() = dev.shibasis.dependeasy.web.buildTooling(project)
 
