@@ -45,7 +45,7 @@ data class WorkflowDefinition(
 @Serializable enum class WorkflowStageStatus { Running, Completed, Failed, Skipped, Waiting }
 @Serializable data class WorkflowStage(val id: String, val title: String, val agent: AgentId? = null,
     val instruction: String = "", val action: WorkflowAction = WorkflowAction.Agent,
-    val contract: WorkflowContract = WorkflowContract.Text, val checkId: String? = null)
+    val contract: WorkflowContract = WorkflowContract.Text, val checkId: String? = null, val candidateId: String? = null)
 @Serializable data class WorkflowEdge(val from: String, val to: String, val whenResult: WorkflowCondition = WorkflowCondition.Succeeded)
 @Serializable data class WorkflowStageResult(val status: WorkflowStageStatus, val eventId: EventId? = null,
     val verdict: String? = null, val detail: String? = null, val receiptId: String? = null)
