@@ -863,6 +863,14 @@ class AgentWorkspace(
         }
     }
 
+    internal fun ownedSessionRefs(): Set<String> = synchronized(lock) {
+        recent.mapNotNull { records[it] ?: load(it) }.flatMap { run ->
+            listOfNotNull(BoardRefs.Hangar + run.id, BoardRefs.Hangar + run.threadId,
+                run.session?.let { BoardRefs.session(it.runtime, it.sessionId) }) +
+                run.participants.values.mapNotNull { participant -> participant.session?.let { BoardRefs.session(it.runtime, it.sessionId) } }
+        }.toSet()
+    }
+
     internal fun threadOf(ref: String): String? {
         val raw = ref.substringAfter(':')
         return when {

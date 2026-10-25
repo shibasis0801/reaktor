@@ -158,7 +158,7 @@ class AgentBoardStore(
             members.values.mapNotNull { task ->
                 (TaskGraphRules.readiness(task, members) as? TaskGraphRules.Readiness.Blocked)?.let { task.id to it.reasons }
             }.toMap(), records.messages, handoffs, records.decisions, warnings(members), summaries,
-            members.values.filter { !it.graph?.choices.isNullOrEmpty() }.associate { it.id to TaskChoices.rank(it, members, summaries) })
+            members.values.filter { !it.graph?.choices.isNullOrEmpty() }.associate { it.id to TaskChoices.rank(it, members, summaries) }, records.messageEvents)
     }
 
     @Synchronized fun coordination(id: String): TaskCoordination {
@@ -187,10 +187,69 @@ class AgentBoardStore(
         val value = draft.copy(id = id, thread = thread, author = by.checked(), at = clock(),
             artifacts = coordinationRefs(draft.artifacts, "artifacts", 100))
         recordSize(ConductorJson.encodeToString(AgentMessage.serializer(), value))
-        saveCoordination(draft.graph, records.copy(next = records.next + 1,
-            messages = (records.messages + value).takeLast(TaskCoordination.Retained)), by, "Message $id · ${draft.kind.name}")
+        val retained = (records.messages + value).takeLast(TaskCoordination.Retained)
+        val ids = retained.map { it.id }.toSet()
+        saveCoordination(draft.graph, records.copy(next = records.next + 1, messages = retained,
+            messageEvents = records.messageEvents.filter { it.message in ids }), by, "Message $id · ${draft.kind.name}")
         return value
     }
+
+    @Synchronized internal fun sendMessage(draft: AgentMessage, caller: TaskGraphCaller, ownedSessions: Set<String> = emptySet()): AgentMessage {
+        val by = caller.by.checked()
+        require(by.kind == BoardActorKind.Person || by.kind == BoardActorKind.Agent) { "A message needs a person or agent author" }
+        val request = requireNotNull(draft.requestId) { "A message needs a client id" }
+        require(request.matches(Regex("[A-Za-z0-9._:-]{1,200}"))) { "A client id is 1 to 200 letters, digits, dots, underscores, colons or hyphens" }
+        val revision = requireNotNull(draft.requestRevision) { "expectedRevision is required" }
+        require(revision >= 0) { "expectedRevision must be nonnegative" }
+        val records = coordination(draft.graph)
+        val normalized = draft.copy(artifacts = coordinationRefs(draft.artifacts, "artifacts", 100))
+        records.messages.firstOrNull { it.author == by && it.requestId == request }?.let { previous ->
+            require(previous == normalized.copy(id = previous.id, thread = normalized.thread ?: previous.thread,
+                author = previous.author, at = previous.at)) { "This client id already names a different message" }
+            return previous
+        }
+        require(graph(draft.graph).revision == revision) { "Graph revision changed; read it again before sending" }
+        require(by.kind == BoardActorKind.Person || caller.lead || caller.own.isNotEmpty()) { "Only the graph lead or a current task owner sends messages" }
+        draft.task?.let { task ->
+            val plan = requireNotNull(get(task).graph)
+            require(plan.id == draft.graph && draft.attempt == plan.attempt) { "A message names the exact current task attempt" }
+            require(by.kind == BoardActorKind.Person || task in caller.own) { "You do not own $task" }
+        }
+        draft.replyTo?.let { message(draft.graph, it, caller) }
+        draft.thread?.let { thread ->
+            require(records.messages.any { it.thread == thread && visibleMessage(it, caller) }) { "This thread is not available to the caller" }
+        }
+        return appendMessage(normalized, by, ownedSessions)
+    }
+
+    @Synchronized internal fun messageRecords(id: String, caller: TaskGraphCaller): TaskCoordination {
+        val records = coordination(id)
+        val messages = records.messages.filter { visibleMessage(it, caller) }
+        val ids = messages.map { it.id }.toSet()
+        return records.copy(messages = messages, handoffs = emptyList(), decisions = emptyList(),
+            messageEvents = records.messageEvents.filter { it.message in ids })
+    }
+
+    @Synchronized internal fun message(graph: String, id: String, caller: TaskGraphCaller): AgentMessage =
+        coordination(graph).messages.firstOrNull { it.id == id && visibleMessage(it, caller) }
+            ?: error("No retained message is available to this caller")
+
+    @Synchronized internal fun acknowledgeMessage(graph: String, id: String, caller: TaskGraphCaller): AgentMessageEvent {
+        val value = message(graph, id, caller)
+        require(caller.by.kind == BoardActorKind.Person || receivesMessage(value, caller)) { "Only the recipient acknowledges a message" }
+        val records = coordination(graph)
+        records.messageEvents.firstOrNull { it.message == id && it.state == AgentMessageState.Acknowledged }?.let { return it }
+        val by = caller.by.checked()
+        val event = AgentMessageEvent("$graph-E${records.next}", id, AgentMessageState.Acknowledged, by, clock())
+        saveCoordination(graph, records.copy(next = records.next + 1, messageEvents = records.messageEvents + event), by, "Acknowledged $id")
+        return event
+    }
+
+    private fun receivesMessage(value: AgentMessage, caller: TaskGraphCaller) =
+        value.recipient.task?.let { it in caller.own } == true || value.recipient.session?.let { it in caller.refs } == true
+
+    private fun visibleMessage(value: AgentMessage, caller: TaskGraphCaller) =
+        caller.by.kind == BoardActorKind.Person || caller.lead || value.author == caller.by || receivesMessage(value, caller)
 
     @Synchronized fun appendHandoff(draft: TaskHandoff, by: BoardActor): TaskHandoff {
         val records = coordination(draft.graph)
