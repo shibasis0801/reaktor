@@ -12,7 +12,7 @@ kotlin {
 }
 java { targetCompatibility = JavaVersion.VERSION_21 }
 
-tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") {
+tasks.compileKotlin {
     source("../model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildDeclarationInputs.kt",
         "../model/src/main/kotlin/dev/shibasis/dependeasy/bootstrap/BootstrapModelEntry.kt",
         "../gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildDeclarationFiles.kt")

@@ -5,6 +5,8 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.plugins.JavaPlugin
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
@@ -44,10 +46,10 @@ abstract class VerifyBytecode : DefaultTask() {
 
 class BytecodeVerificationPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        project.pluginManager.apply("java")
+        project.pluginManager.apply(JavaPlugin::class.java)
         val verification = project.tasks.register("verifyBytecode", VerifyBytecode::class.java) {
-            jars.from(project.tasks.named("jar"))
+            jars.from(project.tasks.named(JavaPlugin.JAR_TASK_NAME))
         }
-        project.tasks.named("check") { dependsOn(verification) }
+        project.tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(verification) }
     }
 }
