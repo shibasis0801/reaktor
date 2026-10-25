@@ -21,6 +21,9 @@ enum class TaskState { Pending, Running, Waiting, Succeeded, Failed, Skipped, Ca
 enum class TaskAccess { Read, Write }
 
 @Serializable
+enum class TaskRecoveryAction { Retry, KeepWork, Abandon }
+
+@Serializable
 data class TaskSeat(
     val agent: RuntimeKind? = null,
     val model: String? = null,
@@ -75,6 +78,7 @@ data class TaskPlan(
     val resolvedSeat: ResolvedTaskSeat? = null,
     val runId: String? = null,
     val worktreeId: String? = null,
+    val recovery: AgentRecovery = AgentRecovery.None,
 ) {
     fun attemptOf(refs: Set<String>): Int? = refs.mapNotNull(workAttempts::get).maxOrNull()
         ?: attempt.takeIf { run != null && run in refs }

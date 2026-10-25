@@ -26,6 +26,20 @@ class AgentActivityStoreTest {
         } finally { data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
+    @Test fun savedLogTailResumesAtTheNewestRetainedEventsAfterRestart() {
+        val data = Files.createTempDirectory("activity-tail")
+        val id = "c".repeat(64)
+        try {
+            val store = AgentActivityStore(data)
+            repeat(125) { store.append(id, "codex", 1, AgentActivityItem("$it", ActivityKind.Tool, "Step $it", ActivityStatus.Started)) }
+            val tail = AgentActivityStore(data).page(id, limit = 20, tail = true)
+            assertEquals((106L..125L).toList(), tail.records.map { it.sequence })
+            assertEquals(125L, tail.nextCursor)
+            assertFalse(tail.hasMore)
+            assertTrue(AgentActivityStore(data).page(id, after = 125, tail = true).records.isEmpty())
+        } finally { data.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     @Test fun outputAndPagesRemainBounded() {
         val data = Files.createTempDirectory("activity-bounds")
         val id = "b".repeat(64)

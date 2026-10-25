@@ -560,6 +560,9 @@ class AgentWorkspace(
         require(active.isEmpty()) { "Wait for active workspace work before recovering this run" }
         val request = ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(directory.resolve("requests/$id.json")))
         require(digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request)) == saved.requestFingerprint)
+        require(request.task == null || saved.recovery != AgentRecovery.NeedsReview) {
+            "Reconcile this graph attempt in Hangar before resuming it"
+        }
         requireEntitlements(request)
         val checkpoint = checkpoint(id)
         val currentRoot = saved.workingDirectory?.let(::File) ?: root
@@ -606,6 +609,14 @@ class AgentWorkspace(
             thread = saved.thread.copy(providerSessions = emptyMap()), workflow = WorkflowProgress(retained), sourceRevision = revision)
         admit(request.copy(requestId = requestId, threadId = null), seed, origin)
     } }
+
+    internal fun reconcileRun(id: String, revision: Long, action: TaskRecoveryAction) = synchronized(lock) {
+        val run = get(id)
+        require(run.revision == revision && run.status == AgentRunStatus.Interrupted && run.recovery == AgentRecovery.NeedsReview && id !in active) {
+            "The interrupted run changed; inspect it again"
+        }
+        update(id, true) { it.copy(recovery = AgentRecovery.None, recoveryReason = "Person chose ${action.name}; native outcome remains unknown") }
+    }
 
     fun get(id: String): AgentRunRecord = synchronized(lock) {
         recover(records[id] ?: load(id) ?: error("Run not found"))
