@@ -38,6 +38,16 @@ data class Playwright(val configuration: String, val files: List<String> = empty
     @EncodeDefault(EncodeDefault.Mode.NEVER) val sources: List<FileInput> = emptyList())
 
 @Serializable
+data class Lighthouse(val target: String, val page: Page, val report: String,
+    val profile: Profile = Profile.Mobile, val runs: Int = 3) {
+    @Serializable enum class Profile { Mobile, Desktop }
+    @Serializable sealed interface Page {
+        @Serializable data class Remote(val url: String) : Page
+        @Serializable data class Bundle(val directory: String, val server: String) : Page
+    }
+}
+
+@Serializable
 data class WebAppSpec(
     val typescript: List<String> = listOf("tsconfig.json"),
     val bundle: WebBundle = WebBundle.Vite(),

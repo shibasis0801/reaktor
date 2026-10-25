@@ -69,6 +69,41 @@ internal fun Project.browserSuite(name: String, suite: Playwright, run: Run): No
     return node(task, OutputKind.VerificationResults).after(rootProject.node(packages.install))
 }
 
+internal fun Project.lighthouseAudit(name: String, audit: Lighthouse, artifacts: List<OutputHandle>, run: Run): NodeHandle {
+    val packages = dev.shibasis.dependeasy.web.PnpmWorkspace.get(this)
+    val page = audit.page
+    val published = if (page is Lighthouse.Page.Bundle) {
+        require(artifacts.size == 1 && artifacts.single().kind == OutputKind.BrowserBundle) { "A local Lighthouse audit needs one published browser bundle" }
+        require(!java.io.File(page.directory).isAbsolute && ".." !in page.directory.split('/')) { "Lighthouse needs a directory within its bundle" }
+        outputFiles(artifacts.single())
+    } else null
+    val policy = audit.copy(report = file(audit.report).absolutePath, page = when (page) {
+        is Lighthouse.Page.Remote -> page
+        is Lighthouse.Page.Bundle -> page.copy(server = file(page.server).absolutePath)
+    })
+    val task = tasks.register<LighthouseAudit>(name) {
+        group = "verification"
+        workingDirectory.set(layout.projectDirectory)
+        executable.set(packages.tools.pnpm.map { it.asFile.absolutePath })
+        environment.putAll(packages.tools.environment)
+        toolVersion.set("pnpm ${dev.shibasis.dependeasy.toolchain.ToolchainVersions.Pnpm} / node ${dev.shibasis.dependeasy.toolchain.ToolchainVersions.Node}")
+        this.policy.set(BuildModelReader.json.encodeToString(Lighthouse.serializer(), policy))
+        sourceFiles.from(file("package.json"), file("pnpm-lock.yaml"), published ?: emptyList<Any>())
+        if (page is Lighthouse.Page.Bundle) sourceFiles.from(fileTree(file(page.server).parentFile) { include("*.mjs") })
+        outputFiles.from(file(audit.report))
+        receiptFile.set(layout.buildDirectory.file("dependeasy/checks/$name.properties"))
+        dependsOn(packages.install)
+        executionPlatform.set(run.host.platform)
+        run.timeoutMillis?.let { timeout.set(java.time.Duration.ofMillis(it)) }
+    }
+    val workspace = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(this)
+    if (published != null) afterEvaluate { task.configure { bundleDirectory.set(published.singleFile) } }
+    workspace.reference(this, task, OutputKind.VerificationResults, host = run.host)
+    return node(task, OutputKind.VerificationResults).after(rootProject.node(packages.install)).also { node ->
+        artifacts.forEach { workspace.consume(node, it) }
+    }
+}
+
 internal fun Project.karateSuite(name: String, directory: String, config: String, tags: List<String>, files: List<String>, optionalFiles: List<String> = emptyList(), environment: Map<String, String> = emptyMap()): NodeHandle {
     val tool = VerificationTools.get(this).karate
     val executionEnvironment = environment.mapValues { (key, value) -> option(BuildOption.environment(key, value)) }

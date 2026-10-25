@@ -402,6 +402,7 @@ internal class BuildWorkspace(private val project: Project) {
                     taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: suite?.run?.host ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer, spec ?: producer.extensions.findByType(KernelSpec::class.java)),
                     Invocation.Gradle(listOf(producer.path)), inputs = producer.declaredFileInputs(), outputs = listOf(FileSet(producer.outputs.files.paths(owner), kind?.name)),
                     tools = producer.declaredTools(), options = producer.declaredOptions(),
+                    runner = if (spec is KernelSpec.BrowserSuite || spec is KernelSpec.LighthouseAudit) Runner.Browser else Runner.Gradle,
                     artifactFamily = taskArtifactFamilies[id] ?: kind?.family, coverage = coverage[id],
                     worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: migration?.database?.availableEnvironments ?: infrastructure?.stack?.stacks?.keys?.toList() ?: listOfNotNull(server?.environment ?: secrets?.environment),
                     bindings = worker?.bindings?.get()?.map(::ServiceRef) ?: listOfNotNull(server?.service ?: secrets?.service ?: (migration?.database as? DatabaseMigrations.ClickHouse)?.service),

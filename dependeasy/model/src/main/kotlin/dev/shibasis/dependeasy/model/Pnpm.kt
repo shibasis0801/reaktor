@@ -19,6 +19,16 @@ object Pnpm {
         suite.files + (if (suite.headed) listOf("--headed") else emptyList()) +
         suite.workers?.let { listOf("--workers", it.toString()) }.orEmpty()
 
+    fun lighthouse(audit: Lighthouse, url: String, executable: String): List<String> {
+        val command = listOf("exec", "reaktor-lighthouse", "--target", audit.target, "--url", url,
+            "--preset", audit.profile.name.lowercase(), "--runs", audit.runs.toString(), "--assert", "--out", audit.report)
+        return when (val page = audit.page) {
+            is Lighthouse.Page.Remote -> command
+            is Lighthouse.Page.Bundle -> listOf("exec", "node", page.server, page.directory,
+                java.net.URI(url).port.toString(), executable) + command
+        }
+    }
+
     fun repair(arguments: List<String>) = arguments + "--force"
 
     fun bindings(configuration: String) = listOf("exec", "node", "--input-type=module", "-e",
