@@ -49,7 +49,7 @@ private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, run
     val checks = listOfNotNull(spec.tests?.let { web.check(it) })
     val types = web.types(*spec.typescript.toTypedArray(), generators = generated)
     val bundle = when (val bundle = spec.bundle) {
-        is WebBundle.Vite -> web.vite(bundle.output)
+        is WebBundle.Vite -> web.vite(bundle.output, bundle.excludedAssets)
         is WebBundle.Package -> web.script(bundle.script.name, bundle.output)
     }
     val assembled = web.build("assembleWeb", bundle = bundle, typecheck = types, checks = checks, generators = generated)
