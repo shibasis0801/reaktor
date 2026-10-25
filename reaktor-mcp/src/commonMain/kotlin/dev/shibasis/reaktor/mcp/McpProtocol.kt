@@ -16,7 +16,7 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
 const val REAKTOR_MCP_PROTOCOL_VERSION: String = "2025-11-25"
-val REAKTOR_MCP_PROTOCOL_VERSIONS: Set<String> = setOf("2025-06-18", REAKTOR_MCP_PROTOCOL_VERSION)
+val REAKTOR_MCP_PROTOCOL_VERSIONS: Set<String> = setOf("2025-06-18", REAKTOR_MCP_PROTOCOL_VERSION, MCP_TASKS_VERSION)
 
 data class McpReadTool(
     val name: String,
@@ -89,6 +89,7 @@ class ReaktorMcpServer(
     private val toolsListChanged: Boolean = false,
     private val structuredContent: Boolean = true,
     prompts: List<McpPrompt> = emptyList(),
+    private val tasks: McpTasks? = null,
 ) : McpMessageHandler {
     private val tools = tools.associateBy(McpTool::name)
     private val resources = resources.associateBy(McpReadResource::uri)
@@ -131,9 +132,9 @@ class ReaktorMcpServer(
             val method = (request["method"] as? JsonPrimitive)?.contentOrNull
             if (method != "tools/list" && method != "tools/call") return handleSingle(message)
             val id = request["id"]?.takeUnless { it is JsonNull } ?: return null
-            if (method == "tools/list") return rpcResult(id, buildJsonObject {
+            if (method == "tools/list") return modernResponse(request, rpcResult(id, buildJsonObject {
                 putJsonArray("tools") { advertisedDefinitions.forEach { add(it.mcpValue()) } }
-            })
+            }))
             val params = request["params"] as? JsonObject
             val name = (params?.get("name") as? JsonPrimitive)?.contentOrNull
                 ?: return rpcError(id, -32602, "Missing tool name")
@@ -141,13 +142,13 @@ class ReaktorMcpServer(
             val arguments = params["arguments"] ?: JsonObject(emptyMap())
             if (arguments !is JsonObject) return rpcError(id, -32602, "Tool arguments must be an object")
             val result = execute(name, arguments)
-            return rpcResult(id, buildJsonObject {
+            return modernResponse(request, rpcResult(id, buildJsonObject {
                 put("content", result.content ?: buildJsonArray {
                     addJsonObject { put("type", "text"); put("text", result.data.toString()) }
                 })
                 put("structuredContent", result.data as? JsonObject ?: buildJsonObject { put("result", result.data) })
                 put("isError", result.isError)
-            })
+            }))
         }
         return when (parsed) {
             is JsonArray -> if (parsed.isEmpty()) rpcError(JsonNull, -32600, "Invalid Request: empty batch")
@@ -163,7 +164,14 @@ class ReaktorMcpServer(
         val method = (request["method"] as? JsonPrimitive)?.contentOrNull
             ?: return responseId?.let { rpcError(it, -32600, "Invalid Request: missing method") }
         if (responseId == null) return null
-        return when (method) {
+        val response = when (method) {
+            "server/discover" -> rpcResult(responseId, discover())
+            "tasks/get", "tasks/update", "tasks/cancel" -> {
+                val host = tasks ?: return rpcError(responseId, -32601, "Tasks are unavailable")
+                val params = request["params"] as? JsonObject ?: return rpcError(responseId, -32602, "Missing task parameters")
+                runCatching { rpcResult(responseId, host.request(method, params)) }
+                    .getOrElse { rpcError(responseId, -32602, it.message ?: "Invalid task request") }
+            }
             "initialize" -> initializeRequest(responseId, request["params"] as? JsonObject)
             "tools/list" -> rpcResult(responseId, listTools())
             "tools/call" -> callTool(responseId, request["params"] as? JsonObject)
@@ -174,6 +182,14 @@ class ReaktorMcpServer(
             "ping" -> rpcResult(responseId, buildJsonObject {})
             else -> rpcError(responseId, -32601, "Method not found: $method")
         }
+        return modernResponse(request, response)
+    }
+
+    private fun modernResponse(request: JsonObject, response: JsonObject): JsonObject {
+        val metadata = (request["params"] as? JsonObject)?.get("_meta") as? JsonObject
+        val result = response["result"] as? JsonObject
+        return if ((metadata?.get(MCP_REQUEST_VERSION) as? JsonPrimitive)?.contentOrNull == MCP_TASKS_VERSION && result != null)
+            rpcResult(request.getValue("id"), JsonObject(mapOf("resultType" to JsonPrimitive("complete")) + result)) else response
     }
 
     private fun initializeRequest(id: JsonElement, params: JsonObject?): JsonObject {
@@ -193,6 +209,18 @@ class ReaktorMcpServer(
             put("name", name)
             put("version", version)
         }
+        put("instructions", instructions)
+    }
+
+    private fun discover(): JsonObject = buildJsonObject {
+        put("resultType", "complete")
+        putJsonArray("supportedVersions") { REAKTOR_MCP_PROTOCOL_VERSIONS.forEach { add(it) } }
+        val capabilities = initialize(REAKTOR_MCP_PROTOCOL_VERSION).getValue("capabilities") as JsonObject
+        put("capabilities", buildJsonObject {
+            capabilities.forEach { (key, value) -> put(key, value) }
+            if (tasks != null) putJsonObject("extensions") { putJsonObject(MCP_TASKS_EXTENSION) {} }
+        })
+        putJsonObject("_meta") { putJsonObject("io.modelcontextprotocol/serverInfo") { put("name", name); put("version", version) } }
         put("instructions", instructions)
     }
 
@@ -219,6 +247,15 @@ class ReaktorMcpServer(
             ?: return rpcError(id, -32602, "Missing tool name")
         val tool = tools[toolName] ?: return rpcError(id, -32602, "Unknown tool: $toolName")
         val arguments = params["arguments"] as? JsonObject ?: JsonObject(emptyMap())
+        val metadata = params["_meta"] as? JsonObject ?: JsonObject(emptyMap())
+        val capabilities = metadata[MCP_REQUEST_CAPABILITIES] as? JsonObject
+        val extensions = capabilities?.get("extensions") as? JsonObject
+        if ((metadata[MCP_REQUEST_VERSION] as? JsonPrimitive)?.contentOrNull == MCP_TASKS_VERSION &&
+            extensions?.get(MCP_TASKS_EXTENSION) is JsonObject) {
+            runCatching { tasks?.call(toolName, arguments, metadata) }
+                .getOrElse { return toolText(id, it.message ?: "Task admission failed; inspect receipts before retrying", isError = true) }
+                ?.let { return rpcResult(id, it) }
+        }
         val result = runCatching { tool.execute(arguments) }
             .getOrElse { error -> return toolText(id, error.message ?: "Tool failed", isError = true) }
         if (tool.raw && result is JsonObject) return rpcResult(id, result)
