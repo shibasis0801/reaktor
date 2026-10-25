@@ -90,6 +90,7 @@ class AgentMessageTest {
         assertFails { call(workspace, "send", send(workspace, reviewer)) }
         assertFails { call(workspace, "send", JsonObject(send(workspace) + ("attempt" to JsonPrimitive(0)))) }
         assertFails { call(workspace, "send", JsonObject(send(workspace) - "expectedRevision")) }
+        assertFails { call(workspace, "send", JsonObject(send(workspace) - "task" - "attempt")) }
         assertEquals(before, workspace.board.revision)
         val leadMessage = JsonObject(send(workspace, lead) - "task" - "attempt")
         assertEquals(lead, message(call(workspace, "send", leadMessage)).author)

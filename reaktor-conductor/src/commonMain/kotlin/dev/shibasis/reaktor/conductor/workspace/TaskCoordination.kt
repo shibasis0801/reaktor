@@ -30,7 +30,11 @@ data class AgentMessage(
 enum class AgentMessageState { Accepted, Queued, Delivered, Acknowledged }
 
 @Serializable
-data class AgentMessageEvent(val id: String, val message: String, val state: AgentMessageState, val by: BoardActor, val at: Long)
+data class AgentMessageEvent(val id: String, val message: String, val state: AgentMessageState, val by: BoardActor, val at: Long,
+    val runId: String? = null, val turnId: String? = null)
+
+@Serializable
+data class AgentMessageTarget(val graph: String, val message: String, val run: String, val task: String? = null, val attempt: Int? = null)
 
 @Serializable
 data class TaskHandoff(

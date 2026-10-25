@@ -16,7 +16,7 @@ internal fun agentMessageTools(workspace: AgentWorkspace): List<McpTool> {
     fun receipt(value: AgentMessage, records: TaskCoordination) = buildJsonObject {
         val events = records.messageEvents.filter { it.message == value.id }
         put("message", AgentWorkspaceJson.encodeToJsonElement(AgentMessage.serializer(), value))
-        put("state", (events.lastOrNull()?.state ?: AgentMessageState.Accepted).name)
+        put("state", (events.maxByOrNull { it.state.ordinal }?.state ?: AgentMessageState.Accepted).name)
         put("events", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(AgentMessageEvent.serializer()), events))
     }
     val graph = "graph" to stringSchema("Task graph id")
@@ -45,7 +45,7 @@ internal fun agentMessageTools(workspace: AgentWorkspace): List<McpTool> {
                 task = args.optional("task"), attempt = args["attempt"]?.jsonPrimitive?.int,
                 artifacts = args["artifacts"]?.let { AgentWorkspaceJson.decodeFromJsonElement(ListSerializer(String.serializer()), it) }.orEmpty(),
                 requestId = args.text("id"), requestRevision = args["expectedRevision"]?.jsonPrimitive?.long)
-            val value = workspace.board.sendMessage(draft, caller, workspace.ownedSessionRefs())
+            val value = workspace.sendMessage(draft, caller)
             receipt(value, workspace.board.coordination(value.graph))
         },
         McpTool("agent_message_list", "List up to 50 retained message headers visible to the authenticated author, recipient, graph lead or person. Bodies are read separately; an expired cursor refuses.",
@@ -67,7 +67,7 @@ internal fun agentMessageTools(workspace: AgentWorkspace): List<McpTool> {
                     page.forEach { value ->
                         add(JsonObject(AgentWorkspaceJson.encodeToJsonElement(AgentMessage.serializer(), value).jsonObject - "body" - "artifacts" + mapOf(
                             "artifactCount" to JsonPrimitive(value.artifacts.size),
-                            "state" to JsonPrimitive((records.messageEvents.lastOrNull { it.message == value.id }?.state ?: AgentMessageState.Accepted).name))))
+                            "state" to JsonPrimitive((records.messageEvents.filter { it.message == value.id }.maxByOrNull { it.state.ordinal }?.state ?: AgentMessageState.Accepted).name))))
                     }
                 }
                 if (start + page.size < records.messages.size) put("nextAfter", page.last().id)

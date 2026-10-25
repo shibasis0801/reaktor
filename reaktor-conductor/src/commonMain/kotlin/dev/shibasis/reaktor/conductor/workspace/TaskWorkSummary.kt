@@ -62,7 +62,7 @@ object TaskSummaries {
 
     fun of(task: BoardTask, evidence: AgentTaskEvidence, activity: AgentActivityRecord? = null, diff: AgentArtifactPage? = null): TaskWorkSummary? {
         val taskPlan = task.graph ?: return null
-        if (taskPlan.kind != TaskKind.Agent || taskPlan.attempt == 0) return null
+        if (taskPlan.kind !in setOf(TaskKind.Agent, TaskKind.Merge) || taskPlan.attempt == 0) return null
         require(evidence.taskId == task.id)
         val outcome = taskPlan.outcome?.takeIf { it.attempt == taskPlan.attempt }
         val candidate = outcome?.candidateId?.let { id -> evidence.candidates.firstOrNull { it.id == id } }
