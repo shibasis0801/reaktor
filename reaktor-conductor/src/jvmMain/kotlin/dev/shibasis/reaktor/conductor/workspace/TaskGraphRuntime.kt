@@ -260,14 +260,14 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             val candidate = evidence.candidates.firstOrNull { it.id == outcome.candidateId }
             val records = store.coordination(graphId)
             store.appendHandoff(TaskHandoff(graphId, task.id, plan.attempt,
-                goal = task.intent.ifBlank { task.title }.take(4000), done = outcome.summary.ifBlank { "Completed the task" }.take(8000),
+                goal = task.intent.ifBlank { task.title }.take(4000), done = requireNotNull(scope.workspace.summarize(settled)).text(),
                 candidate = outcome.candidateId,
                 changedPaths = (candidate?.changedFiles ?: outcome.files).take(100),
                 checkReceipts = evidence.checks.filter { it.candidateId == outcome.candidateId }.map { it.id }.distinct().take(50),
                 reviewReceipts = if (plan.contract == WorkflowContract.Decision) listOfNotNull(outcome.log) else emptyList(),
-                openIssues = (outcome.questions + evidence.findings.filter { it.resolvedByCandidate != outcome.candidateId }.map { it.title }).take(30).map { it.take(1000) },
+                openIssues = (outcome.questions + evidence.findings.filter { it.candidateId == outcome.candidateId && it.resolvedByCandidate != outcome.candidateId }.map { it.title }).take(30).map { it.take(1000) },
                 decisions = records.decisions.takeLast(50).map { it.id },
-                sessionLogs = listOfNotNull(outcome.log)), scope.by)
+                sessionLogs = listOfNotNull(outcome.log), recordedSummary = true), scope.by)
         }
         if (message.state == TaskState.Succeeded && plan.contract == WorkflowContract.Decision && message.outcome.verdict == "repair") repair(settled)
     }
@@ -568,7 +568,9 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         if (task.acceptance.isNotEmpty()) appendLine("Done when: ${task.acceptance.joinToString("; ").take(1000)}")
         if (task.scope.isNotEmpty()) appendLine("Touches: ${task.scope.joinToString().take(400)}")
         plan.repairOf?.let { review ->
-            view.handoffs[review]?.let { appendLine("Repair requested by $review: ${it.done.take(1000)}. Keep the existing candidate's unrelated changes.") }
+            view.tasks.firstOrNull { it.id == review }?.graph?.outcome?.let {
+                appendLine("Repair requested by $review (agent reported): ${it.summary.take(1000)}. Keep the existing candidate's unrelated changes.")
+            }
         }
         val inputs = upstream().map { it.task }.filter { it.graph?.state == TaskState.Succeeded || it.graph?.state == TaskState.Failed }
         val budget = ((8000 - length - 200).coerceAtLeast(0) / inputs.size.coerceAtLeast(1)).coerceAtMost(3500)

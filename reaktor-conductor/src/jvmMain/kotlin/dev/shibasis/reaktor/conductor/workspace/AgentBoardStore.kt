@@ -13,6 +13,7 @@ class AgentBoardStore(
     private val clock: () -> Long = System::currentTimeMillis,
     private val resolveSeat: (TaskSeat) -> ResolvedTaskSeat = TaskSeatResolver()::resolve,
     private val scopeModules: (List<String>) -> List<String> = { emptyList() },
+    private val summarize: (BoardTask) -> TaskWorkSummary? = { null },
 ) {
     @Serializable
     private data class Ledger(val revision: Long = 0, val next: Int = 1, val graphs: Int = 1)
@@ -145,11 +146,18 @@ class AgentBoardStore(
     @Synchronized fun view(id: String): TaskGraphView {
         val members = members(id).associateBy { it.id }
         val records = coordination(id)
+        val summaries = members.values.mapNotNull { task -> summarize(task)?.let { task.id to it } }.toMap()
+        val handoffs = records.handoffs.associateBy { it.task }.mapValues { (task, handoff) ->
+            summaries[task]?.takeIf { handoff.recordedSummary && it.attempt == handoff.attempt && it.candidate == handoff.candidate }?.let { summary ->
+                handoff.copy(done = summary.text(), checkReceipts = summary.checks.map { it.id }.take(50),
+                    openIssues = (members[task]?.graph?.outcome?.questions.orEmpty() + summary.findings.map { it.title }).take(30))
+            } ?: handoff
+        }
         return TaskGraphView(graph(id), members.values.toList(),
             if (graph(id).status == TaskGraphStatus.Running) TaskGraphRules.ready(members).map { it.id } else emptyList(),
             members.values.mapNotNull { task ->
                 (TaskGraphRules.readiness(task, members) as? TaskGraphRules.Readiness.Blocked)?.let { task.id to it.reasons }
-            }.toMap(), records.messages, records.handoffs.associateBy { it.task }, records.decisions, warnings(members))
+            }.toMap(), records.messages, handoffs, records.decisions, warnings(members), summaries)
     }
 
     @Synchronized fun coordination(id: String): TaskCoordination {

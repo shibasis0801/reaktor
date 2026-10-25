@@ -59,6 +59,7 @@ object TaskGraphText {
                 result.checks.forEach { appendLine("  Check ${it.check}: ${if (it.ok) "passed" else "failed"}${it.receipt?.let { receipt -> " · receipt $receipt" }.orEmpty()}") }
                 result.questions.forEach { appendLine("  Question: ${it.oneLine(300)}") }
             }
+            view.summaries[task.id]?.let { summary -> appendLine("  ${summary.text().take(outcome)}") }
             view.handoffs[task.id]?.let { handoff ->
                 appendLine("  Handoff ${handoff.id} · attempt ${handoff.attempt} · by ${handoff.author?.name ?: "unknown"}")
                 appendLine("    Goal: ${handoff.goal.oneLine(300)}")

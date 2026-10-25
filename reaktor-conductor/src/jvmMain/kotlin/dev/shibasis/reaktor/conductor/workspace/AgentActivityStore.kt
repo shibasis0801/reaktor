@@ -7,6 +7,8 @@ import java.nio.file.Path
 /** Immutable, individually atomic records make cursors survive a torn write or owner restart. */
 class AgentActivityStore(private val directory: Path) {
     private val cursors = mutableMapOf<String, Long>()
+    private data class PlanCursor(var sequence: Long = 0, var attempt: Int = 0, var record: AgentActivityRecord? = null)
+    private val plans = mutableMapOf<String, PlanCursor>()
     init { privateDirectory(directory) }
 
     @Synchronized fun append(runId: String, agent: String, attempt: Int, item: AgentActivityItem): AgentActivityRecord {
@@ -41,6 +43,27 @@ class AgentActivityStore(private val directory: Path) {
         }
         val next = records.lastOrNull()?.sequence ?: start
         return AgentActivityPage(records, next, next < last)
+    }
+
+    @Synchronized fun plan(runId: String): AgentActivityRecord? {
+        val cursor = plans.getOrPut(runId) { PlanCursor() }
+        do {
+            val page = page(runId, cursor.sequence, 100)
+            page.records.forEach { record ->
+                if (record.attempt > cursor.attempt) {
+                    cursor.attempt = record.attempt
+                    cursor.record = null
+                }
+                if (record.attempt == cursor.attempt) {
+                    val previous = cursor.record?.takeIf { it.item.id == record.item.id && it.agent == record.agent }
+                    val merged = record.copy(item = record.item.copy(input = record.item.input ?: previous?.item?.input))
+                    if (TaskSummaries.plan(merged.item).isNotEmpty()) cursor.record = merged
+                    else if (previous != null && merged.item.status in listOf(ActivityStatus.Failed, ActivityStatus.Interrupted)) cursor.record = null
+                }
+            }
+            cursor.sequence = page.nextCursor
+        } while (page.hasMore)
+        return cursor.record
     }
 
     /** Terminal runs only, enforced by the owner. Detail remains readable through the same cursors. */

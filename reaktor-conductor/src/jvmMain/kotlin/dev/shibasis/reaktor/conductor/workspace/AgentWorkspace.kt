@@ -68,7 +68,15 @@ class AgentWorkspace(
     val profiles = AgentProfileStore(directory.resolve("profiles"))
     private val seatResolver = TaskSeatResolver(profiles::read) { provider -> capabilities.firstOrNull { it.runtime == provider } }
     fun resolveSeat(seat: TaskSeat): ResolvedTaskSeat = seatResolver.resolve(seat)
-    val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat, scopeModules = scopeModules)
+    val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat, scopeModules = scopeModules, summarize = ::summarize)
+    internal fun summarize(task: BoardTask): TaskWorkSummary? {
+        val plan = task.graph ?: return null
+        if (plan.kind != TaskKind.Agent || plan.attempt == 0) return null
+        val facts = evidence.get(task.id)
+        val candidate = plan.outcome?.takeIf { it.attempt == plan.attempt }?.candidateId?.let { id -> facts.candidates.firstOrNull { it.id == id } }
+        val diff = candidate?.diff?.let { ref -> runCatching { evidence.artifact(task.id, ref.id) }.getOrNull() }
+        return TaskSummaries.of(task, facts, plan.runId?.let(activity::plan), diff)
+    }
     @Volatile internal var graphs: TaskGraphRuntime? = null
     internal suspend fun readKernel(name: String, arguments: JsonObject): JsonElement =
         requireNotNull(kernelRead) { "This host has no kernel check reader" }.invoke(name, arguments)
