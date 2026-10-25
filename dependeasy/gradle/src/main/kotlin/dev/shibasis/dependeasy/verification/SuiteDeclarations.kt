@@ -8,6 +8,28 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 
+internal fun Project.browserSuite(name: String, suite: Playwright, run: Run): NodeHandle {
+    val packages = dev.shibasis.dependeasy.web.PnpmWorkspace.get(this)
+    val config = layout.projectDirectory.file(suite.configuration)
+    val task = tasks.register<BrowserSuite>(name) {
+        group = "verification"
+        workingDirectory.set(layout.projectDirectory)
+        executable.set(packages.tools.pnpm.map { it.asFile.absolutePath })
+        environment.putAll(packages.tools.environment)
+        toolVersion.set("pnpm ${dev.shibasis.dependeasy.toolchain.ToolchainVersions.Pnpm} / node ${dev.shibasis.dependeasy.toolchain.ToolchainVersions.Node}")
+        configuration.set(config)
+        policy.set(BuildModelReader.json.encodeToString(Playwright.serializer(), suite))
+        sourceFiles.from(fileTree(config.asFile.parentFile) { exclude("test-results/**", "playwright-report/**") },
+            fileTree("tests/support"), file("package.json"), file("pnpm-lock.yaml"))
+        receiptFile.set(layout.buildDirectory.file("dependeasy/checks/$name.properties"))
+        dependsOn(packages.install)
+        executionPlatform.set(run.host.platform)
+        run.timeoutMillis?.let { timeout.set(java.time.Duration.ofMillis(it)) }
+    }
+    dev.shibasis.dependeasy.workspace.BuildWorkspace.get(this).reference(this, task, OutputKind.VerificationResults, host = run.host)
+    return node(task, OutputKind.VerificationResults).after(rootProject.node(packages.install))
+}
+
 internal fun Project.karateSuite(name: String, directory: String, config: String, tags: List<String>, files: List<String>, optionalFiles: List<String> = emptyList(), environment: Map<String, String> = emptyMap()): NodeHandle {
     val tool = VerificationTools.get(this).karate
     val executionEnvironment = environment.mapValues { (key, value) -> option(BuildOption.environment(key, value)) }

@@ -27,7 +27,6 @@ records its replacement condition in `KernelSpec.ExternalCommand`.
 | File and line | Boundary | Reason | Removal condition |
 |---|---|---|---|
 | `bestbuds/build.gradle.kts:23` (`credentialContainmentSmoke`) | Typed external call | Existing credential-containment script. | WP16 containment kernel. |
-| `bestbuds/build.gradle.kts:31` (`webChecks`) | Typed external call | Existing product package script. | WP16 browser verification kernel. |
 | `bestbuds/build.gradle.kts:33` (`bestbudsWebPerformance`) | Typed external call | Existing product package script. | WP16 Lighthouse verification kernel. |
 | `bestbuds/build.gradle.kts:85` (`iosRelease`) | Typed external call | Existing product signing/archive lane. | WP16 Apple archive kernel. |
 | `bestbuds/build.gradle.kts:86` (`androidRelease`) | Typed external call | Existing product signing/archive lane. | WP16 Android archive kernel. |

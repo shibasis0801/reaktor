@@ -31,6 +31,10 @@ data class Vitest(
 )
 
 @Serializable
+data class Playwright(val configuration: String, val files: List<String> = emptyList(),
+    val headed: Boolean = false, val workers: Int? = null)
+
+@Serializable
 data class WebAppSpec(
     val typescript: List<String> = listOf("tsconfig.json"),
     val bundle: WebBundle = WebBundle.Vite(),
