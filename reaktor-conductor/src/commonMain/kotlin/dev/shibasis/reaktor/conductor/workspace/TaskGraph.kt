@@ -228,6 +228,24 @@ data class TaskGraphView(
     val messages: List<AgentMessage> = emptyList(),
     val handoffs: Map<String, TaskHandoff> = emptyMap(),
     val decisions: List<TaskDecision> = emptyList(),
+    val warnings: List<TaskGraphWarning> = emptyList(),
+)
+
+@Serializable
+enum class TaskGraphWarningCode { WriterWithoutVerification, TerminalWithoutCheck, OverlappingWriters, BroadScope, UnclearAcceptance }
+
+@Serializable
+data class TaskGraphWarning(
+    val code: TaskGraphWarningCode,
+    val tasks: List<String>,
+    val message: String,
+    val modules: List<String> = emptyList(),
+)
+
+@Serializable
+data class TaskGraphCheck(
+    val outside: List<String> = emptyList(),
+    val warnings: List<TaskGraphWarning> = emptyList(),
 )
 
 @Serializable

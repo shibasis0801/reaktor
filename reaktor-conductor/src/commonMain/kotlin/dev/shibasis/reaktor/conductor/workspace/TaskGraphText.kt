@@ -24,6 +24,10 @@ object TaskGraphText {
         graph.lead?.let { appendLine("Lead: $it") }
         appendLine("Envelope: ${envelope(graph)}")
         if (view.ready.isNotEmpty()) appendLine("Ready: ${view.ready.joinToString()}")
+        if (view.warnings.isNotEmpty()) {
+            appendLine("Plan warnings (advisory; do not block Start):")
+            view.warnings.forEach { appendLine("  ${it.code.name} · ${it.tasks.joinToString()} · ${it.message}") }
+        }
         appendLine()
         view.tasks.sortedBy { it.number }.forEach { task ->
             val plan = task.graph ?: return@forEach

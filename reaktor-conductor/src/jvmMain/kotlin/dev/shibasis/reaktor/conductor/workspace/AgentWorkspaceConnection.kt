@@ -263,7 +263,8 @@ class AgentWorkspaceConnection private constructor(
                   */
                  hybridConnector: Boolean = false,
                  kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
-                 harnessMcpCommand: List<String>? = null): AgentWorkspaceConnection {
+                 harnessMcpCommand: List<String>? = null,
+                 scopeModules: (List<String>) -> List<String> = { emptyList() }): AgentWorkspaceConnection {
             require(root.isDirectory)
             require(hostKind in setOf("service", "hangar")) { "Unknown workspace owner host" }
             require(harnessMcpCommand == null || harnessMcpCommand.isNotEmpty()) { "Harness MCP command needs an executable" }
@@ -311,7 +312,7 @@ class AgentWorkspaceConnection private constructor(
                     } }.toString())
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
-                    harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead).also { workspace = it }
+                    harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead, scopeModules = scopeModules).also { workspace = it }
                 val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace)), graphOwner(), mcpProjection).also { operations = it }
                 operationBinding = bindOperations(registry.node)
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })

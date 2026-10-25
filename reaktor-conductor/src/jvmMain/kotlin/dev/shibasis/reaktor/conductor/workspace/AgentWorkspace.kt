@@ -42,6 +42,7 @@ class AgentWorkspace(
      */
     private val plannerRuntime: RuntimeKind? = null,
     private val kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
+    scopeModules: (List<String>) -> List<String> = { emptyList() },
 ) : AutoCloseable {
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
@@ -67,7 +68,7 @@ class AgentWorkspace(
     val profiles = AgentProfileStore(directory.resolve("profiles"))
     private val seatResolver = TaskSeatResolver(profiles::read) { provider -> capabilities.firstOrNull { it.runtime == provider } }
     fun resolveSeat(seat: TaskSeat): ResolvedTaskSeat = seatResolver.resolve(seat)
-    val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat)
+    val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat, scopeModules = scopeModules)
     @Volatile internal var graphs: TaskGraphRuntime? = null
     internal suspend fun readKernel(name: String, arguments: JsonObject): JsonElement =
         requireNotNull(kernelRead) { "This host has no kernel check reader" }.invoke(name, arguments)

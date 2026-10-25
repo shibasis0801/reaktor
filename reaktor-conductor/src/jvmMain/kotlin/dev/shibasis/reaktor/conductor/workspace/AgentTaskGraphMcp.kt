@@ -52,7 +52,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             emptyObjectSchema(), true, true) {
             buildJsonObject { put("graphs", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(TaskGraphSummary.serializer()), workspace.board.summaries())) }
         },
-        McpTool("agent_taskgraph_read", "Read a task graph: its record, its tasks with status, agent, dependencies and outcomes, latest handoffs, decisions, retained messages, the ready tasks and blocked tasks with their reasons. " +
+        McpTool("agent_taskgraph_read", "Read a task graph: its record, tasks, outcomes, handoffs, decisions, retained messages, ready and blocked tasks, and advisory plan warnings. " +
             "format text returns the compact text an agent reads, at most about 60,000 characters.",
             objectSchema(mapOf(graphId, "format" to enumSchema("json or text", listOf("json", "text"))), listOf("graph")), true, true) { args ->
             args.only("graph", "format")
@@ -116,12 +116,12 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             val draft = AgentWorkspaceJson.decodeFromJsonElement(TaskGraphDraft.serializer(), JsonObject(args.filterKeys { it != "by" }))
             AgentWorkspaceJson.encodeToJsonElement(TaskGraphView.serializer(), workspace.board.propose(draft, args.by()))
         },
-        McpTool("agent_taskgraph_check", "Check a change without applying it. Returns the reasons it falls outside the envelope, if any; a refusal or a conflict fails.",
+        McpTool("agent_taskgraph_check", "Check a change without applying it. Returns outside-envelope reasons and advisory plan warnings for the resulting graph; a refusal or conflict fails. Warnings do not block Start.",
             objectSchema(mapOf(graphId, ops, "reason" to stringSchema("Why"), revision, by), listOf("graph", "ops", "by")), true, true) { args ->
             args.only("graph", "ops", "reason", "expectedRevision", "by")
             val id = args.text("graph")
             val patch = TaskGraphPatch(args.decode(ListSerializer(TaskGraphOp.serializer()), "ops"), (args["reason"] as? JsonPrimitive)?.contentOrNull.orEmpty(), args.long("expectedRevision"))
-            buildJsonObject { put("outside", JsonArray(workspace.board.outside(id, patch, workspace.taskGraphCaller(id, args.by())).map(::JsonPrimitive))) }
+            AgentWorkspaceJson.encodeToJsonElement(TaskGraphCheck.serializer(), workspace.board.check(id, patch, workspace.taskGraphCaller(id, args.by())))
         },
         McpTool("agent_taskgraph_patch", "Change a task graph: add, edit, split or remove tasks, add or remove dependencies, change seats or add notes. " +
             "Name the revision you read and a reason. Inside the envelope the change applies at once; outside it fails unless a person approved it.",

@@ -137,6 +137,64 @@ object TaskGraphRules {
 
     fun overlaps(first: List<String>, second: List<String>): Boolean = first.any { a -> second.any { b -> covers(a, b) || covers(b, a) } }
 
+    fun warnings(tasks: Map<String, BoardTask>, modules: Map<String, List<String>> = emptyMap()): List<TaskGraphWarning> {
+        val working = tasks.values.filter { it.graph != null && it.graph.kind != TaskKind.Note }.sortedBy { it.number }
+        val downstream = dependents(working.associateBy { it.id })
+        fun descendants(id: String): Set<String> {
+            val found = mutableSetOf<String>()
+            val queue = ArrayDeque(downstream[id].orEmpty())
+            while (queue.isNotEmpty()) {
+                val next = queue.removeFirst()
+                if (next != id && found.add(next)) queue.addAll(downstream[next].orEmpty())
+            }
+            return found
+        }
+        val after = working.associate { it.id to descendants(it.id) }
+        val writers = working.filter { it.graph?.kind == TaskKind.Merge ||
+            it.graph?.let { plan -> plan.kind == TaskKind.Agent && plan.seat?.access == TaskAccess.Write } == true }
+        fun verifies(task: BoardTask): Boolean = task.graph?.let { plan ->
+            plan.kind == TaskKind.Check || plan.kind == TaskKind.Agent && plan.seat?.access != TaskAccess.Write &&
+                (plan.contract == WorkflowContract.Decision || plan.seat?.profile?.contains("review", ignoreCase = true) == true ||
+                    task.title.contains("review", ignoreCase = true))
+        } == true
+        return buildList {
+            writers.forEach { writer ->
+                if (after[writer.id].orEmpty().none { id -> tasks[id]?.let(::verifies) == true })
+                    add(TaskGraphWarning(TaskGraphWarningCode.WriterWithoutVerification, listOf(writer.id),
+                        "${writer.id} writes source without a later review or Check. Add independent verification after it."))
+            }
+            val unchecked = working.filter { task ->
+                downstream[task.id].isNullOrEmpty() && task.graph?.kind != TaskKind.Check &&
+                    working.none { it.graph?.kind == TaskKind.Check && task.id in after[it.id].orEmpty() }
+            }
+            if (unchecked.isNotEmpty()) add(TaskGraphWarning(TaskGraphWarningCode.TerminalWithoutCheck, unchecked.map { it.id },
+                "No Check precedes ${unchecked.joinToString { it.id }}. Add a Check on each completion path."))
+            writers.forEachIndexed { index, first ->
+                val peers = writers.drop(index + 1).filter { second ->
+                    val moduleAlias = (first.scope + second.scope).any { it.startsWith(":") || ':' in it && !it.contains('/') }
+                    val sharedModule = moduleAlias && modules[first.id].orEmpty().any { it in modules[second.id].orEmpty() }
+                    (overlaps(first.scope, second.scope) || sharedModule) &&
+                        second.id !in after[first.id].orEmpty() && first.id !in after[second.id].orEmpty()
+                }
+                if (peers.isNotEmpty()) add(TaskGraphWarning(TaskGraphWarningCode.OverlappingWriters, listOf(first.id) + peers.map { it.id },
+                    "${first.id} and ${peers.joinToString { it.id }} write overlapping scopes without a dependency. Order them or split their scopes."))
+            }
+            working.forEach { task ->
+                val owned = modules[task.id].orEmpty().distinct().sorted()
+                if (owned.size >= 4) add(TaskGraphWarning(TaskGraphWarningCode.BroadScope, listOf(task.id),
+                    "${task.id} spans ${owned.size} radar-resolved modules. Split it by module or a shared interface.", owned))
+                if ((task.acceptance.isEmpty() && task.graph?.check.isNullOrBlank()) ||
+                    task.acceptance.any { !observableAcceptance(it) })
+                    add(TaskGraphWarning(TaskGraphWarningCode.UnclearAcceptance, listOf(task.id),
+                        "${task.id} has acceptance that names no check or observable result. State what must pass or what the user must observe."))
+            }
+        }
+    }
+
+    private val acceptanceOutcome = Regex("\\b(test(?:s|ed)?|check(?:s|ed)?|assert(?:s|ion)?|receipt|pass(?:es)?|fail(?:s)?|return(?:s)?|show(?:s)?|render(?:s)?|display(?:s)?|parse(?:s)?|reject(?:s)?|accept(?:s)?|save(?:s|d)?|persist(?:s)?|contain(?:s)?|equal(?:s)?|produce(?:s)?|emit(?:s)?|open(?:s)?|close(?:s)?|remain(?:s)?|preserve(?:s)?|retain(?:s)?|visible|enabled|disabled|blocked|refused|succeed(?:s)?|compile(?:s)?|build(?:s)?|runs?)\\b|:[A-Za-z][A-Za-z0-9_-]*:[A-Za-z]", RegexOption.IGNORE_CASE)
+
+    private fun observableAcceptance(line: String): Boolean = acceptanceOutcome.containsMatchIn(line)
+
     fun validSeat(seat: TaskSeat?) {
         if (seat == null) return
         require(seat.lead != (seat.agent != null || seat.profile != null)) { "A seat is either lead or an agent/profile with model, effort and access overrides" }
