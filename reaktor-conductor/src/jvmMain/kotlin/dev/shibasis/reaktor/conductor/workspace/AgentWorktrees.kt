@@ -9,7 +9,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
-/** Owned, detached worktrees include the dirty source baseline using a private Git index. */
+internal data class AgentWorktreeInput(val task: String, val worktree: String, val candidate: String)
 class AgentWorktrees(private val root: File, private val directory: Path, private val artifacts: LocalAgentArtifacts) {
     init { privateDirectory(directory) }
     private fun file(id: String): Path { require(id.matches(Regex("[a-f0-9]{64}"))); return directory.resolve("$id.json") }
@@ -155,6 +155,135 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
         }
         error("Source did not settle for worktree isolation")
     }
+
+    @Synchronized internal fun freeze(graph: String): Map<String, String> {
+        repeat(3) { attempt ->
+            val before = SourceCandidates(root, artifacts).capture()
+            require(before.complete) { "Graph baseline coverage is incomplete" }
+            val sources = before.sourceRoots.map { File(it).canonicalFile }
+            require(sources.size in 1..16 && sources.all { it.parentFile == root.canonicalFile.parentFile })
+            val commits = sources.associate { source ->
+                source.path to commit(source, snapshot(source), listOf(git(source, listOf("rev-parse", "HEAD")).trim()), "Reaktor graph baseline")
+            }
+            val after = SourceCandidates(root, artifacts).capture()
+            if (!after.complete || before.id != after.id) {
+                check(attempt < 2) { "Source moved while freezing the graph baseline" }
+                return@repeat
+            }
+            commits.forEach { (source, commit) -> git(File(source), listOf("update-ref", "refs/reaktor/graphs/" + digest(graph + ":" + root.canonicalPath), commit)) }
+            return commits
+        }
+        error("Source did not settle for the graph baseline")
+    }
+
+    @Synchronized internal fun prepareFrom(runId: String, participant: String, base: Map<String, String>, inputs: List<AgentWorktreeInput>, keepConflicts: Boolean = false): AgentWorktree {
+        require(base.size in 1..16 && root.canonicalPath in base)
+        require(base.all { (source, commit) -> File(source).canonicalPath == source &&
+            File(source).parentFile == root.canonicalFile.parentFile && commit.matches(Regex("[a-f0-9]{40,64}")) })
+        require(inputs.size <= 100 && inputs.map { it.task }.distinct().size == inputs.size)
+        val ordered = inputs.sortedWith(compareBy({ it.task.removePrefix("T").toIntOrNull() ?: Int.MAX_VALUE }, { it.task }))
+        val manifest = ordered.associate { it.task to it.candidate }
+        val id = digest("$runId:$participant")
+        if (Files.exists(file(id))) return read(id).also { value ->
+            require(value.inputs == manifest && value.roots.associate { it.source to it.baseline } == base) { "Prepared inputs changed; start a fresh attempt" }
+            ordered.forEach(::validateInput)
+            register(value)
+        }
+        val commits = ordered.associateWith { input ->
+            val value = validateInput(input)
+            require(value.roots.associate { it.source to it.baseline } == base) { "Input ${input.task} uses another graph baseline" }
+            val trees = value.roots.associate { entry -> entry.source to snapshot(File(entry.path)) }
+            validateInput(input)
+            trees.mapValues { (source, tree) ->
+                val repository = File(source)
+                val ref = "refs/reaktor/candidates/${input.candidate}"
+                val retained = runCatching { git(repository, listOf("rev-parse", "--verify", "--quiet", ref)).trim() }.getOrNull()
+                if (retained != null) {
+                    require(git(repository, listOf("rev-parse", "$retained^{tree}")).trim() == tree) { "Retained candidate changed" }
+                    retained
+                } else {
+                    val parents = (listOf(base.getValue(source)) + value.inputs.values.map { candidate ->
+                        git(repository, listOf("rev-parse", "--verify", "refs/reaktor/candidates/$candidate")).trim()
+                    }).distinct()
+                    commit(repository, tree, parents, "Reaktor candidate ${input.candidate}").also {
+                        git(repository, listOf("update-ref", ref, it, ""))
+                    }
+                }
+            }
+        }
+        val conflicts = linkedSetOf<String>()
+        val trees = base.mapValues { (source, baseline) ->
+            val repository = File(source)
+            var combined = baseline
+            ordered.forEach { input ->
+                val next = commits.getValue(input).getValue(source)
+                val merged = try { git(repository, listOf("merge-tree", "--write-tree", "--name-only", "-z", combined, next)) }
+                    catch (failure: GitFailure) {
+                        if (!keepConflicts || failure.status != 1) error("Candidate integration conflict at ${input.task}: ${failure.message}")
+                        val paths = failure.output.split('\u0000').drop(1).takeWhile { it.isNotEmpty() }
+                        require(paths.isNotEmpty() && paths.size <= 200 && paths.all { path ->
+                            path.length <= 4000 && !File(path).isAbsolute && path.split('/').none { it == ".." }
+                        }) { "Git returned no bounded conflicting paths" }
+                        conflicts += paths.map { path -> File(repository, path).relativeTo(root).invariantSeparatorsPath }
+                        require(conflicts.size <= 200) { "Integration has more than 200 conflicting paths" }
+                        failure.output
+                    }
+                val tree = merged.substringBefore('\u0000').substringBefore('\n').trim()
+                require(tree.matches(Regex("[a-f0-9]{40,64}"))) { "Git returned no integrated tree" }
+                combined = commit(repository, tree, listOf(combined, next).distinct(), "Reaktor integrated inputs")
+            }
+            git(repository, listOf("rev-parse", "$combined^{tree}")).trim()
+        }
+        val location = directory.resolve(id).also(::privateDirectory)
+        val roots = mutableListOf<AgentWorktreeRoot>()
+        try {
+            base.forEach { (source, baseline) ->
+                val repository = File(source)
+                val path = location.resolve(repository.name)
+                require(!Files.exists(path)) { "An unfinished worktree needs inspection: $path" }
+                roots += AgentWorktreeRoot(source, path.toString(), baseline)
+                git(repository, listOf("worktree", "add") + (if (repository.name == "bestbuds") listOf("--no-checkout") else emptyList()) +
+                    listOf("--detach", path.toString(), baseline))
+                if (repository.name == "bestbuds") {
+                    git(path.toFile(), listOf("sparse-checkout", "set", "--no-cone", "--", "/*", "!/agent/"))
+                    git(path.toFile(), listOf("read-tree", "-mu", "HEAD"))
+                }
+                val patch = git(repository, listOf("diff", "--binary", "--no-renames", "--no-ext-diff", "--no-textconv", baseline, trees.getValue(source)))
+                if (patch.isNotBlank()) apply(path.toFile(), patch, check = false)
+            }
+            ordered.forEach(::validateInput)
+            return AgentWorktree(id, runId, participant, digest(base.toSortedMap().entries.joinToString()), roots, inputs = manifest, conflicts = conflicts.toList()).also { save(it); register(it) }
+        } catch (failure: Exception) {
+            runCatching {
+                discard(roots, location)
+                Files.deleteIfExists(file(id))
+                registration(id)?.let(Files::deleteIfExists)
+            }.onFailure(failure::addSuppressed)
+            throw failure
+        }
+    }
+
+    internal fun requireResolved(id: String) {
+        val value = read(id)
+        val working = File(value.roots.single { it.source == root.canonicalPath }.path)
+        value.conflicts.forEach { path ->
+            val file = File(working, path).canonicalFile
+            require(value.roots.any { file.toPath().startsWith(File(it.path).canonicalFile.toPath()) }) { "Conflict path left its owned roots" }
+            require(!file.isFile || !file.useLines { lines -> lines.any { it.startsWith("<<<<<<< ") || it.startsWith(">>>>>>> ") } }) {
+                "Unresolved integration conflict: $path"
+            }
+        }
+    }
+
+    private fun validateInput(input: AgentWorktreeInput): AgentWorktree {
+        val current = capture(input.worktree)
+        require(current.complete && current.id == input.candidate) { "Input ${input.task} candidate is stale or incomplete" }
+        return read(input.worktree)
+    }
+
+    private fun commit(source: File, tree: String, parents: List<String>, message: String): String =
+        git(source, listOf("-c", "user.name=Reaktor", "-c", "user.email=agents@localhost", "commit-tree", tree) +
+            parents.flatMap { listOf("-p", it) } + listOf("-m", message)).trim()
 
     private fun AgentCandidate.moving() = notices.isNotEmpty() && notices.all {
         "Source changed during capture:" in it || "Source grew beyond capture budget:" in it || it == "Included source coverage is incomplete"
@@ -323,6 +452,8 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
             (if (check) listOf("--check") else emptyList()) + (if (cached) listOf("--cached") else emptyList()) + listOf("--", file.toString()), environment) }
         finally { Files.deleteIfExists(file) }
     }
+    private class GitFailure(val status: Int, val output: String) : IllegalStateException(output.take(2000))
+
     private fun git(root: File, args: List<String>, environment: Map<String, String> = emptyMap()): String {
         val output = Files.createTempFile("reaktor-git-", ".log")
         try {
@@ -331,7 +462,7 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
             if (!process.waitFor(60, TimeUnit.SECONDS)) { process.destroyForcibly(); error("Git timed out") }
             require(Files.size(output) <= 16_000_000) { "Git output exceeds 16 MB" }
             val text = Files.readString(output)
-            check(process.exitValue() == 0) { text.take(2000) }
+            if (process.exitValue() != 0) throw GitFailure(process.exitValue(), text)
             return text
         } finally { Files.deleteIfExists(output) }
     }

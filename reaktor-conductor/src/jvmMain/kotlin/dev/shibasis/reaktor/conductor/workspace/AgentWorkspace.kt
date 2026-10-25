@@ -375,7 +375,7 @@ class AgentWorkspace(
         val record = get(runId)
         require(record.status == AgentRunStatus.Running && runId in active) { "Source tools require an active run" }
         val request = submission(runId)
-        validateTaskTarget(request)
+        validateTaskTarget(request, runId)
         if (writing) require(request.allowWrites && record.allowWrites) { "This run has read-only source access" }
         val tree = worktreeFor(runId)
         val source = tree?.roots?.single { it.source == root.canonicalPath }?.path?.let(::File) ?: root
@@ -388,7 +388,7 @@ class AgentWorkspace(
     internal fun worktreeFor(runId: String): AgentWorktree? = submission(runId).task?.worktree?.let(worktrees::read)
         ?: worktrees.list(runId).singleOrNull { it.participant == "workspace" }
 
-    private fun validateTaskTarget(request: AgentSubmission) {
+    private fun validateTaskTarget(request: AgentSubmission, runId: String? = null) {
         val target = request.task ?: return
         val task = board.get(target.task)
         val plan = requireNotNull(task.graph)
@@ -400,7 +400,9 @@ class AgentWorkspace(
         require(if (panel) plan.contract == WorkflowContract.Decision && target.candidate != null && request.workflow == TaskReviewPanel.definition(pinned, target.candidate) else request.workflow == null) { "Task workflow must match its pinned review panel" }
         require(request.resolvedSeat == pinned && request.allowWrites == (pinned.seat.access == TaskAccess.Write)) { "Task target does not match its pinned seat" }
         if (request.allowWrites) {
-            require(target.evidenceTask == task.id && target.candidate == null && target.worktree == plan.worktreeId)
+            require(target.evidenceTask == task.id && target.candidate == null)
+            require(target.worktree == plan.worktreeId || target.worktree == null && runId != null &&
+                worktreeFor(runId)?.id == plan.worktreeId) { "The writing checkout differs from its assigned run" }
             require(request.isolation == AgentIsolation.Worktree)
         } else if (target.candidate != null) {
             require(target.worktree != null)
@@ -419,8 +421,47 @@ class AgentWorkspace(
         } else require(target.evidenceTask == task.id && target.worktree == null)
     }
 
+    internal fun prepareTaskWorktree(runId: String, target: AgentTaskTarget): AgentWorktree = admitOperation { synchronized(board) {
+        val task = board.get(target.task)
+        val plan = requireNotNull(task.graph)
+        require(plan.id == target.graph && plan.attempt == target.attempt && plan.state == TaskState.Running) { "The writing attempt changed before preparation" }
+        val inputs = board.sourceInputs(task.id).map { input ->
+            AgentWorktreeInput(input.id, requireNotNull(input.graph?.worktreeId), requireNotNull(input.graph?.outcome?.candidateId))
+        }
+        val graph = board.graph(plan.id)
+        val base = graph.baseCommits.ifEmpty {
+            board.freezeBase(plan.id, (target.worktree ?: inputs.firstOrNull()?.worktree)?.let { id ->
+                worktrees.read(id).roots.associate { it.source to it.baseline }
+            } ?: worktrees.freeze(plan.id))
+        }
+        val resolution = board.sourceInputs(task.id).singleOrNull()?.takeIf { input ->
+            plan.kind == TaskKind.Merge && input.graph?.repairOf == task.id
+        }
+        val value = if (resolution != null) {
+            val input = inputs.single()
+            val current = worktrees.capture(input.worktree)
+            require(current.complete && current.id == input.candidate) { "Resolution candidate changed" }
+            worktrees.requireResolved(input.worktree)
+            worktrees.attach(input.worktree, runId)
+        } else if (target.worktree != null) {
+            val prior = worktrees.read(target.worktree)
+            require(prior.inputs == inputs.associate { it.task to it.candidate } &&
+                prior.roots.associate { it.source to it.baseline } == base) { "The writing handoff inputs changed; start a fresh attempt" }
+            inputs.forEach { input ->
+                val candidate = worktrees.capture(input.worktree)
+                require(candidate.complete && candidate.id == input.candidate) { "Input ${input.task} candidate is stale or incomplete" }
+            }
+            worktrees.attach(prior.id, runId)
+        } else worktrees.prepareFrom(runId, "workspace", base, inputs, keepConflicts = plan.kind == TaskKind.Merge)
+        board.advance(plan.id, task.id) { current, next ->
+            require(next.attempt == target.attempt && next.state == TaskState.Running)
+            current.copy(graph = next.copy(worktreeId = value.id))
+        }
+        value
+    } }
+
     private fun runningTasks(): List<BoardTask> = board.graphs().flatMap { board.members(it.id) }
-        .filter { it.graph?.let { plan -> plan.kind == TaskKind.Agent && plan.state == TaskState.Running } == true }
+        .filter { it.graph?.let { plan -> plan.kind in setOf(TaskKind.Agent, TaskKind.Merge) && plan.state == TaskState.Running } == true }
 
     private fun ownedRuns(): List<Pair<String, AgentSubmission>> = active.keys.map { it to submission(it) }
 
@@ -454,7 +495,7 @@ class AgentWorkspace(
         if (!writes) return null
         val scope = sourceScope(paths)
         others.firstOrNull { other ->
-            (other.graph?.resolvedSeat?.seat ?: other.graph?.seat)?.access == TaskAccess.Write &&
+            (other.graph?.kind == TaskKind.Merge || (other.graph?.resolvedSeat?.seat ?: other.graph?.seat)?.access == TaskAccess.Write) &&
                 TaskGraphRules.overlaps(scope, sourceScope(other.scope))
         }?.let { return "Source scope is held by ${it.graph?.id}/${it.id} attempt ${it.graph?.attempt}" }
         runs.firstOrNull { (_, request) ->
@@ -465,6 +506,7 @@ class AgentWorkspace(
 
     private fun taskAdmission(task: BoardTask, resolved: ResolvedTaskSeat?): String? {
         val plan = requireNotNull(task.graph)
+        if (plan.kind == TaskKind.Merge) return admission(task.scope, true, 1, task.id)
         if (plan.kind != TaskKind.Agent) return null
         val agents = (listOfNotNull(resolved?.seat?.agent) + resolved?.lenses.orEmpty().mapNotNull { it.seat.agent }).distinct()
         val running = board.members(plan.id).filter { it.id != task.id && it.graph?.state == TaskState.Running }
@@ -877,8 +919,9 @@ class AgentWorkspace(
         val self = currentCoroutineContext()[Job]
         try {
             FileThreadStore.open(threadPath(initial.threadId)).use { store ->
-                val isolated = request.task?.worktree?.let { if (request.allowWrites) worktrees.attach(it, initial.id) else worktrees.read(it) }
-                    ?: if (request.isolation == AgentIsolation.Worktree) worktrees.prepare(initial.id, "workspace") else null
+                val isolated = if (request.allowWrites && request.task != null) prepareTaskWorktree(initial.id, request.task)
+                    else request.task?.worktree?.let(worktrees::read)
+                        ?: if (request.isolation == AgentIsolation.Worktree) worktrees.prepare(initial.id, "workspace") else null
                 val workingRoot = isolated?.roots?.first { it.source == root.canonicalPath }?.path?.let(::File) ?: root
                 val includedRoots = isolated?.roots?.filter { it.source != root.canonicalPath }?.map { it.path } ?: includedBuildRoots(root)
                 update(initial.id, true) { it.copy(workingDirectory = workingRoot.canonicalPath) }
@@ -981,7 +1024,7 @@ class AgentWorkspace(
                     val answer = result.answer
                     val failures = result.added.filter { it.kind == EventKind.Failure }
                     val workflowFailed = request.workflow?.failed(lastWorkflow ?: WorkflowProgress())
-                    if (request.task != null) validateTaskTarget(request)
+                    if (request.task != null) validateTaskTarget(request, initial.id)
                     if (request.task?.candidate != null) {
                         val current = worktrees.capture(requireNotNull(isolated).id, candidate.subjects)
                         require(current.complete && current.id == candidate.id) { "The review candidate changed during the turn" }
