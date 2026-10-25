@@ -3,6 +3,7 @@ import dev.shibasis.dependeasy.model.BuildOption
 import dev.shibasis.dependeasy.bootstrap.BootstrapLifecycle
 import dev.shibasis.dependeasy.bootstrap.VerifyBytecode
 import dev.shibasis.dependeasy.bootstrap.bootstrapAttribute
+import dev.shibasis.dependeasy.bootstrap.publishPluginVerificationModel
 import dev.shibasis.dependeasy.publishing.PublicationDefaults
 import dev.shibasis.dependeasy.toolchain.GradlePlugins
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
@@ -87,6 +88,17 @@ configurations.create("pluginVerification") {
     attributes.attribute(Attribute.of("dependeasy.output", String::class.java), "VerificationResults:Plugin")
     outgoing.artifact(layout.buildDirectory.file("dependeasy/plugin-tests.txt")) { builtBy(pluginTests) }
 }
+repositories { mavenCentral() }
+val modelRuntime = configurations.create("bootstrapModelRuntime") {
+    isCanBeConsumed = false
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+    }
+    dependencies.add(project.dependencies.project(mapOf("path" to projects.model.path)))
+}
+publishPluginVerificationModel(pluginTests, layout.buildDirectory.file("dependeasy/plugin-tests.txt"), modelRuntime)
 val localPublication = lifecycleInputs(BootstrapLifecycle.LocalPublication)
 val remotePublication = lifecycleInputs(BootstrapLifecycle.RemotePublication)
 tasks.register(MavenPublishPlugin.PUBLISH_LOCAL_LIFECYCLE_TASK_NAME) { dependsOn(localPublication) }

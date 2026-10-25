@@ -9,6 +9,7 @@ group = Reaktor.build.group
 val javascriptPackage by webPackage("dependeasy/javascript")
 
 workspace {
+    include(Dependeasy.build)
     val tooling = buildTooling()
     val webPackageChecks by verify {
         include(verification(Reaktor.Core, Verification.TypeScript), verification(Reaktor.Ui, Verification.TypeScript),
