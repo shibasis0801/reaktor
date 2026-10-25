@@ -59,7 +59,7 @@ class Operation<I, O>(
     val input: KSerializer<I>,
     val output: KSerializer<O>,
     val schema: (() -> JsonObject)? = null,
-    val effectFor: (JsonObject) -> SafetyClass = { effect },
+    val effectFor: (JsonObject, CallCaller) -> SafetyClass = { _, _ -> effect },
     val appliesOwnPlan: suspend (JsonObject, CallCaller) -> Boolean = { _, _ -> false },
     val run: suspend OperationCall.(I) -> O,
 ) {
@@ -89,7 +89,7 @@ fun rawOperation(
     summary: String,
     effect: SafetyClass,
     schema: () -> JsonObject,
-    effectFor: (JsonObject) -> SafetyClass = { effect },
+    effectFor: (JsonObject, CallCaller) -> SafetyClass = { _, _ -> effect },
     run: suspend OperationCall.(JsonObject) -> JsonElement,
 ) = Operation(OperationId(id), summary, effect, JsonObject.serializer(), JsonElement.serializer(), schema, effectFor, run = run)
 

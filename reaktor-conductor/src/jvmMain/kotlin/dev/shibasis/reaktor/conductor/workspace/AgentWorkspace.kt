@@ -358,6 +358,21 @@ class AgentWorkspace(
         }
     }
 
+    fun sourceRoots(runId: String, writing: Boolean = false): List<Path> = synchronized(lock) {
+        check(!closed && acceptsWork()) { "Workspace is closed or draining" }
+        val record = get(runId)
+        require(record.status == AgentRunStatus.Running && runId in active) { "Source tools require an active run" }
+        val request = submission(runId)
+        validateTaskTarget(request)
+        if (writing) require(request.allowWrites && record.allowWrites) { "This run has read-only source access" }
+        val tree = worktreeFor(runId)
+        val source = tree?.roots?.single { it.source == root.canonicalPath }?.path?.let(::File) ?: root
+        require(tree != null || record.isolation == AgentIsolation.Shared) { "Owned source worktree is missing" }
+        val actual = source.toPath().toRealPath()
+        require(record.workingDirectory?.let { File(it).canonicalFile.toPath() } == actual) { "Run source directory differs from its owned checkout" }
+        listOf(actual) + tree?.roots.orEmpty().filter { it.source != root.canonicalPath }.map { File(it.path).toPath().toRealPath() }
+    }
+
     internal fun worktreeFor(runId: String): AgentWorktree? = submission(runId).task?.worktree?.let(worktrees::read)
         ?: worktrees.list(runId).singleOrNull { it.participant == "workspace" }
 

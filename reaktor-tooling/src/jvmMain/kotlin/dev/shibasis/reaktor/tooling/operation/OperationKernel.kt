@@ -44,8 +44,8 @@ class OperationKernel(
     private val json: Json = OperationJson,
     private val preferred: Map<OperationId, OperationId> = emptyMap(),
 ) {
-    private val replies = object : LinkedHashMap<Pair<String?, String>, Outcome>(64, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Pair<String?, String>, Outcome>) = size > ReplayLimit
+    private val replies = object : LinkedHashMap<Pair<CallCaller, String>, Outcome>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Pair<CallCaller, String>, Outcome>) = size > ReplayLimit
     }
 
     private val own = listOf(
@@ -82,7 +82,7 @@ class OperationKernel(
         val entry = entries().firstOrNull { it.catalog.id == invocation.operation }
             ?: return Outcome.Failed("Unknown operation ${invocation.operation}. operation.catalog lists them.")
         val descriptor = entry.catalog
-        val key = invocation.requestId?.let { invocation.caller.seat to it }
+        val key = invocation.requestId?.let { invocation.caller to it }
         key?.let { synchronized(replies) { replies[it] } }?.let { return it }
 
         var verdict: ModelVerdict? = null
@@ -91,7 +91,7 @@ class OperationKernel(
         )
 
         val seat = invocation.caller.seat
-        val effect = runCatching { entry.effect(invocation.arguments) }
+        val effect = runCatching { entry.effect(invocation.arguments, invocation.caller) }
             .getOrElse { failure -> return Outcome.Failed(failure.message ?: "Could not classify ${descriptor.id}").also { record("failed", it.message) } }
         verdict = authority.model?.let { model -> runCatching { model.decide(invocation.caller, descriptor.provider, descriptor.id) }.getOrNull() }
         verdict?.takeIf { it.enforced && !it.allowed }?.let { denied -> return Outcome.Refused(effect, denied.rule).also { record("refused", denied.rule) } }
@@ -144,7 +144,7 @@ class OperationKernel(
                 val id = legacyId(definition.name)?.takeIf(taken::add) ?: return@mapNotNull null
                 val provider = node.label.ifBlank { node::class.simpleName ?: "graph" }
                 val descriptor = OperationDescriptor(id, definition.description, definition.effect(), provider, definition.inputSchema, definition.outputSchema)
-                Entry(CatalogEntry(id, definition.description, descriptor.effect, provider), { descriptor }, { descriptor.effect }, { _, _ -> false }) { _, arguments ->
+                Entry(CatalogEntry(id, definition.description, descriptor.effect, provider), { descriptor }, { _, _ -> descriptor.effect }, { _, _ -> false }) { _, arguments ->
                     val result = node.execute(definition.name, arguments)
                     if (result.isError) error(result.data.errorText()) else result.data
                 }
@@ -159,7 +159,7 @@ class OperationKernel(
     private class Entry(
         val catalog: CatalogEntry,
         val describe: () -> OperationDescriptor,
-        val effect: (JsonObject) -> SafetyClass,
+        val effect: (JsonObject, CallCaller) -> SafetyClass,
         val ownPlan: suspend (JsonObject, CallCaller) -> Boolean,
         val execute: suspend (OperationCall, JsonObject) -> JsonElement,
     )
