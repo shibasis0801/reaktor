@@ -54,10 +54,11 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
         value.roots.forEach { entry ->
             val path = File(entry.path).canonicalFile.toPath()
             require(path.parent == directory.resolve(id).toRealPath())
-            if (Files.exists(path)) git(File(entry.source), listOf("worktree", "remove", path.toString()))
+            if (Files.exists(path)) git(File(entry.source), listOf("worktree", "remove") +
+                (if (value.applyState == "applied") listOf("--force") else emptyList()) + path.toString())
         }
         registration(id)?.let(Files::deleteIfExists)
-        Files.deleteIfExists(directory.resolve(id))
+        directory.resolve(id).toFile().deleteTreeSafely(within = directory.toFile())
         Files.delete(file(id))
     }
     fun prepare(runId: String, participant: String): AgentWorktree =
@@ -129,18 +130,109 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
     @Synchronized fun review(id: String): AgentWorktreeReview {
         val worktree = read(id)
         val patches = patches(worktree)
-        val revision = SourceCandidates(root, artifacts).capture().sourceDigest
+        val files = changed(worktree)
         val conflicts = mutableListOf<String>()
-        if (revision != worktree.sourceRevision) conflicts += "Source changed since this worktree was created. Rebase/review the worktree before applying."
+        val source = files.entries.joinToString("\n") { (entry, paths) ->
+            val current = snapshot(File(entry.source))
+            val moved = if (paths.isEmpty()) "" else git(File(entry.source),
+                listOf("diff", "--binary", "--no-ext-diff", "--no-textconv", entry.baseline, current, "--") + paths)
+            if (moved.isNotBlank()) conflicts += "${File(entry.source).name}: candidate files changed since the baseline: ${paths.joinToString()}"
+            "${entry.source}:${entry.baseline}:$paths\n$moved"
+        }
         patches.forEach { (entry, patch) -> if (patch.isNotBlank()) runCatching { apply(File(entry.source), patch, check = true) }
             .onFailure { conflicts += "${File(entry.source).name}: ${it.message.orEmpty().take(1000)}" } }
         val combined = patches.entries.joinToString("\n") { (entry, patch) -> "# ${entry.source}\n$patch" }
         require(combined.toByteArray().size <= 16_000_000) { "Worktree review exceeds 16 MB" }
-        val changed = worktree.roots.flatMap { entry ->
-            git(File(entry.path), listOf("diff", "--name-only", "-z", entry.baseline, snapshot(File(entry.path)))).split('\u0000')
-                .filter(String::isNotBlank).map { "${File(entry.source).name}/$it" }
+        val changed = files.flatMap { (entry, paths) -> paths.map { "${File(entry.source).name}/$it" } }
+        return AgentWorktreeReview(worktree, digest(combined), digest(source), changed, combined.take(60000), conflicts)
+    }
+
+    private fun changed(worktree: AgentWorktree): Map<AgentWorktreeRoot, List<String>> = worktree.roots.associateWith { entry ->
+        git(File(entry.path), listOf("diff", "--no-renames", "--name-only", "-z", entry.baseline, snapshot(File(entry.path))))
+            .split('\u0000').filter(String::isNotBlank)
+    }
+
+    internal fun files(id: String): List<File> = changed(read(id)).flatMap { (entry, paths) ->
+        paths.map { File(entry.source, it).canonicalFile }
+    }
+
+    @Synchronized internal fun land(id: String, expectedPatch: String, expectedSource: String, message: String): Map<String, String> {
+        val worktree = read(id)
+        require(worktree.applyState == null) { "A previous apply needs reconciliation before landing" }
+        val review = review(id)
+        require(review.patchDigest == expectedPatch && review.sourceRevision == expectedSource) { "Review is stale" }
+        require(review.conflicts.isEmpty()) { review.conflicts.joinToString("\n") }
+        val patches = patches(worktree).filterValues(String::isNotBlank)
+        require(patches.isNotEmpty()) { "The candidate has no changes to land" }
+        require(digest(patches(worktree).entries.joinToString("\n") { (entry, patch) -> "# ${entry.source}\n$patch" }) == expectedPatch) { "Worktree changed during landing" }
+        val files = changed(worktree)
+        data class Prepared(val entry: AgentWorktreeRoot, val head: String, val branch: String, val commit: String,
+            val index: Path, val replacement: Path)
+        val locks = mutableListOf<Path>()
+        val temporary = mutableListOf<Path>()
+        var applied = false
+        try {
+            val prepared = patches.map { (entry, patch) ->
+                val source = File(entry.source)
+                val paths = files.getValue(entry)
+                val index = Path.of(git(source, listOf("rev-parse", "--path-format=absolute", "--git-path", "index")).trim())
+                require(!Files.isSymbolicLink(index)) { "Git index is a symbolic link" }
+                val lock = Path.of("$index.lock")
+                Files.createFile(lock)
+                locks.add(lock)
+                require(git(source, listOf("diff", "--cached", "--name-only", "-z", "--") + paths).isEmpty()) {
+                    "Staged changes in candidate files: ${entry.source}: ${paths.joinToString()}"
+                }
+                val head = git(source, listOf("rev-parse", "HEAD")).trim()
+                val branch = git(source, listOf("symbolic-ref", "HEAD")).trim()
+                val selected = Files.createTempFile("reaktor-land-", ".index").also(temporary::add)
+                Files.delete(selected)
+                val env = mapOf("GIT_INDEX_FILE" to selected.toString())
+                git(source, listOf("read-tree", head), env)
+                runCatching { apply(source, patch, check = false, environment = env, cached = true) }.getOrElse {
+                    error("Candidate patch depends on uncommitted source in ${entry.source}: ${paths.joinToString()}: ${it.message}")
+                }
+                val tree = git(source, listOf("write-tree"), env).trim()
+                val commit = git(source, listOf("-c", "user.name=Reaktor", "-c", "user.email=agents@localhost",
+                    "commit-tree", tree, "-p", head, "-m", message)).trim()
+                val replacement = Files.createTempFile(index.parent, "reaktor-land-", ".index").also(temporary::add)
+                if (Files.exists(index)) Files.copy(index, replacement, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                else {
+                    Files.delete(replacement)
+                    git(source, listOf("read-tree", head), mapOf("GIT_INDEX_FILE" to replacement.toString()))
+                }
+                val actual = mapOf("GIT_INDEX_FILE" to replacement.toString())
+                paths.forEach { path ->
+                    val item = git(source, listOf("ls-tree", "-z", commit, "--", path)).removeSuffix("\u0000")
+                    if (item.isEmpty()) git(source, listOf("update-index", "--force-remove", "--", path), actual)
+                    else {
+                        val parts = item.substringBefore('\t').split(' ')
+                        require(parts.size == 3 && parts[1] == "blob") { "Unsupported candidate index entry: $path" }
+                        git(source, listOf("update-index", "--add", "--cacheinfo", parts[0], parts[2], path), actual)
+                    }
+                }
+                Prepared(entry, head, branch, commit, index, replacement)
+            }
+            prepared.forEach {
+                require(git(File(it.entry.source), listOf("rev-parse", "HEAD")).trim() == it.head &&
+                    git(File(it.entry.source), listOf("symbolic-ref", "HEAD")).trim() == it.branch) { "HEAD moved before landing" }
+            }
+            apply(id, expectedPatch, expectedSource)
+            applied = true
+            prepared.forEach {
+                val source = File(it.entry.source)
+                require(git(source, listOf("symbolic-ref", "HEAD")).trim() == it.branch) { "Branch changed during landing" }
+                git(source, listOf("update-ref", "-m", message, it.branch, it.commit, it.head))
+                Files.move(it.replacement, it.index, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            }
+            return prepared.associate { File(it.entry.source).name to it.commit }
+        } catch (failure: Exception) {
+            if (applied) save(read(id).copy(applyState = "needs-reconciliation"))
+            throw failure
+        } finally {
+            temporary.forEach(Files::deleteIfExists)
+            locks.asReversed().forEach(Files::deleteIfExists)
         }
-        return AgentWorktreeReview(worktree, digest(combined), revision, changed, combined.take(60000), conflicts)
     }
 
     @Synchronized fun apply(id: String, expectedPatch: String, expectedSource: String): AgentWorktreeReview {
@@ -165,7 +257,7 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
 
     private fun patches(worktree: AgentWorktree): Map<AgentWorktreeRoot, String> = worktree.roots.associateWith { entry ->
         require(File(entry.path).canonicalFile.toPath().startsWith(directory.toRealPath()))
-        git(File(entry.path), listOf("diff", "--binary", "--no-ext-diff", "--no-textconv", entry.baseline, snapshot(File(entry.path))))
+        git(File(entry.path), listOf("diff", "--binary", "--no-renames", "--no-ext-diff", "--no-textconv", entry.baseline, snapshot(File(entry.path))))
     }
     private fun snapshot(directory: File): String {
         val index = Files.createTempFile("reaktor-index-", ".tmp")
@@ -177,9 +269,10 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
             git(directory, listOf("write-tree"), env).trim()
         } finally { Files.deleteIfExists(index) }
     }
-    private fun apply(root: File, patch: String, check: Boolean) {
+    private fun apply(root: File, patch: String, check: Boolean, environment: Map<String, String> = emptyMap(), cached: Boolean = false) {
         val file = Files.createTempFile("reaktor-apply-", ".patch")
-        try { Files.writeString(file, patch); git(root, listOf("apply", "--binary", "--whitespace=nowarn") + (if (check) listOf("--check") else emptyList()) + listOf("--", file.toString())) }
+        try { Files.writeString(file, patch); git(root, listOf("apply", "--binary", "--whitespace=nowarn") +
+            (if (check) listOf("--check") else emptyList()) + (if (cached) listOf("--cached") else emptyList()) + listOf("--", file.toString()), environment) }
         finally { Files.deleteIfExists(file) }
     }
     private fun git(root: File, args: List<String>, environment: Map<String, String> = emptyMap()): String {

@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.graph.core.GraphShape
 import dev.shibasis.reaktor.mcp.*
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
@@ -153,6 +154,20 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             args.only("graph", "task", "by")
             val id = args.text("graph")
             AgentWorkspaceJson.encodeToJsonElement(BoardTask.serializer(), workspace.board.claim(id, args.text("task"), workspace.taskGraphCaller(id, args.by())))
+        },
+        McpTool("agent_taskgraph_accept", "A person accepts a writing task's exact candidate after its review and required checks pass.",
+            objectSchema(mapOf(graphId, "task" to stringSchema("Writing task id"), "candidate" to stringSchema("Exact candidate id"), revision, by),
+                listOf("graph", "task", "candidate", "expectedRevision", "by")), readOnly = false, idempotent = false) { args ->
+            args.only("graph", "task", "candidate", "expectedRevision", "by")
+            AgentWorkspaceJson.encodeToJsonElement(TaskGraphView.serializer(), workspace.acceptTaskCandidate(args.text("graph"),
+                args.text("task"), args.text("candidate"), requireNotNull(args.long("expectedRevision")), args.by()))
+        },
+        McpTool("agent_taskgraph_land", "A person lands an accepted candidate's hunks in local commits, preserving unrelated work and staging, then removes its owned worktree.",
+            objectSchema(mapOf(graphId, "task" to stringSchema("Writing task id"), "candidate" to stringSchema("Exact accepted candidate id"), revision, by),
+                listOf("graph", "task", "candidate", "expectedRevision", "by")), readOnly = false, idempotent = true) { args ->
+            args.only("graph", "task", "candidate", "expectedRevision", "by")
+            runBlocking { AgentWorkspaceJson.encodeToJsonElement(TaskGraphView.serializer(), workspace.landTaskCandidate(args.text("graph"),
+                args.text("task"), args.text("candidate"), requireNotNull(args.long("expectedRevision")), args.by())) }
         },
         McpTool("agent_taskgraph_start", "A person approves the graph at the revision on screen and starts it, or resumes a paused graph.",
             objectSchema(mapOf(graphId, revision, by), listOf("graph", "by")), readOnly = false, idempotent = true) { args ->
