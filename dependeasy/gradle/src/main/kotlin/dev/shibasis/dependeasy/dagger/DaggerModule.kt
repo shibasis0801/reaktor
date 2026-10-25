@@ -16,8 +16,9 @@ import dev.shibasis.dependeasy.model.OutputKind
 internal class DaggerModule(private val project: Project, options: List<OptionArgument<*>>) {
     private val gradleProperties = options.associate { it.option.name to it.value.toString() }
 
-    internal fun register(): NodeHandle {
-        dev.shibasis.dependeasy.toolchain.VerificationTools.get(project).dagger
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    internal fun register(verifyModule: Boolean): List<NodeHandle> {
+        val dagger = dev.shibasis.dependeasy.toolchain.VerificationTools.get(project).dagger
         fun generation(name: String, output: Any) = project.tasks.register<GenerateDaggerTask>(name) {
             group = "code generation"
             buildName.set(project.rootProject.name)
@@ -50,16 +51,16 @@ internal class DaggerModule(private val project: Project, options: List<OptionAr
         if (project.hasBuildFile(project.rootDir.resolve("dependeasy/dagger/src/index.ts"))) generated.configure {
             sharedDirectory.set(project.rootProject.layout.projectDirectory.dir("dependeasy/dagger"))
             sharedMetadata.set(mapOf(
-                "dagger.json" to buildJsonObject {
+                "dagger.json" to Json { prettyPrint = true; prettyPrintIndent = "  " }.encodeToString(buildJsonObject {
                     put("name", "dependeasy"); put("engineVersion", "v" + ToolchainVersions.Dagger)
-                    putJsonObject("sdk") { put("source", "typescript") }; put("source", ".")
-                }.toString(),
+                    putJsonObject("sdk") { put("source", "typescript") }
+                }),
                 "package.json" to buildJsonObject {
                     put("name", "dependeasy-dagger"); put("version", "0.0.0"); put("type", "module")
                     put("packageManager", "pnpm@" + ToolchainVersions.Pnpm)
                     putJsonObject("dependencies") { put("typescript", ToolchainVersions.TypeScriptApi) }
                     putJsonObject("devDependencies") { put("typescript-native", "npm:typescript@" + ToolchainVersions.TypeScript) }
-                    putJsonObject("scripts") { put("typecheck", "node ../javascript/cli/typecheck.ts --noEmit") }
+                    putJsonObject("scripts") {}
                 }.toString(),
                 "tsconfig.json" to buildJsonObject {
                     putJsonObject("compilerOptions") {
@@ -73,6 +74,49 @@ internal class DaggerModule(private val project: Project, options: List<OptionAr
                 }.toString(),
             ))
         }
-        return project.node(generated, OutputKind.GeneratedContract)
+        val contract = project.node(generated, OutputKind.GeneratedContract)
+        if (!verifyModule) return listOf(contract)
+        val directory = project.rootDir.resolve("dependeasy/dagger")
+        require(project.hasBuildFile(directory.resolve("src/index.ts"))) { "Shared Dagger implementation is missing" }
+        val tools = dev.shibasis.dependeasy.toolchain.JavaScriptTools.get(project)
+        val runtime = dev.shibasis.dependeasy.web.JavaScriptRuntime(project)
+        val sdk = project.tasks.register<dev.shibasis.dependeasy.process.ProcessTask>("generateDaggerSdk") {
+            dependsOn(generated, dagger.installation)
+            workingDirectory.set(directory)
+            executable.set(dagger.executable.map { it.asFile.absolutePath })
+            arguments.set(dev.shibasis.dependeasy.model.Dagger.develop(directory.absolutePath, ToolchainVersions.Dagger))
+            toolVersion.set("dagger " + ToolchainVersions.Dagger)
+            sourceFiles.from(directory.resolve("dagger.json"), directory.resolve("package.json"), project.fileTree(directory.resolve("src")))
+            outputDirectories.from(directory.resolve("sdk"))
+            outputFiles.from(directory.resolve(".gitignore"), directory.resolve(".gitattributes"))
+        }
+        val dependencies = project.tasks.register<dev.shibasis.dependeasy.process.ProcessTask>("installDaggerDependencies") {
+            dependsOn(generated, tools.nodeSetup, tools.pnpmSetup)
+            workingDirectory.set(directory)
+            executable.set(tools.pnpm.map { it.asFile.absolutePath })
+            environment.putAll(tools.environment)
+            arguments.set(dev.shibasis.dependeasy.model.Pnpm.installStandalone())
+            toolVersion.set("pnpm " + ToolchainVersions.Pnpm)
+            sourceFiles.from(directory.resolve("package.json"), directory.resolve("pnpm-lock.yaml"))
+            outputFiles.from(directory.resolve("node_modules/.modules.yaml"))
+        }
+        val types = project.tasks.register<dev.shibasis.dependeasy.web.TypeScriptCheck>("daggerTypes") {
+            dependsOn(sdk, dependencies, runtime.install)
+            workingDirectory.set(directory)
+            executable.set(tools.pnpm.map { it.asFile.absolutePath })
+            environment.putAll(tools.environment)
+            toolVersion.set("pnpm ${ToolchainVersions.Pnpm} / node ${ToolchainVersions.Node}")
+            projects.set(listOf("tsconfig.json"))
+            adapter.set(runtime.file("cli/typecheck.ts"))
+            sourceFiles.from(project.fileTree(directory.resolve("src")), sdk,
+                directory.resolve("tsconfig.json"), directory.resolve("pnpm-lock.yaml"), runtime.sources)
+            receiptFile.set(project.layout.buildDirectory.file("dependeasy/checks/daggerTypes.properties"))
+        }
+        val workspace = dev.shibasis.dependeasy.workspace.BuildWorkspace.get(project)
+        val sdkNode = project.node(sdk, OutputKind.GeneratedContract).after(contract)
+        val installed = project.node(dependencies, OutputKind.JavaScriptInstallation).after(contract)
+        val checked = project.node(types).after(sdkNode, installed)
+        workspace.alias(project.rootDir, "daggerTypes", checked)
+        return listOf(contract, checked)
     }
 }
