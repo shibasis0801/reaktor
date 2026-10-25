@@ -6,14 +6,11 @@ import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
-import dev.shibasis.dependeasy.codegen.KotlinObjectTask
-import dev.shibasis.dependeasy.codegen.kotlinObject
 import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.process.nodeScript
 import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.handles.moduleOutputs
 import dev.shibasis.dependeasy.model.BuildOption
-import dev.shibasis.dependeasy.configuration.releaseProperty
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.WorkspaceScope
 import dev.shibasis.dependeasy.workspace.declarationSite
@@ -50,11 +47,6 @@ open class DependeasyExtension internal constructor(
         dev.shibasis.dependeasy.module.JvmModule(project, bytecode).apply(configuration)
     fun testClasses(vararg patterns: String) = project.testClasses(patterns)
     fun <T : Any> option(option: BuildOption<T>) = project.option(option)
-    fun releaseProperty(option: BuildOption<Boolean>) = project.releaseProperty(option)
-    fun kotlinObject(name: String, namespace: String, objectName: String,
-                     configuration: KotlinObjectTask.() -> Unit): TaskProvider<KotlinObjectTask> =
-        project.kotlinObject(name, namespace, objectName, configuration)
-
 
     fun nodeScript(name: String, script: Any, configuration: ProcessTask.() -> Unit): TaskProvider<dev.shibasis.dependeasy.web.NodeGenerator> =
         project.nodeScript(name, script, configuration)

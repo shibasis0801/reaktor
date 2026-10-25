@@ -12,8 +12,6 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 
-internal fun Project.releaseProperty(option: BuildOption<Boolean>): Provider<Boolean> = releaseRequirement(option, false).first
-
 internal fun Project.releaseRequirement(option: BuildOption<Boolean>, expected: Boolean,
     site: SourceSite? = declarationSite()): Pair<Provider<Boolean>, dev.shibasis.dependeasy.handles.NodeHandle> {
     val effective = resolve(option).zip(option(BuildOption.environment("CONFIGURATION", ""))) { resolved, configuration ->
