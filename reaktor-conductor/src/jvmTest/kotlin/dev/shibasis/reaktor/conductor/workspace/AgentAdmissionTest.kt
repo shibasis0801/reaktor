@@ -106,9 +106,12 @@ class AgentAdmissionTest {
         assertNull(workspace.start(blocked))
         val admitted = workspace.task(listOf("modules/two/Other.kt"))
         assertNotNull(workspace.start(admitted))
+        val isolated = workspace.submit(AgentSubmission("isolated", RuntimeKind.Codex, "Edit owned source",
+            allowWrites = true, isolation = AgentIsolation.Worktree, scope = listOf(":one")))
         assertFailsWith<IllegalArgumentException> {
             workspace.submit(AgentSubmission("conflicting", RuntimeKind.Codex, "Write source", allowWrites = true, scope = listOf(":two")))
         }
+        workspace.cancel(isolated.id)
         workspace.cancel(run.id)
         withTimeout(10000) { while (workspace.get(run.id).status == AgentRunStatus.Running) delay(10) }
         assertNotNull(workspace.start(workspace.board.get(blocked.id)))
