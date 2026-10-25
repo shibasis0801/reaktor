@@ -394,6 +394,26 @@ class WebContractsTest {
         val bundled = run("everything")
         assertContains(bundled.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, bundled.task(":site:siteBundleAssets")?.outcome)
+        val builtExport = run(":site:siteBundleAssets", "--rerun", "everything", "exportBuildModel", "--rerun")
+        assertEquals(TaskOutcome.SUCCESS, builtExport.task(":site:siteBundleAssets")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, builtExport.task(":exportBuildModel")?.outcome)
+        val builtModel = BuildModelReader.read(directory)
+        val uncachedExport = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments(":site:siteBundleAssets", "--rerun", "everything", "exportBuildModel", "--rerun",
+                "--no-configuration-cache", "--stacktrace").build()
+        assertEquals(TaskOutcome.SUCCESS, uncachedExport.task(":site:siteBundleAssets")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, uncachedExport.task(":exportBuildModel")?.outcome)
+        val uncachedBuiltModel = BuildModelReader.read(directory)
+        assertEquals(builtModel.nodes.associate { it.id to (it.inputs to it.kernel?.spec) },
+            uncachedBuiltModel.nodes.associate { it.id to (it.inputs to it.kernel?.spec) },
+            "Executing producers must preserve the same declared inputs before uncached model export")
+        val restoredExport = run(":site:siteBundleAssets", "--rerun", "everything", "exportBuildModel", "--rerun")
+        assertContains(restoredExport.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.SUCCESS, restoredExport.task(":site:siteBundleAssets")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, restoredExport.task(":exportBuildModel")?.outcome)
+        val restoredBuiltModel = BuildModelReader.read(directory)
+        assertEquals(builtModel.nodes.associate { it.id to (it.inputs to it.kernel?.spec) },
+            restoredBuiltModel.nodes.associate { it.id to (it.inputs to it.kernel?.spec) })
         write("library/source/index.ts", "export const source = 3")
         val changedSource = run("everything")
         assertContains(changedSource.output, "Reusing configuration cache")

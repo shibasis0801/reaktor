@@ -135,6 +135,14 @@ internal class BuildWorkspace(private val project: Project) {
         remoteHostsFile.set(project.layout.buildDirectory.file("dependeasy/remote/hosts.json"))
     }
     init {
+        project.gradle.taskGraph.whenReady {
+            allTasks.forEach { task ->
+                when (task) {
+                    is ExportBuildModelTask -> task.nodes.finalizeValue()
+                    is ExportBuildNodesTask -> task.nodes.finalizeValue()
+                }
+            }
+        }
         project.objects.newInstance(GradleReceiptRegistration::class.java).register(project)
         reference(project, graph, OutputKind.GeneratedContract)
         val container = project.tasks.register<dev.shibasis.dependeasy.dagger.PrepareContainerNode>(DaggerProtocol.PrepareTask) {
