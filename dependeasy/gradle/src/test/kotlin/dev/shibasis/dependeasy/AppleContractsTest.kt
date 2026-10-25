@@ -23,6 +23,7 @@ class AppleContractsTest {
         write("pins.json", """{"pins":[{"identity":"appauth-ios","state":{"version":"1.7.6"}}]}""")
         write("host.json", BuildModelReader.json.encodeToString(host))
         write("firebase.json", """{"project_info":{"project_id":"fixture-project","project_number":"123456789012"},"client":[{"client_info":{"android_client_info":{"package_name":"other.app"},"mobilesdk_app_id":"other-app"}},{"client_info":{"android_client_info":{"package_name":"fixture.app"},"mobilesdk_app_id":"fixture-android"}}]}""")
+        write("firebase.plist", """<?xml version="1.0"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>BUNDLE_ID</key><string>fixture.app</string><key>GOOGLE_APP_ID</key><string>fixture-ios</string><key>IS_ANALYTICS_ENABLED</key><false/></dict></plist>""")
         write("distribution.json", BuildModelReader.json.encodeToString(ReleaseDistribution(
             appleId = "owner@fixture.invalid", appStoreTeamId = "fixture-store", firebaseGroup = "fixture-testers",
             testflightExternalGroups = listOf("fixture-external"), artifacts = mapOf("iosSigningDirectory" to "config/fixture-signing"),
@@ -49,6 +50,7 @@ class AppleContractsTest {
             node(tasks.register<ReleasePlanTask>("release") {
                 distribution.set(providers.fileContents(layout.projectDirectory.file("distribution.json")).asText)
                 androidFirebaseConfiguration.set(layout.projectDirectory.file("firebase.json"))
+                iosFirebaseConfiguration.set(layout.projectDirectory.file("firebase.plist"))
                 product.set("fixture"); host.set(declarationJson); versionName.set("5.2"); buildNumber.set(31)
                 xcodeDirectory.set("targets/apple"); xcodeProject.set("iosApp.xcodeproj"); scheme.set("iosApp")
                 webWorker.set("web"); workerFleet.set(layout.projectDirectory.file("fleet.json"))
@@ -117,12 +119,16 @@ class AppleContractsTest {
         val model = BuildModelReader.read(directory)
         val releaseSpec = model.nodes.single { it.id == NodeId("appleFixture", ":", "release") }.kernel?.spec as KernelSpec.ReleasePlan
         assertEquals("firebase.json", releaseSpec.androidFirebaseConfiguration)
+        assertEquals("firebase.plist", releaseSpec.iosFirebaseConfiguration)
+        assertEquals(setOf("firebase.json", "firebase.plist"), model.nodes.single { it.id == NodeId("appleFixture", ":", "release") }
+            .inputs.flatMap { it.declarations }.map { it.identity }.toSet())
         val plan = BuildModelReader.json.decodeFromString<ReleasePlan>(directory.resolve("build/release.json").readText())
         assertEquals(31, plan.buildNumber)
         assertEquals("fixture-testers", plan.distribution?.firebaseGroup)
         assertEquals("fixture-project", plan.distribution?.firebaseProjectId)
         assertEquals(123456789012L, plan.distribution?.firebaseProjectNumber)
         assertEquals("fixture-android", plan.distribution?.firebaseAndroidAppId)
+        assertEquals("fixture-ios", plan.distribution?.firebaseIosAppId)
         assertEquals("Fixture AdHoc", plan.distribution?.profiles?.single()?.name)
         assertEquals("config/fixture-signing", plan.artifacts.getValue("iosSigningDirectory"))
         val repeat = runner("release", "exportBuildModel").build()
@@ -140,6 +146,20 @@ class AppleContractsTest {
         assertEquals(TaskOutcome.SUCCESS, runner("release").build().task(":release")?.outcome)
         assertEquals(requireNotNull(plan.distribution).copy(firebaseGroup = changed.firebaseGroup),
             BuildModelReader.json.decodeFromString<ReleasePlan>(directory.resolve("build/release.json").readText()).distribution)
+        val iosFirebase = directory.resolve("firebase.plist")
+        val originalIos = iosFirebase.readText()
+        iosFirebase.writeText(originalIos.replace("fixture-ios", "changed-ios"))
+        assertEquals(TaskOutcome.SUCCESS, runner("release").build().task(":release")?.outcome)
+        assertEquals("changed-ios", BuildModelReader.json.decodeFromString<ReleasePlan>(directory.resolve("build/release.json").readText()).distribution?.firebaseIosAppId)
+        iosFirebase.writeText(originalIos.replace("fixture.app", "missing.app"))
+        assertContains(runner("release").buildAndFail().output, "Unable to resolve iOS Firebase app id for fixture.app")
+        write("distribution.json", BuildModelReader.json.encodeToString(changed.copy(firebaseIosAppId = "explicit-ios")))
+        runner("release").build()
+        assertEquals("explicit-ios", BuildModelReader.json.decodeFromString<ReleasePlan>(directory.resolve("build/release.json").readText()).distribution?.firebaseIosAppId)
+        assertTrue(iosFirebase.delete())
+        assertContains(runner("release").buildAndFail().output, "does not exist")
+        iosFirebase.writeText(originalIos)
+        write("distribution.json", BuildModelReader.json.encodeToString(changed))
         val firebase = directory.resolve("firebase.json")
         val original = firebase.readText()
         firebase.writeText(original.replace("fixture-android", "changed-android"))
@@ -218,6 +238,7 @@ class AppleContractsTest {
                     waitForTestflightProcessing = true, firebaseGroupSetupStrict = true, playProductionRollout = "0.25"),
                 web = WorkerRef("web", "targets/web"), fleet = output(projects.appleFixture, OutputKind.GeneratedContract, Contract.WorkerFleet))
         """.trimIndent())
+        write("targets/apple/iosApp/GoogleService-Info.plist", """<plist><dict><key>BUNDLE_ID</key><string>fixture.app</string><key>GOOGLE_APP_ID</key><string>component-ios</string></dict></plist>""")
         write("targets/apple/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
             """{"pins":[{"identity":"appauth-ios","state":{"version":"${Versions.AppAuthDarwin}"}},{"identity":"gtmappauth","state":{"version":"${Versions.GtmAppAuthDarwin}"}}]}""")
         val first = runner("releaseInput", ":apple:verifyXcodeHost", "exportBuildModel").build()
@@ -241,7 +262,9 @@ class AppleContractsTest {
         val releaseSpec = releaseNode.kernel?.spec as KernelSpec.ReleasePlan
         assertEquals(NodeId("appleFixture", ":", "outputGeneratedContractWorkerFleet"), releaseSpec.workerFleet)
         assertEquals("targets/apple", releaseSpec.xcodeDirectory)
-        assertEquals(plan.distribution, releaseSpec.distribution)
+        assertEquals(plan.distribution?.copy(firebaseIosAppId = null), releaseSpec.distribution)
+        assertEquals("component-ios", plan.distribution?.firebaseIosAppId)
+        assertEquals("targets/apple/iosApp/GoogleService-Info.plist", releaseSpec.iosFirebaseConfiguration)
         assertEquals("fixture-testers", releaseSpec.distribution?.firebaseGroup)
         assertEquals(true, plan.distribution?.waitForTestflightProcessing)
         assertEquals(true, plan.distribution?.firebaseGroupSetupStrict)
