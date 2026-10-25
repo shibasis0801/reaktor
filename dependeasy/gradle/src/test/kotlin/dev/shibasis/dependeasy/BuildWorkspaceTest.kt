@@ -333,7 +333,7 @@ class BuildWorkspaceTest {
     }
 
     @Test fun `included models preserve build ownership without a second task scheduler`() {
-        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"fixture\"; includeBuild(\"library\")")
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"fixture\"; includeBuild(\"library\"); includeBuild(\"bootstrap\")")
         val library = directory.resolve("library").apply { mkdir() }
         library.resolve("settings.gradle.kts").writeText("rootProject.name = \"library\"")
         library.resolve("build.gradle.kts").writeText("""
@@ -344,22 +344,83 @@ class BuildWorkspaceTest {
             val compile = tasks.register("compile") { doLast { error("Export cannot execute compilation") } }
             dependeasy.workspace { val checks by verify(role = Workspace.Verify) { include(node(compile)) } }
         """.trimIndent())
+        val metadata = java.util.Properties().apply {
+            BuildWorkspaceTest::class.java.classLoader.getResourceAsStream("plugin-under-test-metadata.properties")!!.use(::load)
+        }
+        val bootstrapJar = File("buildSrc/build/libs/dependeasy-bootstrap.jar").canonicalFile
+        assertTrue(bootstrapJar.isFile)
+        val files = (metadata.getProperty("implementation-classpath").split(File.pathSeparator) + bootstrapJar.path)
+            .joinToString(",") { BuildModelReader.json.encodeToString(kotlinx.serialization.serializer<String>(), it) }
+        val bootstrap = directory.resolve("bootstrap").apply { mkdir() }
+        bootstrap.resolve("settings.gradle.kts").writeText("rootProject.name = \"bootstrap\"")
+        bootstrap.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.bootstrap.publishPluginVerificationModel
+            buildscript { dependencies { classpath(files($files)) } }
+            group = "fixture"
+            val result = layout.buildDirectory.file("dependeasy/plugin-tests.txt")
+            val tests = tasks.register("test") {
+                outputs.file(result)
+                doLast { error("Export cannot execute bootstrap tests") }
+            }
+            configurations.create("pluginVerification") {
+                isCanBeConsumed = true
+                isCanBeResolved = false
+                attributes.attribute(Attribute.of("dependeasy.output", String::class.java), "VerificationResults:Plugin")
+                outgoing.artifact(result) { builtBy(tests) }
+            }
+            publishPluginVerificationModel(tests, result, files($files))
+        """.trimIndent())
+        val implementation = bootstrap.resolve("model/src/main/kotlin/Kernel.kt").apply {
+            parentFile.mkdirs(); writeText("class Kernel")
+        }
+        val contract = bootstrap.resolve("toolchain/src/contracts/kotlin/Contract.kt").apply {
+            parentFile.mkdirs(); writeText("class Contract")
+        }
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
             import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy.workspace {
                 val library = BuildHandle("library", "fixture")
                 val framework = include(library)
                 val checks by verify { include(framework.verify) }
+                val tooling = BuildHandle("bootstrap", "fixture")
+                include(tooling)
+                val plugin by verify { include(verification(tooling, Verification.Plugin)) }
             }
         """.trimIndent())
-        val run = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
-            .withArguments("exportBuildModel", "--configuration-cache").build()
-        assertNull(run.task(":library:compile"))
+        fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("exportBuildModel", "--configuration-cache", "--stacktrace").build()
+        val first = run()
+        assertNull(first.task(":library:compile"))
+        assertNull(first.task(":bootstrap:test"))
         val model = BuildModelReader.read(directory)
-        assertEquals(setOf("fixture", "library"), model.builds.map { it.name }.toSet())
+        assertEquals(setOf("fixture", "library", "bootstrap"), model.builds.map { it.name }.toSet())
         assertContains(model.nodes.map { it.id }, NodeId("library", ":", "compile"))
         assertTrue(model.edges.any { it.to == NodeId("library", ":", "outputWorkspaceCompletionVerify") })
+        val producer = model.nodes.single { it.id == NodeId("bootstrap", ":", "outputVerificationResultsPlugin") }
+        assertEquals(listOf(":test"), (producer.invocation as Invocation.Gradle).tasks)
+        assertEquals("org.gradle.api.DefaultTask", producer.kernel?.className)
+        assertEquals("build.gradle.kts", producer.declaredAt?.file)
+        assertEquals(15, producer.declaredAt?.line)
+        assertTrue(model.edges.any { it.from == producer.id && it.to == NodeId("bootstrap", ":", "test") })
+        assertEquals(setOf("fixture", "library").map {
+            Omission(NodeId(it, ":", "outputDeclaredBuildModel"), "Output is declared by its owning plugin")
+        }.toSet(), model.omissions.toSet())
+        assertFalse(bootstrap.resolve("build/dependeasy/plugin-tests.txt").exists())
+        assertContains(run().output, "Reusing configuration cache")
+        assertEquals(model, BuildModelReader.read(directory))
+        implementation.appendText("\n")
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(directory) }
+        assertNull(run().task(":bootstrap:test"))
+        contract.delete()
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(directory) }
+        run()
+        contract.writeText("class Contract")
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.read(directory) }
+        run()
+        assertContains(run().output, "Reusing configuration cache")
+        BuildModelReader.read(directory)
     }
 
     @Test fun `file declarations survive configuration cache without becoming resolved inputs`() {
