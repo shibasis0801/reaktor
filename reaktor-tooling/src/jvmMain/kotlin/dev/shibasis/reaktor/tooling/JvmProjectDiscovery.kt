@@ -617,6 +617,3 @@ private fun JsonObject.stringMap(name: String): Map<String, String> =
 internal fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
     .digest(value.toByteArray(Charsets.UTF_8))
     .joinToString("") { "%02x".format(it) }
-
-private fun digestDefinitionFiles(files: List<File>): String? =
-    files.takeIf(List<File>::isNotEmpty)?.let(::processDefinitionDigest)
