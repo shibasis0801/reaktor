@@ -229,6 +229,7 @@ data class TaskGraphView(
     val handoffs: Map<String, TaskHandoff> = emptyMap(),
     val decisions: List<TaskDecision> = emptyList(),
     val warnings: List<TaskGraphWarning> = emptyList(),
+    val summaries: Map<String, TaskWorkSummary> = emptyMap(),
 )
 
 @Serializable

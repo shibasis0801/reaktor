@@ -42,6 +42,7 @@ data class TaskHandoff(
     val nextAction: String = "",
     val sessionLogs: List<String> = emptyList(),
     val at: Long = 0,
+    val recordedSummary: Boolean = false,
 )
 
 @Serializable
