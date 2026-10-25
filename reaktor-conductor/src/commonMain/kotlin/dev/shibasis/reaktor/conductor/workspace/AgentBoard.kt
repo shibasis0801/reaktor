@@ -126,7 +126,7 @@ fun BoardTask.entry(work: List<BoardWork>, tasks: Map<String, BoardTask>): Board
         stage == BoardStage.Done -> BoardColumn.Done to stageChangedAt
         planned == TaskState.Skipped || planned == TaskState.Cancelled -> BoardColumn.Done to updatedAt
         planned == TaskState.Succeeded && graph?.kind != TaskKind.Agent -> BoardColumn.Done to updatedAt
-        planned == TaskState.Failed || planned == TaskState.Waiting -> BoardColumn.NeedsYou to updatedAt
+        planned == TaskState.Failed || planned == TaskState.Waiting || planned == TaskState.Limited -> BoardColumn.NeedsYou to updatedAt
         TaskGraphRules.readiness(this, tasks) is TaskGraphRules.Readiness.Blocked -> BoardColumn.NeedsYou to updatedAt
         asking != null -> BoardColumn.NeedsYou to asking
         executing != null -> BoardColumn.Running to executing

@@ -140,6 +140,10 @@ class AgentWorkspaceConnection private constructor(
         ConductorJson.decodeFromJsonElement(TaskGraphView.serializer(), call("agent_taskgraph_recover", buildJsonObject {
             put("graph", id); put("task", task); put("expectedRevision", revision); put("attempt", attempt); put("action", action.name); put("by", actor(by))
         }))
+    suspend fun resumeTaskGraphAfterLimit(id: String, task: String, revision: Long, attempt: Int, atReset: Boolean, by: BoardActor): TaskGraphView =
+        ConductorJson.decodeFromJsonElement(TaskGraphView.serializer(), call("agent_taskgraph_limit_resume", buildJsonObject {
+            put("graph", id); put("task", task); put("expectedRevision", revision); put("attempt", attempt); put("atReset", atReset); put("by", actor(by))
+        }))
     private fun graphOf(value: JsonElement) = ConductorJson.decodeFromJsonElement(TaskGraph.serializer(), value)
     private fun boardEntry(value: JsonElement) = ConductorJson.decodeFromJsonElement(BoardEntry.serializer(), value)
     private fun actor(by: BoardActor) = ConductorJson.encodeToJsonElement(BoardActor.serializer(), by)

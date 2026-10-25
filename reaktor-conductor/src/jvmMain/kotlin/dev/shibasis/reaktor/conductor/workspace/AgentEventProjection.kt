@@ -5,7 +5,7 @@ import dev.shibasis.reaktor.conductor.*
 internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provider: RuntimeKind): AgentRunRecord {
     val participant = current.participants[event.agent.value] ?: AgentParticipantRun(provider)
     val next = when (event) {
-        is AgentEvent.Started -> participant.copy(status = AgentRunStatus.Running, session = event.session, output = "", outputTruncated = false, lastTool = null)
+        is AgentEvent.Started -> participant.copy(status = AgentRunStatus.Running, session = event.session, output = "", outputTruncated = false, lastTool = null, usageLimit = null)
         is AgentEvent.TurnStarted -> participant.copy(activeTurn = event.turnId)
         is AgentEvent.Delta -> participant.copy(output = (participant.output + event.text).takeLast(6000),
             outputTruncated = participant.outputTruncated || participant.output.length + event.text.length > 6000)
@@ -24,8 +24,8 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
             reasoningTruncated = participant.reasoningTruncated || participant.reasoning.length + event.text.length > 6000,
             reasoningFidelity = event.fidelity,
         )
-        is AgentEvent.Finished -> participant.copy(status = if (event.outcome.interrupted) AgentRunStatus.Interrupted else if (event.outcome.ok) AgentRunStatus.Completed else AgentRunStatus.Failed,
-            activeTurn = null, pending = emptyList(), effort = event.outcome.effort,
+        is AgentEvent.Finished -> participant.copy(status = if (event.outcome.interrupted) AgentRunStatus.Interrupted else if (event.outcome.ok) AgentRunStatus.Completed else if (event.outcome.usageLimit != null) AgentRunStatus.Limited else AgentRunStatus.Failed,
+            activeTurn = null, pending = emptyList(), effort = event.outcome.effort, usageLimit = event.outcome.usageLimit.takeUnless { event.outcome.ok || event.outcome.interrupted },
             output = (event.outcome.failure ?: event.outcome.text).takeLast(6000),
             outputTruncated = (event.outcome.failure ?: event.outcome.text).length > 6000,
             session = event.outcome.session ?: participant.session)
@@ -48,7 +48,7 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
             reasoningFidelity = event.fidelity)
         is AgentEvent.Finished -> withParticipant.copy(usage = event.outcome.usage, session = event.outcome.session ?: current.session,
             effort = event.outcome.effort.takeIf { it != EffortRecord.none } ?: current.effort,
-            serviceTier = event.outcome.serviceTier ?: current.serviceTier)
+            serviceTier = event.outcome.serviceTier ?: current.serviceTier, usageLimit = next.usageLimit)
     }
 }
 

@@ -250,7 +250,7 @@ class AgentBoardStore(
         val members = members(graph.id).filter { it.graph?.kind != TaskKind.Note }
         fun count(vararg states: TaskState) = members.count { it.graph?.state in states }
         TaskGraphSummary(graph.id, graph.title, graph.status, graph.revision, members.size,
-            count(TaskState.Succeeded, TaskState.Skipped, TaskState.Cancelled), count(TaskState.Running), count(TaskState.Waiting), count(TaskState.Failed),
+            count(TaskState.Succeeded, TaskState.Skipped, TaskState.Cancelled), count(TaskState.Running), count(TaskState.Waiting, TaskState.Limited), count(TaskState.Failed),
             members.mapNotNull { task -> task.graph?.let { it.resolvedSeat?.seat?.agent ?: it.seat?.let { seat -> runCatching { resolveSeat(seat).seat.agent }.getOrNull() } } }.distinct(), graph.tokensUsed, graph.envelope.tokens, graph.lead, graph.changedSinceApproval, graph.updatedAt,
             graph.reason, graph.createdBy.name)
     }
@@ -368,6 +368,7 @@ class AgentBoardStore(
         val current = get(task)
         val plan = requireNotNull(current.graph?.takeIf { it.id == id }) { "$task is not in $id" }
         require(plan.recovery != AgentRecovery.NeedsReview) { "Reconcile the interrupted attempt in Hangar before reporting a result" }
+        require(plan.state != TaskState.Limited) { "A Limited attempt waits for a person to retry it" }
         val callerAttempt = plan.attemptOf(caller.refs)
         val refusal = "An agent reports only on its own task's current attempt; $task current attempt ${plan.attempt}, caller attempt ${callerAttempt ?: "unlinked"}${outcome.attempt?.let { ", reported attempt $it" }.orEmpty()}"
         if (plan.kind == TaskKind.Gate) require(caller.person) { "Only a person passes a gate" }

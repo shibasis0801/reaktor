@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.conductor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.Serializable
 
 /** One turn's worth of work for one agent. The prompt is already compiled; see [ContextCompiler]. */
 data class AgentRequest(
@@ -80,6 +81,13 @@ sealed interface AgentEvent {
     data class Finished(override val agent: AgentId, val outcome: AgentOutcome) : AgentEvent
 }
 
+@Serializable
+data class AgentUsageLimit(
+    val provider: RuntimeKind,
+    val code: String,
+    val resetsAtEpochMillis: Long? = null,
+)
+
 data class AgentOutcome(
     val agent: AgentId,
     val text: String,
@@ -93,6 +101,7 @@ data class AgentOutcome(
     val serviceTier: String? = null,
     val interrupted: Boolean = false,
     val attributes: Map<String, String> = emptyMap(),
+    val usageLimit: AgentUsageLimit? = null,
 )
 
 /**

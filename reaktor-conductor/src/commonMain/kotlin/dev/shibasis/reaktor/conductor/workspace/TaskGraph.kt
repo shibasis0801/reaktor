@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.AgentUsageLimit
 import dev.shibasis.reaktor.conductor.WorkflowContract
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -15,7 +16,7 @@ enum class TaskKind { Agent, Check, Gate, Merge, Note }
 enum class TaskCondition { Always, Succeeded, Failed, Pass, Repair, Accepted }
 
 @Serializable
-enum class TaskState { Pending, Running, Waiting, Succeeded, Failed, Skipped, Cancelled }
+enum class TaskState { Pending, Running, Waiting, Limited, Succeeded, Failed, Skipped, Cancelled }
 
 @Serializable
 enum class TaskAccess { Read, Write }
@@ -54,6 +55,7 @@ data class TaskOutcome(
     val at: Long = 0,
     val attempt: Int? = null,
     val candidateId: String? = null,
+    val usageLimit: AgentUsageLimit? = null,
 )
 
 @Serializable
@@ -79,6 +81,7 @@ data class TaskPlan(
     val runId: String? = null,
     val worktreeId: String? = null,
     val recovery: AgentRecovery = AgentRecovery.None,
+    val resumeAtReset: Long? = null,
 ) {
     fun attemptOf(refs: Set<String>): Int? = refs.mapNotNull(workAttempts::get).maxOrNull()
         ?: attempt.takeIf { run != null && run in refs }

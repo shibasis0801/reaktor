@@ -42,6 +42,11 @@ object TaskGraphText {
             if (task.scope.isNotEmpty()) appendLine("  Scope: ${task.scope.joinToString()}")
             plan.note?.let { appendLine("  Note: ${it.oneLine(300)}") }
             plan.run?.let { appendLine("  Session: $it") }
+            plan.outcome?.usageLimit?.let { limit ->
+                appendLine("  Usage limit: ${limit.provider.name} · ${limit.code} · reset epoch millis ${limit.resetsAtEpochMillis ?: "unknown"}")
+                appendLine(if (plan.resumeAtReset != null) "  One person-selected retry at ${plan.resumeAtReset}; graph must be running"
+                    else "  Waiting for a person to retry or select resume at reset")
+            }
             plan.outcome?.let { result ->
                 appendLine("  Outcome: ${result.summary.oneLine(outcome).ifEmpty { "no summary" }}" +
                     (result.verdict?.let { "; verdict $it" } ?: "") +

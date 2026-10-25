@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.conductor.AgentId
 import dev.shibasis.reaktor.conductor.AgentOutcome
 import dev.shibasis.reaktor.conductor.AgentRequest
 import dev.shibasis.reaktor.conductor.AgentUsage
+import dev.shibasis.reaktor.conductor.AgentUsageLimit
 import dev.shibasis.reaktor.conductor.EffortRecord
 import dev.shibasis.reaktor.conductor.ReasoningFidelity
 import dev.shibasis.reaktor.conductor.ProviderSession
@@ -149,6 +150,7 @@ class ClaudeCodeEventParser(
     private var usage: AgentUsage? = null
     private var serviceTier: String? = null
     private var completed = false
+    private var usageLimit: AgentUsageLimit? = null
     private val text = StringBuilder()
     private val toolNames = mutableMapOf<String, String>()
 
@@ -157,7 +159,20 @@ class ClaudeCodeEventParser(
         val root = runCatching { json.parseToJsonElement(payload).jsonObject }.getOrNull()
             ?: return emptyList()
 
+        if (root.string("parent_tool_use_id") == null && root.string("api_error") == "usage_limit_reached") {
+            val info = root.nested("api_error_params")?.nested("rate_limit_info")
+            usageLimit = AgentUsageLimit(RuntimeKind.ClaudeCode, "usage_limit_reached", info?.long("resetsAt")
+                ?.takeIf { it > 0 && it <= Long.MAX_VALUE / 1000 }?.times(1000))
+        }
         val events = when (root.string("type")) {
+            "rate_limit_event" -> {
+                if (root.string("parent_tool_use_id") != null) return emptyList()
+                val info = root.nested("rate_limit_info")
+                usageLimit = if (info?.string("status") == "rejected" && info.boolean("isUsingOverage") != true)
+                    AgentUsageLimit(RuntimeKind.ClaudeCode, "usage_limit_reached", info.long("resetsAt")
+                        ?.takeIf { it > 0 && it <= Long.MAX_VALUE / 1000 }?.times(1000)) else null
+                emptyList()
+            }
             "system" -> {
                 if (root.string("subtype") != "init") return emptyList()
                 root.string("session_id")?.let {
@@ -265,6 +280,7 @@ class ClaudeCodeEventParser(
             usage = usage,
             effort = effort,
             serviceTier = serviceTier,
+            usageLimit = usageLimit.takeUnless { ok },
         )
     }
 }

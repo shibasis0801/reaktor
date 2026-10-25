@@ -165,6 +165,16 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
                 args.text("task"), requireNotNull(args.long("expectedRevision")), requireNotNull(args.long("attempt")).toInt(),
                 TaskRecoveryAction.valueOf(args.text("action")), args.by()))
         },
+        McpTool("agent_taskgraph_limit_resume", "A person chooses one retry at the provider-reported reset, or cancels that choice and keeps waiting. Requires the displayed graph revision and Limited attempt.",
+            objectSchema(mapOf(graphId, "task" to stringSchema("Limited task id"), revision,
+                "attempt" to buildJsonObject { put("type", "integer"); put("minimum", 1) },
+                "atReset" to buildJsonObject { put("type", "boolean") }, by),
+                listOf("graph", "task", "expectedRevision", "attempt", "atReset", "by")), readOnly = false, idempotent = false) { args ->
+            args.only("graph", "task", "expectedRevision", "attempt", "atReset", "by")
+            AgentWorkspaceJson.encodeToJsonElement(TaskGraphView.serializer(), workspace.resumeTaskAfterLimit(args.text("graph"),
+                args.text("task"), requireNotNull(args.long("expectedRevision")), requireNotNull(args.long("attempt")).toInt(),
+                requireNotNull((args["atReset"] as? JsonPrimitive)?.booleanOrNull), args.by()))
+        },
         McpTool("agent_taskgraph_accept", "A person accepts a writing task's exact candidate after its review and required checks pass.",
             objectSchema(mapOf(graphId, "task" to stringSchema("Writing task id"), "candidate" to stringSchema("Exact candidate id"), revision, by),
                 listOf("graph", "task", "candidate", "expectedRevision", "by")), readOnly = false, idempotent = false) { args ->
