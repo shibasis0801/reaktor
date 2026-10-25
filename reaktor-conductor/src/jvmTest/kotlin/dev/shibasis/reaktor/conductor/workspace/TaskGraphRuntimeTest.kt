@@ -53,7 +53,9 @@ class TaskGraphRuntimeTest {
 
     private fun TaskGraphView.task(title: String) = tasks.single { it.title == title }
 
-    private fun workspace(codex: Scripted, claude: Scripted, body: suspend (AgentWorkspaceConnection, File, AgentWorktrees) -> Unit) = runBlocking {
+    private fun workspace(codex: Scripted, claude: Scripted,
+        workflowCheck: (suspend (AgentWorkspace, String, WorkflowStage) -> WorkflowCheckResult)? = null,
+        body: suspend (AgentWorkspaceConnection, File, AgentWorktrees) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("taskgraph-root").toFile()
         val data = Files.createTempDirectory("taskgraph-data")
         try {
@@ -64,7 +66,12 @@ class TaskGraphRuntimeTest {
                 val output = process.inputStream.bufferedReader().readText()
                 check(process.waitFor() == 0) { output }
             }
-            AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude)).use {
+            lateinit var workspace: AgentWorkspace
+            val check: (suspend (String, String, WorkflowStage) -> WorkflowCheckResult)? = workflowCheck?.let { callback ->
+                { task, _, stage -> callback(workspace, task, stage) }
+            }
+            AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude),
+                extraTools = { workspace = it; emptyList() }, workflowCheck = check).use {
                 body(it, root, AgentWorktrees(root, data.resolve("worktrees"), LocalAgentArtifacts(data.resolve("artifacts"))))
             }
         }
@@ -180,6 +187,43 @@ class TaskGraphRuntimeTest {
             dependencies.close()
             root.deleteTreeSafely(within = temporary)
             data.toFile().deleteTreeSafely(within = temporary)
+        }
+    }
+
+    @Test fun graphChecksBindTheWritingCandidateAndRunAgainAfterRepair() {
+        val codex = Scripted(RuntimeKind.Codex, listOf("Built", "Repaired"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf(
+            "{\"verdict\":\"repair\",\"summary\":\"Handle empty input\",\"candidate\":\"{{candidate}}\",\"findings\":[]}",
+            "{\"verdict\":\"pass\",\"summary\":\"Verified\",\"candidate\":\"{{candidate}}\",\"findings\":[]}"))
+        val candidates = mutableListOf<String>()
+        workspace(codex, claude, workflowCheck = { owner, task, stage ->
+            assertEquals("T1", task)
+            assertEquals(listOf("verify-parser"), owner.taskEvidence(task).requiredChecks)
+            val candidate = requireNotNull(stage.candidateId)
+            assertEquals(candidate, owner.captureCandidate(task).id)
+            if (candidates.isNotEmpty()) {
+                assertNotEquals(candidates.last(), candidate)
+                assertTrue(assertFails { owner.evidence.accept(task, candidate) }.message.orEmpty().contains("Required kernel checks"))
+            }
+            candidates += candidate
+            owner.evidence.check(task, AgentCandidateCheck("verify-parser", candidate,
+                CheckResult(listOf("verify-parser"), CheckOutcome.Passed, 0, revision = candidate, coverage = CheckCoverage.Complete), "kernel"))
+            WorkflowCheckResult(true, "Verified $candidate", "receipt-${candidates.size}")
+        }) { connection, _, _ ->
+            val proposed = connection.proposeTaskGraph(TaskGraphDraft("Checked repair", tasks = listOf(
+                TaskGraphOp.Add("Build", key = "build", seat = TaskSeat(RuntimeKind.Codex, access = TaskAccess.Write)),
+                TaskGraphOp.Add("Check", key = "check", kind = TaskKind.Check, check = "verify-parser", dependsOn = listOf(TaskDependency("build"))),
+                TaskGraphOp.Add("Review", key = "review", seat = TaskSeat(RuntimeKind.ClaudeCode), contract = WorkflowContract.Decision,
+                    dependsOn = listOf(TaskDependency("check"))),
+                TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("review", TaskCondition.Pass))),
+            )), person)
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val view = connection.until("G1") { it.task("Accept").graph?.state == TaskState.Waiting }
+            assertEquals(2, candidates.size)
+            assertEquals(2, view.task("Check").graph?.attempt)
+            assertEquals(candidates.last(), view.task("Check").graph?.outcome?.candidateId)
+            assertEquals(candidates.last(), view.task("Build").graph?.outcome?.candidateId)
+            assertEquals(listOf("receipt-2"), view.task("Check").graph?.outcome?.checks?.map { it.receipt })
         }
     }
 

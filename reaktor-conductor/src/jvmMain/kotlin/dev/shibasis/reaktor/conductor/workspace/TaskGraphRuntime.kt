@@ -267,6 +267,17 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         }
         store.advance(graphId, builder.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending,
             repairOf = review.id, readySince = null, note = "Repair requested by ${review.id}: ${plan.outcome?.summary.orEmpty().take(1000)}")) }
+        val pending = ArrayDeque(plan.dependsOn.map { it.task })
+        val seen = mutableSetOf<String>()
+        while (pending.isNotEmpty()) {
+            val input = members[pending.removeFirst()] ?: continue
+            if (!seen.add(input.id) || input.id == builder.id) continue
+            val source = requireNotNull(input.graph)
+            if (source.kind == TaskKind.Check && upstreamBuilder(input, members)?.id == builder.id)
+                store.advance(graphId, input.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending,
+                    readySince = null, outcome = null, note = "Waiting for ${builder.id} to produce a fresh check candidate")) }
+            pending.addAll(source.dependsOn.map { it.task })
+        }
         store.advance(graphId, review.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending,
             readySince = null, note = "Waiting for ${builder.id} to produce the repair candidate")) }
     }
@@ -365,7 +376,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
     private fun Exception.transient() = message.orEmpty().let { "capacity is busy" in it || "draining" in it || "closed" in it }
 
     private fun reviewInput(plan: TaskPlan): BoardTask? {
-        if (plan.contract != WorkflowContract.Decision) return null
+        if (plan.contract != WorkflowContract.Decision && plan.kind != TaskKind.Check) return null
         val members = store.members(scope.graphId).associateBy { it.id }
         val pending = ArrayDeque(plan.dependsOn.map { it.task })
         val seen = mutableSetOf<String>()
@@ -476,11 +487,19 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             ?: return CoordinatorMessage.Settled(task.id, plan.attempt, TaskState.Failed,
                 TaskOutcome(summary = "A check runs after the agent task whose work it checks; connect ${task.id} after one.", at = System.currentTimeMillis()))
         val check = requireNotNull(plan.check) { "${task.id} names no check" }
-        val result = scope.workspace.runCheck(thread, "taskgraph:${scope.graphId}:${task.id}:${plan.attempt}",
-            WorkflowStage(task.id, task.title, action = WorkflowAction.Check, checkId = check))
+        val input = reviewInput(plan)
+        val candidate = input?.graph?.outcome?.candidateId
+        val subject = input?.id ?: thread
+        if (input != null) {
+            val required = scope.workspace.taskEvidence(subject).requiredChecks
+            scope.workspace.evidence.requireChecks(subject, required + check)
+        }
+        val result = scope.workspace.runCheck(subject, "taskgraph:${scope.graphId}:${task.id}:${plan.attempt}",
+            WorkflowStage(task.id, task.title, action = WorkflowAction.Check, checkId = check, candidateId = candidate))
         return CoordinatorMessage.Settled(task.id, plan.attempt, if (result.ok) TaskState.Succeeded else TaskState.Failed, TaskOutcome(
             summary = result.text.take(TaskGraphRules.OutcomeChars),
             checks = listOf(TaskCheckResult(check, result.ok, result.receiptId, result.text.take(2_000))),
+            candidateId = candidate,
             at = System.currentTimeMillis(),
         ))
     }

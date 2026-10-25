@@ -27,6 +27,8 @@ internal suspend fun AgentWorkspace.collectKernelCheck(taskId: String, runId: St
         } while (true)
         evidence.artifacts.put(output.toString(), log.kind).also { require(it.id == log.id && it.bytes == log.bytes) { "Kernel artifact digest mismatch" } }
     }
-    return evidence.check(taskId, AgentCandidateCheck(receipt.getValue("taskId").jsonPrimitive.content, candidateId,
-        result.copy(log = localLog), "kernel"))
+    val checks = receipt["verifiedChecks"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
+        .ifEmpty { listOf(receipt.getValue("taskId").jsonPrimitive.content) }
+    checks.forEach { evidence.check(taskId, AgentCandidateCheck(it, candidateId, result.copy(log = localLog), "kernel")) }
+    return evidence.get(taskId)
 }
