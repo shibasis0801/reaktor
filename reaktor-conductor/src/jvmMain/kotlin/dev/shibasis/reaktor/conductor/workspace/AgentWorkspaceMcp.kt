@@ -116,11 +116,12 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             objectSchema(mapOf("runId" to stringSchema("Owning run"), "reply" to buildJsonObject { put("type", "object"); put("description", "HybridReply: handoffId,revision,phase Planning|Reviewing,text,acceptanceCriteria[]"); put("additionalProperties", true) }), listOf("runId", "reply")), false, true) {
             AgentWorkspaceJson.encodeToJsonElement(HybridHandoff.serializer(), workspace.replyHandoff(it.string("runId"), ConductorJson.decodeFromJsonElement(HybridReply.serializer(), it.getValue("reply"))))
         },
-        McpTool("agent_activity", "Read durable activity events after a cursor. Completed tool events carry recorded outcomes; missing outcomes stay unknown.",
+        McpTool("agent_activity", "Read durable activity events after a cursor, or the last bounded page with tail. Completed tool events carry recorded outcomes; missing outcomes stay unknown.",
             objectSchema(mapOf("runId" to stringSchema("Exact run id"), "after" to buildJsonObject { put("type", "integer"); put("minimum", 0) },
+                "tail" to buildJsonObject { put("type", "boolean") },
                 "limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 100) }), listOf("runId")), true, true) {
             workspace.get(it.string("runId"))
-            AgentWorkspaceJson.encodeToJsonElement(dev.shibasis.reaktor.conductor.AgentActivityPage.serializer(), workspace.activity.page(it.string("runId"), it.long("after", 0), it.long("limit", 50).toInt()))
+            AgentWorkspaceJson.encodeToJsonElement(dev.shibasis.reaktor.conductor.AgentActivityPage.serializer(), workspace.activity.page(it.string("runId"), it.long("after", 0), it.long("limit", 50).toInt(), it["tail"]?.jsonPrimitive?.booleanOrNull ?: false))
         },
         McpTool("agent_resume", "Continue remaining stages of an interrupted run after inspecting uncertain effects. Reuses completed stage results; may invoke native tools and incur model usage.",
             objectSchema(mapOf("runId" to stringSchema("Exact run id"), "expectedRevision" to buildJsonObject { put("type", "integer"); put("description", "Reviewed run revision; required for a workflow gate. A retry after the run changes is stale.") }), listOf("runId")), false, false, destructive = true, openWorld = true) { result(workspace.resume(it.string("runId"), (it["expectedRevision"] as? JsonPrimitive)?.longOrNull)) },

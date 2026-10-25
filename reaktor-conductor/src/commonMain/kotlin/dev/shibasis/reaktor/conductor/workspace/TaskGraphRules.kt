@@ -425,6 +425,7 @@ class TaskGraphEditing(
         val task = task(ref)
         val plan = plan(task)
         if (!caller.person && !caller.lead) refuse("Only a person or the lead retries a task")
+        require(plan.recovery != AgentRecovery.NeedsReview) { "Reconcile the interrupted attempt in Hangar before retrying" }
         require(plan.state in setOf(TaskState.Failed, TaskState.Cancelled, TaskState.Skipped, TaskState.Waiting)) { "${task.id} is ${plan.state.name.lowercase()}; retry a failed, cancelled, skipped or waiting task" }
         put(task.copy(graph = plan.copy(state = TaskState.Pending, note = "Retry asked by ${caller.by.name}", readySince = null)))
         summary += "Retry ${task.id}"

@@ -58,3 +58,57 @@ internal suspend fun AgentWorkspace.landTaskCandidate(graph: String, task: Strin
         board.view(graph)
     }
 }
+
+internal fun AgentWorkspace.recoverTask(graph: String, task: String, revision: Long, attempt: Int, action: TaskRecoveryAction, by: BoardActor): TaskGraphView =
+    synchronized(board) { admitOperation {
+        require(by.kind == BoardActorKind.Person && by.name.isNotBlank()) { "Only a person reconciles an interrupted attempt" }
+        require(board.graph(graph).revision == revision) { "The graph changed; read its current revision" }
+        val value = board.get(task)
+        val plan = requireNotNull(value.graph?.takeIf { it.id == graph }) { "Task does not belong to this graph" }
+        require(plan.kind == TaskKind.Agent && plan.state == TaskState.Waiting && plan.recovery == AgentRecovery.NeedsReview &&
+            plan.attempt == attempt) { "The interrupted attempt changed; inspect it again" }
+        val run = get(requireNotNull(plan.runId))
+        val target = submission(run.id).task
+        require(run.status == AgentRunStatus.Interrupted && run.recovery == AgentRecovery.NeedsReview &&
+            target?.graph == graph && target.task == task && target.attempt == attempt) { "This run is not the interrupted task attempt" }
+        val writing = (plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write
+        val tree = plan.worktreeId?.takeIf { writing }
+        val candidate = if (action == TaskRecoveryAction.KeepWork) {
+            require(writing && plan.contract == WorkflowContract.Text && tree != null) { "Only an isolated writing task can keep work for review" }
+            require(board.members(graph).any { review -> review.graph?.let {
+                it.kind == TaskKind.Agent && it.contract == WorkflowContract.Decision && (it.resolvedSeat ?: it.seat?.let(::resolveSeat))?.seat?.access == TaskAccess.Read &&
+                    it.dependsOn.any { dependency -> dependency.task == task }
+            } == true }) { "Connect an independent review Decision after this task before keeping its work" }
+            captureCandidate(task).also { require(it.complete) { "Candidate coverage is incomplete; keep the checkout" } }
+        } else null
+        val snapshot = if (action == TaskRecoveryAction.Abandon && tree != null)
+            worktrees.retainSnapshot(tree).also { evidence.snapshot(task, it) } else null
+        if (action == TaskRecoveryAction.Retry && writing) require(tree != null && worktrees.read(tree).roots.all { java.io.File(it.path).isDirectory }) { "The owned checkout is missing" }
+        if (snapshot != null) worktrees.abandon(requireNotNull(tree), snapshot)
+        reconcileRun(run.id, run.revision, action)
+        val detail = when (action) {
+            TaskRecoveryAction.Retry -> "Retry requested by ${by.name}; reuse the owned checkout"
+            TaskRecoveryAction.KeepWork -> "Work kept by ${by.name} as candidate ${candidate?.id}; native outcome remains unknown; independent review and checks are required"
+            TaskRecoveryAction.Abandon -> "Abandoned by ${by.name}; " + (snapshot?.let { "recoverable snapshot ${it.id}" } ?: "no owned writing checkout to remove")
+        }
+        val now = System.currentTimeMillis()
+        board.advance(graph, task) { current, currentPlan ->
+            current.copy(revision = current.revision + 1,
+                stage = if (action == TaskRecoveryAction.KeepWork) BoardStage.Review else current.stage,
+                history = (current.history + BoardEvent(now, by, detail)).takeLast(50),
+                graph = currentPlan.copy(recovery = AgentRecovery.None, note = detail,
+                    state = when (action) {
+                        TaskRecoveryAction.Retry -> TaskState.Pending
+                        TaskRecoveryAction.KeepWork -> TaskState.Succeeded
+                        TaskRecoveryAction.Abandon -> TaskState.Cancelled
+                    },
+                    readySince = null,
+                    worktreeId = currentPlan.worktreeId.takeUnless { action == TaskRecoveryAction.Abandon && writing },
+                    outcome = if (candidate == null) currentPlan.outcome else (currentPlan.outcome ?: TaskOutcome()).copy(
+                        summary = detail, candidateId = candidate.id, files = candidate.changedFiles, at = now, attempt = attempt, questions = emptyList())))
+        }
+        if (candidate != null) board.appendHandoff(TaskHandoff(graph, task, attempt,
+            goal = value.intent.ifBlank { value.title }.take(4000), done = detail, candidate = candidate.id,
+            changedPaths = candidate.changedFiles.take(100), sessionLogs = listOfNotNull(plan.outcome?.log)), by)
+        board.view(graph)
+    } }

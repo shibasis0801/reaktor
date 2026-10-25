@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+import kotlinx.serialization.json.*
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.*
@@ -62,6 +63,56 @@ class SourceIsolationTest {
         assertFalse(File(checkout, ".claude/worktrees/other").exists())
         assertContentEquals(index, File(root, ".git/index").readBytes())
         store.remove(worktree.id)
+    }
+
+    @Test fun abandonmentRetainsEveryIncludedRootAndRefusesAChangedOrIncompleteSnapshot() = fixture { root, _, artifacts, store ->
+        val framework = File(root.parentFile, "framework").apply { mkdir() }
+        git(framework, "init", "--quiet")
+        File(framework, "Framework.kt").writeText("val framework = 1\n")
+        git(framework, "add", ".")
+        git(framework, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Framework")
+        File(root, "settings.gradle.kts").writeText("includeBuild(\"../framework\")")
+        File(root, ".gitignore").writeText("build/\n")
+        File(root, "build/dependeasy/model.json").apply { parentFile.mkdirs(); writeText(
+            """{"schema":4,"producer":{"version":"fixture"},"builds":[{"name":"project","directory":"."},{"name":"framework","directory":"../framework"}]}""") }
+        git(root, "add", ".")
+        git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Include")
+        val tree = store.prepare("abandoned-roots", "writer")
+        assertEquals(2, tree.roots.size)
+        val indices = listOf(root, framework).associateWith { File(it, ".git/index").readBytes() }
+        tree.roots.forEach { File(it.path, "New.kt").writeText("val retained = \"${File(it.source).name}\"\n") }
+        val snapshot = store.retainSnapshot(tree.id)
+        val manifest = dev.shibasis.reaktor.conductor.ConductorJson.parseToJsonElement(artifacts.text(snapshot)).jsonObject
+        val missingRoot = artifacts.put(kotlinx.serialization.json.JsonObject(manifest.toMutableMap().apply {
+            put("roots", kotlinx.serialization.json.JsonArray(manifest.getValue("roots").jsonArray.take(1)))
+        }).toString(), "worktree-snapshot")
+        assertFailsWith<IllegalArgumentException> { store.abandon(tree.id, missingRoot) }
+        assertTrue(tree.roots.all { File(it.path, "New.kt").exists() })
+        val moved = File(tree.roots.first().path, "New.kt")
+        val saved = moved.readText()
+        moved.appendText("val later = true\n")
+        assertFailsWith<IllegalArgumentException> { store.abandon(tree.id, snapshot) }
+        assertTrue(tree.roots.all { File(it.path).exists() })
+        moved.writeText(saved)
+        store.abandon(tree.id, snapshot)
+        assertTrue(tree.roots.all { !File(it.path).exists() })
+        manifest.getValue("roots").jsonArray.forEach { item ->
+            val entry = item.jsonObject
+            val source = File(entry.getValue("source").jsonPrimitive.content)
+            val ref = entry.getValue("ref").jsonPrimitive.content
+            assertEquals("val retained = \"${source.name}\"", git(source, "show", "$ref:New.kt"))
+        }
+        indices.forEach { (source, index) -> assertContentEquals(index, File(source, ".git/index").readBytes()) }
+    }
+
+    @Test fun snapshotWriteFailureNeverRemovesTheOwnedCheckout() = fixture { root, _, _, store ->
+        val tree = store.prepare("failed-snapshot", "writer")
+        File(tree.roots.single().path, "Untracked.kt").writeText("val recover = true\n")
+        File(root, ".git/refs/reaktor").mkdirs()
+        File(root, ".git/refs/reaktor/abandoned").writeText("reference namespace blocked")
+        assertFailsWith<Exception> { store.retainSnapshot(tree.id) }
+        assertTrue(File(tree.roots.single().path, "Untracked.kt").exists())
+        assertEquals(tree, store.read(tree.id))
     }
 
     @Test fun movingCaptureAndMovingSnapshotRetryAndDiscardTheOldTrial() = fixture { root, _, artifacts, store ->

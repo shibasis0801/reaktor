@@ -23,13 +23,14 @@ class AgentActivityStore(private val directory: Path) {
         return record
     }
 
-    @Synchronized fun page(runId: String, after: Long = 0, limit: Int = 50): AgentActivityPage {
+    @Synchronized fun page(runId: String, after: Long = 0, limit: Int = 50, tail: Boolean = false): AgentActivityPage {
         require(after >= 0 && limit in 1..100)
         val folder = folder(runId)
         val last = cursors[runId] ?: lastSequence(folder)
         val records = mutableListOf<AgentActivityRecord>()
         var bytes = 0L
-        for (sequence in (after + 1)..minOf(last, after + limit)) {
+        val start = if (tail) maxOf(after, last - limit) else after
+        for (sequence in (start + 1)..minOf(last, start + limit)) {
             val path = folder.resolve("%012d.json".format(sequence))
             val text = if (Files.exists(path)) Files.readString(path) else java.util.zip.ZipFile(folder.resolve("archive.zip").toFile()).use { zip ->
                 zip.getInputStream(requireNotNull(zip.getEntry(path.fileName.toString()))).bufferedReader().use { it.readText() }
@@ -38,7 +39,7 @@ class AgentActivityStore(private val directory: Path) {
             if (bytes > 500000 && records.isNotEmpty()) break
             records += ConductorJson.decodeFromString(AgentActivityRecord.serializer(), text)
         }
-        val next = records.lastOrNull()?.sequence ?: after
+        val next = records.lastOrNull()?.sequence ?: start
         return AgentActivityPage(records, next, next < last)
     }
 

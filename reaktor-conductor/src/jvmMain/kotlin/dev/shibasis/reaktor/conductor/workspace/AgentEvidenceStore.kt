@@ -25,6 +25,11 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
         save(task.copy(candidates = (task.candidates.filterNot { it.id == candidate.id } + candidate).takeLast(100),
             acceptedCandidate = task.acceptedCandidate?.takeIf { it == candidate.id }))
     }
+    @Synchronized internal fun snapshot(taskId: String, ref: ArtifactRef) {
+        val task = get(taskId)
+        require(ref.kind == "worktree-snapshot")
+        save(task.copy(snapshots = (task.snapshots + ref).distinctBy { it.id }))
+    }
     @Synchronized fun requireChecks(taskId: String, checks: List<String>): AgentTaskEvidence {
         require(checks.size <= 30 && checks.all { it.isNotBlank() && it.length <= 200 })
         return save(get(taskId).copy(requiredChecks = checks.distinct(), acceptedCandidate = null))
@@ -125,7 +130,7 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
     }
     fun artifact(taskId: String, id: String, offset: Long = 0, limit: Int = 24000): AgentArtifactPage {
         val task = get(taskId)
-        val refs = task.candidates.mapNotNull { it.diff } + task.checks.mapNotNull { it.result.log }
+        val refs = task.candidates.mapNotNull { it.diff } + task.checks.mapNotNull { it.result.log } + task.snapshots
         return artifacts.read(refs.firstOrNull { it.id == id } ?: error("Artifact is not attached to this task"), offset, limit)
     }
     private fun path(id: String): Path {

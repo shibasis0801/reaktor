@@ -35,7 +35,7 @@ interface TaskOutcomes {
 
 sealed interface CoordinatorMessage {
     data object Tick : CoordinatorMessage
-    data class Settled(val task: String, val attempt: Int, val state: TaskState, val outcome: TaskOutcome, val transient: Boolean = false) : CoordinatorMessage
+    data class Settled(val task: String, val attempt: Int, val state: TaskState, val outcome: TaskOutcome, val transient: Boolean = false, val recovery: AgentRecovery = AgentRecovery.None) : CoordinatorMessage
 }
 
 sealed interface TaskMessage {
@@ -174,7 +174,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 fits(task, members, seat) -> {
                     if (plan.kind == TaskKind.Agent) free--
                     val started = store.advance(graphId, task.id) { value, current ->
-                        value.copy(graph = current.copy(state = TaskState.Running, attempt = current.attempt + 1, note = null, outcome = null, held = false, run = null, runId = null, resolvedSeat = resolved))
+                        value.copy(graph = current.copy(state = TaskState.Running, attempt = current.attempt + 1, note = null, outcome = null, held = false, run = null, runId = null, resolvedSeat = resolved, recovery = AgentRecovery.None))
                     }
                     members = members + (started.id to started)
                     scope.actor(task.id)?.let { actor -> actor.task = started; actor.trySend(TaskMessage.Start) }
@@ -228,7 +228,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         }
         val stage = if (message.state == TaskState.Succeeded && plan.kind == TaskKind.Agent && task.stage != BoardStage.Done) BoardStage.Review else task.stage
         val settled = store.advance(graphId, task.id) { value, current ->
-            value.copy(graph = current.copy(state = message.state, outcome = outcome), stage = stage,
+            value.copy(graph = current.copy(state = message.state, outcome = outcome, recovery = message.recovery), stage = stage,
                 stageChangedAt = if (stage != value.stage) System.currentTimeMillis() else value.stageChangedAt,
                 history = (value.history + BoardEvent(System.currentTimeMillis(), scope.by, "${message.state.name} after attempt ${current.attempt}")).takeLast(50))
         }
@@ -476,7 +476,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             run.status == AgentRunStatus.Completed -> settled(TaskState.Succeeded, base)
             run.recovery == AgentRecovery.NeedsReview -> settled(TaskState.Waiting, base.copy(
                 summary = "The outcome is unknown: ${run.recoveryReason ?: "the owner stopped while this task ran"}.",
-                questions = listOf("Inspect $ref, then report ${task.id} done or retry it.")))
+                questions = listOf("Inspect $ref, then choose Retry, Keep the work or Abandon in Hangar."))).copy(recovery = AgentRecovery.NeedsReview)
             else -> settled(TaskState.Failed, base.copy(summary = (run.failure ?: "The run stopped without a result").take(TaskGraphRules.OutcomeChars)),
                 transient = run.failure?.contains("Stopped by the user") != true && run.output.isBlank())
         }

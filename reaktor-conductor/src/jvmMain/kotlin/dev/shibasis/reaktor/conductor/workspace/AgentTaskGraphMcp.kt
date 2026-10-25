@@ -155,6 +155,16 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             val id = args.text("graph")
             AgentWorkspaceJson.encodeToJsonElement(BoardTask.serializer(), workspace.board.claim(id, args.text("task"), workspace.taskGraphCaller(id, args.by())))
         },
+        McpTool("agent_taskgraph_recover", "A person reconciles an interrupted attempt: Retry reuses its checkout; KeepWork captures a candidate for independent review; Abandon retains a Git snapshot before removing its writing checkout.",
+            objectSchema(mapOf(graphId, "task" to stringSchema("Interrupted task id"), revision,
+                "attempt" to buildJsonObject { put("type", "integer"); put("minimum", 1) },
+                "action" to enumSchema("Recovery action", TaskRecoveryAction.entries.map { it.name }), by),
+                listOf("graph", "task", "expectedRevision", "attempt", "action", "by")), readOnly = false, idempotent = false) { args ->
+            args.only("graph", "task", "expectedRevision", "attempt", "action", "by")
+            AgentWorkspaceJson.encodeToJsonElement(TaskGraphView.serializer(), workspace.recoverTask(args.text("graph"),
+                args.text("task"), requireNotNull(args.long("expectedRevision")), requireNotNull(args.long("attempt")).toInt(),
+                TaskRecoveryAction.valueOf(args.text("action")), args.by()))
+        },
         McpTool("agent_taskgraph_accept", "A person accepts a writing task's exact candidate after its review and required checks pass.",
             objectSchema(mapOf(graphId, "task" to stringSchema("Writing task id"), "candidate" to stringSchema("Exact candidate id"), revision, by),
                 listOf("graph", "task", "candidate", "expectedRevision", "by")), readOnly = false, idempotent = false) { args ->

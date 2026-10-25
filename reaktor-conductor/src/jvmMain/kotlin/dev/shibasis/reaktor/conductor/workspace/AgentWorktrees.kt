@@ -1,10 +1,9 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.ConductorJson
+import dev.shibasis.reaktor.conductor.ArtifactRef
+import kotlinx.serialization.json.*
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -55,12 +54,57 @@ class AgentWorktrees(private val root: File, private val directory: Path, privat
             val path = File(entry.path).canonicalFile.toPath()
             require(path.parent == directory.resolve(id).toRealPath())
             if (Files.exists(path)) git(File(entry.source), listOf("worktree", "remove") +
-                (if (value.applyState == "applied") listOf("--force") else emptyList()) + path.toString())
+                (if (value.applyState in listOf("applied", "abandoned")) listOf("--force") else emptyList()) + path.toString())
         }
         registration(id)?.let(Files::deleteIfExists)
         directory.resolve(id).toFile().deleteTreeSafely(within = directory.toFile())
         Files.delete(file(id))
     }
+    @Synchronized internal fun retainSnapshot(id: String): ArtifactRef {
+        val value = read(id)
+        val before = capture(id)
+        require(before.complete) { "Snapshot coverage is incomplete; keep the checkout" }
+        val ref = "refs/reaktor/abandoned/$id/${before.id}"
+        val commits = value.roots.associateWith { entry ->
+            val path = File(entry.path)
+            val tree = snapshot(path)
+            git(path, listOf("-c", "user.name=Reaktor", "-c", "user.email=agents@localhost",
+                "commit-tree", tree, "-p", entry.baseline, "-m", "Reaktor abandoned work snapshot")).trim()
+        }
+        val after = capture(id)
+        require(after.complete && before.id == after.id) { "Source changed during snapshot; keep the checkout" }
+        commits.forEach { (entry, commit) ->
+            git(File(entry.source), listOf("update-ref", ref, commit))
+            require(git(File(entry.source), listOf("rev-parse", ref)).trim() == commit) { "Snapshot reference was not retained" }
+        }
+        return artifacts.put(buildJsonObject {
+            put("worktree", id); put("candidate", before.id)
+            put("restore", "For each root: git -C <source> worktree add --detach <new-path> <ref>")
+            putJsonArray("roots") { commits.forEach { (entry, commit) -> add(buildJsonObject {
+                put("source", entry.source); put("ref", ref); put("commit", commit); put("baseline", entry.baseline)
+            }) } }
+        }.toString(), "worktree-snapshot")
+    }
+
+    @Synchronized internal fun abandon(id: String, snapshot: ArtifactRef) {
+        val manifest = ConductorJson.parseToJsonElement(artifacts.text(snapshot)).jsonObject
+        require(snapshot.kind == "worktree-snapshot" && manifest.getValue("worktree").jsonPrimitive.content == id)
+        val value = read(id)
+        val roots = manifest.getValue("roots").jsonArray
+        require(roots.size == value.roots.size && roots.map { it.jsonObject.getValue("source").jsonPrimitive.content }.toSet() == value.roots.map { it.source }.toSet()) { "Snapshot must retain every owned root" }
+        roots.forEach { item ->
+            val entry = item.jsonObject
+            val source = entry.getValue("source").jsonPrimitive.content
+            require(value.roots.any { it.source == source })
+            require(git(File(source), listOf("rev-parse", entry.getValue("ref").jsonPrimitive.content)).trim() ==
+                entry.getValue("commit").jsonPrimitive.content) { "Retained snapshot changed; keep the checkout" }
+        }
+        val current = capture(id)
+        require(current.complete && current.id == manifest.getValue("candidate").jsonPrimitive.content) { "Source changed after snapshot; keep the checkout" }
+        save(value.copy(applyState = "abandoned"))
+        remove(id)
+    }
+
     fun prepare(runId: String, participant: String): AgentWorktree =
         prepare(runId, participant) { SourceCandidates(root, artifacts).capture() }
 

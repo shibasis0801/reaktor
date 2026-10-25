@@ -79,6 +79,139 @@ class TaskGraphRuntimeTest {
     }
 
 
+
+    private fun interrupted(body: suspend (AgentWorkspaceConnection, AgentWorkspace, File, AgentRunRecord, Scripted, Scripted) -> Unit) = runBlocking {
+        val root = Files.createTempDirectory("taskgraph-recovery-root").toFile()
+        val data = Files.createTempDirectory("taskgraph-recovery-data")
+        val started = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val waiting = object : AgentRuntime {
+            override val kind = RuntimeKind.Codex
+            override fun run(request: AgentRequest) = flow<AgentEvent> {
+                emit(AgentEvent.Started(request.agent.id, ProviderSession(kind, "interrupted-native")))
+                File(request.workingDirectory, "Source.kt").writeText("val incomplete = 1\n")
+                File(request.workingDirectory, "Untracked.kt").writeText("val retained = true\n")
+                emit(AgentEvent.Activity(request.agent.id, AgentActivityItem("uncertain", ActivityKind.Tool, "Unrecorded external operation", ActivityStatus.Started)))
+                started.complete(Unit)
+                kotlinx.coroutines.awaitCancellation()
+            }
+        }
+        fun git(vararg args: String): String {
+            val process = ProcessBuilder(listOf("git", "-C", root.path) + args).redirectErrorStream(true).start()
+            val output = process.inputStream.bufferedReader().readText()
+            check(process.waitFor() == 0) { output }
+            return output.trim()
+        }
+        try {
+            File(root, "Source.kt").writeText("val baseline = 1\n")
+            git("init", "--quiet"); git("add", ".")
+            git("-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Baseline")
+            File(root, "Source.kt").writeText("val staged = 2\n"); git("add", "Source.kt")
+            File(root, "Source.kt").writeText("val primary = 3\n")
+            val index = Files.readAllBytes(root.toPath().resolve(".git/index"))
+            val claude = Scripted(RuntimeKind.ClaudeCode, listOf("{\"verdict\":\"pass\",\"summary\":\"Reviewed retained work\",\"candidate\":\"{{candidate}}\",\"findings\":[]}"))
+            lateinit var original: AgentRunRecord
+            lateinit var firstOwner: AgentWorkspace
+            AgentWorkspaceConnection.open(root, data, mapOf(waiting.kind to waiting, claude.kind to claude), background = true,
+                extraTools = { firstOwner = it; emptyList() }).use { first ->
+                val proposed = first.proposeTaskGraph(draft(), person)
+                first.startTaskGraph("G1", proposed.graph.revision, person)
+                withTimeout(10000) { started.await() }
+                val running = first.until("G1") { it.task("Build the parser").graph?.runId != null }
+                original = first.get(running.task("Build the parser").graph!!.runId!!)
+                firstOwner.queue(original.id, AgentSubmission("queued", RuntimeKind.Codex, "Retain this follow-up", original.threadId))
+            }
+            val codex = Scripted(RuntimeKind.Codex, listOf("Repaired after interruption"))
+            lateinit var owner: AgentWorkspace
+            AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude), background = true,
+                extraTools = { owner = it; emptyList() }).use { connection ->
+                val held = connection.until("G1") { it.task("Build the parser").graph?.recovery == AgentRecovery.NeedsReview }
+                assertEquals(TaskState.Waiting, held.task("Build the parser").graph?.state)
+                assertEquals(AgentRunStatus.Interrupted, owner.get(original.id).status)
+                assertTrue(codex.requests.isEmpty())
+                assertTrue(claude.requests.isEmpty())
+                assertEquals("waiting", owner.queueItems(original.threadId).single().state)
+                body(connection, owner, root, original, codex, claude)
+                assertEquals("Retain this follow-up", owner.queueItems(original.threadId).single().submission.prompt)
+                assertContentEquals(index, Files.readAllBytes(root.toPath().resolve(".git/index")))
+                assertEquals("val primary = 3\n", File(root, "Source.kt").readText())
+            }
+        } finally {
+            root.deleteTreeSafely(within = temporary)
+            data.toFile().deleteTreeSafely(within = temporary)
+        }
+    }
+
+    @Test fun interruptedAttemptRequiresTheDisplayedPersonRevisionAndRetriesInTheSameCheckout() = interrupted { connection, owner, _, original, codex, _ ->
+        val held = connection.taskGraph("G1")
+        val task = held.task("Build the parser")
+        val plan = task.graph!!
+        assertFailsWith<Exception> { owner.resume(original.id, owner.get(original.id).revision) }
+        assertFailsWith<Exception> { connection.patchTaskGraph("G1", TaskGraphPatch(listOf(TaskGraphOp.Retry(task.id)), "bypass"), person) }
+        assertFailsWith<Exception> { connection.reportTaskGraph("G1", task.id, TaskReport.Succeeded, TaskOutcome(summary = "bypass"), person) }
+        assertFailsWith<Exception> { connection.recoverTaskGraph("G1", task.id, held.graph.revision, plan.attempt, TaskRecoveryAction.Retry, BoardActor(BoardActorKind.Agent, "codex")) }
+        assertFailsWith<Exception> { connection.recoverTaskGraph("G1", task.id, held.graph.revision - 1, plan.attempt, TaskRecoveryAction.Retry, person) }
+        assertFailsWith<Exception> { connection.recoverTaskGraph("G1", task.id, held.graph.revision, plan.attempt + 1, TaskRecoveryAction.Retry, person) }
+        assertEquals(held, connection.taskGraph("G1"))
+        codex.onRun = { request, _ ->
+            assertEquals("val incomplete = 1\n", File(request.workingDirectory, "Source.kt").readText())
+            assertTrue(File(request.workingDirectory, "Untracked.kt").exists())
+        }
+        connection.recoverTaskGraph("G1", task.id, held.graph.revision, plan.attempt, TaskRecoveryAction.Retry, person)
+        val done = connection.until("G1") { it.task("Land it").graph?.state == TaskState.Waiting }
+        assertEquals(2, done.task("Build the parser").graph?.attempt)
+        assertEquals(plan.worktreeId, done.task("Build the parser").graph?.worktreeId)
+        assertEquals(setOf(1, 2), done.task("Build the parser").graph?.workAttempts?.values?.toSet())
+        assertEquals(AgentRunStatus.Interrupted, owner.get(original.id).status)
+        assertEquals(AgentRecovery.None, owner.get(original.id).recovery)
+    }
+
+    @Test fun keepingInterruptedWorkCapturesTheExactCandidateForIndependentReviewWithoutWaivingChecks() = interrupted { connection, owner, _, original, codex, claude ->
+        val held = connection.taskGraph("G1")
+        val task = held.task("Build the parser")
+        connection.recoverTaskGraph("G1", task.id, held.graph.revision, task.graph!!.attempt, TaskRecoveryAction.KeepWork, person)
+        val reviewed = connection.until("G1") { it.task("Land it").graph?.state == TaskState.Waiting }
+        val kept = reviewed.task("Build the parser")
+        val candidate = owner.evidence.get(task.id).candidates.single { it.id == kept.graph?.outcome?.candidateId }
+        assertTrue(candidate.complete)
+        assertEquals(candidate.id, kept.graph?.outcome?.candidateId)
+        assertEquals(candidate.id, reviewed.task("Review the parser").graph?.outcome?.candidateId)
+        assertEquals("pass", reviewed.task("Review the parser").graph?.outcome?.verdict)
+        assertTrue(codex.requests.isEmpty())
+        assertEquals(1, claude.requests.size)
+        assertEquals(AgentRunStatus.Interrupted, owner.get(original.id).status)
+        assertNull(owner.evidence.get(task.id).acceptedCandidate)
+        assertFailsWith<Exception> { connection.call("agent_taskgraph_accept", buildJsonObject {
+            put("graph", "G1"); put("task", task.id); put("candidate", candidate.id); put("expectedRevision", reviewed.graph.revision)
+            put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), person))
+        }) }
+    }
+
+    @Test fun abandoningInterruptedWorkRetainsRestorableDirtyAndNewFilesBeforeRemovingItsCheckout() = interrupted { connection, owner, root, original, _, _ ->
+        val held = connection.taskGraph("G1")
+        val task = held.task("Build the parser")
+        val tree = owner.worktrees.read(task.graph!!.worktreeId!!)
+        connection.recoverTaskGraph("G1", task.id, held.graph.revision, task.graph!!.attempt, TaskRecoveryAction.Abandon, person)
+        val abandoned = connection.taskGraph("G1").task("Build the parser")
+        assertEquals(TaskState.Cancelled, abandoned.graph?.state)
+        assertNull(abandoned.graph?.worktreeId)
+        assertTrue(tree.roots.all { !File(it.path).exists() })
+        val ref = owner.evidence.get(task.id).snapshots.single()
+        val manifest = ConductorJson.parseToJsonElement(owner.evidence.artifacts.text(ref)).jsonObject
+        assertEquals(tree.roots.size, manifest.getValue("roots").jsonArray.size)
+        val saved = manifest.getValue("roots").jsonArray.single().jsonObject
+        fun savedFile(path: String): String {
+            val process = ProcessBuilder("git", "-C", root.path, "show", "${saved.getValue("ref").jsonPrimitive.content}:$path").redirectErrorStream(true).start()
+            val output = process.inputStream.bufferedReader().readText()
+            assertEquals(0, process.waitFor(), output)
+            return output
+        }
+        assertEquals("val incomplete = 1\n", savedFile("Source.kt"))
+        assertEquals("val retained = true\n", savedFile("Untracked.kt"))
+        assertEquals(AgentRunStatus.Interrupted, owner.get(original.id).status)
+        val artifact = connection.call("agent_artifact", buildJsonObject { put("taskId", task.id); put("artifactId", ref.id) })
+        assertTrue(artifact.toString().contains("worktree"))
+    }
+
     @Test fun anAttemptPinsTheDiscoveredProfileAndOnlyARetryUsesItsRevision() = runBlocking {
         val root = Files.createTempDirectory("taskgraph-profile-root").toFile()
         val data = Files.createTempDirectory("taskgraph-profile-data")

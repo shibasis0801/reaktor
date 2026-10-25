@@ -367,6 +367,7 @@ class AgentBoardStore(
     @Synchronized fun report(id: String, task: String, report: TaskReport, outcome: TaskOutcome, caller: TaskGraphCaller): BoardTask {
         val current = get(task)
         val plan = requireNotNull(current.graph?.takeIf { it.id == id }) { "$task is not in $id" }
+        require(plan.recovery != AgentRecovery.NeedsReview) { "Reconcile the interrupted attempt in Hangar before reporting a result" }
         val callerAttempt = plan.attemptOf(caller.refs)
         val refusal = "An agent reports only on its own task's current attempt; $task current attempt ${plan.attempt}, caller attempt ${callerAttempt ?: "unlinked"}${outcome.attempt?.let { ", reported attempt $it" }.orEmpty()}"
         if (plan.kind == TaskKind.Gate) require(caller.person) { "Only a person passes a gate" }
