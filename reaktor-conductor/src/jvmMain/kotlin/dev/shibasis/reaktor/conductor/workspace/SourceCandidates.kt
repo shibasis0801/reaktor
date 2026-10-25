@@ -10,6 +10,7 @@ import dev.shibasis.reaktor.tooling.gradleSourceRoots
 /** Captures working files, not just HEAD. A budget miss prevents an acceptance claim. */
 class SourceCandidates(private val root: File, private val artifacts: LocalAgentArtifacts) {
     private var materializedRoots: List<File>? = null
+    private val inputPaths = CandidateSourceInputs.paths(root)
     internal constructor(root: File, artifacts: LocalAgentArtifacts, roots: List<File>) : this(root, artifacts) {
         require(roots.size in 1..16 && roots.any { it.canonicalFile == root.canonicalFile })
         materializedRoots = roots.map(File::getCanonicalFile).distinct()
@@ -19,10 +20,10 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         visited += root.canonicalPath
         val notices = mutableListOf<String>()
         val base = git("rev-parse", "HEAD")?.trim()
-        val files = git(*(listOf("ls-files", "-z", "--cached", "--others", "--exclude-standard", "--") + CandidateSourceInputs.paths).toTypedArray())
+        val files = git(*(listOf("ls-files", "-z", "--cached", "--others", "--exclude-standard", "--") + inputPaths).toTypedArray())
         if (files == null) notices += "Git source inventory unavailable"
         val names = files.orEmpty().split('\u0000').filter { it.isNotEmpty() }.distinct().sorted()
-        val stages = git(*(listOf("ls-files", "--stage", "-z", "--") + CandidateSourceInputs.paths).toTypedArray())
+        val stages = git(*(listOf("ls-files", "--stage", "-z", "--") + inputPaths).toTypedArray())
         if (stages == null) notices += "Git source modes unavailable"
         val gitlinks = stages.orEmpty()
             .split('\u0000').filter { it.startsWith("160000 ") && '\t' in it }
@@ -87,9 +88,9 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         }
         if (dependencies.size > captured.size) notices += "Included source coverage is incomplete"
         val sourceDigest = hash.digest().joinToString("") { "%02x".format(it) }
-        val untracked = (git(*(listOf("ls-files", "-z", "--others", "--exclude-standard", "--") + CandidateSourceInputs.paths).toTypedArray()) ?: "").split('\u0000').filter { it.isNotEmpty() }
-        val changed = (git(*(listOf("diff", "--name-only", "-z", base ?: "--cached", "--") + CandidateSourceInputs.paths).toTypedArray()) ?: "").split('\u0000') + untracked
-        val diff = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base ?: "--cached", "--") + CandidateSourceInputs.paths).toTypedArray())
+        val untracked = (git(*(listOf("ls-files", "-z", "--others", "--exclude-standard", "--") + inputPaths).toTypedArray()) ?: "").split('\u0000').filter { it.isNotEmpty() }
+        val changed = (git(*(listOf("diff", "--name-only", "-z", base ?: "--cached", "--") + inputPaths).toTypedArray()) ?: "").split('\u0000') + untracked
+        val diff = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base ?: "--cached", "--") + inputPaths).toTypedArray())
         val additions = StringBuilder()
         var diffBytes = diff?.toByteArray()?.size ?: 0
         for (name in untracked.take(200)) {
@@ -141,14 +142,14 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         if (wanted.isEmpty()) return ScopedDiff("", emptyList())
         val bounded = wanted.take(SCOPE_LIMIT)
         if (wanted.size > bounded.size) notices += "Diff scoped to the first ${bounded.size} of ${wanted.size} changed paths"
-        val untracked = (git(*(listOf("ls-files", "-z", "--others", "--exclude-standard", "--") + CandidateSourceInputs.paths).toTypedArray()) ?: "")
+        val untracked = (git(*(listOf("ls-files", "-z", "--others", "--exclude-standard", "--") + inputPaths).toTypedArray()) ?: "")
             .split(NUL).filter { it.isNotEmpty() }.toSet()
         val base = git("rev-parse", "HEAD")?.trim() ?: "--cached"
         val text = StringBuilder()
         // Chunked because a path list is argv, and a turn that touches hundreds of files would
         // otherwise run into the platform's argument limit and produce nothing at all.
         bounded.filter { it !in untracked }.chunked(ARGV_CHUNK).forEach { chunk ->
-            val part = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base, "--") + chunk + CandidateSourceInputs.exclusions).toTypedArray())
+            val part = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base, "--") + chunk + CandidateSourceInputs.exclusions(root)).toTypedArray())
             if (part == null) notices += "Diff unavailable for ${chunk.size} tracked ${if (chunk.size == 1) "path" else "paths"}"
             else text.append(part)
         }
@@ -173,7 +174,7 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
      * cycle on a real repository.
      */
     fun dirtyManifest(): SourceManifest {
-        val status = git(*(listOf("status", "--porcelain=v1", "-z", "--untracked-files=all", "--") + CandidateSourceInputs.paths).toTypedArray())
+        val status = git(*(listOf("status", "--porcelain=v1", "-z", "--untracked-files=all", "--") + inputPaths).toTypedArray())
             ?: return SourceManifest(emptyMap(), available = false)
         // Porcelain v1 with -z emits "XY path" records separated by NUL; a rename or copy adds a
         // second record holding the original path, which is not itself a changed file.
@@ -222,9 +223,10 @@ data class ScopedDiff(val text: String, val notices: List<String>)
 
 internal object CandidateSourceInputs {
     private val renders = listOf("png", "jpg", "jpeg", "webp", "xml", "json", "html", "txt", "properties", "zip", "mp4", "pdf")
-    val exclusions = listOf(".claude/worktrees", ".claude/worktrees/**", ".reaktor/libexec", ".reaktor/libexec/**").map { ":(top,exclude,glob)$it" } +
-        listOf("agent", "reports").flatMap { root -> renders.map { extension -> ":(top,exclude,glob)$root/*[0-9][0-9][0-9][0-9]*/**/*.$extension" } }
-    val paths = listOf(".") + exclusions
+    fun exclusions(root: File) = listOf(".claude/worktrees", ".claude/worktrees/**", ".reaktor/libexec", ".reaktor/libexec/**").map { ":(top,exclude,glob)$it" } +
+        listOf("agent", "reports").flatMap { folder -> renders.map { extension -> ":(top,exclude,glob)$folder/*[0-9][0-9][0-9][0-9]*/**/*.$extension" } } +
+        if (root.name == "bestbuds") listOf(":(top,exclude,glob)agent", ":(top,exclude,glob)agent/**") else emptyList()
+    fun paths(root: File) = listOf(".") + exclusions(root)
 }
 
 private const val MANIFEST_LIMIT = 5000
