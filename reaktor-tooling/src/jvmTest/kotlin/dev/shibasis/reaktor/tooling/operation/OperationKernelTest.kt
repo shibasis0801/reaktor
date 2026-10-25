@@ -149,6 +149,27 @@ class OperationKernelTest {
     }
 
     @Test
+    fun requestReplayBelongsToTheCallingRunRatherThanItsSharedSeat() = kernel(
+        DoorPolicy(mapOf("*" to SeatPolicy(allow = SafetyClass.SourceWrite)))) { kernel, _, written ->
+        fun request(run: String) = Invocation(OperationId("code.write"), buildJsonObject { put("path", "$run.kt") },
+            CallCaller("spawned", run, "hangar:$run"), requestId = "request-1")
+        val first = request("first")
+        assertIs<Outcome.Completed>(kernel.invoke(first))
+        assertIs<Outcome.Completed>(kernel.invoke(request("second")))
+        assertEquals(kernel.invoke(first), kernel.invoke(first))
+        assertEquals(listOf("first.kt", "second.kt"), written)
+    }
+
+    @Test
+    fun effectClassificationReceivesTheAuthenticatedCallerBeforeAdmission() = kernel { kernel, _, _ ->
+        val read = Invocation(OperationId("source.classify"), buildJsonObject { put("tool", "read") }, CallCaller("spawned", "review", "hangar:review"))
+        assertIs<Outcome.Completed>(kernel.invoke(read))
+        val write = read.copy(caller = read.caller.copy(runId = "writer", principal = "hangar:writer"))
+        assertEquals(SafetyClass.SourceWrite, assertIs<Outcome.ApprovalRequired>(kernel.invoke(write)).effect)
+        assertEquals("Missing run identity", assertIs<Outcome.Failed>(kernel.invoke(read.copy(caller = CallCaller("spawned")))).message)
+    }
+
+    @Test
     fun discoveryIsItselfAnOperation() = kernel { kernel, _, _ ->
         val listed = assertIs<Outcome.Completed>(kernel.invoke(Invocation(OperationId("operation.catalog"), buildJsonObject { put("domain", "code") }))).result.jsonArray
         assertEquals(listOf("code.write"), listed.map { it.jsonObject.getValue("id").jsonPrimitive.content })
@@ -279,8 +300,13 @@ class OperationKernelTest {
             operation<ShowRequest, Shown>("build.show", "Show one build node") { Shown(it.node.value, it.detail) },
             operation<Write, Unit>("code.write", "Write a file", SafetyClass.SourceWrite) { written += it.path },
             operation<Write, String>("source.sign", "Sign a file", SafetyClass.SourceWrite) { "${approval?.id} ${approval?.state} ${approval?.decidedBy}" },
+            rawOperation("source.classify", "Classify source access", SafetyClass.SourceWrite, { JsonObject(emptyMap()) },
+                effectFor = { _, caller ->
+                    require(caller.runId != null) { "Missing run identity" }
+                    if (caller.runId == "review") SafetyClass.ReadOnly else SafetyClass.SourceWrite
+                }) { it },
             rawOperation("provider.call", "Call a provider tool", SafetyClass.UnknownRemoteEffect, { JsonObject(emptyMap()) },
-                effectFor = { if (it["tool"] == JsonPrimitive("list")) SafetyClass.ReadOnly else SafetyClass.ProductionReversibleWrite }) { it.getValue("tool") },
+                effectFor = { arguments, _ -> if (arguments["tool"] == JsonPrimitive("list")) SafetyClass.ReadOnly else SafetyClass.ProductionReversibleWrite }) { it.getValue("tool") },
         )))
         graph.attach(ToolNode(graph, listOf(
             Tool(ToolDefinition("graph_snapshot", "Snapshot", readOnly = true)) { ToolResult(JsonPrimitive("apps")) },
