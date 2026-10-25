@@ -32,7 +32,8 @@ data class Vitest(
 
 @Serializable
 data class Playwright(val configuration: String, val files: List<String> = emptyList(),
-    val headed: Boolean = false, val workers: Int? = null)
+    val headed: Boolean = false, val workers: Int? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val sources: List<FileInput> = emptyList())
 
 @Serializable
 data class WebAppSpec(

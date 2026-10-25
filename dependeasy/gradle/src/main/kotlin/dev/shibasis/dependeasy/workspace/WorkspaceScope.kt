@@ -7,6 +7,7 @@ import dev.shibasis.dependeasy.handles.output
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.verification.devicePreparation
 import dev.shibasis.dependeasy.verification.browserSuite
+import dev.shibasis.dependeasy.verification.nodeSuite
 import dev.shibasis.dependeasy.server.serverRelease
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
@@ -44,6 +45,14 @@ class WorkspaceScope internal constructor(private val project: Project, private 
 
 
     fun prepare(hook: DeviceHook) = NodeDeclaration { name -> project.devicePreparation(name, hook) }
+
+    fun nodeTests(files: FileSet, vararg artifacts: OutputHandle, run: Run = Run.Default): NodeDeclaration =
+        NodeDeclaration { name ->
+            project.nodeSuite(name, files, run).also { node ->
+                artifacts.forEach { workspace.consume(node, it) }
+                workspace.alias(project.projectDir, name, node)
+            }
+        }
 
     fun browserTests(suite: Playwright, vararg artifacts: OutputHandle, after: List<NodeHandle> = emptyList(),
         run: Run = Run.Default): NodeDeclaration = NodeDeclaration { name ->
