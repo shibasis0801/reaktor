@@ -22,7 +22,7 @@ class WorkerFleet internal constructor(
     private val prerequisites: List<OutputHandle>,
     private val contracts: WorkerContractTests?,
 ) {
-    private data class Declaration(val worker: FleetWorker, val directory: File, val prerequisites: List<OutputHandle>, val site: SourceSite?)
+    private data class Declaration(val worker: FleetWorker, val directory: File, val prerequisites: List<OutputHandle>, val typescript: List<String>, val site: SourceSite?)
     private val workers = linkedMapOf<String, Declaration>()
     private var observation: WorkerObservability? = null
     private val secretSources = linkedMapOf<Environment, List<String>>()
@@ -43,9 +43,9 @@ class WorkerFleet internal constructor(
     }
     private val environments get() = delivery.environments
     private val environmentOption = BuildOption.string(GradleProtocol.EnvironmentOption)
-    fun worker(ref: WorkerRef, deployments: List<WorkerDeployment>, vararg prerequisites: OutputHandle) {
+    fun worker(ref: WorkerRef, deployments: List<WorkerDeployment>, vararg prerequisites: OutputHandle, typescript: List<String> = emptyList()) {
         require(!File(ref.directory).isAbsolute) { "Worker directories must be relative" }
-        require(workers.put(ref.name, Declaration(FleetWorker(ref, NodeId(project.rootProject.name, project.path, "deploy${ref.name.replaceFirstChar(Char::uppercaseChar)}"), deployments.toList()), project.rootProject.file(ref.directory), prerequisites.toList(), project.declarationSite())) == null) { "Duplicate worker: ${ref.name}" }
+        require(workers.put(ref.name, Declaration(FleetWorker(ref, NodeId(project.rootProject.name, project.path, "deploy${ref.name.replaceFirstChar(Char::uppercaseChar)}"), deployments.toList()), project.rootProject.file(ref.directory), prerequisites.toList(), typescript.toList(), project.declarationSite())) == null) { "Duplicate worker: ${ref.name}" }
     }
 
     internal fun register(workspace: BuildWorkspace): NodeHandle {
@@ -78,6 +78,7 @@ class WorkerFleet internal constructor(
         project.publishOutput(OutputKind.GeneratedContract, generate.flatMap { it.contract }, Contract.WorkerFleet, producer = generate)
         project.publishOutput(OutputKind.GeneratedContract, generate.map { it.finalConfigurations }, Contract.WorkerConfigurations, producer = generate)
         val nodes = linkedMapOf<String, NodeHandle>()
+        val typechecks = mutableListOf<NodeHandle>()
         records.forEach { worker ->
             val name = worker.name
             val declaration = workers.getValue(name)
@@ -138,6 +139,16 @@ class WorkerFleet internal constructor(
                 workspace.alias(directory, "migrations", node)
             }
             val outputs = prerequisites + declaration.prerequisites
+            if (declaration.typescript.isNotEmpty()) {
+                val types = component.types(*declaration.typescript.toTypedArray())
+                types.configure {
+                    sourceFiles.from(outputs.map(project::outputFiles))
+                    declaration.site?.let { extensions.add(SourceSite::class.java, "declarationSite", it) }
+                }
+                val check = project.node(types)
+                outputs.forEach { workspace.consume(check, it) }
+                typechecks.add(check)
+            }
             outputs.forEach { workspace.consume(deployNode, it) }
             nodes[name] = deployNode
             val deploy = nodes.getValue(name)
@@ -147,6 +158,10 @@ class WorkerFleet internal constructor(
             workspace.alias(project.rootDir, "logs${name.replaceFirstChar(Char::uppercaseChar)}", tail)
             workspace.alias(project.rootDir, "deploy${name.replaceFirstChar(Char::uppercaseChar)}", deploy)
         }
+        val typeChecks = typechecks.takeIf { it.isNotEmpty() }?.let {
+            workspace.aggregate(project, "checkWorkerTypes", NodeKind.Verification, it)
+        }
+        var verification = typeChecks
         contracts?.let { contracts ->
             require(environments.any { it.name == selectedName }) { "Unknown worker environment $selectedName" }
             val groups = linkedMapOf<String, MutableList<NodeHandle>>()
@@ -169,14 +184,16 @@ class WorkerFleet internal constructor(
             }
             groups.forEach { (mode, suites) ->
                 val name = "workerKarate" + mode.replaceFirstChar(Char::uppercaseChar)
-                val suite = workspace.aggregate(project, name, NodeKind.Verification, suites)
-                if (mode == "behaviour") {
-                    project.componentRole(Workspace.Verify, suite)
-                    project.tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(requireNotNull(suite.task)) }
-                }
+                val suite = workspace.aggregate(project, name, NodeKind.Verification,
+                    if (mode == "behaviour") suites + listOfNotNull(typeChecks) else suites)
+                if (mode == "behaviour") verification = suite
                 val suffix = if (mode == "auth") "" else ":$mode"
                 workspace.alias(project.rootDir, "test:workers:karate$suffix", suite)
             }
+        }
+        verification?.let { checks ->
+            project.componentRole(Workspace.Verify, checks)
+            project.tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(requireNotNull(checks.task)) }
         }
         workers.forEach { (name, declaration) ->
             val bindings = (declaration.worker.deployments.singleOrNull { it.environment == selectedEnvironment }
