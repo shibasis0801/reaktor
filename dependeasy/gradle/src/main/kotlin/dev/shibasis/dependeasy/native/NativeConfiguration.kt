@@ -66,19 +66,11 @@ open class NativeLibrary internal constructor(
 
 }
 
-typealias NativeConfiguration = NativeLibrary
-
 val Project.dependeasyExtensionOrNull: DependeasyExtension?
     get() = extensions.findByType(DependeasyExtension::class.java)
 
-val Project.nativeConfigurationOrNull: NativeConfiguration?
+val Project.nativeConfigurationOrNull: NativeLibrary?
     get() = dependeasyExtensionOrNull?.native
-
-val Project.hasNativeConfiguration: Boolean
-    get() = nativeConfigurationOrNull?.isEnabled == true
 
 fun Project.nativeBuildDirectory(variant: String): File =
     layout.buildDirectory.dir("dependeasy/native/$variant").get().asFile
-
-fun Project.darwinNativeLibraryDirectory(sdk: String): File =
-    nativeBuildDirectory(sdk).resolve("Release-$sdk")
