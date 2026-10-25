@@ -170,7 +170,6 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             store.hold(graphId, status, if (status == TaskGraphStatus.Finished) "Every task has settled" else "Failed tasks: $failed", scope.by)
             return
         }
-        var free = scope.workspace.freeSlots()
         for (task in TaskGraphRules.ready(members)) {
             val plan = requireNotNull(task.graph)
             val resolved = try { plan.seat?.let(scope.workspace::resolveSeat) } catch (failure: IllegalArgumentException) {
@@ -189,12 +188,8 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 seat?.lead == true -> Unit
                 plan.kind == TaskKind.Agent && seat?.agent == null -> store.advance(graphId, task.id) { value, current ->
                     value.copy(graph = current.copy(state = TaskState.Waiting, note = "Choose who does this task, then retry it")) }
-                plan.kind == TaskKind.Agent && free <= 0 -> Unit
-                fits(task, members, resolved) -> {
-                    if (plan.kind == TaskKind.Agent) free--
-                    val started = store.advance(graphId, task.id) { value, current ->
-                        value.copy(graph = current.copy(state = TaskState.Running, attempt = current.attempt + 1, note = null, outcome = null, held = false, run = null, runId = null, resolvedSeat = resolved, recovery = AgentRecovery.None, resumeAtReset = null))
-                    }
+                else -> {
+                    val started = scope.workspace.startTask(task, resolved) ?: continue
                     members = members + (started.id to started)
                     scope.actor(task.id)?.let { actor -> actor.task = started; actor.trySend(TaskMessage.Start) }
                 }
@@ -212,18 +207,6 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             if (blocked.isNotEmpty()) store.hold(graphId, TaskGraphStatus.Paused,
                 blocked.joinToString("; ") + ". Retry the prerequisite or edit its dependency.", scope.by)
         }
-    }
-
-    private fun fits(task: BoardTask, members: Map<String, BoardTask>, resolved: ResolvedTaskSeat?): Boolean {
-        val plan = requireNotNull(task.graph)
-        val seat = resolved?.seat
-        val running = members.values.filter { it.graph?.state == TaskState.Running }
-        val agents = (listOfNotNull(seat?.agent) + resolved?.lenses.orEmpty().mapNotNull { it.seat.agent }).distinct()
-        if (plan.kind == TaskKind.Agent && agents.any { agent -> running.count { other -> other.graph?.let { current ->
-                current.kind == TaskKind.Agent && (agent == (current.resolvedSeat?.seat ?: current.seat)?.agent || current.resolvedSeat?.lenses.orEmpty().any { it.seat.agent == agent })
-            } == true } >= store.graph(graphId).envelope.perAgent }) return false
-        if (seat?.access == TaskAccess.Write && running.any { other -> (other.graph?.resolvedSeat?.seat ?: other.graph?.seat)?.access == TaskAccess.Write && TaskGraphRules.overlaps(other.scope, task.scope) }) return false
-        return true
     }
 
     private fun merged(task: BoardTask, members: Map<String, BoardTask>): TaskOutcome {

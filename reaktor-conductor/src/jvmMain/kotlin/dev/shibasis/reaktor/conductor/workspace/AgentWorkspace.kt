@@ -42,7 +42,7 @@ class AgentWorkspace(
      */
     private val plannerRuntime: RuntimeKind? = null,
     private val kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
-    scopeModules: (List<String>) -> List<String> = { emptyList() },
+    private val scopeModules: (List<String>) -> List<String> = { emptyList() },
 ) : AutoCloseable {
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
@@ -419,11 +419,104 @@ class AgentWorkspace(
         } else require(target.evidenceTask == task.id && target.worktree == null)
     }
 
+    private fun runningTasks(): List<BoardTask> = board.graphs().flatMap { board.members(it.id) }
+        .filter { it.graph?.let { plan -> plan.kind == TaskKind.Agent && plan.state == TaskState.Running } == true }
+
+    private fun ownedRuns(): List<Pair<String, AgentSubmission>> = active.keys.map { it to submission(it) }
+
+    private fun slots(request: AgentSubmission): Int = if (request.councilHybrid) 3 else if (request.collaboration == AgentCollaboration.Single) 1 else 2
+
+    private fun writing(request: AgentSubmission): Boolean = request.allowWrites || request.workflow?.participants?.any { it.tools.allowWrites } == true
+
+    private fun sourceScope(values: List<String>): List<String> {
+        if (values.isEmpty() || values.any { it.trim() in setOf("", "*", ".", "./") }) return listOf("*")
+        return values.flatMap { value ->
+            val path = value.trim().replace('\\', '/').substringBefore('*').trimEnd('/')
+            val modules = scopeModules(listOf(path))
+            if (':' in path && !File(path).isAbsolute) {
+                if (modules.isEmpty()) listOf("*") else modules.map { "module:$it" }
+            } else {
+                val file = File(path).let { if (it.isAbsolute) it else File(root, path) }.canonicalFile
+                listOf(file.invariantSeparatorsPath) + modules.map { "module:$it" }
+            }
+        }.distinct()
+    }
+
+    private fun admission(paths: List<String>, writes: Boolean, requestedSlots: Int, task: String? = null): String? {
+        if (closed || draining) return "Workspace is closed or draining"
+        val running = runningTasks()
+        val reserved = running.map { it.id }.toSet()
+        val others = running.filter { it.id != task }
+        val runs = ownedRuns().filter { (_, request) -> request.task?.task !in reserved && (task == null || request.task?.task != task) }
+        if (others.size + runs.sumOf { slots(it.second) } + requestedSlots > maxActive) return "Agent capacity is busy; wait for an active attempt"
+        if (!writes) return null
+        val scope = sourceScope(paths)
+        others.firstOrNull { other ->
+            (other.graph?.resolvedSeat?.seat ?: other.graph?.seat)?.access == TaskAccess.Write &&
+                TaskGraphRules.overlaps(scope, sourceScope(other.scope))
+        }?.let { return "Source scope is held by ${it.graph?.id}/${it.id} attempt ${it.graph?.attempt}" }
+        runs.firstOrNull { (_, request) ->
+            writing(request) && TaskGraphRules.overlaps(scope, sourceScope(request.task?.let { board.get(it.task).scope } ?: request.scope))
+        }?.let { return "Source scope is held by run ${it.first}" }
+        return null
+    }
+
+    private fun taskAdmission(task: BoardTask, resolved: ResolvedTaskSeat?): String? {
+        val plan = requireNotNull(task.graph)
+        if (plan.kind != TaskKind.Agent) return null
+        val agents = (listOfNotNull(resolved?.seat?.agent) + resolved?.lenses.orEmpty().mapNotNull { it.seat.agent }).distinct()
+        val running = board.members(plan.id).filter { it.id != task.id && it.graph?.state == TaskState.Running }
+        if (agents.any { agent -> running.count { other -> other.graph?.let { current ->
+                current.kind == TaskKind.Agent && (agent == (current.resolvedSeat?.seat ?: current.seat)?.agent ||
+                    current.resolvedSeat?.lenses.orEmpty().any { it.seat.agent == agent })
+            } == true } >= board.graph(plan.id).envelope.perAgent }) return "The graph's per-agent capacity is busy"
+        return admission(task.scope, resolved?.seat?.access == TaskAccess.Write, 1, task.id)
+    }
+
+    internal fun startTask(task: BoardTask, resolved: ResolvedTaskSeat?): BoardTask? = synchronized(lock) { synchronized(board) boardLock@{
+        val graph = requireNotNull(task.graph).id
+        val current = board.get(task.id)
+        val plan = requireNotNull(current.graph)
+        if (closed || draining || board.graph(graph).status != TaskGraphStatus.Running || current.scope != task.scope ||
+            plan.seat != task.graph.seat || TaskGraphRules.readiness(current, board.members(graph).associateBy { it.id }) != TaskGraphRules.Readiness.Ready) return@boardLock null
+        val refusal = taskAdmission(current, resolved)
+        if (refusal != null) {
+            if (plan.note != refusal) board.advance(graph, task.id) { value, next -> value.copy(graph = next.copy(note = refusal)) }
+            return@boardLock null
+        }
+        board.advance(graph, task.id) { value, next ->
+            value.copy(graph = next.copy(state = TaskState.Running, attempt = next.attempt + 1, note = null, outcome = null,
+                held = false, run = null, runId = null, resolvedSeat = resolved, recovery = AgentRecovery.None, resumeAtReset = null))
+        }
+    } }
+
+    internal fun claimTask(graph: String, task: String, caller: TaskGraphCaller): BoardTask = synchronized(lock) { synchronized(board) {
+        val current = board.get(task)
+        require(current.graph?.id == graph && caller.lead && current.graph.seat?.lead == true) { "Only the graph's lead session claims its tasks" }
+        val resolved = resolveSeat(requireNotNull(current.graph.seat))
+        val refusal = taskAdmission(current, resolved)
+        require(refusal == null) { refusal.orEmpty() }
+        board.claim(graph, task, caller)
+    } }
+
+    internal fun reportTask(graph: String, task: String, report: TaskReport, outcome: TaskOutcome, caller: TaskGraphCaller): BoardTask =
+        synchronized(lock) { synchronized(board) {
+            val current = board.get(task)
+            val plan = requireNotNull(current.graph?.takeIf { it.id == graph })
+            if (report == TaskReport.Running && plan.state != TaskState.Running) {
+                require(plan.state == TaskState.Waiting && plan.attempt > 0) { "Retry a settled task before running it again" }
+                val refusal = taskAdmission(current, plan.resolvedSeat ?: plan.seat?.let(::resolveSeat))
+                require(refusal == null) { refusal.orEmpty() }
+            }
+            board.report(graph, task, report, outcome, caller)
+        } }
+
     private fun admit(request: AgentSubmission, seed: ProtocolCheckpoint? = null, forkedFrom: String? = null): AgentRunRecord = synchronized(lock) {
         check(!closed) { "Workspace is closed" }
         check(!draining) { "Workspace is draining for a service upgrade" }
         require(request.requestId.isNotBlank() && request.requestId.length <= 200)
         require(request.prompt.isNotBlank() && request.prompt.length <= 100000)
+        require(request.scope.size <= 100 && request.scope.all { it.isNotBlank() && it.length <= 500 })
         require(request.model == null || request.model.length in 1..256)
         require(request.provider in runtimes) { "Provider is not configured" }
         if (request.councilHybrid) {
@@ -475,11 +568,12 @@ class AgentWorkspace(
             require(parent.parentRunId == null) { "Peer questions cannot recursively delegate" }
             require(children(parentId).size < 8) { "Peer exchange budget exhausted" }
         }
-        val slots = if (request.councilHybrid) 3 else if (request.collaboration == AgentCollaboration.Single) 1 else 2
         requireEntitlements(request)
-        require(active.keys.sumOf { if (records[it]?.councilHybrid == true) 3 else if (records[it]?.collaboration == AgentCollaboration.Single) 1 else 2 } + slots <= maxActive) {
-            "Agent capacity is busy; wait for an active run"
+        require(request.task == null || ownedRuns().none { it.second.task?.let { target -> target.task == request.task.task && target.attempt == request.task.attempt } == true }) {
+            "This task attempt already has an active run"
         }
+        val refusal = admission(request.task?.let { board.get(it.task).scope } ?: request.scope, writing(request), slots(request), request.task?.task)
+        require(refusal == null) { refusal.orEmpty() }
         val threadId = request.threadId ?: UUID.randomUUID().toString()
         val path = threadPath(threadId)
         require(request.threadId == null || Files.exists(path)) { "Conversation not found in this workspace" }
@@ -579,6 +673,8 @@ class AgentWorkspace(
             "Reconcile this graph attempt in Hangar before resuming it"
         }
         requireEntitlements(request)
+        val refusal = admission(request.task?.let { board.get(it.task).scope } ?: request.scope, writing(request), slots(request), request.task?.task)
+        require(refusal == null) { refusal.orEmpty() }
         val checkpoint = checkpoint(id)
         val currentRoot = saved.workingDirectory?.let(::File) ?: root
         checkpoint?.sourceRevision?.takeIf { request.workflow != null }?.let { expected ->
@@ -667,7 +763,10 @@ class AgentWorkspace(
     internal fun revisions() = combine(board.changes, changes) { tasks, runs -> tasks + runs }
 
     internal fun freeSlots(): Int = synchronized(lock) {
-        if (closed || draining) 0 else maxActive - active.keys.sumOf { if (records[it]?.councilHybrid == true) 3 else if (records[it]?.collaboration == AgentCollaboration.Single) 1 else 2 }
+        if (closed || draining) 0 else {
+            val reserved = runningTasks().map { it.id }.toSet()
+            (maxActive - reserved.size - ownedRuns().filter { it.second.task?.task !in reserved }.sumOf { slots(it.second) }).coerceAtLeast(0)
+        }
     }
 
     internal fun latest(threadId: String): AgentRunRecord? = synchronized(lock) {

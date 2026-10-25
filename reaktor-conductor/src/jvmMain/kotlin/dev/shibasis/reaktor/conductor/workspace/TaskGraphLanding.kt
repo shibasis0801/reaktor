@@ -60,7 +60,7 @@ internal suspend fun AgentWorkspace.landTaskCandidate(graph: String, task: Strin
 }
 
 internal fun AgentWorkspace.resumeTaskAfterLimit(graph: String, task: String, revision: Long, attempt: Int, atReset: Boolean, by: BoardActor): TaskGraphView =
-    synchronized(board) { admitOperation {
+    admitOperation { synchronized(board) {
         require(by.kind == BoardActorKind.Person && by.name.isNotBlank()) { "Only a person schedules a usage-limit retry" }
         require(board.graph(graph).revision == revision) { "The graph changed; read its current revision" }
         require(board.graph(graph).status in setOf(TaskGraphStatus.Running, TaskGraphStatus.Paused)) { "The graph is closed" }
@@ -80,7 +80,7 @@ internal fun AgentWorkspace.resumeTaskAfterLimit(graph: String, task: String, re
     } }
 
 internal fun AgentWorkspace.recoverTask(graph: String, task: String, revision: Long, attempt: Int, action: TaskRecoveryAction, by: BoardActor): TaskGraphView =
-    synchronized(board) { admitOperation {
+    admitOperation { synchronized(board) {
         require(by.kind == BoardActorKind.Person && by.name.isNotBlank()) { "Only a person reconciles an interrupted attempt" }
         require(board.graph(graph).revision == revision) { "The graph changed; read its current revision" }
         val value = board.get(task)

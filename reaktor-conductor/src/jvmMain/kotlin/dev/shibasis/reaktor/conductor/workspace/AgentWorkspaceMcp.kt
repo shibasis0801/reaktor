@@ -71,6 +71,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
                 "effort" to stringSchema("Native reasoning effort; omitted preserves provider defaults"),
                 "transport" to enumSchema("Automatic uses interactive Single and batch collaboration", listOf("Automatic", "Interactive", "Batch")),
                 "allowWrites" to buildJsonObject { put("type", "boolean") },
+                "scope" to buildJsonObject { put("type", "array"); put("maxItems", 100); put("items", stringSchema("Source path, build module or shared interface; omitted writers hold the whole workspace")) },
                 "councilHybrid" to buildJsonObject { put("type", "boolean"); put("description", "Add the third ChatGPT + Gemini seat to a Codex/Claude Council. ChatGPT planning and review require durable human handoffs.") },
                 "isolation" to enumSchema("Shared source or owned Worktree", listOf("Shared", "Worktree")),
                 "workflow" to buildJsonObject { put("type", "object"); put("description", "WorkflowDefinition: id,title,participants AgentSpecs,stages(id,title,agent,instruction,action Agent|Check|Gate,contract Text|Decision,checkId),edges(from,to,whenResult Always|Succeeded|Failed|Pass|Repair),subjectRefs. Bounded DAG, explicit gate resume."); put("additionalProperties", true) },
