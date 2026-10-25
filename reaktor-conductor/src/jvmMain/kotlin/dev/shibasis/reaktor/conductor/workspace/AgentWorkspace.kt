@@ -426,7 +426,9 @@ class AgentWorkspace(
 
     private fun slots(request: AgentSubmission): Int = if (request.councilHybrid) 3 else if (request.collaboration == AgentCollaboration.Single) 1 else 2
 
-    private fun writing(request: AgentSubmission): Boolean = request.allowWrites || request.workflow?.participants?.any { it.tools.allowWrites } == true
+    private fun reservesSource(request: AgentSubmission): Boolean =
+        (request.task != null || request.isolation != AgentIsolation.Worktree) &&
+            (request.allowWrites || request.workflow?.participants?.any { it.tools.allowWrites } == true)
 
     private fun sourceScope(values: List<String>): List<String> {
         if (values.isEmpty() || values.any { it.trim() in setOf("", "*", ".", "./") }) return listOf("*")
@@ -456,7 +458,7 @@ class AgentWorkspace(
                 TaskGraphRules.overlaps(scope, sourceScope(other.scope))
         }?.let { return "Source scope is held by ${it.graph?.id}/${it.id} attempt ${it.graph?.attempt}" }
         runs.firstOrNull { (_, request) ->
-            writing(request) && TaskGraphRules.overlaps(scope, sourceScope(request.task?.let { board.get(it.task).scope } ?: request.scope))
+            reservesSource(request) && TaskGraphRules.overlaps(scope, sourceScope(request.task?.let { board.get(it.task).scope } ?: request.scope))
         }?.let { return "Source scope is held by run ${it.first}" }
         return null
     }
@@ -572,7 +574,7 @@ class AgentWorkspace(
         require(request.task == null || ownedRuns().none { it.second.task?.let { target -> target.task == request.task.task && target.attempt == request.task.attempt } == true }) {
             "This task attempt already has an active run"
         }
-        val refusal = admission(request.task?.let { board.get(it.task).scope } ?: request.scope, writing(request), slots(request), request.task?.task)
+        val refusal = admission(request.task?.let { board.get(it.task).scope } ?: request.scope, reservesSource(request), slots(request), request.task?.task)
         require(refusal == null) { refusal.orEmpty() }
         val threadId = request.threadId ?: UUID.randomUUID().toString()
         val path = threadPath(threadId)
@@ -673,7 +675,7 @@ class AgentWorkspace(
             "Reconcile this graph attempt in Hangar before resuming it"
         }
         requireEntitlements(request)
-        val refusal = admission(request.task?.let { board.get(it.task).scope } ?: request.scope, writing(request), slots(request), request.task?.task)
+        val refusal = admission(request.task?.let { board.get(it.task).scope } ?: request.scope, reservesSource(request), slots(request), request.task?.task)
         require(refusal == null) { refusal.orEmpty() }
         val checkpoint = checkpoint(id)
         val currentRoot = saved.workingDirectory?.let(::File) ?: root
