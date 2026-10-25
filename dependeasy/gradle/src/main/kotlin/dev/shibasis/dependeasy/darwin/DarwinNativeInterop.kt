@@ -1,6 +1,6 @@
 package dev.shibasis.dependeasy.darwin
 
-import dev.shibasis.dependeasy.native.NativeConfiguration
+import dev.shibasis.dependeasy.native.NativeLibrary
 import dev.shibasis.dependeasy.native.NativeProjectDependency
 import dev.shibasis.dependeasy.tasks.GenerateNativeDefTask
 import dev.shibasis.dependeasy.tasks.KotlinCMakeTask
@@ -16,7 +16,7 @@ import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 internal fun Project.registerDarwinInterop(
     target: KotlinNativeTarget,
     sdk: String,
-    native: NativeConfiguration,
+    native: NativeLibrary,
     dependencies: List<NativeProjectDependency>,
     build: TaskProvider<KotlinCMakeTask>?,
 ) {
