@@ -14,7 +14,8 @@ internal data class TaskReview(
     val findings: List<Finding>,
 ) {
     @Serializable
-    data class Finding(val title: String, val detail: String, val severity: String, val sourcePath: String, val line: Int)
+    data class Finding(val title: String, val detail: String, val severity: String, val sourcePath: String, val line: Int,
+        val confirms: List<String> = emptyList(), val checkReceipt: String? = null)
 
     companion object {
         fun schema(candidate: String): JsonObject = objectSchema(mapOf(
@@ -30,7 +31,9 @@ internal data class TaskReview(
                     "severity" to enumSchema("Finding severity", listOf("blocker", "high", "medium", "low")),
                     "sourcePath" to stringSchema("Changed file relative to the candidate workspace"),
                     "line" to buildJsonObject { put("type", "integer"); put("minimum", 1) },
-                ), listOf("title", "detail", "severity", "sourcePath", "line")))
+                    "confirms" to buildJsonObject { put("type", "array"); put("maxItems", 120); put("items", stringSchema("Panel finding id, lens-index:finding-index")) },
+                    "checkReceipt" to buildJsonObject { put("type", JsonArray(listOf(JsonPrimitive("string"), JsonPrimitive("null")))); put("description", "An existing failed check receipt for this exact candidate, or null for independent source verification") },
+                ), listOf("title", "detail", "severity", "sourcePath", "line", "confirms", "checkReceipt")))
             },
         ), listOf("verdict", "summary", "candidate", "findings"))
 

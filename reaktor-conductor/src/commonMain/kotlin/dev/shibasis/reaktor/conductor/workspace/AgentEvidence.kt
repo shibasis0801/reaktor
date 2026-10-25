@@ -43,7 +43,12 @@ data class AgentFinding(
     val line: Int? = null,
     val resolvedByCandidate: String? = null,
     val resolution: String? = null,
+    val lenses: List<String> = emptyList(),
+    val confirmation: AgentFindingConfirmation? = null,
 )
+
+@Serializable
+data class AgentFindingConfirmation(val producerRunId: String, val participant: String, val detail: String, val checkReceipt: String? = null)
 
 @Serializable
 data class AgentCandidateCheck(val id: String, val candidateId: String, val result: CheckResult, val source: String)

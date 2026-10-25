@@ -213,7 +213,10 @@ class AgentWorkspace(
     fun addFinding(taskId: String, finding: AgentFinding): AgentTaskEvidence {
         taskEvidence(taskId)
         val run = get(finding.producerRunId)
-        val target = submission(run.id).task
+        val request = submission(run.id)
+        require(request.resolvedSeat?.lenses.isNullOrEmpty()) { "Panel findings are published only after independent verification; return them in the stage output" }
+        require(finding.lenses.isEmpty() && finding.confirmation == null) { "Panel confirmation provenance is recorded by the coordinator" }
+        val target = request.task
         val belongs = if (target == null) run.threadId == taskId else target.evidenceTask == taskId &&
             board.get(target.task).graph?.let { it.id == target.graph && it.attempt == target.attempt } == true &&
             (target.candidate == null || target.candidate == finding.candidateId)
@@ -390,8 +393,11 @@ class AgentWorkspace(
         val task = board.get(target.task)
         val plan = requireNotNull(task.graph)
         require(plan.id == target.graph && plan.attempt == target.attempt && plan.state == TaskState.Running) { "Task target names a stale attempt" }
-        require(request.collaboration == AgentCollaboration.Single && request.workflow == null) { "Task targets require a single task seat" }
+        require(request.collaboration == AgentCollaboration.Single) { "Task targets require a pinned task seat" }
         val pinned = requireNotNull(plan.resolvedSeat)
+        val panel = pinned.lenses.isNotEmpty()
+        if (panel) require(request.context == null && request.threadId == null && !request.allowWrites) { "A review panel starts with fresh read-only context" }
+        require(if (panel) plan.contract == WorkflowContract.Decision && target.candidate != null && request.workflow == TaskReviewPanel.definition(pinned, target.candidate) else request.workflow == null) { "Task workflow must match its pinned review panel" }
         require(request.resolvedSeat == pinned && request.allowWrites == (pinned.seat.access == TaskAccess.Write)) { "Task target does not match its pinned seat" }
         if (request.allowWrites) {
             require(target.evidenceTask == task.id && target.candidate == null && target.worktree == plan.worktreeId)
@@ -447,7 +453,7 @@ class AgentWorkspace(
         }
         requireSupportedEffort(request.provider, request.model, request.effort)
         request.resolvedSeat?.let { resolved ->
-            require(request.collaboration == AgentCollaboration.Single && request.workflow == null &&
+            require(request.collaboration == AgentCollaboration.Single && (request.workflow == null || request.task != null && resolved.lenses.isNotEmpty()) &&
                 resolved.seat.agent == request.provider && resolved.seat.model == request.model &&
                 resolved.seat.effort == request.effort?.value && (resolved.seat.access == TaskAccess.Write) == request.allowWrites) {
                 "The submission must match its pinned task seat"
@@ -528,7 +534,7 @@ class AgentWorkspace(
     }
 
     private fun checkpointPath(id: String) = directory.resolve("checkpoints/${runPath(id).fileName}")
-    private fun checkpoint(id: String): ProtocolCheckpoint? = checkpointPath(id).takeIf(Files::exists)?.let {
+    internal fun checkpoint(id: String): ProtocolCheckpoint? = checkpointPath(id).takeIf(Files::exists)?.let {
         ConductorJson.decodeFromString(ProtocolCheckpoint.serializer(), Files.readString(it))
     }
 
@@ -795,7 +801,7 @@ class AgentWorkspace(
                             "Use taskId=$evidenceTask with agent_candidate_capture, agent_task_graph and agent_artifact. Report findings through agent_finding against candidateId=${candidate.id}, producerRunId=${initial.id}. " +
                             "Evidence targets this exact checkout. Landing is a separate person-only operation.",
                         "Binds this attempt to local source evidence")) + supplied?.entries.orEmpty().take(20) +
-                        prior.findings.filter { it.resolvedByCandidate == null }.take(10).map { ContextEntry(it.id, "finding", it.title,
+                        prior.findings.filter { request.resolvedSeat?.lenses.isNullOrEmpty() && it.resolvedByCandidate == null }.take(10).map { ContextEntry(it.id, "finding", it.title,
                             it.detail.take(600), "Unresolved finding from ${it.participant} on ${it.candidateId}") },
                     omittedEntries = (supplied?.omittedEntries ?: 0) + maxOf(0, (supplied?.entries?.size ?: 0) - 20),
                     notices = candidate.notices + supplied?.notices.orEmpty()).bounded(22000)
@@ -810,8 +816,8 @@ class AgentWorkspace(
                     attributes = (request.maxCycles?.let { mapOf("maxCycles" to it.toString()) }.orEmpty()) +
                         (request.allowedChecks.takeIf { it.isNotEmpty() }
                             ?.let { mapOf("allowedChecks" to it.joinToString("\u0001")) }.orEmpty()))
-                val specs = request.workflow?.participants?.map { it.copy(tools = ToolPolicy(allowWrites = request.allowWrites && it.tools.allowWrites,
-                    additionalDirectories = includedRoots, mcpConfig = harnessMcpConfig)) }
+                val specs = request.workflow?.participants?.map { it.copy(tools = it.tools.copy(allowWrites = request.allowWrites && it.tools.allowWrites,
+                    additionalDirectories = (includedRoots + it.tools.additionalDirectories).distinct(), mcpConfig = it.tools.mcpConfig ?: harnessMcpConfig)) }
                     ?: (listOf(spec(request.provider, request.model, request.effort)) +
                     listOfNotNull(request.partner?.let { spec(it.provider, it.model, it.effort) }) +
                     if (request.councilHybrid) listOf(spec(RuntimeKind.ChatGptGemini, null, null)) else emptyList())

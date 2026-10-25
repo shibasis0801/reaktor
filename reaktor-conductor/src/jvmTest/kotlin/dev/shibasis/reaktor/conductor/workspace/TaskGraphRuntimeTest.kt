@@ -325,6 +325,78 @@ class TaskGraphRuntimeTest {
         }
     }
 
+
+    @Test fun panelRunsBlindReadOnlyLensesAndPublishesOnlyVerifiedFindings() {
+        val claim = """{"verdict":"repair","summary":"Lens claim","candidate":"{{candidate}}","findings":[{"title":"UNCONFIRMED_SENTINEL","detail":"Independent lens claim","severity":"high","sourcePath":"Source.kt","line":1}]}"""
+        val empty = """{"verdict":"pass","summary":"No confirmed defects","candidate":"{{candidate}}","findings":[]}"""
+        val codex = Scripted(RuntimeKind.Codex, listOf("WRITER_PRIVATE_REASONING", claim))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf(empty, empty))
+        workspace(codex, claude) { connection, _, _ ->
+            val proposed = connection.proposeTaskGraph(TaskGraphDraft("Panel", tasks = listOf(
+                TaskGraphOp.Add("Build", key = "build", seat = TaskSeat(RuntimeKind.Codex, access = TaskAccess.Write)),
+                TaskGraphOp.Add("Panel", key = "panel", seat = TaskSeat(RuntimeKind.ClaudeCode, access = TaskAccess.Read,
+                    lenses = listOf("codex-correctness", "claude-security")), contract = WorkflowContract.Decision,
+                    dependsOn = listOf(TaskDependency("build"))),
+                TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("panel", TaskCondition.Pass))),
+            )), person)
+            assertEquals(setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode), proposed.graph.envelope.agents.toSet())
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val view = connection.until("G1") { it.task("Accept").graph?.state == TaskState.Waiting || it.graph.status == TaskGraphStatus.Failed }
+            assertEquals(TaskState.Waiting, view.task("Accept").graph?.state, view.toString())
+            val plan = view.task("Panel").graph!!
+            assertEquals("pass", plan.outcome?.verdict)
+            assertTrue(plan.outcome!!.summary.contains("1 reported findings, 0 confirmed, 0 merged"))
+            assertEquals(360L, plan.outcome?.tokens)
+            assertEquals(view.task("Build").graph?.outcome?.candidateId, plan.outcome?.candidateId)
+            assertEquals(2, codex.requests.size)
+            assertEquals(2, claude.requests.size)
+            val lenses = listOf(codex.requests.last(), claude.requests.first())
+            assertTrue(lenses.all { !it.agent.tools.allowWrites && it.resume == null && !it.persistSession })
+            assertTrue(lenses.none { "WRITER_PRIVATE_REASONING" in it.prompt || "UNCONFIRMED_SENTINEL" in it.prompt })
+            assertTrue(claude.requests.last().prompt.contains("UNCONFIRMED_SENTINEL"))
+            assertEquals(listOf(1L, 1L), plan.resolvedSeat?.lenses?.map { it.profileRevision })
+            assertEquals(3, connection.get(plan.runId!!).turnUsage?.turns)
+            val evidence = connection.call("agent_task_graph", buildJsonObject { put("taskId", "T1") })
+                .jsonObject.getValue("task").let { AgentWorkspaceJson.decodeFromJsonElement(AgentTaskEvidence.serializer(), it) }
+            assertTrue(evidence.findings.isEmpty())
+        }
+    }
+
+    @Test fun verifiedPanelFindingsRepairTheWriterAndStayBoundToTheirOriginalCandidate() {
+        val claim = """{"verdict":"repair","summary":"Wrong value","candidate":"{{candidate}}","findings":[{"title":"Wrong value","detail":"Source.kt has the first attempt","severity":"high","sourcePath":"Source.kt","line":1}]}"""
+        val verification = claim.replace("\"line\":1", "\"line\":1,\"confirms\":[\"lens-0:0\"]")
+        val empty = """{"verdict":"pass","summary":"No remaining defect","candidate":"{{candidate}}","findings":[]}"""
+        val codex = Scripted(RuntimeKind.Codex, listOf("Built it", claim, "Fixed it", empty))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf(empty, verification, empty, empty))
+        workspace(codex, claude) { connection, _, _ ->
+            val proposed = connection.proposeTaskGraph(TaskGraphDraft("Panel repair", tasks = listOf(
+                TaskGraphOp.Add("Build", key = "build", seat = TaskSeat(RuntimeKind.Codex, access = TaskAccess.Write)),
+                TaskGraphOp.Add("Panel", key = "panel", seat = TaskSeat(RuntimeKind.ClaudeCode,
+                    lenses = listOf("codex-correctness", "claude-security")), contract = WorkflowContract.Decision,
+                    dependsOn = listOf(TaskDependency("build"))),
+                TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("panel", TaskCondition.Pass))),
+            )), person)
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val view = connection.until("G1") { it.task("Accept").graph?.state == TaskState.Waiting || it.graph.status == TaskGraphStatus.Paused }
+            assertEquals(TaskState.Waiting, view.task("Accept").graph?.state, view.toString())
+            val build = view.task("Build").graph!!
+            val panel = view.task("Panel").graph!!
+            assertEquals(2, build.attempt)
+            assertEquals(2, panel.attempt)
+            assertEquals("pass", panel.outcome?.verdict)
+            val evidence = connection.call("agent_task_graph", buildJsonObject { put("taskId", "T1") })
+                .jsonObject.getValue("task").let { AgentWorkspaceJson.decodeFromJsonElement(AgentTaskEvidence.serializer(), it) }
+            val finding = evidence.findings.single()
+            assertEquals(listOf("codex-correctness"), finding.lenses)
+            assertEquals("verify", finding.confirmation?.participant)
+            assertEquals(finding.producerRunId, finding.confirmation?.producerRunId)
+            assertNotEquals(build.outcome?.candidateId, finding.candidateId)
+            assertEquals(build.outcome?.candidateId, finding.resolvedByCandidate)
+            assertTrue(codex.requests[2].prompt.contains("Wrong value"))
+            assertEquals(960L, view.graph.tokensUsed)
+        }
+    }
+
     @Test fun graphChecksBindTheWritingCandidateAndRunAgainAfterRepair() {
         val codex = Scripted(RuntimeKind.Codex, listOf("Built", "Repaired"))
         val claude = Scripted(RuntimeKind.ClaudeCode, listOf(

@@ -6,7 +6,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class AgentProfileStore(private val directory: Path, private val clock: () -> Long = System::currentTimeMillis) {
-    private val builtIns = Rosters.default.associate { spec -> spec.id.value to AgentProfile(
+    private val builtIns = ReviewLenses.profiles.associateBy { it.id } + Rosters.default.associate { spec -> spec.id.value to AgentProfile(
         spec.id.value, spec.name, spec.runtime, spec.model, spec.effort?.value, spec.instructions,
         if (spec.tools.allowWrites) TaskAccess.Write else TaskAccess.Read, spec.tools, revision = 1, builtIn = true,
     ) }
