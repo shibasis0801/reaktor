@@ -106,6 +106,13 @@ class TaskGraphMergeTest {
             val output = requireNotNull(merged.graph?.outcome)
             val inputs = done.tasks.filter { it.title in listOf("First", "Second") }.associate { it.id to it.graph?.outcome?.candidateId }
             assertEquals(inputs, output.inputCandidates)
+            val handoff = requireNotNull(done.handoffs[merged.id])
+            assertEquals(merged.graph.attempt, handoff.attempt)
+            assertEquals(output.candidateId, handoff.candidate)
+            assertEquals(setOf("A.kt", "B.kt"), handoff.changedPaths.toSet())
+            assertTrue(handoff.recordedSummary)
+            assertTrue(handoff.done.isNotBlank())
+            assertNotNull(done.summaries[merged.id])
             assertEquals(listOf(output.candidateId), checked.toList())
             assertEquals(output.candidateId, done.tasks.single { it.title == "Review combined source" }.graph?.outcome?.candidateId)
             assertEquals(1, codex.requests.size)

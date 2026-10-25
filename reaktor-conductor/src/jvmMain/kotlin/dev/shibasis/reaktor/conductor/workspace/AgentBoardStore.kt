@@ -210,6 +210,7 @@ class AgentBoardStore(
         }
         require(graph(draft.graph).revision == revision) { "Graph revision changed; read it again before sending" }
         require(by.kind == BoardActorKind.Person || caller.lead || caller.own.isNotEmpty()) { "Only the graph lead or a current task owner sends messages" }
+        require(by.kind == BoardActorKind.Person || caller.lead || draft.task != null) { "A task owner names its current task and attempt" }
         draft.task?.let { task ->
             val plan = requireNotNull(get(task).graph)
             require(plan.id == draft.graph && draft.attempt == plan.attempt) { "A message names the exact current task attempt" }
@@ -242,6 +243,24 @@ class AgentBoardStore(
         val by = caller.by.checked()
         val event = AgentMessageEvent("$graph-E${records.next}", id, AgentMessageState.Acknowledged, by, clock())
         saveCoordination(graph, records.copy(next = records.next + 1, messageEvents = records.messageEvents + event), by, "Acknowledged $id")
+        return event
+    }
+
+    @Synchronized internal fun recordMessageDelivery(target: AgentMessageTarget, state: AgentMessageState, run: String, turn: String? = null): AgentMessageEvent {
+        require(state in setOf(AgentMessageState.Queued, AgentMessageState.Delivered))
+        val records = coordination(target.graph)
+        require(records.messages.any { it.id == target.message }) { "Message is no longer retained" }
+        records.messageEvents.firstOrNull { it.message == target.message && it.state == state }?.let { previous ->
+            require(previous.runId == run) { "Message already belongs to another delivery" }
+            return previous
+        }
+        if (state == AgentMessageState.Delivered) require(records.messageEvents.any {
+            it.message == target.message && it.state == AgentMessageState.Queued && it.runId == run
+        }) { "Delivery requires its recorded queue admission" }
+        val by = BoardActor(BoardActorKind.Agent, "workspace")
+        val event = AgentMessageEvent("${target.graph}-E${records.next}", target.message, state, by, clock(), run, turn)
+        saveCoordination(target.graph, records.copy(next = records.next + 1, messageEvents = records.messageEvents + event),
+            by, "${state.name} ${target.message}")
         return event
     }
 
