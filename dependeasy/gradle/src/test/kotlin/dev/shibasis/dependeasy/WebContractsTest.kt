@@ -254,6 +254,10 @@ class WebContractsTest {
         """.trimIndent())
         write("base.json", "{}")
         write("tests/playwright.config.mjs", "export default {}")
+        write("coverage/fixture.spec.ts", "export {}")
+        write("checks/src/value.cjs", "module.exports = 42")
+        write("checks/policy.cjs", "require('node:assert/strict').equal(require('./src/value.cjs'), 42)")
+        write("coverage/node_modules/ignored.spec.ts", "export {}")
         write("site/package.json", """{"name":"site","private":true,"imports":{"#keep":"./index.ts"},"dependencies":{"fixture-source":"workspace:*"},"scripts":{"bundle:assets":"node bundle.cjs"}}""")
         write("site/index.ts", "export const value = 1;")
         write("site/tsconfig.json", """{"files":["index.ts"]}""")
@@ -298,8 +302,10 @@ class WebContractsTest {
                 val site = product(shared = projects.site)
                 val pr by verify(site, role = Workspace.Verify)
                 val everything by artifacts(site, role = Workspace.Build)
-                val browser by browserTests(Playwright("tests/playwright.config.mjs", files = listOf("smoke.spec.ts"), workers = 2), browserBundle(projects.site))
+                val browser by browserTests(Playwright("tests/playwright.config.mjs", files = listOf("smoke.spec.ts"), workers = 2,
+                    sources = listOf(FileInput(FileInputKind.Tree, "coverage", includes = listOf("**/*.spec.ts")))), browserBundle(projects.site))
                 val headed by browserTests(Playwright("tests/playwright.config.mjs", headed = true), after = listOf(browser))
+                val integration by nodeTests(FileSet(listOf("checks/policy.cjs")), kotlinJsLibrary(projects.library))
                 delivery(after = pr) {
                     val ship by deploy(projects.workers)
                 }
@@ -343,11 +349,34 @@ class WebContractsTest {
         val browserSpec = assertIs<KernelSpec.BrowserSuite>(browser.kernel?.spec)
         assertEquals("dev.shibasis.dependeasy.model.BrowserSuiteKernel", browser.kernel?.className)
         assertEquals(Effect.Verify, browser.effect)
-        assertEquals(Playwright("tests/playwright.config.mjs", files = listOf("smoke.spec.ts"), workers = 2), browserSpec.suite)
+        assertEquals(Playwright("tests/playwright.config.mjs", files = listOf("smoke.spec.ts"), workers = 2,
+            sources = listOf(FileInput(FileInputKind.Tree, "coverage", includes = listOf("**/*.spec.ts")))), browserSpec.suite)
+        assertTrue(browserSpec.execution.fileInputs.any { it.identity == "coverage" &&
+            it.includes == listOf("**/*.spec.ts") &&
+            setOf("**/node_modules/**", "**/.git/**", "**/.gradle/**", "**/.kotlin/**").all(it.excludes::contains) },
+            "Additional sources must retain declared patterns and cache exclusions")
         assertEquals(Pnpm.playwright(browserSpec.suite), browserSpec.execution.arguments)
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == browser.id && it.to.project == ":site" && it.to.name == "outputBrowserBundle" })
         assertTrue(model.edges.any { it is Edge.After && it.from.name == "headed" && it.to == browser.id })
         assertContains(assertIs<KernelSpec.BrowserSuite>(model.nodes.single { it.id.name == "headed" }.kernel?.spec).execution.arguments, "--headed")
+        val integration = model.nodes.single { it.id.project == ":" && it.id.name == "integration" }
+        val integrationSpec = assertIs<KernelSpec.PackageCommand>(integration.kernel?.spec)
+        assertEquals(Effect.Verify, integration.effect)
+        assertEquals(Pnpm.tests(listOf("checks/policy.cjs")), integrationSpec.execution.arguments)
+        assertTrue(integrationSpec.execution.fileInputs.any { it.identity == "checks" &&
+            setOf("**/node_modules/**", "**/.git/**", "**/.gradle/**", "**/.kotlin/**").all(it.excludes::contains) })
+        assertTrue(model.edges.any { it is Edge.Consumes && it.from == integration.id && it.to.project == ":library" && it.to.name == "outputKotlinJsLibrary" })
+        assertTrue(model.edges.any { it is Edge.After && it.from == integration.id && it.to.name == "pnpmInstall" })
+        assertEquals("./gradlew :integration", json("package.json").getValue("scripts").jsonObject.getValue("integration").jsonPrimitive.content)
+        run("pnpmLock")
+        assertEquals(TaskOutcome.SUCCESS, run("integration").task(":integration")?.outcome)
+        val repeatedIntegration = run("integration")
+        assertContains(repeatedIntegration.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.UP_TO_DATE, repeatedIntegration.task(":integration")?.outcome)
+        write("checks/src/value.cjs", "module.exports = 40 + 2")
+        val changedIntegration = run("integration")
+        assertContains(changedIntegration.output, "Reusing configuration cache")
+        assertEquals(TaskOutcome.SUCCESS, changedIntegration.task(":integration")?.outcome)
         val publishedPackage = model.nodes.single { it.id.project == ":library" && it.id.name == "outputJavaScriptPackage" }
         assertIs<dev.shibasis.dependeasy.model.KernelSpec.WebContract>(publishedPackage.kernel?.spec)
         assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes &&
