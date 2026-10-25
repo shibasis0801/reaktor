@@ -552,7 +552,40 @@ class AgentWorkspace(
                 val refusal = taskAdmission(current, plan.resolvedSeat ?: plan.seat?.let(::resolveSeat))
                 require(refusal == null) { refusal.orEmpty() }
             }
+            if (plan.choices.isNotEmpty() && report in setOf(TaskReport.Succeeded, TaskReport.Review)) {
+                require(caller.person) { "Only a person chooses a candidate through taskgraph.report" }
+                return@synchronized selectTask(graph, task, requireNotNull(outcome.selectedTask) { "Name selectedTask" },
+                    requireNotNull(outcome.candidateId) { "Name the exact candidate you reviewed" }, caller.by, outcome.attempt)
+            }
             board.report(graph, task, report, outcome, caller)
+        } }
+
+    internal fun selectTask(graph: String, task: String, selected: String?, candidate: String?, by: BoardActor, attempt: Int? = null): BoardTask =
+        synchronized(lock) { synchronized(board) {
+            val view = board.view(graph)
+            val current = board.get(task)
+            val plan = requireNotNull(current.graph?.takeIf { it.id == graph && it.choices.isNotEmpty() }) { "Choose a selection task" }
+            require(view.graph.status in setOf(TaskGraphStatus.Running, TaskGraphStatus.Paused)) { "Start the graph before choosing a candidate" }
+            require(plan.state in setOf(TaskState.Pending, TaskState.Waiting) && plan.recovery != AgentRecovery.NeedsReview) { "This selection has already settled or needs reconciliation" }
+            require(attempt == null || attempt == plan.attempt) { "The selection attempt changed" }
+            val automatic = by.kind == BoardActorKind.Schedule
+            require(by.kind == BoardActorKind.Person || automatic && view.graph.envelope.chooseTop) { "The approved envelope must allow automatic selection" }
+            val members = view.tasks.associateBy { it.id }
+            require(plan.choices.values.all { members[it]?.graph?.state in TaskGraphRules.Settled }) { "Wait for every alternative's panel to settle" }
+            val ranks = view.choices.getValue(task)
+            val rank = if (automatic) ranks.firstOrNull { it.eligible } else ranks.firstOrNull { it.task == selected && it.candidate == candidate }
+            requireNotNull(rank) { "No eligible candidate matches this selection" }
+            require(rank.eligible) { rank.reasons.joinToString("; ") }
+            val captured = captureCandidate(rank.task)
+            require(captured.complete && captured.id == rank.candidate) { "The candidate changed; refresh its checks and review before choosing it" }
+            val now = System.currentTimeMillis()
+            board.advance(graph, task) { value, present ->
+                value.copy(graph = present.copy(state = TaskState.Succeeded,
+                    outcome = TaskOutcome(summary = ranks.joinToString("\n") { it.text() }.take(8_000), verdict = "selected", at = now,
+                        attempt = present.attempt, candidateId = captured.id, selectedTask = rank.task, inputCandidates = mapOf(rank.task to captured.id)),
+                    note = "Selected ${rank.task} · ${captured.id}"),
+                    revision = value.revision + 1, history = (value.history + BoardEvent(now, by, "Selected ${rank.task} · ${captured.id}")).takeLast(50))
+            }
         } }
 
     private fun admit(request: AgentSubmission, seed: ProtocolCheckpoint? = null, forkedFrom: String? = null): AgentRunRecord = synchronized(lock) {

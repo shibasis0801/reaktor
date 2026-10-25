@@ -10,6 +10,7 @@ private fun AgentWorkspace.landingTask(graph: String, task: String, candidate: S
     require(plan.state == TaskState.Succeeded && plan.outcome?.candidateId == candidate) { "The writing task has no settled outcome for this candidate" }
     require(plan.worktreeId != null && (plan.kind == TaskKind.Merge || (plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write)) { "Only an isolated writing task can land" }
     val members = board.members(graph).associateBy { it.id }
+    require(TaskChoices.selectionAllows(task, members)) { "Choose this exact alternative before accepting or landing it" }
     fun reaches(input: String): Boolean {
         val pending = ArrayDeque(listOf(input))
         val seen = mutableSetOf<String>()

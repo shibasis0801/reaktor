@@ -60,6 +60,11 @@ object TaskGraphText {
                 result.questions.forEach { appendLine("  Question: ${it.oneLine(300)}") }
             }
             view.summaries[task.id]?.let { summary -> appendLine("  ${summary.text().take(outcome)}") }
+            view.choices[task.id]?.let { ranks ->
+                appendLine("  Alternatives · ${if (graph.envelope.chooseTop) "automatic choice allowed" else "person chooses"}")
+                ranks.forEachIndexed { index, rank -> appendLine("  ${index + 1}. ${rank.text()}") }
+                plan.outcome?.selectedTask?.let { appendLine("  Selected source: $it · ${plan.outcome.candidateId}") }
+            }
             view.handoffs[task.id]?.let { handoff ->
                 appendLine("  Handoff ${handoff.id} · attempt ${handoff.attempt} · by ${handoff.author?.name ?: "unknown"}")
                 appendLine("    Goal: ${handoff.goal.oneLine(300)}")
@@ -112,6 +117,7 @@ object TaskGraphText {
             "writes ${writes.joinToString().ifEmpty { "nothing" }}",
             tokens?.let { "budget ${graph.tokensUsed} of $it tokens" } ?: "no token budget (${graph.tokensUsed} used)",
             "$repairRounds repair round${if (repairRounds == 1) "" else "s"}",
+            if (chooseTop) "automatic top candidate choice allowed" else "person chooses candidate alternatives",
         ).joinToString(" · ")
     }
 
