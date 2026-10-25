@@ -1,4 +1,4 @@
-import { dag, CacheSharingMode, Container, Directory, Platform, ReturnType, Secret, argument, object, func } from "@dagger.io/dagger"
+import { dag, CacheSharingMode, Container, Directory, Platform, Secret, argument, object, func } from "@dagger.io/dagger"
 
 export const SOURCE_IGNORES = [
   "**/node_modules", "**/build", "**/build-*", "**/dist", "**/.gradle", "**/.kotlin",
@@ -149,7 +149,7 @@ export class Dependeasy {
     if (invocation.platform !== pipeline.environment.DEPE_CONTAINER_PLATFORM) throw new Error("Container toolchain host differs from Kotlin invocation")
     if (invocation.runner === "browser") container = await runtime.browserWorkspace(container)
     for (const name of invocation.secrets) container = container.withSecretVariable(name, secrets[names.indexOf(name)])
-    const completed = container.withExec(invocation.arguments, { expect: ReturnType.Any })
+    const completed = container.withExec(invocation.arguments)
     return dag.directory().withDirectory(".", completed.directory("/work"), { include: invocation.artifacts })
   }
 }
