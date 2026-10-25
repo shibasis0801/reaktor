@@ -46,17 +46,38 @@ object AppleReleaseKernel {
     }
 
     private fun resolveDistribution(spec: KernelSpec.ReleasePlan): ReleaseDistribution? {
-        val distribution = spec.distribution ?: return null
-        val path = spec.androidFirebaseConfiguration ?: return distribution
-        val config = BuildModelReader.json.parseToJsonElement(File(path).readText()).jsonObject
-        val project = config.getValue("project_info").jsonObject
+        var distribution = spec.distribution ?: return null
         val bundleId = spec.host.targets.single { it.name == spec.host.applicationTarget }.bundleId
-        val appId = distribution.firebaseAndroidAppId ?: config.getValue("client").jsonArray.firstOrNull {
-            it.jsonObject["client_info"]?.jsonObject?.get("android_client_info")?.jsonObject
-                ?.get("package_name")?.jsonPrimitive?.content == bundleId
-        }?.jsonObject?.get("client_info")?.jsonObject?.get("mobilesdk_app_id")?.jsonPrimitive?.content
-        require(!appId.isNullOrBlank()) { "Unable to resolve Android Firebase app id for $bundleId" }
-        return distribution.copy(firebaseProjectId = project.getValue("project_id").jsonPrimitive.content,
-            firebaseProjectNumber = project.getValue("project_number").jsonPrimitive.content.toLong(), firebaseAndroidAppId = appId)
+        spec.androidFirebaseConfiguration?.let { path ->
+            val config = BuildModelReader.json.parseToJsonElement(File(path).readText()).jsonObject
+            val project = config.getValue("project_info").jsonObject
+            val appId = distribution.firebaseAndroidAppId ?: config.getValue("client").jsonArray.firstOrNull {
+                it.jsonObject["client_info"]?.jsonObject?.get("android_client_info")?.jsonObject
+                    ?.get("package_name")?.jsonPrimitive?.content == bundleId
+            }?.jsonObject?.get("client_info")?.jsonObject?.get("mobilesdk_app_id")?.jsonPrimitive?.content
+            require(!appId.isNullOrBlank()) { "Unable to resolve Android Firebase app id for $bundleId" }
+            distribution = distribution.copy(firebaseProjectId = project.getValue("project_id").jsonPrimitive.content,
+                firebaseProjectNumber = project.getValue("project_number").jsonPrimitive.content.toLong(), firebaseAndroidAppId = appId)
+        }
+        spec.iosFirebaseConfiguration?.takeIf { distribution.firebaseIosAppId == null }?.let { path ->
+            val document = javax.xml.parsers.DocumentBuilderFactory.newInstance().apply {
+                setFeature("http://xml.org/sax/features/external-general-entities", false)
+                setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+                setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+                setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_DTD, "")
+                setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
+                isXIncludeAware = false; isExpandEntityReferences = false
+            }.newDocumentBuilder().parse(File(path))
+            val children = document.documentElement.getElementsByTagName("dict").item(0).childNodes
+            val values = (0 until children.length).map { children.item(it) }.filterIsInstance<org.w3c.dom.Element>()
+                .chunked(2).filter { it.first().textContent in setOf("GOOGLE_APP_ID", "BUNDLE_ID") }.associate { (key, value) ->
+                    require(key.tagName == "key" && value.tagName == "string") { "Invalid Firebase iOS configuration" }
+                    key.textContent to value.textContent
+                }
+            val appId = values["GOOGLE_APP_ID"]
+            require(values["BUNDLE_ID"] == bundleId && !appId.isNullOrBlank()) { "Unable to resolve iOS Firebase app id for $bundleId" }
+            distribution = distribution.copy(firebaseIosAppId = appId)
+        }
+        return distribution
     }
 }

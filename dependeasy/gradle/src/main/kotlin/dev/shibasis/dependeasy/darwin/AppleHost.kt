@@ -118,6 +118,7 @@ internal class AppleHost(
                 symbolUploadCheckTask.set(symbolUploadCheck.get().path)
                 signingTask.set(signing.get().path)
                 this.distribution.set(BuildModelReader.json.encodeToString(spec.distribution))
+                spec.distribution?.let { iosFirebaseConfiguration.set(rootLayout.projectDirectory.file("$directory/iosApp/GoogleService-Info.plist")) }
                 spec.distribution?.artifacts?.get("androidFirebaseConfig")?.let {
                     androidFirebaseConfiguration.set(rootLayout.projectDirectory.file(it))
                 }

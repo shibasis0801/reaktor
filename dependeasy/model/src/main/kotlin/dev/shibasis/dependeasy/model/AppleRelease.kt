@@ -66,6 +66,7 @@ import kotlinx.serialization.Serializable
     val firebaseProjectId: String? = null,
     val firebaseProjectNumber: Long? = null,
     val firebaseAndroidAppId: String? = null,
+    val firebaseIosAppId: String? = null,
     val waitForTestflightProcessing: Boolean = false,
     val firebaseGroupSetupStrict: Boolean = false,
     val playProductionRollout: String? = null,
