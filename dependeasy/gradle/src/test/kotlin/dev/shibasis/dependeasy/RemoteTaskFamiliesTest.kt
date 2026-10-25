@@ -31,6 +31,11 @@ class RemoteTaskFamiliesTest {
                         environmentKeys = emptyList(), tool = ToolRef("wrangler", "test"), inputs = emptyList(),
                         outputs = listOf("web/worker/types/worker-configuration.d.ts")), "web/wrangler.json"))),
                 node("product", ":web", "outputVerificationResults", "verification", ":web:bundle"),
+                node("product", ":", "pnpmLock", "metadata", ":pnpmLock").copy(
+                    kernel = KernelRef("lock", spec = KernelSpec.PnpmLock(ProcessExecution(
+                        directory = ".", executable = "pnpm", arguments = listOf("install", "--lockfile-only", "--ignore-scripts"),
+                        environmentKeys = emptyList(), tool = ToolRef("pnpm", "test"), inputs = emptyList(),
+                        outputs = listOf("pnpm-lock.yaml"))))),
                 node("framework", ":conductor", "outputVerificationResultsJvm", "verification", ":conductor:jvmTest").copy(options = count),
                 node("product", ":", "combined", "verification", ":first", ":second").copy(options = tests),
             ))
@@ -41,6 +46,14 @@ class RemoteTaskFamiliesTest {
         assertEquals(listOf("kernel/build/custom-runtime"), routing.distributionDirectories)
         assertEquals(routing.distributionDirectories, routing.publicOutputs[":kernel:agentDist"])
         assertEquals(listOf("web/worker/types/worker-configuration.d.ts"), routing.publicOutputs[":web:workerTypes"])
+        assertEquals(listOf("pnpm-lock.yaml"), routing.publicOutputs[":pnpmLock"])
+        val lock = model.nodes.single { it.id.name == "pnpmLock" }
+        val kernel = requireNotNull(lock.kernel)
+        val spec = kernel.spec as KernelSpec.PnpmLock
+        assertFailsWith<IllegalArgumentException> {
+            BuildModelKernel.routing(model.copy(nodes = listOf(lock.copy(kernel = kernel.copy(
+                spec = spec.copy(execution = spec.execution.copy(outputs = listOf("../pnpm-lock.yaml"))))))), "product")
+        }
         assertEquals(tests, routing.taskOptions[":kernel:test"])
         assertEquals(tests, routing.taskOptions[":kernel:outputVerificationResultsJvm"])
         assertEquals(count, routing.taskOptions[":framework:conductor:jvmTest"])
