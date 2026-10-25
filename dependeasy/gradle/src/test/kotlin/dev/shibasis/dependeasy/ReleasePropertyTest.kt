@@ -12,11 +12,17 @@ class ReleasePropertyTest {
     private fun fixture() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"fixture\"")
         directory.resolve("build.gradle.kts").writeText("""
-            plugins { id("dev.shibasis.dependeasy.pipeline") }
-            val devToolsEnabled = dependeasy.releaseProperty(dev.shibasis.dependeasy.model.BuildOption.boolean("bestbuds.devTools"))
-            dependeasy.kotlinObject("generateFlags", "fixture", "Flags") {
-                boolean("devToolsEnabled", devToolsEnabled)
-                text("fixture", rootProject.file("fixture.json"), devToolsEnabled)
+            import dev.shibasis.dependeasy.components.library
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.library") }
+            val DevTools = BuildOption.boolean("bestbuds.devTools")
+            val Flags by GeneratedObject("fixture") {
+                val devToolsEnabled by flag(DevTools)
+                val fixture by text("fixture.json", enabled = DevTools)
+            }
+            library(namespace = "fixture", targets = Targets.Jvm) {
+                val generateFlags by generated(Flags)
+                require(DevTools, false)
             }
             tasks.register("release") { dependsOn("requireBestbudsDevToolsDisabledForRelease", "generateFlags") }
         """.trimIndent())
@@ -26,7 +32,7 @@ class ReleasePropertyTest {
     private fun runner(vararg arguments: String, configuration: String = "Debug") = GradleRunner.create()
         .withProjectDir(directory).withPluginClasspath()
         .withEnvironment(System.getenv() + ("CONFIGURATION" to configuration))
-        .withArguments(*arguments, "exportBuildModel", "--configuration-cache", "--stacktrace")
+        .withArguments(*arguments, "exportBuildModel", "-Pandroid.builtInKotlin=false", "-Pandroid.newDsl=false", "--configuration-cache", "--stacktrace")
 
     private fun requirement() = dev.shibasis.dependeasy.model.BuildModelReader.read(directory).nodes
         .single { it.id.name == "requireBestbudsDevToolsDisabledForRelease" }.kernel!!.spec
