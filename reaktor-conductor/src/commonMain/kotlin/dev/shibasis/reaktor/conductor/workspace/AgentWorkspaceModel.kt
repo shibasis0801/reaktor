@@ -97,6 +97,7 @@ data class AgentSubmission(
     val parentRunId: String? = null,
     val resolvedSeat: ResolvedTaskSeat? = null,
     val task: AgentTaskTarget? = null,
+    val scope: List<String> = emptyList(),
 )
 
 @Serializable

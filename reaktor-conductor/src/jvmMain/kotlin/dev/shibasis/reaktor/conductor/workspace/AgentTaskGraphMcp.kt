@@ -146,14 +146,14 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             val outcome = TaskOutcome(summary = (args["summary"] as? JsonPrimitive)?.contentOrNull.orEmpty(), verdict = (args["verdict"] as? JsonPrimitive)?.contentOrNull,
                 files = (args["files"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(), questions = (args["questions"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(),
                 attempt = (args["attempt"] as? JsonPrimitive)?.intOrNull)
-            val task = workspace.board.report(id, args.text("task"), TaskReport.valueOf(args.text("status")), outcome, workspace.taskGraphCaller(id, args.by()))
+            val task = workspace.reportTask(id, args.text("task"), TaskReport.valueOf(args.text("status")), outcome, workspace.taskGraphCaller(id, args.by()))
             AgentWorkspaceJson.encodeToJsonElement(BoardTask.serializer(), task)
         },
         McpTool("agent_taskgraph_claim", "The lead takes one of its ready tasks: the task starts and links the lead's session.",
             objectSchema(mapOf(graphId, "task" to stringSchema("Task id"), by), listOf("graph", "task", "by")), readOnly = false, idempotent = true) { args ->
             args.only("graph", "task", "by")
             val id = args.text("graph")
-            AgentWorkspaceJson.encodeToJsonElement(BoardTask.serializer(), workspace.board.claim(id, args.text("task"), workspace.taskGraphCaller(id, args.by())))
+            AgentWorkspaceJson.encodeToJsonElement(BoardTask.serializer(), workspace.claimTask(id, args.text("task"), workspace.taskGraphCaller(id, args.by())))
         },
         McpTool("agent_taskgraph_recover", "A person reconciles an interrupted attempt: Retry reuses its checkout; KeepWork captures a candidate for independent review; Abandon retains a Git snapshot before removing its writing checkout.",
             objectSchema(mapOf(graphId, "task" to stringSchema("Interrupted task id"), revision,
