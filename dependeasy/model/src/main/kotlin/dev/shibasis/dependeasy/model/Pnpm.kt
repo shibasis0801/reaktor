@@ -1,6 +1,8 @@
 package dev.shibasis.dependeasy.model
 
 object Pnpm {
+    fun installStandalone() = listOf("install", "--frozen-lockfile", "--ignore-workspace")
+
     fun typeScript(adapter: String, projects: List<String>, emit: Boolean) =
         listOf("exec", "node", adapter, if (emit) "--project" else "--projects") + projects
 

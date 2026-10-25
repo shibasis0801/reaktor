@@ -2,9 +2,13 @@
     "name": "reaktor-workspace",
     "private": true,
     "packageManager": "pnpm@12.10.1",
-    "scripts": {},
+    "scripts": {
+        "daggerTypes": "./gradlew :pipeline:daggerTypes"
+    },
     "dependeasy": {
-        "generatedScripts": [],
+        "generatedScripts": [
+            "daggerTypes"
+        ],
         "generatedPackages": [
             "dependeasy/javascript/package.json",
             "reaktor-auth/ts/package.json",

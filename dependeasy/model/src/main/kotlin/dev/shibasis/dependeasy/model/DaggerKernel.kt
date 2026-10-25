@@ -2,6 +2,11 @@ package dev.shibasis.dependeasy.model
 
 import kotlinx.serialization.encodeToString
 
+object Dagger {
+    fun develop(directory: String, version: String) =
+        listOf("develop", "--mod", directory, "--compat=v$version", "--progress", "plain")
+}
+
 object DaggerKernel {
     private const val ToolPlatform = "linux/amd64"
     fun render(spec: KernelSpec.DaggerPipeline): Map<String, String> {

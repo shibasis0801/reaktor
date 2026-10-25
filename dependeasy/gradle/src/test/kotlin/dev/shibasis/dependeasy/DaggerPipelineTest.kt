@@ -104,6 +104,19 @@ class DaggerPipelineTest {
         actual.appendText("stale")
         runner("ci").build()
         assertContentEquals(original, actual.readBytes())
+        write("dependeasy/dagger/src/index.ts", "export const fixture = true")
+        val script = root.resolve("pipeline/build.gradle.kts")
+        script.writeText(script.readText().replace("daggerPipeline(options =", "daggerPipeline(verifyModule = true, options ="))
+        runner("exportBuildModel").build()
+        val checkedModel = BuildModelReader.read(root)
+        val pipelineNodes = checkedModel.nodes.filter { it.id.project == ":pipeline" }
+        for (name in listOf("generateDaggerSdk", "installDaggerDependencies", "daggerTypes"))
+            assertTrue(pipelineNodes.any { it.id.name == name }, name)
+        val checked = pipelineNodes.single { it.id.name == "daggerTypes" }
+        assertEquals(Effect.Verify, checked.effect)
+        assertTrue(checkedModel.edges.any { it.from == checked.id && it.to.name == "generateDaggerSdk" })
+        assertTrue(checkedModel.edges.any { it.from == checked.id && it.to.name == "installDaggerDependencies" })
+        assertContains(runner("exportBuildModel").build().output, "Reusing configuration cache")
     }
 
     @Test fun `pipeline stays toolchain only and runtime resolves host environment secrets and outputs`() {
