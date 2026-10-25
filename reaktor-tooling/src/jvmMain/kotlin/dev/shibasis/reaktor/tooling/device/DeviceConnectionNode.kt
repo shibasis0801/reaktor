@@ -103,8 +103,8 @@ class DeviceConnectionNode(graph: Graph, private val transport: List<String>) : 
                 }
                 if (http("$url/wda/locked")?.get("value") == JsonPrimitive(true))
                     return result("blocked", "WebDriverAgent reports the iPhone is locked. Enter its passcode on the phone and retry.")
-                val source = http("$url/source")?.get("value") as? JsonPrimitive
-                if (source?.content?.contains("<") != true) return result("blocked", "WebDriverAgent answers status but cannot read the phone's UI. Accept Enable UI Automation on the phone and retry.")
+                val source = http("$url/source?format=xml&excluded_attributes=visible,accessible")?.get("value") as? JsonPrimitive
+                if (source?.content?.contains("<") != true) return result("blocked", "WebDriverAgent is reachable, but its live UI hierarchy is not ready. Keep the iPhone unlocked, accept any Enable UI Automation prompt and retry.")
                 check("automation", "XCTest/WebDriverAgent returned a live hierarchy (${source.content.length} characters; UI content omitted)")
             }
             result("ready", "Phone transport, unlock and live UI automation round trip passed.")
