@@ -22,7 +22,15 @@ data class AgentMessage(
     val attempt: Int? = null,
     val artifacts: List<String> = emptyList(),
     val at: Long = 0,
+    val requestId: String? = null,
+    val requestRevision: Long? = null,
 )
+
+@Serializable
+enum class AgentMessageState { Accepted, Queued, Delivered, Acknowledged }
+
+@Serializable
+data class AgentMessageEvent(val id: String, val message: String, val state: AgentMessageState, val by: BoardActor, val at: Long)
 
 @Serializable
 data class TaskHandoff(
@@ -64,6 +72,7 @@ data class TaskCoordination(
     val messages: List<AgentMessage> = emptyList(),
     val handoffs: List<TaskHandoff> = emptyList(),
     val decisions: List<TaskDecision> = emptyList(),
+    val messageEvents: List<AgentMessageEvent> = emptyList(),
 ) {
     companion object {
         const val Retained = 200

@@ -238,6 +238,7 @@ data class TaskGraphView(
     val warnings: List<TaskGraphWarning> = emptyList(),
     val summaries: Map<String, TaskWorkSummary> = emptyMap(),
     val choices: Map<String, List<TaskChoiceRank>> = emptyMap(),
+    val messageEvents: List<AgentMessageEvent> = emptyList(),
 )
 
 @Serializable
