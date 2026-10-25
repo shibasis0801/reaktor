@@ -741,7 +741,7 @@ class WebContractsTest {
                 worker(WorkerRef("worker", "targets/worker"), listOf(
                     WorkerDeployment(Environment("dev"), ServiceRef("fixture-worker-dev")),
                     WorkerDeployment(Environment("prod"), ServiceRef("fixture-worker"), listOf(
-                        WorkerServiceBinding.Worker("BACKEND", WorkerRef("backend", "targets/backend"))))))
+                        WorkerServiceBinding.Worker("BACKEND", WorkerRef("backend", "targets/backend"))))), typescript = listOf("tsconfig.json"))
                 worker(WorkerRef("backend", "targets/backend"), listOf(
                     WorkerDeployment(Environment("dev"), ServiceRef("fixture-backend-dev")),
                     WorkerDeployment(Environment("prod"), ServiceRef("fixture-backend"))))
@@ -768,6 +768,33 @@ class WebContractsTest {
         assertEquals("../../gradlew :workers:deployWorker", local.getValue("deploy").jsonPrimitive.content)
         assertEquals("../../gradlew :workers:workerWorkerLogs", local.getValue("logs").jsonPrimitive.content)
         assertFalse("retired" in local)
+        assertEquals("../../gradlew :workers:workerWorkerTypes", local.getValue("typecheck").jsonPrimitive.content)
+        val declared = BuildModelReader.read(directory)
+        val types = declared.nodes.single { it.id == NodeId("webFixture", ":workers", "workerWorkerTypes") }
+        assertEquals(Effect.Verify, types.effect)
+        assertEquals(listOf("tsconfig.json"), assertIs<KernelSpec.TypeScriptCheck>(types.kernel?.spec).projects)
+        assertTrue(declared.edges.any { it is Edge.Consumes && it.from == types.id && it.to == NodeId("webFixture", ":", "outputKotlinJsLibrary") })
+        assertContains(declared.edges, Edge.Includes(NodeId("webFixture", ":workers", "checkWorkerTypes"), types.id))
+        val checks = run(":workers:check", "--dry-run").output
+        assertContains(checks, ":workers:workerWorkerTypes SKIPPED")
+        assertTrue(checks.indexOf(":compileFixture SKIPPED") < checks.indexOf(":workers:workerWorkerTypes SKIPPED"))
+        assertFalse(checks.contains(":workers:deployWorker SKIPPED"))
+        assertContains(run(":workers:check", "--dry-run").output, "Reusing configuration cache")
+        val fleetScript = directory.resolve("workers/build.gradle.kts").readText()
+        write("workers/build.gradle.kts", fleetScript.replace(
+            "prerequisites = listOf(kotlinJsLibrary(projects.webFixture)))",
+            "prerequisites = listOf(kotlinJsLibrary(projects.webFixture)), contracts = WorkerContractTests(\"tests/karate-config.js\"))"))
+        write("tests/worker/karate/behaviour.feature", "Feature: worker behaviour")
+        write("tests/karate-config.js", "function fn() { return {}; }")
+        run("exportBuildModel", "generatePackageScripts")
+        val combined = BuildModelReader.read(directory)
+        val behaviour = NodeId("webFixture", ":workers", "workerKarateBehaviour")
+        assertContains(combined.edges, Edge.Includes(behaviour, NodeId("webFixture", ":workers", "checkWorkerTypes")))
+        val combinedChecks = run(":workers:check", "--dry-run").output
+        assertContains(combinedChecks, ":workers:workerWorkerTypes SKIPPED")
+        assertContains(combinedChecks, ":workers:karateWorkerBehaviour SKIPPED")
+        assertFalse(combinedChecks.contains(":workers:deployWorker SKIPPED"))
+        assertContains(run(":workers:check", "--dry-run").output, "Reusing configuration cache")
         assertEquals(TaskOutcome.UP_TO_DATE, run("generatePackageScripts").task(":generatePackageScripts")?.outcome)
         val deployment = run(":workers:deployWorker", "--dry-run", "-Pdependeasy.environment=dev")
         assertContains(deployment.output, ":workers:deployWorker SKIPPED")
