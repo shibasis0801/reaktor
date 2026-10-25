@@ -22,16 +22,16 @@ object AgentBundle {
      * so [antigravityConfig] is a machine-wide file the operator shares with every other project,
      * and it is passed in rather than derived so no caller can reach the real home by accident.
      */
-    data class Targets(val codexConfig: File, val claudeProjectConfig: File, val antigravityConfig: File, val launcher: File, val skills: Map<String, File> = emptyMap()) {
+    data class Targets(val codexConfig: File, val claudeProjectConfig: File, val antigravityConfig: File, val launcher: File, val skills: Map<String, File> = emptyMap(), val agentHome: File? = null) {
         val manifest: File get() = File(claudeProjectConfig.parentFile, ".reaktor/agent-bundle.json")
     }
 
     fun targets(root: File, home: File = File(System.getProperty("user.home"))) = Targets(
         File(root, ".codex/config.toml"), File(root, ".mcp.json"), File(home, ".gemini/config/mcp_config.json"), File(home, ".local/bin/$LAUNCHER_NAME"),
-        HangarSkill.files(home))
+        HangarSkill.files(home), home)
 
     data class Status(val codex: Boolean, val claude: Boolean, val codexGraph: Boolean = false, val claudeGraph: Boolean = false,
-        val antigravity: Boolean = false, val antigravityGraph: Boolean = false, val codexSandbox: Boolean = false, val launcher: Boolean = false, val skills: Boolean = false)
+        val antigravity: Boolean = false, val antigravityGraph: Boolean = false, val codexSandbox: Boolean = false, val launcher: Boolean = false, val skills: Boolean = false, val profiles: Boolean = false)
     fun status(targets: Targets): Status {
         val text = targets.codexConfig.takeIf { it.isFile }?.readText().orEmpty()
         val servers = readObject(targets.claudeProjectConfig).servers()
@@ -39,7 +39,8 @@ object AgentBundle {
             hasTable(text, GRAPH_SERVER_NAME), GRAPH_SERVER_NAME in servers,
             SERVER_NAME in readObject(targets.antigravityConfig).servers(), GRAPH_SERVER_NAME in readObject(targets.antigravityConfig).servers(),
             text.contains("# reaktor-bundle begin $SANDBOX_NAME\n"), targets.launcher.canExecute(),
-            targets.skills.isNotEmpty() && targets.skills.all { (key, file) -> file.isFile && file.readText() == HangarSkill.content(key) })
+            targets.skills.isNotEmpty() && targets.skills.all { (key, file) -> file.isFile && file.readText() == HangarSkill.content(key) },
+            exports(targets).let { it.isNotEmpty() && it.values.all { entry -> entry.file.isFile && entry.file.readText() == entry.text } })
     }
 
     /**
@@ -67,6 +68,7 @@ object AgentBundle {
         var antigravity = readObject(targets.antigravityConfig)
         var text = targets.codexConfig.takeIf { it.isFile }?.readText().orEmpty()
         val read = Triple(text, claude, antigravity)
+        val profiles = exports(targets)
         val manifest = readObject(targets.manifest).toMutableMap()
         manifest.putIfAbsent("codexCreated", JsonPrimitive(!targets.codexConfig.exists()))
         manifest.putIfAbsent("claudeCreated", JsonPrimitive(!targets.claudeProjectConfig.exists()))
@@ -194,6 +196,27 @@ object AgentBundle {
                 }
             }
         }
+        profiles.forEach { (key, entry) ->
+            val profileKey = "profile/$key"
+            val present = entry.file.takeIf { it.isFile }?.readText()
+            when {
+                present == entry.text -> { owned[profileKey] = JsonPrimitive(entry.text); messages += "$profileKey: already installed" }
+                present != null && owned[profileKey] != JsonPrimitive(present) -> messages += "$profileKey: collision; preserved ${entry.file.path}"
+                else -> {
+                    writeText(entry.file, entry.text)
+                    owned[profileKey] = JsonPrimitive(entry.text)
+                    messages += "$profileKey: " + if (present == null) "installed ${entry.file.path}" else "updated owned entry"
+                }
+            }
+        }
+        owned.keys.filter { it.startsWith("profile/") && it.removePrefix("profile/") !in profiles }.forEach { key ->
+            val file = targets.agentHome?.let { NativeAgentProfiles.file(targets.claudeProjectConfig.parentFile, it, key.removePrefix("profile/")) }
+            if (file != null && file.takeIf { it.isFile }?.readText() == owned[key]?.jsonPrimitive?.content) {
+                Files.deleteIfExists(file.toPath())
+                messages += "$key: retired"
+            } else messages += "$key: modified; preserved"
+            owned.remove(key)
+        }
         writeObject(targets.manifest, JsonObject(manifest + ("entries" to JsonObject(owned))))
         messages
     }
@@ -242,6 +265,10 @@ object AgentBundle {
             } else if (key.startsWith("path/")) {
                 if (targets.launcher.takeIf { it.isFile }?.readText() == value.jsonPrimitive.content) { targets.launcher.delete(); messages += "$key: removed" }
                 else messages += "$key: modified; preserved"
+            } else if (key.startsWith("profile/")) {
+                val file = targets.agentHome?.let { NativeAgentProfiles.file(targets.claudeProjectConfig.parentFile, it, key.removePrefix("profile/")) }
+                if (file != null && file.takeIf { it.isFile }?.readText() == value.jsonPrimitive.content) { Files.deleteIfExists(file.toPath()); messages += "$key: removed" }
+                else messages += "$key: modified; preserved"
             } else if (key.startsWith("skill/")) {
                 val file = targets.skills[key.removePrefix("skill/")]
                 if (file != null && file.takeIf { it.isFile }?.readText() == value.jsonPrimitive.content) { Files.deleteIfExists(file.toPath()); messages += "$key: removed" }
@@ -263,6 +290,10 @@ object AgentBundle {
         }
         messages.ifEmpty { listOf("No owned entries; existing configuration preserved") }
     }
+
+    private fun exports(targets: Targets) = targets.agentHome?.let {
+        NativeAgentProfiles.files(targets.claudeProjectConfig.parentFile, it)
+    }.orEmpty()
 
     /**
      * The project's lock, and a second one beside the shared Antigravity file.

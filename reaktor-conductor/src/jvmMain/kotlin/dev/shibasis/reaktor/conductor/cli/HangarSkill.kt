@@ -68,7 +68,8 @@ object HangarSkill {
         |
         |- `atlas_query` and `atlas_read` on the code the request touches: enough to name the modules each task changes and the order the work goes in.
         |- `board.list` for the open board tasks. Leave out work that is already there.
-        |- `taskgraph.seats` for the agents, models and efforts this workspace runs.
+        |- `taskgraph.seats` for the agents, models, efforts and saved profiles this workspace runs. Use `seat.profile` to select a perspective; explicit model and effort overrides still apply.
+        |- `workspace install` exports matching Claude/Codex profiles as native custom agents with workspace-prefixed names. Rerun it after a profile changes. Native subagents inherit their parent permissions; graph task permissions are enforced by Hangar.
         |
         |## 2. Propose
         |
