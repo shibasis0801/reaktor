@@ -42,7 +42,7 @@ private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, run
     })
     val generated = spec.generators.map { generator ->
         when (generator) {
-            is WebGenerator.Node -> web.generator(generator.alias, generator.script, generator.output)
+            is WebGenerator.Node -> web.generator(generator.alias, generator.script, generator.output, generator.arguments)
             is WebGenerator.WorkerTypes -> web.workerTypes(generator.configuration, "${generator.output}/worker-configuration.d.ts")
         }
     }
@@ -51,6 +51,7 @@ private fun Project.bindWebApp(spec: WebAppSpec, kotlin: List<OutputHandle>, run
     val bundle = when (val bundle = spec.bundle) {
         is WebBundle.Vite -> web.vite(bundle.output, bundle.excludedAssets)
         is WebBundle.Package -> web.script(bundle.script.name, bundle.output)
+        is WebBundle.Node -> web.generator(PackageScript("build"), bundle.script, bundle.output, bundle.arguments)
     }
     val assembled = web.build("assembleWeb", bundle = bundle, typecheck = types, checks = checks, generators = generated)
     val verification = BuildWorkspace.get(this).aggregate(this, "checkWeb", NodeKind.Verification,

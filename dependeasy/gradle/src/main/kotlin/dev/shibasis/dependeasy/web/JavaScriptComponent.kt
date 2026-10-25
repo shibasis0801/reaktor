@@ -148,8 +148,8 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     }
 
     internal fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
-    internal fun generator(alias: PackageScript, script: String, output: String): TaskProvider<NodeGenerator> =
-        commandKernel.register(NodeGenerator::class.java, alias.name, output).also {
+    internal fun generator(alias: PackageScript, script: String, output: String?, arguments: List<String> = emptyList()): TaskProvider<NodeGenerator> =
+        commandKernel.register(NodeGenerator::class.java, alias.name, output, *arguments.toTypedArray()).also {
             it.configure {
                 this.script.set(directory.resolve(script))
                 executable.set(workspace.tools.node.map { it.asFile.absolutePath })
