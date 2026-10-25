@@ -59,6 +59,26 @@ internal suspend fun AgentWorkspace.landTaskCandidate(graph: String, task: Strin
     }
 }
 
+internal fun AgentWorkspace.resumeTaskAfterLimit(graph: String, task: String, revision: Long, attempt: Int, atReset: Boolean, by: BoardActor): TaskGraphView =
+    synchronized(board) { admitOperation {
+        require(by.kind == BoardActorKind.Person && by.name.isNotBlank()) { "Only a person schedules a usage-limit retry" }
+        require(board.graph(graph).revision == revision) { "The graph changed; read its current revision" }
+        require(board.graph(graph).status in setOf(TaskGraphStatus.Running, TaskGraphStatus.Paused)) { "The graph is closed" }
+        val value = board.get(task)
+        val plan = requireNotNull(value.graph?.takeIf { it.id == graph }) { "Task does not belong to this graph" }
+        require(plan.kind == TaskKind.Agent && plan.state == TaskState.Limited && plan.attempt == attempt) { "The Limited attempt changed; inspect it again" }
+        val run = get(requireNotNull(plan.runId))
+        val target = submission(run.id).task
+        require(run.status == AgentRunStatus.Limited && run.usageLimit == plan.outcome?.usageLimit &&
+            target?.graph == graph && target.task == task && target.attempt == attempt) { "This run is not the Limited task attempt" }
+        val reset = if (atReset) requireNotNull(run.usageLimit?.resetsAtEpochMillis) { "The provider did not report a reset time" } else null
+        val detail = if (atReset) "${by.name} chose one retry at provider reset $reset; the graph must be running" else "${by.name} chose to keep waiting; scheduled retry cancelled"
+        board.advance(graph, task) { current, currentPlan -> current.copy(revision = current.revision + 1,
+            history = (current.history + BoardEvent(System.currentTimeMillis(), by, detail)).takeLast(50),
+            graph = currentPlan.copy(resumeAtReset = reset, note = detail)) }
+        board.view(graph)
+    } }
+
 internal fun AgentWorkspace.recoverTask(graph: String, task: String, revision: Long, attempt: Int, action: TaskRecoveryAction, by: BoardActor): TaskGraphView =
     synchronized(board) { admitOperation {
         require(by.kind == BoardActorKind.Person && by.name.isNotBlank()) { "Only a person reconciles an interrupted attempt" }

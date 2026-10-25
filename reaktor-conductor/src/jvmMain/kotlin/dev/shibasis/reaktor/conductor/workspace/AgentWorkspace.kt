@@ -280,7 +280,7 @@ class AgentWorkspace(
                 }
                 continue
             }
-            if (parent.status == AgentRunStatus.Running || parent.recovery != AgentRecovery.None) continue
+            if (parent.status in setOf(AgentRunStatus.Running, AgentRunStatus.Limited) || parent.recovery != AgentRecovery.None) continue
             val updated = if (parent.status != AgentRunStatus.Completed) item.copy(state = "blocked", error = "Previous turn did not complete")
             else runCatching { submit(item.submission) }.fold(
                 { item.copy(state = "dispatched", runId = it.id) },
@@ -875,7 +875,8 @@ class AgentWorkspace(
                         (if (isolated == null) evidence.capture(evidenceTask, subjects) else worktrees.capture(isolated.id, subjects).also { evidence.recordCandidate(evidenceTask, it) })
                             .also { require(request.task == null || it.complete) { "Post-turn candidate coverage is incomplete: ${it.notices.joinToString()}" } }
                     } else null
-                    update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (it.participants.values.any { p -> p.status == AgentRunStatus.Interrupted }) AgentRunStatus.Interrupted else if (workflowFailed ?: failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
+                    update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (it.participants.values.any { p -> p.status == AgentRunStatus.Interrupted }) AgentRunStatus.Interrupted else if (it.participants.values.any { p -> p.status == AgentRunStatus.Limited }) AgentRunStatus.Limited else if (workflowFailed ?: failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
+                        usageLimit = it.participants.values.firstNotNullOfOrNull { p -> p.usageLimit },
                         pending = emptyList(), recovery = AgentRecovery.None, recoveryReason = null,
                         output = answer?.text.orEmpty().takeLast(12000), outputTruncated = answer?.text.orEmpty().length > 12000,
                         candidateId = completedCandidate?.id ?: it.candidateId,

@@ -107,6 +107,12 @@ internal class TaskGraphScope(owner: Graph, val workspace: AgentWorkspace, val g
 internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<CoordinatorMessage>(scope, ActorKey("taskgraph/${scope.graphId}", CoordinatorMessage::class)), ShapeAttributes {
     private val store get() = scope.workspace.board
     private val graphId get() = scope.graphId
+    private var limitWake: Job? = null
+
+    override fun close() {
+        limitWake?.cancel()
+        super.close()
+    }
 
     override val shapeAttributes: Map<String, String>
         get() = runCatching { store.graph(graphId) }.getOrNull()?.let { graph ->
@@ -129,6 +135,8 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
     private fun members() = store.members(graphId).associateBy { it.id }
 
     private fun evaluate() {
+        limitWake?.cancel()
+        limitWake = null
         var members = members()
         scope.rebuild(members)
         val graph = store.graph(graphId)
@@ -136,6 +144,15 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             scope.actor(task.id)?.takeIf { it.busy }?.trySend(TaskMessage.Stop)
         }
         if (graph.status != TaskGraphStatus.Running) return
+        val now = System.currentTimeMillis()
+        members.values.filter { it.graph?.state == TaskState.Limited && it.graph.resumeAtReset?.let { reset -> reset <= now } == true }.forEach { task ->
+            store.advance(graphId, task.id) { value, plan ->
+                if (plan.state != TaskState.Limited || plan.resumeAtReset?.let { it <= now } != true) value
+                else value.copy(graph = plan.copy(state = TaskState.Pending, resumeAtReset = null, readySince = null,
+                    note = "Resuming after the provider's reported reset"))
+            }
+        }
+        members = members()
         members.values.filter { it.graph?.state == TaskState.Running && it.graph.seat?.lead != true && it.graph.kind in Dispatched }.forEach { task ->
             scope.actor(task.id)?.takeIf { !it.busy }?.trySend(TaskMessage.Start)
         }
@@ -174,7 +191,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 fits(task, members, seat) -> {
                     if (plan.kind == TaskKind.Agent) free--
                     val started = store.advance(graphId, task.id) { value, current ->
-                        value.copy(graph = current.copy(state = TaskState.Running, attempt = current.attempt + 1, note = null, outcome = null, held = false, run = null, runId = null, resolvedSeat = resolved, recovery = AgentRecovery.None))
+                        value.copy(graph = current.copy(state = TaskState.Running, attempt = current.attempt + 1, note = null, outcome = null, held = false, run = null, runId = null, resolvedSeat = resolved, recovery = AgentRecovery.None, resumeAtReset = null))
                     }
                     members = members + (started.id to started)
                     scope.actor(task.id)?.let { actor -> actor.task = started; actor.trySend(TaskMessage.Start) }
@@ -182,7 +199,13 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             }
         }
         members = members()
-        if (members.values.none { it.graph?.state in setOf(TaskState.Running, TaskState.Waiting) } && TaskGraphRules.ready(members).isEmpty()) {
+        members.values.filter { it.graph?.state == TaskState.Limited }.mapNotNull { it.graph?.resumeAtReset }.minOrNull()?.let { reset ->
+            limitWake = scope.coroutineScope.launch {
+                delay((reset - System.currentTimeMillis()).coerceAtLeast(1))
+                trySend(CoordinatorMessage.Tick)
+            }
+        }
+        if (members.values.none { it.graph?.state in setOf(TaskState.Running, TaskState.Waiting, TaskState.Limited) } && TaskGraphRules.ready(members).isEmpty()) {
             val blocked = store.view(graphId).blocked.values.flatten()
             if (blocked.isNotEmpty()) store.hold(graphId, TaskGraphStatus.Paused,
                 blocked.joinToString("; ") + ". Retry the prerequisite or edit its dependency.", scope.by)
@@ -450,9 +473,13 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             tokens = run.usage?.let { (it.inputTokens ?: 0) + (it.outputTokens ?: 0) }?.takeIf { it > 0 },
             at = System.currentTimeMillis(),
             candidateId = run.candidateId,
+            usageLimit = run.usageLimit,
         )
         fun settled(state: TaskState, outcome: TaskOutcome, transient: Boolean = false) = CoordinatorMessage.Settled(task.id, plan.attempt, state, outcome, transient)
         when {
+            run.status == AgentRunStatus.Limited -> settled(TaskState.Limited, base.copy(
+                summary = "Limited by ${run.usageLimit?.provider ?: run.provider}: ${run.failure ?: "provider usage limit reached"}".take(TaskGraphRules.OutcomeChars),
+                questions = listOf("Retry now or choose resume at the reported reset in Hangar. Owned work and queued messages are retained.")))
             run.status == AgentRunStatus.Completed && plan.contract == WorkflowContract.Decision && scope.workspace.submission(run.id).task?.candidate != null -> {
                 runCatching {
                     val review = TaskReview.parse(run.output)

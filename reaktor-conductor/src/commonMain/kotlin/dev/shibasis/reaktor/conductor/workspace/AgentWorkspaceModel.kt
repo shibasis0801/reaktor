@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
 val AgentWorkspaceJson: Json = Json(ConductorJson) { encodeDefaults = true }
 
 @Serializable
-enum class AgentRunStatus { Running, Completed, Failed, Interrupted }
+enum class AgentRunStatus { Running, Completed, Failed, Interrupted, Limited }
 
 @Serializable
 enum class AgentCollaboration { Single, Compare, Council }
@@ -51,6 +51,7 @@ data class AgentParticipantRun(
     /** Requests this participant is blocked on. Persisted, so a reconnect does not re-ask. */
     val pending: List<PendingRequest> = emptyList(),
     val activeTurn: String? = null,
+    val usageLimit: AgentUsageLimit? = null,
 )
 
 @Serializable
@@ -154,6 +155,7 @@ data class AgentRunRecord(
     val workingDirectory: String? = null,
     val councilHybrid: Boolean = false,
     val pendingHandoff: String? = null,
+    val usageLimit: AgentUsageLimit? = null,
 )
 
 @Serializable

@@ -169,6 +169,26 @@ private class CodexAppServerSession(
         val text = StringBuilder()
         var finalText: String? = null
         var usage: AgentUsage? = null
+        var rateLimits: JsonObject? = null
+        suspend fun usageLimit(error: JsonObject?): AgentUsageLimit? {
+            if ((error?.get("codexErrorInfo") as? JsonPrimitive)?.contentOrNull != "usageLimitExceeded") return null
+            val snapshot = withTimeoutOrNull(2_000) {
+                try {
+                    val response = rpc.request("account/rateLimits/read")
+                    ((response["rateLimitsByLimitId"] as? JsonObject)?.get("codex") as? JsonObject
+                        ?: response.objectOrEmpty("rateLimits")).takeIf { it.isNotEmpty() }
+                }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { null }
+            } ?: rateLimits
+            val resetsAt = listOf("primary", "secondary").mapNotNull { key ->
+                val window = snapshot?.get(key) as? JsonObject
+                window?.takeIf { (it["usedPercent"]?.jsonPrimitive?.intOrNull ?: 0) >= 100 }
+                    ?.get("resetsAt")?.jsonPrimitive?.longOrNull
+                    ?.takeIf { it > 0 && it <= Long.MAX_VALUE / 1000 }?.times(1000)
+            }.maxOrNull()
+            return AgentUsageLimit(RuntimeKind.Codex, "usageLimitExceeded", resetsAt)
+        }
 
         val pump = launch(start = CoroutineStart.UNDISPATCHED) {
             rpc.inbound.collect { message ->
@@ -259,6 +279,11 @@ private class CodexAppServerSession(
                         "turn/plan/updated" -> send(AgentEvent.Activity(agent, AgentActivityItem(
                             "plan-${turn ?: "current"}", ActivityKind.Plan, "Execution plan", output = message.params.toString())))
 
+                        "account/rateLimits/updated" -> message.params.objectOrEmpty("rateLimits").let { update ->
+                            if (update["limitId"]?.jsonPrimitive?.contentOrNull in listOf(null, "codex"))
+                                rateLimits = JsonObject(rateLimits.orEmpty() + update)
+                        }
+
                         "thread/tokenUsage/updated" -> message.params.objectOrEmpty("tokenUsage").toUsage()?.let { usage = it }
 
                         "turn/completed" -> {
@@ -267,7 +292,7 @@ private class CodexAppServerSession(
                                 .mapNotNull { it as? JsonObject }
                                 .lastOrNull { it["type"]?.jsonPrimitive?.contentOrNull == "agentMessage" }
                                 ?.get("text")?.jsonPrimitive?.contentOrNull
-                            val failed = completed["error"]?.takeIf { it !is JsonNull }
+                            val failed = completed["error"] as? JsonObject
                             terminal.complete(AgentOutcome(
                                 agent = agent,
                                 text = answer ?: finalText ?: text.toString(),
@@ -277,14 +302,19 @@ private class CodexAppServerSession(
                                 session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) },
                                 usage = usage,
                                 effort = effort,
+                                usageLimit = if (completed["status"]?.jsonPrimitive?.contentOrNull == "failed") usageLimit(failed) else null,
                             ))
                             turn = null
                             pending.clear()
                         }
 
-                        "turn/failed", "error" -> terminal.complete(AgentOutcome(agent, text.toString(), false,
-                            failure = message.params["message"]?.jsonPrimitive?.contentOrNull ?: "app-server reported an error",
-                            session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort))
+                        "turn/failed", "error" -> if (message.params["willRetry"]?.jsonPrimitive?.booleanOrNull != true) {
+                            val failed = message.params["error"] as? JsonObject ?: message.params
+                            terminal.complete(AgentOutcome(agent, text.toString(), false,
+                                failure = failed["message"]?.jsonPrimitive?.contentOrNull ?: "app-server reported an error",
+                                session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort,
+                                usageLimit = usageLimit(failed)))
+                        }
 
                         else -> Unit
                     }

@@ -30,7 +30,7 @@ object TaskGraphRules {
     const val MaxTasks = 200
     const val OutcomeChars = 8_000
     val Settled = setOf(TaskState.Succeeded, TaskState.Failed, TaskState.Skipped, TaskState.Cancelled)
-    val Open = setOf(TaskState.Pending, TaskState.Running, TaskState.Waiting)
+    val Open = setOf(TaskState.Pending, TaskState.Running, TaskState.Waiting, TaskState.Limited)
 
     fun active(dependency: TaskDependency, upstream: BoardTask?): Boolean {
         val plan = upstream?.graph ?: return false
@@ -357,7 +357,7 @@ class TaskGraphEditing(
                 undo += TaskGraphOp.Add(task.title, key = task.id, intent = task.intent, acceptance = task.acceptance, scope = task.scope, kind = plan.kind,
                     seat = plan.seat, contract = plan.contract, check = plan.check, dependsOn = plan.dependsOn, layout = plan.layout, parent = task.parent)
             }
-            TaskState.Running, TaskState.Waiting -> {
+            TaskState.Running, TaskState.Waiting, TaskState.Limited -> {
                 put(task.copy(graph = plan.copy(state = TaskState.Cancelled, note = "Cancelled by ${caller.by.name}")))
                 summary += "Cancelled ${task.id} ${task.title}"
             }
@@ -426,8 +426,9 @@ class TaskGraphEditing(
         val plan = plan(task)
         if (!caller.person && !caller.lead) refuse("Only a person or the lead retries a task")
         require(plan.recovery != AgentRecovery.NeedsReview) { "Reconcile the interrupted attempt in Hangar before retrying" }
-        require(plan.state in setOf(TaskState.Failed, TaskState.Cancelled, TaskState.Skipped, TaskState.Waiting)) { "${task.id} is ${plan.state.name.lowercase()}; retry a failed, cancelled, skipped or waiting task" }
-        put(task.copy(graph = plan.copy(state = TaskState.Pending, note = "Retry asked by ${caller.by.name}", readySince = null)))
+        if (plan.state == TaskState.Limited && !caller.person) refuse("Only a person retries a usage-limited task")
+        require(plan.state in setOf(TaskState.Failed, TaskState.Cancelled, TaskState.Skipped, TaskState.Waiting, TaskState.Limited)) { "${task.id} is ${plan.state.name.lowercase()}; retry a failed, cancelled, skipped or waiting task" }
+        put(task.copy(graph = plan.copy(state = TaskState.Pending, note = "Retry asked by ${caller.by.name}", readySince = null, resumeAtReset = null)))
         summary += "Retry ${task.id}"
         undo += TaskGraphOp.Restore(task.id, plan.dependsOn, plan.seat, plan.state)
     }

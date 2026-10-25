@@ -20,6 +20,7 @@ class TaskGraphRuntimeTest {
     private class Scripted(override val kind: RuntimeKind, private val replies: List<String>) : AgentRuntime {
         val requests = CopyOnWriteArrayList<AgentRequest>()
         val failing = AtomicBoolean(false)
+        @Volatile var limit: AgentUsageLimit? = null
         var onRun: suspend (AgentRequest, Int) -> Unit = { request, number ->
             if (request.agent.tools.allowWrites) File(request.workingDirectory, "Source.kt").writeText("val attempt = $number\n")
         }
@@ -28,11 +29,12 @@ class TaskGraphRuntimeTest {
             val session = ProviderSession(kind, "${kind.name}-${requests.size}")
             emit(AgentEvent.Started(request.agent.id, session))
             val failed = failing.get()
+            val limited = limit
             if (!failed) onRun(request, requests.size)
             val candidate = Regex("\"candidate\":\\s*\"([a-f0-9]{64})\"").find(request.prompt)?.groupValues?.get(1).orEmpty()
             val text = if (failed) "" else replies[minOf(requests.size, replies.size) - 1].replace("{{candidate}}", candidate)
-            emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, text, !failed, failure = if (failed) "The build broke" else null,
-                session = session, usage = AgentUsage(inputTokens = 100, outputTokens = 20))))
+            emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, text, !failed && limited == null, failure = if (limited != null) "Provider usage limit" else if (failed) "The build broke" else null,
+                session = session, usage = AgentUsage(inputTokens = 100, outputTokens = 20), usageLimit = limited)))
         }
     }
 
@@ -523,6 +525,145 @@ class TaskGraphRuntimeTest {
             assertTrue(connection.list(50).any { it.failure == "The review candidate changed during the turn" })
             assertEquals(TaskState.Pending, stopped.task("Land it").graph?.state)
             assertEquals("val baseline = 1\n", File(root, "Source.kt").readText())
+        }
+    }
+
+    @Test fun usageLimitedWriterRetainsItsCheckoutWhileIndependentClaudeWorkFinishes() {
+        val codex = Scripted(RuntimeKind.Codex, listOf("Built it"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf("Independent work"))
+        codex.limit = AgentUsageLimit(RuntimeKind.Codex, "usageLimitExceeded", System.currentTimeMillis() + 500)
+        workspace(codex, claude) { connection, _, _ ->
+            val proposed = connection.proposeTaskGraph(TaskGraphDraft("Limited writer", tasks = listOf(
+                draft().tasks.first(),
+                TaskGraphOp.Add("Independent Claude", seat = TaskSeat(RuntimeKind.ClaudeCode)),
+                TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("build"))),
+                TaskGraphOp.Add("Failure branch", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("build", TaskCondition.Failed, required = false)))
+            )), person)
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val held = connection.until("G1") { it.task("Build the parser").graph?.state == TaskState.Limited && it.task("Independent Claude").graph?.state == TaskState.Succeeded }
+            val build = held.task("Build the parser")
+            val plan = build.graph!!
+            val run = connection.get(plan.runId!!)
+            assertEquals(AgentRunStatus.Limited, run.status)
+            assertEquals(run.usageLimit, plan.outcome?.usageLimit)
+            assertEquals(TaskGraphStatus.Running, held.graph.status)
+            assertEquals(TaskState.Pending, held.task("Accept").graph?.state)
+            assertEquals(TaskState.Pending, held.task("Failure branch").graph?.state)
+            assertNotNull(plan.worktreeId)
+            delay(1000)
+            assertEquals(1, codex.requests.size)
+            assertEquals("val attempt = 1\n", File(codex.requests.single().workingDirectory, "Source.kt").readText())
+            assertFailsWith<Exception> { connection.resumeTaskGraphAfterLimit("G1", build.id, held.graph.revision, plan.attempt, true, BoardActor(BoardActorKind.Agent, "codex")) }
+            assertFailsWith<Exception> { connection.resumeTaskGraphAfterLimit("G1", build.id, held.graph.revision - 1, plan.attempt, true, person) }
+            assertFailsWith<Exception> { connection.resumeTaskGraphAfterLimit("G1", build.id, held.graph.revision, plan.attempt + 1, true, person) }
+            assertFailsWith<Exception> { connection.reportTaskGraph("G1", build.id, TaskReport.Succeeded, TaskOutcome(summary = "bypass"), person) }
+            assertEquals(held, connection.taskGraph("G1"))
+            codex.limit = null
+            codex.onRun = { request, _ -> assertEquals("val attempt = 1\n", File(request.workingDirectory, "Source.kt").readText()) }
+            connection.resumeTaskGraphAfterLimit("G1", build.id, held.graph.revision, plan.attempt, true, person)
+            val done = connection.until("G1") { it.task("Accept").graph?.state == TaskState.Waiting }
+            val next = done.task("Build the parser").graph!!
+            assertEquals(2, next.attempt)
+            assertEquals(plan.worktreeId, next.worktreeId)
+            assertNotEquals(plan.runId, next.runId)
+            assertNull(next.resumeAtReset)
+            assertNull(next.outcome?.usageLimit)
+            assertEquals(TaskState.Skipped, done.task("Failure branch").graph?.state)
+        }
+    }
+
+    @Test fun selectedResetRetryWaitsForGraphResumeCanBeCancelledAndRunsOnlyOnce() {
+        val codex = Scripted(RuntimeKind.Codex, listOf("Limited"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf("Idle"))
+        codex.limit = AgentUsageLimit(RuntimeKind.Codex, "usageLimitExceeded", System.currentTimeMillis() + 500)
+        workspace(codex, claude) { connection, _, _ ->
+            val proposed = connection.proposeTaskGraph(TaskGraphDraft("One retry", tasks = listOf(draft().tasks.first())), person)
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val held = connection.until("G1") { it.tasks.single().graph?.state == TaskState.Limited }
+            connection.pauseTaskGraph("G1", "Wait for owner", person)
+            val paused = connection.taskGraph("G1")
+            val task = paused.tasks.single()
+            connection.resumeTaskGraphAfterLimit("G1", task.id, paused.graph.revision, 1, true, person)
+            delay(750)
+            assertEquals(1, codex.requests.size)
+            val selected = connection.taskGraph("G1")
+            assertNotNull(selected.tasks.single().graph?.resumeAtReset)
+            connection.resumeTaskGraphAfterLimit("G1", task.id, selected.graph.revision, 1, false, person)
+            val cancelled = connection.taskGraph("G1")
+            connection.startTaskGraph("G1", cancelled.graph.revision, person)
+            delay(500)
+            assertEquals(1, codex.requests.size)
+            val waiting = connection.taskGraph("G1")
+            assertNull(waiting.tasks.single().graph?.resumeAtReset)
+            connection.resumeTaskGraphAfterLimit("G1", task.id, waiting.graph.revision, 1, true, person)
+            val second = connection.until("G1") { it.tasks.single().graph?.let { it.state == TaskState.Limited && it.attempt == 2 } == true }
+            assertNull(second.tasks.single().graph?.resumeAtReset)
+            assertEquals(held.tasks.single().graph?.worktreeId, second.tasks.single().graph?.worktreeId)
+            delay(750)
+            assertEquals(2, codex.requests.size)
+        }
+    }
+
+    @Test fun selectedResetRetrySurvivesOwnerRestartAndConsumesTheChoiceOnce() = runBlocking {
+        val root = Files.createTempDirectory("taskgraph-limit-root").toFile()
+        val data = Files.createTempDirectory("taskgraph-limit-data")
+        val codex = Scripted(RuntimeKind.Codex, listOf("Limited", "Resumed"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf("Idle"))
+        codex.limit = AgentUsageLimit(RuntimeKind.Codex, "usageLimitExceeded", System.currentTimeMillis() + 1000)
+        try {
+            File(root, "Source.kt").writeText("val baseline = 1\n")
+            listOf(listOf("init", "--quiet"), listOf("add", "."),
+                listOf("-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Baseline")).forEach { args ->
+                val process = ProcessBuilder(listOf("git", "-C", root.path) + args).redirectErrorStream(true).start()
+                val output = process.inputStream.bufferedReader().readText()
+                check(process.waitFor() == 0) { output }
+            }
+            lateinit var checkout: String
+            AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude), background = true).use { connection ->
+                val proposed = connection.proposeTaskGraph(TaskGraphDraft("Restart limited", tasks = listOf(draft().tasks.first())), person)
+                connection.startTaskGraph("G1", proposed.graph.revision, person)
+                val held = connection.until("G1") { it.tasks.single().graph?.state == TaskState.Limited }
+                connection.pauseTaskGraph("G1", "Wait across restart", person)
+                val paused = connection.taskGraph("G1")
+                connection.resumeTaskGraphAfterLimit("G1", paused.tasks.single().id, paused.graph.revision, 1, true, person)
+                checkout = requireNotNull(held.tasks.single().graph?.worktreeId)
+            }
+            codex.limit = null
+            delay(1100)
+            AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude), background = true).use { connection ->
+                val paused = connection.taskGraph("G1")
+                assertEquals(TaskGraphStatus.Paused, paused.graph.status)
+                assertEquals(TaskState.Limited, paused.tasks.single().graph?.state)
+                assertNotNull(paused.tasks.single().graph?.resumeAtReset)
+                assertEquals(1, codex.requests.size)
+                connection.startTaskGraph("G1", paused.graph.revision, person)
+                val done = connection.until("G1") { it.graph.status == TaskGraphStatus.Finished }
+                assertEquals(2, done.tasks.single().graph?.attempt)
+                assertNull(done.tasks.single().graph?.resumeAtReset)
+                assertEquals(checkout, done.tasks.single().graph?.worktreeId)
+                assertEquals(2, codex.requests.size)
+            }
+        } finally {
+            root.deleteTreeSafely(within = temporary)
+            data.toFile().deleteTreeSafely(within = temporary)
+        }
+    }
+
+    @Test fun unknownResetRequiresManualRetryAndNeverInventsATime() {
+        val codex = Scripted(RuntimeKind.Codex, listOf("Done"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf("Idle"))
+        codex.limit = AgentUsageLimit(RuntimeKind.Codex, "usageLimitExceeded")
+        workspace(codex, claude) { connection, _, _ ->
+            val proposed = connection.proposeTaskGraph(TaskGraphDraft("Unknown reset", tasks = listOf(draft().tasks.first())), person)
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val held = connection.until("G1") { it.tasks.single().graph?.state == TaskState.Limited }
+            val task = held.tasks.single()
+            assertFailsWith<Exception> { connection.resumeTaskGraphAfterLimit("G1", task.id, held.graph.revision, 1, true, person) }
+            assertTrue("reset epoch millis unknown" in TaskGraphText.render(held))
+            codex.limit = null
+            connection.patchTaskGraph("G1", TaskGraphPatch(listOf(TaskGraphOp.Retry(task.id)), "Person retries", held.graph.revision), person)
+            val done = connection.until("G1") { it.graph.status == TaskGraphStatus.Finished }
+            assertEquals(2, done.tasks.single().graph?.attempt)
         }
     }
 
