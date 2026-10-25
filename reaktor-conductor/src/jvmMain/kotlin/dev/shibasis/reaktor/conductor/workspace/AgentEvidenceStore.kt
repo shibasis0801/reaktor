@@ -99,7 +99,12 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
             it.id == id && it.candidateId == candidateId && it.result.outcome == CheckOutcome.Passed && it.source == "kernel"
         } }) { "Required kernel checks have not passed for this candidate" }
         require(task.findings.none { it.resolvedByCandidate != candidateId && it.severity in listOf("blocker", "high") }) { "Blocking findings need resolution evidence on this candidate" }
-        return save(task.copy(acceptedCandidate = candidateId))
+        return save(task.copy(acceptedCandidate = candidateId, approverVerified = false))
+    }
+
+    @Synchronized internal fun acceptPerson(taskId: String, candidateId: String, by: BoardActor): AgentTaskEvidence {
+        require(by.kind == BoardActorKind.Person && by.name.isNotBlank() && by.name.length <= 100) { "Only a person accepts a graph candidate" }
+        return save(accept(taskId, candidateId).copy(approverVerified = true))
     }
     fun graph(taskId: String): AgentEvidenceGraph {
         val task = get(taskId)

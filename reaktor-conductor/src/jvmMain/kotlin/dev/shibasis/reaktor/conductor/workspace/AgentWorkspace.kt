@@ -9,8 +9,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.*
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -146,9 +145,27 @@ class AgentWorkspace(
         if (requireIdle) check(active.isEmpty() && !externalBusy()) { "Wait for active workspace work before applying" }
         action()
     }
-    fun applyWorktree(id: String, patch: String, revision: String): AgentWorktreeReview = synchronized(lock) {
-        require(active.isEmpty() && !externalBusy()) { "Wait for active workspace work before applying" }
-        worktrees.apply(id, patch, revision)
+    suspend fun applyWorktree(id: String, patch: String, revision: String): AgentWorktreeReview =
+        withWorktreeFiles(id) { worktrees.apply(id, patch, revision) }
+
+    internal suspend fun <T> withWorktreeFiles(id: String, action: () -> T): T {
+        val files = worktrees.files(id)
+        val radar = kernelRead?.invoke("agent.radar", buildJsonObject { putJsonArray("paths") { files.forEach { add(it.path) } } })?.jsonObject
+        val busy = radar?.get("sessions")?.jsonArray.orEmpty().map { it.jsonObject }.filter {
+            it["state"]?.jsonPrimitive?.content == "Working" && it["sharedFiles"]?.jsonArray.orEmpty().isNotEmpty()
+        }
+        require(busy.isEmpty()) { "Candidate files are busy: ${busy.joinToString { it["title"]?.jsonPrimitive?.content.orEmpty() }}" }
+        return admitOperation {
+            val paths = files.flatMap { listOf(it.path, it.relativeTo(root.canonicalFile).invariantSeparatorsPath) } +
+                radar?.get("modules")?.jsonArray.orEmpty().flatMap { listOf(it.jsonPrimitive.content, ":" + it.jsonPrimitive.content.substringAfterLast('/')) }
+            active.keys.forEach { run ->
+                val request = submission(run)
+                val scope = request.task?.let { board.get(it.task).scope }
+                    ?: request.context?.entries?.filter { it.kind == "source" || it.kind == "file" }?.map { it.ref }.orEmpty()
+                require(scope.isNotEmpty() && !TaskGraphRules.overlaps(scope, paths)) { "Running task $run touches candidate files or has no declared source scope" }
+            }
+            action()
+        }
     }
     fun compactActivity(olderThanDays: Int = 30): Long = synchronized(lock) {
         require(olderThanDays in 1..3650)
