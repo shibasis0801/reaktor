@@ -8,7 +8,6 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import dev.shibasis.dependeasy.codegen.KotlinObjectTask
 import dev.shibasis.dependeasy.codegen.kotlinObject
-import dev.shibasis.dependeasy.codegen.sourceRevision
 import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.process.nodeScript
 import dev.shibasis.dependeasy.configuration.option
@@ -37,7 +36,6 @@ open class DependeasyExtension internal constructor(
 
     internal val native = NativeLibrary(project)
 
-    fun sourceRevision() = project.sourceRevision()
     fun workspace(configuration: WorkspaceScope.() -> Unit) = WorkspaceScope(project, BuildWorkspace.get(project)).apply(configuration)
     fun module(namespace: String, configure: dev.shibasis.dependeasy.module.MultiplatformModule.() -> Unit): dev.shibasis.dependeasy.module.MultiplatformModule {
         if (project.extensions.findByType(SourceSite::class.java) == null) {
