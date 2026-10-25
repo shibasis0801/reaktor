@@ -407,17 +407,20 @@ class ModuleWiringTest {
             import dev.shibasis.dependeasy.components.library
             import dev.shibasis.dependeasy.model.IdentitySource
             import dev.shibasis.dependeasy.model.IdentityRevision
+            import dev.shibasis.dependeasy.model.GeneratedObject
+            import dev.shibasis.dependeasy.model.BuildOption
             plugins { id("dev.shibasis.dependeasy.jvm") }
             repositories { mavenCentral() }
+            val Flags by GeneratedObject("fixture") {
+                val enabled by flag(BuildOption.boolean("enabled", true))
+            }
             library(bytecode = 21) {
+                val generateFlags by generated(Flags)
                 val generateIdentity by identity("fixture.properties",
                     sources = listOf(IdentitySource("fixture", ".", listOf("src/main"))),
                     revisions = listOf(IdentityRevision("revision", ".")))
             }
             dependeasy {
-                kotlinObject("generateFlags", "fixture", "Flags") {
-                    boolean("enabled", provider { true })
-                }
                 testClasses()
             }
             dependencies { testImplementation(kotlin("test-junit")) }

@@ -49,6 +49,15 @@ class JvmModule internal constructor(private val project: Project, bytecode: Int
         project.node(task, OutputKind.VerificationResults).also(verifications::add)
     }
 
+    fun generated(definition: GeneratedObject.Spec) = NodeDeclaration { name ->
+        dev.shibasis.dependeasy.codegen.GeneratedObjectKernel.install(project, name, definition).also { node ->
+            requireNotNull(node.task).configure {
+                dev.shibasis.dependeasy.codegen.GeneratedObjectKernel.inputs(project,
+                    this as dev.shibasis.dependeasy.codegen.KotlinObjectTask, definition, emptyMap())
+            }
+        }
+    }
+
     fun identity(fileName: String, sources: List<dev.shibasis.dependeasy.model.IdentitySource>,
         revisions: List<dev.shibasis.dependeasy.model.IdentityRevision> = emptyList(), recordTime: Boolean = false): NodeDeclaration {
         val declaration = project.identity(fileName, sources, revisions, recordTime)
