@@ -148,19 +148,19 @@ data class SafetyPolicy(
 }
 
 @Serializable
-enum class SafetyClass(val requiresApproval: Boolean) {
-    ReadOnly(false),
-    LocalEphemeral(false),
-    LocalArtifactWrite(false),
-    SourceWrite(true),
-    DeviceWrite(true),
-    LiveRead(false),
-    NonProductionWrite(true),
-    ProductionReversibleWrite(true),
-    CredentialWrite(true),
-    DataMigration(true),
-    Destructive(true),
-    UnknownRemoteEffect(true),
+enum class SafetyClass(val rank: Int, val requiresApproval: Boolean) {
+    ReadOnly(0, false),
+    LocalEphemeral(1, false),
+    LocalArtifactWrite(2, false),
+    SourceWrite(3, true),
+    DeviceWrite(4, true),
+    LiveRead(5, false),
+    NonProductionWrite(6, true),
+    ProductionReversibleWrite(7, true),
+    CredentialWrite(8, true),
+    DataMigration(9, true),
+    Destructive(10, true),
+    UnknownRemoteEffect(11, true),
 }
 
 @Serializable

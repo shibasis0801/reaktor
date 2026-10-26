@@ -51,7 +51,7 @@ data class DoorPolicy(
             if (machine == null) return project
             val seats = (machine.seats.keys + project.seats.keys).associateWith { name ->
                 val a = machine.seat(name); val b = project.seat(name)
-                SeatPolicy(minOf(a.allow, b.allow), minOf(a.ask, b.ask), a.plans && b.plans)
+                SeatPolicy(minOf(a.allow, b.allow, compareBy(SafetyClass::rank)), minOf(a.ask, b.ask, compareBy(SafetyClass::rank)), a.plans && b.plans)
             }
             return DoorPolicy(seats, minOf(machine.approvalMinutes, project.approvalMinutes), minOf(machine.maxResultChars, project.maxResultChars), machine.approvalDialog)
         }
@@ -87,7 +87,7 @@ object DoorAuthority {
      * what a seat is allowed.
      */
     fun effect(call: ToolingCall, provider: SafetyClass, overrides: Map<String, SafetyClass>, trustReadOnlyHint: Boolean): SafetyClass =
-        overrides[call.name] ?: if (trustReadOnlyHint && call.claims.readOnly == true && provider > SafetyClass.LiveRead) SafetyClass.LiveRead else provider
+        overrides[call.name] ?: if (trustReadOnlyHint && call.claims.readOnly == true && provider.rank > SafetyClass.LiveRead.rank) SafetyClass.LiveRead else provider
 
     /**
      * True only when the statement can be shown to read and nothing else. Everything doubtful is a
@@ -110,11 +110,11 @@ object DoorAuthority {
         "comment", "security", "reassign", "import", "export", "outfile", "dumpfile")
 
     fun decide(effect: SafetyClass, seat: SeatPolicy, ownPlan: Boolean = false): DoorDecision = when {
-        effect <= seat.allow && (!effect.requiresApproval || seat.allow.requiresApproval) -> DoorDecision.Allowed
-        ownPlan && seat.plans && effect <= SafetyClass.SourceWrite -> DoorDecision.Allowed
+        effect.rank <= seat.allow.rank && (!effect.requiresApproval || seat.allow.requiresApproval) -> DoorDecision.Allowed
+        ownPlan && seat.plans && effect.rank <= SafetyClass.SourceWrite.rank -> DoorDecision.Allowed
         // Short of full access, an effect nobody classified is never assumed harmless and never refused outright: a person decides.
         effect == SafetyClass.UnknownRemoteEffect -> DoorDecision.Ask(effect)
-        effect <= seat.ask || effect <= seat.allow -> DoorDecision.Ask(effect)
+        effect.rank <= seat.ask.rank || effect.rank <= seat.allow.rank -> DoorDecision.Ask(effect)
         else -> DoorDecision.Refused(effect, "this seat may not cause ${effect.name}")
     }
 
