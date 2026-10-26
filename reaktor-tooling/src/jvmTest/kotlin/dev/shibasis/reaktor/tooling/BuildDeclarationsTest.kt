@@ -92,6 +92,27 @@ class BuildDeclarationsTest {
         assertTrue(workspace.catalog.tasks.none { it.provenance.source == "gradle-settings" })
     }
 
+    @Test fun planningFailureKeepsTheCauseBeforeALongTimingTrailer() = fixture { root ->
+        report(root, node("artifacts"))
+        root.resolve(wrapperName).writeText("""
+            #!/usr/bin/env python3
+            import sys
+            if 'exportBuildModel' in sys.argv: sys.exit(0)
+            print('discarded-prefix-' * 1000)
+            print("Execution failed for task ':fixturePrerequisite'.")
+            for index in range(32): print('fixture timing statistic ' + str(index))
+            sys.exit(1)
+        """.trimIndent() + "\n")
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        val failure = assertFailsWith<IllegalStateException> {
+            workspace.prepare(TaskInvocation(TaskId("fixture:artifacts")))
+        }.message.orEmpty()
+        assertContains(failure, "Gradle planning failed")
+        assertContains(failure, "Execution failed for task ':fixturePrerequisite'.")
+        assertContains(failure, "fixture timing statistic 31")
+        assertFalse(failure.contains("discarded-prefix-".repeat(1000)))
+    }
+
     @Test fun changedDeclarationsAreRejectedBeforePlanningAndExecution() = fixture { root ->
         report(root, node("artifacts"))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))

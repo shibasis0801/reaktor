@@ -26,13 +26,16 @@ internal class GradleBuildPlanner {
                     SafetyPolicy(SafetyClass.LocalArtifactWrite), redactions = redactions, definitionSeal = definitions,
                     environment = environment, sensitiveEnvironmentKeys = sensitiveEnvironmentKeys)
                 val handle = executor.start(prepared)
-                val tail = ArrayDeque<String>()
+                val tail = StringBuilder()
                 val collector = launch { handle.events.collect { event ->
-                    if (event is RunEvent.Output) { tail.addLast(event.text); if (tail.size > 16) tail.removeFirst() }
+                    if (event is RunEvent.Output) {
+                        tail.append(event.text).append('\n')
+                        if (tail.length > 8192) tail.delete(0, tail.length - 8192)
+                    }
                 } }
                 val completed = handle.await(); collector.join()
                 check(completed.status == RunStatus.Succeeded) { "$failure: " +
-                    (completed.failure?.message.orEmpty() + "\n" + tail.joinToString("\n")).takeLast(8192) }
+                    (completed.failure?.message.orEmpty() + "\n" + tail.toString()).takeLast(8192) }
             }
         }
         fun write(value: GradleRequest): File {
