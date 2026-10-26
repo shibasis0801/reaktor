@@ -26,7 +26,13 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
     }
     fun <T> JsonObject.decode(serializer: KSerializer<T>, key: String): T =
         AgentWorkspaceJson.decodeFromJsonElement(serializer, get(key) ?: error("$key is required"))
-    fun JsonObject.by(): BoardActor = decode(BoardActor.serializer(), "by")
+    fun JsonObject.by(): BoardActor = decode(BoardActor.serializer(), "by").also {
+        require(it.name.isNotBlank() && it.name.length <= 100) { "Name who makes the change" }
+        require(it.session == null || BoardRefs.pattern.matches(it.session)) { "Use a valid session ref" }
+    }
+    fun JsonObject.patch() = TaskGraphPatch(decode(ListSerializer(TaskGraphOp.serializer()), "ops"),
+        (get("reason") as? JsonPrimitive)?.contentOrNull.orEmpty(), long("expectedRevision"),
+        (get("resolution") as? JsonPrimitive)?.contentOrNull?.let(TaskEditResolution::valueOf))
     fun view(id: String) = AgentWorkspaceJson.encodeToJsonElement(TaskGraphView.serializer(), workspace.board.view(id))
     fun graph(value: TaskGraph) = AgentWorkspaceJson.encodeToJsonElement(TaskGraph.serializer(), value)
     fun applied(value: TaskGraphApplied) = buildJsonObject {
@@ -34,6 +40,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
         put("tasks", JsonArray(value.tasks.map { it.id }.map(::JsonPrimitive))); put("removed", JsonArray(value.removed.map(::JsonPrimitive)))
     }
     val graphId = "graph" to stringSchema("Task graph id, such as G3")
+    val resolution = "resolution" to enumSchema("For dispatched work: Supersede pauses the graph; Rerun starts replacement attempts within its approved limits. Only a person may choose.", TaskEditResolution.entries.map { it.name })
     val revision = "expectedRevision" to buildJsonObject { put("type", "integer"); put("minimum", 0); put("description", "The graph revision you read; a task changed since then refuses the change") }
     val by = "by" to objectSchema(mapOf(
         "kind" to enumSchema("Who makes the change", BoardActorKind.entries.map { it.name }),
@@ -49,6 +56,37 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             "A key names a task added in the same change so later operations can refer to it.")
     }
     return listOf(
+        McpTool("agent_taskgraph_templates", "List the reusable graph library: five built-in patterns, saved graph templates and saved runbooks available for conversion. Task keys name profile slots. Templates carry definitions only; propose a graph and let a person approve its revision.",
+            emptyObjectSchema(), true, true) {
+            buildJsonObject {
+                put("templates", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(TaskGraphTemplate.serializer()), workspace.runbooks.templates()))
+                put("runbooks", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(AgentRunbook.serializer()), workspace.runbooks.list()))
+            }
+        },
+        McpTool("agent_taskgraph_template_read", "Read one graph template and its content revision. Bind task seats, scope and check ids in the draft, then use taskgraph.propose. No work starts here.",
+            objectSchema(mapOf("id" to stringSchema("Template id")), listOf("id")), true, true) { args ->
+            args.only("id")
+            AgentWorkspaceJson.encodeToJsonElement(TaskGraphTemplate.serializer(), workspace.runbooks.template(args.text("id")))
+        },
+        McpTool("agent_taskgraph_template_save", "Save a reusable graph draft with profile-slot task keys. Retain definitions and limits only; no lead session, outcomes, candidates or attempts. Built-in patterns are immutable. Updating requires the content revision read from the library.",
+            objectSchema(mapOf("id" to stringSchema("Saved template id"), "draft" to any,
+                "expectedRevision" to stringSchema("Existing template content revision"), by), listOf("id", "draft", "by")), false, false) { args ->
+            args.only("id", "draft", "expectedRevision", "by")
+            args.by()
+            AgentWorkspaceJson.encodeToJsonElement(TaskGraphTemplate.serializer(), workspace.runbooks.saveTemplate(args.text("id"),
+                args.decode(TaskGraphDraft.serializer(), "draft"), (args["expectedRevision"] as? JsonPrimitive)?.contentOrNull))
+        },
+        McpTool("agent_taskgraph_template_convert", "Convert a saved runbook at its exact content revision into a saved graph template. Preserve stage instructions, seats and result conditions; refuse pinned candidates and policies that the graph cannot represent. Nothing executes.",
+            objectSchema(mapOf("runbook" to stringSchema("Saved runbook id"), "revision" to stringSchema("Runbook content revision"),
+                "id" to stringSchema("Destination saved template id"), "expectedRevision" to stringSchema("Existing destination template revision"), by),
+                listOf("runbook", "revision", "id", "by")), false, false) { args ->
+            args.only("runbook", "revision", "id", "expectedRevision", "by")
+            args.by()
+            val book = workspace.runbooks.read(args.text("runbook"))
+            require(book.revision == args.text("revision")) { "Runbook changed; refresh the library before converting" }
+            AgentWorkspaceJson.encodeToJsonElement(TaskGraphTemplate.serializer(), workspace.runbooks.saveTemplate(args.text("id"),
+                TaskGraphTemplates.convert(book.definition), (args["expectedRevision"] as? JsonPrimitive)?.contentOrNull))
+        },
         McpTool("agent_taskgraph_list", "List the task graphs on this workspace's board with their status, progress, agents and token use.",
             emptyObjectSchema(), true, true) {
             buildJsonObject { put("graphs", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(TaskGraphSummary.serializer()), workspace.board.summaries())) }
@@ -145,20 +183,20 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             AgentWorkspaceJson.encodeToJsonElement(TaskGraphView.serializer(), workspace.board.propose(draft, args.by()))
         },
         McpTool("agent_taskgraph_check", "Check a change without applying it. Returns outside-envelope reasons and advisory plan warnings for the resulting graph; a refusal or conflict fails. Warnings do not block Start.",
-            objectSchema(mapOf(graphId, ops, "reason" to stringSchema("Why"), revision, by), listOf("graph", "ops", "by")), true, true) { args ->
-            args.only("graph", "ops", "reason", "expectedRevision", "by")
+            objectSchema(mapOf(graphId, ops, "reason" to stringSchema("Why"), revision, resolution, by), listOf("graph", "ops", "by")), true, true) { args ->
+            args.only("graph", "ops", "reason", "expectedRevision", "resolution", "by")
             val id = args.text("graph")
-            val patch = TaskGraphPatch(args.decode(ListSerializer(TaskGraphOp.serializer()), "ops"), (args["reason"] as? JsonPrimitive)?.contentOrNull.orEmpty(), args.long("expectedRevision"))
+            val patch = args.patch()
             AgentWorkspaceJson.encodeToJsonElement(TaskGraphCheck.serializer(), workspace.board.check(id, patch, workspace.taskGraphCaller(id, args.by())))
         },
         McpTool("agent_taskgraph_patch", "Change a task graph: add, edit, split or remove tasks, add or remove dependencies, change seats or add notes. " +
-            "Name the revision you read and a reason. Inside the envelope the change applies at once; outside it fails unless a person approved it.",
-            objectSchema(mapOf(graphId, ops, "reason" to stringSchema("Why"), revision,
+            "Name the revision you read and a reason. Dispatched work requires a person to preview affected tasks and choose Supersede or Rerun at that exact revision. Other changes inside the envelope apply at once.",
+            objectSchema(mapOf(graphId, ops, "reason" to stringSchema("Why"), revision, resolution,
                 "approvedBy" to stringSchema("The person who approved this exact change through the door"), by), listOf("graph", "ops", "by")),
             readOnly = false, idempotent = false) { args ->
-            args.only("graph", "ops", "reason", "expectedRevision", "approvedBy", "by")
+            args.only("graph", "ops", "reason", "expectedRevision", "resolution", "approvedBy", "by")
             val id = args.text("graph")
-            val patch = TaskGraphPatch(args.decode(ListSerializer(TaskGraphOp.serializer()), "ops"), (args["reason"] as? JsonPrimitive)?.contentOrNull.orEmpty(), args.long("expectedRevision"))
+            val patch = args.patch()
             applied(workspace.board.patch(id, patch, workspace.taskGraphCaller(id, args.by()), approvedBy = (args["approvedBy"] as? JsonPrimitive)?.contentOrNull))
         },
         McpTool("agent_taskgraph_report", "Report on a task: Running, NeedsInput, Blocked, Review, Succeeded or Failed, with a summary and evidence. " +

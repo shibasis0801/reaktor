@@ -218,6 +218,9 @@ class TaskGraphMergeTest {
             assertEquals(TaskGraphStatus.Finished, done.graph.status, done.tasks.toString())
             assertEquals(2, reviews)
             assertEquals(2, checks.distinct().size)
+            val superseded = done.graph.changes.single { it.before.isNotEmpty() }.before
+            assertEquals(setOf("Integrate", "Check combined source", "Review combined source"), superseded.map { it.title }.toSet())
+            assertTrue(superseded.all { it.graph?.attempt == 1 && it.graph.outcome != null })
             val merged = done.tasks.single { it.graph?.kind == TaskKind.Merge }
             assertEquals(checks.last(), merged.graph?.outcome?.candidateId)
             assertEquals(2, merged.graph?.attempt)

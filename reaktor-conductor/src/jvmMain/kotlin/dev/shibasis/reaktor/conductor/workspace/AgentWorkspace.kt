@@ -140,7 +140,7 @@ class AgentWorkspace(
         return hybrid.artifact(runId, id, offset, limit)
     }
     val checkpoints = AgentCheckpoints(directory.resolve("checkpoints"))
-    val runbooks = AgentRunbooks(directory.resolve("runbooks"))
+    val runbooks = AgentRunbooks(directory.resolve("runbooks")) { resolveSeat(it).seat }
     val worktrees = AgentWorktrees(root, directory.resolve("worktrees"), evidence.artifacts)
     val localContext = AgentLocalContext(root, directory)
     val memory = AgentMemoryStore(root, directory.resolve("memory"), evidence.artifacts) { id ->
@@ -1001,6 +1001,12 @@ class AgentWorkspace(
             changes.first { it > before && (get(id).revision > afterRevision || get(id).status != AgentRunStatus.Running) }
         }
         return get(id)
+    }
+
+    internal suspend fun cancelTaskAttempt(task: String, attempt: Int) {
+        val runs = synchronized(lock) { ownedRuns().filter { (_, request) ->
+            request.task?.let { it.task == task && it.attempt == attempt } == true }.map { it.first } }
+        runs.forEach { cancel(it) }
     }
 
     suspend fun cancel(id: String): AgentRunRecord {

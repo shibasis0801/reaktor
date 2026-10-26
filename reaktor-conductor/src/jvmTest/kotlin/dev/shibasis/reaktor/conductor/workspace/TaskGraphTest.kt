@@ -35,6 +35,88 @@ class TaskGraphTest {
     private fun caller(store: AgentBoardStore, by: BoardActor, own: Set<String> = emptySet()) =
         TaskGraphCaller(by, lead = store.graph("G1").lead == by.session, own = own)
 
+
+    @Test fun liveEditsPreviewTheClosureAndRetainEarlierEvidenceWithoutCompletingReplacementWork() {
+        val store = store()
+        proposed(store)
+        store.start("G1", person)
+        listOf("T1", "T2", "T3").forEach { id ->
+            store.advance("G1", id) { task, plan -> task.copy(stage = BoardStage.Review, graph = plan.copy(
+                state = if (id == "T1") TaskState.Running else TaskState.Succeeded, attempt = 1,
+                run = "codex:old-$id", runId = "run-$id", worktreeId = "tree-$id",
+                outcome = TaskOutcome(summary = "Earlier $id", attempt = 1, candidateId = "candidate-$id", log = "log-$id",
+                    checks = listOf(TaskCheckResult("unit", true, receipt = "receipt-$id", text = "Passed"))))) }
+        }
+        val before = store.view("G1")
+        val patch = TaskGraphPatch(listOf(TaskGraphOp.Update("T1", acceptance = listOf("Preserves signed offsets"))), "Correct the contract", before.graph.revision)
+        val preview = store.check("G1", patch, caller(store, lead))
+        assertEquals(listOf("T1", "T2", "T3", "T4"), preview.affected)
+        assertEquals(before, store.view("G1"))
+        assertFailsWith<IllegalArgumentException> { store.patch("G1", patch, TaskGraphCaller(person)) }
+        assertFailsWith<IllegalArgumentException> { store.patch("G1", patch.copy(resolution = TaskEditResolution.Rerun), caller(store, lead)) }
+        assertFailsWith<IllegalArgumentException> { store.patch("G1", patch.copy(expectedRevision = before.graph.revision - 1, resolution = TaskEditResolution.Supersede), TaskGraphCaller(person)) }
+        assertEquals(before, store.view("G1"))
+        val applied = store.patch("G1", patch.copy(resolution = TaskEditResolution.Supersede), TaskGraphCaller(person))
+        assertEquals(TaskGraphStatus.Paused, applied.graph.status)
+        assertEquals(before.tasks, applied.graph.changes.last().before)
+        val current = store.view("G1")
+        current.tasks.forEach { task ->
+            val plan = requireNotNull(task.graph)
+            assertEquals(TaskState.Pending, plan.state)
+            assertEquals(BoardStage.Planning, task.stage)
+            assertNull(plan.outcome)
+            assertNull(plan.run)
+            assertNull(plan.runId)
+            assertNull(plan.worktreeId)
+        }
+        assertEquals(listOf("Preserves signed offsets"), store.get("T1").acceptance)
+        assertEquals(current, AgentBoardStore(made.single(), clock::incrementAndGet).view("G1"))
+        assertFailsWith<IllegalStateException> { store.report("G1", "T1", TaskReport.Succeeded,
+            TaskOutcome(summary = "Late earlier result", attempt = 1), caller(store, codex, setOf("T1"))) }
+        assertEquals(current, store.view("G1"))
+    }
+
+    @Test fun rerunApprovesOnlyTheExactRevisedDefinitionAndLayoutDoesNotSupersede() {
+        val store = store()
+        proposed(store)
+        store.start("G1", person)
+        store.advance("G1", "T1") { task, plan -> task.copy(graph = plan.copy(state = TaskState.Running, attempt = 1)) }
+        val layout = TaskGraphPatch(listOf(TaskGraphOp.Update("T1", layout = TaskLayout(12.0, 24.0), acceptance = store.get("T1").acceptance)), "Move")
+        val moved = store.patch("G1", layout, TaskGraphCaller(person))
+        assertEquals(TaskGraphStatus.Running, moved.graph.status)
+        assertEquals(TaskState.Running, store.get("T1").graph?.state)
+        assertTrue(moved.graph.changes.last().before.isEmpty())
+        val revision = store.graph("G1").revision
+        val result = store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Update("T1", intent = "Use the corrected grammar")),
+            "Replace the attempt", revision, TaskEditResolution.Rerun), TaskGraphCaller(person))
+        assertEquals(TaskGraphStatus.Running, result.graph.status)
+        assertEquals(result.graph.revision, result.graph.approvedRevision)
+        assertEquals(1, store.get("T1").graph?.attempt)
+        assertEquals(TaskState.Pending, store.get("T1").graph?.state)
+        assertEquals("Use the corrected grammar", store.get("T1").intent)
+        val legacy = AgentWorkspaceJson.decodeFromString(TaskGraphChange.serializer(),
+            """{"revision":1,"at":1,"by":{"kind":"Person","name":"owner"},"reason":"Old record","summary":[]}""")
+        assertTrue(legacy.before.isEmpty())
+    }
+
+    @Test fun onlyAnIsolatedWritingSeatChangeKeepsItsCheckoutAndNeverItsEvidence() {
+        for (other in listOf<TaskGraphOp?>(null, TaskGraphOp.Update("T1", scope = listOf(":parser")), TaskGraphOp.Update("T1", contract = WorkflowContract.Decision))) {
+            val store = store()
+            proposed(store)
+            store.start("G1", person)
+            store.advance("G1", "T1") { task, plan -> task.copy(graph = plan.copy(state = TaskState.Succeeded, attempt = 1,
+                worktreeId = "prior-tree", run = "codex:old", outcome = TaskOutcome(summary = "Prior", attempt = 1, candidateId = "old"))) }
+            val before = store.view("G1")
+            store.patch("G1", TaskGraphPatch(listOfNotNull(TaskGraphOp.Seat("T1", TaskSeat(RuntimeKind.ClaudeCode, access = TaskAccess.Write)), other),
+                "Continue with revised seat", before.graph.revision, TaskEditResolution.Rerun), TaskGraphCaller(person))
+            val plan = requireNotNull(store.get("T1").graph)
+            assertEquals(if (other == null) "prior-tree" else null, plan.worktreeId)
+            assertNull(plan.outcome)
+            assertNull(plan.run)
+            assertNull(plan.resolvedSeat)
+        }
+    }
+
     @Test fun reportOwnershipFollowsTheAttemptAndHistoryDoesNotGrantOwnership() {
         val store = store()
         proposed(store)
@@ -137,7 +219,8 @@ class TaskGraphTest {
         assertTrue(assertFailsWith<IllegalStateException> { store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Connect("T4", "T1")), "loop"), TaskGraphCaller(person)) }
             .message!!.startsWith("This change would make a cycle"))
         store.advance("G1", "T1") { task, plan -> task.copy(graph = plan.copy(state = TaskState.Running)) }
-        store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Remove("T1")), "Not needed"), TaskGraphCaller(person))
+        assertFailsWith<IllegalArgumentException> { store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Remove("T1")), "Not needed"), TaskGraphCaller(person)) }
+        store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Remove("T1")), "Not needed", store.graph("G1").revision, TaskEditResolution.Supersede), TaskGraphCaller(person))
         assertEquals(TaskState.Cancelled, store.get("T1").graph?.state)
         store.patch("G1", TaskGraphPatch(listOf(TaskGraphOp.Remove("T3")), "Checks later"), TaskGraphCaller(person))
         assertFailsWith<IllegalStateException> { store.get("T3") }

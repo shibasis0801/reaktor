@@ -148,7 +148,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         var members = members()
         scope.rebuild(members)
         val graph = store.graph(graphId)
-        members.values.filter { it.graph?.state == TaskState.Cancelled || graph.status == TaskGraphStatus.Cancelled }.forEach { task ->
+        members.values.filter { scope.actor(it.id)?.obsolete == true || it.graph?.state == TaskState.Cancelled || graph.status == TaskGraphStatus.Cancelled }.forEach { task ->
             scope.actor(task.id)?.takeIf { it.busy }?.trySend(TaskMessage.Stop)
         }
         if (graph.status != TaskGraphStatus.Running) return
@@ -179,6 +179,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             return
         }
         for (task in TaskGraphRules.ready(members)) {
+            if (scope.actor(task.id)?.busy == true) continue
             val plan = requireNotNull(task.graph)
             val resolved = try { plan.seat?.let(scope.workspace::resolveSeat) } catch (failure: IllegalArgumentException) {
                 store.hold(graphId, TaskGraphStatus.Paused, "${task.id}: ${failure.message}", scope.by)
@@ -227,7 +228,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
     private fun settle(received: CoordinatorMessage.Settled): Unit = synchronized(store) {
         val task = runCatching { store.get(received.task) }.getOrNull() ?: return@synchronized
         val plan = task.graph ?: return@synchronized
-        if (plan.attempt != received.attempt || plan.state == TaskState.Pending) return@synchronized
+        if (plan.attempt != received.attempt || plan.state in setOf(TaskState.Pending, TaskState.Cancelled, TaskState.Skipped)) return@synchronized
         val finished = received.outcome.copy(attempt = received.attempt)
         val refusal = if (received.state == TaskState.Succeeded &&
             (plan.kind == TaskKind.Merge || (plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write))
@@ -338,7 +339,9 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
     private val outcomeType = Type.create(TaskOutcomes::class)
     private val outcomes = registerProvider(Key("outcome"), outcomeType, this as TaskOutcomes)
     @Volatile private var job: Job? = null
-    val busy: Boolean get() = job?.isActive == true
+    @Volatile private var activeAttempt: Int? = null
+    val busy: Boolean get() = job != null
+    val obsolete: Boolean get() = busy && (task.graph?.state != TaskState.Running || task.graph?.attempt != activeAttempt)
     private val store get() = scope.workspace.board
 
     override val shapeAttributes: Map<String, String>
@@ -372,12 +375,17 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
 
     override suspend fun receive(message: TaskMessage) {
         when (message) {
-            TaskMessage.Start -> if (!busy) job = coroutineScope.launch(Dispatchers.IO) { perform() }
+            TaskMessage.Start -> if (!busy) {
+                activeAttempt = task.graph?.attempt
+                job = coroutineScope.launch(Dispatchers.IO) { perform() }
+            }
             TaskMessage.Stop -> {
-                job?.cancel(); job = null
-                task.graph?.run?.let(scope.workspace::threadOf)?.let(scope.workspace::latest)
-                    ?.takeIf { it.status == AgentRunStatus.Running }
-                    ?.let { runCatching { scope.workspace.cancel(it.id) } }
+                val attempt = activeAttempt ?: return
+                job?.cancelAndJoin()
+                scope.workspace.cancelTaskAttempt(task.id, attempt)
+                job = null
+                activeAttempt = null
+                scope.coordinator.send(CoordinatorMessage.Tick)
             }
         }
     }
@@ -634,6 +642,14 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         if (task.scope.isNotEmpty()) appendLine("Touches: ${task.scope.joinToString().take(400)}")
         if ((plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write)
             appendLine("Before adding a declaration, search the Atlas for an existing declaration to reuse. The supplied Atlas slice is bounded primary-workspace evidence; verify it in your assigned candidate checkout.")
+        if (!blind && plan.worktreeId != null) graph.changes.asReversed().asSequence().flatMap { it.before.asSequence() }
+            .firstOrNull { it.id == task.id && it.graph?.worktreeId == plan.worktreeId && (it.graph?.attempt ?: 0) < plan.attempt }?.let { previous ->
+                val prior = requireNotNull(previous.graph)
+                appendLine("Handoff from earlier attempt ${prior.attempt}: continue in the same owned candidate checkout; preserve its unrelated changes.")
+                appendLine("Historical candidate ${prior.outcome?.candidateId ?: "not captured"}; session ${prior.run ?: prior.outcome?.log ?: "not recorded"}.")
+                appendLine("Earlier result (agent reported): ${prior.outcome?.summary.orEmpty().take(600)}")
+                appendLine("Earlier check receipts ${prior.outcome?.checks.orEmpty().mapNotNull { it.receipt }.joinToString().take(400)} are historical. Capture and check the final candidate for this attempt again.")
+            }
         plan.repairOf?.takeUnless { blind }?.let { review ->
             view.tasks.firstOrNull { it.id == review }?.graph?.outcome?.let {
                 appendLine("Repair requested by $review (agent reported): ${it.summary.take(1000)}. Keep the existing candidate's unrelated changes.")

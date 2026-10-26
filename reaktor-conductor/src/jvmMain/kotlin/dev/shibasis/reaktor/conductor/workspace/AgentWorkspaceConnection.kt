@@ -112,6 +112,21 @@ class AgentWorkspaceConnection private constructor(
     }))
     suspend fun taskGraphs(): List<TaskGraphSummary> = ConductorJson.decodeFromJsonElement(ListSerializer(TaskGraphSummary.serializer()),
         call("agent_taskgraph_list").jsonObject.getValue("graphs"))
+    suspend fun graphTemplates(): List<TaskGraphTemplate> = ConductorJson.decodeFromJsonElement(ListSerializer(TaskGraphTemplate.serializer()),
+        call("agent_taskgraph_templates").jsonObject.getValue("templates"))
+
+    suspend fun saveGraphTemplate(id: String, draft: TaskGraphDraft, by: BoardActor, expectedRevision: String? = null): TaskGraphTemplate =
+        ConductorJson.decodeFromJsonElement(TaskGraphTemplate.serializer(), call("agent_taskgraph_template_save", buildJsonObject {
+            put("id", id); put("draft", AgentWorkspaceJson.encodeToJsonElement(TaskGraphDraft.serializer(), draft)); put("by", actor(by))
+            expectedRevision?.let { put("expectedRevision", it) }
+        }))
+
+    suspend fun convertGraphTemplate(book: AgentRunbook, id: String, by: BoardActor, expectedRevision: String? = null): TaskGraphTemplate =
+        ConductorJson.decodeFromJsonElement(TaskGraphTemplate.serializer(), call("agent_taskgraph_template_convert", buildJsonObject {
+            put("runbook", book.definition.id); put("revision", book.revision); put("id", id); put("by", actor(by))
+            expectedRevision?.let { put("expectedRevision", it) }
+        }))
+
     suspend fun taskGraph(id: String): TaskGraphView = ConductorJson.decodeFromJsonElement(TaskGraphView.serializer(), call("agent_taskgraph_read", buildJsonObject { put("graph", id) }))
     suspend fun taskGraphShape(id: String): dev.shibasis.reaktor.graph.core.GraphShape =
         ConductorJson.decodeFromJsonElement(dev.shibasis.reaktor.graph.core.GraphShape.serializer(), call("agent_taskgraph_shape", buildJsonObject { put("graph", id) }))
@@ -119,7 +134,8 @@ class AgentWorkspaceConnection private constructor(
         call("agent_taskgraph_propose", JsonObject(AgentWorkspaceJson.encodeToJsonElement(TaskGraphDraft.serializer(), draft).jsonObject + ("by" to actor(by)))))
     suspend fun patchTaskGraph(id: String, patch: TaskGraphPatch, by: BoardActor): TaskGraph = graphOf(call("agent_taskgraph_patch", buildJsonObject {
         put("graph", id); put("ops", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(TaskGraphOp.serializer()), patch.ops)); put("reason", patch.reason)
-        patch.expectedRevision?.let { put("expectedRevision", it) }; put("by", actor(by))
+        patch.expectedRevision?.let { put("expectedRevision", it) }
+        patch.resolution?.let { put("resolution", it.name) }; put("by", actor(by))
     }).jsonObject.getValue("graph"))
     suspend fun startTaskGraph(id: String, revision: Long?, by: BoardActor): TaskGraph = graphOf(call("agent_taskgraph_start", buildJsonObject {
         put("graph", id); revision?.let { put("expectedRevision", it) }; put("by", actor(by))

@@ -118,6 +118,7 @@ data class TaskGraphChange(
     val reason: String,
     val summary: List<String>,
     val undo: List<TaskGraphOp> = emptyList(),
+    val before: List<BoardTask> = emptyList(),
 )
 
 @Serializable
@@ -215,7 +216,11 @@ sealed interface TaskGraphOp {
 }
 
 @Serializable
-data class TaskGraphPatch(val ops: List<TaskGraphOp>, val reason: String, val expectedRevision: Long? = null)
+enum class TaskEditResolution { Supersede, Rerun }
+
+@Serializable
+data class TaskGraphPatch(val ops: List<TaskGraphOp>, val reason: String, val expectedRevision: Long? = null,
+    val resolution: TaskEditResolution? = null)
 
 @Serializable
 data class TaskGraphDraft(
@@ -259,6 +264,7 @@ data class TaskGraphWarning(
 data class TaskGraphCheck(
     val outside: List<String> = emptyList(),
     val warnings: List<TaskGraphWarning> = emptyList(),
+    val affected: List<String> = emptyList(),
 )
 
 @Serializable
