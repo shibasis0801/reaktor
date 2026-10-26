@@ -348,24 +348,40 @@ object BuildModelReader {
         val tree = tree(root, model, selector, depth, offset, 10, false)
         val modelDigest = digest(root.resolve(RelativePath))
         val current = !tree.getValue("stale").jsonPrimitive.boolean
-        val records = model.builds.flatMap { build -> artifactFiles(root.resolve(build.directory).resolve(GradleProtocol.ReceiptDirectory)) }
-            .distinctBy(File::getCanonicalPath).map { it to readReceipt(it) }.sortedByDescending { it.second.finishedAtEpochMillis }
         val nodes = model.nodes.associateBy { it.id.toString() }
-        fun branch(value: JsonObject): JsonObject {
-            val node = nodes.getValue(value.getValue("id").jsonPrimitive.content)
-            val tasks = (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { NodeId.task(node.id.build, it) }.toSet()
-            val last = records.firstOrNull { (_, receipt) -> node.id in receipt.requestedNodes || receipt.tasks.any { it.task in tasks } }
-            return buildJsonObject {
-                value.forEach { (key, field) -> put(key, field) }
-                put("lastReceipt", buildJsonObject {
-                    put("truth", if (last == null) "unavailable" else "recorded")
-                    if (last == null) put("omission", "No retained receipt")
-                    else {
-                        val (file, receipt) = last
-                        put("run", receipt.run); put("status", receipt.status.name); put("dryRun", receipt.dryRun)
+        val targetsByIdentity = mutableMapOf<NodeId, MutableSet<String>>()
+        fun collect(value: JsonObject) {
+            val id = value.getValue("id").jsonPrimitive.content
+            val node = nodes.getValue(id)
+            val tasks = (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { NodeId.task(node.id.build, it) }
+            (tasks + node.id).forEach { targetsByIdentity.getOrPut(it) { mutableSetOf() }.add(id) }
+            value.getValue("children").jsonArray.forEach { edge -> (edge.jsonObject["node"] as? JsonObject)?.let(::collect) }
+        }
+        tree.getValue("roots").jsonArray.forEach { collect(it.jsonObject) }
+        val latest = mutableMapOf<String, JsonObject>()
+        model.builds.asSequence().flatMap { build -> artifactFiles(root.resolve(build.directory).resolve(GradleProtocol.ReceiptDirectory)).asSequence() }
+            .distinctBy(File::getCanonicalPath).forEach { file ->
+                val receipt = readReceipt(file)
+                val matches = (receipt.requestedNodes.asSequence() + receipt.tasks.asSequence().map { it.task })
+                    .flatMap { targetsByIdentity[it].orEmpty().asSequence() }.toSet()
+                if (matches.isNotEmpty()) {
+                    val summary = buildJsonObject {
+                        put("truth", "recorded"); put("run", receipt.run); put("status", receipt.status.name); put("dryRun", receipt.dryRun)
                         put("finishedAtEpochMillis", receipt.finishedAtEpochMillis); put("path", file.absolutePath)
                         put("matchesCurrentModel", current && receipt.modelDigest == modelDigest)
                     }
+                    matches.forEach { id ->
+                        if (latest[id]?.getValue("finishedAtEpochMillis")?.jsonPrimitive?.long?.let { it >= receipt.finishedAtEpochMillis } != true) latest[id] = summary
+                    }
+                }
+            }
+        fun branch(value: JsonObject): JsonObject {
+            val node = nodes.getValue(value.getValue("id").jsonPrimitive.content)
+            val last = latest[node.id.toString()]
+            return buildJsonObject {
+                value.forEach { (key, field) -> put(key, field) }
+                put("lastReceipt", last ?: buildJsonObject {
+                    put("truth", "unavailable"); put("omission", "No retained receipt")
                 })
                 put("children", JsonArray(value.getValue("children").jsonArray.map { child ->
                     val edge = child.jsonObject
