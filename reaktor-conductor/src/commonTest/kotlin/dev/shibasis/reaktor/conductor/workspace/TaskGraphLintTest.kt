@@ -80,6 +80,38 @@ class TaskGraphLintTest {
         assertTrue(warnings(task(1, TaskKind.Check, acceptance = emptyList())).none { it.code == TaskGraphWarningCode.UnclearAcceptance })
     }
 
+
+    @Test fun patchClassificationSeparatesLayoutFromEveryMaterialOperation() {
+        assertTrue(!TaskGraphRules.material(TaskGraphOp.Update("T1", layout = TaskLayout(1.0, 2.0))))
+        val seat = requireNotNull(task(1).graph?.seat)
+        listOf(TaskGraphOp.Update("T1", title = "Changed"), TaskGraphOp.Update("T1", excludedContext = emptyList()),
+            TaskGraphOp.Add("Added"), TaskGraphOp.Note("A note"), TaskGraphOp.Envelope(TaskEnvelope()),
+            TaskGraphOp.Seat("T1", seat), TaskGraphOp.Connect("T1", "T2"), TaskGraphOp.Disconnect("T1", "T2"),
+            TaskGraphOp.Split("T1", listOf(TaskGraphOp.Add("A"), TaskGraphOp.Add("B"))), TaskGraphOp.Remove("T1"),
+            TaskGraphOp.Retry("T1"), TaskGraphOp.Restore("T1", emptyList(), seat, TaskState.Pending)).forEach {
+            assertTrue(TaskGraphRules.material(it), it.toString())
+        }
+    }
+
+    @Test fun affectedWorkIncludesTransitiveBranchesButExcludesLayoutNoOpsAndControls() {
+        val first = task(1)
+        val tasks = listOf(first, task(2, after = listOf(1)), task(3, after = listOf(1)),
+            task(4, after = listOf(2, 3)), task(5)).associateBy { it.id }
+        fun ids(vararg ops: TaskGraphOp) = TaskGraphRules.affected(ops.toList(), tasks).map { it.id }
+        assertEquals(listOf("T1", "T2", "T3", "T4"), ids(TaskGraphOp.Update("T1", acceptance = listOf("New check passes"))))
+        assertEquals(listOf("T2", "T4"), ids(TaskGraphOp.Disconnect("T1", "T2")))
+        assertEquals(listOf("T2", "T4"), ids(TaskGraphOp.Connect("T5", "T2")))
+        assertEquals(listOf("T1", "T2", "T3", "T4"), ids(TaskGraphOp.Seat("T1", TaskSeat(RuntimeKind.ClaudeCode))))
+        assertEquals(emptyList(), ids(TaskGraphOp.Update("T1", title = first.title, intent = first.intent,
+            acceptance = first.acceptance, scope = first.scope, layout = TaskLayout(3.0, 4.0)),
+            TaskGraphOp.Seat("T1", requireNotNull(first.graph?.seat)), TaskGraphOp.Connect("T1", "T2"),
+            TaskGraphOp.Disconnect("T5", "T2"), TaskGraphOp.Add("New task"), TaskGraphOp.Note("Context"),
+            TaskGraphOp.Envelope(TaskEnvelope()), TaskGraphOp.Retry("T1")))
+        val cyclic = tasks + ("T1" to task(1, after = listOf(4)))
+        assertEquals(listOf("T1", "T2", "T3", "T4"),
+            TaskGraphRules.affected(listOf(TaskGraphOp.Remove("T1")), cyclic).map { it.id })
+    }
+
     @Test fun notesAreIgnoredAndWarningsAreDeterministicEvenForMalformedCycles() {
         val first = task(1, write = true, after = listOf(2))
         val second = task(2, after = listOf(1))
