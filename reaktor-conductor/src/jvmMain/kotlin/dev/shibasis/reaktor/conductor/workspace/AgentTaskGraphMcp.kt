@@ -55,7 +55,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             "connect {from, to, condition?, required?}, disconnect {from, to}, seat {task, seat}, note {text, layout?}, retry {task}, envelope {envelope}. " +
             "A key names a task added in the same change so later operations can refer to it.")
     }
-    return listOf(
+    return agentBenchTools(workspace) + listOf(
         McpTool("agent_taskgraph_templates", "List the reusable graph library: five built-in patterns, saved graph templates and saved runbooks available for conversion. Task keys name profile slots. Templates carry definitions only; propose a graph and let a person approve its revision.",
             emptyObjectSchema(), true, true) {
             buildJsonObject {

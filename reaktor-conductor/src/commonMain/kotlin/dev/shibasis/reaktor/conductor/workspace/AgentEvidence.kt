@@ -63,6 +63,7 @@ data class AgentTaskEvidence(
     val acceptedCandidate: String? = null,
     val approverVerified: Boolean = false,
     val snapshots: List<ArtifactRef> = emptyList(),
+    val landings: List<AgentLanding> = emptyList(),
 )
 
 @Serializable

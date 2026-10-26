@@ -111,6 +111,14 @@ class AgentEvidenceStore(private val root: File, private val directory: Path) {
         require(by.kind == BoardActorKind.Person && by.name.isNotBlank() && by.name.length <= 100) { "Only a person accepts a graph candidate" }
         return save(accept(taskId, candidateId).copy(approverVerified = true))
     }
+    @Synchronized internal fun landed(taskId: String, receipt: AgentLanding): AgentTaskEvidence {
+        val task = get(taskId)
+        require(task.approverVerified && task.acceptedCandidate == receipt.candidate) { "Landing must retain exact person acceptance" }
+        require(receipt.commits.isNotEmpty() && receipt.commits.values.all { it.matches(Regex("[a-f0-9]{40,64}")) })
+        require(task.landings.none { it.candidate == receipt.candidate }) { "Candidate already has a landing receipt" }
+        return save(task.copy(landings = task.landings + receipt))
+    }
+
     fun graph(taskId: String): AgentEvidenceGraph {
         val task = get(taskId)
         val edges = buildList {
