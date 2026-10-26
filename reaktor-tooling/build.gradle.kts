@@ -16,6 +16,7 @@ library(namespace = "dev.shibasis.reaktor.tooling", targets = Targets.All, bytec
         }
         jvm {
             api(Reaktor.Mcp)
+            api(Reaktor.Telemetry)
             api(Versions.Tooling.DependeasyModel)
             implementation(Versions.Tooling.SnakeYaml)
             implementation(Versions.Tooling.Lsp)

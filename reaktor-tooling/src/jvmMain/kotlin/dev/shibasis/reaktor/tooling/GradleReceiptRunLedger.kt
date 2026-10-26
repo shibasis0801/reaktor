@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.tooling
 
 import dev.shibasis.dependeasy.model.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -47,7 +48,11 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
                 }
                 listOf(directory, deployments).flatMap { it.listFiles().orEmpty().toList() }.sortedBy { it.name }.forEach { deliver(it) }
                 while (true) {
-                    val key = runInterruptible { watcher.take() }
+                    val key = try { runInterruptible { watcher.take() } }
+                    catch (closed: java.nio.file.ClosedWatchServiceException) {
+                        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                        throw closed
+                    }
                     for (event in key.pollEvents()) {
                         val relative = event.context() as? java.nio.file.Path ?: continue
                         deliver((key.watchable() as java.nio.file.Path).resolve(relative).toFile())

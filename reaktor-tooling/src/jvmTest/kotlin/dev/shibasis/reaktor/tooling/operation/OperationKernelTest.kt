@@ -75,6 +75,7 @@ data class ShowRequest(
 
 @Serializable data class Write(val path: String)
 
+@OptIn(io.opentelemetry.kotlin.ExperimentalApi::class)
 class OperationKernelTest {
     @Test
     fun schemaFollowsTheSerializer() {
@@ -153,6 +154,14 @@ class OperationKernelTest {
         assertEquals(dev.shibasis.reaktor.tooling.RunStatus.Succeeded, completed.run.status)
         assertTrue(completed.run.artifacts.any { it.kind == "approval" })
         assertTrue("c.kt" !in events.toString())
+    }, spans = { spans ->
+        fun fields(span: JsonObject) = span.getValue("attributes").jsonArray.associate {
+            it.jsonObject.getValue("key").jsonPrimitive.content to it.jsonObject.getValue("value").jsonObject.values.first().jsonPrimitive.content
+        }
+        assertEquals(3, spans.size)
+        assertTrue(fields(spans.single { "reaktor.run.id" in fields(it) }).getValue("reaktor.run.id").startsWith("kernel-"))
+        assertEquals(1, spans.count { fields(it)["reaktor.operation.replayed"] == "true" })
+        assertTrue(spans.none { "c.kt" in it.toString() })
     }) { kernel, approvals, written ->
         val request = Invocation(OperationId("code.write"), buildJsonObject { put("path", "c.kt") }, CallCaller("cli"), requestId = "r-1")
         approvals.decide(assertIs<Outcome.ApprovalRequired>(kernel.invoke(request.copy(requestId = null))).approval, approve = true, by = "terminal")
@@ -175,7 +184,17 @@ class OperationKernelTest {
     }
 
     @Test
-    fun effectClassificationReceivesTheAuthenticatedCallerBeforeAdmission() = kernel { kernel, _, _ ->
+    fun effectClassificationReceivesTheAuthenticatedCallerBeforeAdmission() = kernel(spans = { spans ->
+        fun fields(span: JsonObject) = span.getValue("attributes").jsonArray.associate {
+            it.jsonObject.getValue("key").jsonPrimitive.content to it.jsonObject.getValue("value").jsonObject.values.first().jsonPrimitive.content
+        }
+        assertEquals(mapOf("completed" to ("ReadOnly" to "review"), "approval-required" to ("SourceWrite" to "writer"), "failed" to ("unknown" to null)),
+            spans.associate { fields(it).let { values -> values.getValue("reaktor.operation.outcome") to (values["reaktor.operation.effect"] to values["reaktor.caller.run_id"]) } })
+        assertEquals(3, spans.size)
+        assertTrue(spans.all { fields(it)["reaktor.operation.seat"] == "spawned" })
+        assertTrue(spans.all { fields(it).getValue("reaktor.duration_ns").toLong() > 0 })
+        assertTrue(spans.none { "arguments" in fields(it) })
+    }) { kernel, _, _ ->
         val read = Invocation(OperationId("source.classify"), buildJsonObject { put("tool", "read") }, CallCaller("spawned", "review", "hangar:review"))
         assertIs<Outcome.Completed>(kernel.invoke(read))
         val write = read.copy(caller = read.caller.copy(runId = "writer", principal = "hangar:writer"))
@@ -335,7 +354,7 @@ class OperationKernelTest {
         }
     }
 
-    private fun kernel(policy: DoorPolicy = DoorPolicy.Guarded, receipts: (List<dev.shibasis.reaktor.tooling.RunEvent>) -> Unit = {}, body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
+    private fun kernel(policy: DoorPolicy = DoorPolicy.Guarded, receipts: (List<dev.shibasis.reaktor.tooling.RunEvent>) -> Unit = {}, spans: (List<JsonObject>) -> Unit = {}, body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
         val directory = Files.createTempDirectory("operation-kernel")
         val dependencies = koinApplication {}
         val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
@@ -359,6 +378,9 @@ class OperationKernelTest {
             Tool(ToolDefinition("workspace", "Everything", openWorld = true)) { ToolResult(JsonObject(emptyMap())) },
             Tool(ToolDefinition("board_note", "Notes a task on this workspace's board", idempotent = true)) { ToolResult(JsonPrimitive("noted")) },
         )))
+        val transport = dev.shibasis.reaktor.telemetry.export.RecordingTransport()
+        val installation = dev.shibasis.reaktor.telemetry.export.createReaktorOpenTelemetry("fixture", transport, backgroundScope)
+        val telemetry = dev.shibasis.reaktor.telemetry.export.ClientOperations(installation.openTelemetry, { emptyMap() })
         val approvals = DoorApprovals(directory.resolve("approvals"))
         val events = mutableListOf<dev.shibasis.reaktor.tooling.RunEvent>()
         val sink = object : dev.shibasis.reaktor.tooling.RunEventSink {
@@ -366,9 +388,14 @@ class OperationKernelTest {
         }
         try {
             body(OperationKernel(graph, OperationAuthority(policy, approvals, CallLog(directory.resolve("calls.jsonl"), CallCaller()),
-                runs = dev.shibasis.reaktor.tooling.WorkspaceId("fixture") to sink)), approvals, written)
+                runs = dev.shibasis.reaktor.tooling.WorkspaceId("fixture") to sink, telemetry = telemetry)), approvals, written)
+            installation.flush()
+            spans(transport.batches.flatMap { body -> Json.parseToJsonElement(body).jsonObject.getValue("resourceSpans").jsonArray.flatMap { resource ->
+                resource.jsonObject.getValue("scopeSpans").jsonArray.flatMap { it.jsonObject.getValue("spans").jsonArray.map { it.jsonObject } }
+            } })
             receipts(events)
         } finally {
+            installation.shutdown()
             graph.close(); dependencies.close(); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         }
     }

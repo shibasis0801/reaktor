@@ -80,7 +80,7 @@ class ClientOperations(
 }
 
 @OptIn(ExperimentalApi::class)
-class ClientOperationContext internal constructor(internal val span: Span) : AbstractCoroutineContextElement(Key) {
+class ClientOperationContext internal constructor(val span: Span) : AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<ClientOperationContext>
     val context: CoroutineContext get() = this + span.asCoroutineContext() + SpanCoroutineParent(span.spanContext.spanId) + ServiceCall(
         TraceContext(span.spanContext.traceId, span.spanContext.spanId, span.spanContext.traceFlags.isSampled),

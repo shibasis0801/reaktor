@@ -106,18 +106,24 @@ class ReaktorSpanProcessor(
     override suspend fun forceFlush(): OperationResultCode {
         var ok = true
         // Taking the lock waits for any batch the worker is already exporting.
-        batchInFlight.withLock {
-            val pending = ArrayList<SpanData>(maxBatchSize)
-            while (true) {
-                val next = queue.tryReceive().getOrNull() ?: break
-                queued.decrementAndGet()
-                pending += next
-                if (pending.size == maxBatchSize) {
-                    ok = exportBatch(pending.toList()) && ok
-                    pending.clear()
+        while (true) {
+            val empty = batchInFlight.withLock {
+                val pending = ArrayList<SpanData>(maxBatchSize)
+                while (true) {
+                    val next = queue.tryReceive().getOrNull() ?: break
+                    queued.decrementAndGet()
+                    pending += next
+                    if (pending.size == maxBatchSize) {
+                        ok = exportBatch(pending.toList()) && ok
+                        pending.clear()
+                    }
                 }
+                if (pending.isNotEmpty()) ok = exportBatch(pending.toList()) && ok
+                queued.value == 0
             }
-            if (pending.isNotEmpty()) ok = exportBatch(pending.toList()) && ok
+            if (empty) break
+            if (!worker.isActive) return OperationResultCode.Failure
+            kotlinx.coroutines.yield()
         }
         val downstream = exporter.forceFlush()
         return if (ok && downstream is OperationResultCode.Success) {
