@@ -57,6 +57,11 @@ class DoorAuthorityTest {
         assertEquals(2, ran)
         assertEquals("approval_required", call(door, "db_execute_sql", arguments)["structuredContent"]!!.jsonObject["status"]!!.jsonPrimitive.content, "an approval is spent by one call")
         assertEquals(2, ran)
+        val boundary = approvals.request("codex\nprovider", "call", "write", SafetyClass.SourceWrite, arguments)
+        approvals.decide(boundary.id, approve = true, by = "shibasis")
+        assertNull(approvals.spend("codex", "provider\ncall", "write", arguments))
+        assertNotNull(approvals.spend("codex\nprovider", "call", "write", arguments))
+        assertNull(approvals.spend("codex\nprovider", "call", "write", arguments))
     }
 
     @Test fun aDenialIsRememberedAndAnEffectAboveTheSeatsCeilingIsRefusedOutright() {

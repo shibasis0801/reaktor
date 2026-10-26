@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.mcp.door
 
+import dev.shibasis.reaktor.code.planFingerprint
 import dev.shibasis.reaktor.tooling.SafetyClass
 import dev.shibasis.reaktor.tooling.ToolingCall
 import kotlinx.serialization.Serializable
@@ -119,7 +120,7 @@ object DoorAuthority {
 
     /** The exact call: who, what, and every argument in a fixed order. An approval is for this and nothing near it. */
     fun fingerprint(seat: String?, provider: String, call: String, arguments: JsonObject): String =
-        sha256Hex(listOf(seat.orEmpty(), provider, call, canonical(arguments)).joinToString("\n"))
+        planFingerprint(listOf(seat.orEmpty(), provider, call, canonical(arguments)))
 
     private fun canonical(value: JsonElement): String = when (value) {
         is JsonObject -> value.entries.sortedBy { it.key }.joinToString(",", "{", "}") { "${JsonPrimitive(it.key)}:${canonical(it.value)}" }

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.tooling
 
+import dev.shibasis.reaktor.code.planFingerprint
+
 import dev.shibasis.dependeasy.model.BuildModelReader
 import dev.shibasis.dependeasy.model.GradleProtocol
 import dev.shibasis.dependeasy.model.GradleTaskProgress
@@ -576,37 +578,34 @@ object AdHocProcessPlan {
             }
             supplied.copy(approval = approval ?: supplied.approval)
         }
-        val fingerprint = sha256(
-            buildString {
-                fun appendFramed(value: String) {
-                    append(value.length).append(':').append(value)
-                }
-                appendFramed(resolvedWorkspaceId.value)
-                appendFramed(taskId.value)
-                appendFramed(workingDirectory.canonicalFile.absolutePath)
-                appendFramed(safety.classification.name)
-                argv.forEach(::appendFramed)
+        val fingerprint = planFingerprint(
+            buildList {
+                add(resolvedWorkspaceId.value)
+                add(taskId.value)
+                add(workingDirectory.canonicalFile.absolutePath)
+                add(safety.classification.name)
+                argv.forEach(::add)
                 resolvedEnvironment.toSortedMap().forEach { (key, value) ->
-                    appendFramed(key)
+                    add(key)
                     // Raw values are safe to hash and bind the executable request more strongly;
                     // they are never copied into the serializable plan.
-                    appendFramed(value)
+                    add(value)
                 }
-                resolvedSensitiveEnvironmentKeys.sorted().forEach(::appendFramed)
-                redactions.sorted().forEach(::appendFramed)
-                appendFramed(timeoutMillis?.toString().orEmpty())
-                resolvedInvocation.arguments.forEach(::appendFramed)
+                resolvedSensitiveEnvironmentKeys.sorted().forEach(::add)
+                redactions.sorted().forEach(::add)
+                add(timeoutMillis?.toString().orEmpty())
+                resolvedInvocation.arguments.forEach(::add)
                 resolvedInvocation.inputs.toSortedMap().forEach { (key, value) ->
-                    appendFramed(key)
-                    appendFramed(redactor.redact(value))
+                    add(key)
+                    add(redactor.redact(value))
                 }
-                appendFramed(resolvedInvocation.environment.orEmpty())
-                fingerprintContext.forEach(::appendFramed)
-                definitionSeal?.digest?.let(::appendFramed)
+                add(resolvedInvocation.environment.orEmpty())
+                fingerprintContext.forEach(::add)
+                definitionSeal?.digest?.let(::add)
                 artifacts.forEach { artifact ->
-                    appendFramed(artifact.kind)
-                    appendFramed(artifact.path.orEmpty())
-                    appendFramed(artifact.required.toString())
+                    add(artifact.kind)
+                    add(artifact.path.orEmpty())
+                    add(artifact.required.toString())
                 }
             },
         )
