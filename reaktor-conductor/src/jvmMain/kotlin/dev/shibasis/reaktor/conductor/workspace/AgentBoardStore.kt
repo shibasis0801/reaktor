@@ -397,7 +397,7 @@ class AgentBoardStore(
         val before = members(id).associateBy { it.id }
         fun preview(approvedBy: String? = null): TaskGraphApplied {
             var next = ledger.next
-            return TaskGraphEditing(graph(id), before.values.toList(), caller, clock(), { resolveSeat(it).seat }) { "T${next++}" }.apply(patch, approvedBy)
+            return TaskGraphEditing(graph(id), before.values.toList(), caller, clock(), { resolveSeat(it).seat }) { "T${next++}" }.apply(patch, approvedBy, preview = true)
         }
         var outside = emptyList<String>()
         val applied = try { preview() } catch (error: TaskGraphOutside) {
@@ -407,7 +407,7 @@ class AgentBoardStore(
         val projected = before.toMutableMap()
         applied.removed.forEach(projected::remove)
         applied.tasks.forEach { projected[it.id] = it }
-        return TaskGraphCheck(outside, warnings(projected))
+        return TaskGraphCheck(outside, warnings(projected), TaskGraphRules.affected(patch.ops, before).map { it.id })
     }
 
     @Synchronized fun outside(id: String, patch: TaskGraphPatch, caller: TaskGraphCaller): List<String> = check(id, patch, caller).outside
@@ -482,10 +482,8 @@ class AgentBoardStore(
                         TaskGraphRules.outside(effective, scope, graph.envelope).isEmpty()
                 } == true
             }
-        val pending = current.copy(graph = plan.copy(state = TaskState.Pending, worktreeId = null, readySince = null,
-            outcome = null, note = "Waiting for integration resolution: ${reason.take(1000)}"))
         var next = ledger.next
-        val applied = TaskGraphEditing(graph, original.map { if (it.id == task) pending else it },
+        val applied = TaskGraphEditing(graph, original,
             TaskGraphCaller(by, lead = true), clock(), { resolveSeat(it).seat }) { "T${next++}" }.apply(TaskGraphPatch(
             ops = listOf(TaskGraphOp.Add("Resolve $task: ${current.title}".take(200), key = "resolution",
                 intent = ("Resolve the integration in the assigned owned checkout. Preserve every input's intended change. " +
@@ -497,7 +495,8 @@ class AgentBoardStore(
                 scope = scope, seat = seat, dependsOn = inputs.map { TaskDependency(it.id) }, parent = task)) +
                 plan.dependsOn.map { TaskGraphOp.Disconnect(it.task, task) } +
                 TaskGraphOp.Connect("resolution", task),
-            reason = "Resolve integration $task within its approved envelope", expectedRevision = graph.revision))
+            reason = "Resolve integration $task within its approved envelope", expectedRevision = graph.revision,
+            resolution = TaskEditResolution.Rerun), preview = true)
         val resolution = applied.tasks.single { value -> original.none { it.id == value.id } }
             .let { value -> value.copy(graph = requireNotNull(value.graph).copy(repairOf = task, worktreeId = tree.id)) }
         commit(applied.graph, applied.tasks.map { if (it.id == resolution.id) resolution else it }, applied.removed, next)

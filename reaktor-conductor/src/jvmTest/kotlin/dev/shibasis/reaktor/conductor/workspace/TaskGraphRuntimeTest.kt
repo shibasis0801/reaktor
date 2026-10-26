@@ -41,6 +41,110 @@ class TaskGraphRuntimeTest {
         }
     }
 
+
+    @Test fun supersedingEitherNativeProviderJoinsTheOldTurnBeforeStartingItsReplacement() {
+        listOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode).forEach { provider ->
+            val writer = Scripted(provider, listOf("Earlier result", "Replacement result"))
+            val stopping = kotlinx.coroutines.CompletableDeferred<Unit>()
+            val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+            val started = kotlinx.coroutines.CompletableDeferred<Unit>()
+            val stopped = AtomicBoolean(false)
+            writer.onRun = { request, number ->
+                if (number == 1) {
+                    try { started.complete(Unit); kotlinx.coroutines.awaitCancellation() }
+                    finally {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                            stopping.complete(Unit)
+                            release.await()
+                            stopped.set(true)
+                        }
+                    }
+                } else {
+                    assertTrue(stopped.get(), "Replacement started before the old native turn joined")
+                    File(request.workingDirectory, "Source.kt").writeText("val replacement = true\n")
+                }
+            }
+            workspace(if (provider == RuntimeKind.Codex) writer else Scripted(RuntimeKind.Codex, listOf("Unused")),
+                if (provider == RuntimeKind.ClaudeCode) writer else Scripted(RuntimeKind.ClaudeCode, listOf("Unused"))) { connection, _, _ ->
+                try {
+                    val proposed = connection.proposeTaskGraph(TaskGraphDraft("Live edit", tasks = listOf(
+                        TaskGraphOp.Add("Write", key = "write", seat = TaskSeat(provider, access = TaskAccess.Write)),
+                        TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("write"))))), person)
+                    connection.startTaskGraph(proposed.graph.id, proposed.graph.revision, person)
+                    withTimeout(10_000) { started.await() }
+                    val before = connection.taskGraph(proposed.graph.id)
+                    val task = before.task("Write")
+                    connection.patchTaskGraph(proposed.graph.id, TaskGraphPatch(
+                        listOf(TaskGraphOp.Update(task.id, acceptance = listOf("Use the revised contract"))),
+                        "Replace the active attempt", before.graph.revision, TaskEditResolution.Rerun), person)
+                    withTimeout(10_000) { stopping.await() }
+                    delay(150)
+                    assertEquals(1, writer.requests.size)
+                    assertNull(connection.taskGraph(proposed.graph.id).task("Write").graph?.outcome)
+                    release.complete(Unit)
+                    val done = connection.until(proposed.graph.id) { it.task("Accept").graph?.state == TaskState.Waiting }
+                    assertEquals(2, writer.requests.size)
+                    assertEquals(2, done.task("Write").graph?.attempt)
+                    assertEquals("Replacement result", done.task("Write").graph?.outcome?.summary)
+                    assertEquals(1, done.graph.changes.last { it.before.isNotEmpty() }.before.first { it.id == task.id }.graph?.attempt)
+                } finally { release.complete(Unit) }
+            }
+        }
+    }
+
+    @Test fun eitherProviderCanHandOffTheSameOwnedCheckoutAfterItsNativeTurnStops() {
+        listOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode).forEach { provider ->
+            val nextProvider = if (provider == RuntimeKind.Codex) RuntimeKind.ClaudeCode else RuntimeKind.Codex
+            val writer = Scripted(provider, listOf("Earlier result"))
+            val replacement = Scripted(nextProvider, listOf("Replacement result"))
+            val started = kotlinx.coroutines.CompletableDeferred<Unit>()
+            val stopping = kotlinx.coroutines.CompletableDeferred<Unit>()
+            val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+            val stopped = AtomicBoolean(false)
+            writer.onRun = { request, _ ->
+                File(request.workingDirectory, "Source.kt").writeText("val prior = true\n")
+                try { started.complete(Unit); kotlinx.coroutines.awaitCancellation() }
+                finally { kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                    stopping.complete(Unit); release.await(); stopped.set(true)
+                } }
+            }
+            replacement.onRun = { request, _ ->
+                assertTrue(stopped.get())
+                assertEquals(writer.requests.single().workingDirectory, request.workingDirectory)
+                assertEquals("val prior = true\n", File(request.workingDirectory, "Source.kt").readText())
+                assertContains(request.prompt, "Handoff from earlier attempt 1")
+                File(request.workingDirectory, "Source.kt").appendText("val replacement = true\n")
+            }
+            workspace(if (provider == RuntimeKind.Codex) writer else replacement,
+                if (provider == RuntimeKind.ClaudeCode) writer else replacement) { connection, _, _ ->
+                try {
+                    val proposal = connection.proposeTaskGraph(TaskGraphDraft("Provider handoff", tasks = listOf(
+                        TaskGraphOp.Add("Write", key = "write", seat = TaskSeat(provider, access = TaskAccess.Write)),
+                        TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("write"))))), person)
+                    connection.startTaskGraph(proposal.graph.id, proposal.graph.revision, person)
+                    withTimeout(10_000) { started.await() }
+                    val before = connection.taskGraph(proposal.graph.id)
+                    val task = before.task("Write")
+                    val tree = requireNotNull(task.graph?.worktreeId)
+                    connection.patchTaskGraph(proposal.graph.id, TaskGraphPatch(
+                        listOf(TaskGraphOp.Seat(task.id, TaskSeat(nextProvider, access = TaskAccess.Write))),
+                        "Continue with the other provider", before.graph.revision, TaskEditResolution.Rerun), person)
+                    withTimeout(10_000) { stopping.await() }
+                    delay(100)
+                    assertTrue(replacement.requests.isEmpty())
+                    release.complete(Unit)
+                    val done = connection.until(proposal.graph.id) { it.task("Accept").graph?.state == TaskState.Waiting }
+                    val current = requireNotNull(done.task("Write").graph)
+                    assertEquals(tree, current.worktreeId)
+                    assertEquals(2, current.attempt)
+                    assertEquals("Replacement result", current.outcome?.summary)
+                    assertEquals(nextProvider, current.resolvedSeat?.seat?.agent)
+                    assertEquals(tree, done.graph.changes.last { it.before.isNotEmpty() }.before.first { it.id == task.id }.graph?.worktreeId)
+                } finally { release.complete(Unit) }
+            }
+        }
+    }
+
     @Test fun nativeDecisionWritersCarryExplicitGapsIntoTheirHandoff() {
         listOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode).forEach { provider ->
             val writer = Scripted(provider, listOf("""{"verdict":"pass","summary":"Implemented","unverified":["Physical-device acceptance unavailable."]}"""))

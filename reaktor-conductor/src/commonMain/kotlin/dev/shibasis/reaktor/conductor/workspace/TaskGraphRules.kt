@@ -265,9 +265,10 @@ class TaskGraphEditing(
     private val summary = mutableListOf<String>()
     private val undo = mutableListOf<TaskGraphOp>()
     private var envelope = graph.envelope
+    private var snapshots = emptyList<BoardTask>()
     private val revision = graph.revision + 1
 
-    fun apply(patch: TaskGraphPatch, approvedBy: String? = null): TaskGraphApplied {
+    fun apply(patch: TaskGraphPatch, approvedBy: String? = null, preview: Boolean = false): TaskGraphApplied {
         require(patch.ops.isNotEmpty() && patch.ops.size <= 100) { "A change has 1 to 100 operations" }
         val reason = BoardText.bounded(patch.reason, "reason", 500)
         require(reason.isNotEmpty() || caller.person) { "Give a reason for the change" }
@@ -275,6 +276,31 @@ class TaskGraphEditing(
             "${graph.id} is ${graph.status.name.lowercase()}; only a person changes it now"
         }
         if (!caller.person) requireNotNull(patch.expectedRevision) { "Name the graph revision you read as expectedRevision; taskgraph.read shows it" }
+        val affected = TaskGraphRules.affected(patch.ops, original)
+        if (affected.any { it.graph?.let { plan -> plan.attempt > 0 || plan.state !in setOf(TaskState.Pending, TaskState.Cancelled, TaskState.Skipped) ||
+                plan.outcome != null || plan.runId != null || plan.run != null } == true }) {
+            if (!preview) {
+                require(caller.person) { "Only a person supersedes dispatched work: ${affected.joinToString { it.id }}" }
+                require(patch.expectedRevision == graph.revision) { "Read revision ${graph.revision} and preview affected work again" }
+                requireNotNull(patch.resolution) { "Choose Supersede or Rerun for ${affected.joinToString { it.id }}; earlier attempts remain in history" }
+            }
+            snapshots = affected
+            val handoffs = patch.ops.filterIsInstance<TaskGraphOp.Seat>().associateBy { it.task }.filter { (id, op) ->
+                val plan = original[id]?.graph
+                plan?.worktreeId != null && resolveSeat(requireNotNull(plan.seat)).access == TaskAccess.Write &&
+                    resolveSeat(op.seat).access == TaskAccess.Write &&
+                    TaskGraphRules.affected(patch.ops.filterNot { it is TaskGraphOp.Seat && it.task == id }, original).none { it.id == id }
+            }.keys
+            affected.forEach { task ->
+                val plan = plan(task)
+                val removing = patch.ops.any { it is TaskGraphOp.Remove && it.task == task.id } && plan.state != TaskState.Pending
+                put(task.copy(stage = BoardStage.Planning, stageChangedAt = now, graph = plan.copy(
+                    state = if (removing) TaskState.Waiting else TaskState.Pending, outcome = null, run = null, runId = null,
+                    worktreeId = plan.worktreeId.takeIf { task.id in handoffs }, resolvedSeat = null, readySince = null, recovery = AgentRecovery.None,
+                    resumeAtReset = null, held = false, note = "Superseded at revision $revision: $reason")))
+            }
+            summary += "Superseded ${affected.joinToString { it.id }}; earlier attempts and receipts are retained in history"
+        }
         patch.ops.forEach { op -> conflicts(op, patch.expectedRevision); apply(op) }
         members.values.forEach { task ->
             val plan = task.graph ?: return@forEach
@@ -292,8 +318,12 @@ class TaskGraphEditing(
             task.copy(graph = task.graph?.copy(changedAt = revision), updatedAt = now)
         } }
         val recorded = if (summary.isEmpty()) graph.changes
-            else (graph.changes + TaskGraphChange(revision, now, caller.by, reason.ifEmpty { "Edited in Hangar" }, summary.toList(), undo.asReversed().toList())).takeLast(200)
-        val next = graph.copy(envelope = envelope, revision = revision, updatedAt = now, changes = recorded)
+            else (graph.changes + TaskGraphChange(revision, now, caller.by, reason.ifEmpty { "Edited in Hangar" }, summary.toList(), undo.asReversed().toList(), snapshots)).takeLast(200)
+        val rerun = snapshots.isNotEmpty() && patch.resolution == TaskEditResolution.Rerun && graph.approvedRevision != null
+        val next = graph.copy(envelope = envelope, revision = revision, updatedAt = now, changes = recorded,
+            status = if (snapshots.isEmpty()) graph.status else if (rerun) TaskGraphStatus.Running else TaskGraphStatus.Paused,
+            approvedRevision = if (rerun) revision else graph.approvedRevision,
+            reason = if (snapshots.isEmpty()) graph.reason else if (rerun) "Rerun approved by ${caller.by.name}: $reason" else "Superseded work; review and resume: $reason")
         return TaskGraphApplied(next, changed, removed.toList(), summary.toList(), undo.asReversed().toList())
     }
 
@@ -596,7 +626,8 @@ class TaskGraphEditing(
         if (!caller.person) refuse("Only a person reverts a change")
         val task = task(op.task)
         op.seat?.let(resolveSeat)
-        put(task.copy(graph = plan(task).copy(dependsOn = op.dependsOn.filter { it.task in members }, seat = op.seat, state = op.state)))
+        put(task.copy(graph = plan(task).copy(dependsOn = op.dependsOn.filter { it.task in members }, seat = op.seat,
+            state = if (snapshots.any { it.id == task.id }) TaskState.Pending else op.state)))
         summary += "Restored ${task.id}"
     }
 

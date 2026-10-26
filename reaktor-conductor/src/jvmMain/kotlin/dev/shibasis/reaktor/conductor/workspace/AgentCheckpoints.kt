@@ -33,7 +33,7 @@ class AgentCheckpoints(private val directory: Path) {
     }
 }
 
-class AgentRunbooks(private val directory: Path) {
+class AgentRunbooks(private val directory: Path, private val resolveSeat: (TaskSeat) -> TaskSeat = { TaskSeatResolver().resolve(it).seat }) {
     init { privateDirectory(directory) }
     private fun path(id: String): Path { require(id.matches(Regex("[a-zA-Z0-9_-]{1,80}"))); return directory.resolve("$id.json") }
     @Synchronized fun save(definition: WorkflowDefinition, expectedRevision: String? = null): AgentRunbook {
@@ -47,6 +47,36 @@ class AgentRunbooks(private val directory: Path) {
         if (existing == null) require(list().size < 100) { "Runbook library is full" }
         return AgentRunbook(revision, definition).also { atomicWrite(file, ConductorJson.encodeToString(AgentRunbook.serializer(), it)) }
     }
+    @Synchronized fun saveTemplate(id: String, draft: TaskGraphDraft, expectedRevision: String? = null): TaskGraphTemplate {
+        require(id.matches(Regex("[a-zA-Z0-9_-]{1,80}")) && !id.startsWith("builtin-")) { "Choose a saved template id; built-in patterns cannot be changed" }
+        val definition = TaskGraphTemplates.validate(draft, resolveSeat)
+        val folder = directory.resolve("templates").also(::privateDirectory)
+        val file = folder.resolve("$id.json")
+        val existing = if (Files.exists(file)) template(id) else null
+        val json = ConductorJson.encodeToString(TaskGraphDraft.serializer(), definition)
+        require(json.toByteArray().size <= 100_000) { "A template is at most 100 KB" }
+        val revision = digest(json)
+        if (existing?.revision == revision) return existing
+        require(existing?.revision == expectedRevision) { "Template changed; read its current revision before saving" }
+        if (existing == null) require(templates().count { !it.id.startsWith("builtin-") } < 100) { "Template library is full" }
+        return TaskGraphTemplate(id, revision, definition).also { atomicWrite(file, ConductorJson.encodeToString(TaskGraphTemplate.serializer(), it)) }
+    }
+
+    @Synchronized fun template(id: String): TaskGraphTemplate {
+        TaskGraphTemplates.builtIns.firstOrNull { it.id == id }?.let { return it }
+        require(id.matches(Regex("[a-zA-Z0-9_-]{1,80}")))
+        val file = directory.resolve("templates").resolve("$id.json")
+        require(Files.isRegularFile(file) && Files.size(file) <= 120_000) { "Template $id is missing or exceeds its size limit" }
+        return ConductorJson.decodeFromString(TaskGraphTemplate.serializer(), Files.readString(file)).also { require(it.id == id) }
+    }
+
+    @Synchronized fun templates(): List<TaskGraphTemplate> = TaskGraphTemplates.builtIns + directory.resolve("templates").let { folder ->
+        if (!Files.exists(folder)) emptyList() else Files.list(folder).use { files ->
+            files.filter { it.fileName.toString().matches(Regex("[a-zA-Z0-9_-]{1,80}\\.json")) }.sorted().limit(100).toList()
+                .map { template(it.fileName.toString().removeSuffix(".json")) }
+        }
+    }
+
     fun read(id: String) = ConductorJson.decodeFromString(AgentRunbook.serializer(), Files.readString(path(id)))
     @Synchronized fun list(): List<AgentRunbook> = Files.list(directory).use { files ->
         files.filter { it.fileName.toString().endsWith(".json") }.sorted().limit(100).toList().map { read(it.fileName.toString().removeSuffix(".json")) }
