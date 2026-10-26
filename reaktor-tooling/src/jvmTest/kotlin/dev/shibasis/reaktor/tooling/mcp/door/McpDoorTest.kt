@@ -34,6 +34,13 @@ class McpDoorTest {
     @AfterTest fun cleanUp() { scope.cancel(); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
 
     @Test fun mergesProvidersKeepsOwnNamesAndPrefixesForeignOnes() {
+        val native = ReaktorMcpServer("hangar", "1", "", listOf("ReadOnly", "LocalEphemeral", "future", null).mapIndexed { index, effect ->
+            McpTool("call_$index", "Effect metadata", emptyObjectSchema(), readOnly = true, idempotent = true, effect = effect) { buildJsonObject {} }
+        })
+        val provider = McpLinkProvider("hangar", FunctionMcpLink("hangar") { native.handle(it) })
+        val catalog = runBlocking { provider.catalog() }
+        assertEquals(listOf(SafetyClass.ReadOnly, SafetyClass.LocalEphemeral, null, null), catalog.calls.map { it.claims.nativeEffect })
+        assertTrue(catalog.calls.all { it.safety.classification == SafetyClass.UnknownRemoteEffect })
         val door = door(mount("workspace", server("workspace", "agent_run", "agent_wait")), mount("compose", server("compose", "reload", "take_screenshot"), prefix = "compose"))
         val names = toolNames(door)
         assertEquals(listOf("reaktor_status", "reaktor_provider_refresh", "agent_run", "agent_wait", "compose_reload", "compose_take_screenshot"), names)

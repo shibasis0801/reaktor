@@ -57,6 +57,7 @@ data class McpTool(
     val openWorld: Boolean = false,
     /** The value is already a complete tool result; re-wrapping it would flatten image and error content into text. */
     val raw: Boolean = false,
+    val effect: String? = null,
     val execute: (JsonObject) -> JsonElement,
 )
 
@@ -211,6 +212,7 @@ class ReaktorMcpServer(
                     put("name", tool.name)
                     put("description", tool.description)
                     put("inputSchema", tool.inputSchema)
+                    tool.effect?.let { effect -> putJsonObject("_meta") { put("dev.shibasis.reaktor/effect", effect) } }
                     putJsonObject("annotations") {
                         put("readOnlyHint", tool.readOnly)
                         put("destructiveHint", tool.destructive)
