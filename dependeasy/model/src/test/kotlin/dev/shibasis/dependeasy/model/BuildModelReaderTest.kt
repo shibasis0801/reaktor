@@ -98,6 +98,13 @@ class BuildModelReaderTest {
             run = "current", finishedAtEpochMillis = 3, status = ReceiptStatus.Succeeded, dryRun = true, modelDigest = BuildModelReader.digest(file))))
         assertContains(BuildModelReader.story(root, node.id.toString()).getValue("markdown").jsonPrimitive.content,
             "Succeeded (recorded; matches current model: true; dry run: true)")
+        root.resolve(GradleProtocol.ReceiptDirectory + "/later-file-older-run.json").writeText(BuildModelReader.json.encodeToString(receipt))
+        val latest = BuildModelReader.story(root, node.id.toString()).getValue("roots").jsonArray.single().jsonObject
+        assertEquals(JsonPrimitive("current"), latest.getValue("lastReceipt").jsonObject["run"])
+        assertEquals(JsonPrimitive("current"), latest.getValue("children").jsonArray.single().jsonObject.getValue("node").jsonObject.getValue("lastReceipt").jsonObject["run"])
+        root.resolve(GradleProtocol.ReceiptDirectory + "/unrelated.json").writeText(BuildModelReader.json.encodeToString(receipt.copy(
+            run = "unrelated", requestedNodes = emptyList(), tasks = emptyList(), finishedAtEpochMillis = 4)))
+        assertEquals(latest, BuildModelReader.story(root, node.id.toString()).getValue("roots").jsonArray.single().jsonObject)
         val roots = (0..10).map { node.copy(id = node.id.copy(name = "root$it")) }
         file.writeText(BuildModelReader.encode(declared.copy(nodes = roots, edges = emptyList())))
         val firstStory = BuildModelReader.story(root)
