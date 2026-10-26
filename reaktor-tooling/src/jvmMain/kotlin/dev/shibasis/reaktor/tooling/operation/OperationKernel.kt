@@ -4,7 +4,8 @@ import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.mcp.ToolDefinition
 import dev.shibasis.reaktor.mcp.ToolNode
-import dev.shibasis.reaktor.tooling.CallCaller
+import dev.shibasis.reaktor.tooling.*
+import dev.shibasis.reaktor.code.planFingerprint
 import dev.shibasis.reaktor.tooling.SafetyClass
 import dev.shibasis.reaktor.tooling.mcp.door.CallLog
 import dev.shibasis.reaktor.tooling.mcp.door.DoorApproval
@@ -30,6 +31,7 @@ class OperationAuthority(
     val log: CallLog? = null,
     val onApprovalNeeded: (DoorApproval) -> Unit = {},
     val model: OperationModel? = null,
+    val runs: Pair<WorkspaceId, RunEventSink>? = null,
 )
 
 data class ModelVerdict(val allowed: Boolean, val enforced: Boolean, val rule: String, val record: JsonObject)
@@ -117,9 +119,41 @@ class OperationKernel(
             }
         }
 
-        val outcome = try {
-            Outcome.Completed(entry.execute(OperationCall(invocation, approval), invocation.arguments))
+        val receipt = authority.runs?.takeIf { effect != SafetyClass.ReadOnly && effect != SafetyClass.LiveRead }?.let { (workspace, sink) ->
+            val now = System.currentTimeMillis()
+            val fingerprint = planFingerprint(listOf(descriptor.provider, descriptor.id.value,
+                invocation.caller.seat.orEmpty(), invocation.caller.runId.orEmpty(), invocation.arguments.toString()))
+            val id = RunId("kernel-${java.util.UUID.randomUUID()}")
+            val references = listOfNotNull(
+                approval?.let { ArtifactReference(ArtifactId("approval-${it.id}"), "approval", it.id) },
+                invocation.caller.runId?.let { ArtifactReference(ArtifactId("parent-$it"), "parent-run", it) },
+            )
+            val run = TaskRun(id, workspace, TaskId(descriptor.id.value), PlanId(fingerprint), RunStatus.Running,
+                now, startedAtEpochMillis = now, artifacts = references)
+            val plan = TaskPlan(run.planId, workspace, run.taskId, TaskInvocation(run.taskId), SafetyPolicy(effect),
+                listOf(descriptor.id.value), "", fingerprint, now)
+            try {
+                val event = RunEvent.Started(id, 0, now, run, plan)
+                sink.append(event)
+                authority.log?.append(event)
+            } catch (failure: Exception) {
+                return Outcome.Failed("Run receipt unavailable; ${descriptor.id} was not executed").also { record("failed", it.message) }
+            }
+            run
+        }
+        suspend fun finishReceipt(status: RunStatus) {
+            receipt?.let { run ->
+                val now = System.currentTimeMillis()
+                val event = RunEvent.Completed(run.id, 1, now, run.copy(status = status,
+                    finishedAtEpochMillis = now, exitCode = if (status == RunStatus.Succeeded) 0 else if (status == RunStatus.Cancelled) 130 else 1))
+                requireNotNull(authority.runs).second.append(event)
+                authority.log?.append(event)
+            }
+        }
+        var outcome = try {
+            Outcome.Completed(entry.execute(OperationCall(invocation, approval, receipt?.id), invocation.arguments))
         } catch (cancelled: CancellationException) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { finishReceipt(RunStatus.Cancelled) }
             throw cancelled
         } catch (invalid: InvalidArguments) {
             Outcome.Failed("Invalid arguments for ${descriptor.id}: ${invalid.message}. operation.describe {operation: ${descriptor.id}} shows what it takes")
@@ -128,6 +162,10 @@ class OperationKernel(
                 "The program that wrote that data is likely newer or older than this ${descriptor.provider} build")
         } catch (failure: Exception) {
             Outcome.Failed(failure.message ?: failure::class.simpleName.orEmpty())
+        }
+        try { finishReceipt(if (outcome is Outcome.Completed) RunStatus.Succeeded else RunStatus.Failed) }
+        catch (failure: Exception) {
+            outcome = Outcome.Failed("${descriptor.id} executed, but its final receipt could not be saved; inspect the run before retrying")
         }
         record(if (outcome is Outcome.Completed) "ok" else "failed", listOfNotNull(effect.name, approval?.let { "approval ${it.id} by ${it.decidedBy}" },
             (outcome as? Outcome.Failed)?.message).joinToString("; "))

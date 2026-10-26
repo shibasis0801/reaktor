@@ -819,9 +819,9 @@ class AgentWorkspace(
         recover(records[id] ?: load(id) ?: error("Run not found"))
     }
 
-    fun list(limit: Int = 20): List<AgentRunRecord> = synchronized(lock) {
-        require(limit in 1..50)
-        recent.take(limit).map(::get)
+    fun list(limit: Int = 20, offset: Int = 0): List<AgentRunRecord> = synchronized(lock) {
+        require(limit in 1..50 && offset in 0..250)
+        recent.drop(offset).take(limit).map(::get)
     }
 
     fun tasksPage(query: String = "", offset: Int = 0, limit: Int = 50): AgentTasksPage = synchronized(lock) {

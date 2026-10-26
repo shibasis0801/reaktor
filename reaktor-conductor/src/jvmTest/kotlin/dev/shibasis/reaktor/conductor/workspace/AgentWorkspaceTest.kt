@@ -291,6 +291,11 @@ class AgentWorkspaceTest {
                     assertEquals(2, client.transcript(first.threadId).events.size)
                     assertEquals("", client.list().first().output)
                     assertTrue(client.list().first().outputTruncated)
+                    val pages = client.list(1) + client.list(1, offset = 1)
+                    assertEquals(client.list().map { it.id }, pages.map { it.id })
+                    assertTrue(pages.all { it.output.isEmpty() && it.context == null && it.pending.isEmpty() })
+                    assertTrue(client.list(1, offset = 2).isEmpty())
+                    assertFailsWith<IllegalStateException> { client.list(1, offset = 251) }
                 }
                 assertEquals(2, owner.list().size)
             }

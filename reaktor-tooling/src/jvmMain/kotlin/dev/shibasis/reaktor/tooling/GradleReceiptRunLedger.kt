@@ -17,6 +17,10 @@ import java.security.MessageDigest
 
 class GradleReceiptRunLedger(private val root: File) : RunLedger {
     private val directory = root.resolve(GradleProtocol.ReceiptDirectory).apply { mkdirs() }
+    private val deployments = directory.resolve("deploy").apply {
+        require(!java.nio.file.Files.isSymbolicLink(toPath())) { "Deploy receipts must remain inside their owner" }
+        mkdirs()
+    }
     private val workspace = WorkspaceId("workspace-" + MessageDigest.getInstance("SHA-256")
         .digest(root.canonicalPath.toByteArray()).joinToString("") { "%02x".format(it) }.take(24))
 
@@ -27,12 +31,12 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
 
     fun changes(): Flow<TaskRun> = callbackFlow {
         FileSystems.getDefault().newWatchService().use { watcher ->
-            for (attempt in 1..3) {
+            for (source in listOf(directory, deployments)) for (attempt in 1..3) {
                 try {
-                    directory.toPath().register(watcher, ENTRY_CREATE)
+                    source.toPath().register(watcher, ENTRY_CREATE)
                     break
                 } catch (missing: NoSuchFileException) {
-                    if (attempt == 3 || !directory.isDirectory) throw missing
+                    if (attempt == 3 || !source.isDirectory) throw missing
                 }
             }
             val delivered = mutableSetOf<RunId>()
@@ -41,12 +45,12 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
                     if (file.extension != "json") return
                     for (run in read(file)) if (delivered.add(run.id)) send(run)
                 }
-                directory.listFiles().orEmpty().sortedBy { it.name }.forEach { deliver(it) }
+                listOf(directory, deployments).flatMap { it.listFiles().orEmpty().toList() }.sortedBy { it.name }.forEach { deliver(it) }
                 while (true) {
                     val key = runInterruptible { watcher.take() }
                     for (event in key.pollEvents()) {
                         val relative = event.context() as? java.nio.file.Path ?: continue
-                        deliver(directory.resolve(relative.toString()))
+                        deliver((key.watchable() as java.nio.file.Path).resolve(relative).toFile())
                     }
                     if (!key.reset()) break
                 }
@@ -69,12 +73,31 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
         }
     }
 
-    private fun entries(): List<TaskRun> = directory.listFiles().orEmpty().filter { it.extension == "json" }
+    private fun entries(): List<TaskRun> = listOf(directory, deployments).flatMap { it.listFiles().orEmpty().toList() }.filter { it.extension == "json" }
         .also { require(it.size <= 10000) { "Receipt ledger exceeds its bounded read limit" } }
         .flatMap(::read).sortedByDescending { it.finishedAtEpochMillis }
 
     private fun read(file: File): List<TaskRun> {
-        if (!file.isFile || file.canonicalFile.parentFile != directory.canonicalFile || java.nio.file.Files.isSymbolicLink(file.toPath())) return emptyList()
+        if (!file.isFile || file.canonicalFile.parentFile !in setOf(directory.canonicalFile, deployments.canonicalFile) ||
+            java.nio.file.Files.isSymbolicLink(file.toPath())) return emptyList()
+        if (file.canonicalFile.parentFile == deployments.canonicalFile) {
+            require(file.length() <= 4_194_304) { "Deploy receipt exceeds its bounded read limit" }
+            val receipt = BuildModelReader.json.decodeFromString(DeployReceipt.serializer(), file.readText())
+            val artifact = ArtifactReference(ArtifactId("deploy-${receipt.run}"), "deploy-receipt", file.canonicalPath,
+                mediaType = "application/json", sizeBytes = file.length(), digest = BuildModelReader.digest(file),
+                attributes = buildMap {
+                    put("node", receipt.node.toString()); put("environment", receipt.environment.name)
+                    put("service", receipt.service.name); put("action", receipt.action); put("phase", receipt.phase)
+                    put("planDigest", receipt.planDigest); put("artifactDigest", receipt.artifactDigest)
+                    receipt.remoteVersion?.let { put("remoteVersion", it) }; receipt.rollbackTarget?.let { put("rollbackTarget", it) }
+                })
+            return listOf(TaskRun(RunId("deploy-${receipt.run}/${receipt.node}"), workspace, TaskId(receipt.node.toString()),
+                PlanId(receipt.planDigest), if (receipt.result == ReceiptStatus.Succeeded) RunStatus.Succeeded else RunStatus.Failed,
+                receipt.startedAtEpochMillis, receipt.startedAtEpochMillis, receipt.finishedAtEpochMillis,
+                if (receipt.result == ReceiptStatus.Succeeded) 0 else 1,
+                if (receipt.result == ReceiptStatus.Failed) RunFailure("deploy-failure", "Deployment failed in ${receipt.phase}") else null,
+                listOf(artifact)))
+        }
         val receipt = BuildModelReader.readReceipt(file)
         if (receipt.dryRun) return emptyList()
         val artifact = GradleReceiptEvidence.artifact(file, receipt)

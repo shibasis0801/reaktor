@@ -139,7 +139,15 @@ class OperationKernelTest {
     }
 
     @Test
-    fun aRetriedRequestReturnsTheOriginalOutcome() = kernel { kernel, approvals, written ->
+    fun aRetriedRequestReturnsTheOriginalOutcome() = kernel(receipts = { events ->
+        assertEquals(2, events.size)
+        val started = assertIs<dev.shibasis.reaktor.tooling.RunEvent.Started>(events.first())
+        val completed = assertIs<dev.shibasis.reaktor.tooling.RunEvent.Completed>(events.last())
+        assertEquals(started.runId, completed.runId)
+        assertEquals(dev.shibasis.reaktor.tooling.RunStatus.Succeeded, completed.run.status)
+        assertTrue(completed.run.artifacts.any { it.kind == "approval" })
+        assertTrue("c.kt" !in events.toString())
+    }) { kernel, approvals, written ->
         val request = Invocation(OperationId("code.write"), buildJsonObject { put("path", "c.kt") }, CallCaller("cli"), requestId = "r-1")
         approvals.decide(assertIs<Outcome.ApprovalRequired>(kernel.invoke(request.copy(requestId = null))).approval, approve = true, by = "terminal")
         val first = kernel.invoke(request)
@@ -291,7 +299,7 @@ class OperationKernelTest {
         }
     }
 
-    private fun kernel(policy: DoorPolicy = DoorPolicy.Guarded, body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
+    private fun kernel(policy: DoorPolicy = DoorPolicy.Guarded, receipts: (List<dev.shibasis.reaktor.tooling.RunEvent>) -> Unit = {}, body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
         val directory = Files.createTempDirectory("operation-kernel")
         val dependencies = koinApplication {}
         val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
@@ -314,8 +322,14 @@ class OperationKernelTest {
             Tool(ToolDefinition("board_note", "Notes a task on this workspace's board", idempotent = true)) { ToolResult(JsonPrimitive("noted")) },
         )))
         val approvals = DoorApprovals(directory.resolve("approvals"))
+        val events = mutableListOf<dev.shibasis.reaktor.tooling.RunEvent>()
+        val sink = object : dev.shibasis.reaktor.tooling.RunEventSink {
+            override suspend fun append(event: dev.shibasis.reaktor.tooling.RunEvent) { events += event }
+        }
         try {
-            body(OperationKernel(graph, OperationAuthority(policy, approvals, CallLog(directory.resolve("calls.jsonl"), CallCaller()))), approvals, written)
+            body(OperationKernel(graph, OperationAuthority(policy, approvals, CallLog(directory.resolve("calls.jsonl"), CallCaller()),
+                runs = dev.shibasis.reaktor.tooling.WorkspaceId("fixture") to sink)), approvals, written)
+            receipts(events)
         } finally {
             graph.close(); dependencies.close(); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         }
