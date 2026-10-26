@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.infra
 
+import dev.shibasis.reaktor.code.planFingerprint
 import dev.shibasis.reaktor.tooling.*
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
@@ -54,7 +55,7 @@ class NativeExecutionRequest private constructor(
             val context = listOf(encoded, root.path, taskId.value, safety.classification.name,
                 timeoutMillis.toString(), captureStdoutChars.toString(), definitionSeal?.digest.orEmpty(), provenance) +
                 frozen.toSortedMap().flatMap { listOf(it.key, it.value) }
-            val fingerprint = digest(context.joinToString("") { "${it.length}:$it" })
+            val fingerprint = planFingerprint(context)
             require(approval == null || approval.planFingerprint == fingerprint) { "Native approval does not match this plan" }
             val secrets = frozen.filterKeys { key ->
                 listOf("PASSWORD", "SECRET", "TOKEN", "KEY", "DATABASE_URL").any { it in key.uppercase() }

@@ -12,6 +12,10 @@ import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 
+fun planFingerprint(fields: Iterable<String>): String = MessageDigest.getInstance("SHA-256")
+    .digest(buildString { fields.forEach { value -> append(value.length).append(':').append(value) } }.toByteArray())
+    .joinToString("") { "%02x".format(it) }
+
 data class CodeDocument(val path: String, val digest: String, val text: String)
 data class CodeMatch(val path: String, val digest: String, val line: Int, val text: String)
 data class CodeQueryResult(val matches: List<CodeMatch>, val scannedFiles: Int, val partial: Boolean, val provider: String = "literal-v1")
@@ -340,9 +344,8 @@ class CodeWorkspace(root: Path, private val generatedRoots: () -> Collection<Pat
         } finally { Files.deleteIfExists(temporary) }
     }
 
-    private fun changeFingerprint(recipe: String, files: List<CodeFileChange>, evidence: String): String = digest(
-        (listOf("change-v1", recipe, root.toString(), evidence) + files.sortedBy { it.before.path }.flatMap { listOf(it.before.path, it.before.digest, digest(it.after.toByteArray())) })
-            .joinToString("\u0000").toByteArray())
+    private fun changeFingerprint(recipe: String, files: List<CodeFileChange>, evidence: String): String = planFingerprint(
+        listOf("change-v1", recipe, root.toString(), evidence) + files.sortedBy { it.before.path }.flatMap { listOf(it.before.path, it.before.digest, digest(it.after.toByteArray())) })
 
     private fun resolve(path: String, writing: Boolean = false): Path {
         require(path.isNotBlank() && path.length <= 4096)
@@ -364,10 +367,9 @@ class CodeWorkspace(root: Path, private val generatedRoots: () -> Collection<Pat
     }
 
     private fun fingerprint(before: CodeDocument, after: String, find: String, replacement: String,
-        recipe: String = "literal-v1", evidence: String = ""): String = digest(
-        (listOf(recipe, root.toString(), before.path, before.digest, digest(after.toByteArray()),
+        recipe: String = "literal-v1", evidence: String = ""): String = planFingerprint(
+        listOf(recipe, root.toString(), before.path, before.digest, digest(after.toByteArray()),
             digest(find.toByteArray()), digest(replacement.toByteArray())) + if (evidence.isEmpty()) emptyList() else listOf(evidence))
-            .joinToString("\u0000").toByteArray())
 
     private fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 

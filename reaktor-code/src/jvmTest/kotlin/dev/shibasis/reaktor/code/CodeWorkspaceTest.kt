@@ -146,6 +146,9 @@ class CodeWorkspaceTest {
     @Test fun planRejectsStaleSourceAndCannotOverwriteUnrelatedChanges() = fixture { root, code ->
         Files.writeString(root.resolve("Test.kt"), "val oldName = 1\n")
         val plan = code.plan("Test.kt", "oldName", "newName")
+        assertEquals("650feb5f975286152d339e84e237297e9e9ec3760ebdefa49f362dc21903590a", planFingerprint(listOf("", "a:b", "λ🙂", "x\u0000y")))
+        assertNotEquals(planFingerprint(listOf("a\u0000b", "c")), planFingerprint(listOf("a", "b\u0000c")))
+        assertEquals(plan.fingerprint, code.plan("Test.kt", "oldName", "newName").fingerprint)
         Files.writeString(root.resolve("Test.kt"), "val oldName = 2\n")
         assertFailsWith<IllegalArgumentException> { code.apply(plan, plan.fingerprint) }
         assertEquals("val oldName = 2\n", code.read("Test.kt").text)
