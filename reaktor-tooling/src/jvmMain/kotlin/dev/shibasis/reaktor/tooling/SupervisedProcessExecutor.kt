@@ -532,6 +532,7 @@ private fun ProcessExecutionRequest.matchesPlan(): Boolean {
         fingerprintContext = plan.fingerprintContext,
         artifacts = plan.artifacts,
         definitionSeal = definitionSeal,
+        inheritEnvironment = false,
     )
     return rebuilt.plan.fingerprint == plan.fingerprint &&
         rebuilt.plan.workspaceId == plan.workspaceId &&
@@ -557,12 +558,13 @@ object AdHocProcessPlan {
         fingerprintContext: List<String> = emptyList(),
         artifacts: List<ArtifactExpectation> = emptyList(),
         definitionSeal: ProcessDefinitionSeal? = null,
+        inheritEnvironment: Boolean = true,
     ): ProcessExecutionRequest {
         require(argv.isNotEmpty()) { "Process argv must not be empty" }
         // Snapshot the complete inherited environment into the immutable request. The child gets
         // exactly this map (not a later ambient process environment), so TARGET_ENV, cloud
         // selectors, credentials, and PATH are all fingerprint-bound.
-        val resolvedEnvironment = System.getenv().toMap() + environment
+        val resolvedEnvironment = (if (inheritEnvironment) System.getenv() else emptyMap()) + environment
         val resolvedSensitiveEnvironmentKeys = sensitiveEnvironmentKeys +
             resolvedEnvironment.keys.filter(::isSensitiveEnvironmentKey)
         val allSecrets = redactions + resolvedSensitiveEnvironmentKeys.mapNotNull { key ->
