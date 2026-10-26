@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.api
 
+import dev.shibasis.reaktor.tooling.SafetyClass
 import dev.shibasis.reaktor.tooling.cloud.CloudflareAccounts
 import dev.shibasis.reaktor.tooling.cloud.CloudflareLogin
 import dev.shibasis.reaktor.tooling.cloud.GoogleSignIn
@@ -80,7 +81,7 @@ class CloudApis(
         val first = if (operation.api == "cloudflare") CloudflareLogin.forWorkspace(workspace).authenticated(
             { token -> send(request, mapOf("Authorization" to "Bearer $token")) }, { it.status == 401 })
         else send(request, credentials(operation.api, googleAccount))
-        if (!operation.api.startsWith("gcp:") || first.status != 403 || operation.effect != ApiEffect.Read || google.hasApplicationDefault()) return first
+        if (!operation.api.startsWith("gcp:") || first.status != 403 || operation.effect != SafetyClass.LiveRead || google.hasApplicationDefault()) return first
         return (googleAccounts() - setOfNotNull(googleAccount)).firstNotNullOfOrNull { account ->
             send(request, credentials(operation.api, account)).takeIf { it.ok }?.also { googleAccount = account }
         } ?: first

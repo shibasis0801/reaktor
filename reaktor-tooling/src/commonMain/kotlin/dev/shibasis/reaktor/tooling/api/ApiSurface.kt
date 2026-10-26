@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.api
 
+import dev.shibasis.reaktor.tooling.SafetyClass
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -7,9 +8,6 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-
-@Serializable
-enum class ApiEffect { Read, Write, Delete }
 
 @Serializable
 data class ApiParameter(
@@ -32,7 +30,7 @@ data class ApiOperation(
     val parameters: List<ApiParameter> = emptyList(),
     val body: JsonElement? = null,
     val tags: List<String> = emptyList(),
-    val effect: ApiEffect = ApiEffect.Read,
+    val effect: SafetyClass = SafetyClass.UnknownRemoteEffect,
     val deprecated: Boolean = false,
     val permissions: List<String> = emptyList(),
 ) {
