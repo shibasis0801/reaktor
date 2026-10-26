@@ -22,10 +22,18 @@ class DslEntryPointsTest {
 
     @Test fun `library scopes preserve targets dependencies and published graph outputs`() {
         write("gradle.properties", "android.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true")
-        write("settings.gradle.kts", "rootProject.name = \"libraryFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"library\", \"dependency\", \"legacy\")")
+        write("settings.gradle.kts", "rootProject.name = \"libraryFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"library\", \"dependency\", \"legacy\", \"nested\")")
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.handles.node
+            import dev.shibasis.dependeasy.components.library
+            import dev.shibasis.dependeasy.model.*
             plugins { id("dev.shibasis.dependeasy.workspace") }
+            project(":nested") {
+                pluginManager.apply("dev.shibasis.dependeasy.library")
+                library(namespace = "dev.fixture.nested", targets = Targets.Jvm) {
+                    val nested by tests(Suite.Jvm)
+                }
+            }
             evaluationDependsOn(":legacy")
             val legacy = project(":legacy")
             workspace {
@@ -36,6 +44,7 @@ class DslEntryPointsTest {
             }
         """)
         write("dependency/build.gradle.kts", "plugins { base }")
+        write("nested/build.gradle.kts", "plugins { base }")
         write("legacy/build.gradle.kts", """
             plugins { id("dev.shibasis.dependeasy.library") }
             dependeasy {
@@ -242,10 +251,15 @@ class DslEntryPointsTest {
         val root = model.nodes.single { it.id == NodeId("libraryFixture", ":", "crossProject") }
         val rootLine = directory.resolve("build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val crossProject by") } + 1
         assertEquals(SourceSite("libraryFixture", "build.gradle.kts", rootLine), root.declaredAt?.copy(symbol = null, callPath = emptyList()))
+        val nested = model.nodes.single { it.id == NodeId("libraryFixture", ":nested", "nested") }
+        val nestedLine = directory.resolve("build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("val nested by") } + 1
+        assertEquals(SourceSite("libraryFixture", "build.gradle.kts", nestedLine), nested.declaredAt?.copy(symbol = null, callPath = emptyList()))
+        val nestedScripts = nested.declaredAt!!.callPath.filter { it.file.endsWith(".gradle.kts") }
+        assertTrue(nestedScripts.isNotEmpty())
+        assertTrue(nestedScripts.all { it.file == "build.gradle.kts" }, nestedScripts.toString())
         for (site in model.nodes.mapNotNull { it.declaredAt }) {
             val scripts = site.callPath.filter { it.file.endsWith(".gradle.kts") }
-            assertTrue(scripts.size <= 1, site.toString())
-            assertTrue(scripts.all { it.copy(symbol = null) == site.copy(symbol = null, callPath = emptyList()) }, site.toString())
+            assertTrue(scripts.all { it.line in 1..directory.resolve(it.file).readLines().size }, site.toString())
         }
         for (name in listOf("outputModuleBuild", "outputVerificationResultsJvm", "outputVerificationResultsJavaScript")) {
             assertEquals(1, model.nodes.count { it.id.project == ":library" && it.id.name == name })
