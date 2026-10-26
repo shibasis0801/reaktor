@@ -80,6 +80,45 @@ object TaskGraphRules {
             compareByDescending<BoardTask> { reach(it.id, dependents) }.thenBy { it.graph?.readySince ?: it.createdAt }.thenBy { it.number })
     }
 
+    fun material(op: TaskGraphOp): Boolean = op !is TaskGraphOp.Update ||
+        op.title != null || op.intent != null || op.acceptance != null || op.scope != null ||
+        op.kind != null || op.contract != null || op.check != null || op.excludedContext != null
+
+    fun affected(ops: List<TaskGraphOp>, tasks: Map<String, BoardTask>): List<BoardTask> {
+        val roots = ops.mapNotNull { op ->
+            when (op) {
+                is TaskGraphOp.Update -> tasks[op.task]?.takeIf { task ->
+                    val plan = task.graph
+                    op.title?.let { it.trim() != task.title } == true ||
+                        op.intent?.let { it.trim() != task.intent } == true ||
+                        op.acceptance?.let { it != task.acceptance } == true ||
+                        op.scope?.let { it != task.scope } == true ||
+                        op.kind?.let { it != plan?.kind } == true ||
+                        op.contract?.let { it != plan?.contract } == true ||
+                        op.check?.let { it.trim() != plan?.check.orEmpty() } == true ||
+                        op.excludedContext?.let { it.distinct() != plan?.excludedContext } == true
+                }?.id
+                is TaskGraphOp.Seat -> op.task.takeIf { tasks[it]?.graph?.seat != op.seat }
+                is TaskGraphOp.Connect -> op.to.takeIf { tasks[it]?.graph?.dependsOn?.none { edge ->
+                    edge.task == op.from && edge.condition == op.condition && edge.required == op.required } == true }
+                is TaskGraphOp.Disconnect -> op.to.takeIf { tasks[it]?.graph?.dependsOn?.any { edge -> edge.task == op.from } == true }
+                is TaskGraphOp.Split -> op.task
+                is TaskGraphOp.Remove -> op.task
+                is TaskGraphOp.Restore -> op.task.takeIf { tasks[it]?.graph?.let { plan ->
+                    plan.dependsOn != op.dependsOn || plan.seat != op.seat || plan.state != op.state } == true }
+                else -> null
+            }
+        }
+        val downstream = dependents(tasks)
+        val seen = linkedSetOf<String>()
+        val queue = ArrayDeque(roots)
+        while (queue.isNotEmpty()) {
+            val next = queue.removeFirst()
+            if (next in tasks && seen.add(next)) queue.addAll(downstream[next].orEmpty())
+        }
+        return seen.mapNotNull(tasks::get).sortedBy { it.number }
+    }
+
     fun dependents(tasks: Map<String, BoardTask>): Map<String, List<String>> =
         tasks.values.flatMap { task -> task.graph?.dependsOn.orEmpty().map { it.task to task.id } }.groupBy({ it.first }, { it.second })
 
