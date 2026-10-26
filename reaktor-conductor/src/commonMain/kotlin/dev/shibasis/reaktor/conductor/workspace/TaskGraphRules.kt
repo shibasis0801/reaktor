@@ -373,7 +373,7 @@ class TaskGraphEditing(
         if (op.excludedContext != null) {
             require(caller.person) { "Only a person changes optional task context" }
             require(plan.state == TaskState.Pending) { "Task context is pinned after dispatch" }
-            require(op.excludedContext.size <= 100 && op.excludedContext.all { it.length <= 200 && (it.startsWith("memory:") || it.startsWith("decision:")) }) { "Only optional decision and memory references can be excluded" }
+            require(op.excludedContext.size <= 100 && op.excludedContext.all { it.length <= 200 && (it.startsWith("memory:") || it.startsWith("decision:") || it.startsWith("atlas:")) }) { "Only optional decision, memory and Atlas references can be excluded" }
         }
         if (op.kind != null || op.contract != null) require(plan.state == TaskState.Pending) { "${task.id} has started; its kind and contract stay as they are" }
         val next = task.copy(

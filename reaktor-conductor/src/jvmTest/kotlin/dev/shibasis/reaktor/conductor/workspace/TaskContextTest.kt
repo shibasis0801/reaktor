@@ -26,7 +26,8 @@ class TaskContextTest {
         }
     }
 
-    private fun fixture(test: suspend (AgentWorkspaceConnection, AgentWorkspace, File, java.nio.file.Path, Runtime) -> Unit) = runBlocking {
+    private fun fixture(kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
+        test: suspend (AgentWorkspaceConnection, AgentWorkspace, File, java.nio.file.Path, Runtime) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("task-context-source").toFile()
         val data = Files.createTempDirectory("task-context-data")
         try {
@@ -39,7 +40,7 @@ class TaskContextTest {
             val runtime = Runtime(RuntimeKind.Codex)
             lateinit var owner: AgentWorkspace
             AgentWorkspaceConnection.open(root, data, mapOf(runtime.kind to runtime, RuntimeKind.ClaudeCode to Runtime(RuntimeKind.ClaudeCode)),
-                extraTools = { owner = it; emptyList() }, discover = { ProviderCapability(it, defaultModel = "fixture") }).use {
+                extraTools = { owner = it; emptyList() }, discover = { ProviderCapability(it, defaultModel = "fixture") }, kernelRead = kernelRead).use {
                 test(it, owner, root, data, runtime)
             }
         } finally {
@@ -55,6 +56,59 @@ class TaskContextTest {
             source.sourceDigest, emptyList(), System.currentTimeMillis() - age, scope, target)
         Files.writeString(data.resolve("memory/${value.id}.json"), ConductorJson.encodeToString(AgentMemory.serializer(), value))
         return value
+    }
+
+    @Test fun atlasSliceIsBoundedOptionalAndSharedWithDispatch() {
+        var calls = 0
+        val slice = ContextPacket(workspaceId = "fixture", principalId = "coordinator", source = "Atlas", entries = listOf(
+            ContextEntry("atlas:large", "atlas-scope", "Too large", "x".repeat(5000), "Bounded source hint"),
+            ContextEntry("atlas:source", "atlas-scope", "Source", "fun source(); use at Main.kt:4; JVM tests", "revision fixture; syntactic")),
+            notices = listOf("Primary workspace source hints"))
+        fixture(kernelRead = { name, arguments ->
+            assertEquals("atlas_task_context", name)
+            assertEquals(listOf("source.txt"), arguments.getValue("scopes").jsonArray.map { it.jsonPrimitive.content })
+            calls++
+            ConductorJson.encodeToJsonElement(ContextPacket.serializer(), slice)
+        }) { connection, owner, _, _, _ ->
+            val view = connection.proposeTaskGraph(TaskGraphDraft("Atlas", tasks = listOf(
+                TaskGraphOp.Add("Inspect source", scope = listOf("source.txt"), seat = TaskSeat(RuntimeKind.Codex)))), person)
+            val task = view.tasks.single()
+            val before = requireNotNull(owner.graphs).context(view.graph.id, task.id)
+            assertEquals(listOf("atlas:source"), before.context!!.entries.map { it.ref })
+            assertTrue(before.excluded.any { it.ref == "atlas:large" && "size budget" in it.reason })
+            assertTrue(ConductorJson.encodeToString(ContextPacket.serializer(), before.context).length <= 14000)
+            connection.patchTaskGraph(view.graph.id, TaskGraphPatch(listOf(TaskGraphOp.Update(task.id,
+                excludedContext = listOf("atlas:source"))), "Drop the optional source hint", view.graph.revision), person)
+            val dropped = requireNotNull(owner.graphs).context(view.graph.id, task.id)
+            assertEquals(before.prompt, dropped.prompt)
+            assertTrue(dropped.context!!.entries.isEmpty())
+            connection.patchTaskGraph(view.graph.id, TaskGraphPatch(listOf(TaskGraphOp.Update(task.id,
+                excludedContext = emptyList())), "Restore source hints", owner.board.graph(view.graph.id).revision), person)
+            connection.startTaskGraph(view.graph.id, owner.board.graph(view.graph.id).revision, person)
+            withTimeout(10000) { while (owner.board.get(task.id).graph?.runId == null) delay(20) }
+            val saved = owner.submission(requireNotNull(owner.board.get(task.id).graph?.runId))
+            assertEquals(before.context.entries, saved.context!!.entries)
+            assertTrue(calls >= 3)
+        }
+    }
+
+    @Test fun atlasFailureIsVisibleAndBlindStagesDoNotReadIt() {
+        var calls = 0
+        fixture(kernelRead = { _, _ -> calls++; error("reader offline") }) { connection, owner, _, _, _ ->
+            val view = connection.proposeTaskGraph(TaskGraphDraft("Atlas", tasks = listOf(
+                TaskGraphOp.Add("Inspect", scope = listOf("source.txt"), seat = TaskSeat(RuntimeKind.Codex)))), person)
+            val context = requireNotNull(owner.graphs).context(view.graph.id, view.tasks.single().id)
+            assertTrue(context.context!!.partial)
+            assertTrue(context.context.notices.any { "reader offline" in it })
+            assertNull(owner.taskContext(view.tasks.single(), "Independent source review", true).context)
+            assertEquals(1, calls)
+        }
+    }
+
+    @Test fun atlasCancellationPropagates() = fixture(kernelRead = { _, _ -> throw kotlinx.coroutines.CancellationException("cancelled slice") }) { connection, owner, _, _, _ ->
+        val view = connection.proposeTaskGraph(TaskGraphDraft("Atlas", tasks = listOf(
+            TaskGraphOp.Add("Inspect", scope = listOf("source.txt"), seat = TaskSeat(RuntimeKind.Codex)))), person)
+        assertFailsWith<kotlinx.coroutines.CancellationException> { requireNotNull(owner.graphs).context(view.graph.id, view.tasks.single().id) }
     }
 
     @Test fun memoryScopesSourceAndExpiryAreEnforcedAndLegacyValuesDecode() = fixture { _, owner, root, data, _ ->
@@ -87,7 +141,7 @@ class TaskContextTest {
         val memory = seed(owner, root, data, 1, AgentMemoryScope.Task, AgentTaskTarget("G1", task.id, 1))
         val first = owner.board.appendDecision(TaskDecision("G1", "Old choice", "Initial evidence", listOf(task.id)), person)
         val current = owner.board.appendDecision(TaskDecision("G1", "Current choice", "Revised evidence", listOf(task.id), supersedes = first.id, personAccepted = true), person)
-        fun preview() = requireNotNull(owner.graphs).context("G1", task.id)
+        suspend fun preview() = requireNotNull(owner.graphs).context("G1", task.id)
         val before = preview()
         assertTrue(before.prompt.contains("Required task instruction"))
         assertEquals(setOf("memory:${memory.id}", "decision:${current.id}"), before.context!!.entries.map { it.ref }.toSet())

@@ -65,7 +65,7 @@ internal class TaskGraphRuntime(private val workspace: AgentWorkspace, private v
         }
     }
 
-    fun context(id: String, task: String): TaskContext {
+    suspend fun context(id: String, task: String): TaskContext {
         workspace.board.graph(id)
         val scope = owner.Graph { TaskGraphScope(it, workspace, id, live = false) }
         return try { requireNotNull(scope.actor(task)) { "Task is not in this graph" }.context() } finally { scope.close() }
@@ -407,7 +407,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         return inputs.singleOrNull()
     }
 
-    fun context(): TaskContext {
+    suspend fun context(): TaskContext {
         val current = store.get(task.id)
         val plan = requireNotNull(current.graph)
         plan.runId?.let { id ->
@@ -617,6 +617,8 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         if (task.intent.isNotBlank()) appendLine(task.intent.take(1200))
         if (task.acceptance.isNotEmpty()) appendLine("Done when: ${task.acceptance.joinToString("; ").take(1000)}")
         if (task.scope.isNotEmpty()) appendLine("Touches: ${task.scope.joinToString().take(400)}")
+        if ((plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write)
+            appendLine("Before adding a declaration, search the Atlas for an existing declaration to reuse. The supplied Atlas slice is bounded primary-workspace evidence; verify it in your assigned candidate checkout.")
         plan.repairOf?.takeUnless { blind }?.let { review ->
             view.tasks.firstOrNull { it.id == review }?.graph?.outcome?.let {
                 appendLine("Repair requested by $review (agent reported): ${it.summary.take(1000)}. Keep the existing candidate's unrelated changes.")
