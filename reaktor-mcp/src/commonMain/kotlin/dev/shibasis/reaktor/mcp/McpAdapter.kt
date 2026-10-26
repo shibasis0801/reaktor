@@ -15,8 +15,7 @@ class McpAdapter<Controller : ToolNode>(
     suspend fun handle(body: String): JsonElement? {
         requireController()
         val visible = definitions.filter { projection == null || it.name in projection }
-        // Discovery projection is not an authority boundary: existing typed clients retain calls.
-        return protocol.handleAsync(body, definitions, visible) { name, arguments ->
+        return protocol.handleAsync(body, visible) { name, arguments ->
             execute(name, arguments)
         }
     }

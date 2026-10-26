@@ -24,20 +24,26 @@ import kotlin.test.assertTrue
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ToolAdapterTest {
     @Test
-    fun compactDiscoveryPreservesKnownCompatibilityCalls() = runTest {
+    fun compactDiscoveryDefinesTheCallableMcpSurface() = runTest {
         val dependencies = koinApplication {}
         val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
+        var legacyCalls = 0
         val node = ToolNode(graph, listOf(
             Tool(ToolDefinition("workspace", "Shared entry")) { ToolResult(JsonPrimitive("shared")) },
-            Tool(ToolDefinition("legacy_read", "Existing typed call", readOnly = true)) { ToolResult(JsonPrimitive("retained")) },
+            Tool(ToolDefinition("legacy_read", "Existing typed call", readOnly = true)) { legacyCalls++; ToolResult(JsonPrimitive("retained")) },
         ))
         graph.attach(node)
         val adapter = McpAdapter(node, "test", "1", projection = setOf("workspace"))
         try {
             val listed = adapter.handle("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}""")!!.jsonObject.getValue("result").jsonObject.getValue("tools").jsonArray
             assertEquals(listOf("workspace"), listed.map { it.jsonObject.getValue("name").jsonPrimitive.content })
-            val called = adapter.handle("""{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"legacy_read"}}""")!!.jsonObject.getValue("result").jsonObject
-            assertEquals(JsonPrimitive("retained"), called.getValue("structuredContent").jsonObject["result"])
+            val called = adapter.handle("""{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"workspace"}}""")!!.jsonObject.getValue("result").jsonObject
+            assertEquals(JsonPrimitive("shared"), called.getValue("structuredContent").jsonObject["result"])
+            val hidden = adapter.handle("""{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"legacy_read"}}""")!!.jsonObject.getValue("error").jsonObject
+            assertEquals(JsonPrimitive(-32602), hidden["code"])
+            assertEquals(0, legacyCalls)
+            assertEquals(JsonPrimitive("retained"), adapter.execute("legacy_read", JsonObject(emptyMap())).data)
+            assertEquals(1, legacyCalls)
             val unknown = adapter.handle("""{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"unknown"}}""")!!.jsonObject.getValue("error").jsonObject
             assertEquals(JsonPrimitive(-32602), unknown["code"])
         } finally { adapter.close(); graph.close(); dependencies.close() }
