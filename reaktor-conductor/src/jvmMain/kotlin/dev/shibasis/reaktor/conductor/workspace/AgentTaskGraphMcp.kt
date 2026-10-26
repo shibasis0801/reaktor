@@ -5,6 +5,7 @@ import dev.shibasis.reaktor.mcp.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.*
 
 fun AgentWorkspace.taskGraphCaller(graph: String?, by: BoardActor): TaskGraphCaller {
@@ -43,7 +44,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
     val ops = "ops" to buildJsonObject {
         put("type", "array"); put("items", any)
         put("description", "Operations, each with type: add {title, key?, intent?, acceptance?, scope?, kind?, seat?, contract?, check?, dependsOn?, layout?, parent?, alternatives?: {seats: [two or three write seats], check, review: read-only Decision seat with two to six lenses}}, " +
-            "update {task, title?, intent?, acceptance?, scope?, kind?, contract?, check?, layout?}, split {task, into: [add…]}, remove {task}, " +
+            "update {task, title?, intent?, acceptance?, scope?, kind?, contract?, check?, layout?, excludedContext?: [optional memory: or decision: refs; person-only before dispatch]}, split {task, into: [add…]}, remove {task}, " +
             "connect {from, to, condition?, required?}, disconnect {from, to}, seat {task, seat}, note {text, layout?}, retry {task}, envelope {envelope}. " +
             "A key names a task added in the same change so later operations can refer to it.")
     }
@@ -60,6 +61,33 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             if ((args["format"] as? JsonPrimitive)?.contentOrNull == "text") buildJsonObject {
                 put("revision", workspace.board.graph(id).revision); put("text", TaskGraphText.render(workspace.board.view(id)))
             } else view(id)
+        },
+        McpTool("agent_taskgraph_decide", "Record a versioned decision with rationale and graph/task subjects. A person may accept or supersede an accepted decision; agents record claims for their own tasks. History is retained.",
+            objectSchema(mapOf(graphId, "statement" to stringSchema("Decision statement"), "rationale" to stringSchema("Evidence and rationale"),
+                "subjects" to buildJsonObject { put("type", "array"); put("items", stringSchema("This graph or one of its task ids")) },
+                "supersedes" to stringSchema("Retained decision id"), "personAccepted" to buildJsonObject { put("type", "boolean") }, revision, by),
+                listOf("graph", "statement", "rationale", "subjects", "expectedRevision", "by")), readOnly = false, idempotent = false) { args ->
+            args.only("graph", "statement", "rationale", "subjects", "supersedes", "personAccepted", "expectedRevision", "by")
+            val id = args.text("graph")
+            val caller = workspace.taskGraphCaller(id, args.by())
+            val draft = TaskDecision(id, args.text("statement"), args.text("rationale"),
+                args.decode(ListSerializer(String.serializer()), "subjects"),
+                supersedes = (args["supersedes"] as? JsonPrimitive)?.contentOrNull,
+                personAccepted = (args["personAccepted"] as? JsonPrimitive)?.booleanOrNull ?: false)
+            synchronized(workspace.board) {
+                require(args.long("expectedRevision") == workspace.board.graph(id).revision) { "The graph changed; read its current revision" }
+                val tasks = workspace.board.members(id).map { it.id }.toSet()
+                require(draft.subjects.all { it == id || it in tasks }) { "Decision subjects belong to this graph" }
+                require(caller.person || caller.lead || draft.subjects.all { it in caller.own }) { "Only the person, lead or task owner records a decision" }
+                val previous = draft.supersedes?.let { ref -> workspace.board.view(id).decisions.firstOrNull { it.id == ref } }
+                require(caller.person || previous?.personAccepted != true) { "Only a person supersedes an accepted decision" }
+                AgentWorkspaceJson.encodeToJsonElement(TaskDecision.serializer(), workspace.board.appendDecision(draft, caller.by))
+            }
+        },
+        McpTool("agent_taskgraph_context", "Preview the exact task prompt and optional context for this graph/source snapshot, or the saved dispatch inputs. Candidate evidence, repository instructions and provider policy are added by the native turn.",
+            objectSchema(mapOf(graphId, "task" to stringSchema("Task id")), listOf("graph", "task")), true, true) { args ->
+            args.only("graph", "task")
+            AgentWorkspaceJson.encodeToJsonElement(TaskContext.serializer(), requireNotNull(workspace.graphs) { "Task graph runtime is unavailable" }.context(args.text("graph"), args.text("task")))
         },
         McpTool("agent_taskgraph_seats", "Profiles, agents, models and efforts this workspace can run. Supply seat to resolve its profile and task overrides. A read-only Decision seat may name lenses: [profile ids], two to six profiles from both Codex and Claude Code; its main seat independently verifies the findings. Resolved profiles are pinned at dispatch.",
             objectSchema(mapOf("seat" to any)), true, true) { args ->

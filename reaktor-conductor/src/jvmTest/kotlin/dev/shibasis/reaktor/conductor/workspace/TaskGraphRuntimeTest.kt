@@ -332,6 +332,18 @@ class TaskGraphRuntimeTest {
         val codex = Scripted(RuntimeKind.Codex, listOf("WRITER_PRIVATE_REASONING", claim))
         val claude = Scripted(RuntimeKind.ClaudeCode, listOf(empty, empty))
         workspace(codex, claude) { connection, _, _ ->
+            val writer = codex.onRun
+            codex.onRun = { request, number ->
+                writer(request, number)
+                if (!request.agent.tools.allowWrites) assertFailsWith<Exception> {
+                    connection.call("agent_private_access", buildJsonObject { put("runId", requireNotNull(request.environment[AgentRequest.RunVariable])) })
+                }
+            }
+            claude.onRun = { request, number ->
+                val args = buildJsonObject { put("runId", requireNotNull(request.environment[AgentRequest.RunVariable])) }
+                if (number == 1) assertFailsWith<Exception> { connection.call("agent_private_access", args) }
+                else connection.call("agent_private_access", args)
+            }
             val proposed = connection.proposeTaskGraph(TaskGraphDraft("Panel", tasks = listOf(
                 TaskGraphOp.Add("Build", key = "build", seat = TaskSeat(RuntimeKind.Codex, access = TaskAccess.Write)),
                 TaskGraphOp.Add("Panel", key = "panel", seat = TaskSeat(RuntimeKind.ClaudeCode, access = TaskAccess.Read,

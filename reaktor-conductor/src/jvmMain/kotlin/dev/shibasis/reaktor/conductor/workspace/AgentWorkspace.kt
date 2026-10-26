@@ -143,8 +143,10 @@ class AgentWorkspace(
     val runbooks = AgentRunbooks(directory.resolve("runbooks"))
     val worktrees = AgentWorktrees(root, directory.resolve("worktrees"), evidence.artifacts)
     val localContext = AgentLocalContext(root, directory)
-    val memory = AgentMemoryStore(root, directory.resolve("memory"), evidence.artifacts)
-    fun remember(runId: String, eventId: String) = memory.remember(get(runId), requireNotNull(checkpoint(runId)), eventId)
+    val memory = AgentMemoryStore(root, directory.resolve("memory"), evidence.artifacts) { id ->
+        if (Files.isRegularFile(directory.resolve("requests/$id.json"))) submission(id).task else null
+    }
+    fun remember(runId: String, eventId: String, scope: AgentMemoryScope = AgentMemoryScope.Workspace) = memory.remember(get(runId), requireNotNull(checkpoint(runId)), eventId, scope)
     private var draining = false
 
     fun drain(enabled: Boolean): Int = synchronized(lock) { draining = enabled; active.size + if (externalBusy()) 1 else 0 }
@@ -1061,7 +1063,7 @@ class AgentWorkspace(
                             "Use taskId=$evidenceTask with agent_candidate_capture, agent_task_graph and agent_artifact. Report findings through agent_finding against candidateId=${candidate.id}, producerRunId=${initial.id}. " +
                             "Evidence targets this exact checkout. Landing is a separate person-only operation.",
                         "Binds this attempt to local source evidence")) + supplied?.entries.orEmpty().take(20) +
-                        prior.findings.filter { request.resolvedSeat?.lenses.isNullOrEmpty() && it.resolvedByCandidate == null }.take(10).map { ContextEntry(it.id, "finding", it.title,
+                        prior.findings.filter { request.collaboration != AgentCollaboration.Compare && request.resolvedSeat?.lenses.isNullOrEmpty() && it.resolvedByCandidate == null }.take(10).map { ContextEntry(it.id, "finding", it.title,
                             it.detail.take(600), "Unresolved finding from ${it.participant} on ${it.candidateId}") },
                     omittedEntries = (supplied?.omittedEntries ?: 0) + maxOf(0, (supplied?.entries?.size ?: 0) - 20),
                     notices = candidate.notices + supplied?.notices.orEmpty()).bounded(22000)
