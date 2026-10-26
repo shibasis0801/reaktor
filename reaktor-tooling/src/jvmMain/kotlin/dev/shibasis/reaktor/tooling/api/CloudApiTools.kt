@@ -45,20 +45,23 @@ object CloudApiTools {
                 apis.surface(CloudApis.surfaceOf(key)).describe(key) ?: error("No operation $key; find it with cloud_api_search")
             }
         },
-        call(apis, "cloud_api_read", ApiEffect.Read, "Call an operation that only reads"),
-        call(apis, "cloud_api_write", ApiEffect.Write, "Call an operation that creates or changes something. It waits for a person's approval at the door"),
-        call(apis, "cloud_api_delete", ApiEffect.Delete, "Call an operation that deletes something. It waits for a person's approval at the door"),
+        call(apis, "cloud_api_read", SafetyClass.LiveRead, "Call an operation that only reads"),
+        call(apis, "cloud_api_write", SafetyClass.ProductionReversibleWrite, "Call an operation that creates or changes something. It waits for a person's approval at the door"),
+        call(apis, "cloud_api_delete", SafetyClass.Destructive, "Call an operation that deletes something. It waits for a person's approval at the door"),
     )
 
-    private fun call(apis: CloudApis, name: String, effect: ApiEffect, description: String) = McpTool(
+    private fun call(apis: CloudApis, name: String, effect: SafetyClass, description: String) = McpTool(
         name, "$description. operation is the id from cloud_api_search; arguments holds path and query parameters by name and the JSON body under body.",
         schema("operation" to "string", "arguments" to "object", required = listOf("operation")),
-        readOnly = effect == ApiEffect.Read, idempotent = effect != ApiEffect.Write, destructive = effect == ApiEffect.Delete, openWorld = true,
+        readOnly = effect == SafetyClass.LiveRead, idempotent = effect != SafetyClass.ProductionReversibleWrite, destructive = effect == SafetyClass.Destructive, openWorld = true,
     ) { arguments ->
         runBlocking {
             val key = arguments.text("operation")
             val operation = apis.operation(key)
-            if (operation.effect != effect) error("$key ${operation.effect.name.lowercase()}s; call it with cloud_api_${operation.effect.name.lowercase()}")
+            if (operation.effect != effect) {
+                val expected = classes.entries.singleOrNull { it.value == operation.effect }?.key ?: error("$key has no callable safety classification")
+                error("$key causes ${operation.effect}; call it with $expected")
+            }
             val response = apis.call(key, arguments["arguments"] as? JsonObject ?: JsonObject(emptyMap()))
             val refusal = apis.refusal(key, response)
             buildJsonObject {

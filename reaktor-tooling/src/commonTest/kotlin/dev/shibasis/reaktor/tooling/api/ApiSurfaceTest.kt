@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.api
 
+import dev.shibasis.reaktor.tooling.SafetyClass
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -43,14 +44,15 @@ class ApiSurfaceTest {
     """).jsonObject, "digest-2")
 
     @Test fun anOpenApiDocumentBecomesOneOperationPerPathAndMethod() {
+        assertEquals(SafetyClass.UnknownRemoteEffect, ApiOperation("unclassified", "fixture", "POST", "/", "Unknown", "https://fixture.invalid").effect)
         assertEquals(listOf("worker-script-list-workers", "worker-script-upload-worker-module", "worker-script-delete-worker", "graphql-query", "zones-get"),
             cloudflare.operations.map { it.id })
         val list = cloudflare["worker-script-list-workers"]!!
         assertEquals(listOf("account_id"), list.parameters.map { it.name }, "path-level parameters are inherited, through their \$ref")
-        assertEquals(ApiEffect.Read, list.effect)
-        assertEquals(ApiEffect.Write, cloudflare["worker-script-upload-worker-module"]!!.effect)
-        assertEquals(ApiEffect.Delete, cloudflare["worker-script-delete-worker"]!!.effect)
-        assertEquals(ApiEffect.Read, cloudflare["graphql-query"]!!.effect, "Cloudflare's GraphQL analytics endpoint only reads")
+        assertEquals(SafetyClass.LiveRead, list.effect)
+        assertEquals(SafetyClass.ProductionReversibleWrite, cloudflare["worker-script-upload-worker-module"]!!.effect)
+        assertEquals(SafetyClass.Destructive, cloudflare["worker-script-delete-worker"]!!.effect)
+        assertEquals(SafetyClass.LiveRead, cloudflare["graphql-query"]!!.effect, "Cloudflare's GraphQL analytics endpoint only reads")
         assertEquals("cloudflare:zones-get", cloudflare["cloudflare:zones-get"]!!.key)
     }
 
@@ -59,9 +61,9 @@ class ApiSurfaceTest {
             pubsub.operations.map { it.id })
         val list = pubsub["pubsub.projects.topics.list"]!!
         assertEquals("v1/{+project}/topics", list.path, "a flat path that renames the parameters is not used")
-        assertEquals(ApiEffect.Read, pubsub["pubsub.projects.topics.getIamPolicy"]!!.effect)
-        assertEquals(ApiEffect.Write, pubsub["pubsub.projects.topics.create"]!!.effect)
-        assertEquals(ApiEffect.Delete, pubsub["pubsub.projects.topics.delete"]!!.effect)
+        assertEquals(SafetyClass.LiveRead, pubsub["pubsub.projects.topics.getIamPolicy"]!!.effect)
+        assertEquals(SafetyClass.ProductionReversibleWrite, pubsub["pubsub.projects.topics.create"]!!.effect)
+        assertEquals(SafetyClass.Destructive, pubsub["pubsub.projects.topics.delete"]!!.effect)
         val request = list.request(buildJsonObject { put("project", "projects/mehmaan-app"); put("pageToken", "a b") })
         assertEquals("https://pubsub.googleapis.com/v1/projects/mehmaan-app/topics?pageToken=a%20b", request.fullUrl(), "a reserved parameter keeps its slashes")
     }
@@ -94,7 +96,7 @@ class ApiSurfaceTest {
         val body = described["body"]!!.jsonObject
         val script = body["properties"]!!.jsonObject["script"]!!.jsonObject
         assertEquals(JsonPrimitive("Name of the script"), script["properties"]!!.jsonObject["id"]!!.jsonObject["description"])
-        assertEquals(JsonPrimitive("write"), described["effect"])
+        assertEquals(JsonPrimitive("productionreversiblewrite"), described["effect"])
         assertEquals(JsonPrimitive("Topic"), (pubsub.describe("pubsub.projects.topics.create", depth = 0)!!["body"]))
     }
 

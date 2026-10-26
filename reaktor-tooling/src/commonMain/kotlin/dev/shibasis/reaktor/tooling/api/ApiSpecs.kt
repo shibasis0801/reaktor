@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.api
 
+import dev.shibasis.reaktor.tooling.SafetyClass
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -78,9 +79,9 @@ object ApiSpecs {
                     body = method["request"],
                     tags = listOf(id.split('.').drop(1).dropLast(1).joinToString(".")),
                     effect = when {
-                        httpMethod == "GET" || id.substringAfterLast('.') in GoogleReads -> ApiEffect.Read
-                        httpMethod == "DELETE" -> ApiEffect.Delete
-                        else -> ApiEffect.Write
+                        httpMethod == "GET" || id.substringAfterLast('.') in GoogleReads -> SafetyClass.LiveRead
+                        httpMethod == "DELETE" -> SafetyClass.Destructive
+                        else -> SafetyClass.ProductionReversibleWrite
                     },
                     deprecated = (method["deprecated"] as? JsonPrimitive)?.booleanOrNull == true,
                     permissions = method.array("scopes").mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.removePrefix(GoogleScopes) },
@@ -92,11 +93,11 @@ object ApiSpecs {
         return ApiSurface("gcp", document.text("title") ?: api, version, operations, digest, document.obj("schemas"))
     }
 
-    fun openApiEffect(method: String, path: String): ApiEffect = when {
-        method.equals("get", true) || method.equals("head", true) -> ApiEffect.Read
-        method.equals("post", true) && path.endsWith("/graphql") -> ApiEffect.Read
-        method.equals("delete", true) -> ApiEffect.Delete
-        else -> ApiEffect.Write
+    fun openApiEffect(method: String, path: String): SafetyClass = when {
+        method.equals("get", true) || method.equals("head", true) -> SafetyClass.LiveRead
+        method.equals("post", true) && path.endsWith("/graphql") -> SafetyClass.LiveRead
+        method.equals("delete", true) -> SafetyClass.Destructive
+        else -> SafetyClass.ProductionReversibleWrite
     }
 
     private fun parameter(element: JsonElement, shared: JsonObject): ApiParameter? {
