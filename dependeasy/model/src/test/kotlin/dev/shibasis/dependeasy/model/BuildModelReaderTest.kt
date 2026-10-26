@@ -105,6 +105,20 @@ class BuildModelReaderTest {
         root.resolve(GradleProtocol.ReceiptDirectory + "/unrelated.json").writeText(BuildModelReader.json.encodeToString(receipt.copy(
             run = "unrelated", requestedNodes = emptyList(), tasks = emptyList(), finishedAtEpochMillis = 4)))
         assertEquals(latest, BuildModelReader.story(root, node.id.toString()).getValue("roots").jsonArray.single().jsonObject)
+        repeat(25) { index -> root.resolve(GradleProtocol.ReceiptDirectory + "/history-$index.json").writeText(
+            BuildModelReader.json.encodeToString(receipt.copy(run = "history-$index", finishedAtEpochMillis = 5L + index))) }
+        val history = BuildModelReader.receiptPage(root, node.id.toString())
+        assertEquals(JsonPrimitive(28), history["totalRuns"])
+        assertEquals((24 downTo 5).map { "history-$it" }, history.getValue("runs").jsonArray.map { it.jsonObject.getValue("run").jsonPrimitive.content })
+        assertEquals(JsonPrimitive("history-24"), history.getValue("receipt").jsonObject["run"])
+        assertEquals(JsonPrimitive(28), BuildModelReader.receiptPage(root, app.id.toString())["totalRuns"])
+        val older = BuildModelReader.receiptPage(root, node.id.toString(), "observed", offset = 1, limit = 1).getValue("receipt").jsonObject
+        assertEquals(JsonPrimitive("observed"), older["run"])
+        assertEquals(1, older.getValue("resolvedOptions").jsonArray.size)
+        assertTrue(older.getValue("tasks").jsonArray.isEmpty())
+        val damaged = root.resolve(GradleProtocol.ReceiptDirectory + "/damaged.json").apply { writeText("{}") }
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.receiptPage(root, node.id.toString()) }
+        damaged.delete()
         val roots = (0..10).map { node.copy(id = node.id.copy(name = "root$it")) }
         file.writeText(BuildModelReader.encode(declared.copy(nodes = roots, edges = emptyList())))
         val firstStory = BuildModelReader.story(root)

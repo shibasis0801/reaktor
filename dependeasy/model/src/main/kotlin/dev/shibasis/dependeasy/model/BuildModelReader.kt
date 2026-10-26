@@ -565,29 +565,35 @@ object BuildModelReader {
         }
     }
 
-    fun receipts(root: File, id: String): List<Pair<File, RunReceipt>> {
+    fun receiptPage(root: File, id: String, run: String? = null, offset: Int = 0, limit: Int = 10): JsonObject {
+        require(offset >= 0 && limit in 1..20)
         val model = declaredModel(root)
         val node = model.nodes.single { it.id.toString() == id }
         val taskIds = (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { NodeId.task(node.id.build, it) }.toSet()
-        return model.builds.flatMap { build -> artifactFiles(root.resolve(build.directory).resolve(GradleProtocol.ReceiptDirectory)) }
-            .distinctBy(File::getCanonicalPath).map { it to readReceipt(it) }
-            .filter { (_, receipt) -> node.id in receipt.requestedNodes || receipt.tasks.any { it.task in taskIds } }
-            .sortedByDescending { it.second.finishedAtEpochMillis }
-    }
-
-    fun receiptPage(root: File, id: String, run: String? = null, offset: Int = 0, limit: Int = 10): JsonObject {
-        require(offset >= 0 && limit in 1..20)
-        val records = receipts(root, id)
-        val selected = if (run == null) records.firstOrNull() else records.firstOrNull { it.second.run == run }
+        var totalRuns = 0
+        var selection: Pair<File, RunReceipt>? = null
+        val recent = mutableListOf<JsonObject>()
+        model.builds.asSequence().flatMap { build -> artifactFiles(root.resolve(build.directory).resolve(GradleProtocol.ReceiptDirectory)) }
+            .distinctBy(File::getCanonicalPath).forEach { file ->
+                val receipt = readReceipt(file)
+                if (node.id !in receipt.requestedNodes && receipt.tasks.none { it.task in taskIds }) return@forEach
+                totalRuns++
+                recent += buildJsonObject {
+                    put("run", receipt.run); put("status", receipt.status.name); put("finishedAtEpochMillis", receipt.finishedAtEpochMillis)
+                    put("path", file.absolutePath); put("dryRun", receipt.dryRun)
+                }
+                recent.sortByDescending { it.getValue("finishedAtEpochMillis").jsonPrimitive.long }
+                if (recent.size > 20) recent.removeLast()
+                if ((run == null || receipt.run == run) &&
+                    (selection?.second?.finishedAtEpochMillis?.let { receipt.finishedAtEpochMillis > it } ?: true)) selection = file to receipt
+            }
+        val selected = selection
         return buildJsonObject {
-            put("node", id); put("truth", if (selected == null) "unavailable" else "recorded"); put("totalRuns", records.size)
-            put("runs", buildJsonArray { records.take(20).forEach { (file, receipt) -> add(buildJsonObject {
-                put("run", receipt.run); put("status", receipt.status.name); put("finishedAtEpochMillis", receipt.finishedAtEpochMillis)
-                put("path", file.absolutePath); put("dryRun", receipt.dryRun)
-            }) } })
+            put("node", id); put("truth", if (selected == null) "unavailable" else "recorded"); put("totalRuns", totalRuns)
+            put("runs", JsonArray(recent))
             if (selected == null) { put("omission", if (run == null) "No retained receipt" else "Requested receipt is unavailable"); return@buildJsonObject }
             val receipt = selected.second
-            val encoded = json.encodeToJsonElement(RunReceipt.serializer(), receipt).jsonObject
+            val encoded = json.encodeToJsonElement(RunReceipt.serializer(), receipt.copy(tasks = emptyList(), resolvedOptions = emptyList())).jsonObject
             put("receipt", buildJsonObject {
                 encoded.filterKeys { it !in setOf("tasks", "resolvedOptions") }.forEach { (key, value) -> put(key, value) }
                 put("offset", offset); put("totalTasks", receipt.tasks.size)
