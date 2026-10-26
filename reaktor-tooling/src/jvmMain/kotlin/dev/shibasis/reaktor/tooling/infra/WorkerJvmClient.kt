@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.infra
 
+import dev.shibasis.reaktor.tooling.SafetyClass
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import java.io.File
@@ -16,6 +17,7 @@ class WorkerJvmClient(private val session: InfrastructureSession) {
     private val json = Json { ignoreUnknownKeys = true }
 
     fun execute(op: InfrastructureOperation.WorkerCall, environment: Map<String, String>): String {
+        op.expectedEffect.workerEffect()
         require(op.operation.matches(Regex("[a-z0-9.-]{1,100}")))
         require(op.inputFile == null || op.queryFile == null && op.store == null)
         require(op.inputFile != null || (op.queryFile == null) == (op.resultFile == null))
@@ -33,7 +35,7 @@ class WorkerJvmClient(private val session: InfrastructureSession) {
             check(digest == op.inputDigest) { "Worker input changed after review" }
             bytes.toString(Charsets.UTF_8)
         }
-        require(op.expectedEffect == WorkerEffect.Read || input != null)
+        require(op.expectedEffect == SafetyClass.LiveRead || input != null)
         val storeRead = op.store?.let { store ->
             op.queryFile?.let { path ->
                 val file = File(path)
