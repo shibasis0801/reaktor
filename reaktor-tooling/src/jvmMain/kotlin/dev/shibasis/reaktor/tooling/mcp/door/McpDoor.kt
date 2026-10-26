@@ -46,7 +46,7 @@ class DoorMount(
     fun effect(call: ToolingCall, arguments: JsonObject = JsonObject(emptyMap())): SafetyClass {
         val declared = DoorAuthority.effect(call, provider.safetyClass, callClasses, trustReadOnlyHint)
         val sql = sqlArguments[call.name]?.let { (arguments[it] as? JsonPrimitive)?.takeIf(JsonPrimitive::isString)?.content }
-        return if (sql != null && declared > SafetyClass.LiveRead && DoorAuthority.readsOnly(sql)) SafetyClass.LiveRead else declared
+        return if (sql != null && declared.rank > SafetyClass.LiveRead.rank && DoorAuthority.readsOnly(sql)) SafetyClass.LiveRead else declared
     }
 
     val id: String get() = provider.providerId

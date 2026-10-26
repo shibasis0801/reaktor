@@ -48,7 +48,7 @@ internal object BuildDeclarations {
             }
             if (id in visited) return own
             val inherited = dependencies[id].orEmpty().map { safety(it.to, visited + id) }
-            return (inherited + own).maxBy { it.ordinal }
+            return (inherited + own).maxBy { it.rank }
         }
         return model.nodes.map { node ->
             val tasks = (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map {
