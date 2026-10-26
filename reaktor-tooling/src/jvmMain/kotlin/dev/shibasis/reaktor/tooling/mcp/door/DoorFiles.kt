@@ -46,7 +46,18 @@ class CallSnapshots(private val directory: Path) {
  * One line per call. Arguments are recorded as a digest only: they can carry source, queries and
  * paths, and a log that is safe to read is worth more than one that is complete.
  */
-class CallLog(private val file: Path, private val caller: CallCaller) {
+class CallLog(private val file: Path, private val caller: CallCaller) : dev.shibasis.reaktor.tooling.RunEventSink {
+    override suspend fun append(event: dev.shibasis.reaktor.tooling.RunEvent) {
+        val run = when (event) {
+            is dev.shibasis.reaktor.tooling.RunEvent.Started -> event.run
+            is dev.shibasis.reaktor.tooling.RunEvent.Completed -> event.run
+            else -> return
+        }
+        record("kernel", run.taskId.value, buildJsonObject {},
+            (run.finishedAtEpochMillis ?: run.createdAtEpochMillis) - run.createdAtEpochMillis,
+            run.status.name, access = buildJsonObject { put("runId", run.id.value); put("planId", run.planId.value) })
+    }
+
     @Synchronized
     fun record(provider: String, call: String, arguments: JsonObject, millis: Long, outcome: String, detail: String? = null, caller: CallCaller = this.caller, access: JsonObject? = null) {
         runCatching {

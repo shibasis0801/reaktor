@@ -40,9 +40,10 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
         McpTool("agent_workspace_info", "Read this workspace's configured providers and session capabilities.", emptyObjectSchema(), true, true) {
             AgentWorkspaceJson.encodeToJsonElement(AgentWorkspaceInfo.serializer(), workspace.info())
         },
-        McpTool("agent_runs", "Read up to 50 recent run summaries; direct run ids remain addressable beyond the recent index.",
-            objectSchema(mapOf("limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 50) })), true, true) {
-            val page = tasks(AgentTasksPage(0, workspace.list(it.long("limit", 20).toInt()))).jsonObject
+        McpTool("agent_runs", "Read a page of recent run summaries; direct run ids remain addressable beyond the recent index.",
+            objectSchema(mapOf("limit" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("maximum", 50) },
+                "offset" to buildJsonObject { put("type", "integer"); put("minimum", 0); put("maximum", 250) })), true, true) {
+            val page = tasks(AgentTasksPage(0, workspace.list(it.long("limit", 20).toInt(), it.long("offset", 0).toInt()))).jsonObject
             buildJsonObject { put("runs", page.getValue("runs")) }
         },
         McpTool("agent_tasks_wait", "Wait for the workspace task revision to change, then return the current search page. Use its revision on the next wait.",

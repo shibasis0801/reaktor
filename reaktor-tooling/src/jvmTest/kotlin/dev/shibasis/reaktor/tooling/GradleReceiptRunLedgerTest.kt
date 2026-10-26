@@ -32,6 +32,30 @@ class GradleReceiptRunLedgerTest {
             assertEquals(BuildModelReader.digest(directory.resolve("fixture.json")), run.artifacts.single().digest)
             directory.resolve("dry.json").writeText(BuildModelReader.json.encodeToString(receipt.copy(run = "dry-run", dryRun = true)))
             assertEquals(listOf(run), ledger.runs())
+            val published = async(start = CoroutineStart.UNDISPATCHED) {
+                withTimeout(10000) { ledger.changes().first { it.artifacts.single().kind == "deploy-receipt" } }
+            }
+            val deployment = DeployReceipt(node, Environment("dev"), ServiceRef("fixture-service"), "fixture-deploy", "apply",
+                "revision", "host", "reviewed-plan", "bundle-digest", "new-version", "old-version", ReceiptStatus.Succeeded,
+                "healthy", 30, 40, healthStatus = 200)
+            WorkerDeployKernel.record(root, deployment)
+            val deployed = published.await()
+            assertEquals(TaskId(node.toString()), deployed.taskId)
+            assertEquals(PlanId(deployment.planDigest), deployed.planId)
+            assertEquals(RunStatus.Succeeded, deployed.status)
+            assertEquals(deployed, ledger.run(deployed.id))
+            val artifact = deployed.artifacts.single()
+            assertEquals(BuildModelReader.digest(File(artifact.location)), artifact.digest)
+            assertEquals("new-version", artifact.attributes["remoteVersion"])
+            assertEquals("old-version", artifact.attributes["rollbackTarget"])
+            assertEquals(artifact, withTimeout(10000) { ledger.events(deployed.id).first() }.let { assertIs<RunEvent.ArtifactProduced>(it).artifact })
+            WorkerDeployKernel.record(root, deployment.copy(run = "fixture-rollback", action = "rollback", result = ReceiptStatus.Failed,
+                phase = "active-version", startedAtEpochMillis = 45, finishedAtEpochMillis = 50, failure = "private-provider-response"))
+            val rollback = ledger.runs().first()
+            assertEquals(RunStatus.Failed, rollback.status)
+            assertEquals("rollback", rollback.artifacts.single().attributes["action"])
+            assertTrue("private-provider-response" !in rollback.toString())
+            assertEquals(setOf(run.id, deployed.id, rollback.id), ledger.runs().map { it.id }.toSet())
 
         } finally { root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
     }

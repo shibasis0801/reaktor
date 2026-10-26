@@ -57,8 +57,8 @@ class AgentWorkspaceConnection private constructor(
     suspend fun info(): AgentWorkspaceInfo = ConductorJson.decodeFromJsonElement(AgentWorkspaceInfo.serializer(), call("agent_workspace_info"))
     suspend fun submit(request: AgentSubmission): AgentRunRecord = decode(call("agent_submit", ConductorJson.encodeToJsonElement(AgentSubmission.serializer(), request).jsonObject))
     suspend fun get(id: String): AgentRunRecord = decode(call("agent_run", buildJsonObject { put("runId", id) }))
-    suspend fun list(limit: Int = 20): List<AgentRunRecord> = ConductorJson.decodeFromJsonElement(ListSerializer(AgentRunRecord.serializer()),
-        call("agent_runs", buildJsonObject { put("limit", limit) }).jsonObject.getValue("runs"))
+    suspend fun list(limit: Int = 20, offset: Int = 0): List<AgentRunRecord> = ConductorJson.decodeFromJsonElement(ListSerializer(AgentRunRecord.serializer()),
+        call("agent_runs", buildJsonObject { put("limit", limit); put("offset", offset) }).jsonObject.getValue("runs"))
     suspend fun tasks(query: String = "", offset: Int = 0): AgentTasksPage = ConductorJson.decodeFromJsonElement(AgentTasksPage.serializer(),
         call("agent_tasks_wait", buildJsonObject { put("revision", 0); put("query", query); put("offset", offset); put("limit", 50); put("timeoutMillis", 0) }))
     suspend fun waitTasks(revision: Long, query: String = ""): AgentTasksPage = ConductorJson.decodeFromJsonElement(AgentTasksPage.serializer(),
