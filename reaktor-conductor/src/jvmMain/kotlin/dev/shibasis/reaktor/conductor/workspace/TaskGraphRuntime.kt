@@ -23,6 +23,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -222,10 +223,16 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         }
     }
 
-    private fun settle(message: CoordinatorMessage.Settled): Unit = synchronized(store) {
-        val task = runCatching { store.get(message.task) }.getOrNull() ?: return@synchronized
+    private fun settle(received: CoordinatorMessage.Settled): Unit = synchronized(store) {
+        val task = runCatching { store.get(received.task) }.getOrNull() ?: return@synchronized
         val plan = task.graph ?: return@synchronized
-        if (plan.attempt != message.attempt || plan.state == TaskState.Pending) return@synchronized
+        if (plan.attempt != received.attempt || plan.state == TaskState.Pending) return@synchronized
+        val finished = received.outcome.copy(attempt = received.attempt)
+        val refusal = if (received.state == TaskState.Succeeded &&
+            (plan.kind == TaskKind.Merge || (plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write))
+            finished.finishRefusal(scope.workspace.summarize(task.copy(graph = plan.copy(outcome = finished)))) else null
+        val message = if (refusal == null) received else received.copy(state = TaskState.Waiting,
+            outcome = finished.copy(questions = (finished.questions + refusal).take(10)))
         val outcome = message.outcome.copy(attempt = message.attempt)
         if (plan.state != TaskState.Running) {
             store.advance(graphId, task.id) { value, current -> value.copy(graph = current.copy(outcome = (current.outcome ?: outcome).copy(
@@ -255,7 +262,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 changedPaths = (candidate?.changedFiles ?: outcome.files).take(100),
                 checkReceipts = evidence.checks.filter { it.candidateId == outcome.candidateId }.map { it.id }.distinct().take(50),
                 reviewReceipts = if (plan.contract == WorkflowContract.Decision) listOfNotNull(outcome.log) else emptyList(),
-                openIssues = (outcome.questions + evidence.findings.filter { it.candidateId == outcome.candidateId && it.resolvedByCandidate != outcome.candidateId }.map { it.title }).take(30).map { it.take(1000) },
+                openIssues = (outcome.unverified.map { "Unverified: $it" } + outcome.questions + evidence.findings.filter { it.candidateId == outcome.candidateId && it.resolvedByCandidate != outcome.candidateId }.map { it.title }).take(30).map { it.take(1000) },
                 decisions = records.decisions.takeLast(50).map { it.id },
                 sessionLogs = listOfNotNull(outcome.log), recordedSummary = true), scope.by)
         }
@@ -478,7 +485,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         val current = requireNotNull(store.get(task.id).graph)
         require(current.attempt == plan.attempt && current.state == TaskState.Running && current.runId == run.id) { "The review attempt changed before settlement" }
         val ref = BoardRefs.Hangar + run.threadId
-        val base = TaskOutcome(
+        val captured = TaskOutcome(
             summary = run.output.trim().take(TaskGraphRules.OutcomeChars),
             files = files(run.id),
             log = ref,
@@ -487,6 +494,12 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             candidateId = run.candidateId,
             usageLimit = run.usageLimit,
         )
+        val base = if (run.status == AgentRunStatus.Completed && (plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write) runCatching {
+            val result = Json.decodeFromString(TaskOutcome.serializer(), run.output.trim())
+            require(result.summary.isNotBlank() && result.summary.length <= TaskGraphRules.OutcomeChars)
+            require(result.unverified.size <= 10 && result.unverified.all { it.isNotBlank() && it.length <= 1000 })
+            captured.copy(summary = result.summary, unverified = result.unverified)
+        }.getOrDefault(captured) else captured
         fun settled(state: TaskState, outcome: TaskOutcome, transient: Boolean = false) = CoordinatorMessage.Settled(task.id, plan.attempt, state, outcome, transient)
         when {
             run.status == AgentRunStatus.Limited -> settled(TaskState.Limited, base.copy(
@@ -557,7 +570,8 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         return CoordinatorMessage.Settled(task.id, plan.attempt, TaskState.Succeeded, TaskOutcome(
             summary = "Integrated ${inputs.joinToString { it.id }} as candidate ${candidate.id}.",
             files = candidate.changedFiles, candidateId = candidate.id, at = System.currentTimeMillis(),
-            inputCandidates = inputs.associate { it.id to requireNotNull(it.graph?.outcome?.candidateId) }))
+            inputCandidates = inputs.associate { it.id to requireNotNull(it.graph?.outcome?.candidateId) },
+            unverified = listOf("The integrated candidate has not been checked; run its declared Check before acceptance.")))
     }
 
     private suspend fun check(task: BoardTask, plan: TaskPlan): CoordinatorMessage.Settled {
@@ -605,7 +619,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
         val input = reviewInput(plan)
         appendLine("You are doing task ${task.id} of task graph ${graph.id}, \"${graph.title}\", which Hangar runs.")
         appendLine("Your task: ${task.title}")
-        if (plan.contract == WorkflowContract.Decision) {
+        if (plan.contract == WorkflowContract.Decision && (plan.resolvedSeat?.seat ?: plan.seat)?.access != TaskAccess.Write) {
             appendLine("Review read-only. End with one JSON object: {\"verdict\": \"pass\" | \"repair\" | \"fail\", \"summary\": \"what you found\", \"candidate\": \"${input?.graph?.outcome?.candidateId.orEmpty()}\"}.")
             appendLine("Use repair for specific fixes. A Decision for another candidate is stale and cannot complete this review.")
             if (input != null) appendLine("Include findings: [{\"title\":\"specific defect\",\"detail\":\"evidence, impact and fix\",\"severity\":\"blocker\" | \"high\" | \"medium\" | \"low\",\"sourcePath\":\"changed file relative to this checkout\",\"line\":1}]. Use [] when none. Return only the schema object, within 12,000 characters. Hangar validates and records findings; disputed findings require a kernel check or a person decision.")
@@ -625,7 +639,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             }
         }
         val inputs = if (blind) emptyList() else upstream().map { it.task }.filter { it.graph?.state == TaskState.Succeeded || it.graph?.state == TaskState.Failed }
-        val budget = ((8000 - length - 200).coerceAtLeast(0) / inputs.size.coerceAtLeast(1)).coerceAtMost(3500)
+        val budget = ((8000 - length - 600).coerceAtLeast(0) / inputs.size.coerceAtLeast(1)).coerceAtMost(3500)
         inputs.forEach { source ->
             val handoff = view.handoffs[source.id]?.takeIf { it.attempt == source.graph?.attempt }
             appendLine(buildString {
@@ -641,11 +655,14 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
                     appendLine("Session logs: ${handoff.sessionLogs.joinToString()}; read with kernel session.log.")
                 } else {
                     appendLine(source.graph?.outcome?.summary.orEmpty().take(1500))
+                    source.graph?.outcome?.unverified.orEmpty().forEach { appendLine("Unverified (agent reported): ${it.take(500)}") }
                     source.graph?.outcome?.log?.let { appendLine("Read with kernel session.log {\"session\":\"$it\"}.") }
                 }
             }.take(budget))
         }
-        if (plan.contract != WorkflowContract.Decision) appendLine("Finish with the changes, checks and open questions.")
+        if ((plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write)
+            appendLine("Finish with one JSON object: {\"verdict\":\"pass\" | \"repair\" | \"fail\",\"summary\":\"changes and check evidence\",\"unverified\":[\"specific work or acceptance that could not be verified, and why\"]}. Use [] only after a passing kernel check for your final candidate. A reported command is not a kernel receipt. Fix compiler warnings on added lines or explain each linked warning in unverified as finding-id: reason. Without evidence or explicit gaps, dependents wait.")
+        else if (plan.contract != WorkflowContract.Decision) appendLine("Finish with the changes, checks and open questions.")
     }.take(8000)
 
     companion object {

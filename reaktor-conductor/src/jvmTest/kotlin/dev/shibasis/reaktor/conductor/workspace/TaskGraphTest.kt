@@ -42,7 +42,8 @@ class TaskGraphTest {
         val next = BoardActor(BoardActorKind.Agent, "claude", "claude:next-session")
         fun start(attempt: Int, by: BoardActor) {
             store.advance("G1", "T1") { task, plan ->
-                task.copy(graph = plan.copy(state = TaskState.Running, attempt = attempt, run = null, outcome = null))
+                task.copy(graph = plan.copy(state = TaskState.Running, attempt = attempt, run = null, outcome = null,
+                    seat = plan.seat?.copy(access = TaskAccess.Read)))
             }
             store.link("T1", by.session!!, true, scheduler, attempt)
         }

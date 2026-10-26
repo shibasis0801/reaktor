@@ -150,7 +150,8 @@ class AgentBoardStore(
         val handoffs = records.handoffs.associateBy { it.task }.mapValues { (task, handoff) ->
             summaries[task]?.takeIf { handoff.recordedSummary && it.attempt == handoff.attempt && it.candidate == handoff.candidate }?.let { summary ->
                 handoff.copy(done = summary.text(), checkReceipts = summary.checks.map { it.id }.take(50),
-                    openIssues = (members[task]?.graph?.outcome?.questions.orEmpty() + summary.findings.map { it.title }).take(30))
+                    openIssues = (members[task]?.graph?.outcome?.unverified.orEmpty().map { "Unverified: $it" } +
+                        members[task]?.graph?.outcome?.questions.orEmpty() + summary.findings.map { it.title }).take(30).map { it.take(1000) })
             } ?: handoff
         }
         return TaskGraphView(graph(id), members.values.toList(),
@@ -561,7 +562,9 @@ class AgentBoardStore(
             (callerAttempt == plan.attempt || caller.lead && plan.seat?.lead == true)) { refusal }
         check(outcome.attempt == null || outcome.attempt == plan.attempt) { refusal }
         require(plan.state !in setOf(TaskState.Cancelled, TaskState.Skipped)) { "$task is ${plan.state.name.lowercase()}" }
-        val bounded = outcome.bounded()
+        val previous = plan.outcome?.takeIf { it.attempt == plan.attempt }
+        val bounded = outcome.bounded().let { it.copy(candidateId = it.candidateId ?: previous?.candidateId,
+            unverified = it.unverified.ifEmpty { previous?.unverified.orEmpty() }) }
         val now = clock()
         val state = when (report) {
             TaskReport.Running -> TaskState.Running
@@ -574,6 +577,11 @@ class AgentBoardStore(
         if (plan.contract == dev.shibasis.reaktor.conductor.WorkflowContract.Decision && state == TaskState.Succeeded)
             require(verdict in setOf("pass", "repair", "fail")) { "$task has the Decision contract; report verdict pass, repair or fail" }
         val finalState = if (verdict == "fail") TaskState.Failed else state
+        if (finalState == TaskState.Succeeded && (plan.kind == TaskKind.Merge || (plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write)) {
+            val finished = bounded.copy(attempt = plan.attempt)
+            val refusal = finished.finishRefusal(summarize(current.copy(graph = plan.copy(outcome = finished))))
+            require(refusal == null) { refusal.orEmpty() }
+        }
         val merged = (plan.outcome ?: TaskOutcome()).let { old ->
             bounded.copy(summary = bounded.summary.ifEmpty { old.summary }, verdict = verdict ?: old.verdict, files = bounded.files.ifEmpty { old.files },
                 checks = bounded.checks.ifEmpty { old.checks }, log = bounded.log ?: old.log, tokens = bounded.tokens ?: old.tokens, at = now, attempt = plan.attempt)
@@ -630,6 +638,7 @@ class AgentBoardStore(
         files = files.take(200).map { it.take(500) },
         checks = checks.take(50).map { it.copy(text = it.text.take(2_000)) },
         questions = questions.take(10).map { it.take(1_000) },
+        unverified = BoardText.lines(unverified, "unverified work", 10, 1_000),
         log = log?.takeIf { BoardRefs.pattern.matches(it) },
     )
 

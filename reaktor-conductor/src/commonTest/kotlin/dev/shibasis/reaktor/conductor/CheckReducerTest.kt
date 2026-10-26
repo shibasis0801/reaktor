@@ -38,8 +38,24 @@ class CheckReducerTest {
         val result = CheckReducers.reduce(command, 0, capturedWarningOnly)
         assertEquals(CheckOutcome.Passed, result.outcome)
         assertTrue(result.failures.isEmpty(), "A build that warns and succeeds has not failed")
+        assertEquals(1, result.warningCount)
+        assertEquals(8, result.warnings.single().line)
+        assertEquals("compiler-warning", result.warnings.single().kind)
         assertEquals(CheckCoverage.Complete, result.coverage)
         assertNull(result.excerpt, "A passing check carries no excerpt to pay for")
+    }
+
+    @Test fun testSummaryDoesNotDiscardCompilerWarningsAndRetainsCountsPastThePromptBudget() {
+        val output = List(75) { "w: file:///candidate/Source File.kt:${it + 1}:2 Parameter 'value' is never used" }.joinToString("\n") +
+            "\n1 test completed\nBUILD SUCCESSFUL in 1s"
+        val result = CheckReducers.reduce(command, 0, output, revision = "candidate")
+        assertEquals(CheckReducers.JUNIT_PARSER, result.parser)
+        assertEquals(CheckOutcome.Passed, result.outcome)
+        assertEquals(75, result.warningCount)
+        assertEquals(50, result.warnings.size)
+        assertEquals("/candidate/Source File.kt", result.warnings.first().file)
+        assertEquals(75, CheckReducers.compilerWarnings(output).count())
+        assertTrue(ConductorJson.decodeFromString(CheckResult.serializer(), """{"command":["check"],"outcome":"Passed"}""").warnings.isEmpty())
     }
 
     @Test

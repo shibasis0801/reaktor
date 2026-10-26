@@ -565,6 +565,16 @@ class AgentWorkspace(
                 return@synchronized selectTask(graph, task, requireNotNull(outcome.selectedTask) { "Name selectedTask" },
                     requireNotNull(outcome.candidateId) { "Name the exact candidate you reviewed" }, caller.by, outcome.attempt)
             }
+            if (report in setOf(TaskReport.Succeeded, TaskReport.Review) &&
+                (plan.kind == TaskKind.Merge || (plan.resolvedSeat?.seat ?: plan.seat)?.access == TaskAccess.Write)) {
+                require(caller.person || plan.state != TaskState.Pending &&
+                    (plan.attemptOf(caller.refs) == plan.attempt || caller.lead && plan.seat?.lead == true)) {
+                    "An agent reports only on its own task's current attempt; $task current attempt ${plan.attempt}, caller attempt ${plan.attemptOf(caller.refs) ?: "unlinked"}"
+                }
+                require(outcome.attempt == null || outcome.attempt == plan.attempt) { "The writing attempt changed" }
+                val candidate = outcome.candidateId ?: plan.outcome?.takeIf { it.attempt == plan.attempt }?.candidateId
+                require(candidate != null && captureCandidate(task).id == candidate) { "The writing candidate changed; capture and verify its current revision" }
+            }
             board.report(graph, task, report, outcome, caller)
         } }
 
@@ -1110,7 +1120,13 @@ class AgentWorkspace(
                         resumeFrom = restored,
                         executionPrefix = initial.id,
                         workingDirectoryFor = { directories.getValue(it) },
-                        outputSchema = request.task?.candidate?.let(TaskReview::schema),
+                        outputSchema = if (request.task != null && request.allowWrites) dev.shibasis.reaktor.mcp.objectSchema(mapOf(
+                            "summary" to dev.shibasis.reaktor.mcp.stringSchema("Changes and check evidence"),
+                            "verdict" to dev.shibasis.reaktor.mcp.enumSchema("Task decision", listOf("pass", "repair", "fail")),
+                            "unverified" to buildJsonObject {
+                                put("type", "array"); put("maxItems", 10)
+                                put("items", dev.shibasis.reaktor.mcp.stringSchema("Specific unverified work and why").let { JsonObject(it + ("maxLength" to JsonPrimitive(1000))) })
+                            }), listOf("summary", "verdict", "unverified")) else request.task?.candidate?.let(TaskReview::schema),
                         runCheck = { stage -> requireNotNull(workflowCheck).invoke(initial.threadId, "${initial.id}:${stage.id}", stage) },
                         onProgress = { progress ->
                             if (request.workflow != null && progress.workflow != lastWorkflow && progress.workflow.stages.values.none { it.status == WorkflowStageStatus.Running })

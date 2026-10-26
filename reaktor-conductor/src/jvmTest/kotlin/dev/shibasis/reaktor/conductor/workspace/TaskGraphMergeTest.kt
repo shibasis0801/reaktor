@@ -20,7 +20,10 @@ class TaskGraphMergeTest {
         override fun run(request: AgentRequest) = flow {
             requests += request
             emit(AgentEvent.Started(request.agent.id, ProviderSession(kind, "${kind.name}-${requests.size}")))
-            emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, reply(request), true)))
+            val text = reply(request)
+            val output = if (request.agent.tools.allowWrites) dev.shibasis.reaktor.conductor.ConductorJson.encodeToString(TaskOutcome.serializer(),
+                TaskOutcome(summary = text, unverified = listOf("Fixture has no build declaration; native checks were not run."))) else text
+            emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, output, true)))
         }
     }
 

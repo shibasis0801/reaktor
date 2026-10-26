@@ -159,7 +159,7 @@ class TaskGraphInputsTest {
                     assertEquals("val b = 0\n", File(working, "B.kt").readText())
                     File(working, "B.kt").writeText("val b = 9\n")
                 }
-                emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, "Done", true)))
+                emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, """{"summary":"Done","unverified":["Fixture has no build declaration; native checks were not run."]}""", true)))
             }
         }
         AgentWorkspaceConnection.open(root, data.toPath(), mapOf(runtime.kind to runtime), discover = { ProviderCapability(it) },
