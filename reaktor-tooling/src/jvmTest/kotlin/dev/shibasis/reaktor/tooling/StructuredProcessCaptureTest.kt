@@ -8,6 +8,27 @@ import kotlinx.coroutines.flow.toList
 import kotlin.test.*
 
 class StructuredProcessCaptureTest {
+    @Test fun explicitEnvironmentStaysSealedWithoutReintroducingAmbientValues() = runBlocking {
+        val directory = Files.createTempDirectory("sealed-environment-").toFile()
+        val executor = SupervisedProcessExecutor()
+        try {
+            val request = AdHocProcessPlan.create(
+                listOf("/usr/bin/env"), directory, TaskId("explicit-environment"),
+                safety = SafetyPolicy(SafetyClass.ReadOnly),
+                environment = mapOf("EXPLICIT_ONLY" to "present"),
+                inheritEnvironment = false,
+            )
+            assertEquals(mapOf("EXPLICIT_ONLY" to "present"), request.environment)
+            assertFailsWith<IllegalArgumentException> {
+                executor.start(request.copy(environment = request.environment + ("EXPLICIT_ONLY" to "changed")))
+            }
+            val handle = executor.start(request)
+            val output = handle.events.toList().filterIsInstance<RunEvent.Output>()
+            assertEquals(RunStatus.Succeeded, handle.await().status)
+            assertEquals("EXPLICIT_ONLY=present", output.single { it.channel == OutputChannel.Stdout }.text.trim())
+        } finally { executor.close(); directory.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     private fun capture(content: String, limit: Int, secret: String? = null, lines: Boolean = false): Pair<TaskRun, List<RunEvent.Output>> = runBlocking {
         val directory = Files.createTempDirectory("structured-capture-").toFile()
         val source = directory.resolve("response.txt").apply { writeText(content) }
