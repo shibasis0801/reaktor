@@ -11,27 +11,33 @@ import java.io.File
 internal fun Project.declarationSite(): SourceSite? {
     val owners = listOf(rootDir) + gradle.includedBuilds.map { it.projectDir }
     val sources by lazy { owners.associateWith { declarationSources(it) } }
-    val calls = Throwable().stackTrace.mapNotNull { frame ->
-        if (frame.lineNumber <= 0) return@mapNotNull null
-        val name = frame.fileName ?: return@mapNotNull null
-        if (name.endsWith(".gradle.kts")) {
-            SourceSite(rootProject.name, buildFile.relativeTo(rootDir).invariantSeparatorsPath,
-                frame.lineNumber, frame.className + "." + frame.methodName)
-        } else if (name.endsWith(".kt") && frame.className != "dev.shibasis.dependeasy.workspace.DeclarationSitesKt") {
-            val packagePath = frame.className.substringBeforeLast('.', "").replace('.', '/')
-            val relative = listOf(packagePath, name).filter(String::isNotEmpty).joinToString("/")
-            owners.firstNotNullOfOrNull { owner ->
-                listOf("buildSrc/src/main/kotlin", "dependeasy/gradle/src/main/kotlin", "dependeasy/model/src/main/kotlin")
-                    .asSequence().map { owner.resolve("$it/$relative") }.firstOrNull { it.absolutePath in sources.getValue(owner) }?.let { source ->
-                        SourceSite(if (owner == rootDir) rootProject.name else owner.name,
-                            source.relativeTo(owner).invariantSeparatorsPath, frame.lineNumber,
-                            frame.className + "." + frame.methodName)
-                    }
-            }
-        } else null
-    }.distinct().take(16)
+    val scripts by lazy { rootProject.allprojects.map { it.buildFile.absoluteFile.normalize() }.distinct() }
+    val calls = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).walk { stack ->
+        stack.iterator().asSequence().mapNotNull { frame ->
+            if (frame.lineNumber <= 0) return@mapNotNull null
+            val name = frame.fileName ?: return@mapNotNull null
+            if (name.endsWith(".gradle.kts")) {
+                val loader = frame.declaringClass.classLoader?.name ?: return@mapNotNull null
+                val script = scripts.singleOrNull { loader.contains(":kotlin-dsl:${it.absolutePath}:") }
+                    ?: return@mapNotNull null
+                SourceSite(rootProject.name, script.relativeTo(rootDir).invariantSeparatorsPath,
+                    frame.lineNumber, frame.className + "." + frame.methodName)
+            } else if (name.endsWith(".kt") && frame.className != "dev.shibasis.dependeasy.workspace.DeclarationSitesKt") {
+                val packagePath = frame.className.substringBeforeLast('.', "").replace('.', '/')
+                val relative = listOf(packagePath, name).filter(String::isNotEmpty).joinToString("/")
+                owners.firstNotNullOfOrNull { owner ->
+                    listOf("buildSrc/src/main/kotlin", "dependeasy/gradle/src/main/kotlin", "dependeasy/model/src/main/kotlin")
+                        .asSequence().map { owner.resolve("$it/$relative") }.firstOrNull { it.absolutePath in sources.getValue(owner) }?.let { source ->
+                            SourceSite(if (owner == rootDir) rootProject.name else owner.name,
+                                source.relativeTo(owner).invariantSeparatorsPath, frame.lineNumber,
+                                frame.className + "." + frame.methodName)
+                        }
+                }
+            } else null
+        }.distinct().take(16).toList()
+    }
     val declaration = calls.firstOrNull { it.file.endsWith(".gradle.kts") } ?: calls.firstOrNull() ?: return null
-    return declaration.copy(callPath = calls.filter { !it.file.endsWith(".gradle.kts") || it == declaration }.asReversed())
+    return declaration.copy(callPath = calls.asReversed())
 }
 
 internal fun kernelRef(task: Task, spec: KernelSpec? = (task as? dev.shibasis.dependeasy.process.KernelSpecOwner)?.kernelSpec
