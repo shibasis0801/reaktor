@@ -30,9 +30,12 @@ class CrashlyticsEventsTest {
     @Test fun wrongAppDuplicateEventsAndTruncatedApiResponsesAreRejected() {
         assertFails { crashlyticsEvents(buildJsonObject { putJsonArray("events") { add(event("projects/other/events/one")) } }, app) }
         assertFails { crashlyticsEvents(buildJsonObject { putJsonArray("events") { add(event()); add(event()) } }, app) }
-        assertFails { crashlyticsApiBody(buildJsonObject { putJsonArray("content") { addJsonObject {
-            put("text", """{"ok":true,"status":200,"truncated":true,"body":{}}""")
-        } } }) }
+        val response = buildJsonObject { put("ok", true); put("status", 200); put("body", buildJsonObject {}) }
+        assertEquals(buildJsonObject {}, crashlyticsApiBody(response))
+        assertFails { crashlyticsApiBody(JsonObject(response + ("truncated" to JsonPrimitive(true)))) }
+        assertFails { crashlyticsApiBody(JsonObject(response + ("status" to JsonPrimitive(403)))) }
+        assertFails { crashlyticsApiBody(JsonObject(response + ("body" to JsonPrimitive("missing object")))) }
+        assertFails { crashlyticsApiBody(JsonObject(response + ("private" to JsonPrimitive("x".repeat(262_144))))) }
     }
     @Test fun restMetricBucketsDoNotSumDistinctUsers() {
         fun report(metrics: String) = crashlyticsReport(buildJsonObject { putJsonArray("content") { addJsonObject {

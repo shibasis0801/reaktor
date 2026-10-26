@@ -14,11 +14,8 @@ data class CrashlyticsEvent(val name: String, val timeMillis: Long, val context:
 @Serializable
 data class CrashlyticsEvents(val events: List<CrashlyticsEvent>, val bounded: Boolean)
 
-fun crashlyticsApiBody(result: JsonObject): JsonObject {
-    require(result["isError"]?.jsonPrimitive?.booleanOrNull != true)
-    val blocks = result["content"]?.jsonArray.orEmpty().mapNotNull { (it as? JsonObject)?.get("text")?.jsonPrimitive?.contentOrNull }
-    require(blocks.size == 1 && blocks.single().length in 1..262_144) { "Invalid Crashlytics API response" }
-    val response = Json.parseToJsonElement(blocks.single()).jsonObject
+fun crashlyticsApiBody(response: JsonObject): JsonObject {
+    require(response.toString().length in 1..262_144) { "Invalid Crashlytics API response" }
     require(response["ok"]?.jsonPrimitive?.booleanOrNull == true && response["status"]?.jsonPrimitive?.intOrNull == 200)
     require(response["truncated"]?.jsonPrimitive?.booleanOrNull != true) { "Truncated Crashlytics response" }
     return response["body"] as? JsonObject ?: error("Missing Crashlytics API body")
