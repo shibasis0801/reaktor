@@ -343,9 +343,83 @@ object BuildModelReader {
         put("tools", json.encodeToJsonElement(node.tools))
     }
 
-    fun tree(root: File, selector: String? = null, depth: Int = 2, offset: Int = 0, limit: Int = 10, expand: Boolean = false): JsonObject {
-        require(depth in 0..8 && offset >= 0 && limit in 1..20)
+    fun story(root: File, selector: String? = null, depth: Int = 8, offset: Int = 0): JsonObject {
         val model = declaredModel(root)
+        val tree = tree(root, model, selector, depth, offset, 10, false)
+        val modelDigest = digest(root.resolve(RelativePath))
+        val current = !tree.getValue("stale").jsonPrimitive.boolean
+        val records = model.builds.flatMap { build -> artifactFiles(root.resolve(build.directory).resolve(GradleProtocol.ReceiptDirectory)) }
+            .distinctBy(File::getCanonicalPath).map { it to readReceipt(it) }.sortedByDescending { it.second.finishedAtEpochMillis }
+        val nodes = model.nodes.associateBy { it.id.toString() }
+        fun branch(value: JsonObject): JsonObject {
+            val node = nodes.getValue(value.getValue("id").jsonPrimitive.content)
+            val tasks = (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { NodeId.task(node.id.build, it) }.toSet()
+            val last = records.firstOrNull { (_, receipt) -> node.id in receipt.requestedNodes || receipt.tasks.any { it.task in tasks } }
+            return buildJsonObject {
+                value.forEach { (key, field) -> put(key, field) }
+                put("lastReceipt", buildJsonObject {
+                    put("truth", if (last == null) "unavailable" else "recorded")
+                    if (last == null) put("omission", "No retained receipt")
+                    else {
+                        val (file, receipt) = last
+                        put("run", receipt.run); put("status", receipt.status.name); put("dryRun", receipt.dryRun)
+                        put("finishedAtEpochMillis", receipt.finishedAtEpochMillis); put("path", file.absolutePath)
+                        put("matchesCurrentModel", current && receipt.modelDigest == modelDigest)
+                    }
+                })
+                put("children", JsonArray(value.getValue("children").jsonArray.map { child ->
+                    val edge = child.jsonObject
+                    JsonObject(edge.mapValues { (key, field) -> if (key == "node") branch(field.jsonObject) else field })
+                }))
+            }
+        }
+        val roots = tree.getValue("roots").jsonArray.map { branch(it.jsonObject) }
+        fun code(value: String): String {
+            val marker = "`".repeat((Regex("`+").findAll(value).maxOfOrNull { it.value.length } ?: 0) + 1)
+            return marker + " " + value.replace(Regex("[\\p{Cc}\\p{Cf}]"), " ") + " " + marker
+        }
+        val markdown = buildString {
+            appendLine("# Build story")
+            appendLine()
+            appendLine("Workspace: " + code(root.canonicalPath))
+            appendLine()
+            appendLine("Declarations: " + tree.getValue("truth").jsonPrimitive.content + ". Run states are recorded observations.")
+            appendLine()
+            fun node(value: JsonObject, indent: String = "", relation: String = "") {
+                appendLine(indent + "- " + relation + code(value.getValue("id").jsonPrimitive.content) + " · " +
+                    value.getValue("kind").jsonPrimitive.content + " · " + value.getValue("effect").jsonPrimitive.content)
+                val receipt = value.getValue("lastReceipt").jsonObject
+                if (receipt.getValue("truth") == JsonPrimitive("unavailable")) appendLine(indent + "  - Last run: unavailable (no retained receipt).")
+                else appendLine(indent + "  - Last run: " + code(receipt.getValue("run").jsonPrimitive.content) + " · " +
+                    receipt.getValue("status").jsonPrimitive.content + " (recorded; matches current model: " +
+                    receipt.getValue("matchesCurrentModel").jsonPrimitive.content + "; dry run: " + receipt.getValue("dryRun").jsonPrimitive.content + ").")
+                (value["declaredAt"] as? JsonObject)?.let { source ->
+                    appendLine(indent + "  - Declaration: " + code(source.getValue("file").jsonPrimitive.content + ":" + (source["line"]?.jsonPrimitive?.contentOrNull ?: "unknown")))
+                }
+                (value["kernel"] as? JsonObject)?.let { appendLine(indent + "  - Kernel: " + code(it.getValue("className").jsonPrimitive.content)) }
+                if (value["cycle"] == JsonPrimitive(true)) appendLine(indent + "  - Cycle: already shown above.")
+                for (child in value.getValue("children").jsonArray) {
+                    val edge = child.jsonObject
+                    val relation = edge.getValue("relationship").jsonObject.getValue("type").jsonPrimitive.content.substringAfterLast('.')
+                    val target = edge["node"] as? JsonObject
+                    if (target == null) appendLine(indent + "  - " + relation + ": " + code(edge.getValue("id").jsonPrimitive.content) + " (declaration unavailable).")
+                    else node(target, indent + "  ", "$relation: ")
+                }
+                val more = value.getValue("more").jsonPrimitive.int
+                if (more > 0) appendLine(indent + "  - $more unexpanded relationships; inspect this node with build tree.")
+            }
+            roots.forEach { node(it) }
+            if (roots.isEmpty()) appendLine("No roots on this page.")
+            tree["nextOffset"]?.let { appendLine(); appendLine("More roots: continue at offset " + it.jsonPrimitive.content + ".") }
+        }
+        return JsonObject(tree + ("roots" to JsonArray(roots)) + ("markdown" to JsonPrimitive(markdown)))
+    }
+
+    fun tree(root: File, selector: String? = null, depth: Int = 2, offset: Int = 0, limit: Int = 10, expand: Boolean = false): JsonObject =
+        tree(root, declaredModel(root), selector, depth, offset, limit, expand)
+
+    private fun tree(root: File, model: BuildModel, selector: String?, depth: Int, offset: Int, limit: Int, expand: Boolean): JsonObject {
+        require(depth in 0..8 && offset >= 0 && limit in 1..20)
         val status = status(root, model)
         val byId = model.nodes.associateBy { it.id }
         val outgoing = model.edges.groupBy { it.from }

@@ -48,12 +48,17 @@ class BuildModelReaderTest {
         val related = treeRoot.getValue("children").jsonArray.single().jsonObject
         assertEquals(app.id.toString(), related.getValue("node").jsonObject.getValue("id").jsonPrimitive.content)
         assertEquals("source", tree.getValue("truth").jsonPrimitive.content)
+        val unrunStory = BuildModelReader.story(root, node.id.toString())
+        assertEquals(treeRoot.getValue("id"), unrunStory.getValue("roots").jsonArray.single().jsonObject.getValue("id"))
+        assertContains(unrunStory.getValue("markdown").jsonPrimitive.content, "Last run: unavailable")
+        assertContains(BuildModelReader.story(root, node.id.toString(), depth = 0).getValue("markdown").jsonPrimitive.content, "1 unexpanded relationships")
         assertEquals(1, BuildModelReader.kernels(root, limit = 1).getValue("total").jsonPrimitive.int)
         assertEquals(2, BuildModelReader.kernels(root).getValue("kernels").jsonArray.single().jsonObject.getValue("missingSpecs").jsonPrimitive.int)
         val cycleModel = declared.copy(edges = declared.edges + Edge.After(app.id, node.id))
         file.writeText(BuildModelReader.encode(cycleModel))
         val cyclic = BuildModelReader.tree(root, node.id.toString(), depth = 8)
         assertTrue(cyclic.toString().contains("\"cycle\":true"))
+        assertContains(BuildModelReader.story(root, node.id.toString()).getValue("markdown").jsonPrimitive.content, "Cycle: already shown above")
         assertFailsWith<IllegalArgumentException> { BuildModelReader.tree(root, depth = 9) }
         assertFailsWith<IllegalArgumentException> { BuildModelReader.tree(root, "missing") }
         file.writeText(BuildModelReader.encode(declared))
@@ -83,6 +88,31 @@ class BuildModelReaderTest {
         assertEquals("LocalProperties", receiptPage.getValue("resolvedOptions").jsonArray.single().jsonObject
             .getValue("option").jsonObject.getValue("source").jsonPrimitive.content)
         assertEquals("observed", BuildModelReader.receiptPage(root, node.id.toString()).getValue("receipt").jsonObject.getValue("run").jsonPrimitive.content)
+        val story = BuildModelReader.story(root, node.id.toString())
+        val storyRoot = story.getValue("roots").jsonArray.single().jsonObject
+        assertEquals(JsonPrimitive("observed"), storyRoot.getValue("lastReceipt").jsonObject["run"])
+        assertEquals(JsonPrimitive(false), storyRoot.getValue("lastReceipt").jsonObject["matchesCurrentModel"])
+        assertEquals(JsonPrimitive("observed"), storyRoot.getValue("children").jsonArray.single().jsonObject.getValue("node").jsonObject.getValue("lastReceipt").jsonObject["run"])
+        assertContains(story.getValue("markdown").jsonPrimitive.content, "Failed (recorded; matches current model: false; dry run: false)")
+        root.resolve(GradleProtocol.ReceiptDirectory + "/current.json").writeText(BuildModelReader.json.encodeToString(receipt.copy(
+            run = "current", finishedAtEpochMillis = 3, status = ReceiptStatus.Succeeded, dryRun = true, modelDigest = BuildModelReader.digest(file))))
+        assertContains(BuildModelReader.story(root, node.id.toString()).getValue("markdown").jsonPrimitive.content,
+            "Succeeded (recorded; matches current model: true; dry run: true)")
+        val roots = (0..10).map { node.copy(id = node.id.copy(name = "root$it")) }
+        file.writeText(BuildModelReader.encode(declared.copy(nodes = roots, edges = emptyList())))
+        val firstStory = BuildModelReader.story(root)
+        assertEquals(10, firstStory.getValue("roots").jsonArray.size)
+        assertEquals(JsonPrimitive(10), firstStory["nextOffset"])
+        assertContains(firstStory.getValue("markdown").jsonPrimitive.content, "More roots: continue at offset 10")
+        val lastStory = BuildModelReader.story(root, offset = 10)
+        assertEquals(roots.last().id.toString(), lastStory.getValue("roots").jsonArray.single().jsonObject.getValue("id").jsonPrimitive.content)
+        assertFalse("nextOffset" in lastStory)
+        assertContains(BuildModelReader.story(root, offset = 11).getValue("markdown").jsonPrimitive.content, "No roots on this page")
+        val source = root.resolve("build.gradle.kts").apply { writeText("original") }
+        val sourceModel = declared.copy(declarations = listOf(DeclarationInput("fixture", "build.gradle.kts", BuildModelReader.digest(source))))
+        file.writeText(BuildModelReader.encode(sourceModel))
+        source.writeText("changed")
+        assertContains(BuildModelReader.story(root, node.id.toString()).getValue("markdown").jsonPrimitive.content, "Declarations: stale")
         file.writeText(BuildModelReader.encode(declared.copy(omissions = listOf(Omission(app.id, "Changed declaration coverage")))))
         assertNull(BuildModelReader.retainedPlan(root, app.id.toString()))
         assertEquals("unavailable", BuildModelReader.receiptPage(root, app.id.toString(), "absent").getValue("truth").jsonPrimitive.content)
