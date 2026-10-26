@@ -60,25 +60,6 @@ data class McpTool(
     val execute: (JsonObject) -> JsonElement,
 )
 
-/**
- * Transport-independent, read-only MCP registry shared by Desktop and JVM hosts.
- *
- * Mutations deliberately do not fit this API. An operation host may expose a planning tool, but
- * execution and approval must remain inside its control-plane policy boundary.
- */
-class ReaktorMcpReadServer(
-    name: String,
-    version: String,
-    instructions: String,
-    tools: List<McpReadTool>,
-    resources: List<McpReadResource> = emptyList(),
-) : McpMessageHandler {
-    private val server = ReaktorMcpServer(name, version, instructions, tools.map {
-        McpTool(it.name, it.description, it.inputSchema, readOnly = true, idempotent = true, execute = it.execute)
-    }, resources)
-    override fun handle(body: String): JsonElement? = server.handle(body)
-}
-
 class ReaktorMcpServer(
     private val name: String,
     private val version: String,

@@ -75,7 +75,7 @@ class LoopbackMcpServerTest {
         LoopbackMcpServer.start(port, { registry() }).close()
     }
 
-    private fun registry() = ReaktorMcpReadServer("tooling-test", "1", "Read only", listOf(
-        McpReadTool("echo", "Read supplied arguments", objectSchema(mapOf("value" to stringSchema("Value")))) { it },
+    private fun registry() = ReaktorMcpServer("tooling-test", "1", "Read only", listOf(
+        McpTool("echo", "Read supplied arguments", objectSchema(mapOf("value" to stringSchema("Value"))), readOnly = true, idempotent = true) { it },
     ))
 }
