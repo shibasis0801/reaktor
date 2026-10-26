@@ -160,6 +160,9 @@ class TaskGraphLandingTest {
             assertEquals(BoardStage.Done, landed.tasks.single { it.id == "T1" }.stage)
             assertContains(owner.board.get("T1").graph?.note.orEmpty(), "Landed $candidate:")
             assertFails { owner.worktrees.read(tree) }
+            val receipt = owner.taskEvidence("T1").landings.single()
+            assertEquals(candidate, receipt.candidate)
+            assertEquals(git(root, "rev-parse", "HEAD").trim(), receipt.commits.getValue(root.canonicalPath))
             assertEquals("", git(root, "diff", "--cached"))
             assertEquals(landed, owner.landTaskCandidate("G1", "T1", candidate, before, person))
         }

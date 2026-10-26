@@ -138,6 +138,7 @@ data class TaskGraph(
     val reason: String? = null,
     val changes: List<TaskGraphChange> = emptyList(),
     val baseCommits: Map<String, String> = emptyMap(),
+    val benchmark: AgentBenchBinding? = null,
 ) {
     val number: Int get() = id.removePrefix("G").toIntOrNull() ?: 0
     val changedSinceApproval: Int get() = approvedRevision?.let { approved -> changes.count { it.revision > approved } } ?: 0

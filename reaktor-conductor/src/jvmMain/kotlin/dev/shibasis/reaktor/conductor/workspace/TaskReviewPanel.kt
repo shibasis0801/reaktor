@@ -4,6 +4,19 @@ import dev.shibasis.reaktor.conductor.*
 import java.util.UUID
 
 internal object TaskReviewPanel {
+    fun observations(candidate: String, run: String, resolved: ResolvedTaskSeat, outputs: Map<String, String>,
+        checks: List<AgentCandidateCheck>): List<AgentFinding> {
+        val confirmed = reduce(candidate, run, resolved, outputs, checks).second
+        return confirmed + resolved.lenses.flatMapIndexed { lensIndex, lens ->
+            TaskReview.parse(outputs.getValue("graph:lens-$lensIndex")).findings.mapIndexedNotNull { index, finding ->
+                val profile = requireNotNull(lens.seat.profile)
+                if (confirmed.any { profile in it.lenses && it.sourcePath == finding.sourcePath && it.line == finding.line }) null
+                else AgentFinding("unconfirmed:$run:$lensIndex:$index", candidate, run, "panel", finding.title,
+                    finding.detail, finding.severity, sourcePath = finding.sourcePath, line = finding.line, lenses = listOf(profile))
+            }
+        }
+    }
+
     fun definition(resolved: ResolvedTaskSeat, candidate: String): WorkflowDefinition {
         require(resolved.lenses.size in 2..6 && resolved.seat.access == TaskAccess.Read)
         fun spec(id: String, seat: ResolvedTaskSeat) = AgentSpec(AgentId(id), seat.name ?: id, requireNotNull(seat.seat.agent),

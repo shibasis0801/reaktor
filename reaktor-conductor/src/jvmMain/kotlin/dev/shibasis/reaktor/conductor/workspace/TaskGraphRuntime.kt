@@ -181,7 +181,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         for (task in TaskGraphRules.ready(members)) {
             if (scope.actor(task.id)?.busy == true) continue
             val plan = requireNotNull(task.graph)
-            val resolved = try { plan.seat?.let(scope.workspace::resolveSeat) } catch (failure: IllegalArgumentException) {
+            val resolved = try { scope.workspace.benchmarks.resolve(task) } catch (failure: IllegalArgumentException) {
                 store.hold(graphId, TaskGraphStatus.Paused, "${task.id}: ${failure.message}", scope.by)
                 return
             }
@@ -431,13 +431,13 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             return TaskContext(scope.graphId, current.id, null, request.prompt, request.context, dispatched = true,
                 notices = listOf("Saved dispatch inputs. The native run also records candidate evidence and provider context."))
         }
-        val resolved = plan.resolvedSeat ?: plan.seat?.let(scope.workspace::resolveSeat)
+        val resolved = plan.resolvedSeat ?: scope.workspace.benchmarks.resolve(current)
         val blind = !resolved?.lenses.isNullOrEmpty()
         return scope.workspace.taskContext(current, brief(current, plan, blind), blind)
     }
 
     private suspend fun agent(task: BoardTask, plan: TaskPlan): CoordinatorMessage.Settled {
-        val resolved = plan.resolvedSeat ?: requireNotNull(plan.seat?.let(scope.workspace::resolveSeat)) { "${task.id} has no seat" }
+        val resolved = plan.resolvedSeat ?: requireNotNull(scope.workspace.benchmarks.resolve(task)) { "${task.id} has no seat" }
         val seat = resolved.seat
         requireNotNull(seat.agent) { "${task.id} has no agent" }
         val input = reviewInput(plan)

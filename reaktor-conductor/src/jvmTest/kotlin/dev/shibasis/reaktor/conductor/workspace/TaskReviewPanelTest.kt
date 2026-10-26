@@ -33,6 +33,16 @@ class TaskReviewPanelTest {
             finding("Verified other", "medium", 20, listOf("lens-1:1")))), emptyList()).second)
     }
 
+    @Test fun benchmarkObservationsRetainUnconfirmedClaimsWithoutPublishingThem() {
+        val output = outputs(listOf(finding("Verified duplicate", confirms = listOf("lens-0:0", "lens-1:0"))))
+        val observations = TaskReviewPanel.observations(candidate, "run", resolved, output, emptyList())
+        assertEquals(1, observations.count { it.confirmation != null })
+        assertEquals(setOf(20, 30), observations.filter { it.confirmation == null }.map { it.line }.toSet())
+        assertEquals(listOf("codex-correctness"), observations.single { it.line == 30 }.lenses)
+        assertTrue(TaskReviewPanel.reduce(candidate, "run", resolved, output, emptyList()).second.none { it.line == 30 })
+        assertFails { TaskReviewPanel.observations("stale", "run", resolved, output, emptyList()) }
+    }
+
     @Test fun noConfirmedFindingsPassWithoutPublishingTheRawClaims() {
         val (review, findings) = TaskReviewPanel.reduce(candidate, "run", resolved, outputs(emptyList()), emptyList())
         assertEquals("pass", review.verdict)

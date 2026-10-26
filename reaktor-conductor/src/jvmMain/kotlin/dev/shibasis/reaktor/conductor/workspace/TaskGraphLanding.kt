@@ -40,6 +40,7 @@ internal fun AgentWorkspace.acceptTaskCandidate(graph: String, task: String, can
 
 internal suspend fun AgentWorkspace.landTaskCandidate(graph: String, task: String, candidate: String, revision: Long, by: BoardActor): TaskGraphView {
     require(by.kind == BoardActorKind.Person) { "Only a person lands a graph candidate" }
+    require(board.graph(graph).benchmark == null) { "Benchmark candidates cannot land" }
     val current = board.get(task)
     if (current.stage == BoardStage.Done && current.graph?.id == graph && current.graph.outcome?.candidateId == candidate &&
         current.graph.note?.startsWith("Landed $candidate:") == true) return board.view(graph)
@@ -51,6 +52,9 @@ internal suspend fun AgentWorkspace.landTaskCandidate(graph: String, task: Strin
         evidence.acceptPerson(task, candidate, by)
         val review = worktrees.review(tree)
         val commits = worktrees.land(tree, review.patchDigest, review.sourceRevision, "Land $graph/$task: ${current.title}\n\nCandidate: $candidate\nAccepted by: ${by.name}")
+        val roots = worktrees.read(tree).roots.associate { java.io.File(it.source).name to java.io.File(it.source).canonicalPath }
+        evidence.landed(task, AgentLanding(candidate, System.currentTimeMillis(), commits.mapKeys { roots.getValue(it.key) },
+            current.graph?.resolvedSeat))
         val detail = "Landed $candidate: " + commits.entries.joinToString { "${it.key} ${it.value}" }
         board.advance(graph, task) { value, plan -> value.copy(revision = value.revision + 1,
             history = value.history + BoardEvent(System.currentTimeMillis(), by, detail), graph = plan.copy(note = detail)) }

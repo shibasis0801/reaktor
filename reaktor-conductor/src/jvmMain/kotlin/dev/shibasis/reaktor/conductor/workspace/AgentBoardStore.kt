@@ -344,7 +344,9 @@ class AgentBoardStore(
             graph.reason, graph.createdBy.name)
     }
 
-    @Synchronized fun propose(draft: TaskGraphDraft, by: BoardActor): TaskGraphView {
+    fun propose(draft: TaskGraphDraft, by: BoardActor): TaskGraphView = propose(draft, by, null, emptyMap())
+
+    @Synchronized internal fun propose(draft: TaskGraphDraft, by: BoardActor, benchmark: AgentBenchBinding?, baseCommits: Map<String, String>): TaskGraphView {
         require(draft.tasks.size in 1..TaskGraphRules.MaxTasks) { "A graph has 1 to ${TaskGraphRules.MaxTasks} tasks" }
         by.checked()
         val now = clock()
@@ -366,6 +368,8 @@ class AgentBoardStore(
             status = if (by.kind == BoardActorKind.Person) TaskGraphStatus.Draft else TaskGraphStatus.Proposed,
             lead = (draft.lead ?: by.session)?.also { require(BoardRefs.pattern.matches(it)) { "$it is not a session: use claude:<session>, codex:<session>, agy:<conversation> or hangar:<conversation>" } },
             envelope = envelope,
+            benchmark = benchmark,
+            baseCommits = baseCommits,
             revision = 0,
             createdBy = by,
             createdAt = now,
@@ -378,7 +382,9 @@ class AgentBoardStore(
         } catch (outside: TaskGraphOutside) {
             throw IllegalArgumentException("The proposal's tasks fall outside its own envelope: ${outside.reasons.joinToString("; ")}")
         }
-        commit(applied.graph, applied.tasks, emptyList(), next, ledger.graphs + 1)
+        val graph = if (benchmark == null) applied.graph else applied.graph.copy(benchmark = benchmark.copy(
+            definition = AgentBenchmarks.definition(TaskGraphView(applied.graph, applied.tasks))))
+        commit(graph, applied.tasks, emptyList(), next, ledger.graphs + 1)
         return view(shell.id)
     }
 

@@ -142,6 +142,7 @@ class AgentWorkspace(
     val checkpoints = AgentCheckpoints(directory.resolve("checkpoints"))
     val runbooks = AgentRunbooks(directory.resolve("runbooks")) { resolveSeat(it).seat }
     val worktrees = AgentWorktrees(root, directory.resolve("worktrees"), evidence.artifacts)
+    val benchmarks = AgentBenchmarks(root, directory.resolve("benchmarks"), this, scopeModules)
     val localContext = AgentLocalContext(root, directory)
     val memory = AgentMemoryStore(root, directory.resolve("memory"), evidence.artifacts) { id ->
         if (Files.isRegularFile(directory.resolve("requests/$id.json"))) submission(id).task else null
