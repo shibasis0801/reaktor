@@ -86,6 +86,7 @@ data class TaskPlan(
     val recovery: AgentRecovery = AgentRecovery.None,
     val resumeAtReset: Long? = null,
     val choices: Map<String, String> = emptyMap(),
+    val excludedContext: List<String> = emptyList(),
 ) {
     fun attemptOf(refs: Set<String>): Int? = refs.mapNotNull(workAttempts::get).maxOrNull()
         ?: attempt.takeIf { run != null && run in refs }
@@ -172,6 +173,7 @@ sealed interface TaskGraphOp {
         val contract: WorkflowContract? = null,
         val check: String? = null,
         val layout: TaskLayout? = null,
+        val excludedContext: List<String>? = null,
     ) : TaskGraphOp
 
     @Serializable

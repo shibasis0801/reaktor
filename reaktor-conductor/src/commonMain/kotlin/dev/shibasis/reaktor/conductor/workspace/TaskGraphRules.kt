@@ -370,6 +370,11 @@ class TaskGraphEditing(
             caller.owns(task) -> if (op.acceptance != null && task.createdBy.kind == BoardActorKind.Person) refuse("A person wrote ${task.id}'s acceptance; ask them to change it")
             else -> refuse("An agent edits only its own task")
         }
+        if (op.excludedContext != null) {
+            require(caller.person) { "Only a person changes optional task context" }
+            require(plan.state == TaskState.Pending) { "Task context is pinned after dispatch" }
+            require(op.excludedContext.size <= 100 && op.excludedContext.all { it.length <= 200 && (it.startsWith("memory:") || it.startsWith("decision:")) }) { "Only optional decision and memory references can be excluded" }
+        }
         if (op.kind != null || op.contract != null) require(plan.state == TaskState.Pending) { "${task.id} has started; its kind and contract stay as they are" }
         val next = task.copy(
             title = op.title?.let(BoardText::title) ?: task.title,
@@ -381,6 +386,7 @@ class TaskGraphEditing(
                 contract = op.contract ?: plan.contract,
                 check = op.check?.trim()?.takeIf(String::isNotEmpty) ?: plan.check,
                 layout = op.layout ?: plan.layout,
+                excludedContext = op.excludedContext?.distinct() ?: plan.excludedContext,
             ),
         )
         if (!caller.person && op.scope != null) outside += TaskGraphRules.outside(plan.seat?.let(resolveSeat), next.scope, envelope)
@@ -389,6 +395,7 @@ class TaskGraphEditing(
             "acceptance".takeIf { next.acceptance != task.acceptance }, "scope".takeIf { next.scope != task.scope },
             "kind".takeIf { next.graph?.kind != plan.kind }, "contract".takeIf { next.graph?.contract != plan.contract },
             "check".takeIf { next.graph?.check != plan.check },
+            "excludedContext".takeIf { next.graph?.excludedContext != plan.excludedContext },
         )
         val moved = next.graph?.layout != plan.layout
         if (fields.isEmpty() && !moved) return
@@ -398,7 +405,8 @@ class TaskGraphEditing(
             title = task.title.takeIf { "title" in fields }, intent = task.intent.takeIf { "intent" in fields },
             acceptance = task.acceptance.takeIf { "acceptance" in fields }, scope = task.scope.takeIf { "scope" in fields },
             kind = plan.kind.takeIf { "kind" in fields }, contract = plan.contract.takeIf { "contract" in fields },
-            check = plan.check.takeIf { "check" in fields }, layout = plan.layout.takeIf { moved })
+            check = plan.check.takeIf { "check" in fields }, layout = plan.layout.takeIf { moved },
+            excludedContext = plan.excludedContext.takeIf { "excludedContext" in fields })
     }
 
     private fun split(op: TaskGraphOp.Split) {
