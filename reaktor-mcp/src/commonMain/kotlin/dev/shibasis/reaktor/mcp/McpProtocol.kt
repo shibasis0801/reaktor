@@ -18,13 +18,6 @@ import kotlinx.serialization.json.putJsonObject
 const val REAKTOR_MCP_PROTOCOL_VERSION: String = "2025-11-25"
 val REAKTOR_MCP_PROTOCOL_VERSIONS: Set<String> = setOf("2025-06-18", REAKTOR_MCP_PROTOCOL_VERSION, MCP_TASKS_VERSION)
 
-data class McpReadTool(
-    val name: String,
-    val description: String,
-    val inputSchema: JsonObject = emptyObjectSchema(),
-    val execute: (JsonObject) -> JsonElement,
-)
-
 data class McpReadResource(
     val uri: String,
     val name: String,
