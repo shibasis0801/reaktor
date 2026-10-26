@@ -86,6 +86,7 @@ class AgentBenchmarks internal constructor(
         val seat = plan.seat ?: return null
         val view = workspace.board.view(plan.id)
         val benchmark = view.graph.benchmark ?: return workspace.resolveSeat(seat)
+        require(benchmark.ownerBuild == ownerBuild()) { "Benchmark owner build changed; propose a new run before dispatch" }
         return requireNotNull(benchmark.seats.values.firstOrNull { it.seat == seat }) { "Seat is outside the pinned benchmark configuration" }
     }
 
@@ -106,14 +107,16 @@ class AgentBenchmarks internal constructor(
         val terminal = view.graph.status in setOf(TaskGraphStatus.Finished, TaskGraphStatus.Failed, TaskGraphStatus.Cancelled)
         val checks = view.tasks.filter { it.graph?.kind == TaskKind.Check }
         val unchanged = definition(view) == binding.definition
+        val sameBuild = ownerBuild() == binding.ownerBuild
         val value = AgentBenchResult(graph, view.graph.revision, System.currentTimeMillis(), binding, score,
             if (!terminal || checks.isEmpty()) null else checks.all { it.graph?.state == TaskState.Succeeded },
             writers.count { writer -> evidence.first { it.taskId == writer.id }.let { it.approverVerified && it.acceptedCandidate == writer.graph?.outcome?.candidateId && it.acceptedCandidate != null } },
             writers.count { it.graph?.outcome?.candidateId != null },
             view.tasks.sumOf { (it.graph?.attempt?.minus(1) ?: 0).coerceAtLeast(0) },
-            lensScores(binding.copy(scenario = scenario), panelFindings(view, evidence.flatMap { it.findings })), unchanged,
+            lensScores(binding.copy(scenario = scenario), panelFindings(view, evidence.flatMap { it.findings })), unchanged && sameBuild,
             buildList {
                 if (!unchanged) add("Definitions changed after proposal; this run is not comparable.")
+                if (!sameBuild) add("Owner build changed after proposal; this measurement is not comparable. Propose a new run on the current owner.")
                 if (!terminal) add("Run is still open; measurements are partial.")
                 if (checks.isEmpty()) add("No acceptance check is declared.")
                 add("Acceptance counts only person-verified exact candidates; passing checks alone do not prove acceptance.")

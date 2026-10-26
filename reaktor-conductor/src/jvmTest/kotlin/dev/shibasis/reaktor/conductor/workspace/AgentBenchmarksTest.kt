@@ -137,6 +137,22 @@ class AgentBenchmarksTest {
         assertFalse(runBlocking { workspace.benchmarks.measure(graph.graph.id) }.comparable)
     }
 
+    @Test fun changedOwnerBuildRefusesDispatchAndComparableMeasurements() = fixture { workspace, root, _ ->
+        val original = scenario(root)
+        write(root, original)
+        val entry = workspace.benchmarks.entry("sample")
+        val graph = workspace.benchmarks.propose("sample", entry.revision,
+            listOf(AgentBenchConfiguration("one", TaskGraphTemplates.slots(original.draft))), 1, agent).single()
+        val stale = workspace.board.propose(original.draft, agent,
+            requireNotNull(graph.graph.benchmark).copy(ownerBuild = "previous-build"), graph.graph.baseCommits)
+        val refusal = assertFailsWith<IllegalArgumentException> { workspace.benchmarks.resolve(stale.tasks.first()) }
+        assertTrue(refusal.message.orEmpty().contains("owner build changed"))
+        val measured = runBlocking { workspace.benchmarks.measure(stale.graph.id) }
+        assertFalse(measured.comparable)
+        assertTrue(measured.notes.any { "Owner build changed" in it })
+        assertTrue(workspace.list().isEmpty())
+    }
+
     @Test fun lensMatrixCountsConfirmedDefectsOnceAndLeavesUnmatchedFindingsForAdjudication() {
         val lens = ResolvedTaskSeat(TaskSeat(RuntimeKind.ClaudeCode, "fixture", profile = "correctness"), 7, "Review", ToolPolicy(), emptyList())
         val seat = ResolvedTaskSeat(TaskSeat(RuntimeKind.Codex, "fixture"), null, "", ToolPolicy(), emptyList(), lenses = listOf(lens))
