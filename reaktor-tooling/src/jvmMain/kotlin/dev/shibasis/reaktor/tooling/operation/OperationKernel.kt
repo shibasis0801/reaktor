@@ -69,14 +69,17 @@ class OperationKernel(
 
     fun describe(id: OperationId): OperationDescriptor? = entries().firstOrNull { it.catalog.id == id }?.describe?.invoke()
 
-    fun access(seats: List<String>): List<OperationAccess> = catalog().map { catalog ->
-        OperationAccess(catalog.id, catalog.summary, catalog.effect, catalog.provider, seats.associateWith { seat ->
-            when (DoorAuthority.decide(catalog.effect, authority.policy.seat(seat))) {
-                DoorDecision.Allowed -> Access.Allowed
-                is DoorDecision.Ask -> if (authority.approvals == null) Access.Refused else Access.Ask
-                is DoorDecision.Refused -> Access.Refused
-            }
-        })
+    fun access(seats: List<String>): List<OperationAccess> {
+        val declared = entries().associateBy { it.catalog.id }
+        return catalog().map { catalog ->
+            OperationAccess(catalog.id, catalog.summary, catalog.effect, catalog.provider, seats.associateWith { seat ->
+                when (declared.getValue(catalog.id).decide(catalog.effect, authority.policy.seat(seat))) {
+                    DoorDecision.Allowed -> Access.Allowed
+                    is DoorDecision.Ask -> if (authority.approvals == null) Access.Refused else Access.Ask
+                    is DoorDecision.Refused -> Access.Refused
+                }
+            })
+        }
     }
 
     suspend fun invoke(invocation: Invocation): Outcome {
@@ -98,20 +101,23 @@ class OperationKernel(
         verdict = authority.model?.let { model -> runCatching { model.decide(invocation.caller, descriptor.provider, descriptor.id) }.getOrNull() }
         verdict?.takeIf { it.enforced && !it.allowed }?.let { denied -> return Outcome.Refused(effect, denied.rule).also { record("refused", denied.rule) } }
         val ownPlan = runCatching { entry.ownPlan(invocation.arguments, invocation.caller) }.getOrDefault(false)
+        val confirmationPhrase = runCatching { entry.confirmationPhrase?.invoke(invocation.arguments) }.getOrElse { failure ->
+            return Outcome.Failed(failure.message ?: "Could not validate the reviewed approval").also { record("failed", it.message) }
+        }
         var approval: DoorApproval? = null
-        when (val decision = DoorAuthority.decide(effect, authority.policy.seat(seat), ownPlan)) {
+        when (val decision = entry.decide(effect, authority.policy.seat(seat), ownPlan)) {
             DoorDecision.Allowed -> Unit
             is DoorDecision.Refused -> return Outcome.Refused(effect, decision.reason).also { record("refused", decision.reason) }
             is DoorDecision.Ask -> {
                 val approvals = authority.approvals
                     ?: return Outcome.Refused(effect, "${effect.name} needs a person's approval and this host cannot ask for one").also { record("refused", "no approvals") }
-                val spent = approvals.spend(seat, descriptor.provider, descriptor.id.value, invocation.arguments)
+                val spent = approvals.spend(seat, descriptor.provider, descriptor.id.value, invocation.arguments, confirmationPhrase)
                 if (spent == null) {
                     approvals.denied(seat, descriptor.provider, descriptor.id.value, invocation.arguments)?.let { denied ->
                         return Outcome.Denied(denied.id, denied.decidedBy).also { record("denied", denied.id) }
                     }
                     val before = approvals.pending().map(DoorApproval::id).toSet()
-                    val waiting = approvals.request(seat, descriptor.provider, descriptor.id.value, effect, invocation.arguments)
+                    val waiting = approvals.request(seat, descriptor.provider, descriptor.id.value, effect, invocation.arguments, confirmationPhrase)
                     if (waiting.id !in before) runCatching { authority.onApprovalNeeded(waiting) }
                     return Outcome.ApprovalRequired(waiting.id, effect, waiting.expiresAtEpochMillis).also { record("approval-required", waiting.id) }
                 }
@@ -192,15 +198,21 @@ class OperationKernel(
     }
 
     private fun Operation<*, *>.entry(provider: String) =
-        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }, effectFor, appliesOwnPlan) { call, arguments -> execute(call, arguments, json) }
+        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }, effectFor, appliesOwnPlan, confirmationPhraseFor) { call, arguments -> execute(call, arguments, json) }
 
     private class Entry(
         val catalog: CatalogEntry,
         val describe: () -> OperationDescriptor,
         val effect: (JsonObject, CallCaller) -> SafetyClass,
         val ownPlan: suspend (JsonObject, CallCaller) -> Boolean,
+        val confirmationPhrase: ((JsonObject) -> String?)? = null,
         val execute: suspend (OperationCall, JsonObject) -> JsonElement,
-    )
+    ) {
+        fun decide(effect: SafetyClass, seat: dev.shibasis.reaktor.tooling.mcp.door.SeatPolicy, ownPlan: Boolean = false): DoorDecision =
+            DoorAuthority.decide(effect, seat, ownPlan).let { decision ->
+                if (decision == DoorDecision.Allowed && confirmationPhrase != null) DoorDecision.Ask(effect) else decision
+            }
+    }
 
     private companion object {
         const val ReplayLimit = 256

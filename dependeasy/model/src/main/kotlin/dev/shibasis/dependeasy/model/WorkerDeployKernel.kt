@@ -57,6 +57,9 @@ object WorkerDeployKernel {
         deployed
     }
 
+    fun verify(plan: WorkerDeployPlan, run: String, execute: (ProcessExecution) -> String,
+        record: (DeployReceipt) -> Unit): DeployReceipt = change(plan, run, "verify", execute, record) { plan.previousVersion }
+
     fun rollback(plan: WorkerDeployPlan, latest: DeployReceipt, previous: DeployReceipt, run: String,
         execute: (ProcessExecution) -> String, record: (DeployReceipt) -> Unit): DeployReceipt {
         listOf(latest, previous).forEach {

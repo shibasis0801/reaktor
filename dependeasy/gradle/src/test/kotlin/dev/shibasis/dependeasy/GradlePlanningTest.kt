@@ -10,6 +10,7 @@ import kotlin.test.*
 class GradlePlanningTest {
     @TempDir lateinit var directory: File
     private fun fixture() {
+        directory = directory.canonicalFile
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"receiptFixture\"")
         directory.resolve("source.txt").writeText("first")
         directory.resolve("migrations").mkdirs()
@@ -227,6 +228,17 @@ class GradlePlanningTest {
             assertFailsWith<IllegalArgumentException> {
                 GradleInvocationKernel.validate(directory, directory.resolve("${GradleProtocol.RequestDirectory}/$rejected.json"), model)
             }
+        }
+        val deployment = model.nodes.single { it.id.name == "schema" }
+        val aggregate = deployment.copy(environments = emptyList())
+        val deliveryModel = model.copy(nodes = model.nodes.map { if (it.id == aggregate.id) aggregate else it })
+        for ((environment, accepted) in listOf("dev" to true, "prod" to false, "undeclared" to false)) {
+            val (id, _) = selectedContract(request.copy(node = aggregate.id, declaredAt = aggregate.declaredAt,
+                modelDigest = BuildModelReader.digest(BuildModelReader.encode(deliveryModel)),
+                arguments = listOf("-P${GradleProtocol.EnvironmentOption}=$environment")))
+            val file = directory.resolve("${GradleProtocol.RequestDirectory}/$id.json")
+            if (accepted) assertEquals(aggregate, GradleInvocationKernel.validate(directory, file, deliveryModel).node)
+            else assertFailsWith<IllegalArgumentException> { GradleInvocationKernel.validate(directory, file, deliveryModel) }
         }
         val (selectionDigest, selectionOption) = selectedContract(selectedRequest)
         bridgeRunner(GradleProtocol.PlanTask, selectionOption).build()

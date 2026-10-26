@@ -61,6 +61,7 @@ class Operation<I, O>(
     val schema: (() -> JsonObject)? = null,
     val effectFor: (JsonObject, CallCaller) -> SafetyClass = { _, _ -> effect },
     val appliesOwnPlan: suspend (JsonObject, CallCaller) -> Boolean = { _, _ -> false },
+    val confirmationPhraseFor: ((JsonObject) -> String?)? = null,
     val run: suspend OperationCall.(I) -> O,
 ) {
     val subject: String? get() = input.descriptor.subject()

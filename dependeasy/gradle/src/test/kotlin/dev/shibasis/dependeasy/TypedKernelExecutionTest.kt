@@ -173,6 +173,11 @@ class TypedKernelExecutionTest {
         assertEquals(dev.shibasis.dependeasy.model.ReceiptStatus.Succeeded, receipt.result)
         assertEquals(plan.artifactDigest, receipt.artifactDigest)
         val rollbackPlan = dev.shibasis.dependeasy.model.WorkerDeployKernel.plan(spec, directory.resolve("rollback-bundle"), "fixture-sha", "fixture-host", execute)
+        val verified = dev.shibasis.dependeasy.model.WorkerDeployKernel.verify(rollbackPlan, "verify-fixture", execute, records::add)
+        assertEquals("verify", verified.action)
+        assertEquals(deployed, verified.remoteVersion)
+        assertEquals(dev.shibasis.dependeasy.model.ReceiptStatus.Succeeded, verified.result)
+        assertEquals(1, writes)
         val previous = receipt.copy(run = "previous-fixture", remoteVersion = initial, rollbackTarget = null,
             startedAtEpochMillis = receipt.startedAtEpochMillis - 1, finishedAtEpochMillis = receipt.startedAtEpochMillis - 1)
         assertFailsWith<IllegalArgumentException> {
