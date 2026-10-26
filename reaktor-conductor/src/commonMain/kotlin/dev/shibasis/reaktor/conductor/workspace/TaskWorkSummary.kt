@@ -36,6 +36,22 @@ data class TaskWorkSummary(
     }.trim().let { if (it.length <= 8000) it else it.take(7900) + "\nSummary cut; read the linked plan, diff, check receipts and findings for full evidence." }
 }
 
+internal fun TaskOutcome.finishRefusal(summary: TaskWorkSummary?): String? {
+    if (summary == null || candidateId == null || summary.candidate != candidateId || summary.attempt != attempt)
+        return "Capture this writing attempt's candidate before reporting success."
+    if (unverified.size > 10 || unverified.any { it.isBlank() || it.length > 1000 })
+        return "Unverified work must name at most ten specific gaps, each within 1,000 characters."
+    if (summary.findings.any { it.producerRunId == "kernel:compiler-warning" && it.participant == "compiler-warning-coverage" })
+        return "Finish gate: compiler-warning coverage is incomplete. Read the linked check log and reduce warnings before finishing."
+    val unexplained = summary.findings.filter { warning -> warning.producerRunId == "kernel:compiler-warning" && warning.participant == "compiler-warning" &&
+        unverified.none { gap -> gap.lineSequence().any { line -> line.startsWith("${warning.id}:") && line.substringAfter(':').isNotBlank() } } }
+    if (unexplained.isNotEmpty()) return "Finish gate: fix or explain each compiler warning in unverified as 'finding-id: reason': " +
+        unexplained.take(10).joinToString { "${it.id} (${it.sourcePath}:${it.line})" }
+    if (summary.checks.any { it.source == "kernel" && it.candidateId == candidateId && it.result.revision == candidateId &&
+            it.result.outcome == CheckOutcome.Passed && it.result.coverage == CheckCoverage.Complete } || unverified.isNotEmpty()) return null
+    return "Finish gate: no complete passing kernel check for this candidate. Run its check or explicitly list what could not be verified."
+}
+
 object TaskSummaries {
     fun plan(item: AgentActivityItem): List<PlanItem> {
         if (item.parentId != null || item.status in listOf(ActivityStatus.Failed, ActivityStatus.Interrupted) ||
@@ -88,6 +104,7 @@ object TaskSummaries {
             evidence.findings.filter { candidate != null && it.candidateId == candidate.id && it.resolvedByCandidate != candidate.id },
             evidence.requiredChecks.filter { required -> checks.none { it.id == required } },
             buildList {
+                outcome?.unverified.orEmpty().forEach { add("Unverified (agent reported): $it") }
                 if (candidate == null) add("No candidate recorded for this attempt")
                 if (page == null) add("Candidate diff unavailable; line counts unknown")
                 if (partial) add("Partial diff; line counts cover only the recorded text")

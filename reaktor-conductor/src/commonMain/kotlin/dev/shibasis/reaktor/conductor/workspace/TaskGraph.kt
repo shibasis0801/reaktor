@@ -59,6 +59,7 @@ data class TaskOutcome(
     val usageLimit: AgentUsageLimit? = null,
     val inputCandidates: Map<String, String> = emptyMap(),
     val selectedTask: String? = null,
+    val unverified: List<String> = emptyList(),
 )
 
 @Serializable

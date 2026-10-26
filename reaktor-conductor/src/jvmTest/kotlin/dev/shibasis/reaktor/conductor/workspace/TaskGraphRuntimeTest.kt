@@ -32,9 +32,82 @@ class TaskGraphRuntimeTest {
             val limited = limit
             if (!failed) onRun(request, requests.size)
             val candidate = Regex("\"candidate\":\\s*\"([a-f0-9]{64})\"").find(request.prompt)?.groupValues?.get(1).orEmpty()
-            val text = if (failed) "" else replies[minOf(requests.size, replies.size) - 1].replace("{{candidate}}", candidate)
+            val reply = if (failed) "" else replies[minOf(requests.size, replies.size) - 1].replace("{{candidate}}", candidate)
+            val text = if (request.agent.tools.allowWrites && !reply.startsWith("{")) buildJsonObject {
+                put("summary", reply); putJsonArray("unverified") { add("Fixture has no build declaration; native checks were not run.") }
+            }.toString() else reply
             emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, text, !failed && limited == null, failure = if (limited != null) "Provider usage limit" else if (failed) "The build broke" else null,
                 session = session, usage = AgentUsage(inputTokens = 100, outputTokens = 20), usageLimit = limited)))
+        }
+    }
+
+    @Test fun nativeDecisionWritersCarryExplicitGapsIntoTheirHandoff() {
+        listOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode).forEach { provider ->
+            val writer = Scripted(provider, listOf("""{"verdict":"pass","summary":"Implemented","unverified":["Physical-device acceptance unavailable."]}"""))
+            workspace(if (provider == RuntimeKind.Codex) writer else Scripted(RuntimeKind.Codex, listOf("Unused")),
+                if (provider == RuntimeKind.ClaudeCode) writer else Scripted(RuntimeKind.ClaudeCode, listOf("Unused"))) { connection, _, _ ->
+                val proposed = connection.proposeTaskGraph(TaskGraphDraft("Native finish", tasks = listOf(
+                    TaskGraphOp.Add("Write", key = "write", contract = WorkflowContract.Decision, seat = TaskSeat(provider, access = TaskAccess.Write)),
+                    TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("write", TaskCondition.Pass))))), person)
+                connection.startTaskGraph(proposed.graph.id, proposed.graph.revision, person)
+                val view = connection.until(proposed.graph.id) { it.task("Accept").graph?.state == TaskState.Waiting }
+                val task = view.task("Write")
+                assertEquals("pass", task.graph?.outcome?.verdict)
+                assertEquals(listOf("Physical-device acceptance unavailable."), task.graph?.outcome?.unverified)
+                assertTrue(view.handoffs.getValue(task.id).openIssues.any { "Physical-device" in it })
+                assertTrue("verdict" in writer.requests.single().outputSchema.toString())
+                assertFalse("Review read-only" in writer.requests.single().prompt)
+                assertContains(writer.requests.single().prompt, "finding-id: reason")
+            }
+        }
+    }
+
+    @Test fun bothNativeWritersHoldDependentsUntilCandidateEvidenceOrExplicitGapsAreRecorded() {
+        listOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode).forEach { provider ->
+            val writer = Scripted(provider, listOf("""{"verdict":"pass","summary":"Implemented; tests passed","unverified":[]}"""))
+            val reviewer = Scripted(if (provider == RuntimeKind.Codex) RuntimeKind.ClaudeCode else RuntimeKind.Codex,
+                listOf("""{"verdict":"pass","summary":"Reviewed","candidate":"{{candidate}}","findings":[]}"""))
+            lateinit var owner: AgentWorkspace
+            workspace(if (provider == RuntimeKind.Codex) writer else reviewer, if (provider == RuntimeKind.ClaudeCode) writer else reviewer,
+                onOwner = { owner = it }) { connection, _, _ ->
+                val proposed = connection.proposeTaskGraph(TaskGraphDraft("Finish gate", tasks = listOf(
+                    TaskGraphOp.Add("Write", key = "write", contract = if (provider == RuntimeKind.Codex) WorkflowContract.Decision else WorkflowContract.Text,
+                        seat = TaskSeat(provider, access = TaskAccess.Write)),
+                    TaskGraphOp.Add("Review", key = "review", contract = WorkflowContract.Decision, seat = TaskSeat(reviewer.kind),
+                        dependsOn = listOf(TaskDependency("write"))),
+                    TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("review", TaskCondition.Pass))))), person)
+                connection.startTaskGraph(proposed.graph.id, proposed.graph.revision, person)
+                val held = connection.until(proposed.graph.id) { it.task("Write").graph?.state == TaskState.Waiting }
+                val task = held.task("Write")
+                val outcome = requireNotNull(task.graph?.outcome)
+                val candidate = requireNotNull(outcome.candidateId)
+                assertTrue(outcome.questions.any { "Finish gate" in it })
+                assertTrue(reviewer.requests.isEmpty())
+                assertTrue("unverified" in writer.requests.single().outputSchema.toString())
+                assertEquals(AgentRunStatus.Completed, owner.get(requireNotNull(task.graph.runId)).status)
+                assertFailsWith<IllegalStateException> { connection.reportTaskGraph(proposed.graph.id, task.id, TaskReport.Succeeded,
+                    outcome.copy(checks = listOf(TaskCheckResult("self-reported", true, "Passed"))), person) }
+                assertFailsWith<IllegalStateException> { connection.reportTaskGraph(proposed.graph.id, task.id, TaskReport.Succeeded,
+                    outcome.copy(candidateId = "foreign", unverified = listOf("Checks unavailable")), person) }
+                val finish = if (provider == RuntimeKind.Codex) {
+                    owner.evidence.check(task.id, AgentCandidateCheck("unit", candidate,
+                        CheckResult(listOf("unit"), CheckOutcome.Passed, revision = candidate, coverage = CheckCoverage.Complete), "kernel"))
+                    val source = File(owner.taskEvidence(task.id).candidates.single { it.id == candidate }.workspaceRoot, "Source.kt")
+                    val original = source.readText()
+                    source.appendText("val changedAfterCheck = true\n")
+                    assertFailsWith<IllegalStateException> { connection.reportTaskGraph(proposed.graph.id, task.id, TaskReport.Succeeded, outcome, person) }
+                    source.writeText(original)
+                    outcome.copy(questions = emptyList())
+                } else outcome.copy(questions = emptyList(), unverified = listOf("Device acceptance was not verified; no device is attached."))
+                connection.reportTaskGraph(proposed.graph.id, task.id, TaskReport.Succeeded, finish, person)
+                val done = connection.until(proposed.graph.id) { it.task("Accept").graph?.state == TaskState.Waiting }
+                assertEquals(TaskState.Succeeded, done.task("Write").graph?.state)
+                assertEquals(1, reviewer.requests.size)
+                if (provider == RuntimeKind.ClaudeCode) {
+                    assertTrue("Device acceptance" in reviewer.requests.single().prompt)
+                    assertTrue(done.summaries.getValue(task.id).limitations.any { "Device acceptance" in it })
+                }
+            }
         }
     }
 
@@ -57,6 +130,7 @@ class TaskGraphRuntimeTest {
 
     private fun workspace(codex: Scripted, claude: Scripted,
         workflowCheck: (suspend (AgentWorkspace, String, WorkflowStage) -> WorkflowCheckResult)? = null,
+        onOwner: (AgentWorkspace) -> Unit = {},
         body: suspend (AgentWorkspaceConnection, File, AgentWorktrees) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("taskgraph-root").toFile()
         val data = Files.createTempDirectory("taskgraph-data")
@@ -73,7 +147,7 @@ class TaskGraphRuntimeTest {
                 { task, _, stage -> callback(workspace, task, stage) }
             }
             AgentWorkspaceConnection.open(root, data, mapOf(codex.kind to codex, claude.kind to claude),
-                extraTools = { workspace = it; emptyList() }, workflowCheck = check).use {
+                extraTools = { workspace = it; onOwner(it); emptyList() }, workflowCheck = check).use {
                 body(it, root, AgentWorktrees(root, data.resolve("worktrees"), LocalAgentArtifacts(data.resolve("artifacts"))))
             }
         }
@@ -294,7 +368,7 @@ class TaskGraphRuntimeTest {
             AgentWorkspace(root, data, emptyMap()).use { workspace ->
                 workspace.board.propose(draft(), person)
                 workspace.board.advance("G1", "T1") { task, plan ->
-                    task.copy(graph = plan.copy(state = TaskState.Running, attempt = 2))
+                    task.copy(graph = plan.copy(state = TaskState.Running, attempt = 2, seat = plan.seat?.copy(access = TaskAccess.Read)))
                 }
                 val scope = TaskGraphScope(owner, workspace, "G1")
                 try {

@@ -126,10 +126,12 @@ internal fun AgentWorkspace.recoverTask(graph: String, task: String, revision: L
                     readySince = null,
                     worktreeId = currentPlan.worktreeId.takeUnless { action == TaskRecoveryAction.Abandon && writing },
                     outcome = if (candidate == null) currentPlan.outcome else (currentPlan.outcome ?: TaskOutcome()).copy(
-                        summary = detail, candidateId = candidate.id, files = candidate.changedFiles, at = now, attempt = attempt, questions = emptyList())))
+                        summary = detail, candidateId = candidate.id, files = candidate.changedFiles, at = now, attempt = attempt, questions = emptyList(),
+                        unverified = listOf("The interrupted native outcome is unknown; independent review and candidate checks are still required."))))
         }
         if (candidate != null) board.appendHandoff(TaskHandoff(graph, task, attempt,
             goal = value.intent.ifBlank { value.title }.take(4000), done = detail, candidate = candidate.id,
-            changedPaths = candidate.changedFiles.take(100), sessionLogs = listOfNotNull(plan.outcome?.log)), by)
+            changedPaths = candidate.changedFiles.take(100), sessionLogs = listOfNotNull(plan.outcome?.log),
+            openIssues = listOf("Unverified: the interrupted native outcome is unknown; independent review and candidate checks are still required.")), by)
         board.view(graph)
     } }

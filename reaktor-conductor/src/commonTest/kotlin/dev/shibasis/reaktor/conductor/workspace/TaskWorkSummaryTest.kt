@@ -14,6 +14,47 @@ class TaskWorkSummaryTest {
         CheckResult(listOf("./gradlew", id), outcome, revision = candidate), "kernel")
     private fun finding(id: String, candidate: String) = AgentFinding(id, candidate, "review", "claude", id, "Detail", "high")
 
+    @Test fun writerFinishRequiresExactCompleteKernelEvidenceOrSpecificRecordedGaps() {
+        val outcome = requireNotNull(task.graph?.outcome)
+        val pass = receipt("unit", "c2", CheckOutcome.Passed).let { it.copy(result = it.result.copy(coverage = CheckCoverage.Complete)) }
+        fun summary(checks: List<AgentCandidateCheck>) = requireNotNull(TaskSummaries.of(task, AgentTaskEvidence("T1", listOf(candidate), checks = checks)))
+        assertNull(outcome.finishRefusal(summary(listOf(pass))))
+        listOf(emptyList(), listOf(pass.copy(source = "agent")), listOf(pass.copy(candidateId = "c1")),
+            listOf(pass.copy(result = pass.result.copy(revision = "c1"))),
+            listOf(pass.copy(result = pass.result.copy(outcome = CheckOutcome.Failed))),
+            listOf(pass.copy(result = pass.result.copy(coverage = CheckCoverage.Unparsed("partial")))),
+            listOf(pass, pass.copy(result = pass.result.copy(outcome = CheckOutcome.Failed)))).forEach {
+            assertContains(requireNotNull(outcome.finishRefusal(summary(it))), "Finish gate")
+        }
+        val gap = outcome.copy(unverified = listOf("No physical device was attached; the device acceptance remains unverified."))
+        assertNull(gap.finishRefusal(summary(emptyList())))
+        assertNotNull(gap.finishRefusal(summary(emptyList()).copy(candidate = null)))
+        assertNotNull(gap.finishRefusal(summary(emptyList()).copy(attempt = 1)))
+        listOf(listOf(" "), List(11) { "Gap $it" }, listOf("x".repeat(1001))).forEach {
+            assertNotNull(outcome.copy(unverified = it).finishRefusal(summary(emptyList())))
+        }
+        val withGap = task.copy(graph = task.graph!!.copy(outcome = gap))
+        assertTrue(requireNotNull(TaskSummaries.of(withGap, AgentTaskEvidence("T1", listOf(candidate)))).limitations.any {
+            "physical device" in it && "agent reported" in it })
+        assertEquals(gap, ConductorJson.decodeFromString(TaskOutcome.serializer(), ConductorJson.encodeToString(TaskOutcome.serializer(), gap)))
+        assertTrue(ConductorJson.decodeFromString(TaskOutcome.serializer(), """{"summary":"Legacy"}""").unverified.isEmpty())
+    }
+
+    @Test fun compilerWarningsRequireSpecificExplanationsForTheCurrentCandidateEvenAfterPassingChecks() {
+        val outcome = requireNotNull(task.graph?.outcome)
+        val warning = finding("warning-one", "c2").copy(producerRunId = "kernel:compiler-warning", participant = "compiler-warning",
+            severity = "medium", sourcePath = "Parser.kt", line = 4)
+        val pass = receipt("unit", "c2", CheckOutcome.Passed).let { it.copy(result = it.result.copy(coverage = CheckCoverage.Complete)) }
+        fun summary(findings: List<AgentFinding>) = requireNotNull(TaskSummaries.of(task,
+            AgentTaskEvidence("T1", listOf(candidate), findings = findings, checks = listOf(pass))))
+        assertContains(requireNotNull(outcome.finishRefusal(summary(listOf(warning)))), "warning-one")
+        assertNotNull(outcome.copy(unverified = listOf("Device checks unavailable")).finishRefusal(summary(listOf(warning))))
+        assertNotNull(outcome.copy(unverified = listOf("warning-one: ")).finishRefusal(summary(listOf(warning))))
+        assertNull(outcome.copy(unverified = listOf("warning-one: The API override must retain this unused argument.")).finishRefusal(summary(listOf(warning))))
+        assertNull(outcome.finishRefusal(summary(listOf(warning.copy(candidateId = "c1")))))
+        assertNotNull(outcome.copy(unverified = listOf("warning-one: Reviewed")).finishRefusal(summary(listOf(warning.copy(participant = "compiler-warning-coverage")))))
+    }
+
     @Test fun nativePlanFormatsRetainStatesAndDoNotTreatAnOrdinaryToolAsAPlan() {
         val items = listOf(
             AgentActivityItem("p", ActivityKind.Plan, "Execution plan", output = """{"plan":[{"step":"Parse offsets","status":"completed"},{"step":"Verify","status":"in_progress"}]}"""),

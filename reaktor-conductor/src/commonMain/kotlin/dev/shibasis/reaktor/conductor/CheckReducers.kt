@@ -18,10 +18,17 @@ object CheckReducers {
      * `e: file:///abs/path/Foo.kt:12:34 Unresolved reference 'bar'.`
      */
     private val kotlinDiagnostic =
-        Regex("""^([ew]): (?:file://)?(\S+?):(\d+):(\d+)\s+(.*)$""")
+        Regex("""^([ew]): (?:file://)?(.+?):(\d+):(\d+)\s+(.*)$""")
 
     /** Gradle's own task failure lines, which carry no file position. */
     private val gradleFailure = Regex("""^(?:FAILURE: |> Task (\S+) FAILED|> (.+))$""")
+
+    fun compilerWarnings(output: String): Sequence<CheckFailure> = output.lineSequence().mapNotNull { line ->
+        kotlinDiagnostic.matchEntire(line.trim())?.takeIf { it.groupValues[1] == "w" }?.let {
+            val (_, file, row, column, message) = it.destructured
+            CheckFailure(message.trim().take(2000), file = file, line = row.toIntOrNull(), column = column.toIntOrNull(), kind = "compiler-warning")
+        }
+    }
 
     val kotlin = CheckReducer { command, exitCode, output ->
         val lines = output.lines()
@@ -152,8 +159,14 @@ object CheckReducers {
         environment: String? = null,
         durationMillis: Long? = null,
         log: ArtifactRef? = null,
-    ): CheckResult = ordered.firstNotNullOf { it.reduce(command, exitCode, output) }
-        .copy(revision = revision, environment = environment, durationMillis = durationMillis, log = log)
+    ): CheckResult {
+        val warnings = mutableListOf<CheckFailure>()
+        var warningCount = 0
+        compilerWarnings(output).forEach { warning -> warningCount++; if (warnings.size < 50) warnings += warning }
+        return ordered.firstNotNullOf { it.reduce(command, exitCode, output) }
+            .copy(revision = revision, environment = environment, durationMillis = durationMillis, log = log,
+                warnings = warnings, warningCount = warningCount)
+    }
 }
 
 private operator fun <T> List<T>.component4(): T = this[3]

@@ -67,10 +67,13 @@ data class CheckResult(
     val parser: String = "none",
     val coverage: CheckCoverage = CheckCoverage.Unparsed("no parser ran"),
     val durationMillis: Long? = null,
+    val warnings: List<CheckFailure> = emptyList(),
+    val warningCount: Int = warnings.size,
 ) {
     init {
         require(command.isNotEmpty()) { "A check result names the command that produced it" }
         require(failureCount >= failures.size) { "Reported failures cannot exceed the count" }
+        require(warnings.size <= 50 && warningCount >= warnings.size) { "Warning diagnostics are bounded and retain their count" }
     }
 
     /** True when this result can be attributed to a specific candidate. */

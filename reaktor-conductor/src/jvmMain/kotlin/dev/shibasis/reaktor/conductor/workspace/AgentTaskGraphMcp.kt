@@ -165,16 +165,18 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             "Reports belong to the current attempt and its linked session; the lead reports on its lead tasks; only a person passes a gate. A candidate selection names selectedTask and the exact candidate; the owner verifies checks and panel evidence.",
             objectSchema(mapOf(graphId, "task" to stringSchema("Task id"), "status" to enumSchema("The task's status", TaskReport.entries.map { it.name }),
                 "attempt" to buildJsonObject { put("type", "integer"); put("minimum", 0); put("description", "The attempt observed by the caller; stale reports are refused") },
-                "selectedTask" to stringSchema("Eligible writing task chosen by a person"), "candidate" to stringSchema("Exact candidate id displayed in choices"),
+                "selectedTask" to stringSchema("Eligible writing task chosen by a person"), "candidate" to stringSchema("Exact final candidate id; a selection uses the candidate displayed in choices"),
                 "summary" to stringSchema("What happened, at most 8,000 characters"), "verdict" to stringSchema("pass, repair or fail for a Decision task; accepted for a gate"),
                 "files" to buildJsonObject { put("type", "array"); put("items", stringSchema("A changed file")) },
-                "questions" to buildJsonObject { put("type", "array"); put("items", stringSchema("A question for the person")) }, by),
+                "questions" to buildJsonObject { put("type", "array"); put("items", stringSchema("A question for the person")) },
+                "unverified" to buildJsonObject { put("type", "array"); put("maxItems", 10); put("items", stringSchema("Specific work that could not be verified, and why")) }, by),
                 listOf("graph", "task", "status", "by")), readOnly = false, idempotent = true) { args ->
-            args.only("graph", "task", "status", "attempt", "summary", "verdict", "files", "questions", "selectedTask", "candidate", "by")
+            args.only("graph", "task", "status", "attempt", "summary", "verdict", "files", "questions", "unverified", "selectedTask", "candidate", "by")
             val id = args.text("graph")
             val outcome = TaskOutcome(summary = (args["summary"] as? JsonPrimitive)?.contentOrNull.orEmpty(), verdict = (args["verdict"] as? JsonPrimitive)?.contentOrNull,
                 files = (args["files"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(), questions = (args["questions"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(),
                 attempt = (args["attempt"] as? JsonPrimitive)?.intOrNull,
+                unverified = (args["unverified"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty(),
                 selectedTask = (args["selectedTask"] as? JsonPrimitive)?.contentOrNull, candidateId = (args["candidate"] as? JsonPrimitive)?.contentOrNull)
             val task = workspace.reportTask(id, args.text("task"), TaskReport.valueOf(args.text("status")), outcome, workspace.taskGraphCaller(id, args.by()))
             AgentWorkspaceJson.encodeToJsonElement(BoardTask.serializer(), task)
