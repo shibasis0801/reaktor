@@ -36,6 +36,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.assertFailsWith
 
 @Serializable @JvmInline value class NodeRef(val value: String)
 
@@ -204,12 +205,22 @@ class OperationKernelTest {
     }
 
     @Test
-    fun accessShowsWhatEachSeatMayDo() = kernel(DoorPolicy(mapOf("codex" to SeatPolicy(allow = SafetyClass.SourceWrite), "gemini" to SeatPolicy(SafetyClass.ReadOnly, SafetyClass.ReadOnly)))) { kernel, _, _ ->
+    fun accessShowsWhatEachSeatMayDo() = kernel(DoorPolicy(mapOf("codex" to SeatPolicy(allow = SafetyClass.SourceWrite), "gemini" to SeatPolicy(SafetyClass.ReadOnly, SafetyClass.ReadOnly)))) { kernel, approvals, _ ->
         val access = kernel.access(listOf("*", "codex", "gemini")).associateBy { it.id.value }
         assertEquals(mapOf("*" to Access.Allowed, "codex" to Access.Allowed, "gemini" to Access.Allowed), access.getValue("build.show").seats)
         assertEquals(mapOf("*" to Access.Allowed, "codex" to Access.Allowed, "gemini" to Access.Refused), access.getValue("code.write").seats)
         assertEquals(Access.Ask, access.getValue("tool.workspace").seats["codex"])
         assertEquals(kernel.catalog().map { it.id }, access.values.map { it.id })
+        assertEquals(Access.Ask, access.getValue("ship.apply").seats["*"])
+        val shipping = Invocation(OperationId("ship.apply"), buildJsonObject { put("path", "bundle") }, CallCaller("*"), "ship-reviewed")
+        val waiting = assertIs<Outcome.ApprovalRequired>(kernel.invoke(shipping))
+        assertEquals("ship fixture", approvals.pending().single().confirmationPhrase)
+        assertFailsWith<IllegalArgumentException> { approvals.decide(waiting.approval, true, "terminal") }
+        assertFailsWith<IllegalArgumentException> { approvals.decide(waiting.approval, true, "terminal", "wrong") }
+        approvals.decide(waiting.approval, true, "terminal", "ship fixture")
+        val shipped = assertIs<Outcome.Completed>(kernel.invoke(shipping))
+        assertEquals(shipped, kernel.invoke(shipping))
+        assertTrue(approvals.pending().isEmpty())
     }
 
     @Test
@@ -308,6 +319,8 @@ class OperationKernelTest {
             operation<ShowRequest, Shown>("build.show", "Show one build node") { Shown(it.node.value, it.detail) },
             operation<Write, Unit>("code.write", "Write a file", SafetyClass.SourceWrite) { written += it.path },
             operation<Write, String>("source.sign", "Sign a file", SafetyClass.SourceWrite) { "${approval?.id} ${approval?.state} ${approval?.decidedBy}" },
+            Operation(OperationId("ship.apply"), "Ship a reviewed plan", SafetyClass.ProductionReversibleWrite,
+                Write.serializer(), Write.serializer(), confirmationPhraseFor = { "ship fixture" }) { it },
             rawOperation("source.classify", "Classify source access", SafetyClass.SourceWrite, { JsonObject(emptyMap()) },
                 effectFor = { _, caller ->
                     require(caller.runId != null) { "Missing run identity" }

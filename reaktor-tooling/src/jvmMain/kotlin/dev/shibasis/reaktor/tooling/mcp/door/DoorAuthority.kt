@@ -137,18 +137,18 @@ object DoorAuthority {
  * a person's decision, not a lock: say so wherever it is described.
  */
 class DoorApprovals(private val directory: Path, private val minutes: Long = 15) {
-    fun request(seat: String?, provider: String, call: String, effect: SafetyClass, arguments: JsonObject): DoorApproval {
+    fun request(seat: String?, provider: String, call: String, effect: SafetyClass, arguments: JsonObject, confirmationPhrase: String? = null): DoorApproval {
         val fingerprint = DoorAuthority.fingerprint(seat, provider, call, arguments)
-        live().firstOrNull { it.fingerprint == fingerprint && it.state == DoorApproval.State.Pending }?.let { return it }
+        live().firstOrNull { it.fingerprint == fingerprint && it.confirmationPhrase == confirmationPhrase && it.state == DoorApproval.State.Pending }?.let { return it }
         val now = System.currentTimeMillis()
         val id = ByteArray(5).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
-        return DoorApproval(id, fingerprint, seat, provider, call, effect, arguments, now, now + minutes * 60_000).also(::write)
+        return DoorApproval(id, fingerprint, seat, provider, call, effect, arguments, now, now + minutes * 60_000, confirmationPhrase = confirmationPhrase).also(::write)
     }
 
     /** Spends the approval for exactly this call, if a person has granted one. */
-    fun spend(seat: String?, provider: String, call: String, arguments: JsonObject): DoorApproval? {
+    fun spend(seat: String?, provider: String, call: String, arguments: JsonObject, confirmationPhrase: String? = null): DoorApproval? {
         val fingerprint = DoorAuthority.fingerprint(seat, provider, call, arguments)
-        val granted = live().firstOrNull { it.fingerprint == fingerprint && it.state == DoorApproval.State.Approved } ?: return null
+        val granted = live().firstOrNull { it.fingerprint == fingerprint && it.confirmationPhrase == confirmationPhrase && it.state == DoorApproval.State.Approved } ?: return null
         return granted.copy(state = DoorApproval.State.Used).also(::write)
     }
 
@@ -161,9 +161,10 @@ class DoorApprovals(private val directory: Path, private val minutes: Long = 15)
 
     fun decisions(): List<DoorApproval> = live().filter { it.state != DoorApproval.State.Pending && it.decidedBy != null }
 
-    fun decide(id: String, approve: Boolean, by: String): DoorApproval {
+    fun decide(id: String, approve: Boolean, by: String, confirmationPhrase: String? = null): DoorApproval {
         val found = live().firstOrNull { it.id == id } ?: error("No approval '$id' is waiting; it may have expired")
         check(found.state == DoorApproval.State.Pending) { "Approval $id was already ${found.state.name.lowercase()}" }
+        require(!approve || found.confirmationPhrase == null || confirmationPhrase == found.confirmationPhrase) { "The confirmation phrase did not match" }
         return found.copy(state = if (approve) DoorApproval.State.Approved else DoorApproval.State.Denied, decidedBy = by).also(::write)
     }
 

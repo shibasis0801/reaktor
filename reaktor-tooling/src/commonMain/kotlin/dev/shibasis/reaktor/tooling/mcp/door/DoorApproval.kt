@@ -17,6 +17,7 @@ data class DoorApproval(
     val expiresAtEpochMillis: Long,
     val state: State = State.Pending,
     val decidedBy: String? = null,
+    val confirmationPhrase: String? = null,
 ) {
     @Serializable enum class State { Pending, Approved, Denied, Used }
 }

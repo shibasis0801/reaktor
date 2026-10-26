@@ -27,8 +27,8 @@ abstract class WranglerDeploy : ProcessTask() {
     @get:Input @get:Optional abstract val protocolAction: Property<String>
     @get:Input @get:Optional abstract val protocolRequest: Property<String>
 
-    @Option(option = "deploy-action", description = "plan, apply, publish from one checked build, or rollback the declared Worker")
-    fun deployAction(value: String) { require(value in listOf("plan", "apply", "publish", "rollback")); action.set(value) }
+    @Option(option = "deploy-action", description = "plan, verify, apply, publish from one checked build, or rollback the declared Worker")
+    fun deployAction(value: String) { require(value in listOf("plan", "verify", "apply", "publish", "rollback")); action.set(value) }
 
     @get:Internal val worker: FleetWorker get() = BuildModelReader.json.decodeFromString(declaration.get())
     @get:Internal val deployment: WorkerDeployment get() = worker.deployments.single { it.environment.name == environmentName.get() }
@@ -78,7 +78,7 @@ abstract class WranglerDeploy : ProcessTask() {
                 WorkerDeployKernel.observe(plan, run, record)
                 logger.lifecycle("Worker plan {}: {} differences; unobserved settings {}", spec.node, plan.differences.size, plan.unobservedSettings)
             }
-            "apply", "rollback" -> {
+            "apply", "rollback", "verify" -> {
                 val plan = protocolRequest.orNull?.let { request ->
                     BuildModelReader.readRequest(File(request)).deployments.single { it.spec.node == spec.node }
                 } ?: WorkerDeployKernel.retained(root, spec.node, spec.environment)
@@ -88,7 +88,8 @@ abstract class WranglerDeploy : ProcessTask() {
                     val latest = receipts.first { it.remoteVersion == plan.previousVersion && it.action == "apply" }
                     val previous = receipts.first { it.remoteVersion == latest.rollbackTarget }
                     WorkerDeployKernel.rollback(plan, latest, previous, run, execute, record)
-                } else WorkerDeployKernel.apply(plan, run, execute, record)
+                } else if (requestedAction == "verify") WorkerDeployKernel.verify(plan, run, execute, record)
+                else WorkerDeployKernel.apply(plan, run, execute, record)
             }
             else -> error("Unsupported deployment action")
         }

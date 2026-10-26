@@ -38,7 +38,8 @@ object GradleInvocationKernel {
         val environments = request.arguments.filter { it.startsWith(environmentPrefix) }
         require(environments.size <= 1) { "Invocation must select one environment" }
         environments.singleOrNull()?.substringAfter('=')?.let { environment ->
-            require(node.environments.any { it.name == environment } && model.declarations.any { input ->
+            require((node.environments.any { it.name == environment } ||
+                node.effect == Effect.Deploy && node.environments.isEmpty()) && model.declarations.any { input ->
                 input.build == node.id.build && input.option?.let { option ->
                     option.name == GradleProtocol.EnvironmentOption && option.scope == node.id.project && option.value == environment
                 } == true
