@@ -87,7 +87,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
         McpTool("agent_taskgraph_context", "Preview the exact task prompt and optional context for this graph/source snapshot, or the saved dispatch inputs. Candidate evidence, repository instructions and provider policy are added by the native turn.",
             objectSchema(mapOf(graphId, "task" to stringSchema("Task id")), listOf("graph", "task")), true, true) { args ->
             args.only("graph", "task")
-            AgentWorkspaceJson.encodeToJsonElement(TaskContext.serializer(), requireNotNull(workspace.graphs) { "Task graph runtime is unavailable" }.context(args.text("graph"), args.text("task")))
+            runBlocking { AgentWorkspaceJson.encodeToJsonElement(TaskContext.serializer(), requireNotNull(workspace.graphs) { "Task graph runtime is unavailable" }.context(args.text("graph"), args.text("task"))) }
         },
         McpTool("agent_taskgraph_seats", "Profiles, agents, models and efforts this workspace can run. Supply seat to resolve its profile and task overrides. A read-only Decision seat may name lenses: [profile ids], two to six profiles from both Codex and Claude Code; its main seat independently verifies the findings. Resolved profiles are pinned at dispatch.",
             objectSchema(mapOf("seat" to any)), true, true) { args ->
