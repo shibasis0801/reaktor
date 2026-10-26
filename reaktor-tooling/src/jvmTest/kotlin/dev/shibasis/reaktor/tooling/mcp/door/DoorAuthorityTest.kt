@@ -206,7 +206,7 @@ class DoorAuthorityTest {
 
     private fun door(safety: SafetyClass, trustHints: Boolean, policy: DoorPolicy = DoorPolicy.Guarded): McpDoor {
         val server = ReaktorMcpServer("db", "1", "", listOf(
-            McpTool("list_tables", "Lists tables.", emptyObjectSchema(), readOnly = true, idempotent = true, raw = true) { ran++; textResult("rows", failed = false) },
+            McpTool("list_tables", "Lists tables.", emptyObjectSchema(), readOnly = true, idempotent = true, raw = true, effect = SafetyClass.ReadOnly.name) { ran++; textResult("rows", failed = false) },
             McpTool("execute_sql", "Runs SQL.", emptyObjectSchema().let { JsonObject(it - "additionalProperties") }, readOnly = false, idempotent = false, destructive = true, raw = true) { ran++; textResult("done", failed = false) },
         ))
         val mount = DoorMount(McpLinkProvider("db", FunctionMcpLink("db") { server.handle(it) }, safety), prefix = "db", trustReadOnlyHint = trustHints)

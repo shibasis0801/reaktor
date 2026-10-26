@@ -26,6 +26,7 @@ data class CallClaims(
     val destructive: Boolean? = null,
     val idempotent: Boolean? = null,
     val openWorld: Boolean? = null,
+    val nativeEffect: SafetyClass? = null,
 )
 
 @Serializable
