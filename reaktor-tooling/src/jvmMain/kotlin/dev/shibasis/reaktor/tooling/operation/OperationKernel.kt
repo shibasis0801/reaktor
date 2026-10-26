@@ -13,6 +13,11 @@ import dev.shibasis.reaktor.tooling.mcp.door.DoorApprovals
 import dev.shibasis.reaktor.tooling.mcp.door.DoorAuthority
 import dev.shibasis.reaktor.tooling.mcp.door.DoorDecision
 import dev.shibasis.reaktor.tooling.mcp.door.DoorPolicy
+import dev.shibasis.reaktor.telemetry.export.ClientOperations
+import dev.shibasis.reaktor.telemetry.export.ClientOperationContext
+import io.opentelemetry.kotlin.ExperimentalApi
+import io.opentelemetry.kotlin.tracing.data.StatusData
+import io.opentelemetry.kotlin.tracing.model.Span
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -38,6 +43,7 @@ class OperationAuthority(
     val onApprovalNeeded: (DoorApproval) -> Unit = {},
     val model: OperationModel? = null,
     val runs: Pair<WorkspaceId, RunEventSink>? = null,
+    val telemetry: ClientOperations? = null,
 )
 
 data class ModelVerdict(val allowed: Boolean, val enforced: Boolean, val rule: String, val record: JsonObject)
@@ -46,6 +52,7 @@ fun interface OperationModel {
     fun decide(caller: CallCaller, provider: String, operation: OperationId): ModelVerdict?
 }
 
+@OptIn(ExperimentalApi::class)
 class OperationKernel(
     private val graph: Graph,
     private val authority: OperationAuthority,
@@ -89,12 +96,48 @@ class OperationKernel(
     }
 
     suspend fun invoke(invocation: Invocation): Outcome {
+        val telemetry = authority.telemetry ?: return execute(invocation, null)
+        return telemetry.traceAsync(invocation.operation.value, buildMap {
+            put("reaktor.operation.id", invocation.operation.value)
+            put("reaktor.operation.effect", "unknown")
+            invocation.caller.seat?.let { put("reaktor.operation.seat", it) }
+            invocation.caller.runId?.let { put("reaktor.caller.run_id", it) }
+        }) {
+            val span = currentCoroutineContext()[ClientOperationContext]?.span
+            try {
+                execute(invocation, span).also { outcome ->
+                    val disposition = when (outcome) {
+                        is Outcome.Completed -> "completed"
+                        is Outcome.Failed -> "failed"
+                        is Outcome.ApprovalRequired -> "approval-required"
+                        is Outcome.Denied -> "denied"
+                        is Outcome.Refused -> "refused"
+                    }
+                    span?.setStringAttribute("reaktor.operation.outcome", disposition)
+                    if (outcome is Outcome.Failed || outcome is Outcome.Denied || outcome is Outcome.Refused)
+                        span?.status = StatusData.Error(disposition)
+                }
+            } catch (cancelled: CancellationException) {
+                span?.setStringAttribute("reaktor.operation.outcome", "cancelled")
+                throw cancelled
+            } catch (failure: Throwable) {
+                span?.setStringAttribute("reaktor.operation.outcome", "failed")
+                throw failure
+            }
+        }
+    }
+
+    private suspend fun execute(invocation: Invocation, span: Span?): Outcome {
         val started = System.nanoTime()
         val entry = entries().firstOrNull { it.catalog.id == invocation.operation }
             ?: return Outcome.Failed("Unknown operation ${invocation.operation}. operation.catalog lists them.")
         val descriptor = entry.catalog
+        span?.setStringAttribute("reaktor.operation.provider", descriptor.provider)
         val key = invocation.requestId?.let { invocation.caller to it }
-        key?.let { synchronized(replies) { replies[it] } }?.let { return it }
+        key?.let { synchronized(replies) { replies[it] } }?.let {
+            span?.setBooleanAttribute("reaktor.operation.replayed", true)
+            return it
+        }
 
         var verdict: ModelVerdict? = null
         fun record(outcome: String, detail: String? = null) = authority.log?.record(
@@ -104,6 +147,7 @@ class OperationKernel(
         val seat = invocation.caller.seat
         val effect = runCatching { entry.effect(invocation.arguments, invocation.caller) }
             .getOrElse { failure -> return Outcome.Failed(failure.message ?: "Could not classify ${descriptor.id}").also { record("failed", it.message) } }
+        span?.setStringAttribute("reaktor.operation.effect", effect.name)
         verdict = authority.model?.let { model -> runCatching { model.decide(invocation.caller, descriptor.provider, descriptor.id) }.getOrNull() }
         verdict?.takeIf { it.enforced && !it.allowed }?.let { denied -> return Outcome.Refused(effect, denied.rule).also { record("refused", denied.rule) } }
         val ownPlan = runCatching { entry.ownPlan(invocation.arguments, invocation.caller) }.getOrDefault(false)
@@ -153,6 +197,7 @@ class OperationKernel(
             }
             run
         }
+        receipt?.let { span?.setStringAttribute("reaktor.run.id", it.id.value) }
         suspend fun finishReceipt(status: RunStatus) {
             receipt?.let { run ->
                 val now = System.currentTimeMillis()
