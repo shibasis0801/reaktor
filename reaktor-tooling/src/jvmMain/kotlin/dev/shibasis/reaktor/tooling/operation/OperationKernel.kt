@@ -14,6 +14,12 @@ import dev.shibasis.reaktor.tooling.mcp.door.DoorAuthority
 import dev.shibasis.reaktor.tooling.mcp.door.DoorDecision
 import dev.shibasis.reaktor.tooling.mcp.door.DoorPolicy
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -59,7 +65,7 @@ class OperationKernel(
         operation<DescribeRequest, OperationDescriptor>("operation.describe", "One operation's input and output schema and its effect.") { request ->
             describe(request.operation) ?: error("Unknown operation ${request.operation}")
         },
-    ).map { it.entry("kernel") }
+    ).map { it.entry("kernel", graph.coroutineScope) }
 
     fun catalog(): List<CatalogEntry> {
         val listed = entries().map { it.catalog }
@@ -181,7 +187,8 @@ class OperationKernel(
 
     private fun entries(): List<Entry> {
         val nodes = graph.nodes
-        val typed = nodes.filterIsInstance<OperationNode>().flatMap { node -> node.operations.map { it.entry(node.provider) } }
+        val typed = nodes.filterIsInstance<OperationNode>().filter { it.coroutineScope.isActive }
+            .flatMap { node -> node.operations.map { it.entry(node.provider, node.coroutineScope) } }
         val taken = (own + typed).mapTo(mutableSetOf()) { it.catalog.id }
         val legacy = nodes.filterIsInstance<ToolNode>().filterNot { it.isClosed }.flatMap { node ->
             node.definitions.mapNotNull { definition ->
@@ -197,8 +204,12 @@ class OperationKernel(
         return own + typed.filterNot { it.catalog.id in OwnIds } + legacy
     }
 
-    private fun Operation<*, *>.entry(provider: String) =
-        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }, effectFor, appliesOwnPlan, confirmationPhraseFor) { call, arguments -> execute(call, arguments, json) }
+    private fun Operation<*, *>.entry(provider: String, scope: CoroutineScope) =
+        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }, effectFor, appliesOwnPlan, confirmationPhraseFor) { call, arguments ->
+            currentCoroutineContext().ensureActive()
+            val invocation = scope.async(currentCoroutineContext().minusKey(Job)) { execute(call, arguments, json) }
+            try { invocation.await() } finally { invocation.cancel() }
+        }
 
     private class Entry(
         val catalog: CatalogEntry,

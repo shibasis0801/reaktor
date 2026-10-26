@@ -13,6 +13,11 @@ import dev.shibasis.reaktor.tooling.mcp.door.DoorApprovals
 import dev.shibasis.reaktor.tooling.mcp.door.DoorPolicy
 import dev.shibasis.reaktor.tooling.mcp.door.SeatPolicy
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.SerialName
@@ -228,13 +233,33 @@ class OperationKernelTest {
         val dependencies = koinApplication {}
         val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
         val offered = mutableListOf<Operation<*, *>>()
-        graph.attach(object : OperationNode(graph, "hangar") { override val operations: List<Operation<*, *>> get() = offered.toList() })
+        val node = object : OperationNode(graph, "hangar") { override val operations: List<Operation<*, *>> get() = offered.toList() }
+        graph.attach(node)
         val kernel = OperationKernel(graph, OperationAuthority())
         try {
             assertTrue(kernel.catalog().none { it.provider == "hangar" })
             offered += operation<Write, String>("hangar.read", "Read") { it.path }
             assertEquals(listOf("hangar.read"), kernel.catalog().filter { it.provider == "hangar" }.map { it.id.value })
             assertEquals(JsonPrimitive("e"), assertIs<Outcome.Completed>(kernel.invoke(Invocation(OperationId("hangar.read"), buildJsonObject { put("path", "e") }))).result)
+            val started = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+            var stopped = 0
+            offered += operation<Write, String>("hangar.wait", "Wait") {
+                assertEquals("operation-call", currentCoroutineContext()[CoroutineName]?.name)
+                started.send(Unit)
+                try { kotlinx.coroutines.awaitCancellation() } finally { stopped++ }
+            }
+            val waiting = Invocation(OperationId("hangar.wait"), buildJsonObject { put("path", "e") })
+            val caller = async(CoroutineName("operation-call")) { kernel.invoke(waiting) }
+            started.receive()
+            caller.cancelAndJoin()
+            assertEquals(1, stopped)
+            val owner = async(CoroutineName("operation-call")) { kernel.invoke(waiting) }
+            started.receive()
+            node.close()
+            runCurrent()
+            assertTrue(owner.isCancelled, "Closing the operation node must cancel its active invocation")
+            assertEquals(2, stopped)
+            assertTrue(kernel.catalog().none { it.provider == "hangar" })
         } finally { graph.close(); dependencies.close() }
     }
 
