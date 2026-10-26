@@ -44,7 +44,7 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
     val ops = "ops" to buildJsonObject {
         put("type", "array"); put("items", any)
         put("description", "Operations, each with type: add {title, key?, intent?, acceptance?, scope?, kind?, seat?, contract?, check?, dependsOn?, layout?, parent?, alternatives?: {seats: [two or three write seats], check, review: read-only Decision seat with two to six lenses}}, " +
-            "update {task, title?, intent?, acceptance?, scope?, kind?, contract?, check?, layout?, excludedContext?: [optional memory: or decision: refs; person-only before dispatch]}, split {task, into: [add…]}, remove {task}, " +
+            "update {task, title?, intent?, acceptance?, scope?, kind?, contract?, check?, layout?, excludedContext?: [optional memory:, decision: or atlas: refs; person-only before dispatch]}, split {task, into: [add…]}, remove {task}, " +
             "connect {from, to, condition?, required?}, disconnect {from, to}, seat {task, seat}, note {text, layout?}, retry {task}, envelope {envelope}. " +
             "A key names a task added in the same change so later operations can refer to it.")
     }
