@@ -1,13 +1,17 @@
 package dev.shibasis.reaktor.tooling.infra
 
+import dev.shibasis.reaktor.tooling.SafetyClass
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 
-const val WORKER_OPERATION_PROTOCOL = "reaktor.worker.operations.v1"
+fun SafetyClass.workerEffect(): String = when (this) {
+    SafetyClass.LiveRead -> "read"
+    SafetyClass.ProductionReversibleWrite -> "write"
+    else -> throw IllegalArgumentException("Unsupported Worker safety classification: $this")
+}
 
-@Serializable
-enum class WorkerEffect { Read, Write }
+const val WORKER_OPERATION_PROTOCOL = "reaktor.worker.operations.v1"
 
 @Serializable
 data class WorkerOperationDescriptor(
@@ -39,17 +43,17 @@ data class WorkerOperationResult(
 )
 
 fun WorkerOperationCatalog.requireRead(environment: String, operation: String): WorkerOperationDescriptor {
-    return requireOperation(environment, operation, WorkerEffect.Read)
+    return requireOperation(environment, operation, SafetyClass.LiveRead)
 }
 
-fun WorkerOperationCatalog.requireOperation(environment: String, operation: String, expectedEffect: WorkerEffect): WorkerOperationDescriptor {
+fun WorkerOperationCatalog.requireOperation(environment: String, operation: String, expectedEffect: SafetyClass): WorkerOperationDescriptor {
     check(protocol == WORKER_OPERATION_PROTOCOL && this.environment == environment && worker.isNotBlank()) {
         "Worker protocol or environment does not match the selected execution target"
     }
     val capability = requireNotNull(operations.singleOrNull { it.id == operation }) {
         "Worker does not advertise the requested operation"
     }
-    check(capability.effect == expectedEffect.name.lowercase() && capability.timeoutMillis in 1..30_000) {
+    check(capability.effect == expectedEffect.workerEffect() && capability.timeoutMillis in 1..30_000) {
         "Worker effect or execution bound does not match the planned operation"
     }
     return capability

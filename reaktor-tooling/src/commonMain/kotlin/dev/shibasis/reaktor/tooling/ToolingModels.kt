@@ -147,15 +147,19 @@ data class SafetyPolicy(
         get() = classification.requiresApproval
 }
 
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 @Serializable
 enum class SafetyClass(val rank: Int, val requiresApproval: Boolean) {
+    @kotlinx.serialization.json.JsonNames("SourceRead")
     ReadOnly(0, false),
     LocalEphemeral(1, false),
     LocalArtifactWrite(2, false),
     SourceWrite(3, true),
     DeviceWrite(4, true),
+    @kotlinx.serialization.json.JsonNames("Read")
     LiveRead(5, false),
     NonProductionWrite(6, true),
+    @kotlinx.serialization.json.JsonNames("Write")
     ProductionReversibleWrite(7, true),
     CredentialWrite(8, true),
     DataMigration(9, true),

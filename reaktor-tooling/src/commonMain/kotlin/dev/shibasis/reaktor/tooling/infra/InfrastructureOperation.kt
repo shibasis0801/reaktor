@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.infra
 
+import dev.shibasis.reaktor.tooling.SafetyClass
 import kotlinx.serialization.Serializable
 
 /** Executable provider identities and private payload references; never credentials. */
@@ -112,7 +113,7 @@ sealed interface InfrastructureOperation {
         val maxRows: Int = 100,
         val explain: Boolean = false,
         val catalog: WorkerStoreCatalog? = null,
-        val expectedEffect: WorkerEffect = WorkerEffect.Read,
+        val expectedEffect: SafetyClass = SafetyClass.LiveRead,
         val inputFile: String? = null,
         val inputDigest: String? = null,
     ) : InfrastructureOperation

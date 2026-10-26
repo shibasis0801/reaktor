@@ -42,7 +42,8 @@ class NativeExecutionRequest private constructor(
             provenance: String = "", captureStdoutChars: Int = 8_388_608,
             nowEpochMillis: Long = System.currentTimeMillis(),
         ): NativeExecutionRequest {
-            if (operation is InfrastructureOperation.WorkerCall && operation.expectedEffect == WorkerEffect.Write) {
+            if (operation is InfrastructureOperation.WorkerCall) operation.expectedEffect.workerEffect()
+            if (operation is InfrastructureOperation.WorkerCall && operation.expectedEffect == SafetyClass.ProductionReversibleWrite) {
                 require(safety.requiresApproval && operation.store == null && operation.inputFile != null && operation.inputDigest != null) {
                     "Worker commands require a reviewed payload and an approval policy"
                 }

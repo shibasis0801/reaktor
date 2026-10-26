@@ -37,13 +37,17 @@ class NativeInfrastructureTest {
     @Test fun workerWritesCannotBeExecutedUnderAReadApprovalPolicy() {
         val write=WorkerOperationDescriptor("formation.commit","circle-formation","write",30_000)
         val catalog=WorkerOperationCatalog(worker="circle-formation",environment="dev",operations=listOf(write))
-        catalog.requireOperation("dev",write.id,WorkerEffect.Write)
+        catalog.requireOperation("dev",write.id,SafetyClass.ProductionReversibleWrite)
         assertFails { catalog.requireRead("dev",write.id) }
         val root=Files.createTempDirectory("worker-write-plan").toFile()
         try {
             val input=root.resolve("input.json").apply { writeText("{}") }
             val operation=InfrastructureOperation.WorkerCall("https://fixture.example",write.id,"https://auth.example/token","app","DEV",
-                expectedEffect=WorkerEffect.Write,inputFile=input.path,inputDigest="reviewed")
+                expectedEffect=SafetyClass.ProductionReversibleWrite,inputFile=input.path,inputDigest="reviewed")
+            val retained = Json.encodeToString(operation).replace("\"expectedEffect\":\"ProductionReversibleWrite\"", "\"expectedEffect\":\"Write\"")
+            assertEquals(operation, Json.decodeFromString<InfrastructureOperation.WorkerCall>(retained))
+            assertFails { catalog.requireOperation("dev", write.id, SafetyClass.Destructive) }
+            assertFails { NativeExecutionRequest.create(operation.copy(expectedEffect = SafetyClass.UnknownRemoteEffect),root,TaskId("write"),SafetyPolicy(SafetyClass.Destructive),emptyMap(),1000) }
             assertFails { NativeExecutionRequest.create(operation,root,TaskId("write"),SafetyPolicy(SafetyClass.LiveRead),emptyMap(),1000) }
             val preview=NativeExecutionRequest.create(operation,root,TaskId("write"),SafetyPolicy(SafetyClass.NonProductionWrite),emptyMap(),1000)
             assertFails { preview.verify() }
