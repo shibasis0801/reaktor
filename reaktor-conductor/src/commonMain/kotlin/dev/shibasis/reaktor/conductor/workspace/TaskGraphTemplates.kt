@@ -169,7 +169,26 @@ object TaskGraphTemplates {
                 agent("investigator", "Investigate the goal", TaskSeat(profile = "skeptic")),
                 agent("planner", "Plan the implementation", TaskSeat(profile = "architect"), after("investigator")),
                 agent("writer", "Implement the plan", writer, after("planner")),
-                TaskGraphOp.Add("Check the candidate", "check", kind = TaskKind.Check, check = "Choose a check", dependsOn = after("writer"))))
+                TaskGraphOp.Add("Check the candidate", "check", kind = TaskKind.Check, check = "Choose a check", dependsOn = after("writer")))),
+            template("competing-explanations", "Disprove competing explanations", listOf(
+                agent("codex-investigation", "Find a falsifiable explanation", TaskSeat(RuntimeKind.Codex, profile = "skeptic"))
+                    .copy(intent = "Investigate the graph goal independently. State a falsifiable explanation, source evidence, a competing explanation and a concrete check that would disprove yours. Separate observations from guesses."),
+                agent("claude-investigation", "Find an independent explanation", TaskSeat(RuntimeKind.ClaudeCode, profile = "skeptic"))
+                    .copy(intent = "Investigate the graph goal independently. State a falsifiable explanation, source evidence, a competing explanation and a concrete check that would disprove yours. Separate observations from guesses."),
+                agent("codex-challenge", "Try to disprove Claude's explanation", TaskSeat(RuntimeKind.Codex, profile = "skeptic"),
+                    after("codex-investigation") + after("claude-investigation"))
+                    .copy(intent = "Try to disprove the other investigator's explanation using source evidence and a discriminating check. Challenge your own explanation too. Record which claims failed and which remain unknown; agreement is not evidence."),
+                agent("claude-challenge", "Try to disprove Codex's explanation", TaskSeat(RuntimeKind.ClaudeCode, profile = "skeptic"),
+                    after("codex-investigation") + after("claude-investigation"))
+                    .copy(intent = "Try to disprove the other investigator's explanation using source evidence and a discriminating check. Challenge your own explanation too. Record which claims failed and which remain unknown; agreement is not evidence."),
+                agent("explanation", "Identify the explanation that survives", reviewer,
+                    after("codex-challenge") + after("claude-challenge"))
+                    .copy(intent = "Compare the independent investigations and challenges. Name the explanation supported by the evidence and the check that distinguishes it from rejected explanations. If none survives, state that uncertainty explicitly and ask for the missing evidence."),
+                agent("writer", "Reproduce and fix the demonstrated cause", writer, after("explanation"))
+                    .copy(intent = "Use the surviving explanation to add a narrow reproduction and fix inside the approved scope. If the explanation is still unknown, stop and ask for evidence. Record how the reproduction fails before the fix and passes after it."),
+                TaskGraphOp.Add("Check the surviving explanation and fix", "check", kind = TaskKind.Check,
+                    intent = "Run the named check against the exact candidate. Retain the receipt showing the reproduction and fix.",
+                    check = "Choose a check", dependsOn = after("writer"))))
         )
     }
 }
