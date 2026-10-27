@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.blueprint
 
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.ln
 
 fun <K> BlueprintEngine.navigationLayout(key: K, groups: List<BlueprintGroup>, edges: List<BlueprintEdge>, root: String?, aspect: Double, ordering: Set<String> = edges.mapTo(hashSetOf()) { it.id }, outlets: Map<String, Pair<Double, Double>> = emptyMap()): BlueprintLayout<K> {
     fun leaves(group: BlueprintGroup): List<BlueprintNode> = group.nodes.flatMap { node -> node.inner?.let(::leaves) ?: listOf(node) }
@@ -37,15 +38,7 @@ fun <K> BlueprintEngine.navigationLayout(key: K, groups: List<BlueprintGroup>, e
     val owner = ranked.flatMap { group -> leaves(group).map { it.id to group.key } }.toMap()
     val inside = forward.filter { owner[it.from] == owner[it.to] }
     val laid = layout(key, ranked, inside, aspect, layouter = LayeredFrameLayouter, options = LayoutOptions(hints = 0, ordered = true))
-    val links = edges.mapNotNull { edge ->
-        val from = laid.cards[edge.from] ?: return@mapNotNull null
-        val to = laid.cards[edge.to] ?: return@mapNotNull null
-        val outlet = outlets[edge.id]
-        val sy = outlet?.second?.let { from.y + HeaderHeight + (from.height - HeaderHeight) * it } ?: (from.y + HeaderHeight / 2)
-        val route = navigationPath(from.x + from.width, sy, to.x, to.y + HeaderHeight / 2, laid.cards.values.toList())
-        val points = if (outlet == null) route else listOf(from.x + from.width * outlet.first to sy) + route
-        Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, listOf(edge.id), points, reversed = edge.reversed)
-    }
+    val links = navigationLinks(edges, laid.cards, outlets)
     val members = HashMap<String, Set<String>>()
     fun remember(group: BlueprintGroup) {
         members[group.key] = leaves(group).mapTo(linkedSetOf()) { it.id }
@@ -53,6 +46,44 @@ fun <K> BlueprintEngine.navigationLayout(key: K, groups: List<BlueprintGroup>, e
     }
     ranked.forEach(::remember)
     return laid.copy(frames = laid.frames.map { it.copy(nodes = members[it.key].orEmpty()) }, links = links)
+}
+
+fun <K> BlueprintEngine.aroundLayout(key: K, frame: String, label: String, centre: String, callers: List<String>, destinations: List<String>,
+    edges: List<BlueprintEdge>, rows: Int, aspect: Double, outlets: Map<String, Pair<Double, Double>> = emptyMap()): BlueprintLayout<K> {
+    val height = cardHeight(rows)
+    val across = CardWidth + LayerGap * 2
+    val down = height + CardGap * 2
+    fun columns(count: Int, per: Int) = (count + per - 1) / per
+    val per = (1..maxOf(1, callers.size, destinations.size)).minBy { per ->
+        abs(ln((columns(callers.size, per) + 1 + columns(destinations.size, per)) * across / (per * down) / aspect))
+    }
+    val content = minOf(per, maxOf(1, callers.size, destinations.size)) * down - CardGap * 2
+    val cards = LinkedHashMap<String, Card>()
+    fun place(ids: List<String>, first: Int) = ids.chunked(per).forEachIndexed { column, stack ->
+        val top = FrameTop + (content - (stack.size * down - CardGap * 2)) / 2
+        stack.forEachIndexed { row, id -> cards[id] = Card(id, FrameSide + (first + column) * across, top + row * down, CardWidth, height, emptyList(), 0) }
+    }
+    val left = columns(callers.size, per)
+    place(callers, 0)
+    place(listOf(centre), left)
+    place(destinations, left + 1)
+    val width = FrameSide * 2 + (left + 1 + columns(destinations.size, per)) * across - LayerGap * 2
+    val tall = FrameTop + content + FrameSide
+    return BlueprintLayout(key, cards, listOf(Frame(frame, label, 0.0, 0.0, width, tall, cards.keys, emptyList(), false)),
+        navigationLinks(edges, cards, outlets), width, tall)
+}
+
+private fun navigationLinks(edges: List<BlueprintEdge>, cards: Map<String, Card>, outlets: Map<String, Pair<Double, Double>>): List<Link> {
+    val boxes = cards.values.toList()
+    return edges.mapNotNull { edge ->
+        val from = cards[edge.from] ?: return@mapNotNull null
+        val to = cards[edge.to] ?: return@mapNotNull null
+        val outlet = outlets[edge.id]
+        val sy = outlet?.second?.let { from.y + BlueprintEngine.HeaderHeight + (from.height - BlueprintEngine.HeaderHeight) * it } ?: (from.y + BlueprintEngine.HeaderHeight / 2)
+        val route = navigationPath(from.x + from.width, sy, to.x, to.y + BlueprintEngine.HeaderHeight / 2, boxes)
+        val points = if (outlet == null) route else listOf(from.x + from.width * outlet.first to sy) + route
+        Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, listOf(edge.id), points, reversed = edge.reversed)
+    }
 }
 
 private fun navigationPath(sx: Double, sy: Double, tx: Double, ty: Double, boxes: List<Card>): List<Pair<Double, Double>> {
