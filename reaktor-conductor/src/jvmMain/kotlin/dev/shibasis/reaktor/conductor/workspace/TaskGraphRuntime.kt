@@ -23,6 +23,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.withTimeoutOrNull
+import dev.shibasis.reaktor.conductor.worklog.GraphWorkScore
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
@@ -142,7 +147,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
 
     private fun members() = store.members(graphId).associateBy { it.id }
 
-    private fun evaluate() {
+    private suspend fun evaluate() {
         limitWake?.cancel()
         limitWake = null
         var members = members()
@@ -175,7 +180,20 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         }
         TaskGraphRules.finished(members)?.let { status ->
             val failed = members.values.filter { it.graph?.state == TaskState.Failed }.joinToString { it.id }
+            val revision = store.graph(graphId).revision
+            val score = try {
+                withTimeoutOrNull(3000) {
+                    val answer = scope.workspace.readKernel("kernel", buildJsonObject {
+                        put("operation", "taskgraph.score")
+                        putJsonObject("arguments") { put("graph", graphId) }
+                    }).jsonObject
+                    if (answer["type"]?.jsonPrimitive?.content == "completed")
+                        AgentWorkspaceJson.decodeFromJsonElement(GraphWorkScore.serializer(), answer.getValue("result")) else null
+                }
+            } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) { null }
+            if (store.graph(graphId).revision != revision) return
             store.hold(graphId, status, if (status == TaskGraphStatus.Finished) "Every task has settled" else "Failed tasks: $failed", scope.by)
+            scope.workspace.retainGraphLessons(store.view(graphId), score)
             return
         }
         for (task in TaskGraphRules.ready(members)) {

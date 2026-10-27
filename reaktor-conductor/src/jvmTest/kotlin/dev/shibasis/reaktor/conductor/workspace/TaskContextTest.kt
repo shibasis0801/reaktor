@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.worklog.score
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
@@ -219,6 +220,103 @@ class TaskContextTest {
         assertEquals(memory, owner.remember(run, event.id.value, AgentMemoryScope.Task))
         assertFailsWith<IllegalArgumentException> { owner.remember(run, event.id.value, AgentMemoryScope.Workspace) }
         assertTrue(owner.memory.search("", null, false, view.graph.id, task.id).entries.single().reason.contains("attempt-1"))
+    }
+
+    @Test fun proposalsRequirePersonReviewPersistAndSupersedeWithoutPromotingPendingNotes() = fixture { connection, owner, root, data, _ ->
+        val agent = BoardActor(BoardActorKind.Agent, "Codex", "codex:memory-fixture")
+        val draft = AgentMemoryDraft("Parser lesson", "Check timezone offsets", "Claude auto memory: MEMORY.md",
+            System.currentTimeMillis() - 1000, importance = 2)
+        val pending = owner.memory.propose(draft, agent)
+        assertEquals(pending, owner.memory.propose(draft, agent))
+        assertEquals(AgentMemoryStatus.Proposed, pending.status)
+        assertEquals(listOf(pending), owner.memory.proposals())
+        assertTrue(owner.memory.search("timezone", null, true).entries.isEmpty())
+        assertFailsWith<IllegalArgumentException> { owner.memory.review(pending.id, true, agent) }
+        val kept = owner.memory.review(pending.id, true, person)
+        assertEquals(person, kept.reviewedBy)
+        assertEquals(kept, owner.memory.review(pending.id, true, person))
+        assertFailsWith<IllegalArgumentException> { owner.memory.review(pending.id, false, person) }
+        val reopened = AgentMemoryStore(root, data.resolve("memory"), owner.evidence.artifacts)
+        assertEquals(kept, reopened.get(kept.id))
+        assertTrue(reopened.proposals().isEmpty())
+        assertEquals(1, reopened.search("timezone", null, false).entries.size)
+        val updated = owner.memory.propose(draft.copy(text = "Check timezone offsets and daylight saving", supersedes = kept.id), agent)
+        assertEquals(kept.id, owner.memory.search("timezone", null, false).entries.single().ref.removePrefix("memory:"))
+        owner.memory.review(updated.id, true, person)
+        assertEquals(updated.id, owner.memory.search("timezone", null, false).entries.single().ref.removePrefix("memory:"))
+        val competing = owner.memory.propose(draft.copy(text = "Conflicting replacement", supersedes = kept.id), agent)
+        assertFailsWith<IllegalArgumentException> { owner.memory.review(competing.id, true, person) }
+        owner.memory.review(competing.id, false, person)
+        assertEquals(AgentMemoryStatus.Dropped, reopened.get(competing.id).status)
+        File(root, "source.txt").writeText("changed")
+        assertTrue(owner.memory.search("timezone", null, false).entries.isEmpty())
+        assertTrue(owner.memory.search("timezone", null, true).entries.single().reason.contains("STALE"))
+        val read = connection.call("agent_memory_read", buildJsonObject { put("id", updated.id) })
+        assertEquals(AgentMemoryStatus.Kept, AgentWorkspaceJson.decodeFromJsonElement(AgentMemory.serializer(), read).status)
+    }
+
+    @Test fun finishedGraphsProposeBoundedLessonsWithReceiptsAndModuleRelevanceWithoutAgentTokens() = fixture { connection, owner, _, _, runtime ->
+        val proposed = connection.proposeTaskGraph(TaskGraphDraft("Parser lessons", tasks = listOf(
+            TaskGraphOp.Add("Repair parser", scope = listOf("modules/parser"), seat = TaskSeat(RuntimeKind.Codex)))), person)
+        val task = proposed.tasks.single()
+        val candidate = owner.evidence.capture(task.id)
+        owner.evidence.finding(task.id, AgentFinding("finding-offset", candidate.id, "run", "reviewer",
+            "Offset sign", "The offset sign was inverted", "high"))
+        owner.evidence.check(task.id, AgentCandidateCheck("check-offset", candidate.id,
+            CheckResult(listOf("parserTest"), CheckOutcome.Failed, revision = candidate.id), "fixture"))
+        val finished = proposed.copy(graph = proposed.graph.copy(status = TaskGraphStatus.Finished),
+            tasks = listOf(task.copy(graph = task.graph!!.copy(attempt = 2, state = TaskState.Succeeded,
+                outcome = TaskOutcome(summary = "Fixed offset sign", attempt = 2, candidateId = candidate.id)))))
+        val lesson = owner.retainGraphLessons(finished, null)
+        assertEquals(lesson, owner.retainGraphLessons(finished, null))
+        assertEquals(AgentMemoryStatus.Proposed, lesson.status)
+        assertEquals("taskgraph:${proposed.graph.id}/revision-${proposed.graph.revision}", lesson.source)
+        assertEquals(listOf("module:modules/parser"), lesson.subjectRefs)
+        assertContains(lesson.text, "finding-offset")
+        assertContains(lesson.text, "check-offset")
+        assertContains(lesson.text, "attempt 2")
+        assertContains(lesson.text, "longest waits are unknown")
+        assertTrue(runtime.requests.isEmpty())
+        assertTrue(owner.memory.search("retrospective", null, false).entries.isEmpty())
+        owner.memory.review(lesson.id, true, person)
+        assertEquals(1, owner.memory.search("", null, false, "G2", "T2", listOf("modules/parser/src/Parser.kt")).entries.size)
+        assertTrue(owner.memory.search("", null, false, "G2", "T2", listOf("modules/other")).entries.isEmpty())
+        assertFailsWith<IllegalArgumentException> { owner.retainGraphLessons(proposed, null) }
+        val score = dev.shibasis.reaktor.conductor.worklog.WorkLog(emptyList()).let {
+            dev.shibasis.reaktor.conductor.worklog.GraphWorkScore(proposed.graph.id,
+                it.score(), emptyMap(), emptyList(), null, listOf(task.id))
+        }
+        val measured = owner.retainGraphLessons(finished.copy(graph = finished.graph.copy(revision = 2)), score)
+        assertContains(measured.text, "missing task scorecards: ${task.id}")
+        assertTrue(measured.text.length <= 6000)
+    }
+
+    @Test fun finishingATextGraphAutomaticallyProposesItsRetrospective() = fixture { connection, owner, _, _, runtime ->
+        val proposed = connection.proposeTaskGraph(TaskGraphDraft("Finished graph", tasks = listOf(
+            TaskGraphOp.Add("Explain", seat = TaskSeat(RuntimeKind.Codex)))), person)
+        connection.startTaskGraph(proposed.graph.id, proposed.graph.revision, person)
+        withTimeout(10000) {
+            while (owner.memory.proposals().isEmpty()) delay(20)
+        }
+        val lesson = owner.memory.proposals().single()
+        assertEquals(TaskGraphStatus.Finished, connection.taskGraph(proposed.graph.id).graph.status)
+        assertEquals(AgentMemoryStatus.Proposed, lesson.status)
+        assertEquals(1, runtime.requests.size)
+        assertContains(lesson.text, "Scorecard unavailable")
+    }
+
+    @Test fun proposalValidationKeepsScopeAndPayloadBounded() = fixture { _, owner, _, _, _ ->
+        val agent = BoardActor(BoardActorKind.Agent, "Claude")
+        val draft = AgentMemoryDraft("Lesson", "Quoted evidence", "Codex memory", 1)
+        listOf(draft.copy(text = ""), draft.copy(text = "x".repeat(6001)), draft.copy(importance = 0),
+            draft.copy(source = ""), draft.copy(sourceDate = Long.MAX_VALUE), draft.copy(scope = AgentMemoryScope.Task),
+            draft.copy(supersedes = "../source")).forEach {
+            assertFailsWith<IllegalArgumentException> { owner.memory.propose(it, agent) }
+        }
+        val first = owner.memory.propose(draft, agent)
+        val moreImportant = owner.memory.propose(draft.copy(title = "Important lesson", importance = 3), agent)
+        assertEquals(listOf(moreImportant.id, first.id), owner.memory.proposals().map { it.id })
+        assertTrue(owner.memory.search("Quoted", null, true).entries.isEmpty())
     }
 
     @Test fun blindContextDoesNotExposeMemoryOrDecisions() = fixture { connection, owner, root, data, _ ->
