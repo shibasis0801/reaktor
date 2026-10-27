@@ -68,6 +68,11 @@ data class SearchGraph(val id: String, val revision: String, val nodes: List<Sea
         require(selection.nodes.isNotEmpty() && selection.nodes.size <= 500 && selection.nodes.distinct().size == selection.nodes.size) { "Select 1–500 distinct nodes" }
         require(selection.edges == null || selection.edges.size <= 5000 && selection.edges.distinct().size == selection.edges.size) { "Select distinct relationships" }
         require(selection.reasons.size <= 500 && selection.reasons.all { (id, reason) -> id in selection.nodes && reason.length <= 2000 }) { "Reasons must describe selected nodes" }
+        require(selection.groups.size <= 100 && selection.groups.map { it.id }.distinct().size == selection.groups.size) { "Use at most 100 distinct groups" }
+        require(selection.groups.all { group ->
+            group.id.isNotBlank() && group.id.length <= 160 && group.title.isNotBlank() && group.title.length <= 200 &&
+                group.nodes.isNotEmpty() && group.nodes.size <= 500 && group.nodes.distinct().size == group.nodes.size && group.nodes.all { it in selection.nodes }
+        }) { "Groups must name selected nodes" }
         val resolved = resolve(selection)
         require(resolved.missingNodes.isEmpty() && resolved.missingEdges.isEmpty()) { "The selection contains unavailable nodes or relationships" }
     }
@@ -90,7 +95,11 @@ data class Subgraph(
     val id: String, val title: String, val intent: String, val graphId: String, val sourceRevision: String,
     val nodes: List<String>, val edges: List<String>? = null, val reasons: Map<String, String> = emptyMap(),
     val status: String = "draft", val revision: Int = 1,
+    val groups: List<SubgraphGroup> = emptyList(),
 )
+
+@Serializable
+data class SubgraphGroup(val id: String, val title: String, val nodes: List<String>)
 
 @Serializable
 data class SubgraphResolution(val nodes: List<SearchNode>, val edges: List<SearchEdge>, val missingNodes: List<String>, val missingEdges: List<String>, val boundary: List<SearchEdge>, val stale: Boolean)

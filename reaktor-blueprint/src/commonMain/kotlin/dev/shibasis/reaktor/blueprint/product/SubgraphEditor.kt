@@ -98,7 +98,8 @@ fun SubgraphEditor(
         val current = draft ?: return
         val nodes = if (id in current.nodes) current.nodes - id else current.nodes + id
         val edges = graph.edges.filter { it.from in nodes && it.to in nodes && (current.edges == null || it.id in current.edges.orEmpty() || (id !in current.nodes && (it.from == id || it.to == id))) }.map { it.id }
-        draft = current.copy(nodes = nodes, edges = edges, reasons = current.reasons.filterKeys { it in nodes })
+          draft = current.copy(nodes = nodes, edges = edges, reasons = current.reasons.filterKeys { it in nodes },
+              groups = current.groups.map { group -> group.copy(nodes = group.nodes.filter { it in nodes }) }.filter { it.nodes.isNotEmpty() })
     }
     fun toggleEdge(id: String) {
         val current = draft ?: return
@@ -205,7 +206,11 @@ fun SubgraphEditor(
                     }
                     if (resolved != null && (resolved.missingNodes.isNotEmpty() || resolved.missingEdges.isNotEmpty())) {
                         SubgraphText("Some members are no longer available.", appearance, muted = true, lines = 2)
-                        SubgraphAction("Remove unavailable members", appearance) { draft = current.copy(nodes = resolved.nodes.map { it.id }, edges = resolved.edges.map { it.id }, reasons = current.reasons.filterKeys { it in resolved.nodes.map { n -> n.id } }) }
+                          SubgraphAction("Remove unavailable members", appearance) {
+                              val present = resolved.nodes.map { it.id }
+                              draft = current.copy(nodes = present, edges = resolved.edges.map { it.id }, reasons = current.reasons.filterKeys { it in present },
+                                  groups = current.groups.map { group -> group.copy(nodes = group.nodes.filter { it in present }) }.filter { it.nodes.isNotEmpty() })
+                          }
                     }
                 }
             }
