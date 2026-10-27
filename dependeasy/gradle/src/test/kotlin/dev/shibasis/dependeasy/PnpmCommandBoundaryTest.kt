@@ -27,10 +27,13 @@ class PnpmCommandBoundaryTest {
             if (result.error) throw result.error;
             process.exitCode = result.status ?? 1;
         """.trimIndent())
+        directory.resolve("web/check.test.mjs").writeText("console.log('command reached');\n")
         directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.model.FileSet
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
-                javascript("web", "web").check("check")
+                val web = javascript("web", "web")
+                web.tests(FileSet(listOf("check.test.mjs")), web.installation)
                 nodeScript("nestedCheck", file("nested.mjs")) {
                     dependsOn("pnpmInstall")
                     sourceFiles.from("web/package.json")

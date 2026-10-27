@@ -211,13 +211,11 @@ class BackendPipelineTest {
         assertContains(run("help").output, "Reusing configuration cache")
     }
 
-    @Test fun `generated web assets feed the bundle without becoming authored typecheck inputs`() {
-        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"webFixture\"")
+    @Test fun `generated web assets feed the bundle and regenerate when removed`() {
+        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"webFixture\"\ninclude(\"web\")")
+        directory.resolve("build.gradle.kts").writeText("plugins { id(\"dev.shibasis.dependeasy.pipeline\") }\n")
         directory.resolve("web").mkdir()
-        directory.resolve("web/package.json").writeText("""
-            {"name":"fixture-web","version":"1.0.0","scripts":{
-                "generate:assets":"node generate.cjs","typecheck":"node types.cjs","bundle:assets":"node bundle.cjs"}}
-        """.trimIndent())
+        directory.resolve("web/package.json").writeText("""{"name":"fixture-web","version":"1.0.0"}""")
         directory.resolve("web/bundle.cjs").writeText("""
             const fs = require('node:fs');
             fs.mkdirSync('dist', {recursive: true});
@@ -233,44 +231,48 @@ class BackendPipelineTest {
         """.trimIndent())
         val source = directory.resolve("web/source.txt")
         source.writeText("first")
-        directory.resolve("build.gradle.kts").writeText("""
-            import dev.shibasis.dependeasy.handles.*
-            plugins { id("dev.shibasis.dependeasy.pipeline") }
-            dependeasy {
-                val web = javascript("sample", "web")
-                web.build("webBuild", bundle = web.script("bundle:assets", "dist"),
-                    typecheck = web.check("typecheck"),
-                    generators = listOf(web.script("generate:assets", "public/generated")))
+        directory.resolve("web/build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.components.webApp
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.web-app") }
+            webApp(bundle = WebBundle.Node("bundle.cjs"),
+                generators = listOf(WebGenerator.Node(PackageScript("generate:assets"), "generate.cjs", "public/generated")))
+            tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
+                baseConfiguration.set(rootProject.layout.projectDirectory.file("contract-base.json"))
+            }
+            tasks.withType<dev.shibasis.dependeasy.web.TypeScriptCheck>().configureEach {
+                adapter.set(layout.projectDirectory.file("types.cjs"))
             }
         """.trimIndent())
         assertNull(run("help").task(":pnpmInstall"))
         prepareLock("web")
-        val initial = run("webBuild")
-        assertEquals(TaskOutcome.SUCCESS, initial.task(":sampleGenerateAssets")?.outcome)
-        assertEquals(TaskOutcome.SUCCESS, initial.task(":sampleCheck")?.outcome)
-        assertEquals(TaskOutcome.SUCCESS, initial.task(":sampleBundleAssets")?.outcome)
-        val repeat = run("webBuild")
+        val initial = run(":web:assembleWeb")
+        assertEquals(TaskOutcome.SUCCESS, initial.task(":web:webGenerateAssets")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, initial.task(":web:webTypes")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, initial.task(":web:webBuild")?.outcome)
+        val repeat = run(":web:assembleWeb")
         assertContains(repeat.output, "Reusing configuration cache")
-        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":sampleGenerateAssets")?.outcome, repeat.output)
-        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":sampleCheck")?.outcome)
-        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":sampleBundleAssets")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":web:webGenerateAssets")?.outcome, repeat.output)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":web:webTypes")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, repeat.task(":web:webBuild")?.outcome)
         source.writeText("second")
-        val changed = run("webBuild")
+        val changed = run(":web:assembleWeb")
         assertEquals(TaskOutcome.UP_TO_DATE, changed.task(":pnpmInstall")?.outcome)
-        assertEquals(TaskOutcome.SUCCESS, changed.task(":sampleGenerateAssets")?.outcome)
-        assertEquals(TaskOutcome.SUCCESS, changed.task(":sampleCheck")?.outcome)
-        assertEquals(TaskOutcome.SUCCESS, changed.task(":sampleBundleAssets")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, changed.task(":web:webGenerateAssets")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, changed.task(":web:webTypes")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, changed.task(":web:webBuild")?.outcome)
         assertEquals("second", directory.resolve("web/dist/result.txt").readText())
         assertTrue(directory.resolve("web/public/generated/asset.txt").delete())
-        val recovered = run("webBuild")
-        assertEquals(TaskOutcome.SUCCESS, recovered.task(":sampleGenerateAssets")?.outcome, recovered.output)
-        assertEquals(TaskOutcome.UP_TO_DATE, recovered.task(":sampleCheck")?.outcome)
+        val recovered = run(":web:assembleWeb")
+        assertEquals(TaskOutcome.SUCCESS, recovered.task(":web:webGenerateAssets")?.outcome, recovered.output)
+        assertEquals(TaskOutcome.UP_TO_DATE, recovered.task(":web:webTypes")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, recovered.task(":web:webBuild")?.outcome)
         assertEquals("second", directory.resolve("web/public/generated/asset.txt").readText())
         assertEquals("second", directory.resolve("web/dist/result.txt").readText())
     }
     @Test fun `Kotlin exports follow install without creating an installation cycle`() {
         directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"producerFixture\"\nenableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\")\ninclude(\"library\")")
-        directory.resolve("package.json").writeText("""{"name":"producer-fixture","private":true,"scripts":{"verify":"node verify.mjs"}}""")
+        directory.resolve("package.json").writeText("""{"name":"producer-fixture","private":true}""")
         val source = directory.resolve("library/src/producer.js").apply {
             parentFile.mkdirs(); writeText("export const value = 42;\n")
         }
@@ -301,13 +303,14 @@ class BackendPipelineTest {
         """.trimIndent())
         directory.resolve("build.gradle.kts").writeText("""
             import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.FileSet
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             dependeasy {
                 val consumer = javascript("consumer") {
                     kotlinLibraries(kotlinJsLibrary(projects.library))
                     sources("verify.mjs", "library/build/producer/producer.js")
                 }
-                workspace { val verifyExports by artifacts { include(node(consumer.check("verify"))) } }
+                workspace { val verifyExports by artifacts { include(consumer.tests(FileSet(listOf("verify.mjs")), consumer.installation)) } }
             }
         """.trimIndent())
         prepareLock("library")

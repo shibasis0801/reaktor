@@ -32,7 +32,7 @@ class DaggerPipelineTest {
             """.trimIndent())
         }
         fun runner() = GradleRunner.create().withProjectDir(root).withPluginClasspath()
-            .withArguments("exportBuildModel", "--configuration-cache", "--stacktrace")
+            .withArguments("exportBuildModel", "--configuration-cache", "--no-watch-fs", "--stacktrace")
         runner().build()
         assertContains(runner().build().output, "Reusing configuration cache")
         settings(libraries + listOf(":pipeline", ":uncatalogued"))
@@ -64,7 +64,7 @@ class DaggerPipelineTest {
             daggerPipeline(options = listOf(BuildOption.boolean("fixture.devTools").argument(false)))
         """)
         fun runner(vararg args: String) = GradleRunner.create().withProjectDir(root).withPluginClasspath()
-            .withArguments(*args, "--configuration-cache", "--stacktrace")
+            .withArguments(*args, "--configuration-cache", "--no-watch-fs", "--stacktrace")
         fun run() = runner(":pipeline:generateDagger", "ci", "exportBuildModel").build()
         val first = run()
         assertEquals(TaskOutcome.SUCCESS, first.task(":pipeline:generateDagger")?.outcome)
