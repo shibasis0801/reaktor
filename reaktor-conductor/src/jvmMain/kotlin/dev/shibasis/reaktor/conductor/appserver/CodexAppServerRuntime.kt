@@ -284,7 +284,10 @@ private class CodexAppServerSession(
                                 rateLimits = JsonObject(rateLimits.orEmpty() + update)
                         }
 
-                        "thread/tokenUsage/updated" -> message.params.objectOrEmpty("tokenUsage").toUsage()?.let { usage = it }
+                        "thread/tokenUsage/updated" -> message.params.objectOrEmpty("tokenUsage").toUsage()?.let {
+                            usage = it
+                            send(AgentEvent.Usage(agent, it))
+                        }
 
                         "turn/completed" -> {
                             val completed = message.params.objectOrEmpty("turn")

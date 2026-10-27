@@ -9,6 +9,56 @@ import java.nio.file.Files
 import kotlin.test.*
 
 class TaskSeatResolverTest {
+    @Test fun budgetDefaultsOverridesAndUnsupportedNativeCapsAreExplicit() {
+        val defaults = AgentBudget(maxTokens = 1000)
+        val profile = AgentProfile("budgeted", "Budgeted", RuntimeKind.Codex, budget = defaults)
+        val resolver = TaskSeatResolver({ profile })
+        assertEquals(defaults, resolver.resolve(TaskSeat(profile = profile.id)).seat.budget)
+        val override = AgentBudget(maxTokens = 200)
+        assertEquals(override, resolver.resolve(TaskSeat(profile = profile.id, budget = override)).seat.budget)
+        assertFailsWith<IllegalArgumentException> { resolver.resolve(TaskSeat(RuntimeKind.Codex, budget = AgentBudget(maxCostUsd = 1.0))) }
+        assertEquals(1.0, resolver.resolve(TaskSeat(RuntimeKind.ClaudeCode, budget = AgentBudget(maxCostUsd = 1.0))).seat.budget?.maxCostUsd)
+        assertFailsWith<IllegalArgumentException> { resolver.resolve(TaskSeat(lead = true, budget = defaults)) }
+        assertFailsWith<IllegalArgumentException> { AgentBudget(maxTokens = 0) }
+        assertFailsWith<IllegalArgumentException> { AgentBudget(maxCostUsd = Double.NaN) }
+        assertFailsWith<IllegalArgumentException> { AgentBudget(maxCostUsd = -1.0) }
+        assertFailsWith<IllegalArgumentException> { AgentBudget(timeoutMillis = 0) }
+    }
+
+    @Test fun budgetSnapshotsReplaceUpdatesKeepSubsetsAndAccumulateSeparateTurns() {
+        val limits = AgentBudget(maxTokens = 100)
+        val first = AgentUsage(inputTokens = 70, outputTokens = 10, cachedInputTokens = 60, reasoningOutputTokens = 9)
+        val warned = AgentBudgetProgress().observe("codex/one", first, limits, emptyMap())
+        assertEquals(80L, warned.tokens)
+        assertNotNull(warned.warning)
+        assertNull(warned.exceeded)
+        val repeated = warned.observe("codex/one", first, limits, emptyMap())
+        assertEquals(80L, repeated.tokens)
+        val held = repeated.observe("codex/two", AgentUsage(inputTokens = 20), limits, emptyMap())
+        assertEquals(100L, held.tokens)
+        assertNotNull(held.exceeded)
+        val durable = AgentWorkspaceJson.decodeFromString(AgentBudgetProgress.serializer(),
+            AgentWorkspaceJson.encodeToString(AgentBudgetProgress.serializer(), held))
+        assertEquals(held, durable)
+        assertNull(AgentBudgetProgress().tokens)
+        assertNull(AgentBudgetProgress().costUsd)
+        val usd = AgentBudget(maxCostUsd = 1.0)
+        val near = AgentBudgetProgress().observe("claude/one", AgentUsage(costUsd = 0.8), usd, emptyMap())
+        assertNotNull(near.warning)
+        assertNull(near.exceeded)
+        assertNotNull(near.observe("claude/one", AgentUsage(costUsd = 1.0), usd, emptyMap()).exceeded)
+        assertEquals(Long.MAX_VALUE, AgentBudgetProgress(usage = mapOf("x" to AgentUsage(inputTokens = Long.MAX_VALUE, outputTokens = 1))).tokens)
+    }
+
+    @Test fun eachPanelLensHasItsOwnCapWithoutChargingAnotherLens() {
+        val limits = mapOf("lens-0" to AgentBudget(maxTokens = 50), "lens-1" to AgentBudget(maxTokens = 100))
+        val first = AgentBudgetProgress().observe("lens-0/first", AgentUsage(inputTokens = 20), null, limits)
+        val second = first.observe("lens-1/second", AgentUsage(inputTokens = 60), null, limits)
+        assertNull(second.warning)
+        val exceeded = second.observe("lens-0/first", AgentUsage(inputTokens = 50), null, limits)
+        assertTrue(exceeded.exceeded.orEmpty().startsWith("lens-0:"))
+    }
+
     private val person = BoardActor(BoardActorKind.Person, "owner")
     private val capability = ProviderCapability(RuntimeKind.Codex, defaultModel = "model-a",
         effort = EffortSupport(listOf(NativeEffort("low"), NativeEffort("high")), source = "fixture"),

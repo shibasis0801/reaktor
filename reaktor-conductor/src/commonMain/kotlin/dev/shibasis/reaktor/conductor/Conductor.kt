@@ -151,7 +151,17 @@ class Conductor(
                         progress()
                     }
                 }
-                onEvent(if (event is AgentEvent.Finished) event.copy(outcome = event.outcome.copy(usage = turnUsage(event.outcome))) else event)
+                when (event) {
+                    is AgentEvent.Usage -> {
+                        val baseline = snapshot.events.lastOrNull { it.session == resume }?.reportedUsage
+                        onEvent(event.copy(usage = event.usage.forTurn(baseline, freshSession = resume == null), execution = executionKey))
+                    }
+                    is AgentEvent.Finished -> {
+                        turnUsage(event.outcome)?.let { onEvent(AgentEvent.Usage(agent.id, it, executionKey)) }
+                        onEvent(event.copy(outcome = event.outcome.copy(usage = turnUsage(event.outcome))))
+                    }
+                    else -> onEvent(event)
+                }
             }
             return ThreadEvent(
                 id = EventId("pending"),

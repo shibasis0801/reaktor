@@ -7,6 +7,7 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
     val next = when (event) {
         is AgentEvent.Started -> participant.copy(status = AgentRunStatus.Running, session = event.session, output = "", outputTruncated = false, lastTool = null, usageLimit = null)
         is AgentEvent.TurnStarted -> participant.copy(activeTurn = event.turnId)
+        is AgentEvent.Usage -> participant
         is AgentEvent.Delta -> participant.copy(output = (participant.output + event.text).takeLast(6000),
             outputTruncated = participant.outputTruncated || participant.output.length + event.text.length > 6000)
         is AgentEvent.ToolUse -> participant.copy(lastTool = event.tool)
@@ -34,6 +35,7 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
     return if (current.collaboration != AgentCollaboration.Single) withParticipant else when (event) {
         is AgentEvent.Started -> withParticipant.copy(session = event.session)
         is AgentEvent.TurnStarted -> withParticipant
+        is AgentEvent.Usage -> withParticipant
         is AgentEvent.Delta -> withParticipant.copy(output = (current.output + event.text).takeLast(12000),
             outputTruncated = current.outputTruncated || current.output.length + event.text.length > 12000)
         is AgentEvent.ToolUse -> withParticipant.copy(lastTool = event.tool)

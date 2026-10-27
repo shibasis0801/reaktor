@@ -78,6 +78,8 @@ sealed interface AgentEvent {
         val decision: AgentDecision?,
     ) : AgentEvent
 
+    data class Usage(override val agent: AgentId, val usage: AgentUsage, val execution: String? = null) : AgentEvent
+
     data class Finished(override val agent: AgentId, val outcome: AgentOutcome) : AgentEvent
 }
 

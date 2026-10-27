@@ -22,7 +22,7 @@ internal object TaskReviewPanel {
         fun spec(id: String, seat: ResolvedTaskSeat) = AgentSpec(AgentId(id), seat.name ?: id, requireNotNull(seat.seat.agent),
             "Follow the repository instructions.\n${seat.instructions}", model = seat.seat.model,
             effort = seat.seat.effort?.let(::NativeEffort), tools = seat.tools.copy(allowWrites = false),
-            budget = AgentBudget(timeoutMillis = 60 * 60 * 1000L))
+            budget = seat.seat.budget ?: AgentBudget(timeoutMillis = 60 * 60 * 1000L))
         val lenses = resolved.lenses.mapIndexed { index, lens -> spec("lens-$index", lens) }
         val verifier = spec("verify", resolved)
         val contract = "Return only {\"verdict\":\"pass|repair|fail\",\"summary\":\"evidence\",\"candidate\":\"$candidate\",\"findings\":[{\"title\":\"defect\",\"detail\":\"evidence\",\"severity\":\"blocker|high|medium|low\",\"sourcePath\":\"relative file\",\"line\":1,\"confirms\":[],\"checkReceipt\":null}]}. Use an empty findings list when appropriate."

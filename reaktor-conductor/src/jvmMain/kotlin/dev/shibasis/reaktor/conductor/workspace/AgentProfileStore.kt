@@ -37,7 +37,7 @@ class AgentProfileStore(private val directory: Path, private val clock: () -> Lo
         val current = if (Files.exists(directory.resolve("${profile.id}.json"))) read(profile.id) else null
         require(current == null || expectedRevision != null) { "Name the profile revision you read before saving ${profile.id}" }
         require(expectedRevision == null || expectedRevision == (current?.revision ?: 0)) { "Profile ${profile.id} changed; read its current revision before saving" }
-        TaskGraphRules.validSeat(TaskSeat(profile.runtime, profile.model, profile.effort))
+        TaskSeatResolver().resolve(TaskSeat(profile.runtime, profile.model, profile.effort, budget = profile.budget))
         val next = profile.copy(
             name = BoardText.title(profile.name),
             instructions = BoardText.bounded(profile.instructions, "perspective instructions", 20_000),

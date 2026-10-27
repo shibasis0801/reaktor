@@ -451,7 +451,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
             workflow = target.candidate?.takeIf { resolved.lenses.isNotEmpty() }?.let { TaskReviewPanel.definition(resolved, it) },
             allowWrites = seat.access == TaskAccess.Write,
             isolation = if (seat.access == TaskAccess.Write) AgentIsolation.Worktree else AgentIsolation.Shared,
-            effort = seat.effort?.let(::NativeEffort), resolvedSeat = resolved, timeoutMillis = 60 * 60 * 1000L, task = target,
+            effort = seat.effort?.let(::NativeEffort), resolvedSeat = resolved, timeoutMillis = seat.budget?.timeoutMillis ?: 60 * 60 * 1000L, task = target,
         )
         var run = plan.runId?.let(scope.workspace::get)
             ?: plan.run?.takeIf { it.startsWith(BoardRefs.Hangar) }?.let(scope.workspace::threadOf)?.let(scope.workspace::latest)
@@ -469,7 +469,7 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
                 require(current.attempt == plan.attempt && current.state == TaskState.Running) { "The writing attempt changed before its worktree was attached" }
                 value.copy(graph = current.copy(worktreeId = isolated.id))
             }
-            tokens += if (done.workflow != null) done.turnUsage?.let { it.input.reported + it.output.reported } ?: 0
+            tokens += done.budget.tokens ?: if (done.workflow != null) done.turnUsage?.let { it.input.reported + it.output.reported } ?: 0
                 else done.usage?.let { (it.inputTokens ?: 0) + (it.outputTokens ?: 0) } ?: 0
             val decision = if (done.status == AgentRunStatus.Completed && target.candidate != null) decision(done.output) else null
             if (request.workflow == null && decision != null && decision.third != target.candidate) {
@@ -547,6 +547,10 @@ internal class TaskActor(private val scope: TaskGraphScope, @Volatile override v
                 decision(run.output)?.let { (verdict, summary, _) -> settled(if (verdict == "fail") TaskState.Failed else TaskState.Succeeded, base.copy(verdict = verdict, summary = summary.take(TaskGraphRules.OutcomeChars))) }
                     ?: settled(TaskState.Failed, base.copy(summary = "The review did not end with a Decision object {\"verdict\": \"pass\" | \"repair\" | \"fail\", \"summary\": \"...\"}.\n\n${base.summary}".take(TaskGraphRules.OutcomeChars)))
             run.status == AgentRunStatus.Completed -> settled(TaskState.Succeeded, base)
+            run.budget.exceeded != null -> settled(TaskState.Waiting, base.copy(
+                summary = run.recoveryReason.orEmpty(),
+                questions = listOf("Inspect the retained work, then keep it for review or approve a new attempt with a suitable budget.")))
+                .copy(recovery = AgentRecovery.NeedsReview)
             run.recovery == AgentRecovery.NeedsReview -> settled(TaskState.Waiting, base.copy(
                 summary = "The outcome is unknown: ${run.recoveryReason ?: "the owner stopped while this task ran"}.",
                 questions = listOf("Inspect $ref, then choose Retry, Keep the work or Abandon in Hangar."))).copy(recovery = AgentRecovery.NeedsReview)

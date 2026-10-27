@@ -148,6 +148,8 @@ class ClaudeCodeEventParser(
     private var result: String? = null
     private var failed: String? = null
     private var usage: AgentUsage? = null
+    private val messageUsage = linkedMapOf<String, AgentUsage>()
+    private var budgetExceeded = false
     private var serviceTier: String? = null
     private var completed = false
     private var usageLimit: AgentUsageLimit? = null
@@ -231,6 +233,7 @@ class ClaudeCodeEventParser(
 
             "result" -> {
                 completed = true
+                budgetExceeded = root.string("subtype") == "error_max_budget_usd"
                 root.string("session_id")?.let {
                     session = ProviderSession(RuntimeKind.ClaudeCode, it)
                 }
@@ -256,7 +259,23 @@ class ClaudeCodeEventParser(
 
             else -> emptyList()
         }
-        return events.flatMap { event ->
+        val live = if (root.string("type") == "assistant" && root.string("parent_tool_use_id") == null) {
+            val message = root.nested("message")
+            val id = message?.string("id")
+            val reported = message?.nested("usage")
+            if (id != null && reported != null) {
+                val input = reported.long("input_tokens")
+                val cached = reported.long("cache_read_input_tokens")
+                val written = reported.long("cache_creation_input_tokens")
+                messageUsage[id] = AgentUsage(
+                    inputTokens = if (input != null && cached != null && written != null) input + cached + written else null,
+                    outputTokens = reported.long("output_tokens"), cachedInputTokens = cached, cacheWriteInputTokens = written)
+                fun sum(field: (AgentUsage) -> Long?) = messageUsage.values.mapNotNull(field).takeIf { it.isNotEmpty() }?.sum()
+                listOf(AgentEvent.Usage(agent, AgentUsage(inputTokens = sum { it.inputTokens }, outputTokens = sum { it.outputTokens },
+                    cachedInputTokens = sum { it.cachedInputTokens }, cacheWriteInputTokens = sum { it.cacheWriteInputTokens })))
+            } else emptyList()
+        } else emptyList()
+        return live + events.flatMap { event ->
             if (event is AgentEvent.Activity && event.item.kind == ActivityKind.Tool && event.item.status == ActivityStatus.Started)
                 listOf(AgentEvent.ToolUse(agent, event.item.title), event) else listOf(event)
         }
@@ -281,6 +300,7 @@ class ClaudeCodeEventParser(
             effort = effort,
             serviceTier = serviceTier,
             usageLimit = usageLimit.takeUnless { ok },
+            attributes = if (budgetExceeded) mapOf("budgetExceeded" to "Claude Code stopped at the native USD budget; inspect retained work before retrying") else emptyMap(),
         )
     }
 }

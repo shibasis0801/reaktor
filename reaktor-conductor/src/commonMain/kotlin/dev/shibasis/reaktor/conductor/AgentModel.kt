@@ -58,7 +58,14 @@ data class ToolPolicy(
 data class AgentBudget(
     val timeoutMillis: Long = 10 * 60 * 1000L,
     val maxCostUsd: Double? = null,
-)
+    val maxTokens: Long? = null,
+) {
+    init {
+        require(timeoutMillis > 0) { "A timeout must be positive" }
+        require(maxTokens == null || maxTokens > 0) { "A token budget must be positive" }
+        require(maxCostUsd == null || maxCostUsd.isFinite() && maxCostUsd > 0) { "A cost budget must be finite and positive" }
+    }
+}
 
 @Serializable
 enum class WorkspaceMode {
