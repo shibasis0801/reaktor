@@ -33,6 +33,8 @@ data class FgaStore(
 
     fun without(tuple: RelationTuple): FgaStore = copy(tuples = tuples - tuple.key)
 
+    fun without(removed: Collection<RelationTuple>): FgaStore = removed.mapTo(hashSetOf()) { it.key }.let { keys -> copy(tuples = tuples.filterNot { it in keys }) }
+
     fun role(name: String): RoleDefinition? = roles.firstOrNull { it.name == name }
 
     fun withRole(role: RoleDefinition, replacing: String = role.name): FgaStore {

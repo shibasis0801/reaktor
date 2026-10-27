@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.auth.graph
 
 import dev.shibasis.reaktor.auth.fga.AccessMode
 import dev.shibasis.reaktor.auth.fga.FgaStore
+import dev.shibasis.reaktor.auth.fga.RelationTuple
 import dev.shibasis.reaktor.auth.fga.RoleDefinition
 import dev.shibasis.reaktor.auth.fga.Subject
 import dev.shibasis.reaktor.auth.fga.TupleKey
@@ -61,6 +62,29 @@ class RoleCatalogTest {
         assertEquals(listOf("moderator"), removed.roles.map { it.name })
         assertEquals(emptyList(), removed.role("moderator")?.includes)
         assertEquals(listOf("member", "moderator", "admin"), store.withRole(admin).roles.map { it.name })
+    }
+
+    @Test fun aRoleKeepsItsGrantsThroughARenameAndReachesOnlyThem() {
+        val reports = CodeAccess.service("app.reports")
+        val read = CodeOperation(CodeAccess.operation("app.reports", "read"), reports, "read", "GET", "/reports", "", "")
+        val write = CodeOperation(CodeAccess.operation("app.reports", "write"), reports, "write", "PUT", "/reports", "", "")
+        val service = CodeService(reports, "Reports", "app.reports", null, null, emptySet(), emptyList(), emptyList(), listOf(read, write),
+            listOf(RelationTuple(reports, CodeAccess.Caller, Subject.Userset(CodeAccess.permission("worker:server"), CodeAccess.Holder))))
+        val viewer = RoleDefinition("viewer", includes = listOf("member"))
+        val store = FgaStore("app", roles = listOf(member)).withRole(viewer, listOf(RelationTuple(read.ref, CodeAccess.Invoker, CodeAccess.holders("someone-else"))))
+        assertEquals(listOf("operation:app.reports.read#invoker@role:viewer#assignee"), store.grants("viewer").map { it.toString() })
+        val renamed = store.withRole(viewer.copy(name = "reader"), store.grants("viewer"), replacing = "viewer")
+        assertEquals(emptyList(), renamed.grants("viewer"))
+        assertEquals(listOf("operation:app.reports.read#invoker@role:reader#assignee"), renamed.grants("reader").map { it.toString() })
+        assertEquals(listOf("member", "reader"), renamed.roles.map { it.name })
+        val policy = CodeAccessPolicy.load(CodeAccess.starter, renamed.encode()).getOrThrow()
+        val ada = Subject.of(CodeAccess.User, "ada")
+        val reader = policy.reach(ada, CodeAccess.contextual(ada, roles = listOf("reader")), listOf(service))
+        assertEquals(listOf(true, false), listOf(read, write).map { reader.getValue(it.ref).allowed })
+        assertEquals("operation:app.reports.read#invoker@role:reader#assignee", reader.getValue(read.ref).rule)
+        assertEquals(listOf(false, false), listOf(read, write).map { policy.reach(ada, CodeAccess.contextual(ada), listOf(service)).getValue(it.ref).allowed })
+        assertTrue(policy.reach(ada, CodeAccess.contextual(ada, permissions = listOf("worker:server")), listOf(service)).values.all { it.allowed })
+        assertEquals(emptyList(), renamed.withoutRole("reader").without(renamed.grants("reader")).tuples)
     }
 
     @Test fun thePolicyDecidesWithTheCatalog() {

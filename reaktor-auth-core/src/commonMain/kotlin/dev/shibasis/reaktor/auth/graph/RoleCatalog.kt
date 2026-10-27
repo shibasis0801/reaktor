@@ -90,3 +90,14 @@ class RoleCatalog(val roles: List<RoleDefinition>) {
 }
 
 fun CodeAccess.tuples(store: FgaStore): List<RelationTuple> = store.relationTuples() + RoleCatalog.of(store).tuples
+
+fun CodeAccess.holders(name: String): Subject.Userset = Subject.Userset(role(name), Assignee)
+
+fun FgaStore.grants(role: String): List<RelationTuple> = CodeAccess.holders(role).let { holders -> relationTuples().filter { it.subject == holders } }
+
+fun FgaStore.withRole(role: RoleDefinition, granted: Collection<RelationTuple>, replacing: String = role.name): FgaStore {
+    val holders = CodeAccess.holders(role.name)
+    return granted.fold(withRole(role, replacing).without(grants(replacing) + grants(role.name))) { store, grant ->
+        store.with(RelationTuple(grant.target, grant.relation, holders))
+    }
+}

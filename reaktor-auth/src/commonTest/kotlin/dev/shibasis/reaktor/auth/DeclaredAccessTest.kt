@@ -49,13 +49,13 @@ class DeclaredAccessTest {
         method = AuthMethod.SERVICE_CREDENTIAL, scopes = setOf(PermissionRef(name = "worker:server")))
 
     @Test fun aContractStatesWhoMayCallItAsTuplesTheModelReads() {
-        assertEquals(listOf("service:lobby#caller@role:authenticated#assignee", "operation:lobby.enter#invoker@role:everyone#assignee"),
-            CodeAccess.declared("lobby", Lobby().access).map(RelationTuple::toString))
-        assertEquals(listOf("service:lobby#caller@role:authenticated#assignee"), CodeAccess.declared("lobby", Lobby().access, "leave").map(RelationTuple::toString))
+        assertEquals(listOf("operation:lobby.enter#invoker@role:everyone#assignee", "operation:lobby.leave#invoker@role:authenticated#assignee"),
+            CodeAccess.declared("lobby", Lobby().access, listOf("leave", "enter")).map(RelationTuple::toString))
+        assertEquals(listOf("operation:lobby.leave#invoker@role:authenticated#assignee"), CodeAccess.declared("lobby", Lobby().access, "leave").map(RelationTuple::toString))
         assertEquals(listOf("service:sweeps#caller@permission:worker:server#holder"),
-            CodeAccess.declared("sweeps", ServiceAccess(Callers.Holding("worker:server"))).map(RelationTuple::toString))
+            CodeAccess.declared("sweeps", ServiceAccess(Callers.Holding("worker:server")), listOf("sweep")).map(RelationTuple::toString))
         assertFalse(ServiceAccess.Undeclared.declared)
-        assertTrue(CodeAccess.declared("lobby", ServiceAccess.Undeclared).isEmpty())
+        assertTrue(CodeAccess.declared("lobby", ServiceAccess.Undeclared, listOf("enter")).isEmpty())
     }
 
     @Test fun aGuardedServiceNeedsNoStoredGrantForWhatItsContractDeclares() = runTest {
@@ -66,8 +66,8 @@ class DeclaredAccessTest {
         lobby.leave(LobbyCall().apply { setAuthContext(person()) })
         assertEquals(listOf("allowed", "would deny", "allowed"), seen.map { it.verdict })
         assertEquals("operation:lobby.enter#invoker@role:everyone#assignee", seen[0].rule)
-        assertEquals("service:lobby#caller@role:authenticated#assignee", seen[2].rule)
-        assertEquals(listOf("role:everyone#assignee@user:ada", "role:authenticated#assignee@user:ada", "service:lobby#caller@role:authenticated#assignee"), seen[2].contextual)
+        assertEquals("operation:lobby.leave#invoker@role:authenticated#assignee", seen[2].rule)
+        assertEquals(listOf("role:everyone#assignee@user:ada", "role:authenticated#assignee@user:ada", "operation:lobby.leave#invoker@role:authenticated#assignee"), seen[2].contextual)
 
         val decided = seen[2]
         val target = ObjectRef.parse(decided.target)!!
@@ -88,6 +88,19 @@ class DeclaredAccessTest {
         assertEquals("service_account:sweeper", seen[0].subject)
     }
 
+    @Test fun anOperationsOwnCallersReplaceTheServiceDefault() = runTest {
+        val seen = mutableListOf<AccessDecision>()
+        val desk = Desk() over LocalLink(object : Desk() {
+            override val read = super.read.handle { LobbyAnswer() }
+            override val sweep = super.sweep.handle { LobbyAnswer() }
+        }).apply { served.intercept(RelationAccess({ nothingStored }, decisions = AccessDecisionSink(seen::add))) }
+        desk.read(LobbyCall().apply { setAuthContext(person()) })
+        desk.sweep(LobbyCall().apply { setAuthContext(person()) })
+        desk.sweep(LobbyCall().apply { setAuthContext(worker()) })
+        assertEquals(listOf("allowed", "would deny", "allowed"), seen.map { it.verdict })
+        assertEquals("operation:desk.sweep#invoker@permission:worker:server#holder", seen[2].rule)
+    }
+
     @Test fun theShapeCarriesTheDeclarationSoTheMapShowsIt() {
         val graph = Graph(dependencyAdapter = AuthGraphDependencyFixture(), label = "Rooms")
         graph.serve(LobbyRoom())
@@ -95,7 +108,7 @@ class DeclaredAccessTest {
         assertEquals(Lobby().access, shape.nodes.single { it.kind == NodeKind.Service }.access)
         assertEquals(shape, json.decodeFromString(GraphShape.serializer(), json.encodeToString(GraphShape.serializer(), shape)))
         val code = CodeAccess.resources(shape)
-        assertEquals(CodeAccess.declared("lobby", Lobby().access), code.service(CodeAccess.service("lobby"))?.declared)
+        assertEquals(CodeAccess.declared("lobby", Lobby().access, listOf("enter", "leave")), code.service(CodeAccess.service("lobby"))?.declared)
         assertTrue(code.tuples.containsAll(code.declared + code.structure))
         assertTrue(CodeAccessPolicy(model, emptyList(), code).check(person(), "lobby", "leave").allowed)
         assertFalse(CodeAccessPolicy(model, emptyList(), code).check(null, "lobby", "leave").allowed)
@@ -121,4 +134,11 @@ private open class Sweeps : Service("sweeps") {
     override val access = ServiceAccess(Callers.Holding("worker:server"))
 
     open val sweep by post<LobbyCall, LobbyAnswer>("/sweep")
+}
+
+private open class Desk : Service("desk") {
+    override val access = ServiceAccess(Callers.SignedIn, ::sweep to Callers.Holding("worker:server"))
+
+    open val read by get<LobbyCall, LobbyAnswer>("/desk")
+    open val sweep by post<LobbyCall, LobbyAnswer>("/desk/sweep")
 }
