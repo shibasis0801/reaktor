@@ -16,8 +16,8 @@ class TaskGraphTemplatesTest {
         } finally { folder.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
     }
 
-    @Test fun fivePatternsBindProfilesAndProduceTheSameDefinitionsFromEitherProvider() = fixture { books, resolver, folder ->
-        assertEquals(5, books.templates().size)
+    @Test fun builtInPatternsBindProfilesAndProduceTheSameDefinitionsFromEitherProvider() = fixture { books, resolver, folder ->
+        assertEquals(6, books.templates().size)
         books.templates().forEachIndexed { index, template ->
             val draft = template.draft.copy(tasks = template.draft.tasks.map { task ->
                 task.copy(scope = listOf("Source.kt"), check = if (task.kind == TaskKind.Check) "unit" else task.check,
@@ -30,11 +30,33 @@ class TaskGraphTemplatesTest {
             val definitions = listOf("codex", "claude").map { provider ->
                 val board = AgentBoardStore(folder.resolve("board-$index-$provider"), resolveSeat = resolver::resolve)
                 val view = board.propose(bound, BoardActor(BoardActorKind.Agent, provider, "$provider:fixture"))
-                assertTrue(view.tasks.all { it.graph?.attempt == 0 && it.graph?.outcome == null && it.graph?.runId == null })
+                assertTrue(view.tasks.all { it.graph?.attempt == 0 && it.graph.outcome == null && it.graph.runId == null })
                 TaskGraphTemplates.definitions(view)
             }
             assertEquals(definitions[0], definitions[1])
         }
+    }
+
+    @Test fun competingExplanationsKeepInvestigationIndependentAndRequireBothChallengesBeforeAFix() = fixture { _, resolver, folder ->
+        val draft = TaskGraphTemplates.builtIns.single { it.id == "builtin-competing-explanations" }.draft
+        val tasks = TaskGraphTemplates.validate(draft.copy(tasks = draft.tasks.map {
+            it.copy(scope = listOf("Source.kt"), check = if (it.kind == TaskKind.Check) "unit" else it.check)
+        })) { resolver.resolve(it).seat }.tasks.associateBy { requireNotNull(it.key) }
+        assertTrue(tasks.getValue("codex-investigation").dependsOn.isEmpty())
+        assertTrue(tasks.getValue("claude-investigation").dependsOn.isEmpty())
+        assertEquals(RuntimeKind.Codex, tasks.getValue("codex-investigation").seat?.agent)
+        assertEquals(RuntimeKind.ClaudeCode, tasks.getValue("claude-investigation").seat?.agent)
+        listOf("codex-challenge", "claude-challenge").forEach {
+            assertEquals(setOf("codex-investigation", "claude-investigation"), tasks.getValue(it).dependsOn.map { edge -> edge.task }.toSet())
+            assertEquals(TaskAccess.Read, resolver.resolve(requireNotNull(tasks.getValue(it).seat)).seat.access)
+        }
+        assertEquals(setOf("codex-challenge", "claude-challenge"), tasks.getValue("explanation").dependsOn.map { it.task }.toSet())
+        assertEquals(listOf(TaskDependency("explanation")), tasks.getValue("writer").dependsOn)
+        assertEquals(listOf(TaskDependency("writer")), tasks.getValue("check").dependsOn)
+        val board = AgentBoardStore(folder.resolve("debug-board"), resolveSeat = resolver::resolve)
+        val proposed = board.propose(draft.copy(tasks = tasks.values.toList()), BoardActor(BoardActorKind.Agent, "Codex", "codex:fixture"))
+        assertEquals(TaskGraphStatus.Proposed, proposed.graph.status)
+        assertTrue(proposed.tasks.all { it.graph?.attempt == 0 })
     }
 
     @Test fun runbookConversionPreservesConditionalBranchJoinsAndProviderInstructions() {
