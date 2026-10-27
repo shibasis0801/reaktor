@@ -109,7 +109,7 @@ internal class BuildWorkspace(private val project: Project) {
             }
             arguments.joinToString(" ", transform = ::shellToken)
         }
-        recordAlias(directory, alias, PackageScriptInvocation(node.id, command))
+        recordAlias(directory, alias, PackageScriptInvocation(node.id, command, composed = before.isNotEmpty() || settings.isNotEmpty() || options != null))
     }
     val graph = project.tasks.register<ExportBuildModelTask>(GradleProtocol.ExportTask) {
         group = "dependeasy"

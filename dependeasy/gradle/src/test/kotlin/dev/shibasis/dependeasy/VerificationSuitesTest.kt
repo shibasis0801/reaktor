@@ -166,6 +166,7 @@ class VerificationSuitesTest {
                     environmentAllowList = setOf("FIXTURE_MESSAGE"),
                     optionalEnvironmentFiles = listOf("device.local.env")))
                 alias("test:phones", flows, DeviceOptions(DevicePlatform.Ios, "login", ArtifactPolicy.Always))
+                alias("test:phones:android", flows, DeviceOptions(DevicePlatform.Android, "login", ArtifactPolicy.Always))
             }
             tasks.register<Copy>("inspectIosApplication") {
                 from(tasks.named<DeviceFlow>("flows").get().applicationOutputs)
@@ -205,6 +206,7 @@ class VerificationSuitesTest {
         assertEquals(ExecutionHost.Local, model.requiredHost(NodeId("deviceOptions", ":", "phoneChecks")).execution)
         assertFalse(root.resolve("phones/build/dependeasy/device/flows.json").exists())
         assertContains(root.resolve("package.json").readText(), ":phones:flows --platform ios --flow login --artifacts Always")
+        assertContains(root.resolve("package.json").readText(), ":phones:flows --platform android --flow login --artifacts Always")
         assertContains(run().output, "Reusing configuration cache")
         run("")
         assertContains(run("").output, "Reusing configuration cache")
