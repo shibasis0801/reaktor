@@ -9,29 +9,25 @@ See [DESIGN.md](DESIGN.md) for the architecture, domain status, and remaining wo
 
 ## Module declarations
 
-Shared modules apply one plugin bundle and declare their platforms and dependencies together:
+A shared module applies one plugin bundle and declares its targets, dependencies and
+outputs in one `library` call:
 
 ```kotlin
 import dev.shibasis.dependeasy.Versions
-import dev.shibasis.dependeasy.common.apiReaktor
-import dev.shibasis.dependeasy.handles.*
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.handles.Reaktor
+import dev.shibasis.dependeasy.model.*
 
 plugins { id("dev.shibasis.dependeasy.compose-library") }
 
-dependeasy {
-    module("example.shared") {
-        common {
-            dependencies { apiReaktor(Reaktor.Ui, Reaktor.Auth) }
-            testDependencies { implementation(Versions.Kotlin.KtorMock) }
-        }
-        web {
-            moduleName = "example-kt"
-        }
-        android {}
-        apple {}
-        jvm { bytecode = 21 }
-        framework(exports = listOf("dev.shibasis:reaktor-auth"))
+library(namespace = "example.shared", targets = Targets.All, ui = Compose(stability = "compose-stability.conf")) {
+    dependencies {
+        common { api(Reaktor.Ui, Reaktor.Auth) }
+        commonTest { implementation(Versions.Kotlin.KtorMock) }
     }
+    web(module = "example-kt")
+    appleFramework(exports = listOf(Reaktor.Auth))
+    val unit by tests(Suite.Jvm)
 }
 ```
 
@@ -40,16 +36,16 @@ dependeasy {
 JVM consumers use `compose-application`, `browser`, `jvm`, `compose-jvm` or
 `spring-application` respectively.
 Plugin bundles configure builds without adding Compose runtime dependencies to headless modules.
-Only declared platforms are created. Android uses the module namespace and shared
-SDK/bytecode defaults. JVM compilation uses Java 25; `bytecode = 21` retains an explicit
-compatibility contract. Test dependencies live beside each platform's production dependencies.
+Only the platforms in `targets` are created. Android uses the module namespace and shared
+SDK/bytecode defaults. JVM compilation uses Java 25; `bytecode = 21` keeps an explicit
+compatibility contract. Test dependencies sit beside each platform's production
+dependencies, in `commonTest`, `jvmTest` and the other test blocks.
 
-For exceptional compilations, source-set hierarchies or binaries, use `kotlin { ... }`
-inside `module`, or ordinary Kotlin/Gradle configuration inside the same Dependeasy block. The declaration
-uses ordinary Gradle targets and task providers, which remain available for low-level configuration.
-`compose(stability = "compose-stability.conf", reports = "product.composeReports")`
-configures compiler stability and optional reports. `testClasses()` explicitly selects
-`*Test` and `*Tests` classes; pass patterns when a module uses another naming convention.
+For exceptional compilations, source-set hierarchies or binaries, use the ordinary
+`kotlin { ... }` extension in the same build script. The declaration uses ordinary
+Gradle targets and task providers, which remain available for low-level configuration.
+`ui = Compose(stability = "compose-stability.conf", reports = true)` configures compiler
+stability and optional reports.
 
 A web export can declare `manifest("generateManifest", script, output, inputs...)`.
 Dependeasy tracks the export and workspace inputs, orders manifest generation after
@@ -65,54 +61,49 @@ plugins { id("dev.shibasis.dependeasy.pipeline") }
 
 dependeasy {
     val frontend = javascript("frontend", "web")
-    val bundle = frontend.script("bundle", "dist")
-    val native = cmake("renderer") {
-        source = "native"
-        target = "renderer"
-    }
-    val swift = swiftPackage("tools", "apple/tools").build()
-
-    dag("desktop") {
-        val renderer = node(native)
-        val tools = node(swift).after(renderer)
-        target("buildDesktop", node(bundle).after(tools))
+    val native = cmake("renderer") { source = "native" }
+    workspace {
+        val buildDesktop by artifacts { include(node(native), frontend.build("buildWeb")) }
     }
 }
 ```
 
-`desktopBuildPlan` prints the graph without compiling or installing anything.
-`buildDesktop` runs the selected dependency closure. Ordering is explicit; declaring
-an adapter does not attach it to `help` or to unrelated builds. Cycles and duplicate
-node IDs fail during declaration. Use project-qualified IDs for foreign tasks.
+`./gradlew buildDesktop --dry-run` lists the selected tasks without running them.
+`exportBuildModel` writes the same graph to `build/dependeasy/model.json`, which
+Hangar, the CLI and MCP read. Ordering is explicit; declaring an adapter does not
+attach it to `help` or to unrelated builds.
 
-For a web component, `frontend.build("buildWeb", checks = listOf(generateAssets))`
-runs declared checks and generators before typechecking, then bundles with Vite.
-The component tracks its source tree, including generated assets; these producer
-dependencies keep that input tracking correct on clean and incremental builds.
+`frontend.build("buildWeb")` typechecks, then bundles with Vite. Its `checks` and
+`generators` parameters run declared checks and generators first. The component
+tracks its source tree, including generated assets; these producer dependencies keep
+that input tracking correct on clean and incremental builds.
 
 For file dependencies, carry the producer with its output:
 
 ```kotlin
-import dev.shibasis.dependeasy.dag.artifact
+import dev.shibasis.dependeasy.handles.*
 
 dependeasy {
-    val generated = tasks.named<GenerateSources>("generateSources")
-    val sources = generated.artifact { it.outputDirectory }
-    dag("generatedWeb") {
-        target("buildGeneratedWeb", node(bundle).consumes(sources))
+    val frontend = javascript("frontend", "web")
+    val generated = tasks.register<GenerateSources>("generateSources")
+    val bundle = frontend.vite()
+    node(bundle).consumes(artifact(generated) { it.outputDirectory })
+    workspace {
+        val buildGeneratedWeb by artifacts { include(frontend.build("buildWeb", bundle = bundle)) }
     }
 }
 ```
 
 Here `GenerateSources` is the build's own task type with a `DirectoryProperty`.
 `consumes` adds both the producer dependency and a relative-path file input.
-An `after` edge only orders work; it does not imply which files are consumed.
+An `after` edge only orders work; it does not say which files are consumed.
 
 ## Ownership and source layout
 
 | Package | Responsibility |
 | --- | --- |
-| `dag` | Lazy task nodes, typed artifacts, edges, cycle checks, readable plans |
+| `components` | Typed component declarations: `library`, `webApp`, `workerApp`, `workers`, `androidApp`, `appleApp`, `desktopApp`, `server`, `cli`, `daggerPipeline` |
+| `handles` | Typed handles for Reaktor modules, project outputs, nodes and artifacts |
 | `workspace` | Build entrypoints, included-build exports, package command inventory, generated aliases |
 | `dagger` | Kotlin-owned container toolchain and a shared model-resolved runner |
 | `fastlane` | Frozen Bundler launcher and shared filesystem/artifact helpers; product signing and release policy stay in product domains |
@@ -136,13 +127,13 @@ An `after` edge only orders work; it does not imply which files are consumed.
 | `tasks` | CMake execution, prefab extraction, cinterop definitions, size reports |
 | `files` | Bounded cleanup independent of the runtime libraries |
 
-The graph refers to Gradle task providers. `buildGraph` exports the workspace for
-Hangar's Build source, retaining build ownership and declared provenance. Build
-execution does not depend on the product graph. There is no second scheduler or resolver.
+The graph refers to Gradle task providers. `exportBuildModel` writes it to
+`build/dependeasy/model.json` with build ownership and declaration sites. Build
+execution does not depend on the exported model. There is no second scheduler or resolver.
 
 ## Toolchain contract
 
-[`ToolchainVersions.kt`](src/main/kotlin/dev/shibasis/dependeasy/toolchain/ToolchainVersions.kt)
+[`ToolchainVersions.kt`](gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/ToolchainVersions.kt)
 owns the shared versions consumed by Reaktor, BestBuds, Manna, and this included build.
 It is ordinary Kotlin source. Plugin implementations import it directly. The initial
 plugin bootstrap, CMake, and the Linux SDK installer read its literal constants;
@@ -201,7 +192,7 @@ existing product credential property names remain supported.
   CMake configuration files. Project native dependencies link their existing
   libraries instead of recursively rebuilding the same source.
 * Native source revisions are full commit SHAs in
-  [`NativeSources.kt`](src/main/kotlin/dev/shibasis/dependeasy/toolchain/NativeSources.kt).
+  [`NativeSources.kt`](gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/NativeSources.kt).
   Checkout preparation is a task dependency, never a settings-time clone or build.
   Existing checkouts are verified and local tracked edits are rejected rather than reset.
 * Hermes' host compiler is built with the macOS SDK even when an iOS Xcode build
@@ -220,15 +211,12 @@ with `javascript.sources(...)` or CMake's `inputs` when outside the adapter's ro
 
 ## Apple builds
 
-Ordinary `apple { }` modules produce Kotlin libraries. Only an app or deliberate
+A library's Apple targets produce Kotlin libraries. Only an app or a deliberate
 umbrella module declares an exported framework:
 
 ```kotlin
-dependeasy {
-    module("example.shared") {
-        apple { }
-        framework(name = "app", exports = listOf("dev.shibasis:reaktor-auth"))
-    }
+library(namespace = "example.shared", targets = Targets.All) {
+    appleFramework(exports = listOf(Reaktor.Auth))
 }
 ```
 
@@ -257,14 +245,20 @@ the development Mac. Do not start emulators or simulators.
 
 ## Keep product scripts declarative
 
-The common web build needs one declaration after its component:
+A web app is one component declaration in its own project:
 
 ```kotlin
-web.build("buildWeb")
+plugins { id("dev.shibasis.dependeasy.web-app") }
+
+webApp(kotlin = listOf(kotlinJsLibrary(projects.app)), tests = Vitest())
 ```
 
-`types`, `vite`, `bindings`, `script`, and their ordinary task providers remain available
-for exceptional pipelines. The root plugin does not need a list of `apply false` plugins.
+Its bundle, generators and checks are typed: `WebBundle.Vite`, `WebBundle.Node` or
+`WebBundle.Package`; `WebGenerator.Node` and `WebGenerator.WorkerTypes`; `Vitest`;
+and `generate`, `check` and `tests` inside the `webApp` block. The low-level
+`javascript(...)` component keeps `build`, `types`, `vite`, `bindings` and their task
+providers for exceptional pipelines. The root plugin does not need a list of
+`apply false` plugins.
 
 Build and runner entrypoints share one workspace declaration:
 
@@ -274,7 +268,7 @@ workspace {
     val pr by verify(role = Workspace.Verify) {
         include(verification(projects.app, Verification.Jvm), framework.verify)
     }
-    packageScripts(versions = Versions.Web.Libraries)
+    packageScripts()
 }
 ```
 
@@ -287,9 +281,11 @@ reference snapshot or drift-verification task. Kotlin checks host requirements a
 required secret names. Dagger returns the run receipts and declared outputs as a directory.
 
 Local CI starts through `reaktor build run pr` in each repository. No GitHub Actions
-workflow is required. `buildGraph` imports active package scripts directly from authored
-manifests. Generated aliases point back to Gradle; manifest dependencies and other
-authored commands remain in `package.json`.
+workflow is required. `exportBuildModel` imports active package scripts directly from
+authored manifests. Generated aliases point back to Gradle. Manifest dependencies stay
+in `package.json`, and so do authored scripts that start a dev server or open an ops
+tool. A script that builds, tests, deploys or releases is a model node with a
+generated alias.
 With `packageScripts()`, frozen pnpm installation depends on alias generation.
 Generation reads the declared targets without executing them, so frontend builds
 refresh their aliases without recursively building or installing the workspace.
@@ -309,7 +305,7 @@ or changing the parent environment. Products select their own files and commands
 the same process helper also launches Wrangler and forwards cancellation before
 temporary configuration is removed.
 
-Worker artifact transfer carries `buildGraph` back for local Hangar and preserves
+Worker artifact transfer carries the exported model back for local Hangar and preserves
 relative Kotlin export links. Generated Dagger source and metadata transfer on
 success, without its SDK or dependency caches.
 The generated alias report merges only owned scripts and metadata into the local
@@ -357,16 +353,20 @@ dependency metadata and artifacts as inputs. Select a different configuration wi
 accepts the existing immutable `KernelSpec.DependencyBoundary` and a `Verification`
 role, publishing the same check identity while including it in `componentChecks`.
 
-Generated Kotlin sources carry their own output directory and inputs. Registration
-adds the producer to multiplatform `commonMain` or JVM `main` automatically:
+Generated Kotlin sources carry their own output directory and inputs. Declare the
+object once, for example in `buildSrc`, and generate it in the component that owns it.
+Registration adds the producer to multiplatform `commonMain` or JVM `main`
+automatically:
 
 ```kotlin
-dependeasy {
-    val developerTools = localProperty("product.devTools").map(String::toBoolean)
-    kotlinObject("generateFlags", "example", "BuildFlags") {
-        boolean("developerTools", developerTools)
-        string("revision", sourceRevision())
-    }
+val DevTools = BuildOption.boolean("example.devTools")
+val BuildFlags by GeneratedObject("example") {
+    val developerTools by flag(DevTools)
+    val sourceRevision by revision()
+}
+
+library(namespace = "example", targets = Targets.All) {
+    val generateBuildFlags by generated(BuildFlags)
 }
 ```
 

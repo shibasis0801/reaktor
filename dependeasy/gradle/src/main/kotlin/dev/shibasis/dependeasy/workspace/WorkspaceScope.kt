@@ -102,6 +102,9 @@ class WorkspaceScope internal constructor(private val project: Project, private 
     fun includeIf(option: BuildOption<Boolean>, build: BuildHandle): IncludedBuild? =
         if (project.resolve(option).get().value) include(build) else null
 
+    fun includeIfPresent(build: BuildHandle): IncludedBuild? =
+        if (project.gradle.includedBuilds.any { it.name == build.name }) include(build) else null
+
     fun verify(parts: Parts, role: Workspace? = null, run: Run = Run.Default, content: VerifySpec.() -> Unit = {}) =
         verification(emptyList(), role, run, content).consuming(project, workspace, parts, Workspace.Verify)
 
@@ -163,7 +166,7 @@ class DeliveryScope internal constructor(
         ReleaseSpec(declaration).apply(content)
         val site = project.declarationSite()
         return NodeDeclaration { name ->
-            declaration.includes.add(project.externalCommand("${name}Lane", ExternalCall.Fastlane(lane), "WP16 typed store release kernel", Effect.Deploy, run))
+            declaration.includes.add(project.externalCommand("${name}Lane", ExternalCall.Fastlane(lane), "Kotlin store release kernel", Effect.Deploy, run))
             workspace.emit(project, declaration.spec(name, NodeKind.Release), ReleaseKernel, site, null,
                 declaration.includes.toList(), declaration.consumes.toList(), declaration.after.toList())
         }
