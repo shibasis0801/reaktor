@@ -48,9 +48,21 @@ enum class Publication { Local, Remote }
 object IosLane {
     val BuildDebug = LaneHandle("ios", "build_debug")
     val BuildRelease = LaneHandle("ios", "build_release")
+    val Firebase = LaneHandle("ios", "firebase")
     val TestflightInternal = LaneHandle("ios", "testflight_internal")
+    val TestflightExternal = LaneHandle("ios", "testflight_external")
+    val AppStoreCandidate = LaneHandle("ios", "appstore_candidate")
 }
-object AndroidLane { val BuildRelease = LaneHandle("android", "build_release") }
+object AndroidLane {
+    val BuildRelease = LaneHandle("android", "build_release")
+    val Firebase = LaneHandle("android", "firebase")
+    val PlayInternal = LaneHandle("android", "play_internal")
+    val PlayProduction = LaneHandle("android", "play_production")
+}
+object ReleaseLane {
+    val Firebase = LaneHandle("", "release_firebase")
+    val Internal = LaneHandle("", "release_internal")
+}
 
 data class ToolHandle(val name: String, val version: String) : JavaSerializable
 

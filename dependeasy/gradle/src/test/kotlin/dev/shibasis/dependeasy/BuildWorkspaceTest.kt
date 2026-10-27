@@ -41,7 +41,7 @@ class BuildWorkspaceTest {
         """.trimIndent())
         directory.resolve("fastlane").mkdir()
         directory.resolve("fastlane/run.sh").apply {
-            writeText("#!/bin/sh\ntest -f payload/build/publication.txt || exit 3\nprintf complete > build/lane.txt\n")
+            writeText("#!/bin/sh\ntest -f payload/build/publication.txt || exit 3\nprintf '%s' \"\$*\" > build/lane.txt\n")
             setExecutable(true)
         }
         directory.resolve("build.gradle.kts").writeText("""
@@ -55,6 +55,7 @@ class BuildWorkspaceTest {
                     val schema by migrate(output(projects.payload, OutputKind.DatabaseMigration))
                     val registry by publish(output(projects.payload, OutputKind.PublishedModules)) { after(schema) }
                     val internalRelease by release(output(projects.payload, OutputKind.WorkerBundle), LaneHandle("fixture", "internal")) { after(registry); require(Allowed, false) }
+                    val bundleRelease by release(listOf(output(projects.payload, OutputKind.WorkerBundle), output(projects.payload, OutputKind.PublishedModules)), LaneHandle("", "bundle"))
                 }
             }
         """.trimIndent())
@@ -75,12 +76,16 @@ class BuildWorkspaceTest {
             it.to == NodeId("deliveryFixture", ":", "schema") })
         val first = run()
         assertEquals(org.gradle.testkit.runner.TaskOutcome.SUCCESS, first.task(":internalReleaseLane")?.outcome)
-        assertEquals("complete", directory.resolve("build/lane.txt").readText())
+        assertEquals("fixture internal", directory.resolve("build/lane.txt").readText())
         val model = BuildModelReader.read(directory)
         assertEquals(NodeKind.Deploy, model.nodes.single { it.id.name == "schema" }.kind)
         assertEquals(NodeKind.Release, model.nodes.single { it.id.name == "registry" }.kind)
         assertEquals(NodeKind.Release, model.nodes.single { it.id.name == "internalRelease" }.kind)
         assertTrue(model.nodes.single { it.id.name == "internalReleaseLane" }.kernel?.spec is KernelSpec.ExternalCommand)
+        assertEquals(2, assertIs<KernelSpec.WorkspaceNode>(model.nodes.single { it.id.name == "bundleRelease" }.kernel?.spec).consumes.size)
+        GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments("bundleRelease", "--configuration-cache", "--stacktrace").build()
+        assertEquals("bundle", directory.resolve("build/lane.txt").readText())
         assertContains(run().output, "Reusing configuration cache")
     }
 
