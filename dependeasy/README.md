@@ -273,7 +273,8 @@ runs its flows on one phone per run, and `--platform` and `--flow` choose the ph
 the flow. `exchange(DeviceExchange(suite, receive, send, token, sendAfter))` drives two
 phones in one run. For each ordered pair, one phone runs `receive`; the other starts `send`
 after `sendAfter`, and both flows get the same fresh value in the `token` variable. The
-receiving phone must still be running when the send starts, and every pair must pass.
+receiving phone must still be running when the send starts. Every pair runs even after
+another fails, and the run then fails with one line per failed pair.
 
 Build and runner entrypoints share one workspace declaration:
 
