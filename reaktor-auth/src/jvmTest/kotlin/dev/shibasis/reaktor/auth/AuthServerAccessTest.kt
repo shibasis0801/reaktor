@@ -51,7 +51,7 @@ class AuthServerAccessTest {
         assertEquals("user:$principalId", seen.subject)
         assertEquals("operation:reaktor.auth.sessionMe", seen.target)
         assertTrue(seen.allowed)
-        assertEquals("service:reaktor.auth#caller@role:authenticated#assignee", seen.rule)
+        assertEquals("operation:reaktor.auth.sessionMe#invoker@role:authenticated#assignee", seen.rule)
         assertEquals(seen.encodeForSpan(), signedIn.attributes[ServiceCall.AccessAttribute])
 
         assertEquals(StatusCode.UNAUTHORIZED, runtime.api.sessionMe(MeRequest()).statusCode)

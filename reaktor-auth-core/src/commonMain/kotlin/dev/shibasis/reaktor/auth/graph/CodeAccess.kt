@@ -43,7 +43,9 @@ data class CodeService(
     val nodes: List<String>,
     val operations: List<CodeOperation>,
     val declared: List<RelationTuple> = emptyList(),
-)
+) {
+    fun declared(operation: CodeOperation): List<RelationTuple> = declared.filter { it.target == ref || it.target == operation.ref }
+}
 
 data class CodeResources(val graphs: List<CodeGraph>, val services: List<CodeService>) {
     val operations: List<CodeOperation> get() = services.flatMap { it.operations }
@@ -207,6 +209,9 @@ class CodeAccessPolicy(
         return AccessDecision(subject.toString(), CodeAccess.Invoke, target.toString(), result.allowed, mode(contract), rule,
             facts.map(RelationTuple::toString), digest, tenant, atMillis = atMillis, contextual = contextual.map(RelationTuple::toString))
     }
+
+    fun reach(subject: Subject, contextual: List<RelationTuple>, services: List<CodeService>, tenant: String? = null): Map<ObjectRef, AccessDecision> =
+        services.flatMap { service -> service.operations.map { it.ref to check(subject, contextual + service.declared(it), service.contract, it.name, tenant) } }.toMap()
 
     fun holds(subject: Subject, contextual: List<RelationTuple>, permission: String, contract: String, tenant: String? = null,
               atMillis: Long = Clock.System.now().toEpochMilliseconds()): AccessDecision =

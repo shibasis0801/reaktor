@@ -42,7 +42,7 @@ fun CodeAccess.resources(shape: GraphShape, rootLabel: String? = null): CodeReso
         CodeService(ref, nodes.first().attributes["service"] ?: nodes.first().label, contract, nodes.firstNotNullOfOrNull { it.attributes["version"] },
             nodes.firstNotNullOfOrNull { it.attributes["baseUrl"] }, nodes.mapNotNull { it.attributes["role"] }.toSet(),
             nodes.mapNotNull { refs[it.scope] }.distinct(), nodes.map { it.id }, operations.sortedBy { it.name },
-            nodes.firstNotNullOfOrNull { it.access }?.let { declared(contract, it) }.orEmpty())
+            nodes.firstNotNullOfOrNull { it.access }?.let { declared(contract, it, operations.map(CodeOperation::name)) }.orEmpty())
     }.sortedBy { it.ref.id }
     return CodeResources(graphs, services)
 }
@@ -50,9 +50,9 @@ fun CodeAccess.resources(shape: GraphShape, rootLabel: String? = null): CodeReso
 fun CodeAccess.served(graph: CodeGraph, contracts: List<Service>): CodeResources =
     CodeResources(listOf(graph), contracts.map { served ->
         val ref = service(served.id)
-        CodeService(ref, served.id, served.id, served.version.toString(), null, emptySet(), listOf(graph.ref), emptyList(),
-            served.descriptors(ServiceExecutionPhase.SERVER).distinctBy { it.operation }.map { operationOf(ref, served.id, it) }.distinctBy { it.ref }.sortedBy { it.name },
-            declared(served.id, served.access))
+        val operations = served.descriptors(ServiceExecutionPhase.SERVER).distinctBy { it.operation }.map { operationOf(ref, served.id, it) }.distinctBy { it.ref }.sortedBy { it.name }
+        CodeService(ref, served.id, served.id, served.version.toString(), null, emptySet(), listOf(graph.ref), emptyList(), operations,
+            declared(served.id, served.access, operations.map(CodeOperation::name)))
     }.sortedBy { it.ref.id })
 
 fun CodeAccess.callers(callers: Callers): Subject = when (callers) {
@@ -61,12 +61,18 @@ fun CodeAccess.callers(callers: Callers): Subject = when (callers) {
     is Callers.Holding -> Subject.Userset(permission(callers.permission), Holder)
 }
 
-fun CodeAccess.declared(contract: String, access: ServiceAccess): List<RelationTuple> =
-    listOfNotNull(access.callers?.let { RelationTuple(service(contract), Caller, callers(it)) }) +
-        access.operations.entries.sortedBy { it.key }.map { (name, admitted) -> RelationTuple(operation(contract, name), Invoker, callers(admitted)) }
+fun CodeAccess.declared(contract: String, access: ServiceAccess, operations: Collection<String>): List<RelationTuple> =
+    if (access.operations.isEmpty()) serviceWide(contract, access)
+    else (operations + access.operations.keys).distinct().sorted().mapNotNull { admitted(contract, access, it) }
 
 fun CodeAccess.declared(contract: String, access: ServiceAccess, operation: String): List<RelationTuple> =
-    declared(contract, access).filter { it.target == service(contract) || it.target == operation(contract, operation) }
+    if (access.operations.isEmpty()) serviceWide(contract, access) else listOfNotNull(admitted(contract, access, operation))
+
+private fun CodeAccess.serviceWide(contract: String, access: ServiceAccess): List<RelationTuple> =
+    listOfNotNull(access.callers?.let { RelationTuple(service(contract), Caller, callers(it)) })
+
+private fun CodeAccess.admitted(contract: String, access: ServiceAccess, operation: String): RelationTuple? =
+    (access.operations[operation] ?: access.callers)?.let { RelationTuple(operation(contract, operation), Invoker, callers(it)) }
 
 operator fun CodeResources.plus(other: CodeResources): CodeResources =
     CodeResources((graphs + other.graphs).distinctBy { it.ref }, (services + other.services).distinctBy { it.ref })
