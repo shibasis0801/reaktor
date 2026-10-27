@@ -112,6 +112,35 @@ data class AgentTaskTarget(
 )
 
 @Serializable
+data class AgentBudgetProgress(
+    val usage: Map<String, AgentUsage> = emptyMap(),
+    val warning: String? = null,
+    val exceeded: String? = null,
+) {
+    val tokens: Long? get() = usage.values.flatMap { listOfNotNull(it.inputTokens, it.outputTokens) }
+        .filter { it >= 0 }.takeIf { it.isNotEmpty() }?.fold(0L) { total, next -> total + next.coerceAtMost(Long.MAX_VALUE - total) }
+    val costUsd: Double? get() = usage.values.mapNotNull { it.costUsd?.takeIf { value -> value.isFinite() && value >= 0 } }
+        .takeIf { it.isNotEmpty() }?.sum()
+
+    fun observe(key: String, reported: AgentUsage, limits: AgentBudget?, participants: Map<String, AgentBudget>): AgentBudgetProgress {
+        val next = copy(usage = usage + (key to reported))
+        fun reason(budget: AgentBudget?, value: AgentBudgetProgress, threshold: Double): String? = when {
+            budget?.maxTokens != null && value.tokens?.let { it.toDouble() / budget.maxTokens >= threshold } == true ->
+                "${value.tokens} reported tokens of ${budget.maxTokens}"
+            budget?.maxCostUsd != null && value.costUsd?.let { it / budget.maxCostUsd >= threshold } == true ->
+                "USD ${value.costUsd} reported of ${budget.maxCostUsd}"
+            else -> null
+        }
+        fun reached(threshold: Double) = reason(limits, next, threshold) ?: participants.entries.firstNotNullOfOrNull { (agent, budget) ->
+            reason(budget, next.copy(usage = next.usage.filterKeys { it.startsWith("$agent/") }), threshold)?.let { "$agent: $it" }
+        }
+        return next.copy(warning = warning ?: reached(0.8), exceeded = exceeded ?: reached(1.0))
+    }
+}
+
+internal class AgentBudgetReached(message: String) : RuntimeException(message)
+
+@Serializable
 data class AgentRunRecord(
     val id: String,
     val threadId: String,
@@ -158,6 +187,7 @@ data class AgentRunRecord(
     val councilHybrid: Boolean = false,
     val pendingHandoff: String? = null,
     val usageLimit: AgentUsageLimit? = null,
+    val budget: AgentBudgetProgress = AgentBudgetProgress(),
 )
 
 @Serializable
@@ -168,10 +198,12 @@ data class AgentTasksPage(val revision: Long, val runs: List<AgentRunRecord>, va
 
 fun AgentRunRecord.taskStatus() = when {
     pendingHandoff != null -> "Waiting for ChatGPT"
+    budget.exceeded != null -> "Budget reached · review retained work"
     recovery == AgentRecovery.NeedsReview -> "Recovery needs review"
     recovery == AgentRecovery.Pending -> "Recovery pending"
     recovery == AgentRecovery.Resuming -> "Resuming · attempt $attempt"
     pendingCount > 0 || pending.isNotEmpty() || participants.values.any { it.pending.isNotEmpty() } -> "Waiting for you"
+    status == AgentRunStatus.Running && budget.warning != null -> "Usage budget warning"
     status == AgentRunStatus.Running -> lastTool ?: "Working"
     status == AgentRunStatus.Interrupted -> "Stopped"
     else -> status.name

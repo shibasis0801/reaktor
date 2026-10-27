@@ -11,6 +11,7 @@ import dev.shibasis.reaktor.conductor.RuntimeKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -23,6 +24,28 @@ import kotlin.test.assertTrue
  * thing.
  */
 class HarnessParserTest {
+    @Test fun claudeLiveUsageReplacesMessageSnapshotsAndExcludesChildDuplicates() {
+        val parser = ClaudeCodeEventParser(AgentId("claude"))
+        fun message(id: String, output: Int, parent: String = "null") =
+            """{"type":"assistant","parent_tool_use_id":$parent,"message":{"id":"$id","content":[],"usage":{"input_tokens":10,"cache_read_input_tokens":20,"cache_creation_input_tokens":5,"output_tokens":$output}}}"""
+        fun usage(line: String) = parser.onLine(line).filterIsInstance<AgentEvent.Usage>().single().usage
+        assertEquals(35L, usage(message("one", 2)).inputTokens)
+        assertEquals(3L, usage(message("one", 3)).outputTokens)
+        val total = usage(message("two", 4))
+        assertEquals(70L, total.inputTokens)
+        assertEquals(7L, total.outputTokens)
+        assertTrue(parser.onLine(message("child", 99, "\"tool-child\"")).none { it is AgentEvent.Usage })
+    }
+
+    @Test fun claudeNativeBudgetStopIsRetainedSeparatelyFromProviderQuota() {
+        val parser = ClaudeCodeEventParser(AgentId("claude"))
+        parser.onLine("""{"type":"result","subtype":"error_max_budget_usd","is_error":true,"usage":{},"total_cost_usd":0.9}""")
+        val result = parser.finish(0, "")
+        assertFalse(result.ok)
+        assertNotNull(result.attributes["budgetExceeded"])
+        assertNull(result.usageLimit)
+    }
+
     @Test
     fun partialTextWithoutTheTerminalEnvelopeIsNotSuccess() {
         val codex = CodexEventParser(agent)

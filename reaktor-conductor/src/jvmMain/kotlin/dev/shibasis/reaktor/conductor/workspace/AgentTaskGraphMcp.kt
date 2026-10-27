@@ -159,17 +159,17 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             args.only("id")
             AgentWorkspaceJson.encodeToJsonElement(AgentProfile.serializer(), workspace.profiles.read(args.text("id")))
         },
-        McpTool("agent_profile_save", "Save a named agent profile. Updates name expectedRevision; built-ins cannot be edited. The owner records the author.",
+        McpTool("agent_profile_save", "Save a named agent profile. Updates name expectedRevision; built-ins cannot be edited. The owner records the author. Optional budget: {maxTokens: positive integer, maxCostUsd: positive number (Claude Code only), timeoutMillis: positive integer}. Tasks inherit this budget unless they override it.",
             objectSchema(mapOf("profile" to any, "expectedRevision" to buildJsonObject {
                 put("type", "integer"); put("minimum", 0); put("description", "The profile revision you read; required when updating an existing profile")
             }, by), listOf("profile", "by")), readOnly = false, idempotent = false) { args ->
             args.only("profile", "expectedRevision", "by")
             val profile = args.decode(AgentProfile.serializer(), "profile")
-            workspace.resolveSeat(TaskSeat(profile.runtime, profile.model, profile.effort, profile.access))
+            workspace.resolveSeat(TaskSeat(profile.runtime, profile.model, profile.effort, profile.access, budget = profile.budget))
             AgentWorkspaceJson.encodeToJsonElement(AgentProfile.serializer(), workspace.profiles.save(profile, args.by(), args.long("expectedRevision")))
         },
         McpTool("agent_taskgraph_propose", "Propose a task graph: a title, the goal, its tasks with dependencies and seats, and an envelope. " +
-            "It appears in Hangar as Proposed; nothing runs until a person approves it. Tasks name their dependencies by key.",
+            "It appears in Hangar as Proposed; nothing runs until a person approves it. Tasks name their dependencies by key. A managed seat may set budget: {maxTokens, maxCostUsd, timeoutMillis}; task budgets override profile defaults. Token caps stop on reported usage; USD caps require Claude Code.",
             objectSchema(mapOf(
                 "title" to stringSchema("One line, at most 200 characters"),
                 "goal" to stringSchema("What the graph is for and what done looks like"),

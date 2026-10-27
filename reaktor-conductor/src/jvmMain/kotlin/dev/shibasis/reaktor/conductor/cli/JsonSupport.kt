@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.conductor.cli
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
@@ -16,7 +17,7 @@ import kotlinx.serialization.json.longOrNull
  * one ignored line instead of a failed agent turn.
  */
 internal fun JsonObject.string(key: String): String? =
-    (this[key] as? JsonPrimitive)?.takeIf { it.isString || it.booleanOrNull == null }?.content
+    (this[key] as? JsonPrimitive)?.takeIf { it !is JsonNull && (it.isString || it.booleanOrNull == null) }?.content
 
 internal fun JsonObject.boolean(key: String): Boolean? =
     (this[key] as? JsonPrimitive)?.booleanOrNull

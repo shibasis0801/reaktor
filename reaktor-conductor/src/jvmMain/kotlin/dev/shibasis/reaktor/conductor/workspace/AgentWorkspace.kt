@@ -626,7 +626,10 @@ class AgentWorkspace(
             workflow.validate()
             require(request.collaboration == AgentCollaboration.Single && request.partner == null) { "A workflow supplies its own roster" }
             require(workflow.participants.all { it.runtime in runtimes }) { "Workflow provider unavailable" }
-            workflow.participants.forEach { requireSupportedEffort(it.runtime, it.model, it.effort) }
+            workflow.participants.forEach {
+                requireSupportedEffort(it.runtime, it.model, it.effort)
+                require(it.budget.maxCostUsd == null || it.runtime == RuntimeKind.ClaudeCode) { "A native USD cap is supported only by Claude Code" }
+            }
             require(workflow.stages.none { it.action == WorkflowAction.Check } || workflowCheck != null) { "This host has no kernel check executor" }
             require(request.isolation != AgentIsolation.Worktree || workflow.stages.none { it.action == WorkflowAction.Check }) { "Kernel checks currently target the source workspace; apply an isolated patch before checking it" }
         }
@@ -763,6 +766,7 @@ class AgentWorkspace(
         if (expectedRevision != null) require(saved.revision == expectedRevision) { "Run changed since review; inspect the current checkpoint before continuing" }
         if (saved.status == AgentRunStatus.Running) return@synchronized saved
         require(saved.recovery != AgentRecovery.None) { "This run is not awaiting recovery" }
+        require(saved.budget.exceeded == null) { "The usage budget is exhausted; review the retained work and start a new approved task attempt" }
         require(active.isEmpty()) { "Wait for active workspace work before recovering this run" }
         val request = ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(directory.resolve("requests/$id.json")))
         require(digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request)) == saved.requestFingerprint)
@@ -1091,7 +1095,8 @@ class AgentWorkspace(
                     listOf("Follow the workspace's repository instructions.", request.resolvedSeat?.instructions.orEmpty()).filter(String::isNotBlank).joinToString("\n\n"), model = model, effort = effort,
                     tools = (request.resolvedSeat?.tools ?: ToolPolicy()).let { policy -> policy.copy(allowWrites = request.allowWrites,
                         additionalDirectories = (includedRoots + policy.additionalDirectories).distinct(), mcpConfig = policy.mcpConfig ?: harnessMcpConfig) },
-                    budget = request.timeoutMillis?.let { AgentBudget(timeoutMillis = it) } ?: AgentBudget(),
+                    budget = (request.resolvedSeat?.seat?.budget ?: AgentBudget()).let { budget ->
+                        request.timeoutMillis?.let { budget.copy(timeoutMillis = it) } ?: budget },
                     attributes = (request.maxCycles?.let { mapOf("maxCycles" to it.toString()) }.orEmpty()) +
                         (request.allowedChecks.takeIf { it.isNotEmpty() }
                             ?.let { mapOf("allowedChecks" to it.joinToString("\u0001")) }.orEmpty()))
@@ -1164,6 +1169,24 @@ class AgentWorkspace(
                                 if (started) board.recordMessageDelivery(target, AgentMessageState.Delivered, initial.id,
                                     (event as? AgentEvent.TurnStarted)?.turnId)
                             }
+                            if (event is AgentEvent.Usage) {
+                                val (before, next) = synchronized(lock) {
+                                    val before = get(initial.id).budget
+                                    val next = before.observe("${event.agent.value}/${event.execution ?: "native"}", event.usage,
+                                        request.resolvedSeat?.seat?.budget, specs.associate { it.id.value to it.budget })
+                                    update(initial.id, true) { it.copy(budget = next) }
+                                    before to next
+                                }
+                                if (before.warning == null && next.warning != null) activity.append(initial.id, "workspace", initial.attempt,
+                                    AgentActivityItem("budget-warning", ActivityKind.Control, "Usage budget warning", ActivityStatus.Waiting,
+                                        output = "${next.warning}. Provider reports may arrive after usage; unseen usage is unknown."))
+                                next.exceeded?.let { throw AgentBudgetReached("Usage budget reached: $it. Inspect the retained work before retrying.") }
+                            }
+                            if (event is AgentEvent.Finished && event.outcome.attributes["budgetExceeded"] != null) {
+                                val reason = event.outcome.attributes.getValue("budgetExceeded")
+                                update(initial.id, true) { it.copy(budget = it.budget.copy(exceeded = reason)) }
+                                throw AgentBudgetReached(reason)
+                            }
                             recordActivity(initial.id, event)
                             update(initial.id, persistNow = event !is AgentEvent.Delta && event !is AgentEvent.Reasoning) { current ->
                                 if (current.status != AgentRunStatus.Running) current else projectAgentEvent(current, event, specs.first { it.id == event.agent }.runtime)
@@ -1200,6 +1223,15 @@ class AgentWorkspace(
                 }
             }
         } catch (failure: Exception) {
+            if (failure is AgentBudgetReached) {
+                update(initial.id, true) { it.copy(status = AgentRunStatus.Interrupted, recovery = AgentRecovery.NeedsReview,
+                    recoveryReason = failure.message, failure = failure.message, pending = emptyList(),
+                    participants = it.participants.mapValues { (_, value) ->
+                        value.copy(status = AgentRunStatus.Interrupted, activeTurn = null, pending = emptyList()) }) }
+                activity.append(initial.id, "workspace", initial.attempt, AgentActivityItem("budget-reached", ActivityKind.Control,
+                    "Usage budget reached", ActivityStatus.Waiting, output = failure.message))
+                return
+            }
             if (failure is AgentHandoffRequired) {
                 if (request.workflow != null) checkpoint(initial.id)?.takeIf { it.inFlight.isEmpty() }?.let { saved ->
                     val handoff = hybrid.read(failure.handoffId)

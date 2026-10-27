@@ -20,6 +20,7 @@ class TaskGraphRuntimeTest {
     private class Scripted(override val kind: RuntimeKind, private val replies: List<String>) : AgentRuntime {
         val requests = CopyOnWriteArrayList<AgentRequest>()
         val failing = AtomicBoolean(false)
+        val liveUsage = CopyOnWriteArrayList<AgentUsage>()
         @Volatile var limit: AgentUsageLimit? = null
         var onRun: suspend (AgentRequest, Int) -> Unit = { request, number ->
             if (request.agent.tools.allowWrites) File(request.workingDirectory, "Source.kt").writeText("val attempt = $number\n")
@@ -31,6 +32,7 @@ class TaskGraphRuntimeTest {
             val failed = failing.get()
             val limited = limit
             if (!failed) onRun(request, requests.size)
+            liveUsage.forEach { emit(AgentEvent.Usage(request.agent.id, it)) }
             val candidate = Regex("\"candidate\":\\s*\"([a-f0-9]{64})\"").find(request.prompt)?.groupValues?.get(1).orEmpty()
             val reply = if (failed) "" else replies[minOf(requests.size, replies.size) - 1].replace("{{candidate}}", candidate)
             val text = if (request.agent.tools.allowWrites && !reply.startsWith("{")) buildJsonObject {
@@ -793,6 +795,38 @@ class TaskGraphRuntimeTest {
             assertTrue(connection.list(50).any { it.failure == "The review candidate changed during the turn" })
             assertEquals(TaskState.Pending, stopped.task("Land it").graph?.state)
             assertEquals("val baseline = 1\n", File(root, "Source.kt").readText())
+        }
+    }
+
+    @Test fun eitherNativeWriterStopsAtItsReportedBudgetAndRetainsTheExactAttempt() {
+        for (provider in listOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode)) {
+            val codex = Scripted(RuntimeKind.Codex, listOf("Built it"))
+            val claude = Scripted(RuntimeKind.ClaudeCode, listOf("Built it"))
+            val writer = if (provider == RuntimeKind.Codex) codex else claude
+            writer.liveUsage += listOf(AgentUsage(inputTokens = 70, outputTokens = 10),
+                AgentUsage(inputTokens = 70, outputTokens = 10), AgentUsage(inputTokens = 90, outputTokens = 10))
+            workspace(codex, claude) { connection, _, _ ->
+                val build = draft().tasks.first().copy(seat = TaskSeat(provider, access = TaskAccess.Write, budget = AgentBudget(maxTokens = 100)))
+                val proposed = connection.proposeTaskGraph(draft().copy(tasks = listOf(build,
+                    TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("build"))))), person)
+                connection.startTaskGraph("G1", proposed.graph.revision, person)
+                val held = connection.until("G1") { it.task("Build the parser").graph?.state == TaskState.Waiting }
+                val plan = held.task("Build the parser").graph!!
+                val run = connection.get(plan.runId!!)
+                assertEquals(AgentRunStatus.Interrupted, run.status)
+                assertEquals(AgentRecovery.NeedsReview, plan.recovery)
+                assertEquals(100L, run.budget.tokens)
+                assertEquals(100L, plan.outcome?.tokens)
+                assertEquals(BoardWorkState.Asking, run.boardWork("hangar:${run.threadId}").state)
+                assertNotNull(run.budget.warning)
+                assertNotNull(run.budget.exceeded)
+                assertEquals(100L, writer.requests.single().agent.budget.maxTokens)
+                assertNotNull(plan.worktreeId)
+                assertEquals("val attempt = 1\n", File(writer.requests.single().workingDirectory, "Source.kt").readText())
+                assertEquals(TaskState.Pending, held.task("Accept").graph?.state)
+                assertEquals(1, writer.requests.size)
+                assertTrue(plan.outcome?.summary.orEmpty().contains("budget reached"))
+            }
         }
     }
 

@@ -141,7 +141,8 @@ fun BoardTask.entry(work: List<BoardWork>, tasks: Map<String, BoardTask>): Board
 }
 
 fun AgentRunRecord.boardWork(ref: String): BoardWork = when {
-    pendingHandoff != null || recovery == AgentRecovery.NeedsReview || pendingCount > 0 || pending.isNotEmpty() ||
+    budget.exceeded != null || (status == AgentRunStatus.Running && budget.warning != null) ||
+        pendingHandoff != null || recovery == AgentRecovery.NeedsReview || pendingCount > 0 || pending.isNotEmpty() ||
         participants.values.any { it.pending.isNotEmpty() } -> BoardWork(ref, BoardWorkState.Asking, updatedAt)
     status == AgentRunStatus.Running || recovery == AgentRecovery.Pending || recovery == AgentRecovery.Resuming ->
         BoardWork(ref, BoardWorkState.Executing, startedAt)

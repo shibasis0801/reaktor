@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.conductor.AgentBudget
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.AgentUsageLimit
 import dev.shibasis.reaktor.conductor.WorkflowContract
@@ -33,6 +34,7 @@ data class TaskSeat(
     val lead: Boolean = false,
     val profile: String? = null,
     val lenses: List<String> = emptyList(),
+    val budget: AgentBudget? = null,
 )
 
 @Serializable
