@@ -15,7 +15,7 @@ class PackageOwnershipTest {
         }
         write("base.json", File("javascript/tsconfig/base.json").readText())
         write("settings.gradle.kts", "rootProject.name = \"ownershipFixture\"")
-        write("package.json", """{"name":"ownership-fixture","private":true,"scripts":{"check":"node src/commonMain/typescript/check.mjs"}}""")
+        write("package.json", """{"name":"ownership-fixture","private":true}""")
         write("pnpm-workspace.yaml", "packages: []\n")
         write("compiled/package.json", """{"name":"generated-kotlin","private":true}""")
         write("compiled/index.mjs", "export const value = 1;\n")
@@ -29,6 +29,7 @@ class PackageOwnershipTest {
         write("build.gradle.kts", """
             import dev.shibasis.dependeasy.web.KotlinPackageExport
             import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.FileSet
             plugins { id("dev.shibasis.dependeasy.pipeline") }
             val exported = tasks.register<KotlinPackageExport>("exportKotlinLibrary") {
                 sourceFiles.from("compiled")
@@ -36,9 +37,10 @@ class PackageOwnershipTest {
                 dependencyDirectory.set(layout.projectDirectory.dir("node_modules"))
             }
             dependeasy {
-                val authored = javascript("authored").check("check")
+                val component = javascript("authored")
+                val authored = component.tests(FileSet(listOf("src/commonMain/typescript/check.mjs")), component.installation)
                 val native = cmake("sample") { source = "." }
-                workspace { val allBuilds by artifacts { include(node(exported), node(authored), node(native)) } }
+                workspace { val allBuilds by artifacts { include(node(exported), authored, node(native)) } }
             }
             tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
                 baseConfiguration.set(layout.projectDirectory.file("base.json"))
