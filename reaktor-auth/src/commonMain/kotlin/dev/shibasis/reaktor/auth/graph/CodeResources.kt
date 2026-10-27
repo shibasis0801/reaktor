@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.auth.fga.ObjectRef
 import dev.shibasis.reaktor.auth.fga.RelationTuple
 import dev.shibasis.reaktor.auth.fga.Subject
 import dev.shibasis.reaktor.graph.core.GraphShape
+import dev.shibasis.reaktor.graph.core.IslandShape
 import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.NodeShape
 import dev.shibasis.reaktor.graph.core.ScopeShape
@@ -37,14 +38,42 @@ fun CodeAccess.resources(shape: GraphShape, rootLabel: String? = null): CodeReso
     }
     shape.scopes.filter { it.parent == null || it.parent !in scopes }.forEach { visit(it, null) }
     val services = serviceNodes.groupBy { requireNotNull(contractOf(it)) }.map { (contract, nodes) ->
-        val ref = service(contract)
-        val operations = nodes.flatMap { it.operations }.distinctBy { it.operation }.map { operationOf(ref, contract, it) }.distinctBy { it.ref }
-        CodeService(ref, nodes.first().attributes["service"] ?: nodes.first().label, contract, nodes.firstNotNullOfOrNull { it.attributes["version"] },
-            nodes.firstNotNullOfOrNull { it.attributes["baseUrl"] }, nodes.mapNotNull { it.attributes["role"] }.toSet(),
-            nodes.mapNotNull { refs[it.scope] }.distinct(), nodes.map { it.id }, operations.sortedBy { it.name },
-            nodes.firstNotNullOfOrNull { it.access }?.let { declared(contract, it, operations.map(CodeOperation::name)) }.orEmpty())
+        serviceOf(contract, nodes, nodes.mapNotNull { refs[it.scope] }.distinct())
     }.sortedBy { it.ref.id }
     return CodeResources(graphs, services)
+}
+
+fun CodeAccess.app(label: String): CodeGraph = CodeGraph(ObjectRef(Graph, slug(label)), label, null, emptyList())
+
+fun CodeAccess.island(app: String, island: String, contracts: List<Service>): CodeResources =
+    app(app).let { root -> CodeResources(listOf(root), emptyList()) + served(within(root.ref, island, emptyList()), contracts) }
+
+fun CodeAccess.island(app: String, shape: IslandShape): CodeResources =
+    app(app).let { root -> CodeResources(listOf(root), emptyList()) + island(root.ref, shape) }
+
+fun CodeAccess.islands(app: String, shapes: List<IslandShape>): CodeResources =
+    app(app).let { root -> shapes.fold(CodeResources(listOf(root), emptyList())) { all, shape -> all + nested(root.ref, shape) } }
+
+private fun CodeAccess.within(parent: ObjectRef, island: String, scopes: List<String>): CodeGraph =
+    CodeGraph(ObjectRef(Graph, "${parent.id}/${slug(island)}"), island, parent, scopes)
+
+private fun CodeAccess.island(parent: ObjectRef, shape: IslandShape): CodeResources {
+    val graph = within(parent, shape.island, shape.graph.scopes.filter { it.parent == null }.map { it.id })
+    val servers = shape.graph.nodes.filter { it.kind == NodeKind.Service && it.attributes["role"] == ServerRole && contractOf(it) != null }
+    return CodeResources(listOf(graph), servers.groupBy { requireNotNull(contractOf(it)) }.map { (contract, nodes) -> serviceOf(contract, nodes, listOf(graph.ref)) }
+        .sortedBy { it.ref.id })
+}
+
+private fun CodeAccess.nested(parent: ObjectRef, shape: IslandShape): CodeResources =
+    island(parent, shape).let { here -> shape.objects.fold(here) { all, inner -> all + nested(here.graphs.first().ref, inner) } }
+
+private fun CodeAccess.serviceOf(contract: String, nodes: List<NodeShape>, graphs: List<ObjectRef>): CodeService {
+    val ref = service(contract)
+    val operations = nodes.flatMap { it.operations }.distinctBy { it.operation }.map { operationOf(ref, contract, it) }.distinctBy { it.ref }
+    return CodeService(ref, nodes.first().attributes["service"] ?: nodes.first().label, contract, nodes.firstNotNullOfOrNull { it.attributes["version"] },
+        nodes.firstNotNullOfOrNull { it.attributes["baseUrl"] }, nodes.mapNotNull { it.attributes["role"] }.toSet(),
+        graphs, nodes.map { it.id }, operations.sortedBy { it.name },
+        nodes.firstNotNullOfOrNull { it.access }?.let { declared(contract, it, operations.map(CodeOperation::name)) }.orEmpty())
 }
 
 fun CodeAccess.served(graph: CodeGraph, contracts: List<Service>): CodeResources =
@@ -74,8 +103,18 @@ private fun CodeAccess.serviceWide(contract: String, access: ServiceAccess): Lis
 private fun CodeAccess.admitted(contract: String, access: ServiceAccess, operation: String): RelationTuple? =
     (access.operations[operation] ?: access.callers)?.let { RelationTuple(operation(contract, operation), Invoker, callers(it)) }
 
+fun CodeResources.at(island: ObjectRef): CodeResources =
+    CodeResources(generateSequence(graph(island)) { it.parent?.let(::graph) }.toList().asReversed(),
+        services.filter { island in it.graphs }.map { it.copy(graphs = listOf(island)) })
+
 operator fun CodeResources.plus(other: CodeResources): CodeResources =
-    CodeResources((graphs + other.graphs).distinctBy { it.ref }, (services + other.services).distinctBy { it.ref })
+    CodeResources((graphs + other.graphs).distinctBy { it.ref }, (services + other.services).groupBy { it.ref }.map { (_, same) -> same.reduce(CodeService::with) })
+
+private fun CodeService.with(more: CodeService): CodeService =
+    copy(roles = roles + more.roles, graphs = (graphs + more.graphs).distinct(), nodes = (nodes + more.nodes).distinct(),
+        operations = (operations + more.operations).distinctBy { it.ref }.sortedBy { it.name }, declared = (declared + more.declared).distinct())
+
+private const val ServerRole = "server"
 
 private fun contractOf(node: NodeShape): String? =
     (node.attributes["contract"] ?: node.attributes["service"] ?: node.label.takeIf { node.operations.isNotEmpty() })?.takeIf { it.isNotBlank() }
