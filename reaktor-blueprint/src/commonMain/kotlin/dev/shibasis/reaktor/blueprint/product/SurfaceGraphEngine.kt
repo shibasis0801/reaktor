@@ -105,6 +105,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     protected var links: List<Link> = emptyList()
     protected var linkBox = FloatArray(0)
     protected var labels: Map<String, String> = emptyMap()
+    private val placed = ArrayList<Rect>()
     protected var pulses: List<CanvasPulse> = emptyList()
     protected var shift = 0f
     private var linkIndex: Map<String, Int> = emptyMap()
@@ -910,15 +911,28 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     private fun DrawScope.drawLabels(camera: Viewport, l: Float, t: Float, r: Float, b: Float) {
         traced()
         val z = camera.zoom.toFloat(); val k = if (scaled) z.coerceAtLeast(1f) else 1f
-        for (i in links.indices) {
+        placed.clear()
+        for (lead in booleanArrayOf(true, false)) for (i in links.indices) {
             val label = labels[links[i].id]
             if (label.isNullOrBlank() || alphas[i] <= 0f || !flows[i] && alphas[i] < .9f || !inside(linkBox, i, l, t, r, b)) continue
+            if ((flows[i] || alphas[i] >= 1f) != lead) continue
             val color = Color(tints[i] or 0xFF000000.toInt()).copy(alpha = .96f)
             val layer = cached(pills, label, color, ::pill) ?: continue
-            at(i, lengths[i] / 2) { x, y ->
-                withTransform({ translate(camera.x.toFloat() + x * z, camera.y.toFloat() + y * z); scale(k, k, Offset.Zero) }) {
-                    translate(-layer.size.width / 2f, -layer.size.height / 2f) { drawLayer(layer) }
+            val halfWidth = layer.size.width * k / 2f + 3f; val halfHeight = layer.size.height * k / 2f + 2f
+            var spot: Offset? = null
+            var middle = Offset.Zero
+            for (share in LabelShares) {
+                at(i, lengths[i] * share) { x, y ->
+                    val centre = Offset(camera.x.toFloat() + x * z, camera.y.toFloat() + y * z)
+                    if (share == LabelShares[0]) middle = centre
+                    if (placed.none { it.overlaps(Rect(centre.x - halfWidth, centre.y - halfHeight, centre.x + halfWidth, centre.y + halfHeight)) }) spot = centre
                 }
+                if (spot != null) break
+            }
+            val centre = spot ?: middle
+            placed += Rect(centre.x - halfWidth, centre.y - halfHeight, centre.x + halfWidth, centre.y + halfHeight)
+            withTransform({ translate(centre.x, centre.y); scale(k, k, Offset.Zero) }) {
+                translate(-layer.size.width / 2f, -layer.size.height / 2f) { drawLayer(layer) }
             }
         }
     }
@@ -1010,6 +1024,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         private const val Above = (BlueprintEngine.GroupGap + BlueprintEngine.FrameSide).toFloat()
         private const val BannerGap = 8f
         private const val BannerHeight = 56f
+        private val LabelShares = floatArrayOf(.5f, .62f, .38f, .74f, .26f, .86f, .14f)
         private val DashColors = listOf(.5f, 1f, 1f, 0f, 0f, .5f).map { Color.White.copy(alpha = it) }
     }
 }

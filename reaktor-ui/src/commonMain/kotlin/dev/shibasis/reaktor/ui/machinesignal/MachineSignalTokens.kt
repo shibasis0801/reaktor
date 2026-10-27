@@ -686,12 +686,16 @@ object MachineSignal {
         val cellHeight = 440.dp
         val cellWidth = 320.dp
         val codeViewHeight = 240.dp
+        val componentIndexWidth = 264.dp
         val contrastSample = 40.dp
         val contrastSampleText = 18.sp
         val environmentWidth = 280.dp
         val finderWidth = 168.dp
         val hangarStoryHeight = 600.dp
         val islandStoryHeight = 460.dp
+        val levelInspectorWidth = 400.dp
+        val levelPreviewHeight = 120.dp
+        val levelTileWidth = 184.dp
         val liveHeight = 720.dp
         val liveWidth = 390.dp
         val lookTileHeight = 104.dp
@@ -781,6 +785,7 @@ object MachineSignal {
         val canvasDot = 1.dp
         val canvasMargin = 64.dp
         val layerIcon = 14.dp
+        val navigationThumbWidth = 72.dp
     }
 
     object LogRow {

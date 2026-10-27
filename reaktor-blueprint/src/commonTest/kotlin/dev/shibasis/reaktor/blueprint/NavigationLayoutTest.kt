@@ -5,6 +5,25 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class NavigationLayoutTest {
+    @Test fun aroundLayoutPutsCallersLeftAndDestinationsRight() {
+        val destinations = (1..10).map { "to-$it" }
+        val edges = listOf(BlueprintEdge("in", "from", "circles", kind = LinkKind.Route)) +
+            destinations.map { BlueprintEdge("out-$it", "circles", it, kind = LinkKind.Route) } + BlueprintEdge("back", "to-1", "circles", kind = LinkKind.Route)
+        val layout = BlueprintEngine.aroundLayout("app", "around", "Around /circles", "circles", listOf("from"), destinations, edges, 30, 1.6)
+        val centre = layout.cards.getValue("circles")
+        assertTrue(layout.cards.getValue("from").x + BlueprintEngine.CardWidth < centre.x)
+        destinations.forEach { assertTrue(layout.cards.getValue(it).x > centre.x + BlueprintEngine.CardWidth, "$it must sit right of the screen") }
+        assertTrue(layout.width / layout.height in .8..3.0, "Around layout must suit the viewport: ${layout.width} × ${layout.height}")
+        assertEquals(edges.size, layout.links.size)
+        val frame = layout.frames.single()
+        assertEquals("Around /circles", frame.label)
+        val cards = layout.cards.values.toList()
+        cards.forEachIndexed { i, a ->
+            assertTrue(a.x >= frame.x && a.y >= frame.y && a.x + a.width <= frame.x + frame.width && a.y + a.height <= frame.y + frame.height, "${a.id} leaves the frame")
+            cards.drop(i + 1).forEach { b -> assertTrue(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y, "${a.id} overlaps ${b.id}") }
+        }
+    }
+
     @Test fun disconnectedScreensPackTogetherAndObservationsDoNotMoveThem() {
         val groups = listOf(BlueprintGroup("app", "App", listOf(BlueprintNode("root", 0, rows = 30)) +
             (1..17).map { BlueprintNode("screen-$it", 0, rows = 30) }))
