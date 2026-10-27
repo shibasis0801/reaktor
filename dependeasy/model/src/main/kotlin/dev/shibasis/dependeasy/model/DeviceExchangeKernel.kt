@@ -17,7 +17,10 @@ object DeviceExchangeKernel {
         try {
             spec.phones.zip(executions).forEach { (phone, execution) -> sessions.add(DeviceSession.open(phone, execution, execute)) }
             sessions.forEach(DeviceSession::install)
-            for (receiver in sessions) for (sender in sessions) if (sender !== receiver) exchange(spec, sender, receiver, log)
+            val failures = sessions.flatMap { receiver ->
+                sessions.filter { it !== receiver }.mapNotNull { sender -> exchange(spec, sender, receiver, log) }
+            }
+            check(failures.isEmpty()) { failures.joinToString("\n") }
             success = true
         } finally {
             var failure: Throwable? = null
@@ -28,13 +31,13 @@ object DeviceExchangeKernel {
         }
     }
 
-    private fun exchange(spec: KernelSpec.DeviceExchange, sender: DeviceSession, receiver: DeviceSession, log: (String) -> Unit) {
+    private fun exchange(spec: KernelSpec.DeviceExchange, sender: DeviceSession, receiver: DeviceSession, log: (String) -> Unit): String? {
         val direction = "${sender.platform}-to-${receiver.platform}"
         val token = mapOf(spec.token to "${sender.platform} to ${receiver.platform} ${UUID.randomUUID().toString().substringBefore('-')}")
         var sent = false
         var received = false
         receiver.begin(listOf(receiver.flow(spec.receive)), receiver.report(direction))
-        try {
+        return try {
             sender.begin(listOf(sender.flow(spec.send)), sender.report(direction))
             try {
                 val (early, sending, receipt) = runBlocking(Dispatchers.IO) {
@@ -47,12 +50,10 @@ object DeviceExchangeKernel {
                 log(receipt.output)
                 sent = sending?.succeeded == true
                 received = early == null && receipt.succeeded
-                check(sent && received) {
-                    "Device exchange $direction failed: " + when {
-                        early != null -> "the ${receiver.platform} phone finished ${spec.receive} before ${spec.send} started"
-                        !sent -> "the ${sender.platform} phone failed ${spec.send}"
-                        else -> "the ${receiver.platform} phone failed ${spec.receive}"
-                    }
+                if (sent && received) null else "Device exchange $direction failed: " + when {
+                    early != null -> "the ${receiver.platform} phone finished ${spec.receive} before ${spec.send} started"
+                    !sent -> "the ${sender.platform} phone failed ${spec.send}"
+                    else -> "the ${receiver.platform} phone failed ${spec.receive}"
                 }
             } finally { sender.end(sent) }
         } finally { receiver.end(received) }

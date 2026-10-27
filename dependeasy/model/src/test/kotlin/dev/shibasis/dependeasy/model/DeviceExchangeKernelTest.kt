@@ -33,12 +33,12 @@ class DeviceExchangeKernelTest {
                     printf '%s|%s|%s|%s\n' "${'$'}platform" "${'$'}flow" "${'$'}message" "${'$'}output" >> '$shared/runs'
                     case ${'$'}flow in
                       receive.yaml)
-                        [ -f '$shared/receive' ] && exit 1
+                        [ -f '$shared/receive-'"${'$'}platform" ] && exit 1
                         printf '%s' "${'$'}message" > '$shared/listening'
                         i=0
                         while [ "${'$'}(cat '$shared/inbox' 2>/dev/null)" != "${'$'}message" ]; do i=${'$'}((i + 1)); [ ${'$'}i -gt 50 ] && exit 1; sleep 0.1; done ;;
                       send.yaml)
-                        [ -f '$shared/send' ] && exit 1
+                        [ -f '$shared/send-'"${'$'}platform" ] && exit 1
                         [ "${'$'}(cat '$shared/listening' 2>/dev/null)" = "${'$'}message" ] || exit 2
                         printf '%s' "${'$'}message" > '$shared/inbox' ;;
                     esac
@@ -93,18 +93,26 @@ class DeviceExchangeKernelTest {
         ), exchange.hooks)
     }
 
-    @Test fun `a failed send fails both phones and still closes every session`() {
-        val exchange = exchange("send")
+    @Test fun `a failed direction still runs the next one and closes every session`() {
+        val exchange = exchange("send-ios")
         assertEquals("Device exchange ios-to-android failed: the ios phone failed send.yaml", exchange.failure?.message)
-        assertEquals(listOf("android receive.yaml", "ios send.yaml"), exchange.runs.map { "${it[0]} ${it[1]}" })
-        assertEquals(listOf("afterFlow ios send.yaml false", "afterFlow android receive.yaml false",
-            "afterSuite ios receive.yaml,send.yaml false", "afterSuite android receive.yaml,send.yaml false"), exchange.hooks.takeLast(4))
+        assertEquals(listOf("android receive.yaml", "ios send.yaml", "ios receive.yaml", "android send.yaml"), exchange.runs.map { "${it[0]} ${it[1]}" })
+        assertEquals(exchange.runs[2][2], exchange.runs[3][2])
+        assertEquals(listOf(
+            "afterFlow ios send.yaml false", "afterFlow android receive.yaml false",
+            "afterFlow android send.yaml true", "afterFlow ios receive.yaml true",
+        ), exchange.hooks.filter { it.startsWith("afterFlow") })
+        assertEquals(listOf("afterSuite ios receive.yaml,send.yaml false", "afterSuite android receive.yaml,send.yaml false"), exchange.hooks.takeLast(2))
     }
 
     @Test fun `a receiver that stops before the send starts never sends`() {
-        val exchange = exchange("receive")
-        assertEquals("Device exchange ios-to-android failed: the android phone finished receive.yaml before send.yaml started", exchange.failure?.message)
-        assertEquals(listOf("android receive.yaml"), exchange.runs.map { "${it[0]} ${it[1]}" })
+        val exchange = exchange("receive-android", "receive-ios")
+        assertEquals(listOf(
+            "Device exchange ios-to-android failed: the android phone finished receive.yaml before send.yaml started",
+            "Device exchange android-to-ios failed: the ios phone finished receive.yaml before send.yaml started",
+        ), exchange.failure?.message?.lines())
+        assertEquals(listOf("android receive.yaml", "ios receive.yaml"), exchange.runs.map { "${it[0]} ${it[1]}" })
         assertContains(exchange.hooks, "afterFlow ios send.yaml false")
+        assertContains(exchange.hooks, "afterFlow android send.yaml false")
     }
 }
