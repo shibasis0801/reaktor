@@ -775,6 +775,12 @@ object MachineSignal {
         val pieceTileWidth = 116.dp
         val pieceThumbHeight = 64.dp
         val pieceThumbWidth = 190.dp
+        val frameLabel = 26.dp
+        val frameShadow = 22.dp
+        val canvasDotSpacing = 22.dp
+        val canvasDot = 1.dp
+        val canvasMargin = 64.dp
+        val layerIcon = 14.dp
     }
 
     object LogRow {
