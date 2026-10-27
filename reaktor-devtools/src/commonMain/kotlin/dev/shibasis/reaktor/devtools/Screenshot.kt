@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
+import kotlin.io.encoding.Base64
 
 /** Encodes a captured frame. PNG rather than JPEG because a UI capture is flat colour and text. */
 expect fun ImageBitmap.encodeToPngBytes(): ByteArray?
@@ -29,7 +30,7 @@ class ComposeScreenshotProvider(private val layer: GraphicsLayer) : ScreenshotPr
         val png = bitmap.encodeToPngBytes()
             ?: return ScreenshotResponse("", bitmap.width, bitmap.height, "This platform cannot encode a PNG")
         return ScreenshotResponse(
-            pngBase64 = png.encodeBase64(),
+            pngBase64 = Base64.encode(png),
             widthPixels = bitmap.width,
             heightPixels = bitmap.height,
         )
@@ -52,41 +53,3 @@ internal fun Modifier.captureInto(layer: GraphicsLayer, onDraw: () -> Unit): Mod
 @Composable
 internal fun rememberCaptureLayer(): GraphicsLayer = rememberGraphicsLayer()
 
-/**
- * Base64 without a dependency.
- *
- * The agent already pays for kotlinx-serialization; adding an encoder library for forty lines of
- * table lookup would be the wrong trade on a mobile binary.
- */
-internal fun ByteArray.encodeBase64(): String {
-    val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-    val out = StringBuilder((size + 2) / 3 * 4)
-    var index = 0
-    while (index + 2 < size) {
-        val value = (this[index].toInt() and 0xFF shl 16) or
-            (this[index + 1].toInt() and 0xFF shl 8) or
-            (this[index + 2].toInt() and 0xFF)
-        out.append(alphabet[value shr 18 and 0x3F])
-        out.append(alphabet[value shr 12 and 0x3F])
-        out.append(alphabet[value shr 6 and 0x3F])
-        out.append(alphabet[value and 0x3F])
-        index += 3
-    }
-    when (size - index) {
-        1 -> {
-            val value = this[index].toInt() and 0xFF shl 16
-            out.append(alphabet[value shr 18 and 0x3F])
-            out.append(alphabet[value shr 12 and 0x3F])
-            out.append("==")
-        }
-
-        2 -> {
-            val value = (this[index].toInt() and 0xFF shl 16) or (this[index + 1].toInt() and 0xFF shl 8)
-            out.append(alphabet[value shr 18 and 0x3F])
-            out.append(alphabet[value shr 12 and 0x3F])
-            out.append(alphabet[value shr 6 and 0x3F])
-            out.append('=')
-        }
-    }
-    return out.toString()
-}

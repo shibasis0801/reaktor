@@ -348,6 +348,27 @@ class AgentWorkspaceTest {
         } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
+    @Test fun applyingAChangeWaitsOnlyForSharedWritersWhoseScopeCoversItsFiles() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            AgentWorkspace(root, directory, mapOf(harness.kind to harness)).use { workspace ->
+                fun refusal(vararg paths: String) = runCatching { workspace.admitWrite(paths.toList()) { } }.exceptionOrNull()?.message
+                workspace.submit(AgentSubmission("reader", harness.kind, "BLOCK_UNTIL_CANCEL"))
+                assertNull(refusal("src/a/A.kt"))
+                val writer = workspace.submit(AgentSubmission("writer", harness.kind, "BLOCK_UNTIL_CANCEL", allowWrites = true, scope = listOf("src/a")))
+                assertNull(refusal("src/b/B.kt"))
+                assertEquals("Source scope is held by run ${writer.id}; apply again when it finishes", refusal("src/b/B.kt", "src/a/deep/A.kt"))
+                workspace.cancel(writer.id)
+                val unscoped = workspace.submit(AgentSubmission("unscoped", harness.kind, "BLOCK_UNTIL_CANCEL", allowWrites = true))
+                assertEquals("Source scope is held by run ${unscoped.id}; apply again when it finishes", refusal("src/b/B.kt"))
+                workspace.cancel(unscoped.id)
+                assertNull(refusal("src/b/B.kt"))
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     @Test fun cancelIsExactAndShutdownLeavesInterruptedReceiptWithoutReplay() = runBlocking {
         val root = Files.createTempDirectory("agent-root").toFile()
         val directory = Files.createTempDirectory("agent-state")

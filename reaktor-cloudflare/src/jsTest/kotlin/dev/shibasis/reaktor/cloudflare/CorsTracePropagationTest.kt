@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.cloudflare
 
+import dev.shibasis.reaktor.service.contract.Metadata
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
 import kotlinx.coroutines.promise
@@ -31,7 +32,7 @@ class CorsTracePropagationTest {
         val request: dynamic = js("new Request('https://fixture.invalid/', {method:'OPTIONS', headers:{Origin:'https://bestbuds.ai', 'Access-Control-Request-Method':'POST', 'Access-Control-Request-Headers':'authorization,traceparent,baggage'}})")
         val response = app.fetch(request).unsafeCast<Promise<dynamic>>().await()
         val allowed = (response.headers.get("access-control-allow-headers") as String).lowercase().split(',').map(String::trim)
-        assertEquals(listOf("authorization", "traceparent", "baggage"), allowed)
+        assertEquals((listOf("authorization", "traceparent", "baggage") + Metadata.Sent.map(String::lowercase)).distinct(), allowed)
         assertEquals("*", response.headers.get("access-control-allow-origin") as String)
     }
 }

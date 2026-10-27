@@ -22,7 +22,7 @@ import kotlinx.coroutines.promise
 import kotlin.js.Promise
 import kotlin.math.ceil
 
-class QueueLink(val binding: String, retry: Retry? = Retry()) : Link() {
+class QueueLink(val binding: String, retry: Retry? = Retry(), private val requireContext: Boolean = false) : Link() {
     override val transport: String get() = "cloudflare-queue"
 
     init {
@@ -33,7 +33,9 @@ class QueueLink(val binding: String, retry: Retry? = Retry()) : Link() {
         throw UnsupportedOperationException("Queue $binding carries messages, not calls such as ${operation.id}")
 
     override suspend fun <M> deliver(channel: Channel<M>, exchange: Exchange<M, Unit>) {
-        val queue: dynamic = exchange.cloudflareOrNull?.raw(binding) ?: CloudflareWorkers.env[binding] ?: error("Missing Cloudflare queue binding '$binding'")
+        val context = exchange.cloudflareOrNull
+        check(!requireContext || context != null) { "Queue $binding requires a request-bound Cloudflare context" }
+        val queue: dynamic = context?.raw(binding) ?: CloudflareWorkers.env[binding] ?: error("Missing Cloudflare queue binding '$binding'")
         val body = JSON.parse<Any>(channel.seal(exchange.request, exchange.metadata).toString())
         try {
             queue.send(body, js("({ contentType: 'json' })")).unsafeCast<Promise<Any?>>().await()

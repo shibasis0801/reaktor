@@ -1,8 +1,9 @@
 package dev.shibasis.reaktor.auth
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlin.js.json
+import dev.shibasis.reaktor.core.framework.json
+import kotlin.io.encoding.Base64
 
 /**
  * Utilities for decoding JWT tokens on the client side
@@ -11,19 +12,6 @@ import kotlin.js.json
  * JWT verification MUST be done on the server using JWKS.
  * Never trust client-side JWT decoding for authentication!
  */
-
-/**
- * External declaration for JavaScript's atob() function
- * Decodes a base64-encoded string
- */
-external fun atob(encoded: String): String
-
-private val Claims = Json { ignoreUnknownKeys = true }
-
-private fun utf8(binary: String): String {
-    val bytes = js("Uint8Array.from(binary, function (c) { return c.charCodeAt(0); })")
-    return js("new TextDecoder().decode(bytes)") as String
-}
 
 /**
  * Decoded Google JWT payload
@@ -85,23 +73,7 @@ fun decodeJwt(jwt: String): String? {
             return null
         }
 
-        // Get the payload (second part)
-        val payload = parts[1]
-
-        // Base64URL to Base64: replace URL-safe characters
-        val base64 = payload
-            .replace('-', '+')
-            .replace('_', '/')
-
-        // Add padding if needed (Base64 requires length to be multiple of 4)
-        val padded = when (base64.length % 4) {
-            2 -> base64 + "=="
-            3 -> base64 + "="
-            else -> base64
-        }
-
-        // Decode base64 to JSON string
-        utf8(atob(padded))
+        Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT_OPTIONAL).decode(parts[1]).decodeToString()
     } catch (e: Throwable) {
         console.error("Failed to decode JWT", e)
         null
@@ -118,7 +90,7 @@ fun decodeGoogleJwt(idToken: String): GoogleJwtPayload? {
     val payloadJson = decodeJwt(idToken) ?: return null
 
     return try {
-        Claims.decodeFromString<GoogleJwtPayload>(payloadJson)
+        json.decodeFromString<GoogleJwtPayload>(payloadJson)
     } catch (e: Exception) {
         console.error("Failed to parse Google JWT payload", e)
         null
@@ -138,7 +110,7 @@ fun decodeAppleJwt(idToken: String): AppleJwtPayload? {
     val payloadJson = decodeJwt(idToken) ?: return null
 
     return try {
-        Claims.decodeFromString<AppleJwtPayload>(payloadJson)
+        json.decodeFromString<AppleJwtPayload>(payloadJson)
     } catch (e: Exception) {
         console.error("Failed to parse Apple JWT payload", e)
         null

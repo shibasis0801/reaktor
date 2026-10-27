@@ -11,6 +11,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+import kotlin.io.encoding.Base64
 
 class EncodedFrame(val bytes: ByteArray, val width: Int, val height: Int)
 
@@ -56,7 +57,7 @@ class ScreenFeed(
         val frame = bitmap.encodeFrame(maxDimension, 80) ?: return
         val changed = sendTree.getAndSet(false) || nodes != lastTree
         lastTree = nodes
-        val encoded = frame.bytes.encodeBase64()
+        val encoded = Base64.encode(frame.bytes)
         agent.screen.emit { sequence, nanos ->
             AgentFact.Screen(
                 sequence = sequence,

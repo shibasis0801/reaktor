@@ -127,7 +127,7 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
 
     private fun move(next: Viewport) { go(next); record(next) }
 
-    private fun go(next: Viewport) { if (gliders > 0 && !instant) glide = next else { glide = null; flow.setViewport(next) } }
+    private fun go(next: Viewport) { restored = null; if (gliders > 0 && !instant) glide = next else { glide = null; flow.setViewport(next) } }
 
     private inline fun instantly(block: () -> Unit) { instant = true; try { block() } finally { instant = false } }
 

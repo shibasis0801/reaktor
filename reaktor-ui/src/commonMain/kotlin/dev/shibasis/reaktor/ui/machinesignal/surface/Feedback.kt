@@ -31,9 +31,11 @@ internal data class Label(
 internal fun Modifier.focusRing(shown: Boolean, feedback: ComposeFeedback, ring: FocusRing): Modifier =
     if (!shown) this else drawWithContent {
         drawContent()
-        val stroke = ring.width.toPx()
-        inset(stroke / 2f) {
-            drawOutline(ring.shape.createOutline(size, layoutDirection, this), ring.color, alpha = feedback.focus, style = Stroke(stroke))
+        val stroke = ring.width.toPx().coerceAtMost(size.minDimension)
+        if (stroke > 0f) {
+            inset(stroke / 2f) {
+                drawOutline(ring.shape.createOutline(size, layoutDirection, this), ring.color, alpha = feedback.focus, style = Stroke(stroke))
+            }
         }
     }
 

@@ -642,6 +642,7 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         const val CutShare = 1.0
         const val Tries = 6
         const val Spur = 16.0
+        const val CompactGain = 0.05
     }
 
     private class Flow(val origins: Map<String, Pair<Double, Double>>, val trunks: Map<Pair<String?, String?>, List<Pair<Double, Double>>>, val width: Double, val height: Double)
@@ -661,6 +662,33 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
     private fun flow(blocks: List<BlueprintEngine.Block>, keyed: Map<String, BlueprintEngine.Block>, crossing: List<FrameEdge>, aspect: Double): Flow {
         val pairs = LinkedHashMap<Pair<String, String>, MutableList<FrameEdge>>()
         crossing.forEach { edge -> pairs.getOrPut(rootOf.getValue(edge.from) to rootOf.getValue(edge.to)) { ArrayList() } += edge }
+        val tied = pairs.keys.flatMapTo(HashSet()) { listOf(it.first, it.second) }
+        val loose = blocks.filter { it.group.key !in tied }
+        if (loose.isEmpty() || loose.size == blocks.size) return laid(blocks, keyed, pairs, aspect)
+        return tucked(laid(blocks - loose.toSet(), keyed, pairs, aspect), keyed, loose) ?: laid(blocks, keyed, pairs, aspect)
+    }
+
+    private fun tucked(core: Flow, keyed: Map<String, BlueprintEngine.Block>, loose: List<BlueprintEngine.Block>): Flow? {
+        val gap = BlueprintEngine.GroupGap
+        val taken = core.origins.map { (key, origin) -> keyed.getValue(key).let { doubleArrayOf(origin.first, origin.second, origin.first + it.width, origin.second + it.height) } }.toMutableList()
+        val corridors = core.trunks.values.flatMap { it.zipWithNext() }.map { (a, b) -> doubleArrayOf(minOf(a.first, b.first), minOf(a.second, b.second), maxOf(a.first, b.first), maxOf(a.second, b.second)) }
+        fun clear(box: DoubleArray, margin: Double, x: Double, y: Double, width: Double, height: Double) =
+            x - margin >= box[2] || x + width + margin <= box[0] || y - margin >= box[3] || y + height + margin <= box[1]
+        val origins = LinkedHashMap(core.origins)
+        loose.sortedByDescending { it.width * it.height }.forEach { block ->
+            val xs = listOf(0.0, core.width - block.width) + taken.flatMap { listOf(it[2] + gap, it[0] - gap - block.width) }
+            val ys = listOf(0.0, core.height - block.height) + taken.flatMap { listOf(it[3] + gap, it[1] - gap - block.height) }
+            val spot = ys.flatMap { y -> xs.map { x -> x to y } }
+                .filter { (x, y) -> x >= 0 && y >= 0 && x + block.width <= core.width && y + block.height <= core.height }
+                .filter { (x, y) -> taken.all { clear(it, gap, x, y, block.width, block.height) } && corridors.all { clear(it, gap / 2, x, y, block.width, block.height) } }
+                .minByOrNull { (x, y) -> core.width - x - block.width + y } ?: return null
+            origins[block.group.key] = spot
+            taken += doubleArrayOf(spot.first, spot.second, spot.first + block.width, spot.second + block.height)
+        }
+        return Flow(origins, core.trunks, core.width, core.height)
+    }
+
+    private fun laid(blocks: List<BlueprintEngine.Block>, keyed: Map<String, BlueprintEngine.Block>, pairs: Map<Pair<String, String>, List<FrameEdge>>, aspect: Double): Flow {
         val ports = HashMap<String, MutableList<LayeredPort>>()
         val edges = ArrayList<LayeredEdge>()
         pairs.entries.forEachIndexed { i, (pair, members) ->
@@ -677,6 +705,13 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         val area = blocks.sumOf { (it.width + BlueprintEngine.GroupGap) * (it.height + BlueprintEngine.GroupGap) }
         val spacing = LayeredSpacing(node = BlueprintEngine.GroupGap, layer = BlueprintEngine.GroupGap * 1.5, edge = 10.0,
             component = BlueprintEngine.GroupGap, aspect = aspect, wrapHeight = maxOf(2 * sqrt(area / aspect), blocks.maxOf { it.height }), align = LayeredAlign.West)
+        fun reach(flow: Flow) = maxOf(flow.width / aspect, flow.height)
+        val free = arranged(blocks, nodes, edges, pairs, spacing, aspect)
+        val tight = arranged(blocks, nodes, edges, pairs, spacing.copy(compact = true), aspect)
+        return if (reach(tight) < reach(free) * (1 - CompactGain)) tight else free
+    }
+
+    private fun arranged(blocks: List<BlueprintEngine.Block>, nodes: List<LayeredNode>, edges: List<LayeredEdge>, pairs: Map<Pair<String, String>, List<FrameEdge>>, spacing: LayeredSpacing, aspect: Double): Flow {
         val whole = Layered.layout(nodes, edges, spacing)
         val trunks = HashMap<Pair<String?, String?>, List<Pair<Double, Double>>>()
         val snake = wrapped(whole, nodes, edges, spacing, aspect)

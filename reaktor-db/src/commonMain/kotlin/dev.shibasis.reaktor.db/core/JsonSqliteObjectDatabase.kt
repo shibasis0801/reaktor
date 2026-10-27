@@ -80,8 +80,7 @@ class SqliteObjectDatabase(
             WHERE store_name = ? AND sequence > ? ORDER BY sequence LIMIT ?
         """.trimIndent(), { cursor ->
             val changes = mutableListOf<ObjectChange>()
-            while (cursor.next().value) changes += ObjectChange(cursor.getLong(0)!!, cursor.getString(1)!!,
-                cursor.getString(2)!!, cursor.getString(3), cursor.getLong(4)!!)
+            while (cursor.next().value) changes += ObjectChange(cursor.long(0), cursor.string(1), cursor.string(2), cursor.getString(3), cursor.long(4))
             QueryResult.Value(changes)
         }, 3) {
             bindString(0, storeName)
@@ -99,16 +98,16 @@ class SqliteObjectDatabase(
      * different things to a caller — one row of a store is skippable, one keyed document is not.
      */
     private fun <T : Any> decodeRow(cursor: SqlCursor, serializer: KSerializer<T>): StoredObject<T> {
-        val key = cursor.getString(0)!!
-        val rowStoreName = cursor.getString(2)!!
+        val key = cursor.string(0)
+        val rowStoreName = cursor.string(2)
         val (value, sizeBytes) = try {
             when (objectSerializer) {
                 is BinarySerializer -> {
-                    val bytes = cursor.getBytes(1)!!
+                    val bytes = cursor.bytes(1)
                     objectSerializer.deserialize(serializer, bytes) to bytes.size.toLong()
                 }
                 is TextSerializer -> {
-                    val text = cursor.getString(1)!!
+                    val text = cursor.string(1)
                     objectSerializer.deserialize(serializer, text) to (text.length.toLong() * 2)
                 }
             }
@@ -116,11 +115,11 @@ class SqliteObjectDatabase(
             throw UnreadableObjectException(rowStoreName, key, exception)
         }
         return StoredObject(
-            key = cursor.getString(0)!!,
+            key = key,
             value = value,
-            storeName = cursor.getString(2)!!,
-            createdAt = cursor.getLong(3)!!,
-            updatedAt = cursor.getLong(4)!!,
+            storeName = rowStoreName,
+            createdAt = cursor.long(3),
+            updatedAt = cursor.long(4),
             sizeBytes = sizeBytes
         )
     }
@@ -268,11 +267,11 @@ class SqliteObjectDatabase(
                 while (cursor.next().value) {
                     items.add(
                         RawObject(
-                            key = cursor.getString(0)!!,
-                            payload = cursor.getString(1)!!,
-                            storeName = cursor.getString(2)!!,
-                            createdAt = cursor.getLong(3)!!,
-                            updatedAt = cursor.getLong(4)!!,
+                            key = cursor.string(0),
+                            payload = cursor.string(1),
+                            storeName = cursor.string(2),
+                            createdAt = cursor.long(3),
+                            updatedAt = cursor.long(4),
                         )
                     )
                 }
@@ -354,3 +353,9 @@ class SqliteObjectDatabase(
         driver.execute(null, "DELETE FROM $tableName", 0).await()
     }
 }
+
+private fun SqlCursor.string(index: Int): String = checkNotNull(getString(index)) { "Column $index is null" }
+
+private fun SqlCursor.long(index: Int): Long = checkNotNull(getLong(index)) { "Column $index is null" }
+
+private fun SqlCursor.bytes(index: Int): ByteArray = checkNotNull(getBytes(index)) { "Column $index is null" }

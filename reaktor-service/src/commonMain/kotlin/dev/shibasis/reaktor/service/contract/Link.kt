@@ -102,6 +102,7 @@ abstract class Link(val deadline: Duration = DefaultDeadline) {
             service?.let { this[Metadata.Contract] = "${it.id}@${it.fingerprint}" }
             if (operation?.idempotency == Idempotency.Keyed) this[Metadata.IdempotencyKey] = Uuid.random().toString()
             (request as? Request)?.headers?.forEach { (name, value) -> this[name] = value }
+            context[CallMetadata]?.values?.forEach { (name, value) -> this[name] = value }
         }
         return Exchange(
             family = family,
@@ -139,4 +140,8 @@ class CallAttributes(val values: Map<String, Any?>) : AbstractCoroutineContextEl
 
         internal fun ambient(): Map<String, Any?> = sources.value.fold(emptyMap()) { all, source -> all + source() }
     }
+}
+
+class CallMetadata(val values: Map<String, String>) : AbstractCoroutineContextElement(CallMetadata) {
+    companion object Key : CoroutineContext.Key<CallMetadata>
 }

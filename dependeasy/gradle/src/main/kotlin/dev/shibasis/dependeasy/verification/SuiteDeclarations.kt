@@ -8,11 +8,32 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
 
-internal fun Project.nodeSuite(name: String, files: FileSet, run: Run): NodeHandle {
+private val ignoredSources = arrayOf("**/node_modules/**", "**/build/**", "**/dist/**", "**/.wrangler/**",
+    "**/.git/**", "**/.gradle/**", "**/.kotlin/**", "**/test-results/**", "**/playwright-report/**")
+
+private fun Project.declaredSources(inputs: List<FileInput>) = inputs.map { input ->
+    when (input.kind) {
+        FileInputKind.File -> file(input.identity)
+        FileInputKind.Tree -> fileTree(input.identity) {
+            include(input.includes)
+            exclude(input.excludes)
+            exclude(*ignoredSources)
+        }
+        else -> error("Test sources must be files or trees")
+    }
+}
+
+internal fun Project.nodeSuite(name: String, files: FileSet, run: Run, optionalFiles: List<String> = emptyList(),
+    sources: List<FileInput> = emptyList(), live: Boolean = false): NodeHandle {
     require(files.paths.isNotEmpty()) { "Node tests need declared test paths" }
     val packages = dev.shibasis.dependeasy.web.PnpmWorkspace.get(this)
-    val sources = files.paths.map { file(it).parentFile }.distinct()
-    val task = tasks.register<dev.shibasis.dependeasy.web.PackageCommand>(name) {
+    val directories = files.paths.map { file(it).parentFile }.distinct()
+    val task = tasks.register<NodeTestSuite>(name) {
+        environmentFiles.from(optionalFiles.map { path ->
+            val file = file(path)
+            fileTree(file.parentFile).matching { include(file.name) }
+        })
+        if (live || optionalFiles.isNotEmpty()) outputs.upToDateWhen { false }
         group = "verification"
         workingDirectory.set(layout.projectDirectory)
         executable.set(packages.tools.pnpm.map { it.asFile.absolutePath })
@@ -21,12 +42,11 @@ internal fun Project.nodeSuite(name: String, files: FileSet, run: Run): NodeHand
         arguments.set(Pnpm.tests(files.paths))
         executionEffect.set(Effect.Verify)
         executionPlatform.set(run.host.platform)
-        sourceFiles.from(file("package.json"), file("pnpm-lock.yaml"), sources.map { directory ->
+        sourceFiles.from(file("package.json"), file("pnpm-lock.yaml"), directories.map { directory ->
             fileTree(directory) {
-                exclude("**/node_modules/**", "**/build/**", "**/dist/**", "**/.wrangler/**",
-                    "**/.git/**", "**/.gradle/**", "**/.kotlin/**", "**/test-results/**", "**/playwright-report/**")
+                exclude(*ignoredSources)
             }
-        })
+        }, declaredSources(sources))
         receiptFile.set(layout.buildDirectory.file("dependeasy/checks/$name.properties"))
         dependsOn(packages.install)
         run.timeoutMillis?.let { timeout.set(java.time.Duration.ofMillis(it)) }
@@ -43,23 +63,12 @@ internal fun Project.browserSuite(name: String, suite: Playwright, run: Run): No
         workingDirectory.set(layout.projectDirectory)
         executable.set(packages.tools.pnpm.map { it.asFile.absolutePath })
         environment.putAll(packages.tools.environment)
+        environment.putAll(suite.environment)
         toolVersion.set("pnpm ${dev.shibasis.dependeasy.toolchain.ToolchainVersions.Pnpm} / node ${dev.shibasis.dependeasy.toolchain.ToolchainVersions.Node}")
         configuration.set(config)
         policy.set(BuildModelReader.json.encodeToString(Playwright.serializer(), suite))
-        sourceFiles.from(fileTree(config.asFile.parentFile) { exclude("test-results/**", "playwright-report/**") },
-            fileTree("tests/support"), file("package.json"), file("pnpm-lock.yaml"),
-            suite.sources.map { input ->
-                when (input.kind) {
-                    FileInputKind.File -> file(input.identity)
-                    FileInputKind.Tree -> fileTree(input.identity) {
-                        include(input.includes)
-                        exclude(input.excludes)
-                        exclude("**/node_modules/**", "**/build/**", "**/dist/**", "**/.wrangler/**",
-                            "**/.git/**", "**/.gradle/**", "**/.kotlin/**", "**/test-results/**", "**/playwright-report/**")
-                    }
-                    else -> error("Browser test sources must be files or trees")
-                }
-            })
+        sourceFiles.from(fileTree(config.asFile.parentFile) { exclude(*ignoredSources) },
+            fileTree("tests/support"), file("package.json"), file("pnpm-lock.yaml"), declaredSources(suite.sources))
         receiptFile.set(layout.buildDirectory.file("dependeasy/checks/$name.properties"))
         dependsOn(packages.install)
         executionPlatform.set(run.host.platform)

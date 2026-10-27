@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cloudflare
 
+import dev.shibasis.reaktor.core.framework.toUint8Array
+import dev.shibasis.reaktor.core.framework.toByteArray
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.framework.kSerializer
 import dev.shibasis.reaktor.service.ServiceCall
@@ -26,7 +28,7 @@ class CloudflareFile internal constructor(
     val type: String
         get() = raw.type
 
-    suspend fun bytes(): ByteArray = arrayBufferToByteArray(raw.arrayBuffer().await())
+    suspend fun bytes(): ByteArray = raw.arrayBuffer().await().toByteArray()
 
     suspend fun text(): String = raw.text().await()
 }
@@ -89,7 +91,7 @@ class CloudflareHttpRequest internal constructor(
         return bytes.decodeToString(throwOnInvalidSequence = true)
     }
 
-    suspend fun bytes(): ByteArray = arrayBufferToByteArray(raw.arrayBuffer().await())
+    suspend fun bytes(): ByteArray = raw.arrayBuffer().await().toByteArray()
 
     suspend fun formData(): CloudflareFormData = CloudflareFormData(raw.formData().await())
 
@@ -199,7 +201,7 @@ fun Hono.handle(
     val trace = TraceContext.parse(headers[TraceContext.Header] as? String)
     val session = ServiceCall.sessionFromBaggage(headers["baggage"] as? String)
     val call = trace?.let { ServiceCall(it, null, if (session == null) emptyMap() else mapOf(ServiceCall.SessionAttribute to session)) }
-    GlobalScope.promise(call ?: EmptyCoroutineContext) {
+    GlobalScope.promise((call ?: EmptyCoroutineContext) + requestContext(context.req.raw)) {
         handler(CloudflareRouteContext(context))
     }
 }
@@ -245,24 +247,6 @@ internal fun workerResponse(
         jsHeaders[name] = value
     }
     return js("new Response(body, { status: status, headers: jsHeaders })")
-}
-
-private fun ByteArray.toUint8Array(): dynamic {
-    val length = size
-    val view = js("new Uint8Array(length)")
-    for (index in indices) {
-        view[index] = this[index].toInt() and 0xFF
-    }
-    return view
-}
-
-private fun arrayBufferToByteArray(buffer: dynamic): ByteArray {
-    val view = js("new Uint8Array(buffer)")
-    val bytes = ByteArray(view.length as Int)
-    for (index in bytes.indices) {
-        bytes[index] = (view[index] as Int).toByte()
-    }
-    return bytes
 }
 
 private fun urlPath(url: String): String =

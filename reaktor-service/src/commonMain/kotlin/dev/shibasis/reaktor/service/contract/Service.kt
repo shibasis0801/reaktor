@@ -23,6 +23,8 @@ abstract class Service(val id: String, val version: Int = 1) {
 
     open val access: ServiceAccess get() = ServiceAccess.Undeclared
 
+    open val wire: Wire get() = Wire.Plain
+
     val operations: List<Operation<*, *>> get() = declared.values.toList()
 
     val channels: List<Channel<*>> get() = declaredChannels

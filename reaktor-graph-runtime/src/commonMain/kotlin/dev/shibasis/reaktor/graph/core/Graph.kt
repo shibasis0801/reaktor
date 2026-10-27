@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.graph.core
 
+import dev.shibasis.reaktor.graph.core.node.currentRoute
 import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
@@ -17,6 +18,8 @@ import dev.shibasis.reaktor.graph.navigation.NavigationActivation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlin.coroutines.CoroutineContext
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.navigation.BackStackEntry
@@ -50,7 +53,7 @@ import kotlin.uuid.Uuid
 @JsExport
 open class Graph(
     val parentGraph: Graph? = null,
-    dispatcher: CoroutineDispatcher = reaktorDefaultDispatcher,
+    dispatcher: CoroutineDispatcher = parentGraph?.coroutineDispatcher ?: reaktorDefaultDispatcher,
     dependencyAdapter: DependencyAdapter<*> = parentGraph?.diAdapter ?: Feature.Dependency ?: throw DependencyException,
     override val id: Uuid = Uuid.random(),
     override val label: String = "",
@@ -81,6 +84,7 @@ open class Graph(
     override val coroutineDispatcher get() = concurrencyCapability.coroutineDispatcher
 
     internal val ownedGraphs = ConcurrentHashMap<Uuid, Graph>()
+    internal val wirings = MutableStateFlow(0)
     private val importedGraphs = ConcurrentHashMap<Uuid, Graph>()
     private val closed = atomic(false)
 
@@ -106,6 +110,12 @@ open class Graph(
         }
         return null
     }
+
+    fun findOnlyProvider(type: Type): ProviderPort<Any>? =
+        generateSequence(this) { it.parentGraph }
+            .flatMap { scope -> sequenceOf(scope.providers(), scope.importedGraphs.values().flatMap { it.providers() }.distinct()) }
+            .map { providers -> providers.filter { it.type == type } }
+            .firstOrNull { it.isNotEmpty() }?.singleOrNull()
 
     val sentinel = RouteNode(this, "")
 
@@ -189,7 +199,7 @@ open class Graph(
         }
         val source = navCommand.entry.edge.sourceGraph
         if (navCommand is Replace<*, *> && source.backStack.entries.value.size > 1 &&
-            source.backStack.top.value?.edge?.end == navCommand.entry.edge.start) {
+            source.currentRoute == navCommand.entry.edge.start) {
             source.navigationImpl.dispatch(Pop)
         }
         path.forEach { (container, child) ->
@@ -203,17 +213,9 @@ open class Graph(
         container: ContainerNode,
         payload: Payload,
     ) {
-        val currentRoute = backStack.entries.value.lastOrNull()?.edge?.end ?: sentinel
-        if (currentRoute == container.route) {
-            return
-        }
-
-        navigationImpl.dispatch(
-            Push<Payload>(
-                currentRoute.edge(container.route),
-                Payload(HashMap(payload.routeParams)),
-            ),
-        )
+        val from = currentRoute ?: sentinel
+        if (from == container.route) return
+        navigationImpl.dispatch(Push<Payload>(from.edge(container.route), Payload(HashMap(payload.routeParams))))
     }
 
     init { builder() }
@@ -252,12 +254,7 @@ open class Graph(
         return super.detach(node)
     }
 
-    fun<P: Payload> addRoot(routeNode: RouteNode<P, *>, payload: P) {
-        val edge = sentinel.edge(routeNode)
-        dispatch(Push(
-            edge, payload
-        ))
-    }
+    fun addRoot(routeNode: RouteNode<Payload, *>, payload: Payload = Payload()) = dispatch(Push(sentinel.edge(routeNode), payload))
 
     override fun onTransition(
         previous: Lifecycle,
@@ -349,10 +346,46 @@ fun Graph.autoWire(vararg dependencies: Graph) {
                 }
             }
 
+            if (match == null) match = findOnlyProvider(consumer.type)
+
             if (match != null) {
                 connect(consumer, match).getOrThrow()
             }
         }
+}
+
+fun Graph.wire() {
+    val graphs = tree()
+    graphs.forEach { graph -> graph.wirings.update { it + 1 } }
+    try {
+        graphs.forEach { it.autoWire() }
+        val reach = mutableMapOf<Graph, List<ProviderPort<Any>>>()
+        fun pass(pick: List<ProviderPort<Any>>.(Key) -> List<ProviderPort<Any>>) = graphs.forEach { graph ->
+            graph.unconnectedConsumers().forEach { consumer ->
+                val nearest = generateSequence(graph) { it.parentGraph }
+                    .map { scope -> reach.getOrPut(scope) { scope.tree().flatMap { it.providers() }.distinct() }.filter { it.type == consumer.type }.pick(consumer.key) }
+                    .firstOrNull { it.isNotEmpty() }.orEmpty()
+                require(nearest.size <= 1) { "${consumer.owner} can take ${consumer.type.type} from ${nearest.joinToString { it.owner.toString() }}" }
+                nearest.singleOrNull()?.let { connect(consumer, it).getOrThrow() }
+            }
+        }
+        pass { matching(it) }
+        pass { this }
+        graphs.forEach { it.requireFullyWired() }
+    } finally {
+        graphs.forEach { graph -> graph.wirings.update { it - 1 } }
+    }
+}
+
+suspend fun Graph.awaitWired() {
+    wirings.first { it == 0 }
+}
+
+private fun List<ProviderPort<Any>>.matching(key: Key) = if (key.key.isEmpty() && size == 1) this else filter { it.key == key }
+
+internal fun Graph.tree(into: MutableSet<Graph> = linkedSetOf()): Set<Graph> {
+    if (into.add(this)) (ownedGraphs.values() + nodes.filterIsInstance<ContainerNode>().flatMap { it.graphs }).forEach { it.tree(into) }
+    return into
 }
 
 fun Graph.unconnectedConsumers() = nodes

@@ -47,9 +47,10 @@ class WorkspaceScope internal constructor(private val project: Project, private 
 
     fun prepare(hook: DeviceHook) = NodeDeclaration { name -> project.devicePreparation(name, hook) }
 
-    fun nodeTests(files: FileSet, vararg artifacts: OutputHandle, run: Run = Run.Default): NodeDeclaration =
+    fun nodeTests(files: FileSet, vararg artifacts: OutputHandle, run: Run = Run.Default, environmentFiles: List<String> = emptyList(),
+        sources: List<FileInput> = emptyList(), live: Boolean = false): NodeDeclaration =
         NodeDeclaration { name ->
-            project.nodeSuite(name, files, run).also { node ->
+            project.nodeSuite(name, files, run, environmentFiles, sources, live).also { node ->
                 artifacts.forEach { workspace.consume(node, it) }
                 workspace.alias(project.projectDir, name, node)
             }

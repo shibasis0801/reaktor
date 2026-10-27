@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.graph.navigation
 
+import dev.shibasis.reaktor.graph.core.node.currentRoute
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.edge.NavigationEdge
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
@@ -25,7 +26,7 @@ class WebNavigationBridge(private val graph: Graph) {
     private val scope = CoroutineScope(graph.coroutineDispatcher + SupervisorJob(graph.coroutineScope.coroutineContext[Job]))
     private val popStateHandler: (Event) -> Unit = {
         val path = window.location.pathname
-        val current = graph.backStack.top.value?.edge?.end
+        val current = graph.currentRoute
         if (programmaticBack && current?.pattern?.original == path) {
             programmaticBack = false
             lastStackSize = graph.backStack.entries.value.size

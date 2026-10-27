@@ -5,12 +5,12 @@ import dev.shibasis.reaktor.tooling.DeviceTransport
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import dev.shibasis.reaktor.core.framework.json
 
 /**
  * Apple simulators.
@@ -28,7 +28,6 @@ class SimctlDeviceBackend : DeviceBackend {
     override val transport: DeviceTransport = DeviceTransport.Simctl
     override val name: String = "Apple simulators · simctl"
 
-    private val json = Json { ignoreUnknownKeys = true }
     private val xcrun: String? get() = CommandRunner.locate("xcrun")
 
     override fun unavailableReason(): String? =

@@ -1,5 +1,9 @@
 package dev.shibasis.reaktor.cloudflare
 
+import org.khronos.webgl.ArrayBufferView
+import org.khronos.webgl.ArrayBuffer
+import dev.shibasis.reaktor.core.framework.toUint8Array
+import dev.shibasis.reaktor.core.framework.toByteArray
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.framework.kSerializer
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -47,8 +51,8 @@ class PartyServerMessage internal constructor(
 
     @JsExport.Ignore
     fun bytesOrNull(): ByteArray? = when {
-        isArrayBuffer(raw) -> arrayBufferToByteArray(raw)
-        isArrayBufferView(raw) -> typedArrayToByteArray(raw)
+        isArrayBuffer(raw) -> raw.unsafeCast<ArrayBuffer>().toByteArray()
+        isArrayBufferView(raw) -> raw.unsafeCast<ArrayBufferView>().toByteArray()
         else -> null
     }
 
@@ -283,16 +287,7 @@ class PartyServerRoom internal constructor(
         connections(tag).toTypedArray()
 
     @JsExport.Ignore
-    suspend fun <T> blockConcurrencyWhile(block: suspend () -> T): T {
-        var result: Result<T>? = null
-        raw.ctx.blockConcurrencyWhile {
-            GlobalScope.promise<Any?> {
-                result = runCatching { block() }
-                null
-            }
-        }.await()
-        return result!!.getOrThrow()
-    }
+    suspend fun <T> blockConcurrencyWhile(block: suspend () -> T): T = raw.ctx.exclusively(block)
 
     fun blockConcurrencyWhileAsync(block: () -> Promise<Any?>): Promise<Any?> =
         raw.ctx.blockConcurrencyWhile(block)
@@ -326,6 +321,8 @@ open class PartyServerDelegate(room: Any) {
     protected val room: PartyServerRoom = PartyServerRoom(room.unsafeCast<RawPartyServerInstance>())
 
     protected open val serverOptions: PartyServerOptions? = null
+
+    protected open val callbackContext: kotlin.coroutines.CoroutineContext get() = kotlin.coroutines.EmptyCoroutineContext
 
     @JsName("options")
     val options: Any?
@@ -380,22 +377,22 @@ open class PartyServerDelegate(room: Any) {
     }
 
     @JsName("getConnectionTags")
-    fun getConnectionTags(connectionValue: Any, contextValue: Any): dynamic = GlobalScope.promise {
+    fun getConnectionTags(connectionValue: Any, contextValue: Any): dynamic = GlobalScope.promise(callbackContext) {
         handleConnectionTags(connection(connectionValue), context(contextValue))
     }
 
     @JsName("onStart")
-    fun onStart(props: Any? = null): dynamic = GlobalScope.promise {
+    fun onStart(props: Any? = null): dynamic = GlobalScope.promise(callbackContext) {
         handleStart(props)
     }
 
     @JsName("onConnect")
-    fun onConnect(connectionValue: Any, contextValue: Any): dynamic = GlobalScope.promise {
+    fun onConnect(connectionValue: Any, contextValue: Any): dynamic = GlobalScope.promise(callbackContext) {
         handleConnect(connection(connectionValue), context(contextValue))
     }
 
     @JsName("onMessage")
-    fun onMessage(connectionValue: Any, messageValue: Any): dynamic = GlobalScope.promise {
+    fun onMessage(connectionValue: Any, messageValue: Any): dynamic = GlobalScope.promise(callbackContext) {
         handleMessage(PartyServerMessage(messageValue), connection(connectionValue))
     }
 
@@ -405,22 +402,22 @@ open class PartyServerDelegate(room: Any) {
         code: Int = 0,
         reason: String = "",
         wasClean: Boolean = false,
-    ): dynamic = GlobalScope.promise {
+    ): dynamic = GlobalScope.promise(callbackContext) {
         handleConnectionClose(connection(connectionValue), code, reason, wasClean)
     }
 
     @JsName("onError")
-    fun onError(connectionValue: Any, errorValue: Any): dynamic = GlobalScope.promise {
+    fun onError(connectionValue: Any, errorValue: Any): dynamic = GlobalScope.promise(callbackContext) {
         handleError(connection(connectionValue), errorValue.asThrowable())
     }
 
     @JsName("onRequest")
-    fun onRequest(requestValue: Any): dynamic = GlobalScope.promise {
+    fun onRequest(requestValue: Any): dynamic = GlobalScope.promise(callbackContext) {
         handleRequest(request(requestValue))
     }
 
     @JsName("onAlarm")
-    fun onAlarm(): dynamic = GlobalScope.promise {
+    fun onAlarm(): dynamic = GlobalScope.promise(callbackContext) {
         handleAlarm()
     }
 
@@ -452,33 +449,6 @@ private fun isArrayBuffer(value: dynamic): Boolean =
 
 private fun isArrayBufferView(value: dynamic): Boolean =
     js("typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView(value)") as Boolean
-
-private fun typedArrayToByteArray(value: dynamic): ByteArray {
-    val view = js("new Uint8Array(value.buffer, value.byteOffset || 0, value.byteLength)")
-    val bytes = ByteArray((view.length as Int))
-    for (index in bytes.indices) {
-        bytes[index] = (view[index] as Int).toByte()
-    }
-    return bytes
-}
-
-private fun arrayBufferToByteArray(buffer: dynamic): ByteArray {
-    val view = js("new Uint8Array(buffer)")
-    val bytes = ByteArray((view.length as Int))
-    for (index in bytes.indices) {
-        bytes[index] = (view[index] as Int).toByte()
-    }
-    return bytes
-}
-
-private fun ByteArray.toUint8Array(): dynamic {
-    val length = size
-    val view = js("new Uint8Array(length)")
-    for (index in indices) {
-        view[index] = this[index].toInt() and 0xFF
-    }
-    return view
-}
 
 private fun iterableToList(iterable: dynamic): List<dynamic> =
     js("Array.from(iterable)").unsafeCast<Array<dynamic>>().toList()

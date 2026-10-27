@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.db.StoredObject
 import dev.shibasis.reaktor.db.UnreadableObjectException
 import dev.shibasis.reaktor.core.utils.logger
 import dev.shibasis.reaktor.core.utils.warn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,6 +73,15 @@ class ObjectState<T : Any> internal constructor(
 
     suspend fun get(): T? =
         load()?.value
+
+    suspend fun getOrNull(): T? = try {
+        get()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Throwable) {
+        log.w(error) { "Could not read ${store.storeName}/$key" }
+        null
+    }
 
     suspend fun require(): T =
         get() ?: error("Object not found: ${store.storeName}/$key")

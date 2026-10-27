@@ -8,7 +8,6 @@ import app.cash.sqldelight.db.SqlPreparedStatement
 import dev.shibasis.reaktor.core.framework.Adapter
 import dev.shibasis.reaktor.core.framework.CreateSlot
 import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.db.sql.Statement
 import dev.shibasis.reaktor.io.adapters.File
 import dev.shibasis.reaktor.io.adapters.FileAdapter
 import kotlin.js.JsExport
@@ -22,42 +21,24 @@ abstract class SqlAdapter<Controller>(
     private val configuredFileAdapter = fileAdapter
     val fileAdapter: FileAdapter<*> get() = configuredFileAdapter ?: Feature.File ?: throw Error("FileAdapter not initialized")
     private var driver: SqlDriver? = null
-    private var _transacter: Transacter? = null
+    private var transacter: Transacter? = null
 
     protected abstract fun createDriver(): SqlDriver
 
-    fun getDriver(): SqlDriver {
-        if (driver == null) {
-            driver = createDriver()
-        }
-        return driver!!
-    }
+    fun getDriver(): SqlDriver = driver ?: createDriver().also { driver = it }
 
-    private fun getTransacter(): Transacter {
-        if (_transacter == null) {
-            _transacter = object : TransacterImpl(getDriver()) {}
-        }
-        return _transacter!!
-    }
+    private fun getTransacter(): Transacter = transacter ?: object : TransacterImpl(getDriver()) {}.also { transacter = it }
 
     fun closeDriver() {
         driver?.close()
         driver = null
-        _transacter = null
+        transacter = null
     }
 
     fun <T> transaction(body: () -> T): T {
         return getTransacter().transactionWithResult {
             body()
         }
-    }
-
-    fun execute(statement: Statement): Long {
-        val result = statement.renderSql()
-        val args = statement.renderArgs()
-        return getDriver().execute(null, result, args.size) {
-            bindArgs(this, args)
-        }.value
     }
 
     fun executeRaw(sql: String, args: Array<Any?>): Long {

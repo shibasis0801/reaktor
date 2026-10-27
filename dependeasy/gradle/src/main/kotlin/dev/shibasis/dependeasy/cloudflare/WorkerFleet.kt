@@ -6,6 +6,7 @@ import dev.shibasis.dependeasy.components.componentRole
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.verification.karateSuite
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
+import dev.shibasis.dependeasy.workspace.WorkspaceNodeTask
 import dev.shibasis.dependeasy.workspace.declarationSite
 import dev.shibasis.dependeasy.workspace.hasBuildDirectory
 import dev.shibasis.dependeasy.workspace.hasBuildFile
@@ -164,31 +165,31 @@ class WorkerFleet internal constructor(
         var verification = typeChecks
         contracts?.let { contracts ->
             require(environments.any { it.name == selectedName }) { "Unknown worker environment $selectedName" }
-            val groups = linkedMapOf<String, MutableList<NodeHandle>>()
+            val groups = linkedMapOf<WorkerContract, MutableList<NodeHandle>>()
             records.filter { selectedName in it.configurations }.forEach { worker ->
                 val target = project.rootProject.file(worker.directory).name
                 val directory = "tests/$target/karate"
                 if (!project.rootProject.hasBuildDirectory(project.rootProject.file(directory))) return@forEach
-                val modes = linkedMapOf("auth" to emptyList<String>(), "smoke" to listOf("@smoke"))
-                if (project.rootProject.hasBuildFile(project.rootProject.file("$directory/behaviour.feature"))) modes["behaviour"] = listOf("@behaviour")
-                if (project.rootProject.hasBuildFile(project.rootProject.file("$directory/public.feature"))) modes["public"] = emptyList()
+                val modes = linkedMapOf(WorkerContract.Auth to emptyList<String>(), WorkerContract.Smoke to listOf("@smoke"))
+                if (project.rootProject.hasBuildFile(project.rootProject.file("$directory/behaviour.feature"))) modes[WorkerContract.Behaviour] = listOf("@behaviour")
+                if (project.rootProject.hasBuildFile(project.rootProject.file("$directory/public.feature"))) modes[WorkerContract.Public] = emptyList()
                 modes.forEach { (mode, tags) ->
-                    val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.replaceFirstChar(Char::uppercaseChar)
-                    val suite = project.karateSuite(name, if (mode == "public") "$directory/public.feature" else directory, contracts.configuration, tags,
-                        listOfNotNull(contracts.environmentFiles[selectedEnvironment]),
+                    val name = "karate" + target.replaceFirstChar(Char::uppercaseChar) + mode.name
+                    val suite = project.karateSuite(name, if (mode == WorkerContract.Public) "$directory/public.feature" else directory, contracts.configuration, tags,
+                        listOfNotNull(contracts.environmentFiles[selectedEnvironment]), contracts.optionalEnvironmentFiles,
                         environment = contracts.environment[selectedEnvironment].orEmpty()).consumes(generatedContract).covers(Coverage(Domain.Worker, system = target))
-                    val alias = if (mode == "smoke") "karate:$target:auth:smoke" else "karate:$target:$mode"
+                    val alias = if (mode == WorkerContract.Smoke) "karate:$target:auth:smoke" else "karate:$target:${mode.name.lowercase()}"
                     workspace.alias(project.rootDir, alias, suite)
                     groups.getOrPut(mode) { mutableListOf() }.add(suite)
                 }
             }
             groups.forEach { (mode, suites) ->
-                val name = "workerKarate" + mode.replaceFirstChar(Char::uppercaseChar)
-                val suite = workspace.aggregate(project, name, NodeKind.Verification,
-                    if (mode == "behaviour") suites + listOfNotNull(typeChecks) else suites)
-                if (mode == "behaviour") verification = suite
-                val suffix = if (mode == "auth") "" else ":$mode"
+                val suite = workspace.aggregate(project, "workerKarate" + mode.name, NodeKind.Verification,
+                    if (mode == WorkerContract.Behaviour) suites + listOfNotNull(typeChecks) else suites)
+                if (mode == WorkerContract.Behaviour) verification = suite
+                val suffix = if (mode == WorkerContract.Auth) "" else ":${mode.name.lowercase()}"
                 workspace.alias(project.rootDir, "test:workers:karate$suffix", suite)
+                project.publishOutput(OutputKind.VerificationResults, requireNotNull(suite.task).flatMap { (it as WorkspaceNodeTask).completionManifest }, mode, producer = suite.task)
             }
         }
         verification?.let { checks ->

@@ -11,7 +11,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.runComposeUiTest
@@ -35,7 +36,7 @@ class SelectTest {
                 }
             }
         }
-        onNodeWithTag("city").performClick()
+        onNodeWithTag("city").performMouseInput { click() }
         onNodeWithTag("lisbon").assertIsFocused()
         onRoot().performKeyInput { pressKey(Key.P) }
         onNodeWithTag("porto").assertIsFocused()

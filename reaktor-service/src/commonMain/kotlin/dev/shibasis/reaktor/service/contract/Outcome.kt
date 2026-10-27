@@ -52,7 +52,7 @@ class ContractDrift(
 ) : CallFailure(message, cause)
 
 inline fun <reified P> reject(problem: P, status: Int = 409, message: String = "Rejected"): Nothing =
-    throw Rejected(status, message, json.encodeToJsonElement(kSerializer<P>(), problem))
+    throw Rejected(status, message, kSerializer<P>().let { json.encodeToJsonElement(it, problem).tagged(it.descriptor) })
 
 fun reject(status: Int, message: String): Nothing = throw Rejected(status, message)
 
@@ -88,11 +88,14 @@ internal fun statusOf(result: Any?, fallback: Int): Int = (result as? Response)?
 
 class Reply(val status: Int, val body: JsonObject, val retryAfter: Duration? = null) {
     companion object {
+        const val Error = "error"
+        const val Problem = "problem"
+
         fun of(status: Int, message: String, problem: JsonElement? = null, retryAfter: Duration? = null) = Reply(
             status,
             JsonObject(buildMap {
-                put("error", JsonPrimitive(message))
-                if (problem != null && problem !is JsonNull) put("problem", problem)
+                put(Error, JsonPrimitive(message))
+                if (problem != null && problem !is JsonNull) put(Problem, problem)
             }),
             retryAfter,
         )
@@ -113,10 +116,10 @@ fun Throwable.reply(subject: String): Reply = when (this) {
 
 fun failureOf(status: Int, body: JsonElement?, subject: String, retryAfter: Duration? = null): CallFailure {
     val reply = body as? JsonObject
-    val message = (reply?.get("error") as? JsonPrimitive)?.content ?: "$subject answered $status"
+    val message = (reply?.get(Reply.Error) as? JsonPrimitive)?.content ?: "$subject answered $status"
     return when {
         status == 408 || status == 429 || status == 501 || status == 503 -> Unavailable(message, status, retryAfter)
-        status in 400..499 -> Rejected(status, message, reply?.get("problem"))
+        status in 400..499 -> Rejected(status, message, reply?.get(Reply.Problem))
         else -> OutcomeUnknown(message, status)
     }
 }

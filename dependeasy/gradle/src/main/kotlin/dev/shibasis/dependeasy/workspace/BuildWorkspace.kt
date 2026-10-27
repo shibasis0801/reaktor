@@ -212,6 +212,7 @@ internal class BuildWorkspace(private val project: Project) {
                         if (!gated.add(node.id)) return
                         targets[node.id.toString()]?.includedNodes?.forEach { gate(requireNotNull(it.task).get()) }
                         connect(node, gates)
+                        producer.dependsOn(GateCheck(spec.id, producer, gates))
                     }
                     val producers = target.consumedOutputs.filter { it.kind != OutputKind.GeneratedContract }.flatMap { output ->
                         require(output.build == owner.rootProject.name) { "Delivery gates require outputs from this build" }
@@ -221,6 +222,39 @@ internal class BuildWorkspace(private val project: Project) {
                 }
             } }
         }
+    }
+
+    private inner class GateCheck(private val release: NodeId, private val producer: Task, private val gates: List<NodeHandle>) : org.gradle.api.tasks.TaskDependency {
+        override fun getDependencies(task: Task?): Set<Task> {
+            val gate = gates.firstOrNull { producer in reachedFrom(requireNotNull(it.task).get()) } ?: return emptySet()
+            throw org.gradle.api.GradleException("$release consumes an output of ${producer.path}, which its gate ${gate.id} already builds. " +
+                "Consume an output the gate does not build, such as a generated contract.")
+        }
+    }
+
+    private fun reachedFrom(start: Task): Set<Task> {
+        val reached = linkedSetOf<Task>()
+        val pending = ArrayDeque(listOf(start))
+        while (pending.isNotEmpty()) declaredDependencies(pending.removeLast()).forEach { if (reached.add(it)) pending.add(it) }
+        return reached
+    }
+
+    private fun declaredDependencies(task: Task): List<Task> =
+        targets[NodeId(project.rootProject.name, task.project.path, task.name).toString()]?.let { target ->
+            (target.includedNodes + target.ordering).map { requireNotNull(it.task).get() } +
+                target.consumedOutputs.filter { it.build == project.rootProject.name }.flatMap { outputProducers[it.nodeId]?.invoke().orEmpty() }
+        } ?: task.dependsOn.toList().flatMap { tasksIn(task.project, it) }
+
+    private fun tasksIn(owner: Project, value: Any?): List<Task> = when (value) {
+        is Task -> listOf(value)
+        is org.gradle.api.file.FileCollection -> emptyList()
+        is org.gradle.api.provider.Provider<*> -> tasksIn(owner, value.orNull)
+        is java.util.concurrent.Callable<*> -> tasksIn(owner, value.call())
+        is Function0<*> -> tasksIn(owner, value())
+        is Iterable<*> -> value.flatMap { tasksIn(owner, it) }
+        is Array<*> -> value.flatMap { tasksIn(owner, it) }
+        is CharSequence -> listOfNotNull(owner.tasks.findByPath(value.toString()))
+        else -> emptyList()
     }
 
     internal fun aggregate(owner: Project, name: String, kind: NodeKind, nodes: List<NodeHandle>, run: Run = Run.Default): NodeHandle =

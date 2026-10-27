@@ -254,10 +254,16 @@ class WebContractsTest {
         """.trimIndent())
         write("base.json", "{}")
         write("tests/playwright.config.mjs", "export default {}")
+        write("site/playwright.config.mjs", "export default {}")
+        write("site/node_modules/ignored.spec.ts", "export {}")
         write("coverage/fixture.spec.ts", "export {}")
         write("tests/support/server.mjs", "export {}")
         write("checks/src/value.cjs", "module.exports = 42")
         write("checks/policy.cjs", "require('node:assert/strict').equal(require('./src/value.cjs'), 42)")
+        write("checks/service.cjs", "require('node:assert/strict').equal(process.env.SERVICE_FIXTURE, 'service-marker-7f3')")
+        write("checks/service.env", "SERVICE_FIXTURE=service-marker-7f3\n")
+        write("checks/operations.cjs", "require('node:assert/strict').equal(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'ops', 'status.sh'), 'utf8').trim(), 'ok')")
+        write("ops/status.sh", "ok")
         write("coverage/node_modules/ignored.spec.ts", "export {}")
         write("site/package.json", """{"name":"site","private":true,"imports":{"#keep":"./index.ts"},"dependencies":{"fixture-source":"workspace:*"},"scripts":{"bundle:assets":"node bundle.cjs"}}""")
         write("site/index.ts", "export const value = 1;")
@@ -284,6 +290,9 @@ class WebContractsTest {
                 alias(PackageScript("previousBundle"), bundle)
                 alias(PackageScript("previousTypes"), typecheck)
                 alias(PackageScript("previousBuild"), build)
+                val siteBrowser by browserTests(Playwright("playwright.config.mjs", files = listOf("tests/map.spec.ts"), workers = 1,
+                    environment = mapOf("SITE_STRICT" to "1")))
+                val siteHeaded by browserTests(Playwright("playwright.config.mjs", headed = true), run = Run.onDesktopSession())
             }
             tasks.withType<dev.shibasis.dependeasy.web.WebContractTask>().configureEach {
                 baseConfiguration.set(rootProject.layout.projectDirectory.file("base.json"))
@@ -307,6 +316,8 @@ class WebContractsTest {
                     sources = listOf(FileInput(FileInputKind.Tree, "coverage", includes = listOf("**/*.spec.ts")))), browserBundle(projects.site))
                 val headed by browserTests(Playwright("tests/playwright.config.mjs", headed = true), after = listOf(browser))
                 val integration by nodeTests(FileSet(listOf("checks/policy.cjs")), kotlinJsLibrary(projects.library))
+                val service by nodeTests(FileSet(listOf("checks/service.cjs")), environmentFiles = listOf("checks/service.env"))
+                val operations by nodeTests(FileSet(listOf("checks/operations.cjs")), sources = listOf(FileInput(FileInputKind.Tree, "ops")), live = true)
                 val localAudit by lighthouse(Lighthouse("fixture", Lighthouse.Page.Bundle(".", "tests/support/server.mjs"),
                     "build/reports/local.json"), browserBundle(projects.site), after = listOf(browser))
                 val remoteAudit by lighthouse(Lighthouse("fixture-live", Lighthouse.Page.Remote("https://example.test/"),
@@ -365,6 +376,22 @@ class WebContractsTest {
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == browser.id && it.to.project == ":site" && it.to.name == "outputBrowserBundle" })
         assertTrue(model.edges.any { it is Edge.After && it.from.name == "headed" && it.to == browser.id })
         assertContains(assertIs<KernelSpec.BrowserSuite>(model.nodes.single { it.id.name == "headed" }.kernel?.spec).execution.arguments, "--headed")
+        val siteBrowser = model.nodes.single { it.id.project == ":site" && it.id.name == "siteBrowser" }
+        val siteBrowserSpec = assertIs<KernelSpec.BrowserSuite>(siteBrowser.kernel?.spec)
+        assertEquals(mapOf("SITE_STRICT" to "1"), siteBrowserSpec.suite.environment)
+        assertContains(siteBrowserSpec.execution.environmentKeys, "SITE_STRICT")
+        assertEquals(listOf("exec", "playwright", "test", "--config", siteBrowserSpec.suite.configuration, "tests/map.spec.ts", "--workers", "1"),
+            siteBrowserSpec.execution.arguments)
+        assertTrue(siteBrowserSpec.execution.directory.endsWith("site"))
+        assertTrue(siteBrowserSpec.execution.fileInputs.any { it.identity == "site" && "**/node_modules/**" in it.excludes })
+        assertTrue(model.edges.any { it is Edge.After && it.from == siteBrowser.id && it.to.project == ":site" && it.to.name == "siteBundleAssets" })
+        assertEquals(Coverage(setOf(Domain.Web, Domain.Site), setOf(Aspect.EndToEnd), system = "site"), siteBrowser.coverage)
+        val siteHeaded = model.nodes.single { it.id.project == ":site" && it.id.name == "siteHeaded" }
+        assertContains(assertIs<KernelSpec.BrowserSuite>(siteHeaded.kernel?.spec).execution.arguments, "--headed")
+        assertEquals(ExecutionHost.Local, siteHeaded.host.execution)
+        val siteScripts = json("site/package.json").getValue("scripts").jsonObject
+        assertEquals("../gradlew :site:siteBrowser", siteScripts.getValue("siteBrowser").jsonPrimitive.content)
+        assertEquals("../gradlew :site:siteHeaded", siteScripts.getValue("siteHeaded").jsonPrimitive.content)
         val localAudit = model.nodes.single { it.id.project == ":" && it.id.name == "localAudit" }
         val localSpec = assertIs<KernelSpec.LighthouseAudit>(localAudit.kernel?.spec)
         assertEquals("dev.shibasis.dependeasy.model.LighthouseKernel", localAudit.kernel?.className)
@@ -410,6 +437,15 @@ class WebContractsTest {
         val changedIntegration = run("integration")
         assertContains(changedIntegration.output, "Reusing configuration cache")
         assertEquals(TaskOutcome.SUCCESS, changedIntegration.task(":integration")?.outcome)
+        val service = model.nodes.single { it.id.project == ":" && it.id.name == "service" }
+        assertContains(assertIs<KernelSpec.PackageCommand>(service.kernel?.spec).execution.environmentKeys, "SERVICE_FIXTURE")
+        assertFalse(directory.resolve(dev.shibasis.dependeasy.model.BuildModelReader.RelativePath).readText().contains("service-marker-7f3"))
+        assertEquals(TaskOutcome.SUCCESS, run("service").task(":service")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, run("service").task(":service")?.outcome)
+        val operations = model.nodes.single { it.id.project == ":" && it.id.name == "operations" }
+        assertTrue(assertIs<KernelSpec.PackageCommand>(operations.kernel?.spec).execution.fileInputs.any { it.kind == FileInputKind.Tree && it.identity == "ops" })
+        assertEquals(TaskOutcome.SUCCESS, run("operations").task(":operations")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, run("operations").task(":operations")?.outcome)
         val publishedPackage = model.nodes.single { it.id.project == ":library" && it.id.name == "outputJavaScriptPackage" }
         assertIs<dev.shibasis.dependeasy.model.KernelSpec.WebContract>(publishedPackage.kernel?.spec)
         assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes &&
@@ -449,6 +485,9 @@ class WebContractsTest {
         assertEquals(TaskOutcome.UP_TO_DATE, run(":library:sourcePackage").task(":library:sourcePackage")?.outcome)
         val verification = run("pr", "--dry-run").output
         assertContains(verification, ":site:siteTypes SKIPPED")
+        assertFalse(verification.contains(":site:siteBrowser"))
+        val siteBrowserRun = run(":site:siteBrowser", "--dry-run").output
+        assertTrue(siteBrowserRun.indexOf(":site:siteBundleAssets SKIPPED") in 0 until siteBrowserRun.indexOf(":site:siteBrowser SKIPPED"))
         assertFalse(verification.contains(":site:siteBundleAssets SKIPPED"))
         val artifacts = run("everything", "--dry-run").output
         assertContains(artifacts, ":site:siteBundleAssets SKIPPED")

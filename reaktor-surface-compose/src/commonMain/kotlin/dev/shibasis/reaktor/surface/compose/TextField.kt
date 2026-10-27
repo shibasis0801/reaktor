@@ -71,7 +71,7 @@ fun TextField(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     label: String? = null,
-) = Field("TextField", state, modifier, enabled, error, label, appearance, placeholder, leading, trailing) { field, style, source, cursor, decorator ->
+) = Field("TextField", state, modifier, enabled, error, label, appearance, placeholder, leading, trailing, Typing(keyboardOptions, lineLimits)) { field, style, source, cursor, decorator, typing ->
     val observer = LocalSurfaceEventObserver.current
     val element = currentCompositeKeyHash.toUInt().toString(16)
     BasicTextField(
@@ -79,14 +79,14 @@ fun TextField(
         modifier = field,
         enabled = enabled,
         textStyle = style,
-        keyboardOptions = keyboardOptions,
+        keyboardOptions = typing.keyboard,
         onKeyboardAction = if (observer == null) onKeyboardAction else KeyboardActionHandler { default ->
             observer.onEvent(element, "submit") { onKeyboardAction?.onKeyboardAction(default) ?: default() }
         },
         inputTransformation = observer?.let { observe -> object : InputTransformation {
             override fun TextFieldBuffer.transformInput() { observe.onEvent(element, "edit") { } }
         } },
-        lineLimits = lineLimits,
+        lineLimits = typing.lines,
         interactionSource = source,
         cursorBrush = cursor,
         decorator = decorator,
@@ -99,7 +99,7 @@ fun SecureTextField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     appearance: FieldAppearance = LocalAppearances.current.field,
-) = Field("SecureTextField", state, modifier, enabled, false, null, appearance, null, null, null) { field, style, source, cursor, decorator ->
+) = Field("SecureTextField", state, modifier, enabled, false, null, appearance, null, null, null, null) { field, style, source, cursor, decorator, _ ->
     val observer = LocalSurfaceEventObserver.current
     val element = currentCompositeKeyHash.toUInt().toString(16)
     BasicSecureTextField(
@@ -130,15 +130,58 @@ private fun Field(
     placeholder: (@Composable () -> Unit)?,
     leading: (@Composable () -> Unit)?,
     trailing: (@Composable () -> Unit)?,
-    editor: @Composable (Modifier, TextStyle, MutableInteractionSource, Brush, TextFieldDecorator) -> Unit,
+    typing: Typing?,
+    editor: @Composable (Modifier, TextStyle, MutableInteractionSource, Brush, TextFieldDecorator, Typing) -> Unit,
 ) {
     val studio = LocalSurfaceStudio.current
-    if (studio == null) FieldBody(state, modifier, enabled, error, label, appearance, placeholder, leading, trailing, editor)
+    if (studio == null) FieldBody(state, modifier, enabled, error, label, appearance, placeholder, leading, trailing, typing ?: Typing.Plain, editor)
     else studio.Element(SurfaceCall(kind, modifier, listOfNotNull(SurfaceField.text("label", label), SurfaceField.flag("enabled", enabled), SurfaceField.flag("error", error),
-        SurfaceField.text("value", state.text.toString()).copy(editable = false).takeIf { kind == "TextField" }), appearance, Appearance.Field, listOf("placeholder", "leading", "trailing"))) { edits ->
+        SurfaceField.text("value", state.text.toString()).copy(editable = false).takeIf { kind == "TextField" }) + typing?.fields.orEmpty(),
+        appearance, Appearance.Field, listOf("placeholder", "leading", "trailing"))) { edits ->
         FieldBody(state, edits.modifier, edits.flag("enabled", enabled), edits.flag("error", error), edits.value("label")?.ifEmpty { null } ?: label, edits.appearance(appearance),
-            edits.optional("placeholder", placeholder), edits.optional("leading", leading), edits.optional("trailing", trailing), editor)
+            edits.optional("placeholder", placeholder), edits.optional("leading", leading), edits.optional("trailing", trailing), typing?.let { edits.typing(it) } ?: Typing.Plain, editor)
     }
+}
+
+private class Typing(val keyboard: KeyboardOptions, val lines: TextFieldLineLimits) {
+    val fields: List<SurfaceField> get() = keyboardFields(keyboard) + lineFields(lines)
+
+    companion object {
+        val Plain = Typing(KeyboardOptions.Default, TextFieldLineLimits.SingleLine)
+    }
+}
+
+private fun SurfaceEdits.typing(typing: Typing): Typing = Typing(keyboard(typing.keyboard), lines(typing.lines))
+
+private fun keyboardFields(options: KeyboardOptions): List<SurfaceField> {
+    val editable = options == KeyboardOptions(capitalization = options.capitalization, autoCorrectEnabled = options.autoCorrectEnabled, keyboardType = options.keyboardType,
+        imeAction = options.imeAction)
+    return listOf(
+        SurfaceField.choice("capitalization", options.capitalization, StudioValues.Capitalizations),
+        SurfaceField.choice("autoCorrect", options.autoCorrectEnabled, StudioValues.AutoCorrections),
+        SurfaceField.choice("keyboardType", options.keyboardType, StudioValues.KeyboardTypes),
+        SurfaceField.choice("imeAction", options.imeAction, StudioValues.ImeActions),
+    ).map { if (editable) it else it.copy(editable = false) }
+}
+
+private fun SurfaceEdits.keyboard(options: KeyboardOptions): KeyboardOptions = options.copy(
+    capitalization = choice("capitalization", options.capitalization, StudioValues.Capitalizations),
+    autoCorrectEnabled = choice("autoCorrect", options.autoCorrectEnabled, StudioValues.AutoCorrections),
+    keyboardType = choice("keyboardType", options.keyboardType, StudioValues.KeyboardTypes),
+    imeAction = choice("imeAction", options.imeAction, StudioValues.ImeActions),
+)
+
+private fun lineFields(limits: TextFieldLineLimits): List<SurfaceField> {
+    val multi = limits as? TextFieldLineLimits.MultiLine
+    return listOf(SurfaceField.count("minLines", multi?.minHeightInLines ?: 1), SurfaceField.count("maxLines", multi?.maxHeightInLines ?: 1))
+}
+
+private fun SurfaceEdits.lines(limits: TextFieldLineLimits): TextFieldLineLimits {
+    if (value("minLines") == null && value("maxLines") == null) return limits
+    val multi = limits as? TextFieldLineLimits.MultiLine
+    val min = count("minLines", multi?.minHeightInLines ?: 1).coerceAtLeast(1)
+    val max = count("maxLines", multi?.maxHeightInLines ?: 1).coerceAtLeast(min)
+    return if (max == 1) TextFieldLineLimits.SingleLine else TextFieldLineLimits.MultiLine(min, max)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -153,7 +196,8 @@ private fun FieldBody(
     placeholder: (@Composable () -> Unit)?,
     leading: (@Composable () -> Unit)?,
     trailing: (@Composable () -> Unit)?,
-    editor: @Composable (Modifier, TextStyle, MutableInteractionSource, Brush, TextFieldDecorator) -> Unit,
+    typing: Typing,
+    editor: @Composable (Modifier, TextStyle, MutableInteractionSource, Brush, TextFieldDecorator, Typing) -> Unit,
 ) {
     val properties = FieldProperties(enabled, error, state.text.isEmpty())
     val press = rememberMachine(PressKernel, PressProperties(enabled)) {}
@@ -174,6 +218,7 @@ private fun FieldBody(
         source,
         appearance.cursor(properties, theme),
         TextFieldDecorator { inner -> appearance.Content(properties, shown, theme, feedback, FieldSlots(inner, placeholder, leading, trailing)) },
+        typing,
     )
 }
 

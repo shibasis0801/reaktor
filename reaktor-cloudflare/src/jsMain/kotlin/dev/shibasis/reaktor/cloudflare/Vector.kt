@@ -37,29 +37,29 @@ class VectorMutation(
 
 class VectorIndex internal constructor(
     private val raw: RawVectorizeIndex,
+    private val bindingName: String? = null,
 ) {
-    suspend fun describe(): JsonElement = dynamicToJsonElement(raw.describe().await())
+    suspend fun describe(): JsonElement = bindingRead(bindingName, "describe") { dynamicToJsonElement(raw.describe().await()) }
 
     suspend fun insert(vectors: List<VectorRecord>): VectorMutation =
-        raw.insert(vectors.map(VectorRecord::toRaw).toTypedArray()).await().toModel()
+        bindingWrite(bindingName, "insert") { raw.insert(vectors.map(VectorRecord::toRaw).toTypedArray()).await().toModel() }
 
     suspend fun upsert(vectors: List<VectorRecord>): VectorMutation =
-        raw.upsert(vectors.map(VectorRecord::toRaw).toTypedArray()).await().toModel()
+        bindingWrite(bindingName, "upsert") { raw.upsert(vectors.map(VectorRecord::toRaw).toTypedArray()).await().toModel() }
 
     suspend fun query(
         vector: List<Double>,
         options: VectorQuery = VectorQuery(),
     ): VectorMatches =
-        raw.query(
-            vector.map(Double::toNumber).toTypedArray(),
-            options.toRaw(),
-        ).await().toModel()
+        bindingRead(bindingName, "query") {
+            raw.query(vector.map(Double::toNumber).toTypedArray(), options.toRaw()).await().toModel()
+        }
 
     suspend fun get(ids: Collection<String>): List<VectorRecord> =
-        raw.getByIds(ids.toTypedArray()).await().map(RawVectorizeVector::toModel)
+        bindingRead(bindingName, "get") { raw.getByIds(ids.toTypedArray()).await().map(RawVectorizeVector::toModel) }
 
     suspend fun delete(ids: Collection<String>): VectorMutation =
-        raw.deleteByIds(ids.toTypedArray()).await().toModel()
+        bindingWrite(bindingName, "delete") { raw.deleteByIds(ids.toTypedArray()).await().toModel() }
 }
 
 private fun VectorRecord.toRaw(): RawVectorizeVector {

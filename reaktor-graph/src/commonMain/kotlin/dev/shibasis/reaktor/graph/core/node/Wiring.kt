@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.graph.core.node
 
+import dev.shibasis.reaktor.graph.core.awaitWired
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.PortEvent
 import dev.shibasis.reaktor.portgraph.port.PortEventListener
@@ -41,8 +42,9 @@ suspend fun ConsumerPort<*>.awaitConnected() {
  * Start work that needs ports, once those ports have providers.
  *
  * The safe replacement for `init { launch { somePort().something() } }`. Every consumer named here
- * is awaited before [block] runs, so a node can declare what it needs and then be written as though
- * the graph were already wired — which, by the time the body runs, it is.
+ * is awaited before [block] runs, and so is any `wire()` still connecting this node's graph, so a
+ * node can declare what it needs and then be written as though the graph were already wired — which,
+ * by the time the body runs, it is, down to the ports of the nodes it calls.
  *
  * ```kotlin
  * init {
@@ -55,5 +57,6 @@ fun Node.launchWhenWired(
     block: suspend CoroutineScope.() -> Unit,
 ): Job = coroutineScope.launch {
     ports.forEach { it.awaitConnected() }
+    graph.awaitWired()
     block()
 }

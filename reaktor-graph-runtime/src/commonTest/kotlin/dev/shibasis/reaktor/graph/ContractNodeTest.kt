@@ -24,6 +24,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import dev.shibasis.reaktor.service.contract.CallMetadata
+import dev.shibasis.reaktor.service.contract.Side
+import kotlinx.coroutines.withContext
 
 @Serializable
 data class Add(val amount: Int)
@@ -44,11 +47,11 @@ class CounterServer : Counter() {
 }
 
 class CounterScreen(graph: Graph) : BasicNode(graph) {
-    val counter by uses(Counter())
+    val counter by consumes(Counter())
 }
 
 class Adder(graph: Graph) : BasicNode(graph) {
-    val add by api(Counter().add)
+    val add by consumes(Counter().add)
 }
 
 private class Seen(private val label: String, override val position: Int, private val log: MutableList<String>) : Interceptor {
@@ -122,6 +125,25 @@ class ContractNodeTest {
         assertEquals("client", shown.attributes["role"])
         assertEquals(listOf("child" to "Graph", "root" to "Graph"), shown.interceptors.map { it.name to it.scope })
         root.close()
+    }
+
+    @Test
+    fun callMetadataCrossesThePortIntoTheRemoteCall() = runTest {
+        Reaktor.web()
+        val seen = mutableListOf<String?>()
+        val graph = Graph(label = "app")
+        graph.remote(Counter() over LocalLink(CounterServer()), object : Interceptor {
+            override val sides: Set<Side> get() = setOf(Side.Client)
+            override suspend fun <In, R> intercept(exchange: Exchange<In, R>, next: Next<In, R>): R { seen += exchange.metadata["x-caller"]; return next(exchange) }
+        })
+        val adder = graph.Node { Adder(it) }
+        graph.autoWire()
+
+        withContext(CallMetadata(mapOf("x-caller" to "ada"))) { adder.add(Add(1)) }
+        adder.add(Add(1))
+
+        assertEquals(listOf("ada", null), seen)
+        graph.close()
     }
 
     @Test

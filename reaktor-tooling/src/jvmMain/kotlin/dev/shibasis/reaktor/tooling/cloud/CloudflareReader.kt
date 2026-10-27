@@ -20,6 +20,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
+import dev.shibasis.reaktor.core.framework.lenientJson
 
 fun interface CloudflareCredentials {
     suspend fun token(): String
@@ -59,7 +60,7 @@ class WranglerLogin(
             val request = HttpRequest.newBuilder(URI.create(tokenUrl)).timeout(Duration.ofSeconds(30))
                 .header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form)).build()
             val response = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build().sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
-            val body = runCatching { cloudJson.parseToJsonElement(response.body()) }.getOrNull()
+            val body = runCatching { lenientJson.parseToJsonElement(response.body()) }.getOrNull()
             if (response.statusCode() !in 200..299) throw CloudflareFailure(
                 "Wrangler sign-in could not be renewed (${body.text("error") ?: "HTTP ${response.statusCode()}"}). Run `npx wrangler login` once.")
             val access = body.text("access_token")?.takeIf(String::isNotBlank) ?: throw CloudflareFailure("Wrangler sign-in renewal returned no access token")
@@ -198,7 +199,7 @@ class CloudflareReader(
             return http.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
         }
         val response = if (credentials is CloudflareLogin) credentials.authenticated(::send) { it.statusCode() == 401 } else send(token)
-        val parsed = runCatching { cloudJson.parseToJsonElement(response.body()) }.getOrNull()
+        val parsed = runCatching { lenientJson.parseToJsonElement(response.body()) }.getOrNull()
         if (response.statusCode() !in 200..299) {
             val reason = parsed.objects("errors").firstOrNull()?.text("message") ?: "HTTP ${response.statusCode()}"
             throw CloudflareFailure("${path.substringBefore('?').substringAfterLast('/')}: $reason")

@@ -125,7 +125,7 @@ fun Graph.architecture(): ReaktorArchitectureSnapshot = shape().architecture()
 
 fun GraphShape.architecture(): ReaktorArchitectureSnapshot {
     val byId = scopes.associateBy(ScopeShape::id)
-    val children = scopes.filter { it.parent != null }.groupBy { it.parent!! }
+    val children = scopes.groupBy { it.parent }
     val members = nodes.groupBy { it.scope }
     fun depth(scope: ScopeShape): Int = generateSequence(scope) { current -> current.parent?.let(byId::get) }.count() - 1
     fun descendants(scope: String): Int = members[scope].orEmpty().size + children[scope].orEmpty().sumOf { descendants(it.id) }

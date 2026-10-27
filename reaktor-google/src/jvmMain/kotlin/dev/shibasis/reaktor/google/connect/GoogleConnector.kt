@@ -18,7 +18,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import java.io.IOException
 import java.time.Clock
@@ -26,6 +25,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
+import dev.shibasis.reaktor.core.framework.json
 
 data class GoogleOAuthClient(val id: String, val secret: String, val redirectUri: String)
 
@@ -362,7 +362,6 @@ class GoogleConnector(
         val ISSUERS = listOf("https://accounts.google.com", "accounts.google.com")
         val SCOPE = Regex("^(openid|email|profile|https://www\\.googleapis\\.com/auth/[a-z0-9._-]{1,80})$")
         val encoder: Base64.Encoder = Base64.getUrlEncoder().withoutPadding()
-        val json = Json { ignoreUnknownKeys = true }
         val unreachable = GoogleCall.Failed(503, "unavailable", "Google could not be reached.")
     }
 }

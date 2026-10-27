@@ -3,6 +3,7 @@ package dev.shibasis.dependeasy.components
 import dev.shibasis.dependeasy.handles.NodeHandle
 import dev.shibasis.dependeasy.handles.OutputHandle
 import dev.shibasis.dependeasy.handles.outputFiles
+import dev.shibasis.dependeasy.handles.publishOutput
 import dev.shibasis.dependeasy.model.*
 import dev.shibasis.dependeasy.plugins.LoadTestsPlugin
 import dev.shibasis.dependeasy.verification.karateSuite
@@ -28,6 +29,7 @@ fun <S : Enum<S>> Project.loadTests(suites: Map<S, LoadSuite>, vararg prerequisi
         }
         spec.aliases.forEach { workspace.alias(rootProject.file(it.directory), it.name, node) }
         spec.coverage?.let(node::covers)
+        publishOutput(OutputKind.VerificationResults, requireNotNull(node.task).map { it.outputs.files }, identity, producer = node.task)
         node
     }
     val verification = workspace.aggregate(this, "checkLoadTests", NodeKind.Verification, nodes)

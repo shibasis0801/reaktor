@@ -27,7 +27,8 @@ class SpanJvmClient(private val session: InfrastructureSession) {
         val columns = request("SELECT name FROM system.columns WHERE database = '${op.database}' AND table = 'service_spans' FORMAT JSONEachRow")
             .lineSequence().filter(String::isNotBlank).map { Json.parseToJsonElement(it).jsonObject.getValue("name").jsonPrimitive.content }.toSet()
         require(columns.containsAll(RequiredColumns)) { "The service span table is missing required columns" }
-        val selected = RequiredColumns.filterNot { it == "started_at" } + JoinColumns.map { if (it in columns) it else "'' AS $it" }
+        val selected = RequiredColumns.filterNot { it == "started_at" } + JoinColumns.map { if (it in columns) it else "'' AS $it" } +
+            listOf(if ("decisions" in columns) "decisions" else "map() AS decisions")
         val predicates = op.filter.columns().map { (column, value) ->
             require(column in columns) { "The service span table cannot filter by $column" }
             val hex = value.toByteArray(Charsets.UTF_8).joinToString("") { "%02x".format(it.toInt() and 255) }
@@ -59,7 +60,7 @@ class SpanJvmClient(private val session: InfrastructureSession) {
         }
         return Json.encodeToString(SpanReadReceipt.serializer(), SpanReadReceipt(
             database = op.database, windowMinutes = op.windowMinutes, limit = op.limit,
-            columns = (RequiredColumns + JoinColumns).filter { it in columns }, rows = JsonArray(rows), filter = op.filter, graphDefinitions = JsonArray(catalog),
+            columns = (RequiredColumns + JoinColumns + "decisions").filter { it in columns }, rows = JsonArray(rows), filter = op.filter, graphDefinitions = JsonArray(catalog),
         ))
     }
 

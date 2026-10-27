@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.cloudflare
 import dev.shibasis.reaktor.auth.kernel.BearerHeaders.authorization as bearerAuthorization
 import dev.shibasis.reaktor.core.framework.json
 import kotlinx.coroutines.await
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -89,13 +90,7 @@ suspend fun CloudflareContext.serviceAccountBearer(binding: ServiceAccountAuthBi
         put("environment", binding.environment)
     }.toString()
 
-    val response = fetchServiceToken(
-        url = binding.tokenEndpoint,
-        body = body,
-        environment = binding.environment,
-    )
-    val text = response.text()
-    check(response.ok) { "Reaktor service-account token HTTP ${response.status}: ${text.take(ERROR_PREVIEW)}" }
+    val text = fetchServiceTokenText(binding.tokenEndpoint, body, binding.environment)
 
     val token = json.decodeFromString<ServiceAccountTokenResponse>(text)
     val bearer = bearerAuthorization(token.accessToken)
@@ -156,15 +151,17 @@ suspend fun CloudflareContext.exchangeDelegatedServiceToken(
         contextId?.let { put("contextId", it) }
     }.toString()
 
-    val response = fetchServiceToken(
-        url = binding.tokenEndpoint,
-        body = body,
-        environment = binding.environment,
-    )
-    val text = response.text()
-    check(response.ok) { "Reaktor delegated token HTTP ${response.status}: ${text.take(ERROR_PREVIEW)}" }
+    val text = fetchServiceTokenText(binding.tokenEndpoint, body, binding.environment)
 
     return json.decodeFromString<DelegatedServiceToken>(text)
+}
+
+private suspend fun fetchServiceTokenText(url: String, body: String, environment: String): String {
+    currentCoroutineContext()[ServiceTokenTransport]?.let { return it.exchange(url, body, environment) }
+    val response = fetchServiceToken(url, body, environment)
+    val text = response.text()
+    check(response.ok) { "Reaktor token authority HTTP ${response.status}: ${text.take(ERROR_PREVIEW)}" }
+    return text
 }
 
 private suspend fun fetchServiceToken(

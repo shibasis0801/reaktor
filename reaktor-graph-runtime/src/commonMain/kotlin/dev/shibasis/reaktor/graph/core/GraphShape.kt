@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.graph.ContractNode
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
+import dev.shibasis.reaktor.graph.core.node.ExitPort
+import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.service.OperationDescriptor
 import dev.shibasis.reaktor.service.ServiceAccess
@@ -44,7 +46,7 @@ data class ScopeShape(
 
 @JsExport
 @Serializable
-enum class NodeKind { Route, Screen, Container, Service, Actor, Controller, Interactor, Node }
+enum class NodeKind { Route, Screen, Container, Service, Actor, Controller, Interactor, Store, Schedule, External, Workflow, Node }
 
 @Serializable
 data class NodeShape(
@@ -91,7 +93,7 @@ data class WireShape(
 )
 
 @Serializable
-data class RouteShape(val from: String, val to: String)
+data class RouteShape(val from: String, val to: String, val exit: String = "")
 
 fun Graph.shape(): GraphShape {
     val scopes = mutableListOf<ScopeShape>()
@@ -100,14 +102,15 @@ fun Graph.shape(): GraphShape {
     val routes = mutableListOf<RouteShape>()
 
     val visited = mutableSetOf<Graph>()
-    fun visit(graph: Graph, container: ContainerNode?) {
+    fun visit(graph: Graph, owner: Node?) {
+        val container = owner as? ContainerNode
         if (!visited.add(graph)) return
         val scope = graph.id.toString()
         scopes += ScopeShape(
             id = scope,
             label = container?.labelOf(graph) ?: graph.label.ifBlank { "Graph" },
             parent = if (graph === this) null else container?.graph?.id?.toString() ?: graph.parentGraph?.id?.toString(),
-            container = container?.id?.toString(),
+            container = owner?.id?.toString(),
             active = container?.shows(graph) ?: true,
             backStack = graph.backStack.entries.value.mapNotNull { (it.edge.end as? Node)?.id?.toString() },
         )
@@ -141,14 +144,14 @@ fun Graph.shape(): GraphShape {
                 val provider = edge.destination as? Node ?: return@forEach
                 wires += WireShape(
                     consumer = node.id.toString(),
-                    consumerPort = consumer.key.key,
+                    consumerPort = consumer.shapeKey,
                     provider = provider.id.toString(),
                     providerPort = edge.provider.key.key,
                     type = consumer.type.type,
                 )
             }
             if (node is RouteNode<*, *>) {
-                node.navigationTargets().forEach { target -> routes += RouteShape(node.id.toString(), target.id.toString()) }
+                node.navigationExits().forEach { (exit, target) -> routes += RouteShape(node.id.toString(), target.id.toString(), exit) }
             }
         }
         members.filterIsInstance<ContainerNode>().forEach { child ->
@@ -164,7 +167,9 @@ fun Graph.shape(): GraphShape {
                 routes += dormant.routes
             }
         }
-        graph.ownedGraphs.values().forEach { visit(it, null) }
+        graph.ownedGraphs.values().forEach { child ->
+            visit(child, members.firstOrNull { (it as? GraphOwner)?.childGraph === child })
+        }
     }
 
     visit(this, null)
@@ -183,6 +188,8 @@ fun Graph.shapes(): Flow<GraphShape> = flow {
 }
 
 private val InternalPorts = setOf("routeBinding", "navBinding")
+
+private val ConsumerPort<*>.shapeKey: String get() = (this as? ExitPort)?.exit?.name ?: key.key
 
 private fun Graph.watched(visited: MutableSet<Graph> = mutableSetOf()): List<Flow<*>> = buildList {
     if (!visited.add(this@watched)) return@buildList
@@ -207,7 +214,7 @@ private fun Node.portShapes(graph: Graph): List<PortShape> =
     } + consumerPorts.flattenedValues().map { port ->
         val connected = port.isConnected()
         PortShape(
-            key = port.key.key,
+            key = port.shapeKey,
             type = port.type.type,
             provides = false,
             wiring = when {
@@ -219,6 +226,10 @@ private fun Node.portShapes(graph: Graph): List<PortShape> =
             internal = port.key.key in InternalPorts,
         )
     }
+
+interface GraphOwner {
+    val childGraph: Graph
+}
 
 interface ShapeAttributes {
     val shapeAttributes: Map<String, String>

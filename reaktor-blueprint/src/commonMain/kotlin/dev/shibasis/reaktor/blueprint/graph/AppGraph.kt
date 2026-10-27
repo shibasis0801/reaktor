@@ -60,8 +60,8 @@ data class Wire(
     val type: String,
 )
 
-data class Hop(val from: String, val to: String) {
-    val id: String get() = "$from>$to"
+data class Hop(val from: String, val to: String, val exit: String = "") {
+    val id: String get() = "$from>$to" + exit.takeIf { it.isNotEmpty() }?.let { ":$it" }.orEmpty()
 }
 
 class AppGraph(
@@ -90,7 +90,7 @@ class AppGraph(
     val hops: List<Hop> = shape.routes.mapNotNull { route ->
         val from = attachedTo[route.from] ?: return@mapNotNull null
         val to = attachedTo[route.to] ?: return@mapNotNull null
-        Hop(from, to).takeIf { from != to }
+        Hop(from, to, route.exit).takeIf { from != to }
     }.distinctBy { it.id }
 
     val containers: Map<String, List<ScopeShape>> = shape.scopes.filter { it.container != null }.groupBy { it.container!! }
@@ -107,10 +107,11 @@ class AppGraph(
 
     fun role(node: NodeShape): Role = when (node.kind) {
         NodeKind.Service -> Role.Service
-        NodeKind.Interactor, NodeKind.Controller, NodeKind.Actor -> Role.Logic
+        NodeKind.Interactor, NodeKind.Controller, NodeKind.Actor, NodeKind.Workflow, NodeKind.Schedule -> Role.Logic
         NodeKind.Screen -> Role.Screen
         NodeKind.Container -> Role.Container
-        NodeKind.Route -> Role.Data
+        NodeKind.Route, NodeKind.Store -> Role.Data
+        NodeKind.External -> Role.Service
         NodeKind.Node -> if (LogicSuffixes.any { node.label.endsWith(it) || node.type.endsWith(it) }) Role.Logic else Role.Data
     }
 

@@ -226,6 +226,143 @@ class CodeWorkspaceTest {
         assertEquals(16 to 18, lines(17, 4))
     }
 
+    @Test fun everyStringLiteralKnowsTheCallAndNameItFeeds() = fixture { root, code ->
+        Files.writeString(root.resolve("Screen.kt"), """
+            package sample
+            @Serial("wire")
+            class Screen {
+                val title = "Your circles"
+                @Composable fun Draw(count: Int, done: Boolean) {
+                    Text("Moments")
+                    Button(
+                        label = if (done) "Done" else "Keep going",
+                        onClick = {},
+                    )
+                    Text("${'$'}count new · ${'$'}{count + 1} soon")
+                    when (mode) {
+                        "quiet" -> Text("Quiet \"nights\"")
+                    }
+                    val tags = mapOf("key" to "Shown")
+                    Modifier.semantics { contentDescription = "Close" }
+                    log("ignored" + suffix)
+                }
+                fun plain() = fail("No user")
+                val header: @Composable () -> Unit = { Text("Header") }
+            }
+        """.trimIndent() + "\n")
+        val strings = code.strings("Screen.kt")
+        fun of(source: String) = strings.single { it.source == source }
+        assertEquals(CodeStringRole.Annotation, of("wire").role)
+        assertEquals(Triple(CodeStringRole.Named, null, "title"), of("Your circles").let { Triple(it.role, it.callee, it.name) })
+        assertEquals(Triple(CodeStringRole.Argument, "Text", 0), of("Moments").let { Triple(it.role, it.callee, it.position) })
+        assertEquals(listOf("Button" to "label", "Button" to "label"), listOf(of("Done"), of("Keep going")).map { it.callee to it.name })
+        assertEquals(listOf("\$count", "\${count + 1}"), of("\$count new · \${count + 1} soon").parts)
+        assertEquals(CodeStringRole.Condition, of("quiet").role)
+        assertEquals("Text", of("Quiet \\\"nights\\\"").callee)
+        assertEquals(CodeStringRole.Key, of("key").role)
+        assertEquals(CodeStringRole.Named to "key", of("Shown").let { it.role to it.name })
+        assertEquals(CodeStringRole.Named to "contentDescription", of("Close").let { it.role to it.name })
+        assertEquals("log", of("ignored").callee)
+        assertEquals("Draw", of("Moments").owner)
+        assertEquals(6 to 9, of("Done").call?.let { it.start.line to it.end.line })
+        assertNull(of("Your circles").call)
+        assertEquals(listOf(true, true, false, false), listOf("Moments", "Header", "No user", "Your circles").map { of(it).composable })
+        val moments = of("Moments")
+        assertEquals(CodePosition(5, 14), moments.content.start)
+        assertEquals(CodePosition(5, 21), moments.content.end)
+    }
+
+    @Test fun everySizeKnowsTheCallAndElementItFeeds() = fixture { root, code ->
+        Files.writeString(root.resolve("Card.kt"), """
+            package sample
+            val Gap = 12.dp
+            @Composable fun Card(compact: Boolean) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = if (compact) 6.dp else 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Surface(shape = RoundedCornerShape(topStart = 18.dp), modifier = Modifier.offset(y = -4.dp)) {}
+                    Spacer(Modifier.height(2.5.dp))
+                    Text("Hi", style = TextStyle(fontSize = 13.sp))
+                    Box(Modifier.size(size.dp).drawBehind { drawCircle(radius = 3.dp.toPx()) })
+                }
+            }
+        """.trimIndent() + "\n")
+        val sizes = code.sizes("Card.kt")
+        fun of(value: String) = sizes.single { it.value == value }
+        assertEquals(listOf("12", "14", "6", "8", "10", "18", "-4", "2.5", "13", "3"), sizes.map { it.value })
+        assertEquals(Triple(null, "Gap", null), of("12").let { Triple(it.callee, it.name, it.element) })
+        assertEquals(listOf("padding", "horizontal", "Column", "modifier"), of("14").let { listOf(it.callee, it.name, it.element, it.field) })
+        assertEquals(listOf("padding" to "vertical", "padding" to "vertical"), listOf(of("6"), of("8")).map { it.callee to it.name })
+        assertEquals(listOf("spacedBy", "Column", "verticalArrangement"), of("10").let { listOf(it.callee, it.element, it.field) })
+        assertEquals(listOf("RoundedCornerShape", "topStart", "Surface", "shape"), of("18").let { listOf(it.callee, it.name, it.element, it.field) })
+        assertEquals(listOf("offset", "y", "Surface", "modifier"), of("-4").let { listOf(it.callee, it.name, it.element, it.field) })
+        assertTrue(of("-4").negative)
+        assertEquals(CodeSpan.of(7, 94, 95), of("-4").number)
+        assertEquals(listOf("height", "Spacer", "#0"), of("2.5").let { listOf(it.callee, it.element, it.field) })
+        assertEquals(listOf("sp", "fontSize", "Text", "style"), of("13").let { listOf(it.unit, it.name, it.element, it.field) })
+        assertNull(of("3").element)
+        assertEquals(3 to 6, of("14").elementSpan?.let { it.start.line to it.end.line })
+        assertEquals(listOf(false, true, true), listOf("12", "14", "3").map { of(it).composable })
+        assertEquals(listOf("Gap", "Card"), listOf("12", "14").map { of(it).owner })
+    }
+
+    @Test fun sizesReadTokenReferencesByHolderName() = fixture { root, code ->
+        Files.writeString(root.resolve("Card.kt"), """
+            package sample
+            import sample.tokens.Spacing
+            import sample.other.Corners as Round
+            @Composable fun Card() {
+                Column(Modifier.padding(horizontal = Spacing.medium).offset(y = -Spacing.small), verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                    Box(Modifier.clip(RoundedCornerShape(Round.large)).padding(sample.tokens.Spacing.nano + 2.dp))
+                    Text(Spacing.toString(), color = Theme.colors.primary)
+                }
+            }
+        """.trimIndent() + "\n")
+        val sizes = code.sizes("Card.kt", setOf("Spacing", "Round"))
+        val tokens = sizes.filter { it.token != null }
+        assertEquals(listOf("Spacing.medium", "Spacing.small", "Spacing.small", "Round.large", "Spacing.nano"), tokens.map { it.token })
+        assertEquals(listOf("sample.tokens.Spacing", "sample.tokens.Spacing", "sample.tokens.Spacing", "sample.other.Corners", "sample.tokens.Spacing"), tokens.map { it.holder })
+        assertEquals(Triple("padding", "horizontal", "Column"), tokens[0].let { Triple(it.callee, it.name, it.element) })
+        assertTrue(tokens[1].negative)
+        assertEquals("offset" to "y", tokens[1].callee to tokens[1].name)
+        assertEquals(listOf("spacedBy", "RoundedCornerShape", "padding"), tokens.drop(2).map { it.callee })
+        assertEquals(listOf("2"), sizes.filter { it.token == null }.map { it.value })
+        assertTrue(code.sizes("Card.kt").none { it.token != null })
+    }
+
+    @Test fun sizeHoldersAreObjectsMadeOnlyOfSizes() = fixture { root, code ->
+        Files.writeString(root.resolve("Tokens.kt"), """
+            package sample.tokens
+            object Spacing {
+                val small = 8.dp
+                val medium: Dp = 16.dp
+                val pull = -(2).dp
+            }
+            object Mixed {
+                val gap = 4.dp
+                val name = "tight"
+            }
+            object Inline { val gap = 4.dp }
+            object Theme {
+                object Corners {
+                    val round = 18.dp
+                }
+            }
+            private object Local { val gap = 4.dp }
+            internal object Shared { val gap = 4.dp }
+            private object Wrapper { object Inner { val gap = 4.dp } }
+        """.trimIndent() + "\n")
+        val holders = code.sizeHolders("Tokens.kt")
+        assertEquals(listOf("sample.tokens.Spacing", "sample.tokens.Theme.Corners"), holders.map { it.qualified })
+        val spacing = holders.first()
+        assertEquals(listOf(Triple("small", "8", "dp"), Triple("medium", "16", "dp"), Triple("pull", "-2", "dp")), spacing.members.map { Triple(it.name, it.value, it.unit) })
+        assertEquals(CodePosition(5, 0), spacing.close)
+        assertEquals("    ", spacing.indent)
+        assertEquals(2, spacing.members.first().line)
+        assertEquals("        ", holders.last().indent)
+    }
+
     @Test fun aChangeWritesEveryFileOrNoneAndReplaysOnce() = fixture { root, code ->
         Files.createDirectories(root.resolve("a")); Files.createDirectories(root.resolve("b"))
         Files.writeString(root.resolve("a/One.kt"), "fun oldName() = 1\n")

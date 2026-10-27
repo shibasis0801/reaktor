@@ -228,7 +228,7 @@ class CodeAccessPolicy(
             val definition = parsed.model?.takeIf { parsed.ok } ?: error("The access model does not parse: ${parsed.issues.joinToString("; ")}")
             ModelRules.issues(definition).takeIf { it.isNotEmpty() }?.let { error("The access model has problems: ${it.joinToString("; ")}") }
             val grants = store?.takeIf(String::isNotBlank)?.let(FgaStore::decode) ?: FgaStore()
-            CodeAccessPolicy(definition, grants.relationTuples(), resources, grants.modes, fallback)
+            CodeAccessPolicy(definition, CodeAccess.tuples(grants), resources, grants.modes, fallback)
         }
 
         fun denial(decision: AccessDecision, context: AuthContext?): AuthDecision.Deny =

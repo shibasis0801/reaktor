@@ -4,10 +4,10 @@ import dev.shibasis.reaktor.tooling.cloud.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import dev.shibasis.reaktor.core.framework.json
 
 /**
  * A [CloudProvider] that builds a Cloudflare inventory from the repo's actual `wrangler.json`
@@ -19,7 +19,6 @@ import java.nio.file.Paths
 class WranglerInventoryProvider(private val repoRoot: Path) : CloudProvider {
     override val id = "cloudflare"
 
-    private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun read(): CloudReading = withContext(Dispatchers.IO) {
         val started = System.currentTimeMillis()

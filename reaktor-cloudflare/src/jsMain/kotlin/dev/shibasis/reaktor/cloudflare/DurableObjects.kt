@@ -2,7 +2,10 @@ package dev.shibasis.reaktor.cloudflare
 
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.framework.kSerializer
+import dev.shibasis.reaktor.service.HttpMethod
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.await
+import kotlinx.coroutines.completeWith
 import kotlinx.serialization.json.JsonElement
 import kotlin.js.JsExport
 import kotlin.js.Promise
@@ -54,6 +57,18 @@ class CloudflareWorkerRequest internal constructor(
         raw.headers.get(name)
 
     @JsExport.Ignore
+    val httpMethod: HttpMethod? get() = HttpMethod.entries.firstOrNull { it.name.equals(method, ignoreCase = true) }
+
+    @JsExport.Ignore
+    val headers: Map<String, String> get() = buildMap { raw.headers.asDynamic().forEach { value: String, name: String -> put(name, value) } }
+
+    @JsExport.Ignore
+    val queries: Map<String, List<String>> get() = buildMap<String, MutableList<String>> {
+        val url = raw.url
+        js("new URL(url)").searchParams.forEach { value: String, name: String -> getOrPut(name) { mutableListOf() } += value }
+    }
+
+    @JsExport.Ignore
     suspend fun text(): String = raw.text().await()
 
     fun textAsync(): Promise<String> = promiseOf { text() }
@@ -72,6 +87,7 @@ class DurableObjectId internal constructor(
 @JsExport
 class DurableObjectNamespace internal constructor(
     private val raw: RawDurableObjectNamespace,
+    private val bindingName: String? = null,
 ) {
     fun newId(locationHint: String? = null): DurableObjectId =
         DurableObjectId(raw.newUniqueId(durableObjectOptions(locationHint)))
@@ -83,21 +99,24 @@ class DurableObjectNamespace internal constructor(
     fun get(
         id: DurableObjectId,
         locationHint: String? = null,
-    ): DurableObjectStub = DurableObjectStub(raw.get(id.raw, durableObjectOptions(locationHint)))
+    ): DurableObjectStub = DurableObjectStub(raw.get(id.raw, durableObjectOptions(locationHint)), bindingName)
 
-    fun named(name: String): DurableObjectStub = DurableObjectStub(raw.getByName(name))
+    fun named(name: String): DurableObjectStub = DurableObjectStub(raw.getByName(name), bindingName)
 }
 
 @JsExport
 class DurableObjectStub internal constructor(
     private val raw: RawDurableObjectStub,
+    private val bindingName: String? = null,
 ) {
     /** Call an application RPC through an already-authorized namespace binding. */
     @JsExport.Ignore
     suspend fun rpcJson(method: String, argument: String? = null, maxRows: Int? = null): JsonElement {
         require(method.matches(Regex("[A-Za-z][A-Za-z0-9_]*"))) { "Invalid RPC method" }
-        val response = (if (argument == null) raw.asDynamic()[method]() else raw.asDynamic()[method](argument, maxRows)).unsafeCast<Promise<Any?>>()
-        return dynamicToJsonElement(response.await())
+        return bindingRead(bindingName, "rpc:$method") {
+            val response = (if (argument == null) raw.asDynamic()[method]() else raw.asDynamic()[method](argument, maxRows)).unsafeCast<Promise<Any?>>()
+            dynamicToJsonElement(response.await())
+        }
     }
 
     @JsExport.Ignore
@@ -107,7 +126,7 @@ class DurableObjectStub internal constructor(
         body: String? = null,
         headers: Map<String, String> = emptyMap(),
     ): CloudflareResponse =
-        CloudflareResponse(raw.fetch(url, requestInit(method, body, headers)).await())
+        bindingWrite(bindingName, "fetch") { CloudflareResponse(raw.fetch(url, requestInit(method, body, headers)).await()) }
 
     fun fetchAsync(
         url: String,
@@ -274,16 +293,7 @@ class DurableObjectState internal constructor(
     }
 
     @JsExport.Ignore
-    suspend fun <T> blockConcurrencyWhile(block: suspend () -> T): T {
-        var result: Result<T>? = null
-        raw.blockConcurrencyWhile {
-            promiseOf {
-                result = runCatching { block() }
-                null
-            }
-        }.await()
-        return result!!.getOrThrow()
-    }
+    suspend fun <T> blockConcurrencyWhile(block: suspend () -> T): T = raw.exclusively(block)
 }
 
 internal fun requestInit(
@@ -323,3 +333,9 @@ private fun urlQuery(
     url: String,
     name: String,
 ): String? = js("new URL(arguments[0]).searchParams.get(arguments[1])") as String?
+
+internal suspend fun <T> RawDurableObjectState.exclusively(block: suspend () -> T): T {
+    val outcome = CompletableDeferred<T>()
+    blockConcurrencyWhile { promiseOf { outcome.completeWith(runCatching { block() }); null } }.await()
+    return outcome.await()
+}

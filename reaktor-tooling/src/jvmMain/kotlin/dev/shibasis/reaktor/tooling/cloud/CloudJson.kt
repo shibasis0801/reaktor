@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.tooling.cloud
 
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -12,7 +11,6 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.longOrNull
 import java.time.Instant
 
-internal val cloudJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
 internal fun JsonElement?.obj(key: String): JsonObject = ((this as? JsonObject)?.get(key) as? JsonObject) ?: JsonObject(emptyMap())
 internal fun JsonElement?.objects(key: String): List<JsonObject> =

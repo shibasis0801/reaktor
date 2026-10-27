@@ -13,7 +13,10 @@ import dev.shibasis.reaktor.service.contract.Served
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.promise
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.js.Promise
 
 fun Hono.mount(served: Served<*>, island: String? = null): Hono = mount(served.calls.map { Mounted(served, it, island) })
 
@@ -37,6 +40,22 @@ fun Graph.toHono(): Hono = Hono().mount(this)
 fun Hono.fallback(served: Served<*>, call: Call<*, *>): Hono =
     on(call.binding.method.name, "/*") { context -> served.respond(call, context, null) }
 
+fun Served<*>.answers(request: CloudflareWorkerRequest): Boolean =
+    request.httpMethod?.let { find(it, request.path) } != null
+
+suspend fun Served<*>.respond(request: CloudflareWorkerRequest, attributes: Map<String, Any?> = emptyMap()): Any {
+    val method = request.httpMethod ?: return workerResponse("", 405)
+    val outbound = dispatch(method, request.path, Inbound(query = request.queries, headers = request.headers, body = request.text().ifEmpty { null }, attributes = attributes))
+    return workerResponse(outbound.body, outbound.status, outbound.headers)
+}
+
+@OptIn(DelicateCoroutinesApi::class)
+suspend fun CloudflareContext.waitUntil(what: String, work: suspend () -> Unit): Promise<Unit> =
+    GlobalScope.promise(currentCoroutineContext().minusKey(kotlinx.coroutines.Job)) {
+        runCatching { work() }.onFailure { console.error("$what failed:", it) }
+        Unit
+    }.also { runCatching { waitUntil(it.unsafeCast<Promise<Any?>>()) } }
+
 fun bindingLink(binding: String, baseUrl: String = "https://$binding.binding"): HttpLink = HttpLink(baseUrl, bindingHttpClient(binding))
 
 fun durableObjectLink(namespace: String, name: String): HttpLink = HttpLink(durableObjectUrl(name), durableObjectHttpClient(namespace))
@@ -49,7 +68,7 @@ val Exchange<*, *>.cloudflare: CloudflareContext
 operator fun <T : Any> Exchange<*, *>.get(binding: Binding<T>): T = cloudflare[binding]
 
 @OptIn(DelicateCoroutinesApi::class)
-private fun Served<*>.respond(call: Call<*, *>, context: HonoContext, island: String?) = GlobalScope.promise {
+private fun Served<*>.respond(call: Call<*, *>, context: HonoContext, island: String?) = GlobalScope.promise(requestContext(context.req.raw)) {
     val body = runCatching { context.req.text().await() }.getOrNull()
     val attributes = buildMap<String, Any?> {
         put(CloudflareContextAttribute, CloudflareContext(context.env, context.executionCtx, context))

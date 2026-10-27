@@ -35,7 +35,8 @@ data class Vitest(
 @Serializable
 data class Playwright(val configuration: String, val files: List<String> = emptyList(),
     val headed: Boolean = false, val workers: Int? = null,
-    @EncodeDefault(EncodeDefault.Mode.NEVER) val sources: List<FileInput> = emptyList())
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val sources: List<FileInput> = emptyList(),
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val environment: Map<String, String> = emptyMap())
 
 @Serializable
 data class Lighthouse(val target: String, val page: Page, val report: String,

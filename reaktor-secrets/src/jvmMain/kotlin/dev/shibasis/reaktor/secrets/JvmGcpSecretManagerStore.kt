@@ -10,7 +10,7 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.util.Base64
+import kotlin.io.encoding.Base64
 
 class JvmGcpSecretManagerStore(
     override val defaultProjectId: String? = null,
@@ -33,7 +33,7 @@ class JvmGcpSecretManagerStore(
             val payload = json.decodeFromString<AccessSecretVersionResponse>(response.body)
             SecretValue(
                 ref = ref,
-                value = payload.payload.data.decodeBase64(),
+                value = Base64.decode(payload.payload.data).decodeToString(),
                 versionName = payload.name,
             )
         }
@@ -66,7 +66,7 @@ class JvmGcpSecretManagerStore(
                     body =
                         json.encodeToString(
                             AddSecretVersionRequest(
-                                payload = SecretPayload(data = value.encodeBase64()),
+                                payload = SecretPayload(data = Base64.encode(value.encodeToByteArray())),
                             ),
                         ),
                 )
@@ -110,12 +110,6 @@ class JvmGcpSecretManagerStore(
             scopedCredentials.accessToken.tokenValue
         }
     }
-
-    private fun String.encodeBase64(): String =
-        Base64.getEncoder().encodeToString(encodeToByteArray())
-
-    private fun String.decodeBase64(): String =
-        Base64.getDecoder().decode(this).decodeToString()
 
     private fun encodeQuery(value: String): String =
         java.net.URLEncoder.encode(value, Charsets.UTF_8)

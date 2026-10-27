@@ -20,7 +20,7 @@ import dev.shibasis.reaktor.auth.kernel.RoleRef
 import dev.shibasis.reaktor.auth.transport.AuthRejectedException
 import dev.shibasis.reaktor.auth.transport.RelationAccess
 import dev.shibasis.reaktor.auth.transport.setAuthContext
-import dev.shibasis.reaktor.graph.api
+import dev.shibasis.reaktor.graph.consumes
 import dev.shibasis.reaktor.graph.serve
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.GraphShape
@@ -169,5 +169,5 @@ private class CirclesFixture : Circles() {
 }
 
 private class CirclesCallerFixture(graph: Graph) : BasicNode(graph) {
-    val discover by api(Circles().discover)
+    val discover by consumes(Circles().discover)
 }

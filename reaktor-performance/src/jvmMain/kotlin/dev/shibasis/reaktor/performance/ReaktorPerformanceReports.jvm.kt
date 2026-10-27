@@ -4,22 +4,18 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import dev.shibasis.reaktor.core.framework.prettyJson
 
 object ReaktorPerformanceReports {
-    private val json = Json {
-        prettyPrint = true
-        encodeDefaults = true
-    }
 
     fun write(
         report: ReaktorPerformanceReport,
         path: Path,
     ) {
         path.parent?.let { Files.createDirectories(it) }
-        Files.writeString(path, json.encodeToString(report))
+        Files.writeString(path, prettyJson.encodeToString(report))
     }
 
     fun read(path: Path): ReaktorPerformanceReport =
-        json.decodeFromString(Files.readString(path))
+        prettyJson.decodeFromString(Files.readString(path))
 }

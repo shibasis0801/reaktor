@@ -5,12 +5,25 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 @Serializable
+data class RoleDefinition(
+    val name: String,
+    val title: String = "",
+    val description: String = "",
+    val permissions: List<String> = emptyList(),
+    val includes: List<String> = emptyList(),
+) {
+    val label: String get() = title.ifBlank { name }
+}
+
+@Serializable
 data class FgaStore(
     val name: String = "",
     @SerialName("model_file") val modelFile: String? = null,
     val tuples: List<TupleKey> = emptyList(),
     val tests: List<FgaTest> = emptyList(),
     val modes: Map<String, AccessMode> = emptyMap(),
+    val app: String? = null,
+    val roles: List<RoleDefinition> = emptyList(),
 ) {
     fun relationTuples(): List<RelationTuple> = tuples.mapNotNull(RelationTuple::of)
 
@@ -19,6 +32,23 @@ data class FgaStore(
     fun with(tuple: RelationTuple): FgaStore = if (tuple.key in tuples) this else copy(tuples = tuples + tuple.key)
 
     fun without(tuple: RelationTuple): FgaStore = copy(tuples = tuples - tuple.key)
+
+    fun role(name: String): RoleDefinition? = roles.firstOrNull { it.name == name }
+
+    fun withRole(role: RoleDefinition, replacing: String = role.name): FgaStore {
+        val renamed = role.name != replacing
+        val kept = roles.map { existing ->
+            when {
+                existing.name == replacing -> role
+                renamed && replacing in existing.includes -> existing.copy(includes = existing.includes.map { if (it == replacing) role.name else it })
+                else -> existing
+            }
+        }
+        return copy(roles = if (roles.any { it.name == replacing }) kept else roles + role)
+    }
+
+    fun withoutRole(name: String): FgaStore =
+        copy(roles = roles.filter { it.name != name }.map { it.copy(includes = it.includes - name) })
 
     fun mode(target: ObjectRef): AccessMode? = modes[target.toString()] ?: modes[EveryObject]
 

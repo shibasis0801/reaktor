@@ -496,7 +496,7 @@ private fun EditorSurface(
             val problem = state.diagnostics.firstOrNull { state.caret in it.span.ordered }
             when {
                 problem != null -> CodeTip(problem.message, problem.source, CodePalette.color(problem.severity).syntaxInk(signalColors), "$tag-diagnostic")
-                hover != null -> CodeTip(hover!!.text, intelligence.status.name, signalColors.textMuted, "$tag-hover")
+                else -> hover?.let { CodeTip(it.text, intelligence.status.name, signalColors.textMuted, "$tag-hover") }
             }
         }
         if (showStatusBar) CodeStatusBar(state, intelligence, onOpenExternally, tag)

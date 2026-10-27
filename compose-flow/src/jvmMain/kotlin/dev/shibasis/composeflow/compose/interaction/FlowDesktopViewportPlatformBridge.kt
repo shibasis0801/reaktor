@@ -5,8 +5,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEvent
-import dev.shibasis.composeflow.compose.theme.FlowSizing
 import dev.shibasis.composeflow.runtime.ReactFlowState
+import dev.shibasis.composeflow.runtime.ViewportTuning
 import java.awt.MouseInfo
 import java.awt.Point
 import java.awt.event.MouseWheelEvent
@@ -41,7 +41,7 @@ class FlowDesktopViewportPlatformBridge internal constructor(
         return if (wheel?.scrollType == MouseWheelEvent.WHEEL_BLOCK_SCROLL) {
             Offset(delta.x * interactionState.canvasBoundsInWindow.width,
                 delta.y * interactionState.canvasBoundsInWindow.height) * -amount
-        } else delta * (-FlowSizing.macWheelPanFactor * interactionState.canvasDensity * amount).toFloat()
+        } else delta * (-ViewportTuning.macWheelPanFactor * interactionState.canvasDensity * amount).toFloat()
     }
 
     override fun installViewportGestures(
@@ -91,7 +91,7 @@ class FlowDesktopViewportPlatformBridge internal constructor(
             val anchor = pointerPositionInContent(content)
                 ?.let { interactionState.canvasPositionFromWindow(it, scale) } ?: return@newProxyInstance null
 
-            val factor = exp(magnification * FlowSizing.pinchZoomSensitivity)
+            val factor = exp(magnification * ViewportTuning.pinchZoomSensitivity)
             interactionState.markViewportAsUserModified()
             state.zoomBy(
                 factor = factor,

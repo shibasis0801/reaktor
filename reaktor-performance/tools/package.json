@@ -7,9 +7,6 @@
   "bin": {
     "reaktor-lighthouse": "./lighthouse-report.mjs"
   },
-  "scripts": {
-    "self-test": "node lighthouse-report.mjs --self-test fixtures/lighthouse-sample.json"
-  },
   "dependencies": {
     "@reaktor/performance": "workspace:*",
     "chrome-launcher": "^1.1.2",

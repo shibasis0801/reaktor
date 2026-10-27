@@ -113,7 +113,7 @@ fun Graph.contracts(): List<ContractNode<*>> = nodes.filterIsInstance<ContractNo
 
 fun Graph.served(): List<Served<*>> = contracts().mapNotNull { it.served }
 
-fun <S : Service> PortCapability.uses(service: S) =
+fun <S : Service> PortCapability.consumes(service: S) =
     PropertyDelegateProvider<PortCapability, PortDelegate<S>> { node, _ ->
         val stub = service over PortLink(node.registerConsumer<S>(Key(""), contractType(service)))
         PortDelegate { _, _ -> stub }
@@ -159,7 +159,9 @@ class CallPort<In, Out> internal constructor(val consumer: ConsumerPort<suspend 
     }
 }
 
-fun <In, Out> PortCapability.api(call: Call<In, Out>) =
+suspend operator fun <Out> CallPort<Unit, Out>.invoke(): Out = invoke(Unit)
+
+fun <In, Out> PortCapability.consumes(call: Call<In, Out>) =
     PropertyDelegateProvider<PortCapability, PortDelegate<CallPort<In, Out>>> { node, _ ->
         val port = CallPort(node.registerConsumer<suspend (In) -> Out>(Key(call.name), callType(call)), call)
         PortDelegate { _, _ -> port }

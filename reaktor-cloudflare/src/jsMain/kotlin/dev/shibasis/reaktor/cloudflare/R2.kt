@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cloudflare
 
+import dev.shibasis.reaktor.core.framework.toUint8Array
+import dev.shibasis.reaktor.core.framework.toByteArray
 import dev.shibasis.reaktor.core.cloudflare.R2Bucket as RawR2Bucket
 import dev.shibasis.reaktor.core.cloudflare.R2Object as RawR2Object
 import dev.shibasis.reaktor.core.cloudflare.R2ObjectBody as RawR2ObjectBody
@@ -46,7 +48,7 @@ class R2ObjectBody internal constructor(
         get() = R2Object(raw)
 
     @JsExport.Ignore
-    suspend fun bytes(): ByteArray = arrayBufferToByteArray(raw.arrayBuffer().await())
+    suspend fun bytes(): ByteArray = raw.arrayBuffer().await().toByteArray()
 
     /**
      * The object's `ReadableStream`, for serving it onward without buffering.
@@ -78,6 +80,7 @@ class R2ObjectBody internal constructor(
 @JsExport
 class R2Bucket internal constructor(
     private val raw: RawR2Bucket,
+    private val bindingName: String? = null,
 ) {
     /**
      * Keys under a prefix.
@@ -101,7 +104,7 @@ class R2Bucket internal constructor(
             options.limit = limit
             if (cursor != null) options.cursor = cursor
 
-            val page = raw.asDynamic().list(options).unsafeCast<Promise<dynamic>>().await()
+            val page = bindingRead<dynamic>(bindingName, "list") { raw.asDynamic().list(options).unsafeCast<Promise<dynamic>>().await() }
             val objects = page.objects.unsafeCast<Array<dynamic>>()
             objects.forEach { entry -> keys += entry.key.unsafeCast<String>() }
 
@@ -112,12 +115,12 @@ class R2Bucket internal constructor(
     }
 
     @JsExport.Ignore
-    suspend fun head(key: String): R2Object? = raw.head(key).await()?.let(::R2Object)
+    suspend fun head(key: String): R2Object? = bindingRead(bindingName, "head") { raw.head(key).await()?.let(::R2Object) }
 
     fun headAsync(key: String): Promise<R2Object?> = promiseOf { head(key) }
 
     @JsExport.Ignore
-    suspend fun get(key: String): R2ObjectBody? = raw.get(key).await()?.let(::R2ObjectBody)
+    suspend fun get(key: String): R2ObjectBody? = bindingRead(bindingName, "get") { raw.get(key).await()?.let(::R2ObjectBody) }
 
     fun getAsync(key: String): Promise<R2ObjectBody?> = promiseOf { get(key) }
 
@@ -128,13 +131,13 @@ class R2Bucket internal constructor(
         if (length != null) range.length = length.toDouble()
         val options = js("({})")
         options.range = range
-        return raw.asDynamic().get(key, options).unsafeCast<Promise<RawR2ObjectBody?>>().await()?.let(::R2ObjectBody)
+        return bindingRead(bindingName, "get-range") { raw.asDynamic().get(key, options).unsafeCast<Promise<RawR2ObjectBody?>>().await()?.let(::R2ObjectBody) }
     }
 
 
     @JsExport.Ignore
     suspend fun put(key: String, value: ByteArray): R2Object =
-        R2Object(raw.put(key, value.toUint8Array()).await())
+        bindingWrite(bindingName, "put") { R2Object(raw.put(key, value.toUint8Array()).await()) }
 
     /**
      * Stores a `ReadableStream` — a request body, or another R2 object's body — without pulling it
@@ -152,16 +155,18 @@ class R2Bucket internal constructor(
         contentType: String? = null,
         metadata: Map<String, String> = emptyMap(),
     ): R2Object =
+        bindingWrite(bindingName, "put") {
         R2Object(
             raw.asDynamic()
                 .put(key, stream, putOptions(contentType, metadata))
                 .unsafeCast<kotlin.js.Promise<RawR2Object>>()
                 .await(),
         )
+        }
 
     @JsExport.Ignore
     suspend fun put(key: String, value: String): R2Object =
-        R2Object(raw.put(key, value).await())
+        bindingWrite(bindingName, "put") { R2Object(raw.put(key, value).await()) }
 
     fun putTextAsync(key: String, value: String): Promise<R2Object> = promiseOf { put(key, value) }
 
@@ -171,12 +176,14 @@ class R2Bucket internal constructor(
         value: ByteArray,
         contentType: String?,
     ): R2Object =
+        bindingWrite(bindingName, "put") {
         R2Object(
             raw.asDynamic()
                 .put(key, value.toUint8Array(), putOptions(contentType))
                 .unsafeCast<kotlin.js.Promise<RawR2Object>>()
                 .await(),
         )
+        }
 
     @JsExport.Ignore
     suspend fun put(
@@ -184,12 +191,14 @@ class R2Bucket internal constructor(
         value: String,
         contentType: String?,
     ): R2Object =
+        bindingWrite(bindingName, "put") {
         R2Object(
             raw.asDynamic()
                 .put(key, value, putOptions(contentType))
                 .unsafeCast<kotlin.js.Promise<RawR2Object>>()
                 .await(),
         )
+        }
 
     fun putTextWithContentTypeAsync(
         key: String,
@@ -199,14 +208,14 @@ class R2Bucket internal constructor(
 
     @JsExport.Ignore
     suspend fun delete(key: String) {
-        raw.delete(key).await()
+        bindingWrite(bindingName, "delete") { raw.delete(key).await() }
     }
 
     fun deleteAsync(key: String): Promise<Unit> = promiseOf { delete(key) }
 
     @JsExport.Ignore
     suspend fun delete(keys: Collection<String>) {
-        raw.delete(keys.toTypedArray()).await()
+        bindingWrite(bindingName, "delete-many") { raw.delete(keys.toTypedArray()).await() }
     }
 
     @JsExport.Ignore
@@ -272,7 +281,7 @@ class R2Bucket internal constructor(
         if (limit != null) options.limit = limit
         if (cursor != null) options.cursor = cursor
         if (delimiter != null) options.delimiter = delimiter
-        val result: RawR2Objects = raw.list(options).await()
+        val result: RawR2Objects = bindingRead(bindingName, "list") { raw.list(options).await() }
         val objects = result.objects.map { R2Object(it) }
         return R2ListResult(objects, result.truncated, result.cursor, (result.asDynamic().delimitedPrefixes as? Array<String>)?.toList().orEmpty())
     }
@@ -285,7 +294,7 @@ class R2Bucket internal constructor(
             val options: dynamic = js("({})")
             options.prefix = prefix
             if (cursor != null) options.cursor = cursor
-            val result: RawR2Objects = raw.list(options).await()
+            val result: RawR2Objects = bindingRead(bindingName, "list") { raw.list(options).await() }
             all.addAll(result.objects.map { R2Object(it) })
             cursor = result.cursor
         } while (result.truncated && cursor != null)
@@ -299,24 +308,6 @@ class R2ListResult(
     val cursor: String?,
     val delimitedPrefixes: List<String> = emptyList(),
 )
-
-private fun ByteArray.toUint8Array(): dynamic {
-    val length = size
-    val view = js("new Uint8Array(length)")
-    for (index in indices) {
-        view[index] = this[index].toInt() and 0xFF
-    }
-    return view
-}
-
-private fun arrayBufferToByteArray(buffer: dynamic): ByteArray {
-    val view = js("new Uint8Array(buffer)")
-    val bytes = ByteArray(view.length as Int)
-    for (index in bytes.indices) {
-        bytes[index] = (view[index] as Int).toByte()
-    }
-    return bytes
-}
 
 private fun putOptions(contentType: String?, metadata: Map<String, String> = emptyMap()): dynamic {
     if (contentType == null && metadata.isEmpty()) {

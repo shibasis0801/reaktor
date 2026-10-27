@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.shibasis.reaktor.ui.core.adaptive.ScreenClass
 
 /**
  * Reaktor UI Design Token System
@@ -286,13 +287,6 @@ data class BreakpointTokens(
     val desktop: Dp = 840.dp,     // 840 - 1199dp
     val largeDesktop: Dp = 1200.dp, // 1200+dp
 ) {
-    enum class ScreenClass {
-        Mobile,
-        Tablet,
-        Desktop,
-        LargeDesktop
-    }
-
     fun classifyWidth(width: Dp): ScreenClass = when {
         width < tablet -> ScreenClass.Mobile
         width < desktop -> ScreenClass.Tablet

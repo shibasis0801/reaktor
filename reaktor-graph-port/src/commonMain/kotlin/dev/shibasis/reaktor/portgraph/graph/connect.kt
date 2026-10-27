@@ -22,17 +22,7 @@ fun<C: Any> connect(consumerPort: ConsumerPort<C>, providerPort: ProviderPort<C>
         return Result.failure(IllegalStateException(error))
     }
 
-    val source = consumerPort.owner
-    val destination = providerPort.owner
-
-    return Result.success(
-        Edge(
-            source,
-            consumerPort,
-            destination,
-            providerPort
-        )
-    )
+    return Result.success(consumerPort.edgeTo(providerPort))
 }
 
 fun<C: Any> connect(providerPort: ProviderPort<C>, consumerPort: ConsumerPort<C>) = connect(consumerPort, providerPort)

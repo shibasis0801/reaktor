@@ -45,7 +45,7 @@ private fun GraphChange.remapped(ids: Map<String, String>): GraphChange {
         node = node?.moved(),
         before = before?.moved(),
         wire = wire?.let { it.copy(consumer = id(it.consumer), consumerPort = id(it.consumerPort), provider = id(it.provider), providerPort = id(it.providerPort)) },
-        route = route?.let { RouteShape(id(it.from), id(it.to)) },
+        route = route?.let { it.copy(from = id(it.from), to = id(it.to)) },
         graph = graph?.let { it.copy(id = id(it.id), parent = it.parent?.let(::id), container = it.container?.let(::id), backStack = it.backStack.map(::id)) },
     )
 }

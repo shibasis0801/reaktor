@@ -58,6 +58,7 @@ object MachineSignal {
         val treeIndent = 12.dp
         val smallIconSize = 14.dp
         val graphContextHeight = 38.dp
+        val readStateWidth = 88.dp
         const val fontFamily = "Inter"
         const val lineHeight = 1.3f
 
@@ -88,6 +89,7 @@ object MachineSignal {
 
             val gutterPaddingX = 10.dp
             val lineNumberGap = 12.dp
+            val lineNumberWidth = 44.dp
             val caretWidth = 1.5.dp
             const val lineHeight = 1.45f
         }
@@ -497,6 +499,14 @@ object MachineSignal {
         val copyInset = 34.dp
     }
 
+    object ColorPicker {
+        val bar = 12.dp
+        val check = 4.dp
+        val square = 132.dp
+        val swatch = 14.dp
+        val thumb = 6.dp
+    }
+
     object CommandRunner {
         val actionWidth = 120.dp
     }
@@ -671,23 +681,39 @@ object MachineSignal {
     }
 
     object Lab {
+        val apiWidth = 360.dp
         val catalogueWidth = 220.dp
         val cellHeight = 440.dp
         val cellWidth = 320.dp
         val codeViewHeight = 240.dp
+        val contrastSample = 40.dp
+        val contrastSampleText = 18.sp
         val environmentWidth = 280.dp
+        val finderWidth = 168.dp
         val hangarStoryHeight = 600.dp
         val islandStoryHeight = 460.dp
         val liveHeight = 720.dp
         val liveWidth = 390.dp
+        val lookTileHeight = 104.dp
+        val lookTileWidth = 184.dp
         val markHeight = 36.dp
         val markWidth = 200.dp
         val mediumStoryWidth = 900.dp
         val narrowPaneHostWidth = 600.dp
         val paneHostHeight = 640.dp
         val panesStoryHeight = 700.dp
+        val previewDesktop = 1280.dp
+        val previewHeight = 760.dp
+        val previewPhone = 390.dp
+        val previewTablet = 834.dp
+        val responsiveDesktop = 620.dp
+        val responsiveHeight = 1100.dp
+        val responsivePhone = 300.dp
+        val responsiveTablet = 460.dp
         val rowLabelWidth = 96.dp
         val sampleHeight = 320.dp
+        val screenPanelWidth = 340.dp
+        val sideBySide = 860.dp
         val splitMin = 80.dp
         val staleViewHeight = 56.dp
         val stateViewHeight = 220.dp
@@ -696,6 +722,8 @@ object MachineSignal {
         val tableStoryHeight = 480.dp
         val timelineHeight = 120.dp
         val timelineDot = 5.dp
+        val typePartWidth = 84.dp
+        val typeStyleWidth = 132.dp
         val wideStoryWidth = 1100.dp
     }
 
@@ -737,6 +765,16 @@ object MachineSignal {
         val alignBar = 12.dp
         val padField = 54.dp
         val barGap = 6.dp
+        val placeWidth = 320.dp
+        val replaceWidth = 168.dp
+        val sizeValueWidth = 72.dp
+        val sizeBarWidth = 120.dp
+        val sizeCountWidth = 112.dp
+        val sizePlaceWidth = 160.dp
+        val sizeViaWidth = 240.dp
+        val pieceTileWidth = 116.dp
+        val pieceThumbHeight = 64.dp
+        val pieceThumbWidth = 190.dp
     }
 
     object LogRow {

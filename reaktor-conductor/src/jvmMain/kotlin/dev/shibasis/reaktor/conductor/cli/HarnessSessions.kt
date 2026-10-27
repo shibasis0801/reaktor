@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.worklog.parsedArguments
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -15,6 +14,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import dev.shibasis.reaktor.core.framework.lenientJson
 
 data class HarnessStep(val at: Long?, val tool: String, val detail: String?, val door: Boolean, val file: String? = null)
 
@@ -115,7 +115,6 @@ object HarnessSessions {
     private val CodexEdits = listOf("FileChange\"".encodeToByteArray())
     private val AntigravityEdits = listOf("replace_file_content\"", "multi_replace_file_content\"", "write_to_file\"").map { it.encodeToByteArray() }
     private val AntigravityEditTools = setOf("replace_file_content", "multi_replace_file_content", "write_to_file")
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     fun read(
         workspace: File,
@@ -245,7 +244,7 @@ object HarnessSessions {
 
     private fun claudeLive(home: File, root: String, processes: HarnessProcesses): Map<String, ClaudeLive> =
         File(home, ".claude/sessions").listFiles { file -> file.isFile && file.extension == "json" }.orEmpty().mapNotNull { file ->
-            val entry = runCatching { json.parseToJsonElement(file.readText()) as? JsonObject }.getOrNull() ?: return@mapNotNull null
+            val entry = runCatching { lenientJson.parseToJsonElement(file.readText()) as? JsonObject }.getOrNull() ?: return@mapNotNull null
             val pid = entry.text("pid")?.toLongOrNull() ?: return@mapNotNull null
             val cwd = entry.text("cwd") ?: return@mapNotNull null
             val sessionId = entry.text("sessionId") ?: return@mapNotNull null
@@ -442,7 +441,7 @@ object HarnessSessions {
 
     private fun antigravity(home: File, since: Long, now: Long, root: String): List<HarnessSession> {
         val base = File(home, ".gemini/antigravity-cli")
-        val folders = File(base, "cache/last_conversations.json").takeIf(File::isFile)?.let { runCatching { json.parseToJsonElement(it.readText()) as? JsonObject }.getOrNull() }
+        val folders = File(base, "cache/last_conversations.json").takeIf(File::isFile)?.let { runCatching { lenientJson.parseToJsonElement(it.readText()) as? JsonObject }.getOrNull() }
             .orEmpty().entries.mapNotNull { (folder, id) -> (id as? JsonPrimitive)?.contentOrNull?.let { it to folder } }.toMap()
         return antigravityFiles(home, since).mapNotNull { file ->
             val id = file.parentFile.parentFile.parentFile.name
@@ -569,7 +568,7 @@ object HarnessSessions {
         return value
     }
 
-    private fun parse(line: String): JsonObject? = line.takeIf { it.isNotBlank() }?.let { runCatching { json.parseToJsonElement(it) as? JsonObject }.getOrNull() }
+    private fun parse(line: String): JsonObject? = line.takeIf { it.isNotBlank() }?.let { runCatching { lenientJson.parseToJsonElement(it) as? JsonObject }.getOrNull() }
 
     private fun related(directory: String, root: String): Boolean {
         val path = directory.removePrefix("file://").trimEnd('/')

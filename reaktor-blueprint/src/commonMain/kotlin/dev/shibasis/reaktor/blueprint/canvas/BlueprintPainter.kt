@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.translate
@@ -67,7 +68,7 @@ internal class BlueprintType(private val ui: FontFamily, private val mono: FontF
 
 internal fun blueprintHeaderScale(zoom: Double) = 2.0.pow(round(log2((1.0 / zoom.coerceIn(0.35, 1.0)).coerceAtMost(1.8)) * 32) / 32).toFloat()
 
-private data class FarKey(val title: String, val tone: Color, val selected: Boolean, val outline: Color?)
+private data class FarKey(val title: String, val tone: Color, val selected: Boolean, val outline: Color?, val image: androidx.compose.ui.graphics.ImageBitmap?, val muted: Boolean)
 private data class HeaderKey(val look: BlueprintFrameLook, val scale: Float)
 private data class BannerKey(val look: BlueprintFrameLook, val room: Int)
 private class Measured(val width: Float, val height: Float, val text: TextLayoutResult?)
@@ -88,6 +89,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     private var cards = emptyArray<Card>()
     private var keys = arrayOfNulls<Any>(0)
     private var looks: List<BlueprintCardLook?> = emptyList()
+    private var pictures = false
     private val naturals = HashMap<Pair<String, BlueprintFrameLook>, Float>()
     private var glows: List<Color?> = emptyList()
     private var frameLooks: List<BlueprintFrameLook> = emptyList()
@@ -104,6 +106,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     override val grid = CanvasGrid(minor = colors.textMuted.copy(alpha = .025f), major = colors.textMuted.copy(alpha = .055f))
     override val farZoom = Blueprint.FarZoom
     override val meshZoom = .2
+    override fun bannerLift(height: Float, z: Float) = if (pictures) BlueprintEngine.FrameTop.toFloat() * z - height - 2f else super.bannerLift(height, z)
     override val cardRadius = MachineSignal.Radius.node.value
 
     fun sync(layout: BlueprintLayout<*>, looks: List<BlueprintCardLook?>, glows: List<Color?>, frameLooks: List<BlueprintFrameLook>, styles: List<LinkStyle>,
@@ -114,6 +117,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         if (styles !== this.styles) { this.styles = styles; restyle { meshStyles[it] != styles[it] } }
         if (frameLooks !== this.frameLooks && (frameLooks.size != this.frameLooks.size || frameLooks.indices.any { frameLooks[it].lit != this.frameLooks[it].lit || frameLooks[it].muted != this.frameLooks[it].muted })) dirty[UNDER] = true
         val marked = fresh || glows !== this.glows || selected != this.selected || highlight != this.highlight
+        pictures = looks.any { it?.image != null }
         this.frameLooks = frameLooks; this.looks = looks; this.glows = glows; this.selected = selected; this.highlight = highlight; this.labels = labels
         if (marked) mark()
     }
@@ -121,7 +125,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     private fun mark() {
         var touched = false; var any = false
         for (i in cards.indices) {
-            val glow = if (cards[i].id == selected) accentArgb else glows.getOrNull(i)?.toArgb() ?: 0
+            val glow = if (cards[i].id == selected && looks.getOrNull(i)?.image == null) accentArgb else glows.getOrNull(i)?.toArgb() ?: 0
             val faded = highlight.isNotEmpty() && cards[i].id !in highlight
             if (halo[i] != glow || dim[i] != faded) { halo[i] = glow; dim[i] = faded; touched = true }
             any = any || faded
@@ -181,7 +185,9 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     }
 
     fun draw(scope: DrawScope, camera: Viewport, viewport: Size, density: Float, level: Int, shift: Float, pulses: List<CanvasPulse>) {
-        this.level = level; this.shift = shift; this.pulses = pulses
+        val next = if (pictures) maxOf(1, level) else level
+        if (next != this.level) { dirty[CARDS] = true; dirty[OVER] = true }
+        this.level = next; this.shift = shift; this.pulses = pulses
         with(scope) { frame(camera, viewport, density) }
     }
 
@@ -298,6 +304,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     override fun DrawScope.placeholder(i: Int, slot: Int) {
         val look = looks.getOrNull(i) ?: return
+        if (look.image != null) { drawFar(cards[i], farKey(i, look), cardBox[i * 4], cardBox[i * 4 + 1]); return }
         val x = cardBox[i * 4]; val y = cardBox[i * 4 + 1]; val w = cardBox[i * 4 + 2] - x; val h = cardBox[i * 4 + 3] - y
         if (slot == 0) { drawRoundRect(lerp(colors.surface, look.tone, .06f), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value)); return }
         drawRoundRect(colors.canvas.copy(alpha = .95f), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
@@ -306,7 +313,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     private fun farKey(i: Int, look: BlueprintCardLook): FarKey {
         val chosen = look.selected || cards[i].id == selected
-        return FarKey(look.title, look.tone, chosen, if (chosen) null else glows.getOrNull(i) ?: look.outline)
+        return FarKey(look.title, look.tone, chosen, if (chosen) null else glows.getOrNull(i) ?: look.outline, look.image, look.muted)
     }
 
     override fun current(i: Int, slot: Int): Boolean {
@@ -360,8 +367,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     private fun DrawScope.drawDetail(card: Card, look: BlueprintCardLook, x: Float, y: Float) {
         val w = card.width.toFloat(); val h = card.height.toFloat()
-        drawRoundRect(colors.canvas.copy(alpha = .95f), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
-        drawPath(headerPath(x, y, w), headerBrush(look.tone, x, w))
+        drawRoundRect(if (look.image != null) colors.surface else colors.canvas.copy(alpha = .95f), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
+        if (look.image == null) drawPath(headerPath(x, y, w), headerBrush(look.tone, x, w))
         icon(look.icon).draw(this, x + 8f, y + 6f, 14f, look.tone)
         val marks = look.marks.map(::measureMark)
         val titleWidth = w - 36f - marks.sumOf { it.width.toDouble() + 6 }.toFloat()
@@ -371,6 +378,11 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         look.marks.forEachIndexed { k, mark -> drawMark(mark, marks[k], at, y + (26f - marks[k].height) / 2); at += marks[k].width + 6f }
         val folded = look.folded?.let { measure(it, foldedStyle, w / 2) }
         paint(measure(look.subtitle, subtitleStyles[if (look.subtitleMono) 1 else 0], w - 18f - (folded?.let { it.size.width + 8f } ?: 0f)), x + 10f, y + 29f)
+        drawScreenshot(look.image, x, y, w, h, look.muted)
+        look.imageHighlight?.let { rect ->
+            drawRect(accent.copy(alpha = .22f), Offset(x + rect.left * w, y + BlueprintEngine.HeaderHeight.toFloat() + rect.top * (h - BlueprintEngine.HeaderHeight.toFloat())),
+                Size(rect.width * w, rect.height * (h - BlueprintEngine.HeaderHeight.toFloat())))
+        }
         val oneSided = card.pins.all { it.provides } || card.pins.none { it.provides }
         card.pins.forEachIndexed { k, pin ->
             val pinLook = look.pins.getOrNull(k) ?: return@forEachIndexed
@@ -381,6 +393,17 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val border = when { look.selected -> 2f; look.outline != null -> 1.6f; else -> 1f }
         val edge = when { look.selected -> accent; look.outline != null -> look.outline; else -> colors.line.copy(alpha = .45f) }
         drawRoundRect(edge, Offset(x + border / 2, y + border / 2), Size(w - border, h - border), CornerRadius(MachineSignal.Radius.node.value - border / 2), style = Stroke(border))
+    }
+
+    private fun DrawScope.drawScreenshot(image: androidx.compose.ui.graphics.ImageBitmap?, x: Float, y: Float, w: Float, h: Float, muted: Boolean) {
+        image ?: return
+        val top = BlueprintEngine.HeaderHeight.toFloat()
+        val path = Path().apply { addRoundRect(RoundRect(x, y, x + w, y + h, CornerRadius(MachineSignal.Radius.node.value))) }
+        clipPath(path) {
+            drawImage(image, dstOffset = androidx.compose.ui.unit.IntOffset(x.toInt(), (y + top).toInt()),
+                dstSize = androidx.compose.ui.unit.IntSize(w.toInt(), (h - top).coerceAtLeast(1f).toInt()),
+                alpha = if (muted) .25f else 1f, filterQuality = androidx.compose.ui.graphics.FilterQuality.Medium)
+        }
     }
 
     private fun DrawScope.drawPin(provides: Boolean, pin: BlueprintPinLook, x: Float, middle: Float, width: Float) {
@@ -404,6 +427,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         drawRoundRect(lerp(colors.surface, key.tone, .06f), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
         val border = if (key.selected) 2f else if (key.outline != null) 1.6f else 1f
         drawRoundRect(if (key.selected) accent else key.outline ?: colors.line.copy(alpha = .45f), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value), style = Stroke(border))
+        drawScreenshot(key.image, x, y, w, h, key.muted)
         val size = Blueprint.fitted(key.title, card.width - 18, 13.0, Blueprint.FarZoom)
         paint(measure(key.title, type.style(size, colors.textStrong, mono = true, weight = FontWeight.SemiBold), w - 18f), x + 10f, y + 6f)
     }

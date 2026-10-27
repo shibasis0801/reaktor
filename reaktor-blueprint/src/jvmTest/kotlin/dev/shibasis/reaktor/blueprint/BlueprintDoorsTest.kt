@@ -94,6 +94,29 @@ class BlueprintDoorsTest {
         assertTrue(layout.links.filter { it.kind == LinkKind.Route }.let { it.size == routes.size && it.all(Link::curve) })
     }
 
+    @Test fun `a column of frames too tall for the screen splits into even columns`() {
+        val panes = (1..12).map { "p$it" }
+        val groups = listOf(BlueprintGroup("shared", "Shared", listOf(node("s", 0)))) + panes.map { BlueprintGroup(it, it, listOf(node("${it}n", 1))) }
+        val layout = BlueprintEngine.layout("column", groups, panes.map { wire("s", "${it}n") }, 16.0 / 9.0, LayeredFrameLayouter)
+        val columns = layout.frames.filter { it.key in panes }.groupingBy { it.x }.eachCount().values
+        assertTrue(columns.size >= 2, "Twelve panes do not fit one column: $columns")
+        assertTrue(columns.max() - columns.min() <= 1, "Columns hold the same number of panes: $columns")
+    }
+
+    @Test fun `a frame with no links fills free space instead of widening the map`() {
+        val shared = BlueprintGroup("shared", "Shared", (1..12).map { BlueprintNode("s$it", 0, outputs = listOf(PinSpec("out", "T", pin))) })
+        val pane = BlueprintGroup("pane", "Pane", listOf(node("p", 1)))
+        val edges = (1..12).map { BlueprintEdge("s$it>p", "s$it", "p", "out", "in") }
+        val core = BlueprintEngine.layout("core", listOf(shared, pane), edges, 16.0 / 9.0, LayeredFrameLayouter)
+        val layout = BlueprintEngine.layout("loose", listOf(shared, pane, BlueprintGroup("loose", "Loose", listOf(node("l", 0)))), edges, 16.0 / 9.0, LayeredFrameLayouter)
+        assertEquals(core.width, layout.width, 1e-6)
+        assertEquals(core.height, layout.height, 1e-6)
+        val loose = layout.frames.single { it.key == "loose" }
+        assertTrue(layout.frames.filter { it.key != "loose" && it.parent == null }.all { other ->
+            loose.x >= other.x + other.width || loose.x + loose.width <= other.x || loose.y >= other.y + other.height || loose.y + loose.height <= other.y
+        }, "The loose frame overlaps another frame")
+    }
+
     @Test fun `navigation places the frames when no data wire crosses them`() {
         val groups = listOf("a", "b", "c").map { BlueprintGroup(it, it, listOf(node("${it}1", 0))) }
         val routes = listOf(BlueprintEdge("a>b", "a1", "b1", kind = LinkKind.Route), BlueprintEdge("b>c", "b1", "c1", kind = LinkKind.Route))

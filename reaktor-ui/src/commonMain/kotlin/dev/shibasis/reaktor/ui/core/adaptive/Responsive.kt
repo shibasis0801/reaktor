@@ -75,12 +75,7 @@ fun ResponsiveLayout(
         val width = maxWidth
         val height = maxHeight
 
-        val screenClass = when {
-            width < breakpoints.tablet -> ScreenClass.Mobile
-            width < breakpoints.desktop -> ScreenClass.Tablet
-            width < breakpoints.largeDesktop -> ScreenClass.Desktop
-            else -> ScreenClass.LargeDesktop
-        }
+        val screenClass = breakpoints.classifyWidth(width)
 
         val windowSize = remember(width, height, screenClass) {
             WindowSize(width, height, screenClass)

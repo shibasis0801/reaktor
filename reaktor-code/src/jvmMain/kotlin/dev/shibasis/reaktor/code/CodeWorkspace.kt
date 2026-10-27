@@ -136,6 +136,12 @@ class CodeWorkspace(root: Path, private val generatedRoots: () -> Collection<Pat
 
     fun components(path: String): List<CodeComponent> = KotlinCalls.components(kotlin(path))
 
+    fun strings(path: String): List<CodeString> = KotlinStrings.strings(kotlin(path))
+
+    fun sizes(path: String, tokens: Set<String> = emptySet()): List<CodeSize> = KotlinSizes.sizes(kotlin(path), tokens)
+
+    fun sizeHolders(path: String): List<CodeSizeHolder> = KotlinSizes.holders(kotlin(path))
+
     fun statementOf(path: String, span: CodeSpan): CodeStatement? = KotlinCalls.statement(kotlin(path), span)
 
     fun extract(path: String, span: CodeSpan): CodeExtract? = KotlinSyntax.extract(kotlin(path), span)

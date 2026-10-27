@@ -61,6 +61,7 @@ class Spans(
                     port = (attributes[ServiceCall.PortAttribute] as? String).orEmpty(),
                     edge = (attributes[ServiceCall.EdgeAttribute] as? String).orEmpty(),
                     activation = (attributes[ServiceCall.ActivationAttribute] as? String).orEmpty(),
+                    decisions = exchange.decisions(),
                     access = (exchange.attributes[ServiceCall.AccessAttribute] as? String)?.takeIf { exchange.side == Side.Server }.orEmpty(),
                 ),
             )

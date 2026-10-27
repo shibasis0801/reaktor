@@ -16,7 +16,7 @@ class AndroidAuthAdapter(
     activity,
     AuthService() over HttpLink(authService)
 ) {
-    val credentialManager = CredentialManager.create(controller!!)
+    val credentialManager = CredentialManager.create(activity)
     override suspend fun logout(): Result<Unit> = suspended {
         logoutSession().onFailure { Logger.w { "The session was cleared here but the server did not confirm its revocation: $it" } }
         try {

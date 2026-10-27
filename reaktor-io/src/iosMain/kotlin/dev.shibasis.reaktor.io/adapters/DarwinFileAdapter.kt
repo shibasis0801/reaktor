@@ -8,24 +8,13 @@ import kotlinx.io.readByteArray
 import platform.Foundation.NSCachesDirectory
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
+import platform.Foundation.NSSearchPathDirectory
 import platform.Foundation.NSUserDomainMask
 
 class DarwinFileAdapter(): FileAdapter<Unit>(Unit) {
-    override val cacheDirectory = NSFileManager.defaultManager.URLForDirectory(
-        directory = NSCachesDirectory,
-        inDomain = NSUserDomainMask,
-        appropriateForURL = null,
-        create = true,
-        error = null,
-    )!!.path.orEmpty()
+    override val cacheDirectory = directory(NSCachesDirectory)
 
-    override val documentDirectory = NSFileManager.defaultManager.URLForDirectory(
-        directory = NSDocumentDirectory,
-        inDomain = NSUserDomainMask,
-        appropriateForURL = null,
-        create = true,
-        error = null,
-    )!!.path.orEmpty()
+    override val documentDirectory = directory(NSDocumentDirectory)
 
     override suspend fun exists(path: String): Boolean =
         SystemFileSystem.exists(Path(path))
@@ -61,3 +50,7 @@ class DarwinFileAdapter(): FileAdapter<Unit>(Unit) {
         }
     }
 }
+
+private fun directory(kind: NSSearchPathDirectory): String = checkNotNull(
+    NSFileManager.defaultManager.URLForDirectory(directory = kind, inDomain = NSUserDomainMask, appropriateForURL = null, create = true, error = null)?.path
+) { "No search path directory $kind" }

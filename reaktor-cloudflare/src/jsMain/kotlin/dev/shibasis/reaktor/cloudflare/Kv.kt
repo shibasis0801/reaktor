@@ -11,11 +11,11 @@ internal external interface RawKvNamespace {
     fun list(options: dynamic): Promise<dynamic>
 }
 
-class KvNamespace internal constructor(private val raw: RawKvNamespace) {
-    suspend fun getString(key: String): String? = raw.get(key, "text").await()
+class KvNamespace internal constructor(private val raw: RawKvNamespace, private val bindingName: String? = null) {
+    suspend fun getString(key: String): String? = bindingRead(bindingName, "get") { raw.get(key, "text").await() }
 
     suspend fun getBytes(key: String, maxBytes: Int): ByteArray? {
-        val stream = raw.asDynamic().get(key, "stream").unsafeCast<Promise<dynamic>>().await() ?: return null
+        val stream = bindingRead<dynamic>(bindingName, "get-stream") { raw.asDynamic().get(key, "stream").unsafeCast<Promise<dynamic>>().await() } ?: return null
         return readBoundedStream(stream, maxBytes)
     }
 
@@ -25,7 +25,7 @@ class KvNamespace internal constructor(private val raw: RawKvNamespace) {
         options.prefix = prefix
         options.limit = limit
         if (cursor != null) options.cursor = cursor
-        val result = raw.list(options).await()
+        val result = bindingRead<dynamic>(bindingName, "list") { raw.list(options).await() }
         val document = Json.parseToJsonElement(JSON.stringify(result)).jsonObject
         return KvListResult(document.getValue("keys").jsonArray.map { it.jsonObject },
             document.getValue("list_complete").jsonPrimitive.boolean, document["cursor"]?.jsonPrimitive?.contentOrNull)
@@ -43,11 +43,11 @@ class KvNamespace internal constructor(private val raw: RawKvNamespace) {
         } else {
             undefined
         }
-        raw.put(key, value, options).await()
+        bindingWrite(bindingName, "put") { raw.put(key, value, options).await() }
     }
 
     suspend fun delete(key: String) {
-        raw.delete(key).await()
+        bindingWrite(bindingName, "delete") { raw.delete(key).await() }
     }
 }
 

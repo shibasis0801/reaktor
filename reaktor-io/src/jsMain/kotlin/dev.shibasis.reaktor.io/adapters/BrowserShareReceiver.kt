@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.io.adapters
 
+import org.khronos.webgl.ArrayBuffer
+import dev.shibasis.reaktor.core.framework.toByteArray
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -100,12 +102,12 @@ class BrowserShareReceiver(
         val file = held[fileUri] ?: return null
 
         return runCatching {
-            val buffer = file.arrayBuffer().unsafeCast<Promise<dynamic>>().await()
+            val buffer = file.arrayBuffer().unsafeCast<Promise<ArrayBuffer>>().await()
             SharedFile(
                 name = (file.name as? String)?.takeIf { it.isNotBlank() } ?: "shared",
                 mime = (file.type as? String)?.takeIf { it.isNotBlank() }
                     ?: "application/octet-stream",
-                bytes = bytesOf(buffer),
+                bytes = buffer.toByteArray(),
             )
         }.getOrNull()
     }
@@ -276,15 +278,6 @@ class BrowserShareReceiver(
     /** Puts a name and a type back on a blob, so [read] reports the file rather than "shared". */
     private fun named(blob: dynamic, name: String?, mime: String?): dynamic =
         js("new File([blob], name || 'shared', { type: mime || blob.type || 'application/octet-stream' })")
-
-    private fun bytesOf(buffer: dynamic): ByteArray {
-        val view = js("new Uint8Array(buffer)")
-        val bytes = ByteArray(view.length as Int)
-        for (index in bytes.indices) {
-            bytes[index] = (view[index] as Int).toByte()
-        }
-        return bytes
-    }
 
     companion object {
         /**

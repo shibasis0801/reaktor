@@ -6,15 +6,16 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.builtins.ListSerializer
 import java.io.File
+import dev.shibasis.reaktor.core.framework.lenientJson
 
 object CloudInventoryReads {
     suspend fun execute(operation: InfrastructureOperation.CloudInventoryRead): String {
         val readings = read(operation)
-        return cloudJson.encodeToString(ListSerializer(CloudReading.serializer()), readings)
+        return lenientJson.encodeToString(ListSerializer(CloudReading.serializer()), readings)
     }
 
     fun decode(output: String): List<CloudReading> =
-        cloudJson.decodeFromString(ListSerializer(CloudReading.serializer()), output)
+        lenientJson.decodeFromString(ListSerializer(CloudReading.serializer()), output)
 
     suspend fun read(operation: InfrastructureOperation.CloudInventoryRead): List<CloudReading> = coroutineScope {
         val providers = providers(operation)

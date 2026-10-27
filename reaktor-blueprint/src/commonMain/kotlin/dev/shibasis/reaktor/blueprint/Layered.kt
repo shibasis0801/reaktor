@@ -5,6 +5,8 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 
+private const val BalanceSteps = 24
+
 enum class LayeredRank { Free, First, Last, Entry, Exit }
 
 enum class LayeredAlign { Centre, West }
@@ -33,6 +35,7 @@ data class LayeredSpacing(
     val wrap: Int = 0,
     val wrapHeight: Double = 0.0,
     val align: LayeredAlign = LayeredAlign.Centre,
+    val compact: Boolean = false,
 )
 
 class LayeredResult(val x: DoubleArray, val y: DoubleArray, val routes: List<DoubleArray>, val width: Double, val height: Double)
@@ -297,23 +300,14 @@ private class Sheet(
 
     private fun wrap(rank: IntArray) {
         val hasOut = BooleanArray(real).also { h -> for (k in 0 until count) if (!bent[k]) h[tail[k]] = true }
-        fun fits(size: Int, height: Double) = (spacing.wrap <= 0 || size <= spacing.wrap) && (spacing.wrapHeight <= 0 || size <= 1 || height <= spacing.wrapHeight)
         var r = 0
         var top = rank.maxOrNull() ?: 0
         while (r <= top) {
             val layer = (0 until real).filter { rank[it] == r }
             val stay = layer.filter { hasOut[it] || door(it) }
-            var size = stay.size
-            var height = stay.sumOf { node(it).height + spacing.node }
             val sinks = layer.filter { !hasOut[it] && !door(it) }
-            val columns = ArrayList<MutableList<Int>>()
-            sinks.forEach { v ->
-                val tall = node(v).height + spacing.node
-                if (columns.isEmpty() && fits(size + 1, height + tall)) { size++; height += tall }
-                else {
-                    val last = columns.lastOrNull()
-                    if (last == null || !fits(last.size + 1, last.sumOf { node(it).height + spacing.node } + tall)) columns += mutableListOf(v) else last += v
-                }
+            val columns = overflow(stay, sinks, spacing.wrapHeight).let { greedy ->
+                if (greedy.isEmpty() || spacing.wrapHeight <= 0) greedy else balanced(stay, sinks, greedy.size)
             }
             if (columns.isNotEmpty()) {
                 for (v in 0 until real) if (rank[v] > r) rank[v] += columns.size
@@ -323,6 +317,33 @@ private class Sheet(
             }
             r++
         }
+    }
+
+    private fun tall(v: Int) = node(v).height + spacing.node
+
+    private fun overflow(stay: List<Int>, sinks: List<Int>, limit: Double): List<List<Int>> {
+        fun fits(size: Int, height: Double) = (spacing.wrap <= 0 || size <= spacing.wrap) && (limit <= 0 || size <= 1 || height <= limit)
+        var size = stay.size
+        var height = stay.sumOf(::tall)
+        val columns = ArrayList<MutableList<Int>>()
+        sinks.forEach { v ->
+            if (columns.isEmpty() && fits(size + 1, height + tall(v))) { size++; height += tall(v) }
+            else {
+                val last = columns.lastOrNull()
+                if (last == null || !fits(last.size + 1, last.sumOf(::tall) + tall(v))) columns += mutableListOf(v) else last += v
+            }
+        }
+        return columns
+    }
+
+    private fun balanced(stay: List<Int>, sinks: List<Int>, count: Int): List<List<Int>> {
+        var low = (stay + sinks).sumOf(::tall) / (count + 1)
+        var high = spacing.wrapHeight
+        repeat(BalanceSteps) {
+            val middle = (low + high) / 2
+            if (overflow(stay, sinks, middle).size <= count) high = middle else low = middle
+        }
+        return overflow(stay, sinks, high)
     }
 
     private fun simplex(vertices: List<Int>, arcs: List<Int>, order: IntArray): Map<Int, Int> {
@@ -536,6 +557,7 @@ private class Sheet(
             }
             val wanted = DoubleArray(total)
             val pull = DoubleArray(total)
+            val ceiling = if (spacing.compact) layers.maxOfOrNull { stack(it) } ?: 0.0 else Double.POSITIVE_INFINITY
             for (sweep in 0 until 96) {
                 var moved = 0.0
                 val sequence = if (sweep % 2 == 0) layers.indices else layers.indices.reversed()
@@ -548,7 +570,7 @@ private class Sheet(
                         rightOf[v].forEach { s -> sum += segPull[s] * (top[segRight[s]] + segRightOffset[s] - segLeftOffset[s]); weight += segPull[s] }
                         if (weight > 0) { wanted[v] = sum / weight; pull[v] = weight } else { wanted[v] = top[v]; pull[v] = 1e-3 }
                     }
-                    moved = max(moved, settle(layer, wanted, pull, top))
+                    moved = max(moved, settle(layer, wanted, pull, top, ceiling - stack(layer)))
                 }
                 if (moved < 0.05) break
             }
@@ -557,7 +579,10 @@ private class Sheet(
             return top
         }
 
-        private fun settle(layer: IntArray, wanted: DoubleArray, pull: DoubleArray, top: DoubleArray): Double {
+        private fun stack(layer: IntArray): Double =
+            layer.indices.sumOf { i -> tall[layer[i]] + if (i < layer.size - 1) gap(layer[i], layer[i + 1]) else 0.0 }
+
+        private fun settle(layer: IntArray, wanted: DoubleArray, pull: DoubleArray, top: DoubleArray, room: Double): Double {
             val m = layer.size
             if (m == 0) return 0.0
             val offset = DoubleArray(m)
@@ -580,7 +605,7 @@ private class Sheet(
             }
             var moved = 0.0
             for (b in 0 until blocks) {
-                val level = blockSum[b] / blockWeight[b]
+                val level = (blockSum[b] / blockWeight[b]).let { if (room.isFinite()) it.coerceIn(0.0, room.coerceAtLeast(0.0)) else it }
                 val end = if (b + 1 < blocks) blockStart[b + 1] else m
                 for (i in blockStart[b] until end) {
                     val v = layer[i]

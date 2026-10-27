@@ -1,5 +1,6 @@
 import dev.shibasis.dependeasy.components.library
 import dev.shibasis.dependeasy.handles.Reaktor
+import dev.shibasis.dependeasy.model.FileSet
 import dev.shibasis.dependeasy.model.Targets
 import dev.shibasis.dependeasy.native.NativePlatform
 import dev.shibasis.dependeasy.native.NativeAbi
@@ -15,5 +16,5 @@ library(namespace = "dev.shibasis.reaktor.performance", targets = Targets.All) {
         abis = listOf(NativeAbi.X86, NativeAbi.Arm64, NativeAbi.X86_64)) {
         includeDirs("src/commonMain/cpp", "src/commonMain/cpp/include")
     }
-    val checkPerformanceTypeScript by typescript()
+    val checkPerformanceTypeScript by typescript(tests = FileSet(listOf("tools/*.test.mjs")))
 }
