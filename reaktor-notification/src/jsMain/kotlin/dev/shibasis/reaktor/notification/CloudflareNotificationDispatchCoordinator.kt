@@ -10,6 +10,7 @@ import dev.shibasis.reaktor.graph.serve
 import dev.shibasis.reaktor.graph.Workflow
 import dev.shibasis.reaktor.graph.stage
 import dev.shibasis.reaktor.graph.core.node.Node
+import dev.shibasis.reaktor.service.ServiceAccess
 import dev.shibasis.reaktor.service.contract.Effect
 import dev.shibasis.reaktor.service.contract.decision
 import dev.shibasis.reaktor.graph.core.Graph
@@ -23,7 +24,9 @@ open class CloudflareNotificationDispatchCoordinator(
     private val env: Any,
 ) : CloudflareDurableObject(state, env) {
     @JsExport.Ignore
-    protected val dispatcherGraph by lazy { notificationDispatcherGraph({ storage }, ::dispatchRemote, ::configureGraph) }
+    protected val dispatcherGraph by lazy { notificationDispatcherGraph({ storage }, ::dispatchRemote, access, ::configureGraph) }
+    @JsExport.Ignore
+    protected open val access: ServiceAccess get() = ServiceAccess.Undeclared
     @JsExport.Ignore
     protected open fun configureGraph(graph: Graph) {}
     private val app by lazy { Hono().mount(dispatcherGraph) }
@@ -43,7 +46,8 @@ class NotificationDispatcherService(
     graph: Graph,
     private val storage: () -> DurableObjectStorage,
     private val remote: suspend (NotificationDispatchPayload) -> NotificationDispatchResult,
-) : NotificationDispatcher() {
+    access: ServiceAccess = ServiceAccess.Undeclared,
+) : NotificationDispatcher(access) {
     private val flow = graph.Node { Workflow(it, "notification-dispatcher/delivery", "Endpoint dispatch") }
     private val choose = flow.activity<NotificationDispatchPayload, Boolean>("provider-choice", Effect.ReadOnly) {
         decision("provider", it.provider.take(64))
@@ -70,16 +74,16 @@ class NotificationDispatcherService(
 }
 
 private fun notificationDispatcherGraph(storage: () -> DurableObjectStorage,
-    remote: suspend (NotificationDispatchPayload) -> NotificationDispatchResult, configure: (Graph) -> Unit = {}): Graph {
+    remote: suspend (NotificationDispatchPayload) -> NotificationDispatchResult, access: ServiceAccess, configure: (Graph) -> Unit = {}): Graph {
     Reaktor.web()
     return Graph(label = DispatcherIsland).also { graph ->
-        graph.serve(NotificationDispatcherService(graph, storage, remote))
+        graph.serve(NotificationDispatcherService(graph, storage, remote, access))
         configure(graph)
     }
 }
 
-fun notificationDispatcherIsland(configure: (Graph) -> Unit = {}): IslandShape {
-    val graph = notificationDispatcherGraph({ error("A shape has no storage") }, { error("A shape does not dispatch") }, configure)
+fun notificationDispatcherIsland(access: ServiceAccess = ServiceAccess.Undeclared, configure: (Graph) -> Unit = {}): IslandShape {
+    val graph = notificationDispatcherGraph({ error("A shape has no storage") }, { error("A shape does not dispatch") }, access, configure)
     return IslandShape(DispatcherIsland, "cloudflare-durable-object", graph.shape())
 }
 

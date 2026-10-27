@@ -45,8 +45,11 @@ fun CodeAccess.resources(shape: GraphShape, rootLabel: String? = null): CodeReso
 
 fun CodeAccess.app(label: String): CodeGraph = CodeGraph(ObjectRef(Graph, slug(label)), label, null, emptyList())
 
-fun CodeAccess.island(app: String, island: String, contracts: List<Service>): CodeResources =
-    app(app).let { root -> CodeResources(listOf(root), emptyList()) + served(within(root.ref, island, emptyList()), contracts) }
+fun CodeAccess.island(app: String, island: String, contracts: List<Service>): CodeResources = island(app, listOf(island), contracts)
+
+fun CodeAccess.island(app: String, path: List<String>, contracts: List<Service>): CodeResources =
+    path.runningFold(app(app)) { parent, island -> within(parent.ref, island, emptyList()) }
+        .let { chain -> CodeResources(chain, emptyList()) + served(chain.last(), contracts) }
 
 fun CodeAccess.island(app: String, shape: IslandShape): CodeResources =
     app(app).let { root -> CodeResources(listOf(root), emptyList()) + island(root.ref, shape) }

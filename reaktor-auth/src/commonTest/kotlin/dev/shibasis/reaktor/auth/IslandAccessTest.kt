@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.auth.fga.RelationTuple
 import dev.shibasis.reaktor.auth.fga.Subject
 import dev.shibasis.reaktor.auth.graph.CodeAccess
 import dev.shibasis.reaktor.auth.graph.CodeAccessPolicy
+import dev.shibasis.reaktor.auth.graph.at
 import dev.shibasis.reaktor.auth.graph.island
 import dev.shibasis.reaktor.auth.graph.islands
 import dev.shibasis.reaktor.graph.remote
@@ -83,6 +84,17 @@ class IslandAccessTest {
         assertEquals(listOf("graph:bestbuds", "graph:bestbuds/chat", "graph:bestbuds/chat/chatroom"), all.graphs.map { it.ref.toString() })
         assertEquals(listOf(ObjectRef("graph", "bestbuds/chat/chatroom")), all.service(CodeAccess.service("kiosk"))?.graphs)
         assertEquals(emptyList(), CodeAccess.island("BestBuds", chat).services)
+    }
+
+    @Test fun anObjectHoldsTheStructureItsHostsExportedShapeGivesIt() {
+        val chat = shape("chat", objects = listOf(shape("ChatRoom", KioskServer())))
+        val runtime = CodeAccess.island("BestBuds", listOf("chat", "ChatRoom"), listOf(Kiosk()))
+        val exported = CodeAccess.islands("BestBuds", listOf(chat)).at(ObjectRef("graph", "bestbuds/chat/chatroom"))
+        assertEquals(exported.tuples.toSet(), runtime.tuples.toSet())
+        assertEquals(CodeAccessPolicy(model, emptyList(), exported).digest, CodeAccessPolicy(model, emptyList(), runtime).digest)
+        val stored = grant("graph:bestbuds/chat#operator@user:cy", "graph:bestbuds/social#operator@user:dee")
+        assertTrue(CodeAccessPolicy(model, stored, runtime).lets("cy", "kiosk", "browse"))
+        assertFalse(CodeAccessPolicy(model, stored, runtime).lets("dee", "kiosk", "browse"))
     }
 }
 
