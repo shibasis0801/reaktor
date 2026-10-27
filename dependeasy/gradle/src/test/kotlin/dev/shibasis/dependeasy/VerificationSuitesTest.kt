@@ -240,6 +240,124 @@ class VerificationSuitesTest {
     }
 
 
+    @Test fun `exchange suites pass one fresh token between both phones in each direction`() {
+        write("settings.gradle.kts", """rootProject.name = "deviceExchange"; enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS"); include("app", "apple", "phones")""")
+        write("package.json", """{"name":"device-exchange","private":true}""")
+        write("app/build.gradle.kts", """
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { java }
+            val apk = tasks.register("apk") { outputs.dir(layout.buildDirectory.dir("apk")) }
+            publishOutput(OutputKind.AndroidApk, layout.buildDirectory.dir("apk"), Build.Debug, producer = apk)
+        """.trimIndent())
+        write("apple/release.input.json", BuildModelReader.json.encodeToString(ReleasePlan.serializer(),
+            ReleasePlan(product = "fixture", versionName = "1", buildNumber = 1, bundleId = "fixture.app",
+                team = "fixture", artifacts = mapOf("iosDebugApp" to "ios/app.bin"), commands = emptyMap())))
+        write("apple/build.gradle.kts", """
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { java }
+            val release = tasks.register<Copy>("release") {
+                from(layout.projectDirectory.file("release.input.json"))
+                into(layout.buildDirectory)
+                rename { "release.json" }
+            }
+            publishOutput(OutputKind.GeneratedContract, layout.buildDirectory.file("release.json"), Contract.AppleRelease, producer = release)
+        """.trimIndent())
+        write("push/receive.yaml", "appId: fixture.app\n---\n- launchApp\n")
+        write("push/send.yaml", "appId: fixture.app\n---\n- launchApp\n")
+        write("push/other.yaml", "appId: fixture.app\n---\n- launchApp\n")
+        write("runner-home/bin/runner", """
+            #!/usr/bin/env python3
+            import sys, json, time
+            from pathlib import Path
+            args = sys.argv[1:]
+            platform = args[args.index('--platform') + 1]
+            if 'devices' in args:
+                print(json.dumps([dict(platform=platform, kind='device', id=platform + '-phone', ready=True)]))
+                sys.exit(0)
+            values = dict(args[index + 1].split('=', 1) for index, arg in enumerate(args) if arg == '-e')
+            flow = Path(args[-1]).name
+            shared = Path(__file__).resolve().parent.parent
+            with open(shared / 'runs', 'a') as runs:
+                runs.write('|'.join([platform, flow, values['MESSAGE'], values['APP_ENV'], args[args.index('--output') + 1]]) + '\n')
+            if flow == 'receive.yaml':
+                (shared / 'listening').write_text(values['MESSAGE'])
+                for _ in range(100):
+                    if (shared / 'inbox').exists() and (shared / 'inbox').read_text() == values['MESSAGE']:
+                        sys.exit(0)
+                    time.sleep(0.1)
+                sys.exit(1)
+            if (shared / 'listening').read_text() != values['MESSAGE']:
+                sys.exit(2)
+            (shared / 'inbox').write_text(values['MESSAGE'])
+        """.trimIndent()).setExecutable(true)
+        write("build.gradle.kts", """
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            dependeasy.workspace {
+                val phoneChecks by verify(projects.phones)
+                packageScripts()
+            }
+        """.trimIndent())
+        write("phones/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.deviceTests
+            import dev.shibasis.dependeasy.verification.DeviceExchangeFlow
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            import kotlin.time.Duration.Companion.seconds
+            plugins { id("dev.shibasis.dependeasy.device-tests") }
+            deviceTests(mapOf(DevicePlatform.Android to androidApk(projects.app, Build.Debug),
+                DevicePlatform.Ios to output(projects.apple, OutputKind.GeneratedContract, Contract.AppleRelease)), "fixture.app") {
+                val push by exchange(DeviceExchange(DeviceSuite(DevicePlatform.entries.associateWith { DeviceFlowSelection("push") },
+                    environment = mapOf("APP_ENV" to "dev")), receive = "receive.yaml", send = "send.yaml", token = "MESSAGE", sendAfter = 1.seconds))
+                alias("test:push", push)
+            }
+            tasks.named<DeviceExchangeFlow>("push") { runner.set(rootProject.layout.projectDirectory.file("runner-home/bin/runner")) }
+        """.trimIndent())
+        fun run() = GradleRunner.create().withProjectDir(root).withPluginClasspath()
+            .withArguments(":phones:push", "exportBuildModel", "generatePackageScripts", "--configuration-cache", "--stacktrace").build()
+        GradleRunner.create().withProjectDir(root).withPluginClasspath()
+            .withArguments("generatePackageScripts", "--configuration-cache", "--stacktrace").build()
+        val first = run()
+        assertEquals(org.gradle.testkit.runner.TaskOutcome.SUCCESS, first.task(":phones:push")?.outcome)
+        assertNull(first.task(":app:apk"))
+        assertNull(first.task(":apple:release"))
+        val runs = root.resolve("runner-home/runs").readLines().map { it.split('|') }
+        assertEquals(listOf(
+            listOf("android", "receive.yaml", "phones/build/reports/device/push/android/ios-to-android"),
+            listOf("ios", "send.yaml", "phones/build/reports/device/push/ios/ios-to-android"),
+            listOf("ios", "receive.yaml", "phones/build/reports/device/push/ios/android-to-ios"),
+            listOf("android", "send.yaml", "phones/build/reports/device/push/android/android-to-ios"),
+        ), runs.map { listOf(it[0], it[1], File(it[4]).canonicalFile.relativeTo(root.canonicalFile).path) })
+        assertTrue(runs.all { it[3] == "dev" })
+        assertEquals(runs[0][2], runs[1][2])
+        assertEquals(runs[2][2], runs[3][2])
+        assertNotEquals(runs[0][2], runs[2][2])
+        for (platform in listOf("android", "ios")) {
+            val contract = BuildModelReader.json.decodeFromString<DeviceFlowContract>(root.resolve("phones/build/dependeasy/device/push/$platform.json").readText())
+            assertEquals("$platform-phone", contract.serial)
+            assertEquals(listOf("receive.yaml", "send.yaml"), contract.flows.map { File(it).name })
+            assertEquals(root.resolve("phones/build/reports/device/push/$platform").canonicalPath, File(contract.reportDirectory).canonicalPath)
+        }
+        val model = BuildModelReader.read(root)
+        val push = model.nodes.single { it.id == NodeId("deviceExchange", ":phones", "push") }
+        val spec = assertIs<KernelSpec.DeviceExchange>(push.kernel?.spec)
+        assertEquals(listOf("android", "ios"), spec.phones.map { it.platform })
+        assertEquals(listOf(listOf("push/receive.yaml", "push/send.yaml")), spec.phones.map { it.flows }.distinct())
+        assertEquals(listOf("phones/build/dependeasy/device/push/android.json", "phones/build/dependeasy/device/push/ios.json"), spec.phones.map { it.contract })
+        assertEquals(listOf("deviceExchange:app:outputAndroidApkDebug", "deviceExchange:apple:outputGeneratedContractAppleRelease"), spec.phones.map { it.appOutput })
+        assertEquals(listOf("receive.yaml", "send.yaml", "MESSAGE", 1L), listOf(spec.receive, spec.send, spec.token, spec.sendAfterSeconds))
+        assertEquals(setOf(":app", ":apple"), model.edges.filter { it is Edge.Consumes && it.from == push.id }.map { it.to.project }.toSet())
+        assertTrue(model.edges.any { it is Edge.After && it.from == push.id && it.to == NodeId("deviceExchange", ":", "maestroRunnerSetup") })
+        assertEquals(ExecutionHost.Local, model.requiredHost(NodeId("deviceExchange", ":", "phoneChecks")).execution)
+        assertContains(root.resolve("package.json").readText(), "\"test:push\"")
+        root.resolve("runner-home/runs").delete()
+        assertContains(run().output, "Reusing configuration cache")
+        assertEquals(4, root.resolve("runner-home/runs").readLines().size)
+    }
+
     @Test fun `worker contract membership tracks optional suites with cache reuse`() {
         write("settings.gradle.kts", """rootProject.name = "workerOptions"; include("workers")""")
         write("package.json", """{"name":"worker-options","private":true}""")

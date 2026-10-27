@@ -37,7 +37,7 @@ internal object BuildDeclarations {
         fun safety(id: NodeId, visited: Set<NodeId> = emptySet()): SafetyClass {
             val node = byId[id] ?: return SafetyClass.UnknownRemoteEffect
             val own = when (node.kernel?.spec) {
-                is KernelSpec.DeviceFlow -> SafetyClass.DeviceWrite
+                is KernelSpec.DeviceFlow, is KernelSpec.DeviceExchange -> SafetyClass.DeviceWrite
                 is KernelSpec.KarateSuite, is KernelSpec.K6Suite -> SafetyClass.UnknownRemoteEffect
                 else -> when (node.effect) {
                     Effect.Deploy -> SafetyClass.ProductionReversibleWrite
