@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.io.adapters
 
+import org.khronos.webgl.ArrayBuffer
+import dev.shibasis.reaktor.core.framework.toUint8Array
+import dev.shibasis.reaktor.core.framework.toByteArray
 import dev.shibasis.reaktor.core.framework.Feature
 import kotlin.js.Promise
 import kotlinx.coroutines.await
@@ -24,7 +27,7 @@ class WebFileAdapter(
     override suspend fun readBinaryFile(path: String): ByteArray? = runCatching {
         val fileHandle = resolveFileHandle(path, create = false)
         val file = awaitDynamic(fileHandle.getFile())
-        arrayBufferToByteArray(awaitDynamic(file.arrayBuffer()))
+        awaitDynamic(file.arrayBuffer()).unsafeCast<ArrayBuffer>().toByteArray()
     }.getOrNull()
 
     override suspend fun writeBinaryFile(path: String, data: ByteArray) {
@@ -101,10 +104,3 @@ private fun pathSegments(path: String): List<String> =
         .map(String::trim)
         .filter { it.isNotEmpty() && it != "." }
 
-internal fun ByteArray.toUint8Array(): dynamic {
-    val bytes = this
-    return js("new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.length)")
-}
-
-internal fun arrayBufferToByteArray(buffer: dynamic): ByteArray =
-    js("new Int8Array(buffer)").unsafeCast<ByteArray>()

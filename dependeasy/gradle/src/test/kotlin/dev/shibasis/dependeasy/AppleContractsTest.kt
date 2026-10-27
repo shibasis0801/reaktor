@@ -252,8 +252,8 @@ class AppleContractsTest {
         assertEquals("appleFixture", plan.product)
         assertEquals(":apple:generateSigningXcconfig", plan.commands.getValue("iosSigning").tokens[1])
         assertEquals(":workers:deployWeb", plan.commands.getValue("webDeploy").tokens[1])
-        assertEquals(":android:assembleDebug", plan.commands.getValue("androidDebug").tokens[1])
-        assertEquals(":android:bundleRelease", plan.commands.getValue("androidReleaseBundle").tokens[1])
+        assertEquals(":android:packageDebug", plan.commands.getValue("androidDebug").tokens[1])
+        assertEquals(":android:signReleaseBundle", plan.commands.getValue("androidReleaseBundle").tokens[1])
         assertEquals("android/build/outputs/apk/debug", plan.artifacts.getValue("androidDebugApkDirectory"))
         assertContains(directory.resolve("config/apple-host/iosApp-Debug.xcconfig").readText(), "REAKTOR_KOTLIN_TASK = :apple:embedAppleFrameworksForXcode")
         val model = BuildModelReader.read(directory)
@@ -269,7 +269,7 @@ class AppleContractsTest {
         assertEquals(true, plan.distribution?.waitForTestflightProcessing)
         assertEquals(true, plan.distribution?.firebaseGroupSetupStrict)
         assertEquals("0.25", plan.distribution?.playProductionRollout)
-        assertEquals(":android:assembleDebug", releaseSpec.androidTasks["androidDebug"])
+        assertEquals(":android:packageDebug", releaseSpec.androidTasks["androidDebug"])
         val hostNode = model.nodes.single { it.id == NodeId("appleFixture", ":apple", "generateXcodeHost") }
         assertEquals(AppleHostKernel::class.java.name, hostNode.kernel?.className)
         val hostSpec = hostNode.kernel?.spec as KernelSpec.XcodeHost

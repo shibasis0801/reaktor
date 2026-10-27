@@ -31,10 +31,11 @@ class D1Mutation internal constructor(
 @JsExport
 class D1Database internal constructor(
     private val raw: RawD1Database,
+    private val bindingName: String? = null,
 ) {
     @JsExport.Ignore
     suspend fun execute(statement: SqlStatement): D1Mutation =
-        D1Mutation(prepared(statement).run().await())
+        bindingWrite(bindingName, "execute") { D1Mutation(prepared(statement).run().await()) }
 
     @JsExport.Ignore
     suspend fun execute(
@@ -55,8 +56,7 @@ class D1Database internal constructor(
 
     @JsExport.Ignore
     suspend fun rawRows(statement: SqlStatement): List<SqlRow> =
-        (prepared(statement).all().await().results ?: emptyArray())
-            .map(::SqlRow)
+        bindingRead(bindingName, "query") { (prepared(statement).all().await().results ?: emptyArray()).map(::SqlRow) }
 
     @JsExport.Ignore
     suspend fun rawRows(
@@ -183,7 +183,7 @@ class D1Database internal constructor(
 
     @JsExport.Ignore
     suspend fun queryResult(statement: SqlStatement): D1QueryResult {
-        val result = prepared(statement).all().await()
+        val result = bindingRead(bindingName, "query-result") { prepared(statement).all().await() }
         check(result.success == true) { "D1 query failed" }
         return D1QueryResult((result.results ?: emptyArray()).map { Json.parseToJsonElement(JSON.stringify(it)).jsonObject },
             Json.parseToJsonElement(JSON.stringify(result.meta)).jsonObject)

@@ -89,6 +89,48 @@ class BuildWorkspaceTest {
         assertContains(run().output, "Reusing configuration cache")
     }
 
+    @Test fun `a release cannot consume an output its gate already builds`() {
+        directory.resolve("settings.gradle.kts").writeText("""
+            rootProject.name = "gateFixture"
+            enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+            include(":payload")
+        """.trimIndent())
+        directory.resolve("payload").mkdir()
+        directory.resolve("payload/build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            abstract class Step : DefaultTask() {
+                @get:OutputFile abstract val result: RegularFileProperty
+                @TaskAction fun write() { result.get().asFile.apply { parentFile.mkdirs(); writeText(name) } }
+            }
+            val bundle = tasks.register<Step>("bundle") { result.set(layout.buildDirectory.file("bundle.txt")) }
+            val measurements = tasks.register<Step>("measurements") { dependsOn(bundle); result.set(layout.buildDirectory.file("measurements.txt")) }
+            val budget = tasks.register<Step>("budget") { dependsOn(measurements); result.set(layout.buildDirectory.file("budget.txt")) }
+            publishOutput(OutputKind.WorkerBundle, bundle.flatMap { it.result }, producer = bundle)
+            publishOutput(OutputKind.VerificationResults, budget.flatMap { it.result }, producer = budget)
+        """.trimIndent())
+        directory.resolve("build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.handles.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.workspace") }
+            workspace {
+                val pr by verify { include(output(projects.payload, OutputKind.VerificationResults)) }
+                delivery(after = pr) {
+                    val shipped by release(output(projects.payload, OutputKind.WorkerBundle), LaneHandle("fixture", "internal"))
+                }
+            }
+        """.trimIndent())
+        fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
+            .withArguments(*tasks, "--configuration-cache", "--stacktrace")
+        val rejected = run("pr").buildAndFail()
+        assertContains(rejected.output, "gateFixture:shipped consumes an output of :payload:bundle, which its gate gateFixture:pr already builds")
+        assertFalse(rejected.output.contains("Circular dependency"))
+        assertFalse(directory.resolve("payload/build/bundle.txt").exists())
+        run("exportBuildModel").build()
+        assertEquals(NodeKind.Release, BuildModelReader.read(directory).nodes.single { it.id.name == "shipped" }.kind)
+    }
+
     @Test fun `workspace story composes owned roles and gates delivery with a reusable configuration`() {
         storyFixture()
         fun run() = GradleRunner.create().withProjectDir(directory).withPluginClasspath()

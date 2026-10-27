@@ -48,6 +48,7 @@ class ServiceCall(
         const val EdgeAttribute = "reaktor.edge.id"
         const val ActivationAttribute = "reaktor.activation.id"
         const val AccessAttribute = "reaktor.access"
+        const val DecisionsAttribute = "reaktor.decisions"
 
         fun sessionFromBaggage(value: String?): String? {
             if (value == null || value.length > 512) return null
@@ -85,6 +86,7 @@ data class ServiceSpan(
     val installation: String = "",
     val platform: String = "",
     val access: String = "",
+    val decisions: Map<String, String> = emptyMap(),
 )
 
 fun interface SpanSink {

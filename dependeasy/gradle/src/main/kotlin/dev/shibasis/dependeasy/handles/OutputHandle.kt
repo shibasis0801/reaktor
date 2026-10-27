@@ -34,6 +34,8 @@ fun Project.verification(module: ProjectDependency, suite: Verification) = outpu
 fun verification(module: ModuleHandle, suite: Verification) = output(module, OutputKind.VerificationResults, suite)
 fun verification(build: BuildHandle, suite: Verification) =
     OutputHandle(build.coordinate, build.name, ":", OutputKind.VerificationResults, listOf(suite.name))
+fun Project.loadSuite(module: ProjectDependency, suite: Enum<*>) = output(module, OutputKind.VerificationResults, suite)
+fun Project.workerContracts(module: ProjectDependency, contract: WorkerContract) = output(module, OutputKind.VerificationResults, contract)
 fun Project.androidApk(module: ProjectDependency, build: Build) = output(module, OutputKind.AndroidApk, build)
 fun androidLibrary(module: ModuleHandle, build: Build) = output(module, OutputKind.AndroidLibrary, build)
 fun Project.androidBundle(module: ProjectDependency, build: Build) = output(module, OutputKind.AndroidBundle, build)

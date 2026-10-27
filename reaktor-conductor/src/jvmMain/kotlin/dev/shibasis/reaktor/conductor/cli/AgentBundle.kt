@@ -13,6 +13,7 @@ object AgentBundle {
     const val GRAPH_SERVER_NAME = "reaktor-graph"
     const val SANDBOX_NAME = "reaktor-sandbox"
     const val LAUNCHER_NAME = "reaktor-agent"
+    const val CODEX_TOOL_SECONDS = 300
 
     /**
      * Where each harness actually reads its servers from.
@@ -83,7 +84,7 @@ object AgentBundle {
         val codexArgv = seated("codex")
         val key = "codex/$name"
         val chunk = "\n# reaktor-bundle begin $name\n[mcp_servers.$name]\n" +
-            "command = ${toml(codexArgv.first())}\nargs = [${codexArgv.drop(1).joinToString(", ") { toml(it) }}]\n" +
+            "command = ${toml(codexArgv.first())}\nargs = [${codexArgv.drop(1).joinToString(", ") { toml(it) }}]\ntool_timeout_sec = $CODEX_TOOL_SECONDS\n" +
             "# reaktor-bundle end $name\n"
         val previous = (owned[key] as? JsonPrimitive)?.content
         when {

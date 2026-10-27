@@ -33,12 +33,13 @@ class Exchange<In, R> internal constructor(
     val attributes: MutableMap<String, Any?>,
     val call: ServiceCall,
     var deadline: Instant?,
+    private val activityEffect: Effect? = null,
 ) {
     var request: In = request
 
     var attempt: Int = 1
 
-    val effect: Effect get() = operation?.effect ?: if (family == Family.Deliver) Effect.ProductionReversibleWrite else Effect.UnknownRemoteEffect
+    val effect: Effect get() = activityEffect ?: operation?.effect ?: if (family == Family.Deliver) Effect.ProductionReversibleWrite else Effect.UnknownRemoteEffect
 
     val retriable: Boolean get() = operation?.retriable ?: (channel?.delivery == Delivery.AtLeastOnce)
 

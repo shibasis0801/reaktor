@@ -3,10 +3,10 @@ package dev.shibasis.reaktor.tooling.infra
 import kotlinx.serialization.json.*
 import java.io.File
 import java.net.URI
+import dev.shibasis.reaktor.core.framework.json
 
 internal class ServiceTokenClient(session: InfrastructureSession) {
     private val http = BoundedHttp(session)
-    private val json = Json { ignoreUnknownKeys = true }
     fun token(op: ServiceTokenSource, environment: Map<String, String>): String {
         val tokenEndpoint = URI(op.tokenEndpoint)
         require(tokenEndpoint.scheme == "https" && tokenEndpoint.userInfo == null)

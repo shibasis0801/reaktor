@@ -11,10 +11,10 @@ import dev.shibasis.reaktor.tooling.database.*
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.StandardOpenOption
+import dev.shibasis.reaktor.core.framework.json
 
 class WorkerJvmClient(private val session: InfrastructureSession) {
     private val http = BoundedHttp(session)
-    private val json = Json { ignoreUnknownKeys = true }
 
     fun execute(op: InfrastructureOperation.WorkerCall, environment: Map<String, String>): String {
         op.expectedEffect.workerEffect()

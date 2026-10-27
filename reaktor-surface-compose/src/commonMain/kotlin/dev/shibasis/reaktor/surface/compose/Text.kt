@@ -133,3 +133,8 @@ val BareText: TextAppearance = object : TextAppearance {
     @Composable
     override fun style(role: TextRole?, ink: InkRole?, theme: ThemeSnapshot): TextStyle = TextStyle.Default
 }
+
+data class StyledText(val shown: TextStyle) : TextAppearance {
+    @Composable
+    override fun style(role: TextRole?, ink: InkRole?, theme: ThemeSnapshot): TextStyle = shown
+}

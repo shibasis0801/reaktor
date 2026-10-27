@@ -8,6 +8,7 @@ import kotlin.js.Promise
 @JsExport
 class WorkerService internal constructor(
     private val raw: RawServiceBinding,
+    private val bindingName: String? = null,
 ) {
     @JsExport.Ignore
     suspend fun fetch(
@@ -16,7 +17,11 @@ class WorkerService internal constructor(
         body: String? = null,
         headers: Map<String, String> = emptyMap(),
     ): CloudflareResponse =
-        CloudflareResponse(raw.fetch(url, requestInit(method, body, headers)).await())
+        if (method == "GET" || method == "HEAD") bindingRead(bindingName, "fetch") {
+            CloudflareResponse(raw.fetch(url, requestInit(method, body, headers)).await())
+        } else bindingWrite(bindingName, "fetch") {
+            CloudflareResponse(raw.fetch(url, requestInit(method, body, headers)).await())
+        }
 
     fun fetchAsync(
         url: String,

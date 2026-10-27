@@ -9,6 +9,7 @@ object AppGraphFeatures {
     private const val Start = "start"
     private const val HubHops = 4
     private const val SwitcherSize = 3
+    private const val NavigationPort = "navBinding"
     private val ScopedSources = setOf(GraphSource.Build, GraphSource.Code)
 
     fun of(graph: AppGraph): List<Feature> {
@@ -43,8 +44,9 @@ object AppGraphFeatures {
         val featureOf = HashMap<String, String>()
         segmentOf.forEach { (id, key) -> featureOf[id] = find(key) }
         val entryIds = segmentOf.keys
+        val screenOf = attachments(graph)
         app.filter { it.id !in entryIds }.forEach { node ->
-            val served = downstream(graph, node.id, entryIds).mapNotNull(featureOf::get).toSet()
+            val served = (screenOf[node.id]?.let(::setOf) ?: downstream(graph, node.id, entryIds)).mapNotNull(featureOf::get).toSet()
             featureOf[node.id] = served.singleOrNull() ?: shared(graph.role(node))
         }
         val grouped = app.groupBy { featureOf.getValue(it.id) }
@@ -56,6 +58,12 @@ object AppGraphFeatures {
             features.filter { it.shared }.sortedBy { feature -> Role.entries.first { shared(it) == feature.key }.lane } +
             islands
     }
+
+    fun navigates(wire: Wire): Boolean = wire.providerPort == NavigationPort
+
+    fun attachments(graph: AppGraph): Map<String, String> = graph.nodes.values
+        .filter { node -> node.kind != NodeKind.Route && node.attachedTo?.let(graph.nodes::containsKey) == true }
+        .associate { it.attachedTo!! to it.id }
 
     fun switchers(graph: AppGraph): List<Set<String>> {
         val ids = graph.hops.mapTo(HashSet()) { it.id }
@@ -86,7 +94,7 @@ object AppGraphFeatures {
         val frontier = ArrayDeque(listOf(start))
         while (frontier.isNotEmpty()) {
             graph.wiresOut(frontier.removeFirst()).forEach { wire ->
-                if (!seen.add(wire.consumer)) return@forEach
+                if (navigates(wire) || !seen.add(wire.consumer)) return@forEach
                 if (wire.consumer in entries) found += wire.consumer else frontier.addLast(wire.consumer)
             }
         }

@@ -39,11 +39,12 @@ internal class HyperdriveConfig internal constructor(
 class PostgresDatabase internal constructor(
     private val client: dynamic,
     private val transactional: Boolean = false,
+    private val bindingName: String? = null,
 ) {
     suspend fun <T> transaction(block: suspend PostgresDatabase.() -> T): T = supervisorScope {
         check(!transactional) { "Nested Postgres transactions are not supported" }
         val pending = client.begin { connection: dynamic ->
-            promise { PostgresDatabase(connection, transactional = true).block() }
+            promise { PostgresDatabase(connection, transactional = true, bindingName = bindingName).block() }
         }.unsafeCast<Promise<T>>()
         try { pending.await() }
         catch (cancelled: CancellationException) {
@@ -53,10 +54,9 @@ class PostgresDatabase internal constructor(
     }
 
     suspend fun rawRows(statement: SqlStatement): List<SqlRow> =
-        client.unsafe(statement.query, statement.params)
-            .unsafeCast<Promise<Array<dynamic>>>()
-            .await()
-            .map(::SqlRow)
+        bindingWrite(bindingName, "query") {
+            client.unsafe(statement.query, statement.params).unsafeCast<Promise<Array<dynamic>>>().await().map(::SqlRow)
+        }
 
     suspend fun rawRows(
         template: String,
@@ -151,6 +151,7 @@ class PostgresDatabase internal constructor(
 }
 
 internal fun HyperdriveConfig.connectPostgres(
+    bindingName: String? = null,
     configure: PostgresOptionsBuilder.() -> Unit = {},
 ): PostgresDatabase =
     PostgresDatabase(
@@ -158,6 +159,7 @@ internal fun HyperdriveConfig.connectPostgres(
             connectionString,
             PostgresOptionsBuilder().apply(configure).toJs(),
         ),
+        bindingName = bindingName,
     )
 
 class PostgresBinding internal constructor(
@@ -174,7 +176,7 @@ fun CloudflareContext.postgres(
     binding: PostgresBinding,
     configure: PostgresOptionsBuilder.() -> Unit = {},
 ): PostgresDatabase =
-    requireHyperdrive(binding.name).connectPostgres {
+    requireHyperdrive(binding.name).connectPostgres(binding.name) {
         binding.configure(this)
         configure()
     }

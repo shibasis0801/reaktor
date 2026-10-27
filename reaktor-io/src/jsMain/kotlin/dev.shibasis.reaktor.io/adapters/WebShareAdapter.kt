@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.io.adapters
 
+import dev.shibasis.reaktor.core.framework.toUint8Array
 import dev.shibasis.reaktor.core.web.TapSheet
 import kotlinx.browser.document
 import kotlinx.browser.window

@@ -10,7 +10,7 @@ import dev.shibasis.reaktor.auth.runtime.AuthTokenGrants
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.graph.connected
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.uses
+import dev.shibasis.reaktor.graph.consumes
 import dev.shibasis.reaktor.graph.core.autoWire
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.requireFullyWired
@@ -87,8 +87,8 @@ class AuthRuntimeGraphIntegrationTest {
 private class AuthRuntimeConsumerFixture(graph: Graph) : BasicNode(graph) {
     val patPort by consumes<AuthPat>()
     val tokenGrantsPort by consumes<AuthTokenGrants>()
-    val httpServicePort by uses(AuthService())
-    val appServicePort by uses(AppService())
+    val httpServicePort by consumes(AuthService())
+    val appServicePort by consumes(AppService())
 }
 
 private class AuthRuntimeGraphFixture {

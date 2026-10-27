@@ -70,18 +70,20 @@ class Served<S : Service>(val service: S) {
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (unreadable: Throwable) {
-            return failure(400, "The request for ${call.id} did not parse: ${unreadable.message ?: "malformed"}")
+            return call.answer(Reply.of(400, "The request for ${call.id} did not parse: ${unreadable.message ?: "malformed"}"))
         }
         return try {
             val response = call(call, request, Metadata(inbound.headers), inbound.attributes)
-            Outbound(statusOf(response, call.status), headersOf(response), json.encodeToString(call.response, response))
+            Outbound(statusOf(response, call.status), headersOf(response), service.wire.encode(call.response, response))
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Throwable) {
-            failure.reply(call.id).let { reply ->
-                Outbound(reply.status, reply.headers() + (ContentType to Json), json.encodeToString(JsonElement.serializer(), reply.body))
-            }
+            call.answer(failure.reply(call.id))
         }
+    }
+
+    private fun Call<*, *>.answer(reply: Reply): Outbound = service.wire.reply(reply, response.descriptor).let { worded ->
+        Outbound(worded.status, worded.headers() + (ContentType to Json), json.encodeToString(JsonElement.serializer(), worded.body))
     }
 
     suspend fun handle(name: String, inbound: Inbound): Outbound =

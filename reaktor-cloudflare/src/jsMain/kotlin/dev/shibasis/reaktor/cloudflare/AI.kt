@@ -7,7 +7,8 @@ internal external interface RawWorkersAI {
     fun run(model: String, inputs: dynamic): Promise<dynamic>
 }
 
-class WorkersAI internal constructor(private val raw: RawWorkersAI) {
+class WorkersAI internal constructor(private val raw: RawWorkersAI, private val bindingName: String? = null) {
+    private suspend fun run(model: String, inputs: dynamic): dynamic = bindingWrite(bindingName, "run") { raw.run(model, inputs).await() }
     suspend fun textGeneration(
         model: String,
         systemPrompt: String,
@@ -26,7 +27,7 @@ class WorkersAI internal constructor(private val raw: RawWorkersAI) {
         inputs.messages = arrayOf(systemMsg, userMsg)
         inputs.temperature = temperature
 
-        val result = raw.run(model, inputs).await()
+        val result = run(model, inputs)
         return result.response?.toString() ?: ""
     }
 
@@ -40,7 +41,7 @@ class WorkersAI internal constructor(private val raw: RawWorkersAI) {
         val inputs = js("({})")
         inputs.messages = arrayOf(userMsg)
 
-        val result = raw.run("@cf/meta/llama-guard-3-8b", inputs).await()
+        val result = run("@cf/meta/llama-guard-3-8b", inputs)
         return result.response?.toString()?.trim()?.startsWith("safe") ?: false
     }
 
@@ -57,7 +58,7 @@ class WorkersAI internal constructor(private val raw: RawWorkersAI) {
         val inputs = js("({})")
         inputs.messages = arrayOf(userMsg)
 
-        val result = raw.run("@cf/meta/llama-guard-3-8b", inputs).await()
+        val result = run("@cf/meta/llama-guard-3-8b", inputs)
         return result.response?.toString()?.trim() ?: ""
     }
 
@@ -75,7 +76,7 @@ class WorkersAI internal constructor(private val raw: RawWorkersAI) {
         inputs.prompt = prompt
         inputs.max_tokens = maxTokens
 
-        val result = raw.run(model, inputs).await()
+        val result = run(model, inputs)
         return result.description?.toString()?.trim()
             ?: result.response?.toString()?.trim()
             ?: ""

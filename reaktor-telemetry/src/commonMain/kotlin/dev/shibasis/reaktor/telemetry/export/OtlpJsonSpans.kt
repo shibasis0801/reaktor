@@ -23,12 +23,10 @@ import kotlinx.serialization.json.putJsonObject
  */
 @OptIn(ExperimentalApi::class)
 object OtlpJsonSpans {
-    private val json = Json { encodeDefaults = false }
-
     const val ScopeName = "reaktor"
     const val ScopeVersion = "1.0.0"
 
-    fun encode(spans: List<SpanData>): String = json.encodeToString(JsonObject.serializer(), document(spans))
+    fun encode(spans: List<SpanData>): String = Json.encodeToString(JsonObject.serializer(), document(spans))
 
     fun document(spans: List<SpanData>): JsonObject = buildJsonObject {
         putJsonArray("resourceSpans") {

@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.graph.core.NodeKind
 import kotlinx.coroutines.flow.Flow
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.consumes
+import dev.shibasis.reaktor.portgraph.port.registerProvider
 import dev.shibasis.reaktor.graph.navigation.Payload
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.js.JsExport
@@ -23,6 +24,7 @@ open class ContainerNode(
 
     init {
         connect(routeBinding, route.routeBinding)
+        registerProvider(NavigationKey, navigation(this::class), route.navBinding.impl)
     }
 
     val activeGraph: Graph?

@@ -15,6 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import dev.shibasis.reaktor.core.framework.lenientJson
 
 class CloudInventoryAssemblyTest {
     private val observed = CloudEvidence(CloudSource.CloudflareApi, "test")
@@ -102,8 +103,8 @@ class CloudInventoryAssemblyTest {
 
     @Test
     fun unreadableSnapshotsRemainUnknownAndDoNotCreateBackupFindings() {
-        val disk = cloudJson.parseToJsonElement("""{"name":"data","status":"READY","zone":"zones/test-a","sizeGb":"20"}""").jsonObject
-        val taken = cloudJson.parseToJsonElement("""{"sourceDisk":"disks/data","creationTimestamp":"2026-10-09T00:00:00Z"}""").jsonObject
+        val disk = lenientJson.parseToJsonElement("""{"name":"data","status":"READY","zone":"zones/test-a","sizeGb":"20"}""").jsonObject
+        val taken = lenientJson.parseToJsonElement("""{"sourceDisk":"disks/data","creationTimestamp":"2026-10-09T00:00:00Z"}""").jsonObject
         val results = listOf(null, emptyList(), listOf(taken)).map { snapshots ->
             val builder = GoogleCloudInventoryBuilder("test", "https://console.cloud.google.com", 1_000L)
             builder.read(emptyList(), listOf(disk), emptyList(), emptyList(), snapshots, emptyList(), emptyList())
@@ -121,7 +122,7 @@ class CloudInventoryAssemblyTest {
     @Test
     fun partialWorkerTrafficDoesNotInventCountsOrHealth() {
         val scripts = listOf("missing", "zero", "requests-only", "errors-only", "failing").map { name ->
-            cloudJson.parseToJsonElement("""{"id":"$name"}""").jsonObject
+            lenientJson.parseToJsonElement("""{"id":"$name"}""").jsonObject
         }
         val builder = CloudflareInventoryBuilder("test", "https://dash.cloudflare.com/test", "test", 1_000L)
         builder.workers(scripts, emptyMap(), mapOf(

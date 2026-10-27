@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.core.cloudflare
 
 import kotlin.js.Date
 import kotlin.js.Promise
+import org.khronos.webgl.ArrayBuffer
 
 // Bindings for R2Bucket and related types
 
@@ -154,7 +155,5 @@ external interface R2Objects {
 external interface Headers
 
 external interface ReadableStream
-
-external open class ArrayBuffer
 
 external interface Blob

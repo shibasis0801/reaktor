@@ -304,6 +304,25 @@ class BuildModelReaderTest {
         assertEquals(model(), BuildModelReader.decode(BuildModelReader.encode(model())))
     }
 
+    @Test fun `declaration scanning selects only build inputs and preserves ordering`() {
+        val included = listOf("build.gradle.kts", "module/build.gradle.kts", "module/gradle.properties",
+            "local.properties", "pnpm-workspace.yaml", "buildSrc/src/main/kotlin/Logic.kt",
+            "dependeasy/gradle/src/main/kotlin/Plugin.kt", "dependeasy/model/src/main/kotlin/Model.kt",
+            "dependeasy/toolchain/src/main/kotlin/Toolchain.kt", "dependeasy/buildSrc/src/main/kotlin/Build.kt",
+            "dependeasy/toolchain/src/contracts/kotlin/Contract.kt")
+        val omitted = listOf("module/pnpm-workspace.yaml", "module/src/main/kotlin/App.kt",
+            "buildSrc/src/test/kotlin/Test.kt", "dependeasy/gradle/src/test/kotlin/Test.kt",
+            "buildSrc/src/main/kotlin/notes.txt", "dependeasy/other/src/main/kotlin/Other.kt",
+            "build/ignored.gradle.kts", "node_modules/pkg/build.gradle.kts", ".git/ignored.gradle.kts")
+        (included + omitted).forEach { path ->
+            root.resolve(path).apply { parentFile.mkdirs(); writeText("") }
+        }
+        assertEquals(included.sorted(), BuildDeclarationInputs.files(root).map { it.relativeTo(root).invariantSeparatorsPath })
+        assertEquals(included.sorted(), BuildDeclarationInputs.files(root.resolve(".")).map {
+            it.relativeTo(root.resolve(".")).invariantSeparatorsPath
+        })
+    }
+
     @Test fun `membership and compiled build logic invalidate declared facts`() {
         root.resolve("build.gradle.kts").writeText("plugins {}")
         val implementation = root.resolve("dependeasy/gradle/src/main/kotlin/Kernel.kt").apply {

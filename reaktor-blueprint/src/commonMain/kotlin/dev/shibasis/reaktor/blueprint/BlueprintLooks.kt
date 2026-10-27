@@ -24,6 +24,10 @@ data class BlueprintCardLook(
     val pins: List<BlueprintPinLook?> = emptyList(),
     val tag: String? = null,
     val action: String? = null,
+    val image: androidx.compose.ui.graphics.ImageBitmap? = null,
+    val imageDescription: String? = null,
+    val imageHighlight: androidx.compose.ui.geometry.Rect? = null,
+    val muted: Boolean = false,
 )
 
 data class BlueprintFrameLook(

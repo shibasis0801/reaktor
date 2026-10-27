@@ -188,7 +188,7 @@ private class Expression(private val text: String, private val line: Int, privat
             val token = next() ?: fail(text.length, "Unclosed type list")
             if (token.text == "]" && types.isEmpty()) fail(token.column, "A type list needs at least one type")
             types += typeRef(token)
-            if (peek()?.text == "with") fail(peek()!!.column, "Conditions are not supported yet")
+            peek()?.takeIf { it.text == "with" }?.let { fail(it.column, "Conditions are not supported yet") }
             when (next()?.text) {
                 "," -> continue
                 "]" -> return Rewrite.Direct(types)

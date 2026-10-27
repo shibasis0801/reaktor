@@ -654,7 +654,7 @@ Stop and write the reason in the Log, instead of guessing, when:
 
 ## 8. Status
 
-Current cross-domain status and color HLD: `build/dependeasy/receipts/qualification/wp13/full-status.json` and `full-status-hld.mmd`; legacy removals: `legacy-removal-register-current.json`. These receipts distinguish historical acceptance from current package gaps. Updated 24 Oct: 29 domains,13 finished/13 working/3 pending;19 open implementation checkpoints, plus final equivalent-host timings and pinned-main review.
+Current cross-domain status and color HLD: `build/dependeasy/receipts/qualification/wp13/full-status.json` and `full-status-hld.mmd`; legacy removals: `legacy-removal-register-current.json`. These receipts distinguish historical acceptance from current package gaps. Updated 25 Oct: 29 domains,10 finished/16 working/3 pending;19 open implementation checkpoints, plus final equivalent-host timings and pinned-main review.
 
 | Package | Status |
 |---|---|
@@ -673,6 +673,9 @@ Current cross-domain status and color HLD: `build/dependeasy/receipts/qualificat
 | K10 | Outstanding |
 | K11 | Outstanding |
 | K12 | Outstanding |
+
+25 Oct current qualification: phone connect is complete (iOS XCTest hierarchy1.814s, Android UI round trip1.511s). The canonical BestBuds owner is reachable with Hangar open; the earlier owner-lock blocker is historical. The newest installed CLI still needs its matching model decoder build. Three additional root-only readers now consume the existing graph snapshot provider; compilation/runtime qualification is queued. Browser67/67 and retained-output boundary38/38, notification4/4 and appBrowser32/32 are scoped commits. Chat PostgreSQL and four Worker coverage gaps remain. The exact19 remaining checkpoint definitions are in `full-status.json` → `remainingCheckpoints`; no full K1/K3/K4 or program completion is claimed.
+
 
 ## 9. Kickoff message for Codex
 

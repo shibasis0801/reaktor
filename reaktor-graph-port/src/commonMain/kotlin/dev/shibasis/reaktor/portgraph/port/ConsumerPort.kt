@@ -26,6 +26,8 @@ open class ConsumerPort<Functionality: Any>(
 
     override fun isConnected() = implementation != null
 
+    open fun edgeTo(provider: ProviderPort<Functionality>): Edge<Functionality> = Edge(owner, this, provider.owner, provider)
+
     @JsName("target")
     inline operator fun invoke(): Functionality {
         return impl ?: error("Can't invoke functions through unconnected ports. ${toString()}")
@@ -63,9 +65,13 @@ open class ConsumerPort<Functionality: Any>(
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <Functionality: Any> PortCapability.registerConsumer(key: Key, type: Type): ConsumerPort<Functionality> {
+fun <Functionality: Any> PortCapability.registerConsumer(
+    key: Key,
+    type: Type,
+    port: () -> ConsumerPort<Functionality> = { ConsumerPort(this, key, type) },
+): ConsumerPort<Functionality> {
     // See registerProvider: one atomic registration, one Created event per port.
-    val registration = consumerPorts.putIfAbsent(type, key) { ConsumerPort<Functionality>(this, key, type) as ConsumerPort<Any> }
+    val registration = consumerPorts.putIfAbsent(type, key) { port() as ConsumerPort<Any> }
     val port = registration.value as ConsumerPort<Functionality>
     if (registration.created) emit(PortEvent.Created(port))
     return port

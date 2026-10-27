@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.ui.machinesignal.colors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalTextStyle
@@ -32,6 +35,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
@@ -154,6 +158,9 @@ fun <K> BlueprintCanvas(
     focusable: Boolean = false,
     port: PinRef? = null,
     editor: GraphEditor? = null,
+    cardContent: (@Composable (Card) -> Unit)? = null,
+    interaction: dev.shibasis.reaktor.blueprint.canvas.CanvasEditing? = null,
+    initialFit: (() -> Unit)? = null,
 ) {
     val cards = remember(layout) { layout.cards.values.toList() }
     val boxes = remember(layout) { layout.frames + cards }
@@ -182,7 +189,7 @@ fun <K> BlueprintCanvas(
     SideEffect { canvas.insetTop = TopInset.value.toDouble(); canvas.insetStart = startInset.value.toDouble(); canvas.extent = boxes; editor?.font = fonts.ui }
     LaunchedEffect(fitKey, canvas.flow.canvasSize, layout, density) {
         if (boxes.isEmpty()) return@LaunchedEffect
-        canvas.fitOnce(fitKey, fitScene) { canvas.fit(boxes) }
+        canvas.fitOnce(fitKey, fitScene) { initialFit?.invoke() ?: canvas.fit(boxes) }
     }
     val phase = remember { mutableFloatStateOf(0f) }
     if (styles.any { it.flowing }) LaunchedEffect(Unit) {
@@ -219,11 +226,21 @@ fun <K> BlueprintCanvas(
         },
         enterOpens = onCardOpen != null,
         focusable = focusable,
-        editing = editor,
+        editing = interaction ?: editor,
         markers = { focus ->
             GraphMarkers(canvas, boxes, { if (it < layout.frames.size) "frame:${layout.frames[it].key}" else cards[it - layout.frames.size].id }) { i, zoom ->
                 if (i < layout.frames.size) FrameMarker(layout.frames[i], frameLooks[i])
-                else looks[i - layout.frames.size]?.let { look -> CardMarker(cards[i - layout.frames.size], look, zoom < Blueprint.FarZoom, pinTip, { focus(); cardClick(it) }, pinClick?.let { click -> { card, pin -> focus(); click(card, pin) } }) }
+                else looks[i - layout.frames.size]?.let { look ->
+                    val card = cards[i - layout.frames.size]
+                    CardMarker(card, look, zoom < Blueprint.FarZoom, pinTip, { focus(); cardClick(it) }, pinClick?.let { click -> { card, pin -> focus(); click(card, pin) } })
+                    cardContent?.let { content ->
+                        Box(Modifier.absoluteOffset(card.x.toFloat().dp, (card.y + BlueprintEngine.HeaderHeight).toFloat().dp)
+                            .wrapContentSize(Alignment.TopStart, unbounded = true)
+                            .requiredSize(card.width.toFloat().dp, (card.height - BlueprintEngine.HeaderHeight).coerceAtLeast(0.0).toFloat().dp).clipToBounds()) {
+                            content(card)
+                        }
+                    }
+                }
             }
         },
     ) { camera, viewport, scale ->
@@ -261,6 +278,7 @@ private fun CardMarker(card: Card, look: BlueprintCardLook, far: Boolean, pinTip
         look.action?.let { onClick(label = it) { onCardClick(card.id); true } }
     }.tagged(look.tag)) {
         Said(look.title)
+        look.imageDescription?.let { Said(it) }
         if (far) return@Box
         Said(look.subtitle)
         look.marks.forEach { Said(it.said) }

@@ -15,6 +15,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import dev.shibasis.reaktor.core.framework.json
 
 /**
  * Physical Apple devices.
@@ -35,7 +36,6 @@ class AppleDeviceBackend : DeviceBackend {
     override val transport: DeviceTransport = DeviceTransport.Idb
     override val name: String = "Apple · devicectl + idb"
 
-    private val json = Json { ignoreUnknownKeys = true }
 
     private val devicectl: String? get() = CommandRunner.locate("xcrun")
     private val idbCompanion: String? get() = IdbCompanion.locate()

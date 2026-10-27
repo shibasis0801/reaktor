@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.core.framework
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
@@ -25,6 +26,21 @@ fun JsonBuilder.defaults() {
 
 var json = Json {
     defaults()
+}
+
+val prettyJson = Json(json) { prettyPrint = true }
+
+@OptIn(ExperimentalSerializationApi::class)
+val lenientJson = Json(json) {
+    isLenient = true
+    allowComments = true
+    allowTrailingComma = true
+}
+
+@OptIn(ExperimentalSerializationApi::class)
+val compactJson = Json(json) {
+    encodeDefaults = false
+    explicitNulls = false
 }
 
 val EMPTY_JSON = JsonObject(emptyMap())

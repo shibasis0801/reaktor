@@ -5,6 +5,7 @@ import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 import kotlinx.serialization.json.*
+import dev.shibasis.reaktor.core.framework.prettyJson
 
 enum class MessageDecoder { Text, Json, Base64Utf8, Hex }
 
@@ -15,7 +16,7 @@ object MessagePayload {
         require(value.toByteArray().size <= 1_048_576) { "Payload exceeds the 1 MiB decoder preview budget" }
         return when (decoder) {
             MessageDecoder.Text -> value
-            MessageDecoder.Json -> Json { prettyPrint = true }.encodeToString(JsonElement.serializer(), Json.parseToJsonElement(value))
+            MessageDecoder.Json -> prettyJson.encodeToString(JsonElement.serializer(), Json.parseToJsonElement(value))
             MessageDecoder.Base64Utf8 -> StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
                 .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(Base64.getDecoder().decode(value))).toString()
             MessageDecoder.Hex -> value.toByteArray(StandardCharsets.UTF_8).toHexString(HexFormat { bytes { byteSeparator = " " } })

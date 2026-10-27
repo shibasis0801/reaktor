@@ -102,6 +102,7 @@ data class DesignChange(
     val from: String? = null,
     val to: String? = null,
     val definedIn: String? = null,
+    val values: Map<String, String> = emptyMap(),
 )
 
 @Serializable

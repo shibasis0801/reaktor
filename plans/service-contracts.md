@@ -2,7 +2,7 @@
 
 Written 23 October 2026, updated 24 October 2026. Owner: Shibasis.
 
-This is the only service layer now. The legacy `Service` / `RequestHandler` API is removed, and every service in reaktor and BestBuds is a contract. Nothing is committed: the work sits in the reaktor and BestBuds working trees. reaktorServer runs the current version in production since 24 October 15:16. The BestBuds workers run the first version (before the root classes in §1) since 23 October; the current worker code waits on a lockfile another session changed (§6).
+This is the only service layer now. The legacy `Service` / `RequestHandler` API is removed, and every service in reaktor and BestBuds is a contract. The owner committed both trees on 24 October at 17:33 (reaktor `35842f85`, BestBuds `f7792421`). The navigation work after that (route exits, `plans/expressive-code-scan.md` §0) is uncommitted. Production runs the open root classes in §1: reaktorServer since 24 October 19:07 and the BestBuds workers since 19:22 (§6).
 
 The layer lives in three modules:
 - `reaktor-service`, package `dev.shibasis.reaktor.service.contract`. It holds contracts, links, interceptors, outcomes, channels, joins and sockets.
@@ -21,7 +21,7 @@ It borrows a few concepts from the v2 drafts, though full v2 is not final:
 
 | Area | Work | State |
 |---|---|---|
-| Contracts | One self-typed root class per service, which the client and every server inherit; one line per `get`/`post`/`put`/`patch`/`delete`; servers `handle` what they host and the rest answers 501 `Unavailable`; routes, effects, idempotency, deadlines; fingerprint from schemas | Done; every service uses it |
+| Contracts | One open root class per service; a client is `X() over link`, and every server subclasses it; one line per `get`/`post`/`put`/`patch`/`delete`; servers `handle` what they host and the rest answers 501 `Unavailable`; routes, effects, idempotency, deadlines; fingerprint from schemas | Done; every service uses it |
 | Links | `LocalLink`, `HttpLink`, `SocketLink`, `QueueLink`; deadline propagation; retry with budget | Done; `HttpLink` carries every BestBuds app call to the workers |
 | Interceptors | Position, side, family; process, graph, node and endpoint scopes; visible in the graph shape | Done |
 | Telemetry | `Spans` writes `ServiceSpan`s with graph definition ids. The BestBuds worker installs it with the build revision and takes the environment from each request | Done; a tier bug the JS tests caught is fixed (§5) |
@@ -32,43 +32,39 @@ It borrows a few concepts from the v2 drafts, though full v2 is not final:
 | Cloudflare | Each BestBuds worker passes its `Served(XServer())` list to `bestBudsWorker`, which serves them in a graph behind an access guard and mounts it with `Hono.mount`; `bindingLink`, `durableObjectLink`, `QueueLink`, `Graph.queue(batch, env, ctx)`, `PartySockets` | Done; 16 worker files serve contracts |
 | Spring | `Served.toRouter()`, `Iterable<Served>.toRouter()` | reaktorServer mounts the auth contract with it |
 | Legacy | `Service`, `RequestHandler`, the seven `*Handler` classes, `ServiceNode`, `ServiceTransport`, `ServiceInterceptor`, `SpringRouter`, `JsRequestHandler` | Removed (15 files) |
-| Migration | reaktor, BestBuds app and workers, engine and kernel, reaktorServer | Done in the working trees (§5) |
-| Device runs | Samsung: 31 of 65 flows pass, no failure from the migration. iPhone: not run, because the device plan needs review in Hangar | Android done; iOS waiting on the owner (§5) |
+| Migration | reaktor, BestBuds app and workers, engine and kernel, reaktorServer | Done, committed on 24 Oct and deployed (§5, §6) |
+| Device runs | Samsung, build 29 (open roots and route exits): 30 of 31 dev flows pass; the one failure was the dev notification worker and passes on a rerun. Build 28: Samsung 31 of 65 in one run, iPhone 26 of 31 | iPhone build 29 is installed and launches, but no flow could run: the phone would not enable UI automation (§5). Five iPhone failures from build 28 still to trace |
 | Hangar | BestBuds DevTools streams `rootGraph.shapes()`, so contract, channel and interceptor shapes reach Hangar; `Compatibility` is ready for drift checks | Data flows; no UI yet |
-| Deploy | BestBuds workers and reaktorServer | reaktorServer: current version live since 24 Oct. Workers: first version live since 23 Oct; the current version waits on a lockfile another session changed (§6) |
+| Deploy | BestBuds workers and reaktorServer | Both run the open roots: reaktorServer since 24 Oct 19:07, the 16 workers since 19:22. `analytics` waits on a ClickHouse migration the owner applies (§6) |
 
 ## 1. The model
 
-A service is one abstract root class. It names every operation once, with its route, types, effect and idempotency. Its client and its servers both inherit from it:
+A service is one open root class. It names its id and every operation once, with the route, types, effect and idempotency, and nothing else. Clients and servers are instances of it:
 
 ```kotlin
-abstract class Guestbook(link: Link = Unlinked) : Service<Guestbook>("guestbook", link) {
+open class Guestbook : Service("guestbook") {
     open val sign by post<Sign, Signed>("/guests/{guest}", idempotency = Idempotency.Keyed, status = 201)
     open val read by get<Page, Entries>("/entries", effect = Effect.ReadOnly)
     open val live by stream<Since, Entry>()
     val signed = topic<Entry>("signed")
-
-    override fun client(link: Link): Guestbook = Client(link)
-
-    class Client(link: Link) : Guestbook(link)
-
-    companion object : Guestbook()
 }
 
 class GuestbookServer(private val book: Book) : Guestbook() {
     override val sign = super.sign.handle { request -> book.sign(request) }
     override val read = super.read.handle { request -> book.page(request) }
 }
+
+val guestbook = Guestbook() over HttpLink("https://guestbook.example")
 ```
 
 Reading a root is reading the API:
 - `get`, `post`, `put`, `patch` and `delete` are one line each. `call` binds `POST /<id>/<name>` when no route is given, and `stream` declares a live read.
-- The client and every server are subclasses, so the IDE jumps from an operation to each class that answers it.
-- A server answers what it overrides with `handle`. An operation it does not override goes over the service's link. On the default `Unlinked` link that is a 501 `Unavailable`, which `Retry` never retries. So a mock can answer two operations and a partial server can forward the rest to a real link.
+- `Guestbook()` is the contract itself. `Guestbook() over link` is a client, and `over` binds a link once. Every server is a subclass, so the IDE jumps from an operation to each class that answers it.
+- A server answers what it overrides with `handle`. An operation it does not override goes over the service's link. On the default `Unlinked` link that is a 501 `Unavailable`, which `Retry` never retries. So a mock can answer two operations and a partial server, such as `Herald() over link`, can forward the rest to a real link.
 - `super.sign(request)` inside a handler decorates the parent's answer.
-- The companion object is the prototype: `Guestbook.sign` is the operation, `uses(Guestbook)` and `api(Guestbook.sign)` are typed ports, and `Guestbook.client(link)` builds a client.
-- `Service<Self>` is self-typed, so `uses(Guestbook)` and `serve(GuestbookServer(book))` both infer `Guestbook`, never the companion's type or the server's type.
-- `inProcess<S>()` reaches a member that cannot cross a wire, such as a picked media file. It works only over a `LocalLink`.
+- `inProcess<S>()` reaches a member that cannot cross a wire, such as a picked media file. It works only when the link ends in the same process.
+
+A root has no factory, prototype object or self type. The framework never creates an instance of a contract. Each instance comes from user code: a server, a remote client, or the stub a node declares with `uses`.
 
 Everything runs through one exchange path. A call, stream, publish or delivery becomes an `Exchange`. The exchange runs through an ordered interceptor chain and then a transport.
 
@@ -78,10 +74,12 @@ The graph is where services are wired. Port types encode the family and the role
 
 | Node | Provides | Consumers declare |
 |---|---|---|
-| `graph.serve(GuestbookServer(book))` / `graph.remote(Guestbook.client(link))` | `contract:<id>` and one `contract:<id>/<operation>` per call | `val api by uses(Guestbook)`, `val sign by api(Guestbook.sign)` |
+| `graph.serve(GuestbookServer(book))` / `graph.remote(Guestbook() over link)` | `contract:<id>` and one `contract:<id>/<operation>` per call | `val guestbook by uses(Guestbook())`, `val sign by api(Guestbook().sign)` |
 | `graph.relay(node)` | every port of `node`, wired back to it | (the same consumers) |
 | `graph.channel(channel, outlet?)` | `publish:<id>`, `subscribe:<id>` | `val out by publishes(channel)`, `val inbox by subscribes(channel) { … }` |
 | `graph.join(left, right, result, within, …)` | (consumes both inputs, publishes the result) | — |
+
+A node that uses a service holds its own stub. `uses(Guestbook())` binds that stub to the node's port, so `guestbook.sign(request)` reaches whichever provider the graph wired, through any relays, and carries the port's interceptors and the wire's identity. A served node is reached through its own `LocalLink`, so a consumer's call also runs the server-side chain. Rewiring a graph moves every stub at once, because a stub looks up its provider on each call.
 
 `autoWire` connects these ports like any other port. A `Relay` re-provides another node's ports in its own graph, with a real edge back to the source, so one graph can stand in for another and the shape still shows where each call goes. A relay takes the relayed node's name and kind, so a relayed service reads as a service in the shape.
 
@@ -221,6 +219,12 @@ Feature graphs take the `Backend` and relay what they use: `val service = relay(
 
 **A tracing bug the JS tests caught.** The worker used to stamp every span with the global `BESTBUDS_TIER`. `validatedSpanRows` rejects a whole batch when a span's environment differs from the intake's tier, and a rejected batch is never acknowledged, so it blocks every batch after it. `BestBudsTracing` now reads the tier from each request's `APP_ENV` and passes it through `ServiceCall` attributes. `WorkerIngressTelemetryTest` went from 8 failures to 9/9.
 
+**Verified, 24 October 2026 evening, after the open roots and the route exits.**
+- Compiles: the BestBuds app for JVM, JS, Android and iOS (arm64), the engine and reaktorDesktop tests, and Manna (app with tests, MCP, domain, iOS).
+- reaktor: 432 JVM tests across 11 modules pass, 1 skipped. graph-runtime's 24 JS tests pass too, including `RouteExitTest`.
+- BestBuds app: JVM 262/262, JS 308/308. kernel: 455 pass, 11 skipped. reaktorServer: 22 pass, 1 skipped.
+- The engine suite runs only on this Mac and was not rerun after the route exits. Its run after the open roots had 12 failures of 123, all in Surface parity, render and retirement tests that other sessions are changing; one of them (`SurfaceRetirementTest`) ran out of memory.
+
 **Verified, 24 October 2026, after the root classes and the four backend graphs.**
 - Compiles: the BestBuds app for JVM, JS, Android and iOS (arm64), with its tests, plus engine, kernel, reaktorServer, reaktorDesktop and reaktorCli.
 - reaktor JVM: 398 tests across 10 modules pass, including the relay test.
@@ -230,7 +234,13 @@ Feature graphs take the `Backend` and relay what they use: `val service = relay(
 - Production: the Karate auth suite (13 workers) passes 42/42 before the deploys, after the workers' deploy and after the server deploy.
 - Real dev data loads in the new client (friends, chats, messages, profile), and a real message went from Manab to Shibasis on dev (`telemetry-send`).
 
-**Samsung (Android), dev tier, new build (versionCode 27).** 31 of 65 flows pass. None of the 34 failures comes from the migration:
+**Samsung (Android), dev tier, build 29 (24 October evening, open roots and route exits).** It ran the 31 flows that pass on build 28, and 30 pass, including feature-graphs, tabs-back, circles, lobby, new-user, chat and settings. The one failure, developer-probes, stopped because its session probe did not report notifications as accepted. A rerun of that probe alone shows all four services accepted (notifications in 691 ms), so the failure was the dev notification worker, not the build. The same Developer screen reports 0 unwired ports and every screen wired and reachable. Build 29 carries the sign-in seeds from 15:09, because fresh seeding stops at a dev account whose app membership is `INVITED` (§6).
+
+**Samsung (Android), dev tier, build 28 (24 October, self-typed roots).** 31 of 65 flows pass in one run. Build 27 passed 23 of 66 in its first run and 31 after its 21 failures were rerun.
+- Ten flows that failed on build 27 now pass: chat-history, developer, feature-graphs, plans-host, plans-safety, real-app, round, settings-account, tabs-back and verify.
+- One flow that passed now fails: edit-profile-city. It picks Pune and cancels, and no discard prompt appears. Whether the test account's city was already Pune was not checked.
+
+**Samsung (Android), dev tier, build 27 (23 October, first version).** None of its 34 failures after reruns came from the migration:
 
 | Cause | Flows |
 |---|---|
@@ -243,12 +253,17 @@ Feature graphs take the `Backend` and relay what they use: `val service = relay(
 
 telemetry-receive was not run; it needs a second phone sending at the same time.
 
-**iPhone (iOS 27.0.1), dev tier.** Not run. The phone still has an old build (1.0, build 1) without this work, and a new build could not be made in this session:
-- The kernel's `mobileDeviceFlows` node answers "needs a reviewed plan; run it from Hangar until deploy.run lands".
-- Plain Gradle stops before the kernel-owned `:appDarwin:generateReleasePlan`, and the suite then fails when it reads the plan.
-- An iOS compile (`:app:compileKotlinIosArm64`) was not run either.
+**iPhone (iOS 27.0.1), dev tier, build 28.** Built with xcodebuild on the worker, with no Hangar step. It ran the 31 flows that pass on the Samsung, and 26 pass. The five failures are not traced yet. Each one's first failing step:
 
-What is known: only one iOS-only file changed (`DarwinAuthAdapter`), and it makes the same `AuthService.client(HttpLink(...))` call that compiles in the Android and web adapters. No iOS source set uses a removed type, and the shared code compiles for JVM, Android and JS.
+| Flow | First failing step |
+|---|---|
+| developer-probes | `scrollUntilVisible` for "Recorded …" found nothing |
+| feature-graphs | `pressKey: back`, a key iOS does not have; the flow needs an iOS way back |
+| links | "Switch" did not appear within 10 s |
+| notifications-permission | `notifications-off` did not appear within 10 s |
+| real-app | `scrollUntilVisible` for `probe-live-chat` found nothing |
+
+**iPhone, build 29 (24 October evening).** Installed and launches, but no flow ran. Two runs of the same 31 flows failed every flow at launch, because the test driver (WebDriverAgent) could not start: "Timed out while enabling automation mode", on every attempt. Killing the phone's `testmanagerd`, which cleared this before, did not help: a third run failed the same way. The phone was not locked (an app launch succeeds), developer mode is on, it is wired and paired, and nothing else was testing on it. The cause is on the phone, which needs someone at it: a dialog on screen, Settings › Developer › Enable UI Automation, or a restart. Then rerun the suite.
 
 **Test infrastructure found along the way.**
 - offline-reopen turns airplane mode on and, when it fails, never turns it off. In a run that continues past failures, every later flow then has no network.
@@ -256,33 +271,42 @@ What is known: only one iOS-only file changed (`DarwinAuthAdapter`), and it make
 
 ## 6. Deploy status
 
-**reaktorServer: the current version is live.**
-- The first rollout (24 October, late morning) crashed at start, because two beans were named `serverAccess`. It was rolled back to the previous image (`…@sha256:de84f0ac…`) after about 6 minutes of API downtime, and one bean was renamed `authAccess`.
-- Redeployed 24 October 15:16 as `bestbuds-app-server@sha256:7c23bb29…` (tag `service-contracts-20261024-2`), after the image booted against a throwaway Postgres. The rollout took 32 s. The deployment uses `maxSurge: 0`, so the API answers 502 for a few seconds while the pod is replaced.
-- After the rollout the endpoint probe matches the baseline with one change: `POST /auth/pat/verify` with a body that lacks `rawToken` used to answer 500 and now answers 400 with the parse error. The Karate auth suite passes 42/42.
-- To roll back, patch `app-server` to `…@sha256:de84f0ac…`.
+**reaktorServer: the current version is live.** Three rollouts on 24 October:
+- Late morning: crashed at start, because two beans were named `serverAccess`. It was rolled back to the previous image (`…@sha256:de84f0ac…`) after about 6 minutes of API downtime, and one bean was renamed `authAccess`.
+- 15:16: `bestbuds-app-server@sha256:7c23bb29…` (tag `service-contracts-20261024-2`), the self-typed roots. The endpoint probe matched the baseline with one change: `POST /auth/pat/verify` with a body that lacks `rawToken` used to answer 500 and now answers 400 with the parse error. The Karate auth suite passed 42/42.
+- 18:53: `bestbuds-app-server@sha256:6dd9d72f…` (tag `service-contracts-20261024-3`), the open roots. The image started against a throwaway Postgres first. The rollout took 32 s, and the endpoint probe matches the one taken just before it.
+- 19:03 to 19:07: rolled back to `7c23bb29` and forward again. Seeding dev sign-in fixtures had started failing with 401 from `/auth/session/refresh`, so the new image was suspect. The dev audit log cleared it: refreshes succeed under both images, and the seed stops at a test account whose app membership is now `INVITED`, which the server rightly refuses. Each switch cost about 30 s of 502s.
 
-**BestBuds workers: the first version is live, the current version is blocked.**
-- 16 workers were deployed to production on 23 October at about 23:05 with the first version of this layer. Routes and serial names have not changed since, so they serve the current apps. Their previous versions are saved for rollback.
-- The current worker code (root classes and `handle`) is not deployed. Every worker deploy runs pnpm, and dependeasy makes pnpm check the install against `pnpm-lock.yaml` first. That check fails: another session's uncommitted lockfile edit (24 October 14:05, which adds `postgres` and the board package) dropped `react` and `react-dom` from the `reaktor-devtools` importer, which still declares them. The committed lockfile has them. The fix belongs to that session: restore the two entries, or regenerate the lockfile with the generated packages in place.
+Each new image was started that way before its rollout. Spring starts, then the app stops at its check for the auth tables, which a throwaway Postgres does not have. The production image `de84f0ac` stops at the same check, so the test proves the wiring, not the database. The deployment uses `maxSurge: 0`, so the API answers 502 for a few seconds while the pod is replaced. To roll back, patch `app-server` to `…@sha256:7c23bb29…` (self-typed roots) or `…@sha256:de84f0ac…` (before this work).
+
+**BestBuds workers: the current version is live.** 16 workers, three deploys:
+- 23 October, about 23:05: the first version of this layer.
+- 24 October, about 16:28: the self-typed roots, once another session had fixed the pnpm lockfile (about 15:40).
+- 24 October, 19:16-19:22: the open roots.
+
+Routes and serial names have not changed since the first deploy, so every deploy serves the installed apps. After the last one, the endpoint probe matches the one from the afternoon, and the production Karate auth suite (13 workers) passes 42/42.
+
+Every plan lists binding differences on most workers (service bindings, D1, `TRACES`). They are not changes. The desired digests are the same as before the 16:28 deploy, and the observed ones did not move after it, so the comparison itself never matches.
+
 - `analytics` stays out until the owner applies the pending ClickHouse migration. This session's request to apply it was refused.
 - The D1 migrations (`socialMigrations`, `notificationMigrations`) are left out, because their plans are withheld outside the kernel.
 
-Once the lockfile is consistent, plan first (`-Pdependeasy.deployAction=plan`), then deploy:
+Plan first (`-Pdependeasy.deployAction=plan`), then deploy:
 
 ```bash
 ./gradlew --no-daemon -x :generatePackageScripts -x :pr -x :clickhouse -x :workers:socialMigrations -x :workers:notificationMigrations :workers:deployAccountPurge :workers:deployArchiver :workers:deployBot :workers:deployCampaignEngagement :workers:deployChat :workers:deployCircleFormation :workers:deployConfig :workers:deployDataProbe :workers:deployImageModerator :workers:deployMedia :workers:deployMessaging :workers:deployNotification :workers:deploySocial :workers:deploySticker :workers:deployTextModerator :workers:deployVerification -Pdependeasy.environment=prod --max-workers=1
 ```
 
-Then re-run the Karate auth suite (`:workers:workerKarateAuth -Pdependeasy.environment=prod`) and the endpoint probe.
+Then run the Karate auth suite (`:workers:workerKarateAuth -Pdependeasy.environment=prod`) and the endpoint probe.
 
 The web app (`appWeb`) was not deployed.
 
 ## 7. Next steps, highest leverage first
 
-1. **Deploy the current worker code** once the lockfile is fixed (§6), then re-run Karate and the probe.
-2. **Apply the ClickHouse migration** and deploy `analytics`.
+1. **Apply the ClickHouse migration** and deploy `analytics`.
+2. **Run build 29 on the iPhone** once its UI automation works again, then **trace the device failures** that are still unexplained: the five iPhone failures from build 28 and edit-profile-city on the Samsung (§5).
 3. **Repair the dev tier and the stale flows** so the device suites can catch regressions again:
+   - make the dev test account whose app membership is `INVITED` active again; until then `scripts/seed-dev-auth-fixtures.mjs` stops at it and no device build gets fresh sign-in seeds;
    - make `shibasis` and `shibasis1` buds again with a direct chat;
    - reset the compass and profile leftovers, and find out why dev `/plans` and `/invites` fail;
    - pass `language` on relaunches, and fix discover, chat-mentions and circles-next;
@@ -294,3 +318,5 @@ The web app (`appWeb`) was not deployed.
    - The Hangar UI is in BestBuds `engine`, where other sessions are active.
 6. **Durable joins and queues on Durable Objects.** `TemporalJoin` is a pure state machine. A Durable Object can snapshot it, so joins survive Worker isolate restarts.
 7. **A Miniflare test** of `Graph.queue` and `PartySockets` in `reaktor-cloudflare`.
+
+The wider clean-up that this layer makes possible (typed outputs, caller resolution, path binding, retiring the client-side adapters) is ranked in `plans/expressive-code-scan.md`.

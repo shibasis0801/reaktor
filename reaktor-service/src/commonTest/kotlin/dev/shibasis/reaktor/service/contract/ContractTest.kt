@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -105,7 +106,7 @@ private class Recording(
     }
 }
 
-private fun loopback(served: Served<*>, answer: (HttpMethod, Int) -> Int? = { _, _ -> null }): HttpClient {
+internal fun loopback(served: Served<*>, answer: (HttpMethod, Int) -> Int? = { _, _ -> null }): HttpClient {
     var hits = 0
     return HttpClient(MockEngine { request ->
         hits += 1
@@ -174,6 +175,20 @@ class ContractTest {
         assertEquals(403, refused.status)
         assertEquals(GuestbookProblem.Banned("mallory"), refused.problemAs<GuestbookProblem>())
         assertEquals(Health(true), api.health())
+    }
+
+    @Test
+    fun callMetadataTravelsAsHeadersOnlyInsideItsScope() = realTime {
+        val seen = mutableListOf<String?>()
+        val served = Served(GreeterServer()).intercept(object : Interceptor {
+            override suspend fun <In, R> intercept(exchange: Exchange<In, R>, next: Next<In, R>): R { seen += exchange.metadata["x-caller"]; return next(exchange) }
+        })
+        val api = Greeter() over HttpLink("https://greeter.test", loopback(served))
+
+        withContext(CallMetadata(mapOf("x-caller" to "ada"))) { api.health() }
+        api.health()
+
+        assertEquals(listOf("ada", null), seen)
     }
 
     @Test
@@ -263,6 +278,34 @@ class ContractTest {
         assertEquals(listOf("greet", "sign", "health", "count"), herald.operations.map { it.name })
         assertEquals(setOf("greet"), herald.answers)
     }
+
+    @Test
+    fun aBareValueFillsTheOnlyPathParameter() = realTime {
+        val find = Registry().find.binding
+        val outgoing = find.encode(String.serializer(), "Bob Smith")
+        assertEquals("/guests/Bob%20Smith", outgoing.path)
+        assertEquals(emptyList(), outgoing.query)
+        assertEquals(null, outgoing.body)
+        assertEquals("Bob Smith", find.decode(String.serializer(), Inbound(pathParams = mapOf("guest" to "Bob Smith"))))
+        assertEquals(Mood.Happy, Registry().mood.binding.decode(Mood.serializer(), Inbound(pathParams = mapOf("mood" to "Happy"))))
+
+        val api = Registry() over HttpLink("https://registry.test", loopback(Served(RegistryServer())))
+        assertEquals(Greeted("Ada Lovelace"), api.find("Ada Lovelace"))
+        assertEquals(Unit, api.forget("Ada"))
+        assertEquals(404, assertFailsWith<Rejected> { api.find("nobody") }.status)
+    }
+}
+
+open class Registry : Service("test.registry") {
+    open val find by get<String, Greeted>("/guests/{guest}")
+    open val forget by delete<String, Unit>("/guests/{guest}")
+    open val mood by put<Mood, Unit>("/moods/{mood}")
+}
+
+class RegistryServer : Registry() {
+    override val find = super.find.handle { guest -> if (guest == "nobody") reject(404, "No such guest") else Greeted(guest) }
+
+    override val forget = super.forget.handle { }
 }
 
 @Serializable

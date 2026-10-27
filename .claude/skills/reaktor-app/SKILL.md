@@ -17,37 +17,35 @@ type names; read this for the rules that bite.
 
 Three crashes account for most lost time on a new reaktor app. All three are silent until launch.
 
-### 1. Port keys must match, and the rule differs by direction
+### 1. A port finds its provider by key first, then by type
 
-A port's qualifier is `"Port:$key:$type"`, and **`key` defaults to the property name**. Get it
-wrong and you get `IllegalStateException: Can't invoke functions through unconnected ports`.
+A port's key defaults to the property name. A consumer connects, in this order:
 
-**Same graph** — `autoWire()` matches by type *only when the consumer key is empty*:
+1. to the provider with the same key, in its own graph and then its parents;
+2. failing that, to the **only** provider of its type in the nearest graph that has one: its own
+   nodes, then the graphs it `dependsOn`, then its parents. `wire()` also looks across sibling
+   graphs of the tree it wires.
+
+So `consumes<T>()` just works when one provider of `T` is in reach, in the same graph or above it:
 
 ```kotlin
-// Right: empty string, so autoWire matches on type
-private val interactor by consumes<TodayInteractor>("")
-
-// Wrong: keys it "interactor" (the property name), which never matches
-// the provider's key "todayInteractor"
 private val interactor by consumes<TodayInteractor>()
+private val programs by consumes<ProgramRepository>()   // provided by the root graph
 ```
 
-**Across graphs** — resolves through DI by the **full qualifier**, so an empty key does *not*
-work. The consumer key must equal the provider's key:
+Write a key only to choose between several providers of one type. The consumer's key must then
+equal the provider's:
 
 ```kotlin
-// Root graph: Node(::ProgramRepository).apply { exposePort(programRepository) }
-// Child graph consumer must name it exactly:
-private val programRepo by consumes<ProgramRepository>("programRepository")
+private val primary by consumes<HttpClient>("primary")
 ```
 
-A child graph's DI scope chains to its parent, so cross-graph sharing works as long as the keys
-match and the provider is exposed **before** the child graph's `autoWire()` runs.
+Two providers of one type at the same distance, with no key between them, fail with a message
+that names both: `X can take T from A, B`. A port nothing provides fails with
+`IllegalStateException: Can't invoke functions through unconnected ports`.
 
-Because the key is a property *name*, **minification breaks wiring**. R8 renames fields, so a
-release build raises this same unconnected-port error on its first launch while every debug build
-is fine. The keep rules that prevent it are in `reaktor-ship`.
+A key is a property *name*, so minification can rename it. Ports that wire by type are unaffected;
+ports that rely on a written key need the keep rules in `reaktor-ship`.
 
 ### 2. Never touch a port from `init`
 
@@ -81,21 +79,19 @@ Working order: **Theme, Dependency, File, Sql, Database.**
 A graph is a scope: its own nodes, its own DI, its own navigation stack. In a tabbed app each tab
 is a graph, over a root graph holding the repositories.
 
-**Routes are per-graph.** A screen reachable from two tabs needs its own node *and* its own route
-in each graph — there is no cross-graph push. Duplicating an interactor for this is the
-established pattern, not a smell: the second instance has its own cursor state, which is usually
-what you want, and both write through ports to the same shared repository.
+**A route lives in one graph; navigation can cross graphs.** Pushing a route that lives in another
+tab's graph switches the container to that tab, and back returns to the tab it came from. Give a
+screen its own node *and* route in a second tab only when its *state* belongs to that tab — the
+second instance has its own cursor state, and both write through ports to the same repository.
 
 ```kotlin
 // In TodayGraph — its own instance, its own route, so back lands on Today
 Node(::ImportInteractor)
-val importRoute = Route("/today/import") { ImportBinding() }
-Node(::ImportSplitScreen)
-val route = Route("/today") { TodayBinding(it.edge(workoutRoute), it.edge(importRoute)) }
+val importRoute = Route("/today/import", ::ImportBinding, ::ImportSplitScreen)
+val route = Route("/today", ::TodayBinding, ::TodayScreen)
 ```
 
-Ask before duplicating: does this screen's *state* belong to this tab? If yes, duplicate. If the
-screen is genuinely global, it belongs in the root graph.
+If the screen is genuinely global, it belongs in the root graph.
 
 ## Node types
 
@@ -105,14 +101,14 @@ screen is genuinely global, it belongs in the root graph.
 | `StartableInteractor<S>` | Screen state. Holds a `StateFlow<S>`, has `onStart()`, `reduce {}`. |
 | `StatelessComposeNode` | A screen. Consumes its `RouteBinding` and its interactor. |
 | `ContainerNode` | Holds sub-graphs — a bottom-nav container over tab graphs. |
-| `RouteNode` | A navigation destination. Created via `Route(pattern) { Binding() }`. |
+| `RouteNode` | A navigation destination. `Route(pattern, ::Binding, ::Screen)` creates it with its screen; `Route(pattern) { Binding() }` creates it alone. |
 
-A screen consumes its binding by type and its interactor with an **empty key**:
+A screen consumes its binding and its interactor by type:
 
 ```kotlin
 class TodayScreen(graph: Graph) : StatelessComposeNode(graph) {
     override val routeBinding by consumes<TodayBinding>()
-    private val interactor by consumes<TodayInteractor>("")
+    private val interactor by consumes<TodayInteractor>()
 
     @Composable
     override fun Content() {
@@ -124,47 +120,81 @@ class TodayScreen(graph: Graph) : StatelessComposeNode(graph) {
 }
 ```
 
-Navigation edges are declared on the binding and pushed from the screen:
+A binding declares its screen's exits by destination binding type, and `autoWire` connects each
+exit to the one route bound by that type — in the graph, in the graphs passed to `autoWire`, or in
+a parent. A container is reached by its class, e.g. `exit<SessionSlot<*>>()`.
 
 ```kotlin
-class TodayBinding(
-    val workoutEdge: NavigationEdge<Payload>,
-) : RouteBinding<Payload>(Payload())
+class TodayBinding : RouteBinding<Payload>(Payload()) {
+    val workout by exit<WorkoutBinding>()
+    val importer by exit<ImportBinding>()
+}
 
-// in Content(): routeBinding { workoutEdge.push(Payload()) }
+// in Content(): routeBinding { workout.push(Payload()) }
+// in the parent, after building the tabs: today.autoWire(workouts)
 ```
+
+A route that carries data declares a `@Serializable` route class beside its binding. The exit
+pushes it and the screen reads it back; its fields travel in the payload's string map, so deep
+links and route patterns such as `/workouts/{id}` keep working:
+
+```kotlin
+@Serializable
+data class WorkoutRoute(val id: String, val resume: Boolean = false)
+
+// pushing: routeBinding { workout.push(WorkoutRoute(id)) }
+// reading: val (id, resume) = routeBinding { toRoute<WorkoutRoute>() } ?: return
+```
+
+Keep route classes flat (strings, numbers, booleans, enums). A nested object has no place in a URL.
+
+A graph's first screen is declared where it is created: `Root(pattern, ::Binding, ::Screen)` for a
+route, `Root { HomeTabs(it, …) }` for a container. From the graph itself, `replaceWith(route)`,
+`popToRoot()` and `currentRoute` cover what needs no exit.
+
+What fails at runtime, not compile time:
+
+- **An exit into a sibling graph** resolves only when that graph is passed to `autoWire`.
+  `requireFullyWired` names the route that still has an unwired exit.
+- **Two routes bound by the same binding class** in one scope are ambiguous to an exit. Give every
+  route its own binding class.
+- **Reading an exit before wiring** throws `No X route is wired to y, an exit of Z`.
 
 ## Talking to a server: contracts
 
-A service is one interface that the server implements and the client gets from its companion, so a
-changed signature fails to compile on both ends:
+A service is one open root class. Its operations are declared once, the server overrides them,
+and a client is the same class bound to a link, so a changed signature fails to compile on both ends:
 
 ```kotlin
-interface PlansApi {
-    suspend fun plans(request: PlansRequest.Browse): PlansResponse
-    companion object : Contract<PlansApi>("app.plans") {
-        val plans = call(PlansApi::plans, Get("/plans"))
-        override fun client(link: Link): PlansApi = object : PlansApi {
-            override suspend fun plans(request: PlansRequest.Browse) = link(plans, request)
-        }
-    }
+open class PlansApi : Service("app.plans") {
+    open val plans by get<PlansRequest.Browse, PlansResponse>("/plans")
 }
 
-graph.serve(PlansApi, PlansServer())                // server node: Hono.mount / toRouter mount it
-graph.remote(PlansApi, HttpLink(baseUrl, http))     // client node
-class PlansScreen(graph: Graph) : BasicNode(graph) { val plans by uses(PlansApi) }   // plans { plans(r) }
+class PlansServer : PlansApi() {
+    override val plans = super.plans.handle { request -> PlansResponse(load(request)) }
+}
+
+graph.serve(PlansServer())                           // server node: Hono.mount / toRouter mount it
+graph.remote(PlansApi() over HttpLink(baseUrl))      // client node
+class PlansScreen(graph: Graph) : BasicNode(graph) {
+    val plans by consumes(PlansApi())             // the whole service: plans.plans(r)
+    val rsvp by consumes(PlansApi().rsvp)         // one operation, its own edge in the graph: rsvp(r)
+}
 ```
+
+A failure the caller should handle is a `reject(...)` on the server and an `Outcome.Rejection` from
+`outcome { plans.plans(r) }` on the client, not a variant of the response type.
 
 What the compiler does not catch:
 
-- **Only `serve` makes a server.** `graph.remote(PlansApi, LocalLink(served))` is still a client
-  node; mounting skips it and graph interceptors run on its client side only.
+- **Only `serve` makes a server.** `graph.remote(PlansApi() over LocalLink(served))` is still a
+  client node; mounting skips it and graph interceptors run on its client side only.
 - **The serial name is the wire.** Responses carry their class name as `type`. Moving or renaming a
   `@Serializable` request or response without a `@SerialName` breaks every installed client.
 - **Overlapping routes.** `/circles/discover` and `/circles/{id}` both match `/circles/discover`;
   `Hono.mount` registers static segments first, but a raw route added before it still wins.
-- **`XApi.implementation(link)`** reaches the implementation only through a `LocalLink`; over HTTP
-  it throws.
+- **A member that calls `inProcess<S>()`** reaches the implementation only over a `LocalLink`; over
+  HTTP it throws.
 
 ## Platform slots: two patterns, different jobs
 
@@ -264,7 +294,7 @@ when the capability would cost every other app a permission or a heavy SDK it di
 ## Before you say it works
 
 - [ ] Does any node read a port from `init`? Move it to `start()`, called after `autoWire()`.
-- [ ] Same-graph consumers use `consumes<T>("")`; cross-graph ones name the provider's key.
+- [ ] A key is written only where one type has several providers in reach.
 - [ ] Adapters installed File-before-Sql.
 - [ ] Every new `expect` has an `actual` on every target, no-ops included.
 - [ ] Any socket meant to stay open: `maxRetries` raised, and something re-opens a `Failed` one.

@@ -56,7 +56,7 @@ data class RoutePattern(
             val paramNames = mutableListOf<String>()
 
             val pattern = route.replace(paramRegex) { match ->
-                paramNames.add(match.groups[1]!!.value)
+                paramNames.add(match.groupValues[1])
                 return@replace RegexCommon.beforeSlash
             }
 

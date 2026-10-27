@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.cloudflare
 
+import org.khronos.webgl.ArrayBuffer
 import dev.shibasis.reaktor.core.cloudflare.R2Bucket as RawR2Bucket
 import kotlin.js.JsExport
 import kotlin.js.Promise
@@ -35,7 +36,7 @@ internal external interface RawWorkerRequest {
     val url: String
     val headers: RawHeaders
     fun text(): Promise<String>
-    fun arrayBuffer(): Promise<dynamic>
+    fun arrayBuffer(): Promise<ArrayBuffer>
     fun formData(): Promise<RawFormData>
 }
 
@@ -46,7 +47,7 @@ internal external interface RawFormData {
 internal external interface RawFile {
     val name: String
     val type: String
-    fun arrayBuffer(): Promise<dynamic>
+    fun arrayBuffer(): Promise<ArrayBuffer>
     fun text(): Promise<String>
 }
 
@@ -215,16 +216,16 @@ class CloudflareContext internal constructor(
 
     private fun <T> rawBindingOrNull(name: String): T? = raw(name).unsafeCast<T?>()
 
-    fun d1OrNull(name: String): D1Database? = rawBindingOrNull<RawD1Database>(name)?.let(::D1Database)
-    fun r2OrNull(name: String): R2Bucket? = rawBindingOrNull<RawR2Bucket>(name)?.let(::R2Bucket)
-    fun kvOrNull(name: String): KvNamespace? = rawBindingOrNull<RawKvNamespace>(name)?.let(::KvNamespace)
-    fun durableObjectOrNull(name: String): DurableObjectNamespace? = rawBindingOrNull<RawDurableObjectNamespace>(name)?.let(::DurableObjectNamespace)
-    fun serviceOrNull(name: String): WorkerService? = rawBindingOrNull<RawServiceBinding>(name)?.let(::WorkerService)
+    fun d1OrNull(name: String): D1Database? = rawBindingOrNull<RawD1Database>(name)?.let { D1Database(it, name) }
+    fun r2OrNull(name: String): R2Bucket? = rawBindingOrNull<RawR2Bucket>(name)?.let { R2Bucket(it, name) }
+    fun kvOrNull(name: String): KvNamespace? = rawBindingOrNull<RawKvNamespace>(name)?.let { KvNamespace(it, name) }
+    fun durableObjectOrNull(name: String): DurableObjectNamespace? = rawBindingOrNull<RawDurableObjectNamespace>(name)?.let { DurableObjectNamespace(it, name) }
+    fun serviceOrNull(name: String): WorkerService? = rawBindingOrNull<RawServiceBinding>(name)?.let { WorkerService(it, name) }
     fun secretOrNull(name: String): String? = raw(name)?.toString()
     @JsExport.Ignore
-    fun vectorOrNull(name: String): VectorIndex? = rawBindingOrNull<RawVectorizeIndex>(name)?.let(::VectorIndex)
+    fun vectorOrNull(name: String): VectorIndex? = rawBindingOrNull<RawVectorizeIndex>(name)?.let { VectorIndex(it, name) }
     @JsExport.Ignore
-    fun aiOrNull(name: String): WorkersAI? = rawBindingOrNull<RawWorkersAI>(name)?.let(::WorkersAI)
+    fun aiOrNull(name: String): WorkersAI? = rawBindingOrNull<RawWorkersAI>(name)?.let { WorkersAI(it, name) }
     @JsExport.Ignore
     fun rateLimiterOrNull(name: String): RateLimiter? = rawBindingOrNull<RawRateLimiter>(name)?.let(::RateLimiter)
     internal fun hyperdriveOrNull(name: String): HyperdriveConfig? = rawBindingOrNull<RawHyperdrive>(name)?.let(::HyperdriveConfig)

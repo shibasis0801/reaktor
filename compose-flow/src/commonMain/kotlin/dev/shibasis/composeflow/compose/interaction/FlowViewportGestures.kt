@@ -14,19 +14,18 @@ import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isMetaPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
-import dev.shibasis.composeflow.compose.theme.FlowSizing
-import dev.shibasis.composeflow.runtime.FlowRuntimeDefaults
+import dev.shibasis.composeflow.runtime.ViewportTuning
 import dev.shibasis.composeflow.runtime.ReactFlowState
 import kotlin.math.exp
 import kotlin.math.sqrt
 
 data class FlowViewportGestureConfig(
-    val minZoom: Double = FlowRuntimeDefaults.minZoom,
-    val maxZoom: Double = FlowRuntimeDefaults.maxZoom,
-    val wheelZoomSensitivity: Double = FlowSizing.wheelZoomSensitivity,
-    val wheelZoomFactorMin: Double = FlowSizing.wheelZoomFactorMin,
-    val wheelZoomFactorMax: Double = FlowSizing.wheelZoomFactorMax,
-    val controlZoomFactor: Double = FlowSizing.controlZoomFactor,
+    val minZoom: Double = ViewportTuning.minZoom,
+    val maxZoom: Double = ViewportTuning.maxZoom,
+    val wheelZoomSensitivity: Double = ViewportTuning.wheelZoomSensitivity,
+    val wheelZoomFactorMin: Double = ViewportTuning.wheelZoomFactorMin,
+    val wheelZoomFactorMax: Double = ViewportTuning.wheelZoomFactorMax,
+    val controlZoomFactor: Double = ViewportTuning.controlZoomFactor,
 )
 
 // References:
@@ -66,7 +65,7 @@ fun Modifier.flowWheelAndTrackpadViewportGestures(
                 )
             } else {
                 val pan = platformBridge?.resolveScrollPan(event, interactionState)
-                    ?: (scrollDelta * (-FlowSizing.wheelPanFactor * interactionState.canvasDensity).toFloat())
+                    ?: (scrollDelta * (-ViewportTuning.wheelPanFactor * interactionState.canvasDensity).toFloat())
                 state.panBy(
                     dx = pan.x.toDouble(),
                     dy = pan.y.toDouble(),
@@ -205,8 +204,8 @@ internal fun flowViewportPointerSlop(touchSlop: Float, pointerType: PointerType)
 
 fun ReactFlowState.zoomAroundCanvasCenter(
     factor: Double,
-    minZoom: Double = FlowRuntimeDefaults.minZoom,
-    maxZoom: Double = FlowRuntimeDefaults.maxZoom,
+    minZoom: Double = ViewportTuning.minZoom,
+    maxZoom: Double = ViewportTuning.maxZoom,
 ) {
     zoomBy(
         factor = factor,

@@ -5,8 +5,8 @@ import dev.shibasis.reaktor.auth.transport.bearerAuthorization
 import dev.shibasis.reaktor.core.framework.json
 import kotlinx.coroutines.await
 import kotlinx.serialization.Serializable
-import org.khronos.webgl.Uint8Array
 import kotlin.js.Promise
+import kotlin.io.encoding.Base64
 
 class WebPubSubAdapter(
     private val accessTokenProvider: GoogleAccessTokenProvider,
@@ -55,7 +55,7 @@ class WebPubSubAdapter(
                                 messages =
                                     messages.map { message ->
                                         JsPublishMessage(
-                                            data = encodeBase64(message.data),
+                                            data = Base64.encode(message.data.encodeToByteArray()),
                                             attributes = message.attributes.takeIf { it.isNotEmpty() },
                                             orderingKey = message.orderingKey,
                                         )
@@ -87,7 +87,7 @@ class WebPubSubAdapter(
                     PulledPubSubMessage(
                         ackId = received.ackId ?: error("Pub/Sub pull response contained no ackId"),
                         messageId = message.messageId ?: error("Pub/Sub pull response contained no messageId"),
-                        data = decodeBase64(message.data),
+                        data = message.data?.let { Base64.decode(it).decodeToString() }.orEmpty(),
                         attributes = message.attributes.orEmpty(),
                         orderingKey = message.orderingKey,
                         publishTime = message.publishTime,
@@ -230,49 +230,3 @@ private external interface FetchResponse {
     fun text(): Promise<String>
 }
 
-private external fun btoa(value: String): String
-
-private external fun atob(value: String): String
-
-private external class TextEncoder {
-    fun encode(value: String): Uint8Array
-}
-
-private external class TextDecoder {
-    fun decode(value: Uint8Array): String
-}
-
-private fun encodeBase64(value: String): String {
-    val bytes = TextEncoder().encode(value)
-    val binary =
-        CharArray(bytes.length) { index ->
-            byteAt(bytes, index).toChar()
-        }.concatToString()
-    return btoa(binary)
-}
-
-private fun decodeBase64(value: String?): String {
-    if (value.isNullOrEmpty()) {
-        return ""
-    }
-
-    val binary = atob(value)
-    val bytes = Uint8Array(binary.length)
-    repeat(binary.length) { index ->
-        setByte(bytes, index, binary[index].code)
-    }
-    return TextDecoder().decode(bytes)
-}
-
-private fun byteAt(
-    bytes: Uint8Array,
-    index: Int,
-): Int = (bytes.asDynamic()[index] as Number).toInt()
-
-private fun setByte(
-    bytes: Uint8Array,
-    index: Int,
-    value: Int,
-) {
-    bytes.asDynamic()[index] = value
-}

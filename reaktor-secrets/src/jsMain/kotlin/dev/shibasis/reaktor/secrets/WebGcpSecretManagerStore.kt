@@ -5,8 +5,8 @@ import dev.shibasis.reaktor.auth.kernel.BearerHeaders.authorization as bearerAut
 import dev.shibasis.reaktor.core.framework.json
 import kotlinx.coroutines.await
 import kotlinx.serialization.Serializable
-import org.khronos.webgl.Uint8Array
 import kotlin.js.Promise
+import kotlin.io.encoding.Base64
 
 fun interface SecretAccessTokenProvider {
     suspend fun token(): String
@@ -27,7 +27,7 @@ class WebGcpSecretManagerStore(
             val payload = json.decodeFromString<AccessSecretVersionResponse>(response)
             SecretValue(
                 ref = ref,
-                value = decodeBase64(payload.payload.data),
+                value = Base64.decode(payload.payload.data).decodeToString(),
                 versionName = payload.name,
             )
         }
@@ -44,7 +44,7 @@ class WebGcpSecretManagerStore(
                     body =
                         json.encodeToString(
                             AddSecretVersionRequest(
-                                payload = SecretPayload(data = encodeBase64(value)),
+                                payload = SecretPayload(data = Base64.encode(value.encodeToByteArray())),
                             ),
                         ),
                 )
@@ -118,38 +118,3 @@ private external interface FetchResponse {
     fun text(): Promise<String>
 }
 
-private external fun btoa(value: String): String
-
-private external fun atob(value: String): String
-
-private external class TextEncoder {
-    fun encode(value: String): Uint8Array
-}
-
-private external class TextDecoder {
-    fun decode(value: Uint8Array): String
-}
-
-private fun encodeBase64(value: String): String {
-    val bytes = TextEncoder().encode(value)
-    val binary =
-        CharArray(bytes.length) { index ->
-            byteAt(bytes, index).toChar()
-        }.concatToString()
-    return btoa(binary)
-}
-
-private fun decodeBase64(value: String): String {
-    if (value.isEmpty()) return ""
-    val binary = atob(value)
-    val bytes = Uint8Array(binary.length)
-    repeat(binary.length) { index ->
-        bytes.asDynamic()[index] = binary[index].code
-    }
-    return TextDecoder().decode(bytes)
-}
-
-private fun byteAt(
-    bytes: Uint8Array,
-    index: Int,
-): Int = (bytes.asDynamic()[index] as Number).toInt()

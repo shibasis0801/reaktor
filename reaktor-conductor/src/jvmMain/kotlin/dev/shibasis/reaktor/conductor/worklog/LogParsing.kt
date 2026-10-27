@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import java.time.Instant
+import dev.shibasis.reaktor.core.framework.lenientJson
 
 internal interface LogParser {
     fun line(record: JsonObject)
@@ -111,10 +112,9 @@ internal object LogText {
     fun relative(path: String?, root: String?): String? = path?.let { if (root != null && it.startsWith("$root/")) it.removePrefix("$root/") else it }
 }
 
-internal val LogJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
 internal fun parseRecord(line: String): JsonObject? =
-    line.takeIf { it.isNotBlank() }?.let { runCatching { LogJson.parseToJsonElement(it) as? JsonObject }.getOrNull() }
+    line.takeIf { it.isNotBlank() }?.let { runCatching { lenientJson.parseToJsonElement(it) as? JsonObject }.getOrNull() }
 
 internal fun JsonObject.str(key: String): String? = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
 

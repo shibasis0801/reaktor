@@ -12,6 +12,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
+import dev.shibasis.reaktor.core.framework.lenientJson
 
 class GoogleCloudReader(
     private val project: String,
@@ -26,7 +27,7 @@ class GoogleCloudReader(
     private suspend fun get(token: String, url: String): JsonElement {
         val request = HttpRequest.newBuilder(URI.create(url)).header("Authorization", "Bearer $token").timeout(Duration.ofSeconds(30)).GET().build()
         val response = http.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
-        val parsed = runCatching { cloudJson.parseToJsonElement(response.body()) }.getOrNull()
+        val parsed = runCatching { lenientJson.parseToJsonElement(response.body()) }.getOrNull()
         if (response.statusCode() !in 200..299) {
             throw CloudReadFailure("${response.statusCode()} ${parsed.obj("error").text("status").orEmpty()} ${parsed.obj("error").text("message").orEmpty()}".trim())
         }

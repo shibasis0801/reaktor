@@ -125,7 +125,10 @@ fun SurfaceEdits.size(field: String, original: TextUnit): TextUnit = when (val c
     else -> TokenText.read(chosen, 0.sp) as? TextUnit ?: original
 }
 
-fun <T> SurfaceEdits.choice(field: String, original: T, options: Map<String, T>): T = value(field)?.let { chosen -> options[chosen] } ?: original
+fun <T> SurfaceEdits.choice(field: String, original: T, options: Map<String, T>): T {
+    val chosen = value(field) ?: return original
+    return if (chosen in options) options.getValue(chosen) else original
+}
 
 fun SurfaceEdits.color(field: String, original: Color, tokens: SurfaceTokens?): Color = when (val chosen = value(field)) {
     null -> original

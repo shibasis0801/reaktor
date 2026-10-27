@@ -157,6 +157,14 @@ class AgentWorkspace(
         if (requireIdle) check(active.isEmpty() && !externalBusy()) { "Wait for active workspace work before applying" }
         action()
     }
+    fun <T> admitWrite(paths: List<String>, action: () -> T): T = synchronized(lock) {
+        check(acceptsWork()) { "Workspace is draining" }
+        val running = runningTasks()
+        val reserved = running.mapTo(HashSet()) { it.id }
+        holder(sourceScope(paths), running, ownedRuns().filter { (_, request) -> request.task?.task !in reserved })
+            ?.let { error("$it; apply again when it finishes") }
+        action()
+    }
     suspend fun applyWorktree(id: String, patch: String, revision: String): AgentWorktreeReview =
         withWorktreeFiles(id) { worktrees.apply(id, patch, revision) }
 
@@ -502,15 +510,17 @@ class AgentWorkspace(
         val runs = ownedRuns().filter { (_, request) -> request.task?.task !in reserved && (task == null || request.task?.task != task) }
         if (others.size + runs.sumOf { slots(it.second) } + requestedSlots > maxActive) return "Agent capacity is busy; wait for an active attempt"
         if (!writes) return null
-        val scope = sourceScope(paths)
-        others.firstOrNull { other ->
+        return holder(sourceScope(paths), others, runs)
+    }
+
+    private fun holder(scope: List<String>, tasks: List<BoardTask>, runs: List<Pair<String, AgentSubmission>>): String? {
+        tasks.firstOrNull { other ->
             (other.graph?.kind == TaskKind.Merge || (other.graph?.resolvedSeat?.seat ?: other.graph?.seat)?.access == TaskAccess.Write) &&
                 TaskGraphRules.overlaps(scope, sourceScope(other.scope))
         }?.let { return "Source scope is held by ${it.graph?.id}/${it.id} attempt ${it.graph?.attempt}" }
-        runs.firstOrNull { (_, request) ->
+        return runs.firstOrNull { (_, request) ->
             reservesSource(request) && TaskGraphRules.overlaps(scope, sourceScope(request.task?.let { board.get(it.task).scope } ?: request.scope))
-        }?.let { return "Source scope is held by run ${it.first}" }
-        return null
+        }?.let { "Source scope is held by run ${it.first}" }
     }
 
     private fun taskAdmission(task: BoardTask, resolved: ResolvedTaskSeat?): String? {

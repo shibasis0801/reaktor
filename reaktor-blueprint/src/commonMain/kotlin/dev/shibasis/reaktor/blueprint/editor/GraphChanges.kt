@@ -96,7 +96,7 @@ fun GraphShape.rebased(changes: List<GraphChange>, definitions: Map<String, Stri
             node = if (live != null && before != null && node != null) live.merging(before, node) else node,
             before = live ?: before,
             wire = change.wire?.let { it.copy(consumer = id(it.consumer), consumerPort = id(it.consumerPort), provider = id(it.provider), providerPort = id(it.providerPort)) },
-            route = change.route?.let { RouteShape(id(it.from), id(it.to)) },
+            route = change.route?.let { it.copy(from = id(it.from), to = id(it.to)) },
             graph = change.graph?.let { it.copy(id = id(it.id), parent = it.parent?.let(::id), container = it.container?.let(::id), backStack = it.backStack.map(::id)) },
         )
     }

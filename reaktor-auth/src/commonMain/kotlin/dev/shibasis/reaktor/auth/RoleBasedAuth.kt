@@ -279,7 +279,10 @@ enum class AuthAuditEventType {
     TOKEN_EXCHANGE,
     TOKEN_REFRESH,
     TOKEN_REVOKE,
-    AUTH_FAILURE
+    AUTH_FAILURE,
+    ROLE_GRANT,
+    ROLE_REVOKE,
+    ROLE_CHANGE
 }
 
 @Serializable

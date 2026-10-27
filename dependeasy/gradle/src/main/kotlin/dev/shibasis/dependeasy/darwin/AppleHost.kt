@@ -139,8 +139,8 @@ internal class AppleHost(
                         apkDirectories.put(label, apk.get().asFile.absolutePath)
                         apkMetadata.from(project.fileTree(apk.get().asFile) { include("*.json") })
                         artifactsLoader.set(loader)
-                        androidTasks.put("android$label", owner.tasks.named("assemble$label").get().path)
-                        androidTasks.put("android${label}Bundle", owner.tasks.named("bundle$label").get().path)
+                        androidTasks.put("android$label", owner.files(apk).buildDependencies.getDependencies(null).single().path)
+                        androidTasks.put("android${label}Bundle", owner.files(aab).buildDependencies.getDependencies(null).single().path)
                     }
                     Build.entries.singleOrNull { it.name.equals(variant.buildType, true) }?.let { build ->
                         val inputs = listOf(OutputKind.AndroidApk, OutputKind.AndroidBundle).map { project.output(dependency, it, build) }

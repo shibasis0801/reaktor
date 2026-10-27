@@ -301,8 +301,10 @@ same bundle prerequisites, pinned JavaScript tools and load routing.
 Each store release is a `release(output, lane)` node inside `delivery(after = pr)`.
 It runs after the gate, and so do the producers of the outputs it consumes, except
 generated contracts such as the release plan. A release therefore never consumes an
-output the gate itself builds; that would make the gate depend on itself. A
-cross-platform lane such as `ReleaseLane.Internal` takes a list of outputs.
+output the gate itself builds; that would make the gate depend on itself. When a
+build would schedule that, dependeasy stops it before any task runs and names the
+release, the producer and the gate. A cross-platform lane such as
+`ReleaseLane.Internal` takes a list of outputs.
 
 JavaScript command launch and cancellation live in `javascript/kernel/process`. Its
 environment-file adapter reads literal exports without evaluating shell expressions

@@ -63,6 +63,14 @@ abstract class LighthouseAudit : ProcessTask() {
     }
 }
 
+@DisableCachingByDefault(because = "External tool outputs contain host paths")
+abstract class NodeTestSuite : dev.shibasis.dependeasy.web.PackageCommand() {
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val environmentFiles: ConfigurableFileCollection
+    override fun executionEnvironment() = EnvironmentFiles.read(environmentFiles.files) + environment.get()
+    @get:Internal override val kernelSpec: KernelSpec get() = KernelSpec.PackageCommand(executionSpec().copy(
+        environmentKeys = (EnvironmentFiles.read(environmentFiles.files).keys + environment.get().keys).sorted()))
+}
+
 @DisableCachingByDefault(because = "Verification may contact a live service")
 abstract class KarateSuite : ProcessTask() {
     @get:InputFile @get:PathSensitive(PathSensitivity.NONE) abstract val jar: RegularFileProperty

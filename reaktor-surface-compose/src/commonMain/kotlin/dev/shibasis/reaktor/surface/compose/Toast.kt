@@ -84,7 +84,7 @@ fun ToastArea(
     content: @Composable () -> Unit,
 ) {
     var area by remember { mutableStateOf(Rect.Zero) }
-    Box(modifier.onGloballyPositioned { area = it.boundsInWindow() }, propagateMinConstraints = true) {
+    Box(modifier.onGloballyPositioned { area = it.boundsInWindow() }) {
         content()
         val entry = queue.machine.state.shown
         if (entry != null) {

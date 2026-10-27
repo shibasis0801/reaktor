@@ -37,12 +37,14 @@ fun <In> Route.encode(serializer: KSerializer<In>, request: In): Outgoing {
         if (method.carriesBody) json.encodeToString(serializer, request) else null,
     )
     val tree = json.encodeToJsonElement(serializer, request)
-    val fields = tree as? JsonObject ?: JsonObject(emptyMap())
     val parameters = parameters.toSet()
+    val bare = tree is JsonPrimitive && parameters.size == 1
+    val fields = tree as? JsonObject ?: if (bare) JsonObject(mapOf(parameters.single() to tree)) else JsonObject(emptyMap())
     val path = parameters.fold(path) { filled, name ->
         val value = fields[name]?.scalar() ?: throw IllegalArgumentException("Route $method $path needs '$name', which ${serializer.descriptor.serialName} does not carry as a value")
         filled.replace("{$name}", value.encodeURLParameter())
     }
+    if (bare) return Outgoing(path, emptyList(), null)
     if (method.carriesBody) return Outgoing(path, emptyList(), json.encodeToString(JsonElement.serializer(), tree))
     val query = fields.filterKeys { it !in parameters }.flatMap { (name, value) ->
         when (value) {
@@ -62,9 +64,13 @@ fun <In> Route.decode(serializer: KSerializer<In>, inbound: Inbound): In {
     return (carried ?: merged(serializer, text, inbound)).also { (it as? Request)?.receive(inbound) }
 }
 
-private fun <In> merged(serializer: KSerializer<In>, text: String?, inbound: Inbound): In {
+private val SerialDescriptor.bare: Boolean get() = isInline || kind is PrimitiveKind || kind == SerialKind.ENUM
+
+private fun <In> Route.merged(serializer: KSerializer<In>, text: String?, inbound: Inbound): In {
     val descriptor = serializer.descriptor
     val body = text?.let { json.parseToJsonElement(it) }
+    val bound = parameters.singleOrNull()?.let(inbound.pathParams::get)
+    if (bound != null && descriptor.bare && (body == null || body is JsonObject)) return json.decodeFromJsonElement(serializer, scalar(bound, descriptor))
     val fields = LinkedHashMap<String, JsonElement>()
     (body as? JsonObject)?.let(fields::putAll)
     if (descriptor.kind == StructureKind.CLASS || descriptor.kind == StructureKind.OBJECT) {

@@ -22,6 +22,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
+import dev.shibasis.reaktor.core.framework.lenientJson
 
 @Serializable
 data class AiPrice(val unit: String, val usd: Double)
@@ -365,7 +366,7 @@ class CloudflareAi(
             return http.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
         }
         val response = if (credentials is CloudflareLogin) credentials.authenticated(::send) { it.statusCode() == 401 } else send(credentials.token())
-        val parsed = runCatching { cloudJson.parseToJsonElement(response.body()) as? JsonObject }.getOrNull()
+        val parsed = runCatching { lenientJson.parseToJsonElement(response.body()) as? JsonObject }.getOrNull()
         if (response.statusCode() !in 200..299) {
             val reason = parsed.objects("errors").firstOrNull()?.text("message") ?: parsed?.obj("error")?.text("message") ?: "HTTP ${response.statusCode()}"
             throw CloudflareFailure("${path.substringBefore('?').substringAfter("/accounts/$accountId")}: $reason")
@@ -383,19 +384,19 @@ object CloudflareAiCalls {
         val login = CloudflareLogin.forWorkspace(root)
         val ai = CloudflareAi(call.account, login)
         return when (call.action) {
-            "read" -> cloudJson.encodeToString(AiReading.serializer(), ai.read(login.source))
-            "logs" -> cloudJson.encodeToString(ListSerializer(AiGatewayLog.serializer()), ai.logs(requireNotNull(call.gateway) { "Name a gateway" }))
-            "create-gateway" -> cloudJson.encodeToString(AiGateway.serializer(), ai.createGateway(requireNotNull(call.gateway) { "Name a gateway" }))
-            "complete" -> cloudJson.encodeToString(AiTry.serializer(), attempt(ai, call))
+            "read" -> lenientJson.encodeToString(AiReading.serializer(), ai.read(login.source))
+            "logs" -> lenientJson.encodeToString(ListSerializer(AiGatewayLog.serializer()), ai.logs(requireNotNull(call.gateway) { "Name a gateway" }))
+            "create-gateway" -> lenientJson.encodeToString(AiGateway.serializer(), ai.createGateway(requireNotNull(call.gateway) { "Name a gateway" }))
+            "complete" -> lenientJson.encodeToString(AiTry.serializer(), attempt(ai, call))
             else -> throw CloudflareFailure("Unknown Cloudflare AI action ${call.action}")
         }
     }
 
-    fun reading(output: String): AiReading = cloudJson.decodeFromString(AiReading.serializer(), output)
+    fun reading(output: String): AiReading = lenientJson.decodeFromString(AiReading.serializer(), output)
 
-    fun logs(output: String): List<AiGatewayLog> = cloudJson.decodeFromString(ListSerializer(AiGatewayLog.serializer()), output)
+    fun logs(output: String): List<AiGatewayLog> = lenientJson.decodeFromString(ListSerializer(AiGatewayLog.serializer()), output)
 
-    fun attempt(output: String): AiTry = cloudJson.decodeFromString(AiTry.serializer(), output)
+    fun attempt(output: String): AiTry = lenientJson.decodeFromString(AiTry.serializer(), output)
 
     private suspend fun attempt(ai: CloudflareAi, call: dev.shibasis.reaktor.tooling.infra.InfrastructureOperation.CloudflareAiCall): AiTry {
         val model = requireNotNull(call.model) { "Name a model" }

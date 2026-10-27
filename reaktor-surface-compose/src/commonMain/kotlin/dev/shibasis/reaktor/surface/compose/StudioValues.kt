@@ -13,6 +13,9 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -55,6 +58,24 @@ object StudioValues {
     val Scales: Map<String, ContentScale> = linkedMapOf(
         "Fit" to ContentScale.Fit, "Crop" to ContentScale.Crop, "FillBounds" to ContentScale.FillBounds, "FillWidth" to ContentScale.FillWidth,
         "FillHeight" to ContentScale.FillHeight, "Inside" to ContentScale.Inside, "None" to ContentScale.None,
+    )
+
+    val Capitalizations: Map<String, KeyboardCapitalization> = linkedMapOf(
+        "Unspecified" to KeyboardCapitalization.Unspecified, "None" to KeyboardCapitalization.None, "Characters" to KeyboardCapitalization.Characters,
+        "Words" to KeyboardCapitalization.Words, "Sentences" to KeyboardCapitalization.Sentences,
+    )
+
+    val AutoCorrections: Map<String, Boolean?> = linkedMapOf("Unspecified" to null, "On" to true, "Off" to false)
+
+    val KeyboardTypes: Map<String, KeyboardType> = linkedMapOf(
+        "Unspecified" to KeyboardType.Unspecified, "Text" to KeyboardType.Text, "Ascii" to KeyboardType.Ascii, "Number" to KeyboardType.Number,
+        "Decimal" to KeyboardType.Decimal, "Phone" to KeyboardType.Phone, "Uri" to KeyboardType.Uri, "Email" to KeyboardType.Email,
+        "Password" to KeyboardType.Password, "NumberPassword" to KeyboardType.NumberPassword,
+    )
+
+    val ImeActions: Map<String, ImeAction> = linkedMapOf(
+        "Unspecified" to ImeAction.Unspecified, "Default" to ImeAction.Default, "None" to ImeAction.None, "Go" to ImeAction.Go,
+        "Search" to ImeAction.Search, "Send" to ImeAction.Send, "Previous" to ImeAction.Previous, "Next" to ImeAction.Next, "Done" to ImeAction.Done,
     )
 
     val Spreads: List<String> = listOf("Start", "Center", "End", "SpaceBetween", "SpaceAround", "SpaceEvenly")

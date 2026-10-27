@@ -19,6 +19,14 @@ then restore compatible phase-2 auth data.
 - Global identity, provider account, principal, membership, tenant/context, and
   RBAC records.
 - `AuthContext` and `AuthRequirement` as the common authorization model.
+- Call-level authorization over the code graph: `CodeAccessPolicy` (in
+  `reaktor-auth-core`) checks `can_invoke` on each operation against an
+  OpenFGA-style model, in shadow or enforce mode, and `Service.guardRelations`
+  and `Graph.guard` apply it to every call.
+- Roles as code: each app's role catalog, the `roles` list in
+  `auth/<app>.fga.json`, which `RoleCatalog` validates and flattens and
+  `CodeAccess.tuples` turns into model tuples. heimdall holds each role's
+  flattened permissions and follows the catalog through Hangar's sync plan.
 - ES256 access-token minting and verification through JWKS.
 - Session creation, rotating refresh tokens, logout, and logout-all.
 - PAT mint/verify/exchange with hash-at-rest and audience binding.
@@ -167,6 +175,7 @@ The schema creates:
 - `context`
 - `membership`
 - `role`, `permission`, `role_permissions`, `principal_role`
+- `auth_audit_event`
 - `auth_provider_client`
 - `session`
 - `refresh_token`
@@ -187,6 +196,10 @@ Implemented:
 - Spring adapter.
 - Worker-facing JWT verification in BestBuds consumers.
 - Target-owned Karate/k6 test layout.
+- The relationship model over the code graph, with one `AccessDecision` per
+  call, contract-declared callers and per-object checks.
+- Role catalogs, and audit events for token mint, exchange, refresh, revoke,
+  failure, role grant, role revoke and role change.
 
 Open:
 
@@ -195,8 +208,7 @@ Open:
 - BFF `__Host-` cookie model.
 - DPoP.
 - Persisted `may_act` delegation policy.
-- ReBAC object tuples.
-- First-class auth event/audit table.
+- Persisted object tuples beyond the repository store.
 
 ## Validation
 

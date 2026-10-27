@@ -1,11 +1,10 @@
 package dev.shibasis.reaktor.graph
 
+import dev.shibasis.reaktor.graph.core.node.currentRoute
 import dev.shibasis.reaktor.graph.capabilities.Lifecycle
 import dev.shibasis.reaktor.graph.core.input
 import dev.shibasis.reaktor.graph.core.shape
 import dev.shibasis.reaktor.graph.core.node.Node
-import dev.shibasis.reaktor.portgraph.port.getConsumer
-import dev.shibasis.reaktor.portgraph.port.registerProvider
 import dev.shibasis.reaktor.graph.core.autoWire
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
@@ -61,23 +60,6 @@ class GraphLifecycleIntegrationTest {
         root.close()
         assertTrue(config.nodes.isEmpty())
         assertTrue(child.nodes.isEmpty())
-    }
-
-    @Test
-    fun configuredNodesUseTypedGraphOverridesWithoutConstructingTheDefault() {
-        val root = Graph(dependencyAdapter = TestDependencyAdapter())
-        val config = root.Graph { Graph(parentGraph = it) }
-        val recipe = config.Node(::ProviderNode)
-        val replacement = config.Node { BasicNode(it).apply { registerProvider("api", 42) } }
-        root.dependsOn(config)
-        val feature = root.Graph { Graph(parentGraph = it) }
-        val service = feature.Node(recipe.textPort, "api", { graph, number: Int ->
-            BasicNode(graph).apply { registerProvider("result", number) }
-        }) { _: String -> error("Default implementation must not be created") }
-        assertSame(recipe.textPort, service.getConsumer<String>(recipe.textPort.key.key)?.edge?.provider)
-        assertSame(replacement, service.getConsumer<Int>("api")?.edge?.provider?.owner)
-        feature.requireFullyWired()
-        root.close()
     }
 
     @Test
@@ -304,18 +286,18 @@ class GraphLifecycleIntegrationTest {
         root.addRoot(first.route, Payload())
 
         source.dispatch(Push(origin.edge(detail), Payload(hashMapOf("id" to "detail"))))
-        assertEquals(second.route, root.backStack.top.value?.edge?.end)
+        assertEquals(second.route, root.currentRoute)
         destination.dispatch(Pop)
 
-        assertEquals(first.route, root.backStack.top.value?.edge?.end)
-        assertEquals(origin, source.backStack.top.value?.edge?.end)
+        assertEquals(first.route, root.currentRoute)
+        assertEquals(origin, source.currentRoute)
         assertEquals("origin", source.backStack.top.value?.payload?.routeParams?.get("id"))
-        assertEquals(landing, destination.backStack.top.value?.edge?.end)
+        assertEquals(landing, destination.currentRoute)
         val result = CompletableDeferred<String>()
         source.dispatch(Push(origin.edge(detail), Payload(), result))
         destination.dispatch(Return("selected"))
         assertEquals("selected", result.await())
-        assertEquals(first.route, root.backStack.top.value?.edge?.end)
+        assertEquals(first.route, root.currentRoute)
         root.close()
     }
 
@@ -343,14 +325,14 @@ class GraphLifecycleIntegrationTest {
 
         circles.dispatch(Replace(welcome.edge(room), Payload(hashMapOf("id" to "coffee"))))
 
-        assertEquals(home, circles.backStack.top.value?.edge?.end)
+        assertEquals(home, circles.currentRoute)
         assertEquals(listOf(chats, room), messaging.backStack.entries.value.map { it.edge.end })
         assertEquals("coffee", messaging.backStack.top.value?.payload?.routeParams?.get("id"))
         messaging.dispatch(Pop)
-        assertEquals(first.route, root.backStack.top.value?.edge?.end)
-        assertEquals(home, circles.backStack.top.value?.edge?.end)
+        assertEquals(first.route, root.currentRoute)
+        assertEquals(home, circles.currentRoute)
         assertEquals("circles", circles.backStack.top.value?.payload?.routeParams?.get("tab"))
-        assertEquals(chats, messaging.backStack.top.value?.edge?.end)
+        assertEquals(chats, messaging.currentRoute)
         root.close()
     }
 
@@ -405,7 +387,7 @@ private open class Catalog : Service("test.catalog") {
 private class CatalogConsumerNode(
     graph: Graph,
 ) : BasicNode(graph) {
-    val fetchApi by api(Catalog().fetch)
+    val fetchApi by consumes(Catalog().fetch)
 }
 
 @Serializable

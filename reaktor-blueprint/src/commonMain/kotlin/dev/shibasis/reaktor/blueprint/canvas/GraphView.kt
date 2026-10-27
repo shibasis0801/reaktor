@@ -272,7 +272,7 @@ internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int
         }
     }
     Box(Modifier.fillMaxSize().graphicsLayer {
-        val view = shown?.view ?: return@graphicsLayer
+        val view = flow.viewport
         translationX = view.x.toFloat(); translationY = view.y.toFloat()
         scaleX = (view.zoom / density).toFloat(); scaleY = scaleX
         transformOrigin = TransformOrigin(0f, 0f)

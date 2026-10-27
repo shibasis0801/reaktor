@@ -51,12 +51,8 @@ class DarwinAppleLogin(
                 runCatching {
                     credential as ASAuthorizationAppleIDCredential
                 }.map {
-                    if (it.identityToken == null) {
-                        throw NullPointerException("Identity Token is null")
-                    }
-
                     val appleUser = AppleUser(
-                        idToken = it.identityToken!!.kotlinString(),
+                        idToken = checkNotNull(it.identityToken) { "Identity Token is null" }.kotlinString(),
                         givenName = it.fullName?.givenName,
                         familyName = it.fullName?.familyName,
                         emailId = it.email ?: ""

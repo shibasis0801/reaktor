@@ -2,6 +2,7 @@ package dev.shibasis.dependeasy.components
 
 import dev.shibasis.dependeasy.handles.*
 import dev.shibasis.dependeasy.model.*
+import dev.shibasis.dependeasy.verification.browserSuite
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.NodeDeclaration
@@ -60,6 +61,12 @@ class WebAppScope internal constructor(
     fun tests(files: FileSet): NodeDeclaration = NodeDeclaration { name ->
         project.node(web.check(files, name)).also {
             verification.after(it)
+            BuildWorkspace.get(project).alias(project.projectDir, name, it)
+        }
+    }
+
+    fun browserTests(suite: Playwright, run: Run = Run.Default): NodeDeclaration = NodeDeclaration { name ->
+        project.browserSuite(name, suite, run).after(bundle).covers(Coverage(setOf(Domain.Web, Domain.Site), setOf(Aspect.EndToEnd))).also {
             BuildWorkspace.get(project).alias(project.projectDir, name, it)
         }
     }

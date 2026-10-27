@@ -333,38 +333,21 @@ private fun RowScope.ButtonContent(
     iconSize: androidx.compose.ui.unit.Dp,
     iconSpacing: androidx.compose.ui.unit.Dp,
 ) {
-    val hasIcon = spec.icon != null
-    val hasLabel = spec.label != null
-    val iconOnly = spec.iconPosition == ButtonSpec.IconPosition.Only || (hasIcon && !hasLabel)
-
+    val icon = spec.icon
+    val label = spec.label
     when {
-        iconOnly && hasIcon -> {
-            Icon(
-                imageVector = spec.icon!!,
-                contentDescription = spec.label,
-                modifier = Modifier.size(iconSize)
-            )
-        }
-        hasIcon && hasLabel && spec.iconPosition == ButtonSpec.IconPosition.Start -> {
-            Icon(
-                imageVector = spec.icon!!,
-                contentDescription = null,
-                modifier = Modifier.size(iconSize)
-            )
+        icon != null && (label == null || spec.iconPosition == ButtonSpec.IconPosition.Only) ->
+            Icon(icon, contentDescription = label, modifier = Modifier.size(iconSize))
+        icon != null && label != null && spec.iconPosition == ButtonSpec.IconPosition.Start -> {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(iconSize))
             Spacer(Modifier.width(iconSpacing))
-            Text(spec.label!!)
+            Text(label)
         }
-        hasIcon && hasLabel && spec.iconPosition == ButtonSpec.IconPosition.End -> {
-            Text(spec.label!!)
+        icon != null && label != null && spec.iconPosition == ButtonSpec.IconPosition.End -> {
+            Text(label)
             Spacer(Modifier.width(iconSpacing))
-            Icon(
-                imageVector = spec.icon!!,
-                contentDescription = null,
-                modifier = Modifier.size(iconSize)
-            )
+            Icon(icon, contentDescription = null, modifier = Modifier.size(iconSize))
         }
-        hasLabel -> {
-            Text(spec.label!!)
-        }
+        label != null -> Text(label)
     }
 }

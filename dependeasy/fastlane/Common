@@ -1,10 +1,7 @@
-# Shared filesystem, environment and build-artifact helpers. Product policy stays in imported lanes.
 def repo_path(*parts)
   File.join(repo_root, *parts)
 end
 
-# Resolve a possibly-relative path against the repo root so env-configured paths
-# work regardless of fastlane's working directory.
 def resolve_repo_path(value)
   File.expand_path(value.to_s, repo_root)
 end
@@ -30,11 +27,9 @@ def env_or_nil(name)
 end
 
 def artifact_size_bytes(path)
-  if File.directory?(path)
-    Find.find(path).sum { |entry| File.file?(entry) ? File.size(entry) : 0 }
-  else
-    File.size(path)
-  end
+  return File.size(path) unless File.directory?(path)
+
+  Find.find(path).sum { |entry| File.file?(entry) ? File.size(entry) : 0 }
 end
 
 def human_size(bytes)
@@ -52,26 +47,10 @@ end
 
 def append_build_size!(platform:, variant:, artifact_path:)
   ensure_file!(artifact_path, "Missing build artifact at #{artifact_path}")
-
   log_path = build_size_log_path
   FileUtils.mkdir_p(File.dirname(log_path))
-
-  unless File.exist?(log_path)
-    File.write(log_path, "timestamp_utc\tplatform\tvariant\tbytes\thuman_size\tartifact_path\n")
-  end
-
+  File.write(log_path, "timestamp_utc\tplatform\tvariant\tbytes\thuman_size\tartifact_path\n") unless File.exist?(log_path)
   bytes = artifact_size_bytes(artifact_path)
-  File.open(log_path, "a") do |file|
-    file.puts([
-      Time.now.utc.iso8601,
-      platform,
-      variant,
-      bytes,
-      human_size(bytes),
-      artifact_path
-    ].join("\t"))
-  end
-
+  File.open(log_path, "a") { |file| file.puts([Time.now.utc.iso8601, platform, variant, bytes, human_size(bytes), artifact_path].join("\t")) }
   UI.message("Logged #{platform} #{variant} size: #{human_size(bytes)} (#{bytes} bytes)")
 end
-

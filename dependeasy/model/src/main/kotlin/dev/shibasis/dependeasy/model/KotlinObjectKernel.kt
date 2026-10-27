@@ -9,13 +9,14 @@ object KotlinObjectKernel {
     fun generate(spec: KernelSpec.GeneratedObject, values: Map<String, String>, strings: Map<String, String>,
         booleans: Map<String, Boolean>, texts: Map<String, String>, output: File) {
         val endpoints = workerEndpoints(spec.workerFleet)
-        require((values.keys + strings.keys + booleans.keys + texts.keys).intersect(endpoints.keys).isEmpty()) {
+        val topology = workerTopology(spec.workerFleet)
+        require((values.keys + strings.keys + booleans.keys + texts.keys).intersect(endpoints.keys + topology.keys).isEmpty()) {
             "Generated fields conflict with Worker endpoints"
         }
         val fields = values.map { (name, value) -> "    val $name: String = ${literal(value)}" } +
             (strings + endpoints).map { (name, value) -> "    const val $name: String = ${literal(value)}" } +
             booleans.map { (name, value) -> "    const val $name: Boolean = $value" } +
-            texts.map { (name, value) ->
+            (texts + topology).map { (name, value) ->
                 val chunks = value.chunked(16_000).ifEmpty { listOf("") }.joinToString(",\n        ", transform = ::literal)
                 "    val $name: String = listOf(\n        $chunks,\n    ).joinToString(\"\")"
             }
