@@ -31,7 +31,7 @@ internal fun Project.externalCommand(name: String, call: ExternalCall, removal: 
             is ExternalCall.Fastlane -> {
                 workingDirectory.set(layout.projectDirectory)
                 executable.set(layout.projectDirectory.file("fastlane/run.sh").asFile.absolutePath)
-                arguments.set(listOf(call.lane.platform, call.lane.name))
+                arguments.set(listOf(call.lane.platform, call.lane.name).filter(String::isNotEmpty))
                 toolVersion.set("fastlane contract")
                 sourceFiles.from(fileTree("fastlane") { exclude("**/build/**", "**/vendor/**", "**/report.xml", "**/README.md") })
             }

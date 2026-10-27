@@ -161,8 +161,12 @@ class DeliveryScope internal constructor(
     private val gate: NodeHandle,
     private val run: Run,
 ) {
-    fun release(output: OutputHandle, lane: LaneHandle, run: Run = this.run, content: ReleaseSpec.() -> Unit = {}): NodeDeclaration {
-        val declaration = NodeContent(project, run).apply { consumes.add(output); after.add(gate) }
+    fun release(output: OutputHandle, lane: LaneHandle, run: Run = this.run, content: ReleaseSpec.() -> Unit = {}): NodeDeclaration =
+        release(listOf(output), lane, run, content)
+
+    fun release(outputs: List<OutputHandle>, lane: LaneHandle, run: Run = this.run, content: ReleaseSpec.() -> Unit = {}): NodeDeclaration {
+        require(outputs.isNotEmpty()) { "A release needs the outputs it ships" }
+        val declaration = NodeContent(project, run).apply { consumes.addAll(outputs); after.add(gate) }
         ReleaseSpec(declaration).apply(content)
         val site = project.declarationSite()
         return NodeDeclaration { name ->

@@ -298,6 +298,9 @@ their declared host. External recipes remain metadata and runner commands. See [
 Fastlane uses the product's locked Gemfile through the shared launcher. Product
 lanes invoke Gradle delivery entrypoints for web publishing, so they inherit the
 same bundle prerequisites, pinned JavaScript tools and load routing.
+Each store release is a `release(output, lane)` node inside `delivery(after = pr)`:
+it runs after the gate and consumes the outputs it ships. A cross-platform lane
+such as `ReleaseLane.Firebase` takes the list of outputs it uploads.
 
 JavaScript command launch and cancellation live in `javascript/kernel/process`. Its
 environment-file adapter reads literal exports without evaluating shell expressions
