@@ -260,6 +260,14 @@ and `generate`, `check` and `tests` inside the `webApp` block. The low-level
 providers for exceptional pipelines. The root plugin does not need a list of
 `apply false` plugins.
 
+A Playwright suite for the app goes in the same block:
+`browserTests(Playwright("playwright.config.ts"))` runs after the app's bundle and gets
+its own alias. It is not one of the app's checks, so `pr` does not run it. `environment`
+sets variables the suite reads, and `run = Run.onDesktopSession()` keeps a headed run on
+this Mac. At the root, `nodeTests` runs Node test files. Pass `sources` when a test reads
+files outside its own folder, and `live = true` when it measures a deployed system, so it
+runs every time.
+
 Build and runner entrypoints share one workspace declaration:
 
 ```kotlin
@@ -285,7 +293,9 @@ workflow is required. `exportBuildModel` imports active package scripts directly
 authored manifests. Generated aliases point back to Gradle. Manifest dependencies stay
 in `package.json`, and so do authored scripts that start a dev server or open an ops
 tool. A script that builds, tests, deploys or releases is a model node with a
-generated alias.
+generated alias. Each node gets one plain alias, in the package nearest to its
+project. An alias that adds `before` steps, settings or device options keeps its
+own name beside that plain alias.
 With `packageScripts()`, frozen pnpm installation depends on alias generation.
 Generation reads the declared targets without executing them, so frontend builds
 refresh their aliases without recursively building or installing the workspace.

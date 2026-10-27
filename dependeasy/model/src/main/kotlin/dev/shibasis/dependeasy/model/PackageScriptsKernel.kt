@@ -1,5 +1,8 @@
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package dev.shibasis.dependeasy.model
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import java.io.File
@@ -8,7 +11,7 @@ import java.io.File
 data class PackageAlias(val id: NodeId, val effect: Effect, val worker: WorkerRef?, val environments: List<Environment>)
 
 @Serializable
-data class PackageScriptInvocation(val node: NodeId, val command: String)
+data class PackageScriptInvocation(val node: NodeId, val command: String, @EncodeDefault(EncodeDefault.Mode.NEVER) val composed: Boolean = false)
 
 object PackageScriptsKernel {
     fun authoredManifest(text: String, generated: Set<String> = emptySet()): String {
@@ -55,7 +58,7 @@ object PackageScriptsKernel {
         } + spec.extraAliases))
         val claimed = mutableSetOf<NodeId>()
         val aliases = declared.entries.sortedWith(compareBy({ it.key == "package.json" }, { it.key.count { char -> char == '/' } }, { it.key }))
-            .associate { (path, commands) -> path to commands.toSortedMap().filterValues { claimed.add(it.node) } }
+            .associate { (path, commands) -> path to commands.toSortedMap().filterValues { it.composed || claimed.add(it.node) } }
         val commands = aliases.getValue("package.json").mapValues { it.value.command }
         val generatedScripts = JsonObject(commands.mapValues { JsonPrimitive(it.value) })
         scripts.putAll(generatedScripts)
