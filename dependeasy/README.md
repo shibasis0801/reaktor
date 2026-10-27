@@ -268,6 +268,13 @@ this Mac. At the root, `nodeTests` runs Node test files. Pass `sources` when a t
 files outside its own folder, and `live = true` when it measures a deployed system, so it
 runs every time.
 
+Phone suites go in a `deviceTests(apps, applicationId)` block. `suite(DeviceSuite(...))`
+runs its flows on one phone per run, and `--platform` and `--flow` choose the phone and
+the flow. `exchange(DeviceExchange(suite, receive, send, token, sendAfter))` drives two
+phones in one run. For each ordered pair, one phone runs `receive`; the other starts `send`
+after `sendAfter`, and both flows get the same fresh value in the `token` variable. The
+receiving phone must still be running when the send starts, and every pair must pass.
+
 Build and runner entrypoints share one workspace declaration:
 
 ```kotlin

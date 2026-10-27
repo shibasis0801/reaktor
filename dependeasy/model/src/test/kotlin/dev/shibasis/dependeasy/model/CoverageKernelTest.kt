@@ -26,6 +26,9 @@ class CoverageKernelTest {
             node("product:android:testDebugUnitTest", "AndroidUnitTest"),
             node("product:android:maestro", "DeviceFlowKernel", spec = KernelSpec.DeviceFlow("android", "app.id", "product:android:outputApkDebug",
                 listOf("flows"), "contract", emptyList(), ToolRef("maestro", "1"))),
+            node("product:phones:push", "DeviceExchangeKernel", spec = KernelSpec.DeviceExchange(listOf("android" to "product:android:outputApkDebug", "ios" to "product:ios:outputApp")
+                .map { (platform, app) -> KernelSpec.DeviceFlow(platform, "app.id", app, listOf("receive.yaml", "send.yaml"), "$platform.json", emptyList(), ToolRef("maestro", "1")) },
+                "receive.yaml", "send.yaml", "MESSAGE", 90)),
             node("product:desktop:outputVerificationResultsHangar", "VerificationKernel"),
             node("product:workers:deployWorkers", "WorkerFleetKernel", Effect.Deploy,
                 spec = KernelSpec.WorkerFleet(Delivery(listOf(Environment("prod")), Environment("prod"), Delivery.Cloudflare("fixture-account", emptyList(), true)), emptyList(), FileSet(emptyList()))),
@@ -52,6 +55,7 @@ class CoverageKernelTest {
         val covered = CoverageKernel.of(model, "product").mapKeys { it.key.toString() }
         assertEquals(Coverage(Domain.Mobile, Aspect.Unit, system = "android"), covered["product:android:testDebugUnitTest"])
         assertEquals(Coverage(Domain.Mobile, Aspect.EndToEnd, system = "android"), covered["product:android:maestro"])
+        assertEquals(Coverage(Domain.Mobile, Aspect.EndToEnd), covered["product:phones:push"])
         assertEquals(Coverage(Domain.Desktop, Aspect.EndToEnd, system = "desktop"), covered["product:desktop:outputVerificationResultsHangar"])
         assertEquals(Coverage(Domain.Worker, Aspect.Unit, system = "workers"), covered["product:workers:jsTest"])
         assertEquals(Coverage(Domain.Server, Aspect.Load, system = "server"), covered["product:server:k6Load"])

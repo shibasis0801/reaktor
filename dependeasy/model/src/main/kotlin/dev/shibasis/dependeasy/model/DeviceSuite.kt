@@ -1,5 +1,8 @@
 package dev.shibasis.dependeasy.model
 
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+
 data class DeviceFlowSelection(
     val directory: String,
     val files: List<String> = emptyList(),
@@ -16,4 +19,12 @@ data class DeviceSuite(
     val hook: DeviceHook? = null,
     val harness: DeviceHarness? = null,
     val hookFiles: List<String> = emptyList(),
+)
+
+data class DeviceExchange(
+    val suite: DeviceSuite,
+    val receive: String,
+    val send: String,
+    val token: String,
+    val sendAfter: Duration = 45.seconds,
 )

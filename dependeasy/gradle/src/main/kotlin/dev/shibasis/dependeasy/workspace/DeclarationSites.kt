@@ -79,6 +79,7 @@ internal fun kernelRef(task: Task, spec: KernelSpec? = (task as? dev.shibasis.de
         is dev.shibasis.dependeasy.web.KarakumBindings, is dev.shibasis.dependeasy.web.NodeGenerator,
         is dev.shibasis.dependeasy.web.PnpmInstallTask -> dev.shibasis.dependeasy.model.JavaScriptKernel::class.java
         is dev.shibasis.dependeasy.verification.DeviceFlow -> dev.shibasis.dependeasy.model.DeviceFlowKernel::class.java
+        is dev.shibasis.dependeasy.verification.DeviceExchangeFlow -> dev.shibasis.dependeasy.model.DeviceExchangeKernel::class.java
         is dev.shibasis.dependeasy.verification.KarateSuite -> dev.shibasis.dependeasy.model.KarateSuiteKernel::class.java
         is dev.shibasis.dependeasy.verification.K6Suite -> dev.shibasis.dependeasy.model.K6SuiteKernel::class.java
         is dev.shibasis.dependeasy.verification.BrowserSuite -> dev.shibasis.dependeasy.model.BrowserSuiteKernel::class.java
@@ -156,6 +157,7 @@ private fun KernelSpec.relativeTo(root: File): KernelSpec {
         is KernelSpec.DependencyBoundary -> this
         is KernelSpec.ExternalCommand -> this
         is KernelSpec.DeviceFlow -> copy(flows = flows.map(::path), contract = path(contract))
+        is KernelSpec.DeviceExchange -> copy(phones = phones.map { it.copy(flows = it.flows.map(::path), contract = path(it.contract)) })
         is KernelSpec.KarateSuite -> copy(execution = execution(execution), suites = suites.map(::path), jar = path(jar), report = path(report), arguments = arguments.map(::path))
         is KernelSpec.K6Suite -> copy(execution = execution(execution), script = path(script), summary = path(summary), arguments = arguments.map(::path))
         is KernelSpec.XcodeHost -> copy(files = files.map(::path), signingInclude = path(signingInclude))

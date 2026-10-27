@@ -93,6 +93,8 @@ sealed interface KernelSpec {
     @Serializable data class DeviceFlow(val platform: String, val applicationId: String, val appOutput: String, val flows: List<String>,
         val contract: String, val environmentKeys: List<String>, val tool: ToolRef, val installApplication: Boolean = false,
         val uninstallOnSignatureMismatch: Boolean = false, val artifacts: String = "on-failure", val environmentAllowList: List<String> = emptyList()) : KernelSpec
+    @Serializable data class DeviceExchange(val phones: List<DeviceFlow>, val receive: String, val send: String, val token: String,
+        val sendAfterSeconds: Long) : KernelSpec
     @Serializable data class KarateSuite(val execution: ProcessExecution, val suites: List<String>, val tags: List<String>,
         val jar: String, val report: String, val arguments: List<String>) : KernelSpec
     @Serializable data class K6Suite(val execution: ProcessExecution, val script: String, val summary: String, val arguments: List<String>) : KernelSpec
@@ -149,6 +151,7 @@ fun KernelSpec.tools(): List<ToolRef> = when (this) {
     is KernelSpec.JvmCommand -> listOfNotNull(java)
     is KernelSpec.JvmLauncher -> listOfNotNull(java)
     is KernelSpec.DeviceFlow -> listOf(tool)
+    is KernelSpec.DeviceExchange -> phones.map { it.tool }.distinct()
     is KernelSpec.CMakeBuild -> listOfNotNull(tool, ninja)
     is KernelSpec.GitSource -> listOf(tool)
     is KernelSpec.SourceIdentity -> if (revisions.isEmpty()) emptyList() else listOf(ToolRef("git", "host-provided (unversioned)"))

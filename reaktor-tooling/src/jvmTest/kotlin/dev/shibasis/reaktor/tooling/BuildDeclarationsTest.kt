@@ -92,6 +92,15 @@ class BuildDeclarationsTest {
         assertTrue(workspace.catalog.tasks.none { it.provenance.source == "gradle-settings" })
     }
 
+    @Test fun deviceExchangesAskBeforeTheyDriveBothPhones() = fixture { root ->
+        val phone = KernelSpec.DeviceFlow("android", "fixture.app", "fixture:app", listOf("receive.yaml", "send.yaml"), "android.json", emptyList(), ToolRef("runner", "1"))
+        val exchange = node("exchange", Effect.Verify).copy(host = HostRequirement(execution = ExecutionHost.Local), kernel = KernelRef("fixture.Exchange",
+            spec = KernelSpec.DeviceExchange(listOf(phone, phone.copy(platform = "ios", contract = "ios.json")), "receive.yaml", "send.yaml", "MESSAGE", 90)))
+        val model = BuildModel(producer = Producer(version = "fixture"), builds = listOf(BuildIdentity("fixture", ".")), nodes = listOf(exchange))
+        root.resolve(BuildDeclarations.Report).apply { parentFile.mkdirs(); writeText(BuildModelReader.encode(model)) }
+        assertEquals(SafetyClass.DeviceWrite, BuildDeclarations.read(root).single { it.node.id == exchange.id }.safety)
+    }
+
     @Test fun planningFailureKeepsTheCauseBeforeALongTimingTrailer() = fixture { root ->
         report(root, node("artifacts"))
         root.resolve(wrapperName).writeText("""

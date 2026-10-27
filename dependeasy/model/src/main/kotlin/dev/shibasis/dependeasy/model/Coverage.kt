@@ -85,7 +85,7 @@ object CoverageKernel {
             spec is KernelSpec.TestSuite && (spec.suite == Suite.Hangar || TestTag.Window in spec.only) -> Aspect.EndToEnd
             kernel == "TestEnvironmentKernel" -> Aspect.EndToEnd
             spec is KernelSpec.TestSuite || kernel in UnitKernels -> Aspect.Unit
-            spec is KernelSpec.DeviceFlow || spec is KernelSpec.KarateSuite -> Aspect.EndToEnd
+            spec is KernelSpec.DeviceFlow || spec is KernelSpec.DeviceExchange || spec is KernelSpec.KarateSuite -> Aspect.EndToEnd
             spec is KernelSpec.K6Suite -> Aspect.Load
             spec is KernelSpec.Jmh || spec is KernelSpec.Profile || spec is KernelSpec.ArtifactSize -> Aspect.Performance
             spec is KernelSpec.TypeScriptCheck || spec is KernelSpec.DependencyBoundary -> Aspect.Static
@@ -95,8 +95,13 @@ object CoverageKernel {
     }
 
     private fun system(node: Node): String? {
-        val project = (node.kernel?.spec as? KernelSpec.DeviceFlow)?.let { runCatching { NodeId.parse(it.appOutput).project }.getOrNull() } ?: node.id.project
-        return project.substringAfterLast(':').takeIf { it.isNotEmpty() }
+        fun application(flow: KernelSpec.DeviceFlow) = runCatching { NodeId.parse(flow.appOutput).project }.getOrNull() ?: node.id.project
+        val projects = when (val spec = node.kernel?.spec) {
+            is KernelSpec.DeviceFlow -> listOf(application(spec))
+            is KernelSpec.DeviceExchange -> spec.phones.map(::application).distinct()
+            else -> listOf(node.id.project)
+        }
+        return projects.singleOrNull()?.substringAfterLast(':')?.takeIf { it.isNotEmpty() }
     }
 
     private class Owners(model: BuildModel) {
@@ -106,7 +111,7 @@ object CoverageKernel {
         private val fleets = model.nodes.filter { it.kernel?.spec is KernelSpec.WorkerFleet }.mapTo(HashSet()) { it.id.build to it.id.project }
 
         fun domains(node: Node): Set<Domain> {
-            if (node.kernel?.spec is KernelSpec.DeviceFlow) return setOf(Domain.Mobile)
+            if (node.kernel?.spec.let { it is KernelSpec.DeviceFlow || it is KernelSpec.DeviceExchange }) return setOf(Domain.Mobile)
             if (node.id.build !in products) return setOf(Domain.Framework)
             val project = node.id.build to node.id.project
             val family = families[project].orEmpty()
