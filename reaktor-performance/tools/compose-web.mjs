@@ -74,28 +74,41 @@ export function installComposeWebProbe({ maxSamples = 10000, textureUploads = fa
   };
 }
 
+/** A linked Kotlin class: top level in whole-program output, or the class a per-file module creates on first use. */
+export function kotlinClass(source, name) {
+  const escaped = name.replaceAll('$', '\\$');
+  return source.match(new RegExp(`class ${escaped} \\{[\\s\\S]*?\\n\\}`))?.[0]
+    ?? source.match(new RegExp(`function ${escaped}\\(\\) \\{\\n  if \\(${escaped}Class === VOID\\) \\{\\n    class \\$ (?:extends [\\w$]+\\(\\) )?\\{[\\s\\S]*?\\n    \\}`))?.[0];
+}
+
 /** Dependency injection only; no Compose private field names are pinned. */
 export function instrumentComposeWeb(source) {
-  if (source.includes('class FrameRecomposer {')) {
+  if (source.includes('class FrameRecomposer {') || source.includes('function FrameRecomposer() {')) {
     // Locate the synchronous task flush by its source-level inline marker, not
     // compiler-generated method/field spellings. This also runs outside RAF.
-    const scheduler = /\n  ([\w$]+)\(\) \{\n    \/\/ Inline function 'androidx.compose.ui.util.trace' call\n    _set_composeThreadId__[\w$]+\(this, getCurrentThreadId\(\)\);[\s\S]*?\n  \}/;
-    const linked = source.match(/class FrameRecomposer \{[\s\S]*?\n\}/)?.[0];
+    const scheduler = /\n( +)([\w$]+)\(\) \{\n\1  \/\/ Inline function 'androidx.compose.ui.util.trace' call\n\1  _set_composeThreadId__[\w$]+\(this, getCurrentThreadId\(\)\);[\s\S]*?\n\1\}/;
+    const linked = kotlinClass(source, 'FrameRecomposer');
     if (!linked || !scheduler.test(linked)) throw new Error('Compose recomposer boundary changed; requalify performance instrumentation.');
-    source = source.replace(linked, () => linked.replace(scheduler, method => method.replace('{', `{
-    const probe = globalThis.__reaktorCompose;
-    const phase = probe?.beginPhase('recomposerTasks');
-    let failed = true;
-    try {`).replace(/\n  \}$/, `
-    } finally { if (phase) probe.endPhase(phase, failed); }
-  }`).replace('return Unit_instance;', 'failed = false;\n    return Unit_instance;')));
+    source = source.replace(linked, () => linked.replace(scheduler, (method, indent) => method.replace('{', `{
+${indent}  const probe = globalThis.__reaktorCompose;
+${indent}  const phase = probe?.beginPhase('recomposerTasks');
+${indent}  let failed = true;
+${indent}  try {`).replace(new RegExp(`\\n${indent}\\}$`), `
+${indent}  } finally { if (phase) probe.endPhase(phase, failed); }
+${indent}}`).replace('return Unit_instance;', `failed = false;\n${indent}  return Unit_instance;`)));
   }
-  if (!source.includes('class CanvasRenderer {')) return source;
-  const subclass = /class SkiaLayer\$attachTo\$1 extends CanvasRenderer \{\n  constructor\(\$htmlCanvas, this\$0, \$box\) \{[\s\S]*?super\([^\n]+\);/;
+  // Whole-program output links the renderer and its SkiaLayer subclass into one source; per-file output
+  // links each beside the other, so each file carries its own half of the boundary.
+  const whole = source.includes('class CanvasRenderer {');
+  const layer = whole || source.includes('function SkiaLayer() {');
+  const renderer = whole || source.includes('function CanvasRenderer() {');
+  if (!layer && !renderer) return source;
+  const subclass = /class (?:SkiaLayer\$attachTo\$1 extends CanvasRenderer|\$ extends CanvasRenderer\(\)) \{\n +constructor\(\$htmlCanvas, this\$0, \$box\) \{[\s\S]*?super\([^\n]+\);/;
   const frame = /function CanvasRenderer\$needRedraw\$lambda\(this\$0\) \{\n  return \(timestamp\) => \{([\s\S]*?)\n  \};\n\}/;
-  if (!subclass.test(source) || !frame.test(source)) throw new Error('Compose performance boundary changed; requalify Skiko instrumentation.');
-  return source.replace(subclass, '$&\n    this.__reaktorCanvas = $htmlCanvas;')
-    .replace(frame, (match, body) => {
+  if ((layer && !subclass.test(source)) || (renderer && !frame.test(source))) throw new Error('Compose performance boundary changed; requalify Skiko instrumentation.');
+  if (layer) source = source.replace(subclass, '$&\n    this.__reaktorCanvas = $htmlCanvas;');
+  if (!renderer) return source;
+  return source.replace(frame, (match, body) => {
       const draw = /this\$0\.[\w$]+\(timestamp\);/g;
       if ([...body.matchAll(draw)].length !== 1) throw new Error('Skiko scene boundary changed; requalify performance instrumentation.');
       const measured = body.replace(draw, 'if (sample) probe.mark(sample, "sceneAt");\n    $&\n    if (sample) probe.mark(sample, "submitAt");');

@@ -28,6 +28,8 @@ import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
 
 class WebConfiguration internal constructor(private val project: Project): Configuration<KotlinJsTargetDsl>() {
     var moduleName: String? = null
+    /** Links the published library one module per Kotlin file, so a bundler keeps only what its consumers import. */
+    var perFile: Boolean = false
     val exportDirectory: String = "build/" + KotlinPackageExport.RelativeDirectory
     internal val manifests = mutableListOf<org.gradle.api.tasks.TaskProvider<out dev.shibasis.dependeasy.process.ProcessTask>>()
 
@@ -114,6 +116,7 @@ fun KotlinMultiplatformExtension.web(
         mainCompilation.binaries.withType(Library::class.java).configureEach {
             if (mode == KotlinJsBinaryMode.PRODUCTION) {
                 val sync = linkSyncTask
+                if (configure.perFile) linkTask.configure { compilerOptions.freeCompilerArgs.add("-Xir-per-file") }
                 exports.configure { sourceFiles.from(sync.map { it.destinationDirectory.get() }); dependsOn(sync) }
             }
             distribution.outputDirectory.set(project.layout.buildDirectory.dir("dist/js/library/$name"))

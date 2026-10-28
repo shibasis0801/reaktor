@@ -7,6 +7,7 @@ import { kotlinResources } from '../kernel/vite/kotlin-resources.ts';
 import { staticAssetPlugin, type StaticAssetOptions } from '../kernel/vite/static-assets.ts';
 import { reactDevtoolsPlugin } from '../kernel/vite/react-devtools.ts';
 export { linkedKotlinDependencies } from '../kernel/vite/kotlin-dependencies.ts';
+export { kotlinRuntime } from '../kernel/vite/kotlin-runtime.ts';
 
 export interface WebContract {
   schema: number;
