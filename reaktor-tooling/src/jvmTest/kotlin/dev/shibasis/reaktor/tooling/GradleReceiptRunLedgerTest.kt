@@ -31,6 +31,9 @@ class GradleReceiptRunLedgerTest {
             assertEquals(run, ledger.run(run.id))
             assertEquals(BuildModelReader.digest(directory.resolve("fixture.json")), run.artifacts.single().digest)
             directory.resolve("dry.json").writeText(BuildModelReader.json.encodeToString(receipt.copy(run = "dry-run", dryRun = true)))
+            directory.resolve("newer.json").writeText(BuildModelReader.json.encodeToString(receipt.copy(run = "newer-run"))
+                .replaceFirst("{", """{"fieldFromANewerBuild":1,"""))
+            directory.resolve("broken.json").writeText("{")
             assertEquals(listOf(run), ledger.runs())
             val published = async(start = CoroutineStart.UNDISPATCHED) {
                 withTimeout(10000) { ledger.changes().first { it.artifacts.single().kind == "deploy-receipt" } }

@@ -82,7 +82,9 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
         .also { require(it.size <= 10000) { "Receipt ledger exceeds its bounded read limit" } }
         .flatMap(::read).sortedByDescending { it.finishedAtEpochMillis }
 
-    private fun read(file: File): List<TaskRun> {
+    private fun read(file: File): List<TaskRun> = runCatching { receiptRuns(file) }.getOrDefault(emptyList())
+
+    private fun receiptRuns(file: File): List<TaskRun> {
         if (!file.isFile || file.canonicalFile.parentFile !in setOf(directory.canonicalFile, deployments.canonicalFile) ||
             java.nio.file.Files.isSymbolicLink(file.toPath())) return emptyList()
         if (file.canonicalFile.parentFile == deployments.canonicalFile) {
