@@ -111,3 +111,42 @@ requests are intercepted by the existing test workspace.
 The implementation targets Chrome's current [imperative WebMCP API](https://developer.chrome.com/docs/ai/webmcp/imperative-api).
 WebMCP registration does not establish that a given Chrome profile's built-in
 Gemini panel is enabled to discover or invoke the tools.
+
+## Reaktor+ on an admin computer
+
+One selected supervised workspace owner supplies the machine's website service.
+Enable it with the current `reaktor-agent workspace plus --dir /absolute/workspace`
+distribution. The fixed discovery URL is
+`http://127.0.0.1:9317/reaktor-plus/v1`. Manna and Reaktor Docs call it directly
+from the admin's browser. An absent service means local Reaktor+ is unavailable;
+it does not establish or revoke the website user's product permissions.
+
+```ts
+import { discoverReaktorPlus } from 'reaktor-mcp';
+
+const client = await discoverReaktorPlus();
+const requestId = crypto.randomUUID();
+const answer = await client.ask('What is 17 times 23?', requestId);
+```
+
+Discovery admits exactly `https://manna.ac` and `https://reaktor.build`, returning
+a separate in-memory credential for each origin and the fixed `/browser/mcp`
+endpoint. It exposes only `inference.ask`. Browser code never receives the
+workspace owner bearer. The browser may request
+[local network permission](https://developer.chrome.com/blog/local-network-access).
+Neither website asks the user to paste an endpoint or token.
+
+Keep the request ID when reconnecting after a lost reply. The owner records the
+question's SHA-256 before starting isolated Antigravity inference and retains its
+answer in private owner state. A repeated ID returns that answer, a changed
+question is refused, and an admitted request without a terminal receipt is
+reported as unknown rather than started again. Discovery credentials rotate on
+service restart, so reconnect before retrying with the original ID. The maximum
+question length is 6,000 characters and one browser question runs at a time with
+a 90-second runtime budget.
+
+This first local admin path uses the operator's Antigravity account. Docs adds
+only published public excerpts and checks the returned citations against its
+corpus revision. Manna's local ask sends only the typed question. Product record
+context, backend inference and hosted service credentials belong to the later
+`IntelligenceApi` integration in the tooling unification HLD.
