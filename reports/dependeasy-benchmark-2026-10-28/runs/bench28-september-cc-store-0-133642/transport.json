@@ -1,0 +1,60 @@
+{
+  "project": "reaktor",
+  "worker": "m1-worker",
+  "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/worker/reaktor",
+  "source_head": "b7b0370346b46d6bc915a05fb61ffdef93436235",
+  "tasks": [
+    ":reaktor-core:jvmJar",
+    "--max-workers=6",
+    "--no-daemon",
+    "--no-build-cache",
+    "--profile",
+    "--info",
+    "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+    "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+    "-Pkotlin.compiler.execution.strategy=daemon",
+    "-Pkotlin.daemon.jvmargs=-Xmx8g",
+    "--configuration-cache",
+    "--configuration-cache-problems=fail"
+  ],
+  "remote_tasks": [
+    ":reaktor-core:jvmJar",
+    "--max-workers=6",
+    "--no-daemon",
+    "--no-build-cache",
+    "--profile",
+    "--info",
+    "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+    "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+    "-Pkotlin.compiler.execution.strategy=daemon",
+    "-Pkotlin.daemon.jvmargs=-Xmx8g",
+    "--configuration-cache",
+    "--configuration-cache-problems=fail"
+  ],
+  "started": "2026-10-28T13:36:50.637578",
+  "log": "/Users/ovd/dev/.remote-dev/logs/20261028-133650-2ecee126-reaktor.log",
+  "run_id": "20261028-133650-2ecee126-reaktor",
+  "exit_code": 0,
+  "sync_seconds": 3.780363166000143,
+  "queue_seconds": 1540.132611667,
+  "owner": {
+    "pid": 42934,
+    "started": "Wed Oct 28 13:11:06 2026"
+  },
+  "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/worker",
+  "workspace_root": "/Users/ovd/dev/.remote-dev/slots/worker",
+  "execution_seconds": 18.626178999999865,
+  "worker_started_epoch": 1793174810.777039,
+  "dry_run": false,
+  "builds": {
+    "reaktor": "reaktor"
+  },
+  "artifact_family": "all",
+  "collected": "2026-10-28T13:37:09.819806",
+  "copied_files": 291,
+  "copy_error": null,
+  "collection_seconds": 0.48018595799999275,
+  "publication_queue_seconds": 2.033300006587524e-05,
+  "finished": "2026-10-28T13:37:09.912085",
+  "publication_seconds": 0.09182870800009368
+}

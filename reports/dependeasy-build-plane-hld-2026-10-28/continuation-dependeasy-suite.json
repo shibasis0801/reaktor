@@ -1,0 +1,72 @@
+{
+  "receipt": {
+    "project": "reaktor",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor",
+    "source_head": "909316863bb84931fb4f10ac55863eae27d84be2",
+    "tasks": [
+      "-p",
+      "dependeasy",
+      ":gradle:test",
+      ":model:test",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      "-p",
+      "dependeasy",
+      ":gradle:test",
+      ":model:test",
+      "--console=plain"
+    ],
+    "started": "2026-10-28T19:40:07.918919",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261028-194007-92aa71fc-reaktor.log",
+    "run_id": "20261028-194007-92aa71fc-reaktor",
+    "exit_code": 0,
+    "sync_seconds": 13.928283875000034,
+    "queue_seconds": 392.39409929199996,
+    "owner": {
+      "pid": 61282,
+      "started": "Wed Oct 28 19:33:21 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 1,
+    "publication": "changed-files",
+    "source_epoch": 1793196593.9910378,
+    "execution_seconds": 436.05293470799995,
+    "worker_started_epoch": 1793196608.098816,
+    "dry_run": false,
+    "builds": {
+      "reaktor": "reaktor",
+      "dependeasy": "reaktor"
+    },
+    "artifact_family": "all",
+    "collected": "2026-10-28T19:47:28.332826",
+    "copied_files": 96,
+    "copy_error": null,
+    "collection_seconds": 4.280049458000008,
+    "worker_slot_trimmed": 0,
+    "publication_queue_seconds": 14.709351833000028,
+    "finished": "2026-10-28T19:47:43.232658",
+    "publication_seconds": 14.847667375000015
+  },
+  "suites": [
+    {
+      "module": "gradle",
+      "suites": 44,
+      "tests": 129,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "module": "model",
+      "suites": 8,
+      "tests": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "scope": "Three lazy configuration production changes and two fixtures; excludes subsequently added missing-model producer assertion and planner skip."
+}

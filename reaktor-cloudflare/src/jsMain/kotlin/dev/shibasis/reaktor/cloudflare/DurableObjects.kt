@@ -183,14 +183,21 @@ class DurableObjectStub internal constructor(
 @JsExport
 class DurableObjectStorage internal constructor(
     private val raw: RawDurableObjectStorage,
+    private val access: dev.shibasis.reaktor.service.contract.ResourceAccess? = null,
 ) {
     @JsExport.Ignore
-    suspend fun alarm(): Double? = raw.getAlarm().await()
+    fun traced(access: dev.shibasis.reaktor.service.contract.ResourceAccess): DurableObjectStorage = DurableObjectStorage(raw, access)
+
+    private suspend fun <T> execute(operation: String, effect: dev.shibasis.reaktor.service.contract.Effect, action: suspend () -> T): T =
+        if (access == null) action() else access.execute(DurableObjectStorageResource, operation, effect, action)
+
+    @JsExport.Ignore
+    suspend fun alarm(): Double? = execute("get-alarm", dev.shibasis.reaktor.service.contract.Effect.LiveRead) { raw.getAlarm().await() }
 
     fun alarmAsync(): Promise<Double?> = promiseOf { alarm() }
 
     @JsExport.Ignore
-    suspend fun value(key: String): String? = raw.get(key).await()?.toString()
+    suspend fun value(key: String): String? = execute("get", dev.shibasis.reaktor.service.contract.Effect.LiveRead) { raw.get(key).await()?.toString() }
 
     fun valueAsync(key: String): Promise<String?> = promiseOf { value(key) }
 
@@ -199,7 +206,7 @@ class DurableObjectStorage internal constructor(
         key: String,
         value: Any?,
     ) {
-        raw.put(key, value).await()
+        execute("put", dev.shibasis.reaktor.service.contract.Effect.ProductionReversibleWrite) { raw.put(key, value).await(); Unit }
     }
 
     fun putValueAsync(
@@ -267,13 +274,13 @@ class DurableObjectStorage internal constructor(
     ): Promise<Unit> = promiseOf { putInt(key, value) }
 
     @JsExport.Ignore
-    suspend fun delete(key: String): Boolean = raw.delete(key).await()
+    suspend fun delete(key: String): Boolean = execute("delete", dev.shibasis.reaktor.service.contract.Effect.ProductionReversibleWrite) { raw.delete(key).await() }
 
     fun deleteAsync(key: String): Promise<Boolean> = promiseOf { delete(key) }
 
     @JsExport.Ignore
     suspend fun clear() {
-        raw.deleteAll().await()
+        execute("clear", dev.shibasis.reaktor.service.contract.Effect.Destructive) { raw.deleteAll().await(); Unit }
     }
 
     fun clearAsync(): Promise<Unit> = promiseOf { clear() }

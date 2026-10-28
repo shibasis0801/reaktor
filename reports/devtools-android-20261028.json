@@ -1,0 +1,29 @@
+{
+  "recordedAt": "2026-10-27T18:33:10.170398+00:00",
+  "task": "T197",
+  "result": "Restored the locally attached Samsung SM-S918B in installed Hangar. UI confirmed Adb Connected, app frames, 24 elements, 5 requests and 17 logs.",
+  "diagnosis": "Android adb already saw the phone. ac.manna.app held the global @reaktor-devtools listener (inode 8814979). Its stalled connection prevented BestBuds from binding or answering. Stopping that app and restarting ai.bestbuds.app gave BestBuds the listener and restored the handshake.",
+  "recovery": [
+    "User explicitly authorized using this Mac for this fix.",
+    "Stopped ac.manna.app and restarted ai.bestbuds.app without clearing app data.",
+    "Confirmed installed Hangar sees BestBuds 1.0 (38), protocol 1, accepts commands, live frames and elements."
+  ],
+  "sourceFix": "DevToolsHost now closes the peer channel in NonCancellable before waiting for its reader to cancel; an Android blocking socket read otherwise prevents client replacement from finishing.",
+  "validation": {
+    "before": "Focused regression compiled successfully and failed with a 4000ms timeout before the production fix.",
+    "after": "JUnit version 4.13.2\n.......\nTime: 5.343\n\nOK (7 tests)\n\n[Warn] devtools: The agent recovered from IllegalStateException: connection reset by peer\n",
+    "method": "Kotlin 2.4.21 compiler compiled the actual edited DevToolsHost and both source test classes against existing Hangar/CLI JVM dependency jars; JUnit 4.13.2 ran DevToolsHostReplacementTest and AgentResilienceTest. The scratch JVM actual factory delegates to existing TcpAgentTransport.",
+    "diffCheck": "git diff --check passed for both changed files.",
+    "gradle": "check_run run-1793125357384-5411 was routed to unavailable m1-worker and cancelled without running tests. Focused direct JVM verification substituted; full Gradle verification remains pending."
+  },
+  "sourceSha256": {
+    "reaktor-devtools/src/commonMain/kotlin/dev/shibasis/reaktor/devtools/DevToolsHost.kt": "06a7e35870d46aff7c879abb8f11165fc2818d8a12b3ac784a718116cd553d38",
+    "reaktor-devtools/src/jvmTest/kotlin/dev/shibasis/reaktor/devtools/DevToolsHostReplacementTest.kt": "f6dd40e8051e443698814d91dea7c8bfb15f9082b6e9c90337b096d9ce62b321"
+  },
+  "limits": [
+    "Source patch has not been rebuilt into the installed Android app.",
+    "Apps still share one legacy Android DevTools socket; stopping Manna freed it for the current BestBuds session.",
+    "Manna reporting unavailable: connected tool version differs from required version."
+  ],
+  "nextAction": "Rebuild the Android debug app with this lifecycle fix when the routed build worker is available."
+}

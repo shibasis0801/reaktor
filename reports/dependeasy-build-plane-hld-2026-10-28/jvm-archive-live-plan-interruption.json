@@ -1,0 +1,31 @@
+{
+  "observedAt": "2026-10-28T17:19:51.451688+05:30",
+  "run": "kernel-d3084798-88e8-4a2b-bfb4-a918a5edcafb",
+  "ownWrapperPid": 24386,
+  "wrapperElapsedAtStop": "08:57",
+  "node": {
+    "build": "reaktor",
+    "project": ":reaktor-core",
+    "name": "outputJvmLibrary"
+  },
+  "phase": "Primary-checkout publication lease wait after successful worker Gradle execution and artifact collection.",
+  "action": "SIGINT only our exact wrapper after matching the content-addressed request and node. run.cancel returned false. Foreign shipping-plan wrappers untouched.",
+  "meaning": "Gradle succeeded, but the interrupted wrapper makes build.plan fail before its second Gradle planning pass. This is not successful typed-node plan/run qualification. Ordinary admission/publication waits differ from reserved benchmark E2E.",
+  "correction": "An earlier phase diagnosis based on the local process tree was wrong. The router had executed successfully on the worker and was awaiting primary-checkout publication. The complete command output and transport receipt establish the phases below.",
+  "transportRun": "20261028-171612-1f60b529-bestbuds",
+  "phaseSeconds": {
+    "admission": 284.37895525,
+    "sync": 33.39041579100001,
+    "execution": 45.856926999999985,
+    "gradleConsoleRounded": 43,
+    "collection": 8.700636250000002,
+    "publicationWaitBeforeInterruptionAtLeast": 164.02
+  },
+  "publicationRecovery": {
+    "result": "Normal resume succeeds, exit0, no copy_error, no pending publication. The failed original build.plan command is not retroactively counted as successful.",
+    "receipt": "jvm-archive-plan-publication-recovered.json",
+    "resumePublicationQueueSeconds": 89.137278125,
+    "finished": "2026-10-28T17:27:14.472378"
+  },
+  "correctedAt": "2026-10-28T17:25:17.607881+05:30"
+}

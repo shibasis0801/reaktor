@@ -1,0 +1,60 @@
+{
+  "project": "reaktor",
+  "worker": "m1-worker",
+  "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/worker/reaktor",
+  "source_head": "423e607f10b29aae104e39879be962e0e9bb5131",
+  "tasks": [
+    ":reaktor-core:jvmJar",
+    "--max-workers=6",
+    "--no-daemon",
+    "--no-configuration-cache",
+    "--no-build-cache",
+    "--profile",
+    "--info",
+    "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+    "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+    "-Pkotlin.compiler.execution.strategy=in-process",
+    "--init-script",
+    "benchmark.init.gradle"
+  ],
+  "remote_tasks": [
+    ":reaktor-core:jvmJar",
+    "--max-workers=6",
+    "--no-daemon",
+    "--no-configuration-cache",
+    "--no-build-cache",
+    "--profile",
+    "--info",
+    "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+    "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+    "-Pkotlin.compiler.execution.strategy=in-process",
+    "--init-script",
+    "benchmark.init.gradle"
+  ],
+  "started": "2026-10-28T11:35:27.933160",
+  "log": "/Users/ovd/dev/.remote-dev/logs/20261028-113527-694c9df1-reaktor.log",
+  "run_id": "20261028-113527-694c9df1-reaktor",
+  "exit_code": 0,
+  "sync_seconds": 6.563552291999997,
+  "queue_seconds": 319.306819333,
+  "owner": {
+    "pid": 7204,
+    "started": "Wed Oct 28 11:30:01 2026"
+  },
+  "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/worker",
+  "workspace_root": "/Users/ovd/dev/.remote-dev/slots/worker",
+  "execution_seconds": 237.887275833,
+  "worker_started_epoch": 1793167528.1013446,
+  "dry_run": false,
+  "builds": {
+    "reaktor": "reaktor"
+  },
+  "artifact_family": "all",
+  "collected": "2026-10-28T11:39:28.309687",
+  "copied_files": 2487,
+  "copy_error": null,
+  "collection_seconds": 2.3673391669999546,
+  "publication_queue_seconds": 3.6207999983162154e-05,
+  "finished": "2026-10-28T11:39:28.705589",
+  "publication_seconds": 0.3943544159999419
+}

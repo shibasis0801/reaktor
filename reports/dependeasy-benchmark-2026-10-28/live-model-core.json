@@ -1,0 +1,5211 @@
+{
+  "source": "Live owner model, separate from frozen benchmark; may include current working-tree declarations",
+  "modelSha256": "9cbe32a0cbbe7014d57f66134c531a8ed7b44c8575c323157a7b32d2f09e4e40",
+  "captured": "2026-10-28T11:33:45.455402",
+  "coreNodes": [
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScript"
+      },
+      "kind": "Verification",
+      "label": "buildCoreTypeScript",
+      "effect": "Verify",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 21,
+        "symbol": "Build_gradle._init_$lambda$0",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 21,
+            "symbol": "Build_gradle._init_$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 23,
+            "symbol": "dev.shibasis.dependeasy.workspace.NodeDeclaration.provideDelegate",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 304,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.typescript$lambda$1",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+            "line": 238,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptComponent.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 260,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.aggregate$dev_shibasis_dependeasy_gradle$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 269,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.aggregate$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.VerificationKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 26,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "buildCoreTypeScript"
+          },
+          "kind": "Verification",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "buildCoreTypeScriptCompile"
+            }
+          ],
+          "consumes": [],
+          "after": [],
+          "requirements": [],
+          "effect": "Verify",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:buildCoreTypeScript"
+        ]
+      },
+      "inputs": [],
+      "outputs": [],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "web",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": {
+        "domains": [
+          "Framework"
+        ],
+        "aspects": [
+          "Static"
+        ],
+        "system": "reaktor-core"
+      },
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScriptCompile"
+      },
+      "kind": "Kernel",
+      "label": "buildCoreTypeScriptCompile",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 21,
+        "symbol": "Build_gradle._init_$lambda$0",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 21,
+            "symbol": "Build_gradle._init_$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 23,
+            "symbol": "dev.shibasis.dependeasy.workspace.NodeDeclaration.provideDelegate",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 304,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.typescript$lambda$1",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+            "line": 236,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptComponent.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptCommandKernel.kt",
+            "line": 20,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptCommandKernel.register$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptCommandKernel.kt",
+            "line": 47,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptCommandKernel.register",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 409,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 416,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.JavaScriptKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/JavaScriptKernel.kt",
+          "line": 42,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.TypeScriptCheck",
+          "execution": {
+            "directory": "reaktor-core",
+            "executable": "/Users/ovd/.gradle/dependeasy/tools/pnpm/12.10.1/darwin-arm64/bin/pnpm",
+            "arguments": [
+              "exec",
+              "node",
+              "dependeasy/javascript/cli/typecheck.ts",
+              "--project",
+              "js/tsconfig.json"
+            ],
+            "environmentKeys": [
+              "PATH",
+              "PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN"
+            ],
+            "tool": {
+              "name": "pnpm",
+              "version": "pnpm 12.10.1 / node 24.21.0"
+            },
+            "inputs": [],
+            "outputs": [
+              "reaktor-core/js/dist"
+            ],
+            "fileInputs": [
+              {
+                "kind": "File",
+                "identity": "pnpm-lock.yaml",
+                "includes": [],
+                "excludes": []
+              },
+              {
+                "kind": "Provider",
+                "identity": "Deferred file provider",
+                "includes": [],
+                "excludes": []
+              },
+              {
+                "kind": "Tree",
+                "identity": "dependeasy/javascript",
+                "includes": [
+                  "api/**",
+                  "cli/**",
+                  "kernel/**",
+                  "package.json"
+                ],
+                "excludes": []
+              },
+              {
+                "kind": "Tree",
+                "identity": "reaktor-core",
+                "includes": [
+                  "*config.*",
+                  "js/**",
+                  "package.json",
+                  "scripts/**",
+                  "src/**/typescript/**",
+                  "test/**",
+                  "ts/**"
+                ],
+                "excludes": [
+                  "**/*.tsbuildinfo",
+                  "**/.git/**",
+                  "**/.gradle/**",
+                  "**/.kotlin/**",
+                  "**/build/**",
+                  "**/dist/**",
+                  "**/node_modules/**",
+                  "*.log",
+                  ".cache-*/**",
+                  ".vite/**",
+                  ".wrangler/**",
+                  "coverage/**",
+                  "js/dist/**",
+                  "logs/**",
+                  "ts/export/**",
+                  "wrangler.dependeasy-*.json"
+                ]
+              }
+            ]
+          },
+          "projects": [
+            "js/tsconfig.json"
+          ],
+          "adapter": "dependeasy/javascript/cli/typecheck.ts",
+          "emit": true
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:buildCoreTypeScriptCompile"
+        ]
+      },
+      "inputs": [
+        {
+          "paths": [],
+          "kind": null,
+          "declarations": [
+            {
+              "kind": "File",
+              "identity": "pnpm-lock.yaml",
+              "includes": [],
+              "excludes": []
+            },
+            {
+              "kind": "Provider",
+              "identity": "Deferred file provider",
+              "includes": [],
+              "excludes": []
+            },
+            {
+              "kind": "Tree",
+              "identity": "dependeasy/javascript",
+              "includes": [
+                "api/**",
+                "cli/**",
+                "kernel/**",
+                "package.json"
+              ],
+              "excludes": []
+            },
+            {
+              "kind": "Tree",
+              "identity": "reaktor-core",
+              "includes": [
+                "*config.*",
+                "js/**",
+                "package.json",
+                "scripts/**",
+                "src/**/typescript/**",
+                "test/**",
+                "ts/**"
+              ],
+              "excludes": [
+                "**/*.tsbuildinfo",
+                "**/.git/**",
+                "**/.gradle/**",
+                "**/.kotlin/**",
+                "**/build/**",
+                "**/dist/**",
+                "**/node_modules/**",
+                "*.log",
+                ".cache-*/**",
+                ".vite/**",
+                ".wrangler/**",
+                "coverage/**",
+                "js/dist/**",
+                "logs/**",
+                "ts/export/**",
+                "wrangler.dependeasy-*.json"
+              ]
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/js/dist"
+          ],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [
+        {
+          "name": "pnpm",
+          "version": "pnpm 12.10.1 / node 24.21.0"
+        }
+      ],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScriptWebContract"
+      },
+      "kind": "Kernel",
+      "label": "buildCoreTypeScriptWebContract",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 21,
+        "symbol": "Build_gradle._init_$lambda$0",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 21,
+            "symbol": "Build_gradle._init_$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 23,
+            "symbol": "dev.shibasis.dependeasy.workspace.NodeDeclaration.provideDelegate",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 302,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.typescript$lambda$1",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+            "line": 33,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptComponent.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 409,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 416,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.WebContractKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WebContractKernel.kt",
+          "line": 7,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WebContract",
+          "component": "buildCoreTypeScript",
+          "directory": "reaktor-core",
+          "manifests": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "wrappers": {
+            "paths": [
+              "reaktor-core/package.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "runtime": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptPaths": {},
+          "assets": {},
+          "baseConfiguration": {
+            "paths": [
+              "dependeasy/javascript/tsconfig/base.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "kotlinDirectory": null,
+          "resources": null,
+          "moduleName": null,
+          "output": {
+            "paths": [
+              "reaktor-core/build/dependeasy/web/buildCoreTypeScript.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptConfiguration": {
+            "paths": [
+              "reaktor-core/build/dependeasy/web/buildCoreTypeScript.tsconfig.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "sourceManifests": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "packageContracts": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "packageLocations": {},
+          "dataSources": {},
+          "workspaceMetadata": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "workspaceDefinition": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "target": "es2022",
+          "assetFileNames": "assets/[name]-[hash][extname]",
+          "workerFleet": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          }
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:buildCoreTypeScriptWebContract"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/web/buildCoreTypeScript.json",
+            "reaktor-core/build/dependeasy/web/buildCoreTypeScript.tsconfig.json"
+          ],
+          "kind": "GeneratedContract",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "metadata",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "compileKotlinIosArm64"
+      },
+      "kind": "Kernel",
+      "label": "compileKotlinIosArm64",
+      "effect": "Build",
+      "host": {
+        "platform": "Macos",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:compileKotlinIosArm64"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/classes/kotlin/iosArm64/main/klib"
+          ],
+          "kind": "AppleCompilation",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "apple",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "compileKotlinIosSimulatorArm64"
+      },
+      "kind": "Kernel",
+      "label": "compileKotlinIosSimulatorArm64",
+      "effect": "Build",
+      "host": {
+        "platform": "Macos",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:compileKotlinIosSimulatorArm64"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/classes/kotlin/iosSimulatorArm64/main/klib"
+          ],
+          "kind": "AppleCompilation",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "apple",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "completeLocalPublication"
+      },
+      "kind": "Kernel",
+      "label": "completeLocalPublication",
+      "effect": "Deploy",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "build.gradle.kts",
+        "line": 40,
+        "symbol": "Build_gradle$1.execute",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 11,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 11,
+            "symbol": "Build_gradle$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 40,
+            "symbol": "Build_gradle$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.publishing",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/Publications.kt",
+            "line": 20,
+            "symbol": "dev.shibasis.dependeasy.publishing.Publications.install$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/PublishingKernel.kt",
+            "line": 44,
+            "symbol": "dev.shibasis.dependeasy.publishing.PublishingKernel.install",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/PublishingKernel.kt",
+            "line": 48,
+            "symbol": "dev.shibasis.dependeasy.publishing.PublishingKernel.aggregate",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.ReleaseKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 29,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "completeLocalPublication"
+          },
+          "kind": "Release",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [],
+          "consumes": [],
+          "after": [],
+          "requirements": [],
+          "effect": "Deploy",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:completeLocalPublication"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeLocalPublication.txt"
+          ],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "completeModuleBuild"
+      },
+      "kind": "Kernel",
+      "label": "completeModuleBuild",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+        "line": 416,
+        "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/plugins/LibraryPlugin.kt",
+            "line": 35,
+            "symbol": "dev.shibasis.dependeasy.plugins.LibraryPlugin.apply",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/plugins/LibraryPlugin.kt",
+            "line": 52,
+            "symbol": "dev.shibasis.dependeasy.plugins.LibraryPlugin.apply",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/plugins/LibraryPlugin.kt",
+            "line": 21,
+            "symbol": "dev.shibasis.dependeasy.plugins.LibraryPluginKt.applyMultiplatformPlugins",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/ModuleOutputs.kt",
+            "line": 29,
+            "symbol": "dev.shibasis.dependeasy.handles.ModuleOutputsKt$moduleOutputs$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/ModuleOutputs.kt",
+            "line": 34,
+            "symbol": "dev.shibasis.dependeasy.handles.ModuleOutputsKt$moduleOutputs$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 87,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishModuleOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 22,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 36,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 47,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 409,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 416,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.ArtifactSetKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 27,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "completeModuleBuild"
+          },
+          "kind": "ArtifactSet",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [],
+          "consumes": [],
+          "after": [],
+          "requirements": [],
+          "effect": "Build",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:completeModuleBuild"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeModuleBuild.txt"
+          ],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "completeRemotePublication"
+      },
+      "kind": "Kernel",
+      "label": "completeRemotePublication",
+      "effect": "Deploy",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "build.gradle.kts",
+        "line": 40,
+        "symbol": "Build_gradle$1.execute",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 11,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 11,
+            "symbol": "Build_gradle$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 40,
+            "symbol": "Build_gradle$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.publishing",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/Publications.kt",
+            "line": 20,
+            "symbol": "dev.shibasis.dependeasy.publishing.Publications.install$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/PublishingKernel.kt",
+            "line": 43,
+            "symbol": "dev.shibasis.dependeasy.publishing.PublishingKernel.install",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/PublishingKernel.kt",
+            "line": 48,
+            "symbol": "dev.shibasis.dependeasy.publishing.PublishingKernel.aggregate",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.ReleaseKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 29,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "completeRemotePublication"
+          },
+          "kind": "Release",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [],
+          "consumes": [],
+          "after": [],
+          "requirements": [],
+          "effect": "Deploy",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:completeRemotePublication"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeRemotePublication.txt"
+          ],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "completeTypeScriptChecks"
+      },
+      "kind": "Kernel",
+      "label": "completeTypeScriptChecks",
+      "effect": "Verify",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 21,
+        "symbol": "Build_gradle._init_$lambda$0",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 21,
+            "symbol": "Build_gradle._init_$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 23,
+            "symbol": "dev.shibasis.dependeasy.workspace.NodeDeclaration.provideDelegate",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 304,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.typescript$lambda$1",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+            "line": 241,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptComponent.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+            "line": 219,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptComponent.verificationConsumer",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/tasks/RegisteredTasks.kt",
+            "line": 11,
+            "symbol": "dev.shibasis.dependeasy.tasks.RegisteredTasksKt.registeredTask",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+            "line": 221,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptComponent.verificationConsumer$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 19,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 36,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 47,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 409,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 416,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.VerificationKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 26,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "completeTypeScriptChecks"
+          },
+          "kind": "Verification",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [],
+          "consumes": [],
+          "after": [],
+          "requirements": [],
+          "effect": "Verify",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:completeTypeScriptChecks"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeTypeScriptChecks.txt"
+          ],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": {
+        "domains": [
+          "Framework"
+        ],
+        "aspects": [
+          "Static"
+        ],
+        "system": "reaktor-core"
+      },
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "componentBuild"
+      },
+      "kind": "ArtifactSet",
+      "label": "componentBuild",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 456,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.bind$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 460,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.publishLibraryRoles$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 463,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.publishLibraryRoles",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 130,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.artifacts$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 131,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.artifacts",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 136,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.artifacts",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.ArtifactSetKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 27,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "componentBuild"
+          },
+          "kind": "ArtifactSet",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "packageSources"
+            }
+          ],
+          "consumes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "outputModuleBuild"
+            }
+          ],
+          "after": [],
+          "requirements": [],
+          "effect": "Build",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:componentBuild"
+        ]
+      },
+      "inputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeModuleBuild.txt"
+          ],
+          "kind": "ModuleBuild",
+          "declarations": []
+        }
+      ],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeModuleBuild.txt"
+          ],
+          "kind": "ModuleBuild",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "componentChecks"
+      },
+      "kind": "Verification",
+      "label": "componentChecks",
+      "effect": "Verify",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 456,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.bind$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 460,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.publishLibraryRoles$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 468,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.publishLibraryRoles",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 115,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.verify$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 116,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.verify",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 121,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.verification",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.VerificationKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 26,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "componentChecks"
+          },
+          "kind": "Verification",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "buildCoreTypeScript"
+            }
+          ],
+          "consumes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "outputVerificationResultsJvm"
+            },
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "outputVerificationResultsJavaScript"
+            }
+          ],
+          "after": [],
+          "requirements": [],
+          "effect": "Verify",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:componentChecks"
+        ]
+      },
+      "inputs": [
+        {
+          "paths": [
+            "reaktor-core/build/test-results/jvmTest"
+          ],
+          "kind": "VerificationResults",
+          "declarations": []
+        },
+        {
+          "paths": [
+            "reaktor-core/build/test-results/jsNodeTest"
+          ],
+          "kind": "VerificationResults",
+          "declarations": []
+        }
+      ],
+      "outputs": [],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": {
+        "domains": [
+          "Framework"
+        ],
+        "aspects": [
+          "Unit",
+          "Static"
+        ],
+        "system": "reaktor-core"
+      },
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "exportKotlinLibrary"
+      },
+      "kind": "Kernel",
+      "label": "exportKotlinLibrary",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 413,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.bind$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/module/MultiplatformModule.kt",
+            "line": 33,
+            "symbol": "dev.shibasis.dependeasy.module.MultiplatformModule.web",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt",
+            "line": 55,
+            "symbol": "dev.shibasis.dependeasy.web.WebConfigureKt.web",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt",
+            "line": 143,
+            "symbol": "dev.shibasis.dependeasy.web.WebConfigureKt.web$lambda$1",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 87,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishModuleOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 22,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 36,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 47,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 409,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 416,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.KotlinPackageKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/KotlinPackageKernel.kt",
+          "line": 7,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.KotlinPackage",
+          "sources": {
+            "paths": [],
+            "kind": null,
+            "declarations": [
+              {
+                "kind": "File",
+                "identity": "reaktor-core/build/tmp/jsPublicPackageJson/package.json",
+                "includes": [],
+                "excludes": []
+              },
+              {
+                "kind": "Provider",
+                "identity": "Deferred file provider",
+                "includes": [],
+                "excludes": []
+              }
+            ]
+          },
+          "destination": {
+            "paths": [
+              "reaktor-core/build/dependeasy/kotlin/library"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "dependencies": {
+            "paths": [
+              "build/js/packages/reaktor-reaktor-core/node_modules"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "receipt": {
+            "paths": [
+              "reaktor-core/build/dependeasy/kotlin/dependencies.properties"
+            ],
+            "kind": null,
+            "declarations": []
+          }
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:exportKotlinLibrary"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/kotlin/dependencies.properties",
+            "reaktor-core/build/dependeasy/kotlin/library"
+          ],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "installDebugAndroidTest"
+      },
+      "kind": "Kernel",
+      "label": "installDebugAndroidTest",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": "Local"
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "com.android.build.gradle.internal.tasks.InstallVariantTask",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:installDebugAndroidTest"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "jsNodeTest"
+      },
+      "kind": "Kernel",
+      "label": "jsNodeTest",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+        "line": 416,
+        "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 413,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.bind$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/module/MultiplatformModule.kt",
+            "line": 33,
+            "symbol": "dev.shibasis.dependeasy.module.MultiplatformModule.web",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt",
+            "line": 55,
+            "symbol": "dev.shibasis.dependeasy.web.WebConfigureKt.web",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt",
+            "line": 144,
+            "symbol": "dev.shibasis.dependeasy.web.WebConfigureKt.web$lambda$1",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt",
+            "line": 145,
+            "symbol": "dev.shibasis.dependeasy.web.WebConfigureKt.web$lambda$1$6",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt",
+            "line": 145,
+            "symbol": "dev.shibasis.dependeasy.web.WebConfigureKt$web$2$10$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt",
+            "line": 147,
+            "symbol": "dev.shibasis.dependeasy.web.WebConfigureKt$web$2$10$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 87,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishModuleOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 22,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 36,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 47,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 409,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 416,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:jsNodeTest"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/reports/tests/jsNodeTest",
+            "reaktor-core/build/test-results/jsNodeTest",
+            "reaktor-core/build/test-results/jsNodeTest/binary"
+          ],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [
+        {
+          "name": "node",
+          "version": "24.21.0"
+        }
+      ],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [
+        {
+          "name": "tests",
+          "description": "Sets test class or method name to be included (in addition to the test task filters), '*' is supported.",
+          "type": "String",
+          "allowedValues": [],
+          "multiple": true
+        }
+      ],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "jvmTest"
+      },
+      "kind": "Kernel",
+      "label": "jvmTest",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+        "line": 416,
+        "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 420,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.bind$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/module/MultiplatformModule.kt",
+            "line": 36,
+            "symbol": "dev.shibasis.dependeasy.module.MultiplatformModule.jvm",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/server/ServerConfigure.kt",
+            "line": 20,
+            "symbol": "dev.shibasis.dependeasy.server.ServerConfigureKt.server",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/ModuleOutputs.kt",
+            "line": 43,
+            "symbol": "dev.shibasis.dependeasy.handles.ModuleOutputsKt$moduleOutputs$3$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/ModuleOutputs.kt",
+            "line": 44,
+            "symbol": "dev.shibasis.dependeasy.handles.ModuleOutputsKt$moduleOutputs$3$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/ModuleOutputs.kt",
+            "line": 44,
+            "symbol": "dev.shibasis.dependeasy.handles.ModuleOutputsKt$moduleOutputs$3$1$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/ModuleOutputs.kt",
+            "line": 46,
+            "symbol": "dev.shibasis.dependeasy.handles.ModuleOutputsKt$moduleOutputs$3$1$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 87,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishModuleOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 22,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 36,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 47,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 409,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 416,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:jvmTest"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/reports/tests/jvmTest",
+            "reaktor-core/build/test-results/jvmTest",
+            "reaktor-core/build/test-results/jvmTest/binary"
+          ],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [
+        {
+          "name": "java",
+          "version": "25"
+        }
+      ],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [
+        {
+          "name": "debug-jvm",
+          "description": "Enable debugging for the test process. The process is started suspended and listening on port 5005.",
+          "type": "Boolean",
+          "allowedValues": [],
+          "multiple": false
+        },
+        {
+          "name": "fail-fast",
+          "description": "Stops test execution after the first failed test.",
+          "type": "Boolean",
+          "allowedValues": [],
+          "multiple": false
+        },
+        {
+          "name": "test-dry-run",
+          "description": "Simulate test execution.",
+          "type": "Boolean",
+          "allowedValues": [],
+          "multiple": false
+        },
+        {
+          "name": "tests",
+          "description": "Sets test class or method name to be included (in addition to the test task filters), '*' is supported.",
+          "type": "String",
+          "allowedValues": [],
+          "multiple": true
+        }
+      ],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "libraryPackageContract"
+      },
+      "kind": "Kernel",
+      "label": "libraryPackageContract",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 413,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.bind$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/module/MultiplatformModule.kt",
+            "line": 33,
+            "symbol": "dev.shibasis.dependeasy.module.MultiplatformModule.web",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt",
+            "line": 55,
+            "symbol": "dev.shibasis.dependeasy.web.WebConfigureKt.web",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt",
+            "line": 133,
+            "symbol": "dev.shibasis.dependeasy.web.WebConfigureKt.web$lambda$1",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 87,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishModuleOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 22,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 36,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/NodeHandle.kt",
+            "line": 47,
+            "symbol": "dev.shibasis.dependeasy.handles.NodeHandleKt.node",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 409,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+            "line": 416,
+            "symbol": "dev.shibasis.dependeasy.workspace.BuildWorkspace.reference$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.WebContractKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WebContractKernel.kt",
+          "line": 7,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WebContract",
+          "component": "libraryPackage",
+          "directory": "reaktor-core",
+          "manifests": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "wrappers": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "runtime": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptPaths": {},
+          "assets": {},
+          "baseConfiguration": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "kotlinDirectory": null,
+          "resources": null,
+          "moduleName": null,
+          "output": {
+            "paths": [
+              "reaktor-core/build/dependeasy/web/library-package.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptConfiguration": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "sourceManifests": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "packageContracts": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "packageLocations": {
+            "reaktor-reaktor-core": "reaktor-core/build/dependeasy/kotlin/library"
+          },
+          "dataSources": {},
+          "workspaceMetadata": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "workspaceDefinition": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "target": "es2022",
+          "assetFileNames": "assets/[name]-[hash][extname]",
+          "workerFleet": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          }
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:libraryPackageContract"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/web/library-package.json"
+          ],
+          "kind": null,
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": null,
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputAndroidInstrumentedTestsDebug"
+      },
+      "kind": "Kernel",
+      "label": "outputAndroidInstrumentedTestsDebug",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "com.android.build.gradle.tasks.PackageApplication",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:packageDebugAndroidTest"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/outputs/apk/androidTest/debug"
+          ],
+          "kind": "AndroidInstrumentedTests",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "android",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputAndroidLibraryDebug"
+      },
+      "kind": "Kernel",
+      "label": "outputAndroidLibraryDebug",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "com.android.build.gradle.tasks.BundleAar",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:bundleDebugAar"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/outputs/aar/reaktor-core-debug.aar"
+          ],
+          "kind": "AndroidLibrary",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "android",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputAndroidLibraryRelease"
+      },
+      "kind": "Kernel",
+      "label": "outputAndroidLibraryRelease",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "com.android.build.gradle.tasks.BundleAar",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:bundleReleaseAar"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/outputs/aar/reaktor-core-release.aar"
+          ],
+          "kind": "AndroidLibrary",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "android",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputAppleCompilationIosArm64"
+      },
+      "kind": "Kernel",
+      "label": "outputAppleCompilationIosArm64",
+      "effect": "Build",
+      "host": {
+        "platform": "Macos",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:compileKotlinIosArm64"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/classes/kotlin/iosArm64/main/klib/reaktor-core"
+          ],
+          "kind": "AppleCompilation",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "apple",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputAppleCompilationIosSimulatorArm64"
+      },
+      "kind": "Kernel",
+      "label": "outputAppleCompilationIosSimulatorArm64",
+      "effect": "Build",
+      "host": {
+        "platform": "Macos",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:compileKotlinIosSimulatorArm64"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/classes/kotlin/iosSimulatorArm64/main/klib/reaktor-core"
+          ],
+          "kind": "AppleCompilation",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "apple",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputBrowserBundle"
+      },
+      "kind": "Kernel",
+      "label": "outputBrowserBundle",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 453,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.bind$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 19,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.JavaScriptKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/JavaScriptKernel.kt",
+          "line": 42,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.TypeScriptCheck",
+          "execution": {
+            "directory": "reaktor-core",
+            "executable": "/Users/ovd/.gradle/dependeasy/tools/pnpm/12.10.1/darwin-arm64/bin/pnpm",
+            "arguments": [
+              "exec",
+              "node",
+              "dependeasy/javascript/cli/typecheck.ts",
+              "--project",
+              "js/tsconfig.json"
+            ],
+            "environmentKeys": [
+              "PATH",
+              "PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN"
+            ],
+            "tool": {
+              "name": "pnpm",
+              "version": "pnpm 12.10.1 / node 24.21.0"
+            },
+            "inputs": [],
+            "outputs": [
+              "reaktor-core/js/dist"
+            ],
+            "fileInputs": [
+              {
+                "kind": "File",
+                "identity": "pnpm-lock.yaml",
+                "includes": [],
+                "excludes": []
+              },
+              {
+                "kind": "Provider",
+                "identity": "Deferred file provider",
+                "includes": [],
+                "excludes": []
+              },
+              {
+                "kind": "Tree",
+                "identity": "dependeasy/javascript",
+                "includes": [
+                  "api/**",
+                  "cli/**",
+                  "kernel/**",
+                  "package.json"
+                ],
+                "excludes": []
+              },
+              {
+                "kind": "Tree",
+                "identity": "reaktor-core",
+                "includes": [
+                  "*config.*",
+                  "js/**",
+                  "package.json",
+                  "scripts/**",
+                  "src/**/typescript/**",
+                  "test/**",
+                  "ts/**"
+                ],
+                "excludes": [
+                  "**/*.tsbuildinfo",
+                  "**/.git/**",
+                  "**/.gradle/**",
+                  "**/.kotlin/**",
+                  "**/build/**",
+                  "**/dist/**",
+                  "**/node_modules/**",
+                  "*.log",
+                  ".cache-*/**",
+                  ".vite/**",
+                  ".wrangler/**",
+                  "coverage/**",
+                  "js/dist/**",
+                  "logs/**",
+                  "ts/export/**",
+                  "wrangler.dependeasy-*.json"
+                ]
+              }
+            ]
+          },
+          "projects": [
+            "js/tsconfig.json"
+          ],
+          "adapter": "dependeasy/javascript/cli/typecheck.ts",
+          "emit": true
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:buildCoreTypeScriptCompile"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/js/dist"
+          ],
+          "kind": "BrowserBundle",
+          "declarations": []
+        }
+      ],
+      "tools": [
+        {
+          "name": "pnpm",
+          "version": "pnpm 12.10.1 / node 24.21.0"
+        }
+      ],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "web",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputJavaScriptPackage"
+      },
+      "kind": "Kernel",
+      "label": "outputJavaScriptPackage",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 20,
+        "symbol": "Build_gradle._init_$lambda$0",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 20,
+            "symbol": "Build_gradle._init_$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 23,
+            "symbol": "dev.shibasis.dependeasy.workspace.NodeDeclaration.provideDelegate",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 133,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.webPackage$lambda$0$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 72,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.webPackage$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebContractTask.kt",
+            "line": 77,
+            "symbol": "dev.shibasis.dependeasy.web.WebContractTaskKt.sourcePackage",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 19,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.WebContractKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WebContractKernel.kt",
+          "line": 7,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WebContract",
+          "component": "packageSources",
+          "directory": "reaktor-core",
+          "manifests": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "wrappers": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "runtime": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptPaths": {},
+          "assets": {},
+          "baseConfiguration": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "kotlinDirectory": null,
+          "resources": null,
+          "moduleName": null,
+          "output": {
+            "paths": [
+              "reaktor-core/build/dependeasy/web/packageSources.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptConfiguration": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "sourceManifests": {
+            "paths": [
+              "reaktor-core/package.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "packageContracts": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "packageLocations": {},
+          "dataSources": {},
+          "workspaceMetadata": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "workspaceDefinition": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "target": "es2022",
+          "assetFileNames": "assets/[name]-[hash][extname]",
+          "workerFleet": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          }
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:packageSources"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core",
+            "reaktor-core/build/dependeasy/web/packageSources.json"
+          ],
+          "kind": "JavaScriptPackage",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "web",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputKotlinJsLibrary"
+      },
+      "kind": "Kernel",
+      "label": "outputKotlinJsLibrary",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.KotlinPackageKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/KotlinPackageKernel.kt",
+          "line": 7,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.KotlinPackage",
+          "sources": {
+            "paths": [],
+            "kind": null,
+            "declarations": [
+              {
+                "kind": "File",
+                "identity": "reaktor-core/build/tmp/jsPublicPackageJson/package.json",
+                "includes": [],
+                "excludes": []
+              },
+              {
+                "kind": "Provider",
+                "identity": "Deferred file provider",
+                "includes": [],
+                "excludes": []
+              }
+            ]
+          },
+          "destination": {
+            "paths": [
+              "reaktor-core/build/dependeasy/kotlin/library"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "dependencies": {
+            "paths": [
+              "build/js/packages/reaktor-reaktor-core/node_modules"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "receipt": {
+            "paths": [
+              "reaktor-core/build/dependeasy/kotlin/dependencies.properties"
+            ],
+            "kind": null,
+            "declarations": []
+          }
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:exportKotlinLibrary"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/kotlin/library"
+          ],
+          "kind": "KotlinJsLibrary",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "web",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputKotlinJsPackageMetadata"
+      },
+      "kind": "Kernel",
+      "label": "outputKotlinJsPackageMetadata",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.WebContractKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WebContractKernel.kt",
+          "line": 7,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WebContract",
+          "component": "libraryPackage",
+          "directory": "reaktor-core",
+          "manifests": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "wrappers": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "runtime": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptPaths": {},
+          "assets": {},
+          "baseConfiguration": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "kotlinDirectory": null,
+          "resources": null,
+          "moduleName": null,
+          "output": {
+            "paths": [
+              "reaktor-core/build/dependeasy/web/library-package.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptConfiguration": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "sourceManifests": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "packageContracts": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "packageLocations": {
+            "reaktor-reaktor-core": "reaktor-core/build/dependeasy/kotlin/library"
+          },
+          "dataSources": {},
+          "workspaceMetadata": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "workspaceDefinition": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "target": "es2022",
+          "assetFileNames": "assets/[name]-[hash][extname]",
+          "workerFleet": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          }
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:libraryPackageContract"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/web/library-package.json"
+          ],
+          "kind": "KotlinJsPackageMetadata",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "metadata",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputModuleBuild"
+      },
+      "kind": "Kernel",
+      "label": "outputModuleBuild",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.ArtifactSetKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 27,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "completeModuleBuild"
+          },
+          "kind": "ArtifactSet",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [],
+          "consumes": [],
+          "after": [],
+          "requirements": [],
+          "effect": "Build",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:completeModuleBuild"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeModuleBuild.txt"
+          ],
+          "kind": "ModuleBuild",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "verification",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputPublishedModulesLocal"
+      },
+      "kind": "Kernel",
+      "label": "outputPublishedModulesLocal",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "build.gradle.kts",
+        "line": 40,
+        "symbol": "Build_gradle$1.execute",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 11,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 11,
+            "symbol": "Build_gradle$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 40,
+            "symbol": "Build_gradle$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.publishing",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/Publications.kt",
+            "line": 20,
+            "symbol": "dev.shibasis.dependeasy.publishing.Publications.install$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/PublishingKernel.kt",
+            "line": 44,
+            "symbol": "dev.shibasis.dependeasy.publishing.PublishingKernel.install",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/PublishingKernel.kt",
+            "line": 48,
+            "symbol": "dev.shibasis.dependeasy.publishing.PublishingKernel.aggregate",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.ReleaseKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 29,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "completeLocalPublication"
+          },
+          "kind": "Release",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [],
+          "consumes": [],
+          "after": [],
+          "requirements": [],
+          "effect": "Deploy",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:completeLocalPublication"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeLocalPublication.txt"
+          ],
+          "kind": "PublishedModules",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "publication",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputPublishedModulesRemote"
+      },
+      "kind": "Kernel",
+      "label": "outputPublishedModulesRemote",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "build.gradle.kts",
+        "line": 40,
+        "symbol": "Build_gradle$1.execute",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 11,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 11,
+            "symbol": "Build_gradle$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "build.gradle.kts",
+            "line": 40,
+            "symbol": "Build_gradle$1.execute",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 45,
+            "symbol": "dev.shibasis.dependeasy.workspace.WorkspaceScope.publishing",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/Publications.kt",
+            "line": 20,
+            "symbol": "dev.shibasis.dependeasy.publishing.Publications.install$dev_shibasis_dependeasy_gradle",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/PublishingKernel.kt",
+            "line": 43,
+            "symbol": "dev.shibasis.dependeasy.publishing.PublishingKernel.install",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/publishing/PublishingKernel.kt",
+            "line": 48,
+            "symbol": "dev.shibasis.dependeasy.publishing.PublishingKernel.aggregate",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.ReleaseKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 29,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "completeRemotePublication"
+          },
+          "kind": "Release",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [],
+          "consumes": [],
+          "after": [],
+          "requirements": [],
+          "effect": "Deploy",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:completeRemotePublication"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeRemotePublication.txt"
+          ],
+          "kind": "PublishedModules",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "publication",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsJavaScript"
+      },
+      "kind": "Kernel",
+      "label": "outputVerificationResultsJavaScript",
+      "effect": "Verify",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:jsNodeTest"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/test-results/jsNodeTest"
+          ],
+          "kind": "VerificationResults",
+          "declarations": []
+        }
+      ],
+      "tools": [
+        {
+          "name": "node",
+          "version": "24.21.0"
+        }
+      ],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "verification",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [
+        {
+          "name": "tests",
+          "description": "Sets test class or method name to be included (in addition to the test task filters), '*' is supported.",
+          "type": "String",
+          "allowedValues": [],
+          "multiple": true
+        }
+      ],
+      "coverage": {
+        "domains": [
+          "Framework"
+        ],
+        "aspects": [
+          "Unit"
+        ],
+        "system": "reaktor-core"
+      },
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsJvm"
+      },
+      "kind": "Kernel",
+      "label": "outputVerificationResultsJvm",
+      "effect": "Verify",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest",
+        "source": null,
+        "spec": null
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:jvmTest"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/test-results/jvmTest"
+          ],
+          "kind": "VerificationResults",
+          "declarations": []
+        }
+      ],
+      "tools": [
+        {
+          "name": "java",
+          "version": "25"
+        }
+      ],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "verification",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [
+        {
+          "name": "debug-jvm",
+          "description": "Enable debugging for the test process. The process is started suspended and listening on port 5005.",
+          "type": "Boolean",
+          "allowedValues": [],
+          "multiple": false
+        },
+        {
+          "name": "fail-fast",
+          "description": "Stops test execution after the first failed test.",
+          "type": "Boolean",
+          "allowedValues": [],
+          "multiple": false
+        },
+        {
+          "name": "test-dry-run",
+          "description": "Simulate test execution.",
+          "type": "Boolean",
+          "allowedValues": [],
+          "multiple": false
+        },
+        {
+          "name": "tests",
+          "description": "Sets test class or method name to be included (in addition to the test task filters), '*' is supported.",
+          "type": "String",
+          "allowedValues": [],
+          "multiple": true
+        }
+      ],
+      "coverage": {
+        "domains": [
+          "Framework"
+        ],
+        "aspects": [
+          "Unit"
+        ],
+        "system": "reaktor-core"
+      },
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsTypeScript"
+      },
+      "kind": "Kernel",
+      "label": "outputVerificationResultsTypeScript",
+      "effect": "Verify",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 21,
+        "symbol": "Build_gradle._init_$lambda$0",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 21,
+            "symbol": "Build_gradle._init_$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/WorkspaceScope.kt",
+            "line": 23,
+            "symbol": "dev.shibasis.dependeasy.workspace.NodeDeclaration.provideDelegate",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 304,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.typescript$lambda$1",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+            "line": 241,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptComponent.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+            "line": 219,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptComponent.verificationConsumer",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/tasks/RegisteredTasks.kt",
+            "line": 11,
+            "symbol": "dev.shibasis.dependeasy.tasks.RegisteredTasksKt.registeredTask",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+            "line": 221,
+            "symbol": "dev.shibasis.dependeasy.web.JavaScriptComponent.verificationConsumer$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/OutputVariants.kt",
+            "line": 19,
+            "symbol": "dev.shibasis.dependeasy.handles.OutputVariantsKt.publishOutput",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.VerificationKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 26,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "completeTypeScriptChecks"
+          },
+          "kind": "Verification",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [],
+          "consumes": [],
+          "after": [],
+          "requirements": [],
+          "effect": "Verify",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:completeTypeScriptChecks"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/completeTypeScriptChecks.txt"
+          ],
+          "kind": "VerificationResults",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "verification",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": {
+        "domains": [
+          "Framework"
+        ],
+        "aspects": [
+          "Static"
+        ],
+        "system": "reaktor-core"
+      },
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputWorkspaceCompletionBuild"
+      },
+      "kind": "Kernel",
+      "label": "outputWorkspaceCompletionBuild",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.ArtifactSetKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 27,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "componentBuild"
+          },
+          "kind": "ArtifactSet",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "packageSources"
+            }
+          ],
+          "consumes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "outputModuleBuild"
+            }
+          ],
+          "after": [],
+          "requirements": [],
+          "effect": "Build",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:componentBuild"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/componentBuild.txt"
+          ],
+          "kind": "WorkspaceCompletion",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "verification",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputWorkspaceCompletionVerify"
+      },
+      "kind": "Kernel",
+      "label": "outputWorkspaceCompletionVerify",
+      "effect": "Verify",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 19,
+        "symbol": "Build_gradle.<init>",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 60,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.VerificationKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkspaceKernels.kt",
+          "line": 26,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode",
+          "id": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "componentChecks"
+          },
+          "kind": "Verification",
+          "run": {
+            "host": {
+              "platform": "Portable",
+              "execution": null
+            },
+            "timeoutMillis": null
+          },
+          "includes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "buildCoreTypeScript"
+            }
+          ],
+          "consumes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "outputVerificationResultsJvm"
+            },
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "outputVerificationResultsJavaScript"
+            }
+          ],
+          "after": [],
+          "requirements": [],
+          "effect": "Verify",
+          "runner": "gradle",
+          "worker": null,
+          "environments": [],
+          "bindings": []
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:componentChecks"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/completed/componentChecks.txt"
+          ],
+          "kind": "WorkspaceCompletion",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "verification",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": {
+        "domains": [
+          "Framework"
+        ],
+        "aspects": [
+          "Unit",
+          "Static"
+        ],
+        "system": "reaktor-core"
+      },
+      "requiredSecrets": []
+    },
+    {
+      "id": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "packageSources"
+      },
+      "kind": "Kernel",
+      "label": "packageSources",
+      "effect": "Build",
+      "host": {
+        "platform": "Portable",
+        "execution": null
+      },
+      "declaredAt": {
+        "build": "reaktor",
+        "file": "reaktor-core/build.gradle.kts",
+        "line": 20,
+        "symbol": "Build_gradle._init_$lambda$0",
+        "callPath": [
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 19,
+            "symbol": "Build_gradle.<init>",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 57,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library$default",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 61,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.library",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "reaktor-core/build.gradle.kts",
+            "line": 20,
+            "symbol": "Build_gradle._init_$lambda$0",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 132,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryScope.webPackage",
+            "callPath": []
+          },
+          {
+            "build": "reaktor",
+            "file": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt",
+            "line": 71,
+            "symbol": "dev.shibasis.dependeasy.components.LibraryKt.webPackage",
+            "callPath": []
+          }
+        ]
+      },
+      "kernel": {
+        "className": "dev.shibasis.dependeasy.model.WebContractKernel",
+        "source": {
+          "build": "reaktor",
+          "file": "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WebContractKernel.kt",
+          "line": 7,
+          "symbol": null,
+          "callPath": []
+        },
+        "spec": {
+          "type": "dev.shibasis.dependeasy.model.KernelSpec.WebContract",
+          "component": "packageSources",
+          "directory": "reaktor-core",
+          "manifests": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "wrappers": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "runtime": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptPaths": {},
+          "assets": {},
+          "baseConfiguration": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "kotlinDirectory": null,
+          "resources": null,
+          "moduleName": null,
+          "output": {
+            "paths": [
+              "reaktor-core/build/dependeasy/web/packageSources.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "typeScriptConfiguration": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "sourceManifests": {
+            "paths": [
+              "reaktor-core/package.json"
+            ],
+            "kind": null,
+            "declarations": []
+          },
+          "packageContracts": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "packageLocations": {},
+          "dataSources": {},
+          "workspaceMetadata": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "workspaceDefinition": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          },
+          "target": "es2022",
+          "assetFileNames": "assets/[name]-[hash][extname]",
+          "workerFleet": {
+            "paths": [],
+            "kind": null,
+            "declarations": []
+          }
+        }
+      },
+      "invocation": {
+        "type": "dev.shibasis.dependeasy.model.Invocation.Gradle",
+        "tasks": [
+          ":reaktor-core:packageSources"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "paths": [
+            "reaktor-core/build/dependeasy/web/packageSources.json"
+          ],
+          "kind": "JavaScriptPackage",
+          "declarations": []
+        }
+      ],
+      "tools": [],
+      "additionalDeclarations": [],
+      "runner": "gradle",
+      "artifactFamily": "web",
+      "worker": null,
+      "bindings": [],
+      "environments": [],
+      "requirements": [],
+      "options": [],
+      "coverage": null,
+      "requiredSecrets": []
+    }
+  ],
+  "edges": [
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.After",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScriptCompile"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":",
+        "name": "pnpmInstall"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.After",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScriptCompile"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScriptWebContract"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Consumes",
+      "from": {
+        "build": "reaktor",
+        "project": ":",
+        "name": "buildAll"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputModuleBuild"
+      },
+      "output": "ModuleBuild"
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Consumes",
+      "from": {
+        "build": "reaktor",
+        "project": ":",
+        "name": "pr"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsJvm"
+      },
+      "output": "VerificationResults:Jvm"
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Consumes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "componentBuild"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputModuleBuild"
+      },
+      "output": "ModuleBuild"
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Consumes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "componentChecks"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsJavaScript"
+      },
+      "output": "VerificationResults:JavaScript"
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Consumes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "componentChecks"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsJvm"
+      },
+      "output": "VerificationResults:Jvm"
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Consumes",
+      "from": {
+        "build": "reaktor",
+        "project": ":",
+        "name": "webPackageChecks"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsTypeScript"
+      },
+      "output": "VerificationResults:TypeScript"
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScript"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScriptCompile"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "componentBuild"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "packageSources"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "componentChecks"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScript"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputAppleCompilationIosArm64"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "compileKotlinIosArm64"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputAppleCompilationIosSimulatorArm64"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "compileKotlinIosSimulatorArm64"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputBrowserBundle"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "buildCoreTypeScriptCompile"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputJavaScriptPackage"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "packageSources"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputKotlinJsLibrary"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "exportKotlinLibrary"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputKotlinJsPackageMetadata"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "libraryPackageContract"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputModuleBuild"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "completeModuleBuild"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputPublishedModulesLocal"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "completeLocalPublication"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputPublishedModulesRemote"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "completeRemotePublication"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsJavaScript"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "jsNodeTest"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsJvm"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "jvmTest"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputVerificationResultsTypeScript"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "completeTypeScriptChecks"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputWorkspaceCompletionBuild"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "componentBuild"
+      }
+    },
+    {
+      "type": "dev.shibasis.dependeasy.model.Edge.Includes",
+      "from": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "outputWorkspaceCompletionVerify"
+      },
+      "to": {
+        "build": "reaktor",
+        "project": ":reaktor-core",
+        "name": "componentChecks"
+      }
+    }
+  ],
+  "jvmJarNodes": []
+}

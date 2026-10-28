@@ -1,0 +1,8 @@
+{
+  "epoch": 1793196446.560349,
+  "remoteBytes": 24708337664,
+  "tempBytes": 17367695360,
+  "freeBytes": 21302054912,
+  "cleanup": "cleanup --wait is queued behind existing shared cleanup; this is a read-only capacity audit",
+  "accepted": true
+}

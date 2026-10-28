@@ -26,6 +26,7 @@ object WorkerTopologyKernel {
                                 add(buildJsonObject {
                                     put("name", name)
                                     put("kind", kind)
+                                    if (kind == "durable_objects") value["script_name"]?.jsonPrimitive?.contentOrNull?.let { put("ownerScript", it) }
                                     targetKey?.let { key -> value[key]?.jsonPrimitive?.contentOrNull?.let { put("target", it) } }
                                 })
                             }

@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.cli.AgentBundle
 import kotlinx.serialization.json.*
 
 internal data class CodexRequest(val wire: JsonRpcInbound.ServerRequest, val pending: PendingRequest) {
@@ -54,6 +55,18 @@ private fun approval(decision: AgentDecision, accept: String, deny: String): Str
     AgentDecision.Approve -> accept
     is AgentDecision.Deny -> deny
     else -> error("This request needs approval or denial")
+}
+
+private val WorkspaceDoors = setOf(AgentBundle.SERVER_NAME, AgentBundle.GRAPH_SERVER_NAME)
+
+internal val AcceptedToolCall = buildJsonObject { put("action", "accept"); put("content", buildJsonObject {}) }
+
+internal val JsonRpcInbound.ServerRequest.workspaceToolCall: Boolean get() {
+    if (method != "mcpServer/elicitation/request") return false
+    val kind = (params.objectOrEmpty("_meta")["codex_approval_kind"] as? JsonPrimitive)?.contentOrNull
+    val schema = params["requestedSchema"] as? JsonObject ?: return false
+    return (params["serverName"] as? JsonPrimitive)?.contentOrNull in WorkspaceDoors &&
+        kind?.startsWith("mcp_tool_call") == true && schema.objectOrEmpty("properties").isEmpty()
 }
 
 internal fun codexRequest(wire: JsonRpcInbound.ServerRequest, generation: String): CodexRequest? {

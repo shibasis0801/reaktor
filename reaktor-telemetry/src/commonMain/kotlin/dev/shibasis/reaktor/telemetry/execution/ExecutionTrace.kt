@@ -32,7 +32,8 @@ data class ExecutionTrace(
     val steps: List<ExecutionStep>,
     val duplicateSpans: Int,
 ) {
-    val failures: Int get() = steps.count { it.span.status >= 400 && it.span.status != 499 }
+    val failures: Int get() = steps.count { SpanOutcome.of(it.span.status) == SpanOutcome.Failed }
+    val refusals: Int get() = steps.count { SpanOutcome.of(it.span.status).refusal }
     val cancellations: Int get() = steps.count { it.span.status == 499 }
     val missingParents: Int get() = steps.count { it.parentCoverage == ParentCoverage.Missing }
     val cycles: Int get() = steps.count { it.parentCoverage == ParentCoverage.Cycle }

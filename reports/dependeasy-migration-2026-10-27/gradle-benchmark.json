@@ -1,0 +1,58 @@
+{
+  "recordedAt": "2026-10-27T16:40:01Z",
+  "head": "a3ca69b619993d95650f0386ee22694f757b228b",
+  "runs": [
+    {
+      "label": "no-configuration-cache",
+      "arguments": [
+        "./gradlew",
+        ":reaktor-core:jvmJar",
+        "--no-configuration-cache",
+        "--no-daemon",
+        "--console=plain"
+      ],
+      "exit": 0,
+      "wallSeconds": 194.07592424999999,
+      "log": "gradle-no-configuration-cache.log"
+    },
+    {
+      "label": "configuration-cache-first",
+      "arguments": [
+        "./gradlew",
+        ":reaktor-core:jvmJar",
+        "--configuration-cache",
+        "--no-daemon",
+        "--console=plain"
+      ],
+      "exit": 0,
+      "wallSeconds": 142.31506587500002,
+      "log": "gradle-configuration-cache-first.log"
+    },
+    {
+      "label": "configuration-cache-repeat",
+      "arguments": [
+        "./gradlew",
+        ":reaktor-core:jvmJar",
+        "--configuration-cache",
+        "--no-daemon",
+        "--console=plain"
+      ],
+      "exit": 0,
+      "wallSeconds": 252.25331654200005,
+      "log": "gradle-configuration-cache-repeat.log"
+    },
+    {
+      "label": "configuration-cache-followup",
+      "arguments": [
+        "./gradlew",
+        ":reaktor-core:jvmJar",
+        "--configuration-cache",
+        "--no-daemon",
+        "--console=plain"
+      ],
+      "exit": 0,
+      "wallSeconds": 123.757827166,
+      "log": "gradle-configuration-cache-followup.log"
+    }
+  ]
+}

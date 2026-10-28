@@ -1,0 +1,8 @@
+{
+  "limit_bytes": 40000000000,
+  "bytes_before": 15173855232,
+  "bytes_after": 15173855232,
+  "removed": [],
+  "disk_bound_bytes": 16338321920,
+  "within_limit": true
+}

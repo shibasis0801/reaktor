@@ -1,0 +1,495 @@
+{
+  "observedAt": "2026-10-28T08:45:26Z",
+  "scope": "Read-only reconciliation of current source, installed BestBuds owner, native Codex/Claude session summaries, handoff decisions, retained qualification, and the completed controlled benchmark. No new build or deployment.",
+  "currentHeads": {
+    "reaktor": "8635b2d3d133858e3a2613244a389208c4fbffdb",
+    "bestbuds": "d63ee7b313f14c6f113ff77dafddeeed0c76a59c",
+    "manna": "12d00930af213668dfc374e4f08623a9d708e774"
+  },
+  "liveOwner": {
+    "owner": "b5c8e0054469222f5163b8d99db64ed4c6723541721200f10c1dab40b282d913.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 27 Oct 15:57; this process started 27 Oct 15:57",
+    "capabilities": "5430f5c70ea1",
+    "operations": 272,
+    "recipes": [
+      "rename",
+      "edit",
+      "structural",
+      "change-type"
+    ],
+    "presets": [
+      "map",
+      "investigate",
+      "impact",
+      "affected-checks",
+      "explain",
+      "wiring",
+      "runtime",
+      "routes"
+    ],
+    "behind": [
+      "this repository: 2 commits since this build, such as 898caa88 Hangar launch pass: fix crashes, cut noise, bring Cloud, Data and Deploy flows back; fc161769 Keep Hangar's settings in the state folder when one is set",
+      "../reaktor: 8 commits since this build, such as 8635b2d3 tooling: skip unreadable receipts and close an idb relay whose socket is gone; 008e0e31 dependeasy: link a browser runtime one module per Kotlin file; 423e607f notification, auth: the app declares who may call the dispatcher, and an object's island nests under its Worker's"
+    ],
+    "sources": [
+      "this repository at d63ee7b3 28 Oct 13:44 Bring the Testing fixture and the shell run flows back to the current Hangar, 215 files changed and not committed",
+      "../reaktor at 8635b2d3 28 Oct 13:22 tooling: skip unreadable receipts and close an idb relay whose socket is gone, 59 files changed and not committed"
+    ],
+    "models": [
+      "build/dependeasy/model.json: 1820 build nodes",
+      "compilations export version 2 (this kernel reads 2): 733 compilations, exported 105 minutes ago"
+    ],
+    "helpers": [
+      "the Kotlin helper ../reaktor/reaktor-code/build/distributions/kotlin-semantics.zip, built 23 Oct 07:17, taking up to 2048 modules a session"
+    ],
+    "indexing": [
+      "kotlin-analysis-api/2.5.0-Beta2-59 has indexed 3332 of 3332 Kotlin files",
+      "scip-typescript/0.4.0 has indexed 219 of 219 TypeScript files in 21 projects with typescript/6.0.3, typescript/5.9.3",
+      "clangd ready with /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clangd for 4 native modules: ../reaktor/reaktor-ffi from its host compile commands, 3 own sources and 506 vendored left out; ../reaktor/reaktor-security from its host compile commands, 2 own sources; ../reaktor/reaktor-flexbuffer from its host compile commands, 6 own sources; ../reaktor/reaktor-performance from its iphonesimulator compile commands, 1 own sources; open now: ../reaktor/reaktor-ffi, ../reaktor/reaktor-security, ../reaktor/reaktor-flexbuffer"
+    ],
+    "unavailable": [
+      "retained telemetry: no span of production is retained for the last 60 minutes",
+      "runtime: the kernel retains no telemetry span; telemetry.refresh reads spans, and devtools, rgp/1 and a test recorder would add activations"
+    ]
+  },
+  "accessMap": {
+    "workspace": "/Users/ovd/dev/bestbuds",
+    "tools": [
+      "kernel",
+      "atlas_query",
+      "atlas_read",
+      "change_plan",
+      "change_apply",
+      "check_run"
+    ],
+    "faces": [
+      {
+        "face": "Claude Code",
+        "seat": "claude-code",
+        "configs": [
+          {
+            "path": "/Users/ovd/dev/bestbuds/.mcp.json",
+            "servers": [
+              {
+                "name": "reaktor",
+                "transport": "stdio",
+                "target": "/Users/ovd/.reaktor/bin/reaktor",
+                "seat": "claude-code",
+                "workspace": "/Users/ovd/dev/bestbuds"
+              },
+              {
+                "name": "idea",
+                "transport": "http",
+                "target": "http://127.0.0.1:64342"
+              }
+            ]
+          },
+          {
+            "path": "/Users/ovd/dev/.mcp.json",
+            "servers": [
+              {
+                "name": "reaktor",
+                "transport": "stdio",
+                "target": "/Users/ovd/.reaktor/dist/conductor/bin/reaktor-agent",
+                "seat": "claude-code",
+                "workspace": "/Users/ovd/dev/bestbuds"
+              },
+              {
+                "name": "reaktor-manna",
+                "transport": "stdio",
+                "target": "/Users/ovd/.reaktor/dist/conductor/bin/reaktor-agent",
+                "seat": "claude-code",
+                "workspace": "/Users/ovd/dev/manna"
+              }
+            ]
+          },
+          {
+            "path": "/Users/ovd/.claude.json",
+            "servers": [
+              {
+                "name": "pencil",
+                "transport": "stdio",
+                "target": "/Applications/Pen.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "face": "Codex",
+        "seat": "codex",
+        "configs": [
+          {
+            "path": "/Users/ovd/dev/bestbuds/.codex/config.toml",
+            "servers": [
+              {
+                "name": "reaktor",
+                "transport": "stdio",
+                "target": "/Users/ovd/.reaktor/bin/reaktor",
+                "seat": "codex",
+                "workspace": "/Users/ovd/dev/bestbuds"
+              }
+            ]
+          },
+          {
+            "path": "/Users/ovd/dev/.codex/config.toml",
+            "servers": [
+              {
+                "name": "reaktor",
+                "transport": "stdio",
+                "target": "/Users/ovd/.reaktor/dist/conductor/bin/reaktor-agent",
+                "seat": "codex",
+                "workspace": "/Users/ovd/dev/bestbuds"
+              },
+              {
+                "name": "reaktor-manna",
+                "transport": "stdio",
+                "target": "/Users/ovd/.reaktor/dist/conductor/bin/reaktor-agent",
+                "seat": "codex",
+                "workspace": "/Users/ovd/dev/manna"
+              }
+            ]
+          },
+          {
+            "path": "/Users/ovd/.codex/config.toml",
+            "servers": [
+              {
+                "name": "reaktor",
+                "transport": "stdio",
+                "target": "/Users/ovd/.reaktor/bin/reaktor",
+                "seat": "codex",
+                "workspace": "/Users/ovd/dev/bestbuds"
+              },
+              {
+                "name": "node_repl",
+                "transport": "stdio",
+                "target": "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
+              },
+              {
+                "name": "computer-use",
+                "transport": "stdio",
+                "target": "./Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient"
+              },
+              {
+                "name": "manna",
+                "transport": "http",
+                "target": "https://manna.ac"
+              },
+              {
+                "name": "idea",
+                "transport": "http",
+                "target": "http://127.0.0.1:64342"
+              },
+              {
+                "name": "pencil",
+                "transport": "stdio",
+                "target": "/Applications/Pen.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "face": "Antigravity",
+        "seat": "gemini",
+        "configs": [
+          {
+            "path": "/Users/ovd/.gemini/config/mcp_config.json",
+            "servers": [
+              {
+                "name": "reaktor",
+                "transport": "stdio",
+                "target": "/Users/ovd/.reaktor/dist/conductor/bin/reaktor-agent",
+                "seat": "gemini"
+              },
+              {
+                "name": "pencil",
+                "transport": "stdio",
+                "target": "/Applications/Pen.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "face": "Spawned tasks",
+        "seat": "spawned",
+        "configs": [
+          {
+            "path": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/harness-mcp.json",
+            "servers": [
+              {
+                "name": "reaktor",
+                "transport": "stdio",
+                "target": "/Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin/java",
+                "seat": "spawned",
+                "workspace": "/Users/ovd/dev/bestbuds"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "seats": [
+      {
+        "seat": "*",
+        "allow": "UnknownRemoteEffect",
+        "ask": "UnknownRemoteEffect"
+      },
+      {
+        "seat": "cli",
+        "allow": "UnknownRemoteEffect",
+        "ask": "UnknownRemoteEffect"
+      },
+      {
+        "seat": "claude-code",
+        "allow": "UnknownRemoteEffect",
+        "ask": "UnknownRemoteEffect"
+      },
+      {
+        "seat": "codex",
+        "allow": "UnknownRemoteEffect",
+        "ask": "UnknownRemoteEffect"
+      },
+      {
+        "seat": "gemini",
+        "allow": "UnknownRemoteEffect",
+        "ask": "UnknownRemoteEffect"
+      },
+      {
+        "seat": "spawned",
+        "allow": "UnknownRemoteEffect",
+        "ask": "UnknownRemoteEffect"
+      }
+    ],
+    "operations": [
+      {
+        "id": "ship.apply",
+        "summary": "apply one reviewed shipping plan. Plan with the same deploy-action and environment; follow the returned run and its per-step receipts. Gradle stops at the first failed step.",
+        "effect": "ProductionReversibleWrite",
+        "provider": "workspace",
+        "seats": {
+          "*": "Ask",
+          "cli": "Ask",
+          "claude-code": "Ask",
+          "codex": "Ask",
+          "gemini": "Ask",
+          "spawned": "Ask"
+        }
+      }
+    ],
+    "findings": [
+      "Antigravity's reaktor entry in /Users/ovd/.gemini/config/mcp_config.json has no --dir. Its server serves the repository around the folder Antigravity starts it in, and does not start outside a repository."
+    ]
+  },
+  "liveCatalog": {
+    "operations": 258,
+    "byDomain": {
+      "access": "access.map",
+      "agent": "agent.acceptance.checks agent.activity agent.activity.compact agent.answer agent.artifact agent.attach agent.bench.catalog agent.bench.churn agent.bench.measure agent.bench.propose agent.cancel agent.candidate.accept agent.candidate.capture agent.check.catalog agent.check.link agent.check.start agent.checkpoint.fork agent.checkpoints agent.children agent.collect.check agent.context.refresh agent.context.search agent.context.status agent.entitlement.set agent.entitlements agent.evaluations agent.finding agent.finding.resolve agent.handoff.reply agent.handoffs agent.interrupt agent.memory.forget agent.memory.import agent.memory.propose agent.memory.read agent.memory.remember agent.memory.review agent.memory.search agent.message.ack agent.message.list agent.message.read agent.message.send agent.native.control agent.peer.exchange agent.private.access agent.profile.list agent.profile.read agent.profile.save agent.queue agent.queue.cancel agent.queue.items agent.radar agent.resume agent.run agent.runbook.save agent.runbooks agent.runs agent.runtime.prune agent.service.drain agent.steer agent.submit agent.task.graph agent.taskgraph.accept agent.taskgraph.cancel agent.taskgraph.check agent.taskgraph.claim agent.taskgraph.context agent.taskgraph.decide agent.taskgraph.land agent.taskgraph.limit.resume agent.taskgraph.list agent.taskgraph.patch agent.taskgraph.pause agent.taskgraph.propose agent.taskgraph.read agent.taskgraph.recover agent.taskgraph.report agent.taskgraph.revert agent.taskgraph.seats agent.taskgraph.shape agent.taskgraph.start agent.taskgraph.template.convert agent.taskgraph.template.read agent.taskgraph.template.save agent.taskgraph.templates agent.tasks.wait agent.transcript agent.wait agent.workspace.info agent.worktree.apply agent.worktree.review agent.worktrees",
+      "atlas": "atlas.graph atlas.providers atlas.query atlas.read",
+      "bench": "bench.catalog bench.churn bench.measure bench.propose",
+      "board": "board.create board.link board.list board.move board.read board.update",
+      "build": "build.affected build.explain build.kernels build.list build.plan build.receipts build.run build.show build.story build.tasks build.tree",
+      "change": "change.apply change.plan",
+      "check": "check.artifact check.catalog check.link check.result check.run check.start",
+      "checks": "checks.affected",
+      "cloud": "cloud.api.delete cloud.api.describe cloud.api.read cloud.api.search cloud.api.surfaces cloud.api.write",
+      "connection": "connection.status",
+      "context": "context.query context.select",
+      "control": "control.plane.snapshot",
+      "database": "database.schema",
+      "device": "device.inventory",
+      "graph": "graph.coverage graph.describe graph.query",
+      "hangar": "hangar.app-graph-explain hangar.app-graph-findings hangar.app-graph-node hangar.app-graph-nodes hangar.app-graph-path hangar.architecture-snapshot hangar.cloud-changes hangar.cloud-findings hangar.cloud-path hangar.cloud-resource hangar.cloud-resources hangar.devtools-audit hangar.devtools-devices hangar.devtools-elements hangar.devtools-logs hangar.devtools-request hangar.devtools-requests hangar.devtools-sockets hangar.graph-snapshot hangar.list-apps hangar.subgraph-source hangar.system-trace hangar.workbench-selection",
+      "islands": "islands.refresh",
+      "kernel": "kernel.graph kernel.status kernel.watch",
+      "mcp": "mcp.tasks",
+      "memory": "memory.forget memory.import memory.propose memory.read memory.remember memory.review memory.search",
+      "message": "message.ack message.list message.read message.send",
+      "operation": "operation.catalog operation.complete operation.describe operation.plan",
+      "peer": "peer.exchange",
+      "profile": "profile.list profile.read profile.save",
+      "provider": "provider.call provider.catalog provider.refresh provider.schema provider.tools",
+      "radar": "radar.start",
+      "run": "run.cancel run.list run.logs run.show run.wait",
+      "session": "session.log session.score",
+      "ship": "ship.apply ship.plan ship.rollback ship.run ship.verify",
+      "source": "source.declaration",
+      "subgraphs": "subgraphs.list subgraphs.put subgraphs.query",
+      "system": "system.topology",
+      "task": "task.cancel task.children task.list task.message task.read task.resume task.start task.wait",
+      "taskgraph": "taskgraph.accept taskgraph.cancel taskgraph.check taskgraph.claim taskgraph.context taskgraph.decide taskgraph.land taskgraph.limit.resume taskgraph.list taskgraph.patch taskgraph.pause taskgraph.propose taskgraph.read taskgraph.recover taskgraph.report taskgraph.resume taskgraph.revert taskgraph.score taskgraph.seats taskgraph.shape taskgraph.start taskgraph.template.convert taskgraph.template.read taskgraph.template.save taskgraph.templates",
+      "telemetry": "telemetry.crashes telemetry.describe telemetry.fleet telemetry.fleet-refresh telemetry.nodes telemetry.refresh telemetry.signals telemetry.spans telemetry.verify",
+      "tool": "tool.kernel tool.workspace",
+      "work": "work.hosts work.inspect"
+    },
+    "more": "operation.catalog {query: \"words\"} or {domain} adds summaries and effects, {all: true} lists every entry, and operation.describe {operation} gives one operation's arguments"
+  },
+  "jvmJarCoverage": {
+    "type": "completed",
+    "result": {
+      "total": 0,
+      "nodes": [],
+      "stale": false,
+      "changedDeclarations": [],
+      "offset": 0
+    }
+  },
+  "retainedTests": {
+    "warning": "Inspected files, not newly executed suites or a source-hashed whole-candidate qualification.",
+    "plugin": {
+      "cases": 129,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "files": 44,
+      "latestMtimeLocal": "2026-10-28T11:49:53"
+    },
+    "model": {
+      "cases": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "files": 8,
+      "latestMtimeLocal": "2026-10-28T12:01:04"
+    },
+    "cli": {
+      "cases": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "files": 3,
+      "latestMtimeLocal": "2026-10-28T12:45:14.554647"
+    }
+  },
+  "status": [
+    {
+      "package": "WP15",
+      "implementation": "closed by owner decision 27 October",
+      "qualification": "plugin-owned reads audited; authored-input rule retained"
+    },
+    {
+      "package": "WP18",
+      "implementation": "script and adapter migration complete except deployServer delegated to WP23",
+      "qualification": "mixed retained suite, dry-run and live proofs; two-phone end-to-end push red; Manna worker pnpm stale-import issue"
+    },
+    {
+      "package": "WP22",
+      "implementation": "complete",
+      "qualification": "1056 pass, 12 declared skips; exact receipt in CLI and Hangar"
+    },
+    {
+      "package": "WP23",
+      "implementation": "local typed server implementation present",
+      "qualification": "real image build/push, mixed-host release and fresh approved live acceptance open"
+    },
+    {
+      "package": "WP25",
+      "implementation": "typed Pulumi adapter and protected preview present",
+      "qualification": "adoption/no-change/provider ownership and retirement open"
+    },
+    {
+      "package": "WP26",
+      "implementation": "consumer projection substantially delivered",
+      "qualification": "remaining server/Pulumi joins and local starter retirement open"
+    },
+    {
+      "package": "K1/K3",
+      "implementation": "working installed catalog CLI/build operations",
+      "qualification": "complete caller/form/three-root execution parity open"
+    },
+    {
+      "package": "K1-TUI",
+      "implementation": "planned",
+      "qualification": "not implemented"
+    },
+    {
+      "package": "K2",
+      "implementation": "orchestration audit not signed off",
+      "qualification": "eight-fact audit remains"
+    },
+    {
+      "package": "K4",
+      "implementation": "single-owner lifecycle and graph ports delivered in scoped slices",
+      "qualification": "one-store migration and full Hangar handoff open"
+    },
+    {
+      "package": "K5/K6/K7",
+      "implementation": "Hangar projections, shipping, sealed plans and shared ledger substantially implemented",
+      "qualification": "full parity and authenticated principal path open; current refresh withdraws all pending plans"
+    },
+    {
+      "package": "K8/K9",
+      "implementation": "native graph operations and catalog-derived MCP largely delivered",
+      "qualification": "legacy adapter retirement and actual cross-harness source-write parity open"
+    },
+    {
+      "package": "K10",
+      "implementation": "effect/approval gate exists; full identity acceptance not evidenced",
+      "qualification": "authenticated operators, distinct approvers and identical phone-approved retry open"
+    },
+    {
+      "package": "K11",
+      "implementation": "read/catalog parity qualified historically",
+      "qualification": "fresh coherent installed three-workspace execution rollout open"
+    },
+    {
+      "package": "K12",
+      "implementation": "build story, UI and instrumentation delivered in scoped slices",
+      "qualification": "live invocation trace and documentation/telemetry completion open"
+    }
+  ],
+  "findings": [
+    {
+      "id": "plan-refresh-withdrawal",
+      "source": "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt:127",
+      "observation": "Every catalog replacement sets pendingPlans to emptyMap().",
+      "recommendation": "Keep valid plan records for inspection and revalidate fingerprints at execution; explicitly withdraw incompatible plans."
+    },
+    {
+      "id": "cli-packaging-split",
+      "observation": "access.map finds current configs launching both reaktor and reaktor-agent; Antigravity entry has no --dir.",
+      "recommendation": "One installed distribution and launcher manifest; compatibility alias and caller migration before removal."
+    },
+    {
+      "id": "version-identity",
+      "observation": "reaktor reports development; reaktor-agent help calls itself conductor; owner behind source.",
+      "recommendation": "Expose client, owner, wire, model and catalog freshness identities explicitly."
+    },
+    {
+      "id": "artifact-gap",
+      "observation": "Fresh build.list jvmJar returns zero, stale false.",
+      "recommendation": "Model representative compiler artifacts and drive bounded target-specific collection."
+    }
+  ],
+  "caveats": [
+    "Primary checkouts contain concurrent uncommitted work; source is not one qualified release candidate.",
+    "Manna connected tool version mismatched its advertised version; no further Manna calls were made.",
+    "Native historical session read recovered latest interrupted Codex turn; no claim to reread every turn of the two-week run.",
+    "Benchmark pins 423e607f, earlier than current Reaktor HEAD; later changes were not performance-rebenchmarked.",
+    "Historical register counts were not copied as current progress percentages."
+  ],
+  "implementationFollowup": {
+    "observedAt": "2026-10-28T16:47:28.173057+05:30",
+    "proof": "implementation-proof.json",
+    "performance": "performance-summary.json",
+    "defaultCache": "default-cache-proof.json",
+    "server": "server-attempt-proof.json",
+    "ownerInstall": "owner-install-proof.json",
+    "liveOwner": "owner-after-upgrade.json",
+    "historicalAuditPreserved": true
+  },
+  "finalCompatibleFollowup": {
+    "observedAt": "2026-10-28T17:25:17.607881+05:30",
+    "candidateScope": "Final compatible source; experimental observations remain historical and separately labelled",
+    "implementation": "implementation-proof.json",
+    "cache": "default-cache-proof.json",
+    "tests": "final-targeted-tests.json",
+    "models": "final-compatible-export-transport.json",
+    "liveRead": "jvm-archive-live-read-final-retry.json",
+    "liveOwner": "owner-final-status.json",
+    "ordinaryPlan": "jvm-archive-live-plan-interruption.json",
+    "server": "server-attempt-proof.json",
+    "storage": "final-storage-budget.json"
+  }
+}

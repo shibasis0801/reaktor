@@ -205,7 +205,10 @@ object CliCapabilities {
                 "Models shown are Hangar's configured ladder. The live agy models catalog requires a signed-in account and is not qualified by this probe.",
                 if (runtime == RuntimeKind.ChatGptGemini) "One composite seat: ChatGPT plans and reviews each cycle around Gemini execution. The Codex planner spends the ChatGPT pool."
                     else "Antigravity uses the saved Google account and native credit policies; remaining capacity is unknown."),
-            models = if (runtime == RuntimeKind.Gemini) antigravityModelNames.map { (id, name) -> ModelChoice(id, name) } else emptyList(),
+            models = if (runtime == RuntimeKind.Gemini) antigravityModelNames.map { (id, name) ->
+                val level = NativeEffort(id.substringAfterLast('-'))
+                ModelChoice(id, name, EffortSupport(listOf(level), default = level, source = "configured agy model variant"))
+            } else emptyList(),
             defaultModel = if (runtime == RuntimeKind.Gemini) defaultAntigravityModels.first() else null)
     }
 

@@ -1,0 +1,28 @@
+{
+  "queueSeconds": 54.02035470899999,
+  "slot": 1,
+  "remote": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+  "snapshots": {
+    "before": {
+      "base": "b88a2dedee7122219fca8e80a0a4f6a0f943000fb696e54a8cc6bf71239f66d7",
+      "incremental": "8f2a142ebdda2a9438ef38ea590b46166cd98ab805861e57ad6669b56d1d603a"
+    },
+    "after": {
+      "base": "bc1581702ae7a00ad4be18a9e37a2a4967501ab2ce563ca89823e523162bb882",
+      "incremental": "34ad55bb3721fe246596df94c3f389d215a7839593f05cba2fb019ab2988a3c6"
+    }
+  },
+  "changedFiles": [
+    "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt",
+    "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+    "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt"
+  ],
+  "sourceHashes": {
+    "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt": "144766f9a57ab7f5d9de03f64d3a54622ba36f4383ea9ce1201eddf55994916e",
+    "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt": "e9e8ee454a0650a2fb447744ee30b7bc25fa1531c56463b164f89efb61358e1a",
+    "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt": "b299539309e43df670471841610cc787e2f5da361b6c15c5e16d97bae1ac4d6a"
+  },
+  "routerSha256": "895dff31baf23b31dea48dab324314c878a01241694c9f6b787308ade8f1b561",
+  "scriptSha256": "cde838084c9a2a8f30266224efd87421e322ccd5ad1be1887b36a3c2c463345d",
+  "scope": "Retained compatible baseline plus only three lazy-configuration production files; same default cache, target, toolchain, worker slot and dependency state."
+}

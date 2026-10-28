@@ -1,0 +1,23 @@
+{
+  "worker": "m1-worker",
+  "workerDirectory": "/Users/ovd/dev/offload/.remote-dev/slots/worker/reaktor",
+  "cpu": "Apple M1 Pro (MacBookPro18,1), 10 CPUs",
+  "physicalMemoryBytes": 34359738368,
+  "reservedLeases": [
+    "worker-gradle",
+    "worker-slot-1",
+    "worker-slot-2"
+  ],
+  "GradleRuntime": "Corretto 21.0.8",
+  "maxGradleWorkers": 6,
+  "maxGradleHeapGiB": 8,
+  "maxGradleMetaspaceGiB": 2,
+  "KotlinExecutionStrategy": "daemon",
+  "maxKotlinDaemonHeapGiB": 8,
+  "primaryOutputCache": false,
+  "primaryConfigurationCache": false,
+  "GradleDaemonPolicy": "new single-use process per invocation",
+  "coldDependencyDownloads": "preserved modules-2 and wrapper; setup excluded",
+  "sourceScope": "committed Reaktor revisions, no primary working-tree overlays",
+  "workerHardwareRaw": "machdep.cpu.brand_string: Apple M1 Pro\nhw.model: MacBookPro18,1\nhw.ncpu: 10\nhw.memsize: 34359738368\n"
+}

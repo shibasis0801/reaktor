@@ -1,0 +1,32 @@
+[
+  {
+    "original": "/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp5-qualification.json",
+    "retained": "retained-evidence/wp5-qualification.json",
+    "sha256": "e5a12e78b7dc5b51c12d45f06b738033bb1dcbd38e2ab876acfe160f32121919",
+    "bytes": 4444
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp13/final-main-artifact-timings-20261026-v4-comparison.json",
+    "retained": "retained-evidence/final-main-artifact-timings-20261026-v4-comparison.json",
+    "sha256": "4409f2eff26c35882e40cc542efc693433a08e6cecd0933d5bdd3564b9c5baf6",
+    "bytes": 4783
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp13/wp13-final-wp1-invalidation-v6-proof.json",
+    "retained": "retained-evidence/wp13-final-wp1-invalidation-v6-proof.json",
+    "sha256": "31e3e2a3c7db4a44fdd227b96ffecbb8637f72efb2eccbfe51fe7b91279448b3",
+    "bytes": 5303
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp13/wp22-20261026-v463-portable-proof.json",
+    "retained": "retained-evidence/wp22-20261026-v463-portable-proof.json",
+    "sha256": "995a9e03af4270f4c897f520f7ac72397ca1e87b3278574c2ddbeae4dbc81bc9",
+    "bytes": 2356
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp13/final-main-review-20261026-v22-findings.json",
+    "retained": "retained-evidence/final-main-review-20261026-v22-findings.json",
+    "sha256": "46b5fdbf6b6d58bac462a773e177896ba151b471856e02c8eecfb53d87862717",
+    "bytes": 8793
+  }
+]

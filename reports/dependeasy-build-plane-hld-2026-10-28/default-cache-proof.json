@@ -1,0 +1,154 @@
+{
+  "candidate": "Final: compatible Process analysis export, typed JVM archive and Reaktor cache default; no profiler/init observer/cache CLI switches. Same previous campaign controls and reserved slot, not a new paired September comparison.",
+  "reservation": "configuration-cache-final-reservation.json",
+  "checks": [
+    {
+      "case": "after-cold-5-170730",
+      "snapshot": "b88a2dedee7122219fca8e80a0a4f6a0f943000fb696e54a8cc6bf71239f66d7",
+      "exit": 0,
+      "gradleSecondsRounded": 93.0,
+      "reservedEndToEndSeconds": 107.39726070799998,
+      "reused": false,
+      "stored": true,
+      "invalidations": [],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ],
+      "exportInputReason": [],
+      "files": 29,
+      "bytes": 7400888,
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerSourceVerified": true,
+      "logSha256": "1ff1c83424f63ccfd05b49fedc7dd1a21bf0f8c3c286ab547686dd50a3dd68d6"
+    },
+    {
+      "case": "after-final-warm-1-170927",
+      "snapshot": "b88a2dedee7122219fca8e80a0a4f6a0f943000fb696e54a8cc6bf71239f66d7",
+      "exit": 0,
+      "gradleSecondsRounded": 16.0,
+      "reservedEndToEndSeconds": 26.296551417000046,
+      "reused": false,
+      "stored": true,
+      "invalidations": [
+        "Calculating task graph as configuration cache cannot be reused because Build option 'TOKEN' has changed."
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ],
+      "exportInputReason": [],
+      "files": 32,
+      "bytes": 9278758,
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerSourceVerified": true,
+      "logSha256": "1180759f25c85bbb1f02bdd3da1e026a47622337f39d4605328b639ec04480aa"
+    },
+    {
+      "case": "after-final-warm-2-171002",
+      "snapshot": "b88a2dedee7122219fca8e80a0a4f6a0f943000fb696e54a8cc6bf71239f66d7",
+      "exit": 0,
+      "gradleSecondsRounded": 4.0,
+      "reservedEndToEndSeconds": 13.191097041000035,
+      "reused": true,
+      "stored": false,
+      "invalidations": [],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ],
+      "exportInputReason": [],
+      "files": 34,
+      "bytes": 9294494,
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerSourceVerified": true,
+      "logSha256": "847b7928c35810a8d548b26f0335d5feddcde6a17355fd3c923a752106aead44"
+    },
+    {
+      "case": "after-final-warm-3-171025",
+      "snapshot": "b88a2dedee7122219fca8e80a0a4f6a0f943000fb696e54a8cc6bf71239f66d7",
+      "exit": 0,
+      "gradleSecondsRounded": 4.0,
+      "reservedEndToEndSeconds": 12.989956625000048,
+      "reused": true,
+      "stored": false,
+      "invalidations": [],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ],
+      "exportInputReason": [],
+      "files": 36,
+      "bytes": 9310134,
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerSourceVerified": true,
+      "logSha256": "cdedd47923a32651e012b3eb6b2c046c0c0f5a4d3bd546d7589b1e58e135bd49"
+    },
+    {
+      "case": "after-final-body-incremental-1-171047",
+      "snapshot": "8f2a142ebdda2a9438ef38ea590b46166cd98ab805861e57ad6669b56d1d603a",
+      "exit": 0,
+      "gradleSecondsRounded": 11.0,
+      "reservedEndToEndSeconds": 19.86422233299993,
+      "reused": true,
+      "stored": false,
+      "invalidations": [],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ],
+      "exportInputReason": [],
+      "files": 38,
+      "bytes": 9414537,
+      "jvmJarSha256": "9ac0037b33ca5235c1d5c2b0236a2b5aaa1017a114cc26da081db8b33dd0afbb",
+      "workerSourceVerified": true,
+      "logSha256": "4f980a20d8ba436b8706b049a929027d4ab47d2ee2ec4d4100913693c0039be6"
+    },
+    {
+      "case": "after-final-declaration-incremental-1-171115",
+      "snapshot": "4fb980442254335dcf19fd70e20813899f48dfc2cc1154588c4b9621de25645e",
+      "exit": 0,
+      "gradleSecondsRounded": 27.0,
+      "reservedEndToEndSeconds": 35.71966045800002,
+      "reused": false,
+      "stored": true,
+      "invalidations": [
+        "Calculating task graph as configuration cache cannot be reused because file 'build.gradle.kts' has changed."
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ],
+      "exportInputReason": [
+        "  Input property 'declarationFiles' file /Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build.gradle.kts has changed."
+      ],
+      "files": 41,
+      "bytes": 11390749,
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerSourceVerified": true,
+      "logSha256": "5f9e1dec27c187282861c22f0979179ae0f80718b249ac3d230426f20a019cdf"
+    },
+    {
+      "case": "after-final-restored-1-171203",
+      "snapshot": "b88a2dedee7122219fca8e80a0a4f6a0f943000fb696e54a8cc6bf71239f66d7",
+      "exit": 0,
+      "gradleSecondsRounded": 22.0,
+      "reservedEndToEndSeconds": 33.35594391699999,
+      "reused": false,
+      "stored": true,
+      "invalidations": [
+        "Calculating task graph as configuration cache cannot be reused because file 'build.gradle.kts' has changed."
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ],
+      "exportInputReason": [
+        "  Input property 'declarationFiles' file /Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build.gradle.kts has changed."
+      ],
+      "files": 44,
+      "bytes": 13269854,
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerSourceVerified": true,
+      "logSha256": "67fa6d5b55567b237921b3283d012fbcb413ddb2b41a3f2e87d500ed950a5a94"
+    }
+  ],
+  "changedBodyClasses": [
+    "dev/shibasis/reaktor/core/utils/TimeKt.class"
+  ],
+  "warmReuseMedianE2E": 13.090526833000041,
+  "scope": "7 final commands all pass. Actual core JAR plus export only. First warm TOKEN invalidation is retained. Growing report payload and unmeasured ordinary queue remain limits."
+}

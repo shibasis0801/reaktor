@@ -1,0 +1,55 @@
+{
+  "project": "reaktor",
+  "worker": "m1-worker",
+  "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor",
+  "source_head": "3b01c8c6fd6041b752cc53b851d76899948642af",
+  "tasks": [
+    "-p",
+    "dependeasy",
+    ":gradle:test",
+    "--tests",
+    "dev.shibasis.dependeasy.DslEntryPointsTest",
+    ":model:test",
+    "--console=plain"
+  ],
+  "remote_tasks": [
+    "-p",
+    "dependeasy",
+    ":gradle:test",
+    "--tests",
+    "dev.shibasis.dependeasy.DslEntryPointsTest",
+    ":model:test",
+    "--console=plain"
+  ],
+  "started": "2026-10-28T17:03:38.972012",
+  "log": "/Users/ovd/dev/.remote-dev/logs/20261028-170338-edd87d5d-reaktor.log",
+  "run_id": "20261028-170338-edd87d5d-reaktor",
+  "exit_code": 0,
+  "sync_seconds": 17.529849833000014,
+  "queue_seconds": 190.57384895799999,
+  "owner": {
+    "pid": 6297,
+    "started": "Wed Oct 28 17:00:10 2026"
+  },
+  "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+  "workspace_root": "/Users/ovd/dev",
+  "worker_slot": 1,
+  "publication": "changed-files",
+  "source_epoch": 1793187201.442302,
+  "execution_seconds": 212.6336475,
+  "worker_started_epoch": 1793187219.152884,
+  "dry_run": false,
+  "builds": {
+    "reaktor": "reaktor",
+    "dependeasy": "reaktor"
+  },
+  "artifact_family": "all",
+  "collected": "2026-10-28T17:07:16.644976",
+  "copied_files": 998,
+  "copy_error": null,
+  "collection_seconds": 4.933304916999987,
+  "worker_slot_trimmed": 0,
+  "publication_queue_seconds": 256.388772875,
+  "finished": "2026-10-28T17:11:33.622216",
+  "publication_seconds": 256.886543084
+}

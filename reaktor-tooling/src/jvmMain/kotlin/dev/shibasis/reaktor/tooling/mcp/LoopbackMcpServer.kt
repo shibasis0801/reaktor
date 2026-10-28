@@ -17,6 +17,11 @@ import kotlinx.serialization.json.*
 
 data class LoopbackHttpResponse(val body: JsonElement, val status: Int = 200)
 
+data class BrowserMcpEndpoint(
+    val credentials: () -> Pair<String, String>?,
+    val handler: McpMessageHandler,
+)
+
 /** Owns a bounded, loopback-only HTTP transport. Tool definitions and authority belong to the host. */
 class LoopbackMcpServer private constructor(
     private val server: HttpServer,
@@ -47,6 +52,7 @@ class LoopbackMcpServer private constructor(
             post: (path: String, body: String) -> LoopbackHttpResponse?,
             postWithHeaders: ((path: String, body: String, headers: Map<String, List<String>>) -> LoopbackHttpResponse?)? = null,
             read: (path: String, query: Map<String, String>) -> LoopbackHttpResponse? = { _, _ -> null },
+            browser: BrowserMcpEndpoint? = null,
         ): LoopbackMcpServer {
             require(port in 0..65535) { "Invalid port" }
             require(bearerToken == null || bearerToken.length >= 32) { "Bearer tokens must contain at least 32 characters" }
@@ -58,7 +64,7 @@ class LoopbackMcpServer private constructor(
                 server.executor = executor
                 server.createContext("/") { exchange ->
                     exchange.use { request ->
-                        try { request.respond(mcp, read, post, bearerToken, postWithHeaders) }
+                        try { request.respond(mcp, read, post, bearerToken, postWithHeaders, browser) }
                         catch (_: Exception) { runCatching { request.send(500, error("Request failed")) } }
                     }
                 }
@@ -76,6 +82,7 @@ class LoopbackMcpServer private constructor(
             post: (String, String) -> LoopbackHttpResponse?,
             bearerToken: String?,
             postWithHeaders: ((String, String, Map<String, List<String>>) -> LoopbackHttpResponse?)?,
+            browser: BrowserMcpEndpoint?,
         ) {
             responseHeaders.set("Cache-Control", "no-store")
             responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -83,25 +90,32 @@ class LoopbackMcpServer private constructor(
             responseHeaders.set("Access-Control-Expose-Headers", "Mcp-Protocol-Version, Mcp-Session-Id")
             val host = requestHeaders["Host"]?.singleOrNull()
             val origin = requestHeaders["Origin"]?.singleOrNull()
+            val browserPath = requestURI.path == "/browser/mcp"
+            val pairing = if (browserPath) browser?.credentials?.invoke() else null
             if (host == null || !loopbackUri("http://$host", authority = true)) {
                 send(403, error("Invalid Host header")); return
             }
-            if (requestHeaders.containsKey("Origin") && (origin == null || !loopbackUri(origin))) {
+            if (if (browserPath) pairing == null || origin != pairing.first
+                else requestHeaders.containsKey("Origin") && (origin == null || !loopbackUri(origin))) {
                 send(403, error("Origin is not permitted")); return
             }
             if (origin != null) {
                 responseHeaders.set("Access-Control-Allow-Origin", origin)
                 responseHeaders.set("Vary", "Origin")
             }
-            if (bearerToken != null && requestMethod != "OPTIONS") {
+            if (browserPath && requestHeaders["Access-Control-Request-Private-Network"]?.singleOrNull() == "true") {
+                responseHeaders.set("Access-Control-Allow-Private-Network", "true")
+            }
+            val requiredToken = if (browserPath) pairing?.second else bearerToken
+            if (requiredToken != null && requestMethod != "OPTIONS") {
                 val supplied = requestHeaders["Authorization"]?.singleOrNull().orEmpty()
-                if (!MessageDigest.isEqual(supplied.toByteArray(), "Bearer $bearerToken".toByteArray())) {
+                if (!MessageDigest.isEqual(supplied.toByteArray(), "Bearer $requiredToken".toByteArray())) {
                     send(401, error("Authentication required")); return
                 }
             }
             when {
                 requestMethod == "OPTIONS" -> send(204, null)
-                requestMethod == "POST" && requestURI.path == "/mcp" -> {
+                requestMethod == "POST" && (requestURI.path == "/mcp" || browserPath) -> {
                     val versions = requestHeaders["MCP-Protocol-Version"]
                     if (versions != null && versions.singleOrNull() !in REAKTOR_MCP_PROTOCOL_VERSIONS) {
                         send(400, error("Unsupported MCP protocol version")); return
@@ -109,9 +123,10 @@ class LoopbackMcpServer private constructor(
                     responseHeaders.set("MCP-Protocol-Version", versions?.singleOrNull() ?: REAKTOR_MCP_PROTOCOL_VERSION)
                     val body = requestBody.readNBytes(1_048_577)
                     if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
-                    val response = mcp().handle(body.decodeToString())
+                    val response = (if (browserPath) requireNotNull(browser).handler else mcp()).handle(body.decodeToString())
                     send(if (response == null) 202 else 200, response)
                 }
+                browserPath -> send(404, error("Not found"))
                 requestMethod == "GET" -> {
                     val query = requestURI.rawQuery.orEmpty().split('&').filter(String::isNotEmpty).associate {
                         decode(it.substringBefore('=')) to decode(it.substringAfter('=', ""))

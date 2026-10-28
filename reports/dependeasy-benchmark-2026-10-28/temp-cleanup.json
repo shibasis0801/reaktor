@@ -1,0 +1,161 @@
+{
+  "limit_bytes": 40000000000,
+  "bytes_before": 15188802560,
+  "bytes_after": 15187308544,
+  "removed": [
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-in-dependeasy-13345683221423782103.alive",
+      "charged_bytes": 0
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-client-2140066716503119749-is-running",
+      "charged_bytes": 0
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-in-reaktor-12673163815918796360.alive",
+      "charged_bytes": 0
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-client-17044057333936121458-is-running",
+      "charged_bytes": 0
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-in-bestbuds-14128006820808646744.alive",
+      "charged_bytes": 0
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-client-8474010960192812000-is-running",
+      "charged_bytes": 0
+    },
+    {
+      "path": "/Users/ovd/dev/bestbuds/tmp/pdfs",
+      "charged_bytes": 1585152
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpcvUf9o",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpsEpRmX",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpgyKJtS",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpl7BaOs",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpeTglhf",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp0ifkZ6",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpvgyQEc",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp6Gw5EF",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpdFserv",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpW6P3Xc",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmprKn7H8",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpTh8cMr",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpS5C3Ec",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmplZpUIQ",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp889vFB",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpBVmXxn",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmprQho3v",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpwNWX9w",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpFl12Gb",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpSB3u3b",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpyKg2pQ",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp1WoCwa",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpwfjCNh",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpDRH7J8",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp8y5zax",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmptFTWxN",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp8Na5zW",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpiT8vcX",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpSR9GO5",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpr5yTO9",
+      "charged_bytes": 1024
+    },
+    {
+      "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpEKngcv",
+      "charged_bytes": 1024
+    }
+  ],
+  "disk_bound_bytes": 14740248064,
+  "within_limit": true
+}

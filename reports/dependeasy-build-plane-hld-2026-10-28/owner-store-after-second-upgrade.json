@@ -1,0 +1,17 @@
+{
+  "missing": {
+    "runs": [],
+    "threads": [],
+    "requests": [],
+    "checkpoints": [],
+    "board": []
+  },
+  "beforeCounts": {
+    "runs": 27,
+    "threads": 43,
+    "requests": 27,
+    "checkpoints": 136,
+    "board": 242
+  },
+  "scope": "File preservation only; content/store migration parity not implied."
+}

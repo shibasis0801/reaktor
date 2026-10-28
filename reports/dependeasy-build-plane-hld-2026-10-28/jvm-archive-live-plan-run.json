@@ -1,0 +1,1 @@
+{"type":"failed","message":"Workspace reply unavailable; inspect the retained runs or request before retrying.","code":"follow_unavailable","reference":{"operation":"run.show","requestId":"c4fcec71-4622-4219-becd-587757d9dccf","workspace":"/Users/ovd/dev/bestbuds","run":"kernel-d3084798-88e8-4a2b-bfb4-a918a5edcafb"}}

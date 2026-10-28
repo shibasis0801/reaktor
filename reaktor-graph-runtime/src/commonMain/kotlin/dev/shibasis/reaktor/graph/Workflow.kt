@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
+import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.Key
 import dev.shibasis.reaktor.portgraph.port.Type
 import dev.shibasis.reaktor.portgraph.port.registerConsumer
@@ -19,7 +20,10 @@ import dev.shibasis.reaktor.service.contract.Effect
 import dev.shibasis.reaktor.service.contract.activity
 import kotlinx.coroutines.withContext
 
-class Activity<In, Out> internal constructor(private val port: ConsumerPort<suspend (In) -> Out>) {
+class Activity<In, Out> internal constructor(
+    private val port: ConsumerPort<suspend (In) -> Out>,
+    internal val provider: ProviderPort<suspend (In) -> Out>,
+) {
     private val wire = WireIdentity(port)
 
     suspend operator fun invoke(request: In): Out = port.suspended {
@@ -58,6 +62,13 @@ open class Workflow(graph: Graph, val workflowId: String, override val label: St
         val node = childGraph.Node { ActivityNode(it, "$workflowId/$name", name, effect, attributes, execute) }
         val consumer = registerConsumer<suspend (In) -> Out>(Key(name), node.run.type)
         connect(consumer, node.run).getOrThrow()
-        return Activity(consumer)
+        return Activity(consumer, node.run)
+    }
+
+    fun <In, Out> call(name: String, activity: Activity<In, Out>): Activity<In, Out> {
+        require(name.isNotBlank() && names.add(name)) { "Duplicate or empty activity '$workflowId/$name'" }
+        val consumer = registerConsumer<suspend (In) -> Out>(Key(name), activity.provider.type)
+        connect(consumer, activity.provider).getOrThrow()
+        return Activity(consumer, activity.provider)
     }
 }

@@ -154,7 +154,6 @@ internal fun antigravityGuard(request: AgentRequest) {
     require(request.agent.harnessArgs.isEmpty() && policy.allow.isEmpty() && policy.deny.isEmpty() && !policy.strictMcpConfig && !policy.isolateOperatorConfig) {
         "Antigravity headless uses native permissions; per-turn permission overrides are unsupported"
     }
-    require(request.agent.effort == null || request.agent.effort.value in listOf("low", "medium", "high"))
 }
 
 /** The workspace preamble Reaktor puts in front of every Antigravity prompt. */
@@ -339,8 +338,11 @@ class AntigravityEventParser(
             text.isNotBlank() && denied.isEmpty()
         val input = usage?.get("input_tokens")?.jsonPrimitive?.longOrNull
         val cached = usage?.get("cache_read_tokens")?.jsonPrimitive?.longOrNull
+        val failure = result?.text("error")?.takeIf { it.isNotBlank() }
+            ?: if (denied.isNotEmpty()) deniedDetail(denied) else stderr.takeLast(2000).ifBlank { blankAnswer(result?.text("status")) }
         return AgentOutcome(agent, text, ok,
-            failure = if (ok) null else result?.text("error") ?: if (denied.isNotEmpty()) deniedDetail(denied) else stderr.takeLast(2000).ifBlank { blankAnswer(result?.text("status")) },
+            failure = if (ok) null else if (failure.contains("authentication failed or timed out", ignoreCase = true))
+                "$failure. Run agy in a terminal, complete Google sign-in there, then send a new turn in Hangar." else failure,
             session = session, usage = usage?.let { AgentUsage(inputTokens = input,
                 outputTokens = it["output_tokens"]?.jsonPrimitive?.longOrNull,
                 cachedInputTokens = cached?.takeIf { value -> input != null && value <= input },

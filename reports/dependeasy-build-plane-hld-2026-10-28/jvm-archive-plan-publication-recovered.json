@@ -1,0 +1,59 @@
+{
+  "project": "bestbuds",
+  "worker": "m1-worker",
+  "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds",
+  "source_head": "af2ef501652035c369528c4178e9bb6905e4810f",
+  "tasks": [
+    "exportBuildModel",
+    "-Pdependeasy.gradleRequest=/Users/ovd/dev/bestbuds/build/dependeasy/contracts/gradle/requests/47b84edc86c262602b7c7a4f2e1a18af41539f0c4a6b758d1e17a60a6822ff06.json",
+    "--console=plain"
+  ],
+  "remote_tasks": [
+    "exportBuildModel",
+    "-Pdependeasy.gradleRequest=/Users/ovd/dev/bestbuds/build/dependeasy/contracts/gradle/requests/47b84edc86c262602b7c7a4f2e1a18af41539f0c4a6b758d1e17a60a6822ff06.json",
+    "--console=plain"
+  ],
+  "started": "2026-10-28T17:16:12.624167",
+  "log": "/Users/ovd/dev/.remote-dev/logs/20261028-171612-1f60b529-bestbuds.log",
+  "run_id": "20261028-171612-1f60b529-bestbuds",
+  "exit_code": 0,
+  "sync_seconds": 33.39041579100001,
+  "queue_seconds": 284.37895525,
+  "owner": {
+    "pid": 39336,
+    "started": "Wed Oct 28 17:23:30 2026"
+  },
+  "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+  "workspace_root": "/Users/ovd/dev",
+  "worker_slot": 1,
+  "publication": "changed-files",
+  "source_epoch": 1793187939.1940649,
+  "artifact_tasks": [
+    ":reaktor:reaktor-core:jvmJar"
+  ],
+  "execution_seconds": 45.856926999999985,
+  "worker_started_epoch": 1793187972.9814885,
+  "dry_run": false,
+  "builds": {
+    "bestbuds": "bestbuds",
+    "dependeasy": "reaktor",
+    "reaktor": "reaktor"
+  },
+  "artifact_family": "jvm",
+  "collected": "2026-10-28T17:17:07.430076",
+  "copied_files": 271,
+  "copy_error": null,
+  "collection_seconds": 8.700636250000002,
+  "worker_slot_trimmed": 0,
+  "publication_queue_seconds": 89.137278125,
+  "withheld_outputs": {
+    "bestbuds": 240,
+    "reaktor": 6
+  },
+  "unverified_copies": {
+    "bestbuds": 3,
+    "reaktor": 18
+  },
+  "finished": "2026-10-28T17:27:14.472378",
+  "publication_seconds": 89.59841312500001
+}

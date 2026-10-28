@@ -39,18 +39,21 @@ data class GoogleEndpoints(
 @Serializable
 data class GoogleGrantView(val account: String?, val accountId: String, val scopes: List<String>, val grantedAt: Long)
 
+@Serializable
 enum class GoogleOutcome { Pending, Connected, Partial, Denied, Expired, Failed, Refused }
 
+@Serializable
 data class GoogleCompletion(val returnUrl: String?, val outcome: GoogleOutcome, val handle: String?)
 
+@Serializable
 sealed interface GoogleCall {
-    data class Done(val json: String) : GoogleCall
-    data object UnknownOperation : GoogleCall
-    data object NoGrant : GoogleCall
-    data class ScopeMissing(val anyOf: Set<String>) : GoogleCall
-    data object Revoked : GoogleCall
-    data class Invalid(val message: String) : GoogleCall
-    data class Failed(val status: Int, val reason: String, val message: String) : GoogleCall
+    @Serializable data class Done(val json: String) : GoogleCall
+    @Serializable data object UnknownOperation : GoogleCall
+    @Serializable data object NoGrant : GoogleCall
+    @Serializable data class ScopeMissing(val anyOf: Set<String>) : GoogleCall
+    @Serializable data object Revoked : GoogleCall
+    @Serializable data class Invalid(val message: String) : GoogleCall
+    @Serializable data class Failed(val status: Int, val reason: String, val message: String) : GoogleCall
 }
 
 class GoogleConnector(

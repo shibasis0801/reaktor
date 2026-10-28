@@ -1,0 +1,470 @@
+{
+  "samples": 26,
+  "groups": {
+    "before:cold": {
+      "samples": 3,
+      "gradleSeconds": {
+        "median": 86.46000000000001,
+        "min": 86.11,
+        "max": 94.12,
+        "values": [
+          94.12,
+          86.46000000000001,
+          86.11
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 98.73620949999997,
+        "min": 96.91000995900004,
+        "max": 108.984926125,
+        "values": [
+          108.984926125,
+          96.91000995900004,
+          98.73620949999997
+        ]
+      }
+    },
+    "before:warm": {
+      "samples": 3,
+      "gradleSeconds": {
+        "median": 15.51,
+        "min": 15.294,
+        "max": 17.21,
+        "values": [
+          17.21,
+          15.51,
+          15.294
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 28.407495208,
+        "min": 25.356073207999998,
+        "max": 30.150931333000017,
+        "values": [
+          28.407495208,
+          30.150931333000017,
+          25.356073207999998
+        ]
+      }
+    },
+    "before:incremental": {
+      "samples": 3,
+      "gradleSeconds": {
+        "median": 20.105,
+        "min": 20.031,
+        "max": 23.296,
+        "values": [
+          23.296,
+          20.105,
+          20.031
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 35.77793908299998,
+        "min": 32.66847466699994,
+        "max": 37.27479229100004,
+        "values": [
+          35.77793908299998,
+          32.66847466699994,
+          37.27479229100004
+        ]
+      }
+    },
+    "after:cold": {
+      "samples": 3,
+      "gradleSeconds": {
+        "median": 89.83,
+        "min": 85.25,
+        "max": 95.33,
+        "values": [
+          95.33,
+          89.83,
+          85.25
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 97.04318670800001,
+        "min": 95.40010054099992,
+        "max": 104.36690295799997,
+        "values": [
+          104.36690295799997,
+          97.04318670800001,
+          95.40010054099992
+        ]
+      }
+    },
+    "after:warm": {
+      "samples": 3,
+      "gradleSeconds": {
+        "median": 15.729,
+        "min": 15.45,
+        "max": 17.192,
+        "values": [
+          17.192,
+          15.729,
+          15.45
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 25.785976249999976,
+        "min": 25.635878875000003,
+        "max": 26.748035000000073,
+        "values": [
+          25.785976249999976,
+          25.635878875000003,
+          26.748035000000073
+        ]
+      }
+    },
+    "after:incremental": {
+      "samples": 3,
+      "gradleSeconds": {
+        "median": 20.389,
+        "min": 20.269,
+        "max": 21.966,
+        "values": [
+          21.966,
+          20.389,
+          20.269
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 29.639528457999972,
+        "min": 28.86242449999986,
+        "max": 32.338148166999986,
+        "values": [
+          32.338148166999986,
+          29.639528457999972,
+          28.86242449999986
+        ]
+      }
+    },
+    "before:cc-store": {
+      "samples": 1,
+      "gradleSeconds": {
+        "median": 56.909,
+        "min": 56.909,
+        "max": 56.909,
+        "values": [
+          56.909
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 68.3966599580001,
+        "min": 68.3966599580001,
+        "max": 68.3966599580001,
+        "values": [
+          68.3966599580001
+        ]
+      }
+    },
+    "before:cc-warm": {
+      "samples": 3,
+      "gradleSeconds": {
+        "median": 4.671,
+        "min": 4.666,
+        "max": 4.75,
+        "values": [
+          4.671,
+          4.75,
+          4.666
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 16.7815196250001,
+        "min": 15.942521749999969,
+        "max": 16.918259499999976,
+        "values": [
+          15.942521749999969,
+          16.7815196250001,
+          16.918259499999976
+        ]
+      }
+    },
+    "before:cc-incremental": {
+      "samples": 1,
+      "gradleSeconds": {
+        "median": 10.42,
+        "min": 10.42,
+        "max": 10.42,
+        "values": [
+          10.42
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 22.92552512500015,
+        "min": 22.92552512500015,
+        "max": 22.92552512500015,
+        "values": [
+          22.92552512500015
+        ]
+      }
+    },
+    "after:cc-store": {
+      "samples": 1,
+      "gradleSeconds": {
+        "median": 56.106,
+        "min": 56.106,
+        "max": 56.106,
+        "values": [
+          56.106
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 63.846515667000176,
+        "min": 63.846515667000176,
+        "max": 63.846515667000176,
+        "values": [
+          63.846515667000176
+        ]
+      }
+    },
+    "after:cc-warm": {
+      "samples": 1,
+      "gradleSeconds": {
+        "median": 4.586,
+        "min": 4.586,
+        "max": 4.586,
+        "values": [
+          4.586
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 13.275525500000185,
+        "min": 13.275525500000185,
+        "max": 13.275525500000185,
+        "values": [
+          13.275525500000185
+        ]
+      }
+    }
+  },
+  "artifactChecks": [
+    {
+      "rep": 1,
+      "phase": "cold",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 1,
+      "phase": "warm",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 1,
+      "phase": "incremental",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 1,
+      "variant": "before",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 1,
+      "variant": "after",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 2,
+      "phase": "cold",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 2,
+      "phase": "warm",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 2,
+      "phase": "incremental",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 2,
+      "variant": "before",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 2,
+      "variant": "after",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 3,
+      "phase": "cold",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 3,
+      "phase": "warm",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 3,
+      "phase": "incremental",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 3,
+      "variant": "before",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 3,
+      "variant": "after",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    }
+  ],
+  "configurationCacheChecks": [
+    {
+      "case": "after-cc-store-0-162045",
+      "code": 0,
+      "reused": false,
+      "stored": true,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ]
+    },
+    {
+      "case": "after-cc-warm-1-162158",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "after-cc-warm-2-162219",
+      "code": 1,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "before-cc-incremental-1-162011",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "before-cc-store-0-161734",
+      "code": 0,
+      "reused": false,
+      "stored": true,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ]
+    },
+    {
+      "case": "before-cc-warm-1-161852",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "before-cc-warm-2-161917",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "before-cc-warm-3-161945",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "queueSeconds": 1258.53219175,
+  "acquiredEpoch": 1793173631.469567,
+  "harnessSha256": "60595e6000437bea61c6f80e1367669beb4fa05ca2fec579ebcb0a92ca77986d",
+  "scope": "18 measured runs, reserving worker build and Atlas slots 0/1/2; execution stays in the same frozen slot"
+}

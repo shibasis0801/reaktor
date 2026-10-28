@@ -34,6 +34,7 @@ object SigningKernel {
                     append("<key>$key</key><string>${xml(value(input))}</string>")
                 }
                 append("<key>signingStyle</key><string>${style.lowercase()}</string><key>stripSwiftSymbols</key><true/>")
+                append("<key>manageAppVersionAndBuildNumber</key><false/>")
                 append("<key>uploadSymbols</key><true/><key>provisioningProfiles</key><dict>")
                 profiles.toSortedMap().forEach { (id, profile) ->
                     append("<key>${xml(id)}</key><string>${xml(setting(profile.jsonPrimitive.content, id))}</string>")

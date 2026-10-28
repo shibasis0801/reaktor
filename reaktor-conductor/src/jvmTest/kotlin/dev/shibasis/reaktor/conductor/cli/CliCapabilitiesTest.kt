@@ -2,6 +2,9 @@ package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.workspace.workspaceCapabilities
+import dev.shibasis.reaktor.conductor.workspace.TaskSeat
+import dev.shibasis.reaktor.conductor.workspace.TaskSeatResolver
+import kotlin.test.assertFailsWith
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.coroutines.flow.emptyFlow
 import java.io.File
@@ -181,6 +184,20 @@ class CliCapabilitiesTest {
             fixture("agy-1.4.7.help"))
         assertEquals("1.4.7", capability.version)
         assertEquals(listOf("low", "medium", "high", "xhigh", "max"), capability.effort?.supported?.map { it.value })
+        capability.models.forEach { model ->
+            val level = NativeEffort(model.id.substringAfterLast('-'))
+            assertEquals(listOf(level), model.effort?.supported)
+            assertEquals(level, model.effort?.default)
+        }
+        val resolver = TaskSeatResolver(capability = { capability })
+        assertFailsWith<UnsupportedEffortException> { resolver.resolve(TaskSeat(agent = RuntimeKind.Gemini, effort = "xhigh")) }
+        assertEquals("low", resolver.resolve(TaskSeat(agent = RuntimeKind.Gemini, model = "gemini-4-argon-low", effort = "low")).seat.effort)
+        assertEquals(listOf(NativeEffort("low")), capability.model("claude-sonnet-5-5-low")?.effort?.supported)
+        assertFailsWith<UnsupportedEffortException> {
+            resolver.resolve(TaskSeat(agent = RuntimeKind.Gemini, model = "claude-sonnet-5-5-low", effort = "high"))
+        }
+        assertEquals("low", resolver.resolve(TaskSeat(agent = RuntimeKind.Gemini, model = "claude-sonnet-5-5-low", effort = "low")).seat.effort)
+        assertNull(capability.model("future-model-without-effort"))
         assertEquals(listOf("accept-edits", "auto", "plan"), capability.permissionModes)
         assertEquals(listOf("--sandbox"), capability.sandboxModes)
         assertTrue(capability.controls.getValue("steer").advertised)
@@ -190,6 +207,10 @@ class CliCapabilitiesTest {
         val absent = CliCapabilities.probe(RuntimeKind.Gemini, "agy-does-not-exist-here")
         assertFalse(absent.effortControl.usable)
         assertNull(absent.effort)
+        assertEquals(listOf(NativeEffort("high")), absent.models.first().effort?.supported)
+        assertFailsWith<UnsupportedEffortException> {
+            TaskSeatResolver(capability = { absent }).resolve(TaskSeat(agent = RuntimeKind.Gemini, effort = "xhigh"))
+        }
         assertTrue(absent.probedAt!! > 0)
     }
 

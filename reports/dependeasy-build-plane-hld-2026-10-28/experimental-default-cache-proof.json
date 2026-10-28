@@ -1,0 +1,146 @@
+{
+  "default": "org.gradle.configuration-cache=true in Reaktor root only",
+  "invocation": "Routed :reaktor-core:jvmJar :exportBuildModel; no cache CLI switches, no init observer, no HTML profiler",
+  "controls": "Same reserved secondary slot, frozen verified sources, JDK21, six workers and prior campaign resource/cache controls. Other task families and roots are not certified by this scope.",
+  "checks": [
+    {
+      "case": "after-cold-4-163103",
+      "snapshot": "59ab384158821ffc0492865dd51b15c5130edd3574cafa5a89b57bfedd0ad331",
+      "exit": 0,
+      "gradleConsoleSecondsRounded": 86.0,
+      "reservedEndToEndSeconds": 93.954301958,
+      "workerSourceVerified": true,
+      "reused": false,
+      "stored": true,
+      "invalidation": [],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ],
+      "exportInputReason": [],
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerLogSha256": "59ae48e8c8a0a1f04033aabc6848196d39b56dabc1ad38060f86d53d6eb302d3"
+    },
+    {
+      "case": "after-declaration-incremental-1-163406",
+      "snapshot": "01200cf48a42a9ee68e057b9eb4b5e765f18c8cdab95d09a1e6df9812c39e5c8",
+      "exit": 0,
+      "gradleConsoleSecondsRounded": 19.0,
+      "reservedEndToEndSeconds": 28.306741957999975,
+      "workerSourceVerified": true,
+      "reused": false,
+      "stored": true,
+      "invalidation": [
+        "Calculating task graph as configuration cache cannot be reused because file 'build.gradle.kts' has changed."
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ],
+      "exportInputReason": [
+        "  Input property 'declarationFiles' file /Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build.gradle.kts has changed."
+      ],
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerLogSha256": "8a498d440d14b433ff6f632fc1090b080a96921434f8ef48fc3a9df72266cd9b"
+    },
+    {
+      "case": "after-default-restored-1-163442",
+      "snapshot": "59ab384158821ffc0492865dd51b15c5130edd3574cafa5a89b57bfedd0ad331",
+      "exit": 0,
+      "gradleConsoleSecondsRounded": 15.0,
+      "reservedEndToEndSeconds": 26.19122275000001,
+      "workerSourceVerified": true,
+      "reused": false,
+      "stored": true,
+      "invalidation": [
+        "Calculating task graph as configuration cache cannot be reused because file 'build.gradle.kts' has changed."
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ],
+      "exportInputReason": [
+        "  Input property 'declarationFiles' file /Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build.gradle.kts has changed."
+      ],
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerLogSha256": "e3fcbbc2572ff4cfe6e881a24b5a6cfeabcc018d97c866d22ed7a980917cf956"
+    },
+    {
+      "case": "after-default-warm-1-163246",
+      "snapshot": "59ab384158821ffc0492865dd51b15c5130edd3574cafa5a89b57bfedd0ad331",
+      "exit": 0,
+      "gradleConsoleSecondsRounded": 15.0,
+      "reservedEndToEndSeconds": 25.419112000000013,
+      "workerSourceVerified": true,
+      "reused": false,
+      "stored": true,
+      "invalidation": [
+        "Calculating task graph as configuration cache cannot be reused because Build option 'TOKEN' has changed."
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ],
+      "exportInputReason": [],
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerLogSha256": "398fe1589926ac92bcf607bfcaf01f27a9412992b0453fd9b3ce5d31aa6c8c10"
+    },
+    {
+      "case": "after-default-warm-2-163323",
+      "snapshot": "59ab384158821ffc0492865dd51b15c5130edd3574cafa5a89b57bfedd0ad331",
+      "exit": 0,
+      "gradleConsoleSecondsRounded": 4.0,
+      "reservedEndToEndSeconds": 13.271534624999987,
+      "workerSourceVerified": true,
+      "reused": true,
+      "stored": false,
+      "invalidation": [],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ],
+      "exportInputReason": [],
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerLogSha256": "34f197b3f4f04dbef5860e69e7648b9b65d0104c21a5e24c3fce537ee8b95671"
+    },
+    {
+      "case": "after-default-warm-3-163345",
+      "snapshot": "59ab384158821ffc0492865dd51b15c5130edd3574cafa5a89b57bfedd0ad331",
+      "exit": 0,
+      "gradleConsoleSecondsRounded": 4.0,
+      "reservedEndToEndSeconds": 12.491002874999992,
+      "workerSourceVerified": true,
+      "reused": true,
+      "stored": false,
+      "invalidation": [],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ],
+      "exportInputReason": [],
+      "jvmJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+      "workerLogSha256": "4f87924544b564aca6f8ebc4247a9b6841bdba3b79950eda9db2db36fd77a544"
+    }
+  ],
+  "defaultAccepted": true,
+  "ordinaryProbe": {
+    "successfulWarmReuses": 4,
+    "roundedGradleSeconds": [
+      4.0,
+      4.0,
+      4.0,
+      4.0
+    ],
+    "reservedEndToEndSeconds": [
+      13.249093291999998,
+      13.168878707999994,
+      12.894556999999992,
+      13.373307709000017
+    ],
+    "medianReservedEndToEndSeconds": 13.208985999999996,
+    "sourceEdit": {
+      "exit": 0,
+      "roundedGradleSeconds": 10.0,
+      "reservedEndToEndSeconds": 19.273287208,
+      "changedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ],
+      "jvmJarSha256": "9ac0037b33ca5235c1d5c2b0236a2b5aaa1017a114cc26da081db8b33dd0afbb"
+    }
+  },
+  "limitation": "One --profile cache reuse exited 1 after BUILD SUCCESSFUL with null TaskExecution state. It remains a failed command, excluded from successful timing summaries. javap of pinned Gradle 9.7 TaskExecution.getStatus matches the exact dereference; the failing run did not capture a full stack trace. This is a profiler diagnosis, not a proven all-task Gradle fix. No exception was suppressed."
+}

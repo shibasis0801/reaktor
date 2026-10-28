@@ -1,0 +1,5 @@
+{
+  "action": "Interrupt owned serverImage attempt after prerequisite failures; no prerequisite skipped",
+  "pid": 41823,
+  "command": "/usr/bin/java -Xmx64m -Xms64m -Dorg.gradle.appname=gradlew -classpath /Users/ovd/dev/bestbuds/gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain --max-workers=6 -Dorg.gradle.daemon.idletimeout=300000 -Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home --init-script /Users/ovd/dev/tools/physical-devices.gradle :serverImage --console=plain"
+}

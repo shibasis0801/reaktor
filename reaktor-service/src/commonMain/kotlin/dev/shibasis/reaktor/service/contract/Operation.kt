@@ -16,6 +16,7 @@ sealed class Operation<In, Out>(
     val route: Route?,
     val effect: Effect,
     val idempotency: Idempotency,
+    val summary: String,
 ) {
     abstract val family: Family
 
@@ -43,7 +44,8 @@ class Call<In, Out> @PublishedApi internal constructor(
     val deadline: Duration?,
     val status: Int,
     private val handler: (suspend (In) -> Out)?,
-) : Operation<In, Out>(service, name, request, response, route, effect, idempotency) {
+    summary: String = "",
+) : Operation<In, Out>(service, name, request, response, route, effect, idempotency, summary) {
     override val family: Family get() = Family.Call
 
     suspend operator fun invoke(request: In): Out {
@@ -52,7 +54,7 @@ class Call<In, Out> @PublishedApi internal constructor(
     }
 
     internal fun answering(block: suspend (In) -> Out) =
-        Call(service, name, request, response, route, effect, idempotency, deadline, status, block)
+        Call(service, name, request, response, route, effect, idempotency, deadline, status, block, summary)
 }
 
 suspend operator fun <Out> Call<Unit, Out>.invoke(): Out = invoke(Unit)
@@ -65,12 +67,13 @@ class Stream<In, Out> @PublishedApi internal constructor(
     route: Route?,
     effect: Effect,
     private val handler: ((In) -> Flow<Out>)?,
-) : Operation<In, Out>(service, name, request, element, route, effect, Idempotency.Natural) {
+    summary: String = "",
+) : Operation<In, Out>(service, name, request, element, route, effect, Idempotency.Natural, summary) {
     override val family: Family get() = Family.Stream
 
     operator fun invoke(request: In): Flow<Out> = handler?.invoke(request) ?: service.link.stream(this, request)
 
-    internal fun answering(block: (In) -> Flow<Out>) = Stream(service, name, request, response, route, effect, block)
+    internal fun answering(block: (In) -> Flow<Out>) = Stream(service, name, request, response, route, effect, block, summary)
 }
 
 operator fun <Out> Stream<Unit, Out>.invoke(): Flow<Out> = invoke(Unit)
@@ -95,6 +98,10 @@ data class Route(val method: HttpMethod, val path: String) {
 
 enum class Effect {
     ReadOnly,
+    LocalEphemeral,
+    LocalArtifactWrite,
+    SourceWrite,
+    DeviceWrite,
     LiveRead,
     NonProductionWrite,
     ProductionReversibleWrite,
@@ -103,7 +110,7 @@ enum class Effect {
     Destructive,
     UnknownRemoteEffect;
 
-    val retriable: Boolean get() = this <= LiveRead
+    val retriable: Boolean get() = this == ReadOnly || this == LiveRead
 }
 
 enum class Idempotency { None, Natural, Keyed }

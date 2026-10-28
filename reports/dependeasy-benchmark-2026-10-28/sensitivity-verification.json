@@ -1,0 +1,50 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "All 23 prescribed treatment builds succeeded with both source guards",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Every treatment removes the custom observer",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Three actual configuration-cache reuses on each stack",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "One router adapter identity across primary and treatment builds",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Four native-runtime runs report Java 25",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "All six identical-source builds succeeded and produced one class",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Identical retained source text on both stacks",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Both fixture edits changed only TimeKt.class",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Every primary JAR SHA matched Java 25 bytecode inspection",
+      "passed": true,
+      "detail": []
+    }
+  ]
+}

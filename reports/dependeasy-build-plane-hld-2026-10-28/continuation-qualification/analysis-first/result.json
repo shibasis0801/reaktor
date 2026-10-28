@@ -1,0 +1,78 @@
+{
+  "label": "analysis-first",
+  "code": 0,
+  "snapshot": "4675f4cc468223fcabf4dc6c6e96eea44be565823a56d42e337b9239d55f3e0b",
+  "endToEndSeconds": 35.09381741700008,
+  "receipt": {
+    "project": "reaktor",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor",
+    "source_head": "1810d443cc6600f3b6f9964c29fd764dbd1465ef",
+    "tasks": [
+      ":reaktor-code:compileKotlinAnalysis",
+      ":exportBuildModel",
+      "--max-workers=6",
+      "--no-daemon",
+      "--no-build-cache",
+      "--console=plain",
+      "--stacktrace",
+      "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+      "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8"
+    ],
+    "remote_tasks": [
+      ":reaktor-code:compileKotlinAnalysis",
+      ":exportBuildModel",
+      "--max-workers=6",
+      "--no-daemon",
+      "--no-build-cache",
+      "--console=plain",
+      "--stacktrace",
+      "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+      "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8"
+    ],
+    "started": "2026-10-28T20:08:23.966338",
+    "log": "/Users/ovd/dev/tmp/dependeasy-perf-followup-20261028/state/logs/20261028-200823-6b00ecff-reaktor.log",
+    "run_id": "20261028-200823-6b00ecff-reaktor",
+    "exit_code": 0,
+    "sync_seconds": 6.0432029170000305,
+    "queue_seconds": 684.2163761249999,
+    "owner": {
+      "pid": 79179,
+      "started": "Wed Oct 28 19:56:53 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "workspace_root": "/Users/ovd/dev/tmp/dependeasy-perf-followup-20261028/state/slots/worker",
+    "worker_slot": 1,
+    "publication": null,
+    "source_epoch": 1793198297.922314,
+    "execution_seconds": 24.80209212500006,
+    "worker_started_epoch": 1793198304.1431804,
+    "dry_run": false,
+    "builds": {
+      "reaktor": "reaktor",
+      "dependeasy": "reaktor"
+    },
+    "artifact_family": "all",
+    "collected": "2026-10-28T20:08:51.777000",
+    "copied_files": 2566,
+    "copy_error": null,
+    "collection_seconds": 2.912643542000069,
+    "worker_slot_trimmed": 0,
+    "publication_queue_seconds": 2.0750000089719833e-05,
+    "finished": "2026-10-28T20:08:52.262736",
+    "publication_seconds": 0.434413667000058
+  },
+  "evidence": {
+    "argumentFile": {
+      "sha256": "1935d759f751bf276a083f7c7fe2ed18566310120935616aa7016a6f9e03bef4",
+      "bytes": 9660
+    },
+    "classes": {
+      "classes/dev/shibasis/reaktor/code/kotlinanalysis/MainKt$resolve$Candidate.class": "5278cfa1b90f25bdeea0a2064850f8656f2c904be279f88fc112ef38d96be922",
+      "classes/dev/shibasis/reaktor/code/kotlinanalysis/MainKt$main$$inlined$sortedBy$1.class": "d4a05e2fe4ca108ac03ba199bcdb36f2fd07981f00d6655c51939dba4646ab4a",
+      "classes/dev/shibasis/reaktor/code/kotlinanalysis/Warm.class": "c5b9addf3074b38940cf8772bc4f1f571e6d62cfc85334d0c33ecddd92775db9",
+      "classes/dev/shibasis/reaktor/code/kotlinanalysis/MainKt.class": "ea1b284f0f1878762703ec8d10a7c877987b640d2b31183bf8122af68be236f9"
+    },
+    "planningTestXml": null
+  }
+}

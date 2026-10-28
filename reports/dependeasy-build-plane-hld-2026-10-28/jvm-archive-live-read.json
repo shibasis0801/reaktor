@@ -1,0 +1,10 @@
+{
+  "type": "failed",
+  "message": "build.list read its arguments but could not decode other data it depends on: Serializer for subclass 'dev.shibasis.dependeasy.model.KernelSpec.KotlinAnalysis' is not found in the polymorphic scope of 'KernelSpec'.\nCheck if class with serial name 'dev.shibasis.dependeasy.model.KernelSpec.KotlinAnalysis' exists and serializer is registered in a corresponding SerializersModule.\nTo be registered automatically, class 'dev.shibasis.dependeasy.model.KernelSpec.KotlinAnalysis' has to be '@Serializable', and the base class 'KernelSpec' has to be sealed and '@Serializable'.\nJSON input: .....5\"},\"compiler\":{\"name\":\"kotlin\",\"version\":\"2.5.0-Beta2-59\"}}. The program that wrote that data is likely newer or older than this workspace build",
+  "code": "operation_failed",
+  "reference": {
+    "operation": "build.list",
+    "requestId": "bd5f8d6d-3549-442f-9a95-ee1693033cdd",
+    "workspace": "/Users/ovd/dev/bestbuds"
+  }
+}

@@ -1,0 +1,275 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "Exactly 18 measured runs and one of each prescribed cell",
+      "passed": true,
+      "detail": [
+        [
+          "september",
+          "cold",
+          1
+        ],
+        [
+          "september",
+          "warm",
+          1
+        ],
+        [
+          "september",
+          "incremental",
+          1
+        ],
+        [
+          "current",
+          "cold",
+          1
+        ],
+        [
+          "current",
+          "warm",
+          1
+        ],
+        [
+          "current",
+          "incremental",
+          1
+        ],
+        [
+          "current",
+          "cold",
+          2
+        ],
+        [
+          "current",
+          "warm",
+          2
+        ],
+        [
+          "current",
+          "incremental",
+          2
+        ],
+        [
+          "september",
+          "cold",
+          2
+        ],
+        [
+          "september",
+          "warm",
+          2
+        ],
+        [
+          "september",
+          "incremental",
+          2
+        ],
+        [
+          "september",
+          "cold",
+          3
+        ],
+        [
+          "september",
+          "warm",
+          3
+        ],
+        [
+          "september",
+          "incremental",
+          3
+        ],
+        [
+          "current",
+          "cold",
+          3
+        ],
+        [
+          "current",
+          "warm",
+          3
+        ],
+        [
+          "current",
+          "incremental",
+          3
+        ]
+      ]
+    },
+    {
+      "name": "All measured builds and both source-content guards succeeded",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "No primary FROM-CACHE task outcomes",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "No measured dependency download lines",
+      "passed": true,
+      "detail": {
+        "bench28-september-cold-1-131711": 0,
+        "bench28-september-warm-1-131820": 0,
+        "bench28-september-incremental-1-131845": 0,
+        "bench28-current-cold-1-131914": 0,
+        "bench28-current-warm-1-132103": 0,
+        "bench28-current-incremental-1-132135": 0,
+        "bench28-current-cold-2-132212": 0,
+        "bench28-current-warm-2-132357": 0,
+        "bench28-current-incremental-2-132427": 0,
+        "bench28-september-cold-2-132506": 0,
+        "bench28-september-warm-2-132617": 0,
+        "bench28-september-incremental-2-132644": 0,
+        "bench28-september-cold-3-132712": 0,
+        "bench28-september-warm-3-132819": 0,
+        "bench28-september-incremental-3-132845": 0,
+        "bench28-current-cold-3-132914": 0,
+        "bench28-current-warm-3-133058": 0,
+        "bench28-current-incremental-3-133128": 0
+      }
+    },
+    {
+      "name": "Warm target compilation up to date",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Edited target compilation executed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Common Gradle runtime JDK",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Native Gradle versions retained",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "One shared router adapter digest",
+      "passed": true,
+      "detail": [
+        "f35ede54a034b78b09f6fc506c145b193c40707717e6e43d143654e4085d1671"
+      ]
+    },
+    {
+      "name": "Identical requested argument list",
+      "passed": true,
+      "detail": [
+        [
+          ":reaktor-core:jvmJar",
+          "--max-workers=6",
+          "--no-daemon",
+          "--no-configuration-cache",
+          "--no-build-cache",
+          "--profile",
+          "--info",
+          "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+          "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+          "-Pkotlin.compiler.execution.strategy=daemon",
+          "-Pkotlin.daemon.jvmargs=-Xmx8g",
+          "--init-script",
+          "benchmark.init.gradle"
+        ]
+      ]
+    },
+    {
+      "name": "One exact worker execution directory",
+      "passed": true,
+      "detail": [
+        "/Users/ovd/dev/offload/.remote-dev/slots/worker/reaktor"
+      ]
+    },
+    {
+      "name": "8 GiB maximum Gradle heap",
+      "passed": true,
+      "detail": [
+        8589934592
+      ]
+    },
+    {
+      "name": "Every measured execution routed to worker",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Same native collection family",
+      "passed": true,
+      "detail": [
+        "all"
+      ]
+    },
+    {
+      "name": "Six incremental artifacts changed only TimeKt.class",
+      "passed": true,
+      "detail": [
+        {
+          "scope": "real-project",
+          "variant": "september",
+          "rep": 1,
+          "addedClasses": [],
+          "removedClasses": [],
+          "changedClasses": [
+            "dev/shibasis/reaktor/core/utils/TimeKt.class"
+          ]
+        },
+        {
+          "scope": "real-project",
+          "variant": "september",
+          "rep": 2,
+          "addedClasses": [],
+          "removedClasses": [],
+          "changedClasses": [
+            "dev/shibasis/reaktor/core/utils/TimeKt.class"
+          ]
+        },
+        {
+          "scope": "real-project",
+          "variant": "september",
+          "rep": 3,
+          "addedClasses": [],
+          "removedClasses": [],
+          "changedClasses": [
+            "dev/shibasis/reaktor/core/utils/TimeKt.class"
+          ]
+        },
+        {
+          "scope": "real-project",
+          "variant": "current",
+          "rep": 1,
+          "addedClasses": [],
+          "removedClasses": [],
+          "changedClasses": [
+            "dev/shibasis/reaktor/core/utils/TimeKt.class"
+          ]
+        },
+        {
+          "scope": "real-project",
+          "variant": "current",
+          "rep": 2,
+          "addedClasses": [],
+          "removedClasses": [],
+          "changedClasses": [
+            "dev/shibasis/reaktor/core/utils/TimeKt.class"
+          ]
+        },
+        {
+          "scope": "real-project",
+          "variant": "current",
+          "rep": 3,
+          "addedClasses": [],
+          "removedClasses": [],
+          "changedClasses": [
+            "dev/shibasis/reaktor/core/utils/TimeKt.class"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ enum class SpanOutcome {
     Ok, Cancelled, Unauthorized, NotFound, Refused, Failed;
 
     val refusal: Boolean get() = this in setOf(Unauthorized, NotFound, Refused)
+    val problem: Boolean get() = this == Failed || refusal
 
     companion object {
         fun of(status: Int): SpanOutcome = when {
@@ -51,6 +52,7 @@ data class ExecutionSignal(
     val sessions: Int,
     val traces: List<String>,
     val lastMillis: Long,
+    val problemSessions: List<Int> = emptyList(),
 ) {
     val outcomes: Map<SpanOutcome, Int> get() = statuses.entries.groupingBy { SpanOutcome.of(it.key) }.fold(0) { sum, entry -> sum + entry.value }
     val failed: Int get() = outcomes[SpanOutcome.Failed] ?: 0
@@ -103,7 +105,7 @@ object ExecutionSignals {
 
     private fun signal(key: SignalKey, rows: List<ServiceSpan>, middle: Long, orphans: Set<Pair<String, String>>, slowMillis: Double): ExecutionSignal {
         val durations = rows.filter { SpanOutcome.of(it.status) != SpanOutcome.Cancelled }.map { it.durationMillis.coerceAtLeast(0.0) }.sorted()
-        val examples = rows.sortedWith(compareByDescending<ServiceSpan> { SpanOutcome.of(it.status).let { outcome -> outcome == SpanOutcome.Failed || outcome.refusal } }
+        val examples = rows.sortedWith(compareByDescending<ServiceSpan> { SpanOutcome.of(it.status).problem }
             .thenByDescending { it.durationMillis }).map { it.traceId }.distinct().take(ExampleTraces)
         val measured = ExecutionSignal(key, SignalLevel.Healthy, "", rows.size,
             rows.groupingBy { it.status }.eachCount().entries.sortedBy { it.key }.associate { it.key to it.value },
@@ -112,7 +114,9 @@ object ExecutionSignals {
             orphans = rows.count { (it.traceId to it.spanId) in orphans },
             revisions = rows.mapNotNullTo(LinkedHashSet()) { it.graphDigest.ifBlank { null } },
             sessions = rows.mapNotNullTo(HashSet()) { it.applicationSession.ifBlank { null } }.size,
-            traces = examples, lastMillis = rows.maxOf { it.startedMillis })
+            traces = examples, lastMillis = rows.maxOf { it.startedMillis },
+            problemSessions = rows.filter { SpanOutcome.of(it.status).problem }.mapNotNull { it.applicationSession.ifBlank { null } }
+                .groupingBy { it }.eachCount().values.sortedDescending())
         val level = level(measured, slowMillis)
         return measured.copy(level = level, finding = finding(measured, level, slowMillis))
     }
@@ -133,6 +137,7 @@ object ExecutionSignals {
         val parts = buildList {
             if (signal.failed > 0) add("${signal.failed} of ${calls(signal.calls)} failed with ${statuses(signal) { it >= 500 }}")
             if (signal.refused > 0) add("${signal.refused} of ${calls(signal.calls)} refused with ${statuses(signal) { SpanOutcome.of(it).refusal }}")
+            makers(signal)?.let(::add)
             signal.p95Millis?.takeIf { it >= slowMillis }?.let { add("p95 ${millis(it)}") }
             if (signal.orphans == 1) add("1 call names a caller whose span never arrived")
             if (signal.orphans > 1) add("${signal.orphans} calls name callers whose spans never arrived")
@@ -145,6 +150,15 @@ object ExecutionSignals {
         }
     }
 
+    private fun makers(signal: ExecutionSignal): String? {
+        val problems = signal.failed + signal.refused
+        val made = signal.problemSessions.sum()
+        if (problems < 2 || made == 0) return null
+        val sessions = if (signal.problemSessions.size == 1) "1 session" else "${signal.problemSessions.size} sessions"
+        val busiest = signal.problemSessions.first().takeIf { signal.problemSessions.size > 1 && it >= RisingCalls }?.let { ", one $it times" }.orEmpty()
+        return "$sessions made ${if (made == problems) "them" else "$made of them"}$busiest"
+    }
+
     private fun statuses(signal: ExecutionSignal, wanted: (Int) -> Boolean) =
         signal.statuses.filterKeys(wanted).entries.sortedByDescending { it.value }.joinToString(", ") { (status, count) -> "HTTP $status ×$count" }
 
@@ -154,6 +168,12 @@ object ExecutionSignals {
         value >= 10_000 -> "${(value / 1000).roundToLong()} s"
         value >= 1_000 -> (value / 100).roundToLong().let { tenths -> "${tenths / 10}${if (tenths % 10 == 0L) "" else ".${tenths % 10}"} s" }
         else -> "${value.roundToLong()} ms"
+    }
+
+    fun window(minutes: Int): String = when {
+        minutes >= 2_880 && minutes % 1_440 == 0 -> "${minutes / 1_440} d"
+        minutes >= 60 && minutes % 60 == 0 -> "${minutes / 60} h"
+        else -> "$minutes min"
     }
 
     private fun List<Double>.quantile(q: Double): Double? = if (isEmpty()) null else this[(ceil(size * q).toInt() - 1).coerceIn(0, size - 1)]

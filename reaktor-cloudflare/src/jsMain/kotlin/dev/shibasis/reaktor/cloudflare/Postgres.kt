@@ -6,7 +6,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.promise
+import dev.shibasis.reaktor.graph.Uses
+import dev.shibasis.reaktor.graph.uses
+import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.service.Request
+import dev.shibasis.reaktor.service.contract.exchange
 import kotlin.js.Promise
 import kotlin.js.jsTypeOf
 
@@ -171,6 +175,13 @@ fun postgres(
     name: String,
     configure: PostgresOptionsBuilder.() -> Unit = {},
 ): PostgresBinding = PostgresBinding(name, configure)
+
+class PostgresPort internal constructor(private val binding: PostgresBinding, private val uses: Uses) {
+    suspend operator fun <T> invoke(block: suspend PostgresDatabase.() -> T): T =
+        uses { exchange().cloudflare.postgres(binding, block = block) }
+}
+
+fun PortCapability.uses(binding: PostgresBinding): PostgresPort = PostgresPort(binding, uses(binding.name))
 
 fun CloudflareContext.postgres(
     binding: PostgresBinding,

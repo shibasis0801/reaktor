@@ -1,0 +1,107 @@
+{
+  "windowEndEpoch": 1793171774.114468,
+  "windowSeconds": 300,
+  "samples": [
+    {
+      "epoch": 1793171479.179484,
+      "busyPercent": 44.62
+    },
+    {
+      "epoch": 1793171491.108785,
+      "busyPercent": 50.45
+    },
+    {
+      "epoch": 1793171503.0635588,
+      "busyPercent": 82.82
+    },
+    {
+      "epoch": 1793171515.115757,
+      "busyPercent": 72.36
+    },
+    {
+      "epoch": 1793171527.122445,
+      "busyPercent": 80.88
+    },
+    {
+      "epoch": 1793171539.1861272,
+      "busyPercent": 62.4
+    },
+    {
+      "epoch": 1793171551.29683,
+      "busyPercent": 15.019999999999996
+    },
+    {
+      "epoch": 1793171563.252151,
+      "busyPercent": 24.290000000000006
+    },
+    {
+      "epoch": 1793171575.2030048,
+      "busyPercent": 23.790000000000006
+    },
+    {
+      "epoch": 1793171587.1223319,
+      "busyPercent": 25.540000000000006
+    },
+    {
+      "epoch": 1793171599.054535,
+      "busyPercent": 23.42
+    },
+    {
+      "epoch": 1793171611.018017,
+      "busyPercent": 40.74
+    },
+    {
+      "epoch": 1793171622.945476,
+      "busyPercent": 36.4
+    },
+    {
+      "epoch": 1793171634.867884,
+      "busyPercent": 13.760000000000005
+    },
+    {
+      "epoch": 1793171646.749043,
+      "busyPercent": 8.310000000000002
+    },
+    {
+      "epoch": 1793171658.7320771,
+      "busyPercent": 9.840000000000003
+    },
+    {
+      "epoch": 1793171670.630135,
+      "busyPercent": 7.480000000000004
+    },
+    {
+      "epoch": 1793171682.586567,
+      "busyPercent": 12.870000000000005
+    },
+    {
+      "epoch": 1793171694.540511,
+      "busyPercent": 5.3799999999999955
+    },
+    {
+      "epoch": 1793171706.4899762,
+      "busyPercent": 6.6299999999999955
+    },
+    {
+      "epoch": 1793171718.445075,
+      "busyPercent": 11.480000000000004
+    },
+    {
+      "epoch": 1793171730.399636,
+      "busyPercent": 6.549999999999997
+    },
+    {
+      "epoch": 1793171742.3477812,
+      "busyPercent": 9.549999999999997
+    },
+    {
+      "epoch": 1793171754.222516,
+      "busyPercent": 29.659999999999997
+    },
+    {
+      "epoch": 1793171766.154471,
+      "busyPercent": 13.349999999999994
+    }
+  ],
+  "scope": "Background worker CPU while no benchmark Gradle runs were active. These samples are outside primary benchmark timing."
+}

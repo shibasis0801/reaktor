@@ -1,0 +1,22 @@
+{
+  "samples": 6,
+  "identicalJarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+  "medians": {
+    "before": {
+      "sync_seconds": 5.924450541999988,
+      "execution_seconds": 6.308874249999974,
+      "collection_seconds": 1.480078208000009,
+      "publication_seconds": 0.19509112499997627,
+      "gradleSeconds": 5.0,
+      "reservedEndToEndSeconds": 14.046640749999995
+    },
+    "after": {
+      "sync_seconds": 5.895665415999986,
+      "execution_seconds": 6.3009738330000005,
+      "collection_seconds": 1.5880037499999844,
+      "publication_seconds": 0.2160678340000004,
+      "gradleSeconds": 4.0,
+      "reservedEndToEndSeconds": 14.156944874999994
+    }
+  }
+}

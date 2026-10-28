@@ -1,0 +1,114 @@
+{
+  "passed": true,
+  "time": 1792336164.937595,
+  "sourceSha256": "f7fe23ff3689ea1bff95c0b9e8a78785383f9c687e5afdf2405f7dee92d45a56",
+  "exactSourceRestored": true,
+  "activation": {
+    "path": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt",
+    "fingerprint": "4f714de54a04488b9c94c6ca598ea82c81da7e83ced45cb0528c12ce3c9eb149",
+    "receipt": {
+      "receipt": {
+        "id": "edit-4f714de54a-1792336004860",
+        "taskId": "code/edit/4f714de54a04488b9c94c6ca598ea82c81da7e83ced45cb0528c12ce3c9eb149",
+        "taskTitle": "Edit dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt",
+        "environment": "local",
+        "status": "Succeeded",
+        "startedAtMillis": 1792336004861,
+        "finishedAtMillis": 1792336004907,
+        "exitCode": 0,
+        "events": [
+          {
+            "sequence": 235,
+            "timestampMillis": 1792336004861,
+            "stream": "System",
+            "text": "Approved 4f714de54a04488b9c94c6ca598ea82c81da7e83ced45cb0528c12ce3c9eb149 by Unnamed seat policy; source f7fe23ff3689ea1bff95c0b9e8a78785383f9c687e5afdf2405f7dee92d45a56"
+          },
+          {
+            "sequence": 236,
+            "timestampMillis": 1792336004907,
+            "stream": "System",
+            "text": "Applied dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt; source ff7d43d075fa632df3be2b69bd0dae194845f2e9f4b8e9b28a149425412ed1fe"
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "edit-4f714de54a-1792336004860/source",
+            "kind": "code-edit",
+            "path": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt",
+            "summary": "ff7d43d075fa632df3be2b69bd0dae194845f2e9f4b8e9b28a149425412ed1fe",
+            "verified": true
+          },
+          {
+            "id": "edit-4f714de54a-1792336004860/request",
+            "kind": "code-edit-request",
+            "path": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt",
+            "summary": "b1b062176bfafa1e7e8410c31398249f86025be373a9fdcc3589cb819d7c9685",
+            "verified": true
+          }
+        ],
+        "sourceRevision": "f7fe23ff3689ea1bff95c0b9e8a78785383f9c687e5afdf2405f7dee92d45a56",
+        "approvedBy": "Unnamed seat policy"
+      },
+      "replayed": false
+    }
+  },
+  "restoration": {
+    "path": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt",
+    "fingerprint": "a84346127d92dc162c3631bb4afb8d12632009e0e25b366e3d2addeabc7d8fd1",
+    "receipt": {
+      "receipt": {
+        "id": "edit-a84346127d-1792336120049",
+        "taskId": "code/edit/a84346127d92dc162c3631bb4afb8d12632009e0e25b366e3d2addeabc7d8fd1",
+        "taskTitle": "Edit dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt",
+        "environment": "local",
+        "status": "Succeeded",
+        "startedAtMillis": 1792336120049,
+        "finishedAtMillis": 1792336120053,
+        "exitCode": 0,
+        "events": [
+          {
+            "sequence": 237,
+            "timestampMillis": 1792336120049,
+            "stream": "System",
+            "text": "Approved a84346127d92dc162c3631bb4afb8d12632009e0e25b366e3d2addeabc7d8fd1 by Unnamed seat policy; source ff7d43d075fa632df3be2b69bd0dae194845f2e9f4b8e9b28a149425412ed1fe"
+          },
+          {
+            "sequence": 238,
+            "timestampMillis": 1792336120053,
+            "stream": "System",
+            "text": "Applied dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt; source f7fe23ff3689ea1bff95c0b9e8a78785383f9c687e5afdf2405f7dee92d45a56"
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "edit-a84346127d-1792336120049/source",
+            "kind": "code-edit",
+            "path": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt",
+            "summary": "f7fe23ff3689ea1bff95c0b9e8a78785383f9c687e5afdf2405f7dee92d45a56",
+            "verified": true
+          },
+          {
+            "id": "edit-a84346127d-1792336120049/request",
+            "kind": "code-edit-request",
+            "path": "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/Product.kt",
+            "summary": "9d44ea9dabb8571426965ef10323292fe16c1d6ca826e03d8968205c29f85330",
+            "verified": true
+          }
+        ],
+        "sourceRevision": "ff7d43d075fa632df3be2b69bd0dae194845f2e9f4b8e9b28a149425412ed1fe",
+        "approvedBy": "Unnamed seat policy"
+      },
+      "replayed": false
+    }
+  },
+  "consumerCompilationAndPackagingExecutionZero": true,
+  "unchangedCompatibilityDiagnostics": 11,
+  "baseline": "wp13-final-wp1-invalidation-v1-baseline-facts.json",
+  "classifierCorrection": "wp13-final-wp1-invalidation-v1-counter-review.json",
+  "phases": [
+    "warm",
+    "implementation-edit",
+    "restored"
+  ],
+  "boundary": "Counts include every observed task hierarchy, including the exact invariant compatibility diagnostics reported separately. Dependeasy/buildSrc implementation compiles are separately reported; this probe uses the existing non-cache-compatible afterTask observer with configuration cache disabled. Normal three-root warm exports qualify cache reuse."
+}

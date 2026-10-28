@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.portgraph.port.Key
 import dev.shibasis.reaktor.portgraph.port.Type
 import dev.shibasis.reaktor.portgraph.port.registerProvider
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.*
 
 fun interface PhoneConnection {
@@ -91,7 +93,7 @@ class DeviceConnectionNode(graph: Graph, private val transport: List<String>) : 
                 val port = 8100 + (device.substringAfterLast('-').takeLast(12).toLongOrNull(16)?.rem(1000) ?: 0)
                 val address = connection.text("tunnelIPAddress")
                 val urls = listOf("http://[$address]:$port", "http://[$address]:8100")
-                val url = urls.firstOrNull { http("$it/status")?.get("value") is JsonObject }
+                var url = urls.firstOrNull { http("$it/status")?.get("value") is JsonObject }
                 if (url == null) {
                     val cached = python(FindXctestrun).jsonObject
                     val path = cached.text("path")
@@ -99,12 +101,20 @@ class DeviceConnectionNode(graph: Graph, private val transport: List<String>) : 
                     val copy = python(CopyXctestrun, path, device, port.toString()).jsonPrimitive.content
                     val launch = start(platform, device, listOf("xcodebuild", "test-without-building", "-xctestrun", copy, "-destination", "platform=iOS,id=$device", "-parallel-testing-enabled", "NO"))
                     check("driver", "XCTest starting from prebuilt WebDriverAgent; log: ${launch.text("log")}")
-                    return result("starting", "Keep the iPhone awake; enter its passcode and accept Enable UI Automation if prompted. XCTest is starting independently; run connect again shortly.")
+                    url = withTimeoutOrNull(30_000) {
+                        var available = urls.firstOrNull { http("$it/status")?.get("value") is JsonObject }
+                        while (available == null) {
+                            delay(250)
+                            available = urls.firstOrNull { http("$it/status")?.get("value") is JsonObject }
+                        }
+                        available
+                    }
+                    if (url == null) return result("starting", "XCTest has not exposed its automation driver yet. Keep the iPhone awake and run connect again shortly; see the driver log above.")
                 }
                 if (http("$url/wda/locked")?.get("value") == JsonPrimitive(true))
                     return result("blocked", "WebDriverAgent reports the iPhone is locked. Enter its passcode on the phone and retry.")
-                val source = http("$url/source?format=xml&excluded_attributes=visible,accessible")?.get("value") as? JsonPrimitive
-                if (source?.content?.contains("<") != true) return result("blocked", "WebDriverAgent is reachable, but its live UI hierarchy is not ready. Keep the iPhone unlocked, accept any Enable UI Automation prompt and retry.")
+                val source = http("$url/source?format=xml&excluded_attributes=visible,accessible", timeout = 60)?.get("value") as? JsonPrimitive
+                if (source?.content?.contains("<") != true) return result("blocked", "UI Automation was requested, but the iPhone has not returned its live UI hierarchy. Enter the passcode and accept Enable UI Automation on the phone. If no prompt appears, check Settings → Developer → Enable UI Automation, then run connect again.")
                 check("automation", "XCTest/WebDriverAgent returned a live hierarchy (${source.content.length} characters; UI content omitted)")
             }
             result("ready", "Phone transport, unlock and live UI automation round trip passed.")
@@ -127,8 +137,10 @@ class DeviceConnectionNode(graph: Graph, private val transport: List<String>) : 
         it.getValue("result").jsonObject
     }
 
-    private suspend fun http(url: String, method: String = "GET", body: String = ""): JsonObject? =
-        runCatching { python(HttpJson, url, method, body) as? JsonObject }.getOrNull()?.takeIf {
+    private suspend fun http(url: String, method: String = "GET", body: String = "", timeout: Long = 1): JsonObject? =
+        runCatching {
+            Json.parseToJsonElement(native(listOf("python3", "-c", HttpJson, url, method, body, timeout.toString()), timeout + 6)) as? JsonObject
+        }.getOrNull()?.takeIf {
             it["value"]?.let { value -> (value as? JsonObject)?.get("error") } == null
         }
 
@@ -150,7 +162,7 @@ class DeviceConnectionNode(graph: Graph, private val transport: List<String>) : 
             import json,sys,urllib.request
             request=urllib.request.Request(sys.argv[1],method=sys.argv[2],data=sys.argv[3].encode() if sys.argv[3] else None,headers={'Content-Type':'application/json'})
             opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
-            with opener.open(request,timeout=1) as response: print(response.read(2097152).decode())
+            with opener.open(request,timeout=float(sys.argv[4])) as response: print(response.read(2097152).decode())
         """.trimIndent()
         val FindXctestrun = """
             import json,pathlib,shutil

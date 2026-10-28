@@ -8,11 +8,12 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 import org.koin.dsl.koinApplication
 
-internal class AgentWorkspaceOperations(private val workspace: AgentWorkspace, tools: List<McpTool>, owner: Graph? = null, projection: Set<String>? = null) : McpMessageHandler, AutoCloseable {
+internal class AgentWorkspaceOperations(private val workspace: AgentWorkspace, tools: List<McpTool>, owner: Graph? = null, projection: Set<String>? = null, directory: java.nio.file.Path = AgentWorkspaceConnection.defaultDirectory(java.io.File(workspace.info().workspaceRoot))) : McpMessageHandler, AutoCloseable {
     private val root = workspace.info().workspaceRoot
     var endpointUrl: String? = null
     private val dependencies = if (owner == null) koinApplication {} else null
     private val graph = owner ?: Graph(dependencyAdapter = KoinDependencyAdapter(requireNotNull(dependencies)))
+    val browser = AgentBrowserMcp(directory, graph)
     val node = ToolNode(graph, tools.map { tool ->
         Tool(ToolDefinition(tool.name, tool.description, tool.inputSchema,
             readOnly = tool.readOnly, idempotent = tool.idempotent, destructive = tool.destructive, openWorld = tool.openWorld)) { arguments ->
@@ -69,7 +70,7 @@ internal class AgentWorkspaceOperations(private val workspace: AgentWorkspace, t
     }
 
     override fun close() {
-        try { if (workspace.graphs === runtime) workspace.graphs = null; runtime.close(); adapter.close(); graph.detach(node) }
+        try { if (workspace.graphs === runtime) workspace.graphs = null; runtime.close(); browser.close(); adapter.close(); graph.detach(node) }
         finally { if (dependencies != null) try { graph.close() } finally { dependencies.close() } }
     }
 }

@@ -44,6 +44,8 @@ abstract class CliAgentRuntime(
 
     protected abstract fun parser(request: AgentRequest): CliEventParser
 
+    protected open fun environment(request: AgentRequest): Map<String, String> = request.environment
+
     /**
      * Classifies the requested operation. This is not a security sandbox: harness permissions,
      * inherited credentials and host execution policy still govern what the subprocess can do.
@@ -79,7 +81,7 @@ abstract class CliAgentRuntime(
             taskId = TaskId("conductor:${kind.name.lowercase()}:${request.agent.id.value}"),
             safety = safety(request),
             timeoutMillis = request.agent.budget.timeoutMillis,
-            environment = request.environment,
+            environment = environment(request),
         ).copy(captureStdoutLineChars = 8_388_608)
 
         val handle = executor.start(execution)

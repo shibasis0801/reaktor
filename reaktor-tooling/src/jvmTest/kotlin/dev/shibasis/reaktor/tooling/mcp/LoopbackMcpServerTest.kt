@@ -13,6 +13,41 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class LoopbackMcpServerTest {
+    @Test fun browserPairingCannotReachTheOwnerAndCanBeRevoked() {
+        val ownerToken = "owner-".repeat(8)
+        val browserToken = "browser-".repeat(8)
+        var pairing: Pair<String, String>? = "https://manna.ac" to browserToken
+        val browser = BrowserMcpEndpoint({ pairing }, ReaktorMcpServer("inference", "1", "", listOf(
+            McpTool("inference.ask", "Question", emptyObjectSchema(), readOnly = false, idempotent = false) { buildJsonObject { put("reply", "answer") } },
+        )))
+        val client = HttpClient.newHttpClient()
+        LoopbackMcpServer.start(0, { registry() }, ownerToken, post = { _, _ -> error("Browser must never reach owner operations") }, browser = browser).use { server ->
+            fun send(path: String, origin: String?, token: String?, method: String = "POST"): HttpResponse<String> {
+                val request = HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port()}$path"))
+                    .header("Access-Control-Request-Private-Network", "true")
+                origin?.let { request.header("Origin", it) }; token?.let { request.header("Authorization", "Bearer $it") }
+                return client.send(request.method(method, if (method == "OPTIONS") HttpRequest.BodyPublishers.noBody()
+                    else HttpRequest.BodyPublishers.ofString("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}""")).build(), HttpResponse.BodyHandlers.ofString())
+            }
+            val preflight = send("/browser/mcp", "https://manna.ac", null, "OPTIONS")
+            assertEquals(204, preflight.statusCode())
+            assertEquals("https://manna.ac", preflight.headers().firstValue("Access-Control-Allow-Origin").orElse(null))
+            assertEquals("true", preflight.headers().firstValue("Access-Control-Allow-Private-Network").orElse(null))
+            assertEquals(401, send("/browser/mcp", "https://manna.ac", null).statusCode())
+            assertEquals(401, send("/browser/mcp", "https://manna.ac", ownerToken).statusCode())
+            for (origin in listOf(null, "https://evil.manna.ac", "https://attacker.example", "null"))
+                assertEquals(403, send("/browser/mcp", origin, browserToken).statusCode())
+            for (path in listOf("/mcp", "/operations", "/run"))
+                assertEquals(403, send(path, "https://manna.ac", browserToken).statusCode())
+            assertEquals(401, send("/mcp", null, browserToken).statusCode())
+            val tools = Json.parseToJsonElement(send("/browser/mcp", "https://manna.ac", browserToken).body()).jsonObject
+                .getValue("result").jsonObject.getValue("tools").jsonArray
+            assertEquals(listOf("inference.ask"), tools.map { it.jsonObject.getValue("name").jsonPrimitive.content })
+            pairing = null
+            assertEquals(403, send("/browser/mcp", "https://manna.ac", browserToken).statusCode())
+        }
+    }
+
     @Test fun clientNegotiatesAndCallsTheReadOnlyRegistry() {
         LoopbackMcpServer.start(0, { registry() }).use { server ->
             val client = LoopbackMcpReadClient(server.port())

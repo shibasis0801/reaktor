@@ -1,0 +1,484 @@
+{
+  "arguments": [
+    "/Users/ovd/.reaktor/bin/reaktor",
+    "build",
+    "receipts",
+    "bestbuds:portableChecks",
+    "--dir",
+    "/Users/ovd/dev/bestbuds",
+    "--json"
+  ],
+  "ms": 31206.313584,
+  "exit": 0,
+  "stdoutBytes": 9815,
+  "stderr": "",
+  "response": {
+    "type": "completed",
+    "result": {
+      "node": "bestbuds:portableChecks",
+      "truth": "recorded",
+      "totalRuns": 11,
+      "runs": [
+        {
+          "run": "c81c3c22-39b9-4c10-980c-71bce7a14f38",
+          "status": "Succeeded",
+          "finishedAtEpochMillis": 1793018239855,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/c81c3c22-39b9-4c10-980c-71bce7a14f38.json",
+          "dryRun": false
+        },
+        {
+          "run": "ec075e72-e779-479b-94ec-42c485f5b3cb",
+          "status": "Failed",
+          "finishedAtEpochMillis": 1792663677448,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/ec075e72-e779-479b-94ec-42c485f5b3cb.json",
+          "dryRun": false
+        },
+        {
+          "run": "4ad2ee85-5570-4bc6-8c8e-504da88ec6b3",
+          "status": "Succeeded",
+          "finishedAtEpochMillis": 1792654627188,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/4ad2ee85-5570-4bc6-8c8e-504da88ec6b3.json",
+          "dryRun": false
+        },
+        {
+          "run": "fe5aeedc-5966-48a9-9df1-60fbada40ed5",
+          "status": "Succeeded",
+          "finishedAtEpochMillis": 1792654437584,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/fe5aeedc-5966-48a9-9df1-60fbada40ed5.json",
+          "dryRun": true
+        },
+        {
+          "run": "bc66d7bd-79f3-49ce-b5c3-e2c6eae75254",
+          "status": "Failed",
+          "finishedAtEpochMillis": 1792612497072,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/bc66d7bd-79f3-49ce-b5c3-e2c6eae75254.json",
+          "dryRun": false
+        },
+        {
+          "run": "f11666e3-6934-462a-813a-984eaadc27d7",
+          "status": "Succeeded",
+          "finishedAtEpochMillis": 1792609934834,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/f11666e3-6934-462a-813a-984eaadc27d7.json",
+          "dryRun": false
+        },
+        {
+          "run": "236ec44b-a177-43b2-97b3-7aadc5739da6",
+          "status": "Succeeded",
+          "finishedAtEpochMillis": 1792144351029,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/236ec44b-a177-43b2-97b3-7aadc5739da6.json",
+          "dryRun": true
+        },
+        {
+          "run": "2b9039ce-aaf9-446f-818e-0803fcdaa920",
+          "status": "Succeeded",
+          "finishedAtEpochMillis": 1792144280565,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/2b9039ce-aaf9-446f-818e-0803fcdaa920.json",
+          "dryRun": true
+        },
+        {
+          "run": "e2ef78be-2e81-4123-a06a-1bd2a3f8634b",
+          "status": "Succeeded",
+          "finishedAtEpochMillis": 1792142545997,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/e2ef78be-2e81-4123-a06a-1bd2a3f8634b.json",
+          "dryRun": true
+        },
+        {
+          "run": "bb720ff3-cd42-4f9b-be6a-de37c3768ede",
+          "status": "Succeeded",
+          "finishedAtEpochMillis": 1792140559917,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/bb720ff3-cd42-4f9b-be6a-de37c3768ede.json",
+          "dryRun": true
+        },
+        {
+          "run": "0ec06b18-ea36-4bd8-b2c1-b77f4f3766a6",
+          "status": "Succeeded",
+          "finishedAtEpochMillis": 1792140452104,
+          "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/0ec06b18-ea36-4bd8-b2c1-b77f4f3766a6.json",
+          "dryRun": true
+        }
+      ],
+      "receipt": {
+        "schema": 1,
+        "run": "c81c3c22-39b9-4c10-980c-71bce7a14f38",
+        "build": "bestbuds",
+        "requestedNodes": [
+          {
+            "build": "bestbuds",
+            "project": ":",
+            "name": "portableChecks"
+          }
+        ],
+        "requestedTasks": [
+          ":portableChecks"
+        ],
+        "startedAtEpochMillis": 1793015912743,
+        "finishedAtEpochMillis": 1793018239855,
+        "status": "Succeeded",
+        "dryRun": false,
+        "modelDigest": "0180266d4333b0018ba20e87df1469d91cbfd6788f34ab585727df6b05ca7306",
+        "modelOmission": null,
+        "failures": [],
+        "requestDigest": null,
+        "operationRunId": null,
+        "omissionCounts": {},
+        "offset": 0,
+        "totalTasks": 1006,
+        "totalOptions": 95,
+        "resolvedOptions": [
+          {
+            "build": "bestbuds",
+            "path": "option:::GITHUB_ACTOR:c35592394719c69a",
+            "sha256": "c35592394719c69adde457f186b87c373ef2883129c35358de539dc9a1d9471c",
+            "kind": "Option",
+            "option": {
+              "name": "GITHUB_ACTOR",
+              "type": "String",
+              "value": "<absent>",
+              "source": "Absent",
+              "file": null,
+              "sensitive": false,
+              "environment": "GITHUB_ACTOR",
+              "scope": ":",
+              "defaultValue": null,
+              "resolutionOrder": [
+                "Environment"
+              ]
+            }
+          },
+          {
+            "build": "bestbuds",
+            "path": "option:::GITHUB_PACKAGES_TOKEN:9e5eede66cec25d5",
+            "sha256": "9e5eede66cec25d5921290838a181ea26cf0f23143c99340671e6117c7e2379f",
+            "kind": "Option",
+            "option": {
+              "name": "GITHUB_PACKAGES_TOKEN",
+              "type": "String",
+              "value": "<absent>",
+              "source": "Absent",
+              "file": null,
+              "sensitive": true,
+              "environment": "GITHUB_PACKAGES_TOKEN",
+              "scope": ":",
+              "defaultValue": null,
+              "resolutionOrder": [
+                "Environment"
+              ]
+            }
+          },
+          {
+            "build": "bestbuds",
+            "path": "option:::GITHUB_PACKAGES_USERNAME:0cc4b6c383ffde35",
+            "sha256": "0cc4b6c383ffde3536f8dabc0d13c61232fa8e57e8e9534400765f5bb04455f8",
+            "kind": "Option",
+            "option": {
+              "name": "GITHUB_PACKAGES_USERNAME",
+              "type": "String",
+              "value": "<absent>",
+              "source": "Absent",
+              "file": null,
+              "sensitive": false,
+              "environment": "GITHUB_PACKAGES_USERNAME",
+              "scope": ":",
+              "defaultValue": null,
+              "resolutionOrder": [
+                "Environment"
+              ]
+            }
+          },
+          {
+            "build": "bestbuds",
+            "path": "option:::GITHUB_TOKEN:51efc3b52422aab6",
+            "sha256": "51efc3b52422aab62acf7ff5b97b0e87b6feb2873d90f16c20c54ae0f1b9af57",
+            "kind": "Option",
+            "option": {
+              "name": "GITHUB_TOKEN",
+              "type": "String",
+              "value": "<absent>",
+              "source": "Absent",
+              "file": null,
+              "sensitive": true,
+              "environment": "GITHUB_TOKEN",
+              "scope": ":",
+              "defaultValue": null,
+              "resolutionOrder": [
+                "Environment"
+              ]
+            }
+          },
+          {
+            "build": "bestbuds",
+            "path": "option:::PATH:1590d18479779d20",
+            "sha256": "1590d18479779d208e8ac11f049ee17673885b1420ba4abf3bafb7934347cc3e",
+            "kind": "Option",
+            "option": {
+              "name": "PATH",
+              "type": "String",
+              "value": "/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/android-sdk/platform-tools",
+              "source": "Environment",
+              "file": null,
+              "sensitive": false,
+              "environment": "PATH",
+              "scope": ":",
+              "defaultValue": "",
+              "resolutionOrder": [
+                "Environment",
+                "Default"
+              ]
+            }
+          },
+          {
+            "build": "bestbuds",
+            "path": "option:::bestbuds.devTools:4c4c0ef0fc79a346",
+            "sha256": "4c4c0ef0fc79a34658336d547fa7e75276a5763244631af98a440847eb3dfeff",
+            "kind": "Option",
+            "option": {
+              "name": "bestbuds.devTools",
+              "type": "Boolean",
+              "value": "false",
+              "source": "Default",
+              "file": null,
+              "sensitive": false,
+              "environment": "ORG_GRADLE_PROJECT_bestbuds.devTools",
+              "scope": ":",
+              "defaultValue": "false",
+              "resolutionOrder": [
+                "CommandLine",
+                "SystemProperty",
+                "UserGradleProperties",
+                "RootGradleProperties",
+                "Environment",
+                "LocalProperties",
+                "Default"
+              ]
+            }
+          },
+          {
+            "build": "bestbuds",
+            "path": "option:::bestbuds.githubPackagesToken:4399287e7a02626c",
+            "sha256": "4399287e7a02626ce3d2c599891caeb2238b2db5559c280917e1da4d4679a2c4",
+            "kind": "Option",
+            "option": {
+              "name": "bestbuds.githubPackagesToken",
+              "type": "String",
+              "value": "<redacted>",
+              "source": "Default",
+              "file": null,
+              "sensitive": true,
+              "environment": "ORG_GRADLE_PROJECT_bestbuds.githubPackagesToken",
+              "scope": ":",
+              "defaultValue": "<redacted>",
+              "resolutionOrder": [
+                "CommandLine",
+                "SystemProperty",
+                "UserGradleProperties",
+                "RootGradleProperties",
+                "Environment",
+                "LocalProperties",
+                "Default"
+              ]
+            }
+          },
+          {
+            "build": "bestbuds",
+            "path": "option:::bestbuds.githubPackagesUsername:5197763bc2767005",
+            "sha256": "5197763bc2767005d21280a2be333c6f4d084f05b34557b275cc5e491df160f1",
+            "kind": "Option",
+            "option": {
+              "name": "bestbuds.githubPackagesUsername",
+              "type": "String",
+              "value": "",
+              "source": "Default",
+              "file": null,
+              "sensitive": false,
+              "environment": "ORG_GRADLE_PROJECT_bestbuds.githubPackagesUsername",
+              "scope": ":",
+              "defaultValue": "",
+              "resolutionOrder": [
+                "CommandLine",
+                "SystemProperty",
+                "UserGradleProperties",
+                "RootGradleProperties",
+                "Environment",
+                "LocalProperties",
+                "Default"
+              ]
+            }
+          },
+          {
+            "build": "bestbuds",
+            "path": "option:::bestbuds.serverKubeconfig:85485560a5699e6c",
+            "sha256": "85485560a5699e6c2f455454aae45ed4931496017254a20148bfd46529c03e85",
+            "kind": "Option",
+            "option": {
+              "name": "bestbuds.serverKubeconfig",
+              "type": "String",
+              "value": "cloud/k3s/kubeconfig",
+              "source": "Default",
+              "file": null,
+              "sensitive": false,
+              "environment": "KUBECONFIG",
+              "scope": ":",
+              "defaultValue": "cloud/k3s/kubeconfig",
+              "resolutionOrder": [
+                "CommandLine",
+                "SystemProperty",
+                "UserGradleProperties",
+                "RootGradleProperties",
+                "Environment",
+                "LocalProperties",
+                "Default"
+              ]
+            }
+          },
+          {
+            "build": "bestbuds",
+            "path": "option:::dependeasy.environment:55bddac42db8fca6",
+            "sha256": "55bddac42db8fca6171618431c0903171339143e56b1c968f521dd05aa343060",
+            "kind": "Option",
+            "option": {
+              "name": "dependeasy.environment",
+              "type": "String",
+              "value": "dev",
+              "source": "CommandLine",
+              "file": null,
+              "sensitive": false,
+              "environment": "ORG_GRADLE_PROJECT_dependeasy.environment",
+              "scope": ":",
+              "defaultValue": "dev",
+              "resolutionOrder": [
+                "CommandLine",
+                "SystemProperty",
+                "UserGradleProperties",
+                "RootGradleProperties",
+                "Environment",
+                "LocalProperties",
+                "Default"
+              ]
+            }
+          }
+        ],
+        "tasks": [
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":pipeline",
+              "name": "generateDagger"
+            },
+            "outcome": "Executed",
+            "startedAtEpochMillis": 1793015912743,
+            "durationMillis": 147,
+            "failures": []
+          },
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":pipeline",
+              "name": "checkPipeline"
+            },
+            "outcome": "Executed",
+            "startedAtEpochMillis": 1793015912914,
+            "durationMillis": 82,
+            "failures": []
+          },
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":",
+              "name": "dagger"
+            },
+            "outcome": "Executed",
+            "startedAtEpochMillis": 1793015913005,
+            "durationMillis": 18,
+            "failures": []
+          },
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":",
+              "name": "kotlinKotlinNpmCachesSetup"
+            },
+            "outcome": "Executed",
+            "startedAtEpochMillis": 1793015913026,
+            "durationMillis": 12,
+            "failures": []
+          },
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":",
+              "name": "nodeSetup"
+            },
+            "outcome": "Executed",
+            "startedAtEpochMillis": 1793015913040,
+            "durationMillis": 5516,
+            "failures": []
+          },
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":",
+              "name": "kotlinNodeJsSetup"
+            },
+            "outcome": "Skipped",
+            "startedAtEpochMillis": 1793015918565,
+            "durationMillis": 3,
+            "failures": []
+          },
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":app",
+              "name": "libraryPackageContract"
+            },
+            "outcome": "Executed",
+            "startedAtEpochMillis": 1793015918574,
+            "durationMillis": 27,
+            "failures": []
+          },
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":",
+              "name": "pnpmSetup"
+            },
+            "outcome": "Executed",
+            "startedAtEpochMillis": 1793015918603,
+            "durationMillis": 2209,
+            "failures": []
+          },
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":workers",
+              "name": "generateWorkerFleet"
+            },
+            "outcome": "FromCache",
+            "startedAtEpochMillis": 1793015920822,
+            "durationMillis": 103,
+            "failures": []
+          },
+          {
+            "task": {
+              "build": "bestbuds",
+              "project": ":app",
+              "name": "checkJsMainComposeLibrariesCompatibility"
+            },
+            "outcome": "Executed",
+            "startedAtEpochMillis": 1793015920935,
+            "durationMillis": 29,
+            "failures": []
+          }
+        ],
+        "nextOffset": 10
+      },
+      "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/c81c3c22-39b9-4c10-980c-71bce7a14f38.json",
+      "sha256": "6fc0bbb3c687b54b44e9dfc03585241fe22bf08547643862fe35d48655370579",
+      "matchesCurrentModel": false
+    },
+    "reference": {
+      "operation": "build.receipts",
+      "requestId": "8b7da00c-aba1-4ec0-a166-4b31467711cf",
+      "workspace": "/Users/ovd/dev/bestbuds"
+    }
+  }
+}

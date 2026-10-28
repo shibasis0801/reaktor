@@ -7,7 +7,7 @@ import dev.shibasis.dependeasy.model.*
 
 plugins { id("dev.shibasis.dependeasy.library") }
 
-library(namespace = "dev.shibasis.reaktor.conductor", targets = Targets.All, bytecode = 21) {
+library(namespace = "dev.shibasis.reaktor.conductor", targets = Targets.All) {
     dependencies {
         common {
             commonCoroutines()

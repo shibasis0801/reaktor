@@ -10,6 +10,28 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$HOME/.reaktor/inbox/claude-$(jq -r \".session_id // empty\").txt\"; [ -s \"$f\" ] && mv -f \"$f\" \"$f.read\" && cat \"$f.read\"; exit 0",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$HOME/.reaktor/inbox/claude-$(jq -r \".session_id // empty\").txt\"; if [ -s \"$f\" ] && mv -f \"$f\" \"$f.read\"; then cat \"$f.read\" >&2; exit 2; fi; exit 0",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

@@ -69,6 +69,19 @@ class AgentWorkspace(
     private val seatResolver = TaskSeatResolver(profiles::read) { provider -> capabilities.firstOrNull { it.runtime == provider } }
     fun resolveSeat(seat: TaskSeat): ResolvedTaskSeat = seatResolver.resolve(seat)
     val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat, scopeModules = scopeModules, summarize = ::summarize)
+    val plans = WorkPlanStore(directory.resolve("plans"), Path.of(System.getProperty("user.home"), ".reaktor", "inbox"))
+
+    fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached {
+        val chosen = profiles.read(profile)
+        val resolved = resolveSeat(TaskSeat(profile = chosen.id))
+        val provider = requireNotNull(resolved.seat.agent) { "Profile ${chosen.id} names no runtime" }
+        val (plan, seat) = plans.attach(thread) { plan -> PlanSeat("s${plan.seats.size + 1}", chosen.id, items.distinct(), by, System.currentTimeMillis()) }
+        val run = submit(AgentSubmission(requestId = "plan:${digest(thread).take(16)}:${seat.id}", provider = provider,
+            prompt = PlanBrief.seat(plan, seat, chosen.name, note), model = resolved.seat.model,
+            allowWrites = resolved.seat.access == TaskAccess.Write, effort = resolved.seat.effort?.let(::NativeEffort),
+            resolvedSeat = resolved, timeoutMillis = resolved.seat.budget?.timeoutMillis ?: (60 * 60 * 1000L)))
+        return PlanAttached(plans.bind(thread, seat.id, run.id), seat.copy(run = run.id), run)
+    }
     internal fun summarize(task: BoardTask): TaskWorkSummary? {
         val plan = task.graph ?: return null
         if (plan.kind !in setOf(TaskKind.Agent, TaskKind.Merge) || plan.attempt == 0) return null
@@ -1102,7 +1115,10 @@ class AgentWorkspace(
                 val agentId = AgentId(request.provider.name.lowercase())
                 fun spec(provider: RuntimeKind, model: String?, effort: NativeEffort?) = AgentSpec(
                     AgentId(provider.name.lowercase()), request.resolvedSeat?.name ?: provider.name, provider,
-                    listOf("Follow the workspace's repository instructions.", request.resolvedSeat?.instructions.orEmpty()).filter(String::isNotBlank).joinToString("\n\n"), model = model, effort = effort,
+                    listOf("Follow the workspace's repository instructions.", request.resolvedSeat?.instructions.orEmpty(),
+                        PlanBrief.thread(BoardRefs.Hangar + initial.threadId).takeIf {
+                            request.resolvedSeat == null && request.task == null && request.workflow == null && request.collaboration == AgentCollaboration.Single
+                        }.orEmpty()).filter(String::isNotBlank).joinToString("\n\n"), model = model, effort = effort,
                     tools = (request.resolvedSeat?.tools ?: ToolPolicy()).let { policy -> policy.copy(allowWrites = request.allowWrites,
                         additionalDirectories = (includedRoots + policy.additionalDirectories).distinct(), mcpConfig = policy.mcpConfig ?: harnessMcpConfig) },
                     budget = (request.resolvedSeat?.seat?.budget ?: AgentBudget()).let { budget ->

@@ -1,0 +1,59 @@
+{
+  "method": "Same physical-line inventory algorithm as migration report, applied only to benchmark-pinned committed Reaktor refs. Includes comments and blanks; excludes generated/vendor/reports/bin/main; implementation and tests separate.",
+  "variants": {
+    "september": {
+      "ref": "b7b0370346b46d6bc915a05fb61ffdef93436235",
+      "gradleScripts": {
+        "files": 40,
+        "lines": 2291
+      },
+      "kotlinBuildImplementation": {
+        "files": 31,
+        "lines": 2148
+      },
+      "cmake": {
+        "files": 6,
+        "lines": 515
+      },
+      "ruby": {
+        "files": 1,
+        "lines": 87
+      },
+      "packages": {
+        "manifests": 22,
+        "scripts": 60,
+        "authored": 60,
+        "generated": 0,
+        "invalid": []
+      },
+      "rootBuildLines": 99
+    },
+    "current": {
+      "ref": "423e607f10b29aae104e39879be962e0e9bb5131",
+      "gradleScripts": {
+        "files": 54,
+        "lines": 1464
+      },
+      "kotlinBuildImplementation": {
+        "files": 340,
+        "lines": 20408
+      },
+      "kotlinBuildTests": {
+        "files": 51,
+        "lines": 9127
+      },
+      "cmake": {
+        "files": 11,
+        "lines": 122
+      },
+      "packages": {
+        "manifests": 22,
+        "scripts": 26,
+        "authored": 3,
+        "generated": 23,
+        "invalid": []
+      },
+      "rootBuildLines": 42
+    }
+  }
+}

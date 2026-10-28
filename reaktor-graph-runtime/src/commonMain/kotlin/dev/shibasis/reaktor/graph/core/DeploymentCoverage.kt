@@ -35,7 +35,9 @@ fun DeploymentDeclaration.coverage(
     val findings = mutableListOf<String>()
     if (shape == null) findings += "Island shape is missing"
     val declaredBindings = bindings.associateBy { it.name }
-    val actualBindings = nodes.filter { it.attributes["binding"] != null }.groupBy { it.attributes.getValue("binding") }
+    val actualBindings = nodes.filter { node ->
+        node.attributes["binding"] != null && node.attributes["environments"]?.split(",")?.let { environment in it } != false
+    }.groupBy { it.attributes.getValue("binding") }
     val coveredBindings = declaredBindings.count { (name, declaration) ->
         val matches = actualBindings[name].orEmpty()
         (matches.size == 1 && matches.single().attributes["bindingKind"] == declaration.kind).also {
@@ -44,7 +46,7 @@ fun DeploymentDeclaration.coverage(
     }
     (actualBindings.keys - declaredBindings.keys).sorted().forEach { findings += "Graph claims undeclared binding $it" }
     val expectedIngress = setOf("http") + crons.map { "cron:$it" } + queues.map { "queue:$it" } +
-        bindings.filter { it.kind == "durable_objects" }.map { "object:${it.target ?: it.name}" }
+        bindings.filter { it.kind == "durable_objects" && it.ownerScript == null }.map { "object:${it.target ?: it.name}" }
     val actualIngress = nodes.mapNotNull { it.attributes["ingress"] }.toSet()
     (expectedIngress - actualIngress).sorted().forEach { findings += "Ingress $it is missing" }
     (actualIngress - expectedIngress).filter { it.startsWith("cron:") || it == "scheduled" }.sorted().forEach {

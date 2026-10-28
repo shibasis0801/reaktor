@@ -1,0 +1,7 @@
+{
+  "queueSeconds": 845.553894583,
+  "acquiredEpoch": 1793169335.706601,
+  "harnessSha256": "9aefd3f3f0e3c4a24d087c1226237a92b59ab50573db246437f2b74ed7057f28",
+  "scope": "18 measured runs, reserving all configured Gradle worker slots; execution stays in the same frozen slot",
+  "outcome": "No measured Gradle build started: local storage admission failed; all leases released."
+}

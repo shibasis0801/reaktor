@@ -1,0 +1,104 @@
+[
+  {
+    "run": "bench28-current-export-warm-1-134116",
+    "gradleSeconds": 53.876,
+    "downloads": 75,
+    "dependencyResolution": [
+      [
+        "All dependencies",
+        "22.982s"
+      ],
+      [
+        ":reaktor-code:kotlinAnalysisCompiler",
+        "13.788s"
+      ],
+      [
+        ":reaktor-code:kotlinAnalysisRuntime",
+        "7.278s"
+      ],
+      [
+        ":bootstrapModelRuntime",
+        "1.473s"
+      ],
+      [
+        ":reaktor-cloudflare:dependeasy7265616b746f723a7265616b746f722d617574683a6f75747075744b6f746c696e4a735061636b6167654d65746164617461",
+        "0.028s"
+      ]
+    ],
+    "modelExportTaskRows": [
+      [
+        ":exportBuildModel",
+        "0.839s",
+        ""
+      ]
+    ]
+  },
+  {
+    "run": "bench28-current-export-warm-2-134229",
+    "gradleSeconds": 14.248,
+    "downloads": 0,
+    "dependencyResolution": [
+      [
+        "All dependencies",
+        "0.464s"
+      ],
+      [
+        ":reaktor-cloudflare:dependeasy7265616b746f723a7265616b746f722d617574683a6f75747075744b6f746c696e4a735061636b6167654d65746164617461",
+        "0.029s"
+      ],
+      [
+        ":reaktor-core:jvmMainCompileClasspath",
+        "0.020s"
+      ],
+      [
+        ":toolchain:compileClasspath",
+        "0.016s"
+      ],
+      [
+        ":reaktor-code:kotlinAnalysisRuntime",
+        "0.015s"
+      ]
+    ],
+    "modelExportTaskRows": [
+      [
+        ":exportBuildModel",
+        "0.858s",
+        ""
+      ]
+    ]
+  },
+  {
+    "run": "bench28-current-export-warm-3-134302",
+    "gradleSeconds": 13.705,
+    "downloads": 0,
+    "dependencyResolution": [
+      [
+        "All dependencies",
+        "0.434s"
+      ],
+      [
+        ":reaktor-cloudflare:dependeasy7265616b746f723a7265616b746f722d617574683a6f75747075744b6f746c696e4a735061636b6167654d65746164617461",
+        "0.026s"
+      ],
+      [
+        ":reaktor-core:jvmMainCompileClasspath",
+        "0.019s"
+      ],
+      [
+        ":toolchain:compileClasspath",
+        "0.017s"
+      ],
+      [
+        ":reaktor-code:kotlinAnalysisRuntime",
+        "0.013s"
+      ]
+    ],
+    "modelExportTaskRows": [
+      [
+        ":exportBuildModel",
+        "0.177s",
+        "UP-TO-DATE"
+      ]
+    ]
+  }
+]

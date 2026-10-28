@@ -1,0 +1,10 @@
+{
+  "queueSeconds": 178.261090542,
+  "slot": 1,
+  "snapshot": "bc1581702ae7a00ad4be18a9e37a2a4967501ab2ce563ca89823e523162bb882",
+  "routerSha256": {
+    "before": "895dff31baf23b31dea48dab324314c878a01241694c9f6b787308ade8f1b561",
+    "after": "4d49f976ae844ff06b364808fe0b31428b6f04be39cccef74d27cb6b30d04a35"
+  },
+  "scope": "Only sync function differs; same source, checkout, private Gradle home, normal verification and collection; alternating warm samples."
+}

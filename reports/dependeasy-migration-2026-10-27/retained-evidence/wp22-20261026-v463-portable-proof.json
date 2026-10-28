@@ -1,0 +1,68 @@
+{
+  "recordedAt": "2026-10-26T12:39:43.356310+00:00",
+  "status": "qualified_linux_gate_and_canonical_hangar_join",
+  "execution": "wp22-container-20261026-v369-portable-run.json",
+  "sourceManifest": "wp22-container-20261026-v237-fixture-candidate.json",
+  "target": "bestbuds:portableChecks",
+  "environment": "dev",
+  "totals": {
+    "tests": 1068,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 12
+  },
+  "suites": 201,
+  "groups": {
+    "bestbuds/modules/app:jsNodeTest": {
+      "tests": 308,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suites": 52
+    },
+    "bestbuds/modules/app:jvmTest": {
+      "tests": 262,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suites": 38
+    },
+    "bestbuds/modules/design:jvmTest": {
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suites": 2
+    },
+    "bestbuds/modules/kernel:test": {
+      "tests": 494,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 12,
+      "suites": 109
+    }
+  },
+  "archive": "/Users/ovd/dev/reaktor/build/dependeasy/receipts/qualification/wp13/wp22-20261026-v463-portable-reports.tar.gz",
+  "archiveSha256": "7cdc6bf378718be433524a7b71ba11d939f48ddb09bb2d493af66018fcace548",
+  "receipts": [
+    "reaktor/build/dependeasy/receipts/ddb85eee-e4e0-4a0b-8216-bbb0dfa61b8f.json",
+    "reaktor/build/dependeasy/receipts/d5fb651a-9fb2-4152-9c40-373926a77f90.json",
+    "bestbuds/build/dependeasy/receipts/c81c3c22-39b9-4c10-980c-71bce7a14f38.json",
+    "bestbuds/build/dependeasy/receipts/280d2e22-f1da-49f4-a7ef-48d040a1454c.json"
+  ],
+  "gradleTasks": 527,
+  "gradleSeconds": 2522,
+  "scope": "Pinned recorded committed candidate; not qualification of concurrent primary worktree overlays",
+  "hangarState": "wp22-20261026-v469-hangar-receipt.txt",
+  "hangarScreenshot": "wp22-20261026-v469-hangar-receipt.png",
+  "receiptMerge": "wp22-20261026-v464-receipt-merge.json",
+  "cliReceipt": "wp22-20261026-v465-cli-receipts.json",
+  "canonicalRun": "gradle-c81c3c22-39b9-4c10-980c-71bce7a14f38/bestbuds:portableChecks",
+  "freshness": "Recorded historical result; Hangar explicitly shows current model false",
+  "runnerSource": {
+    "sha256": "b9288872f4956da051b6455236d921927a5e5d371463f9b5d59dbb95f16771e3",
+    "matchesHead": true,
+    "currentLines": 155,
+    "handoffBaselineLines": 189
+  }
+}

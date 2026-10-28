@@ -1,0 +1,172 @@
+{
+  "reference": {
+    "operation": "agent.runs",
+    "requestId": "29551d5f-4f7c-42be-93d7-6642e2eee800",
+    "workspace": "/Users/ovd/dev/bestbuds"
+  },
+  "result": {},
+  "runs": [
+    {
+      "id": "4a31204184fc5fb7b75010f8e9485fa71303dda47d4a047f81344ec2a3898ee9",
+      "status": "Completed",
+      "provider": "Codex",
+      "updatedAt": 1793096287285
+    },
+    {
+      "id": "5bb72e0eaa5820a14b4e87c23ba0e4a82925b007fc20a9ab4e4ea9a5cf4a0157",
+      "status": "Completed",
+      "provider": "Gemini",
+      "updatedAt": 1793095985472
+    },
+    {
+      "id": "c8c6603ff6c773a0261c08040f3a639686789a3f76f8758c40034a5d3494f831",
+      "status": "Failed",
+      "provider": "Gemini",
+      "updatedAt": 1793093231597
+    },
+    {
+      "id": "120c4a1d615ee8ba4e6074937a86bcd75b7f641740e6e3f187dc55a771fed8e0",
+      "status": "Completed",
+      "provider": "Gemini",
+      "updatedAt": 1793092727780
+    },
+    {
+      "id": "48453c730f9d7e5d5c529376aa04c6ca977b5a58e2c62d5821ad2f01795bfcc8",
+      "status": "Failed",
+      "provider": "Gemini",
+      "updatedAt": 1793092128420
+    },
+    {
+      "id": "5b092705d57eeaab5f15b527f8764e174e39dfa5f56338b5482109ed70be9298",
+      "status": "Completed",
+      "provider": "Codex",
+      "updatedAt": 1793091964872
+    },
+    {
+      "id": "ebdd1bdbc689d9f22617c3d9fc32c54f91e4737edba93d6fd8dfa7d417349f56",
+      "status": "Failed",
+      "provider": "Gemini",
+      "updatedAt": 1793091643975
+    },
+    {
+      "id": "249014faf65def717c3ee3969f3bab37a185940b136881e87fdf9588c5583794",
+      "status": "Completed",
+      "provider": "Codex",
+      "updatedAt": 1793091152442
+    },
+    {
+      "id": "06970c1c3ad48be3314658da053ed46d08442e9e55123d03e632ed483a4058cd",
+      "status": "Failed",
+      "provider": "Gemini",
+      "updatedAt": 1793089769902
+    },
+    {
+      "id": "a725df6016b1ef7529093c2a8fc263cb7a773d47b63d78ca503d66b7916903f4",
+      "status": "Failed",
+      "provider": "Gemini",
+      "updatedAt": 1793089646741
+    },
+    {
+      "id": "e837500756f48d3bc602698981f72d8268ad4421317862a321267b66f1eb52e3",
+      "status": "Failed",
+      "provider": "Codex",
+      "updatedAt": 1793089929180
+    },
+    {
+      "id": "1056389c3c1e723efae0a360bf2ed1b720be2e2917aaef6d7c817cb516da152c",
+      "status": "Failed",
+      "provider": "Gemini",
+      "updatedAt": 1793089428906
+    },
+    {
+      "id": "0bb5d54a171fb18a1c2f627df057f392d8e118680b2dc64f9ba06c16eeb4230f",
+      "status": "Completed",
+      "provider": "Codex",
+      "updatedAt": 1793083314317
+    },
+    {
+      "id": "ba6875e66831c97146b19394759deec5059d7d5ab52dc2056b2844ace14eb3ca",
+      "status": "Completed",
+      "provider": "ClaudeCode",
+      "updatedAt": 1792908857099
+    },
+    {
+      "id": "c2713acb388baee53ec935d253c504c3efb12944e1a13007253359079328860f",
+      "status": "Completed",
+      "provider": "Codex",
+      "updatedAt": 1792908820667
+    },
+    {
+      "id": "7fb8b0a83b2a1f38bf44a0b863f4e7fd9ce36c95340b49e73937c9c008ab0132",
+      "status": "Completed",
+      "provider": "ClaudeCode",
+      "updatedAt": 1792908745146
+    },
+    {
+      "id": "73891d061abec34449135e3f67e58d14211c8f4057ca4c9814d439f71566fe71",
+      "status": "Completed",
+      "provider": "Codex",
+      "updatedAt": 1792908660351
+    },
+    {
+      "id": "6a54ae7b011d66eb16522372d6d1a7c46a409f16c0949b9adce7da3667a5e17d",
+      "status": "Completed",
+      "provider": "Gemini",
+      "updatedAt": 1792494349999
+    },
+    {
+      "id": "b3542c9afa30265104822908dfba759305a02d54dc9f9da83f218b0f07ec4d2a",
+      "status": "Failed",
+      "provider": "Gemini",
+      "updatedAt": 1792493703910
+    },
+    {
+      "id": "581ecae55ccb38188c2ad135a9b6048fc4619e8913548164699ff8be1ed991e6",
+      "status": "Failed",
+      "provider": "Gemini",
+      "updatedAt": 1792308550508
+    },
+    {
+      "id": "e965795ee528d55c7ea96c4c35179f58392c7540f8e63720031f49a3463ab417",
+      "status": "Interrupted",
+      "provider": "ChatGptGemini",
+      "updatedAt": 1789457266386
+    },
+    {
+      "id": "88e6879e4f20522124ec0e94e771e82dcfeb51ea212e12a073163cc6c1726b37",
+      "status": "Interrupted",
+      "provider": "ChatGptGemini",
+      "updatedAt": 1789405334940
+    },
+    {
+      "id": "87a1a63dec8ca0e4d1c9578d94346e8925116c22d4c3f049790bd4fbec11922a",
+      "status": "Interrupted",
+      "provider": "ChatGptGemini",
+      "updatedAt": 1789405357044
+    },
+    {
+      "id": "36b6a2b3fee2d26e4f71cdce63aacd305b4ac13de4741635b7ba7ddb0315329f",
+      "status": "Failed",
+      "provider": "ChatGptGemini",
+      "updatedAt": 1789405030026
+    },
+    {
+      "id": "ff781d2fc86f8dee0a6579543460719c9719a70810a73fd143c5e5ab8b29cf4b",
+      "status": "Completed",
+      "provider": "Codex",
+      "updatedAt": 1789332208950
+    },
+    {
+      "id": "5c848c7d940689088523cd2ef422bf14a40af067abb747f3cf1279b0306aca2a",
+      "status": "Completed",
+      "provider": "Codex",
+      "updatedAt": 1789324510659
+    },
+    {
+      "id": "0d6226e83ba70f09d35879f85efc11f7c53957cc113c2b79baec47d691a4d5d3",
+      "status": "Interrupted",
+      "provider": "ClaudeCode",
+      "updatedAt": 1789320733534
+    }
+  ]
+}

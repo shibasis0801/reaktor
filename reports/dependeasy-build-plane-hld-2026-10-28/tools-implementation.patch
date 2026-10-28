@@ -1,0 +1,56 @@
+--- a/remote-dev
++++ b/remote-dev
+@@ -642,10 +642,10 @@
+ verified={str(path) for task,paths in public.items() if task in observed for path in paths}
+ if success:
+  for task,paths in public.items():
+-  if task in observed:
++  if task in observed or metadata and policy.get('taskFamilies',{}).get(task)!='jvm':
+    for path in paths:
+     file=base/path
+-    if file.is_file() and not file.is_symlink() and file.stat().st_size<=8*1024*1024:
++    if file.is_file() and not file.is_symlink() and (task in observed or file.stat().st_size<=8*1024*1024):
+      found.append(str(path))
+ export_parts={path.parts for path in exports}
+ export_parents={path.parent.parts for path in exports}
+--- a/test_remote_router.py
++++ b/test_remote_router.py
+@@ -451,6 +451,38 @@
+                 tested = {file for file in helper.pull('bestbuds', 'test-run', family='verification', publish=False) if not file.endswith('/')}
+             self.assertEqual(set(outputs['package'] + outputs['results']), packaged)
+             self.assertEqual(set(outputs['results']), tested)
++
++    def test_declared_jvm_archive_returns_without_unrelated_jars_or_compiled_trees(self):
++        helper = router()
++        with TemporaryDirectory() as temporary:
++            helper.ROOT = Path(temporary).resolve() / 'local'
++            helper.STATE = helper.ROOT / '.remote-dev'
++            helper.REMOTE = str(Path(temporary).resolve() / 'worker')
++            base = Path(helper.REMOTE) / 'bestbuds'
++            archive = 'modules/core/build/libs/core.jar'
++            other = 'modules/other/build/libs/other.jar'
++            for relative in (archive, other, 'modules/core/build/classes/kotlin/main/Core.class',
++                             'modules/core/build/resources/main/core.properties',
++                             'modules/core/build/reports/tests/test/index.html'):
++                file = base / relative
++                file.parent.mkdir(parents=True, exist_ok=True)
++                file.write_text(relative)
++            with (base / archive).open('ab') as output:
++                output.truncate(8 * 1024 * 1024 + 1)
++            hosts = base / 'build/dependeasy/remote/hosts.json'
++            hosts.parent.mkdir(parents=True)
++            hosts.write_text(json.dumps({'schema': 2,
++                'taskFamilies': {':core:jar': 'jvm', ':other:jar': 'jvm'},
++                'publicOutputs': {':core:jar': [archive], ':other:jar': [other]},
++                'outputRoots': {'jvm': ['reports', 'test-results'], 'metadata': []}}))
++            with patch.object(helper, 'remote_python', side_effect=local_worker), patch.object(helper, 'run', side_effect=rsync_from(base)):
++                files = helper.pull('bestbuds', 'archive-run', family='jvm', metadata=True, publish=False,
++                                    observed_tasks=[':core:jar'])
++            returned = {file for file in files if not file.endswith('/')}
++            self.assertEqual({archive, 'modules/core/build/reports/tests/test/index.html',
++                              'build/dependeasy/remote/hosts.json'}, returned)
++            self.assertEqual(8 * 1024 * 1024 + 1,
++                             (helper.STATE / 'artifacts/archive-run/bestbuds' / archive).stat().st_size)
+ 
+     def test_private_request_is_bounded_and_only_one_contract_is_synchronized(self):
+         helper = router()

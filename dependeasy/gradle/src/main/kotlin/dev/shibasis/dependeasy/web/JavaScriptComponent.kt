@@ -3,7 +3,6 @@ package dev.shibasis.dependeasy.web
 import dev.shibasis.dependeasy.process.ProcessTask
 import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
-import dev.shibasis.dependeasy.workspace.hasBuildDirectory
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
@@ -62,12 +61,12 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
             sourceInputs.add(files.asFileTree.matching {
                 exclude("**/build/**", "**/node_modules/**", "**/dist/**", "**/.git/**", "**/.gradle/**", "**/.kotlin/**")
             })
-            project.afterEvaluate {
-                val locations = files.files.toList()
-                contract.configure {
-                    packageContracts.from(locations.filter { it.extension == "json" })
-                    packageManifests.from(locations.filter(project::hasBuildDirectory).map { it.resolve("package.json") })
-                }
+            val manifests = project.providers.provider {
+                files.files.filter { it.isDirectory }.map { it.resolve("package.json") }
+            }
+            contract.configure {
+                packageContracts.from(files.filter { it.extension == "json" })
+                packageManifests.from(manifests)
             }
             val model = BuildWorkspace.get(project)
             model.consume(project.node(contract), output)
@@ -89,19 +88,20 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         }
         val files = project.outputFiles(from)
         val kotlinLibrary = from.kind == OutputKind.KotlinJsLibrary
-        val assets = project.objects.mapProperty(String::class.java, java.io.File::class.java)
+        val sourcePackage = from.kind == OutputKind.JavaScriptPackage
         val root = directory
-        contract.configure { dependsOn(files) }
-        project.afterEvaluate {
-            val published = if (from.kind == OutputKind.JavaScriptPackage) files.files.single(project::hasBuildDirectory) else files.singleFile
-            val dependencies = if (kotlinLibrary) published.parentFile.resolve("node_modules") else published
-            val locations = paths.associate { it.destination to dependencies.resolve(it.source) }
-            assets.set(locations)
-            contract.configure {
-                this.assets.putAll(locations.mapValues { it.value.relativeTo(root).invariantSeparatorsPath })
+        val locations = project.providers.provider {
+            val published = files.files.let { candidates ->
+                if (sourcePackage) candidates.single { it.isDirectory } else candidates.single()
             }
+            val dependencies = if (kotlinLibrary) published.parentFile.resolve("node_modules") else published
+            paths.associate { it.destination to dependencies.resolve(it.source) }
         }
-        return assets
+        contract.configure {
+            dependsOn(files)
+            assets.putAll(locations.map { assets -> assets.mapValues { it.value.relativeTo(root).invariantSeparatorsPath } })
+        }
+        return locations
     }
 
     fun build(target: String, vararg projects: String,
@@ -132,19 +132,15 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
         sourceInputs.addAll(producers)
         prerequisites.addAll(producers)
         contract.configure { dependsOn(producers) }
-        project.afterEvaluate {
-            val locations = producers.map { files -> files.files.map { it.resolve("package.json") } }
-            contract.configure { manifests.from(locations) }
-        }
+        val manifests = project.providers.provider { producers.map { files -> files.files.map { it.resolve("package.json") } } }
+        contract.configure { this.manifests.from(manifests) }
     }
 
     fun kotlinRuntime(output: OutputHandle) {
         kotlinLibraries(output)
         val files = project.outputFiles(output)
-        project.afterEvaluate {
-            val manifest = files.singleFile.resolve("package.json")
-            contract.configure { runtimeManifest.set(manifest) }
-        }
+        val manifest = project.layout.file(project.providers.provider { files.singleFile.resolve("package.json") })
+        contract.configure { runtimeManifest.set(manifest) }
     }
 
     internal fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)

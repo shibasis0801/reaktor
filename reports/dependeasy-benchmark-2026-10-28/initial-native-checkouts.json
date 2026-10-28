@@ -1,0 +1,15 @@
+{
+  "epoch": 1793167463.419737,
+  "checkouts": [
+    {
+      "path": "/Users/ovd/dev/offload/.remote-dev/slots/worker/reaktor/.github_modules/flatbuffers",
+      "head": "bdd0b762420054acf751384850657044994cac74",
+      "status": ""
+    },
+    {
+      "path": "/Users/ovd/dev/offload/.remote-dev/slots/worker/reaktor/.github_modules/hermes",
+      "head": "f837b9dd8396ebf5c4e8115412417d273565f0fe",
+      "status": "?? debug/\n"
+    }
+  ]
+}

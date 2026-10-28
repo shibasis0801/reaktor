@@ -1,0 +1,149 @@
+{
+  "scope": "Typed JVM archive publication and bounded transport; Reaktor configuration-cache default. Lazy analysis subtype withdrawn after live reader incompatibility.",
+  "fullSuiteRun": "20261028-155858-d50ad0ec-reaktor",
+  "realAnalysisCompileRun": "20261028-155434-e3dcbb10-reaktor",
+  "routerTests": {
+    "command": "python3 -m unittest test_remote_router test_remote_build test_remote_retention",
+    "cases": 68,
+    "failures": 0,
+    "observedAt": "2026-10-28T17:08:50.320558+05:30",
+    "result": "68 tests, zero failures/errors/skips, 6.357s; fresh final tools tree."
+  },
+  "tests": {
+    "gradle": {
+      "xmlFiles": 44,
+      "counts": {
+        "tests": 129,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reports": {
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.AppleConfigurationTest.xml": "3dee5667de1ac41575745dc52295bbb6ba5eebbeadc7d63371e6b46263664e73",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.AppleContractsTest.xml": "64a783be87d8b5dfec8c1b34fcec4ac2b9fe23fd3ffc3186f6eb9c9258978aeb",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.BackendPipelineTest.xml": "01590ba1cb9b3cd71af9e4fcf3e8c9066a487e4dacb725b5b6e1ea69edec106a",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.BuildLayoutTest.xml": "7ea81660ba42cd06d2be03f1ca7cbdc85912ca4c34c261b54f459836768ce6c7",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.BuildOptionsTest.xml": "6665fd37d498ab0a97bd1dcfcb9a7f4a05516a7c2f176ac609b62d0c32060f30",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.BuildPipelineTest.xml": "4590f4348148d15672c212175ef5a1e94391c5b9a273ac5255f05b5700e6cac3",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.BuildWorkspaceTest.xml": "497c99f61724779fb099d1d5c8e3b2b799847c5adefca6dc734dfe92f81a0f37",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.CredentialChecksTest.xml": "0c8d356c634629eb86482bcd101ac9f96c31477a2db2bf9c2f04336f95d1f765",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.DaggerPipelineTest.xml": "f5a1c0f862bd24818fa6fd2db4723c6684709d12d7c722d1f8f5560b455eae8d",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.DarwinArchiveTest.xml": "c8f11ac6800bd1bbf46fad78a926145126a3318648575b06092f81eda607aa21",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.DependencyBoundaryTest.xml": "0040d576d376bee0b36575347a3d517b2f1013af33f69d4cbb8e12454c20df88",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.DependencyRepositoriesTest.xml": "8f5d9507d44a65c76f0cb0d8135d12a74b5352228b8e769a9153f99c72db06a0",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.DslEntryPointsTest.xml": "9cf1002911605389697a663ee834804f22d4746593ca95c096deae9168d11c7a",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.GeneratedOutputBoundaryTest.xml": "9400fbeb345d7133dd9edfc111e00d7e5fab1fb93e0c1deb85cbc0bc0370df0b",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.GitSourceTaskTest.xml": "2190f6ad324e8309b395bbbf57deed8b37688d5b3c5d2f004472eb0b87855adc",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.GradlePlanningTest.xml": "d8ac85d782c555a3385e7dbb69820d7da11d2e9c5b6ca6498e85585d544e138b",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.IncrementalPipelineTest.xml": "7a5ec2e627cadd9c8f4f95036c5649c9dc5b5bea5b8e39003b81b6c2eccb340f",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.InstallToolTest.xml": "a121dd3604fdacd0c31d3277c927a91c5a0c868e7fb852a939eac9a26fbaef17",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.KotlinExportCatalogTest.xml": "5a2e22a56a7bd0b39212d861049540e9ebe8aa462fe46cd946794f6965196f42",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.KotlinProcessorWiringTest.xml": "fd3da5934916795cbb23c30fca1daeb719b236401edd4d282a3be1fb82584d61",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.KotlinSourcesTest.xml": "501a8810b5704813c49315742f49efda0ba4601698c199650eaa6a32fe4a1d20",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.KotlinWorkspaceMetadataTest.xml": "3c486d721e275c3aaf20e072d849803d270063a8f6fa4f6ae8f97bb7fa020e08",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.ModuleWiringTest.xml": "6e74dfa9a45cbbe3d47b7ce3a1f8245b34c39914879e44ea54a308ea864b98d3",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.NativeCompositionTest.xml": "9d3f1be2d7a4298ac001306201a4d5af87af655d88bd5bcde8158a161343870f",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.NativeInputsTest.xml": "f853eca5ef14e5021a2e10358e5ccf9ee621f5e5bcce321d891274c6b21e891f",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.NativeLibraryOwnershipTest.xml": "1b72c586f952182eb128035a858e71c6f4a5508af8abd36f2452292586a42293",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.PackageDependencyContextTest.xml": "916b36109dee8fadea5bc5390542fac58b24df0ae20139fc27a17cfb81cfb1f4",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.PackageOwnershipTest.xml": "70a170d55cc18d8ec38509fb2a9261ef0adb68094f3837787e9e75ce90f040b6",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.PackagedRuntimeTest.xml": "a4166b30b31d1fdeaafda8da1b27c852f55bfc1bcbbbc2a9e4ef587eb9e13bb0",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.PnpmCommandBoundaryTest.xml": "36e403b3c83339b300c270a16f1affcb73fb4af4a0a452cf2c53eb3f1b1db571",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.PnpmInstallationTest.xml": "1b3543fc4fe945508de10be280f51a35f6860d1fe954e4d754621b9f45dcea8d",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.PublishingTest.xml": "b7e142ccd6d8c6212db9ae9034748bd84d69e657672322db611517a53f3f5353",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.ReleasePropertyTest.xml": "d2553b8fb00de2670e5a2deebcdf5d3e16fa4222ed3a5ff8bc83093767bdfe55",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.RemoteTaskFamiliesTest.xml": "25aed02fa9ee5184658e3958e41449142b43626a7d2d7c7007db768fa05af62a",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.RuntimeJarStoreTest.xml": "ae4b9c5846dcd65c0ceb3035de26c4a146588ac743bd28d39d35bdee0e867210",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.SafeFilesTest.xml": "6ec69a2d890935af023568742e97471c8c114761ca564a96854bf0fe904dbc58",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.SettingsToolchainTest.xml": "4b014f741c39f37bbc728e63dc94ea127eaa9cb487cdcfa12f59d59d4bafd5af",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.SourceIdentityTest.xml": "70eabbb695bf13508626d816d5e897966c3fe3d86ad7c2d49b18c12642dd12a6",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.StableRuntimeTest.xml": "a252d483d970bf8698efcba16b63b2de80f1155b236f98ee273bbe569f996c67",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.TestFilterTest.xml": "03d7f7d9f03047cf44e0eab3bc956f92e682b309bd7c8f8f35aeb2dd59fa1181",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.TypedKernelExecutionTest.xml": "86c06a4b7a863c4d844fff0e405f96b1d179facc7d5689afd42f459142b9b467",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.TypedOutputsTest.xml": "eb61279b50b4b8f24bb8e77ca0fe0a66e0bb184ab4aaa20924a700c3dc0f5f02",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.VerificationSuitesTest.xml": "af7c63f679bc082cf5d4a7c08e5a581f32bad841d044264b21bab15cde32616e",
+        "reaktor/dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.WebContractsTest.xml": "787bc9bf66725426f1535997e69663f093c08246c720cff03bd97961d4b8877b"
+      }
+    },
+    "model": {
+      "xmlFiles": 8,
+      "counts": {
+        "tests": 25,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reports": {
+        "reaktor/dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.BuildModelReaderTest.xml": "dfaf78853b7fc243927120ecbacf412695af4ec02d8e4b14f1170ba57cade00b",
+        "reaktor/dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.CoverageKernelTest.xml": "fe4c4e511e57b16f983a09322fa6a687eb857e85c61d42f1537e0b5e0f1c649f",
+        "reaktor/dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.DeviceExchangeKernelTest.xml": "a0777850cdf5435b21df3b9b049918978b1b8227f3715b1e119bef9d974b471e",
+        "reaktor/dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.DeviceFlowKernelTest.xml": "073b0b621c2190caaa30a0e716f63355d30a9a4ec6819e246497151aeda7fa60",
+        "reaktor/dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.KotlinPackageKernelTest.xml": "68cc548b40e2b3d8518cdb57f589bc53687e3a9c719caebd888a32ee821333c6",
+        "reaktor/dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.PackageScriptsKernelTest.xml": "8c20defb70591f8afcb8dc192c9f22f705d19aa077efa60b9d77d7bb4129e3dc",
+        "reaktor/dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.PhysicalRunnerTest.xml": "224ceef09b712c84b5ee1d3f60f316b8c558b2d0100e0ef3e3519cae9b1157e0",
+        "reaktor/dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.WorkerTopologyKernelTest.xml": "750a0891735b12aaa6e2bb703722e89deb8815c7f995774ef723549b445c0945"
+      }
+    }
+  },
+  "ownedSources": {
+    "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildHandles.kt": "5c27f55bc7e957f26035f769683685c90463be4d0c6114081b12136cb62f89a6",
+    "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildModelKernel.kt": "6cc5190e9fe42f7111cebdc1d27be84db96aa761314d5ee27076ed5f5ef408b4",
+    "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt": "1770aacc18c5ae03dc0201cf6ba77c67892f231982cb36cfa8699d6cb4f0628a",
+    "dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt": "32cf75724268f7ca18cef2355f1b8718e22e3c2822185090a2cbd18762a6304f",
+    "gradle.properties": "40103d487bdba7369ecaffab7a700fb332b25bbba85be5caec8f8800f07546e0"
+  },
+  "configurationCacheProof": "default-cache-proof.json",
+  "productPatchSha256": "acd23217b7d2e63860b4c2a8281875bd3aa24b869cf06ca8b7f00b143c739d1c",
+  "routerSources": {
+    "remote-dev": "eea749ac9cd771ba4a3c01c472b3639fe1c73bc6eae81c2cea586b6c6fedb965",
+    "test_remote_router.py": "ad6cae9b8eee7b3bf7ef24dec63bd81e151458171b20f5057b2c7a141d2b334c"
+  },
+  "routerPatchNote": "Only the owned two conditions and archive-ownership regression, against the preserved shared tree; the tools checkout has additional unrelated edits.",
+  "routerPatchSha256": "4640d3ead53680cddc16c28421b15e0c7bf4f4921950b0e3cd437ac5320a67ed",
+  "freshCliTests": {
+    "cases": 17,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "evidence": "server-attempt-proof.json",
+    "scope": "Fresh during real :serverImage prerequisites; this is not a fresh full-kernel suite."
+  },
+  "experimentalQualification": "experimental-implementation-proof.json",
+  "originalFullSuiteScope": "129 plugin/25 model cases were executed on the experimental candidate before withdrawal; final targeted requalification is recorded separately.",
+  "compatibilityRestoredSources": {
+    "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/KernelSpec.kt": "eee121e5b26d244bbbf968a2073514309903c9e9451bf18ae7277f43b7ce1dba",
+    "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt": "56cf89163a85bf83c8359d6397a4442a632bad3d4921f31dcf073b03ba3cc6ee",
+    "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/DeclarationSites.kt": "d353dd4ed1e3447e6b12025dc04f991e38a448d4015c1203a5db7f271fccfac4"
+  },
+  "finalTargetedTests": {
+    "evidence": "final-targeted-tests.json",
+    "dsl": 6,
+    "model": 25,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "run": "20261028-170338-edd87d5d-reaktor",
+    "scope": "Executed after analysis subtype withdrawal on normal routed current sources; normal publication completed, no copy error."
+  },
+  "finalCacheCommands": 7,
+  "finalNormalModels": {
+    "transport": "final-compatible-export-transport.json",
+    "reaktorNodes": 1387,
+    "bestbudsNodes": 1908,
+    "omissions": 0,
+    "newAnalysisSubtypePresent": false
+  },
+  "ordinaryLivePlan": {
+    "evidence": "jvm-archive-live-plan-interruption.json",
+    "outcome": "failed after own interruption during publication, despite successful Gradle43s",
+    "successfulPlanRunQualified": false
+  },
+  "finalLiveRead": "jvm-archive-live-read-final-retry.json",
+  "finalVerification": {
+    "sourceHashes": "final-source-verification.json",
+    "jsonAndReportLinks": "All report JSON parses; report links resolve; embedded Mermaid equals hld.mmd.",
+    "storage": "storage-acceptance.json",
+    "ordinaryPlanPublicationRecovery": "jvm-archive-plan-publication-recovered.json",
+    "recordedAt": "2026-10-28T17:29:05.956037+05:30"
+  }
+}

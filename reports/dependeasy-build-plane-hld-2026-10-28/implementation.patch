@@ -1,0 +1,75 @@
+diff --git a/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt b/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt
+index 4aaa2fae..a1e31b28 100644
+--- a/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt
++++ b/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt
+@@ -460,6 +460,14 @@ class LibraryScope internal constructor(private val project: Project, private va
+ 
+ internal fun Project.publishLibraryRoles(targets: Set<LibraryTarget>, verifications: List<NodeHandle> = emptyList(), checks: List<OutputHandle> = emptyList(), generatedResources: List<NodeHandle> = emptyList()) {
+     val part = dependencies.project(mapOf("path" to path)) as org.gradle.api.artifacts.ProjectDependency
++    if (LibraryTarget.Jvm in targets) {
++        val taskName = extensions.findByType(org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension::class.java)
++            ?.targets?.withType(org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget::class.java)?.single()?.artifactsTaskName
++            ?: org.gradle.api.plugins.JavaPlugin.JAR_TASK_NAME
++        val archive = tasks.named(taskName, org.gradle.api.tasks.bundling.Jar::class.java)
++        publishOutput(dev.shibasis.dependeasy.model.OutputKind.JvmLibrary, archive.flatMap { it.archiveFile }, producer = archive)
++        node(archive, dev.shibasis.dependeasy.model.OutputKind.JvmLibrary)
++    }
+     WorkspaceScope(this, BuildWorkspace.get(this)).apply {
+         val componentBuild by artifacts(role = Workspace.Build) {
+             outputs(moduleBuild(part))
+diff --git a/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt b/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt
+index 2933a05e..f7956189 100644
+--- a/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt
++++ b/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt
+@@ -674,7 +674,12 @@ class DslEntryPointsTest {
+         assertTrue(exported.tasks.none { it.path.contains("compileKotlin") || it.path.endsWith("Proto") })
+         val model = BuildModelReader.read(directory)
+         val outputs = model.nodes.filter { it.id.project == ":library" && it.id.name.startsWith("output") }
+-        assertEquals(setOf("outputGeneratedContract", "outputModuleBuild", "outputVerificationResultsJvm", "outputWorkspaceCompletionBuild", "outputWorkspaceCompletionVerify"), outputs.map { it.id.name }.toSet())
++        assertEquals(setOf("outputGeneratedContract", "outputJvmLibrary", "outputModuleBuild", "outputVerificationResultsJvm", "outputWorkspaceCompletionBuild", "outputWorkspaceCompletionVerify"), outputs.map { it.id.name }.toSet())
++        val archive = outputs.single { it.id.name == "outputJvmLibrary" }
++        assertEquals(listOf(":library:jar"), (archive.invocation as Invocation.Gradle).tasks)
++        val routing = BuildModelKernel.routing(model, "jvmFixture")
++        assertEquals("jvm", routing.taskFamilies[":library:jar"])
++        assertEquals(archive.outputs.single().paths, routing.publicOutputs[":library:jar"])
+         val declaration = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("library(") } + 1
+         assertTrue(outputs.filter { it.id.name != "outputGeneratedContract" }.all { it.declaredAt?.file == "library/build.gradle.kts" && it.declaredAt?.line == declaration })
+         val explicit = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("publishOutput(") } + 1
+diff --git a/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildHandles.kt b/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildHandles.kt
+index 4188d983..88845207 100644
+--- a/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildHandles.kt
++++ b/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildHandles.kt
+@@ -22,7 +22,7 @@ enum class Verification { Jvm, AndroidUnit, JavaScript, TypeScript, InteropTypeS
+ enum class OutputKind(val family: String, val platform: HostPlatform = HostPlatform.Portable) {
+     GeneratedContract("metadata"), KotlinJsLibrary("web"), KotlinJsPackageMetadata("metadata"), WebResources("web"), JavaScriptPackage("web"), AppleXcodeFramework("apple", HostPlatform.Macos), AppleFramework("apple", HostPlatform.Macos), AndroidApk("android"),
+     AndroidBundle("android"), AndroidLibrary("android"), AndroidInstrumentedTests("android"),
+-    JvmDistribution("jvm"), ServerArchive("jvm"), WorkerBundle("web"), VerificationResults("verification"),
++    JvmLibrary("jvm"), JvmDistribution("jvm"), ServerArchive("jvm"), WorkerBundle("web"), VerificationResults("verification"),
+     ModuleBuild("verification"), NativeLibrary("apple", HostPlatform.Macos), AppleCompilation("apple", HostPlatform.Macos),
+     DatabaseMigration("database"), BrowserBundle("web"), JavaScriptInstallation("web"), JavaScriptRuntime("web"), PublishedModules("publication"), WorkspaceCompletion("verification"), DeclaredBuildModel("verification")
+ }
+diff --git a/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildModelKernel.kt b/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildModelKernel.kt
+index 23b1e925..a89ed1bd 100644
+--- a/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildModelKernel.kt
++++ b/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildModelKernel.kt
+@@ -99,7 +99,7 @@ object BuildModelKernel {
+                 is KernelSpec.WorkerFleet, is KernelSpec.PackageScripts, is KernelSpec.DaggerPipeline,
+                 is KernelSpec.JvmDistribution -> node.outputs.flatMap { it.paths }
+                 is KernelSpec.ContainerNode -> spec.output.paths
+-                else -> emptyList()
++                else -> node.outputs.filter { it.kind == OutputKind.JvmLibrary.name }.flatMap { it.paths }
+             }.distinct().sorted()
+             paths.forEach { path -> require(path.isNotBlank() && !File(path).isAbsolute && ".." !in path.split('/')) { "Public transport output escapes $own: $path" } }
+             val tasks = (listOf(node.id.project.trimEnd(':') + ":" + node.id.name) +
+diff --git a/gradle.properties b/gradle.properties
+index e9e22ce8..7c249c0c 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -18,6 +18,7 @@ ksp.useKSP2=true
+ org.gradle.parallel=true
+ org.gradle.workers.max=3
+ org.gradle.caching=true
++org.gradle.configuration-cache=true
+ org.gradle.daemon=true
+ 
+ # Kotlin Optimizations

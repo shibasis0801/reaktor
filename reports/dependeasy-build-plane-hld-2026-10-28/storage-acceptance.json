@@ -1,0 +1,11 @@
+{
+  "cleanupCompleted": true,
+  "remoteBelow40GB": true,
+  "temporaryBelow40GB": true,
+  "freeAtLeast15GB": true,
+  "remoteBytes": 39871184896,
+  "temporaryBytes": 17285889024,
+  "freeBytes": 17263681536,
+  "caveat": "Remote cleanup skips mutation while foreign builds are active; measured charged size is within limit. Own campaign scratch and abandoned setup payload removed separately.",
+  "proof": "scratch-cleanup-proof.json"
+}

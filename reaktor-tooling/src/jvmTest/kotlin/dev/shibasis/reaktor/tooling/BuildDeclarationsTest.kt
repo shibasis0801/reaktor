@@ -135,6 +135,25 @@ class BuildDeclarationsTest {
         assertEquals(listOf("fixture:build.gradle.kts"), BuildDeclarations.read(root).single().changedDeclarations)
     }
 
+    @Test fun freshDefaultPlanningUsesOneWrapperAndRetainsTheExecutableSeal() = fixture { root ->
+        report(root, node("artifacts"))
+        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
+        val invocation = TaskInvocation(TaskId("fixture:artifacts"))
+        val prepared = workspace.prepare(invocation)
+        workspace.prepare(invocation)
+        assertFalse(root.resolve("build/exports.txt").exists())
+        assertEquals(listOf(GradleProtocol.PlanTask, GradleProtocol.PlanTask),
+            root.resolve("build/planning-invocations.txt").readLines())
+        val request = File(prepared.request.argv[2].substringAfter('='))
+        val contract = BuildModelReader.readRequest(request)
+        assertEquals("fixture-context", contract.expectedContextDigest)
+        assertEquals(BuildModelReader.digest(BuildModelReader.encode(BuildModelReader.read(root))), contract.modelDigest)
+        request.appendText(" ")
+        SupervisedProcessExecutor().use { executor ->
+            assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) }
+        }
+    }
+
     @Test fun aStaleModelKeepsItsBuildTasksMarkedAndPlanningExportsItOnceFirst() = fixture { root ->
         report(root, node("artifacts"))
         root.resolve("build.gradle.kts").appendText("\n")
@@ -275,6 +294,7 @@ class BuildDeclarationsTest {
                       report.write_text(json.dumps(model))
                       with open(root/'build/exports.txt','a') as exports:exports.write('export\n')
                       sys.exit(0)
+                    with open(root/'build/planning-invocations.txt','a') as calls:calls.write(sys.argv[1]+'\n')
                     request=Path(next(arg.split('=',1)[1] for arg in sys.argv if arg.startswith('-Pdependeasy.gradleRequest=')))
                     value=json.loads(request.read_text())
                     digest=hashlib.sha256(request.read_bytes()).hexdigest()

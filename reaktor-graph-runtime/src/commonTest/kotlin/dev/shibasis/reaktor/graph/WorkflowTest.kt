@@ -52,6 +52,28 @@ class WorkflowTest {
         equivalent.close()
     }
 
+    @Test fun flowsShareTheOriginalProviderAndRecordTheCallingWire() = runTest {
+        Reaktor.web()
+        val graph = Graph(label = "worker")
+        val spans = SpanBuffer()
+        graph.intercept(Spans("worker", spans))
+        val onboarding = graph.Node { Workflow(it, "onboarding", "Onboarding") }
+        val formation = graph.Node { Workflow(it, "formation", "Formation") }
+        val eligibility = onboarding.stage<Int, Int>("eligibility", Effect.LiveRead)
+        val read = formation.call("eligibility", eligibility)
+        val shape = graph.shape()
+        assertEquals(8, read(4) { it * 2 })
+        val span = spans.snapshot().single()
+        val provider = shape.nodes.single { it.attributes["activity"] == "onboarding/eligibility" }
+        assertEquals(provider.definitionId, span.node)
+        val wire = shape.wires.single { it.definitionId == span.edge }
+        assertEquals(formation.id.toString(), wire.consumer)
+        assertEquals(provider.id, wire.provider)
+        assertEquals(shape, graph.shape())
+        assertFailsWith<IllegalArgumentException> { formation.call("eligibility", eligibility) }
+        graph.close()
+    }
+
     @Test fun activityFailuresPropagateAndProduceFailureSpans() = runTest {
         Reaktor.web()
         val graph = Graph(label = "worker")

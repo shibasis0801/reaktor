@@ -50,3 +50,4 @@ export class WebMcpAdapter {
   async handleMcp(body: string): Promise<string | null> { return await this.host.handleMcp(body) ?? null; }
   close(): void { this.host.close(); }
 }
+export { LoopbackMcpClient, type LoopbackMcpPairing, type LoopbackAnswer } from './loopback';

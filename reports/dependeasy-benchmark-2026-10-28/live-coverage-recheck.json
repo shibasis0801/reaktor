@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-28T12:28:39.228345+05:30",
+  "operation": "build.list",
+  "arguments": {
+    "query": "jvmJar",
+    "limit": 20
+  },
+  "result": {
+    "total": 0,
+    "nodes": [],
+    "stale": false,
+    "changedDeclarations": [],
+    "offset": 0
+  },
+  "scope": "Live BestBuds workspace owner; distinct from pinned committed benchmark snapshots"
+}

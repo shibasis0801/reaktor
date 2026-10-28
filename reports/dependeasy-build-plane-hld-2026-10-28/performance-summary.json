@@ -1,0 +1,1589 @@
+{
+  "source": "performance-results.jsonl",
+  "sourceSha256": "221570528f99034883d3823aef4010a829f3f8fabcf2137acde3e36dd754700e",
+  "samples": 38,
+  "groups": {
+    "before:cold": {
+      "samples": 3,
+      "attempts": 3,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 86.46000000000001,
+        "min": 86.11,
+        "max": 94.12,
+        "values": [
+          94.12,
+          86.46000000000001,
+          86.11
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 98.73620949999997,
+        "min": 96.91000995900004,
+        "max": 108.984926125,
+        "values": [
+          108.984926125,
+          96.91000995900004,
+          98.73620949999997
+        ]
+      },
+      "collectedFiles": {
+        "median": 2412,
+        "min": 2412,
+        "max": 2412,
+        "values": [
+          2412,
+          2412,
+          2412
+        ]
+      },
+      "collectedBytes": {
+        "median": 21538639,
+        "min": 21538561,
+        "max": 21538681,
+        "values": [
+          21538681,
+          21538561,
+          21538639
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 6.014495624999995,
+          "min": 5.8779243750000205,
+          "max": 6.624212375000001,
+          "values": [
+            6.624212375000001,
+            5.8779243750000205,
+            6.014495624999995
+          ]
+        },
+        "execution_seconds": {
+          "median": 89.45459095900003,
+          "min": 87.65154212499999,
+          "max": 97.52925,
+          "values": [
+            97.52925,
+            87.65154212499999,
+            89.45459095900003
+          ]
+        },
+        "collection_seconds": {
+          "median": 2.7925902079999787,
+          "min": 2.691302124999993,
+          "max": 4.211887790999995,
+          "values": [
+            4.211887790999995,
+            2.7925902079999787,
+            2.691302124999993
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.45577924999997776,
+          "min": 0.4128117079999356,
+          "max": 0.48173270799999557,
+          "values": [
+            0.48173270799999557,
+            0.45577924999997776,
+            0.4128117079999356
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 2.6999999931831553e-05,
+          "min": 2.624999990530341e-05,
+          "max": 2.7625000001307853e-05,
+          "values": [
+            2.7625000001307853e-05,
+            2.624999990530341e-05,
+            2.6999999931831553e-05
+          ]
+        }
+      }
+    },
+    "before:warm": {
+      "samples": 3,
+      "attempts": 3,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 15.51,
+        "min": 15.294,
+        "max": 17.21,
+        "values": [
+          17.21,
+          15.51,
+          15.294
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 28.407495208,
+        "min": 25.356073207999998,
+        "max": 30.150931333000017,
+        "values": [
+          28.407495208,
+          30.150931333000017,
+          25.356073207999998
+        ]
+      },
+      "collectedFiles": {
+        "median": 2415,
+        "min": 2415,
+        "max": 2415,
+        "values": [
+          2415,
+          2415,
+          2415
+        ]
+      },
+      "collectedBytes": {
+        "median": 21594531,
+        "min": 21594473,
+        "max": 21594556,
+        "values": [
+          21594556,
+          21594473,
+          21594531
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 5.804626249999984,
+          "min": 5.789281999999957,
+          "max": 9.924515165999992,
+          "values": [
+            5.804626249999984,
+            9.924515165999992,
+            5.789281999999957
+          ]
+        },
+        "execution_seconds": {
+          "median": 16.12551737499996,
+          "min": 15.869225458000074,
+          "max": 19.139958374999992,
+          "values": [
+            19.139958374999992,
+            16.12551737499996,
+            15.869225458000074
+          ]
+        },
+        "collection_seconds": {
+          "median": 2.84135512499995,
+          "min": 2.7265129580000007,
+          "max": 3.261741000000029,
+          "values": [
+            2.7265129580000007,
+            3.261741000000029,
+            2.84135512499995
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.6628661249999368,
+          "min": 0.6170428750000099,
+          "max": 0.6763229169999931,
+          "values": [
+            0.6170428750000099,
+            0.6628661249999368,
+            0.6763229169999931
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 2.274999999940519e-05,
+          "min": 1.8834000002243556e-05,
+          "max": 5.4249999948297045e-05,
+          "values": [
+            2.274999999940519e-05,
+            5.4249999948297045e-05,
+            1.8834000002243556e-05
+          ]
+        }
+      }
+    },
+    "before:incremental": {
+      "samples": 3,
+      "attempts": 3,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 20.105,
+        "min": 20.031,
+        "max": 23.296,
+        "values": [
+          23.296,
+          20.105,
+          20.031
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 35.77793908299998,
+        "min": 32.66847466699994,
+        "max": 37.27479229100004,
+        "values": [
+          35.77793908299998,
+          32.66847466699994,
+          37.27479229100004
+        ]
+      },
+      "collectedFiles": {
+        "median": 2418,
+        "min": 2418,
+        "max": 2418,
+        "values": [
+          2418,
+          2418,
+          2418
+        ]
+      },
+      "collectedBytes": {
+        "median": 21747964,
+        "min": 21747889,
+        "max": 21748017,
+        "values": [
+          21748017,
+          21747889,
+          21747964
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 6.181501916000002,
+          "min": 5.576474458999996,
+          "max": 6.374932000000001,
+          "values": [
+            6.374932000000001,
+            6.181501916000002,
+            5.576474458999996
+          ]
+        },
+        "execution_seconds": {
+          "median": 22.722879000000034,
+          "min": 22.670318834,
+          "max": 25.47230349999998,
+          "values": [
+            25.47230349999998,
+            22.670318834,
+            22.722879000000034
+          ]
+        },
+        "collection_seconds": {
+          "median": 3.141005000000007,
+          "min": 3.0950473340000144,
+          "max": 7.494802374999949,
+          "values": [
+            3.141005000000007,
+            3.0950473340000144,
+            7.494802374999949
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.6663247090000084,
+          "min": 0.5753067919999921,
+          "max": 1.2579288329999372,
+          "values": [
+            0.6663247090000084,
+            0.5753067919999921,
+            1.2579288329999372
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 4.187499996533006e-05,
+          "min": 2.9834000002892935e-05,
+          "max": 6.225000004178582e-05,
+          "values": [
+            2.9834000002892935e-05,
+            6.225000004178582e-05,
+            4.187499996533006e-05
+          ]
+        }
+      }
+    },
+    "after:cold": {
+      "samples": 3,
+      "attempts": 3,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 89.83,
+        "min": 85.25,
+        "max": 95.33,
+        "values": [
+          95.33,
+          89.83,
+          85.25
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 97.04318670800001,
+        "min": 95.40010054099992,
+        "max": 104.36690295799997,
+        "values": [
+          104.36690295799997,
+          97.04318670800001,
+          95.40010054099992
+        ]
+      },
+      "collectedFiles": {
+        "median": 35,
+        "min": 35,
+        "max": 35,
+        "values": [
+          35,
+          35,
+          35
+        ]
+      },
+      "collectedBytes": {
+        "median": 5613960,
+        "min": 5613877,
+        "max": 5613998,
+        "values": [
+          5613998,
+          5613960,
+          5613877
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 5.831583165999973,
+          "min": 5.395398792000037,
+          "max": 6.345760166000019,
+          "values": [
+            6.345760166000019,
+            5.395398792000037,
+            5.831583165999973
+          ]
+        },
+        "execution_seconds": {
+          "median": 90.53867366700001,
+          "min": 88.627552208,
+          "max": 96.93660508300002,
+          "values": [
+            96.93660508300002,
+            90.53867366700001,
+            88.627552208
+          ]
+        },
+        "collection_seconds": {
+          "median": 0.8730292079999913,
+          "min": 0.7953880420000132,
+          "max": 0.9244554169999901,
+          "values": [
+            0.9244554169999901,
+            0.8730292079999913,
+            0.7953880420000132
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.026916583000001992,
+          "min": 0.026241292000122485,
+          "max": 0.1136973750000152,
+          "values": [
+            0.026916583000001992,
+            0.1136973750000152,
+            0.026241292000122485
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 2.8874999998151907e-05,
+          "min": 2.1625000044878107e-05,
+          "max": 4.087499996785482e-05,
+          "values": [
+            2.8874999998151907e-05,
+            4.087499996785482e-05,
+            2.1625000044878107e-05
+          ]
+        }
+      }
+    },
+    "after:warm": {
+      "samples": 3,
+      "attempts": 3,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 15.729,
+        "min": 15.45,
+        "max": 17.192,
+        "values": [
+          17.192,
+          15.729,
+          15.45
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 25.785976249999976,
+        "min": 25.635878875000003,
+        "max": 26.748035000000073,
+        "values": [
+          25.785976249999976,
+          25.635878875000003,
+          26.748035000000073
+        ]
+      },
+      "collectedFiles": {
+        "median": 38,
+        "min": 38,
+        "max": 38,
+        "values": [
+          38,
+          38,
+          38
+        ]
+      },
+      "collectedBytes": {
+        "median": 5680965,
+        "min": 5680828,
+        "max": 5680982,
+        "values": [
+          5680982,
+          5680965,
+          5680828
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 5.8292637499999955,
+          "min": 5.522888917000046,
+          "max": 5.967367375000094,
+          "values": [
+            5.8292637499999955,
+            5.522888917000046,
+            5.967367375000094
+          ]
+        },
+        "execution_seconds": {
+          "median": 18.91381475000003,
+          "min": 16.448687874999905,
+          "max": 18.949732666999978,
+          "values": [
+            18.949732666999978,
+            18.91381475000003,
+            16.448687874999905
+          ]
+        },
+        "collection_seconds": {
+          "median": 1.0219165830000065,
+          "min": 0.8508585000000153,
+          "max": 4.127011249999896,
+          "values": [
+            0.8508585000000153,
+            1.0219165830000065,
+            4.127011249999896
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.02957179200001292,
+          "min": 0.029558749999978318,
+          "max": 0.048515542000018286,
+          "values": [
+            0.02957179200001292,
+            0.048515542000018286,
+            0.029558749999978318
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 2.8499999984887836e-05,
+          "min": 2.529200003209553e-05,
+          "max": 2.9291999908309663e-05,
+          "values": [
+            2.529200003209553e-05,
+            2.8499999984887836e-05,
+            2.9291999908309663e-05
+          ]
+        }
+      }
+    },
+    "after:incremental": {
+      "samples": 3,
+      "attempts": 3,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 20.389,
+        "min": 20.269,
+        "max": 21.966,
+        "values": [
+          21.966,
+          20.389,
+          20.269
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 29.639528457999972,
+        "min": 28.86242449999986,
+        "max": 32.338148166999986,
+        "values": [
+          32.338148166999986,
+          29.639528457999972,
+          28.86242449999986
+        ]
+      },
+      "collectedFiles": {
+        "median": 41,
+        "min": 41,
+        "max": 41,
+        "values": [
+          41,
+          41,
+          41
+        ]
+      },
+      "collectedBytes": {
+        "median": 5845290,
+        "min": 5845208,
+        "max": 5845413,
+        "values": [
+          5845290,
+          5845413,
+          5845208
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 6.082069332999993,
+          "min": 5.836047332999897,
+          "max": 6.452815917000066,
+          "values": [
+            6.082069332999993,
+            6.452815917000066,
+            5.836047332999897
+          ]
+        },
+        "execution_seconds": {
+          "median": 22.133287042000006,
+          "min": 22.062321208000185,
+          "max": 25.154935249999994,
+          "values": [
+            25.154935249999994,
+            22.133287042000006,
+            22.062321208000185
+          ]
+        },
+        "collection_seconds": {
+          "median": 0.8767639590000726,
+          "min": 0.8116445830000885,
+          "max": 0.9186779579999893,
+          "values": [
+            0.9186779579999893,
+            0.8767639590000726,
+            0.8116445830000885
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.029092458999912196,
+          "min": 0.027070083000012346,
+          "max": 0.060162832999935745,
+          "values": [
+            0.027070083000012346,
+            0.060162832999935745,
+            0.029092458999912196
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 2.579200008767657e-05,
+          "min": 2.4999999993724487e-05,
+          "max": 2.7040999952987477e-05,
+          "values": [
+            2.4999999993724487e-05,
+            2.7040999952987477e-05,
+            2.579200008767657e-05
+          ]
+        }
+      }
+    },
+    "before:cc-store": {
+      "samples": 1,
+      "attempts": 1,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 56.909,
+        "min": 56.909,
+        "max": 56.909,
+        "values": [
+          56.909
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 68.3966599580001,
+        "min": 68.3966599580001,
+        "max": 68.3966599580001,
+        "values": [
+          68.3966599580001
+        ]
+      },
+      "collectedFiles": {
+        "median": 2422,
+        "min": 2422,
+        "max": 2422,
+        "values": [
+          2422
+        ]
+      },
+      "collectedBytes": {
+        "median": 23795248,
+        "min": 23795248,
+        "max": 23795248,
+        "values": [
+          23795248
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 5.774467000000186,
+          "min": 5.774467000000186,
+          "max": 5.774467000000186,
+          "values": [
+            5.774467000000186
+          ]
+        },
+        "execution_seconds": {
+          "median": 59.00663666599985,
+          "min": 59.00663666599985,
+          "max": 59.00663666599985,
+          "values": [
+            59.00663666599985
+          ]
+        },
+        "collection_seconds": {
+          "median": 3.044711624999991,
+          "min": 3.044711624999991,
+          "max": 3.044711624999991,
+          "values": [
+            3.044711624999991
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.44801624999990963,
+          "min": 0.44801624999990963,
+          "max": 0.44801624999990963,
+          "values": [
+            0.44801624999990963
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 2.17499998598214e-05,
+          "min": 2.17499998598214e-05,
+          "max": 2.17499998598214e-05,
+          "values": [
+            2.17499998598214e-05
+          ]
+        }
+      }
+    },
+    "before:cc-warm": {
+      "samples": 3,
+      "attempts": 3,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 4.671,
+        "min": 4.666,
+        "max": 4.75,
+        "values": [
+          4.671,
+          4.75,
+          4.666
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 16.7815196250001,
+        "min": 15.942521749999969,
+        "max": 16.918259499999976,
+        "values": [
+          15.942521749999969,
+          16.7815196250001,
+          16.918259499999976
+        ]
+      },
+      "collectedFiles": {
+        "median": 2428,
+        "min": 2425,
+        "max": 2431,
+        "values": [
+          2425,
+          2428,
+          2431
+        ]
+      },
+      "collectedBytes": {
+        "median": 23814144,
+        "min": 23804672,
+        "max": 23823616,
+        "values": [
+          23804672,
+          23814144,
+          23823616
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 5.99932641700002,
+          "min": 5.822349625000015,
+          "max": 6.3640314579999995,
+          "values": [
+            5.822349625000015,
+            5.99932641700002,
+            6.3640314579999995
+          ]
+        },
+        "execution_seconds": {
+          "median": 6.2910080829999515,
+          "min": 6.285705916000097,
+          "max": 6.356785458000104,
+          "values": [
+            6.285705916000097,
+            6.356785458000104,
+            6.2910080829999515
+          ]
+        },
+        "collection_seconds": {
+          "median": 3.1033430840000165,
+          "min": 3.058521540999891,
+          "max": 3.621909541999912,
+          "values": [
+            3.1033430840000165,
+            3.621909541999912,
+            3.058521540999891
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.6152806249999685,
+          "min": 0.5937722500000291,
+          "max": 1.0331529160000628,
+          "values": [
+            0.5937722500000291,
+            0.6152806249999685,
+            1.0331529160000628
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 2.3541000018667546e-05,
+          "min": 2.020900001298287e-05,
+          "max": 2.916700009336637e-05,
+          "values": [
+            2.020900001298287e-05,
+            2.916700009336637e-05,
+            2.3541000018667546e-05
+          ]
+        }
+      }
+    },
+    "before:cc-incremental": {
+      "samples": 1,
+      "attempts": 1,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 10.42,
+        "min": 10.42,
+        "max": 10.42,
+        "values": [
+          10.42
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 22.92552512500015,
+        "min": 22.92552512500015,
+        "max": 22.92552512500015,
+        "values": [
+          22.92552512500015
+        ]
+      },
+      "collectedFiles": {
+        "median": 2434,
+        "min": 2434,
+        "max": 2434,
+        "values": [
+          2434
+        ]
+      },
+      "collectedBytes": {
+        "median": 23915325,
+        "min": 23915325,
+        "max": 23915325,
+        "values": [
+          23915325
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 5.963284708000174,
+          "min": 5.963284708000174,
+          "max": 5.963284708000174,
+          "values": [
+            5.963284708000174
+          ]
+        },
+        "execution_seconds": {
+          "median": 12.498710415999994,
+          "min": 12.498710415999994,
+          "max": 12.498710415999994,
+          "values": [
+            12.498710415999994
+          ]
+        },
+        "collection_seconds": {
+          "median": 3.3203346669999974,
+          "min": 3.3203346669999974,
+          "max": 3.3203346669999974,
+          "values": [
+            3.3203346669999974
+          ]
+        },
+        "publication_seconds": {
+          "median": 1.0026203330000953,
+          "min": 1.0026203330000953,
+          "max": 1.0026203330000953,
+          "values": [
+            1.0026203330000953
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 6.158300016068097e-05,
+          "min": 6.158300016068097e-05,
+          "max": 6.158300016068097e-05,
+          "values": [
+            6.158300016068097e-05
+          ]
+        }
+      }
+    },
+    "after:cc-store": {
+      "samples": 1,
+      "attempts": 1,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 56.106,
+        "min": 56.106,
+        "max": 56.106,
+        "values": [
+          56.106
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 63.846515667000176,
+        "min": 63.846515667000176,
+        "max": 63.846515667000176,
+        "values": [
+          63.846515667000176
+        ]
+      },
+      "collectedFiles": {
+        "median": 61,
+        "min": 61,
+        "max": 61,
+        "values": [
+          61
+        ]
+      },
+      "collectedBytes": {
+        "median": 10013245,
+        "min": 10013245,
+        "max": 10013245,
+        "values": [
+          10013245
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 6.013787999999977,
+          "min": 6.013787999999977,
+          "max": 6.013787999999977,
+          "values": [
+            6.013787999999977
+          ]
+        },
+        "execution_seconds": {
+          "median": 56.678704084000174,
+          "min": 56.678704084000174,
+          "max": 56.678704084000174,
+          "values": [
+            56.678704084000174
+          ]
+        },
+        "collection_seconds": {
+          "median": 0.8584638750000977,
+          "min": 0.8584638750000977,
+          "max": 0.8584638750000977,
+          "values": [
+            0.8584638750000977
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.10524850000001607,
+          "min": 0.10524850000001607,
+          "max": 0.10524850000001607,
+          "values": [
+            0.10524850000001607
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 3.9166000078694196e-05,
+          "min": 3.9166000078694196e-05,
+          "max": 3.9166000078694196e-05,
+          "values": [
+            3.9166000078694196e-05
+          ]
+        }
+      }
+    },
+    "after:cc-warm": {
+      "samples": 1,
+      "attempts": 2,
+      "allSuccessful": false,
+      "gradleSeconds": {
+        "median": 4.586,
+        "min": 4.586,
+        "max": 4.586,
+        "values": [
+          4.586
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 13.275525500000185,
+        "min": 13.275525500000185,
+        "max": 13.275525500000185,
+        "values": [
+          13.275525500000185
+        ]
+      },
+      "collectedFiles": {
+        "median": 64,
+        "min": 64,
+        "max": 64,
+        "values": [
+          64
+        ]
+      },
+      "collectedBytes": {
+        "median": 10033906,
+        "min": 10033906,
+        "max": 10033906,
+        "values": [
+          10033906
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 5.8763847919999534,
+          "min": 5.8763847919999534,
+          "max": 5.8763847919999534,
+          "values": [
+            5.8763847919999534
+          ]
+        },
+        "execution_seconds": {
+          "median": 6.343739375000041,
+          "min": 6.343739375000041,
+          "max": 6.343739375000041,
+          "values": [
+            6.343739375000041
+          ]
+        },
+        "collection_seconds": {
+          "median": 0.8390892090001216,
+          "min": 0.8390892090001216,
+          "max": 0.8390892090001216,
+          "values": [
+            0.8390892090001216
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.03636845899995933,
+          "min": 0.03636845899995933,
+          "max": 0.03636845899995933,
+          "values": [
+            0.03636845899995933
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 2.924999989772914e-05,
+          "min": 2.924999989772914e-05,
+          "max": 2.924999989772914e-05,
+          "values": [
+            2.924999989772914e-05
+          ]
+        }
+      }
+    },
+    "after:cc-profile-repro": {
+      "samples": 1,
+      "attempts": 1,
+      "allSuccessful": true,
+      "gradleSeconds": {
+        "median": 18.696,
+        "min": 18.696,
+        "max": 18.696,
+        "values": [
+          18.696
+        ]
+      },
+      "reservedEndToEndSeconds": {
+        "median": 29.803509165999998,
+        "min": 29.803509165999998,
+        "max": 29.803509165999998,
+        "values": [
+          29.803509165999998
+        ]
+      },
+      "collectedFiles": {
+        "median": 84,
+        "min": 84,
+        "max": 84,
+        "values": [
+          84
+        ]
+      },
+      "collectedBytes": {
+        "median": 12236541,
+        "min": 12236541,
+        "max": 12236541,
+        "values": [
+          12236541
+        ]
+      },
+      "transportSeconds": {
+        "sync_seconds": {
+          "median": 6.5586222079999885,
+          "min": 6.5586222079999885,
+          "max": 6.5586222079999885,
+          "values": [
+            6.5586222079999885
+          ]
+        },
+        "execution_seconds": {
+          "median": 22.102005125000005,
+          "min": 22.102005125000005,
+          "max": 22.102005125000005,
+          "values": [
+            22.102005125000005
+          ]
+        },
+        "collection_seconds": {
+          "median": 0.9398023749999993,
+          "min": 0.9398023749999993,
+          "max": 0.9398023749999993,
+          "values": [
+            0.9398023749999993
+          ]
+        },
+        "publication_seconds": {
+          "median": 0.0662210410000057,
+          "min": 0.0662210410000057,
+          "max": 0.0662210410000057,
+          "values": [
+            0.0662210410000057
+          ]
+        },
+        "publication_queue_seconds": {
+          "median": 2.262500001393164e-05,
+          "min": 2.262500001393164e-05,
+          "max": 2.262500001393164e-05,
+          "values": [
+            2.262500001393164e-05
+          ]
+        }
+      }
+    },
+    "after:cc-no-profile": {
+      "attempts": 4,
+      "successfulSamples": 4,
+      "profileTimingsAvailable": false,
+      "gradleConsoleSeconds": [
+        4.0,
+        4.0,
+        4.0,
+        4.0
+      ],
+      "reservedEndToEndSeconds": {
+        "median": 13.208985999999996
+      }
+    },
+    "after:cc-no-profile-incremental": {
+      "attempts": 1,
+      "successfulSamples": 1,
+      "profileTimingsAvailable": false,
+      "gradleConsoleSeconds": [
+        10.0
+      ],
+      "reservedEndToEndSeconds": {
+        "median": 19.273287208
+      }
+    },
+    "after:default:cold": {
+      "attempts": 1,
+      "successfulSamples": 1,
+      "profileTimingsAvailable": false,
+      "gradleConsoleSeconds": [
+        86.0
+      ],
+      "reservedEndToEndSeconds": {
+        "median": 93.954301958
+      }
+    },
+    "after:default:default-warm": {
+      "attempts": 3,
+      "successfulSamples": 3,
+      "profileTimingsAvailable": false,
+      "gradleConsoleSeconds": [
+        15.0,
+        4.0,
+        4.0
+      ],
+      "reservedEndToEndSeconds": {
+        "median": 13.271534624999987
+      }
+    },
+    "after:default:declaration-incremental": {
+      "attempts": 1,
+      "successfulSamples": 1,
+      "profileTimingsAvailable": false,
+      "gradleConsoleSeconds": [
+        19.0
+      ],
+      "reservedEndToEndSeconds": {
+        "median": 28.306741957999975
+      }
+    },
+    "after:default:default-restored": {
+      "attempts": 1,
+      "successfulSamples": 1,
+      "profileTimingsAvailable": false,
+      "gradleConsoleSeconds": [
+        15.0
+      ],
+      "reservedEndToEndSeconds": {
+        "median": 26.19122275000001
+      }
+    }
+  },
+  "artifactChecks": [
+    {
+      "rep": 1,
+      "phase": "cold",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 1,
+      "phase": "warm",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 1,
+      "phase": "incremental",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 1,
+      "variant": "before",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 1,
+      "variant": "after",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 2,
+      "phase": "cold",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 2,
+      "phase": "warm",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 2,
+      "phase": "incremental",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 2,
+      "variant": "before",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 2,
+      "variant": "after",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 3,
+      "phase": "cold",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 3,
+      "phase": "warm",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 3,
+      "phase": "incremental",
+      "sameJarBytes": true,
+      "sameClasses": true
+    },
+    {
+      "rep": 3,
+      "variant": "before",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 3,
+      "variant": "after",
+      "editChangedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    }
+  ],
+  "configurationCacheChecks": [
+    {
+      "case": "after-cc-no-profile-1-162710",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "after-cc-no-profile-2-162732",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "after-cc-no-profile-3-162753",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "after-cc-no-profile-4-162814",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "after-cc-no-profile-incremental-1-162841",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "after-cc-profile-repro-3-162632",
+      "code": 0,
+      "reused": false,
+      "stored": true,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ]
+    },
+    {
+      "case": "after-cc-store-0-162045",
+      "code": 0,
+      "reused": false,
+      "stored": true,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ]
+    },
+    {
+      "case": "after-cc-warm-1-162158",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "after-cc-warm-2-162219",
+      "code": 1,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "after-cold-4-163103",
+      "code": 0,
+      "reused": false,
+      "stored": true,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ]
+    },
+    {
+      "case": "after-declaration-incremental-1-163406",
+      "code": 0,
+      "reused": false,
+      "stored": true,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ]
+    },
+    {
+      "case": "after-default-restored-1-163442",
+      "code": 0,
+      "reused": false,
+      "stored": true,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ]
+    },
+    {
+      "case": "after-default-warm-1-163246",
+      "code": 0,
+      "reused": false,
+      "stored": true,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ]
+    },
+    {
+      "case": "after-default-warm-2-163323",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "after-default-warm-3-163345",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "before-cc-incremental-1-162011",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "before-cc-store-0-161734",
+      "code": 0,
+      "reused": false,
+      "stored": true,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel"
+      ]
+    },
+    {
+      "case": "before-cc-warm-1-161852",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "before-cc-warm-2-161917",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    },
+    {
+      "case": "before-cc-warm-3-161945",
+      "code": 0,
+      "reused": true,
+      "stored": false,
+      "problems": [],
+      "jarTask": [
+        "> Task :reaktor-core:jvmJar UP-TO-DATE"
+      ],
+      "compileTask": [
+        "> Task :reaktor-core:compileKotlinJvm UP-TO-DATE"
+      ],
+      "exportTask": [
+        "> Task :exportBuildModel UP-TO-DATE"
+      ]
+    }
+  ],
+  "timingNote": "Per-row queue_seconds is cumulative process elapsed in this reservation harness; use performance-reservation.json for admission. Publication queue is separately measured. No queue percentiles are inferred.",
+  "historicalScope": "38 commands from the experimental candidate, including subsequently withdrawn lazy-analysis subtype. Original samples/groups are preserved; final compatible checks are separate.",
+  "finalCompatibleCandidate": {
+    "commands": 7,
+    "failures": 0,
+    "results": "configuration-cache-final-results.json",
+    "proof": "default-cache-proof.json",
+    "reservation": "configuration-cache-final-reservation.json",
+    "warmReuseMedianReservedE2ESeconds": 13.0905,
+    "warmGradleConsoleRoundedSeconds": 4,
+    "bodyEditReservedE2ESeconds": 19.864,
+    "bodyEditGradleConsoleRoundedSeconds": 11,
+    "coldReservedE2ESeconds": 107.397,
+    "coldGradleConsoleRoundedSeconds": 93,
+    "timingBoundary": "Reserved worker E2E excludes separately measured admission, input reset/materialization and diagnostics; ordinary CLI waits are not included.",
+    "scope": "JVM core JAR plus export, final compatible Process model; no all-platform or paired September claim"
+  }
+}

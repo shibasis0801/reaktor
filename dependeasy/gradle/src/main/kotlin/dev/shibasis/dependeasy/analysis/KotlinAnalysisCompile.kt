@@ -7,6 +7,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.OutputFile
 import org.gradle.work.DisableCachingByDefault
 import java.io.File
 
@@ -17,10 +18,22 @@ abstract class KotlinAnalysisCompile : ProcessTask() {
     @get:Internal abstract val classesDirectory: DirectoryProperty
     @get:Input abstract val bytecode: Property<Int>
 
-    override fun commandArguments(): List<String> = KotlinCompiler.arguments(
-        compilerClasspath.asPath, runtimeClasspath.asPath, classesDirectory.get().asFile.path,
-        bytecode.get(), sourceFiles.files.filter { it.extension == "kt" }.map(File::getPath).sorted(),
-    )
+    @get:OutputFile val compilerArgumentsFile: File get() = classesDirectory.get().asFile.resolveSibling("compiler.args")
+
+    override fun commandArguments(): List<String> = listOf("@${compilerArgumentsFile.path}")
+
+    override fun executeKernel() {
+        val command = KotlinCompiler.arguments(
+            compilerClasspath.asPath, runtimeClasspath.asPath, classesDirectory.get().asFile.path,
+            bytecode.get(), sourceFiles.files.filter { it.extension == "kt" }.map(File::getPath).sorted(),
+        )
+        compilerArgumentsFile.parentFile.mkdirs()
+        compilerArgumentsFile.writeText(command.joinToString("\n", postfix = "\n") { argument ->
+            "\"" + argument.replace("\\", "\\\\").replace("\"", "\\\"")
+                .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t") + "\""
+        })
+        super.executeKernel()
+    }
 }
 
 internal object KotlinCompiler {

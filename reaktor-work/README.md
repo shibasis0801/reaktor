@@ -30,4 +30,4 @@ SQLite and D1 authorities can now opt into retained changes with `journalStorePr
 
 Cloudflare and Secrets now use Auth Core's pure bearer-header helper; Cloudflare has a checked headless dependency boundary and no test-only UI asset workaround. Existing Auth APIs remain compatible, and all 107 Auth JVM checks pass. Google/Pub/Sub's broader host dependencies remain a qualification gate.
 
-The authenticated [delivery and removal roadmap](https://reaktor.build/docs/private/reaktor-work-roadmap) owns caller/payload/store migration, milestones and acceptance gates. The dated progress notes distinguish implemented contracts from remaining design and qualification work. The previous upgrade recommendation is retired; dependency and caller removal follow the cutover plan rather than an unsupported deletion that breaks consumers.
+The [Work page](https://reaktor.build/docs/reaktor-work#source) lists what is built and what is left.

@@ -1,0 +1,55 @@
+{
+  "requested": "Finish Dependeasy and drastically improve performance using the measured September/main comparison",
+  "started": "2026-10-28T15:40:00+05:30",
+  "baseline": {
+    "revisions": "Reaktor 1810d443 with shared working changes preserved",
+    "run": "20261028-153253-7035ad48-reaktor",
+    "pluginTests": 129,
+    "modelTests": 25,
+    "failures": 0,
+    "skips": 0
+  },
+  "acceptance": [
+    "Retain the existing live-readable Process wire format while deferring unused analysis classpath resolution; prove real compilation and configuration-cache reuse.",
+    "Discover and execute a typed JVM library archive through the existing model and Gradle scheduler; collect the archive and required model/evidence without class/resource trees",
+    "Store and reuse the configuration cache with the router's actual JAR plus export invocation; reject stale declaration inputs and preserve task/output identities",
+    "Measure cold, warm and identical source-edit builds on one reserved secondary worker slot with pinned source inputs, equal runtime/resource/cache controls, separate Gradle and end-to-end timings and contention observations",
+    "Retain original September/main findings and distinguish implementation gains, cache treatments and unmatched historical measurements",
+    "Reconcile outstanding delivery work against fresh checks and prepare concrete reviewed production plans before requesting the owner go required by AGENTS.md"
+  ],
+  "changeBudget": {
+    "newModules": 0,
+    "dependencies": 0,
+    "dependencyUpgrades": 0,
+    "newSchedulers": 0,
+    "publicFlags": 0,
+    "storedState": 0,
+    "publicContracts": [
+      "One JVM library archive OutputKind, published from the existing JVM compiler target and consumed by existing output routing"
+    ],
+    "existingOwners": [
+      "dependeasy analysis adapter and model export",
+      "dependeasy library/output contracts and remote hosts projection",
+      "tools/remote-dev scoped artifact transport",
+      "existing root Gradle performance settings after actual invocation qualification",
+      "existing GradleBuildPlanner and BuildDeclarationsTest",
+      "existing primary and compatibility CLI entry owners"
+    ],
+    "evidence": "Typed archive ownership, compatible argument-file compilation, cache reuse, stale/missing-model producer fixtures, history filtering and checked source synchronization. First incompatible subtype experiment remains withdrawn historical evidence."
+  },
+  "sharedCheckout": "Preserve all foreign Graph/Auth/agent/mobile work. Radar before source edits. Do not retire legacy production writers before real replacement acceptance.",
+  "productionGate": "BestBuds AGENTS.md: Production rollout requires the owner's go at that moment. Prepare image/digest, diff, apply and rollback plans first.",
+  "progress": {
+    "fullSuite": "Corrected compatible source passes129 plugin +25 model cases. Later missing-model fixture separately passes. Latest transport suite70/70 after sync coalescing.",
+    "analysisExecution": "Existing Process wire shape; real analysis compilation22s and repeat4s with cache reuse, exact class and argument-file bytes. No new serial subtype.",
+    "typedJvmArchives": "Typed JVM archive outputs and observed-producer-only collection qualified by final6 DSL/25 model cases,68 router cases and seven final byte-checked JVM invocations. Earlier paired transfer delta includes the withdrawn analysis experiment and is scoped separately.",
+    "cacheAcceptance": "All7 final compatible cache checks pass. Warm4s rounded Gradle /13.09s reserved E2E, real body edit11s /19.86s; declaration edit/restoration invalidate and rerun export. Historical TOKEN misses/profiler failure retained.",
+    "serverCandidate": "fresh real image build blocked by app and Hangar prerequisite failures; own attempt stopped, no gates bypassed",
+    "installedOwner": "New BestBuds owner serves286 operations/1908 nodes after startup timeout. Final compatible model query sees44 archives, stale=false. Three-root/whole-candidate rollout remains open.",
+    "finishCriteria": "Do not claim full build plane completion or performance improvement outside measured target/cache/timing boundaries",
+    "performance": "24 paired commands isolate three compatible lazy files. All pass; exact paired JARs. Cold86\u219289s,firstwarm16\u219216,steadywarm4\u21924,edit10\u219210: no material additional timing win. Original configuration-cache gain remains. Source-sync phase about5.95s; new paired transport benchmark queued.",
+    "cliQualification": "17 fresh CLI cases pass during real server prerequisites; full fresh kernel suite not claimed.",
+    "ordinaryPlanning": "Live build.plan fails after exact own wrapper interruption during publication wait: worker Gradle passed43s; admission284.38s, sync33.39s, execution45.86s, collection8.70s. run.cancel returnedfalse. Normal publication resume requested; successful plan/run qualification remains open. Normal remote-dev resume completes0 with no copy_error or pending publication; original plan remains failed."
+  },
+  "updated": "2026-10-28T20:24:41.168486+05:30"
+}

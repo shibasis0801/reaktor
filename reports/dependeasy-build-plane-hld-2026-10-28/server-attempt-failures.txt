@@ -1,0 +1,59 @@
+
+AppArchitectureVitalsTest[jvm] > bestBudsAuthPolicyIsAnAppWrapperOverReaktorInterceptors[jvm] FAILED
+    java.lang.AssertionError at AppArchitectureVitalsTest.kt:165
+
+
+
+> Task :app:jvmTest FAILED
+
+262 tests completed, 1 failed
+
+
+SafeDeleteGuardTest[jvm] > maintainedSourcesUseTheBoundedDeleteHelper[jvm] FAILED
+    java.lang.AssertionError at SafeDeleteGuardTest.kt:49
+
+
+
+SurfaceQualificationTest[jvm] > everyLabCellPaintsKeepsItsIdsUniqueNamesItsControlsAndShowsFocusAfterTab[jvm] FAILED
+    dev.shibasis.reaktor.surface.ThemeMismatch at SurfaceQualificationTest.kt:130
+
+
+
+SurfaceRetirementTest[jvm] > theEngineAndLauncherHaveRetiredTheKit[jvm] FAILED
+    java.lang.AssertionError at SurfaceRetirementTest.kt:73
+
+
+
+TableLookParityTest[jvm] > machineSignalDataTableMatchesDevToolsTableAtRestHoveredSelectedAndZebra[jvm] FAILED
+    java.lang.AssertionError at TableLookParityTest.kt:71
+
+
+
+KitRetirementParityTest[jvm] > findingsVerdictsAndPinTipsMatchThePrivateWidgets[jvm] FAILED
+    java.lang.AssertionError at KitRetirementParityTest.kt:346
+
+
+
+KitRetirementParityTest[jvm] > sectionsPropertiesAndTitlesMatchThePrivateWidgets[jvm] FAILED
+    java.lang.AssertionError at KitRetirementParityTest.kt:257
+
+
+
+KitRetirementParityTest[jvm] > chromeAndMarksMatchTheRetiredKit[jvm] FAILED
+    java.lang.AssertionError at KitRetirementParityTest.kt:209
+
+
+
+KitRetirementParityTest[jvm] > controlsMatchTheRetiredKit[jvm] FAILED
+    java.lang.AssertionError at KitRetirementParityTest.kt:138
+
+
+
+SplitterParityTest[jvm] > machineSignalSplitterMatchesTheKitsResizeHandle[jvm] FAILED
+    java.lang.AssertionError at SplitterParityTest.kt:52
+
+
+
+SurfaceLabRenderTest[jvm] > everyStoryRendersInEveryLanguageAndEnvironment[jvm] FAILED
+    dev.shibasis.reaktor.surface.ThemeMismatch at SurfaceLabRenderTest.kt:97
+      187.14 real         1.07 user         0.17 sys

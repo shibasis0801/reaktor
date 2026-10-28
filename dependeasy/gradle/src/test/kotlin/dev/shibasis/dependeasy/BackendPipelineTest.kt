@@ -312,7 +312,15 @@ class BackendPipelineTest {
                 }
                 workspace { val verifyExports by artifacts { include(consumer.tests(FileSet(listOf("verify.mjs")), consumer.installation)) } }
             }
+            gradle.projectsEvaluated {
+                configurations.filter { it.name.startsWith("dependeasy") && it.isCanBeResolved }.forEach {
+                    check(it.state == org.gradle.api.artifacts.Configuration.State.UNRESOLVED) {
+                        "Unused output resolved during configuration: " + it.name
+                    }
+                }
+            }
         """.trimIndent())
+        assertNull(run("help").task(":library:exportKotlinLibrary"))
         prepareLock("library")
         val first = run("verifyExports")
         assertEquals(TaskOutcome.SUCCESS, first.task(":library:exportKotlinLibrary")?.outcome)

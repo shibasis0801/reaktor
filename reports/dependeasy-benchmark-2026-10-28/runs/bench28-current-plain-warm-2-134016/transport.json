@@ -1,0 +1,58 @@
+{
+  "project": "reaktor",
+  "worker": "m1-worker",
+  "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/worker/reaktor",
+  "source_head": "423e607f10b29aae104e39879be962e0e9bb5131",
+  "tasks": [
+    ":reaktor-core:jvmJar",
+    "--max-workers=6",
+    "--no-daemon",
+    "--no-configuration-cache",
+    "--no-build-cache",
+    "--profile",
+    "--info",
+    "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+    "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+    "-Pkotlin.compiler.execution.strategy=daemon",
+    "-Pkotlin.daemon.jvmargs=-Xmx8g"
+  ],
+  "remote_tasks": [
+    ":reaktor-core:jvmJar",
+    "--max-workers=6",
+    "--no-daemon",
+    "--no-configuration-cache",
+    "--no-build-cache",
+    "--profile",
+    "--info",
+    "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+    "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+    "-Pkotlin.compiler.execution.strategy=daemon",
+    "-Pkotlin.daemon.jvmargs=-Xmx8g"
+  ],
+  "started": "2026-10-28T13:40:25.966722",
+  "log": "/Users/ovd/dev/.remote-dev/logs/20261028-134025-e0b15c92-reaktor.log",
+  "run_id": "20261028-134025-e0b15c92-reaktor",
+  "exit_code": 0,
+  "sync_seconds": 4.422403750000058,
+  "queue_seconds": 1754.818059125,
+  "owner": {
+    "pid": 42934,
+    "started": "Wed Oct 28 13:11:06 2026"
+  },
+  "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/worker",
+  "workspace_root": "/Users/ovd/dev/.remote-dev/slots/worker",
+  "execution_seconds": 12.905164582999987,
+  "worker_started_epoch": 1793175026.1008148,
+  "dry_run": false,
+  "builds": {
+    "reaktor": "reaktor"
+  },
+  "artifact_family": "all",
+  "collected": "2026-10-28T13:40:41.190738",
+  "copied_files": 2485,
+  "copy_error": null,
+  "collection_seconds": 2.2476708749998124,
+  "publication_queue_seconds": 2.0332999838501564e-05,
+  "finished": "2026-10-28T13:40:41.759321",
+  "publication_seconds": 0.5675717919998533
+}

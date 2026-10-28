@@ -1,0 +1,63 @@
+{
+  "project": "reaktor",
+  "worker": "m1-worker",
+  "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor",
+  "source_head": "1810d443cc6600f3b6f9964c29fd764dbd1465ef",
+  "tasks": [
+    ":reaktor-core:jvmJar",
+    ":exportBuildModel",
+    "--max-workers=6",
+    "--no-daemon",
+    "--no-build-cache",
+    "--info",
+    "--stacktrace",
+    "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+    "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+    "-Pkotlin.compiler.execution.strategy=daemon",
+    "-Pkotlin.daemon.jvmargs=-Xmx8g"
+  ],
+  "remote_tasks": [
+    ":reaktor-core:jvmJar",
+    ":exportBuildModel",
+    "--max-workers=6",
+    "--no-daemon",
+    "--no-build-cache",
+    "--info",
+    "--stacktrace",
+    "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+    "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+    "-Pkotlin.compiler.execution.strategy=daemon",
+    "-Pkotlin.daemon.jvmargs=-Xmx8g"
+  ],
+  "started": "2026-10-28T19:51:17.751933",
+  "log": "/Users/ovd/dev/tmp/dependeasy-perf-followup-20261028/state/logs/20261028-195117-ec8c6778-reaktor.log",
+  "run_id": "20261028-195117-ec8c6778-reaktor",
+  "exit_code": 0,
+  "sync_seconds": 9.419976040999984,
+  "queue_seconds": 298.424577209,
+  "owner": {
+    "pid": 69920,
+    "started": "Wed Oct 28 19:46:09 2026"
+  },
+  "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+  "workspace_root": "/Users/ovd/dev/tmp/dependeasy-perf-followup-20261028/state/slots/worker",
+  "worker_slot": 1,
+  "publication": null,
+  "source_epoch": 1793197268.3264809,
+  "execution_seconds": 90.52138529200005,
+  "worker_started_epoch": 1793197278.03058,
+  "dry_run": false,
+  "builds": {
+    "reaktor": "reaktor",
+    "dependeasy": "reaktor"
+  },
+  "artifact_family": "jvm",
+  "collected": "2026-10-28T19:52:49.339116",
+  "copied_files": 40,
+  "copy_error": null,
+  "collection_seconds": 0.8805772500000444,
+  "worker_slot_trimmed": 0,
+  "publication_queue_seconds": 4.150000000890941e-05,
+  "finished": "2026-10-28T19:52:49.406737",
+  "publication_seconds": 0.02621466599998712
+}

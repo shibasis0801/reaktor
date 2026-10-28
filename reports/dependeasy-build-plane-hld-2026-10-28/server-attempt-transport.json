@@ -1,0 +1,17 @@
+{
+  "run_id": "20261028-161356-fc72d1ff-bestbuds",
+  "project": "bestbuds",
+  "worker": "local",
+  "tasks": [
+    ":serverImage",
+    "--console=plain"
+  ],
+  "workspace_root": "/Users/ovd/dev",
+  "started": "2026-10-28T16:13:56.385151",
+  "log": "/Users/ovd/dev/.remote-dev/logs/20261028-161356-fc72d1ff-bestbuds.log",
+  "queue_seconds": 610.0167182079999,
+  "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+  "exit_code": 130,
+  "execution_seconds": 187.15356504199997,
+  "finished": "2026-10-28T16:17:03.539084"
+}

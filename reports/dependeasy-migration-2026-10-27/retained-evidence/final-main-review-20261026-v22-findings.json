@@ -1,0 +1,124 @@
+{
+  "at": "2026-10-25T22:59:53.895062+00:00",
+  "state": "static_review_with_open_acceptance_findings",
+  "pins": "final-main-review-20261026-v9-pins.json",
+  "inventory": "final-main-review-20261026-v16-authored-inventory.json",
+  "comparisonRules": [
+    "Independent freshly fetched main refs; retain their different dates",
+    "Current tracked working files include concurrent changes; counts do not establish authorship",
+    "Generated ts/import and ts/export excluded symmetrically, along with build/vendor/test trees. Current untracked inventory contains no additional build-layer files.",
+    "Textual task lookup counts are indicators only; task registrations are reported separately",
+    "Tracked bin/main IDE output excluded symmetrically;8 historical Kotlin copies removed from authored baseline,5 byte-identical to source and3 stale copies in the IDE output tree."
+  ],
+  "domains": [
+    {
+      "domain": "Gradle Kotlin scripts",
+      "facts": [
+        "Reaktor scripts2291\u21921462lines; BestBuds1137\u2192742; Manna223\u2192236",
+        "Root scripts99\u219242,120\u2192140,31\u219230; BestBuds root is larger against this actual main, unlike the older comparison baseline",
+        "Current product scripts use component/output/node handles; primary declarations have qualified locations",
+        "Two unused workspace API members removed in e95685e4 after existing framework checks, compiled API audit, all3 model exports and warm export pass; four ProjectDependency method exposures remain."
+      ],
+      "open": [
+        "WP15 literal authored input/call-path attribution gate",
+        "K2 full symbol/reference and owner readability evidence",
+        "Bootstrap textual lookups retired and committed91563364 after all3 root exports/zero omissions,2 existing bytecode cases and warm9s cache reuse. One internal KGP Apple embed producer still lacks a supported public handle."
+      ]
+    },
+    {
+      "domain": "Kotlin build implementation",
+      "facts": [
+        "Reaktor authored build logic31/2148\u2192338/19953; historical tracked bin/main IDE copies are excluded.",
+        "Current textual literal lookup count4 versus9 on main; registration count57 versus9. These are textual indicators, not ownership omissions.",
+        "Most growth provides typed specifications, execution evidence, native/tool/package adapters and delivery kernels absent in historical main"
+      ],
+      "open": [
+        "Thin-adapter boundary and duplicate writer/catalog removal must finish; line-count relocation alone does not establish simplification",
+        "K7 shared fingerprint/approval ledger and K8 catalog/dispatcher retirements remain open"
+      ]
+    },
+    {
+      "domain": "CMake native",
+      "facts": [
+        "Authored CMake515\u2192128lines across6\u219211files",
+        "Kotlin-generated contracts now own pinned tools, SDK/ABI/compiler and source declarations",
+        "Actual Linux WebView CMake gate7/7 passed in v39; physical Apple/Android earlier receipts retained"
+      ],
+      "open": [
+        "Final equivalently scoped main-versus-candidate native timing",
+        "Linux kernel v41 qualified473PASS/12skipped; full portableChecks v43 running against its captured source."
+      ]
+    },
+    {
+      "domain": "Package and Ruby glue",
+      "facts": [
+        "Corrected authored package files/lines: R23/558\u219221/689; B27/891\u219224/981; M4/209\u21924/223. Earlier44\u219221 Reaktor file comparison counted21 generated export manifests as authored; that claim is withdrawn.",
+        "Scoped tracked package commands main R63/B376/M50 versus current R28/B246/M39; generated aliases remain intentional and are not all removable",
+        "BestBuds authored Fastlane1316\u2192933lines excluding tests; shared Reaktor Ruby adds77current lines",
+        "Canonical Node/Vitest/browser/worker typecheck declarations and checked tool pins replace retired package readers and wrappers",
+        "Typed TestFlight internal declaration and authored caller committed15dae359 after model/alias qualification; existing14Ruby cases/137assertions pass. No upload in this qualification."
+      ],
+      "open": [
+        "14 specialist/provider entry recipes need equivalent typed graph declarations before retirement",
+        "Generic package development/generator/operator readers remain where no qualified replacement exists",
+        "Worker transport conservative fallback for unknown/mixed artifact families remains until its replacement is proved",
+        "Package configuration line count grows in all three roots; distinguish generated aliases from remaining authored orchestration before claiming bloat reduction."
+      ]
+    },
+    {
+      "domain": "CLI MCP Hangar and graph",
+      "facts": [
+        "Priority phone readiness commands installed on both Macs and qualified with stale JAVA_HOME case",
+        "Actual IntelliJ composite sync passed112.152s",
+        "Canonical node IDs and typed graph edges retained in current three-root contracts with no omissions in guarded exports",
+        "Desktop duplicate owner publisher retired in source; owner fixture7/7passes",
+        "Cloud first-render and owner publication fixes committed a0584ffd/691ff0b4;474 native kernel +371 conductor JVM +67 JS pass,27 skip,0 fail.",
+        "Native content-cache/receipt qualification committed41d6eb63;485total474PASS11skip0fail and kernel boundaryPASS. Router postbuild copyback is waiting on the local desktop lease; retained fresh worker XML provides exact totals.",
+        "Full desktop suite78/78PASS0fail0skip,26suites,Gradle25m55s; Cloud declaration lifecycle committed98625298. Exact retained receipt e7d10907-e006-463b-8d1d-0d31a958b855 reports Succeeded.",
+        "Fresh native source qualification:476 kernel PASS/11skip/0fail,CLI17PASS,boundary/model pass. Corrected build.run Deploy admission committede7d20e4. New distribution installed on both Macs with283 matching jar hashes; invalid JAVA_HOME help/version passed on worker."
+      ],
+      "open": [
+        "Matching live BestBuds owner upgrade held by explicit keep-Hangar-open boundary",
+        "K1\u2013K12 and K1-TUI acceptance and corresponding legacy retirements remain",
+        "Native chat MCP now works against headless owner; the live owner still predates current schema/source commits. CLI installation did not restart it or Hangar.",
+        "CLI fixture run with environment override ended Blocked before execution; a fresh defaults-only sequence is running. No execution parity claim from enum membership.",
+        "K4 analytics dashboard graph reader migration appliedpd790d52b6f61d8988331; retained check runs53/55 active after tool timeout. SQL editor and owner/store/history/handoff remain."
+      ]
+    },
+    {
+      "domain": "Delivery and local CI",
+      "facts": [
+        "GitHub Actions removed by owner direction; native and shared Dagger local gates own verification",
+        "Historical WP19dev fleet and WP21exact dev apply/rollback evidence retained",
+        "Dagger now preserves real nonzero process failures"
+      ],
+      "open": [
+        "WP23image push/mixed hosts/protected approvals, WP25adoption/live/no-change evidence, WP26delivery joins still open",
+        "Manna iOS signing blocked by owner choice",
+        "Linux v41 kernel gate passed473/12skip/0fail, with5 stable source guards; full portableChecks v43 active. Native appJS310/310 and Linux CMake7/7 were separately qualified."
+      ]
+    },
+    {
+      "domain": "Build timing",
+      "facts": [
+        "Pinned main help with configuration cache fails R276.714s/B279.314s/M133.841s router wall",
+        "R/B main rejects settings-time external Git/CMake/Ninja/Make processes; M main old plugin uses removed Project.exec API with Gradle9.7",
+        "Pinned-main no-cache configuration succeeds R12s/B93s Gradle time; wall979.012s/539.119s includes routing/sync/cleanup. Exact guarded sources unchanged. Completed584MB scratch removed. These are configuration observations, not artifact speedup evidence."
+      ],
+      "open": [
+        "No speedup claim is valid for these failed unequal targets",
+        "Final cold/warm/incremental/isolation and artifact matrix must use finished equivalent candidate targets, exact hosts and source guards"
+      ]
+    }
+  ],
+  "supersedes": "final-main-review-20261026-v21-findings.json",
+  "freshProofs": [
+    "k1-current-distribution-20261026-v3-installed-proof.json",
+    "k1-build-run-schema-20261026-v19-results.json",
+    "wp22-container-20261026-v42-kernel-results.json",
+    "k4-analytics-read-port-20261026-v6-proof.json",
+    "k4-check-history-20261026-v3-proof.json",
+    "k1-android-sequence-20261026-v7-reconciliation.json",
+    "final-main-artifact-timings-20261026-v4-comparison.json"
+  ]
+}

@@ -22,28 +22,22 @@ data class DeploymentDeclaration(
 )
 
 @Serializable
-data class BindingDeclaration(val name: String, val kind: String, val target: String? = null)
+data class BindingDeclaration(val name: String, val kind: String, val target: String? = null, val ownerScript: String? = null, val environments: Set<String> = emptySet())
 
-class BindingNode(graph: Graph, val binding: BindingDeclaration) : BasicNode(graph), ShapeAttributes {
-    override val label = binding.name
-    private val type = Type("resource:${binding.name}")
-    private val identity = NodeIdentity(this, type)
-    val access = registerProvider<ResourceExecutor>(Key("access"), type, object : ResourceExecutor {
-        override suspend fun <T> execute(operation: String, effect: Effect, action: suspend () -> T): T =
-            activity("resource:${binding.name}", operation, Unit, effect, identity(), graph.serviceInterceptors()) { action() }
-    })
-    override val kind = when (binding.kind) {
-        "hyperdrive", "d1_databases", "kv_namespaces", "r2_buckets" -> NodeKind.Store
+class BindingNode(graph: Graph, val binding: BindingDeclaration) : dev.shibasis.reaktor.graph.ResourceNode(
+    graph, binding.name, when (binding.kind) {
+        "hyperdrive", "d1_databases", "kv_namespaces", "r2_buckets", "vectorize" -> NodeKind.Store
         "durable_objects" -> NodeKind.Actor
         else -> NodeKind.External
-    }
-    override val shapeAttributes = buildMap {
+    }, buildMap {
         put("binding", binding.name)
         put("bindingKind", binding.kind)
+        if (binding.environments.isNotEmpty()) put("environments", binding.environments.sorted().joinToString(","))
         put("evidence", "SourceDeclared")
         binding.target?.let { put("target", it) }
-    }
-}
+        binding.ownerScript?.let { put("ownerScript", it) }
+    },
+)
 
 fun Graph.declareBindings(deployment: DeploymentDeclaration): List<BindingNode> =
     deployment.bindings.map { binding -> Node { BindingNode(it, binding) } }

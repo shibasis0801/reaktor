@@ -1,0 +1,11 @@
+{
+  "run": "20261028-155413-f246b794-reaktor",
+  "reason": "Task-owned initial setup transport, formally marked abandoned by storage cleanup; complete receipt and benchmark evidence retained. Private destination checkout already removed. No publication into shared source requested.",
+  "removedArtifactPayload": "/Users/ovd/dev/.remote-dev/artifacts/20261028-155413-f246b794-reaktor",
+  "ownerPid": 10860,
+  "recordedAbandoned": "2026-10-28T17:21:26.366671",
+  "time": "2026-10-28T17:26:34.219880+05:30",
+  "localScratchRemoved": "/Users/ovd/dev/tmp/dependeasy-perf-followup-20261028",
+  "workerPrivateGradleHomesRemoved": "/Users/ovd/dev/offload/.remote-dev/performance-followup-20261028",
+  "sharedWorkerSlots": "Untouched"
+}

@@ -1,0 +1,322 @@
+{
+  "recordedAt": "2026-10-27T16:55:35.990866+00:00",
+  "gradle": [
+    {
+      "label": "no-configuration-cache",
+      "arguments": [
+        "./gradlew",
+        ":reaktor-core:jvmJar",
+        "--no-configuration-cache",
+        "--no-daemon",
+        "--console=plain"
+      ],
+      "exit": 0,
+      "wallSeconds": 194.07592424999999,
+      "log": "gradle-no-configuration-cache.log",
+      "gradleSummary": [
+        "17s"
+      ],
+      "configurationTimeResolutionWarnings": 28,
+      "configurationCacheReused": false,
+      "configurationCacheStored": false,
+      "configurationCacheMessages": [],
+      "taskSummary": [
+        "22 actionable tasks: 2 executed, 20 up-to-date"
+      ],
+      "routerReceipt": "/Users/ovd/dev/.remote-dev/logs/20261027-221047-a70e950c-reaktor.json",
+      "router": {
+        "worker": "m1-worker",
+        "worker_slot": 0,
+        "remote_path": "/Users/ovd/dev/offload/reaktor",
+        "source_head": "a3ca69b619993d95650f0386ee22694f757b228b",
+        "remote_tasks": [
+          ":reaktor-core:jvmJar",
+          "--no-configuration-cache",
+          "--no-daemon",
+          "--console=plain",
+          ":exportBuildModel"
+        ],
+        "sync_seconds": 11.501462541999999,
+        "queue_seconds": 35.299614041999995,
+        "execution_seconds": 18.734407458999996,
+        "collection_seconds": 30.47538787500001,
+        "publication_queue_seconds": 97.801500958,
+        "publication_seconds": 97.91101079100001,
+        "copied_files": 14,
+        "withheld_outputs": null,
+        "unverified_copies": {
+          "reaktor": 4
+        },
+        "copy_error": null,
+        "exit_code": 0
+      }
+    },
+    {
+      "label": "configuration-cache-first",
+      "arguments": [
+        "./gradlew",
+        ":reaktor-core:jvmJar",
+        "--configuration-cache",
+        "--no-daemon",
+        "--console=plain"
+      ],
+      "exit": 0,
+      "wallSeconds": 142.31506587500002,
+      "log": "gradle-configuration-cache-first.log",
+      "gradleSummary": [
+        "16s"
+      ],
+      "configurationTimeResolutionWarnings": 28,
+      "configurationCacheReused": false,
+      "configurationCacheStored": true,
+      "configurationCacheMessages": [
+        "Calculating task graph as no cached configuration is available for tasks: :reaktor-core:jvmJar :exportBuildModel",
+        "Configuration cache entry stored."
+      ],
+      "taskSummary": [
+        "22 actionable tasks: 1 executed, 1 from cache, 20 up-to-date"
+      ],
+      "routerReceipt": "/Users/ovd/dev/.remote-dev/logs/20261027-221411-39db1505-reaktor.json",
+      "router": {
+        "worker": "m1-worker",
+        "worker_slot": 0,
+        "remote_path": "/Users/ovd/dev/offload/reaktor",
+        "source_head": "a3ca69b619993d95650f0386ee22694f757b228b",
+        "remote_tasks": [
+          ":reaktor-core:jvmJar",
+          "--configuration-cache",
+          "--no-daemon",
+          "--console=plain",
+          ":exportBuildModel"
+        ],
+        "sync_seconds": 11.109898917000002,
+        "queue_seconds": 44.897643333,
+        "execution_seconds": 18.674440833,
+        "collection_seconds": 30.44997341599999,
+        "publication_queue_seconds": 37.00878775000001,
+        "publication_seconds": 37.041379500000005,
+        "copied_files": 13,
+        "withheld_outputs": {
+          "reaktor": 2
+        },
+        "unverified_copies": null,
+        "copy_error": null,
+        "exit_code": 0
+      }
+    },
+    {
+      "label": "configuration-cache-repeat",
+      "arguments": [
+        "./gradlew",
+        ":reaktor-core:jvmJar",
+        "--configuration-cache",
+        "--no-daemon",
+        "--console=plain"
+      ],
+      "exit": 0,
+      "wallSeconds": 252.25331654200005,
+      "log": "gradle-configuration-cache-repeat.log",
+      "gradleSummary": [
+        "16s"
+      ],
+      "configurationTimeResolutionWarnings": 28,
+      "configurationCacheReused": false,
+      "configurationCacheStored": true,
+      "configurationCacheMessages": [
+        "Calculating task graph as no cached configuration is available for tasks: :reaktor-core:jvmJar :exportBuildModel",
+        "Configuration cache entry stored."
+      ],
+      "taskSummary": [
+        "22 actionable tasks: 1 executed, 1 from cache, 20 up-to-date"
+      ],
+      "routerReceipt": "/Users/ovd/dev/.remote-dev/logs/20261027-221806-1d274758-reaktor.json",
+      "router": {
+        "worker": "m1-worker",
+        "worker_slot": 1,
+        "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor",
+        "source_head": "a3ca69b619993d95650f0386ee22694f757b228b",
+        "remote_tasks": [
+          ":reaktor-core:jvmJar",
+          "--configuration-cache",
+          "--no-daemon",
+          "--console=plain",
+          ":exportBuildModel"
+        ],
+        "sync_seconds": 11.255271666999988,
+        "queue_seconds": 137.481464125,
+        "execution_seconds": 18.66378279099999,
+        "collection_seconds": 5.972701042000011,
+        "publication_queue_seconds": 78.648830584,
+        "publication_seconds": 78.684955084,
+        "copied_files": 27,
+        "withheld_outputs": {
+          "reaktor": 16
+        },
+        "unverified_copies": null,
+        "copy_error": null,
+        "exit_code": 0
+      }
+    },
+    {
+      "label": "configuration-cache-followup",
+      "arguments": [
+        "./gradlew",
+        ":reaktor-core:jvmJar",
+        "--configuration-cache",
+        "--no-daemon",
+        "--console=plain"
+      ],
+      "exit": 0,
+      "wallSeconds": 123.757827166,
+      "log": "gradle-configuration-cache-followup.log",
+      "gradleSummary": [
+        "17s"
+      ],
+      "configurationTimeResolutionWarnings": 28,
+      "configurationCacheReused": false,
+      "configurationCacheStored": true,
+      "configurationCacheMessages": [
+        "Calculating task graph as configuration cache cannot be reused because Build option 'PATH' has changed.",
+        "Configuration cache entry stored."
+      ],
+      "taskSummary": [
+        "22 actionable tasks: 2 executed, 20 up-to-date"
+      ],
+      "routerReceipt": "/Users/ovd/dev/.remote-dev/logs/20261027-222105-0d5d7df3-reaktor.json",
+      "router": {
+        "worker": "m1-worker",
+        "worker_slot": 1,
+        "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor",
+        "source_head": "a3ca69b619993d95650f0386ee22694f757b228b",
+        "remote_tasks": [
+          ":reaktor-core:jvmJar",
+          "--configuration-cache",
+          "--no-daemon",
+          "--console=plain",
+          ":exportBuildModel"
+        ],
+        "sync_seconds": 12.012824708,
+        "queue_seconds": 31.751906583,
+        "execution_seconds": 18.650161416000003,
+        "collection_seconds": 6.120701000000004,
+        "publication_queue_seconds": 54.943514041,
+        "publication_seconds": 54.99383237500001,
+        "copied_files": 11,
+        "withheld_outputs": null,
+        "unverified_copies": null,
+        "copy_error": null,
+        "exit_code": 0
+      }
+    }
+  ],
+  "cli": {
+    "list": {
+      "attempts": 5,
+      "successes": 5,
+      "successfulMedianMs": 2327.839042,
+      "successfulMinMs": 1058.1912079999997,
+      "successfulMaxMs": 16666.179874999998,
+      "failures": []
+    },
+    "show": {
+      "attempts": 5,
+      "successes": 5,
+      "successfulMedianMs": 1654.8801249999983,
+      "successfulMinMs": 1327.3951669999988,
+      "successfulMaxMs": 1775.9511670000024,
+      "failures": []
+    },
+    "tree": {
+      "attempts": 5,
+      "successes": 5,
+      "successfulMedianMs": 1349.852124999998,
+      "successfulMinMs": 1332.0256659999998,
+      "successfulMaxMs": 1700.1292910000031,
+      "failures": []
+    },
+    "explain": {
+      "attempts": 5,
+      "successes": 5,
+      "successfulMedianMs": 2618.100417000001,
+      "successfulMinMs": 2407.6252500000023,
+      "successfulMaxMs": 4063.1862919999976,
+      "failures": []
+    },
+    "kernels": {
+      "attempts": 5,
+      "successes": 5,
+      "successfulMedianMs": 2503.7459170000034,
+      "successfulMinMs": 1698.2180410000042,
+      "successfulMaxMs": 4294.868209,
+      "failures": []
+    },
+    "receipts": {
+      "attempts": 2,
+      "successes": 1,
+      "successfulMedianMs": 21407.759541000003,
+      "successfulMinMs": 21407.759541000003,
+      "successfulMaxMs": 21407.759541000003,
+      "failures": [
+        {
+          "ms": 35773.68945899998,
+          "exit": 2,
+          "stdoutBytes": 271,
+          "stderr": ""
+        }
+      ]
+    },
+    "story": {
+      "attempts": 5,
+      "successes": 4,
+      "successfulMedianMs": 14287.584749999995,
+      "successfulMinMs": 11108.510542000005,
+      "successfulMaxMs": 18417.013083,
+      "failures": [
+        {
+          "ms": 35583.513917000004,
+          "exit": 2,
+          "stdoutBytes": 268,
+          "stderr": ""
+        }
+      ]
+    }
+  },
+  "endState": {
+    "reaktor": {
+      "head": "a3ca69b619993d95650f0386ee22694f757b228b",
+      "modelSha256": "d54c62a1eb6b469f687fea9f14cab1cde3b47f73317c8160a6f65e07087757ae",
+      "receiptFiles": 7046,
+      "receiptBytes": 443214023
+    },
+    "bestbuds": {
+      "head": "b7bf7271f8c3f0cb978478e89964c771b473ba56",
+      "modelSha256": "2bbf2c92538f6f37a7fd510fb3951503517c4fee90fb0ff3ce7f826e7ce40788",
+      "receiptFiles": 4651,
+      "receiptBytes": 383162643
+    },
+    "manna": {
+      "head": "0825107bc7426404a44117f4eb734a28b9b0fdd6",
+      "modelSha256": "8f57acb4bb94a3a841b0ab46ca410bea8d5b69b73247b4b71a3fae2ae12b14aa",
+      "receiptFiles": 970,
+      "receiptBytes": 52060710
+    }
+  },
+  "existingTestReports": {
+    "model": {
+      "suites": 6,
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "latestModifiedAt": "2026-10-27T13:53:05+00:00"
+    },
+    "gradle": {
+      "suites": 44,
+      "tests": 129,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "latestModifiedAt": "2026-10-27T13:58:09+00:00"
+    }
+  }
+}

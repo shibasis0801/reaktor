@@ -5,25 +5,25 @@ import java.io.File
 object HangarSkill {
     const val Name = "hangar"
 
-    enum class Vendor(val call: String, val front: List<String>, val request: String, val lead: String) {
+    enum class Vendor(val call: String, val front: List<String>, val request: String, val thread: String) {
         Claude("/hangar", listOf("disable-model-invocation: true", "argument-hint: \"[here] <request>\""),
             "The request: \$ARGUMENTS",
-            "- `lead`: `\"claude:\${CLAUDE_SESSION_ID}\"`, this session."),
+            "- The plan belongs to this session, `\"claude:\${CLAUDE_SESSION_ID}\"`. Pass it as `thread` when a call asks which thread."),
         Codex("\$hangar", emptyList(),
             "The request is what the person wrote after `\$hangar`.",
-            "- Leave out `lead`: Hangar names this session as the lead, because it can tell which Codex session is calling."),
+            "- Leave out `thread`: Hangar names this session's plan, because it can tell which Codex session is calling."),
         Antigravity("/hangar", emptyList(),
             "The request is what the person wrote after `/hangar`.",
-            "- Leave out `lead`, and give every task to an agent: Hangar cannot yet tell which Antigravity conversation is calling, so `/hangar here` is not available here."),
+            "- Pass `thread` as `\"agy:<this conversation>\"`: Hangar cannot yet tell which Antigravity conversation is calling."),
         Prompt("hangar", emptyList(),
             "The request: @request@",
-            "- `lead`: this session as `claude:<session>`, `codex:<session>` or `hangar:<conversation>` when you know it; otherwise leave it out."),
+            "- `thread`: this session as `claude:<session>`, `codex:<session>` or `hangar:<conversation>` when you know it; otherwise leave it out."),
     }
 
     fun skill(vendor: Vendor): String = buildString {
         appendLine("---")
         appendLine("name: $Name")
-        appendLine("description: Plans a request as a task graph that Hangar runs with several agents, then hands it to the person to change and approve. Use only when the person types ${vendor.call} with a request.")
+        appendLine("description: Draws a request as a Hangar plan that the person and several agents work through together, then hands it to the person to change and staff. Use only when the person types ${vendor.call} with a request.")
         vendor.front.forEach(::appendLine)
         appendLine("---")
         appendLine()
@@ -49,58 +49,48 @@ object HangarSkill {
 
     private val CodexAgent = """
         |interface:
-        |  display_name: "Hangar task graph"
-        |  short_description: "Plan a request as a task graph that Hangar runs"
+        |  display_name: "Hangar plan"
+        |  short_description: "Plan a request in Hangar for several agents"
         |policy:
         |  allow_implicit_invocation: false
         |""".trimMargin()
 
     private fun body(vendor: Vendor): String = """
-        |# ${vendor.call}: plan the request as a task graph
+        |# ${vendor.call}: plan the request in Hangar
         |
         |${vendor.request}
         |
-        |Hangar runs a task graph: a few board tasks joined by dependencies, each done by the agent it names. You propose the graph, the person changes and approves it in Hangar, Hangar's agents do the tasks, and you stay its lead. `${vendor.call} here <request>` means you also do some of the tasks yourself, in this session.
+        |Hangar shows each thread's plan: the high-level design of the work as items with a status, what each waits on, what it belongs to and what it touches in Reaktor. The person and the agents edit one plan, in Hangar's DAG, Kanban and Graph views or with `plan.write`. The person hands parts of it, an item and everything under it, to gallery agents, and each agent changes only its part. `${vendor.call} here <request>` means you also work on items yourself, in this session.
         |
         |Every call below goes through the reaktor MCP server's `kernel` tool as `{"operation": "<name>", "arguments": {...}}`. If there is no reaktor server, say so and stop: this folder is not a Reaktor workspace.
         |
         |## 1. Read, briefly
         |
-        |- `atlas_query` and `atlas_read` on the code the request touches: enough to name the modules each task changes and the order the work goes in.
-        |- `board.list` for the open board tasks. Leave out work that is already there.
-        |- `taskgraph.seats` for the agents, models, efforts and saved profiles this workspace runs. Use `seat.profile` to select a perspective; explicit model and effort overrides still apply.
-        |- `taskgraph.templates` lists implement/review/check, two writers and a merge, provider comparison, council, investigate/plan/implement, saved templates and convertible runbooks. Read a draft with `taskgraph.template.read`, bind each task-key profile slot and its scope/check, then propose it. `taskgraph.template.save` retains only the reusable draft. `taskgraph.template.convert` converts a saved runbook at its displayed revision and refuses unsupported policies.
-        |- `memory.search` retrieves kept lessons. `memory.import {"provider": "ClaudeCode" | "Codex", "path": "<absolute Markdown memory file>", "fromLine": 1, "throughLine": 20}` snapshots a vendor note into review proposals; ranges are optional. Read pending notes with `memory.read`. Only the person keeps or drops them in Hangar. Imported notes never change instructions, start work or approve anything.
-        |- `workspace install` exports matching Claude/Codex profiles as native custom agents with workspace-prefixed names. Rerun it after a profile changes. Native subagents inherit their parent permissions; graph task permissions are enforced by Hangar.
+        |- `atlas_query` and `atlas_read` on the code the request touches: enough to name the modules each part changes and the order the work goes in.
+        |- `plan.list` for the plans already drawn. Leave out work another plan already covers.
+        |- `taskgraph.seats` for the agents, models, efforts and saved profiles this workspace runs. The gallery agents a person attaches are these profiles.
         |
-        |## 2. Propose
+        |## 2. Draw the plan
         |
-        |Call `taskgraph.propose` with:
+        |Call `plan.write` with `title`, the request in a few words, `goal`, what done looks like, and `ops`:
         |
-        |- `title`, the request in a few words, and `goal`, what done looks like.
-        |- `tasks`: 2 to 12 tasks in order, each `{"key", "title", "intent", "acceptance", "scope", "seat", "dependsOn"}`.
-        |  - `key` is a short name that later tasks use in `dependsOn`. `scope` lists the modules the task may change, such as `:engine`.
-        |  - `seat` is `{"agent": "Codex" | "ClaudeCode" | "Gemini", "access": "Write" | "Read"}`, with `model` and `effort` when the work needs them. Only tasks that change code get `Write`.
-        |  - `dependsOn` is `[{"task": "<key>", "condition": "Succeeded", "required": true}]`. Every required dependency must meet its condition or the task stays blocked. The other conditions are `Failed`, `Always`, `Pass`, `Repair` and `Accepted`. Use `required: false` for alternative routes: at least one must match, after all dependencies settle.
-        |  - A review task has `"contract": "Decision"` and ends with a verdict, pass or repair. The task after it waits on `Pass`. When a review asks for a repair, Hangar adds the repair and a second review by itself.
-        |  - A review panel adds `seat.lenses`, two to six saved read-only profile ids from both ClaudeCode and Codex, such as `["codex-correctness", "claude-security"]`. The main seat verifies their blind claims against the exact candidate; only confirmed findings reach repair and acceptance.
-        |  - To compare implementations, give one add task `alternatives: {"seats": [<two or three write seats>], "check": "<check id>", "review": <read-only Decision seat with two to six lenses>}`. Hangar expands isolated writer, check and review branches, then ranks their exact candidates. Depend on the original key to consume only the chosen candidate. Choosing does not accept or land it; the person chooses in Hangar unless they approved `envelope.chooseTop`.
-        |  - `{"kind": "Check", "check": "<check id>"}` runs one check on the work of the task it depends on.
-        |  - `{"kind": "Gate"}` waits for the person. Put one before anything lands: landing in the main checkout, pushing, pull requests, deploys and production writes are the person's.
-        |  - For `${vendor.call} here`, the tasks you keep get the seat `{"lead": true}`.
-        |${vendor.lead}
-        |- `envelope`, only if the defaults do not fit: what agents may change later without asking, `{"agents", "models", "efforts", "writes", "maxTasks", "tokens", "repairRounds"}`. By default it covers the agents and modules you proposed.
+        |- `{"type": "add", "key", "title", "detail", "after": ["<key>"], "parent": "<key>", "refs": ["<link>"]}` for each item, in order.
+        |  - `key` is a short name that later items use in `after` and `parent`.
+        |  - `parent` makes an item part of a larger one. Size each top-level part so one agent can take it with everything under it.
+        |  - `refs` link the item into Reaktor: `file:<path>`, `symbol:<Type.member>`, `module:<:path>`, `graph:<name>`, `op:<operation>`, `flow:<id>`, `task:<id>` or `url:<link>`.
+        |- Keep landing, pushing, pull requests, deploys and production writes as items for the person.
+        |${vendor.thread}
         |
         |## 3. Hand it over
         |
-        |Tell the person the graph's id, its tasks and who does each, and that it waits for them in Hangar under Agent, Work, Graphs. Do not start it: only a person approves and starts a graph. Then end your turn.
+        |Tell the person the plan's title and its parts, and that it waits for them in Hangar under Agent, Work, on this thread. There they change it and attach gallery agents to parts with Attach agent; only a person attaches agents. Then end your turn, unless the request was `${vendor.call} here`: then work on the items you keep, as below.
         |
-        |## 4. While it runs
+        |## 4. While the work goes on
         |
-        |- `taskgraph.read {"graph": "G1"}` shows each task's status and outcome, and the graph's revision.
-        |- `taskgraph.patch {"graph": "G1", "expectedRevision": <the revision you read>, "reason": "<why>", "ops": [...]}` changes the graph as you learn more, without asking again. The ops are `{"type": "add", "title", "key", "dependsOn", "seat", ...}`, `{"type": "update", "task": "T3", ...}`, `{"type": "split", "task": "T3", "into": [{"title", ...}]}`, `{"type": "remove", "task": "T3"}`, `{"type": "connect", "from": "T2", "to": "T3", "condition": "Succeeded", "required": true}`, `{"type": "disconnect", "from", "to"}`, `{"type": "seat", "task", "seat"}` and `{"type": "note", "text"}`. The person sees each change with its reason.
-        |- `taskgraph.pause {"graph": "G1", "reason": "<why>"}` lets running tasks finish and starts no new ones.
-        |- With `${vendor.call} here`, when one of your tasks is ready, call `taskgraph.claim {"graph", "task"}`, do the work in this session, then `taskgraph.report {"graph", "task", "status": "Succeeded" | "Failed" | "NeedsInput" | "Blocked", "summary", "files"}`. When none of your tasks is ready, end your turn. Hangar tells the person when the next one is.
-        |- `session.log {"session": "<the task's session>"}` reads what another task's agent did.
+        |- Keep statuses current with `{"type": "status", "item": "<key>", "status": "Doing" | "Done" | "Dropped"}` as you start and finish items, and add what you discover as new items.
+        |- Pass `base`, the revision you last read. An op on an item someone else changed after it is refused for that item only, and the answer says who changed what.
+        |- `plan.read {"since": <revision>}` lists what the person and the other agents changed. Follow those changes before you go on.
+        |- An agent attached to a part passes its `seat` and changes only that part.
+        |- `session.log {"session": "<an agent's session>"}` reads what another agent did.
         |""".trimMargin()
 }

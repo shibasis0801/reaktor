@@ -1,0 +1,19 @@
+{
+  "queueSeconds": 293.292052459,
+  "slot": 1,
+  "remote": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+  "snapshots": {
+    "base": "b88a2dedee7122219fca8e80a0a4f6a0f943000fb696e54a8cc6bf71239f66d7",
+    "bodyEdit": "8f2a142ebdda2a9438ef38ea590b46166cd98ab805861e57ad6669b56d1d603a",
+    "declarationEdit": "4fb980442254335dcf19fd70e20813899f48dfc2cc1154588c4b9621de25645e"
+  },
+  "sourceHashes": {
+    "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/KernelSpec.kt": "eee121e5b26d244bbbf968a2073514309903c9e9451bf18ae7277f43b7ce1dba",
+    "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt": "56cf89163a85bf83c8359d6397a4442a632bad3d4921f31dcf073b03ba3cc6ee",
+    "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/DeclarationSites.kt": "d353dd4ed1e3447e6b12025dc04f991e38a448d4015c1203a5db7f271fccfac4",
+    "dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt": "32cf75724268f7ca18cef2355f1b8718e22e3c2822185090a2cbd18762a6304f",
+    "gradle.properties": "40103d487bdba7369ecaffab7a700fb332b25bbba85be5caec8f8800f07546e0"
+  },
+  "scriptSha256": "b6f1b3eec43b4af5340a760708e9bc0d56feb62031bf40115a9449ccd445b4da",
+  "scope": "Final compatible Process analysis spec; typed JVM archive and Reaktor cache default retained."
+}

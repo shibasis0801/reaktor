@@ -1,0 +1,59 @@
+Pinned Gradle profiler jar SHA256: 2505503c8373d8c0b5c0965aeb262b1488d205830a0968ccf7c64fcfc7f5a7a3
+
+Compiled from "TaskExecution.java"
+public class org.gradle.profile.TaskExecution extends org.gradle.profile.ContinuousOperation {
+  static final java.lang.String NO_WORK_MESSAGE;
+
+  private final java.lang.String path;
+
+  private org.gradle.api.tasks.TaskState state;
+
+  public org.gradle.profile.TaskExecution(java.lang.String);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokespecial #1                  // Method org/gradle/profile/ContinuousOperation."<init>":(Ljava/lang/String;)V
+         5: aload_0
+         6: aload_1
+         7: putfield      #7                  // Field path:Ljava/lang/String;
+        10: return
+
+  public java.lang.String getPath();
+    Code:
+         0: aload_0
+         1: getfield      #7                  // Field path:Ljava/lang/String;
+         4: areturn
+
+  public java.lang.String getStatus();
+    Code:
+         0: aload_0
+         1: getfield      #13                 // Field state:Lorg/gradle/api/tasks/TaskState;
+         4: invokeinterface #17,  1           // InterfaceMethod org/gradle/api/tasks/TaskState.getSkipped:()Z
+         9: ifeq          24
+        12: aload_0
+        13: getfield      #13                 // Field state:Lorg/gradle/api/tasks/TaskState;
+        16: invokeinterface #23,  1           // InterfaceMethod org/gradle/api/tasks/TaskState.getSkipMessage:()Ljava/lang/String;
+        21: goto          43
+        24: aload_0
+        25: getfield      #13                 // Field state:Lorg/gradle/api/tasks/TaskState;
+        28: invokeinterface #27,  1           // InterfaceMethod org/gradle/api/tasks/TaskState.getDidWork:()Z
+        33: ifeq          41
+        36: ldc           #30                 // String
+        38: goto          43
+        41: ldc           #32                 // String Did No Work
+        43: areturn
+
+  public org.gradle.api.tasks.TaskState getState();
+    Code:
+         0: aload_0
+         1: getfield      #13                 // Field state:Lorg/gradle/api/tasks/TaskState;
+         4: areturn
+
+  public org.gradle.profile.TaskExecution completed(org.gradle.api.tasks.TaskState);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: putfield      #13                 // Field state:Lorg/gradle/api/tasks/TaskState;
+         5: aload_0
+         6: areturn
+}

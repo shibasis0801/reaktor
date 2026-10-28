@@ -68,10 +68,8 @@ internal class BuildWorkspace(private val project: Project) {
                 generatedFiles.from(project.file(path))
             }
         }
-        owner.afterEvaluate {
-            val locations = contracts.files.map { it.absolutePath }.sorted()
-            generation.configure { packageContracts.put(path, locations) }
-        }
+        val locations = owner.providers.provider { contracts.files.map { it.absolutePath }.sorted() }
+        generation.configure { packageContracts.put(path, locations) }
         outputs.forEach { consume(project.node(generation), it) }
     }
 

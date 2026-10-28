@@ -60,10 +60,7 @@ internal class CodexLog(private val root: String?) : LogParser {
         if (payload.str("type") != "function_call" || payload.str("name") != "update_plan") return
         val arguments = payload.str("arguments")?.let(::parseRecord) ?: return
         val turn = turns.ensure(at)
-        turn.add(WorkStep.Plan(payload.str("call_id") ?: "${turn.id}:plan:${turn.steps.size}", at,
-            arguments.list("plan").mapNotNull { it as? JsonObject }.map { step ->
-                PlanItem(step.str("step").orEmpty(), when (step.str("status")) { "completed" -> PlanState.Done; "in_progress" -> PlanState.Active; else -> PlanState.Pending })
-            }, arguments.str("explanation")))
+        turn.add(WorkStep.Plan(payload.str("call_id") ?: "${turn.id}:plan:${turn.steps.size}", at, Checklist.codex(arguments), arguments.str("explanation")))
     }
 
     private fun item(item: JsonObject, payload: JsonObject, at: Long?) {

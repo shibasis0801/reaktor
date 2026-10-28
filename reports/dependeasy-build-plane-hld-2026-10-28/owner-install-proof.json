@@ -1,0 +1,44 @@
+{
+  "observedAt": "2026-10-28T17:14:18.400773+05:30",
+  "buildRun": "20261028-162959-1c09a73b-bestbuds",
+  "buildAndNormalPublication": "Success, exit 0, 31s Gradle / 34.25s execution; 1790.70s worker admission and local publication wait separate.",
+  "operationsCli": "Installed by targets/reaktorCli/tools/install, help smoke passes; previous distribution retained by installer",
+  "agentDistribution": {
+    "source": "/Users/ovd/dev/bestbuds/modules/kernel/build/agent-dist",
+    "target": "/Users/ovd/.reaktor/dist/conductor",
+    "files": 276,
+    "allFilesByteExact": true,
+    "mismatches": []
+  },
+  "hashes": {
+    "/Users/ovd/dev/bestbuds/targets/reaktorCli/build/distributions/reaktor.zip": "7332436e2e4d211b0cdcbe076be3f5625698532ef0450a279f0e806353ee4a94",
+    "/Users/ovd/.reaktor/bin/reaktor": "01eadee7915232998f4d752f56dfa1a53dcf6166e1ab687d85fad04c75a62210",
+    "/Users/ovd/.reaktor/dist/conductor/bin/reaktor-agent": "aed7bd70beb10e00605c3dc826cfa351846b12dd3db42ef67d19f92249e33f5c"
+  },
+  "historyFilesMissing": [],
+  "statusEvidence": "owner-after-upgrade.json",
+  "scope": "BestBuds distribution install and attempted supported upgrade; no fresh Manna/Reaktor owner rollout claimed.",
+  "upgradeAttempts": [
+    {
+      "command": "KernelAgentServiceKt --upgrade /Users/ovd/dev/bestbuds using the distribution Java25",
+      "exit": 1,
+      "failure": "TimeoutCancellationException: Timed out waiting for 300000 ms",
+      "result": "Old live owner retained; no forced termination or history deletion. Task admission reopened explicitly. Matching live decoder acceptance is still open.",
+      "admissionReopenReceipt": "owner-admission-restored.json",
+      "activeRunsAtReopen": 1
+    },
+    {
+      "command": "KernelAgentServiceKt --upgrade /Users/ovd/dev/bestbuds",
+      "exit": 1,
+      "failure": "Background service did not publish its endpoint within client startup deadline",
+      "result": "Graceful drain/stop completed, new PID8352 launched. Subsequent CLI status succeeds with 16:38 build6471abb6, 286 operations and1908 model nodes, no omissions reported.",
+      "statusEvidence": "owner-upgrade-second-status.json",
+      "archiveReadEvidence": "jvm-archive-live-read-after-upgrade.json",
+      "historyEvidence": "owner-store-after-second-upgrade.json"
+    }
+  ],
+  "runtimeAdoption": "BestBuds new owner serves 286 operations and all1908 nodes. Final compatible model publication complete; live archive retry finds44 nodes with stale=false and no changed declarations. Initial delivery_unknown read and both upgrade command timeouts remain retained.",
+  "finalLiveRead": "jvm-archive-live-read-final-retry.json",
+  "runtimeStatus": "owner-final-status.json",
+  "normalCompatibleModelPublication": "final-compatible-export-transport.json"
+}

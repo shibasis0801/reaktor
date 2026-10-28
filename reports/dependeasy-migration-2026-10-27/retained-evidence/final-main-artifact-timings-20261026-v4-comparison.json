@@ -1,0 +1,131 @@
+{
+  "at": "2026-10-25T23:40:25.019988+00:00",
+  "state": "measured_scope_complete_overall_review_open",
+  "target": ":reaktor-core:jvmJar",
+  "commandArguments": [
+    ":reaktor-core:jvmJar",
+    "--no-configuration-cache",
+    "--no-daemon",
+    "--console=plain"
+  ],
+  "runs": [
+    {
+      "variant": "main",
+      "phase": "initial",
+      "head": "b7b0370346b46d6bc915a05fb61ffdef93436235",
+      "sourceFiles": 1606,
+      "sourceStable": true,
+      "exit": 0,
+      "gradle": [
+        "BUILD SUCCESSFUL in 1m 35s"
+      ],
+      "wallSeconds": 286.716,
+      "router": {
+        "worker": "m1-worker",
+        "remote_path": "/Users/ovd/dev/offload/.remote-dev/agent-worktrees/80c8cd3cab8ec7811ca09cf682618efe1184574b2cc51d79abde9cef4c6b2918/slots/job-1/reaktor",
+        "exit_code": 0,
+        "sync_seconds": 9.650743499999976,
+        "queue_seconds": 176.196498042,
+        "workspace_root": "/Users/ovd/dev/tmp/dependeasy-main-comparison-20261026",
+        "worker_slot": 1,
+        "execution_seconds": 99.42529366599999,
+        "copied_files": 274,
+        "collection_seconds": 0.8794434579999688,
+        "publication_queue_seconds": 0.00063795799997024,
+        "publication_seconds": 0.08439891599999783
+      },
+      "log": "final-main-artifact-timings-20261026-v3-initial.log"
+    },
+    {
+      "variant": "main",
+      "phase": "warm",
+      "head": "b7b0370346b46d6bc915a05fb61ffdef93436235",
+      "sourceFiles": 1606,
+      "sourceStable": true,
+      "exit": 0,
+      "gradle": [
+        "BUILD SUCCESSFUL in 12s"
+      ],
+      "wallSeconds": 117.821,
+      "router": {
+        "worker": "m1-worker",
+        "remote_path": "/Users/ovd/dev/offload/.remote-dev/agent-worktrees/80c8cd3cab8ec7811ca09cf682618efe1184574b2cc51d79abde9cef4c6b2918/slots/job-1/reaktor",
+        "exit_code": 0,
+        "sync_seconds": 3.817632582999998,
+        "queue_seconds": 53.948666125,
+        "workspace_root": "/Users/ovd/dev/tmp/dependeasy-main-comparison-20261026",
+        "worker_slot": 1,
+        "execution_seconds": 15.574330083,
+        "copied_files": 2,
+        "collection_seconds": 0.6865421250000026,
+        "publication_queue_seconds": 0.0015433750000113378,
+        "publication_seconds": 0.01225195900001097
+      },
+      "log": "final-main-artifact-timings-20261026-v3-warm.log"
+    },
+    {
+      "variant": "candidate",
+      "phase": "initial",
+      "head": "9acbd00f2f4a687de50ee50be46cb4aad37021a1",
+      "sourceFiles": 544,
+      "sourceStable": true,
+      "exit": 0,
+      "gradleSummary": [
+        "BUILD SUCCESSFUL in 17s"
+      ],
+      "wallSeconds": 180.91,
+      "router": {
+        "worker": "m1-worker",
+        "worker_slot": 0,
+        "remote_path": "/Users/ovd/dev/offload/reaktor",
+        "workspace_root": "/Users/ovd/dev",
+        "queue_seconds": 44.204148083,
+        "sync_seconds": 12.960549041999997,
+        "execution_seconds": 18.987083708000007,
+        "collection_seconds": 32.37565454200001,
+        "exit_code": 0,
+        "copied_files": 13
+      },
+      "log": "final-main-artifact-timings-20261026-v2-candidate-initial.log"
+    },
+    {
+      "variant": "candidate",
+      "phase": "warm",
+      "head": "9acbd00f2f4a687de50ee50be46cb4aad37021a1",
+      "sourceFiles": 544,
+      "sourceStable": true,
+      "exit": 0,
+      "gradleSummary": [
+        "BUILD SUCCESSFUL in 18s"
+      ],
+      "wallSeconds": 181.037,
+      "router": {
+        "worker": "m1-worker",
+        "worker_slot": 0,
+        "remote_path": "/Users/ovd/dev/offload/reaktor",
+        "workspace_root": "/Users/ovd/dev",
+        "queue_seconds": 82.916509875,
+        "sync_seconds": 12.205289874999991,
+        "execution_seconds": 22.009863875000008,
+        "collection_seconds": 32.47918320800001,
+        "exit_code": 0,
+        "copied_files": 10
+      },
+      "log": "final-main-artifact-timings-20261026-v2-candidate-warm.log"
+    }
+  ],
+  "interpretation": [
+    "Same named successful target with stable watched inputs in both variants.",
+    "Initial is not a controlled cold build: current target reused outputs/cache; main initial configured fetched and compiled old build logic.",
+    "Warm Gradle main12s/current18s; current has no demonstrated warm improvement for this target.",
+    "Router queues, synchronization and collection differ; worker slot0 and isolated slot1 are not identical cache environments.",
+    "Gradle9.7/Kotlin2.4 versus Gradle8.14.2/Kotlin2.3 and source changes are confounders.",
+    "No overall buildAll speedup claim; full artifact comparison and current portable gate remain open."
+  ],
+  "rawEvidence": [
+    "final-main-artifact-timings-20261026-v2-runs.json",
+    "final-main-artifact-timings-20261026-v3-runs.json"
+  ],
+  "scratchRemoved": true,
+  "worktreeRegistryRemoved": true
+}

@@ -460,6 +460,14 @@ class LibraryScope internal constructor(private val project: Project, private va
 
 internal fun Project.publishLibraryRoles(targets: Set<LibraryTarget>, verifications: List<NodeHandle> = emptyList(), checks: List<OutputHandle> = emptyList(), generatedResources: List<NodeHandle> = emptyList()) {
     val part = dependencies.project(mapOf("path" to path)) as org.gradle.api.artifacts.ProjectDependency
+    if (LibraryTarget.Jvm in targets) {
+        val taskName = extensions.findByType(org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension::class.java)
+            ?.targets?.withType(org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget::class.java)?.single()?.artifactsTaskName
+            ?: org.gradle.api.plugins.JavaPlugin.JAR_TASK_NAME
+        val archive = tasks.named(taskName, org.gradle.api.tasks.bundling.Jar::class.java)
+        publishOutput(dev.shibasis.dependeasy.model.OutputKind.JvmLibrary, archive.flatMap { it.archiveFile }, producer = archive)
+        node(archive, dev.shibasis.dependeasy.model.OutputKind.JvmLibrary)
+    }
     WorkspaceScope(this, BuildWorkspace.get(this)).apply {
         val componentBuild by artifacts(role = Workspace.Build) {
             outputs(moduleBuild(part))

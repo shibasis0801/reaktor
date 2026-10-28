@@ -1,0 +1,262 @@
+{
+  "samples": 24,
+  "repetitions": 3,
+  "slot": 1,
+  "gradleTiming": "Gradle console wall time rounded to seconds; no profiler in these runs",
+  "endToEndTiming": "Reserved execution plus transport, collection and isolated publication; admission separately recorded",
+  "rows": [
+    {
+      "phase": "cold",
+      "before": {
+        "gradleMedianSeconds": 86.0,
+        "endToEndMedianSeconds": 96.725693083,
+        "gradleSeconds": [
+          86.0,
+          86.0,
+          86.0
+        ],
+        "endToEndSeconds": [
+          96.725693083,
+          94.16947037499995,
+          97.13824229199997
+        ],
+        "collectedFilesMedian": 29,
+        "collectedBytesMedian": 7401180
+      },
+      "after": {
+        "gradleMedianSeconds": 89.0,
+        "endToEndMedianSeconds": 101.07579525,
+        "gradleSeconds": [
+          89.0,
+          86.0,
+          117.0
+        ],
+        "endToEndSeconds": [
+          101.07579525,
+          93.62970587500001,
+          127.2629091660001
+        ],
+        "collectedFilesMedian": 29,
+        "collectedBytesMedian": 7382048
+      },
+      "gradleMedianSecondsChangePercent": 3.488372093023262,
+      "endToEndMedianSecondsChangePercent": 4.4973595208743555
+    },
+    {
+      "phase": "first-warm",
+      "before": {
+        "gradleMedianSeconds": 16.0,
+        "endToEndMedianSeconds": 26.08668750000004,
+        "gradleSeconds": [
+          16.0,
+          16.0,
+          20.0
+        ],
+        "endToEndSeconds": [
+          25.626711290999992,
+          26.08668750000004,
+          29.584509042000036
+        ],
+        "collectedFilesMedian": 31,
+        "collectedBytesMedian": 9267146
+      },
+      "after": {
+        "gradleMedianSeconds": 16.0,
+        "endToEndMedianSeconds": 25.550900625000054,
+        "gradleSeconds": [
+          16.0,
+          16.0,
+          17.0
+        ],
+        "endToEndSeconds": [
+          25.832051791000026,
+          25.550900625000054,
+          25.369428125000013
+        ],
+        "collectedFilesMedian": 31,
+        "collectedBytesMedian": 9248015
+      },
+      "gradleMedianSecondsChangePercent": 0.0,
+      "endToEndMedianSecondsChangePercent": -2.0538708680432616
+    },
+    {
+      "phase": "steady-warm",
+      "before": {
+        "gradleMedianSeconds": 4.0,
+        "endToEndMedianSeconds": 12.910743207999985,
+        "gradleSeconds": [
+          4.0,
+          4.0,
+          6.0
+        ],
+        "endToEndSeconds": [
+          12.679557249999988,
+          12.910743207999985,
+          17.57336604200009
+        ],
+        "collectedFilesMedian": 32,
+        "collectedBytesMedian": 9269471
+      },
+      "after": {
+        "gradleMedianSeconds": 4.0,
+        "endToEndMedianSeconds": 13.268229542000029,
+        "gradleSeconds": [
+          4.0,
+          4.0,
+          4.0
+        ],
+        "endToEndSeconds": [
+          13.268229542000029,
+          13.077366999999981,
+          13.603508625000131
+        ],
+        "collectedFilesMedian": 32,
+        "collectedBytesMedian": 9250289
+      },
+      "gradleMedianSecondsChangePercent": 0.0,
+      "endToEndMedianSecondsChangePercent": 2.768905927727938
+    },
+    {
+      "phase": "body-incremental",
+      "before": {
+        "gradleMedianSeconds": 10.0,
+        "endToEndMedianSeconds": 19.489741584,
+        "gradleSeconds": [
+          10.0,
+          10.0,
+          19.0
+        ],
+        "endToEndSeconds": [
+          19.489741584,
+          19.40394754199997,
+          31.995028124999862
+        ],
+        "collectedFilesMedian": 33,
+        "collectedBytesMedian": 9360689
+      },
+      "after": {
+        "gradleMedianSeconds": 10.0,
+        "endToEndMedianSeconds": 19.19406550000008,
+        "gradleSeconds": [
+          10.0,
+          10.0,
+          10.0
+        ],
+        "endToEndSeconds": [
+          19.133058208000023,
+          19.49014429099998,
+          19.19406550000008
+        ],
+        "collectedFilesMedian": 33,
+        "collectedBytesMedian": 9341372
+      },
+      "gradleMedianSecondsChangePercent": 0.0,
+      "endToEndMedianSecondsChangePercent": -1.5170857075019195
+    }
+  ],
+  "outputChecks": [
+    {
+      "rep": 21,
+      "phase": "cold",
+      "byteIdentical": true
+    },
+    {
+      "rep": 21,
+      "phase": "first-warm",
+      "byteIdentical": true
+    },
+    {
+      "rep": 21,
+      "phase": "steady-warm",
+      "byteIdentical": true
+    },
+    {
+      "rep": 21,
+      "phase": "body-incremental",
+      "byteIdentical": true
+    },
+    {
+      "rep": 21,
+      "variant": "before",
+      "bodyEditChanges": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 21,
+      "variant": "after",
+      "bodyEditChanges": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 22,
+      "phase": "cold",
+      "byteIdentical": true
+    },
+    {
+      "rep": 22,
+      "phase": "first-warm",
+      "byteIdentical": true
+    },
+    {
+      "rep": 22,
+      "phase": "steady-warm",
+      "byteIdentical": true
+    },
+    {
+      "rep": 22,
+      "phase": "body-incremental",
+      "byteIdentical": true
+    },
+    {
+      "rep": 22,
+      "variant": "before",
+      "bodyEditChanges": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 22,
+      "variant": "after",
+      "bodyEditChanges": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 23,
+      "phase": "cold",
+      "byteIdentical": true
+    },
+    {
+      "rep": 23,
+      "phase": "first-warm",
+      "byteIdentical": true
+    },
+    {
+      "rep": 23,
+      "phase": "steady-warm",
+      "byteIdentical": true
+    },
+    {
+      "rep": 23,
+      "phase": "body-incremental",
+      "byteIdentical": true
+    },
+    {
+      "rep": 23,
+      "variant": "before",
+      "bodyEditChanges": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 23,
+      "variant": "after",
+      "bodyEditChanges": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    }
+  ],
+  "rawResultsSha256": "2d6239741b560fa5a9e0bf7e4ea965decd0d848a00c1f467927081acd66e085e"
+}

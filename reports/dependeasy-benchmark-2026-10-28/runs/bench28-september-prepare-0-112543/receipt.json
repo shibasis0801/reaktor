@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "run_id": "bench28-september-prepare-0-112543",
+  "snapshot": "7dd3323dca21cd02d0d5e711795ce067db8f7b4b8c866925b42aa4139f44868b",
+  "host": "worker",
+  "project": "reaktor",
+  "arguments": [
+    ":reaktor-core:jvmJar",
+    "--max-workers=6",
+    "--no-daemon",
+    "--no-configuration-cache",
+    "--no-build-cache",
+    "--profile",
+    "--info",
+    "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+    "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+    "-Pkotlin.compiler.execution.strategy=in-process",
+    "--init-script",
+    "benchmark.init.gradle"
+  ],
+  "argumentsDigest": "83aca41abe10fb809d4aab709e70890a467c99b944b4554e93afe4b90e9a8040",
+  "status": "incomplete",
+  "queueSeconds": 220.367943,
+  "diskAdmission": {
+    "minimumFreeBytes": 1073741824,
+    "localFreeBytes": 20093714432,
+    "workerFreeBytes": 49105715200
+  },
+  "materializeSeconds": 3.6174164999999903,
+  "java": "openjdk version \"21.0.8\" 2025-07-15 LTS\nOpenJDK Runtime Environment Corretto-21.0.8.9.1 (build 21.0.8+9-LTS)\nOpenJDK 64-Bit Server VM Corretto-21.0.8.9.1 (build 21.0.8+9-LTS, mixed mode, sharing)",
+  "gradleWrapper": [
+    "file",
+    "97e38c4092036e177d1d31ebb454332a61a1d1313fc76aefe34b35e88211715d",
+    420
+  ],
+  "adapterDigest": "f35ede54a034b78b09f6fc506c145b193c40707717e6e43d143654e4085d1671",
+  "cachePolicy": "off",
+  "executionStarted": "2026-10-28T05:59:27.841023+00:00",
+  "error": "unsupported operand type(s) for /: 'str' and 'str'",
+  "exit_code": 74,
+  "finished": "2026-10-28T05:59:27.997234+00:00"
+}

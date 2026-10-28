@@ -1,0 +1,190 @@
+{
+  "exists": true,
+  "sha256": "2934b89960384d116770404d951183b8a9acd47aa141a10dfd791af2a2b11da1",
+  "bytes": 4310560,
+  "keys": [
+    "schema",
+    "producer",
+    "builds",
+    "declarations",
+    "nodes",
+    "edges",
+    "omissions",
+    "products"
+  ],
+  "nodes": 1313,
+  "coreNodes": 34,
+  "jvmJarNodeMatches": [],
+  "coreIds": [
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "buildCoreTypeScript"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "buildCoreTypeScriptCompile"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "buildCoreTypeScriptWebContract"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "compileKotlinIosArm64"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "compileKotlinIosSimulatorArm64"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "completeLocalPublication"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "completeModuleBuild"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "completeRemotePublication"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "completeTypeScriptChecks"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "componentBuild"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "componentChecks"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "exportKotlinLibrary"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "installDebugAndroidTest"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "jsNodeTest"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "jvmTest"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "libraryPackageContract"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputAndroidInstrumentedTestsDebug"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputAndroidLibraryDebug"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputAndroidLibraryRelease"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputAppleCompilationIosArm64"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputAppleCompilationIosSimulatorArm64"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputBrowserBundle"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputJavaScriptPackage"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputKotlinJsLibrary"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputKotlinJsPackageMetadata"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputModuleBuild"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputPublishedModulesLocal"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputPublishedModulesRemote"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputVerificationResultsJavaScript"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputVerificationResultsJvm"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputVerificationResultsTypeScript"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputWorkspaceCompletionBuild"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "outputWorkspaceCompletionVerify"
+    },
+    {
+      "build": "reaktor",
+      "project": ":reaktor-core",
+      "name": "packageSources"
+    }
+  ]
+}

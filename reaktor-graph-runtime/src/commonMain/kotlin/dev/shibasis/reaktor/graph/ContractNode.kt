@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.currentCoroutineContext
 import kotlin.properties.PropertyDelegateProvider
 
 enum class ContractRole { Server, Client }
@@ -143,7 +144,8 @@ internal class PortLink<S : Any>(val port: ConsumerPort<S>) : Link() {
 
     private suspend fun <R> crossing(block: suspend () -> R): R {
         val edge = wire()
-        return port.suspended { if (edge.isEmpty()) block() else withContext(CallAttributes(mapOf(ServiceCall.EdgeAttribute to edge))) { block() } }
+        val attributes = currentCoroutineContext()[CallAttributes]?.values.orEmpty()
+        return port.suspended { if (edge.isEmpty()) block() else withContext(CallAttributes(attributes + (ServiceCall.EdgeAttribute to edge))) { block() } }
     }
 }
 
@@ -153,8 +155,9 @@ class CallPort<In, Out> internal constructor(val consumer: ConsumerPort<suspend 
     suspend operator fun invoke(request: In): Out {
         val operation = consumer.impl ?: error("No ${call.id} provider is wired to ${consumer.owner}. Add graph.serve or graph.remote for ${call.service.id} and wire the graph before calling.")
         val edge = wire()
+        val attributes = currentCoroutineContext()[CallAttributes]?.values.orEmpty()
         return consumer.suspended {
-            if (edge.isEmpty()) operation(request) else withContext(CallAttributes(mapOf(ServiceCall.EdgeAttribute to edge))) { operation(request) }
+            if (edge.isEmpty()) operation(request) else withContext(CallAttributes(attributes + (ServiceCall.EdgeAttribute to edge))) { operation(request) }
         }
     }
 }

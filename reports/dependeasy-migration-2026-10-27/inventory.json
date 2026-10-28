@@ -1,0 +1,355 @@
+{
+  "recordedAt": "2026-10-27T16:39:51Z",
+  "repositories": {
+    "reaktor": {
+      "head": "a3ca69b619993d95650f0386ee22694f757b228b",
+      "dirtyPaths": 53,
+      "snapshots": {
+        "originMain": {
+          "gradleScripts": {
+            "files": 40,
+            "lines": 2291
+          },
+          "kotlinBuildImplementation": {
+            "files": 31,
+            "lines": 2148
+          },
+          "cmake": {
+            "files": 6,
+            "lines": 515
+          },
+          "ruby": {
+            "files": 1,
+            "lines": 87
+          },
+          "packages": {
+            "manifests": 22,
+            "scripts": 60,
+            "authored": 60,
+            "generated": 0,
+            "invalid": []
+          },
+          "rootBuildLines": 99,
+          "ref": "b7b0370346b46d6bc915a05fb61ffdef93436235",
+          "commitDate": "2026-09-30T10:17:28+05:30"
+        },
+        "working": {
+          "gradleScripts": {
+            "files": 54,
+            "lines": 1464
+          },
+          "kotlinBuildImplementation": {
+            "files": 340,
+            "lines": 20409
+          },
+          "kotlinBuildTests": {
+            "files": 51,
+            "lines": 9127
+          },
+          "cmake": {
+            "files": 11,
+            "lines": 128
+          },
+          "packages": {
+            "manifests": 22,
+            "scripts": 26,
+            "authored": 3,
+            "generated": 23,
+            "invalid": []
+          },
+          "rootBuildLines": 42,
+          "ref": "working"
+        },
+        "septemberBranch": {
+          "gradleScripts": {
+            "files": 49,
+            "lines": 2956
+          },
+          "kotlinBuildImplementation": {
+            "files": 31,
+            "lines": 2149
+          },
+          "cmake": {
+            "files": 6,
+            "lines": 525
+          },
+          "ruby": {
+            "files": 1,
+            "lines": 87
+          },
+          "packages": {
+            "manifests": 21,
+            "scripts": 49,
+            "authored": 49,
+            "generated": 0,
+            "invalid": []
+          },
+          "rootBuildLines": 99,
+          "ref": "7ca5f2ac59364b498304c97dc8597f9c8f0de24e",
+          "commitDate": "2026-09-30T22:44:25+05:30"
+        }
+      },
+      "model": {
+        "bytes": 4319461,
+        "sha256": "19b6d6c8a11fd29f5ea711d0767f525e6734addd0e156435eeddfc047d3e1a92",
+        "schema": 4,
+        "builds": [
+          {
+            "name": "dependeasy",
+            "directory": "dependeasy"
+          },
+          {
+            "name": "reaktor",
+            "directory": "."
+          }
+        ],
+        "nodes": 1313,
+        "edges": 935,
+        "declarationInputs": 914,
+        "omissions": [],
+        "effects": {
+          "Verify": 239,
+          "Build": 983,
+          "Deploy": 88,
+          "Develop": 3
+        },
+        "kinds": {
+          "Kernel": 1183,
+          "Verification": 71,
+          "ArtifactSet": 59
+        },
+        "duplicateNodeIds": 0,
+        "nodesWithoutDeclarationSite": 0,
+        "nodesWithKernel": 1313,
+        "ownKernelCount": 826,
+        "ownKernelsWithoutSpec": 0,
+        "nodesWithTools": 246,
+        "edgesByType": {
+          "After": 104,
+          "Consumes": 241,
+          "Includes": 590
+        },
+        "danglingEdges": 0,
+        "verificationWithoutCoverage": 0,
+        "receiptFiles": 7022
+      }
+    },
+    "bestbuds": {
+      "head": "b7bf7271f8c3f0cb978478e89964c771b473ba56",
+      "dirtyPaths": 122,
+      "snapshots": {
+        "originMain": {
+          "gradleScripts": {
+            "files": 11,
+            "lines": 1137
+          },
+          "ruby": {
+            "files": 1,
+            "lines": 1312
+          },
+          "packages": {
+            "manifests": 28,
+            "scripts": 376,
+            "authored": 376,
+            "generated": 0,
+            "invalid": []
+          },
+          "rootBuildLines": 120,
+          "ref": "dcc5df82e7cd6e8e6b7cd6ebd7f2bc37ef9ea43d",
+          "commitDate": "2026-08-31T13:49:48+05:30"
+        },
+        "working": {
+          "gradleScripts": {
+            "files": 23,
+            "lines": 779
+          },
+          "kotlinBuildImplementation": {
+            "files": 14,
+            "lines": 892
+          },
+          "ruby": {
+            "files": 2,
+            "lines": 402
+          },
+          "packages": {
+            "manifests": 25,
+            "scripts": 233,
+            "authored": 62,
+            "generated": 171,
+            "invalid": []
+          },
+          "rootBuildLines": 174,
+          "ref": "working"
+        },
+        "septemberBranch": {
+          "gradleScripts": {
+            "files": 15,
+            "lines": 1753
+          },
+          "ruby": {
+            "files": 1,
+            "lines": 1420
+          },
+          "packages": {
+            "manifests": 28,
+            "scripts": 395,
+            "authored": 395,
+            "generated": 0,
+            "invalid": []
+          },
+          "rootBuildLines": 127,
+          "ref": "7f956520842af8c9a5cba7e5db32d4dd67ee822c",
+          "commitDate": "2026-09-30T22:44:25+05:30"
+        }
+      },
+      "model": {
+        "bytes": 6627907,
+        "sha256": "2bbf2c92538f6f37a7fd510fb3951503517c4fee90fb0ff3ce7f826e7ce40788",
+        "schema": 4,
+        "builds": [
+          {
+            "name": "bestbuds",
+            "directory": "."
+          },
+          {
+            "name": "dependeasy",
+            "directory": "../reaktor/dependeasy"
+          },
+          {
+            "name": "reaktor",
+            "directory": "../reaktor"
+          }
+        ],
+        "nodes": 1820,
+        "edges": 2170,
+        "declarationInputs": 1078,
+        "omissions": [],
+        "effects": {
+          "Build": 1239,
+          "Deploy": 156,
+          "Verify": 416,
+          "Develop": 9
+        },
+        "kinds": {
+          "ArtifactSet": 83,
+          "Release": 11,
+          "Kernel": 1563,
+          "Verification": 117,
+          "Deploy": 44,
+          "External": 2
+        },
+        "duplicateNodeIds": 0,
+        "nodesWithoutDeclarationSite": 0,
+        "nodesWithKernel": 1820,
+        "ownKernelCount": 1248,
+        "ownKernelsWithoutSpec": 0,
+        "nodesWithTools": 467,
+        "edgesByType": {
+          "After": 512,
+          "Consumes": 795,
+          "Includes": 827,
+          "OrderedAfter": 36
+        },
+        "danglingEdges": 0,
+        "verificationWithoutCoverage": 0,
+        "receiptFiles": 4651
+      }
+    },
+    "manna": {
+      "head": "0825107bc7426404a44117f4eb734a28b9b0fdd6",
+      "dirtyPaths": 5,
+      "snapshots": {
+        "originMain": {
+          "gradleScripts": {
+            "files": 13,
+            "lines": 223
+          },
+          "kotlinBuildImplementation": {
+            "files": 4,
+            "lines": 47
+          },
+          "packages": {
+            "manifests": 4,
+            "scripts": 50,
+            "authored": 29,
+            "generated": 21,
+            "invalid": []
+          },
+          "rootBuildLines": 31,
+          "ref": "566a225c068983e6582e2318451bbb50468e6636",
+          "commitDate": "2026-10-20T16:20:00+05:30"
+        },
+        "working": {
+          "gradleScripts": {
+            "files": 14,
+            "lines": 242
+          },
+          "kotlinBuildImplementation": {
+            "files": 5,
+            "lines": 114
+          },
+          "packages": {
+            "manifests": 4,
+            "scripts": 38,
+            "authored": 15,
+            "generated": 23,
+            "invalid": []
+          },
+          "rootBuildLines": 31,
+          "ref": "working"
+        }
+      },
+      "model": {
+        "bytes": 5054922,
+        "sha256": "8f57acb4bb94a3a841b0ab46ca410bea8d5b69b73247b4b71a3fae2ae12b14aa",
+        "schema": 4,
+        "builds": [
+          {
+            "name": "Manna",
+            "directory": "."
+          },
+          {
+            "name": "dependeasy",
+            "directory": "../reaktor/dependeasy"
+          },
+          {
+            "name": "reaktor",
+            "directory": "../reaktor"
+          }
+        ],
+        "nodes": 1486,
+        "edges": 1384,
+        "declarationInputs": 964,
+        "omissions": [],
+        "effects": {
+          "Build": 1106,
+          "Verify": 283,
+          "Deploy": 94,
+          "Develop": 3
+        },
+        "kinds": {
+          "ArtifactSet": 69,
+          "Verification": 84,
+          "Kernel": 1327,
+          "External": 1,
+          "Deploy": 5
+        },
+        "duplicateNodeIds": 0,
+        "nodesWithoutDeclarationSite": 0,
+        "nodesWithKernel": 1486,
+        "ownKernelCount": 955,
+        "ownKernelsWithoutSpec": 0,
+        "nodesWithTools": 283,
+        "edgesByType": {
+          "After": 165,
+          "Consumes": 551,
+          "Includes": 667,
+          "OrderedAfter": 1
+        },
+        "danglingEdges": 0,
+        "verificationWithoutCoverage": 0,
+        "receiptFiles": 957
+      }
+    }
+  }
+}

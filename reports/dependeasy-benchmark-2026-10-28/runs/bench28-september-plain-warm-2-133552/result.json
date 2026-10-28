@@ -1,0 +1,1389 @@
+{
+  "variant": "september",
+  "phase": "plain-warm",
+  "repetition": 2,
+  "receipt": {
+    "schemaVersion": 1,
+    "run_id": "bench28-september-plain-warm-2-133552",
+    "snapshot": "7dd3323dca21cd02d0d5e711795ce067db8f7b4b8c866925b42aa4139f44868b",
+    "host": "worker",
+    "project": "reaktor",
+    "arguments": [
+      ":reaktor-core:jvmJar",
+      "--max-workers=6",
+      "--no-daemon",
+      "--no-configuration-cache",
+      "--no-build-cache",
+      "--profile",
+      "--info",
+      "-Dorg.gradle.java.home=/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home",
+      "-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8",
+      "-Pkotlin.compiler.execution.strategy=daemon",
+      "-Pkotlin.daemon.jvmargs=-Xmx8g"
+    ],
+    "argumentsDigest": "dc7212eeedeaff5dc8779b41f36b63dde54c27b9810b09439fa70439c3ae3688",
+    "status": "succeeded",
+    "queueSeconds": 0.00018712499991124787,
+    "diskAdmission": {
+      "minimumFreeBytes": 15000928256,
+      "localFreeBytes": 25081786368,
+      "workerFreeBytes": 38287654912
+    },
+    "materializeSeconds": 2.6032963749999,
+    "java": "openjdk version \"21.0.8\" 2025-07-15 LTS\nOpenJDK Runtime Environment Corretto-21.0.8.9.1 (build 21.0.8+9-LTS)\nOpenJDK 64-Bit Server VM Corretto-21.0.8.9.1 (build 21.0.8+9-LTS, mixed mode, sharing)",
+    "gradleWrapper": [
+      "file",
+      "97e38c4092036e177d1d31ebb454332a61a1d1313fc76aefe34b35e88211715d",
+      420
+    ],
+    "adapterDigest": "f35ede54a034b78b09f6fc506c145b193c40707717e6e43d143654e4085d1671",
+    "cachePolicy": "off",
+    "executionStarted": "2026-10-28T08:05:55.615845+00:00",
+    "workerInputsUnchanged": true,
+    "transportReceipt": "/Users/ovd/dev/.remote-dev/logs/20261028-133601-2b6c441f-reaktor.json",
+    "executionAndCollectionSeconds": 21.46858237499987,
+    "phases": {
+      "sync_seconds": 4.060179250000147,
+      "execution_seconds": 12.492902500000127,
+      "collection_seconds": 0.4664162500000657
+    },
+    "exit_code": 0,
+    "artifactDirectory": "/Users/ovd/dev/.remote-dev/artifacts/20261028-133601-2b6c441f-reaktor",
+    "artifacts": {
+      "reaktor/build/reports/kotlin-build/reaktor-build-2026-10-28-13-35-19-0.txt": [
+        "file",
+        "585e34d0821ba86ee9fc500357204cde8a93a5e4680691174aa38294656bedc6",
+        420
+      ],
+      "reaktor/build/reports/kotlin-build/reaktor-build-2026-10-28-13-35-45-0.txt": [
+        "file",
+        "fb5a00c213644a25e964fcf4785180f9115b9123bdf5a81a35f3592c7e52ab6a",
+        420
+      ],
+      "reaktor/build/reports/kotlin-build/reaktor-build-2026-10-28-13-36-11-0.txt": [
+        "file",
+        "2b827dc20bdbe15ac98dcea7fd7acfb7feedae267818a79014e8e8621938ba61",
+        420
+      ],
+      "reaktor/build/reports/problems/problems-report.html": [
+        "file",
+        "8715870f8875eb5dec65842377ea89eebb119f44c7326c7fe9b84c77ee143294",
+        420
+      ],
+      "reaktor/build/reports/profile/css/base-style.css": [
+        "file",
+        "e80e92985c9e56c3b3ecb437faf360042a7ff45fde849bf4e9f80fd4e0878743",
+        420
+      ],
+      "reaktor/build/reports/profile/css/style.css": [
+        "file",
+        "b868c03d8e29bde3760407a80e3cce917b2c395486d29fe3f230ef854eded43c",
+        420
+      ],
+      "reaktor/build/reports/profile/js/report.js": [
+        "file",
+        "3365e26776dbfa97b975163b467cc913ca5790b58027473758c8f8dad02e3a31",
+        420
+      ],
+      "reaktor/build/reports/profile/profile-2026-10-28-13-34-41.html": [
+        "file",
+        "9833aa01016a98c869dccb50c9e9edc8ec613ebe3bb6c651d71e5bf7a744736f",
+        420
+      ],
+      "reaktor/build/reports/profile/profile-2026-10-28-13-35-37.html": [
+        "file",
+        "73e5428e7762a1eaecdd35142e7a594eec41c7842dbd06d7f4f7beb729146a20",
+        420
+      ],
+      "reaktor/build/reports/profile/profile-2026-10-28-13-36-04.html": [
+        "file",
+        "29b13fbb59b14eb7acc8aaece3261bf770fe752eabaea437202515f6e1684ea2",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/META-INF/dependeasy.kotlin_module": [
+        "file",
+        "a0470c625d712998ebb7baa9e535c5d089e5f690fb2d9835dc8ae6f743ca207b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/DependeasyDslKt$sam$org_gradle_api_Action$0.class": [
+        "file",
+        "8bfcde3ca029858e89c339ce2ac87e6949f054c01b6898e1cf8f7697d2e4ac8b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/DependeasyDslKt.class": [
+        "file",
+        "9e781f13c524aff37a8b7b1470542de05813026b28c33a426f2a4fdf19f9606d",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/Version$SDK$AndroidJava.class": [
+        "file",
+        "f7be6a64157008c91c6bf4797fc10a33927e71f1ab897af95d70f56f3c580772",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/Version$SDK$Java.class": [
+        "file",
+        "84d6d20e9bc813e1d27c63697a272977e58af5562866c6dea06c02fd978d4974",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/Version$SDK.class": [
+        "file",
+        "837ec2b74df8930fef06955504d9600e43c036d0c277bcfcc8e7e4e1330980af",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/Version.class": [
+        "file",
+        "3fb70f6b6388f72db32e86562e130669c365dd7992febc81fcecbf3ff9e70b9c",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidConfigKt$defaults$1.class": [
+        "file",
+        "216da2812e80bac56042ba2395b0dfc5a423f6394db5bedb5ba97341d81b658b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidConfigKt.class": [
+        "file",
+        "0e2466a0928f7456ee0df6201c49d72d87bb6901d0c79caadef561d54d7537cc",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidConfiguration.class": [
+        "file",
+        "b1fd8587e7b959fee9cfa9c707e8815f264e9b116772301667fcf9ea0871e3e7",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidConfigurationKt$droid$3.class": [
+        "file",
+        "a92087c92184b1d36736c56a01dcaacb6c458b50931b8edd68815cf986ed7d2f",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidConfigurationKt$droid$4.class": [
+        "file",
+        "73d4547cbdd41abdc0f9f5276e3dd03234b0a5a73f4b496ba22189928449146f",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidConfigurationKt$droid$5.class": [
+        "file",
+        "acc249d86367b56e548bafbee4ffc04828bb9e1f0ecedf722ec11b909123aee7",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidConfigurationKt$droid$copyNativeLibs$1$1$1.class": [
+        "file",
+        "b962e65bd1b64d481feab05637ad8a4114a82a1f472b8849d43866bdaa0d63c5",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidConfigurationKt$droid$copyNativeLibs$1.class": [
+        "file",
+        "ce12b492dd6ada442126bba51987e862c2336bd4907cedae283351e5d5877e59",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidConfigurationKt.class": [
+        "file",
+        "ce2b5df74df766abef56f3bc4525ac3d2086f028b28b66bebf40fb418ea96717",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/android/AndroidDependenciesKt.class": [
+        "file",
+        "8b77af17a99d1e894f8abb2353624baaf037d4e8a7fddc72da0007ac2de6e471",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/common/CommonConfiguration.class": [
+        "file",
+        "0968b4092e90aa4373408b5305252361794ce735a8b0ceb21a97662592a7182b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/common/CommonConfigurationKt$common$2$2.class": [
+        "file",
+        "7d6fa23f7e05417b9f9bfe8c84ade3849862e8ecbee202ac4eb7b59512b6e90d",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/common/CommonConfigurationKt$common$2.class": [
+        "file",
+        "bbb6df8f4a2274870086f9e63b541dfdc7a804d909b15e436239c7f5e5775ab7",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/common/CommonConfigurationKt.class": [
+        "file",
+        "e12854d8ec36aabfdab2809dd2ffa4e75632d61a1a2dd48c3b271e7c58286845",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/common/Configuration.class": [
+        "file",
+        "f08a63f98cd090cc42065e3c0e8f4593e2de6606106b839ecd5f64dc4df96676",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/common/DependenciesKt.class": [
+        "file",
+        "0756685f056538782cc6d337309bd82b2906f6144d07b7a21d5e5bd529fe492c",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigure.class": [
+        "file",
+        "f29558aa867f2c9ae092e466d37c076ef3d8258da4ff45297186783b116b2f18",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$darwin$2.class": [
+        "file",
+        "e799b8e5143fccfd15d1f56714f3b41fb3a39512b7e37faa197a14d1a21f67b7",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$darwin$3$1$1.class": [
+        "file",
+        "7fe6ee36fe6b4f9de870eb6bd3adb71cc220b8a6a3179fe77df2bceec42b11ce",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$darwin$3$3$1$1$1.class": [
+        "file",
+        "16a6478891c89059afe455758429aac629de44baf949168c7605685794f8260f",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$darwin$3$3$1$1$2.class": [
+        "file",
+        "0091f4e40e3b904bfbafd4f1b6a72ce2405199fd80ee157f7fcdfb7f89fbd7c8",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$darwin$3$3$1.class": [
+        "file",
+        "2d2e3a32413756f794c755ae05baa847f727106c39d3580a03d92ae4ce8c117b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$darwin$3$3$3.class": [
+        "file",
+        "96e24e67f90cff93011dfa2689d3ff4b8768591713f0b93f4f597a05d68b5bf0",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$darwin$3$3$defTask$2$3.class": [
+        "file",
+        "114bef727d41fcb3a1820e0c067075f8c8ed347abb4ebcac72ec901ef73334bd",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$darwin$3$4.class": [
+        "file",
+        "7f24a01452b85087f082feaa6e9c90479b34e7bac22f8d60c126241d841d513c",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$darwin$5.class": [
+        "file",
+        "c8d78f0ad71fb05e6e4096a5f5d1f00a1e85976c57e6a90d2eb8cd22ac80771b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$inlined$sam$i$org_gradle_api_Action$0.class": [
+        "file",
+        "68c4732c33b2b5eafbac2015d71daba1bc7c573710573efd5f0cf9b6d4bbeb7e",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt$sam$org_gradle_api_Transformer$0.class": [
+        "file",
+        "356029d5e7139ccdde0c40e0c1e6a79578dfe0e471e64b66c0a1f7dd7c4c591b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinConfigureKt.class": [
+        "file",
+        "f7beffd9bd28954d6a1985f5f47cfe4f3426400169244130293e7bb10a181a69",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/darwin/DarwinDependenciesKt.class": [
+        "file",
+        "6b7c867967fab498f8055d14647f0818ab6979326f953a036f402755944b30a7",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/dependencies/DependencyKt$WhenMappings.class": [
+        "file",
+        "b2fa4fd03e59f0d9311644d807a136301b1bb0a67ccd4b767b8eab3483a39f23",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/dependencies/DependencyKt$useKoin$1$WhenMappings.class": [
+        "file",
+        "6c0acd9948d762ddbd17a100c53b87590d863fa42caf5d75081d42d84980dc26",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/dependencies/DependencyKt$useKoin$1.class": [
+        "file",
+        "472cb79dc0704743265e51f3c62cac7e043eea9d181a274be716977a3d1d01bf",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/dependencies/DependencyKt$withSources$1.class": [
+        "file",
+        "494207854ef151d06ea56f0691f186ab9d924c2428b48f87f0a20f77b8176ee9",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/dependencies/DependencyKt.class": [
+        "file",
+        "2e0ae381025c63d327b5c0a1cc1482e581d8575554ae71e382cda2c7968c2783",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/dependencies/Source.class": [
+        "file",
+        "cb3f606c3ce94456a99b0683439a31ebe27c74c4bebdfcf7d369bc3e882ed09d",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/native/AndroidNativeConfiguration.class": [
+        "file",
+        "f8ffeaa1424c7cf4e2e3e7beaeb234bd9fff8b9bc3db9ac5cba3e13cf7c61ffb",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/native/AndroidPrefabConfiguration.class": [
+        "file",
+        "f22eecc8a4c04ce85885f0175a740bf7ffaaeb28924fcd05b17f33b98c55a3d5",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/native/DarwinNativeConfiguration$defaultHeaders$lambda$0$$inlined$sortedBy$1.class": [
+        "file",
+        "efb3808d31c0cdef6e26b6d00dec2ef6d68e3bf264df0db948c2601050ccd699",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/native/DarwinNativeConfiguration.class": [
+        "file",
+        "18ea730774e8c0d6ec447de61e01405f1e9a2847d0f3643c155e8d420f6a082b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/native/NativeConfiguration.class": [
+        "file",
+        "6d4e5682116cbc5ddf8e343e7de06edb05f1b01b6d26bf796a03259454a00be0",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/native/NativeConfigurationKt$nativeProjectDependencies$collect$2$1.class": [
+        "file",
+        "7f50eb54bf06f34f2865d3b8829fb879db241300953804e57721b01b9c0078cc",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/native/NativeConfigurationKt$nativeProjectDependencies$collect$3.class": [
+        "file",
+        "7acc5c16fb7f2631e0a1ff8f814a91d21084af10c2da211eba033f3d4b13addb",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/native/NativeConfigurationKt.class": [
+        "file",
+        "8acbc7787d5655c4d5aec3be32877bec79fcccc63d0e3ee3d04e6626c4d723d4",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/native/NativeProjectDependency.class": [
+        "file",
+        "9010eb9b604c238dd2e062614c55bccf563cef87660d3d6e7379e4cfabc29047",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/ApplicationPlugin$wantsCrashlytics$2.class": [
+        "file",
+        "a7fc499aeff7891d69859d98f39f618cf7eeefc82dfd0a27bb3ead7bd30efd9a",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/ApplicationPlugin.class": [
+        "file",
+        "7c77346d5f8fca701b418350280a8c3fbe763f4dcf644bdc986a98662d799146",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/DependeasyExtension$Companion.class": [
+        "file",
+        "0988a4ecac42b8d54c663498e93692d70c97f31c9964cffdd972125d0243670d",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/DependeasyExtension.class": [
+        "file",
+        "5877525d7dd31f09defeed6e1bd2cac66fdff534bd00efe74543c00099a5ac9c",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/LibraryPlugin$apply$1$2$1.class": [
+        "file",
+        "fb90c08cb3f3e76aa35fc1e9a9cbf5ec6d28fa05e3b992df63c5eb908375f9bf",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/LibraryPlugin$inlined$sam$i$org_gradle_api_Action$0.class": [
+        "file",
+        "5ab09d409b95968bc4d5f1cd6f05e9c9958b3f14658371642faf3257eac66249",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/LibraryPlugin.class": [
+        "file",
+        "f26f279385d8d374851a83646d215cfcd97bf814fd74bc54e8f9c82d5c017d0d",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/LibraryPluginKt$applyMultiplatformPlugins$1.class": [
+        "file",
+        "5bcb7905ca4a1dd90ad34eb706d50b6d8c6c2e15d0b5a628026feccf53a99132",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/LibraryPluginKt.class": [
+        "file",
+        "2f7e4f019ce300d0d1121affbd91e9384b8ece192a0394073750695db5727768",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/plugins/SettingsPlugin.class": [
+        "file",
+        "59428524b364036263ca2263295973349d991eb580f8169dd6e56915d02110d2",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/server/ServerConfiguration.class": [
+        "file",
+        "70514b2038b28da22aad90e0c7bc494750481573dc776e5dd0e99aa0b46fb315",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/server/ServerConfigureKt$server$2.class": [
+        "file",
+        "b1e403ea182d6f5110b5b50b87473cfc6d16b334803b1e9686d3d85133d4bb3f",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/server/ServerConfigureKt.class": [
+        "file",
+        "0ebf493eaf3fefbc85662970a43f527b93bcf2ea20154fa8d4a63f84e98fc393",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/server/ServerDependenciesKt.class": [
+        "file",
+        "26ca28387a6070ad4b38ec5c22f8bdec5df00e1f3ca5a855ee5315810db10683",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/settings/NativeBootstrap$resolveFromPath$1.class": [
+        "file",
+        "e81038331001256d3235b3a67d11d15b0b5af236a1948178925249638dc33c37",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/settings/NativeBootstrap.class": [
+        "file",
+        "8e85ffe3212070e1161974389bf4367b8fc631862f96c1c5bf4640286fb4f1a9",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/AndroidCMakeKt.class": [
+        "file",
+        "f9c69c35b437eb44553e0546ecac75b6d58e73fb67356b20a329dda95068731c",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/CmakePlatform$Android.class": [
+        "file",
+        "c8b79f56d4bc9b3ccb83c19586665711ccaf28d69c3b0690ce4c65bce8294e58",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/CmakePlatform$Darwin.class": [
+        "file",
+        "dd7d562574d421d9c6a1279d09aff0987b517c48a7155d0ad77621b5cc197f63",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/CmakePlatform.class": [
+        "file",
+        "30961e11f9694319d452ef85dc5c02ac47d9e41f1bff3cac74e57304b16601b2",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/DarwinCMakeKt.class": [
+        "file",
+        "f8396e47936703a4be49fbaef90489af1512f0448234664b5fc53043b2d07f30",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/DocGenerationTaskKt.class": [
+        "file",
+        "f2cd9502718a06340b44e77256b5dbc3b0dad4d5609fac7518d13b30458b346b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/ExtractPrefabTask$extract$1$1$1.class": [
+        "file",
+        "66a4ba72ca056313890cabdd48fdf8690c42f228fbe1f2f596c0e19414050d08",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/ExtractPrefabTask$extract$1$1.class": [
+        "file",
+        "41d7ce18b3f49be8e8570d5a7d1c0c31a41137646114735108855113b6a0a3f5",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/ExtractPrefabTask$extract$1.class": [
+        "file",
+        "98e870ba7a7e6ecf277f218ae89d995deb8f454eec4701cfc8972e6db3b95109",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/ExtractPrefabTask.class": [
+        "file",
+        "40fc46db13e916e775f277db818040818989550646fb292ca94d032732e0f8ab",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/FrameworkSizeTaskKt$buildReleaseBinariesLogSizes$1.class": [
+        "file",
+        "03bcab1a249cca72656e2f324f09e251caf54a73bf56f31b83ae667219dbeb67",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/FrameworkSizeTaskKt$logSizes$1.class": [
+        "file",
+        "ac727e632a3bf21fb5533cce87feceac560d519c05552d7cf32ab4a619562cca",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/FrameworkSizeTaskKt.class": [
+        "file",
+        "0723c4f0d790237c6b6ace0ba0b8977af6e87d3e119fcf8d1e8179319128ad0d",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/GenerateNativeDefTask$generate$$inlined$sortedBy$1.class": [
+        "file",
+        "1b20316d6ca1dad7757d43570cf758f6ca8a3cf60537bdef71f412710bd8812f",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/GenerateNativeDefTask.class": [
+        "file",
+        "2421d048b5e0ac06b0ce039fcee38abd07dd00724f8f725d6b004d3634608cac",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/KotlinCMakeKt$inlined$sam$i$org_gradle_api_Action$0.class": [
+        "file",
+        "04f5d8f59666682349d8c7f4fb376071ac3cf7470e44b367da49b374444609fc",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/KotlinCMakeKt$kotlinCmake$1$1.class": [
+        "file",
+        "2b97f2d4bc74b4ce3ecfdda2318b97e39c521540a075d12fba71721eacf623b6",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/KotlinCMakeKt$kotlinCmake$1$6$1$1.class": [
+        "file",
+        "38ce26494ca68df01e07e7487874f4c79fefc74f8fa03353dc60af851b530f81",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/KotlinCMakeKt$kotlinCmake$1$6$1.class": [
+        "file",
+        "6fa53292e0fbccc76030d02d78029893e662d9de4bdc26dbbdf120898ea7c647",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/KotlinCMakeKt.class": [
+        "file",
+        "470b29510ba371b756a5216c0e19a1d9f9f4acd0b6fd074b810895613f236966",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/KotlinCMakeTask$build$1.class": [
+        "file",
+        "d87e85d7e9de10710616f4e7df6db8a93e8fa9aba521b3d3dca8eb70f25ead24",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/KotlinCMakeTask$build$2.class": [
+        "file",
+        "9fd4499b11d2d16d7e767055c1f1f716684795fad7df402263feeb1c7ea1d408",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/tasks/KotlinCMakeTask.class": [
+        "file",
+        "114c4b48edaec4808f099d1776c6a04d34a7afb0ce57915f5e8b3be506e2828b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/utils/AccessorsKt.class": [
+        "file",
+        "0446b5d1231702639fead74033a853292ebcf43d03fb1748545647a68cf041f8",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/utils/ModuleKt.class": [
+        "file",
+        "95cef607dcf59b5af7e025bbcb5c9289fde1396dcc0d98a438735cbb8c77e501",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/utils/UtilKt.class": [
+        "file",
+        "a663d0f067649b831f9a78c1266e991b158104943cc5af8b0b5b72466ad90cba",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/utils/exclude.class": [
+        "file",
+        "80359696e3c4d02686952cb4ec25f9f83a74859148dcc19b80ee421fe2199497",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/utils/module.class": [
+        "file",
+        "89c9951f3b7be232dc4c419a6703a55865a0a1bcb052a18f3121a0c2a0b16421",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfiguration.class": [
+        "file",
+        "ad918c3d43d311d8d2a7d7d5ecd2819578758edf3dddd75d8f45fd32bc6f94a8",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$inlined$sam$i$org_gradle_api_Action$0.class": [
+        "file",
+        "0b703343ac5ace3cfc3de0689e9662a1313d6d00e2d651c4ec67d595c2fa7168",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$2$3$1$1.class": [
+        "file",
+        "865a9627c4370e3d614e7e0be70752389eaaae6de689107482e8f8b266093caa",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$2$3$1$2.class": [
+        "file",
+        "7c222a0677cbff6c6cfe24ca3f6dc678c0709a0feab5beabdfcf4334640c0702",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$2$3$1$3.class": [
+        "file",
+        "5388454fff7e14147a1918e870a8ad11f9fbbab2dd77953c14e472e50b28f3aa",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$2$3$1.class": [
+        "file",
+        "72c03ffdd72bdf3223938a0f6927fc481e958e25c7e5cc68b6e5fb2a45b298ab",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$2$3$2.class": [
+        "file",
+        "d035ac0ae9990254e277f29ce85a93edc451fad4646a91bcb5ed540f031d1741",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$2$3$3.class": [
+        "file",
+        "0a3a731820c90d8467a0280010b45be8fb9957555c04a75c6fcc72bc541b41e1",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$2$4.class": [
+        "file",
+        "a03aec45551e3c630004922b09b77d322865c841eb262ea08c983e553e033f7c",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$3.class": [
+        "file",
+        "4f613c35c0df3da3d2e710ebec0ac2a1ad7be52560ba45b91fd7e7cf1d2e169c",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$5.class": [
+        "file",
+        "6fec5ee2d6b2b285403beec98830aca6208e2ce2abbbc5a84adcfd46de50b747",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$lambda$2$$inlined$the$1.class": [
+        "file",
+        "1d5efa44a4ad1563010412dad39207f2f503323e808e6007fd33c227b7db392f",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$lambda$2$$inlined$the$2.class": [
+        "file",
+        "6d20515360cf0e461ea5cd2886005325e47fc7bdfd7fe9da92c94f85b96af98f",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$lambda$2$$inlined$the$3.class": [
+        "file",
+        "1f8df2cf28419fd31eb3e309c54a80cd8c74e8a165ed247b1946ea6ce4196f6b",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$lambda$2$$inlined$the$4.class": [
+        "file",
+        "530657573c507fe3a962b21bb33200e16d9c4247f3dc98ff06a54a92a3905b79",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$lambda$2$$inlined$the$5.class": [
+        "file",
+        "78c486a85df27670c2ecadf7e709e3a6fd92e1bb412d4498a8ce790291ce6dc5",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt$web$lambda$2$$inlined$the$6.class": [
+        "file",
+        "08c3d69d91f4485a4f84785af573f23d2296424399f358032b38ff3bbeab831d",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebConfigureKt.class": [
+        "file",
+        "925500aa97e6dc43e25742759d8c9b36bec915a19a77a53f48efae3ed50b75b3",
+        420
+      ],
+      "reaktor/dependeasy/build/classes/kotlin/main/dev/shibasis/dependeasy/web/WebDependenciesKt.class": [
+        "file",
+        "a6401c22a239bd648323dec00351fc859a6b4ec280687d3f11d95d5800e9ecec",
+        420
+      ],
+      "reaktor/dependeasy/build/libs/dependeasy.jar": [
+        "file",
+        "1d7f613f7ae95ed0642e4f35627d8016e2b5580beacf12968990395cfeaab48a",
+        420
+      ],
+      "reaktor/dependeasy/build/resources/main/META-INF/gradle-plugins/dev.shibasis.dependeasy.application.properties": [
+        "file",
+        "1855f82f5960ed40ce0f155b0409b06c222d7ada7aa509386b563dd97ee1a3ff",
+        420
+      ],
+      "reaktor/dependeasy/build/resources/main/META-INF/gradle-plugins/dev.shibasis.dependeasy.library.properties": [
+        "file",
+        "0f0167dbdccd6627afcf345484ef53254a7e2843ad28429809119426f58c7228",
+        420
+      ],
+      "reaktor/dependeasy/build/resources/main/META-INF/gradle-plugins/dev.shibasis.dependeasy.settings.properties": [
+        "file",
+        "c6148ee93baffdf4d8abf76f51ab25a80b7ef264e194965d9247965f3db4ef04",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/META-INF/reaktor-core.kotlin_module": [
+        "file",
+        "37802b499f4bfbd7d0e1b3dcba8b0ffe2412de3342e8b0dfcb0fed90201ee907",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/actor/EnvKt.class": [
+        "file",
+        "116e8d4473f52d85d0d5db786a1941df875a30296395043506579606dc82a02a",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/InMemoryPermissionAdapter$request$1.class": [
+        "file",
+        "e928145aebd985cb4eb7e7d8a4b1de5079f903627dd25b089ac15317c1c153ef",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/InMemoryPermissionAdapter$requestOptional$1.class": [
+        "file",
+        "cb186614b4ce51cee7d93486e2c1200629014f991adc184fc2689d3d30bc8546",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/InMemoryPermissionAdapter.class": [
+        "file",
+        "30902e3aab6a7ae0c496799c7086b94a3051936eaac1475b41cf8f2dfc7f5c3d",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/NotificationPermissionClient.class": [
+        "file",
+        "65e5467bd0cb2169ea733ce04dc8a17c50b9d8c571823b3ee455865db09852b4",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/NotificationPermissionOptions$$serializer.class": [
+        "file",
+        "a9a1ad8bf973ee62cffd573954b404f9580707b9d7504f0a64b47f587503b7e8",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/NotificationPermissionOptions$Companion.class": [
+        "file",
+        "31d0f424e8fe40d864a972f836a699c0480c3dbeffa9b25995d68d6d6d879eea",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/NotificationPermissionOptions.class": [
+        "file",
+        "2e099d81cc3cdea4509d00a2097195bdcbcfe2bc5d6adcbdf85ec675d5eeaab6",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/NotificationPermissionState$Companion.class": [
+        "file",
+        "32544d4c3da5c5a7f8aeea233cbee61b2eddf16a9fd01795b813c2e711f7c562",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/NotificationPermissionState.class": [
+        "file",
+        "691712cd638b50656f20907d41aa1a853b2abdb8efee10d51b3d0f81cbe6d147",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/NotificationPermissionStatus$$serializer.class": [
+        "file",
+        "753aac534e6fa3619298f928549ad16ff01722a2a210073555ee60ab717805ca",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/NotificationPermissionStatus$Companion.class": [
+        "file",
+        "7f00917be34d83c7c6bfdb7492f618268e4ee9d7d05f4ab2f5fe85b7da9b059e",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/NotificationPermissionStatus.class": [
+        "file",
+        "f5e9ce649fbf3e9d11c7a1b45d0193fb17bbdbcdb2ad1101362e3c85b67134f7",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/Permission.class": [
+        "file",
+        "9e5b480fa1b0cd810a306b31dbcb3f54ac3cfcdeba130dcf44dda11b9095b205",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionAdapter$requestNotificationPermission$1.class": [
+        "file",
+        "906f8cf974e825ba7bc3e85355773c1f7ea3a5e5c63e18b9b4a9696ce96e89db",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionAdapter$requestOptional$1.class": [
+        "file",
+        "6c7f1be23c4579fcda00f3aa617b4c02308d26861b080f75734e8cd9afaa9c1d",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionAdapter.class": [
+        "file",
+        "f2d1186ea273f4be6bb72481ce5975a5c8c8720af09feea82dffd68126d4b63b",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionAdapterKt.class": [
+        "file",
+        "b8517f35f279dde03417ef337828fd6be811fee335efe047d1f6449018dd6636",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionPlatform$Companion.class": [
+        "file",
+        "20d536f9d05f939c5a9c39f40fe5afcaf62e987dd548488a5ae16c96487be37b",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionPlatform.class": [
+        "file",
+        "9d45a92277978325e11dfcf3ca4dab68cac44006d0c44118c38ffb0c39e9faed",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionResult$Denied$Forever.class": [
+        "file",
+        "0ecd4888dfe1258966ed9e0bd8770440dc04c6f818083b04e833f9eb605cb5c4",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionResult$Denied$Once.class": [
+        "file",
+        "b2b6dee41d17ba333bd3158f34090ce94eac40fb18c9ff77c5aa68548a34fa3c",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionResult$Denied$Unknown.class": [
+        "file",
+        "24206b30364277699a9ec295f5cbf353fde0f7300a7c3478ee6ebca5e1675d6c",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionResult$Denied.class": [
+        "file",
+        "271a4d094a151b95ff32d75ccfd000359de6dea8f2181a193ab8d9997a1b93a5",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionResult$Granted.class": [
+        "file",
+        "165145c668278318a46ba1a709aa0d8639c1129c2e946a501dffe8eaa9ef0f47",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/PermissionResult.class": [
+        "file",
+        "be9db14ad2723747895ca2603f3d03a09d7cdef8db798015892da4be67a525b0",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/StorageAdapter.class": [
+        "file",
+        "822fccb9fe3d337a0a885307c0daeb21af0b9bbc6090b6a236057fff41111050",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/adapters/StorageAdapterKt.class": [
+        "file",
+        "641781d6fa2b379eb92a4f064206f58ebba7e027a314ae070277b3709f7c5011",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/annotations/Expose.class": [
+        "file",
+        "963e2f41f6db71e4d31225a51c57e53964eab3587955abc613c4d301bdced5d9",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/capabilities/AtomicCapability.class": [
+        "file",
+        "cc9891a1f5a89b466969debf47a208a6eb2eaf42560427ce06f3a08e6d091b2b",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/capabilities/Capability.class": [
+        "file",
+        "63902643b4d84a9082ceb1dc06565988cfed540c5e97e5f66e3ffb06c0f98aaf",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/capabilities/CapabilityKt.class": [
+        "file",
+        "f6e3ec13942f4f718ddae7aa660f00c6c1e2c8be8746875faed603efc89de2f4",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability$async$1.class": [
+        "file",
+        "41756f1c633aee774af15002e52c42895434bf4398305ee0a4c232d458ba1462",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability$execute$2.class": [
+        "file",
+        "83c02774ce9827eab28746df21ba408e6dec5df69023182d31bc031b1d316a50",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability$invoke$1.class": [
+        "file",
+        "8ca22e86cc92fcf3d10e68c213c35ed04397309ed1a0b2bfbb2068084264a6e7",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability$launch$1.class": [
+        "file",
+        "693422c4cfad2443344a7f5c10bb74d202752be2589b4ac3b2c2c8ee990f6493",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability.class": [
+        "file",
+        "62ba80ef84872f417b7c71b3d4afc726d9bdfabe6950ff2737228e0fbfd66416",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/capabilities/ConcurrencyCapabilityImpl.class": [
+        "file",
+        "d2db38809560c6ef23a2bb3b63f10cc50dafd61880eca827f9a454a8defd463f",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Adapter$suspendedResult$1.class": [
+        "file",
+        "056a69db78fdf38f38ba65cb7bdf3a1ff7ce1c29d2d6262a50b99b92c93a84a2",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Adapter.class": [
+        "file",
+        "c169ce1c44a8650483948f62410b9f03037a811fd54dda444f8bbab109caf053",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/AtomicInt.class": [
+        "file",
+        "2062d6a0823f7229d2794342c1151bd313c9a9986641f5f5e6e3cec07a74d46d",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Component.class": [
+        "file",
+        "72afc7aafc6350c0aa1d6617353bebdb91bc5471bac7fc92d24a908856e79114",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEvent$BackPressed.class": [
+        "file",
+        "ca7d520839d56a06d0c1413ceb2a53edb363963d10d272041f731b8132a7923f",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEvent$Create.class": [
+        "file",
+        "11ce75ed89bcd9832580775006900c00136f29e26516268748e1fd9ddc5d587f",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEvent$Destroy.class": [
+        "file",
+        "686a246b6343dc076450e3229ae2b7ed02492fbff8157e2376718a62e78f851b",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEvent$KeyUp.class": [
+        "file",
+        "54360f461bd295b7f00d6c4e5ef7c3b3850d3fc12d798362232123e38c206c45",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEvent$Pause.class": [
+        "file",
+        "f7c4a115290497ddf52ea58a4b8368aa5e722b29da37ccd973d47aace9c87556",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEvent$Resume.class": [
+        "file",
+        "78db6b633dcb26eb36adaeff09ec408b6c9abe92f29b4d0197afcaee6287ec42",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEvent$Start.class": [
+        "file",
+        "bcb130475839523974b8fae6b135c228b4a21b21e0117ad0e956980c20799da6",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEvent$Stop.class": [
+        "file",
+        "b282ec7648116641bb5908ddcb08e8ffbc2fb2ae110659171404ee0c5e150bb6",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEvent.class": [
+        "file",
+        "91fc1f8a15c9437c9990f3a8ae943188d6d075e07ea08751f8bba101e1c70c9d",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/ControllerEventObserver.class": [
+        "file",
+        "799e876a50403ffd327a0a950668f484b1406825b29be067d05c52b94072b12c",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/CreateSlot.class": [
+        "file",
+        "6ba351159b09ebf93c52c221db0b8e35cdf0a19d7e879a9055842505fa7a3282",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/DependencyModule.class": [
+        "file",
+        "d4928419920475947bf2389ecd588d34bf35749cd4b446769b97b21aa5b73b3f",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Dispatch.class": [
+        "file",
+        "df7a6fb81a24b30e98c270ec7f6868d6f5b7ec05eaad29e10943efe0268ca494",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/DispatchGroup.class": [
+        "file",
+        "f0901d3640cb5090e37311bab39a067127d2ca753d692bb0d420b49d27819103",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/DispatchKt.class": [
+        "file",
+        "b4fc2e1d5cfb333c7cd41692ba1a52aad7f0e0744632e5a0b770f8c67a471f9b",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Feature.class": [
+        "file",
+        "f0bf800910794efc80c9db4c2e24ac07337774be5a9c93c008ddf66f2eb42177",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/JsonKt.class": [
+        "file",
+        "e6f775ed5435b98b628d47b1c0b11a0d166bc1b752d740f4cbc117cc4d10e31b",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Android.class": [
+        "file",
+        "e60a9ab3e761e3636090a10f768320ede372b6e1d3494d330cc6a867950c543a",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Browser.class": [
+        "file",
+        "d7b9de3ba8f5b44aec5c445f3cfe51313c2abcd677c616cb308d2fa4dffdaed0",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Client.class": [
+        "file",
+        "7ae4d7dbc836357632fe6847667fccfaa4d1d3feecb5d990f8e32bf969baf4ac",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Darwin.class": [
+        "file",
+        "317472682873701dd78658fcb580b4e8da35b9fb968acb1531fe3e8663db718d",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Desktop.class": [
+        "file",
+        "848c44d3f28147518cc3c0c1d045b2744522d2ec730481a4b5658d70d9b4f595",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Java.class": [
+        "file",
+        "398142a32f3898da8cdbbf6ec817e352a929ee2378b6b5ffd51674e6d8c28e47",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Native.class": [
+        "file",
+        "f2776badde17705cfd45eeec2dd59019111c196c4324774d23c1def5f4da3c59",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Server.class": [
+        "file",
+        "2f362572e2ffd1e4ca8586807b3054c67c9f51207cd7d44817a7882181cf4b4d",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Spring.class": [
+        "file",
+        "c6bc3c92c22cc68d03d47460ec02028f8331fb209442c446284a9115db9fb916",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Web.class": [
+        "file",
+        "e783932411d7fbc5656d6aa1e9a67001d495b06c24160423fd32bbd9fb2ea67f",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform$Worker.class": [
+        "file",
+        "e50453965d789b4b6fd4b294566ffbf89efeb81bb242b1c563dcfddd99edd6a2",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/Platform.class": [
+        "file",
+        "87d64525b71ede774abefbbe8bc938ab759637fe84698428655b207630310a4c",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/WeakRef.class": [
+        "file",
+        "db91540c52881e698fc1aabeec2441e5052fe61e4c1cb1dd0805b5ad7d167938",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/db/CurrentTimestamp.class": [
+        "file",
+        "f6f41668a2b80710cc20effbe25fd1cf18012774f021cdadba8580ec93980d84",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/db/KotlinInstantWithTimeZoneColumnType.class": [
+        "file",
+        "939c61b3aa22c6576000328d6f4eb224d5531cb13859e555280d5f821baecf9a",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/db/KotlinInstantWithTimeZoneColumnTypeKt.class": [
+        "file",
+        "0f1a3bb03cef3d00e95fd9eaa50a9b771f810c777c560b2e93d82c316a9adefc",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/db/PointData.class": [
+        "file",
+        "1e5228d752a2083957963579b4eafdb91ffa95016038364c74e8f0fccf62312b",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/framework/db/PointDataColumnType.class": [
+        "file",
+        "0622a0fd635a6fa15115c8ba4bc9182d79e33da01d687133f70acc317815d103",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/network/ErrorMessage$$serializer.class": [
+        "file",
+        "85f1f0e05bf8ef7e2fbe74d053960d8993510c826df15b7fde0d08166722ee91",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/network/ErrorMessage$Companion.class": [
+        "file",
+        "3116ab43a3f41cab10a5b46b295241e2bcac89b093a1369cef5e248bc3716fd3",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/network/ErrorMessage.class": [
+        "file",
+        "5f2098f9c767aa01e8ed7f57d6df145c74aa6ba1b74cbae17d594ce031dd685d",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/network/StatusCode$Companion.class": [
+        "file",
+        "6d8997de8940fd22da4d150b9e64c5db3d6beb383dbbe9fae4ee765619c2179d",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/network/StatusCode.class": [
+        "file",
+        "1fec65dfeaaa066397bfbe5bec60107c36246f7d8baef345eda0f0ad330cc709",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Companion$REDIRECT$1.class": [
+        "file",
+        "fda66dfd3b96986889c6032db9bcf27db092359a19a8a12de407d9c9a49a39a1",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Companion$TOMBSTONE$1.class": [
+        "file",
+        "5e4a72f25250be1d4a0bf8564697aac3db6632c1ab229a7fc1ee7d38ab8bfdbb",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Companion.class": [
+        "file",
+        "f2e744cf53674563876c3c1562b0747dbdcb4049daa493c744aea10add4a084b",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Entry.class": [
+        "file",
+        "09a0ddbc1fca300c8a6ceda96feb57ac6d5e883b7b275f9970cbd39f7cb79a59",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Table.class": [
+        "file",
+        "11a40a40aafd2f81ce2931870189fc0ba10ec8098a3aaccc03b048c016520e23",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/structs/ConcurrentHashMap.class": [
+        "file",
+        "9eaa330a77ef64ea8205ec509fd41fbb14e1e5f80da0c7eea81dbb90f5cda40f",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/structs/StripedCounter.class": [
+        "file",
+        "ba53280a399b2b9e6ced34d51d43313e46340d2027877ae880ded0ce14621f49",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/utils/LoggingKt.class": [
+        "file",
+        "f2501b8ea14e8d0b86547d0f9be230ae247573676f4a7e48f1e964a8d74f6244",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/utils/Quad$$serializer.class": [
+        "file",
+        "905e085992102d7cd1a22d9519038a131713956a74b498a3f2e181fb3d4df208",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/utils/Quad$Companion.class": [
+        "file",
+        "1ba8b2c0d4e1e9561be4d901e89406ff0bcbcb07086ea4d4f0fdfecfd7fba4f6",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/utils/Quad.class": [
+        "file",
+        "aff752a3ec0b0cb3c5831d91802b0a49c7f6143e11007d66d2c452a6338e0299",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/utils/ResultKt$read$2$1.class": [
+        "file",
+        "30f74731972c2fc95077f30e8cc057f502b085e58d3f6fdcb914961a2e0d6d73",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/utils/ResultKt.class": [
+        "file",
+        "522d3689705460f581ecdd127a3003114373f00663faf883f57eac37d8da046d",
+        420
+      ],
+      "reaktor/reaktor-core/build/classes/kotlin/jvm/main/dev/shibasis/reaktor/core/utils/TimeKt.class": [
+        "file",
+        "a7cf19b908d2d9fddfc3a1f33b6dc15bc24a1a772956f4207636265bf8986ccb",
+        420
+      ],
+      "reaktor/reaktor-core/build/libs/reaktor-core-jvm-2026.10.28-SNAPSHOT.jar": [
+        "file",
+        "21fd70357f1af94da3699ef38600c0f49c7965056a93c8a7c06f7185c2f4360a",
+        420
+      ],
+      "reaktor/reaktor-core/js/dist/index.d.ts": [
+        "file",
+        "6d304aaaeaa6f189b05de95c038cbc4ae63e39a297069b4cae0401650ce4f8c1",
+        420
+      ],
+      "reaktor/reaktor-core/js/dist/index.js": [
+        "file",
+        "07e515ddb5d12b9dfceff86984cbd6e794c2ed0cab0117c1ddbfd3015eb67a7f",
+        420
+      ],
+      "reaktor/reaktor-web/js/dist/browser-entry.d.ts": [
+        "file",
+        "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+        420
+      ],
+      "reaktor/reaktor-web/js/dist/browser-entry.js": [
+        "file",
+        "ef56cf77bc3356f17cb070aff30d873ea39558f5864d0224f4590d1df9ee0e10",
+        420
+      ],
+      "reaktor/reaktor-web/js/dist/index.d.ts": [
+        "file",
+        "86ec6556c05ad11ec817c8e3894f7ac3b22992ecff41fd90bc916da93b1ecbc5",
+        420
+      ],
+      "reaktor/reaktor-web/js/dist/index.js": [
+        "file",
+        "a38b1890acdea76dfb1cc175c6df1eab7a3a18a530997e5dd75c5c601bfeb08b",
+        420
+      ]
+    },
+    "taskOutcomes": {
+      "FROM-CACHE": 0,
+      "UP-TO-DATE": 8,
+      "FAILED": 0,
+      "SKIPPED": 4,
+      "NO-SOURCE": 3
+    },
+    "taskOutcomesScope": "Console matches; nested builds may report a task more than once",
+    "implementationInvalidations": 0,
+    "inputsUnchanged": true,
+    "finished": "2026-10-28T08:06:18.291590+00:00"
+  },
+  "totalMeasuredSeconds": 25.444100375000062,
+  "endToEndSeconds": 25.44409929199992,
+  "diagnostics": {
+    "variant": "september",
+    "phase": "plain-warm",
+    "resetSeconds": 1.083000142898527e-06,
+    "observerEnabled": false,
+    "treatment": "plain",
+    "before": {
+      "epoch": 1793174755.727942,
+      "host": "Shibasiss-MacBook-Pro.local",
+      "machine": "arm64",
+      "load": [
+        2.583984375,
+        2.77587890625,
+        3.72998046875
+      ],
+      "diskFreeBytes": 38287581184,
+      "hardware": "hw.model: MacBookPro18,1\nhw.ncpu: 10\nhw.memsize: 34359738368\n",
+      "memory": "The system has 34359738368 (2097152 pages with a page size of 16384).\nSystem-wide memory free percentage: 88%\n",
+      "cpuSamples": "Processes: 550 total, 3 running, 547 sleeping, 4044 threads \n2026/10/28 13:35:56\nLoad Avg: 2.46, 2.75, 3.71 \nCPU usage: 2.74% user, 10.50% sys, 86.75% idle \nSharedLibs: 916M resident, 158M data, 125M linkedit.\nMemRegions: 731282 total, 12G resident, 370M private, 2548M shared.\nPhysMem: 26G used (2656M wired, 1147M compressor), 5571M unused.\nVM: 282T vsize, 6144M framework vsize, 1709216(0) swapins, 2693393(0) swapouts.\nNetworks: packets: 1472746770/358G in, 1152165482/431G out.\nDisks: 368036576/5634G read, 113883343/2010G written.\n\n\nProcesses: 550 total, 4 running, 546 sleeping, 4043 threads \n2026/10/28 13:35:57\nLoad Avg: 2.46, 2.75, 3.71 \nCPU usage: 3.92% user, 3.49% sys, 92.58% idle \nSharedLibs: 916M resident, 158M data, 125M linkedit.\nMemRegions: 0 total, 0B resident, 370M private, 2548M shared.\nPhysMem: 26G used (2682M wired, 1147M compressor), 5568M unused.\nVM: 282T vsize, 6144M framework vsize, 1709216(0) swapins, 2693393(0) swapouts.\nNetworks: packets: 1472746798/358G in, 1152165509/431G out.\nDisks: 368036576/5634G read, 113883343/2010G written.\n\n\n",
+      "jvmProcesses": [
+        "36146   0.0 7115680    01:13:39 /Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin/java",
+        "73922  10.9 712688 04-19:05:03 /Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin/java",
+        "73953   0.1 1091008 04-19:05:00 /Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin/java",
+        "73987   7.8 109872 04-19:04:56 /Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin/java"
+      ],
+      "compilerProcesses": []
+    },
+    "after": {
+      "epoch": 1793174774.781781,
+      "host": "Shibasiss-MacBook-Pro.local",
+      "machine": "arm64",
+      "load": [
+        3.44580078125,
+        2.93994140625,
+        3.76513671875
+      ],
+      "diskFreeBytes": 38286270464,
+      "hardware": "hw.model: MacBookPro18,1\nhw.ncpu: 10\nhw.memsize: 34359738368\n",
+      "memory": "The system has 34359738368 (2097152 pages with a page size of 16384).\nSystem-wide memory free percentage: 88%\n",
+      "cpuSamples": "Processes: 552 total, 2 running, 550 sleeping, 3962 threads \n2026/10/28 13:36:15\nLoad Avg: 3.45, 2.94, 3.77 \nCPU usage: 2.77% user, 10.27% sys, 86.94% idle \nSharedLibs: 916M resident, 158M data, 125M linkedit.\nMemRegions: 731053 total, 12G resident, 371M private, 2549M shared.\nPhysMem: 26G used (2682M wired, 1147M compressor), 5564M unused.\nVM: 283T vsize, 6144M framework vsize, 1709224(0) swapins, 2693393(0) swapouts.\nNetworks: packets: 1472924345/358G in, 1152310303/431G out.\nDisks: 368036614/5634G read, 113885219/2010G written.\n\n\nProcesses: 550 total, 3 running, 547 sleeping, 3958 threads \n2026/10/28 13:36:16\nLoad Avg: 3.25, 2.91, 3.75 \nCPU usage: 2.13% user, 4.70% sys, 93.15% idle \nSharedLibs: 916M resident, 158M data, 125M linkedit.\nMemRegions: 0 total, 0B resident, 371M private, 2549M shared.\nPhysMem: 26G used (2682M wired, 1147M compressor), 5576M unused.\nVM: 282T vsize, 6144M framework vsize, 1709224(0) swapins, 2693393(0) swapouts.\nNetworks: packets: 1472924398/358G in, 1152310349/431G out.\nDisks: 368036614/5634G read, 113885219/2010G written.\n\n\n",
+      "jvmProcesses": [
+        "36146   0.0 7115680    01:13:58 /Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin/java",
+        "73922   0.2 712688 04-19:05:22 /Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin/java",
+        "73953   1.7 1091008 04-19:05:19 /Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin/java",
+        "73987   0.3 109872 04-19:05:15 /Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin/java"
+      ],
+      "compilerProcesses": []
+    }
+  },
+  "artifactVerification": [
+    {
+      "path": "reaktor-core/build/libs/reaktor-core-jvm-2026.10.28-SNAPSHOT.jar",
+      "bytes": 151124,
+      "sha256": "21fd70357f1af94da3699ef38600c0f49c7965056a93c8a7c06f7185c2f4360a",
+      "classes": {
+        "dev/shibasis/reaktor/core/actor/EnvKt.class": "116e8d4473f52d85d0d5db786a1941df875a30296395043506579606dc82a02a",
+        "dev/shibasis/reaktor/core/adapters/InMemoryPermissionAdapter$request$1.class": "e928145aebd985cb4eb7e7d8a4b1de5079f903627dd25b089ac15317c1c153ef",
+        "dev/shibasis/reaktor/core/adapters/InMemoryPermissionAdapter$requestOptional$1.class": "cb186614b4ce51cee7d93486e2c1200629014f991adc184fc2689d3d30bc8546",
+        "dev/shibasis/reaktor/core/adapters/InMemoryPermissionAdapter.class": "30902e3aab6a7ae0c496799c7086b94a3051936eaac1475b41cf8f2dfc7f5c3d",
+        "dev/shibasis/reaktor/core/adapters/NotificationPermissionClient.class": "65e5467bd0cb2169ea733ce04dc8a17c50b9d8c571823b3ee455865db09852b4",
+        "dev/shibasis/reaktor/core/adapters/NotificationPermissionOptions$$serializer.class": "a9a1ad8bf973ee62cffd573954b404f9580707b9d7504f0a64b47f587503b7e8",
+        "dev/shibasis/reaktor/core/adapters/NotificationPermissionOptions$Companion.class": "31d0f424e8fe40d864a972f836a699c0480c3dbeffa9b25995d68d6d6d879eea",
+        "dev/shibasis/reaktor/core/adapters/NotificationPermissionOptions.class": "2e099d81cc3cdea4509d00a2097195bdcbcfe2bc5d6adcbdf85ec675d5eeaab6",
+        "dev/shibasis/reaktor/core/adapters/NotificationPermissionState$Companion.class": "32544d4c3da5c5a7f8aeea233cbee61b2eddf16a9fd01795b813c2e711f7c562",
+        "dev/shibasis/reaktor/core/adapters/NotificationPermissionState.class": "691712cd638b50656f20907d41aa1a853b2abdb8efee10d51b3d0f81cbe6d147",
+        "dev/shibasis/reaktor/core/adapters/NotificationPermissionStatus$$serializer.class": "753aac534e6fa3619298f928549ad16ff01722a2a210073555ee60ab717805ca",
+        "dev/shibasis/reaktor/core/adapters/NotificationPermissionStatus$Companion.class": "7f00917be34d83c7c6bfdb7492f618268e4ee9d7d05f4ab2f5fe85b7da9b059e",
+        "dev/shibasis/reaktor/core/adapters/NotificationPermissionStatus.class": "f5e9ce649fbf3e9d11c7a1b45d0193fb17bbdbcdb2ad1101362e3c85b67134f7",
+        "dev/shibasis/reaktor/core/adapters/Permission.class": "9e5b480fa1b0cd810a306b31dbcb3f54ac3cfcdeba130dcf44dda11b9095b205",
+        "dev/shibasis/reaktor/core/adapters/PermissionAdapter$requestNotificationPermission$1.class": "906f8cf974e825ba7bc3e85355773c1f7ea3a5e5c63e18b9b4a9696ce96e89db",
+        "dev/shibasis/reaktor/core/adapters/PermissionAdapter$requestOptional$1.class": "6c7f1be23c4579fcda00f3aa617b4c02308d26861b080f75734e8cd9afaa9c1d",
+        "dev/shibasis/reaktor/core/adapters/PermissionAdapter.class": "f2d1186ea273f4be6bb72481ce5975a5c8c8720af09feea82dffd68126d4b63b",
+        "dev/shibasis/reaktor/core/adapters/PermissionAdapterKt.class": "b8517f35f279dde03417ef337828fd6be811fee335efe047d1f6449018dd6636",
+        "dev/shibasis/reaktor/core/adapters/PermissionPlatform$Companion.class": "20d536f9d05f939c5a9c39f40fe5afcaf62e987dd548488a5ae16c96487be37b",
+        "dev/shibasis/reaktor/core/adapters/PermissionPlatform.class": "9d45a92277978325e11dfcf3ca4dab68cac44006d0c44118c38ffb0c39e9faed",
+        "dev/shibasis/reaktor/core/adapters/PermissionResult$Denied$Forever.class": "0ecd4888dfe1258966ed9e0bd8770440dc04c6f818083b04e833f9eb605cb5c4",
+        "dev/shibasis/reaktor/core/adapters/PermissionResult$Denied$Once.class": "b2b6dee41d17ba333bd3158f34090ce94eac40fb18c9ff77c5aa68548a34fa3c",
+        "dev/shibasis/reaktor/core/adapters/PermissionResult$Denied$Unknown.class": "24206b30364277699a9ec295f5cbf353fde0f7300a7c3478ee6ebca5e1675d6c",
+        "dev/shibasis/reaktor/core/adapters/PermissionResult$Denied.class": "271a4d094a151b95ff32d75ccfd000359de6dea8f2181a193ab8d9997a1b93a5",
+        "dev/shibasis/reaktor/core/adapters/PermissionResult$Granted.class": "165145c668278318a46ba1a709aa0d8639c1129c2e946a501dffe8eaa9ef0f47",
+        "dev/shibasis/reaktor/core/adapters/PermissionResult.class": "be9db14ad2723747895ca2603f3d03a09d7cdef8db798015892da4be67a525b0",
+        "dev/shibasis/reaktor/core/adapters/StorageAdapter.class": "822fccb9fe3d337a0a885307c0daeb21af0b9bbc6090b6a236057fff41111050",
+        "dev/shibasis/reaktor/core/adapters/StorageAdapterKt.class": "641781d6fa2b379eb92a4f064206f58ebba7e027a314ae070277b3709f7c5011",
+        "dev/shibasis/reaktor/core/annotations/Expose.class": "963e2f41f6db71e4d31225a51c57e53964eab3587955abc613c4d301bdced5d9",
+        "dev/shibasis/reaktor/core/capabilities/AtomicCapability.class": "cc9891a1f5a89b466969debf47a208a6eb2eaf42560427ce06f3a08e6d091b2b",
+        "dev/shibasis/reaktor/core/capabilities/Capability.class": "63902643b4d84a9082ceb1dc06565988cfed540c5e97e5f66e3ffb06c0f98aaf",
+        "dev/shibasis/reaktor/core/capabilities/CapabilityKt.class": "f6e3ec13942f4f718ddae7aa660f00c6c1e2c8be8746875faed603efc89de2f4",
+        "dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability$async$1.class": "41756f1c633aee774af15002e52c42895434bf4398305ee0a4c232d458ba1462",
+        "dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability$execute$2.class": "83c02774ce9827eab28746df21ba408e6dec5df69023182d31bc031b1d316a50",
+        "dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability$invoke$1.class": "8ca22e86cc92fcf3d10e68c213c35ed04397309ed1a0b2bfbb2068084264a6e7",
+        "dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability$launch$1.class": "693422c4cfad2443344a7f5c10bb74d202752be2589b4ac3b2c2c8ee990f6493",
+        "dev/shibasis/reaktor/core/capabilities/ConcurrencyCapability.class": "62ba80ef84872f417b7c71b3d4afc726d9bdfabe6950ff2737228e0fbfd66416",
+        "dev/shibasis/reaktor/core/capabilities/ConcurrencyCapabilityImpl.class": "d2db38809560c6ef23a2bb3b63f10cc50dafd61880eca827f9a454a8defd463f",
+        "dev/shibasis/reaktor/core/framework/Adapter$suspendedResult$1.class": "056a69db78fdf38f38ba65cb7bdf3a1ff7ce1c29d2d6262a50b99b92c93a84a2",
+        "dev/shibasis/reaktor/core/framework/Adapter.class": "c169ce1c44a8650483948f62410b9f03037a811fd54dda444f8bbab109caf053",
+        "dev/shibasis/reaktor/core/framework/AtomicInt.class": "2062d6a0823f7229d2794342c1151bd313c9a9986641f5f5e6e3cec07a74d46d",
+        "dev/shibasis/reaktor/core/framework/Component.class": "72afc7aafc6350c0aa1d6617353bebdb91bc5471bac7fc92d24a908856e79114",
+        "dev/shibasis/reaktor/core/framework/ControllerEvent$BackPressed.class": "ca7d520839d56a06d0c1413ceb2a53edb363963d10d272041f731b8132a7923f",
+        "dev/shibasis/reaktor/core/framework/ControllerEvent$Create.class": "11ce75ed89bcd9832580775006900c00136f29e26516268748e1fd9ddc5d587f",
+        "dev/shibasis/reaktor/core/framework/ControllerEvent$Destroy.class": "686a246b6343dc076450e3229ae2b7ed02492fbff8157e2376718a62e78f851b",
+        "dev/shibasis/reaktor/core/framework/ControllerEvent$KeyUp.class": "54360f461bd295b7f00d6c4e5ef7c3b3850d3fc12d798362232123e38c206c45",
+        "dev/shibasis/reaktor/core/framework/ControllerEvent$Pause.class": "f7c4a115290497ddf52ea58a4b8368aa5e722b29da37ccd973d47aace9c87556",
+        "dev/shibasis/reaktor/core/framework/ControllerEvent$Resume.class": "78db6b633dcb26eb36adaeff09ec408b6c9abe92f29b4d0197afcaee6287ec42",
+        "dev/shibasis/reaktor/core/framework/ControllerEvent$Start.class": "bcb130475839523974b8fae6b135c228b4a21b21e0117ad0e956980c20799da6",
+        "dev/shibasis/reaktor/core/framework/ControllerEvent$Stop.class": "b282ec7648116641bb5908ddcb08e8ffbc2fb2ae110659171404ee0c5e150bb6",
+        "dev/shibasis/reaktor/core/framework/ControllerEvent.class": "91fc1f8a15c9437c9990f3a8ae943188d6d075e07ea08751f8bba101e1c70c9d",
+        "dev/shibasis/reaktor/core/framework/ControllerEventObserver.class": "799e876a50403ffd327a0a950668f484b1406825b29be067d05c52b94072b12c",
+        "dev/shibasis/reaktor/core/framework/CreateSlot.class": "6ba351159b09ebf93c52c221db0b8e35cdf0a19d7e879a9055842505fa7a3282",
+        "dev/shibasis/reaktor/core/framework/DependencyModule.class": "d4928419920475947bf2389ecd588d34bf35749cd4b446769b97b21aa5b73b3f",
+        "dev/shibasis/reaktor/core/framework/Dispatch.class": "df7a6fb81a24b30e98c270ec7f6868d6f5b7ec05eaad29e10943efe0268ca494",
+        "dev/shibasis/reaktor/core/framework/DispatchGroup.class": "f0901d3640cb5090e37311bab39a067127d2ca753d692bb0d420b49d27819103",
+        "dev/shibasis/reaktor/core/framework/DispatchKt.class": "b4fc2e1d5cfb333c7cd41692ba1a52aad7f0e0744632e5a0b770f8c67a471f9b",
+        "dev/shibasis/reaktor/core/framework/Feature.class": "f0bf800910794efc80c9db4c2e24ac07337774be5a9c93c008ddf66f2eb42177",
+        "dev/shibasis/reaktor/core/framework/JsonKt.class": "e6f775ed5435b98b628d47b1c0b11a0d166bc1b752d740f4cbc117cc4d10e31b",
+        "dev/shibasis/reaktor/core/framework/Platform$Android.class": "e60a9ab3e761e3636090a10f768320ede372b6e1d3494d330cc6a867950c543a",
+        "dev/shibasis/reaktor/core/framework/Platform$Browser.class": "d7b9de3ba8f5b44aec5c445f3cfe51313c2abcd677c616cb308d2fa4dffdaed0",
+        "dev/shibasis/reaktor/core/framework/Platform$Client.class": "7ae4d7dbc836357632fe6847667fccfaa4d1d3feecb5d990f8e32bf969baf4ac",
+        "dev/shibasis/reaktor/core/framework/Platform$Darwin.class": "317472682873701dd78658fcb580b4e8da35b9fb968acb1531fe3e8663db718d",
+        "dev/shibasis/reaktor/core/framework/Platform$Desktop.class": "848c44d3f28147518cc3c0c1d045b2744522d2ec730481a4b5658d70d9b4f595",
+        "dev/shibasis/reaktor/core/framework/Platform$Java.class": "398142a32f3898da8cdbbf6ec817e352a929ee2378b6b5ffd51674e6d8c28e47",
+        "dev/shibasis/reaktor/core/framework/Platform$Native.class": "f2776badde17705cfd45eeec2dd59019111c196c4324774d23c1def5f4da3c59",
+        "dev/shibasis/reaktor/core/framework/Platform$Server.class": "2f362572e2ffd1e4ca8586807b3054c67c9f51207cd7d44817a7882181cf4b4d",
+        "dev/shibasis/reaktor/core/framework/Platform$Spring.class": "c6bc3c92c22cc68d03d47460ec02028f8331fb209442c446284a9115db9fb916",
+        "dev/shibasis/reaktor/core/framework/Platform$Web.class": "e783932411d7fbc5656d6aa1e9a67001d495b06c24160423fd32bbd9fb2ea67f",
+        "dev/shibasis/reaktor/core/framework/Platform$Worker.class": "e50453965d789b4b6fd4b294566ffbf89efeb81bb242b1c563dcfddd99edd6a2",
+        "dev/shibasis/reaktor/core/framework/Platform.class": "87d64525b71ede774abefbbe8bc938ab759637fe84698428655b207630310a4c",
+        "dev/shibasis/reaktor/core/framework/WeakRef.class": "db91540c52881e698fc1aabeec2441e5052fe61e4c1cb1dd0805b5ad7d167938",
+        "dev/shibasis/reaktor/core/framework/db/CurrentTimestamp.class": "f6f41668a2b80710cc20effbe25fd1cf18012774f021cdadba8580ec93980d84",
+        "dev/shibasis/reaktor/core/framework/db/KotlinInstantWithTimeZoneColumnType.class": "939c61b3aa22c6576000328d6f4eb224d5531cb13859e555280d5f821baecf9a",
+        "dev/shibasis/reaktor/core/framework/db/KotlinInstantWithTimeZoneColumnTypeKt.class": "0f1a3bb03cef3d00e95fd9eaa50a9b771f810c777c560b2e93d82c316a9adefc",
+        "dev/shibasis/reaktor/core/framework/db/PointData.class": "1e5228d752a2083957963579b4eafdb91ffa95016038364c74e8f0fccf62312b",
+        "dev/shibasis/reaktor/core/framework/db/PointDataColumnType.class": "0622a0fd635a6fa15115c8ba4bc9182d79e33da01d687133f70acc317815d103",
+        "dev/shibasis/reaktor/core/network/ErrorMessage$$serializer.class": "85f1f0e05bf8ef7e2fbe74d053960d8993510c826df15b7fde0d08166722ee91",
+        "dev/shibasis/reaktor/core/network/ErrorMessage$Companion.class": "3116ab43a3f41cab10a5b46b295241e2bcac89b093a1369cef5e248bc3716fd3",
+        "dev/shibasis/reaktor/core/network/ErrorMessage.class": "5f2098f9c767aa01e8ed7f57d6df145c74aa6ba1b74cbae17d594ce031dd685d",
+        "dev/shibasis/reaktor/core/network/StatusCode$Companion.class": "6d8997de8940fd22da4d150b9e64c5db3d6beb383dbbe9fae4ee765619c2179d",
+        "dev/shibasis/reaktor/core/network/StatusCode.class": "1fec65dfeaaa066397bfbe5bec60107c36246f7d8baef345eda0f0ad330cc709",
+        "dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Companion$REDIRECT$1.class": "fda66dfd3b96986889c6032db9bcf27db092359a19a8a12de407d9c9a49a39a1",
+        "dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Companion$TOMBSTONE$1.class": "5e4a72f25250be1d4a0bf8564697aac3db6632c1ab229a7fc1ee7d38ab8bfdbb",
+        "dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Companion.class": "f2e744cf53674563876c3c1562b0747dbdcb4049daa493c744aea10add4a084b",
+        "dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Entry.class": "09a0ddbc1fca300c8a6ceda96feb57ac6d5e883b7b275f9970cbd39f7cb79a59",
+        "dev/shibasis/reaktor/core/structs/ConcurrentHashMap$Table.class": "11a40a40aafd2f81ce2931870189fc0ba10ec8098a3aaccc03b048c016520e23",
+        "dev/shibasis/reaktor/core/structs/ConcurrentHashMap.class": "9eaa330a77ef64ea8205ec509fd41fbb14e1e5f80da0c7eea81dbb90f5cda40f",
+        "dev/shibasis/reaktor/core/structs/StripedCounter.class": "ba53280a399b2b9e6ced34d51d43313e46340d2027877ae880ded0ce14621f49",
+        "dev/shibasis/reaktor/core/utils/LoggingKt.class": "f2501b8ea14e8d0b86547d0f9be230ae247573676f4a7e48f1e964a8d74f6244",
+        "dev/shibasis/reaktor/core/utils/Quad$$serializer.class": "905e085992102d7cd1a22d9519038a131713956a74b498a3f2e181fb3d4df208",
+        "dev/shibasis/reaktor/core/utils/Quad$Companion.class": "1ba8b2c0d4e1e9561be4d901e89406ff0bcbcb07086ea4d4f0fdfecfd7fba4f6",
+        "dev/shibasis/reaktor/core/utils/Quad.class": "aff752a3ec0b0cb3c5831d91802b0a49c7f6143e11007d66d2c452a6338e0299",
+        "dev/shibasis/reaktor/core/utils/ResultKt$read$2$1.class": "30f74731972c2fc95077f30e8cc057f502b085e58d3f6fdcb914961a2e0d6d73",
+        "dev/shibasis/reaktor/core/utils/ResultKt.class": "522d3689705460f581ecdd127a3003114373f00663faf883f57eac37d8da046d",
+        "dev/shibasis/reaktor/core/utils/TimeKt.class": "a7cf19b908d2d9fddfc3a1f33b6dc15bc24a1a772956f4207636265bf8986ccb"
+      }
+    }
+  ],
+  "collectedFiles": 233,
+  "collectedBytes": 1315456
+}

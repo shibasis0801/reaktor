@@ -1,0 +1,119 @@
+{
+  "run": "20261028-170338-edd87d5d-reaktor",
+  "command": "./gradlew -p dependeasy :gradle:test --tests dev.shibasis.dependeasy.DslEntryPointsTest :model:test --console=plain",
+  "result": "Success, exit 0; 3m31 Gradle. Normal copy-back and publication completed with no copy_error, 256.39s publication queue.",
+  "reports": {
+    "dsl": [
+      {
+        "path": "dependeasy/gradle/build/test-results/test/TEST-dev.shibasis.dependeasy.DslEntryPointsTest.xml",
+        "suite": {
+          "name": "dev.shibasis.dependeasy.DslEntryPointsTest",
+          "tests": "6",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "timestamp": "2026-10-28T11:34:26.626Z"
+        },
+        "sha256": "8a163a67e366743b0afaa40010c1f2adc83ec4c0d11c885d04ed930693fcae6b"
+      }
+    ],
+    "model": [
+      {
+        "path": "dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.BuildModelReaderTest.xml",
+        "suite": {
+          "name": "dev.shibasis.dependeasy.model.BuildModelReaderTest",
+          "tests": "9",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "timestamp": "2026-10-28T11:34:01.453Z"
+        },
+        "sha256": "ee9e35c51d569be65262e38fe436e9a0f4055ee5ae59019fb4479dce80270237"
+      },
+      {
+        "path": "dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.CoverageKernelTest.xml",
+        "suite": {
+          "name": "dev.shibasis.dependeasy.model.CoverageKernelTest",
+          "tests": "3",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "timestamp": "2026-10-28T11:34:08.132Z"
+        },
+        "sha256": "89212d3035bfcb6b94244799085f8601d4a4922c44baba8c9dc387935d7fa793"
+      },
+      {
+        "path": "dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.DeviceExchangeKernelTest.xml",
+        "suite": {
+          "name": "dev.shibasis.dependeasy.model.DeviceExchangeKernelTest",
+          "tests": "3",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "timestamp": "2026-10-28T11:34:08.153Z"
+        },
+        "sha256": "2cf578ac98551ccb5a01589e287b42585600f698ed583083a52c7bf8f8968a54"
+      },
+      {
+        "path": "dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.DeviceFlowKernelTest.xml",
+        "suite": {
+          "name": "dev.shibasis.dependeasy.model.DeviceFlowKernelTest",
+          "tests": "3",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "timestamp": "2026-10-28T11:34:19.325Z"
+        },
+        "sha256": "c47c81b96e3b97ec535d8936730a2bcae0f1596eb6333ab0fe0907d27a4a291f"
+      },
+      {
+        "path": "dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.KotlinPackageKernelTest.xml",
+        "suite": {
+          "name": "dev.shibasis.dependeasy.model.KotlinPackageKernelTest",
+          "tests": "2",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "timestamp": "2026-10-28T11:34:20.930Z"
+        },
+        "sha256": "41938a5d62e7fde8d1d7da0700e3ea6f2b70c0685c2b336a70d62965d7cd24fd"
+      },
+      {
+        "path": "dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.PackageScriptsKernelTest.xml",
+        "suite": {
+          "name": "dev.shibasis.dependeasy.model.PackageScriptsKernelTest",
+          "tests": "1",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "timestamp": "2026-10-28T11:34:20.953Z"
+        },
+        "sha256": "dde8438a6bf471b1e3ba33b4e8bf106926bbbd3135bcbb85273d8cff5ff57fa3"
+      },
+      {
+        "path": "dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.PhysicalRunnerTest.xml",
+        "suite": {
+          "name": "dev.shibasis.dependeasy.model.PhysicalRunnerTest",
+          "tests": "3",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "timestamp": "2026-10-28T11:34:20.959Z"
+        },
+        "sha256": "4f4dad712f42c190244408ae27d7b265bbfdfc26fd365f0f69cce9b56894dec2"
+      },
+      {
+        "path": "dependeasy/model/build/test-results/test/TEST-dev.shibasis.dependeasy.model.WorkerTopologyKernelTest.xml",
+        "suite": {
+          "name": "dev.shibasis.dependeasy.model.WorkerTopologyKernelTest",
+          "tests": "1",
+          "failures": "0",
+          "errors": "0",
+          "skipped": "0",
+          "timestamp": "2026-10-28T11:34:21.441Z"
+        },
+        "sha256": "f71b80471b4be6cd364732bf8350b7d2399e214b86db43f4936aab7c402d1bc9"
+      }
+    ]
+  }
+}

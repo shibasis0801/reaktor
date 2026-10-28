@@ -59,6 +59,9 @@ abstract class AuthAdapter<Controller>(
 
     protected val providers = hashMapOf<UserProvider, AuthProvider<AuthAdapter<*>, out AuthProviderUser>>()
 
+    /** Providers configured by this platform at application startup. */
+    val supportedProviders: Set<UserProvider> get() = providers.keys.toSet()
+
     fun register(provider: UserProvider, authProvider: AuthProvider<AuthAdapter<*>, out AuthProviderUser>) {
         providers[provider] = authProvider
     }
@@ -344,8 +347,8 @@ abstract class AuthAdapter<Controller>(
         transitionTo(AuthLoginState.CachingSession(response.context.principalId))
         try {
             val authStore = AuthObjectStore(db)
-            authStore.setContext(response.context.toAuthContext())
-            authStore.setTokenSet(response.tokenSet)
+            authStore.setSession(response.context.toAuthContext(), response.tokenSet.accessToken,
+                response.tokenSet.refreshToken, response.tokenSet.accessTokenExpiresAtEpochMillis())
         } catch (e: Exception) {
             Logger.e(e) { "Failed to cache auth tokens to ObjectDatabase" }
             throw e
@@ -365,11 +368,7 @@ abstract class AuthAdapter<Controller>(
         Feature.Database?.let(::AuthObjectStore)
 
     private suspend fun AuthObjectStore.setTokenSet(tokenSet: TokenSet) {
-        setAccessToken(tokenSet.accessToken)
-        tokenSet.accessTokenExpiresAtEpochMillis()?.let {
-            setAccessTokenExpiresAtEpochMillis(it)
-        } ?: clearAccessTokenExpiresAtEpochMillis()
-        tokenSet.refreshToken?.let { setRefreshToken(it) }
+        setTokens(tokenSet.accessToken, tokenSet.refreshToken, tokenSet.accessTokenExpiresAtEpochMillis())
     }
 
     private suspend fun AuthObjectStore.getFreshAccessToken(): String? {

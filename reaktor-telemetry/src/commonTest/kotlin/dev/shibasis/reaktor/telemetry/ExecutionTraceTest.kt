@@ -29,7 +29,8 @@ class ExecutionTraceTest {
         assertEquals(ParentCoverage.Missing, trace.steps.first { it.span.spanId == "orphan" }.parentCoverage)
         assertEquals(1, trace.missingParents)
         assertEquals(1, trace.cancellations)
-        assertEquals(1, trace.failures)
+        assertEquals(0, trace.failures)
+        assertEquals(1, trace.refusals)
     }
 
     @Test fun spanIdsAreScopedToTraceAndMalformedDurationsDoNotPoisonTimeline() {

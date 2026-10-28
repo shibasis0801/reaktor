@@ -1,0 +1,43 @@
+{
+  "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildHandles.kt": {
+    "matches": true,
+    "actualSha256": "5c27f55bc7e957f26035f769683685c90463be4d0c6114081b12136cb62f89a6"
+  },
+  "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildModelKernel.kt": {
+    "matches": true,
+    "actualSha256": "6cc5190e9fe42f7111cebdc1d27be84db96aa761314d5ee27076ed5f5ef408b4"
+  },
+  "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/Library.kt": {
+    "matches": true,
+    "actualSha256": "1770aacc18c5ae03dc0201cf6ba77c67892f231982cb36cfa8699d6cb4f0628a"
+  },
+  "dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt": {
+    "matches": true,
+    "actualSha256": "32cf75724268f7ca18cef2355f1b8718e22e3c2822185090a2cbd18762a6304f"
+  },
+  "gradle.properties": {
+    "matches": true,
+    "actualSha256": "40103d487bdba7369ecaffab7a700fb332b25bbba85be5caec8f8800f07546e0"
+  },
+  "embeddedHldMatchesSource": true,
+  "KernelSpec.kt": {
+    "paths": [
+      "dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/KernelSpec.kt"
+    ],
+    "diff": ""
+  },
+  "KotlinAnalysisCompile.kt": {
+    "paths": [
+      "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt"
+    ],
+    "diff": ""
+  },
+  "DeclarationSites.kt": {
+    "paths": [
+      "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/DeclarationSites.kt"
+    ],
+    "diff": ""
+  },
+  "staged": " .../shibasis/reaktor/conductor/cli/HangarSkill.kt  |   1 -\n .../conductor/workspace/AgentMemoryStore.kt        |  76 --------------\n .../reaktor/conductor/workspace/TaskContextTest.kt | 110 ---------------------\n 3 files changed, 187 deletions(-)\n",
+  "checkedAt": "2026-10-28 final local verification"
+}

@@ -1,0 +1,157 @@
+{
+  "commits": {
+    "reaktor": "793c92f088cf6806ff9fe921ef4f6b6c6db55016",
+    "bestbuds": "d60d80892ebe324a737d23948745267ebda26dc2",
+    "tools": "88504da170243a0ad37f05bded26beed6439546a"
+  },
+  "testkit": {
+    "fullPluginTests": 74,
+    "modelTests": 4,
+    "buildSrcTests": 2,
+    "finalFocusedPluginTests": 9,
+    "failures": 0,
+    "java21Classes": 1015,
+    "configurationCache": true
+  },
+  "consumerTests": {
+    "cliAndKernelReceiptVisibility": true,
+    "selectedToolingTests": 23,
+    "failures": 0
+  },
+  "plans": [
+    {
+      "repo": "bestbuds",
+      "node": {
+        "build": "bestbuds",
+        "project": ":",
+        "name": "appChecks"
+      },
+      "tasks": 773,
+      "configurationMillis": 14131,
+      "planDigest": "89f2d30188f7bd776355bf884f804c12ff23716f69d48232f70e2bfd0548e234",
+      "byteIdentical": true,
+      "comparison": {
+        "missing": [],
+        "extra": []
+      }
+    },
+    {
+      "repo": "bestbuds",
+      "node": {
+        "build": "bestbuds",
+        "project": ":",
+        "name": "iosFrameworks"
+      },
+      "tasks": 811,
+      "configurationMillis": 12141,
+      "planDigest": "0397a9441d79b6f78e175334154291c6f6e255613c277699c8d18117d50bebb9",
+      "byteIdentical": true,
+      "comparison": {
+        "missing": [],
+        "extra": []
+      }
+    },
+    {
+      "repo": "bestbuds",
+      "node": {
+        "build": "bestbuds",
+        "project": ":",
+        "name": "workerBundle"
+      },
+      "tasks": 558,
+      "configurationMillis": 11719,
+      "planDigest": "704b236ca95f0722a35852bc1af435cea1e118ac1bbd9139deaee73c9d0cff2d",
+      "byteIdentical": true,
+      "comparison": {
+        "missing": [],
+        "extra": []
+      }
+    },
+    {
+      "repo": "reaktor",
+      "node": {
+        "build": "reaktor",
+        "project": ":",
+        "name": "mobileInteropChecks"
+      },
+      "tasks": 378,
+      "configurationMillis": 8495,
+      "planDigest": "f1c03f99ef9b5d5d44f26807436084a2f05ffb4f64191f8e65c3cf9da5aeb591",
+      "byteIdentical": true,
+      "comparison": {
+        "missing": [],
+        "extra": []
+      }
+    },
+    {
+      "repo": "manna",
+      "node": {
+        "build": "Manna",
+        "project": ":",
+        "name": "buildAll"
+      },
+      "tasks": 3913,
+      "configurationMillis": 15602,
+      "planDigest": "a315d8e43d191a2fc7f04ee66d8aa8d0b064349795452aff61315a8db459d32d",
+      "byteIdentical": true,
+      "comparison": {
+        "missing": [],
+        "extra": []
+      }
+    }
+  ],
+  "cli": {
+    "run": "run-1791943575614-1",
+    "status": "Succeeded",
+    "receipt": "33f62dff-96fb-4e46-833d-5e6d42a503f7",
+    "operationRunId": "run-1791943575614-1",
+    "requestedNodes": [
+      {
+        "build": "bestbuds",
+        "project": ":",
+        "name": "jsChecks"
+      }
+    ],
+    "taskCount": 576,
+    "artifacts": [
+      {
+        "id": "gradle-33f62dff-96fb-4e46-833d-5e6d42a503f7",
+        "kind": "gradle-receipt",
+        "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/33f62dff-96fb-4e46-833d-5e6d42a503f7.json",
+        "summary": "Gradle run receipt, SHA-256 a9a8b1b68fe9e5a4a59ccd2b7093a5a502a76b98af74ccf5ff0cd66a5a6abcde",
+        "sensitive": false,
+        "verified": true
+      }
+    ],
+    "structuredProgressVisible": true
+  },
+  "xcode": {
+    "run": "9dc9ff26-c924-43df-a8d7-02cf95e572a8",
+    "status": "Succeeded",
+    "requestedNodes": [
+      {
+        "build": "bestbuds",
+        "project": ":app",
+        "name": "embedAndSignAppleFrameworkForXcode"
+      }
+    ],
+    "taskCount": 762,
+    "receiptDigest": "c2afd874982d60178984e34b2989a90ca47a622f5eaed660760eb7be27e7953d",
+    "visibleInHangarState": true,
+    "phase": "existing project shell phase with actual iPhoneOS build settings; no signing or upload"
+  },
+  "routing": {
+    "fixtureTests": 4,
+    "selectedBuildSubcases": 8,
+    "privateRequestTransferBounded": true,
+    "failedRunsReturnPublicMetadata": true
+  },
+  "apiProbe": "wp5-api-probe.json",
+  "notes": [
+    "Planning uses public selected TaskExecutionGraph because Gradle 9.7 emits no Tooling API task events for dry-run tasks; bootstrap events are retained separately.",
+    "Public dependency edges outside the selected graph are retained explicitly.",
+    "macOS APP_ICON_<pid> UI metadata does not change context identity.",
+    "Compiled root buildSrc inputs now invalidate models.",
+    "No external publication, deployment or TestFlight upload."
+  ]
+}

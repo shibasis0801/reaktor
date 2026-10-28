@@ -1,0 +1,17 @@
+{
+  "epoch": 1793196375.218582,
+  "command": "python3 -m unittest test_remote_router test_remote_build test_remote_retention",
+  "exitCode": 0,
+  "tests": 69,
+  "seconds": 5.74,
+  "behavior": {
+    "automaticCurrentFiles": 5,
+    "manualHistoricalFiles": 95,
+    "oldWorkerHistoryPreserved": true,
+    "successAndFailureQualified": true
+  },
+  "sourceSha256": {
+    "remote-dev": "895dff31baf23b31dea48dab324314c878a01241694c9f6b787308ade8f1b561",
+    "test_remote_router.py": "086b8cd56274b33255f536e0825bf0a9254732bbe5bb03ac6a8d29c98052fa19"
+  }
+}

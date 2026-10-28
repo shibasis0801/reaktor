@@ -1,16 +1,20 @@
 package dev.shibasis.reaktor.devtools
 
 import dev.shibasis.reaktor.core.framework.json
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -49,6 +53,35 @@ class DevToolsHostReplacementTest {
         }
     }
 
+    @Test
+    fun replacingAClientClosesItsBlockingSocketBeforeWaitingForTheReader() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val agent = DevToolsAgent(
+            applicationId = "ai.bestbuds.blocking",
+            displayName = "Blocking socket",
+            revision = AgentRevision("test", "debug", "run-1", "digest-1"),
+        )
+        agent.start()
+        val transport = HeldTransport()
+        val host = DevToolsHost(agent, transport, scope)
+        val listening = host.start()
+        val first = transport.connect(blockUntilClosed = true)
+        try {
+            first.awaitFrame<CarrierFrame.Hello>()
+            withTimeout(4_000) { first.readStarted.await() }
+            val second = transport.connect()
+            second.awaitFrame<CarrierFrame.Hello>()
+            assertEquals(CarrierFrame.Goodbye.Replaced, first.awaitFrame<CarrierFrame.Goodbye>().reason)
+            second.deliver(CarrierFrame.Ping("replacement"))
+            assertEquals("replacement", second.awaitFrame<CarrierFrame.Ping>().token)
+        } finally {
+            first.close()
+            host.stop()
+            withTimeout(4_000) { listening.join() }
+            agent.stop()
+        }
+    }
+
     private class HeldTransport : AgentTransport {
         private val waiting = Channel<PeerChannel>(Channel.UNLIMITED)
         override val description = "held in memory"
@@ -59,19 +92,24 @@ class DevToolsHostReplacementTest {
             waiting.close()
         }
 
-        fun connect(): HeldChannel = HeldChannel().also { waiting.trySend(it) }
+        fun connect(blockUntilClosed: Boolean = false): HeldChannel = HeldChannel(blockUntilClosed).also { waiting.trySend(it) }
     }
 
-    private class HeldChannel : PeerChannel {
+    private class HeldChannel(blockUntilClosed: Boolean = false) : PeerChannel {
         private val inbox = Channel<String>(Channel.UNLIMITED)
+        private val closed = CountDownLatch(1)
+        val readStarted = CompletableDeferred<Unit>()
         val frames = CopyOnWriteArrayList<CarrierFrame>()
-        override val incoming: Flow<String> = inbox.receiveAsFlow()
+        override val incoming: Flow<String> = if (blockUntilClosed) flow<String> {
+            readStarted.complete(Unit)
+            closed.await()
+        }.flowOn(Dispatchers.IO) else inbox.receiveAsFlow()
 
         override suspend fun send(message: String) {
             (json.decodeFromString<PeerEnvelope>(message) as? PeerEnvelope.Carrier)?.let { frames += it.frame }
         }
 
-        override suspend fun close() = Unit
+        override suspend fun close() { closed.countDown() }
 
         suspend fun deliver(frame: CarrierFrame) {
             inbox.send(json.encodeToString<PeerEnvelope>(PeerEnvelope.Carrier(Uuid.random().toString(), frame)))

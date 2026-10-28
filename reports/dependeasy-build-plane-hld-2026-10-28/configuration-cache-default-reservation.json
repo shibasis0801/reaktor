@@ -1,0 +1,8 @@
+{
+  "queueSeconds": 60.960008,
+  "snapshots": {
+    "base": "59ab384158821ffc0492865dd51b15c5130edd3574cafa5a89b57bfedd0ad331",
+    "incremental": "01200cf48a42a9ee68e057b9eb4b5e765f18c8cdab95d09a1e6df9812c39e5c8"
+  },
+  "scriptSha256": "b7c68b6117b4b58c12b647d5a663de5e309434cdf3bfd4a67ab59ad775a03764"
+}
