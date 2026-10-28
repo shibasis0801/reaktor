@@ -111,58 +111,7 @@ object CodeAccess {
     const val Authenticated = "authenticated"
     const val Anonymous = "anonymous"
 
-    val starter: String = """
-        model
-          schema 1.1
-
-        type user
-
-        type service_account
-
-        type agent
-
-        type role
-          relations
-            define assignee: [user, service_account, agent, role#assignee]
-
-        type permission
-          relations
-            define holder: [user, service_account, agent, role#assignee]
-
-        type graph
-          relations
-            define parent: [graph]
-            define owner: [user, role#assignee] or owner from parent
-            define operator: [user, service_account, agent, role#assignee] or owner or operator from parent
-            define viewer: [user, service_account, agent, role#assignee] or operator or viewer from parent
-
-        type service
-          relations
-            define graph: [graph]
-            define owner: [user, role#assignee] or owner from graph
-            define caller: [user, user:*, service_account, service_account:*, agent, agent:*, role#assignee, permission#holder] or owner or operator from graph
-            define viewer: [user, service_account, agent, role#assignee] or caller or viewer from graph
-
-        type operation
-          relations
-            define service: [service]
-            define invoker: [user, user:*, service_account, service_account:*, agent, agent:*, role#assignee, permission#holder]
-            define blocked: [user, service_account, agent, role#assignee]
-            define can_invoke: (invoker or caller from service) but not blocked
-
-        type node
-          relations
-            define graph: [graph]
-            define owner: [user, role#assignee] or owner from graph
-            define caller: [user, user:*, service_account, service_account:*, agent, agent:*, role#assignee, permission#holder] or owner or operator from graph
-
-        type port
-          relations
-            define node: [node]
-            define invoker: [user, user:*, service_account, service_account:*, agent, agent:*, role#assignee, permission#holder]
-            define blocked: [user, service_account, agent, role#assignee]
-            define can_invoke: (invoker or caller from node) but not blocked
-    """.trimIndent() + "\n"
+    val starter: String by lazy { CodeAccessModel.dsl() }
 
     fun key(name: String): String = name.trim().map { if (it.isWhitespace() || it == '#' || it == '@') '-' else it }.joinToString("")
         .let { if (it.isEmpty() || it == "*") "all" else it }
