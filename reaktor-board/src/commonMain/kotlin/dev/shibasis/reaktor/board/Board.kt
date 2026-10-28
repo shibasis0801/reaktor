@@ -42,7 +42,19 @@ data class BoardItem(
     val note: String = "",
     val dag: Boolean = true,
     val footer: String = "",
+    val within: String = "",
+    val relations: List<BoardRelation> = emptyList(),
 )
+
+@Serializable
+data class BoardRelation(val to: String, val label: String)
+
+data class BoardRect(val x: Double, val y: Double, val width: Double, val height: Double) {
+    val right: Double get() = x + width
+    val bottom: Double get() = y + height
+    val middle: Double get() = y + height / 2
+    fun contains(at: BoardPoint) = at.x >= x && at.x <= right && at.y >= y && at.y <= bottom
+}
 
 @Serializable
 data class BoardWords(
@@ -77,6 +89,8 @@ object BoardGeometry {
     const val RankTop = 80.0
     const val RankPitch = 400.0
     const val RowPitch = 228.0
+    const val FramePad = 28.0
+    const val FrameHead = 70.0
 }
 
 @Serializable
@@ -146,6 +160,30 @@ fun List<BoardItem>.ranked(): Map<String, BoardPoint> {
         rows[rank] = row + 1
         item.key to BoardPoint(BoardGeometry.RankLeft + rank * BoardGeometry.RankPitch, BoardGeometry.RankTop + row * BoardGeometry.RowPitch)
     }
+}
+
+fun cardRect(at: BoardPoint) = BoardRect(at.x, at.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight)
+
+fun List<BoardItem>.frames(at: Map<String, BoardPoint>): Map<String, BoardRect> {
+    val keys = mapTo(HashSet()) { it.key }
+    val inside = filter { it.within.isNotEmpty() && it.within != it.key && it.within in keys }.groupBy { it.within }
+    val rects = LinkedHashMap<String, BoardRect>()
+    fun rect(key: String, seen: Set<String>): BoardRect? {
+        rects[key]?.let { return it }
+        if (key in seen) return null
+        val parts = inside[key].orEmpty().mapNotNull { part -> if (part.key in inside) rect(part.key, seen + key) else at[part.key]?.let(::cardRect) }
+        if (parts.isEmpty()) return null
+        val left = parts.minOf { it.x } - BoardGeometry.FramePad
+        val top = parts.minOf { it.y } - BoardGeometry.FrameHead
+        return BoardRect(left, top, parts.maxOf { it.right } + BoardGeometry.FramePad - left, parts.maxOf { it.bottom } + BoardGeometry.FramePad - top).also { rects[key] = it }
+    }
+    inside.keys.forEach { rect(it, emptySet()) }
+    return rects
+}
+
+fun List<BoardItem>.depth(key: String): Int {
+    val byKey = associateBy { it.key }
+    return generateSequence(byKey[key]) { item -> byKey[item.within]?.takeIf { it.key != item.key } }.take(size + 1).count() - 1
 }
 
 fun List<BoardItem>.wouldCycle(item: String, prerequisite: String): Boolean {

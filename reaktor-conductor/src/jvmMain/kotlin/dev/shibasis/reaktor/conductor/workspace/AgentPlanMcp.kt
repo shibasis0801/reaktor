@@ -71,8 +71,8 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             AgentWorkspaceJson.encodeToJsonElement(PlanAttached.serializer(),
                 workspace.attachPlan(args.thread(person), items, args.text("profile") ?: error("Choose a profile"), args.text("note").orEmpty(), person))
         },
-        McpTool("agent_plan_shape", "Read plans as one reaktor-graph: a graph per plan, a node per item wired to what it waits on and what it belongs to, " +
-            "and a node per Reaktor link (file, symbol, module, graph, operation, flow) it touches. Without threads it reads every plan.",
+        McpTool("agent_plan_shape", "Read plans as one reaktor-graph: a graph per plan with a child graph per component, a node per item wired to what it waits on and what it relates to, " +
+            "and a node per Reaktor link (file, symbol, module, graph, operation, flow) it touches, naming the atlas call that explores it. Without threads it reads every plan.",
             api.shapeGraph.request.descriptor.jsonSchema(), true, true) { args ->
             args.only("threads")
             val wanted = (args["threads"] as? JsonArray)?.map { it.jsonPrimitive.content }

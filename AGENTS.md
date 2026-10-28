@@ -17,10 +17,12 @@ bar (§2) governs here too.
   answer across this repository in one call; `../bestbuds/AGENTS.md` §1 items 2 and 10 give the calls.
   Claude Code sessions here start with the workspace map (`.claude/settings.json`); in Codex, run
   `reaktor-agent atlas query '{preset: "map"}'` with your first command.
-- Draw your plan before your first change, with the `kernel` tool's `plan.write`, and keep its
-  statuses current; `../bestbuds/AGENTS.md` §1 item 9 gives the calls. Hangar shows the plan as the
-  thread's DAG, Kanban board and graph, and people edit it there; `plan.read` with `since` lists
-  their changes.
+- Draw your design before your first change, with the `kernel` tool's `plan.write`: components
+  named after the modules, graphs and services the change touches, their tasks, checks and
+  decisions, the relations between them and refs found with `atlas_query`. Keep its statuses
+  current as you work; `../bestbuds/AGENTS.md` §1 item 9 gives the calls. Hangar shows the plan as
+  the thread's DAG, Kanban board and graph, and people edit it there; `plan.read` with `since`
+  lists their changes.
 
 ## 2. The graph is the foundation
 

@@ -21,7 +21,8 @@ object PlanMirror {
         return WorkPlan(thread, line(title), items = items, createdBy = by, createdAt = startedAt ?: at, updatedAt = at)
     }
 
-    fun ops(plan: WorkPlan): List<PlanOp> = plan.items.map { PlanOp.Add(it.title, it.id, it.detail, it.status, it.parent, it.after, it.refs, it.at) }
+    fun ops(plan: WorkPlan): List<PlanOp> = plan.items.map { PlanOp.Add(it.title, it.id, it.detail, it.status, it.parent, it.after, it.refs, it.at, it.kind) } +
+        plan.items.flatMap { item -> item.relations.map { PlanOp.Relate(item.id, it.to, it.label) } }
 
     private fun PlanState.status() = when (this) {
         PlanState.Pending -> PlanStatus.Todo

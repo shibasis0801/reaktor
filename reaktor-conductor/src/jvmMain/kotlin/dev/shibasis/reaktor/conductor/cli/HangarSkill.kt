@@ -72,12 +72,15 @@ object HangarSkill {
         |
         |## 2. Draw the plan
         |
-        |Call `plan.write` with `title`, the request in a few words, `goal`, what done looks like, and `ops`:
+        |Draw a detailed high-level design, not a to-do list. Call `plan.write` with `title`, the request in a few words, `goal`, what done looks like, and `ops`:
         |
-        |- `{"type": "add", "key", "title", "detail", "after": ["<key>"], "parent": "<key>", "refs": ["<link>"]}` for each item, in order.
-        |  - `key` is a short name that later items use in `after` and `parent`.
-        |  - `parent` makes an item part of a larger one. Size each top-level part so one agent can take it with everything under it.
-        |  - `refs` link the item into Reaktor: `file:<path>`, `symbol:<Type.member>`, `module:<:path>`, `graph:<name>`, `op:<operation>`, `flow:<id>`, `task:<id>` or `url:<link>`.
+        |- `{"type": "add", "key", "kind": "Component", "title", "detail", "refs": ["<link>"]}` for each area the request touches, named after its module, graph, service or screen. A real request has 3 to 8.
+        |- `{"type": "add", "key", "title", "detail", "parent": "<component>", "after": ["<key>"], "refs": ["<link>"]}` for the work inside each component, in order.
+        |  - `kind` is `Task`, the default, `Check` for a test or flow that proves the component, or `Decision` for a choice the person makes.
+        |  - `key` is a short name that later items use in `after`, `parent` and relations.
+        |  - `parent` puts an item inside a component or a larger item, and a component's status follows its parts. Size each component so one agent can take it with everything under it.
+        |  - `refs` link the item into Reaktor: `file:<path>`, `symbol:<Type.member>`, `module:<:path>`, `graph:<name>`, `op:<operation>`, `flow:<id>`, `task:<id>` or `url:<link>`. Find them with `atlas_query` rather than guessing.
+        |- `{"type": "relate", "from": "<key>", "to": "<key>", "label": "calls" | "reads" | "writes" | "renders" | "serves"}` for what passes between components.
         |- Keep landing, pushing, pull requests, deploys and production writes as items for the person.
         |${vendor.thread}
         |
