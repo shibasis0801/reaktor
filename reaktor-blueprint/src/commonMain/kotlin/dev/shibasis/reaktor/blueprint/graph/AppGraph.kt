@@ -49,6 +49,8 @@ sealed interface GraphSource {
     }
 
     data class Device(override val id: String, override val label: String) : GraphSource
+
+    data class Declared(override val id: String, override val label: String) : GraphSource
 }
 
 data class Wire(

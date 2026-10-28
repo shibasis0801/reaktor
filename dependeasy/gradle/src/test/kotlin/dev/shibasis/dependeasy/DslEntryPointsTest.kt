@@ -674,7 +674,12 @@ class DslEntryPointsTest {
         assertTrue(exported.tasks.none { it.path.contains("compileKotlin") || it.path.endsWith("Proto") })
         val model = BuildModelReader.read(directory)
         val outputs = model.nodes.filter { it.id.project == ":library" && it.id.name.startsWith("output") }
-        assertEquals(setOf("outputGeneratedContract", "outputModuleBuild", "outputVerificationResultsJvm", "outputWorkspaceCompletionBuild", "outputWorkspaceCompletionVerify"), outputs.map { it.id.name }.toSet())
+        assertEquals(setOf("outputGeneratedContract", "outputJvmLibrary", "outputModuleBuild", "outputVerificationResultsJvm", "outputWorkspaceCompletionBuild", "outputWorkspaceCompletionVerify"), outputs.map { it.id.name }.toSet())
+        val archive = outputs.single { it.id.name == "outputJvmLibrary" }
+        assertEquals(listOf(":library:jar"), (archive.invocation as Invocation.Gradle).tasks)
+        val routing = BuildModelKernel.routing(model, "jvmFixture")
+        assertEquals("jvm", routing.taskFamilies[":library:jar"])
+        assertEquals(archive.outputs.single().paths, routing.publicOutputs[":library:jar"])
         val declaration = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("library(") } + 1
         assertTrue(outputs.filter { it.id.name != "outputGeneratedContract" }.all { it.declaredAt?.file == "library/build.gradle.kts" && it.declaredAt?.line == declaration })
         val explicit = directory.resolve("library/build.gradle.kts").readLines().indexOfFirst { it.trimStart().startsWith("publishOutput(") } + 1
@@ -842,6 +847,9 @@ class DslEntryPointsTest {
             kotlinAnalysis()
             check(configurations.getByName("kotlinAnalysisCompiler").state == org.gradle.api.artifacts.Configuration.State.UNRESOLVED)
             check(configurations.getByName("kotlinAnalysisRuntime").state == org.gradle.api.artifacts.Configuration.State.UNRESOLVED)
+            for (name in listOf("kotlinAnalysisCompiler", "kotlinAnalysisRuntime")) {
+                configurations.getByName(name).incoming.beforeResolve { error("Model export resolved unused analysis classpath: ${'$'}name") }
+            }
             val fixture = BuildHandle("fixture", "dev.fixture")
             val single = ModuleHandle(fixture, "single")
             kotlin.common {
@@ -936,7 +944,10 @@ class DslEntryPointsTest {
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == exportNode && it.to == projection })
         assertTrue(model.edges.any { it is Edge.After && it.from == exportNode && it.to == projection })
         val process = analysis.kernel?.spec as dev.shibasis.dependeasy.model.KernelSpec.Process
-        assertContains(process.execution.arguments, "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
+        assertEquals(listOf("@desktop/build/kotlin-analysis/compiler.args"), process.execution.arguments)
+        assertTrue(process.execution.fileInputs.any { it.kind == FileInputKind.Configuration && it.identity == "kotlinAnalysisCompiler" })
+        assertTrue(process.execution.fileInputs.any { it.kind == FileInputKind.Configuration && it.identity == "kotlinAnalysisRuntime" })
+        assertFalse(directory.resolve("desktop/build/kotlin-analysis/compiler.args").exists())
         for ((consumer, producer) in listOf("kotlinSemanticDistZip" to "compileKotlinAnalysis", "kotlinSemanticTest" to "kotlinSemanticDistZip")) {
             val from = analysis.id.copy(name = consumer)
             val to = analysis.id.copy(name = producer)

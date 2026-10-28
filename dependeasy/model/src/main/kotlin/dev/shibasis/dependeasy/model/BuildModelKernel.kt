@@ -99,7 +99,7 @@ object BuildModelKernel {
                 is KernelSpec.WorkerFleet, is KernelSpec.PackageScripts, is KernelSpec.DaggerPipeline,
                 is KernelSpec.JvmDistribution -> node.outputs.flatMap { it.paths }
                 is KernelSpec.ContainerNode -> spec.output.paths
-                else -> emptyList()
+                else -> node.outputs.filter { it.kind == OutputKind.JvmLibrary.name }.flatMap { it.paths }
             }.distinct().sorted()
             paths.forEach { path -> require(path.isNotBlank() && !File(path).isAbsolute && ".." !in path.split('/')) { "Public transport output escapes $own: $path" } }
             val tasks = (listOf(node.id.project.trimEnd(':') + ":" + node.id.name) +

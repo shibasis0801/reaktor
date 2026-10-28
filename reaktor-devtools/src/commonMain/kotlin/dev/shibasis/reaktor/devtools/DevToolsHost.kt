@@ -128,10 +128,12 @@ class DevToolsHost(
         try {
             reader.join()
         } finally {
-            withContext(NonCancellable) { reader.cancelAndJoin() }
+            withContext(NonCancellable) {
+                channel.close()
+                reader.cancelAndJoin()
+            }
             subscriptions.values.forEach { it.cancel() }
             if (current === channel) current = null
-            channel.close()
         }
     }
 

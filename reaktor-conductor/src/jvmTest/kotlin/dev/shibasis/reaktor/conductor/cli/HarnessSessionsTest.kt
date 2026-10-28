@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.conductor.cli
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.worklog.PlanState
 import java.io.File
 import java.nio.file.Files
 import java.time.Instant
@@ -206,6 +207,31 @@ class HarnessSessionsTest {
 
         val codex = HarnessSessions.read(workspace, home, now, processes()).first { it.id == "x1" }
         assertEquals(listOf(HarnessEdit("targets/botServer/wrangler.json", Instant.parse("2026-10-02T06:58:30Z").toEpochMilli())), HarnessSessions.edited(codex, workspace))
+    }
+
+    @Test fun aThreadsOwnChecklistIsReadWithTheFilesEditedUnderEachStep() {
+        val ws = workspace.path
+        claude("-in-workspace", "c8", ws, now - 10_000,
+            """{"type":"user","cwd":"$ws","sessionId":"c8","timestamp":"2026-10-02T06:00:00Z","message":{"role":"user","content":"Revamp the pane"}}""",
+            """{"type":"assistant","sessionId":"c8","timestamp":"2026-10-02T06:00:05Z","message":{"content":[{"type":"tool_use","name":"mcp__ccd_turn__update_plan","input":{"items":[{"content":"Read the pane","status":"in_progress"},{"content":"Rewrite it","status":"pending"}]}}]}}""",
+            """{"type":"assistant","sessionId":"c8","timestamp":"2026-10-02T06:01:00Z","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"$ws/modules/engine/Pane.kt"}}]}}""",
+            """{"type":"assistant","sessionId":"c8","timestamp":"2026-10-02T06:02:00Z","message":{"content":[{"type":"tool_use","name":"mcp__ccd_turn__update_plan","input":{"advance":true}}]}}""",
+            """{"type":"assistant","sessionId":"c8","isSidechain":true,"timestamp":"2026-10-02T06:02:30Z","message":{"content":[{"type":"tool_use","name":"TodoWrite","input":{"todos":[{"content":"A subagent's own list","status":"pending"}]}}]}}""",
+            """{"type":"assistant","sessionId":"c8","timestamp":"2026-10-02T06:03:00Z","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"$ws/modules/engine/Rail.kt"}}]}}""")
+        File(home, ".codex/sessions/2026/10/02/rollout-2026-10-02T06-00-00-x2.jsonl").apply { parentFile.mkdirs() }.apply {
+            writeText(listOf(
+                """{"timestamp":"2026-10-02T06:00:00Z","type":"session_meta","payload":{"id":"x2","cwd":"$ws","originator":"codex_cli_rs","cli_version":"0.159.0","timestamp":"2026-10-02T06:00:00Z"}}""",
+                """{"timestamp":"2026-10-02T06:00:05Z","type":"response_item","payload":{"type":"function_call","name":"update_plan","call_id":"p1","arguments":"{\"plan\":[{\"step\":\"Map the gateway\",\"status\":\"in_progress\"},{\"step\":\"Wire it\",\"status\":\"pending\"}]}"}}""",
+                """{"timestamp":"2026-10-02T06:00:30Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"FileChange","changes":{"$ws/targets/gateway/Gateway.kt":{"type":"update"}}}}}""",
+            ).joinToString("\n", postfix = "\n"))
+            setLastModified(now - 60_000)
+        }
+        val sessions = HarnessSessions.read(workspace, home, now, processes())
+        val claude = sessions.first { it.id == "c8" }
+        assertEquals(listOf(HarnessCheck("Read the pane", PlanState.Done, listOf("modules/engine/Pane.kt")), HarnessCheck("Rewrite it", PlanState.Active, listOf("modules/engine/Rail.kt"))), claude.checklist)
+        assertEquals(Instant.parse("2026-10-02T06:02:00Z").toEpochMilli(), claude.checklistAt)
+        assertEquals(listOf(HarnessCheck("Map the gateway", PlanState.Active, listOf("targets/gateway/Gateway.kt")), HarnessCheck("Wire it", PlanState.Pending)), sessions.first { it.id == "x2" }.checklist)
+        assertEquals(emptyList(), sessions.first { it.id == "x1" }.checklist)
     }
 
     private fun processes(alive: Set<Long> = emptySet(), open: Set<String> = emptySet()) = object : HarnessProcesses {

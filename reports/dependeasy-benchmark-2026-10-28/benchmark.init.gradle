@@ -1,0 +1,40 @@
+import groovy.json.JsonOutput
+import java.lang.management.ManagementFactory
+import java.util.concurrent.ConcurrentHashMap
+
+// Identical diagnostic observer on both Gradle versions. Primary matrix disables CC.
+def began = System.nanoTime()
+def cpu = ManagementFactory.operatingSystemMXBean
+def cpuStart = cpu.processCpuTime
+def gcStart = ManagementFactory.garbageCollectorMXBeans.collect { it.collectionTime }.sum()
+def taskStarts = new ConcurrentHashMap<String, Long>()
+def records = Collections.synchronizedList([])
+def configured = 0L
+def graphReady = 0L
+gradle.projectsEvaluated { configured = System.nanoTime() }
+gradle.taskGraph.whenReady { graphReady = System.nanoTime() }
+gradle.taskGraph.beforeTask { task -> taskStarts.put(task.path, System.nanoTime()) }
+gradle.taskGraph.afterTask { task, state ->
+    def start = taskStarts.remove(task.path)
+    records.add([path:task.path, type:task.class.name, seconds:(System.nanoTime()-start)/1e9,
+      skipped:state.skipped, skipMessage:state.skipMessage, upToDate:state.upToDate,
+      didWork:state.didWork, noSource:state.noSource, failed:state.failure != null])
+}
+gradle.buildFinished { result ->
+    def ended = System.nanoTime()
+    def target = new File(gradle.rootProject.buildDir, 'reports/benchmark/metrics.json')
+    target.parentFile.mkdirs()
+    target.text = JsonOutput.prettyPrint(JsonOutput.toJson([
+      gradleVersion:gradle.gradleVersion, javaVersion:System.getProperty('java.version'),
+      javaHome:System.getProperty('java.home'), pid:ProcessHandle.current().pid(),
+      root:gradle.rootProject.rootDir.absolutePath, elapsedObserverSeconds:(ended-began)/1e9,
+      configurationObserverSeconds:configured ? (configured-began)/1e9 : null,
+      graphObserverSeconds:graphReady && configured ? (graphReady-configured)/1e9 : null,
+      taskWindowSeconds:graphReady ? (ended-graphReady)/1e9 : null,
+      processCpuSeconds:(cpu.processCpuTime-cpuStart)/1e9,
+      gcSeconds:(ManagementFactory.garbageCollectorMXBeans.collect { it.collectionTime }.sum()-gcStart)/1000.0,
+      heapMaxBytes:Runtime.runtime.maxMemory(),
+      sumHeapPoolPeakBytes:ManagementFactory.memoryPoolMXBeans.findAll { it.type.name()=='HEAP' }.collect { it.peakUsage.used }.sum(),
+      failure:result.failure?.toString(), tasks:records.sort { it.path }
+    ])) + '\n'
+}

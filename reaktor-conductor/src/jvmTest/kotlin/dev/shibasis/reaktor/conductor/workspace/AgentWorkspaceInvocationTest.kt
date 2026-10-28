@@ -126,7 +126,9 @@ class AgentWorkspaceInvocationTest {
                         AgentWorkspaceConnection.open(root.toFile(), directory, allowStart = false).use { client ->
                             assertFalse(client.ownsService)
                             assertEquals(root.toString(), client.info().workspaceRoot)
-                            val submission = AgentSubmission("same-request", RuntimeKind.Codex, "A bounded question")
+                            val submitSchema = agentWorkspaceTools(workspace).single { it.name == "agent_submit" }.inputSchema
+                            assertTrue("timeoutMillis" in submitSchema.getValue("properties").jsonObject)
+                            val submission = AgentSubmission("same-request", RuntimeKind.Codex, "A bounded question", timeoutMillis = 30 * 60 * 1000L)
                             val submitted = client.submit(submission)
                             var run = client.get(submitted.id)
                             while (run.status == AgentRunStatus.Running) run = client.wait(run.id, run.revision)

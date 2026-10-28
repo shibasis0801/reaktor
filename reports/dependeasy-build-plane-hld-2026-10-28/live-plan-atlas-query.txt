@@ -1,0 +1,66 @@
+40 of 43 · syntactic (git-grep) · rev:044cab760c90
+modules/app/src/commonTest/kotlin/ai/bestbuds/app/BuildGraphTest.kt
+  27 text in BuildGraphTest.remoteServicesStayInTheirAuthenticationDeployment: assertSame(remote.plans, build.plans.origin)
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/appgraph/BuildInspection.kt
+  60 text in BuildInspection: buildJsonObject { put("operation", "build.plan") }, CallCaller(seat = "hangar")))
+  202 text in BuildInspection: val result = requireNotNull(invocations).invoke(OperationInvocation(OperationId("build.plan"), arguments,
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/AgentAtlas.kt
+  299 text in about: "build-node" -> "A node of the build model. Ask for its build tree, or plan and run it through the kernel's build.plan and build.run."
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/shell/Workbench.kt
+  189 text in ReaktorWorkbenchContent: val prepared = ownerResult("build.plan", arguments)
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/workbench/appgraph/BuildGraphPaneTest.kt
+  216 text in BuildGraphPaneTest.ownerWalkLinksTheTargetToJvmTestsKernelPlanAndRecordedReceipt: val plannedCalls = calls.filter { it.operation.value == "build.plan" }
+  218 text in BuildGraphPaneTest.ownerWalkLinksTheTargetToJvmTestsKernelPlanAndRecordedReceipt: assertTrue(calls.any { it.operation.value == "operation.describe" && it.arguments["operation"]?.jsonPrimitive?.content == "build.plan" })
+  237 text in BuildGraphPaneTest.ownerWalkLinksTheTargetToJvmTestsKernelPlanAndRecordedReceipt: assertEquals(listOf("build.plan", "build.plan", "build.run"), calls.filter { it.operation.value != "operation.describe" }.map { it.operation.value })
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentMcpHost.kt
+  54 text in KernelAgentMcpHost.patience: "build.plan", "build.run" -> Duration.ofMinutes(15)
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAtlas.kt
+  1115 text in KernelAtlas.buildNode: answer.suggest("build.plan", buildJsonObject { put("node", node) })
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelOperations.kt
+  588 text in workspaceOperations: operation<BuildTaskPageRequest, JsonObject>("build.tasks", "A bounded page of the retained exact Gradle task plan. Use build.plan to configure it explicitly; this operation never starts Gradle.") { re
+  593 text in workspaceOperations: if (plan == null) put("omission", "No current retained Gradle plan; run build.plan explicitly to configure Gradle")
+  612 text in workspaceOperations: Operation(OperationId("build.plan"), "The exact Gradle plan for one node and its declared options, without running it.", SafetyClass.LocalArtifactWrite,
+  615 text in workspaceOperations: val selected = requireNotNull(request.node) { "Select one canonical node for build.plan" }
+  630 text in workspaceOperations: require(!task.requiresApproval || request.plan != null) { "$selected needs a reviewed plan; run build.plan with these options and supply its result as plan" }
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt
+  275 text in OperationalControlPlane.requestRun: "The executable plan changed after review; run build.plan again"
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelBuildNodeTest.kt
+  92 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: assertEquals((nodes + device + delivery).map { it.id.toString() }.toSet(), advertisedNodes("build.plan"))
+  96 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: for (operation in listOf("build.plan", "build.run")) {
+  105 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: assertIs<Outcome.Completed>(kernel.invoke(OperationInvocation(OperationId("build.plan"), buildJsonObject {
+  110 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: for (operation in listOf("build.plan", "build.run")) {
+  190 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: assertContains(assertIs<Outcome.Failed>(missing).message, "build.plan")
+  192 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: val planned = assertIs<Outcome.Completed>(kernel.invoke(OperationInvocation(OperationId("build.plan"), options, caller)))
+reports/telemetry-completion-20261023/canonical-catalog-reviewed-build-plan-request.json
+  1 text: {"operation": "build.plan", "arguments": {"node": "bestbuds:clickhouse", "dependeasy.environment": "dev", "deploy-action": "apply"}}
+reports/telemetry-completion-20261023/catalog-build-schema-request.json
+  1 text: {"operation": "operation.describe", "arguments": {"operation": "build.plan"}}
+reports/telemetry-completion-20261023/catalog-build-schema-response.json
+  4 text: "id": "build.plan",
+reports/telemetry-completion-20261023/dev-text-moderator-plan-retry.json
+  1 text: {"type":"failed","message":"Build model is stale: 7 declaration inputs changed; rerun exportBuildModel","code":"operation_failed","reference":{"operation":"build.plan","requestId":"52577d3a-c29b-4f07-
+reports/telemetry-completion-20261023/dev-text-moderator-plan.json
+  1 text: {"type":"failed","message":"Could not resolve ignored task-definition directories for 'reaktor' (TimedOut)","code":"operation_failed","reference":{"operation":"build.plan","requestId":"bf888b20-285c-4
+reports/telemetry-completion-20261023/text-moderator-build-plan.json
+  1 text: context switches\n          6021013833  instructions retired\n          3884043207  cycles elapsed\n           104858416  peak memory footprint","code":"operation_failed","reference":{"operation":"bui
+targets/reaktorCli/src/test/kotlin/ai/bestbuds/reaktor/cli/BuildModelCliTest.kt
+  169 text in BuildModelCliTest.oneWalkUsesTheSameIdsThroughKernelPlanAndReceiptCommands: val fresh = inspect("build.plan", request).jsonObject
+  321 text in BuildModelCliTest.oneWalkUsesTheSameIdsThroughKernelPlanAndReceiptCommands: dev.shibasis.reaktor.tooling.operation.OperationId("build.plan"), options,
+targets/reaktorCli/src/test/kotlin/ai/bestbuds/reaktor/cli/KernelCliTest.kt
+  37 text in KernelCliTest.everyOperationComesFromTheKernelCatalog: assertTrue(listOf("build.list", "build.show", "build.tree", "build.story", "build.plan", "build.run", "build.receipts", "ship.plan", "ship.apply", "ship.rollback", "ship.verify", "ship.run", "run.list
+targets/reaktorDesktop/src/test/kotlin/ai/bestbuds/reaktor/ReaktorWorkspaceSafetyE2ETest.kt
+  191 text in ReaktorWorkspaceSafetyE2ETest.drawerBuildRetryUsesTheOwnerPlanAndOriginalEnvironment: check(hangarCalls == listOf("build.show", "build.plan", "build.run")) { "Unexpected Hangar calls: $hangarCalls" }
+../reaktor/plans/kernel-handoff.md
+  725 text: a8116b63f9192880ec9` pushed: Hangar Build uses the existing graph invocation provider for canonical build.plan and ordinary build.run with the exact reviewed plan and selected environment. 35 focused 
+  731 text: three retry controls use the existing graph-provided invocation port and the owner’s `build.show → build.plan → build.run` path, submit the returned plan, and preserve the original run environment. Th
+../reaktor/plans/reaktor-kernel-plan.md
+  104 text: a8116b63f9192880ec9` pushed: Hangar Build uses the existing graph invocation provider for canonical build.plan and ordinary build.run with the exact reviewed plan and selected environment. 35 focused 
+  110 text: three retry controls use the existing graph-provided invocation port and the owner’s `build.show → build.plan → build.run` path, submit the returned plan, and preserve the original run environment. Th
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleBuildPlanner.kt
+  80 text in GradleBuildPlanner.prepare: reviewedPlan.requestDigest == BuildModelReader.digest(contract)) { "Reviewed Gradle node, model or options changed; run build.plan again" }
+  84 text in GradleBuildPlanner.prepare: require(planFile.isFile) { "Gradle plan is no longer retained; run build.plan again" }
+  86 text in GradleBuildPlanner.prepare: require(reviewedPlan == null || reviewedPlan == plan) { "Retained Gradle plan changed after review; run build.plan again" }
+../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/BuildDeclarationsTest.kt
+  38 text in BuildDeclarationsTest.declarationsRetainTheirIdentityFactsAndSealedWrapperBinding: assertEquals(SafetyClass.LocalArtifactWrite, build.plan.safety.classification)
+note: 3 more beyond the limit of 40
+next: atlas_read {"id":"d:modules/app/src/commonTest/kotlin/ai/bestbuds/app/BuildGraphTest.kt:26:41@8d30f261"}

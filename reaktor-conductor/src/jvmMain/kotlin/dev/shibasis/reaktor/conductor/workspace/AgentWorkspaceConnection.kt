@@ -332,11 +332,11 @@ class AgentWorkspaceConnection private constructor(
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
                     harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead, scopeModules = scopeModules).also { workspace = it }
-                val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace)), graphOwner(), mcpProjection).also { operations = it }
+                val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace)), graphOwner(), mcpProjection, directory).also { operations = it }
                 operationBinding = bindOperations(registry.node)
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token, post = registry::post,
-                    read = registry::read, postWithHeaders = registry::peerPost).also { server = it }
+                    read = registry::read, postWithHeaders = registry::peerPost, browser = registry.browser.endpoint).also { server = it }
                 registry.endpointUrl = "http://127.0.0.1:${hostedServer.port()}"
                 val endpoint = AgentEndpoint(version = 2, workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token, invocationVersion = 1,
                     processId = ProcessHandle.current().pid(), incarnation = java.util.UUID.randomUUID().toString(),

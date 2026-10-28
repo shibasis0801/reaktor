@@ -131,6 +131,7 @@ object DeviceFlowKernel {
             session.install()
             require(declared.flows.isNotEmpty()) { "Select at least one declared flow" }
             val groups = if (declared.processPrefix.isEmpty()) declared.flows.map(::listOf) else listOf(declared.flows)
+            val failures = mutableListOf<String>()
             for ((index, flows) in groups.withIndex()) {
                 session.begin(flows, session.report(index.toString()))
                 var passed = false
@@ -138,9 +139,10 @@ object DeviceFlowKernel {
                     val result = session.test()
                     log(result.output)
                     passed = result.succeeded
-                    check(passed) { "Physical device flow failed: ${flows.joinToString()}" }
+                    if (!passed) failures += "Physical device flow failed: ${flows.joinToString()}"
                 } finally { session.end(passed) }
             }
+            check(failures.isEmpty()) { failures.joinToString("\n") }
             success = true
         } finally { session.close(success) }
     }

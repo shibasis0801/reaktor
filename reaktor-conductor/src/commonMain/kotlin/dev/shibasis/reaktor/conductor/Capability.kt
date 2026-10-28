@@ -104,7 +104,15 @@ data class ProviderCapability(
     val permissionModes: List<String> = emptyList(),
     val sandboxModes: List<String> = emptyList(),
 ) {
-    fun model(id: String?): ModelChoice? = id?.let { wanted -> models.firstOrNull { it.id == wanted } }
+    fun model(id: String?): ModelChoice? = id?.let { wanted ->
+        models.firstOrNull { it.id == wanted } ?: if (runtime == RuntimeKind.Gemini) {
+            // The signed-in catalog can contain variants beyond the configured fallback ladder.
+            wanted.substringAfterLast('-').takeIf { it in listOf("low", "medium", "high", "xhigh", "max") }?.let {
+                val level = NativeEffort(it)
+                ModelChoice(wanted, wanted, EffortSupport(listOf(level), default = level, source = "agy model variant"))
+            }
+        } else null
+    }
 }
 
 @Serializable

@@ -1,0 +1,54 @@
+flowchart TB
+  subgraph Authoring["Dependeasy · declarations and contracts"]
+    D["🟢 Product DSL + typed handles<br/>components · outputs · environments"]
+    I["🟢 Stable plugin/toolchain boundary<br/>private implementation isolation"]
+    S["🟢 Typed specs + declared inputs<br/>Gradle-free Kotlin kernels"]
+    B["🟢 Thin Gradle bindings"]
+    M["🟢 Versioned build model<br/>IDs · edges · origins · freshness<br/>JVM archives qualified<br/>lazy analysis · compatible Process format"]
+    D --> I --> S
+    S --> B
+    S --> M
+  end
+  subgraph Faces["Operator and agent clients"]
+    C["🟡 reaktor + reaktor-agent<br/>working · consolidation pending"]
+    H["🟡 Hangar<br/>Build / Deploy / Evidence"]
+    P["🟡 MCP projection<br/>working reads · write parity pending"]
+    T["⚪ Interactive terminal<br/>planned"]
+  end
+  subgraph Plane["Reaktor+ workspace build plane"]
+    K["🟡 Graph-owned headless kernel<br/>catalog · effects · one invocation gate"]
+    Q["🟡 Sealed plans + approvals<br/>fingerprints work · principal parity pending"]
+    L["🟡 Runs · receipts · artifacts · ledger<br/>automatic history bounded · store cutover pending"]
+    A["🟢 Atlas + native agent adapters<br/>qualified capabilities"]
+    F["🟡 Installed owner freshness<br/>BestBuds new owner serving · 286 operations<br/>three-root adoption still pending"]
+    K --> A
+    Q --> L
+    F -.-> K
+  end
+  subgraph Execution["Execution and delivery"]
+    G["🟢 Gradle<br/>task closure + scheduling"]
+    R["🟡 Mac / m1-worker / Dagger<br/>portable CI passed · JVM copy-back qualified<br/>broader transport faults open"]
+    X["🟢 Shared Kotlin kernels + native tools<br/>Kotlin · web · CMake · Apple · tests"]
+    W["🟢 Cloudflare dev apply + rollback<br/>canonical live receipt joins"]
+    V["🟡 Server digest releases + Pulumi<br/>image prerequisite tests failed<br/>live adoption / release gates open"]
+    N["🔴 Two-phone push acceptance<br/>runner works · dev deliveries missing"]
+    O["🟡 Invocation telemetry<br/>live application → service → Hangar proof open"]
+    Perf["🟡 Performance<br/>Final JVM cache reuse: 4s Gradle /13s E2E<br/>typed archives + bounded history qualified<br/>cold / queues / resources still open"]
+    R -.-> Perf
+    G --> R --> X
+    X --> W
+    X --> V
+    X --> N
+    X --> L
+    L --> O
+  end
+  C --> K
+  H --> K
+  P --> K
+  T -.-> K
+  M --> K
+  K -->|"select and prepare"| Q
+  Q -->|"build request"| G
+  Q -->|"shipping request"| X
+  B --> G
+  L -.->|"recorded evidence"| K

@@ -217,7 +217,7 @@ private class CodexAppServerSession(
                     }
                 }
                 when (message) {
-                    is JsonRpcInbound.ServerRequest -> {
+                    is JsonRpcInbound.ServerRequest -> if (message.workspaceToolCall) rpc.respond(message.id, AcceptedToolCall) else {
                         val ask = codexRequest(message, generation)
                         if (ask != null) {
                             pending[ask.pending.id] = ask

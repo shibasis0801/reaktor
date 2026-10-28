@@ -44,6 +44,8 @@ class ClaudeCodeRuntime(
 
     override fun argv(request: AgentRequest): List<String> = claudeArgv(request, binary)
 
+    override fun environment(request: AgentRequest): Map<String, String> = request.environment + ClaudeEndpoints.of(request.agent.model)
+
     override fun parser(request: AgentRequest): CliEventParser = ClaudeCodeEventParser(
         request.agent.id,
         // The result envelope reports no effective effort, so `observed` stays unknown.
@@ -77,6 +79,17 @@ private fun claudeHarnessArgs(request: AgentRequest): List<String> = buildList {
     }
     add("--settings")
     add(JsonObject(settings + ("pluginConfigs" to JsonObject(plugins))).toString())
+}
+
+object ClaudeEndpoints {
+    const val DeepSeekKey = "DEEPSEEK_API_KEY"
+
+    fun of(model: String?, host: Map<String, String> = System.getenv()): Map<String, String> =
+        if (model?.startsWith("deepseek") != true) emptyMap()
+        else mapOf("ANTHROPIC_BASE_URL" to "https://api.deepseek.com/anthropic", "ANTHROPIC_AUTH_TOKEN" to host[DeepSeekKey].orEmpty(), "ANTHROPIC_SMALL_FAST_MODEL" to "deepseek-chat")
+
+    fun missing(model: String?, host: Map<String, String> = System.getenv()): String? =
+        DeepSeekKey.takeIf { model?.startsWith("deepseek") == true && host[it].isNullOrBlank() }
 }
 
 /** The exact argv a Claude turn runs with, lifted out so the flag set can be asserted directly. */

@@ -311,6 +311,7 @@ class AppleContractsTest {
         assertContains(settings, "FIXTURE_SERVICE_PROVISIONING_PROFILE_SPECIFIER = service-profile")
         assertContains(settings, "FIXTURE_PROVISIONING_PROFILE_SPECIFIER = Profile & Co")
         assertContains(requireNotNull(options), "Profile &amp; Co")
+        assertContains(options, "<key>manageAppVersionAndBuildNumber</key><false/>")
         assertFailsWith<IllegalArgumentException> { SigningKernel.render(host, JsonObject(request + ("identity" to JsonPrimitive("Injected\nSETTING = YES")))) }
     }
     @Test fun `signing task preserves cache and private settings permissions`() {

@@ -38,6 +38,18 @@ class NativeRequestTest {
         assertFails { ask.response(AgentDecision.Form(buildJsonObject { put("count", "bad") })) }
         assertEquals(JsonPrimitive("accept"), ask.response(AgentDecision.Form(buildJsonObject { put("count", 2) }))["action"])
     }
+    @Test fun workspaceDoorToolCallsProceedWhileOtherElicitationsWaitForAPerson() {
+        fun wire(server: String, meta: String, properties: String = "{}") = JsonRpcInbound.ServerRequest(JsonPrimitive(7), "mcpServer/elicitation/request",
+            Json.parseToJsonElement("""{"serverName":"$server","threadId":"t","_meta":$meta,"message":"Allow the $server MCP server to run tool \"kernel\"?","mode":"form","requestedSchema":{"type":"object","properties":$properties}}""").jsonObject)
+        val toolCall = """{"codex_approval_kind":"mcp_tool_call","tool_name":"kernel"}"""
+        assertTrue(wire("reaktor", toolCall).workspaceToolCall)
+        assertTrue(wire("reaktor-graph", toolCall).workspaceToolCall)
+        assertFalse(wire("figma", toolCall).workspaceToolCall)
+        assertFalse(wire("reaktor", "{}").workspaceToolCall)
+        assertFalse(wire("reaktor", toolCall, """{"count":{"type":"integer"}}""").workspaceToolCall)
+        assertFalse(JsonRpcInbound.ServerRequest(JsonPrimitive(8), "item/commandExecution/requestApproval", buildJsonObject {}).workspaceToolCall)
+        assertEquals(buildJsonObject { put("action", "accept"); put("content", buildJsonObject {}) }, AcceptedToolCall)
+    }
     @Test fun claudeQuestionsPreserveInputAndUseNativeQuestionTextKeys() {
         val ask = claudeRequest(Json.parseToJsonElement("""{"request_id":"r1","request":{"subtype":"can_use_tool","tool_name":"AskUserQuestion","input":{"questions":[{"question":"Which layout?","options":[{"label":"Tabs"}]}]}}}""").jsonObject, "session", "turn")!!
         assertFails { ask.response(AgentDecision.Approve) }

@@ -3,7 +3,6 @@ package dev.shibasis.reaktor.conductor.worklog
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.intOrNull
 
 internal class ClaudeLog(private val root: String?, private val subagent: (String) -> WorkLog?) : LogParser {
     private class Pending(val turn: Int, val step: Int, val name: String, val input: JsonObject)
@@ -126,8 +125,7 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
             "Glob" -> WorkStep.Tool(id, at, ToolKind.Search, "Find files", listOfNotNull(input.str("pattern"), LogText.relative(input.str("path"), root)).joinToString(" · "))
             "WebFetch" -> WorkStep.Tool(id, at, ToolKind.Web, "Fetch", input.str("url"))
             "WebSearch" -> WorkStep.Tool(id, at, ToolKind.Web, "Web search", input.str("query"))
-            "TodoWrite" -> WorkStep.Plan(id, at, todos(input))
-            "mcp__ccd_turn__update_plan" -> WorkStep.Plan(id, at, steer(input))
+            in Checklist.ClaudeTools -> WorkStep.Plan(id, at, Checklist.claude(name, input, plan).orEmpty().also { plan = it })
             "Agent", "Task" -> WorkStep.Subagent(id, at, input.str("description") ?: input.str("subagent_type") ?: "Subagent", input.str("prompt"), input.str("model"))
             "AskUserQuestion" -> WorkStep.Question(id, at, input.list("questions").mapNotNull { (it as? JsonObject)?.str("question") }.joinToString("\n").ifBlank { "A question for the person" })
             "ExitPlanMode" -> WorkStep.Question(id, at, input.str("plan") ?: "Approve the plan")
@@ -157,37 +155,6 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
         listOf("description", "command", "query", "path", "file_path", "url", "pattern", "name", "id").firstNotNullOfOrNull { input.str(it) }
             ?.let { LogText.relative(it, root) }?.let(LogText::oneLine)
             ?: input.values.firstNotNullOfOrNull { (it as? JsonPrimitive)?.takeIf { value -> value.isString }?.contentOrNull }?.let(LogText::oneLine)
-
-    private fun todos(input: JsonObject): List<PlanItem> = input.list("todos").mapNotNull { it as? JsonObject }.map { todo ->
-        PlanItem(todo.str("content").orEmpty(), state(todo.str("status")))
-    }.also { plan = it }
-
-    private fun steer(input: JsonObject): List<PlanItem> {
-        val items = input.list("items").mapNotNull { it as? JsonObject }
-        if (items.isNotEmpty()) plan = items.map { PlanItem(it.str("content").orEmpty(), state(it.str("status"))) }
-        if (input.flag("advance")) {
-            val active = plan.indexOfFirst { it.state == PlanState.Active }
-            plan = plan.mapIndexed { index, item -> if (index == active) item.copy(state = PlanState.Done) else item }
-            val next = plan.indexOfFirst { it.state == PlanState.Pending }
-            if (next >= 0) plan = plan.mapIndexed { index, item -> if (index == next) item.copy(state = PlanState.Active) else item }
-        }
-        val done = input.list("done").mapNotNull { (it as? JsonPrimitive)?.intOrNull }.toSet()
-        val start = (input["start"] as? JsonPrimitive)?.intOrNull
-        if (done.isNotEmpty() || start != null) plan = plan.mapIndexed { index, item ->
-            when (index + 1) {
-                in done -> item.copy(state = PlanState.Done)
-                start -> item.copy(state = PlanState.Active)
-                else -> item
-            }
-        }
-        return plan
-    }
-
-    private fun state(status: String?) = when (status) {
-        "completed" -> PlanState.Done
-        "in_progress" -> PlanState.Active
-        else -> PlanState.Pending
-    }
 
     private fun result(block: JsonObject, structured: JsonObject?, at: Long?) {
         val id = block.str("tool_use_id") ?: return

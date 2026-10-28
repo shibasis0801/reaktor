@@ -91,7 +91,7 @@ class AgentBundleTest {
             assertTrue("claude:${'$'}{CLAUDE_SESSION_ID}" in claude.readText())
             assertTrue("disable-model-invocation: true" in claude.readText())
             assertTrue("${'$'}hangar" in codex.readText() && "CLAUDE_SESSION_ID" !in codex.readText())
-            assertTrue("taskgraph.propose" in antigravity.readText() && "\nname: hangar\n" in antigravity.readText())
+            assertTrue("plan.write" in antigravity.readText() && "\nname: hangar\n" in antigravity.readText())
             assertEquals(4, messages.count { it.startsWith("skill/") && "installed" in it })
             assertTrue(AgentBundle.status(targets).skills)
 

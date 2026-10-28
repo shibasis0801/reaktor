@@ -72,6 +72,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
                 "effort" to stringSchema("Native reasoning effort; omitted preserves provider defaults"),
                 "transport" to enumSchema("Automatic uses interactive Single and batch collaboration", listOf("Automatic", "Interactive", "Batch")),
                 "allowWrites" to buildJsonObject { put("type", "boolean") },
+                "timeoutMillis" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("description", "Optional positive executor turn budget in milliseconds; use a longer budget for editing, builds and tests.") },
                 "scope" to buildJsonObject { put("type", "array"); put("maxItems", 100); put("items", stringSchema("Source path, build module or shared interface; omitted writers hold the whole workspace")) },
                 "councilHybrid" to buildJsonObject { put("type", "boolean"); put("description", "Add the third ChatGPT + Gemini seat to a Codex/Claude Council. ChatGPT planning and review require durable human handoffs.") },
                 "isolation" to enumSchema("Shared source or owned Worktree", listOf("Shared", "Worktree")),
@@ -179,7 +180,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             AgentWorkspaceJson.encodeToJsonElement(AgentTranscript.serializer(), workspace.transcript(it.string("threadId"),
                 it["before"]?.jsonPrimitive?.int, it.long("limit", 20).toInt()))
         },
-    ) + agentEvidenceTools(workspace) + agentBoardTools(workspace) + agentTaskGraphTools(workspace) + agentMessageTools(workspace) + agentWorkflowTools(workspace) + agentContextTools(workspace) + agentMemoryTools(workspace) + extraTools
+    ) + agentEvidenceTools(workspace) + agentBoardTools(workspace) + agentTaskGraphTools(workspace) + agentPlanTools(workspace) + agentMessageTools(workspace) + agentWorkflowTools(workspace) + agentContextTools(workspace) + agentMemoryTools(workspace) + extraTools
     return tools + listOf(McpTool("agent_operation_schema", "Read the exact schema and effect annotations for a workspace operation without invoking it.",
         objectSchema(mapOf("operation" to stringSchema("Exact native operation name")), listOf("operation")), true, true) { args ->
         require(args.keys == setOf("operation"))

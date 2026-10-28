@@ -145,6 +145,26 @@ val SegmentItem: ItemAppearance = object : ItemAppearance {
     }
 }.withMatrix(MatrixTab)
 
+val CardItem: ItemAppearance = object : ItemAppearance {
+    @Composable
+    override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) {
+        val signal = theme.machineSignal
+        val colors = signal.colors
+        val edge = when {
+            state.focusVisible -> colors.accent.copy(alpha = feedback.focus)
+            properties.selected -> colors.accent
+            else -> colors.line
+        }
+        Box(
+            Modifier.clip(MachineSignal.shapes.panel).background(when { properties.selected -> colors.raised; state.hovered -> colors.surfaceAlt; else -> colors.surface })
+                .border(if (properties.selected || state.focusVisible) signal.metrics.focusRing else MachineSignal.Stroke.hairline, edge, MachineSignal.shapes.panel)
+                .padding(MachineSignal.Space.s3),
+        ) {
+            ProvideLabel(Label(colors.textStrong, signal.fonts.ui, MachineSignal.Editor.label, FontWeight.Normal)) { slots.content() }
+        }
+    }
+}.withMatrix(MatrixTab)
+
 fun filterChip(ink: InkRole): ItemAppearance = AccentChip(ink)
 
 private data class AccentChip(val ink: InkRole) : ItemAppearance {

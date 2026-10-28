@@ -19,8 +19,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -251,6 +253,44 @@ class ContractTest {
         Compatibility.readable(SchemaShape.of(Mood.serializer().descriptor), SchemaShape.of(MoodV2.serializer().descriptor), "mood", issues)
         assertEquals(listOf("profile.age: required by the reader, never written", "mood: test.Mood cannot read [Sad]"), issues)
         assertNotEquals(Greeter().fingerprint, Renamed().fingerprint)
+    }
+
+    @Test
+    fun summariesSurviveAnsweringAndDoNotChangeContractIdentity() {
+        open class Described(summary: String) : Service("test.summaries") {
+            open val read by get<Unit, Health>("/health", effect = Effect.ReadOnly, summary = summary)
+            open val events by stream<Unit, Health>(summary = summary)
+        }
+        val before = Described("")
+        val after = object : Described("Read the current health") {
+            override val read = super.read.handle { Health(true) }
+            override val events = super.events.handle { flow { emit(Health(true)) } }
+        }
+        assertEquals(before.fingerprint, after.fingerprint)
+        assertTrue(after.shape.operations.all { it.summary == "Read the current health" })
+        assertEquals("Read the current health", after.operation("read")?.summary)
+        assertEquals("Read the current health", after.operation("events")?.summary)
+        val json = Json { encodeDefaults = true }
+        assertFalse(json.encodeToString(ContractShape.serializer(), before.shape).contains("summary"))
+        assertTrue(json.encodeToString(ContractShape.serializer(), after.shape).contains("Read the current health"))
+    }
+
+    @Test
+    fun localEffectsDoNotRetryAnUncertainWrite() = realTime {
+        assertEquals(listOf("ReadOnly", "LocalEphemeral", "LocalArtifactWrite", "SourceWrite", "DeviceWrite",
+            "LiveRead", "NonProductionWrite", "ProductionReversibleWrite", "CredentialWrite", "DataMigration",
+            "Destructive", "UnknownRemoteEffect"), Effect.entries.map { it.name })
+        assertTrue(Effect.ReadOnly.retriable)
+        assertTrue(Effect.LiveRead.retriable)
+        for (effect in listOf(Effect.LocalEphemeral, Effect.LocalArtifactWrite, Effect.SourceWrite, Effect.DeviceWrite)) {
+            var attempts = 0
+            val client = object : Service("test.local") {
+                val write by call<Unit, Health>(effect = effect)
+            } over HttpLink("https://greeter.test", loopback(Served(GreeterServer())) { _, _ -> attempts++; 504 }, retry = quick())
+            assertFalse(effect.retriable)
+            assertFailsWith<OutcomeUnknown> { client.write() }
+            assertEquals(1, attempts)
+        }
     }
 
     @Test

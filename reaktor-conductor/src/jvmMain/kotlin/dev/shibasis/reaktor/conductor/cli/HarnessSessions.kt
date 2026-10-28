@@ -1,6 +1,9 @@
 package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.worklog.Checklist
+import dev.shibasis.reaktor.conductor.worklog.PlanItem
+import dev.shibasis.reaktor.conductor.worklog.PlanState
 import dev.shibasis.reaktor.conductor.worklog.parsedArguments
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -19,6 +22,8 @@ import dev.shibasis.reaktor.core.framework.lenientJson
 data class HarnessStep(val at: Long?, val tool: String, val detail: String?, val door: Boolean, val file: String? = null)
 
 data class HarnessEdit(val file: String, val at: Long?)
+
+data class HarnessCheck(val text: String, val state: PlanState, val files: List<String> = emptyList())
 
 enum class HarnessActivity { NeedsYou, Working, Waiting, Ended }
 
@@ -41,6 +46,8 @@ data class HarnessSession(
     val activity: HarnessActivity = HarnessActivity.Ended,
     val status: String? = null,
     val pid: Long? = null,
+    val checklist: List<HarnessCheck> = emptyList(),
+    val checklistAt: Long? = null,
 ) {
     val doorCalls: Int get() = steps.count { it.door }
 
@@ -102,6 +109,7 @@ object HarnessSessions {
     private const val TailBytes = 768 * 1024
     private const val TimelineBytes = 4 * 1024 * 1024
     private const val StepsKept = 40
+    private const val ChecklistFiles = 20
     private const val EntriesKept = 400
     private const val EntryChars = 16_000
     private const val ParsedKept = 2_048
@@ -306,6 +314,7 @@ object HarnessSessions {
             (record.nested("message")?.get("content") as? JsonArray).orEmpty()
                 .mapNotNull { block -> (block as? JsonObject)?.takeIf { it.string("type") == "tool_use" }?.let { claudeStep(it, at, root) } }
         }
+        val (checklist, checklistAt) = claudeChecklist(tail, root)
         return ClaudeParsed(
             HarnessSession(
                 runtime = RuntimeKind.ClaudeCode,
@@ -323,10 +332,56 @@ object HarnessSessions {
                 steps = steps.takeLast(StepsKept),
                 transcript = file.path,
                 files = steps.mapNotNull { it.file }.distinct(),
+                checklist = checklist,
+                checklistAt = checklistAt,
             ),
             customTitle = (head + tail).lastOrNull { it.string("type") == "custom-title" }?.string("customTitle"),
             prompt = head.firstNotNullOfOrNull(::claudePrompt),
         )
+    }
+
+    private fun claudeChecklist(records: List<JsonObject>, root: String): Pair<List<HarnessCheck>, Long?> {
+        var checks = emptyList<HarnessCheck>()
+        var at: Long? = null
+        records.filter { it.string("type") == "assistant" && it.text("isSidechain") != "true" }.forEach { record ->
+            (record.nested("message")?.get("content") as? JsonArray).orEmpty().forEach { element ->
+                val block = (element as? JsonObject)?.takeIf { it.string("type") == "tool_use" } ?: return@forEach
+                val name = block.string("name").orEmpty()
+                val input = block.nested("input") ?: return@forEach
+                val next = Checklist.claude(name, input, checks.map { PlanItem(it.text, it.state) })
+                if (next != null) {
+                    checks = checks.revised(next)
+                    at = instant(record.string("timestamp"))
+                } else if (name in EditTools) (input.string("file_path") ?: input.string("notebook_path"))?.let { checks = checks.touched(it.relativeTo(root)) }
+            }
+        }
+        return checks to at
+    }
+
+    private fun codexChecklist(records: List<JsonObject>, root: String): Pair<List<HarnessCheck>, Long?> {
+        var checks = emptyList<HarnessCheck>()
+        var at: Long? = null
+        records.forEach { record ->
+            val payload = record.nested("payload") ?: return@forEach
+            val item = payload.nested("item")
+            when {
+                record.string("type") == "response_item" && payload.string("type") == "function_call" && payload.string("name") == "update_plan" ->
+                    payload.string("arguments")?.let(::parse)?.let { arguments ->
+                        checks = checks.revised(Checklist.codex(arguments))
+                        at = instant(record.string("timestamp"))
+                    }
+                record.string("type") == "event_msg" && payload.string("type") == "item_completed" && item?.string("type") == "FileChange" ->
+                    item.nested("changes")?.keys.orEmpty().forEach { path -> checks = checks.touched(path.relativeTo(root)) }
+            }
+        }
+        return checks to at
+    }
+
+    private fun List<HarnessCheck>.revised(next: List<PlanItem>): List<HarnessCheck> =
+        next.map { item -> HarnessCheck(item.text, item.state, firstOrNull { it.text == item.text }?.files.orEmpty()) }
+
+    private fun List<HarnessCheck>.touched(path: String): List<HarnessCheck> = map { check ->
+        if (check.state == PlanState.Active && path !in check.files && check.files.size < ChecklistFiles) check.copy(files = check.files + path) else check
     }
 
     private fun claudePrompt(record: JsonObject): String? {
@@ -413,6 +468,7 @@ object HarnessSessions {
             ?.nested("payload")?.nested("info")?.nested("total_token_usage")
         val events = tail.filter { it.string("type") == "event_msg" }.mapNotNull { it.nested("payload")?.string("type") }
             .filter { it != "token_count" && it != "thread_settings_applied" }
+        val (checklist, checklistAt) = codexChecklist(tail, root)
         return CodexParsed(
             HarnessSession(
                 runtime = RuntimeKind.Codex,
@@ -430,6 +486,8 @@ object HarnessSessions {
                 steps = steps.takeLast(StepsKept),
                 transcript = file.path,
                 files = steps.mapNotNull { it.file }.distinct(),
+                checklist = checklist,
+                checklistAt = checklistAt,
             ),
             prompt = items.firstNotNullOfOrNull { record ->
                 record.nested("payload")?.nested("item")?.takeIf { it.string("type") == "UserMessage" }?.let(::codexText)

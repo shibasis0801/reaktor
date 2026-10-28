@@ -6,6 +6,8 @@ import dev.shibasis.reaktor.graph.core.autoWire
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.shape
+import dev.shibasis.reaktor.service.ServiceCall
+import dev.shibasis.reaktor.service.contract.CallAttributes
 import dev.shibasis.reaktor.service.ServiceExecutionPhase
 import dev.shibasis.reaktor.service.SpanBuffer
 import dev.shibasis.reaktor.service.contract.Effect
@@ -144,6 +146,36 @@ class ContractNodeTest {
 
         assertEquals(listOf("ada", null), seen)
         graph.close()
+    }
+
+    @Test
+    fun callerAttributesCrossBothPortFormsWithoutLeaking() = runTest {
+        Reaktor.web()
+        val seen = mutableListOf<Pair<String?, String?>>()
+        val graph = Graph(label = "owner")
+        graph.intercept(object : Interceptor {
+            override val sides: Set<Side> get() = setOf(Side.Server)
+            override suspend fun <In, R> intercept(exchange: Exchange<In, R>, next: Next<In, R>): R {
+                seen += (exchange.attributes["forward.test.caller"] as? String) to
+                    (exchange.attributes[ServiceCall.EdgeAttribute] as? String)
+                return next(exchange)
+            }
+        })
+        graph.serve(CounterServer())
+        val adder = graph.Node { Adder(it) }
+        val screen = graph.Node { CounterScreen(it) }
+        graph.autoWire()
+        try {
+            withContext(CallAttributes(mapOf("forward.test.caller" to "ada"))) {
+                adder.add(Add(1))
+                screen.counter.add(Add(1))
+            }
+            adder.add(Add(1))
+            assertEquals(listOf("ada", "ada", null), seen.map { it.first })
+            assertTrue(seen.all { !it.second.isNullOrBlank() })
+        } finally {
+            graph.close()
+        }
     }
 
     @Test

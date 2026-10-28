@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 
 class AgentBoardStore(
     private val directory: Path,
@@ -142,6 +143,29 @@ class AgentBoardStore(
     @Synchronized fun graph(id: String): TaskGraph = graphs[id] ?: error("$id is not a task graph on this board")
 
     @Synchronized fun members(id: String): List<BoardTask> = tasks.values.filter { it.graph?.id == id }.sortedBy { it.number }
+
+    @Synchronized fun archive(by: BoardActor): List<String> {
+        require(by.kind == BoardActorKind.Person) { "Only a person archives task graphs" }
+        val retired = graphs.values.filter { it.status != TaskGraphStatus.Running }.sortedBy { it.number }
+        if (retired.isEmpty()) return emptyList()
+        privateDirectory(directory.resolve("archive/tasks"))
+        privateDirectory(directory.resolve("archive/graphs"))
+        retired.forEach { graph ->
+            tasks.values.filter { it.graph?.id == graph.id }.forEach { task ->
+                Files.move(directory.resolve("tasks/${task.id}.json"), directory.resolve("archive/tasks/${task.id}.json"), StandardCopyOption.REPLACE_EXISTING)
+                tasks.remove(task.id)
+            }
+            Files.list(directory.resolve("graphs")).use { files ->
+                files.filter { it.fileName.toString().let { name -> name == "${graph.id}.json" || name.startsWith("${graph.id}-") } }.toList()
+            }.forEach { Files.move(it, directory.resolve("archive/graphs/${it.fileName}"), StandardCopyOption.REPLACE_EXISTING) }
+            graphs.remove(graph.id)
+            coordination.remove(graph.id)
+        }
+        ledger = ledger.copy(revision = ledger.revision + 1)
+        atomicWrite(ledgerFile, ConductorJson.encodeToString(Ledger.serializer(), ledger))
+        _changes.value = ledger.revision
+        return retired.map { it.id }
+    }
 
     @Synchronized fun view(id: String): TaskGraphView {
         val members = members(id).associateBy { it.id }

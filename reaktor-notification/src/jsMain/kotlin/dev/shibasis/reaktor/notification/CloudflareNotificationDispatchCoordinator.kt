@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.cloudflare.CloudflareDurableObject
 import dev.shibasis.reaktor.cloudflare.DurableObjectStorage
 import dev.shibasis.reaktor.cloudflare.Hono
 import dev.shibasis.reaktor.cloudflare.mount
+import dev.shibasis.reaktor.cloudflare.durableObjectStorage
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.graph.Reaktor
 import dev.shibasis.reaktor.graph.serve
@@ -77,7 +78,8 @@ private fun notificationDispatcherGraph(storage: () -> DurableObjectStorage,
     remote: suspend (NotificationDispatchPayload) -> NotificationDispatchResult, access: ServiceAccess, configure: (Graph) -> Unit = {}): Graph {
     Reaktor.web()
     return Graph(label = DispatcherIsland).also { graph ->
-        graph.serve(NotificationDispatcherService(graph, storage, remote, access))
+        val resources = graph.durableObjectStorage()
+        graph.serve(NotificationDispatcherService(graph, { storage().traced(resources) }, remote, access))
         configure(graph)
     }
 }

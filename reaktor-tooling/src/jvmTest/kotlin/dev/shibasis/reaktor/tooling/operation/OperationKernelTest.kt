@@ -1,5 +1,10 @@
 package dev.shibasis.reaktor.tooling.operation
 
+import dev.shibasis.reaktor.service.contract.Effect
+import dev.shibasis.reaktor.service.contract.Rejected
+import dev.shibasis.reaktor.service.contract.Service
+import dev.shibasis.reaktor.service.contract.Served
+import dev.shibasis.reaktor.service.contract.exchange
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import dev.shibasis.reaktor.mcp.Tool
@@ -123,6 +128,67 @@ class OperationKernelTest {
         approvals.decide(assertIs<Outcome.ApprovalRequired>(kernel.invoke(other)).approval, approve = false, by = "terminal")
         assertEquals("terminal", assertIs<Outcome.Denied>(kernel.invoke(other)).by)
         assertEquals(listOf("a.kt"), written)
+    }
+
+    @Test
+    fun servedContractsUseTheSameApprovalAndReceiptPath() = kernel(receipts = { events ->
+        assertEquals(2, events.size)
+        val started = assertIs<dev.shibasis.reaktor.tooling.RunEvent.Started>(events.first())
+        assertTrue(started.run.artifacts.any { it.kind == "approval" })
+        assertEquals(dev.shibasis.reaktor.tooling.RunStatus.Succeeded,
+            assertIs<dev.shibasis.reaktor.tooling.RunEvent.Completed>(events.last()).run.status)
+    }) { kernel, approvals, written ->
+        open class CodeApi : Service("reaktor.code") {
+            open val write by call<Write, String>(effect = Effect.SourceWrite, summary = "Write source")
+        }
+        val server = object : CodeApi() {
+            override val write = super.write.handle { request ->
+                assertNotNull((exchange().attributes[OperationGate.CallAttribute] as? OperationCall)?.approval)
+                written += request.path
+                request.path
+            }
+        }
+        val served = Served(server).intercept(kernel.gate)
+        val request = Write("contract.kt")
+        val caller = mapOf(OperationGate.CallerAttribute to CallCaller("claude"))
+        val missing = assertFailsWith<Rejected> { served.call(server.write, request) }
+        assertIs<Outcome.Refused>(missing.problemAs<Outcome>())
+        val asked = assertFailsWith<Rejected> { served.call(server.write, request, attributes = caller) }
+        val problem = assertIs<Outcome.ApprovalRequired>(asked.problemAs<Outcome>())
+        assertTrue(written.isEmpty())
+        approvals.decide(problem.approval, approve = true, by = "Hangar")
+        val keyed = caller + (OperationGate.RequestIdAttribute to "contract-1")
+        assertEquals("contract.kt", served.call(server.write, request, attributes = keyed))
+        assertEquals("contract.kt", served.call(server.write, request, attributes = keyed))
+        assertEquals(listOf("contract.kt"), written)
+        val deniedRequest = Write("denied.kt")
+        val pending = assertIs<Outcome.ApprovalRequired>(assertFailsWith<Rejected> {
+            served.call(server.write, deniedRequest, attributes = caller)
+        }.problemAs<Outcome>())
+        approvals.decide(pending.approval, approve = false, by = "Hangar")
+        assertIs<Outcome.Denied>(assertFailsWith<Rejected> {
+            served.call(server.write, deniedRequest, attributes = caller)
+        }.problemAs<Outcome>())
+        assertEquals(listOf("contract.kt"), written)
+    }
+
+    @Test
+    fun aContractClassifierCanOnlyRaiseItsDeclaredEffect() = kernel { kernel, _, _ ->
+        val source = object : Service("reaktor.source") {
+            val classify by call<JsonObject, JsonObject>(effect = Effect.SourceWrite)
+        }
+        val caller = mapOf(OperationGate.CallerAttribute to CallCaller("spawned", "review", "hangar:review"))
+        val refused = assertFailsWith<Rejected> {
+            Served(source).intercept(kernel.gate).call(source.classify, JsonObject(emptyMap()), attributes = caller)
+        }
+        assertEquals(SafetyClass.SourceWrite, assertIs<Outcome.ApprovalRequired>(refused.problemAs<Outcome>()).effect)
+        val provider = object : Service("reaktor.provider") {
+            val call by call<JsonObject, JsonObject>(effect = Effect.ReadOnly)
+        }
+        val raised = assertFailsWith<Rejected> {
+            Served(provider).intercept(kernel.gate).call(provider.call, buildJsonObject { put("tool", "deploy") }, attributes = caller)
+        }
+        assertEquals(SafetyClass.ProductionReversibleWrite, assertIs<Outcome.ApprovalRequired>(raised.problemAs<Outcome>()).effect)
     }
 
     @Test

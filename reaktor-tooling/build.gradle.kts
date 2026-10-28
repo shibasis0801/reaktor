@@ -7,7 +7,7 @@ import dev.shibasis.dependeasy.common.commonSerialization
 
 plugins { id("dev.shibasis.dependeasy.library") }
 
-library(namespace = "dev.shibasis.reaktor.tooling", targets = Targets.All, bytecode = 21) {
+library(namespace = "dev.shibasis.reaktor.tooling", targets = Targets.All) {
     dependencies {
         common {
             api(Reaktor.Code)

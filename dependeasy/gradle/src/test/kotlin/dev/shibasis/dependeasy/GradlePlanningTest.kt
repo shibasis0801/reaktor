@@ -170,7 +170,10 @@ class GradlePlanningTest {
         val contract = directory.resolve("${GradleProtocol.RequestDirectory}/$digest.json")
         contract.parentFile.mkdirs(); contract.writeText(text)
         val option = "-P${GradleProtocol.RequestOption}=${contract.absolutePath}"
-        bridgeRunner(GradleProtocol.PlanTask, option).build()
+        assertTrue(directory.resolve(BuildModelReader.RelativePath).delete())
+        val planned = bridgeRunner(GradleProtocol.PlanTask, option).build()
+        assertEquals(org.gradle.testkit.runner.TaskOutcome.SUCCESS, planned.task(":exportBuildModel")?.outcome)
+        assertEquals(model, BuildModelReader.read(directory))
         val planFile = directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json")
         val plan = BuildModelReader.readPlan(planFile)
         val copied = NodeId("receiptFixture", ":", "copied")

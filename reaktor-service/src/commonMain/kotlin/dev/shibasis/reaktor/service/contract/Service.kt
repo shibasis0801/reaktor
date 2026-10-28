@@ -44,7 +44,8 @@ abstract class Service(val id: String, val version: Int = 1) {
         deadline: Duration? = null,
         status: Int = 200,
         name: String? = null,
-    ): Declares<Call<In, Out>> = call(Route(HttpMethod.GET, path), effect, idempotency, deadline, status, name)
+        summary: String = "",
+    ): Declares<Call<In, Out>> = call(Route(HttpMethod.GET, path), effect, idempotency, deadline, status, name, summary)
 
     protected inline fun <reified In, reified Out> post(
         path: String,
@@ -53,7 +54,8 @@ abstract class Service(val id: String, val version: Int = 1) {
         deadline: Duration? = null,
         status: Int = 200,
         name: String? = null,
-    ): Declares<Call<In, Out>> = call(Route(HttpMethod.POST, path), effect, idempotency, deadline, status, name)
+        summary: String = "",
+    ): Declares<Call<In, Out>> = call(Route(HttpMethod.POST, path), effect, idempotency, deadline, status, name, summary)
 
     protected inline fun <reified In, reified Out> put(
         path: String,
@@ -62,7 +64,8 @@ abstract class Service(val id: String, val version: Int = 1) {
         deadline: Duration? = null,
         status: Int = 200,
         name: String? = null,
-    ): Declares<Call<In, Out>> = call(Route(HttpMethod.PUT, path), effect, idempotency, deadline, status, name)
+        summary: String = "",
+    ): Declares<Call<In, Out>> = call(Route(HttpMethod.PUT, path), effect, idempotency, deadline, status, name, summary)
 
     protected inline fun <reified In, reified Out> patch(
         path: String,
@@ -71,7 +74,8 @@ abstract class Service(val id: String, val version: Int = 1) {
         deadline: Duration? = null,
         status: Int = 200,
         name: String? = null,
-    ): Declares<Call<In, Out>> = call(Route(HttpMethod.PATCH, path), effect, idempotency, deadline, status, name)
+        summary: String = "",
+    ): Declares<Call<In, Out>> = call(Route(HttpMethod.PATCH, path), effect, idempotency, deadline, status, name, summary)
 
     protected inline fun <reified In, reified Out> delete(
         path: String,
@@ -80,7 +84,8 @@ abstract class Service(val id: String, val version: Int = 1) {
         deadline: Duration? = null,
         status: Int = 200,
         name: String? = null,
-    ): Declares<Call<In, Out>> = call(Route(HttpMethod.DELETE, path), effect, idempotency, deadline, status, name)
+        summary: String = "",
+    ): Declares<Call<In, Out>> = call(Route(HttpMethod.DELETE, path), effect, idempotency, deadline, status, name, summary)
 
     protected inline fun <reified In, reified Out> call(
         route: Route? = null,
@@ -89,20 +94,22 @@ abstract class Service(val id: String, val version: Int = 1) {
         deadline: Duration? = null,
         status: Int = 200,
         name: String? = null,
+        summary: String = "",
     ): Declares<Call<In, Out>> {
         val request = kSerializer<In>()
         val response = kSerializer<Out>()
-        return Declares(name) { service, named -> Call(service, named, request, response, route, effect, idempotency, deadline, status, null) }
+        return Declares(name) { service, named -> Call(service, named, request, response, route, effect, idempotency, deadline, status, null, summary) }
     }
 
     protected inline fun <reified In, reified Out> stream(
         route: Route? = null,
         effect: Effect = Effect.LiveRead,
         name: String? = null,
+        summary: String = "",
     ): Declares<Stream<In, Out>> {
         val request = kSerializer<In>()
         val element = kSerializer<Out>()
-        return Declares(name) { service, named -> Stream(service, named, request, element, route, effect, null) }
+        return Declares(name) { service, named -> Stream(service, named, request, element, route, effect, null, summary) }
     }
 
     protected inline fun <reified M> topic(

@@ -52,7 +52,11 @@ internal class GradleBuildPlanner {
             require(Files.readString(file) == text && !Files.isSymbolicLink(file)) { "Gradle request content changed" }
             return file.toFile()
         }
-        if (reviewedPlan == null) {
+        // PlanTask already depends on model export and validates its digest before selecting tasks.
+        // A stale catalog or explicit context still needs the separate refresh handshake.
+        val refresh = reviewedPlan == null && (properties.isNotEmpty() || environment.isNotEmpty() ||
+            sensitiveEnvironmentKeys.isNotEmpty() || BuildModelReader.changedDeclarations(root, previous).isNotEmpty())
+        if (refresh) {
             val routing = write(GradleRequest(node = node.id, declaredAt = node.declaredAt,
                 modelDigest = BuildModelReader.digest(BuildModelReader.encode(previous)), arguments = arguments))
             gradle(listOf(GradleProtocol.ExportTask, "-P${GradleProtocol.RequestOption}=${routing.absolutePath}"),

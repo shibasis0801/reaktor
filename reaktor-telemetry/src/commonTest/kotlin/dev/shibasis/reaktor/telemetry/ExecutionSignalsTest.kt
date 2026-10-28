@@ -52,6 +52,19 @@ class ExecutionSignalsTest {
         assertTrue(report.signals.none { it.orphans > 0 })
     }
 
+    @Test fun aRefusalStormSaysHowManySessionsMadeItAndHowHardTheBusiestOneTried() {
+        val loop = (0 until 24).map { server("loop-$it", "reaktor-server", "sessionRefresh", at = it * 1_000L, status = 401)
+            .copy(applicationSession = if (it < 20) "stuck" else "other") }
+        val anonymous = server("anonymous", "reaktor-server", "sessionRefresh", at = 30_000, status = 401)
+        val single = (0 until 3).map { server("single-$it", "chat", "GET.fetch", at = it * 1_000L, status = 401).copy(applicationSession = "single") }
+        val report = ExecutionSignals.of(loop + anonymous + single)
+
+        assertEquals("25 of 25 calls refused with HTTP 401 ×25; 2 sessions made 24 of them, one 20 times",
+            report.signals.single { it.key.operation == "sessionRefresh" }.finding)
+        assertEquals("3 of 3 calls refused with HTTP 401 ×3; 1 session made them", report.signals.single { it.key.operation == "GET.fetch" }.finding)
+        assertEquals(listOf(20, 4), report.signals.single { it.key.operation == "sessionRefresh" }.problemSessions)
+    }
+
     @Test fun slowSteadyWorkDegradesWhileOneSlowCallIsWatched() {
         val steady = (0 until 4).map { server("slow-$it", "media", "upload", at = it * 1_000L, duration = 4_000.0 + it) }
         val once = server("once", "bot", "reply", at = 1_000, duration = 3_500.0)

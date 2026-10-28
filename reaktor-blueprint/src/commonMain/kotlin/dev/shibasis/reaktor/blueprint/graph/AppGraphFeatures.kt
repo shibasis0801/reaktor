@@ -13,7 +13,7 @@ object AppGraphFeatures {
     private val ScopedSources = setOf(GraphSource.Build, GraphSource.Code)
 
     fun of(graph: AppGraph): List<Feature> {
-        if (graph.source in ScopedSources) return graph.nodes.values.groupBy { it.scope }
+        if (graph.source in ScopedSources || graph.source is GraphSource.Declared) return graph.nodes.values.groupBy { it.scope }
             .map { (scope, members) -> Feature(scope, if (scope == graph.root.id) graph.root.label else graph.scopeLabel(scope), members) }
             .sortedBy { it.key }
         val islandOf = graph.nodes.values.associate { it.id to graph.island(it.scope) }

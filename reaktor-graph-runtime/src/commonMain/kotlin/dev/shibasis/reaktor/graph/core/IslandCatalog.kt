@@ -11,6 +11,8 @@ data class IslandCatalog(
     val deployments: List<DeploymentDeclaration> = emptyList(),
 )
 
+const val DeclaredRuntime = "source-declaration"
+
 fun DeploymentDeclaration.sourceShape(): IslandShape {
     val scope = "worker/$worker"
     val source = mapOf("evidence" to "SourceDeclared", "environment" to environment)
@@ -25,6 +27,8 @@ fun DeploymentDeclaration.sourceShape(): IslandShape {
             }, attributes = source + buildMap {
                 put("binding", binding.name); put("bindingKind", binding.kind)
                 binding.target?.let { put("target", it) }
+                binding.ownerScript?.let { put("ownerScript", it) }
+                if (binding.kind == "durable_objects" && binding.ownerScript == null) put("ingress", "object:${binding.target ?: binding.name}")
             }))
         }
         crons.forEach { cron -> add(NodeShape("$scope/cron/$cron", scope, cron, "DeclaredSchedule", NodeKind.Schedule,
@@ -32,5 +36,5 @@ fun DeploymentDeclaration.sourceShape(): IslandShape {
         queues.forEach { queue -> add(NodeShape("$scope/queue/$queue", scope, queue, "DeclaredQueueConsumer", NodeKind.Controller,
             attributes = source + ("ingress" to "queue:$queue"))) }
     }
-    return IslandShape(worker, "source-declaration", GraphShape(listOf(ScopeShape(scope, worker)), nodes, emptyList(), emptyList()).withDefinitionIdentity())
+    return IslandShape(worker, DeclaredRuntime, GraphShape(listOf(ScopeShape(scope, worker)), nodes, emptyList(), emptyList()).withDefinitionIdentity())
 }

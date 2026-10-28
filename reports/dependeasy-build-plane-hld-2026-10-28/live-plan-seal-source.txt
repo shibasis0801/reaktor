@@ -1,0 +1,19 @@
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/SupervisedProcessExecutor.kt · fun capture( files: List<File> = emptyList(), directories: List<ProcessDefinitionDirectory> = emptyList(), ): ProcessDefinitionSeal · 803 of 803 characters · rev:d0aaf41e28ce
+65  fun capture(
+66              files: List<File> = emptyList(),
+67              directories: List<ProcessDefinitionDirectory> = emptyList(),
+68          ): ProcessDefinitionSeal {
+69              val canonicalFiles = files.map(File::getCanonicalFile).distinct().sortedBy(File::getAbsolutePath)
+70              val canonicalDirectories = directories
+71                  .map { it.copy(directory = it.directory.canonicalFile) }
+72                  .distinct()
+73                  .sortedBy { it.directory.absolutePath }
+74              val digest = processDefinitionDigest(canonicalFiles, canonicalDirectories)
+75              DefinitionDigestCache.flush()
+76              return ProcessDefinitionSeal(
+77                  files = canonicalFiles,
+78                  digest = digest,
+79                  directories = canonicalDirectories,
+80              )
+81          }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/SupervisedProcessExecutor.kt:64:12@360ab44d"},"follow":[{"rel":"references","dir":"in"}]}

@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.service.Interaction
 import dev.shibasis.reaktor.service.OperationDescriptor
 import dev.shibasis.reaktor.service.ServiceExecutionPhase
 import dev.shibasis.reaktor.service.schemaRef
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PolymorphicKind
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -74,6 +76,7 @@ data class SchemaShape(
 @Serializable
 data class FieldShape(val name: String, val optional: Boolean, val type: SchemaShape)
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class OperationShape(
     val name: String,
@@ -85,6 +88,7 @@ data class OperationShape(
     val status: Int,
     val request: SchemaShape,
     val response: SchemaShape,
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val summary: String = "",
 )
 
 @Serializable
@@ -139,10 +143,11 @@ data class ContractShape(
                     status = (operation as? Call<*, *>)?.status ?: 200,
                     request = SchemaShape.of(operation.request.descriptor),
                     response = SchemaShape.of(operation.response.descriptor),
+                    summary = operation.summary,
                 )
             }.sortedBy { it.name }
             val channels = service.channels.map { ChannelShape.of(it) }.sortedBy { it.id }
-            val identity = ContractShape(service.id, 0, "", operations.map { it.copy(effect = "", idempotency = "", status = 0) },
+            val identity = ContractShape(service.id, 0, "", operations.map { it.copy(effect = "", idempotency = "", status = 0, summary = "") },
                 channels.map { it.copy(capacity = 0, overflow = "", maxAttempts = 0, deadLetter = null) })
             return ContractShape(service.id, service.version, fnv(Canonical.encodeToString(serializer(), identity)), operations, channels)
         }
