@@ -79,7 +79,7 @@ data class ChangeApplied(
 )
 
 open class ChangesApi : Service("reaktor.change") {
-    open val plan by call<ChangePlanRequest, ChangePlanned>(effect = Effect.LocalEphemeral,
+    open val plan by call<ChangePlanRequest, ChangePlanned>(effect = Effect.LocalEphemeral, deadline = kotlin.time.Duration.parse("3m"),
         summary = "Plans a source change without writing it: a plan id, every line it changes, the matches it leaves and the checks it affects. recipe rename renames one Kotlin declaration and its uses across modules and the builds this repository includes, as the compiler resolves them; a match the compiler did not confirm is left and listed, and need syntactic or include renames it as the Atlas reads it, marked by name. recipe edit replaces exact text, found once in a file or inside one declaration, in several files together. change_apply writes a plan.")
     open val apply by call<ChangeApplyRequest, ChangeApplied>(effect = Effect.SourceWrite,
         summary = "Writes one change_plan plan, every file or none, refusing it when a file changed since the plan, and returns the receipt; check_run then runs the affected checks. Repeating it returns the same receipt. A seat whose policy stops short of source writes waits for a person to approve the plan, unless its policy lets it apply its own plans, every file is in this checkout and, when the session is linked to a board task whose scope names paths or modules, inside that scope.")

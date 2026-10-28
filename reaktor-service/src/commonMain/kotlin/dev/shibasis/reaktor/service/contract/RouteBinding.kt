@@ -58,19 +58,19 @@ fun <In> Route.encode(serializer: KSerializer<In>, request: In): Outgoing {
     return Outgoing(path, query, null)
 }
 
-fun <In> Route.decode(serializer: KSerializer<In>, inbound: Inbound): In {
+fun <In> Route.decode(serializer: KSerializer<In>, inbound: Inbound, decoder: kotlinx.serialization.json.Json = json): In {
     val text = inbound.body?.takeIf { it.isNotBlank() }
-    val carried = runCatching { json.decodeFromString(serializer, text ?: "{}") }.getOrNull()?.takeIf { it is Request }
-    return (carried ?: merged(serializer, text, inbound)).also { (it as? Request)?.receive(inbound) }
+    val carried = runCatching { decoder.decodeFromString(serializer, text ?: "{}") }.getOrNull()?.takeIf { it is Request }
+    return (carried ?: merged(serializer, text, inbound, decoder)).also { (it as? Request)?.receive(inbound) }
 }
 
 private val SerialDescriptor.bare: Boolean get() = isInline || kind is PrimitiveKind || kind == SerialKind.ENUM
 
-private fun <In> Route.merged(serializer: KSerializer<In>, text: String?, inbound: Inbound): In {
+private fun <In> Route.merged(serializer: KSerializer<In>, text: String?, inbound: Inbound, decoder: kotlinx.serialization.json.Json): In {
     val descriptor = serializer.descriptor
-    val body = text?.let { json.parseToJsonElement(it) }
+    val body = text?.let { decoder.parseToJsonElement(it) }
     val bound = parameters.singleOrNull()?.let(inbound.pathParams::get)
-    if (bound != null && descriptor.bare && (body == null || body is JsonObject)) return json.decodeFromJsonElement(serializer, scalar(bound, descriptor))
+    if (bound != null && descriptor.bare && (body == null || body is JsonObject)) return decoder.decodeFromJsonElement(serializer, scalar(bound, descriptor))
     val fields = LinkedHashMap<String, JsonElement>()
     (body as? JsonObject)?.let(fields::putAll)
     if (descriptor.kind == StructureKind.CLASS || descriptor.kind == StructureKind.OBJECT) {
@@ -86,7 +86,7 @@ private fun <In> Route.merged(serializer: KSerializer<In>, text: String?, inboun
         }
     }
     val tree = if (body != null && body !is JsonObject && fields.isEmpty()) body else JsonObject(fields)
-    return json.decodeFromJsonElement(serializer, tree)
+    return decoder.decodeFromJsonElement(serializer, tree)
 }
 
 private fun Request.receive(inbound: Inbound) {

@@ -62,13 +62,15 @@ private fun properties(descriptor: SerialDescriptor, seen: Set<String>): JsonObj
         (0 until descriptor.elementsCount).forEach { index ->
             val element = descriptor.getElementDescriptor(index)
             val property = described(schema(element, seen), descriptor.getElementAnnotations(index))
-            put(descriptor.getElementName(index), if (element.isNullable) nullable(property) else property)
+            val allowsNull = descriptor.getElementAnnotations(index).filterIsInstance<Schema>().firstOrNull()?.nullable != false
+            put(descriptor.getElementName(index), if (element.isNullable && allowsNull) nullable(property) else property)
         }
     }
     val required = (0 until descriptor.elementsCount).filterNot {
         descriptor.isElementOptional(it) || descriptor.getElementDescriptor(it).isNullable
     }.map(descriptor::getElementName)
-    if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(it) } }
+    if (required.isNotEmpty() || descriptor.annotations.filterIsInstance<Schema>().any { it.emptyRequired })
+        putJsonArray("required") { required.forEach { add(it) } }
     put("additionalProperties", false)
 }
 
@@ -86,7 +88,18 @@ private fun nullable(property: JsonObject): JsonObject {
     return JsonObject(property + ("type" to JsonArray(listOf(type, JsonPrimitive("null")))))
 }
 
-private fun described(schema: JsonObject, annotations: List<Annotation>): JsonObject =
-    annotations.filterIsInstance<Describe>().firstOrNull()?.let { JsonObject(schema + ("description" to JsonPrimitive(it.text))) } ?: schema
+private fun described(schema: JsonObject, annotations: List<Annotation>): JsonObject = buildJsonObject {
+    schema.forEach { (key, value) -> put(key, value) }
+    annotations.filterIsInstance<Describe>().firstOrNull()?.let { put("description", it.text) }
+    annotations.filterIsInstance<Schema>().firstOrNull()?.let { hints ->
+        if (hints.minimum != Long.MIN_VALUE) put("minimum", hints.minimum)
+        if (hints.maximum != Long.MAX_VALUE) put("maximum", hints.maximum)
+        if (hints.itemsDescription.isNotEmpty() || hints.openItems) put("items", buildJsonObject {
+            (schema["items"] as? JsonObject)?.forEach { (key, value) -> put(key, value) }
+            if (hints.itemsDescription.isNotEmpty()) put("description", hints.itemsDescription)
+            if (hints.openItems) put("additionalProperties", true)
+        })
+    }
+}
 
 private fun type(name: String) = buildJsonObject { put("type", name) }

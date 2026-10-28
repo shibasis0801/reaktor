@@ -50,6 +50,7 @@ internal class AgentBrowserMcp(
     private val runtime: AgentRuntime = BrowserAntigravityRuntime(executor, directory.resolve("browser-inference")),
 ) : AutoCloseable {
     private val busy = Mutex()
+    private var plus: dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServer? = null
     private val node = ToolNode(graph, listOf(Tool(ToolDefinition(
         "inference.ask", "Answer the supplied question through Antigravity. No workspace context or development tools.",
         objectSchema(mapOf("question" to stringSchema("Question, at most 6000 characters"), "requestId" to stringSchema("A UUID for this request")), listOf("question", "requestId")),
@@ -58,12 +59,39 @@ internal class AgentBrowserMcp(
     private val adapter = McpAdapter(node, "reaktor-browser-inference", "1.0.0", projection = setOf("inference.ask"))
     val endpoint = BrowserMcpEndpoint({ AgentBrowserPairing.credentials(directory) }, McpMessageHandler { body -> runBlocking { adapter.handle(body) } })
 
+    fun startPlus() {
+        check(plus == null)
+        fun secret() = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also(SecureRandom()::nextBytes))
+        val browser = endpoint.copy(credentials = { null }, discovery = setOf("https://manna.ac", "https://reaktor.build").associateWith { secret() })
+        plus = dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServer.start(9317, { endpoint.handler }, secret(),
+            post = { _, _ -> null }, browser = browser)
+        privateDirectory(directory.resolve("browser-inference"))
+        atomicWrite(directory.resolve("browser-inference/plus"), "")
+    }
+
     internal suspend fun ask(arguments: JsonObject): ToolResult {
         val question = (arguments["question"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim().orEmpty()
         val id = (arguments["requestId"] as? JsonPrimitive)?.content.orEmpty()
         if (arguments.keys != setOf("question", "requestId") || question.isBlank() || question.length > 6000 ||
             !id.matches(Regex("[a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}"))) return ToolResult.failure("Supply a question of 1–6000 characters and a UUID requestId")
         if (!busy.tryLock()) return ToolResult.failure("Antigravity is answering another browser question. Try again when it finishes.")
+        try {
+            val receipt = directory.resolve("browser-inference/requests").also(::privateDirectory).resolve("$id.json")
+            val hash = digest(question)
+            if (Files.exists(receipt)) {
+                val saved = Json.parseToJsonElement(Files.readString(receipt)).jsonObject
+                if (saved["digest"] != JsonPrimitive(hash)) return ToolResult.failure("This requestId belongs to a different question.")
+                return saved["result"]?.let { ToolResult(it, saved["isError"] == JsonPrimitive(true)) }
+                    ?: ToolResult.failure("This request was admitted but its outcome is unknown. It will not be started again.")
+            }
+            atomicWrite(receipt, buildJsonObject { put("digest", hash) }.toString())
+            val result = answer(question, id)
+            atomicWrite(receipt, buildJsonObject { put("digest", hash); put("result", result.data); put("isError", result.isError) }.toString())
+            return result
+        } finally { busy.unlock() }
+    }
+
+    private suspend fun answer(question: String, id: String): ToolResult {
         try {
             val work = directory.resolve("browser-inference/workspace").also(::privateDirectory)
             val started = System.currentTimeMillis()
@@ -81,10 +109,9 @@ internal class AgentBrowserMcp(
             })
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { return ToolResult.failure("The local Antigravity process failed. Check that agy is installed and signed in.") }
-        finally { busy.unlock() }
     }
 
-    override fun close() { adapter.close(); graph.detach(node); executor.close() }
+    override fun close() { plus?.close(); adapter.close(); graph.detach(node); executor.close() }
 }
 
 /** Own native configuration, empty working folder, no operator MCP servers or permission bypass. */

@@ -53,6 +53,40 @@ class AgentWorkspaceConnection private constructor(
     @Volatile private var protocolVersion = REAKTOR_MCP_PROTOCOL_VERSION
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()
     val url: String get() = if (remote == null) "http://127.0.0.1:${endpoint.port}/mcp" else "ssh workspace"
+    val workspaceRoot: String get() = endpoint.workspaceRoot
+    val incarnation: String get() { refreshEndpoint(); return endpoint.incarnation }
+    private val kernelClient = lazy { KernelClient(this) }
+    private val contractHttp = lazy {
+        dev.shibasis.reaktor.io.network.http.config {
+            install(io.ktor.client.plugins.logging.Logging) { level = io.ktor.client.plugins.logging.LogLevel.NONE }
+        }
+    }
+    val kernel: KernelClient get() = kernelClient.value
+
+    fun contractLink(): dev.shibasis.reaktor.service.contract.HttpLink {
+        refreshEndpoint()
+        check(remote == null) { "This workspace connection does not offer an HTTP contract carrier" }
+        val owner = endpoint
+        return dev.shibasis.reaktor.service.contract.HttpLink("http://127.0.0.1:${owner.port}", client = contractHttp.value,
+            deadline = kotlin.time.Duration.parse("35s")).apply {
+            intercept(object : dev.shibasis.reaktor.service.contract.Interceptor {
+                override val position: Int get() = dev.shibasis.reaktor.service.contract.Position.Security
+                override val sides get() = setOf(dev.shibasis.reaktor.service.contract.Side.Client)
+                override suspend fun <In, R> intercept(exchange: dev.shibasis.reaktor.service.contract.Exchange<In, R>, next: dev.shibasis.reaktor.service.contract.Next<In, R>): R {
+                    val caller = exchange.attributes[dev.shibasis.reaktor.tooling.operation.OperationGate.CallerAttribute] as? dev.shibasis.reaktor.tooling.CallCaller
+                        ?: dev.shibasis.reaktor.service.contract.reject(403, "Authenticated caller required")
+                    exchange.metadata["Authorization"] = "Bearer ${owner.token}"
+                    exchange.metadata[dev.shibasis.reaktor.tooling.kernel.KernelApi.WorkspaceHeader] = owner.workspaceRoot
+                    exchange.metadata[dev.shibasis.reaktor.tooling.kernel.KernelApi.CallerHeader] = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                        dev.shibasis.reaktor.tooling.operation.OperationJson.encodeToString(dev.shibasis.reaktor.tooling.CallCaller.serializer(), caller).toByteArray(Charsets.UTF_8))
+                    (exchange.attributes[dev.shibasis.reaktor.tooling.operation.OperationGate.RequestIdAttribute] as? String)?.let {
+                        exchange.metadata[dev.shibasis.reaktor.service.contract.Metadata.IdempotencyKey] = it
+                    }
+                    return next(exchange)
+                }
+            })
+        }
+    }
 
     suspend fun info(): AgentWorkspaceInfo = ConductorJson.decodeFromJsonElement(AgentWorkspaceInfo.serializer(), call("agent_workspace_info"))
     suspend fun submit(request: AgentSubmission): AgentRunRecord = decode(call("agent_submit", ConductorJson.encodeToJsonElement(AgentSubmission.serializer(), request).jsonObject))
@@ -228,7 +262,9 @@ class AgentWorkspaceConnection private constructor(
     }
 
     private fun decode(value: JsonElement) = ConductorJson.decodeFromJsonElement(AgentRunRecord.serializer(), value)
-    override fun close() { if (closed.compareAndSet(false, true)) { try { http.shutdownNow() } finally { closeOwner() } } }
+    override fun close() { if (closed.compareAndSet(false, true)) { try { if (kernelClient.isInitialized()) kernelClient.value.close() }
+        finally { try { if (contractHttp.isInitialized()) contractHttp.value.close() }
+            finally { try { http.shutdownNow() } finally { closeOwner() } } } } }
 
     companion object {
         private val Patience = Duration.ofSeconds(35)
@@ -281,6 +317,7 @@ class AgentWorkspaceConnection private constructor(
                   * only while somebody is deliberately letting ChatGPT drive.
                   */
                  hybridConnector: Boolean = false,
+                 plus: Boolean = false,
                  kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
                  harnessMcpCommand: List<String>? = null,
                  scopeModules: (List<String>) -> List<String> = { emptyList() }): AgentWorkspaceConnection {
@@ -333,13 +370,15 @@ class AgentWorkspaceConnection private constructor(
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
                     harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead, scopeModules = scopeModules).also { workspace = it }
                 val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace)), graphOwner(), mcpProjection, directory).also { operations = it }
+                if (plus || Files.isRegularFile(directory.resolve("browser-inference/plus"))) registry.browser.startPlus()
                 operationBinding = bindOperations(registry.node)
+                registry.incarnation = java.util.UUID.randomUUID().toString()
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token, post = registry::post,
                     read = registry::read, postWithHeaders = registry::peerPost, browser = registry.browser.endpoint).also { server = it }
                 registry.endpointUrl = "http://127.0.0.1:${hostedServer.port()}"
                 val endpoint = AgentEndpoint(version = 2, workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token, invocationVersion = 1,
-                    processId = ProcessHandle.current().pid(), incarnation = java.util.UUID.randomUUID().toString(),
+                    processId = ProcessHandle.current().pid(), incarnation = requireNotNull(registry.incarnation),
                     catalogDigest = digest(registry.node.definitions.sortedBy { it.name }.joinToString("\n")), hostKind = hostKind)
                 atomicWrite(discovery, ConductorJson.encodeToString(AgentEndpoint.serializer(), endpoint))
                 // Off unless the caller says otherwise. Opening a workspace must never publish it.
