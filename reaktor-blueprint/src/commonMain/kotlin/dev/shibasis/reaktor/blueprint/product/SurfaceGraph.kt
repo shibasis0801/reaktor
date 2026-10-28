@@ -62,11 +62,12 @@ data class SurfaceGraphRow(val id: String, val title: String, val key: String = 
     val input: Color? = null, val output: Color? = null)
 data class SurfaceGraphNode(val id: String, val title: String, val subtitle: String, val scope: String = "", val color: Color? = null,
     val rows: List<SurfaceGraphRow> = emptyList(), val folded: Int = 0, val owner: String = id, val farTitle: String = title, val foldedLabel: String = "units", val symbol: String = "book", val lane: Int = 0,
-    val badges: List<SurfaceGraphBadge> = emptyList(), val progress: Float = 0f, val activity: Color? = null, val counts: List<SurfaceGraphCount> = emptyList())
+    val badges: List<SurfaceGraphBadge> = emptyList(), val progress: Float = 0f, val activity: Color? = null, val counts: List<SurfaceGraphCount> = emptyList(),
+    val opens: Boolean = false)
 fun SurfaceGraphNode.pins() = rows.mapIndexed { i, row -> Pin(row.key, "", false, BlueprintEngine.HeaderHeight + i * BlueprintEngine.RowHeight + BlueprintEngine.RowHeight / 2, PortWiring.Connected, row.id, row.aliases) }
 enum class SurfaceGraphMark { Done, Session, Note }
 data class SurfaceGraphCount(val text: String, val mark: SurfaceGraphMark? = null)
-data class SurfaceGraphGroup(val key: String, val title: String, val subtitle: String = "", val color: Color? = null, val parent: String? = null, val owner: String? = null, val lanes: Boolean = parent != null, val loose: Boolean = false, val muted: Boolean = false)
+data class SurfaceGraphGroup(val key: String, val title: String, val subtitle: String = "", val color: Color? = null, val parent: String? = null, val owner: String? = null, val lanes: Boolean = parent != null, val loose: Boolean = false, val muted: Boolean = false, val opaque: Boolean = false)
 
 data class SurfaceGraphLink(val id: String, val from: String, val to: String, val label: String = "", val proposed: Boolean = false, val color: Color? = null)
 

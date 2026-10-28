@@ -128,6 +128,7 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
     private val titleStyle = styles[0].copy(letterSpacing = (-.065).sp)
     private val subtitleStyle = styles[1]
     private val smallStyle = styles[1].copy(fontSize = 9.5.sp)
+    private val openStyle = smallStyle.copy(color = appearance.selected)
     private val rowStyle = styles[2]
     private val doneStyle = styles[2].copy(color = styles[2].color.copy(alpha = .6f))
     private val farStyle = styles[3]
@@ -335,9 +336,10 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
     }
 
     override fun body(i: Int, x0: Float, y0: Float, x1: Float, y1: Float, z: Float, fringe: Float, tolerance: Float) {
-        val look = frameLooks[i]; val nested = frames[i].parent != null; val opacity = frameOpacity[i]; val rgb = (look.color ?: appearance.selected).toArgb()
+        val look = frameLooks[i]; val nested = frames[i].parent != null; val opacity = frameOpacity[i]; val tone = look.color ?: appearance.selected; val rgb = tone.toArgb()
         stroker.roundRect(x0, y0, x1, y1, (if (nested) 10f else 16f) * z, tolerance)
-        stroker.fill(solid, fringe, surfaceGraphArgb(rgb, (if (nested) .11f else if (look.muted) .03f else if (dark) .07f else .06f) * opacity), min(x1 - x0, y1 - y0))
+        stroker.fill(solid, fringe, if (look.opaque) surfaceGraphArgb(mix(appearance.canvas, tone, if (dark) .16f else .11f).toArgb(), opacity)
+            else surfaceGraphArgb(rgb, (if (nested) .11f else if (look.muted) .03f else if (dark) .07f else .06f) * opacity), min(x1 - x0, y1 - y0))
         stroker.outline(solid, .5f, fringe, rgb, (if (nested) .42f else if (dark) .32f else .28f) * opacity)
     }
 
@@ -563,7 +565,11 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
                 count.mark?.let { mark(it, at, y + 31.5f, smallStyle.color); at += 10f }
                 paint(counts[i], at, y + 29); at += counts[i].size.width + 9
             }
-            if (n.folded > 0) text("${if (n.rows.isNotEmpty()) "+" else ""}${n.folded} ${n.foldedLabel}", smallStyle, x + w - 82, y + 29, 74f)
+            if (n.folded > 0 && n.opens) {
+                val label = measurer.measure("${n.folded} ${n.foldedLabel}", openStyle, maxLines = 1)
+                paint(label, x + w - 17 - label.size.width, y + 29)
+                drawPath(Path().apply { moveTo(x + w - 12.5f, y + 32.5f); lineTo(x + w - 9f, y + 36f); lineTo(x + w - 12.5f, y + 39.5f) }, openStyle.color, style = Stroke(1.4f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            } else if (n.folded > 0) text("${if (n.rows.isNotEmpty()) "+" else ""}${n.folded} ${n.foldedLabel}", smallStyle, x + w - 82, y + 29, 74f)
             if (n.progress > 0f) {
                 val color = n.activity ?: if (dark) Color(0xFF4BD08B) else Color(0xFF2E8B62)
                 drawRect(color.copy(alpha = .18f), Offset(x, y + 26), Size(w, 2f)); drawRect(color, Offset(x, y + 26), Size(w * n.progress.coerceIn(0f, 1f), 2f))
