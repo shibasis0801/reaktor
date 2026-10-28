@@ -50,8 +50,7 @@ export class LoopbackMcpClient {
     }
   }
 
-  async ask(question: string): Promise<LoopbackAnswer> {
-    const requestId = crypto.randomUUID();
+  async ask(question: string, requestId: string = crypto.randomUUID()): Promise<LoopbackAnswer> {
     const result = await this.rpc('tools/call', { name: 'inference.ask', arguments: { question, requestId } });
     const value = result.structuredContent;
     if (result.isError) throw new Error(value?.error || result.content?.[0]?.text || 'Antigravity could not answer.');
@@ -59,4 +58,24 @@ export class LoopbackMcpClient {
       typeof value.model !== 'string' || typeof value.elapsedMillis !== 'number') throw new Error('Invalid answer from local Reaktor.');
     return value;
   }
+}
+
+export async function discoverReaktorPlus(): Promise<LoopbackMcpClient> {
+  let response: Response;
+  try {
+    response = await fetch('http://127.0.0.1:9317/reaktor-plus/v1', {
+      credentials: 'omit', redirect: 'error', cache: 'no-store', referrerPolicy: 'no-referrer',
+      signal: AbortSignal.timeout(5_000),
+    });
+  } catch {
+    throw new Error('Reaktor+ is unavailable on this computer. Start Reaktor+ and allow local network access in your browser.');
+  }
+  if (!response.ok) throw new Error('Reaktor+ did not admit this website. Check the local service and reconnect.');
+  const value = await response.json() as { service?: unknown; version?: unknown; endpoint?: unknown; token?: unknown; capabilities?: unknown } | null;
+  if (value?.service !== 'reaktor-plus' || value.version !== 1 || value.endpoint !== 'http://127.0.0.1:9317/browser/mcp' ||
+    typeof value.token !== 'string' || value.token.length < 32 || !Array.isArray(value.capabilities) ||
+    !value.capabilities.includes('inference.ask')) throw new Error('This computer needs a compatible Reaktor+ service.');
+  const client = new LoopbackMcpClient({ endpoint: value.endpoint, token: value.token });
+  await client.connect();
+  return client;
 }
