@@ -50,6 +50,7 @@ abstract class KotlinPackageExport : DefaultTask(), KernelSpecOwner {
             into(destination)
             exclude(exclusions)
         }
+        KotlinPackageKernel.runtime(spec)
         KotlinPackageKernel.linkDependencies(spec)
         dependencyReceipt.get().asFile.writeText(KotlinPackageKernel.receipt(spec))
     }

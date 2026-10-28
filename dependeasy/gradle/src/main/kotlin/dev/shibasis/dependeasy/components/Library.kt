@@ -330,7 +330,7 @@ class LibraryScope internal constructor(private val project: Project, private va
         return NodeDeclaration { name -> declaration.declare(name).also(verifications::add) }
     }
 
-    fun web(module: String) { spec = spec.copy(webModule = module) }
+    fun web(module: String, perFile: Boolean = false) { spec = spec.copy(webModule = module, webPerFile = perFile) }
 
     fun workerManifest(output: String, sources: dev.shibasis.dependeasy.model.FileInput): NodeDeclaration {
         require(LibraryTarget.Web in spec.targets) { "Worker manifests need the Web target" }
@@ -414,6 +414,7 @@ class LibraryScope internal constructor(private val project: Project, private va
                     dependencies(configure)
                     testDependencies { this@LibraryScope.dependencies.webTests.forEach { it(this) } }
                     spec.webModule?.let { moduleName = it }
+                    perFile = spec.webPerFile
                     manifests.addAll(workerManifests)
                     configureSources(target)
                 }

@@ -28,7 +28,7 @@ data class Compose(val stability: String? = null, val resources: String? = null,
 }
 
 @Serializable
-data class LibrarySpec(val namespace: String, val targets: Set<LibraryTarget>, val bytecode: Int, val webModule: String? = null, val ui: Compose? = null, val appleFrameworkExports: List<ModuleHandle>? = null, val sourceDirectories: Map<LibraryTarget, List<String>> = emptyMap(), val jvmNullChecks: Boolean = true) {
+data class LibrarySpec(val namespace: String, val targets: Set<LibraryTarget>, val bytecode: Int, val webModule: String? = null, val webPerFile: Boolean = false, val ui: Compose? = null, val appleFrameworkExports: List<ModuleHandle>? = null, val sourceDirectories: Map<LibraryTarget, List<String>> = emptyMap(), val jvmNullChecks: Boolean = true) {
     init {
         require(namespace.isNotBlank()) { "A library needs its namespace" }
         require(targets.isNotEmpty()) { "A library needs at least one target" }
@@ -36,6 +36,7 @@ data class LibrarySpec(val namespace: String, val targets: Set<LibraryTarget>, v
         require(sourceDirectories.values.flatten().all(String::isNotBlank)) { "Sources need their authored directory" }
         require(webModule == null || LibraryTarget.Web in targets) { "A web module needs the Web target" }
         require(webModule == null || webModule.isNotBlank()) { "A web module needs its package name" }
+        require(!webPerFile || webModule != null) { "Per-file web output needs its web module" }
         require(appleFrameworkExports == null || LibraryTarget.Apple in targets) { "An Apple framework needs the Apple target" }
     }
 }
