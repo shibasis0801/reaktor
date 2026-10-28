@@ -911,7 +911,13 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     private fun DrawScope.drawLabels(camera: Viewport, l: Float, t: Float, r: Float, b: Float) {
         traced()
         val z = camera.zoom.toFloat(); val k = if (scaled) z.coerceAtLeast(1f) else 1f
+        val cx = camera.x.toFloat(); val cy = camera.y.toFloat()
         placed.clear()
+        val seen = if (labels.isEmpty()) IntArray(0) else (0 until cardBox.size / 4).filter { shown(it) && inside(cardBox, it, l, t, r, b) }.toIntArray()
+        val bands = if (labels.isEmpty()) IntArray(0) else frames.indices.filter { inside(frameBox, it, l, t, r, b) }.toIntArray()
+        fun clear(box: Rect) = placed.none { it.overlaps(box) } &&
+            seen.none { c -> cx + cardBox[c * 4] * z < box.right && cx + cardBox[c * 4 + 2] * z > box.left && cy + cardBox[c * 4 + 1] * z < box.bottom && cy + cardBox[c * 4 + 3] * z > box.top } &&
+            bands.none { f -> cx + frameBox[f * 4] * z < box.right && cx + frameBox[f * 4 + 2] * z > box.left && cy + frameBox[f * 4 + 1] * z < box.bottom && cy + (frameBox[f * 4 + 1] + BlueprintEngine.FrameTop) * z > box.top }
         for (lead in booleanArrayOf(true, false)) for (i in links.indices) {
             val label = labels[links[i].id]
             if (label.isNullOrBlank() || alphas[i] <= 0f || !flows[i] && alphas[i] < .9f || !inside(linkBox, i, l, t, r, b)) continue
@@ -923,9 +929,9 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             var middle = Offset.Zero
             for (share in LabelShares) {
                 at(i, lengths[i] * share) { x, y ->
-                    val centre = Offset(camera.x.toFloat() + x * z, camera.y.toFloat() + y * z)
+                    val centre = Offset(cx + x * z, cy + y * z)
                     if (share == LabelShares[0]) middle = centre
-                    if (placed.none { it.overlaps(Rect(centre.x - halfWidth, centre.y - halfHeight, centre.x + halfWidth, centre.y + halfHeight)) }) spot = centre
+                    if (clear(Rect(centre.x - halfWidth, centre.y - halfHeight, centre.x + halfWidth, centre.y + halfHeight))) spot = centre
                 }
                 if (spot != null) break
             }

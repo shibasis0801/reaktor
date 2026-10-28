@@ -44,7 +44,7 @@ data class BlueprintEdge(
 
 enum class Ports { All, Used }
 
-data class LayoutOptions(val hints: Int = 1, val ordered: Boolean = false, val ports: Ports = Ports.All)
+data class LayoutOptions(val hints: Int = 1, val ordered: Boolean = false, val ports: Ports = Ports.All, val packed: Boolean = false)
 
 interface Bounds {
     val x: Double

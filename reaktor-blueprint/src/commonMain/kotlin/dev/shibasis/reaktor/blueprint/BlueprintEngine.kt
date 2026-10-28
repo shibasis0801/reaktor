@@ -599,7 +599,7 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         val routed = inside.values.flatMapTo(HashSet()) { list -> list.filter { !it.curved }.map { it.id } }
         val keyed = blocks.associateBy { it.group.key }
         val crossing = joined.filter { it.id !in routed && it.id !in overlays && rootOf[it.from] != rootOf[it.to] && rootOf[it.from] in keyed && rootOf[it.to] in keyed }
-        val flow = if (crossing.isEmpty()) null else flow(blocks, keyed, crossing, aspect)
+        val flow = if (crossing.isEmpty() || options.packed) null else flow(blocks, keyed, crossing, aspect)
         val placement = flow?.let { blocks.map { block -> block to it.origins.getValue(block.group.key) } } ?: BlueprintEngine.pack(blocks, aspect)
         val origins = placement.associate { (block, origin) -> block.group.key to origin }
         placement.forEach { (block, origin) ->

@@ -91,7 +91,8 @@ class SurfaceGraphExplorerState : GraphCanvasState(0.03..3.0, GraphLevels(.2, .1
 
 @Composable
 fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, selectedId: String?, appearance: SurfaceGraphAppearance,
-    state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier = Modifier, layout: BlueprintLayout<*>? = null, resourceLinks: Boolean = true, chapterLinks: Boolean = true, areaCorridors: Boolean = true, highlighted: Set<String> = emptySet(), onClear: () -> Unit = {}, key: Any? = null, groups: List<SurfaceGraphGroup> = emptyList(), editor: GraphEditor? = null) {
+    state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier = Modifier, layout: BlueprintLayout<*>? = null, resourceLinks: Boolean = true, chapterLinks: Boolean = true, areaCorridors: Boolean = true, highlighted: Set<String> = emptySet(), onClear: () -> Unit = {}, key: Any? = null, groups: List<SurfaceGraphGroup> = emptyList(), editor: GraphEditor? = null,
+    onOpen: ((String) -> Boolean)? = null) {
     val fallback = remember(nodes, links, appearance, layout != null) {
         if (layout != null) return@remember null
         val positions = expandedSurfaceGraphPositions(nodes, appearance.width, appearance.height)
@@ -143,6 +144,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
     SideEffect { state.density(density); editor?.font = appearance.fontFamily; if (model != null) { state.frames = model.layout.frames; state.place(model.cards, model.nodes, key) } }
     val select by rememberUpdatedState(onSelect)
     val clear by rememberUpdatedState(onClear)
+    val opening by rememberUpdatedState(onOpen)
     fun cardAt(x: Float, y: Float) = painter.model.value?.cards?.asReversed()?.firstOrNull { x >= it.x && x <= it.x + it.width && y >= it.y && y <= it.y + it.height }
     val chosen by rememberUpdatedState(selectedId)
     fun cardOf(id: String) = painter.model.value?.let { shown -> shown.cards.firstOrNull { card -> shown.byId[card.id]?.let { it.id == id || it.owner == id || it.rows.any { row -> row.id == id || id in row.aliases } } == true } }
@@ -154,7 +156,9 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
         tap = { x, y, reach ->
             val shown = painter.model.value
             val handled = painter.endAt(x, y)?.let { jump(it); true } ?: painter.frameAt(x, y)?.let { frame -> ownerOf(frame)?.let(select); true } ?: cardAt(x, y)?.let { card ->
-                if (shown != null) select(painter.rowAt(x, y)?.takeUnless { chosen == it.id }?.id ?: shown.byId.getValue(card.id).id)
+                val node = shown?.byId?.getValue(card.id)
+                val control = node != null && node.opens && x >= card.x + card.width - 90 && y >= card.y + 26 && y <= card.y + BlueprintEngine.HeaderHeight
+                if (node != null && !(control && opening?.invoke(node.id) == true)) select(painter.rowAt(x, y)?.takeUnless { chosen == it.id }?.id ?: node.id)
                 true
             } ?: painter.follow(x, y, reach)?.let { jump(it); true } ?: false
             state.record()
@@ -169,8 +173,9 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             val at = order.indexOfFirst { card -> shown.byId[card.id]?.let { it.id == chosen || it.owner == chosen } == true }
             if (order.isNotEmpty()) order[(at + if (at < 0 && by < 0) 0 else by).mod(order.size)].let { card -> select(shown.byId.getValue(card.id).id); state.reveal(card.x, card.y, card.width, card.height) }
         } },
-        open = { x, y -> painter.frameAt(x, y)?.let { state.fit(it.x, it.y, it.width, it.height, maxZoom = 1.4); true }
-            ?: cardAt(x, y)?.let { state.centre(it.x, it.y, it.width, it.height); true } ?: false },
+        open = { x, y -> painter.frameAt(x, y)?.let { frame -> if (ownerOf(frame)?.let { opening?.invoke(it) } != true) state.fit(frame.x, frame.y, frame.width, frame.height, maxZoom = 1.4); true }
+            ?: cardAt(x, y)?.let { card -> if (painter.model.value?.byId?.get(card.id)?.takeIf { it.opens }?.let { opening?.invoke(it.id) } != true) state.centre(card.x, card.y, card.width, card.height); true } ?: false },
+        enterOpens = onOpen != null,
         editing = editor,
         markers = { focus -> model?.let { SurfaceGraphMarkers(state, it, selectedId) { id -> focus(); select(id) } } },
     ) { camera, viewport, scale ->
