@@ -142,4 +142,31 @@ class BoardTest {
         val snapshot = BoardSnapshot(board, 3, BoardView.Kanban, "b", "agent")
         assertEquals(snapshot.board, json.decodeFromString(BoardSnapshot.serializer(), json.encodeToString(BoardSnapshot.serializer(), snapshot)).board)
     }
+
+    @Test
+    fun aComponentIsAFrameAroundItsPartsAndRelationsAreLabelledArrows() {
+        val parts = listOf(
+            BoardItem("store", "Plan store", "doing", badge = "1 of 2 done"),
+            BoardItem("kinds", "Item kinds", "done", within = "store", at = BoardPoint(100.0, 200.0)),
+            BoardItem("relations", "Relations", "next", within = "store", after = listOf("kinds"), at = BoardPoint(500.0, 200.0)),
+            BoardItem("api", "Plan operations", "next", at = BoardPoint(1100.0, 200.0), relations = listOf(BoardRelation("store", "writes"))),
+        )
+        val at = parts.associate { it.key to (it.at ?: BoardPoint(0.0, 0.0)) }
+        val frames = parts.frames(at)
+        assertEquals(setOf("store"), frames.keys)
+        assertEquals(BoardRect(100.0 - BoardGeometry.FramePad, 200.0 - BoardGeometry.FrameHead,
+            400.0 + BoardGeometry.CardWidth + 2 * BoardGeometry.FramePad, BoardGeometry.CardHeight + BoardGeometry.FrameHead + BoardGeometry.FramePad), frames["store"])
+        val shapes = Board(lanes, parts, words).scene(BoardFrame(parts, at, selected = "store"))
+        val frame = shapes.filterIsInstance<BoardBox>().single { it.id == BoardIds.frame("store") }
+        assertEquals(frames["store"]!!.width, frame.width)
+        assertTrue(shapes.none { it.id == BoardIds.card("store") })
+        assertTrue(shapes.indexOf(frame) < shapes.indexOfFirst { it.id == BoardIds.card("kinds") })
+        val relation = shapes.filterIsInstance<BoardArrow>().single { it.id == BoardIds.relation("api", "store") }
+        assertTrue(relation.dashed)
+        assertEquals(1100.0, relation.x)
+        assertEquals(frames["store"]!!.right, relation.x + relation.dx)
+        assertEquals("writes", shapes.filterIsInstance<BoardLabel>().single { it.id == "${relation.id}:label" }.text)
+        assertEquals(0, parts.depth("store"))
+        assertEquals(1, parts.depth("kinds"))
+    }
 }

@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.conductor.workspace
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.cli.HarnessCheck
 import dev.shibasis.reaktor.conductor.cli.HarnessSession
+import dev.shibasis.reaktor.conductor.cli.HarnessStep
 import dev.shibasis.reaktor.conductor.worklog.PlanState
 import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
@@ -114,17 +115,95 @@ class WorkPlanTest {
         val store = WorkPlanStore(directory("plan-graph"))
         val plan = draw(store).plan
         val shape = PlanGraph.shape(listOf(plan))
-        assertEquals(listOf("Unified agent work"), shape.scopes.filter { it.parent != null }.map { it.label })
+        assertEquals(listOf("Unified agent work"), shape.scopes.filter { it.parent == "plans" }.map { it.label })
+        assertEquals(setOf("Hangar views", "In Reaktor"), shape.scopes.filter { it.parent == plan.thread }.map { it.label }.toSet())
         assertEquals(4, shape.nodes.count { it.kind == NodeKind.Workflow })
         assertEquals(setOf("reaktor-conductor", "WorkPlan.kt"), shape.nodes.filter { it.attributes["link"] != null }.map { it.label }.toSet())
+        assertTrue(shape.nodes.filter { it.attributes["link"] != null }.all { it.scope == "${plan.thread} code" })
+        assertEquals("""atlas_read {"path":"reaktor-conductor/src/WorkPlan.kt","part":"outline"}""", shape.nodes.single { it.label == "WorkPlan.kt" }.attributes["explore"])
         val ids = shape.nodes.associate { it.id to it.label }
         assertTrue(shape.wires.any { ids[it.consumer] == "Agent tools" && ids[it.provider] == "Plan model" })
-        assertTrue(shape.wires.any { ids[it.consumer] == "Kanban lanes" && ids[it.provider] == "Hangar views" && it.consumerPort == "part of" })
+        assertEquals(setOf("Hangar views", "Kanban lanes"), shape.nodes.filter { it.scope == "${plan.thread} parts views" }.map { it.label }.toSet())
         assertEquals("To do", shape.nodes.first { it.label == "Plan model" }.attributes["status"])
         assertTrue(shape.nodes.filter { it.kind == NodeKind.Workflow }.all { it.id == "${plan.thread}#${it.attributes["item"]}" })
         assertEquals(shape.nodes.map { it.id }, PlanGraph.shape(listOf(plan)).nodes.map { it.id })
         val provided = shape.nodes.flatMap { node -> node.ports.filter { it.provides }.map { it.key } }
         assertEquals(provided.distinct(), provided)
+    }
+
+    @Test fun aDesignHasComponentsWhosePartsCarryTheStatus() {
+        val store = WorkPlanStore(directory("plan-design"))
+        val ops = Json.decodeFromString(ListSerializer(PlanOp.serializer()), """[
+            {"type":"add","key":"store","kind":"component","title":"Plan store","refs":["module:reaktor-conductor"]},
+            {"type":"add","key":"api","kind":"Service","title":"Plan operations"},
+            {"type":"add","key":"kinds","title":"Item kinds","parent":"store","status":"Done"},
+            {"type":"add","key":"relations","title":"Relations","parent":"store","after":["kinds"]},
+            {"type":"add","key":"store-test","kind":"test","title":"Store tests","parent":"store","after":["relations"]},
+            {"type":"add","key":"ops","title":"relate and unrelate","parent":"api"},
+            {"type":"relate","from":"api","to":"store","label":" writes  "}
+        ]""")
+        val drawn = store.write("claude:s1", PlanPatch(title = "Real designs", ops = ops), claude)
+        assertEquals(emptyList(), drawn.refused)
+        val plan = drawn.plan
+        assertEquals(listOf(PlanKind.Component, PlanKind.Component, PlanKind.Task, PlanKind.Task, PlanKind.Check, PlanKind.Task), plan.items.map { it.kind })
+        assertEquals(listOf(PlanRelation("store", "writes")), plan.item("api")?.relations)
+        assertEquals("api writes store", plan.changes.last().summary.last())
+        assertEquals(PlanStatus.Doing, plan.state("store"))
+        assertEquals(PlanStatus.Todo, plan.state("api"))
+        assertEquals(mapOf(PlanStatus.Done to 1, PlanStatus.Todo to 3), plan.summary().statuses)
+        assertEquals(2, plan.summary().components)
+
+        val finished = store.write("claude:s1", PlanPatch(base = plan.revision, ops = listOf(
+            PlanOp.Status("relations", PlanStatus.Done), PlanOp.Status("store-test", PlanStatus.Dropped), PlanOp.Update("ops", kind = PlanKind.Decision),
+            PlanOp.Relate("api", "store", "reads"), PlanOp.Relate("api", "api", "calls"), PlanOp.Relate("api", "gone", "calls"),
+        )), claude)
+        assertEquals(listOf(4, 5), finished.refused.map { it.op })
+        assertEquals(PlanStatus.Done, finished.plan.state("store"))
+        assertEquals(PlanKind.Decision, finished.plan.item("ops")?.kind)
+        assertEquals(listOf(PlanRelation("store", "reads")), finished.plan.item("api")?.relations)
+
+        val shape = PlanGraph.shape(listOf(finished.plan))
+        assertEquals(setOf("Plan store", "Plan operations", "In Reaktor"), shape.scopes.filter { it.parent == "claude:s1" }.map { it.label }.toSet())
+        assertEquals("Component", shape.nodes.first { it.id == "claude:s1#store" }.attributes["kind"])
+        assertEquals("Done", shape.nodes.first { it.id == "claude:s1#store" }.attributes["status"])
+        assertEquals("2 of 2 done", shape.nodes.first { it.id == "claude:s1#store" }.attributes["parts"])
+        assertTrue(shape.wires.any { it.consumer == "claude:s1#api" && it.provider == "claude:s1#store" && it.consumerPort == "reads" })
+
+        val removed = store.write("claude:s1", PlanPatch(ops = listOf(PlanOp.Remove("store"), PlanOp.Unrelate("api", "store"))), claude).plan
+        assertEquals(emptyList(), removed.item("api")?.relations)
+        assertEquals(null, removed.item("kinds")?.parent)
+        assertEquals(PlanKind.Component, WorkPlanStore(made.last()).plan("claude:s1")?.item("api")?.kind)
+    }
+
+    @Test fun hangarRemindsALiveSessionWhoseDesignFallsBehindItsEdits() {
+        val now = 10 * 60 * 60_000L
+        fun session(vararg edits: Pair<String, Long>) = HarnessSession(RuntimeKind.ClaudeCode, "s1", "Work", "/w", startedAt = now - 40 * 60_000, lastActiveAt = now - 1_000,
+            origin = null, version = null, branch = null, model = null, effort = null, tokens = null,
+            steps = edits.map { (file, at) -> HarnessStep(at, "Edit", null, false, file) }, transcript = "")
+        val store = WorkPlanStore(directory("plan-nudge-store"), clock = { now - 40 * 60_000 })
+        val design = store.write("claude:s1", PlanPatch(title = "Design", ops = listOf(
+            PlanOp.Add("Plan store", key = "store", kind = PlanKind.Component, refs = listOf("module:reaktor-conductor")),
+            PlanOp.Add("Item kinds", key = "kinds", parent = "store", refs = listOf("symbol:WorkPlan.state")),
+        )), claude).plan
+        val flat = design.copy(items = listOf("a", "b", "c", "d").map { PlanItem(it, it) })
+        val working = design.copy(items = design.items.map { if (it.id == "kinds") it.copy(status = PlanStatus.Doing) else it })
+        fun kind(plan: WorkPlan?, vararg edits: Pair<String, Long>) = PlanNudges.of("claude:s1", plan, session(*edits), now)?.kind
+
+        assertEquals(PlanNudges.Draw, kind(null, "modules/app/A.kt" to now - 60_000))
+        assertNull(kind(null, "/Users/me/.claude/projects/x/memory/note.md" to now - 60_000))
+        assertEquals(PlanNudges.Flat, kind(flat))
+        assertNull(kind(flat.copy(items = flat.items.map { if (it.id == "a") it else it.copy(parent = "a") })))
+        assertEquals(PlanNudges.Doing, kind(design, "reaktor-conductor/src/WorkPlanStore.kt" to now - 60_000))
+        assertEquals(PlanNudges.Links, kind(working, "modules/app/A.kt" to now - 60_000, "modules/app/B.kt" to now - 50_000))
+        assertEquals(PlanNudges.Stale, kind(working, "reaktor-conductor/src/WorkPlan.kt" to now - 60_000))
+        assertNull(kind(working.copy(updatedAt = now - 5 * 60_000), "reaktor-conductor/src/WorkPlan.kt" to now - 60_000))
+
+        val inbox = directory("plan-nudge-inbox")
+        val nudges = PlanNudges(inbox)
+        assertEquals(listOf(PlanNudges.Doing), nudges.check(listOf(session("reaktor-conductor/src/WorkPlan.kt" to now - 60_000)), mapOf(design.thread to design), now).map { it.kind })
+        assertContains(Files.readString(inbox.resolve("claude-s1.txt")), "nothing on your plan “Design” is in progress")
+        assertEquals(emptyList(), nudges.check(listOf(session("modules/app/A.kt" to now)), emptyMap(), now + 60_000))
+        assertEquals(listOf(PlanNudges.Draw), nudges.check(listOf(session("modules/app/A.kt" to now + 20 * 60_000).copy(lastActiveAt = now + 20 * 60_000)), emptyMap(), now + 20 * 60_000).map { it.kind })
     }
 
     private val revamp = HarnessSession(RuntimeKind.ClaudeCode, "c8", "Revamp the pane", "/w", startedAt = 1, lastActiveAt = 5, origin = null, version = null, branch = null,

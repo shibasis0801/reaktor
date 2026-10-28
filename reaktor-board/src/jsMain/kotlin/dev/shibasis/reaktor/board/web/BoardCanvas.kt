@@ -12,12 +12,15 @@ import dev.shibasis.reaktor.board.BoardIds
 import dev.shibasis.reaktor.board.BoardItem
 import dev.shibasis.reaktor.board.BoardLabel
 import dev.shibasis.reaktor.board.BoardPoint
+import dev.shibasis.reaktor.board.BoardRect
 import dev.shibasis.reaktor.board.BoardRule
 import dev.shibasis.reaktor.board.BoardShape
 import dev.shibasis.reaktor.board.BoardTheme
 import dev.shibasis.reaktor.board.BoardView
 import dev.shibasis.reaktor.board.SketchMark
+import dev.shibasis.reaktor.board.cardRect
 import dev.shibasis.reaktor.board.creationPoint
+import dev.shibasis.reaktor.board.frames
 import dev.shibasis.reaktor.board.groups
 import dev.shibasis.reaktor.board.order
 import dev.shibasis.reaktor.board.positions
@@ -79,6 +82,7 @@ class BoardCanvas {
     private var elements: Array<dynamic> = emptyArray()
     private var drawn: Array<dynamic>? = null
     private var positions = emptyMap<String, BoardPoint>()
+    private var frameRects = emptyMap<String, BoardRect>()
     private var drag: Drag? = null
     private var frame: dynamic = null
     private var mountFrame: dynamic = null
@@ -99,7 +103,8 @@ class BoardCanvas {
     private data class Wire(val from: String, val start: BoardPoint, val pointer: Int, var point: BoardPoint, var moved: Boolean = false)
     data class Anchor(val item: BoardItem, val x: Double, val y: Double, val width: Double, val height: Double)
     data class Preview(val from: Anchor, val point: BoardPoint, val target: Anchor?, val problem: String?)
-    private class Drag(val item: BoardItem, val start: BoardPoint, val origin: BoardPoint, val pointer: Int, var point: BoardPoint, var moved: Boolean = false, val original: Array<dynamic>)
+    private class Drag(val item: BoardItem, val start: BoardPoint, val origin: BoardPoint, val pointer: Int, var point: BoardPoint, var moved: Boolean = false, val original: Array<dynamic>,
+        val members: Set<String> = setOf(item.key))
 
     private val words get() = board.words
 
@@ -227,6 +232,7 @@ class BoardCanvas {
         val locations = board.positions(BoardView.Dag, items, saved()).toMutableMap()
         drag?.let { if (it.moved) locations[it.item.key] = it.point }
         positions = locations
+        frameRects = items.frames(locations)
         val convert = kit?.convert ?: return emptyArray()
         val draft = inline?.let { BoardDraft(it.at, it.after, it.lane, it.editing?.key) }
         val live = HashSet<String>()
@@ -514,8 +520,8 @@ class BoardCanvas {
     fun anchors(): List<Anchor> {
         if (api == null || disposed) return emptyList()
         return items.mapNotNull { item ->
-            val at = positions[item.key] ?: return@mapNotNull null
-            Anchor(item, at.x, at.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight)
+            val box = frameRects[item.key] ?: positions[item.key]?.let(::cardRect) ?: return@mapNotNull null
+            Anchor(item, box.x, box.y, box.width, box.height)
         }
     }
 
@@ -557,8 +563,14 @@ class BoardCanvas {
         return false
     }
 
-    private fun hit(at: BoardPoint): BoardItem? = items.lastOrNull { item ->
-        positions[item.key]?.let { at.x >= it.x && at.x <= it.x + BoardGeometry.CardWidth && at.y >= it.y && at.y <= it.y + BoardGeometry.CardHeight } == true
+    private fun hit(at: BoardPoint): BoardItem? = items.lastOrNull { item -> item.key !in frameRects && positions[item.key]?.let { cardRect(it).contains(at) } == true }
+        ?: frameRects.entries.filter { it.value.contains(at) }.minByOrNull { it.value.width * it.value.height }?.key?.let { key -> items.firstOrNull { it.key == key } }
+
+    private fun members(key: String): Set<String> {
+        val found = linkedSetOf(key)
+        var grew = true
+        while (grew) grew = items.fold(false) { added, item -> if (item.within in found && found.add(item.key)) true else added }
+        return found
     }
 
     private fun unhover() { if (hovering) { hovering = false; element?.removeAttribute("data-hover") } }
@@ -585,7 +597,8 @@ class BoardCanvas {
             return
         }
         event.currentTarget.setPointerCapture(event.pointerId)
-        drag = Drag(item, at, positions.getValue(item.key), number(event.pointerId).toInt(), positions.getValue(item.key), original = elements)
+        val origin = frameRects[item.key]?.let { BoardPoint(it.x, it.y) } ?: positions.getValue(item.key)
+        drag = Drag(item, at, origin, number(event.pointerId).toInt(), origin, original = elements, members = if (item.key in frameRects) members(item.key) else setOf(item.key))
     }
 
     fun move(event: dynamic) {
@@ -609,6 +622,7 @@ class BoardCanvas {
     private fun drawDrag(held: Drag) {
         val id = BoardIds.card(held.item.key)
         val dx = held.point.x - held.origin.x; val dy = held.point.y - held.origin.y
+        if (held.members.size > 1 || held.item.key in frameRects) return drawGroupDrag(held, dx, dy)
         val moved = held.original.map { element ->
             val eid = text(element.id)
             val edge = element.type == "arrow" && (element.customData?.from == held.item.key || element.customData?.to == held.item.key)
@@ -623,6 +637,24 @@ class BoardCanvas {
                     updated.x = from.x + BoardGeometry.CardWidth; updated.y = from.y + BoardGeometry.CardHeight / 2; updated.width = width; updated.height = height
                     updated.points = bend(width, height)
                 }
+                updated
+            } else element
+        }.toTypedArray()
+        drawn = null
+        api?.updateScene(obj("elements" to if (view == BoardView.Sketch) moved + mine() else moved, "captureUpdate" to kit?.neverCapture))
+    }
+
+    private fun drawGroupDrag(held: Drag, dx: Double, dy: Double) {
+        val owned = held.members.flatMap { listOf(BoardIds.card(it), BoardIds.frame(it)) }
+        val carried = held.original.filter { element ->
+            element.type == "arrow" && text(element.customData?.from) in held.members && text(element.customData?.to) in held.members
+        }.mapTo(HashSet()) { text(it.id) }
+        val moved = held.original.map { element ->
+            val eid = text(element.id)
+            if (eid in carried || owned.any { eid == it || eid.startsWith("$it:") } || carried.any { eid.startsWith("$it:") }) {
+                val updated = js("Object.assign({}, element)")
+                updated.version = ++revision
+                updated.x = number(element.x) + dx; updated.y = number(element.y) + dy
                 updated
             } else element
         }.toTypedArray()
@@ -663,7 +695,13 @@ class BoardCanvas {
         host.select(held.item.key)
         val now = board.item(held.item.key)
         if (now == null || !editable(now)) { sync(); return }
-        place(now, held.point)
+        if (held.members.size > 1 || now.key in frameRects) {
+            val dx = held.point.x - held.origin.x; val dy = held.point.y - held.origin.y
+            held.members.filter { it !in frameRects }.forEach { key ->
+                val part = board.item(key)?.takeIf(::editable) ?: return@forEach
+                positions[key]?.let { at -> place(part, BoardPoint(at.x + dx, at.y + dy)) }
+            }
+        } else place(now, held.point)
         persist(); sync()
     }
 
@@ -731,7 +769,7 @@ class BoardCanvas {
         onView()
     }
 
-    fun titlePoint(item: BoardItem): BoardPoint = positions[item.key] ?: creationPoint(null, null, item.lane)
+    fun titlePoint(item: BoardItem): BoardPoint = frameRects[item.key]?.let { BoardPoint(it.x, it.y) } ?: positions[item.key] ?: creationPoint(null, null, item.lane)
 
     fun create(title: String, lane: String, at: BoardPoint?, after: String?, fields: Map<String, String>): String? {
         board.titleProblem(title)?.let { return it }

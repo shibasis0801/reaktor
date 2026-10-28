@@ -26,6 +26,10 @@ data class BoardTheme(
     val footer: String = "#94a0b5",
     val owner: String = "#eeeafa",
     val ownerText: String = "#7868b1",
+    val frameFill: String = "#fafbfe",
+    val frameLine: String = "#d9deea",
+    val frameTitle: String = "#34415a",
+    val relation: String = "#9683e5",
     val inks: Map<BoardInk, String> = mapOf(
         BoardInk.Muted to "#a7b3c3", BoardInk.Busy to "#eda63d", BoardInk.Ok to "#4bb88a", BoardInk.Warn to "#d9822b",
         BoardInk.Danger to "#c36b66", BoardInk.Accent to "#7865d9", BoardInk.Topic to "#9683e5"),
@@ -58,7 +62,9 @@ object BoardIds {
     fun card(key: String) = "$Card${escape(key)}"
     fun cardOf(id: String): String? = if (id.startsWith(Card)) Card + id.removePrefix(Card).substringBefore(':') else null
     fun lane(id: String) = "lane:$id"
+    fun frame(key: String) = "frame:${escape(key)}"
     fun edge(from: String, to: String) = "dependency:${card(from)}:${card(to)}"
+    fun relation(from: String, to: String) = "relation:${card(from)}:${card(to)}"
     fun generated(id: String) = id == Draft || ':' in id
     private const val Plain = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()"
     fun escape(value: String): String = buildString {
@@ -94,16 +100,38 @@ fun Board.scene(frame: BoardFrame, theme: BoardTheme = BoardTheme()): List<Board
 fun Board.groups(frame: BoardFrame, theme: BoardTheme = BoardTheme()): List<BoardGroup> = buildList {
     val shown = frame.shown
     val at = frame.positions
+    val frames = shown.frames(at)
+    fun box(key: String): BoardRect? = frames[key] ?: at[key]?.let(::cardRect)
+    frames.keys.sortedBy(shown::depth).forEach { key ->
+        shown.firstOrNull { it.key == key }?.let { item -> add(BoardGroup(BoardIds.frame(key), frameShapes(item, frames.getValue(key), frame, theme))) }
+    }
     shown.forEach { item ->
         item.after.forEach dependency@{ prerequisite ->
-            val from = at[prerequisite] ?: return@dependency
-            val to = at[item.key] ?: return@dependency
-            val x = from.x + BoardGeometry.CardWidth
+            val from = box(prerequisite) ?: return@dependency
+            val to = box(item.key) ?: return@dependency
             val id = BoardIds.edge(prerequisite, item.key)
-            add(BoardGroup(id, listOf(BoardArrow(id, x, from.y + BoardGeometry.CardHeight / 2, to.x - x, to.y - from.y, theme.arrow, ends = BoardEnds(prerequisite, item.key)))))
+            add(BoardGroup(id, listOf(BoardArrow(id, from.right, from.middle, to.x - from.right, to.middle - from.middle, theme.arrow, ends = BoardEnds(prerequisite, item.key)))))
+        }
+    }
+    shown.forEach { item ->
+        item.relations.forEach relation@{ relation ->
+            val from = box(item.key) ?: return@relation
+            val to = box(relation.to)?.takeIf { relation.to != item.key } ?: return@relation
+            val (start, end) = when {
+                to.x >= from.right -> BoardPoint(from.right, from.middle) to BoardPoint(to.x, to.middle)
+                to.right <= from.x -> BoardPoint(from.x, from.middle) to BoardPoint(to.right, to.middle)
+                to.y >= from.bottom -> BoardPoint(from.x + from.width / 2, from.bottom) to BoardPoint(to.x + to.width / 2, to.y)
+                else -> BoardPoint(from.x + from.width / 2, from.y) to BoardPoint(to.x + to.width / 2, to.bottom)
+            }
+            val id = BoardIds.relation(item.key, relation.to)
+            val label = wrap(relation.label, 24, 1)
+            add(BoardGroup(id, listOf(
+                BoardArrow(id, start.x, start.y, end.x - start.x, end.y - start.y, theme.relation, dashed = true, ends = BoardEnds(item.key, relation.to)),
+                BoardLabel("$id:label", label, start.x + (end.x - start.x) / 2 + 8, start.y + (end.y - start.y) / 2 - 20, 13, theme.relation))))
         }
     }
     shown.forEach card@{ item ->
+        if (item.key in frames) return@card
         val point = at[item.key] ?: return@card
         add(BoardGroup(BoardIds.card(item.key), card(item, point, frame, theme)))
     }
@@ -116,6 +144,22 @@ fun Board.groups(frame: BoardFrame, theme: BoardTheme = BoardTheme()): List<Boar
             },
             BoardBox("${BoardIds.Draft}:halo", point.x - 4, point.y - 4, 308.0, 188.0, theme.halo, theme.halo, 0.0),
             BoardBox(BoardIds.Draft, point.x, point.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight, theme.active, theme.card, 1.8))))
+    }
+}
+
+private fun frameShapes(item: BoardItem, rect: BoardRect, frame: BoardFrame, theme: BoardTheme): List<BoardShape> = buildList {
+    val id = BoardIds.frame(item.key)
+    val active = frame.selected == item.key || frame.source == item.key
+    add(BoardBox(id, rect.x, rect.y, rect.width, rect.height, if (active) theme.active else theme.frameLine, theme.frameFill, if (active) 1.8 else 1.2))
+    item.mark?.let { mark -> add(BoardBox("$id:mark", rect.x + 16, rect.y + 16, 4.0, 40.0, theme.ink(mark), theme.ink(mark), 0.0)) }
+    val badge = item.badge.take(28)
+    val room = ((rect.width - 64 - badge.length * 7 - if (item.initials.isBlank()) 0 else 44) / 10).toInt().coerceAtLeast(8)
+    if (item.eyebrow.isNotBlank()) add(BoardLabel("$id:code", wrap(item.eyebrow.uppercase(), room + 4, 1), rect.x + 30, rect.y + 13, 11, theme.eyebrow))
+    add(BoardLabel("$id:title", wrap(item.title, room, 1), rect.x + 30, rect.y + 30, 18, theme.frameTitle))
+    if (badge.isNotBlank()) add(BoardLabel("$id:badge", badge, rect.right - 22 - badge.length * 7.0 - if (item.initials.isBlank()) 0.0 else 44.0, rect.y + 34, 12, theme.badgeText))
+    if (item.initials.isNotBlank()) {
+        add(BoardDot("$id:owner", rect.right - 52, rect.y + 22, 30.0, theme.owner, theme.owner, 0.0))
+        add(BoardLabel("$id:initials", item.initials.take(2).uppercase(), rect.right - 45, rect.y + 31, 11, theme.ownerText))
     }
 }
 
