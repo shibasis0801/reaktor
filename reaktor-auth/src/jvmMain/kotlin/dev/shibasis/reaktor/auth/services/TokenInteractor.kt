@@ -5,8 +5,9 @@ import dev.shibasis.reaktor.auth.PersonalAccessTokens
 import dev.shibasis.reaktor.auth.encodeTokenPolicyList
 import dev.shibasis.reaktor.auth.jwt.JwtMinter
 import dev.shibasis.reaktor.auth.kernel.PrincipalKind
+import dev.shibasis.reaktor.auth.runtime.PatCeiling
+import dev.shibasis.reaktor.auth.runtime.ceiling
 import dev.shibasis.reaktor.auth.parseTokenPolicyList
-import dev.shibasis.reaktor.core.framework.EMPTY_JSON
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -102,7 +103,7 @@ class TokenInteractor(
             revokedAt = null,
             appId = appId,
             allowedAudiences = allowedAudiences.takeIf { it.isNotEmpty() }?.let(::encodeTokenPolicyList),
-            data = EMPTY_JSON
+            data = PatCeiling.Marker
         )
 
         PersonalAccessTokens.insert {
@@ -165,6 +166,7 @@ class TokenInteractor(
             contextId = pat.contextId,
             principalKind = if (pat.principalId == null) PrincipalKind.SERVICE else PrincipalKind.USER,
             ttlSeconds = ttlSeconds,
+            ceiling = pat.ceiling,
         )
     }
 

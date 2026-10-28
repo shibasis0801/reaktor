@@ -50,6 +50,13 @@ import kotlinx.atomicfu.atomic
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
+sealed interface GraphChange {
+    class Attached(val node: Node) : GraphChange
+    class Detached(val node: Node) : GraphChange
+    class Owned(val graph: Graph) : GraphChange
+    data object Closed : GraphChange
+}
+
 @JsExport
 open class Graph(
     val parentGraph: Graph? = null,
@@ -87,6 +94,26 @@ open class Graph(
     internal val wirings = MutableStateFlow(0)
     private val importedGraphs = ConcurrentHashMap<Uuid, Graph>()
     private val closed = atomic(false)
+    private val structureListeners = atomic<List<(GraphChange) -> Unit>>(emptyList())
+
+    @JsExport.Ignore
+    val owned: Collection<Graph> get() = ownedGraphs.values()
+
+    @JsExport.Ignore
+    fun onStructure(listener: (GraphChange) -> Unit): () -> Unit {
+        while (true) {
+            val current = structureListeners.value
+            if (structureListeners.compareAndSet(current, current + listener)) break
+        }
+        return {
+            while (true) {
+                val current = structureListeners.value
+                if (structureListeners.compareAndSet(current, current - listener)) break
+            }
+        }
+    }
+
+    internal fun changed(change: GraphChange) = structureListeners.value.forEach { it(change) }
 
     fun dependsOn(vararg graphs: Graph) {
         require(graphs.none { it === this }) { "A graph cannot import itself" }
@@ -240,6 +267,7 @@ open class Graph(
 
         node.transition(Lifecycle.Restoring)
         node.transition(Lifecycle.Attaching)
+        changed(GraphChange.Attached(node))
         return true
     }
 
@@ -251,7 +279,7 @@ open class Graph(
         node.transition(Lifecycle.Saving)
         node.transition(Lifecycle.Destroying)
         node.close()
-        return super.detach(node)
+        return super.detach(node).also { if (it) changed(GraphChange.Detached(node)) }
     }
 
     fun addRoot(routeNode: RouteNode<Payload, *>, payload: Payload = Payload()) = dispatch(Push(sentinel.edge(routeNode), payload))
@@ -275,6 +303,8 @@ open class Graph(
 
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
+        changed(GraphChange.Closed)
+        structureListeners.value = emptyList()
         transition(Lifecycle.Destroying)
         ownedGraphs.values().forEach { it.close() }
         ownedGraphs.clear()
@@ -413,7 +443,7 @@ inline fun <reified T : Any> Graph.input(key: String = ""): ProviderPort<T> {
 
 fun<G: Graph> Graph.Graph(builder: (Graph) -> G): G = builder(this).also {
     require(it.parentGraph === this) { "Owned graph must have its owner as parent" }
-    ownedGraphs.putIfAbsent(it.id, it)
+    if (ownedGraphs.putIfAbsent(it.id, it) == null) changed(GraphChange.Owned(it))
 }
 
 fun Graph.containerPathTo(

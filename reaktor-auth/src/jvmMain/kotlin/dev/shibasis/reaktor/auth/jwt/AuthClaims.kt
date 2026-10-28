@@ -10,6 +10,9 @@ import dev.shibasis.reaktor.auth.kernel.PermissionRef
 import dev.shibasis.reaktor.auth.kernel.PrincipalKind
 import dev.shibasis.reaktor.auth.kernel.PrincipalRef
 import dev.shibasis.reaktor.auth.kernel.RoleRef
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 
 fun JWTClaimsSet.authScopes(): List<String> =
     stringListClaim("scp").ifEmpty { stringListClaim("scopes") }
@@ -37,6 +40,9 @@ fun JWTClaimsSet.authAppId(): String? =
 fun JWTClaimsSet.authSessionId(): String? =
     stringClaim("sid")
 
+fun JWTClaimsSet.authClaims(): JsonObject =
+    runCatching { Json.parseToJsonElement(toString()).jsonObject }.getOrDefault(JsonObject(emptyMap()))
+
 fun JWTClaimsSet.toAuthContext(): AuthContext {
     val appId = authAppId().orEmpty()
     val principal = PrincipalRef(subject.orEmpty(), authPrincipalKind())
@@ -60,6 +66,7 @@ fun JWTClaimsSet.toAuthContext(): AuthContext {
         method = authMethod(),
         actor = actor,
         delegation = actor?.let { Delegation(actor = it, subject = principal) },
+        claims = authClaims(),
     )
 }
 

@@ -117,7 +117,7 @@ class AuthServerIntegrationTest {
         val (_, bootstrapRaw) = fx.runtime.personalTokens.createPersonalAccessToken(
             principalId = null,
             name = "bootstrap",
-            scopes = listOf("auth:pat:mint"),
+            scopes = listOf("auth:pat:mint", "mcp:read", "mcp:write"),
         )
 
         assertEquals(
