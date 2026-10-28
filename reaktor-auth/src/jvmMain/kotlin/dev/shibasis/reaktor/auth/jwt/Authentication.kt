@@ -17,6 +17,7 @@ import dev.shibasis.reaktor.auth.AuthCredentialType
 import dev.shibasis.reaktor.auth.UserProvider
 import dev.shibasis.reaktor.auth.api.LoginRequest
 import dev.shibasis.reaktor.auth.kernel.AuthDefaults
+import dev.shibasis.reaktor.auth.kernel.CredentialCeiling
 import dev.shibasis.reaktor.auth.kernel.PrincipalKind
 import dev.shibasis.reaktor.core.utils.fail
 import kotlinx.serialization.Serializable
@@ -214,6 +215,9 @@ class JwtMinter(
         return sign(builder.build())
     }
 
+    private val CredentialCeiling.claim: Map<String, Any>
+        get() = mapOf("version" to version, "scopes" to scopes.sorted())
+
     private fun sign(claimsSet: JWTClaimsSet): String {
         val header = JWSHeader.Builder(signingKeys.algorithm)
             .keyID(signingKeys.kid)
@@ -286,6 +290,7 @@ class JwtMinter(
         contextId: String? = null,
         principalKind: PrincipalKind,
         ttlSeconds: Int,
+        ceiling: CredentialCeiling? = null,
     ): String = mintReaktorToken(
         subject = subject,
         audience = audience,
@@ -297,6 +302,7 @@ class JwtMinter(
         claim("pat_id", patId)
         claim("name", name)
         if (contextId != null) claim("ctx", contextId)
+        if (ceiling != null) claim(CredentialCeiling.Claim, ceiling.claim)
     }
 
     /**
@@ -312,6 +318,7 @@ class JwtMinter(
         ttlSeconds: Int = AuthDefaults.ACCESS_TOKEN_TTL_SECONDS,
         appId: String? = null,
         contextId: String? = null,
+        ceiling: CredentialCeiling? = null,
     ): String = mintReaktorToken(
         subject = subject,
         audience = audience,
@@ -323,5 +330,6 @@ class JwtMinter(
         claim("act", mapOf("sub" to actorSubject)) // RFC 8693 actor chain
         if (appId != null) claim("app_id", appId)
         if (contextId != null) claim("ctx", contextId)
+        if (ceiling != null) claim(CredentialCeiling.Claim, ceiling.claim)
     }
 }

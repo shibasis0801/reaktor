@@ -14,8 +14,10 @@ import dev.shibasis.reaktor.auth.fga.Subject
 import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthDecision
 import dev.shibasis.reaktor.auth.kernel.AuthDenyReason
+import dev.shibasis.reaktor.auth.kernel.CredentialCeiling
 import dev.shibasis.reaktor.auth.kernel.PrincipalKind
 import dev.shibasis.reaktor.auth.kernel.PrincipalRef
+import dev.shibasis.reaktor.auth.kernel.ceiling
 import kotlin.time.Clock
 
 data class CodeGraph(val ref: ObjectRef, val label: String, val parent: ObjectRef?, val scopes: List<String>)
@@ -45,6 +47,13 @@ data class CodeService(
     val declared: List<RelationTuple> = emptyList(),
 ) {
     fun declared(operation: CodeOperation): List<RelationTuple> = declared.filter { it.target == ref || it.target == operation.ref }
+}
+
+data class PortTarget(val graph: ObjectRef, val node: ObjectRef, val port: ObjectRef) {
+    val structure: List<RelationTuple>
+        get() = graph.id.split('/').runningReduce { parent, segment -> "$parent/$segment" }.zipWithNext { parent, child ->
+            RelationTuple(ObjectRef(CodeAccess.Graph, child), CodeAccess.Parent, Subject.Object(ObjectRef(CodeAccess.Graph, parent)))
+        } + RelationTuple(node, CodeAccess.GraphRelation, Subject.Object(graph)) + RelationTuple(port, CodeAccess.NodeRelation, Subject.Object(node))
 }
 
 data class CodeResources(val graphs: List<CodeGraph>, val services: List<CodeService>) {
@@ -83,10 +92,13 @@ object CodeAccess {
     const val Graph = "graph"
     const val Service = "service"
     const val Operation = "operation"
+    const val Node = "node"
+    const val Port = "port"
     const val Parent = "parent"
     const val Operator = "operator"
     const val GraphRelation = "graph"
     const val ServiceRelation = "service"
+    const val NodeRelation = "node"
     const val Assignee = "assignee"
     const val Holder = "holder"
     const val Invoke = "can_invoke"
@@ -137,6 +149,19 @@ object CodeAccess {
             define invoker: [user, user:*, service_account, service_account:*, agent, agent:*, role#assignee, permission#holder]
             define blocked: [user, service_account, agent, role#assignee]
             define can_invoke: (invoker or caller from service) but not blocked
+
+        type node
+          relations
+            define graph: [graph]
+            define owner: [user, role#assignee] or owner from graph
+            define caller: [user, user:*, service_account, service_account:*, agent, agent:*, role#assignee, permission#holder] or owner or operator from graph
+
+        type port
+          relations
+            define node: [node]
+            define invoker: [user, user:*, service_account, service_account:*, agent, agent:*, role#assignee, permission#holder]
+            define blocked: [user, service_account, agent, role#assignee]
+            define can_invoke: (invoker or caller from node) but not blocked
     """.trimIndent() + "\n"
 
     fun key(name: String): String = name.trim().map { if (it.isWhitespace() || it == '#' || it == '@') '-' else it }.joinToString("")
@@ -151,6 +176,16 @@ object CodeAccess {
     fun operation(contract: String, operation: String): ObjectRef = ObjectRef(Operation, "${key(contract)}.${key(operation)}")
 
     fun operationName(operation: String, request: String): String = operation.removePrefix("$request.")
+
+    fun slug(label: String): String = label.lowercase().map { if (it.isLetterOrDigit() || it == '.' || it == '_' || it == '-') it else '-' }
+        .joinToString("").split('-').filter(String::isNotEmpty).joinToString("-").ifEmpty { "graph" }
+
+    fun graph(path: List<String>): ObjectRef = ObjectRef(Graph, path.joinToString("/") { slug(it) })
+
+    fun within(graph: ObjectRef, label: String): ObjectRef = label.takeIf(String::isNotBlank)?.let { ObjectRef(Graph, "${graph.id}/${slug(it)}") } ?: graph
+
+    fun target(graph: ObjectRef, node: String, port: String): PortTarget =
+        ObjectRef(Node, "${graph.id}/${key(node)}").let { at -> PortTarget(graph, at, ObjectRef(Port, "${at.id}/${key(port)}")) }
 
     val builtInRoles: List<ObjectRef> get() = listOf(role(Everyone), role(Authenticated))
 
@@ -174,6 +209,8 @@ object CodeAccess {
             roles.map { RelationTuple(role(it), Assignee, subject) } +
             permissions.distinct().map { RelationTuple(permission(it), Holder, subject) }
 
+    fun credential(subject: Subject, ceiling: CredentialCeiling): List<RelationTuple> = contextual(subject, authenticated = false, permissions = ceiling.scopes)
+
 }
 
 class CodeAccessPolicy(
@@ -187,27 +224,54 @@ class CodeAccessPolicy(
     val digest: String = FgaDigest.of(model, fga.index.tuples)
     private val structure = resources.structure.toSet()
 
-    fun mode(contract: String): AccessMode = modes[CodeAccess.service(contract).toString()] ?: modes[FgaStore.EveryObject] ?: fallback
+    fun mode(contract: String): AccessMode = mode(CodeAccess.service(contract))
+
+    fun mode(vararg targets: ObjectRef): AccessMode = targets.firstNotNullOfOrNull { modes[it.toString()] } ?: modes[FgaStore.EveryObject] ?: fallback
 
     fun check(context: AuthContext?, contract: String, operation: String, declared: List<RelationTuple> = emptyList(),
               atMillis: Long = Clock.System.now().toEpochMilliseconds()): AccessDecision =
-        check(CodeAccess.subject(context), CodeAccess.contextual(context) + declared, contract, operation, context?.tenantId, atMillis)
+        bounded(context, check(CodeAccess.subject(context), CodeAccess.contextual(context) + declared, contract, operation, context?.tenantId, atMillis)) { subject, ceiling ->
+            check(subject, CodeAccess.credential(subject, ceiling) + declared, contract, operation, context?.tenantId, atMillis)
+        }
 
     fun check(subject: Subject, contextual: List<RelationTuple>, contract: String, operation: String, tenant: String? = null,
               atMillis: Long = Clock.System.now().toEpochMilliseconds()): AccessDecision {
         val target = CodeAccess.operation(contract, operation)
-        val structural = RelationTuple(target, CodeAccess.ServiceRelation, Subject.Object(CodeAccess.service(contract)))
-        val result = fga.check(subject, CodeAccess.Invoke, target, contextual + structural)
-        val facts = result.explanation?.facts.orEmpty().filter { it != structural }
-        val blocked = if (result.allowed || result.error != null || model.rewrite(CodeAccess.Operation, CodeAccess.Blocked) == null) null
-            else fga.check(subject, CodeAccess.Blocked, target, contextual + structural).takeIf { it.allowed && it.error == null }
+        return invoke(subject, contextual, target, listOf(RelationTuple(target, CodeAccess.ServiceRelation, Subject.Object(CodeAccess.service(contract)))),
+            mode(contract), tenant, atMillis)
+    }
+
+    fun check(context: AuthContext?, target: PortTarget, atMillis: Long = Clock.System.now().toEpochMilliseconds()): AccessDecision =
+        bounded(context, check(CodeAccess.subject(context), CodeAccess.contextual(context), target, context?.tenantId, atMillis)) { subject, ceiling ->
+            check(subject, CodeAccess.credential(subject, ceiling), target, context?.tenantId, atMillis)
+        }
+
+    private fun bounded(context: AuthContext?, decision: AccessDecision, within: (Subject, CredentialCeiling) -> AccessDecision): AccessDecision {
+        val ceiling = context?.ceiling?.takeUnless { it.unbounded } ?: return decision
+        if (!decision.allowed) return decision
+        val reach = within(CodeAccess.subject(context), ceiling)
+        return if (reach.allowed) decision
+        else reach.copy(rule = "The credential's ceiling ${ceiling.scopes.sorted()} does not reach ${reach.target}")
+    }
+
+    fun check(subject: Subject, contextual: List<RelationTuple>, target: PortTarget, tenant: String? = null,
+              atMillis: Long = Clock.System.now().toEpochMilliseconds()): AccessDecision =
+        invoke(subject, contextual, target.port, target.structure, mode(target.port, target.node), tenant, atMillis)
+
+    private fun invoke(subject: Subject, contextual: List<RelationTuple>, target: ObjectRef, structural: List<RelationTuple>, mode: AccessMode,
+                       tenant: String?, atMillis: Long): AccessDecision {
+        val known = contextual + structural
+        val result = fga.check(subject, CodeAccess.Invoke, target, known)
+        val facts = result.explanation?.facts.orEmpty().filter { it !in structural }
+        val blocked = if (result.allowed || result.error != null || model.rewrite(target.type, CodeAccess.Blocked) == null) null
+            else fga.check(subject, CodeAccess.Blocked, target, known).takeIf { it.allowed && it.error == null }
         val rule = result.error ?: when {
             result.allowed -> because(subject, contextual, facts)?.toString() ?: result.explanation?.rule.orEmpty()
-            blocked != null -> "Blocked by ${blocked.explanation?.facts.orEmpty().filter { it != structural }.let { list -> list.firstOrNull { it !in contextual } ?: list.firstOrNull() } ?: "$target#${CodeAccess.Blocked}"}"
+            blocked != null -> "Blocked by ${blocked.explanation?.facts.orEmpty().filter { it !in structural }.let { list -> list.firstOrNull { it !in contextual } ?: list.firstOrNull() } ?: "$target#${CodeAccess.Blocked}"}"
             subject == CodeAccess.subject(null) -> "Nothing grants ${CodeAccess.Invoke} on $target to callers who are not signed in"
             else -> "Nothing grants ${CodeAccess.Invoke} on $target"
         }
-        return AccessDecision(subject.toString(), CodeAccess.Invoke, target.toString(), result.allowed, mode(contract), rule,
+        return AccessDecision(subject.toString(), CodeAccess.Invoke, target.toString(), result.allowed, mode, rule,
             facts.map(RelationTuple::toString), digest, tenant, atMillis = atMillis, contextual = contextual.map(RelationTuple::toString))
     }
 

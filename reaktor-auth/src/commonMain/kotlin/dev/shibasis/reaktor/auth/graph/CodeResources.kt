@@ -29,7 +29,7 @@ fun CodeAccess.resources(shape: GraphShape, rootLabel: String? = null): CodeReso
     fun visit(scope: ScopeShape, parent: CodeGraph?) {
         if (scope.id !in holding) return
         val label = if (parent == null) rootLabel ?: scope.label else scope.label
-        val base = listOfNotNull(parent?.ref?.id, slug(label)).joinToString("/")
+        val base = listOfNotNull(parent?.ref?.id, CodeAccess.slug(label)).joinToString("/")
         val id = generateSequence(1) { it + 1 }.map { if (it == 1) base else "$base-$it" }.first { candidate -> graphs.none { it.ref.id == candidate } }
         val graph = CodeGraph(ObjectRef(Graph, id), label, parent?.ref, listOf(scope.id))
         graphs += graph
@@ -43,7 +43,7 @@ fun CodeAccess.resources(shape: GraphShape, rootLabel: String? = null): CodeReso
     return CodeResources(graphs, services)
 }
 
-fun CodeAccess.app(label: String): CodeGraph = CodeGraph(ObjectRef(Graph, slug(label)), label, null, emptyList())
+fun CodeAccess.app(label: String): CodeGraph = CodeGraph(ObjectRef(Graph, CodeAccess.slug(label)), label, null, emptyList())
 
 fun CodeAccess.island(app: String, island: String, contracts: List<Service>): CodeResources = island(app, listOf(island), contracts)
 
@@ -58,7 +58,7 @@ fun CodeAccess.islands(app: String, shapes: List<IslandShape>): CodeResources =
     app(app).let { root -> shapes.fold(CodeResources(listOf(root), emptyList())) { all, shape -> all + nested(root.ref, shape) } }
 
 private fun CodeAccess.within(parent: ObjectRef, island: String, scopes: List<String>): CodeGraph =
-    CodeGraph(ObjectRef(Graph, "${parent.id}/${slug(island)}"), island, parent, scopes)
+    CodeGraph(ObjectRef(Graph, "${parent.id}/${CodeAccess.slug(island)}"), island, parent, scopes)
 
 private fun CodeAccess.island(parent: ObjectRef, shape: IslandShape): CodeResources {
     val graph = within(parent, shape.island, shape.graph.scopes.filter { it.parent == null }.map { it.id })
@@ -127,6 +127,3 @@ private fun operationOf(service: ObjectRef, contract: String, descriptor: Operat
     return CodeOperation(CodeAccess.operation(contract, name), service, name, descriptor.http?.method?.name, descriptor.http?.route,
         descriptor.request.name.substringAfterLast('.'), descriptor.response.name.substringAfterLast('.'))
 }
-
-private fun slug(label: String): String = label.lowercase().map { if (it.isLetterOrDigit() || it == '.' || it == '_' || it == '-') it else '-' }
-    .joinToString("").split('-').filter(String::isNotEmpty).joinToString("-").ifEmpty { "graph" }

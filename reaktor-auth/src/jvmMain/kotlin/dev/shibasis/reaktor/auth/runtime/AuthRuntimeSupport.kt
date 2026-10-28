@@ -2,12 +2,18 @@ package dev.shibasis.reaktor.auth.runtime
 
 import dev.shibasis.reaktor.auth.PersonalAccessToken
 import dev.shibasis.reaktor.auth.api.TokenRequest
+import dev.shibasis.reaktor.auth.kernel.CredentialCeiling
 import dev.shibasis.reaktor.auth.parseTokenPolicyList
 import dev.shibasis.reaktor.auth.transport.bearerTokenFromHeaders
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
 import dev.shibasis.reaktor.graph.di.DependencyScopeCapability
 import dev.shibasis.reaktor.service.Request
 import kotlin.reflect.KClass
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.put
 
 internal const val DEFAULT_TOKEN_AUDIENCE = "manna-mcp"
 internal const val MIN_ACCESS_TOKEN_TTL_SECONDS = 60
@@ -51,6 +57,19 @@ internal fun PersonalAccessToken.audienceAllowed(audience: String): Boolean {
 
 internal fun PersonalAccessToken.canMintPat(): Boolean =
     scopeList().any { it == "*" || it == "auth:*" || it == "auth:pat:mint" }
+
+object PatCeiling {
+    const val Field = "ceiling"
+    val Marker: JsonObject = buildJsonObject { put(Field, CredentialCeiling.Version) }
+}
+
+internal val PersonalAccessToken.ceiling: CredentialCeiling?
+    get() = (data as? JsonObject)?.get(PatCeiling.Field)?.let { marker ->
+        (marker as? JsonPrimitive)?.intOrNull?.takeIf { it == CredentialCeiling.Version }?.let { CredentialCeiling(it, scopeList().toSet()) } ?: CredentialCeiling.Closed
+    }
+
+internal val PersonalAccessToken.reach: CredentialCeiling
+    get() = ceiling ?: CredentialCeiling(scopes = scopeList().toSet())
 
 internal class AuthRuntimeDependencyAdapter : DependencyAdapter<Unit>(Unit) {
     override fun createScope(

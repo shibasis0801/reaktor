@@ -257,7 +257,8 @@ enum class AuthDenyReason {
     MISSING_PERMISSION,
     MISSING_ROLE,
     RESOURCE_DENIED,
-    DELEGATION_DENIED
+    DELEGATION_DENIED,
+    CREDENTIAL_CEILING
 }
 
 @Serializable
@@ -404,6 +405,10 @@ object LocalAuthorizer {
         val requiredCapabilities = requirement.permissions + requirement.scopes
         if (!hasPermissions(context, requiredCapabilities)) {
             return deny(AuthDenyReason.MISSING_PERMISSION, 403, "Required capability missing")
+        }
+
+        if (context.ceiling?.covers(requiredCapabilities) == false) {
+            return deny(AuthDenyReason.CREDENTIAL_CEILING, 403, "The credential does not reach this capability")
         }
 
         if (!hasRoles(context, requirement.roles)) {
