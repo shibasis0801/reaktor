@@ -12,6 +12,9 @@ Before this work (scan of 14 October): 4 kinds of kernel process, 6 kinds of end
 
 ## Status at a glance
 
+28 October tooling-unification implementation: Atlas, changes, runs, checks and plans now have typed service contracts behind the graph gate and authenticated owner link. Fresh installed CLI/MCP sessions on Reaktor, BestBuds and Manna match the 22 captured operation descriptors. The first Reaktor+ website path is installed at `http://127.0.0.1:9317/reaktor-plus/v1`: both actual HTTPS website UIs pass real local inference, Docs preserves corpus revision and validated citations, and completed requests replay across an owner restart and a normal upgrade without another model call. The owner exposes bounded process-local contract spans and island signals. Durable contract-span export, Hangar client migration, automatic qualified updates, broader product context and hosted qualification remain open in the [tooling unification HLD](tooling-unification-hld.md) and [handoff](kernel-handoff.md). The historical rows below are not a claim that these later packages are complete.
+
+
 | # | Domain | State |
 |---|---|---|
 | 1 | One operation model | **Done.** `Operation<I,O>`, `OperationDescriptor`, `Invocation`, `Outcome`, schema from serializer, `OperationNode`, `OperationKernel` with door policy, single-use approvals, call log, request-id replay, legacy `ToolNode` adapter, built-in `operation.catalog`/`operation.describe` |
