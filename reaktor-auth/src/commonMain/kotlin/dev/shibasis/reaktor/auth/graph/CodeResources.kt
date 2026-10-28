@@ -57,6 +57,10 @@ fun CodeAccess.island(app: String, shape: IslandShape): CodeResources =
 fun CodeAccess.islands(app: String, shapes: List<IslandShape>): CodeResources =
     app(app).let { root -> shapes.fold(CodeResources(listOf(root), emptyList())) { all, shape -> all + nested(root.ref, shape) } }
 
+fun CodeAccess.deployment(app: String, shapes: List<IslandShape>, servers: Map<String, List<Service>>): CodeResources =
+    servers.filterKeys { name -> shapes.none { it.island == name } }.entries
+        .fold(CodeAccess.islands(app, shapes)) { all, (name, contracts) -> all + CodeAccess.island(app, name, contracts) }
+
 private fun CodeAccess.within(parent: ObjectRef, island: String, scopes: List<String>): CodeGraph =
     CodeGraph(ObjectRef(Graph, "${parent.id}/${CodeAccess.slug(island)}"), island, parent, scopes)
 
