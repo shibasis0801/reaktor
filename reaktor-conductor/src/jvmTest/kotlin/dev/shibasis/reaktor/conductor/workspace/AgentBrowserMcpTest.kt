@@ -50,7 +50,10 @@ class AgentBrowserMcpTest {
                 assertFalse(answer.isError)
                 assertEquals(JsonPrimitive("391"), answer.data.jsonObject["reply"])
                 assertEquals(JsonPrimitive("gemini-4-argon-high"), answer.data.jsonObject["model"])
-                assertTrue(browser.ask(arguments).isError, "A different observed model must be refused")
+                assertEquals(answer, browser.ask(arguments), "A repeated request returns its retained answer")
+                assertEquals(1, calls)
+                assertTrue(browser.ask(JsonObject(arguments + ("question" to JsonPrimitive("Different question")))).isError)
+                assertTrue(browser.ask(JsonObject(arguments + ("requestId" to JsonPrimitive("a6c61b8d-83f8-4219-b4dd-6f7e119d1d71")))).isError, "A different observed model must be refused")
                 assertTrue(browser.ask(JsonObject(arguments + ("workspace" to JsonPrimitive("secret")))).isError)
                 assertTrue(browser.ask(JsonObject(arguments + ("question" to JsonPrimitive("x".repeat(6001))))).isError)
                 assertEquals(2, calls)
@@ -58,6 +61,16 @@ class AgentBrowserMcpTest {
                 assertTrue(tools.contains("inference.ask")); assertFalse(tools.contains("kernel"))
                 val refused = browser.endpoint.handler.handle("""{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"kernel","arguments":{}}}""").toString()
                 assertTrue(refused.contains("error") || refused.contains("isError\":true"))
+            }
+            AgentBrowserMcp(directory, graph, SupervisedProcessExecutor(), fake).use { reopened ->
+                val arguments = buildJsonObject { put("question", "What is 17 times 23?"); put("requestId", "345c7b67-0f0a-4076-a08b-93d5114e4eb1") }
+                assertEquals(JsonPrimitive("391"), reopened.ask(arguments).data.jsonObject["reply"])
+                assertEquals(2, calls, "Restarted projection must not start a completed request")
+                val receipt = directory.resolve("browser-inference/requests/345c7b67-0f0a-4076-a08b-93d5114e4eb1.json")
+                val saved = Json.parseToJsonElement(Files.readString(receipt)).jsonObject
+                atomicWrite(receipt, JsonObject(saved.filterKeys { it == "digest" }).toString())
+                assertTrue(reopened.ask(arguments).isError)
+                assertEquals(2, calls, "An interrupted admission must not start again")
             }
         } finally { graph.close(); dependencies.close(); directory.toFile().deleteRecursively() }
     }

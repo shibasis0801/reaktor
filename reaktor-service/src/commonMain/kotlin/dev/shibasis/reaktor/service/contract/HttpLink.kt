@@ -38,7 +38,7 @@ class HttpLink(
                 method = route.method.toKtorMethod()
                 timeout {
                     connectTimeoutMillis = ConnectTimeout.inWholeMilliseconds
-                    socketTimeoutMillis = IdleTimeout.inWholeMilliseconds
+                    socketTimeoutMillis = maxOf(IdleTimeout, exchange.remaining ?: IdleTimeout).inWholeMilliseconds
                 }
                 exchange.metadata.forEach { (name, value) -> headers.append(name, value) }
                 outgoing.query.forEach { (name, value) -> url.parameters.append(name, value) }

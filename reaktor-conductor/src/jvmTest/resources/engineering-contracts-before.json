@@ -1,0 +1,2275 @@
+[
+  {
+    "id": "atlas.graph",
+    "summary": "Returns the code graph of this repository and the builds it includes as one reaktor-graph GraphShape, sent in parts: modules and source sets are scopes, each Kotlin file and each TypeScript file of a tsconfig project is a node, its top-level declarations are the ports it provides, as is each class member another file uses once the compiler has indexed both, and each use of another file's declaration is a wire, resolved by the Kotlin or TypeScript compiler for indexed files and otherwise matched by name, imports and package. An expect declaration also takes a wire from each of its actuals. The app graphs declared in the source are scopes under app, with a node per attached node class or route, the wires the autoWire rule infers, a wire to the file that declares each node class, and the definition ids running graphs give the same nodes. Read part 0, then parts 1 to pages - 1 with its revision and the same chars. While the graph is being built the answer is not ready and says how far it got; ask again. It is large: Hangar's Code graph view draws it, and atlas.query answers a question about one declaration or file in one call.",
+    "effect": "ReadOnly",
+    "provider": "atlas",
+    "input": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "description": "The part to read, from 0"
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The revision part 0 returned; a later part of another revision is refused, because the code changed since"
+        },
+        "chars": {
+          "type": "integer",
+          "description": "Characters per part, from 20000 to 250000; read every part of one graph with the same value"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page": {
+          "type": "integer"
+        },
+        "pages": {
+          "type": "integer"
+        },
+        "progress": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "counts": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "modules": {
+              "type": "integer"
+            },
+            "sourceSets": {
+              "type": "integer"
+            },
+            "files": {
+              "type": "integer"
+            },
+            "declarations": {
+              "type": "integer"
+            },
+            "uses": {
+              "type": "integer"
+            },
+            "actuals": {
+              "type": "integer"
+            },
+            "appGraphs": {
+              "type": "integer"
+            },
+            "appNodes": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "modules",
+            "sourceSets",
+            "files",
+            "declarations",
+            "uses",
+            "actuals"
+          ],
+          "additionalProperties": false
+        },
+        "omissions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shape": {}
+      },
+      "required": [
+        "ready"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "atlas.providers",
+    "summary": "Lists the providers the Atlas answers from, each a node on the kernel graph: what it gives (syntax, semantic, build, reaktor, runtime, rewriter or checks), for which languages, the evidence it rests on, what it costs and its state now, such as how many Kotlin files the compiler has indexed; and each capability no ready provider gives",
+    "effect": "ReadOnly",
+    "provider": "atlas",
+    "input": {
+      "type": "object",
+      "properties": {
+        "capability": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "syntax",
+            "semantic",
+            "build",
+            "reaktor",
+            "runtime",
+            "rewriter",
+            "checks"
+          ],
+          "description": "Only the providers of this capability: syntax, semantic, build, reaktor, runtime, rewriter or checks"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "capabilities": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "syntax",
+                    "semantic",
+                    "build",
+                    "reaktor",
+                    "runtime",
+                    "rewriter",
+                    "checks"
+                  ]
+                }
+              },
+              "languages": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "inferred",
+                  "syntactic",
+                  "declared",
+                  "resolved",
+                  "observed"
+                ]
+              },
+              "cost": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "ready": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "capabilities",
+              "languages",
+              "evidence",
+              "cost",
+              "state",
+              "ready"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "providers",
+        "missing"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "atlas.query",
+    "summary": "Answers a code question in one bounded call, across this repository and the builds it includes: a Kotlin, TypeScript or C++ declaration by name (Type.member works), its uses with the declaration each sits in and every other mention, what a declaration or file calls and the types it uses, literal text in any tracked file, a file's declarations, build nodes and operations. queries and reads answer more questions and atlas_read requests in the same call. Presets: map gives the workspace at a glance; impact and affected-checks give what a change reaches and the checks that cover it; explain and wiring answer how reaktor-graph graphs, nodes, ports and routes fit together; runtime and routes say which nodes ran and which routes a flow opens. Use it before rg or reading whole files.",
+    "effect": "ReadOnly",
+    "provider": "atlas",
+    "input": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A handle from an earlier answer"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A declaration name; Type.member or Receiver.function picks one owner"
+            },
+            "kind": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Narrows a name: class, interface, object, enum, function, property or typealias"
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A workspace-relative file or folder; it narrows a name or text, and with line and column it is a position"
+            },
+            "line": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Zero-based line; an answer's at of File.kt:42:5 is line 41"
+            },
+            "column": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Zero-based UTF-16 column; an answer's at of File.kt:42:5 is column 4"
+            },
+            "node": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A declared build node, build:project:name"
+            },
+            "operation": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A kernel operation id"
+            },
+            "symbol": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A compiler address such as kotlin:pkg/Type#member()@module, as answers print them; or an exact symbol from an index answer, with index"
+            },
+            "text": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Literal text to find in every tracked file: a message, a string, a call such as code.outline, a task name"
+            },
+            "at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A position as answers print it: path:line or path:line:column"
+            },
+            "changed": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Files changed in the checkouts, for the impact and affected-checks presets: worktree for what is not committed, or a git ref such as origin/main for everything since it"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Where the question starts: one of id, name, text, at, path, node, operation or symbol"
+        },
+        "follow": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rel": {
+                "type": "string",
+                "enum": [
+                  "contains",
+                  "references",
+                  "includes",
+                  "calls",
+                  "overrides",
+                  "implements",
+                  "typeOf",
+                  "actualOf"
+                ]
+              },
+              "dir": {
+                "type": "string",
+                "enum": [
+                  "in",
+                  "out"
+                ]
+              },
+              "depth": {
+                "type": "integer",
+                "description": "1 to 4"
+              }
+            },
+            "required": [
+              "rel"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Relations to follow: references (in) finds uses with the declaration each sits in, then the comments, strings and other files that mention the name; references (out) finds what a declaration or file uses, the functions it calls and the types it names, depth 1 to 4; contains (out) lists declarations; includes (out) walks the build tree. From a Kotlin declaration, as the compiler resolves them: calls (in: the call sites and their callers; out: the functions it calls), overrides (in: what overrides it; out: what it overrides), implements (in: the types that extend it; out: its supertypes), typeOf (in: declarations of this type; out: its declared type) and actualOf (in: the actuals of an expect; out: the expect of an actual)"
+        },
+        "index": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A reaktor-scip-v1 artifact; with it names and references resolve through the indexer"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "1 to 128; counts stay complete when fewer are shown"
+        },
+        "budget": {
+          "type": "integer",
+          "description": "Largest answer in characters, 1000 to 22000; counts stay complete when items are cut"
+        },
+        "read": {
+          "type": "boolean",
+          "description": "With true, the answer also carries the source of each Kotlin declaration a result sits in, with line numbers, while the budget lasts"
+        },
+        "context": {
+          "type": "integer",
+          "description": "Lines to show before and after each result, 0 to 10, in any file; overlapping lines show once"
+        },
+        "imports": {
+          "type": "boolean",
+          "description": "With true, the answer also carries the package and import lines of each Kotlin file a result sits in, as an edit needs them"
+        },
+        "queries": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "More atlas_query requests, each with this tool's arguments, answered in this call after this one; lookups that do not wait on each other go together"
+        },
+        "reads": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "atlas_read requests, each with atlas_read's arguments, answered in this call after the queries"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The same as from.path, for a request that puts it beside from"
+        },
+        "preset": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "map",
+            "investigate",
+            "impact",
+            "affected-checks",
+            "explain",
+            "wiring",
+            "runtime",
+            "routes"
+          ],
+          "description": "A stored question. map: the builds, their modules and platforms, the app graphs and the latest commits, to start a session with. investigate: one bounded answer about a declaration (from.name, at, id, or symbol with index): its source, every use with the lines around it and the declaration it sits in, and the files they sit in. impact: what a change reaches, from a declaration (from.name, id or at) or files (from.path or from.changed): its uses grouped by module, checked by the compiler for a declaration, and the checks that cover them, each with its reason. affected-checks: the checks for files (from.path, a file or folder) or from.changed, each with its reason and latest run. explain and wiring, for reaktor-graph code: what a graph, node class, port type or route is, its nodes and ports and what wires to each; which provider each consumer gets, matched as autoWire matches them. Name the graph (class or label), node, port type or route in from.name, give from.path for those declared in a file or folder, or neither for the tree of graphs. runtime: the app graphs' nodes with the telemetry spans retained for the last hour, joined by definition id; from.name narrows it to a graph or node. routes: each declared route and the Maestro flows whose openLink opens it"
+        },
+        "need": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "inferred",
+            "syntactic",
+            "declared",
+            "resolved",
+            "observed"
+          ],
+          "description": "The least evidence the answer may rest on: inferred, syntactic, declared, resolved or observed. An answer that cannot meet it is refused with PROVIDER_UNAVAILABLE, which names the provider it needs and its state"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "revision": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "signature": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "from": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "snippet": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "in": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "context": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "first": {
+                    "type": "integer"
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "first",
+                  "lines"
+                ],
+                "additionalProperties": false
+              },
+              "by": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "rel": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "symbol": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "strength": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "inferred",
+                  "syntactic",
+                  "declared",
+                  "resolved",
+                  "observed"
+                ]
+              },
+              "uses": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "kind"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "counts": {
+          "type": "object",
+          "properties": {
+            "total": {
+              "type": "integer"
+            },
+            "shown": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "total",
+            "shown"
+          ],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "strength": {
+              "type": "string",
+              "enum": [
+                "inferred",
+                "syntactic",
+                "declared",
+                "resolved",
+                "observed"
+              ]
+            },
+            "producers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "coverage": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "strength",
+            "producers"
+          ],
+          "additionalProperties": false
+        },
+        "omissions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string"
+              },
+              "args": {
+                "type": "object"
+              },
+              "retry": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "op",
+              "args"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "revision": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "digest": {
+                "type": "string"
+              },
+              "signature": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": "string"
+              },
+              "totalChars": {
+                "type": "integer"
+              },
+              "partial": {
+                "type": "boolean"
+              },
+              "next": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "type": "string"
+                    },
+                    "args": {
+                      "type": "object"
+                    },
+                    "retry": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "also": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            },
+            "required": [
+              "revision",
+              "id",
+              "kind",
+              "path",
+              "digest",
+              "text",
+              "totalChars",
+              "partial"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "queries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "asked": {
+                "type": "object"
+              },
+              "answer": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "source": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "digest": {
+                    "type": "string"
+                  },
+                  "signature": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "totalChars": {
+                    "type": "integer"
+                  },
+                  "partial": {
+                    "type": "boolean"
+                  },
+                  "next": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "op": {
+                          "type": "string"
+                        },
+                        "args": {
+                          "type": "object"
+                        },
+                        "retry": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "op",
+                        "args"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "line": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "also": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "revision",
+                  "id",
+                  "kind",
+                  "path",
+                  "digest",
+                  "text",
+                  "totalChars",
+                  "partial"
+                ],
+                "additionalProperties": false
+              },
+              "error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "next": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "type": "string"
+                    },
+                    "args": {
+                      "type": "object"
+                    },
+                    "retry": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "asked"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "reads": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "asked": {
+                "type": "object"
+              },
+              "answer": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "source": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "revision": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "digest": {
+                    "type": "string"
+                  },
+                  "signature": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "totalChars": {
+                    "type": "integer"
+                  },
+                  "partial": {
+                    "type": "boolean"
+                  },
+                  "next": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "op": {
+                          "type": "string"
+                        },
+                        "args": {
+                          "type": "object"
+                        },
+                        "retry": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "op",
+                        "args"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "line": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "also": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "revision",
+                  "id",
+                  "kind",
+                  "path",
+                  "digest",
+                  "text",
+                  "totalChars",
+                  "partial"
+                ],
+                "additionalProperties": false
+              },
+              "error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "next": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "op": {
+                      "type": "string"
+                    },
+                    "args": {
+                      "type": "object"
+                    },
+                    "retry": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "op",
+                    "args"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "asked"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "revision",
+        "items",
+        "counts",
+        "evidence"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "atlas.read",
+    "summary": "Reads only what a question needs, with line numbers: a declaration's source by name, handle or path:line (overloads come together), the outline or imports of one file or several, or a window of any text file. Use it instead of reading a whole file.",
+    "effect": "ReadOnly",
+    "provider": "atlas",
+    "input": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A handle from atlas.query"
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A workspace-relative file; with name it narrows the search"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Up to 16 workspace-relative files read together, such as their imports before an edit"
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Zero-based line inside the declaration"
+        },
+        "column": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Zero-based UTF-16 column"
+        },
+        "part": {
+          "type": "string",
+          "enum": [
+            "declaration",
+            "outline",
+            "imports",
+            "file"
+          ],
+          "description": "declaration: its own source; outline: the file's declarations; imports: the file's package and import lines; file: the file text"
+        },
+        "budget": {
+          "type": "integer",
+          "description": "Largest text in characters, 1000 to 22000"
+        },
+        "offset": {
+          "type": "integer",
+          "description": "Characters of the file to skip, to read a long file in pieces"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A declaration to read without a handle; Type.member or Receiver.function picks one owner, and a name with up to four declarations, such as overloads, reads each"
+        },
+        "kind": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Narrows a name: class, interface, object, enum, function, property or typealias"
+        },
+        "at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A position as answers print it: path:line or path:line:column"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "revision": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "signature": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "totalChars": {
+          "type": "integer"
+        },
+        "partial": {
+          "type": "boolean"
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string"
+              },
+              "args": {
+                "type": "object"
+              },
+              "retry": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "op",
+              "args"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "line": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "also": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "revision",
+        "id",
+        "kind",
+        "path",
+        "digest",
+        "text",
+        "totalChars",
+        "partial"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "change.apply",
+    "summary": "Writes one change_plan plan, every file or none, refusing it when a file changed since the plan, and returns the receipt; check_run then runs the affected checks. Repeating it returns the same receipt. A seat whose policy stops short of source writes waits for a person to approve the plan, unless its policy lets it apply its own plans, every file is in this checkout and, when the session is linked to a board task whose scope names paths or modules, inside that scope.",
+    "effect": "SourceWrite",
+    "provider": "changes",
+    "input": {
+      "type": "object",
+      "properties": {
+        "plan": {
+          "type": "string",
+          "description": "The plan id from change_plan"
+        }
+      },
+      "required": [
+        "plan"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "plan": {
+          "type": "string"
+        },
+        "receipt": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "replayed": {
+          "type": "boolean"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string"
+              },
+              "args": {
+                "type": "object"
+              },
+              "retry": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "op",
+              "args"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "plan",
+        "receipt",
+        "files"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "change.plan",
+    "summary": "Plans a source change without writing it: a plan id, every line it changes, the matches it leaves and the checks it affects. recipe rename renames one Kotlin declaration and its uses across modules and the builds this repository includes, as the compiler resolves them; a match the compiler did not confirm is left and listed, and need syntactic or include renames it as the Atlas reads it, marked by name. recipe edit replaces exact text, found once in a file or inside one declaration, in several files together. change_apply writes a plan.",
+    "effect": "LocalEphemeral",
+    "provider": "changes",
+    "input": {
+      "type": "object",
+      "properties": {
+        "recipe": {
+          "type": "string",
+          "enum": [
+            "rename",
+            "edit",
+            "structural",
+            "change-type"
+          ],
+          "description": "rename renames one Kotlin or C++ declaration and its uses across modules and the builds this repository includes; edit replaces exact text in one or more files together; structural rewrites every match of a Kotlin expression pattern; change-type moves every use of one Kotlin type to another"
+        },
+        "target": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A handle from an earlier answer"
+            },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A declaration name; Type.member or Receiver.function picks one owner"
+            },
+            "kind": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Narrows a name: class, interface, object, enum, function, property or typealias"
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A workspace-relative file or folder; it narrows a name or text, and with line and column it is a position"
+            },
+            "line": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Zero-based line; an answer's at of File.kt:42:5 is line 41"
+            },
+            "column": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Zero-based UTF-16 column; an answer's at of File.kt:42:5 is column 4"
+            },
+            "node": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A declared build node, build:project:name"
+            },
+            "operation": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A kernel operation id"
+            },
+            "symbol": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A compiler address such as kotlin:pkg/Type#member()@module, as answers print them; or an exact symbol from an index answer, with index"
+            },
+            "text": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Literal text to find in every tracked file: a message, a string, a call such as code.outline, a task name"
+            },
+            "at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "A position as answers print it: path:line or path:line:column"
+            },
+            "changed": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Files changed in the checkouts, for the impact and affected-checks presets: worktree for what is not committed, or a git ref such as origin/main for everything since it"
+            }
+          },
+          "additionalProperties": false,
+          "description": "rename: the declaration, as atlas_query names it: {name: \"Type.member\"}, {at: \"File.kt:42:9\"} or {id}. structural: keep only the matches in which the compiler resolves a name outside the holes to this declaration, an override of it or its constructor. change-type: the type whose uses move"
+        },
+        "to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "rename: the new name. change-type: the type the uses move to, as atlas_query names it, such as \"NewType\" or \"Outer.NewType\""
+        },
+        "edits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "A workspace-relative file; find must occur in it exactly once"
+              },
+              "id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "A handle from atlas_query or atlas_read; find is looked for only inside that declaration"
+              },
+              "find": {
+                "type": "string",
+                "description": "Exact text to replace, copied from atlas_read; it must occur exactly once where it is looked for"
+              },
+              "replacement": {
+                "type": "string",
+                "description": "The text that replaces it"
+              }
+            },
+            "required": [
+              "find",
+              "replacement"
+            ],
+            "additionalProperties": false
+          },
+          "description": "edit: 1 to 64 replacements, written together or not at all"
+        },
+        "pattern": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "structural: one Kotlin expression with holes; $X stands for any one expression and $$$ARGS for any run of arguments, and a hole used twice must match the same text, for example $RECEIVER.answer($$$ARGS)"
+        },
+        "rewrite": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "structural: the text each match becomes, with the pattern's holes, for example $RECEIVER.reply($$$ARGS)"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "structural: files or folders to search; without them every Kotlin file that names the pattern's longest name is searched"
+        },
+        "need": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "inferred",
+            "syntactic",
+            "declared",
+            "resolved",
+            "observed"
+          ],
+          "description": "rename: the least evidence a renamed match may rest on. resolved, the default, renames what the compiler confirms and lists the rest as left; syntactic also renames the matches the Atlas reads as uses where the compiler did not check them, each marked by name in the plan"
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "rename: positions from a plan's left list, as path:line:column, to rename as well, each marked by name in the plan"
+        }
+      },
+      "required": [
+        "recipe"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "plan": {
+          "type": "string"
+        },
+        "recipe": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "edits": {
+                "type": "integer"
+              },
+              "lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "line": {
+                      "type": "integer"
+                    },
+                    "before": {
+                      "type": "string"
+                    },
+                    "after": {
+                      "type": "string"
+                    },
+                    "evidence": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "inferred",
+                        "syntactic",
+                        "declared",
+                        "resolved",
+                        "observed"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "line",
+                    "before",
+                    "after"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "more": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "path",
+              "edits",
+              "lines"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "edits": {
+          "type": "integer"
+        },
+        "evidence": {
+          "type": "object",
+          "properties": {
+            "strength": {
+              "type": "string",
+              "enum": [
+                "inferred",
+                "syntactic",
+                "declared",
+                "resolved",
+                "observed"
+              ]
+            },
+            "producers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "coverage": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "strength",
+            "producers"
+          ],
+          "additionalProperties": false
+        },
+        "left": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "snippet": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "at",
+              "reason",
+              "snippet"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string"
+              },
+              "args": {
+                "type": "object"
+              },
+              "retry": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "op",
+              "args"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "plan",
+        "recipe",
+        "summary",
+        "files",
+        "edits",
+        "evidence"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "check.artifact",
+    "summary": "Read a bounded range of a retained non-sensitive check log.",
+    "effect": "ReadOnly",
+    "provider": "Kernel inspection",
+    "input": {
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "description": "Kernel run id"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "runId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "check.catalog",
+    "summary": "Checks a task can run to prove its work.",
+    "effect": "ReadOnly",
+    "provider": "engineering",
+    "input": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "description": "Owned task"
+        },
+        "candidateId": {
+          "type": "string",
+          "description": "Captured candidate owned by taskId"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "check.link",
+    "summary": "Links existing check evidence to a task.",
+    "effect": "LocalEphemeral",
+    "provider": "engineering",
+    "input": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "description": "Reaktor conversation id"
+        },
+        "runId": {
+          "type": "string",
+          "description": "Background check run"
+        }
+      },
+      "required": [
+        "taskId",
+        "runId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "check.result",
+    "summary": "Read one finished run as a typed result: outcome, failures with file and line, the candidate revision it belongs to, and how much of the output the parser understood. Returns the diagnostics rather than the log.",
+    "effect": "ReadOnly",
+    "provider": "Kernel inspection",
+    "input": {
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string",
+          "description": "Exact run id from control_plane_snapshot"
+        }
+      },
+      "required": [
+        "runId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "check.run",
+    "summary": "Runs the checks a change affects, the tests of the modules its files belong to, as one Gradle run on the build worker, waits up to 25 seconds, and reports each check with how many tests ran or whether Gradle reused their last result, the compiler errors and failed tests, the phase that failed with Gradle's cause, paths as they are in this checkout, and the source snapshot the run read. While the run is unfinished, call it again with run.",
+    "effect": "LocalArtifactWrite",
+    "provider": "changes",
+    "input": {
+      "type": "object",
+      "properties": {
+        "change": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A plan id from change_apply; the files it wrote choose the checks"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Workspace-relative files whose checks to run, when there is no change"
+        },
+        "run": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A run id from an earlier check_run, to wait for it again instead of starting checks"
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The exact run ids from a multi-check continuation; waits without starting checks"
+        },
+        "reach": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "Edited",
+              "Users",
+              "Flows"
+            ]
+          },
+          "description": "Edited runs the tests of the modules the files belong to; add Users for the modules that use them and Flows for the slow Hangar and window flows"
+        },
+        "wait": {
+          "type": "integer",
+          "description": "Seconds to wait for the run, 0 to 25"
+        },
+        "rerun": {
+          "type": "boolean",
+          "description": "Run the tests even when Gradle would reuse their last result because nothing they read changed"
+        },
+        "narrow": {
+          "type": "boolean",
+          "description": "Run only the test classes that use the changed code, found through the code graph; a test that reaches it only through wiring or reflection is not run"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "Ran",
+                  "Reused",
+                  "NotRun",
+                  "NoResults"
+                ]
+              },
+              "tests": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "failed": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "skipped": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "resultsAt": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "only": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "node",
+              "title",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "next": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "op": {
+                "type": "string"
+              },
+              "args": {
+                "type": "object"
+              },
+              "retry": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "op",
+              "args"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "phase": {
+                "type": "string"
+              },
+              "cause": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "phase",
+              "cause"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "checks"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "check.start",
+    "summary": "Starts a check for a task and retains its receipt.",
+    "effect": "LocalArtifactWrite",
+    "provider": "engineering",
+    "input": {
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "description": "Owned task"
+        },
+        "checkId": {
+          "type": "string",
+          "description": "Named local kernel check"
+        },
+        "candidateId": {
+          "type": "string",
+          "description": "Exact captured candidate"
+        },
+        "checkIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "Declared candidate check"
+          }
+        },
+        "rerun": {
+          "type": "boolean"
+        },
+        "requestId": {
+          "type": "string",
+          "description": "Idempotency key for this exact check"
+        }
+      },
+      "required": [
+        "taskId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "plan.attach",
+    "summary": "A person attaches a gallery agent (an agent profile) to items of a plan; Hangar starts that agent with a brief naming its seat.",
+    "effect": "LocalArtifactWrite",
+    "provider": "engineering",
+    "input": {
+      "type": "object",
+      "properties": {
+        "thread": {
+          "type": "string",
+          "description": "hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>; your own session when left out"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "An item id; the seat covers it and everything under it"
+          }
+        },
+        "profile": {
+          "type": "string",
+          "description": "The agent profile id"
+        },
+        "note": {
+          "type": "string",
+          "description": "What the person wants from this agent, added to its brief"
+        }
+      },
+      "required": [
+        "thread",
+        "items",
+        "profile"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "plan.list",
+    "summary": "Every thread's plan with its title, revision, progress and when it last changed.",
+    "effect": "ReadOnly",
+    "provider": "engineering",
+    "input": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "plan.read",
+    "summary": "One thread's plan, your own when thread is left out: each item with its status, order, parent, links, seat and who changed it, and the revision to send as base. since <revision> adds what others changed after it.",
+    "effect": "ReadOnly",
+    "provider": "engineering",
+    "input": {
+      "type": "object",
+      "properties": {
+        "thread": {
+          "type": "string",
+          "description": "hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>; your own session when left out"
+        },
+        "since": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The revision you last read"
+        },
+        "history": {
+          "type": "boolean",
+          "description": "Include the last 200 changes"
+        },
+        "by": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "description": "Who makes the change",
+              "enum": [
+                "Person",
+                "Agent",
+                "Schedule"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "description": "The person's name, or the agent's seat"
+            },
+            "session": {
+              "type": "string",
+              "description": "The writer's own session ref"
+            }
+          },
+          "required": [
+            "kind",
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "plan.shape",
+    "summary": "The reaktor-graph shape of the plans named in threads, or of every plan: a node per item and per file, symbol, module or graph an item links, wired by order, parts and links.",
+    "effect": "ReadOnly",
+    "provider": "engineering",
+    "input": {
+      "type": "object",
+      "properties": {
+        "threads": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "A thread whose plan to include"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "plan.write",
+    "summary": "Draws or changes a thread's plan, the high-level design and running checklist people watch and edit in Hangar: add, update, status (Todo, Doing, Done, Dropped), connect, disconnect and remove items, with links into Reaktor. The thread defaults to your own session. Pass base, the revision you read: an op on an item someone else changed after it is refused for that item only. An attached agent passes its seat.",
+    "effect": "LocalArtifactWrite",
+    "provider": "engineering",
+    "input": {
+      "type": "object",
+      "properties": {
+        "thread": {
+          "type": "string",
+          "description": "hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>; your own session when left out"
+        },
+        "title": {
+          "type": "string",
+          "description": "The plan's name, the request in a few words"
+        },
+        "goal": {
+          "type": "string",
+          "description": "What done looks like"
+        },
+        "ops": {
+          "type": "array",
+          "description": "add {key, title, detail, status, parent, after, refs, at}; update {item, title, detail, parent, root, refs, at}; status {item, status: Todo | Doing | Done | Dropped}; connect {from, to}, where to waits on from; disconnect {from, to}; remove {item}. Each op is an object with its type, such as {type: \"status\", item: \"api\", status: \"Done\"}",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "base": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The revision you read"
+        },
+        "seat": {
+          "type": "string",
+          "description": "Your seat when a person attached you to part of this plan"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "run.cancel",
+    "summary": "Asks a running operation to stop; run.show reports when it has.",
+    "effect": "LocalEphemeral",
+    "provider": "workspace",
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id from run.list"
+        }
+      },
+      "required": [
+        "run"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "boolean"
+    },
+    "subject": "run"
+  },
+  {
+    "id": "run.list",
+    "summary": "Recent runs, newest first, with their state.",
+    "effect": "ReadOnly",
+    "provider": "workspace",
+    "input": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "Planned",
+            "AwaitingApproval",
+            "Queued",
+            "Running",
+            "Succeeded",
+            "Failed",
+            "Cancelled",
+            "Blocked",
+            "Unknown"
+          ],
+          "description": "Only runs in this state"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  {
+    "id": "run.logs",
+    "summary": "A run's output lines after a sequence number.",
+    "effect": "ReadOnly",
+    "provider": "workspace",
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id from run.list"
+        },
+        "after": {
+          "type": "integer",
+          "description": "Only lines after this sequence number"
+        },
+        "limit": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "run"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "array",
+      "items": {}
+    },
+    "subject": "run"
+  },
+  {
+    "id": "run.show",
+    "summary": "One run with its outcome, artifacts and output.",
+    "effect": "ReadOnly",
+    "provider": "workspace",
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id from run.list"
+        }
+      },
+      "required": [
+        "run"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object"
+    },
+    "subject": "run"
+  },
+  {
+    "id": "run.wait",
+    "summary": "Waits up to 25 seconds for a run to finish and returns it; call it again while the run is unfinished. One wait runs at a time, and a second returns the run at once.",
+    "effect": "ReadOnly",
+    "provider": "workspace",
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id from run.list"
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "description": "Up to 25; call run.wait again while the run is unfinished"
+        }
+      },
+      "required": [
+        "run"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object"
+    },
+    "subject": "run"
+  }
+]

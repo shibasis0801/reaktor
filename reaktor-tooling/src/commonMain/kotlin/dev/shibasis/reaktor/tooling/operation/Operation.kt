@@ -39,6 +39,18 @@ annotation class Subject
 @Target(AnnotationTarget.PROPERTY, AnnotationTarget.CLASS)
 annotation class Describe(val text: String)
 
+@OptIn(ExperimentalSerializationApi::class)
+@SerialInfo
+@Target(AnnotationTarget.PROPERTY, AnnotationTarget.CLASS)
+annotation class Schema(
+    val minimum: Long = Long.MIN_VALUE,
+    val maximum: Long = Long.MAX_VALUE,
+    val nullable: Boolean = true,
+    val itemsDescription: String = "",
+    val openItems: Boolean = false,
+    val emptyRequired: Boolean = false,
+)
+
 @Serializable
 data class OperationDescriptor(
     val id: OperationId,

@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.mcp.*
+import dev.shibasis.reaktor.tooling.operation.jsonSchema
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 
@@ -12,34 +13,24 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
     }
     fun JsonObject.actor(): BoardActor? = get("by")?.let { AgentWorkspaceJson.decodeFromJsonElement(BoardActor.serializer(), it) }
     fun JsonObject.thread(by: BoardActor?): String = text("thread") ?: by?.session ?: error("Name the thread: hangar:, claude:, codex: or agy: with its id")
-    fun integer(description: String) = buildJsonObject { put("type", "integer"); put("minimum", 0); put("description", description) }
-    fun list(description: String) = buildJsonObject { put("type", "array"); put("items", stringSchema(description)) }
     fun plan(value: WorkPlan, history: Boolean) = AgentWorkspaceJson.encodeToJsonElement(WorkPlan.serializer(), if (history) value else value.copy(changes = emptyList()))
     fun changes(values: List<PlanChange>) = AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanChange.serializer()), values)
-    val thread = "thread" to stringSchema("hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>; your own session when left out")
-    val by = "by" to objectSchema(mapOf(
-        "kind" to enumSchema("Who makes the change", BoardActorKind.entries.map { it.name }),
-        "name" to stringSchema("The person's name, or the agent's seat"),
-        "session" to stringSchema("The writer's own session ref"),
-    ), listOf("kind", "name"))
-    val ops = "ops" to buildJsonObject {
-        put("type", "array")
-        put("description", "add {key, title, detail, status, parent, after, refs, at}; update {item, title, detail, parent, root, refs, at}; " +
-            "status {item, status: Todo | Doing | Done | Dropped}; connect {from, to}, where to waits on from; disconnect {from, to}; remove {item}. " +
-            "Each op is an object with its type, such as {type: \"status\", item: \"api\", status: \"Done\"}")
-        putJsonObject("items") { put("type", "object"); put("additionalProperties", true) }
-    }
+    val api = PlansApi()
+    val by = "by" to PlanReader.serializer().descriptor.jsonSchema()
+    fun withActor(schema: JsonObject): JsonObject = JsonObject(schema + mapOf(
+        "properties" to JsonObject(schema.getValue("properties").jsonObject + by),
+        "required" to JsonArray(((schema["required"] as? JsonArray).orEmpty() + JsonPrimitive("by")).distinct()),
+    ))
     return listOf(
         McpTool("agent_plan_list", "List every thread's plan, newest first: its title, revision, items by status (Todo, Doing, Done, Dropped), seats and last writer.",
-            objectSchema(emptyMap()), true, true) { args ->
+            api.list.request.descriptor.jsonSchema(), true, true) { args ->
             args.only()
             buildJsonObject { put("plans", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanSummary.serializer()), workspace.plans.list())) }
         },
         McpTool("agent_plan_read", "Read a thread's plan: the high-level design and running checklist its agent keeps, which people edit in Hangar. " +
             "Items carry a status, the items they wait on (after), the item they belong to (parent), links into Reaktor (refs) and the seat of an attached agent. " +
             "Pass since, the revision you last read, to get news: what people and other agents changed after it.",
-            objectSchema(mapOf(thread, "since" to integer("The revision you last read"),
-                "history" to buildJsonObject { put("type", "boolean"); put("description", "Include the last 200 changes") }, by)), true, true) { args ->
+            api.read.request.descriptor.jsonSchema(), true, true) { args ->
             args.only("thread", "since", "history", "by")
             val reader = args.actor()
             val read = workspace.plans.read(args.thread(reader), args.long("since"), reader)
@@ -52,8 +43,7 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             "Pass base, the revision you read: an op on an item someone else changed after it is refused for that item only, and news lists their changes. " +
             "An attached agent passes its seat and stays inside its items. refs link Reaktor with file:, symbol:, module:, graph:, op:, flow:, task: or url:. " +
             "The answer lists what applied, what was refused and why, and the new revision.",
-            objectSchema(mapOf(thread, "title" to stringSchema("The plan's name, the request in a few words"), "goal" to stringSchema("What done looks like"), ops,
-                "base" to integer("The revision you read"), "seat" to stringSchema("Your seat when a person attached you to part of this plan"), by), listOf("by")),
+            withActor(api.write.request.descriptor.jsonSchema()),
             readOnly = false, idempotent = false) { args ->
             args.only("thread", "title", "goal", "ops", "base", "seat", "by")
             val writer = args.actor() ?: error("by is required: who makes this change")
@@ -73,8 +63,7 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
         },
         McpTool("agent_plan_attach", "Attach a gallery agent, an agent profile with its runtime, model, effort and instructions, to items of a plan. " +
             "Hangar starts a run of that agent whose brief names the plan, its items and its seat; the seat covers those items and everything under them. Only a person attaches agents.",
-            objectSchema(mapOf(thread, "items" to list("An item id; the seat covers it and everything under it"), "profile" to stringSchema("The agent profile id"),
-                "note" to stringSchema("What the person wants from this agent, added to its brief"), by), listOf("thread", "items", "profile", "by")),
+            withActor(api.attach.request.descriptor.jsonSchema()),
             readOnly = false, idempotent = false) { args ->
             args.only("thread", "items", "profile", "note", "by")
             val person = args.actor() ?: error("by is required")
@@ -84,7 +73,7 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
         },
         McpTool("agent_plan_shape", "Read plans as one reaktor-graph: a graph per plan, a node per item wired to what it waits on and what it belongs to, " +
             "and a node per Reaktor link (file, symbol, module, graph, operation, flow) it touches. Without threads it reads every plan.",
-            objectSchema(mapOf("threads" to list("A thread whose plan to include"))), true, true) { args ->
+            api.shapeGraph.request.descriptor.jsonSchema(), true, true) { args ->
             args.only("threads")
             val wanted = (args["threads"] as? JsonArray)?.map { it.jsonPrimitive.content }
             val plans = wanted?.mapNotNull(workspace.plans::plan) ?: workspace.plans.list().mapNotNull { workspace.plans.plan(it.thread) }

@@ -15,11 +15,12 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.serialization.json.*
 
-data class LoopbackHttpResponse(val body: JsonElement, val status: Int = 200)
+data class LoopbackHttpResponse(val body: JsonElement, val status: Int = 200, val headers: Map<String, String> = emptyMap())
 
 data class BrowserMcpEndpoint(
     val credentials: () -> Pair<String, String>?,
     val handler: McpMessageHandler,
+    val discovery: Map<String, String> = emptyMap(),
 )
 
 /** Owns a bounded, loopback-only HTTP transport. Tool definitions and authority belong to the host. */
@@ -90,8 +91,10 @@ class LoopbackMcpServer private constructor(
             responseHeaders.set("Access-Control-Expose-Headers", "Mcp-Protocol-Version, Mcp-Session-Id")
             val host = requestHeaders["Host"]?.singleOrNull()
             val origin = requestHeaders["Origin"]?.singleOrNull()
-            val browserPath = requestURI.path == "/browser/mcp"
-            val pairing = if (browserPath) browser?.credentials?.invoke() else null
+            val discoveryPath = requestURI.path == "/reaktor-plus/v1" && browser?.discovery?.isNotEmpty() == true
+            val browserPath = requestURI.path == "/browser/mcp" || discoveryPath
+            val pairing = if (browserPath) browser?.discovery?.get(origin)?.let { requireNotNull(origin) to it }
+                ?: browser?.credentials?.invoke() else null
             if (host == null || !loopbackUri("http://$host", authority = true)) {
                 send(403, error("Invalid Host header")); return
             }
@@ -107,7 +110,7 @@ class LoopbackMcpServer private constructor(
                 responseHeaders.set("Access-Control-Allow-Private-Network", "true")
             }
             val requiredToken = if (browserPath) pairing?.second else bearerToken
-            if (requiredToken != null && requestMethod != "OPTIONS") {
+            if (requiredToken != null && requestMethod != "OPTIONS" && !(discoveryPath && requestMethod == "GET")) {
                 val supplied = requestHeaders["Authorization"]?.singleOrNull().orEmpty()
                 if (!MessageDigest.isEqual(supplied.toByteArray(), "Bearer $requiredToken".toByteArray())) {
                     send(401, error("Authentication required")); return
@@ -115,7 +118,14 @@ class LoopbackMcpServer private constructor(
             }
             when {
                 requestMethod == "OPTIONS" -> send(204, null)
-                requestMethod == "POST" && (requestURI.path == "/mcp" || browserPath) -> {
+                discoveryPath && requestMethod == "GET" -> send(200, buildJsonObject {
+                    put("service", "reaktor-plus"); put("version", 1)
+                    put("endpoint", "http://127.0.0.1:${localAddress.port}/browser/mcp")
+                    put("token", requireNotNull(pairing).second)
+                    putJsonArray("capabilities") { add("inference.ask") }
+                    put("maxQuestionChars", 6000)
+                })
+                requestMethod == "POST" && (requestURI.path == "/mcp" || browserPath && !discoveryPath) -> {
                     val versions = requestHeaders["MCP-Protocol-Version"]
                     if (versions != null && versions.singleOrNull() !in REAKTOR_MCP_PROTOCOL_VERSIONS) {
                         send(400, error("Unsupported MCP protocol version")); return
@@ -132,6 +142,7 @@ class LoopbackMcpServer private constructor(
                         decode(it.substringBefore('=')) to decode(it.substringAfter('=', ""))
                     }
                     val response = read(requestURI.path, query)
+                    response?.headers?.forEach { (name, value) -> responseHeaders.set(name, value) }
                     send(response?.status ?: 404, response?.body ?: error("Not found"))
                 }
                 requestMethod == "POST" -> {
@@ -139,6 +150,7 @@ class LoopbackMcpServer private constructor(
                     if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
                     val response = postWithHeaders?.invoke(requestURI.path, body.decodeToString(), requestHeaders.entries.associate { it.key.lowercase() to it.value.toList() })
                         ?: post(requestURI.path, body.decodeToString())
+                    response?.headers?.forEach { (name, value) -> responseHeaders.set(name, value) }
                     send(response?.status ?: 404, response?.body ?: error("Not found"))
                 }
                 else -> send(404, error("Not found"))

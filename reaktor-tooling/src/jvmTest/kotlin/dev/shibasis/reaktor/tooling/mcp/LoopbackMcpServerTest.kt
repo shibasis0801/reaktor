@@ -48,6 +48,49 @@ class LoopbackMcpServerTest {
         }
     }
 
+    @Test fun reaktorPlusDiscoveryIssuesOnlyOriginScopedInferenceCredentials() {
+        val owner = "owner-".repeat(8)
+        val tokens = mapOf("https://manna.ac" to "manna-".repeat(8), "https://reaktor.build" to "docs-".repeat(8))
+        val browser = BrowserMcpEndpoint({ null }, ReaktorMcpServer("inference", "1", "", listOf(
+            McpTool("inference.ask", "Question", emptyObjectSchema(), readOnly = false, idempotent = false) { buildJsonObject { put("reply", "answer") } },
+        )), tokens)
+        HttpClient.newHttpClient().use { client ->
+            LoopbackMcpServer.start(0, { registry() }, owner, post = { _, _ -> error("No engineering access") }, browser = browser).use { server ->
+                fun send(path: String, origin: String?, token: String? = null, method: String = "GET"): HttpResponse<String> {
+                    val request = HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port()}$path"))
+                        .header("Access-Control-Request-Private-Network", "true")
+                    origin?.let { request.header("Origin", it) }
+                    token?.let { request.header("Authorization", "Bearer $it") }
+                    return client.send(request.method(method, if (method == "POST") HttpRequest.BodyPublishers.ofString("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}""")
+                        else HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString())
+                }
+                for ((origin, token) in tokens) {
+                    val discovery = send("/reaktor-plus/v1", origin)
+                    assertEquals(200, discovery.statusCode())
+                    assertEquals(origin, discovery.headers().firstValue("Access-Control-Allow-Origin").orElse(null))
+                    assertEquals("no-store", discovery.headers().firstValue("Cache-Control").orElse(null))
+                    val value = Json.parseToJsonElement(discovery.body()).jsonObject
+                    assertEquals(JsonPrimitive("reaktor-plus"), value["service"])
+                    assertEquals(JsonPrimitive(token), value["token"])
+                    assertFalse(discovery.body().contains(owner))
+                    assertEquals(204, send("/reaktor-plus/v1", origin, method = "OPTIONS").statusCode())
+                    val tools = send("/browser/mcp", origin, token, "POST")
+                    assertEquals(200, tools.statusCode())
+                    assertTrue(tools.body().contains("inference.ask")); assertFalse(tools.body().contains("control_plane"))
+                    assertEquals(401, send("/browser/mcp", origin, owner, "POST").statusCode())
+                    assertEquals(403, send("/mcp", origin, token, "POST").statusCode())
+                }
+                for (origin in listOf(null, "null", "https://evil.manna.ac", "https://manna.ac.attacker.example")) {
+                    val refused = send("/reaktor-plus/v1", origin)
+                    assertEquals(403, refused.statusCode())
+                    assertFalse(refused.headers().firstValue("Access-Control-Allow-Origin").isPresent)
+                }
+                assertEquals(401, send("/browser/mcp", "https://manna.ac", tokens.getValue("https://reaktor.build"), "POST").statusCode())
+                assertEquals(401, send("/mcp", null, tokens.getValue("https://manna.ac"), "POST").statusCode())
+            }
+        }
+    }
+
     @Test fun clientNegotiatesAndCallsTheReadOnlyRegistry() {
         LoopbackMcpServer.start(0, { registry() }).use { server ->
             val client = LoopbackMcpReadClient(server.port())

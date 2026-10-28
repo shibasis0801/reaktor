@@ -53,7 +53,11 @@ class OperationGate internal constructor(
         val declaredEffect = SafetyClass.valueOf(operation.effect.name)
         val caller = exchange.attributes[CallerAttribute] as? CallCaller
             ?: reject<Outcome>(Outcome.Refused(declaredEffect, "The connection has no authenticated caller"), 403, "Authenticated caller required")
-        val id = OperationId("${exchange.contract.substringAfterLast('.')}.${exchange.name}")
+        if (exchange.contract == dev.shibasis.reaktor.tooling.kernel.KernelApi.Id && exchange.name == "invoke") return next(exchange)
+        // Catalog and describe keep their public identity across the typed carrier migration.
+        val id = OperationId(if (exchange.contract == dev.shibasis.reaktor.tooling.kernel.KernelApi.Id &&
+            (exchange.name == "catalog" || exchange.name == "describe")) "operation.${exchange.name}"
+            else "${exchange.contract.substringAfterLast('.')}.${exchange.name}")
         val arguments = json.encodeToJsonElement(operation.request, exchange.request).jsonObject
         val existing = resolve(id)
         val classifier = operation.service as? Classifier
@@ -79,7 +83,12 @@ class OperationGate internal constructor(
             is Outcome.ApprovalRequired -> reject<Outcome>(outcome, 409, "Approval required")
             is Outcome.Denied -> reject<Outcome>(outcome, 403, "Approval denied")
             is Outcome.Refused -> reject<Outcome>(outcome, 403, outcome.reason)
-            is Outcome.Failed -> throw Unavailable(outcome.message, 500)
+            is Outcome.Failed -> when (outcome.code) {
+                "invalid-arguments" -> reject<Outcome>(outcome, 400, outcome.message)
+                "outcome-unknown" -> throw dev.shibasis.reaktor.service.contract.OutcomeUnknown(outcome.message)
+                "contract-drift" -> throw dev.shibasis.reaktor.service.contract.ContractDrift(outcome.message, 502)
+                else -> throw Unavailable(outcome.message)
+            }
         }
     }
 
@@ -200,10 +209,18 @@ class OperationGate internal constructor(
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { finishReceipt(RunStatus.Cancelled) }
             throw cancelled
         } catch (invalid: InvalidArguments) {
-            Outcome.Failed("Invalid arguments for ${descriptor.id}: ${invalid.message}. operation.describe {operation: ${descriptor.id}} shows what it takes")
+            Outcome.Failed("Invalid arguments for ${descriptor.id}: ${invalid.message}. operation.describe {operation: ${descriptor.id}} shows what it takes", "invalid-arguments")
         } catch (unreadable: SerializationException) {
             Outcome.Failed("${descriptor.id} read its arguments but could not decode other data it depends on: ${unreadable.message}. " +
                 "The program that wrote that data is likely newer or older than this ${descriptor.provider} build")
+        } catch (failure: dev.shibasis.reaktor.service.contract.CallFailure) {
+            Outcome.Failed(failure.message ?: "Contract call failed", when (failure) {
+                is dev.shibasis.reaktor.service.contract.OutcomeUnknown -> "outcome-unknown"
+                is dev.shibasis.reaktor.service.contract.ContractDrift -> "contract-drift"
+                else -> "unavailable"
+            })
+        } catch (invalid: IllegalArgumentException) {
+            Outcome.Failed(invalid.message ?: "Invalid arguments", "invalid-arguments")
         } catch (failure: Exception) {
             Outcome.Failed(failure.message ?: failure::class.simpleName.orEmpty())
         }

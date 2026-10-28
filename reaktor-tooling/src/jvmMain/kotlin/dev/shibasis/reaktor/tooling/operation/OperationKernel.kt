@@ -79,7 +79,7 @@ class OperationKernel(
     @Suppress("UNCHECKED_CAST")
     fun connectContracts() {
         val connected = graph.nodes.filterIsInstance<ContractCall>().mapTo(hashSetOf()) { it.call.call.id }
-        graph.contracts().filter { it.role == ContractRole.Server && it.coroutineScope.isActive }.forEach { node ->
+        graph.contracts().filter { it.role == ContractRole.Server && it.coroutineScope.isActive && it.api.id != dev.shibasis.reaktor.tooling.kernel.KernelApi.Id }.forEach { node ->
             node.api.operations.filterIsInstance<Call<*, *>>().filterNot { it.id in connected }.forEach { operation ->
                 val client = ContractCall(graph, operation as Call<Any?, Any?>)
                 graph.attach(client)
@@ -134,7 +134,7 @@ class OperationKernel(
 
     @Suppress("UNCHECKED_CAST")
     private fun contractEntries(): List<Entry> = graph.contracts()
-        .filter { it.role == ContractRole.Server && it.coroutineScope.isActive }
+        .filter { it.role == ContractRole.Server && it.coroutineScope.isActive && it.api.id != dev.shibasis.reaktor.tooling.kernel.KernelApi.Id }
         .flatMap { node -> node.api.operations.filterIsInstance<Call<*, *>>().map { declared ->
             val operation = declared as Call<Any?, Any?>
             val id = OperationId("${node.api.id.substringAfterLast('.')}.${operation.name}")
