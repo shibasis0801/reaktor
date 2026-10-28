@@ -20,7 +20,7 @@ import kotlin.js.Promise
 
 fun Hono.mount(served: Served<*>, island: String? = null): Hono = mount(served.calls.map { Mounted(served, it, island) })
 
-fun Hono.mount(graph: Graph): Hono = mount(graph.contracts().filter { it.role == ContractRole.Server }.flatMap { node ->
+fun Hono.mount(graph: Graph, except: Set<String> = emptySet()): Hono = mount(graph.contracts().filter { it.role == ContractRole.Server && it.api.id !in except }.flatMap { node ->
     val served = requireNotNull(node.served)
     served.calls.map { Mounted(served, it, graph.label.ifBlank { null }) }
 })
