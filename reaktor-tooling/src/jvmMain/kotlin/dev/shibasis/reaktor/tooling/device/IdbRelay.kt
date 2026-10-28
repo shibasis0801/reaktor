@@ -44,8 +44,12 @@ class IdbRelay(
                 process.destroy()
             }
         }
-        thread(isDaemon = true) { pump(socket.getInputStream(), process.outputStream); end() }
-        thread(isDaemon = true) { pump(process.inputStream, socket.getOutputStream()); end() }
+        val (incoming, outgoing) = runCatching { socket.getInputStream() to socket.getOutputStream() }.getOrElse {
+            end()
+            return
+        }
+        thread(isDaemon = true) { pump(incoming, process.outputStream); end() }
+        thread(isDaemon = true) { pump(process.inputStream, outgoing); end() }
     }
 
     private fun pump(from: InputStream, to: OutputStream) = runCatching {
