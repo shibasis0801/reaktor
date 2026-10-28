@@ -457,6 +457,20 @@ Website questions and engineering tasks may share context and tool primitives, b
 
 ### 7.2 Scoped ingress
 
+**Owner priority, 28 October.** Reaktor+ websites come first. The first useful vertical is browser-to-localhost on an admin machine: an explicitly selected, OS-supervised owner listens at `http://127.0.0.1:9317/reaktor-plus/v1`. Manna and Reaktor docs discover that endpoint automatically; absence means local intelligence is unavailable and ordinary website functionality continues. Presence is a machine capability, not proof of a Manna user or record permission. The fixed listener exposes only the existing graph-owned question-only inference projection, with exact approved origins and separate per-origin browser credentials. It never exposes the owner bearer or engineering tools. The existing isolated signed-in Antigravity runtime serves this admin-operated local use; it is not public backend inference.
+
+This first slice precedes the remaining Hangar migration and automatic updater. It keeps request-id admissions and answers in the existing private browser-inference store so reconnecting cannot start a second costly call. Public docs retain deployed corpus revisions and citations. Manna initially sends only the typed question; its existing API must authorize any later record context and retain the product receipt. The typed IntelligenceApi and backend-to-ingress path below follow this working browser vertical.
+
+```mermaid
+flowchart LR
+    D[Reaktor docs browser] --> L[127.0.0.1:9317<br/>Reaktor+ discovery]
+    M[Manna browser] --> L
+    L --> I[Origin-scoped inference<br/>graph tool node]
+    I --> A[Isolated local runtime]
+    I --> R[Private request receipts]
+```
+
+
 The ingress is a second served node on its own listener, with its own secret. Its server side runs reaktor-auth's `BearerAuthentication` and `AuthRequirements`, which admit only the website service principals, and the docs Worker attaches its credential with `ServiceAccount` on the client side. It serves only `IntelligenceApi`. It follows the existing `HybridConnector` pattern, a separate loopback listener with its own secret that a tunnel can expose [E25]. A remote Worker reaches it through a configured tunnel or outbound connector. The browser and the website never receive the owner bearer, and the ingress refuses it.
 
 ```mermaid
@@ -520,13 +534,14 @@ flowchart LR
     U3 --> U5[U5 automatic<br/>qualified updates]
     U2 --> U4[U4 headless<br/>domains]
     U1 --> U6[U6 retained<br/>admission]
-    U6 --> U7[U7 website<br/>intelligence]
+    U1 --> U7[U7 website<br/>intelligence]
+    U6 -. broader retained admission .-> U7
     U7 --> U8[U8 hosted<br/>qualification]
     U4 --> Done[Local unification<br/>accepted]
     U5 --> Done
 ```
 
-The recommended sequence is U0, U1, U2, U3, U5, then the U4 domain slices, then U6, U7 and U8. U5 comes before most of U4 because an owner that follows the source helps every later package. U5 waits for U2 because an embedded Hangar owner can take the lock during an activation. U7 needs U6 so a reconnecting ask never starts twice. Neither U7 nor U8 blocks local unification.
+The owner now prioritizes U0/U1, then the first useful U7 browser vertical, followed by U2, U3, U5, U4 domain slices, broader U6/U7 and U8. U5 comes before most of U4 because an owner that follows the source helps every later package. U5 waits for U2 because an embedded Hangar owner can take the lock during an activation. The first U7 vertical retains its own bounded request admission using the existing private inference directory; generalized U6 admission follows. Neither U7 nor U8 blocks local unification.
 
 ### U0. Ledger, baselines and decisions
 
@@ -694,7 +709,7 @@ Handoff: K7 and K10.
 
 ### U7. Website intelligence
 
-Goal: "Ask Reaktor docs" first, then Manna's read-only ask.
+Goal: automatic local Reaktor+ discovery and "Ask Reaktor docs" first, then Manna's read-only ask. Deliver the existing question-only browser vertical before the broader contract/backend migration below.
 
 Steps:
 1. Declare `IntelligenceApi` and serve it on the scoped ingress node and listener (§7.2), with reaktor-auth interceptors and keyed admission.
