@@ -9,7 +9,9 @@ data class BlueprintMark(val text: String, val color: Color, val kind: Kind = Ki
     enum class Kind { Tag, Badge, Pill, Dot }
 }
 
-data class BlueprintPinLook(val color: Color, val text: String, val textColor: Color, val filled: Boolean, val chip: Boolean = false, val selected: Boolean = false)
+data class BlueprintChoice(val checked: Boolean, val tag: String, val change: (Boolean) -> Unit)
+
+data class BlueprintPinLook(val color: Color, val text: String, val textColor: Color, val filled: Boolean, val chip: Boolean = false, val selected: Boolean = false, val marks: List<BlueprintMark> = emptyList(), val tag: String? = null, val choice: BlueprintChoice? = null)
 
 data class BlueprintCardLook(
     val tone: Color,
@@ -28,6 +30,7 @@ data class BlueprintCardLook(
     val imageDescription: String? = null,
     val imageHighlight: androidx.compose.ui.geometry.Rect? = null,
     val muted: Boolean = false,
+    val choice: BlueprintChoice? = null,
 )
 
 data class BlueprintFrameLook(

@@ -277,6 +277,11 @@ private fun CardMarker(card: Card, look: BlueprintCardLook, far: Boolean, pinTip
         selected = look.selected
         look.action?.let { onClick(label = it) { onCardClick(card.id); true } }
     }.tagged(look.tag)) {
+        look.choice?.let { choice ->
+            Box(Modifier.at(0.0, 0.0, BlueprintEngine.RowHeight, BlueprintEngine.RowHeight), contentAlignment = Alignment.Center) {
+                dev.shibasis.reaktor.surface.compose.Checkbox(if (choice.checked) dev.shibasis.reaktor.surface.compose.CheckState.Checked else dev.shibasis.reaktor.surface.compose.CheckState.Unchecked, choice.change, Modifier.testTag(choice.tag))
+            }
+        }
         Said(look.title)
         look.imageDescription?.let { Said(it) }
         if (far) return@Box
@@ -291,9 +296,15 @@ private fun CardMarker(card: Card, look: BlueprintCardLook, far: Boolean, pinTip
             Box(Modifier.at(if (pin.provides && !oneSided) card.width / 2 else 0.0, pin.y - BlueprintEngine.RowHeight / 2, width, BlueprintEngine.RowHeight).then(if (onPinClick == null) Modifier else Modifier.semantics {
                 selected = pinLook.selected
                 onClick { onPinClick(card, pin); true }
-            }.tagged(look.tag?.let { "$it-${if (pin.provides) "provides" else "needs"}-${pin.key}" }))) {
+            }.tagged(pinLook.tag ?: look.tag?.let { "$it-${if (pin.provides) "provides" else "needs"}-${pin.key}" }))) {
                 val tip = pinTip(card, pin)
                 if (tip == null) Said(text) else Tooltip(appearance = tip.appearance ?: UnframedBlueprintTip, tip = tip.content) { Said(text) }
+                pinLook.marks.forEach { Said(it.said) }
+                pinLook.choice?.let { choice ->
+                    Box(Modifier.at(if (pin.provides) width - BlueprintEngine.RowHeight else 0.0, 0.0, BlueprintEngine.RowHeight, BlueprintEngine.RowHeight), contentAlignment = Alignment.Center) {
+                        dev.shibasis.reaktor.surface.compose.Checkbox(if (choice.checked) dev.shibasis.reaktor.surface.compose.CheckState.Checked else dev.shibasis.reaktor.surface.compose.CheckState.Unchecked, choice.change, Modifier.testTag(choice.tag))
+                    }
+                }
             }
         }
     }
