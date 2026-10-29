@@ -96,7 +96,7 @@ sealed class BoardEdit {
 }
 
 @Serializable
-class BoardRead : Request()
+data class BoardRead(val token: Long? = null, val part: Int = 0) : Request()
 
 @Serializable
 data class BoardChange(val edit: BoardEdit, val revision: Long? = null) : Request()
@@ -115,7 +115,7 @@ interface BoardSource {
 }
 
 open class BoardService : Service("reaktor.board") {
-    open val read by post<BoardRead, BoardSnapshot>("/read", name = Read)
+    open val read by post<BoardRead, BoardPacket>("/read", name = Read)
     open val change by post<BoardChange, BoardReceipt>("/change", name = Change)
     open val select by post<BoardSelect, BoardReceipt>("/select", name = Select)
 
@@ -125,8 +125,8 @@ open class BoardService : Service("reaktor.board") {
         const val Select = "board.select"
         const val Changed = "board.changed"
         val Operations = setOf(Read, Change, Select, Changed)
-        operator fun invoke(source: BoardSource): Served<BoardService> = Served(object : BoardService() {
-            override val read = super.read.handle { source.read() }
+        operator fun invoke(source: BoardSource, transport: BoardTransport = BoardTransport(source)): Served<BoardService> = Served(object : BoardService() {
+            override val read = super.read.handle { request -> transport.read(request) }
             override val change = super.change.handle { request -> source.change(request) }
             override val select = super.select.handle { request ->
                 source.select(request)
