@@ -28,7 +28,7 @@ class GoogleOperationsTest {
     }
 
     private suspend fun connected() {
-        val url = connector.begin(key, listOf(CALENDAR, FREEBUSY, DRIVE, YOUTUBE), "https://app.example.test/settings/connections", null)
+        val url = connector.begin(key, listOf(CALENDAR, CALENDARLIST, FREEBUSY, DRIVE, YOUTUBE), "https://app.example.test/settings/connections", null)
         val (state, code) = google.consent(url)
         val done = connector.complete(state, code, null)
         assertEquals(GoogleOutcome.Pending, done.outcome)
@@ -98,12 +98,14 @@ class GoogleOperationsTest {
         assertEquals("hangoutsMeet", sent["conferenceData"]!!.jsonObject["createRequest"]!!.jsonObject["conferenceSolutionKey"]!!.jsonObject["type"]!!.jsonPrimitive.content)
         assertEquals("link-1", sent["extendedProperties"]!!.jsonObject["private"]!!.jsonObject["ref"]!!.jsonPrimitive.content)
         assertEquals("https://meet.google.com/abc-defg-hij", inserted["hangoutLink"]?.jsonPrimitive?.content)
-        val (patch, _) = run("calendar/events.patch", """{"calendarId":"cal-1","eventId":"mnabc123","body":{"summary":"Moved"},"sendUpdates":"none"}""", FakeGoogle.json(200, """{"id":"mnabc123"}"""))
+        val (patch, _) = run("calendar/events.patch", """{"calendarId":"cal-1","eventId":"mnabc123","body":{"summary":"Moved"},"ifMatch":"etag-1","sendUpdates":"none"}""", FakeGoogle.json(200, """{"id":"mnabc123"}"""))
         assertEquals("PATCH", patch.getHeader("X-HTTP-Method-Override") ?: patch.method)
         assertEquals("/calendar/v3/calendars/cal-1/events/mnabc123", patch.requestUrl!!.encodedPath)
         assertEquals("Moved", patch.json()["summary"]?.jsonPrimitive?.content)
-        val (delete, deleted) = run("calendar/events.delete", """{"calendarId":"cal-1","eventId":"mnabc123","sendUpdates":"none"}""", MockResponse().setResponseCode(204))
+        assertEquals("etag-1", patch.getHeader("If-Match"))
+        val (delete, deleted) = run("calendar/events.delete", """{"calendarId":"cal-1","eventId":"mnabc123","ifMatch":"etag-2","sendUpdates":"none"}""", MockResponse().setResponseCode(204))
         assertEquals("DELETE", delete.method)
+        assertEquals("etag-2", delete.getHeader("If-Match"))
         assertEquals("/calendar/v3/calendars/cal-1/events/mnabc123", delete.requestUrl!!.encodedPath)
         assertEquals(mapOf("sendUpdates" to "none"), delete.query())
         assertEquals(JsonObject(emptyMap()), deleted)
@@ -120,6 +122,19 @@ class GoogleOperationsTest {
         assertEquals(mapOf("syncToken" to "sync-7", "pageToken" to "page-2", "showDeleted" to "true", "maxResults" to "250"), list.query())
         assertEquals("sync-8", page["nextSyncToken"]?.jsonPrimitive?.content)
         assertEquals("cancelled", page["items"]!!.jsonArray.single().jsonObject["status"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `calendar list colors and dated event instances`() {
+        val (calendars, _) = run("calendar/calendarList.list", """{"maxResults":250,"pageToken":"p2"}""")
+        assertEquals("/calendar/v3/users/me/calendarList", calendars.requestUrl!!.encodedPath)
+        assertEquals(mapOf("maxResults" to "250", "pageToken" to "p2"), calendars.query())
+        val (colors, _) = run("calendar/colors.get", "{}")
+        assertEquals("/calendar/v3/colors", colors.requestUrl!!.encodedPath)
+        val (get, _) = run("calendar/events.get", """{"calendarId":"primary","eventId":"e1"}""")
+        assertEquals("/calendar/v3/calendars/primary/events/e1", get.requestUrl!!.encodedPath)
+        val (events, _) = run("calendar/events.list", """{"calendarId":"primary","timeMin":"2026-10-26T00:00:00Z","timeMax":"2026-11-02T00:00:00Z","singleEvents":true,"orderBy":"startTime","timeZone":"Asia/Kolkata"}""")
+        assertEquals(mapOf("timeMin" to "2026-10-26T00:00:00.000Z", "timeMax" to "2026-11-02T00:00:00.000Z", "singleEvents" to "true", "orderBy" to "startTime", "timeZone" to "Asia/Kolkata"), events.query())
     }
 
     @Test
@@ -220,6 +235,7 @@ class GoogleOperationsTest {
     fun `every allow-listed operation is exercised here`() {
         `documents read all tabs and preserve revision guarded writes`()
         `calendars insert and get`()
+        `calendar list colors and dated event instances`()
         `events insert with a conference request, patch and delete`()
         `events list incrementally with a sync token`()
         `events watch and channels stop`()
@@ -232,6 +248,7 @@ class GoogleOperationsTest {
 
     companion object {
         const val CALENDAR = "https://www.googleapis.com/auth/calendar.app.created"
+        const val CALENDARLIST = "https://www.googleapis.com/auth/calendar.calendarlist.readonly"
         const val FREEBUSY = "https://www.googleapis.com/auth/calendar.freebusy"
         const val DRIVE = "https://www.googleapis.com/auth/drive.file"
         const val YOUTUBE = "https://www.googleapis.com/auth/youtube.readonly"
