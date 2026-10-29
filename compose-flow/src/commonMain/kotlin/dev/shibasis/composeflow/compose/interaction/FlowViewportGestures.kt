@@ -118,17 +118,16 @@ fun Modifier.flowPointerViewportGestures(
     onPaneTap: ((Offset) -> Boolean)? = null,
 ): Modifier = pointerInput(config, onPaneClick, onPaneTap) {
     awaitEachGesture {
-        val down = awaitFirstDown(
-            requireUnconsumed = false,
-            pass = PointerEventPass.Initial,
-        )
+        var first = awaitPointerEvent(PointerEventPass.Initial)
+        while (first.changes.none { it.pressed && !it.previousPressed }) first = awaitPointerEvent(PointerEventPass.Initial)
+        val down = first.changes.first { it.pressed && !it.previousPressed }
         val pointerSlop = flowViewportPointerSlop(viewConfiguration.touchSlop, down.type)
         interactionState.updatePointerPosition(down.position)
         var activePointerId = down.id
         var accumulatedDrag = Offset.Zero
         var dragStarted = false
         var viewportManipulated = false
-        var secondaryButtonGesture = false
+        var secondaryButtonGesture = currentEvent.buttons.isSecondaryPressed
         var clickEligible = true
 
         while (true) {

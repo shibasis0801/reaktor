@@ -272,7 +272,7 @@ private fun FrameMarker(frame: Frame, look: BlueprintFrameLook) {
 }
 
 @Composable
-private fun CardMarker(card: Card, look: BlueprintCardLook, far: Boolean, pinTip: (Card, Pin) -> BlueprintTip?, onCardClick: (String) -> Unit, onPinClick: ((Card, Pin) -> Unit)?) {
+internal fun CardMarker(card: Card, look: BlueprintCardLook, far: Boolean, pinTip: (Card, Pin) -> BlueprintTip?, onCardClick: (String) -> Unit, onPinClick: ((Card, Pin) -> Unit)?) {
     Box(Modifier.at(card.x, card.y, card.width, card.height).semantics {
         selected = look.selected
         look.action?.let { onClick(label = it) { onCardClick(card.id); true } }
@@ -282,10 +282,12 @@ private fun CardMarker(card: Card, look: BlueprintCardLook, far: Boolean, pinTip
                 dev.shibasis.reaktor.surface.compose.Checkbox(if (choice.checked) dev.shibasis.reaktor.surface.compose.CheckState.Checked else dev.shibasis.reaktor.surface.compose.CheckState.Unchecked, choice.change, Modifier.testTag(choice.tag))
             }
         }
-        Said(look.title)
-        look.imageDescription?.let { Said(it) }
+        Box(Modifier.at(0.0, 0.0, card.width, BlueprintEngine.HeaderHeight)) {
+            Said(look.title)
+            look.imageDescription?.let { Said(it) }
+            if (!far) Said(look.subtitle)
+        }
         if (far) return@Box
-        Said(look.subtitle)
         look.marks.forEach { Said(it.said) }
         look.folded?.let { Said(it) }
         val oneSided = card.pins.all { it.provides } || card.pins.none { it.provides }
