@@ -271,7 +271,7 @@ private val BoardCard: dynamic = memo({ props: dynamic ->
             if (card.mark != null) el("i", obj("className" to "board-card-mark", "style" to obj("background" to card.mark), "aria-hidden" to true)) else null,
             if (item.eyebrow.isBlank() && item.badge.isBlank()) null else el("span", obj("className" to "board-card-top"),
                 el("span", obj("className" to "board-card-eyebrow"), item.eyebrow),
-                if (item.badge.isNotBlank()) el("span", obj("className" to "board-card-badge"), item.badge.take(5)) else null),
+                if (item.badge.isNotBlank()) el("span", obj("className" to "board-card-badge"), item.badge) else null),
             el("span", obj("className" to "board-card-title"), item.title),
             el("span", obj("className" to "board-card-foot"),
                 el("span", null, card.footer),

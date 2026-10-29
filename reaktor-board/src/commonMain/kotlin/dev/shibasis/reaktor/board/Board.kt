@@ -44,6 +44,8 @@ data class BoardItem(
     val footer: String = "",
     val within: String = "",
     val relations: List<BoardRelation> = emptyList(),
+    val priority: Int = 0,
+    val resolution: String = "",
 )
 
 @Serializable

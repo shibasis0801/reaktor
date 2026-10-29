@@ -98,7 +98,9 @@ class PlanItemNode(graph: Graph, val plan: WorkPlan, val item: PlanItem) : Basic
 
     override val shapeAttributes: Map<String, String>
         get() = buildMap {
-            put("plan", plan.thread); put("item", item.id); put("kind", item.kind.label); put("status", plan.state(item.id).label)
+            put("plan", plan.thread); put("item", item.id); put("kind", item.kind.label); put("status", plan.state(item.id).label); put("priority", item.priority.name)
+            if (item.reason.isNotBlank()) put("reason", item.reason)
+            item.replacement?.let { put("replacement", it) }
             plan.parts(item.id).map { plan.state(it.id) }.filter { it != PlanStatus.Dropped }.takeIf { it.isNotEmpty() }?.let { open ->
                 put("parts", "${open.count { it == PlanStatus.Done }} of ${open.size} done")
             }
@@ -109,7 +111,10 @@ class PlanItemNode(graph: Graph, val plan: WorkPlan, val item: PlanItem) : Basic
 
     fun wire(items: Map<String, PlanItemNode>, refs: Map<String, ReaktorRefNode>) {
         item.after.forEach { id -> items[id]?.let { upstream -> connect(registerConsumer<PlanItemNode>(Key("after $id"), ItemType), upstream.provided).getOrThrow() } }
-        val taken = (item.after.map { "after $it" } + item.refs).toMutableSet()
+        item.replacement?.let(items::get)?.let { target ->
+            connect(registerConsumer<PlanItemNode>(Key("replaced by"), ItemType), target.provided).getOrThrow()
+        }
+        val taken = (item.after.map { "after $it" } + item.refs + "replaced by").toMutableSet()
         val labels = item.relations.groupingBy { it.label }.eachCount()
         item.relations.forEach { relation ->
             items[relation.to]?.takeIf { relation.to != item.id }?.let { target ->
