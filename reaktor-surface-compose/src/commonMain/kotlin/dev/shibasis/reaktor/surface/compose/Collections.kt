@@ -148,6 +148,10 @@ class ItemScope internal constructor(val key: String, val index: Int, private va
     val active: Boolean get() = flags.active
 
     @Composable
+    fun ReorderHandle(modifier: Modifier = Modifier, content: @Composable () -> Unit) =
+        CollectionReorderHandle(host, key, modifier, content)
+
+    @Composable
     fun MenuTrigger(modifier: Modifier = Modifier, content: @Composable () -> Unit) =
         Box(modifier.then(MenuTriggerElement(host, key)), propagateMinConstraints = true) { content() }
 
@@ -201,8 +205,9 @@ fun <T> Tree(
     state: LazyListState = rememberLazyListState(),
     behavior: CollectionBehavior = CollectionKernel(),
     appearance: RowAppearance = LocalAppearances.current[Appearance.Row],
+    onMove: ((Set<String>, String, Edge) -> Unit)? = null,
     row: @Composable ItemScope.(T) -> Unit,
-) = Collection(source, selection, onSelectionChange, onExpandedChange, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, true, row)
+) = Collection(source, selection, onSelectionChange, onExpandedChange, modifier, mode, onActivate, onCheckedChange, actions, state, behavior, appearance, true, true, row, onMove = onMove)
 
 @Composable
 internal fun <T> Collection(
@@ -222,6 +227,7 @@ internal fun <T> Collection(
     scrolling: Boolean,
     row: @Composable ItemScope.(T) -> Unit,
     grid: GridBinding? = null,
+    onMove: ((Set<String>, String, Edge) -> Unit)? = null,
 ) {
     val properties = CollectionProperties(source, selection, LocalSurfaceEnvironment.current.keys, mode, LocalLayoutDirection.current == LayoutDirection.Rtl)
     val selected = rememberUpdatedState(selection)
@@ -244,6 +250,7 @@ internal fun <T> Collection(
     grid?.host = host
     host.list = state.takeIf { scrolling }
     host.actions = actions
+    host.onMove = onMove
     val inputModes = LocalInputModeManager.current
     SideEffect { host.update(properties, behavior, inputModes) }
     val menus = actions !== RowActions.None
@@ -372,6 +379,7 @@ internal class RowFlags(host: CollectionHost, key: String) {
 internal class CollectionHost(private val selection: State<Set<String>>) {
     lateinit var machine: Machine<CollectionProperties, CollectionState, CollectionInput, CollectionEvent>
     var grid: GridBinding? = null
+    var onMove: ((Set<String>, String, Edge) -> Unit)? = null
     var list: LazyListState? = null
     val rowCoordinates = HashMap<String, LayoutCoordinates>()
     private var properties: CollectionProperties? = null
@@ -597,6 +605,37 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
         }
         val y = position.y.toInt()
         return list.layoutInfo.visibleItemsInfo.firstOrNull { y >= it.offset && y < it.offset + it.size }?.key as? String
+    }
+
+    fun moveAt(key: String, window: Offset) {
+        val layout = coordinates?.takeIf { it.isAttached } ?: return
+        val point = layout.windowToLocal(window)
+        val target = keyAt(point) ?: return
+        val bounds = rowAnchor(target)
+        move(key, target, if (window.y < bounds.top + bounds.height / 2f) Edge.First else Edge.Last)
+    }
+
+    fun moveAdjacent(key: String, edge: Edge): Boolean {
+        val source = properties?.items as? TreeSource<*> ?: return false
+        val index = source.indexOf(key)
+        if (index < 0) return false
+        val range = if (edge == Edge.First) (index - 1 downTo 0) else (index + 1 until source.size)
+        val target = range.firstOrNull { source.parent(it) == source.parent(index) } ?: return false
+        return move(key, source.key(target), edge)
+    }
+
+    private fun move(key: String, target: String, edge: Edge): Boolean {
+        val callback = onMove ?: return false
+        val source = properties?.items as? TreeSource<*> ?: return false
+        val moving = if (key in selected) selected else setOf(key)
+        var index = source.indexOf(target)
+        if (index < 0 || !source.enabled(index)) return false
+        while (index >= 0) {
+            if (source.originalKey(index) in moving) return false
+            index = source.parent(index)
+        }
+        callback(moving, source.originalKey(source.indexOf(target)), edge)
+        return true
     }
 
     fun toggle(key: String, expandable: Boolean, expanded: Boolean): Modifier =
