@@ -64,6 +64,7 @@ class BoardCanvas {
     var follow = true
     private var tappedAt = -1.0
     private var overview = false
+    private var detail = true
     var element: dynamic = null
     var layer: dynamic = null
         set(value) { field = value; placedZoom = 0.0; place() }
@@ -237,7 +238,7 @@ class BoardCanvas {
         val draft = inline?.let { BoardDraft(it.at, it.after, it.lane, it.editing?.key) }
         val live = HashSet<String>()
         val next = ArrayList<dynamic>()
-        board.groups(BoardFrame(items, locations, selected, source, draft), theme).forEach { group ->
+        board.groups(BoardFrame(items, locations, selected, source, draft, detail = view != BoardView.Dag || detail), theme).forEach { group ->
             live.add(group.id)
             val cached = converted[group.id]?.takeIf { it.shapes == group.shapes }
             val made = cached?.elements ?: values(convert(group.shapes.map(::skeleton).toTypedArray(), obj("regenerateIds" to false))).also {
@@ -422,9 +423,12 @@ class BoardCanvas {
         val target = layer ?: return
         if (state == null) return
         val zoom = zoomOf(state)
+        val readable = zoom >= ReadableZoom
+        if (detail != readable) { detail = readable; if (view == BoardView.Dag && mountFrame == null) mount() }
         target.style.transform = "translate(${number(state.scrollX) * zoom}px, ${number(state.scrollY) * zoom}px) scale($zoom)"
         if (zoom != placedZoom) {
             placedZoom = zoom
+            if (zoom < ReadableZoom) target.setAttribute("data-overview", "") else target.removeAttribute("data-overview")
             target.style.setProperty("--board-zoom", zoom.toString())
             target.style.setProperty("--board-unzoom", (1 / zoom).toString())
         }
@@ -462,7 +466,15 @@ class BoardCanvas {
     private fun phone() = number(js("globalThis.innerWidth")) in 1.0..759.0
 
     private fun frame(animate: Boolean) {
-        api.scrollToContent(elements, obj("fitToViewport" to true, "viewportZoomFactor" to 0.9, "animate" to animate, "minZoom" to 0.25, "maxZoom" to 1))
+        if (elements.isEmpty()) return
+        val state = api.getAppState()
+        val left = elements.minOf { number(it.x) }; val top = elements.minOf { number(it.y) }
+        val right = elements.maxOf { number(it.x) + number(it.width) }; val bottom = elements.maxOf { number(it.y) + number(it.height) }
+        val width = number(state.width); val height = number(state.height)
+        val zoom = minOf(width * 0.9 / (right - left), height * 0.9 / (bottom - top), 1.0).coerceAtLeast(0.05)
+        if (zoom < 0.1) api.updateScene(obj("appState" to obj("zoom" to obj("value" to zoom),
+            "scrollX" to width / (2 * zoom) - (left + right) / 2, "scrollY" to height / (2 * zoom) - (top + bottom) / 2)))
+        else api.scrollToContent(elements, obj("fitToViewport" to true, "viewportZoomFactor" to 0.9, "animate" to animate, "minZoom" to 0.1, "maxZoom" to 1))
     }
 
     private fun opening(): BoardItem? = items.minWithOrNull(compareBy<BoardItem>({ positions[it.key]?.x ?: 0.0 }, { positions[it.key]?.y ?: 0.0 }))
@@ -491,7 +503,7 @@ class BoardCanvas {
     fun zoom(delta: Double) {
         if (api == null) return
         follow = false
-        val state = api.getAppState(); val old = number(state.zoom.value); val next = (old + delta).coerceIn(0.25, 2.0)
+        val state = api.getAppState(); val old = number(state.zoom.value); val next = (old + delta).coerceIn(0.05, 2.0)
         api.updateScene(obj("appState" to obj("zoom" to obj("value" to next),
             "scrollX" to number(state.scrollX) + number(state.width) / 2 * (1 / next - 1 / old),
             "scrollY" to number(state.scrollY) + number(state.height) / 2 * (1 / next - 1 / old))))
