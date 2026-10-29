@@ -5,6 +5,7 @@ import com.google.api.client.http.ByteArrayContent
 import com.google.api.client.http.HttpRequestInitializer
 import com.google.api.client.http.HttpTransport
 import com.google.api.client.http.GenericUrl
+import com.google.api.client.util.DateTime
 import com.google.api.client.json.JsonFactory
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.calendar.model.Channel
@@ -115,7 +116,8 @@ internal object GoogleOperations {
     private val eventsWrite = scopes("calendar", "calendar.events", "calendar.app.created", "calendar.events.owned")
     private val eventsRead = eventsWrite + scopes("calendar.readonly", "calendar.events.readonly", "calendar.events.owned.readonly")
     private val freeBusy = scopes("calendar", "calendar.readonly", "calendar.freebusy", "calendar.events.freebusy")
-    private val anyCalendar = calendarsRead + eventsRead + freeBusy
+    private val calendarListRead = scopes("calendar", "calendar.readonly", "calendar.calendarlist", "calendar.calendarlist.readonly")
+    private val anyCalendar = calendarsRead + eventsRead + freeBusy + calendarListRead
     private val driveWrite = scopes("drive", "drive.file")
     private val driveRead = driveWrite + scopes("drive.readonly")
     private val driveMetadata = driveRead + scopes("drive.metadata", "drive.metadata.readonly")
@@ -132,6 +134,13 @@ internal object GoogleOperations {
         "calendar/calendars.get" to GoogleOperation(calendarsRead) { clients, params ->
             json(clients.calendar.calendars().get(params.string("calendarId")))
         },
+        "calendar/calendarList.list" to GoogleOperation(calendarListRead) { clients, params ->
+            json(clients.calendar.calendarList().list().setMaxResults(params.optionalInt("maxResults")).setPageToken(params.optionalString("pageToken")))
+        },
+        "calendar/colors.get" to GoogleOperation(anyCalendar) { clients, _ -> json(clients.calendar.colors().get()) },
+        "calendar/events.get" to GoogleOperation(eventsRead) { clients, params ->
+            json(clients.calendar.events().get(params.string("calendarId"), params.string("eventId")))
+        },
         "calendar/events.insert" to GoogleOperation(eventsWrite) { clients, params ->
             json(
                 clients.calendar.events().insert(params.string("calendarId"), params.resource("body", Event::class.java))
@@ -143,11 +152,12 @@ internal object GoogleOperations {
             json(
                 clients.calendar.events().patch(params.string("calendarId"), params.string("eventId"), params.resource("body", Event::class.java))
                     .setConferenceDataVersion(params.optionalInt("conferenceDataVersion"))
-                    .setSendUpdates(params.optionalString("sendUpdates")),
+                    .setSendUpdates(params.optionalString("sendUpdates"))
+                    .also { request -> params.optionalString("ifMatch")?.let { request.requestHeaders.ifMatch = it } },
             )
         },
         "calendar/events.delete" to GoogleOperation(eventsWrite) { clients, params ->
-            json(clients.calendar.events().delete(params.string("calendarId"), params.string("eventId")).setSendUpdates(params.optionalString("sendUpdates")))
+            json(clients.calendar.events().delete(params.string("calendarId"), params.string("eventId")).setSendUpdates(params.optionalString("sendUpdates")).also { request -> params.optionalString("ifMatch")?.let { request.requestHeaders.ifMatch = it } })
         },
         "calendar/events.list" to GoogleOperation(eventsRead) { clients, params ->
             json(
@@ -155,6 +165,11 @@ internal object GoogleOperations {
                     .setSyncToken(params.optionalString("syncToken"))
                     .setPageToken(params.optionalString("pageToken"))
                     .setShowDeleted(params.optionalBoolean("showDeleted"))
+                    .setTimeMin(params.optionalString("timeMin")?.let(::DateTime))
+                    .setTimeMax(params.optionalString("timeMax")?.let(::DateTime))
+                    .setSingleEvents(params.optionalBoolean("singleEvents"))
+                    .setOrderBy(params.optionalString("orderBy"))
+                    .setTimeZone(params.optionalString("timeZone"))
                     .setMaxResults(params.optionalInt("maxResults")),
             )
         },

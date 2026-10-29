@@ -258,7 +258,7 @@ class GoogleConnectorTest {
         val refused = connector.call(key, "drive", "files.get", params("""{"fileId":"abc"}"""))
         assertIs<GoogleCall.ScopeMissing>(refused)
         assertTrue(DRIVE in refused.anyOf)
-        assertIs<GoogleCall.UnknownOperation>(connector.call(key, "calendar", "calendarList.list", params("{}")))
+        assertIs<GoogleCall.ScopeMissing>(connector.call(key, "calendar", "calendarList.list", params("{}")))
         assertIs<GoogleCall.UnknownOperation>(connector.call(key, "gmail", "messages.list", params("{}")))
         assertIs<GoogleCall.NoGrant>(connector.call(GrantKey("service-b", "person-1"), "calendar", "calendars.get", params("""{"calendarId":"x"}""")))
         assertTrue(google.apiRequests.isEmpty())
