@@ -60,6 +60,7 @@ class BoardSlots(
     val tabs: Boolean = true,
     val empty: String = "",
     val toolbar: ((dynamic) -> dynamic)? = null,
+    val overview: Boolean = false,
 )
 
 class BoardModel(

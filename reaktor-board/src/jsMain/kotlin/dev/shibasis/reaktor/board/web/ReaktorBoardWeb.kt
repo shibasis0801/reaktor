@@ -73,7 +73,7 @@ object ReaktorBoardWeb {
         val current = snapshot ?: return el("p", obj("className" to "board-waiting", "role" to "status"), failure ?: "Opening the board…")
         val theme = current.theme ?: BoardTheme()
         val model = BoardModel(current.board, current.board.items, host, kit, "reaktor-board:${current.layout}", current.active, current.view,
-            BoardSync(pending = inFlight > 0), theme, BoardSlots(tabs = false, empty = current.empty, toolbar = { null }), canvas = canvas)
+            BoardSync(pending = inFlight > 0), theme, BoardSlots(tabs = false, empty = current.empty, overview = props.overview == true, toolbar = { null }), canvas = canvas)
         return el(BoardWorkbench, obj("model" to model))
     }
 }

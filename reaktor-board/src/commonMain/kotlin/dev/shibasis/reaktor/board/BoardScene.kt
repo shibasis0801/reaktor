@@ -170,7 +170,8 @@ private fun Board.card(item: BoardItem, point: BoardPoint, frame: BoardFrame, th
     if (!frame.detail && !active) {
         add(BoardBox(id, point.x, point.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight, theme.cardLine, theme.card))
         item.mark?.let { mark -> add(BoardBox("$id:mark", point.x, point.y + 18, 4.0, 144.0, theme.ink(mark), theme.ink(mark), 0.0)) }
-        add(BoardLabel("$id:title", wrap(item.title, 27, 3), point.x + 22, point.y + 61, 18, theme.title))
+        add(BoardLabel("$id:title", wrap(item.title, 27, if (item.resolution.isBlank()) 3 else 2), point.x + 22, point.y + 61, 18, theme.title))
+        if (item.resolution.isNotBlank()) add(BoardLabel("$id:resolution", wrap(item.resolution, 34, 2), point.x + 22, point.y + 111, 11, theme.footer))
         if (item.badge.isNotBlank()) add(BoardLabel("$id:priority-text", wrap(item.badge, 28, 1), point.x + 22, point.y + 24, 12, theme.ink(item.mark ?: BoardInk.Muted)))
         if (item.initials.isNotBlank()) add(BoardLabel("$id:dependencies", footer(item), point.x + 22, point.y + 151, 12, theme.footer))
         return@buildList
@@ -179,12 +180,18 @@ private fun Board.card(item: BoardItem, point: BoardPoint, frame: BoardFrame, th
     if (active) add(BoardBox("$id:halo", point.x - 4, point.y - 4, 308.0, 188.0, theme.halo, theme.halo, 0.0))
     add(BoardBox(id, point.x, point.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight, if (active) theme.active else theme.cardLine, theme.card, if (active) 1.8 else 1.2))
     item.mark?.let { mark -> add(BoardBox("$id:mark", point.x, point.y + 18, 4.0, 144.0, theme.ink(mark), theme.ink(mark), 0.0)) }
-    if (item.eyebrow.isNotBlank()) add(BoardLabel("$id:code", wrap(item.eyebrow.uppercase(), 22, 1), point.x + 22, point.y + 23, 12, theme.eyebrow))
-    if (item.badge.isNotBlank()) {
-        add(BoardBox("$id:priority", point.x + 234, point.y + 18, 44.0, 27.0, theme.badgeLine, theme.badgeFill))
-        add(BoardLabel("$id:priority-text", item.badge.take(5), point.x + 246, point.y + 24, 12, theme.badgeText))
+    val badge = wrap(item.badge, 18, 1)
+    val badgeWidth = if (badge.isBlank()) 0.0 else (badge.length * 7.0 + 24).coerceAtLeast(44.0)
+    val badgeX = point.x + BoardGeometry.CardWidth - 22 - badgeWidth
+    val ink = theme.ink(item.mark ?: lane(item.lane)?.ink ?: BoardInk.Muted)
+    val codeRoom = if (badge.isBlank()) 30 else ((badgeX - point.x - 34) / 7).toInt().coerceAtLeast(1)
+    if (item.eyebrow.isNotBlank()) add(BoardLabel("$id:code", wrap(item.eyebrow.uppercase(), codeRoom, 1), point.x + 22, point.y + 23, 12, theme.eyebrow))
+    if (badge.isNotBlank()) {
+        add(BoardBox("$id:priority", badgeX, point.y + 18, badgeWidth, 27.0, ink, theme.badgeFill))
+        add(BoardLabel("$id:priority-text", badge, badgeX + 12, point.y + 24, 12, ink))
     }
-    if (frame.draft?.editing != item.key) add(BoardLabel("$id:title", wrap(item.title, 27, 3), point.x + 22, point.y + 61, 18, theme.title))
+    if (frame.draft?.editing != item.key) add(BoardLabel("$id:title", wrap(item.title, 27, if (item.resolution.isBlank()) 3 else 2), point.x + 22, point.y + 61, 18, theme.title))
+    if (item.resolution.isNotBlank()) add(BoardLabel("$id:resolution", wrap(item.resolution, 34, 2), point.x + 22, point.y + 111, 11, theme.footer))
     add(BoardLabel("$id:dependencies", footer(item), point.x + 22, point.y + 151, 12, theme.footer))
     if (item.initials.isNotBlank()) {
         add(BoardDot("$id:owner", point.x + 245, point.y + 137, 34.0, theme.owner, theme.owner, 0.0))
@@ -207,7 +214,7 @@ fun Board.creationPoint(view: BoardView, shown: List<BoardItem>, saved: Map<Stri
 }
 
 fun Board.order(lane: String, shown: List<BoardItem>, saved: Map<String, BoardPoint>): List<BoardItem> =
-    shown.filter { it.lane == lane }.sortedBy { saved[it.key]?.y ?: Double.MAX_VALUE }
+    shown.filter { it.lane == lane }.sortedWith(compareByDescending<BoardItem> { it.priority }.thenBy { saved[it.key]?.y ?: Double.MAX_VALUE })
 
 fun Board.reorder(lane: String, shown: List<BoardItem>, saved: Map<String, BoardPoint>, moving: BoardItem, index: Int): Map<String, BoardPoint> {
     val others = order(lane, shown, saved).filter { it.key != moving.key }.toMutableList()

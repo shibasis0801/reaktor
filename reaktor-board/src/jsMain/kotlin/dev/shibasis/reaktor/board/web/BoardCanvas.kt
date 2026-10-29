@@ -65,6 +65,7 @@ class BoardCanvas {
     private var tappedAt = -1.0
     private var overview = false
     private var detail = true
+    private var overviewControls = false
     var element: dynamic = null
     var layer: dynamic = null
         set(value) { field = value; placedZoom = 0.0; place() }
@@ -110,6 +111,8 @@ class BoardCanvas {
     private val words get() = board.words
 
     fun update(model: BoardModel) {
+        if (overviewControls != model.slots.overview) placedZoom = 0.0
+        overviewControls = model.slots.overview
         board = model.board; shown = model.shown; host = model.host; kit = model.kit; theme = model.theme; layoutKey = model.layout
         if (model.active != active) { active = model.active; selected = model.active }
         pending.entries.removeAll { (key, placed) -> board.item(key)?.let { it.at != placed.was } ?: true }
@@ -428,7 +431,7 @@ class BoardCanvas {
         target.style.transform = "translate(${number(state.scrollX) * zoom}px, ${number(state.scrollY) * zoom}px) scale($zoom)"
         if (zoom != placedZoom) {
             placedZoom = zoom
-            if (zoom < ReadableZoom) target.setAttribute("data-overview", "") else target.removeAttribute("data-overview")
+            if (overviewControls && zoom < ReadableZoom) target.setAttribute("data-overview", "") else target.removeAttribute("data-overview")
             target.style.setProperty("--board-zoom", zoom.toString())
             target.style.setProperty("--board-unzoom", (1 / zoom).toString())
         }

@@ -48,7 +48,7 @@ class WorkPlanTest {
     @Test fun aStaleWriteIsRefusedOnlyForTheItemSomeoneElseChanged() {
         val store = WorkPlanStore(directory("plan-stale"))
         draw(store)
-        store.write("claude:s1", PlanPatch(base = 1, ops = listOf(PlanOp.Status("views", PlanStatus.Dropped))), person)
+        store.write("claude:s1", PlanPatch(base = 1, ops = listOf(PlanOp.Status("views", PlanStatus.Dropped, reason = "Use the existing view"))), person)
         val stale = store.write("claude:s1", PlanPatch(base = 1, ops = listOf(
             PlanOp.Status("views", PlanStatus.Doing), PlanOp.Status("model", PlanStatus.Done), PlanOp.Add("Docs", after = listOf("tools")),
         )), claude)
@@ -99,7 +99,7 @@ class WorkPlanTest {
         val store = WorkPlanStore(directory("plan-store"), inbox)
         draw(store)
         assertFalse(Files.exists(inbox.resolve("claude-s1.txt")))
-        store.write("claude:s1", PlanPatch(ops = listOf(PlanOp.Status("views", PlanStatus.Dropped))), person)
+        store.write("claude:s1", PlanPatch(ops = listOf(PlanOp.Status("views", PlanStatus.Dropped, reason = "Use the existing view"))), person)
         val text = Files.readString(inbox.resolve("claude-s1.txt"))
         assertContains(text, "plan.read")
         assertContains(text, "views → Won't do")
@@ -154,7 +154,7 @@ class WorkPlanTest {
         assertEquals(2, plan.summary().components)
 
         val finished = store.write("claude:s1", PlanPatch(base = plan.revision, ops = listOf(
-            PlanOp.Status("relations", PlanStatus.Done), PlanOp.Status("store-test", PlanStatus.Dropped), PlanOp.Update("ops", kind = PlanKind.Decision),
+            PlanOp.Status("relations", PlanStatus.Done), PlanOp.Status("store-test", PlanStatus.Dropped, reason = "Covered by the integration flow"), PlanOp.Update("ops", kind = PlanKind.Decision),
             PlanOp.Relate("api", "store", "reads"), PlanOp.Relate("api", "api", "calls"), PlanOp.Relate("api", "gone", "calls"),
         )), claude)
         assertEquals(listOf(4, 5), finished.refused.map { it.op })
@@ -169,7 +169,7 @@ class WorkPlanTest {
         assertEquals("2 of 2 done", shape.nodes.first { it.id == "claude:s1#store" }.attributes["parts"])
         assertTrue(shape.wires.any { it.consumer == "claude:s1#api" && it.provider == "claude:s1#store" && it.consumerPort == "reads" })
 
-        val removed = store.write("claude:s1", PlanPatch(ops = listOf(PlanOp.Remove("store"), PlanOp.Unrelate("api", "store"))), claude).plan
+        val removed = store.write("claude:s1", PlanPatch(ops = listOf(PlanOp.Remove("store"), PlanOp.Unrelate("api", "store"))), person).plan
         assertEquals(emptyList(), removed.item("api")?.relations)
         assertEquals(null, removed.item("kinds")?.parent)
         assertEquals(PlanKind.Component, WorkPlanStore(made.last()).plan("claude:s1")?.item("api")?.kind)

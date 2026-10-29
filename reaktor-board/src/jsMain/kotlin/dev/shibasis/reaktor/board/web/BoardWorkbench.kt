@@ -55,6 +55,7 @@ internal fun BoardTheme.variables(): dynamic = obj(
     "--board-card-line" to cardLine, "--board-active" to active, "--board-halo" to halo, "--board-shadow" to shadow, "--board-eyebrow" to eyebrow,
     "--board-badge-line" to badgeLine, "--board-badge-fill" to badgeFill, "--board-badge-text" to badgeText, "--board-title" to title,
     "--board-footer" to footer, "--board-owner" to owner, "--board-owner-text" to ownerText,
+    "--board-arrow" to arrow, "--board-relation" to relation,
     *chrome.entries.map { (name, value) -> name to value }.toTypedArray())
 
 private val BoardZoom: dynamic = { props: dynamic ->
@@ -345,11 +346,28 @@ val BoardWorkbench: dynamic = { props: dynamic ->
                 el("h3", null, if (board.items.isNotEmpty()) "No ${words.many} match your filters" else if (canCreate) "Start with one ${words.one}" else "No ${words.many} yet"),
                 el("p", null, slots.empty.ifBlank { words.start }),
                 if (canCreate) action("+ Create ${words.anOne}", { first?.let { create(null, null, it) } }, "appearance" to "primary") else null) else null,
+            if (slots.overview && mode == BoardView.Dag && shown.isNotEmpty() && creation == null && connecting == null) el("div",
+                obj("className" to "board-context", "data-board-ui" to true, "role" to "group", "aria-label" to "Canvas editing"),
+                if (active == null) el("span", null, "Drag to arrange · Double-click to add · Space-drag to pan") else el("span", obj("className" to "board-context-title", "title" to active.title), active.title),
+                if (active != null && canvas.editable(active)) action("Rename", { canvas.onRename(active) }, "title" to "Rename · F2") else null,
+                if (active != null && canCreate) action("+ Next", { first?.let { create(null, active.key, it) } }, "title" to "Add a dependent ${words.one}") else null) else null,
             el(BoardZoom, obj("canvas" to canvas, "reset" to hiddenBar)))
     }
     el("section", obj("ref" to host, "className" to "board-workbench", "style" to chrome, "aria-label" to model.label.ifBlank { "${words.oneTitle} workflow" }),
         el("div", obj("className" to "board-studio", "data-toolbar" to if (slots.toolbar == null) "inline" else "outside", "data-view" to mode.storage),
             if (slots.toolbar == null) bar else null,
+            if (slots.overview && mode == BoardView.Dag) el("div", obj("className" to "board-overview", "aria-label" to "Workflow summary"),
+                el("span", obj("className" to "board-overview-title"), "Dependency map"),
+                el("span", obj("className" to "board-overview-total"), "${shown.size} ${words.many}"),
+                el("div", obj("className" to "board-status-legend", "aria-label" to "Item statuses"),
+                    *board.lanes.mapNotNull { lane ->
+                        val count = shown.count { it.lane == lane.id }
+                        if (count == 0) null else el("span", obj("key" to lane.id, "className" to "board-status-count"),
+                            el("i", obj("style" to obj("backgroundColor" to model.theme.ink(lane.ink)), "aria-hidden" to true)),
+                            lane.title, el("strong", null, count))
+                    }.toTypedArray()),
+                el("span", obj("className" to "board-edge-key"), el("i", obj("aria-hidden" to true)), "Dependency"),
+                el("span", obj("className" to "board-edge-key is-relation"), el("i", obj("aria-hidden" to true)), "Relation")) else null,
             el("div", obj("className" to "board-canvas-panel"), projection),
             el("aside", obj("id" to "board-index", "className" to "board-index board-drawer", "aria-label" to "${words.manyTitle} in this view", "hidden" to !indexOpen),
                 el("div", obj("className" to "board-drawer-heading"), el("h2", null, "${words.manyTitle} · ${shown.size}"), action("Close ${words.one} list", { setIndexOpen(false) })),

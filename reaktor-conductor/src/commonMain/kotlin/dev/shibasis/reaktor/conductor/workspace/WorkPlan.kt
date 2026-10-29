@@ -11,6 +11,9 @@ import kotlinx.serialization.encoding.Encoder
 @Serializable
 enum class PlanStatus(val label: String) { Todo("To do"), Doing("In progress"), Done("Done"), Dropped("Won't do") }
 
+@Serializable
+enum class PlanPriority { Low, Normal, High, Urgent }
+
 @Serializable(with = PlanKindSerializer::class)
 enum class PlanKind(val label: String, val words: Set<String>) {
     Component("Component", setOf("area", "module", "service", "screen", "system", "subsystem", "layer", "part")),
@@ -51,6 +54,9 @@ data class PlanItem(
     val changedAt: Long = 0,
     val kind: PlanKind = PlanKind.Task,
     val relations: List<PlanRelation> = emptyList(),
+    val priority: PlanPriority = PlanPriority.Normal,
+    val reason: String = "",
+    val replacement: String? = null,
 )
 
 @Serializable
@@ -102,6 +108,11 @@ data class WorkPlan(
         val parents = items.mapNotNullTo(HashSet()) { it.parent }
         return items.filter { it.id !in parents }
     }
+
+    fun ready(): List<PlanItem> = leaves().filter { item ->
+        item.status == PlanStatus.Todo && item.after.all { state(it) in setOf(PlanStatus.Done, PlanStatus.Dropped) } &&
+            generateSequence(item.parent?.let(this::item)) { it.parent?.let(this::item) }.take(items.size).none { it.status == PlanStatus.Dropped }
+    }.sortedByDescending { it.priority.ordinal }
 
     fun components(): List<PlanItem> {
         val parents = items.mapNotNullTo(HashSet()) { it.parent }
@@ -158,6 +169,9 @@ sealed interface PlanOp {
         val refs: List<String> = emptyList(),
         val at: PlanPoint? = null,
         val kind: PlanKind = PlanKind.Task,
+        val priority: PlanPriority = PlanPriority.Normal,
+        val reason: String = "",
+        val replacement: String? = null,
     ) : PlanOp
 
     @Serializable @SerialName("update")
@@ -170,10 +184,13 @@ sealed interface PlanOp {
         val refs: List<String>? = null,
         val at: PlanPoint? = null,
         val kind: PlanKind? = null,
+        val priority: PlanPriority? = null,
+        val reason: String? = null,
+        val replacement: String? = null,
     ) : PlanOp
 
     @Serializable @SerialName("status")
-    data class Status(val item: String, val status: PlanStatus) : PlanOp
+    data class Status(val item: String, val status: PlanStatus, val reason: String? = null, val replacement: String? = null) : PlanOp
 
     @Serializable @SerialName("connect")
     data class Connect(val from: String, val to: String) : PlanOp
@@ -216,7 +233,7 @@ object PlanBrief {
     const val Ops = "ops such as {type: \"add\", key: \"store\", kind: \"Component\", title: \"Plan store\", refs: [\"module:reaktor-conductor\", \"symbol:WorkPlanStore\"]}, " +
         "{type: \"add\", key: \"relations\", title, detail, parent: \"store\", after: [\"model\"], refs: [\"file:path\", \"graph:Name\", \"op:plan.write\", \"flow:F-AGENT-58\"]}, " +
         "{type: \"relate\", from: \"api\", to: \"store\", label: \"writes\"}, {type: \"status\", item, status: \"Doing\" | \"Done\" | \"Dropped\"}, " +
-        "{type: \"update\", item, title, detail, kind, parent, refs} and {type: \"connect\", from, to}, where to waits on from"
+        "{type: \"update\", item, title, detail, kind, parent, refs, priority: \"Low\" | \"Normal\" | \"High\" | \"Urgent\"} and {type: \"connect\", from, to}, where to waits on from"
 
     const val Design = "Draw a detailed high-level design, not a to-do list: a Component item for each area the change touches, named after its module, graph, service or screen; " +
         "under each one (parent) the tasks that change it, a Check item for each test or flow that proves it and a Decision item for each choice the owner has to make; " +
@@ -225,7 +242,7 @@ object PlanBrief {
         "A real change has 3 to 8 components and 15 to 60 items."
 
     const val Upkeep = "Keep it current while you work: mark the item you are on Doing before you edit for it and Done or Dropped when it ends, since a component's status follows its parts; " +
-        "add the parts, checks and decisions you discover, and move refs when the work moves."
+        "add the parts, checks and decisions you discover, and move refs when the work moves. Choose the highest-priority ready item first: Urgent, High, Normal, then Low. Preserve planned history: close superseded items as Dropped with a nonblank reason and optional replacement item id; do not remove them."
 
     fun thread(thread: String): String =
         "Reaktor keeps a plan for this thread: the high-level design the owner watches and edits in Hangar as a DAG, a Kanban and a reaktor-graph joined to the code atlas, " +
@@ -240,6 +257,9 @@ object PlanBrief {
         seat.items.mapNotNull(plan::item).forEach { item ->
             appendLine("- ${item.id} “${item.title}”${item.detail.takeIf(String::isNotBlank)?.let { ": $it" }.orEmpty()}")
         }
+        val covered = seat.items.flatMapTo(HashSet()) { plan.under(it) }
+        val ready = plan.ready().filter { it.id in covered }
+        if (ready.isNotEmpty()) appendLine("Ready, highest priority first: " + ready.joinToString { "${it.id} (${it.priority})" })
         if (note.isNotBlank()) appendLine(note.trim())
         append("Work through your items in dependency order. Read the plan with the reaktor kernel tool {operation: \"plan.read\", arguments: {thread: \"${plan.thread}\"}} ")
         append("and change it with {operation: \"plan.write\", arguments: {thread: \"${plan.thread}\", seat: \"${seat.id}\", base: <revision you read>, ops: [...]}} using $Ops. ")
@@ -337,6 +357,14 @@ object PlanRules {
             list.firstOrNull { !Ref.matches(it) }?.let { error("$it is not a link: use file:, symbol:, module:, graph:, op:, flow:, task: or url:") }
         }
 
+        fun closing(status: PlanStatus, reason: String, replacement: String?, id: String): Pair<String, String?> {
+            val why = BoardText.bounded(reason, "A closing reason", 1_000)
+            require(status != PlanStatus.Dropped || why.isNotBlank()) { "Give a closing reason when dropping $id" }
+            val next = replacement?.trim()?.takeIf(String::isNotEmpty)
+            require(next == null || next != id && next in items) { "A replacement must be another item on this plan" }
+            return why to next
+        }
+
         fun touch(item: PlanItem) = item.copy(revision = revision, by = by, changedAt = now)
 
         patch.ops.forEachIndexed { index, op ->
@@ -354,7 +382,9 @@ object PlanRules {
                         val detail = BoardText.bounded(op.detail, "A detail", 4_000)
                         val links = refs(op.refs)
                         val id = key ?: generateSequence(next) { it + 1 }.map { "p$it" }.first { it !in items }.also { next = it.removePrefix("p").toInt() + 1 }
-                        items[id] = touch(PlanItem(id, title, detail, op.status, parent, after, links, at = op.at, kind = op.kind))
+                        val (reason, replacement) = closing(op.status, op.reason, op.replacement, id)
+                        items[id] = touch(PlanItem(id, title, detail, op.status, parent, after, links, at = op.at, kind = op.kind, priority = op.priority,
+                            reason = reason, replacement = replacement))
                         "Added $id “$title”"
                     }
                     is PlanOp.Update -> {
@@ -365,6 +395,8 @@ object PlanRules {
                             op.parent != null -> op.parent.also { require(it in items) { "Parent $it is not on the plan" }; require(!cycles(item.id, it)) { "${item.id} cannot sit under its own part $it" } }
                             else -> item.parent
                         }
+                        val (reason, replacement) = if (op.reason != null || op.replacement != null)
+                            closing(item.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id) else item.reason to item.replacement
                         val changed = item.copy(
                             title = op.title?.let(BoardText::title) ?: item.title,
                             detail = op.detail?.let { BoardText.bounded(it, "A detail", 4_000) } ?: item.detail,
@@ -372,6 +404,9 @@ object PlanRules {
                             refs = op.refs?.let(::refs) ?: item.refs,
                             at = op.at ?: item.at,
                             kind = op.kind ?: item.kind,
+                            priority = op.priority ?: item.priority,
+                            reason = reason,
+                            replacement = replacement,
                         )
                         if (changed == item) null else {
                             items[item.id] = if (changed.copy(at = item.at) == item) changed else touch(changed)
@@ -385,8 +420,10 @@ object PlanRules {
                     is PlanOp.Status -> {
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
-                        if (item.status == op.status) null else {
-                            items[item.id] = touch(item.copy(status = op.status))
+                        val (reason, replacement) = closing(op.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id)
+                        val changed = item.copy(status = op.status, reason = reason, replacement = replacement)
+                        if (changed == item) null else {
+                            items[item.id] = touch(changed)
                             "${item.id} → ${op.status.label}"
                         }
                     }
@@ -430,13 +467,14 @@ object PlanRules {
                         }
                     }
                     is PlanOp.Remove -> {
+                        require(by.kind == BoardActorKind.Person) { "Keep planned history: close the item as Dropped with a reason instead of removing it" }
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
                         items.remove(item.id)
                         items.values.toList().forEach { other ->
-                            if (other.parent == item.id || item.id in other.after || other.relations.any { it.to == item.id })
+                            if (other.parent == item.id || item.id in other.after || other.relations.any { it.to == item.id } || other.replacement == item.id)
                                 items[other.id] = other.copy(parent = if (other.parent == item.id) item.parent else other.parent, after = other.after - item.id,
-                                    relations = other.relations.filter { it.to != item.id })
+                                    relations = other.relations.filter { it.to != item.id }, replacement = other.replacement?.takeUnless { it == item.id })
                         }
                         "Removed ${item.id} “${item.title}”"
                     }
