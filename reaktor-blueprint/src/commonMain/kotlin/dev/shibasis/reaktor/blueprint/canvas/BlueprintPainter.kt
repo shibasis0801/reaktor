@@ -369,7 +369,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val w = card.width.toFloat(); val h = card.height.toFloat()
         drawRoundRect(if (look.image != null) colors.surface else colors.canvas.copy(alpha = .95f), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
         if (look.image == null) drawPath(headerPath(x, y, w), headerBrush(look.tone, x, w))
-        icon(look.icon).draw(this, x + 8f, y + 6f, 14f, look.tone)
+        if (look.choice == null) icon(look.icon).draw(this, x + 8f, y + 6f, 14f, look.tone)
         val marks = look.marks.map(::measureMark)
         val titleWidth = w - 36f - marks.sumOf { it.width.toDouble() + 6 }.toFloat()
         val title = measure(look.title, titleStyle, titleWidth)
@@ -411,15 +411,25 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
             drawRoundRect(accent.copy(alpha = .16f), Offset(x + 3f, middle - BlueprintEngine.RowHeight.toFloat() / 2 + 1f), Size(width - 6f, BlueprintEngine.RowHeight.toFloat() - 2f), CornerRadius(4f))
             drawCircle(accent.copy(alpha = .35f), 7f, Offset(if (provides) x + width - 10f else x + 10f, middle))
         }
-        val text = measure(pin.text, if (pin.chip) chipStyle else type.style(10.5.sp, pin.textColor, mono = true), width - 26f - if (pin.chip) 8f else 0f)
+        val gap = BlueprintEngine.RowHeight.toFloat() / 8
+        val marks = pin.marks.map { it to measureMark(it) }
+        val markWidth = marks.sumOf { it.second.width.toDouble() }.toFloat() + gap * marks.size
+        val text = measure(pin.text, if (pin.chip) chipStyle else type.style(10.5.sp, pin.textColor, mono = true), (width - 26f - markWidth - if (pin.chip) 8f else 0f).coerceAtLeast(BlueprintEngine.RowHeight.toFloat()))
         val box = text.size.width + if (pin.chip) 8f else 0f
         val dot = Offset(if (provides) x + width - 10f else x + 10f, middle)
-        val left = if (provides) x + width - 20f - box else x + 20f
-        if (pin.filled) drawCircle(pin.color, 4f, dot)
-        drawCircle(pin.color, 3.3f, dot, style = Stroke(1.4f))
+        val left = if (provides) x + width - 20f - box - markWidth else x + 20f
+        if (pin.choice == null) {
+            if (pin.filled) drawCircle(pin.color, 4f, dot)
+            drawCircle(pin.color, 3.3f, dot, style = Stroke(1.4f))
+        }
         val top = middle - text.size.height / 2f
         if (pin.chip) drawRoundRect(pin.color.copy(alpha = .2f), Offset(left, top), Size(box, text.size.height.toFloat()), CornerRadius(3f))
         paint(text, left + if (pin.chip) 4f else 0f, top)
+        var markLeft = left + box + gap
+        marks.forEach { (mark, measured) ->
+            drawMark(mark, measured, markLeft, middle - measured.height / 2)
+            markLeft += measured.width + gap
+        }
     }
 
     private fun DrawScope.drawFar(card: Card, key: FarKey, x: Float, y: Float) {

@@ -24,6 +24,7 @@ data class FgaStore(
     val modes: Map<String, AccessMode> = emptyMap(),
     val app: String? = null,
     val roles: List<RoleDefinition> = emptyList(),
+    val permissions: Map<String, String> = emptyMap(),
 ) {
     fun relationTuples(): List<RelationTuple> = tuples.mapNotNull(RelationTuple::of)
 
