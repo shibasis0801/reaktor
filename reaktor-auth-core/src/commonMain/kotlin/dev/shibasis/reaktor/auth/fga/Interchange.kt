@@ -23,15 +23,18 @@ object FgaInterchange {
             }
         }
 
+        val stored = tuples.map(FgaIds::encode).distinct()
+        val inStore = stored.toSet()
         line(0, "name: ${quoted(name)}")
         line(0, "model_file: ${quoted(modelFile)}")
-        keys(0, "tuples", tuples)
+        keys(0, "tuples", stored)
         if (tests.isEmpty()) return@buildString
         line(0, "tests:")
-        tests.forEach { test ->
+        tests.map(FgaIds::encode).forEach { test ->
+            val added = test.tuples.distinct() - inStore
             line(1, "- name: ${quoted(test.name)}")
             if (test.description.isNotBlank()) line(2, "description: ${quoted(test.description)}")
-            if (test.tuples.isNotEmpty()) keys(2, "tuples", test.tuples)
+            if (added.isNotEmpty()) keys(2, "tuples", added)
             if (test.check.isNotEmpty()) {
                 line(2, "check:")
                 test.check.forEach { check ->
@@ -60,4 +63,26 @@ object FgaInterchange {
     }
 
     fun extensions(store: FgaStore): String = FgaStore(store.name, modes = store.modes, app = store.app, roles = store.roles).encode()
+}
+
+object FgaIds {
+    fun encode(reference: String): String = reference.withId { it.replace("%", "%25").replace(":", "%3A") }
+
+    fun decode(reference: String): String = reference.withId { it.replace("%3A", ":").replace("%25", "%") }
+
+    fun encode(key: TupleKey): TupleKey = TupleKey(encode(key.user), key.relation, encode(key.target))
+
+    fun encode(test: FgaTest): FgaTest = test.copy(
+        tuples = test.tuples.map(::encode),
+        check = test.check.map { it.copy(user = encode(it.user), target = encode(it.target)) },
+        listObjects = test.listObjects.map { list -> list.copy(user = encode(list.user), assertions = list.assertions.mapValues { (_, objects) -> objects.map(::encode) }) },
+    )
+
+    private fun String.withId(transform: (String) -> String): String {
+        val type = substringBefore(':', "")
+        val rest = substringAfter(':', "")
+        if (type.isEmpty() || rest.isEmpty()) return this
+        val id = transform(rest.substringBefore('#'))
+        return if ('#' in rest) "$type:$id#${rest.substringAfter('#')}" else "$type:$id"
+    }
 }
