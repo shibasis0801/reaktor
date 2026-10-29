@@ -46,6 +46,7 @@ data class BoardFrame(
     val selected: String? = null,
     val source: String? = null,
     val draft: BoardDraft? = null,
+    val detail: Boolean = true,
 )
 
 sealed interface BoardShape { val id: String }
@@ -166,6 +167,14 @@ private fun frameShapes(item: BoardItem, rect: BoardRect, frame: BoardFrame, the
 private fun Board.card(item: BoardItem, point: BoardPoint, frame: BoardFrame, theme: BoardTheme): List<BoardShape> = buildList {
     val id = BoardIds.card(item.key)
     val active = frame.selected == item.key || frame.source == item.key || frame.draft?.editing == item.key
+    if (!frame.detail && !active) {
+        add(BoardBox(id, point.x, point.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight, theme.cardLine, theme.card))
+        item.mark?.let { mark -> add(BoardBox("$id:mark", point.x, point.y + 18, 4.0, 144.0, theme.ink(mark), theme.ink(mark), 0.0)) }
+        add(BoardLabel("$id:title", wrap(item.title, 27, 3), point.x + 22, point.y + 61, 18, theme.title))
+        if (item.badge.isNotBlank()) add(BoardLabel("$id:priority-text", wrap(item.badge, 28, 1), point.x + 22, point.y + 24, 12, theme.ink(item.mark ?: BoardInk.Muted)))
+        if (item.initials.isNotBlank()) add(BoardLabel("$id:dependencies", footer(item), point.x + 22, point.y + 151, 12, theme.footer))
+        return@buildList
+    }
     add(BoardBox("$id:shadow", point.x, point.y + 3, BoardGeometry.CardWidth, BoardGeometry.CardHeight, theme.shadow, theme.shadow, 0.0))
     if (active) add(BoardBox("$id:halo", point.x - 4, point.y - 4, 308.0, 188.0, theme.halo, theme.halo, 0.0))
     add(BoardBox(id, point.x, point.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight, if (active) theme.active else theme.cardLine, theme.card, if (active) 1.8 else 1.2))

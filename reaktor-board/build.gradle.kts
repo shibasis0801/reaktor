@@ -12,6 +12,7 @@ library(namespace = "dev.shibasis.reaktor.board", targets = Targets.Android + Ta
             api(Reaktor.Service)
             api(Versions.Kotlin.SerializationJson)
         }
+        jvm { implementation(Reaktor.Blueprint) }
         web { api(Reaktor.Surface) }
     }
     web(module = "reaktor-board-kt")

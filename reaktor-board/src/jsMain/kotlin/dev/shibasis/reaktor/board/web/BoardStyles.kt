@@ -60,7 +60,7 @@ object BoardStyles {
 .board-canvas[data-hover="card"] .excalidraw canvas { cursor:pointer!important; }
 .board-canvas.tool-connect .excalidraw canvas { cursor:crosshair!important; }
 .board-scene-layer { position:absolute; left:0; top:0; width:0; height:0; transform-origin:0 0; pointer-events:none; z-index:3; --board-unzoom:1; }
-.board-scene-layer[data-dragging]>.board-connect-handle { visibility:hidden; }
+.board-scene-layer[data-dragging]>.board-connect-handle,.board-scene-layer[data-overview]>.board-connect-handle { visibility:hidden; }
 .board-connect-handle { position:absolute; transform:translate(-50%,-50%) scale(var(--board-unzoom)); pointer-events:auto; display:grid; place-items:center; width:30px; height:30px; padding:0; border:1.5px solid var(--board-accent-line); border-radius:50%; background:var(--board-surface); color:var(--board-accent); font:500 21px/1 var(--board-font); cursor:crosshair; box-shadow:0 2px 7px #44387b12; touch-action:none; }
 .board-connect-handle:hover,.board-connect-handle:focus-visible { background:var(--board-accent); color:#fff; border-color:var(--board-accent); outline:4px solid var(--board-accent-soft); }
 .board-wire { position:absolute; left:0; top:0; color:var(--board-accent); pointer-events:none; }
