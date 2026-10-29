@@ -83,17 +83,21 @@ internal fun surfaceGraphCorridors(frames: List<Frame>, links: List<Link>, sourc
         }.sortedByDescending { it.count }
 }
 
-private class SurfaceGraphRoutes(links: List<Link>, sources: List<SurfaceGraphLink?>, fallback: Color, owners: Map<String, String?>) {
+private class SurfaceGraphRoutes(links: List<Link>, sources: List<SurfaceGraphLink?>, fallback: Color, owners: Map<String, String?>, holders: Map<String, String>) {
     val count = links.size
     val known = BooleanArray(count) { sources[it] != null }
     val from = Array(count) { sources[it]?.from }
     val to = Array(count) { sources[it]?.to }
     val fromOwner = Array(count) { from[it]?.let(owners::get) }
     val toOwner = Array(count) { to[it]?.let(owners::get) }
+    val fromHolder = Array(count) { from[it]?.let(holders::get) }
+    val toHolder = Array(count) { to[it]?.let(holders::get) }
     val family = IntArray(count) { when (links[it].family) { "chapter" -> CHAPTER; "prerequisite" -> PREREQUISITE; "optional" -> OPTIONAL; "related" -> RELATED; "draft" -> DRAFT; else -> OTHER } }
     val rgb = IntArray(count) { (sources[it]?.color ?: fallback).toArgb() }
     val cross = BooleanArray(count) { links[it].cross }
+    val proposed = BooleanArray(count) { sources[it]?.proposed == true }
     val active = BooleanArray(count)
+    val held = BooleanArray(count)
 
     companion object { const val CHAPTER = 0; const val PREREQUISITE = 1; const val OPTIONAL = 2; const val RELATED = 3; const val DRAFT = 4; const val OTHER = 5 }
 }
@@ -144,7 +148,7 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
     private var wanted: SurfaceGraphInput? = null
     private var slice = TimeSource.Monotonic.markNow()
     private var corridors: List<SurfaceGraphCorridor> = emptyList()
-    private var routes = SurfaceGraphRoutes(emptyList(), emptyList(), appearance.selected, emptyMap())
+    private var routes = SurfaceGraphRoutes(emptyList(), emptyList(), appearance.selected, emptyMap(), emptyMap())
     private var cards = emptyArray<SurfaceGraphCard>()
     private var cardFill = IntArray(0)
     private var cardEdge = IntArray(0)
@@ -192,10 +196,11 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         val nodes = input.nodes; val links = input.links; val layout = input.layout
         val byId = HashMap<String, SurfaceGraphNode>(nodes.size * 2)
         val owners = HashMap<String, String?>(); val colors = HashMap<String, Color?>(); val names = HashMap<String, String>()
-        val heads = HashMap<String, String>(); for (group in input.groups) group.owner?.let { heads[it] = group.title }
+        val heads = HashMap<String, String>(); val sheets = HashMap<String, String>(); val holders = HashMap<String, String>()
+        for (group in input.groups) group.owner?.let { heads[it] = group.title; sheets[group.key] = it }
         for (k in nodes.indices) {
             val node = nodes[k]; val name = heads[node.owner] ?: node.title
-            byId[node.id] = node; names[node.id] = name
+            byId[node.id] = node; names[node.id] = name; sheets[node.scope]?.let { holders[node.id] = it }
             owners[node.id] = node.owner; owners[node.owner] = node.owner; colors[node.id] = node.color; colors[node.owner] = node.color
             for (row in node.rows) { owners[row.id] = node.owner; colors[row.id] = node.color; names[row.id] = name; for (alias in row.aliases) { owners[alias] = node.owner; colors[alias] = node.color; names[alias] = name } }
             if (k % 32 == 31 && !pause(input)) return null
@@ -242,7 +247,7 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
             if (!pause(input)) return null
         }
         if (!pause(input)) return null
-        val routes = SurfaceGraphRoutes(layout.links, sources, appearance.selected, owners)
+        val routes = SurfaceGraphRoutes(layout.links, sources, appearance.selected, owners, holders)
         val meanings = HashMap<String, String>(); layout.links.forEachIndexed { i, link -> sources[i]?.label?.takeIf { it.isNotBlank() }?.let { meanings[link.id] = if (link.members.size > 1) "$it +${link.members.size - 1}" else it } }
         return SurfaceGraphPrepared(SurfaceGraphModel(nodes, links, input.groups, layout, byId, rects), corridors, routes, ready, cardBox, cardFill, cardEdge, rowCards, banners, looks, meanings, names)
     }
@@ -358,8 +363,11 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         if (!routes.known[i]) return false
         if (activeFor !== selection) {
             activeFor = selection
-            for (k in 0 until routes.count) routes.active[k] = routes.from[k] in selection.keys || routes.to[k] in selection.keys ||
-                (selection.inGraph && (routes.fromOwner[k] in selection.owners || routes.toOwner[k] in selection.owners))
+            for (k in 0 until routes.count) {
+                routes.active[k] = routes.from[k] in selection.keys || routes.to[k] in selection.keys ||
+                    (selection.inGraph && (routes.fromOwner[k] in selection.owners || routes.toOwner[k] in selection.owners))
+                routes.held[k] = selection.id != null && (routes.fromHolder[k] == selection.id || routes.toHolder[k] == selection.id)
+            }
         }
         val overview = zoom < .18; val distant = zoom < .42
         val on = routes.active[i]; val kind = routes.family[i]; val chapter = kind == SurfaceGraphRoutes.CHAPTER
@@ -367,7 +375,7 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         if (chapter && !on && (distant || routes.cross[i])) return false
         pen.round = false; pen.straight = overview && !on; pen.lifted = on && selection.id != null && !selection.inGraph; pen.lead = on && selection.id != null
         pen.rgb = routes.rgb[i]
-        pen.alpha = if (on) 1f else if (selection.id != null) .05f else if (chapter) .24f else if (routes.cross[i]) .3f else if (overview) .45f else .7f
+        pen.alpha = if (on) 1f else if (selection.id != null && !routes.held[i]) .05f else if (chapter) .24f else if (routes.cross[i]) .3f else if (overview) .45f else .7f
         pen.width = if (on) 2.6f else if (kind == SurfaceGraphRoutes.PREREQUISITE) 1.8f else 1.4f
         if (on) { pen.glow = routes.rgb[i]; pen.glowWidth = 2.6f * 2.8f - 2.6f }
         when (kind) {
@@ -375,6 +383,7 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
             SurfaceGraphRoutes.RELATED -> { pen.on = 2f; pen.off = 4f }
             SurfaceGraphRoutes.DRAFT -> { pen.on = 5f; pen.off = 4f }
         }
+        if (routes.proposed[i]) { pen.on = 5f; pen.off = 4f }
         if (kind == SurfaceGraphRoutes.PREREQUISITE && (on || !overview)) { pen.head = 8f; pen.spread = .5f }
         return true
     }
