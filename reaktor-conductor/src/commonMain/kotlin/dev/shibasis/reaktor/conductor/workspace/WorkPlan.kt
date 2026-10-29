@@ -367,11 +367,19 @@ object PlanRules {
 
         fun touch(item: PlanItem) = item.copy(revision = revision, by = by, changedAt = now)
 
+        fun open(status: PlanStatus) = status == PlanStatus.Todo || status == PlanStatus.Doing
+
+        fun capacity(status: PlanStatus, previous: PlanStatus?) {
+            require(!open(status) || previous?.let(::open) == true || items.values.count { open(it.status) } < MaxItems) {
+                "A plan has at most $MaxItems open items; finish or drop open work before adding or reopening it"
+            }
+        }
+
         patch.ops.forEachIndexed { index, op ->
             val outcome = runCatching {
                 when (op) {
                     is PlanOp.Add -> {
-                        require(items.size < MaxItems) { "A plan has at most $MaxItems items; group finished work under one item or start a new thread" }
+                        capacity(op.status, null)
                         val key = op.key?.also { require(Key.matches(it)) { "A key is 1 to 40 lowercase letters, digits or dashes, starting with a letter" } }
                         require(key == null || key !in items) { "$key exists; send update or status for it" }
                         val parent = op.parent?.also { require(it in items) { "Parent $it is not on the plan" } }
@@ -420,6 +428,7 @@ object PlanRules {
                     is PlanOp.Status -> {
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
+                        capacity(op.status, item.status)
                         val (reason, replacement) = closing(op.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id)
                         val changed = item.copy(status = op.status, reason = reason, replacement = replacement)
                         if (changed == item) null else {
