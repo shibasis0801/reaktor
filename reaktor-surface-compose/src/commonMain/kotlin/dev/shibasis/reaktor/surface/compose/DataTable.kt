@@ -344,7 +344,12 @@ private class ColumnGeometry(val spans: IntArray, pins: List<Edge?>, val viewpor
 
 @Composable
 private fun ColumnBands(geometry: () -> ColumnGeometry, scroll: ScrollState, modifier: Modifier, content: @Composable (Int) -> Unit) {
-    val bands = geometry().bands.indices.filter { geometry().bands[it].isNotEmpty() }
+    val shape = geometry()
+    val bands = shape.bands.indices.filter { shape.bands[it].isNotEmpty() }
+    if (bands.size == 1 && bands[0] == 0 && shape.spans.sum() <= shape.viewport) {
+        Box(modifier.clipToBounds(), propagateMinConstraints = true) { content(0) }
+        return
+    }
     Layout(content = { bands.forEach { band -> Box(Modifier.clipToBounds(), propagateMinConstraints = true) { content(band) } } }, modifier = modifier) { measurables, constraints ->
         val shape = geometry()
         val placeables = measurables.mapIndexed { index, measurable ->
