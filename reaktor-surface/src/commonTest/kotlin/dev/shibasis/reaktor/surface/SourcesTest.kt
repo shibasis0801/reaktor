@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.surface
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -29,6 +30,35 @@ class SourcesTest {
         assertEquals(listOf(true, false, true, false), (0 until source.size).map(source::expanded))
         assertEquals(0, source.indexOf("a"))
         assertEquals(listOf(setOf("a", "child")), reports)
+    }
+
+    @Test
+    fun filteringKeepsMatchingPathsAndDoesNotChangeRememberedExpansion() {
+        val open = setOf("b")
+        val source = treeSource(tree, { it.key }, { it.children }, open, filter = { it.key == "a1x" || it.key == "b1" })
+        assertEquals(listOf("a", "a1", "a1x", "b", "b1"), (0 until source.size).map(source::key))
+        assertEquals(listOf(-1, 0, 1, -1, 3), (0 until source.size).map(source::parent))
+        assertTrue(source.expanded(0))
+        assertTrue(source.expanded(1))
+        val restored = treeSource(tree, { it.key }, { it.children }, open)
+        assertEquals(listOf("a", "b", "b1", "c"), (0 until restored.size).map(restored::key))
+        val empty = treeSource(tree, { it.key }, { it.children }, open, filter = { false })
+        assertEquals(0, empty.size)
+    }
+
+    @Test
+    fun unloadedFoldersHaveDisclosureWithoutReadingTheirChildren() {
+        var reads = 0
+        val source = treeSource(listOf("folder", "file"), { it }, { reads++; emptyList() }, emptySet(),
+            expandable = { it == "folder" })
+        assertEquals(0, reads)
+        assertTrue(source.expandable(0))
+        assertFalse(source.expandable(1))
+        assertEquals(0, reads)
+        val opened = treeSource(listOf("folder"), { it }, { reads++; listOf("file") }, setOf("folder"),
+            expandable = { it == "folder" })
+        assertEquals(1, reads)
+        assertEquals(listOf("folder", "file"), (0 until opened.size).map(opened::key))
     }
 
     private class Node(val key: String, val children: List<Node> = emptyList())

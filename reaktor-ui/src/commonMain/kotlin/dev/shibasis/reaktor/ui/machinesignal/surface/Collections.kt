@@ -46,6 +46,24 @@ import dev.shibasis.reaktor.surface.compose.TableHeaderAppearance
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 
+@Composable
+fun TreeItem(
+    label: String,
+    modifier: Modifier = Modifier,
+    icon: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier.fillMaxWidth().padding(vertical = MachineSignal.Space.s1),
+        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        icon?.invoke()
+        dev.shibasis.reaktor.surface.compose.Text(label, Modifier.weight(1f))
+        trailing?.invoke()
+    }
+}
+
 val SignalItemRow: RowAppearance = object : RowAppearance {
     @Composable
     override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) {

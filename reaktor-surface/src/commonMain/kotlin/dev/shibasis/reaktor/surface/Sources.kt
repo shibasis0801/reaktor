@@ -36,19 +36,31 @@ fun <T> treeSource(
     selectable: (T) -> Boolean = { true },
     diagnostics: SurfaceDiagnostics = SurfaceDiagnostics.None,
     activateOnPress: (T) -> Boolean = { false },
+    filter: ((T) -> Boolean)? = null,
+    expandable: (T) -> Boolean = { children(it).isNotEmpty() },
 ): TreeSource<T> {
     val items = mutableListOf<T>()
     val depths = mutableListOf<Int>()
     val parents = mutableListOf<Int>()
-    fun visit(item: T, depth: Int, parent: Int) {
+    val opened = expanded.toMutableSet()
+    fun visit(item: T, depth: Int, parent: Int): Boolean {
         val index = items.size
         items += item
         depths += depth
         parents += parent
-        if (key(item) in expanded) children(item).forEach { visit(it, depth + 1, index) }
+        if (filter != null || key(item) in expanded) children(item).forEach { visit(it, depth + 1, index) }
+        val descendants = items.size > index + 1
+        if (filter != null && !filter(item) && !descendants) {
+            items.removeAt(index)
+            depths.removeAt(index)
+            parents.removeAt(index)
+            return false
+        }
+        if (filter != null && descendants) opened += key(item)
+        return true
     }
     roots.forEach { visit(it, 0, -1) }
-    return TreeRows(listSource(items, key, text, enabled, selectable, diagnostics = diagnostics, activateOnPress = activateOnPress), depths, parents, children, expanded)
+    return TreeRows(listSource(items, key, text, enabled, selectable, diagnostics = diagnostics, activateOnPress = activateOnPress), depths, parents, expandable, opened)
 }
 
 private class ListSource<T>(
@@ -98,11 +110,11 @@ private class TreeRows<T>(
     rows: ItemSource<T>,
     private val depths: List<Int>,
     private val parents: List<Int>,
-    private val children: (T) -> List<T>,
+    private val expandable: (T) -> Boolean,
     private val open: Set<String>,
 ) : TreeSource<T>, ItemSource<T> by rows {
     override fun depth(index: Int): Int = depths[index]
     override fun parent(index: Int): Int = parents[index]
-    override fun expandable(index: Int): Boolean = children(get(index)).isNotEmpty()
+    override fun expandable(index: Int): Boolean = expandable(get(index))
     override fun expanded(index: Int): Boolean = originalKey(index) in open
 }
