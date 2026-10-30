@@ -71,7 +71,11 @@ data class PlanSeat(
     val run: String? = null,
     val session: String? = null,
     val agent: String? = null,
+    val retired: PlanSeatRetirement? = null,
 )
+
+@Serializable
+data class PlanSeatRetirement(val by: BoardActor, val at: Long, val reason: String)
 
 @Serializable
 data class PlanChange(val revision: Long, val at: Long, val by: BoardActor, val summary: List<String>)
@@ -92,7 +96,7 @@ data class WorkPlan(
 ) {
     fun item(id: String): PlanItem? = items.firstOrNull { it.id == id }
 
-    fun seat(id: String): PlanSeat? = seats.firstOrNull { it.id == id }
+    fun seat(id: String): PlanSeat? = seats.firstOrNull { it.id == id && it.retired == null }
 
     fun under(id: String): Set<String> {
         val children = items.groupBy { it.parent }
@@ -137,7 +141,7 @@ data class WorkPlan(
     fun summary(): PlanSummary = leaves().let { work ->
         PlanSummary(thread, title, revision, items.size,
             PlanStatus.entries.associateWith { status -> work.count { it.status == status } }.filterValues { it > 0 },
-            seats.size, updatedAt, changes.lastOrNull()?.by, components().size)
+            seats.count { it.retired == null }, updatedAt, changes.lastOrNull()?.by, components().size)
     }
 }
 
@@ -203,6 +207,9 @@ sealed interface PlanOp {
 
     @Serializable @SerialName("unrelate")
     data class Unrelate(val from: String, val to: String) : PlanOp
+
+    @Serializable @SerialName("retire-seat")
+    data class RetireSeat(val seat: String, val reason: String) : PlanOp
 
     @Serializable @SerialName("remove")
     data class Remove(val item: String) : PlanOp
@@ -284,6 +291,7 @@ fun BoardActor.same(other: BoardActor?): Boolean = other != null && kind == othe
 }
 
 fun PlanSeat.heldBy(actor: BoardActor): Boolean = when {
+    retired != null -> false
     agent != null && actor.agent != null -> agent == actor.agent
     else -> session != null && session == actor.session
 }
@@ -327,7 +335,7 @@ object PlanRules {
             var current = items[id]
             val seen = HashSet<String>()
             while (current != null && seen.add(current.id)) {
-                current.seat?.let { seat -> return plan.seat(seat) }
+                current.seat?.let { id -> seats.firstOrNull { it.id == id && it.retired == null }?.let { return it } }
                 current = current.parent?.let(items::get)
             }
             return null
@@ -495,6 +503,22 @@ object PlanRules {
                             "${from.id} no longer relates to ${op.to}"
                         }
                     }
+                    is PlanOp.RetireSeat -> {
+                        require(by.kind == BoardActorKind.Person) { "Only a person retires an attached seat" }
+                        require(patch.base == plan.revision) { "Read the current plan and pass its revision as base before retiring a seat" }
+                        val seat = seats.firstOrNull { it.id == op.seat } ?: error("${op.seat} is not a seat on this plan")
+                        val reason = BoardText.bounded(op.reason, "A retirement reason", 1_000).trim()
+                        require(reason.isNotEmpty()) { "Give a reason for retiring ${seat.id}" }
+                        if (seat.retired != null) null else {
+                            require(seat.run == null && seat.session == null && seat.agent == null) { "${seat.id} is bound to a run or session; only unused seats can be retired" }
+                            require(items.values.none { it.status == PlanStatus.Doing && ownedBy(it.id)?.id == seat.id }) { "${seat.id} still owns work in progress; release it first" }
+                            val bound = items.values.filter { it.seat == seat.id }
+                            bound.forEach { fresh(it.id)?.let(::error) }
+                            seats = seats.map { if (it.id == seat.id) it.copy(retired = PlanSeatRetirement(by, now, reason)) else it }
+                            bound.forEach { items[it.id] = touch(it.copy(seat = null)) }
+                            "Retired unused seat ${seat.id} (${seat.profile}): $reason"
+                        }
+                    }
                     is PlanOp.Remove -> {
                         require(by.kind == BoardActorKind.Person) { "Keep planned history: close the item as Dropped with a reason instead of removing it" }
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
@@ -529,6 +553,7 @@ object PlanRules {
 
     fun attach(plan: WorkPlan, seat: PlanSeat, now: Long): WorkPlan {
         require(seat.by.kind == BoardActorKind.Person) { "Only a person attaches an agent to part of a plan" }
+        require(plan.seats.none { it.id == seat.id } && seat.retired == null) { "Attach a new, active seat id" }
         require(seat.items.isNotEmpty()) { "Choose the items the agent takes" }
         seat.items.forEach { id -> require(plan.item(id) != null) { "$id is not on the plan" } }
         val covered = seat.items.flatMapTo(HashSet()) { plan.under(it) }
@@ -550,5 +575,6 @@ object PlanRules {
         is PlanOp.Relate -> from
         is PlanOp.Unrelate -> from
         is PlanOp.Remove -> item
+        is PlanOp.RetireSeat -> seat
     }
 }

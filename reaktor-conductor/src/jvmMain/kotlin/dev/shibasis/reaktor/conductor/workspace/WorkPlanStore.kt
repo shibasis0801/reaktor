@@ -136,6 +136,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
 
     @Synchronized fun bind(thread: String, seat: String, run: String): WorkPlan {
         val plan = plans[thread] ?: error("$thread has no plan")
+        requireNotNull(plan.seat(seat)) { "$seat is not an active seat on this plan" }
         return plan.copy(seats = plan.seats.map { if (it.id == seat) it.copy(run = run) else it }).also { save(it, plan, null) }
     }
 
