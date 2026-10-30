@@ -99,6 +99,7 @@ data class AgentSubmission(
     val task: AgentTaskTarget? = null,
     val scope: List<String> = emptyList(),
     val message: AgentMessageTarget? = null,
+    val planItem: String? = null,
 )
 
 @Serializable

@@ -51,10 +51,11 @@ object PlanSchedule {
         }.sortedWith(compareByDescending<PlanCandidate> { it.priority }.thenByDescending { it.unblocks }.thenBy { it.age })
     }
 
-    fun ready(plan: WorkPlan): List<PlanCandidate> = ranked(plan).filter { candidate ->
-        val item = candidate.item
+    fun ready(plan: WorkPlan): List<PlanCandidate> = ranked(plan).filter { it.item.status == PlanStatus.Todo && unblocked(plan, it.item) }
+
+    fun unblocked(plan: WorkPlan, item: PlanItem): Boolean {
         val parents = generateSequence(item.parent?.let(plan::item)) { it.parent?.let(plan::item) }.take(plan.items.size)
-        item.status == PlanStatus.Todo && (item.after + parents.flatMap { it.after }).all { plan.state(it) == PlanStatus.Done }
+        return (item.after + parents.flatMap { it.after }).all { plan.state(it) == PlanStatus.Done }
     }
 
     fun conflicts(left: List<String>, right: List<String>): Boolean {

@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.conductor.store.FileThreadStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -338,6 +339,7 @@ class AgentWorkspace(
             else if (background) item else item.copy(state = "blocked", error = "Owner restarted; queued work requires resubmission")
         } else item }
         persistQueue()
+        scope.launch { plans.changes.collect { dispatchQueued() } }
     }
 
     fun recoverInBackground() { if (background) scope.launch { synchronized(lock) { recoverPending(); dispatchQueued() } } }
@@ -351,6 +353,7 @@ class AgentWorkspace(
         val after = get(afterRunId)
         require((after.status == AgentRunStatus.Running || request.message != null && after.status == AgentRunStatus.Completed && after.recovery == AgentRecovery.None) && request.threadId == after.threadId)
         require(request.provider in runtimes && request.prompt.isNotBlank() && request.prompt.length <= 100000)
+        request.planItem?.let { plans.candidate(it) }
         require(queued.count { it.state == "waiting" } < 8) { "Queue is full" }
         val predecessor = queued.lastOrNull { it.submission.threadId == request.threadId && it.state == "waiting" }?.id ?: afterRunId
         AgentQueuedTurn(id, predecessor, request).also { queued = queued.takeLast(99) + it; persistQueue() }
@@ -364,7 +367,10 @@ class AgentWorkspace(
     private fun persistQueue() = atomicWrite(queueFile, ConductorJson.encodeToString(ListSerializer(AgentQueuedTurn.serializer()), queued))
     private fun dispatchQueued() = synchronized(lock) {
         if (closed || draining || active.isNotEmpty()) return@synchronized
-        for (item in queued.filter { it.state == "waiting" }) {
+        val waiting = queued.filter { it.state == "waiting" }.sortedByDescending {
+            runCatching { it.submission.planItem?.let(plans::candidate)?.priority ?: PlanPriority.Normal }.getOrDefault(PlanPriority.Normal)
+        }
+        for (item in waiting) {
             val parent = records[item.afterRunId] ?: load(item.afterRunId)
             if (parent == null) {
                 if (queued.any { it.id == item.afterRunId && it.state in listOf("cancelled", "blocked") }) {
@@ -375,9 +381,13 @@ class AgentWorkspace(
             }
             if (parent.status in setOf(AgentRunStatus.Running, AgentRunStatus.Limited) || parent.recovery != AgentRecovery.None) continue
             val updated = if (parent.status != AgentRunStatus.Completed) item.copy(state = "blocked", error = "Previous turn did not complete")
-            else runCatching { submit(item.submission) }.fold(
-                { item.copy(state = "dispatched", runId = it.id) },
+            else runCatching {
+                if (item.submission.planItem?.let { plans.candidate(it, ready = true) == null } == true) null
+                else submit(item.submission)
+            }.fold(
+                { run -> run?.let { item.copy(state = "dispatched", runId = it.id) } },
                 { item.copy(state = "blocked", error = it.message) })
+            if (updated == null) continue
             queued = queued.map { if (it.id == item.id) updated else it }
             persistQueue()
             if (active.isNotEmpty()) break
@@ -727,6 +737,10 @@ class AgentWorkspace(
         (records[id] ?: load(id))?.let {
             require(it.requestFingerprint == fingerprint) { "Request id already belongs to a different submission" }
             return@synchronized recover(it)
+        }
+        request.planItem?.let {
+            val candidate = requireNotNull(plans.candidate(it, ready = true)) { "Plan dependencies are not complete" }
+            require(candidate.item.kind != PlanKind.Decision) { "A person resolves a plan decision" }
         }
         validateTaskTarget(request)
         request.parentRunId?.let { parentId ->

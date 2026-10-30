@@ -11,7 +11,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     private val identity: (BoardActor) -> BoardActor = { it }, private val clock: () -> Long = System::currentTimeMillis,
     private val activity: (String) -> Long? = { null }) {
     private val inbox = inbox?.let(::ThreadInbox)
-    private val plans = HashMap<String, WorkPlan>()
+    private val plans = java.util.concurrent.ConcurrentHashMap<String, WorkPlan>()
     private val changed = MutableStateFlow(0L)
     val changes: StateFlow<Long> = changed.asStateFlow()
 
@@ -25,6 +25,16 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     @Synchronized fun list(): List<PlanSummary> { expire(); return plans.values.sortedByDescending { it.updatedAt }.map(WorkPlan::summary) }
 
     @Synchronized fun plan(thread: String): WorkPlan? { expire(); return plans[thread]?.let(::identified) }
+
+    fun candidate(reference: String, ready: Boolean = false): PlanCandidate? {
+        require(reference.startsWith("plan:") && reference.count { it == '#' } == 1) { "Use plan:<thread>#<item> for planItem" }
+        val thread = reference.removePrefix("plan:").substringBefore('#')
+        require(BoardRefs.pattern.matches(thread)) { "planItem needs a canonical thread" }
+        val plan = plans[thread] ?: error("$thread has no plan")
+        val item = PlanSchedule.ranked(plan).firstOrNull { it.item.id == reference.substringAfter('#') }
+        requireNotNull(item) { "$reference is not an open plan leaf" }
+        return item.takeIf { !ready || PlanSchedule.unblocked(plan, it.item) }
+    }
 
     private fun identified(plan: WorkPlan): WorkPlan {
         val actors = HashMap<BoardActor, BoardActor>()
