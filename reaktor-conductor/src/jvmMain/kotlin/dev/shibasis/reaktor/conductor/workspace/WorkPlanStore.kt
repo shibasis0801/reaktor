@@ -121,12 +121,17 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         }
     }
 
-    @Synchronized fun attach(thread: String, seat: (WorkPlan) -> PlanSeat): Pair<WorkPlan, PlanSeat> {
+    @Synchronized fun attach(thread: String, seat: (WorkPlan) -> PlanSeat): Pair<WorkPlan, PlanSeat> = attachAdmitted(thread, seat) { _, _ -> null }
+
+    @Synchronized internal fun attachAdmitted(thread: String, seat: (WorkPlan) -> PlanSeat,
+        admit: (WorkPlan, PlanSeat) -> String?): Pair<WorkPlan, PlanSeat> {
         val plan = plans[thread] ?: error("$thread has no plan to attach an agent to")
         val made = seat(plan)
-        val next = PlanRules.attach(plan, made, clock())
-        save(next, plan, made.by)
-        return next to made
+        val proposed = PlanRules.attach(plan, made, clock())
+        val admitted = made.copy(run = admit(proposed, made) ?: made.run)
+        val next = proposed.copy(seats = proposed.seats.map { if (it.id == admitted.id) admitted else it })
+        save(next, plan, admitted.by)
+        return next to admitted
     }
 
     @Synchronized fun bind(thread: String, seat: String, run: String): WorkPlan {

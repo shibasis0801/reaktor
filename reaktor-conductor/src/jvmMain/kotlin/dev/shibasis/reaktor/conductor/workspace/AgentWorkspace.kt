@@ -129,16 +129,23 @@ class AgentWorkspace(
         return plans.next(thread, actor, seat, take) { id -> configured?.takeIf { it.id == id } ?: profiles.read(id) }
     }
 
-    fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached {
+    fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached = synchronized(lock) {
         val chosen = profiles.read(profile)
         val resolved = resolveSeat(TaskSeat(profile = chosen.id))
         val provider = requireNotNull(resolved.seat.agent) { "Profile ${chosen.id} names no runtime" }
-        val (plan, seat) = plans.attach(thread) { plan -> PlanSeat("s${plan.seats.size + 1}", chosen.id, items.distinct(), by, System.currentTimeMillis()) }
-        val run = submit(AgentSubmission(requestId = "plan:${digest(thread).take(16)}:${seat.id}", provider = provider,
-            prompt = PlanBrief.seat(plan, seat, chosen.name, note), model = resolved.seat.model,
-            allowWrites = resolved.seat.access == TaskAccess.Write, effort = resolved.seat.effort?.let(::NativeEffort),
-            resolvedSeat = resolved, timeoutMillis = resolved.seat.budget?.timeoutMillis ?: (60 * 60 * 1000L)))
-        return PlanAttached(plans.bind(thread, seat.id, run.id), seat.copy(run = run.id), run)
+        lateinit var run: AgentRunRecord
+        val (plan, seat) = plans.attachAdmitted(thread,
+            { plan -> PlanSeat("s${plan.seats.size + 1}", chosen.id, items.distinct(), by, System.currentTimeMillis()) }) { proposed, made ->
+            val covered = made.items.flatMapTo(HashSet(), proposed::under)
+            val scope = proposed.items.filter { it.id in covered }.flatMap { it.refs }
+                .filter { it.startsWith("file:") }.map { it.removePrefix("file:") }.distinct()
+            run = submit(AgentSubmission(requestId = "plan:${digest(thread).take(16)}:${made.id}", provider = provider,
+                prompt = PlanBrief.seat(proposed, made, chosen.name, note), model = resolved.seat.model, scope = scope,
+                allowWrites = resolved.seat.access == TaskAccess.Write, effort = resolved.seat.effort?.let(::NativeEffort),
+                resolvedSeat = resolved, timeoutMillis = resolved.seat.budget?.timeoutMillis ?: (60 * 60 * 1000L)))
+            run.id
+        }
+        PlanAttached(plan, seat, run)
     }
     internal fun summarize(task: BoardTask): TaskWorkSummary? {
         val plan = task.graph ?: return null
