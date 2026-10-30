@@ -23,7 +23,8 @@ object CMakeBuildKernel {
                 }
             }.sortedWith(compareBy<java.nio.file.Path> { if (root.relativize(it).startsWith("src/commonMain/cpp")) 0 else 1 }
                 .thenBy { it.toString() }).map { it.toString() }.distinct().toList()
-        return declaration.copy(compilationSources = sources, libraryKind = if (android) "SHARED" else "STATIC",
+        require(declaration.libraryKind in setOf("STATIC", "SHARED")) { "Unsupported native library linkage" }
+        return declaration.copy(compilationSources = sources,
             projects = declaration.projects.filter { !it.hostOnly || declaration.platform == "host" },
             executables = declaration.executables.filter { !it.hostOnly || declaration.platform == "host" },
             privateIncludeDirectories = listOf("src/androidMain/cpp", "src/iosMain/cpp").map { directory.resolve(it).absolutePath })

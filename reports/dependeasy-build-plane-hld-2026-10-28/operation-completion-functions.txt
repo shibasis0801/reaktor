@@ -1,0 +1,259 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:22b7395df3c1
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt
+  1002:17 function OperationalControlPlane.start: private fun start( task: OperationalTask, plan: PendingOperationalPlan, approvedBy: String? = null, independentApprover: String? = null, select: Boolean = true, arguments: List<String> = emptyList(),  · kotlin:ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane#start(ai.bestbuds.reaktor.workbench.operations.OperationalTask,ai.bestbuds.reaktor.workbench.operations.PendingOperationalPlan,kotlin.String,kotlin.String,kotlin.Boolean,kotlin.collections.List,ai.bestbuds.reaktor.workbench.operations.PreparedOperation,kotlin.Function0,kotlin.collections.List,dev.shibasis.reaktor.tooling.RunId)@:kernel:main:main@bestbuds
+note: 19 more files may declare start; narrow with kind, path or Type.member
+next: atlas_read {"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt:1001:16@abea47f7"}
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt:1001:16@abea47f7"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[0] {"name":"OperationalControlPlane.start","path":"modules/kernel"}
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt · private fun start( task: OperationalTask, plan: PendingOperationalPlan, approvedBy: String? = null, independentApprover: String? = null, select: Boolean = true, arguments: List<String> = emptyList(),  · 10088 of 10088 characters · rev:d47eeb083184
+1002  private fun start(
+1003          task: OperationalTask,
+1004          plan: PendingOperationalPlan,
+1005          approvedBy: String? = null,
+1006          independentApprover: String? = null,
+1007          select: Boolean = true,
+1008          arguments: List<String> = emptyList(),
+1009          prepared: PreparedOperation? = null,
+1010          capture: (() -> AgentCandidate?)? = null,
+1011          verifiedChecks: List<String> = emptyList(),
+1012          parentRunId: dev.shibasis.reaktor.tooling.RunId? = null,
+1013      ): String {
+1014          val toolingRequest = prepared ?: runCatching {
+1015              prepareExecutionRequest(
+1016                  task = task,
+1017                  environment = plan.environment,
+1018                  approvedBy = approvedBy,
+1019                  approvedPlanFingerprint = plan.toolingFingerprint,
+1020                  arguments = arguments,
+1021                  reviewedPlan = plan.gradlePlan,
+1022              )
+1023          }.getOrElse { error ->
+1024              mutate { it.copy(pendingPlans = it.pendingPlans - plan.fingerprint, revision = it.revision + 1) }
+1025              return addTerminalRun(
+1026                  task,
+1027                  plan.environment,
+1028                  OperationalRunStatus.Blocked,
+1029                  error.message ?: "Reaktor framework could not prepare this task",
+1030                  select = select,
+1031              )
+1032          }
+1033          val actualDisplayCommand = toolingRequest.plan.displayCommand
+1034          val actualWorkingDirectory = toolingRequest.plan.workingDirectory
+1035          val actualFingerprint = approvalFingerprint(
+1036              task = task,
+1037              environment = plan.environment,
+1038              targetId = plan.targetId,
+1039              displayCommand = actualDisplayCommand,
+1040              workingDirectory = actualWorkingDirectory,
+1041              toolingFingerprint = toolingRequest.plan.fingerprint,
+1042          )
+1043          if (actualFingerprint != plan.fingerprint) {
+1044              mutate { it.copy(pendingPlans = it.pendingPlans - plan.fingerprint, revision = it.revision + 1) }
+1045              return addTerminalRun(
+1046                  task,
+1047                  plan.environment,
+1048                  OperationalRunStatus.Blocked,
+1049                  "The executable plan changed after review; prepare and approve it again",
+1050                  select = select,
+1051              )
+1052          }
+1053          val runId = "run-${clock()}-${sequence.incrementAndGet()}"
+1054          val started = clock()
+1055          val retainEvidence = !task.sensitiveOutput && task.effect.rank <= SafetyClass.LocalArtifactWrite.rank &&
+1056              task.domain in setOf(OperationalDomain.Develop, OperationalDomain.Testing)
+1057          val candidate = if (retainEvidence) { if (capture == null) evidence.candidate() else capture() } else null
+1058          val evidenceLog = if (retainEvidence) evidence.begin() else null
+1059          val run = OperationalRun(
+1060              id = runId,
+1061              taskId = task.id,
+1062              taskTitle = task.title,
+1063              environment = plan.environment,
+1064              sourceTaskId = task.sourceTaskId,
+1065              connectionCheck = task.connectionCheck,
+1066              targetId = plan.targetId,
+1067              status = OperationalRunStatus.Running,
+1068              startedAtMillis = started,
+1069              sourceRevision = candidate?.id,
+1070              verifiedChecks = verifiedChecks,
+1071              planFingerprint = plan.fingerprint,
+1072              parentRunId = parentRunId,
+1073              // Live logs and remote reads can contain user content, identifiers, or credentials.
+1074              // They remain visible for the active session but are never retained on disk.
+1075              sensitive = task.sensitiveOutput || task.effect == SafetyClass.LiveRead ||
+1076                  task.effect.rank >= SafetyClass.CredentialWrite.rank,
+1077              approvedBy = approvedBy,
+1078              independentApprover = independentApprover,
+1079              background = !select,
+1080              events = listOf(
+1081                  OperationalEvent(
+1082                      sequence = sequence.incrementAndGet(),
+1083                      timestampMillis = started,
+1084                      stream = OperationalStream.System,
+1085                      text = plan.summary,
+1086                  ),
+1087              ),
+1088          )
+1089          mutate(persistImmediately = run.retainsHistory()) {
+1090              it.copy(
+1091                  runs = listOf(run) + it.runs,
+1092                  selectedRunId = if (select) runId else it.selectedRunId,
+1093                  pendingPlans = it.pendingPlans - plan.fingerprint,
+1094                  revision = it.revision + 1,
+1095              )
+1096          }
+1097  
+1098          val workingDirectory = toolingRequest.workingDirectory
+1099          val spec = OperationExecutionSpec(
+1100              runId = runId,
+1101              taskId = task.toolingTaskId ?: task.id,
+1102              argv = toolingRequest.argv,
+1103              workingDirectory = workingDirectory,
+1104              // The execution request is the only object allowed to carry resolved runtime values.
+1105              // Keep the public executor seam aligned with it so recording executors can verify the
+1106              // exact boundary without teaching UI/snapshot models about secrets.
+1107              environment = toolingRequest.environment,
+1108              timeoutMillis = task.timeoutMillis,
+1109              redactedValues = toolingRequest.redactions,
+1110              safety = task.effect.toSafetyPolicy(),
+1111              approvedBy = approvedBy,
+1112              toolingRequest = toolingRequest.process,
+1113              nativeRequest = toolingRequest.native,
+1114          )
+1115          val handle = runCatching { executor.start(spec) { event ->
+1116              when (event) {
+1117                  is OperationExecutionEvent.Artifact -> updateRun(runId) { live ->
+1118                      live.copy(artifacts = (live.artifacts + receiptArtifact(event.reference)).distinctBy { it.id })
+1119                  }
+1120                  is OperationExecutionEvent.Output -> {
+1121                      evidenceLog?.append(redactExecutionText(event.text, toolingRequest.redactions))
+1122                      updateRun(runId, persistImmediately = false) { live ->
+1123                      if (live.status != OperationalRunStatus.Running) live
+1124                      else live.copy(
+1125                          events = appendEvent(
+1126                              live.events,
+1127                              event.stream,
+1128                              redactExecutionText(event.text, toolingRequest.redactions),
+1129                              if (event.stream == OperationalStream.Stdout) task.captureStdoutChars ?: 16_384 else 16_384,
+1130                          ),
+1131                      )
+1132                      }
+1133                  }
+1134                  is OperationExecutionEvent.Completed -> {
+1135                      handles.remove(runId)
+1136                      val check = evidenceLog?.finish(listOf(task.id), event.exitCode,
+1137                          candidate, plan.environment, clock() - started, capture)
+1138                      updateRun(runId) { live ->
+1139                          if (live.status == OperationalRunStatus.Cancelled) live
+1140                          else {
+1141                              val success = event.frameworkStatus == RunStatus.Succeeded ||
+1142                                  (event.frameworkStatus == null && event.exitCode == 0)
+1143                              val status = when (event.frameworkStatus) {
+1144                                  RunStatus.Cancelled -> OperationalRunStatus.Cancelled
+1145                                  RunStatus.Blocked -> OperationalRunStatus.Blocked
+1146                                  RunStatus.Succeeded -> OperationalRunStatus.Succeeded
+1147                                  RunStatus.Failed, RunStatus.TimedOut -> OperationalRunStatus.Failed
+1148                                  RunStatus.Planned, RunStatus.Queued, RunStatus.Running, null ->
+1149                                      if (success) OperationalRunStatus.Succeeded else OperationalRunStatus.Failed
+1150                              }
+1151                              live.copy(
+1152                                  status = status,
+1153                                  finishedAtMillis = clock(),
+1154                                  exitCode = event.exitCode,
+1155                                  checkResult = check,
+1156                                  failure = event.failure?.let { failure ->
+1157                                      redactExecutionText(failure, toolingRequest.redactions)
+1158                                  },
+1159                                  events = appendEvent(
+1160                                      live.events,
+1161                                      OperationalStream.System,
+1162                                      if (success) {
+1163                                          "Completed successfully"
+1164                                      } else {
+1165                                          redactExecutionText(
+1166                                              event.failure ?: "Execution failed",
+1167                                              toolingRequest.redactions,
+1168                                          )
+1169                                      },
+1170                                  ),
+1171                                  artifacts = if (success) (live.artifacts + artifactExpectationsFor(task, runId)).distinctBy { it.id } else live.artifacts,
+1172                              )
+1173                          }
+1174                      }
+1175                  }
+1176              }
+1177          } }.getOrElse { error ->
+1178              val failure = redactExecutionText(
+1179                  error.message ?: "Reaktor executor rejected this operation",
+1180                  toolingRequest.redactions,
+1181              )
+1182              updateRun(runId) { live ->
+1183                  live.copy(
+1184                      status = OperationalRunStatus.Failed,
+1185                      finishedAtMillis = clock(),
+1186                      exitCode = 127,
+1187                      failure = failure,
+1188                      events = appendEvent(
+1189                          live.events,
+1190                          OperationalStream.System,
+1191                          failure,
+1192                      ),
+1193                  )
+1194              }
+1195              return runId
+1196          }
+1197          // A deterministic/test executor may finish synchronously inside start(). Do not retain a
+1198          // stale handle after its completion callback has already made the run terminal.
+1199          if (snapshot.value.runs.firstOrNull { it.id == runId }?.status == OperationalRunStatus.Running) {
+1200              handles[runId] = handle
+1201          }
+1202          return runId
+1203      }
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt:1001:16@abea47f7"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[1] {"name":"OperationalControlPlane.updateRun","path":"modules/kernel"}
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt · private fun updateRun( runId: String, persistImmediately: Boolean = true, reducer: (OperationalRun) -> OperationalRun, ) · 500 of 500 characters · rev:d47eeb083184
+1686  private fun updateRun(
+1687          runId: String,
+1688          persistImmediately: Boolean = true,
+1689          reducer: (OperationalRun) -> OperationalRun,
+1690      ) {
+1691          mutate(persistImmediately = persistImmediately && snapshot.value.runs.firstOrNull { it.id == runId }?.retainsHistory() != false) { current ->
+1692              current.copy(
+1693                  runs = current.runs.map { run -> if (run.id == runId) reducer(run) else run },
+1694                  revision = current.revision + 1,
+1695              )
+1696          }
+1697      }
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt:1685:16@abea47f7"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[2] {"name":"OperationalControlPlane.persist","path":"modules/kernel"}
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt · private fun persist(snapshot: OperationalSnapshot) · 1513 of 1513 characters · rev:d47eeb083184
+1788  private fun persist(snapshot: OperationalSnapshot) {
+1789          val state = PersistedControlPlaneState(
+1790              workspaceRoot = catalog.root.canonicalFile.absolutePath,
+1791              selectedEnvironment = snapshot.selectedEnvironment,
+1792              chosenEnvironment = chosenEnvironment,
+1793              selectedTargetId = snapshot.selectedTargetId,
+1794              favoriteTaskIds = snapshot.favoriteTaskIds,
+1795              recentTaskIds = snapshot.recentTaskIds,
+1796              runs = snapshot.runs.filter { it.retainsHistory() }.take(250).map { run ->
+1797                  if (run.sensitive) {
+1798                      run.copy(
+1799                          events = listOf(
+1800                              OperationalEvent(
+1801                                  sequence = 0,
+1802                                  timestampMillis = run.finishedAtMillis ?: run.startedAtMillis,
+1803                                  stream = OperationalStream.System,
+1804                                  text = "Sensitive output was not retained",
+1805                              ),
+1806                          ),
+1807                          artifacts = run.artifacts.filterNot(OperationalArtifact::sensitive),
+1808                      )
+1809                  } else {
+1810                      run.copy(events = run.events.takeLast(250))
+1811                  }
+1812              },
+1813              selectedRunId = snapshot.selectedRunId?.takeIf { id -> snapshot.runs.any { it.id == id && !it.background } },
+1814              revision = snapshot.revision,
+1815          )
+1816          runCatching { store.save(json.encodeToString(state)) }
+1817      }
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt:1787:16@abea47f7"},"follow":[{"rel":"references","dir":"in"}]}

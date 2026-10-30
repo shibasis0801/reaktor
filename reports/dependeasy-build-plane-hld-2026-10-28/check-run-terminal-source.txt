@@ -1,0 +1,14 @@
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelChecks.kt · fun run(kernel: ReaktorKernel, request: ChecksRequest): ChecksStarted · 1215 of 1215 characters · rev:842a4311adcf
+121  fun run(kernel: ReaktorKernel, request: ChecksRequest): ChecksStarted {
+122          val wanted = affected(kernel, request.paths, request.session).checks.filter { it.check.reach in request.reach }
+123          val (running, ready) = wanted.partition { it.running }
+124          val (narrowed, whole) = ready.map { it.check }.partition { request.narrow && it.tests.isNotEmpty() && it.gradle.size == 1 }
+125          fun started(id: String) = kernel.snapshot.value.runs.first { it.id == id }.let { RunStarted(it.id, it.taskId, it.status) }
+126          val run = whole.takeIf { it.isNotEmpty() }?.let { kernel.operations.requestChecks(it, "Reaktor checks · agent", quiet = true, rerun = request.rerun) }?.let(::started)
+127          val only = narrowed.mapNotNull { check ->
+128              kernel.operations.requestGradleChecks("${check.title} · ${KernelChanges.count(check.tests.size, "class", "classes")}", check.gradle, "Reaktor checks · agent", quiet = true,
+129                  rerun = request.rerun, tests = check.tests)?.let { NarrowedRun(check.node, started(it), check.tests) }
+130          }
+131          return ChecksStarted(run, (if (run == null) emptyList() else whole.map { it.node }) + only.map { it.node }, running.map { it.check.node }, only)
+132      }
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelChecks.kt:120:8@393c1cb3"},"follow":[{"rel":"references","dir":"in"}]}

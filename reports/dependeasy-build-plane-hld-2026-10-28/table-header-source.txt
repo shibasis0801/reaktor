@@ -1,0 +1,66 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:5d1da91886d8
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt
+  362:17 function HeaderRow: @Composable private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modifier: Modifier, appearance: TableHeaderAppearance, geometry: () -> ColumnGeometry, visible: List<List<Int>>, · kotlin:dev/shibasis/reaktor/surface/compose/#HeaderRow(kotlin.collections.List,dev.shibasis.reaktor.surface.compose.TableState,androidx.compose.ui.Modifier,dev.shibasis.reaktor.surface.compose.ComposeAppearance,kotlin.Function0,kotlin.collections.List,kotlin.Function2)@:reaktor-surface-compose:main:commonMain@reaktor
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt · @Composable private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modifier: Modifier, appearance: TableHeaderAppearance, geometry: () -> ColumnGeometry, visible: List<List<Int>>, · 4401 of 4401 characters · rev:5d1da91886d8
+361  @Composable
+362  private fun <T> HeaderRow(columns: List<TableColumn<T>>, state: TableState, modifier: Modifier, appearance: TableHeaderAppearance,
+363      geometry: () -> ColumnGeometry, visible: List<List<Int>>, record: (TableColumn<T>, Float) -> Unit) {
+364      val kernel = remember { RovingKernel() }
+365      val direction = LocalLayoutDirection.current
+366      val items = remember(columns, state.layout.pins) {
+367          RovingList((geometry().bands[1] + geometry().bands[0] + geometry().bands[2]).map { RovingItem("$HeaderPart/${columns[it].key}") })
+368      }
+369      val liveGeometry by rememberUpdatedState(geometry)
+370      val liveColumns by rememberUpdatedState(columns)
+371      val mounted = remember(visible) { visible.flatten().toSet() }
+372      val liveMounted by rememberUpdatedState(mounted)
+373      var pending by remember { mutableStateOf<LocalCommand?>(null) }
+374      val machine = rememberMachine(kernel, RovingProperties(items, Axis.Horizontal, rightToLeft = direction == LayoutDirection.Rtl), { command ->
+375          if (command is LocalCommand.Focus && (pending as? LocalCommand.Reveal)?.part != command.part) pending = command
+376          val part = when (command) { is LocalCommand.Focus -> command.part; is LocalCommand.Reveal -> command.part; else -> null }
+377          val index = part?.value?.removePrefix("$HeaderPart/")?.let { key -> liveColumns.indexOfFirst { it.key == key } } ?: -1
+378          if (index < 0) false else if (command is LocalCommand.Reveal || index !in liveMounted) {
+379              if (command is LocalCommand.Reveal) pending = command
+380              state.horizontal.dispatchRawDelta((liveGeometry().reveal(index, state.horizontal.value, command) - state.horizontal.value).toFloat())
+381              true
+382          } else false
+383      }) {}
+384      val requested = when (val command = pending) { is LocalCommand.Focus -> command.part; is LocalCommand.Reveal -> command.part; else -> null }
+385      requested?.value?.takeIf { key -> columns.indexOfFirst { "$HeaderPart/${it.key}" == key } in mounted }?.let { key ->
+386          SideEffect { machine.send(RovingInput.Point(key, focus = true)) }
+387      }
+388      ColumnBands(geometry, state.horizontal, modifier.onKeyEvent { event ->
+389          val stroke = event.stroke()
+390          if (event.type != KeyEventType.KeyDown || stroke == null || !kernel.handles(RovingProperties(items, Axis.Horizontal, rightToLeft = direction == LayoutDirection.Rtl), stroke)) false
+391          else {
+392              machine.send(RovingInput.Stroke(stroke))
+393              if (stroke.key == KeyName.Home || stroke.key == KeyName.End) machine.state.active?.let { pending = LocalCommand.Reveal(dev.shibasis.reaktor.surface.PartKey(it)) }
+394              true
+395          }
+396      }) { band ->
+397          val shown = visible[band]
+398          Layout(content = { shown.forEach { index -> key(columns[index].key) { HeaderCell(columns[index], state, machine, appearance) } } }) { measurables, constraints ->
+399              shown.forEachIndexed { index, column ->
+400                  if (columns[column].width is ColumnWidth.Content) record(columns[column], measurables[index].maxIntrinsicWidth(Constraints.Infinity).toDp().value)
+401              }
+402              val shape = geometry()
+403              val placeables = measurables.mapIndexed { index, measurable -> measurable.measure(Constraints(shape.spans[shown[index]], shape.spans[shown[index]], 0, constraints.maxHeight)) }
+404              val height = constraints.constrainHeight(placeables.maxOfOrNull { it.height } ?: 0)
+405              layout(constraints.maxWidth, height) {
+406                  pending?.let { command ->
+407                      val part = when (command) { is LocalCommand.Focus -> command.part; is LocalCommand.Reveal -> command.part; else -> null }
+408                      val active = columns.indexOfFirst { "$HeaderPart/${it.key}" == part?.value }
+409                      if (active >= 0) {
+410                          val wanted = geometry().reveal(active, state.horizontal.value, command)
+411                          state.horizontal.dispatchRawDelta((wanted - state.horizontal.value).toFloat())
+412                          if (active in shown && state.horizontal.value == wanted) pending = null
+413                      }
+414                  }
+415                  val scroll = if (band == 0) state.horizontal.value else 0
+416                  placeables.forEachIndexed { index, placeable -> placeable.placeRelative(shape.offsets[shown[index]] - scroll, Alignment.CenterVertically.align(placeable.height, height)) }
+417              }
+418          }
+419      }
+420  }
+next: atlas_read {"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt:361:16@91f6f745"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt:361:16@91f6f745"},"follow":[{"rel":"references","dir":"in"}]}

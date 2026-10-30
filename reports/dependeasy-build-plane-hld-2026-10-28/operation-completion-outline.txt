@@ -1,0 +1,131 @@
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt · outline · 11002 of 11002 characters · rev:d47eeb083184
+50  private val OperationalTask.inputReleased: Boolean
+53  private val RetryableStatuses
+61  class OperationalControlPlane( catalog: BestBudsCatalog, private val executor: OperationExecutor, private val store: ControlPlaneStore, private val clock: () -> Long = System::currentTimeMillis, private val environmentProvider: (String) -> String? = System::getenv, ) : AutoCloseable
+63    private val executor: OperationExecutor
+64    private val store: ControlPlaneStore
+65    private val clock: () -> Long
+66    private val environmentProvider: (String) -> String?
+68    @Volatile var catalog: BestBudsCatalog
+70    private val workerInputs
+72    private val closed
+73    private val postgresConnections
+74    internal val gradleLedger
+75    internal val runLedgerStore: ControlPlaneStore
+79    fun configurePostgresConnection(environment: String, connection: ai.bestbuds.reaktor.workbench.database.PostgresSessionConnection?)
+86    fun environmentValue(key: String, environment: String = snapshot.value.selectedEnvironment): String?
+94    private val sequence
+95    private val handles
+96    private val scope
+97    private val evidence
+99    @Volatile private var chosenEnvironment: String?
+100    private val mutableSnapshot
+101    val snapshot: StateFlow<OperationalSnapshot>
+102    private val mutableLogEvents
+103    val logEvents
+106    @Synchronized internal fun replaceCatalog(next: BestBudsCatalog, expected: BestBudsCatalog? = null)
+131    private val persistenceRequests
+132    private val persistence
+163    private fun receiptArtifact(reference: dev.shibasis.reaktor.tooling.ArtifactReference)
+168    fun selectEnvironment(environment: String)
+179    fun selectTarget(targetId: String?)
+189    fun selectRun(runId: String?)
+194    fun toggleFavoriteTask(taskId: String): Boolean
+205    fun requestRun(taskId: String): PendingOperationalPlan?
+207    internal fun requestRun(taskId: String, quiet: Boolean, arguments: List<String> = emptyList(), environment: String? = null, reviewedPlan: PendingOperationalPlan? = null, admission: OperationCall? = null, capture: (() -> AgentCandidate?)? = null, verifiedChecks: List<String> = emptyList(), parentRunId: dev.shibasis.reaktor.tooling.RunId? = null): PendingOperationalPlan?
+287    fun previewPlan(taskId: String): PendingOperationalPlan
+289    internal fun previewPlan(taskId: String, arguments: List<String>, environment: String? = null): PendingOperationalPlan
+298    private fun operationalPlan( task: OperationalTask, current: OperationalSnapshot, toolingPreview: PreparedOperation, ): PendingOperationalPlan
+340    fun requestKubernetesRead( action: dev.shibasis.reaktor.tooling.kubernetes.KubernetesReadAction, namespace: String = "reaktor", resourceName: String = "", resourceKind: String = "", resourceUid: String = "", ): String
+368    fun requestCloudInventoryRead(): String
+398    fun requestCloudflareAi(action: String, gateway: String? = null, model: String? = null, system: String? = null, prompt: String? = null): String
+434    fun requestCloudApi(key: String, arguments: String = "{}"): String
+439    fun requestCloudApi(operation: dev.shibasis.reaktor.tooling.api.ApiOperation, arguments: String = "{}"): String
+467    fun requestWorkerOperation(operation: InfrastructureOperation.WorkerCall, input: String, summary: String): String
+502    fun requestIslandShapesRead(hosts: List<String>): String
+542    fun requestSpansRead(windowMinutes: Int = 60, limit: Int = 500, filter: SpanReadFilter = SpanReadFilter()): String
+586    @Synchronized fun requestRadarPortForward(port: Int = 9280): String
+620    fun requestDeviceDiscovery(transport: DeviceTransport): String
+656    fun attachWorkCommandHost(device: DevelopmentDevice, source: dev.shibasis.reaktor.work.WorkSource, endpoint: dev.shibasis.reaktor.work.WorkControlEndpoint): AutoCloseable?
+660    fun requestDeviceOperation( device: DevelopmentDevice, action: String, arguments: Map<String, String> = emptyMap(), title: String = "$action · ${device.name}", summary: String = "Device write on exact target ${device.key}", ): String
+705    fun requestGradleTests(project: String, gradleTask: String, classes: List<String>): String?
+739    fun requestGradleChecks( title: String, gradleTasks: List<String>, provenance: String, quiet: Boolean = false, rerun: Boolean = false, tests: List<String> = emptyList(), flows: List<String> = emptyList(), effect: SafetyClass = SafetyClass.LocalArtifactWrite, environments: Set<String> = setOf("local"), ): String?
+751    internal fun requestCandidateChecks(title: String, gradleTasks: List<String>, root: File, verifiedChecks: List<String>, rerun: Boolean, capture: () -> AgentCandidate?): String?
+756    private fun gradleChecks(title: String, gradleTasks: List<String>, provenance: String, quiet: Boolean, rerun: Boolean, tests: List<String>, flows: List<String>, effect: SafetyClass, environments: Set<String>, root: File = catalog.root, capture: (() -> AgentCandidate?)? = null, verifiedChecks: List<String> = emptyList()): String?
+800    @Synchronized fun recordDoorDecision(approval: dev.shibasis.reaktor.tooling.mcp.door.DoorApproval)
+816    fun requestSessionRead(task: OperationalTask, quiet: Boolean = false, environment: String = snapshot.value.selectedEnvironment): String?
+837    @Synchronized internal fun executeCodeEdit(plan: dev.shibasis.reaktor.code.CodeEditPlan, approval: dev.shibasis.reaktor.tooling.mcp.door.DoorApproval?, code: dev.shibasis.reaktor.code.CodeWorkspace, seat: String? = null): OperationalRun
+874    @Synchronized internal fun executeChange(plan: String, title: String, summary: String, approval: dev.shibasis.reaktor.tooling.mcp.door.DoorApproval?, seat: String?, reach: ai.bestbuds.reaktor.workbench.agent.ChangeReach?, write: () -> List<Pair<String, String>>): OperationalRun
+909    @Synchronized internal fun beginDataWrite(runId: String, targetId: String, label: String, provider: String, environment: String, sourceTaskId: String, statementDigest: String, operator: String, effect: SafetyClass): OperationalRun
+926    @Synchronized internal fun finishDataWrite(runId: String, failure: String?, summary: String)
+936    @Synchronized fun approvePendingPlan( planId: String, confirmation: String? = null, secondApproval: Boolean = false, approvedBy: String = "Reaktor operator", independentApprover: String? = null, ): Boolean
+963    fun rejectPendingPlan(planId: String)
+967    fun cancel(runId: String = snapshot.value.selectedRunId.orEmpty()): Boolean
+980    fun canRetry(run: OperationalRun): Boolean
+985    fun retry(runId: String = snapshot.value.selectedRunId.orEmpty())
+990    override fun close()
+1002    private fun start( task: OperationalTask, plan: PendingOperationalPlan, approvedBy: String? = null, independentApprover: String? = null, select: Boolean = true, arguments: List<String> = emptyList(), prepared: PreparedOperation? = null, capture: (() -> AgentCandidate?)? = null, verifiedChecks: List<String> = emptyList(), parentRunId: dev.shibasis.reaktor.tooling.RunId? = null, ): String
+1205    private fun addTerminalRun( task: OperationalTask, environment: String, status: OperationalRunStatus, reason: String, select: Boolean = true, ): String
+1230    private fun validate(task: OperationalTask, snapshot: OperationalSnapshot): String?
+1248    private fun prepareExecutionRequest( task: OperationalTask, environment: String, approvedBy: String?, approvedPlanFingerprint: String?, arguments: List<String> = emptyList(), reviewedPlan: dev.shibasis.dependeasy.model.GradlePlan? = null, ): PreparedOperation
+1379    private fun verifyTaskDefinitions(task: OperationalTask)
+1392    private fun OperationalTask.hasExecutableDefinitionSeal(): Boolean
+1421    private fun OperationalTask.hasAdmittedDatabaseSessionBroker(): Boolean
+1494    private fun OperationalTask.hasAdmittedDatabaseSourceBinding(): Boolean
+1547    private fun File.isOwnerOnlySessionFile(requireContent: Boolean): Boolean
+1562    internal fun SafetyClass.toSafetyPolicy(): SafetyPolicy
+1569    private fun runEnvironment(task: OperationalTask, current: OperationalSnapshot): String
+1572    private fun planSummary(task: OperationalTask, current: OperationalSnapshot): String
+1581    private fun approvalFingerprint( task: OperationalTask, environment: String, targetId: String?, displayCommand: List<String>, workingDirectory: String, toolingFingerprint: String?, ): String
+1598    private fun taskWorkingDirectory(task: OperationalTask): File
+1603    private fun nativeEnvironment(operation: dev.shibasis.reaktor.tooling.infra.InfrastructureOperation, environment: String): Map<String, String>
+1638    private fun plannedArgv(task: OperationalTask): List<String>
+1640    private fun taskEnvironment(environment: String): Map<String, String>
+1648    private fun sensitiveEnvironmentValues(): Set<String>
+1656    private fun redactExecutionText(text: String, redactions: Set<String>): String
+1663    private fun artifactExpectationsFor(task: OperationalTask, runId: String): List<OperationalArtifact>
+1676    private fun appendEvent( events: List<OperationalEvent>, stream: OperationalStream, text: String, maxTextChars: Int = 16_384, ): List<OperationalEvent>
+1684    private fun OperationalRun.retainsHistory()
+1686    private fun updateRun( runId: String, persistImmediately: Boolean = true, reducer: (OperationalRun) -> OperationalRun, )
+1700    @Synchronized private fun mutate( persistImmediately: Boolean = true, reducer: (OperationalSnapshot) -> OperationalSnapshot, )
+1730    private fun releaseWorkerInputs(previous: OperationalSnapshot, next: OperationalSnapshot)
+1739    private fun sweepWorkerInputs()
+1743    private fun defaultEnvironment(environments: List<String>): String
+1747    private fun initialSnapshot(): OperationalSnapshot
+1788    private fun persist(snapshot: OperationalSnapshot)
+1821  @Serializable private data class PersistedControlPlaneState( val workspaceRoot: String = "", val selectedEnvironment: String, val chosenEnvironment: String? = null, val selectedTargetId: String?, val favoriteTaskIds: Set<String> = emptySet(), val recentTaskIds: List<String> = emptyList(), val runs: List<OperationalRun>, val selectedRunId: String?, val revision: Long, )
+1822    val workspaceRoot: String
+1823    val selectedEnvironment: String
+1824    val chosenEnvironment: String?
+1825    val selectedTargetId: String?
+1826    val favoriteTaskIds: Set<String>
+1827    val recentTaskIds: List<String>
+1828    val runs: List<OperationalRun>
+1829    val selectedRunId: String?
+1830    val revision: Long
+1833  fun createDefaultOperationalControlPlane( workspace: File? = BestBudsOperationalCatalog.discover(), store: ControlPlaneStore? = null, executor: OperationExecutor = KernelOperationExecutor(), ): OperationalControlPlane
+1847  private fun fallbackCatalog(root: File, reason: String?): BestBudsCatalog
+1872  const val IslandShapesTask
+1873  const val SpansTask
+1875  fun workerServiceCredentialName(environment: String)
+1877  fun workerServiceCredentials(root: File, environment: String): File?
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/KernelOperationExecutor.kt · outline · 998 of 1175 characters, partial · rev:9c727ece5f0a
+15  internal class PreparedOperation(val process: ProcessExecutionRequest? = null, val native: NativeExecutionRequest? = null)
+15    val process: ProcessExecutionRequest?
+15    val native: NativeExecutionRequest?
+17    val plan
+18    val argv
+19    val workingDirectory
+20    val environment
+21    val redactions
+24  class KernelOperationExecutor( private val processes: OperationExecutor = JvmProcessOperationExecutor(), private val infrastructure: JvmInfrastructureExecutor = JvmInfrastructureExecutor(), ) : OperationExecutor
+25    private val processes: OperationExecutor
+26    private val infrastructure: JvmInfrastructureExecutor
+28    private val scope
+29    private val jobs
+30    private data class WorkHost(val source: WorkSource, val endpoint: WorkControlEndpoint)
+30      val source: WorkSource
+30      val endpoint: WorkControlEndpoint
+31    private val workHosts
+32    fun attachWorkHost(device: dev.shibasis.reaktor.tooling.DevelopmentDevice, source: WorkSource, endpoint: WorkContro
+next: atlas_read {"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt:49:28@abea47f7"}

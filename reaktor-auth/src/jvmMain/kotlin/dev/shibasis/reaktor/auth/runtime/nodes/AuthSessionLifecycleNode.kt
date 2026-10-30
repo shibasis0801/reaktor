@@ -26,6 +26,9 @@ class AuthSessionLifecycleNode(graph: Graph) : BasicNode(graph), AuthSessionLife
     ): NewSession =
         sessions.createSession(principalId, appId, tenantId, contextId, adapter.databaseFor(environment))
 
+    override fun activeSession(sessionId: String, environment: Environment): dev.shibasis.reaktor.auth.Session? =
+        sessions.activeSession(sessionId, adapter.databaseFor(environment))
+
     override fun rotate(rawRefresh: String, environment: Environment): RotatedSession? =
         sessions.rotate(rawRefresh, adapter.databaseFor(environment))
 

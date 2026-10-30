@@ -1,0 +1,5 @@
+applied plan p2df804f98b6ea6d30d71 · receipt change-p2df804f98b6ea6d30d71-1793239676718-8184 · 2 files written
+  ../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt
+  ../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt
+checks: reaktor-conductor · JVM tests
+next: check_run {"change":"p2df804f98b6ea6d30d71"}

@@ -70,7 +70,11 @@ object GradleToolingRunner {
                         val action = arguments.indexOf("--deploy-action")
                         if (action >= 0) { require(action + 1 < arguments.size); arguments.removeAt(action + 1); arguments.removeAt(action) }
                         arguments.removeAll { argument -> argument.startsWith("--deploy-action=") }
-                        build.withArguments(inherited + workerArgument + deployTasks + arguments + listOf(
+                        val verificationTasks = model.nodes.filter { node -> node.kind == NodeKind.Verification && observed.any { task -> task.id == node.id } }
+                            .flatMap { node -> (node.invocation as? Invocation.Gradle)?.tasks.orEmpty().map { task ->
+                                if (node.id.build == own) task else ":${node.id.build}$task"
+                            } }.distinct().flatMap { task -> listOf("--exclude-task", task) }
+                        build.withArguments(inherited + workerArgument + deployTasks + arguments + verificationTasks + listOf(
                             "-P${GradleProtocol.DeployActionOption}=plan",
                             "-P${GradleProtocol.DeployRequestOption}=${root.resolve("${GradleProtocol.RequestDirectory}/$requestDigest.json").absolutePath}")).run()
                     }

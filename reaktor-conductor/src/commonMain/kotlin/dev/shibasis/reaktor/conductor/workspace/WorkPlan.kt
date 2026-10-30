@@ -215,6 +215,7 @@ data class PlanPatch(
     val goal: String? = null,
     val base: Long? = null,
     val seat: String? = null,
+    val message: String? = null,
 )
 
 @Serializable
@@ -242,7 +243,8 @@ object PlanBrief {
         "A real change has 3 to 8 components and 15 to 60 items."
 
     const val Upkeep = "Keep it current while you work: mark the item you are on Doing before you edit for it and Done or Dropped when it ends, since a component's status follows its parts; " +
-        "add the parts, checks and decisions you discover, and move refs when the work moves. Choose the highest-priority ready item first: Urgent, High, Normal, then Low. Preserve planned history: close superseded items as Dropped with a nonblank reason and optional replacement item id; do not remove them."
+        "add the parts, checks and decisions you discover, and move refs when the work moves. An item another agent has Doing is theirs until they let it go; " +
+        "pass message with a write to tell the others on the plan something, and it reaches them at their next step. Choose the highest-priority ready item first: Urgent, High, Normal, then Low. Preserve planned history: close superseded items as Dropped with a nonblank reason and optional replacement item id; do not remove them."
 
     fun thread(thread: String): String =
         "Reaktor keeps a plan for this thread: the high-level design the owner watches and edits in Hangar as a DAG, a Kanban and a reaktor-graph joined to the code atlas, " +
@@ -318,6 +320,9 @@ object PlanRules {
 
         fun allowed(id: String): String? {
             if (by.kind == BoardActorKind.Person || threadAgent) return null
+            items[id]?.takeIf { it.status == PlanStatus.Doing && it.by?.kind == BoardActorKind.Agent && it.by.same(by).not() }?.let { taken ->
+                return "$id is in progress by ${taken.by?.name}; pick another item, or ask them in a message to hand it over"
+            }
             if (claimed != null) return if (id in seatedItems || items[id]?.let { item -> generateSequence(item) { it.parent?.let(items::get) }.any { it.id in seatedItems } } == true) null
                 else "$id is outside your seat ${claimed.id}; it covers ${claimed.items.joinToString()}"
             val owner = ownedBy(id) ?: return null
@@ -496,6 +501,7 @@ object PlanRules {
         val goal = patch.goal?.let { BoardText.bounded(it, "A goal", 2_000) }?.takeIf { it != plan.goal }
         if (title != null) summary += "Renamed the plan “$title”"
         if (goal != null) summary += "Changed the goal"
+        patch.message?.replace(Regex("\\s+"), " ")?.trim()?.takeIf(String::isNotEmpty)?.let { summary += "Says: ${BoardText.bounded(it, "A message", 2_000)}" }
         val news = plan.news(patch.base ?: plan.revision, by)
         if (summary.isEmpty() && seats == plan.seats && items.values.toList() == plan.items) return PlanApplied(plan, refused, news)
         val changed = plan.copy(

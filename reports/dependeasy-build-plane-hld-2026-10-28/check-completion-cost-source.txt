@@ -1,0 +1,60 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:bc34dcb1c6b4
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt
+  23:16 class KernelAgentCheckRunner: internal class KernelAgentCheckRunner(private val kernel: ReaktorKernel, private val store: ControlPlaneStore = FileControlPlaneStore.default(kernel.operations.catalog.root, "agent-check-admissions")) · kotlin:ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner@:kernel:main:main@bestbuds
+next: atlas_read {"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt:22:15@3e253e9a"}
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt:22:15@3e253e9a"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[0] {"from":{"name":"KernelAgentCheckRunner.run"},"read":true}
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:2dd64d14d012
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt
+  168:17 function KernelAgentCheckRunner.run: suspend fun run(workspace: AgentWorkspace, taskId: String, requestId: String, stage: WorkflowStage): WorkflowCheckResult · kotlin:ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner#run(dev.shibasis.reaktor.conductor.workspace.AgentWorkspace,kotlin.String,kotlin.String,dev.shibasis.reaktor.conductor.WorkflowStage)@:kernel:main:main@bestbuds
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt · suspend fun run(workspace: AgentWorkspace, taskId: String, requestId: String, stage: WorkflowStage): WorkflowCheckResult · 1461 of 1461 characters · rev:fed6f469767a
+168  suspend fun run(workspace: AgentWorkspace, taskId: String, requestId: String, stage: WorkflowStage): WorkflowCheckResult {
+169          workspace.captureCandidate(taskId)
+170          val id = stage.candidateId?.let { startCandidate(workspace, taskId, it, listOf(requireNotNull(stage.checkId)), requestId) }
+171              ?: start(workspace, taskId, requireNotNull(stage.checkId), requestId)
+172          try {
+173              withTimeout(30 * 60 * 1000L) {
+174                  plane.snapshot.first { snapshot -> snapshot.runs.any { it.id == id && it.status != OperationalRunStatus.Running } }
+175              }
+176          } catch (cancelled: CancellationException) {
+177              plane.cancel(id)
+178              withContext(NonCancellable) { withTimeoutOrNull(10000) {
+179                  plane.snapshot.first { snapshot -> snapshot.runs.any { it.id == id && it.status != OperationalRunStatus.Running } }
+180              } }
+181              throw cancelled
+182          }
+183          val evidence = link(workspace, taskId, id)
+184          val result = evidence.checks.last { it.id == stage.checkId }.result
+185          val house = evidence.checks.lastOrNull { it.id == KernelHouseRules.CheckId && it.candidateId == stage.candidateId }?.result
+186          return WorkflowCheckResult(result.outcome == CheckOutcome.Passed && (stage.candidateId == null || house?.outcome == CheckOutcome.Passed),
+187              "${stage.title}: ${result.outcome}; house rules=${house?.outcome}; source=${result.revision}; kernel receipt=$id", id)
+188      }
+next: atlas_read {"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt:167:16@3e253e9a"}
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt:167:16@3e253e9a"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[1] {"from":{"name":"KernelAgentCheckRunner.execute"},"read":true}
+0 of 0 · syntactic (kotlin-psi/2.4.21, git-grep) · rev:26955ceaba77
+note: Nothing named KernelAgentCheckRunner.execute is declared or written in this repository and ../reaktor
+--- reads[0] {"path":"modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt","part":"outline"}
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt · outline · 1590 of 1590 characters · rev:fed6f469767a
+19  @Serializable private data class CheckAdmission(val taskId: String, val checkId: String, val runId: String? = null, val candidateId: String? = null, val checks: List<String> = emptyList(), val rerun: Boolean = false)
+19    val taskId: String
+19    val checkId: String
+19    val runId: String?
+20    val candidateId: String?
+20    val checks: List<String>
+20    val rerun: Boolean
+23  internal class KernelAgentCheckRunner(private val kernel: ReaktorKernel, private val store: ControlPlaneStore = FileControlPlaneStore.default(kernel.operations.catalog.root, "agent-check-admissions"))
+23    private val kernel: ReaktorKernel
+24    private val store: ControlPlaneStore
+25    private val serializer
+26    private var admissions
+27    private val plane
+28    fun tasks()
+31    @Synchronized fun start(workspace: AgentWorkspace, taskId: String, checkId: String, requestId: String): String
+55    private fun candidate(workspace: AgentWorkspace, taskId: String, candidateId: String): AgentCandidate
+63    fun affected(workspace: AgentWorkspace, taskId: String, candidateId: String): ChecksAnswer
+80    fun houseRules(workspace: AgentWorkspace, taskId: String, candidateId: String): CheckResult
+86    @Synchronized fun startCandidate(workspace: AgentWorkspace, taskId: String, candidateId: String, checkIds: List<String>, requestId: String, rerun: Boolean = false): String
+136    fun link(workspace: AgentWorkspace, taskId: String, runId: String): AgentTaskEvidence
+168    suspend fun run(workspace: AgentWorkspace, taskId: String, requestId: String, stage: WorkflowStage): WorkflowCheckResult
+next: atlas_read {"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt:18:33@3e253e9a"}

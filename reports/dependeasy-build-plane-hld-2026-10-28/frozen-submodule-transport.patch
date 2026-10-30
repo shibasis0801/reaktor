@@ -1,0 +1,83 @@
+--- a/tools/remote-dev
++++ b/tools/remote-dev
+@@ -472,10 +472,16 @@
+     # The supervisor's lease is host-wide even when its job directory is isolated.
+     ssh(f'test ! -d {shlex.quote((LOCK_ROOT or CONFIG["remote_root"] + "/.remote-dev") + "/gradle.lock")} || '
+         "{ echo 'A worker build is active; resume or wait for it before syncing sources.' >&2; exit 75; }")
++    manifest_path = ROOT / 'source-manifest.json'
++    frozen_manifest = json.loads(manifest_path.read_text()) if frozen and manifest_path.is_file() else None
+     for name in names:
+         base = ROOT / name
+         target = f'{REMOTE}/{name}'
+-        repositories = list(git_repositories(base)) if (base / '.git').exists() else []
++        # A materialized checkout has the committed index. Its frozen manifest
++        # also owns staged submodules and files hidden by that older index.
++        repositories = ([Path(repository).relative_to(name) for repository in frozen_manifest['repositories']
++                         if repository == name or repository.startswith(name + '/')]
++                        if frozen_manifest is not None else list(git_repositories(base)) if (base / '.git').exists() else [])
+         for relative in repositories:
+             local_repo = base / relative
+             remote_repo = str(Path(target) / relative)
+@@ -490,7 +496,8 @@
+                      '+HEAD:refs/remotes/source/current'])
+                 ssh(shlex.join(['git', '-C', remote_repo, 'reset', '--mixed', 'refs/remotes/source/current']),
+                     stdout=subprocess.DEVNULL)
+-        files = source_files(name)
++        files = (sorted(relative[len(name) + 1:] for relative in frozen_manifest['files'] if relative.startswith(name + '/'))
++                 if frozen_manifest is not None else source_files(name))
+         if not repositories:
+             ssh(shlex.join(['mkdir', '-p', target]))
+         selected = files if transfer_files is None else sorted(set(files).intersection(transfer_files[name]))
+--- a/tools/test_remote_router.py
++++ b/tools/test_remote_router.py
+@@ -1471,6 +1471,50 @@
+                 self.assertFalse((destination / 'source.txt').exists())
+                 self.assertEqual('next', (destination / 'replacement.txt').read_text())
+ 
++    def test_frozen_sync_keeps_staged_submodules_absent_from_the_parent_commit(self):
++        import remote_build
++        with TemporaryDirectory() as temporary:
++            helper = self.helper(temporary)
++            helper.PROJECTS = ['fixture']
++            helper.REMOTE = str(Path(temporary).resolve() / 'worker')
++            remote = Path(helper.REMOTE)
++            (remote / '.remote-dev').mkdir(parents=True)
++            project = helper.ROOT / 'fixture'; project.mkdir()
++            def git(repository, *args):
++                return subprocess.check_output(['git', '-C', str(repository), *args], text=True).strip()
++            def commit(repository):
++                git(repository, 'add', '.')
++                git(repository, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test',
++                    'commit', '--quiet', '-m', 'fixture')
++            git(project, 'init', '--quiet')
++            (project / '.gitignore').write_text('vendor/\n')
++            (project / 'root.txt').write_text('root')
++            commit(project)
++            dependency = project / 'vendor/sdk'; dependency.mkdir(parents=True)
++            git(dependency, 'init', '--quiet')
++            source = dependency / '.agents/skills.json'; source.parent.mkdir()
++            source.write_text('{"frozen":true}')
++            commit(dependency)
++            head = git(dependency, 'rev-parse', 'HEAD')
++            git(project, 'update-index', '--add', '--cacheinfo', f'160000,{head},vendor/sdk')
++            with contextlib.redirect_stdout(io.StringIO()):
++                identity = remote_build.freeze(helper)
++                helper.ROOT = remote_build.materialize(helper, identity, 'worker')
++            self.assertNotIn('vendor/sdk/.agents/skills.json', helper.source_files('fixture'))
++            def execute(argv, **kwargs):
++                argv = [str(arg).removeprefix('fixture:') for arg in argv if not str(arg).startswith('--rsync-path=')]
++                return subprocess.run(argv, check=True, **kwargs)
++            with patch.object(helper, 'ssh', side_effect=lambda command, **kwargs:
++                              subprocess.run(['/bin/sh', '-c', command], check=True, **kwargs)), \
++                    patch.object(helper, 'run', side_effect=execute), \
++                    patch.object(helper, 'remote_python', side_effect=local_worker), \
++                    contextlib.redirect_stdout(io.StringIO()):
++                helper.sync(['fixture'], frozen=True)
++            self.assertEqual(source.read_text(), (remote / 'fixture/vendor/sdk/.agents/skills.json').read_text())
++            self.assertEqual(head, git(remote / 'fixture/vendor/sdk', 'rev-parse', 'HEAD'))
++            transferred = json.loads((remote / '.remote-dev/fixture.source.json').read_text())
++            self.assertIn('vendor/sdk/.agents/skills.json', transferred)
++
+     def test_sync_keeps_a_matching_local_properties_byte_for_byte(self):
+         with TemporaryDirectory() as temporary:
+             helper = self.helper(temporary)

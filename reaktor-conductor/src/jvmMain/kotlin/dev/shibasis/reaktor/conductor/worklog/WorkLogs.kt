@@ -96,7 +96,7 @@ object WorkLogs {
             .firstOrNull { it.name.endsWith("-$session.jsonl") }
     }
 
-    private fun lines(file: File, from: Long, skipFirst: Boolean, each: (JsonObject) -> Unit): Long = RandomAccessFile(file, "r").use { raf ->
+    internal fun lines(file: File, from: Long, skipFirst: Boolean, each: (JsonObject) -> Unit): Long = RandomAccessFile(file, "r").use { raf ->
         val length = raf.length()
         raf.seek(from)
         val buffer = ByteArray(1 shl 16)

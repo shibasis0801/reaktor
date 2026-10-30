@@ -103,9 +103,7 @@ object BlueprintEngine {
             }
             val lanes = columnsWithin(tall, low)
             val filled = DoubleArray(lanes.last() + 1)
-            val counts = IntArray(filled.size)
-            lanes.forEachIndexed { index, lane -> filled[lane] += tall[index]; counts[lane] += 1 }
-            if (counts.any { it > WrapAt } && columns < tall.size) continue
+            lanes.forEachIndexed { index, lane -> filled[lane] += tall[index] }
             val width = filled.size * CardWidth + (filled.size - 1) * LayerGap
             val next = abs(ln(width / maxOf(filled.max() - CardGap, 1.0) / aspect))
             if (next < score - 1e-9) {
@@ -119,12 +117,15 @@ object BlueprintEngine {
     private fun columnsWithin(tall: List<Double>, limit: Double): List<Int> {
         var lane = 0
         var filled = 0.0
+        var count = 0
         return tall.map { height ->
-            if (filled > 0 && filled + height > limit) {
+            if (filled > 0 && (filled + height > limit || count == WrapAt)) {
                 lane += 1
                 filled = 0.0
+                count = 0
             }
             filled += height
+            count += 1
             lane
         }
     }
@@ -196,12 +197,12 @@ object BlueprintEngine {
             if (shifted != 0.0) layer.forEach { card -> cards[card.id] = card.copy(x = card.x + shifted) }
             if (layer.size <= WrapAt) return@forEach
             val ordered = layer.sortedBy { it.y }
-            val rows = ceil(sqrt(ordered.size * 2.0)).toInt()
-            val columns = (ordered.size + rows - 1) / rows
+            val lanes = balancedLanes(ordered.map { it.height })
+            val columns = lanes.last() + 1
             val top = ordered.first().y
-            ordered.chunked(rows).forEachIndexed { column, stack ->
+            ordered.withIndex().groupBy { lanes[it.index] }.forEach { (column, stack) ->
                 var y = top
-                stack.forEach { card ->
+                stack.forEach { (_, card) ->
                     cards[card.id] = card.copy(x = card.x + shifted + column * (span + ColumnGap), y = y)
                     moved += card.id
                     y += card.height + CardGap
@@ -252,11 +253,17 @@ object BlueprintEngine {
         val coreBottom = top + core.maxOf { y(it) + boxes[it].height } - coreTop
         val bounds = pieces.map { piece -> doubleArrayOf(piece.minOf { x(it) }, piece.minOf { y(it) }, piece.maxOf { x(it) + boxes[it].width }, piece.maxOf { y(it) + boxes[it].height }) }
         val area = bounds.sumOf { (it[2] - it[0] + LooseGap) * (it[3] - it[1] + LooseGap) }
-        val spots = Layered.shelves(bounds.map { (it[2] - it[0]) to (it[3] - it[1]) }, LooseGap, (coreWidth * coreWidth / area).coerceIn(1.0, 8.0))
+        val coreHeight = coreBottom - top
+        val beside = coreHeight > coreWidth
+        val breadth = if (beside) coreHeight else coreWidth
+        val spots = Layered.shelves(bounds.map { (it[2] - it[0]) to (it[3] - it[1]) }, LooseGap, (breadth * breadth / area).coerceIn(1.0, 8.0))
         val dx = DoubleArray(boxes.size)
         val dy = DoubleArray(boxes.size)
         core.forEach { dx[it] = left - coreLeft; dy[it] = top - coreTop }
-        pieces.forEachIndexed { at, piece -> piece.forEach { dx[it] = left + spots[at].first - bounds[at][0]; dy[it] = coreBottom + LooseGap + spots[at].second - bounds[at][1] } }
+        pieces.forEachIndexed { at, piece -> piece.forEach {
+            dx[it] = left + (if (beside) coreWidth + LooseGap else 0.0) + spots[at].first - bounds[at][0]
+            dy[it] = top + (if (beside) 0.0 else coreHeight + LooseGap) + spots[at].second - bounds[at][1]
+        } }
         val nodes = DoubleArray(result.nodes.size) { result.nodes[it] + if (it / 2 < boxes.size) (if (it % 2 == 0) dx[it / 2] else dy[it / 2]) else 0.0 }
         val edges = result.edges.mapIndexed { at, flat -> val box = sources.getOrNull(at) ?: return@mapIndexed flat; DoubleArray(flat.size) { flat[it] + if (it % 2 == 0) dx[box] else dy[box] } }
         val padRight = (result.width - boxes.indices.maxOf { x(it) + boxes[it].width }).coerceAtLeast(0.0)

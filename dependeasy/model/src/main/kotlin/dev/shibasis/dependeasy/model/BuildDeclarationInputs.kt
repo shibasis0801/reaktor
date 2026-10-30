@@ -1,7 +1,11 @@
 package dev.shibasis.dependeasy.model
 
 import java.io.File
+import java.nio.file.FileVisitResult
 import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 
 object BuildDeclarationInputs {
@@ -9,21 +13,34 @@ object BuildDeclarationInputs {
         "tmp", "temp", ".tmp", ".claude", ".codex", ".agents", ".idea")
     fun files(root: File): List<File> {
         val boundary = root.canonicalFile.toPath()
-        return root.walkTopDown().onEnter { directory ->
-            directory == root || directory.name !in excluded && !Files.isSymbolicLink(directory.toPath())
-        }.filter { file ->
-            val name = file.name
-            val declaration = name.endsWith(".gradle.kts") || name == "gradle.properties" || name == "local.properties" ||
-                name == "pnpm-workspace.yaml" && file.parentFile == root
-            val implementation = !declaration && name.endsWith(".kt") && run {
-                val path = file.relativeTo(root).invariantSeparatorsPath
-                path.startsWith("buildSrc/src/main/") || listOf("", "dependeasy/").any { prefix ->
-                    listOf("gradle", "model", "toolchain", "buildSrc").any { path.startsWith("$prefix$it/src/main/") } ||
-                        path.startsWith("${prefix}toolchain/src/contracts/")
+        val result = mutableListOf<File>()
+        Files.walkFileTree(boundary, object : SimpleFileVisitor<Path>() {
+            override fun preVisitDirectory(directory: Path, attributes: BasicFileAttributes): FileVisitResult =
+                if (directory != boundary && directory.fileName.toString() in excluded) FileVisitResult.SKIP_SUBTREE
+                else FileVisitResult.CONTINUE
+
+            override fun visitFile(path: Path, attributes: BasicFileAttributes): FileVisitResult {
+                val name = path.fileName.toString()
+                if (!name.endsWith(".gradle.kts") && name != "gradle.properties" && name != "local.properties" &&
+                    name != "pnpm-workspace.yaml" && !name.endsWith(".kt")) return FileVisitResult.CONTINUE
+                val relative = boundary.relativize(path).toString().replace(File.separatorChar, '/')
+                val declaration = name.endsWith(".gradle.kts") || name == "gradle.properties" || name == "local.properties" ||
+                    name == "pnpm-workspace.yaml" && path.parent == boundary
+                val implementation = !declaration && name.endsWith(".kt") && run {
+                    relative.startsWith("buildSrc/src/main/") || listOf("", "dependeasy/").any { prefix ->
+                        listOf("gradle", "model", "toolchain", "buildSrc").any { relative.startsWith("$prefix$it/src/main/") } ||
+                            relative.startsWith("${prefix}toolchain/src/contracts/")
+                    }
                 }
+                if (declaration || implementation) {
+                    val file = root.resolve(relative)
+                    if ((attributes.isRegularFile || attributes.isSymbolicLink && file.isFile) &&
+                        file.canonicalFile.toPath().startsWith(boundary)) result += file
+                }
+                return FileVisitResult.CONTINUE
             }
-            (declaration || implementation) && file.isFile && file.canonicalFile.toPath().startsWith(boundary)
-        }.sortedBy { it.invariantSeparatorsPath }.toList()
+        })
+        return result.sortedBy { it.invariantSeparatorsPath }
     }
     fun membership(root: File): String = MessageDigest.getInstance("SHA-256").digest(files(root).joinToString("\n") {
         it.relativeTo(root).invariantSeparatorsPath

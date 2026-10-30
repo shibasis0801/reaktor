@@ -162,6 +162,17 @@ class SessionRefreshService(
         RotatedSession(session, raw)
     }
 
+    fun activeSession(sessionId: String, database: Database? = null): Session? = txn(database) {
+        val id = runCatching { UUID.fromString(sessionId) }.getOrNull() ?: return@txn null
+        val session = Sessions.selectAll().where { Sessions.id eq id }
+            .map { Sessions.toDto(it) }.firstOrNull() ?: return@txn null
+        val now = Clock.System.now()
+        if (now >= session.expiresAt || !session.stillAllowed()) return@txn null
+        val refreshActive = RefreshTokens.selectAll().where { RefreshTokens.sessionId eq id }
+            .map { RefreshTokens.toDto(it) }.any { it.revokedAt == null && it.expiresAt > now }
+        session.takeIf { refreshActive }
+    }
+
     private fun Session.stillAllowed(): Boolean {
         val principal = UUID.fromString(principalId)
         val principalActive = AuthPrincipals.selectAll()

@@ -6,6 +6,9 @@ import dev.shibasis.reaktor.mcp.McpTool
 import dev.shibasis.reaktor.mcp.emptyObjectSchema
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 import java.net.URI
@@ -102,6 +105,43 @@ class AgentWorkspaceInvocationTest {
         assertEquals(java.time.Duration.ofSeconds(130), AgentWorkspaceConnection.patience(buildJsonObject {
             put("timeoutSeconds", 120)
         }, java.time.Duration.ofSeconds(60)))
+    }
+
+    @Test fun kernelPlanningOutlivesTheOrdinaryTransportDeadline() = runBlocking<Unit> {
+        listOf(1, null).map { invocationVersion ->
+            async(Dispatchers.IO) {
+                fixture { root, directory, workspace, _, _ ->
+                    val token = "n".repeat(32)
+                    val calls = AtomicInteger()
+                    val mcpCalls = AtomicInteger()
+                    val tools = listOf(McpTool("kernel", "Slow planning fixture", emptyObjectSchema(), true, true) {
+                        calls.incrementAndGet()
+                        Thread.sleep(36_000)
+                        buildJsonObject { put("status", "planned") }
+                    })
+                    AgentWorkspaceOperations(workspace, tools).use { operations ->
+                        LoopbackMcpServer.start(0, { McpMessageHandler { mcpCalls.incrementAndGet(); operations.handle(it) } },
+                            token, post = operations::post).use { server ->
+                            Files.writeString(directory.resolve("owner.json"), buildJsonObject {
+                                put("version", 2); put("workspaceRoot", root.toString()); put("port", server.port()); put("token", token)
+                                put("processId", ProcessHandle.current().pid()); put("incarnation", "11111111-1111-1111-1111-111111111111")
+                                put("catalogDigest", "a".repeat(64)); put("hostKind", "service")
+                                invocationVersion?.let { put("invocationVersion", it) }
+                            }.toString())
+                            FileChannel.open(directory.resolve("owner.lock"), CREATE, WRITE).use { channel ->
+                                channel.lock().use {
+                                    AgentWorkspaceConnection.open(root.toFile(), directory, allowStart = false).use { client ->
+                                        assertEquals(buildJsonObject { put("status", "planned") }, client.call("kernel"))
+                                    }
+                                }
+                            }
+                            assertEquals(1, calls.get())
+                            assertEquals(if (invocationVersion == null) 1 else 0, mcpCalls.get())
+                        }
+                    }
+                }
+            }
+        }.awaitAll()
     }
 
     @Test fun remoteTypedClientSelectsCompatibilityBridgeAndQuotesPaths() {

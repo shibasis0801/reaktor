@@ -1,0 +1,122 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:a69680185411
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt
+  208:18 function Collection: @Composable internal fun <T> Collection( source: ItemSource<T>, selection: Set<String>, onSelectionChange: (Set<String>) -> Unit, onExpandedChange: (String, Boolean) -> Unit, modifier: Modifier, mode: · kotlin:dev/shibasis/reaktor/surface/compose/#Collection(dev.shibasis.reaktor.surface.ItemSource,kotlin.collections.Set,kotlin.Function1,kotlin.Function2,androidx.compose.ui.Modifier,dev.shibasis.reaktor.surface.SelectionMode,kotlin.Function1,kotlin.Function2,dev.shibasis.reaktor.surface.compose.RowActions,androidx.compose.foundation.lazy.LazyListState,dev.shibasis.reaktor.surface.BehaviorKernel,dev.shibasis.reaktor.surface.compose.ComposeAppearance,kotlin.Boolean,kotlin.Boolean,kotlin.Function2,dev.shibasis.reaktor.surface.compose.GridBinding)@:reaktor-surface-compose:main:commonMain@reaktor
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt · @Composable internal fun <T> Collection( source: ItemSource<T>, selection: Set<String>, onSelectionChange: (Set<String>) -> Unit, onExpandedChange: (String, Boolean) -> Unit, modifier: Modifier, mode: · 3499 of 3499 characters · rev:a69680185411
+207  @Composable
+208  internal fun <T> Collection(
+209      source: ItemSource<T>,
+210      selection: Set<String>,
+211      onSelectionChange: (Set<String>) -> Unit,
+212      onExpandedChange: (String, Boolean) -> Unit,
+213      modifier: Modifier,
+214      mode: SelectionMode,
+215      onActivate: (String) -> Unit,
+216      onCheckedChange: (String, Boolean) -> Unit,
+217      actions: RowActions,
+218      state: LazyListState,
+219      behavior: CollectionBehavior,
+220      appearance: RowAppearance,
+221      scrollbar: Boolean,
+222      scrolling: Boolean,
+223      row: @Composable ItemScope.(T) -> Unit,
+224      grid: GridBinding? = null,
+225  ) {
+226      val properties = CollectionProperties(source, selection, LocalSurfaceEnvironment.current.keys, mode, LocalLayoutDirection.current == LayoutDirection.Rtl)
+227      val selected = rememberUpdatedState(selection)
+228      val host = remember { CollectionHost(selected) }
+229      val changed by rememberUpdatedState(onSelectionChange)
+230      val expanded by rememberUpdatedState(onExpandedChange)
+231      val activated by rememberUpdatedState(onActivate)
+232      val checked by rememberUpdatedState(onCheckedChange)
+233      fun original(key: String): String = source.indexOf(key).takeIf { it >= 0 }?.let(source::originalKey) ?: key
+234      host.machine = rememberMachine(behavior, properties, host::execute) { event ->
+235          when (event) {
+236              is CollectionEvent.SelectionChange -> changed(event.selection.mapTo(linkedSetOf(), ::original))
+237              is CollectionEvent.Activate -> activated(original(event.key))
+238              is CollectionEvent.ExpansionChange -> expanded(original(event.key), event.expanded)
+239              is CollectionEvent.MenuRequest -> host.menu(event)
+240              is CollectionEvent.CheckChange -> checked(original(event.key), event.checked)
+241          }
+242      }
+243      host.grid = grid
+244      grid?.host = host
+245      host.list = state.takeIf { scrolling }
+246      host.actions = actions
+247      val inputModes = LocalInputModeManager.current
+248      SideEffect { host.update(properties, behavior, inputModes) }
+249      val menus = actions !== RowActions.None
+250      val commands = if (menus) actions.commands(selection) else NoCommands
+251      val invoke: (CommandId) -> Unit = { id -> actions.onInvoke(id, selected.value) }
+252      if (menus) RowMenu(host, commands, invoke)
+253      Box(
+254          modifier
+255              .semantics {
+256                  collectionInfo = CollectionInfo(source.size, grid?.properties?.columns?.size ?: 1)
+257                  selectableGroup()
+258              }
+259              .then(if (grid != null) Modifier.onPreviewKeyEvent(host::onKey) else Modifier)
+260              .then(if (menus) Modifier.commands(commands, invoke) else Modifier)
+261              .then(if (grid == null) Modifier.onPreviewKeyEvent(host::onKey) else Modifier)
+262              .onFocusChanged(host::onFocus)
+263              .focusProperties { canFocus = host.waiting() }
+264              .focusTarget(),
+265      ) {
+266          if (scrolling) {
+267              LazyColumn(Modifier.fillMaxWidth().then(CollectionPointerElement(host)), state = state) {
+268                  items(source.size, key = source::key, contentType = { RowContent }) { index -> CollectionRow(host, source, index, appearance, row) }
+269              }
+270          } else {
+271              Column(Modifier.fillMaxWidth().then(CollectionPointerElement(host))) {
+272                  repeat(source.size) { index -> key(source.key(index)) { CollectionRow(host, source, index, appearance, row) } }
+273              }
+274          }
+275          if (scrollbar && scrolling) Box(Modifier.matchParentSize()) { CollectionScrollbar(state, Modifier.align(Alignment.CenterEnd).fillMaxHeight()) }
+276      }
+277  }
+next: atlas_read {"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt:207:17@165e628f"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt:207:17@165e628f"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[0] {"name":"CellsPolicy"}
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt · private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private val geometry: () -> ColumnGeometry, private val scroll: ScrollState, private val band: Int, private val row: Int, privat · 1849 of 1849 characters · rev:5d1da91886d8
+422  private class CellsPolicy<T>(private val columns: List<TableColumn<T>>, private val geometry: () -> ColumnGeometry,
+423      private val scroll: ScrollState, private val band: Int, private val row: Int, private val record: (TableColumn<T>, Float) -> Unit, private val visible: List<Int>) : MultiContentMeasurePolicy {
+424      override fun MeasureScope.measure(measurables: List<List<Measurable>>, constraints: Constraints): MeasureResult {
+425          visible.forEachIndexed { index, columnIndex ->
+426              val column = columns[columnIndex]
+427              val content = column.width as? ColumnWidth.Content
+428              if (content != null && row < content.sample) record(column,
+429                  (measurables[index].maxOfOrNull { it.maxIntrinsicWidth(Constraints.Infinity) } ?: 0).toDp().value + 2 * column.cellPadding.value)
+430          }
+431          val shape = geometry()
+432          val insets = IntArray(visible.size) { columns[visible[it]].cellPadding.roundToPx() }
+433          val rooms = IntArray(visible.size) { (shape.spans[visible[it]] - 2 * insets[it]).coerceAtLeast(0) }
+434          val placeables = measurables.mapIndexed { index, cell -> cell.map { it.measure(Constraints(0, rooms[index], 0, constraints.maxHeight)) } }
+435          val height = if (constraints.hasBoundedHeight) constraints.maxHeight else (placeables.maxOfOrNull { cell -> cell.maxOfOrNull { it.height } ?: 0 } ?: 0).coerceAtLeast(constraints.minHeight)
+436          return layout(constraints.maxWidth, height) {
+437              placeables.forEachIndexed { index, cell ->
+438                  val align = columns[visible[index]].cellAlign
+439                  cell.forEach { it.placeRelative(shape.offsets[visible[index]] - (if (band == 0) scroll.value else 0) + insets[index] + align.align(it.width, rooms[index], LayoutDirection.Ltr), Alignment.CenterVertically.align(it.height, height)) }
+440              }
+441          }
+442      }
+443  }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt:421:14@91f6f745"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[1] {"name":"ColumnBands"}
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt · @Composable private fun ColumnBands(geometry: () -> ColumnGeometry, scroll: ScrollState, modifier: Modifier, content: @Composable (Int) -> Unit) · 1041 of 1041 characters · rev:5d1da91886d8
+345  @Composable
+346  private fun ColumnBands(geometry: () -> ColumnGeometry, scroll: ScrollState, modifier: Modifier, content: @Composable (Int) -> Unit) {
+347      val bands = geometry().bands.indices.filter { geometry().bands[it].isNotEmpty() }
+348      Layout(content = { bands.forEach { band -> Box(Modifier.clipToBounds(), propagateMinConstraints = true) { content(band) } } }, modifier = modifier) { measurables, constraints ->
+349          val shape = geometry()
+350          val placeables = measurables.mapIndexed { index, measurable ->
+351              val band = bands[index]
+352              measurable.measure(constraints.copy(minWidth = shape.rooms[band], maxWidth = shape.rooms[band]))
+353          }
+354          val height = constraints.constrainHeight(placeables.maxOfOrNull { it.height } ?: 0)
+355          layout(constraints.constrainWidth(shape.spans.sum()), height) {
+356              placeables.forEachIndexed { index, placeable -> placeable.placeRelative(scroll.value + shape.edges[bands[index]], Alignment.CenterVertically.align(placeable.height, height)) }
+357          }
+358      }
+359  }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt:345:12@91f6f745"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[2] {"name":"CollectionScrollbar"}
+error: CollectionScrollbar names 5 declarations: CollectionScrollbar at ../reaktor/reaktor-surface-compose/src/androidMain/kotlin/dev/shibasis/reaktor/surface/compose/Scrollbar.android.kt:9:21; CollectionScrollbar at ../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Scrollbar.kt:24:21; CollectionScrollbar at ../reaktor/reaktor-surface-compose/src/iosMain/kotlin/dev/shibasis/reaktor/surface/compose/Scrollbar.ios.kt:15:21; CollectionScrollbar at ../reaktor/reaktor-surface-compose/src/jsMain/kotlin/dev/shibasis/reaktor/surface/compose/Scrollbar.js.kt:15:21; CollectionScrollbar at ../reaktor/reaktor-surface-compose/src/jvmMain/kotlin/dev/shibasis/reaktor/surface/compose/Scrollbar.jvm.kt:15:21. Pass at, kind or path to pick one.

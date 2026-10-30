@@ -1,17 +1,12 @@
 # Kernel, CLI, MCP and Hangar: handoff to Codex
 
-Written on 15 October 2026 for Codex. Not published.
+## Current qualification — 29 October2026,15:10IST
 
-**Start condition.** Start after dependeasy WP11–WP18 in `dependeasy-handoff.md` are committed and its status table says so. There are two exceptions:
-- **§3 applies to WP12 and WP13 now.** It raises the target for the root build scripts. `dependeasy-api.md` §4.4 points here. Read §3 before starting WP12.
-- **K0 can start as soon as WP11 is committed**, if the owner agrees (decision D2). It lands work that is uncommitted and at risk today.
+Checked telemetry adapter installed in both CLIs; standard graceful owner upgradePID35565, kerneld103c6eee6b5 unchanged. ClickHouse aggregate-alias rejection fixed;250toolingPASS1declaredskip/57freshsuites. Actual owner backendreceipt run-1793264144189-1 verifies a retained BestBudswebCLIENTsessionRefresh→directSERVERsessionRefresh journey asImported with exact application/install/session/build/graph identities. Configured user-initiated Claude/Codexsuperadmin works; no sign-in prompt/authority change. VisualHangar pane/devicepush/producerack/crashdelivery remain separate. Execution56.59s/publicationqueue930.37s separated.
 
-**Documents.**
-- This file holds the work packages, their status and the log.
-- `reaktor-kernel-plan.md` holds the broader kernel design, written on 14 Oct. This file owns package sequencing and qualification.
-- `cli-kernel-hld.md`, refined 21 Oct, is the canonical CLI/TUI experience contract, including command grammar, discovery, typed input, output, lifecycle and interactions. It supersedes older CLI examples, including the root `build <target>` proposal. A design revision does not qualify runtime behavior.
-- `dependeasy-api.md` defines the build DSL.
-- `delivery-handoff.md` WP19–WP26 defines the deploy layer. This plan consumes its kernels and receipts and owns their CLI, MCP and Hangar faces.
+Latest sealed image run-1793262055227-301 Failed: currentkernelpasses; wheelratio1.236>1.1,PageDown1.119>1.1,engineoriginal600s after333reportedcases. Zero completedfreshengineXML; priorXMLexcluded. Noimage/digest/providerwrites. Shippingfixture513PASS11skip/boundary. Tooltip5focused+16freshJVMcases pass; earlier691enginepasses are historical. Schemas30.6%lessfunctiontime/75.6%lessallocation,110JVM/JS; wholewebpublication112byte-exactfiles/13,792B budget qualifies. Read-only preview is qualified:131plugin+26modelPASS, original2105-taskgraph retained; actual installed CLI plan and definition seal succeed458.652s wall,129.529s combined wrapper execution and162.296s recordedadmission. Preview executes no engine/kernel/PR checks; actualexecute still runs checks and rejects provider writes after failedverification. Earlier ignored-directory timeout retained; no gate/timeout relaxation. See readonly-preview-prod-retry-live-proof.json in the report. Foreign auth/unification work preserved; Pencil/.pen excluded.
+
+[Full HLD and benchmark evidence](/Users/ovd/dev/reaktor/reports/dependeasy-build-plane-hld-2026-10-28/report.md) · [Detailed diagram](/Users/ovd/dev/reaktor/reports/dependeasy-build-plane-hld-2026-10-28/hld.mmd).
 
 ## 0. Summary for the owner
 
@@ -675,16 +670,459 @@ Current cross-domain status and color HLD: `build/dependeasy/receipts/qualificat
 | K12 | Outstanding |
 | U0 | In progress 28 Oct: revised tooling HLD accepted for implementation; O1–O6/O8/O9 defaults apply. Pane-action inventory and measured baseline evidence being collected; no baseline or parity completion claimed. O7 request budgets remain for the website slice. |
 | U1 | In progress 28 Oct: five engineering contracts and 22 captured descriptors qualify through the shared graph gate and authenticated owner link. Real owner-wire checks and bounded process-local spans qualify; full native-session and source-wiring inventory acceptance remain open. |
-| U2 | In progress 28 Oct: first retained Build evidence reads qualified and committed in BestBuds 61c2cc63; three existing UI cases and desktop compilation pass. Background client startup, remaining pane actions and history-preserving store migration remain open. O1 requires the background owner only, superseding D3. |
+| U2 | In progress 29 Oct: Build evidence, model and inventory reads are qualified and pushed. Testing's owner-backed verification catalog is qualified and pushed as BestBuds c78dfdf5; the focused run passes34 engine cases and desktop compilation. Typed Agent Atlas wiring is qualified and pushed as BestBuds406a5afc; the final44-case engine run and desktop compilation pass. Background client startup, remaining pane actions and history-preserving store migration remain open. O1 requires the background owner only, superseding D3. |
 | U3 | Outstanding; service socket streams and listener migration under O4. |
 | U4 | Outstanding; headless domain slices in the revised HLD order. |
 | U5 | Outstanding; persistent update actor and separately supervised update host. |
 | U6 | Outstanding; shared retained admission after the useful owner/update path. |
 | U7 | In progress 28 Oct, owner priority: admin browser → fixed local Reaktor+ service. Both website UIs pass real HTTPS/local-service/model qualification, with Docs revision/citations. A normal supervised upgrade without --plus preserves discovery and replays the saved Docs answer with zero model calls. Scoped product context and typed intelligence contracts remain open. |
 | U8 | Outstanding; real hosted qualification after U7. |
+| U9 | Planned 29 Oct, owner requested: a bound Node sidecar owned once by the elected background JVM, private gRPC behind typed domain ports, immutable runtime bundle and isolated heavy workers. TypeScript indexing first; Radar lifetime moves to the owner, then individual Lighthouse/SDK adapters. Website publication keeps priority. No sidecar implementation or lifecycle qualification is claimed. HLD §3.9 and U9 define acceptance. |
 
 25 Oct current qualification: phone connect is complete (iOS XCTest hierarchy1.814s, Android UI round trip1.511s). The canonical BestBuds owner is reachable with Hangar open; the earlier owner-lock blocker is historical. The newest installed CLI still needs its matching model decoder build. Three additional root-only readers now consume the existing graph snapshot provider; compilation/runtime qualification is queued. Browser67/67 and retained-output boundary38/38, notification4/4 and appBrowser32/32 are scoped commits. Chat PostgreSQL and four Worker coverage gaps remain. The exact19 remaining checkpoint definitions are in `full-status.json` → `remainingCheckpoints`; no full K1/K3/K4 or program completion is claimed.
 
+
+### 8.1 Pane-action parity ledger — partial, 29 October 2026
+
+This inventory covers Testing, three Agent Atlas workflows, AI, Build-owned controls, bounded UI source-authoring and Graph main-view/authoring workflows, Cloud shell/resources/Work inspection, Analytics shell controls, Auth shell/state, Telemetry shell actions and Data entry-surface controls. It is not the complete thirteen-mode U0 ledger. Definitions were read through Atlas at TestingPane `594f2ea351f7`, TestingCoverage `19153d3c5189`, TestingInspector `0113e288370c`, and TestingState `7b3a6497a2cb`. Agent Atlas wiring is qualified and pushed as BestBuds406a5afc; its three real-owner UI cases pass in the44-case final run. A row is not closed by a catalog entry alone.
+
+The profiles below supply the owner, GUI dependency, contract, effect, principal, scope, freshness, run behavior and provider fields for each action row. Each row supplies its definition and concrete input/output. Equivalent inspector and table controls name the same workflow; distinct operational choices have separate rows.
+
+| Profile | Current backend and GUI dependency | Operation and target contract | Effect, principal and scope | Freshness, run and providers | Evidence / disposition |
+|---|---|---|---|---|---|
+| C | TestingState.read → BuildDeliveryModel.read through a graph port; production desktop still has an embedded kernel | `build.model`, `KernelApi.invoke`; eventual BuildApi model | ReadOnly; trusted `hangar`; canonical workspace and collection | Bounded nodes/edges, fixed collection metadata, stale/partial declarations explicit; no Gradle; owner contract transport | TestingOwnerModelTest passes with actual owner disconnect/reconnect; BestBuds c78dfdf5. Contract wiring exposed; production startup cutover remains open |
+| R | CheckReports, TestHistory and TestingState aggregation run in desktop | No owner operation for the complete report/history projection; ChecksApi extension needed | Local reads plus existing local history write; desktop operator; workspace/check | Report timestamps, parser omissions and retained outcomes; no new run; local result files | Existing Testing suites, first focused run28/29; extraction needed |
+| S | HarnessSessions / WorkingTree / ChangeChecks run in desktop | `checks.affected` is related but is not a substitute for the complete pane projection; ChecksApi extension needed | ReadOnly; desktop operator; workspace/build/session | Explicit unreadable Git/session evidence; no run; Git, session files and process reader | TestingState.choose/changesOf; extraction needed |
+| E | TestingState.run/rerun calls OperationalControlPlane directly | Future owner check launch carrying exact selected Gradle/test/flow scope; existing ChecksApi.run is not API-equivalent | Route.Local→LocalArtifactWrite, Device→DeviceWrite, Dev→NonProductionWrite, Production→ProductionReversibleWrite; operator authority and existing plan policy | Returns admitted run or pending reviewed plan; configured build router, physical phones for device work | Existing Testing execution fixtures; extraction needed |
+| V | Existing operational snapshot and drawer callbacks | `run.list/show/logs/cancel`, RunsApi; retry remains an existing reviewed launch | Reads ReadOnly, cancel LocalEphemeral, retry original effect; operator/run/workspace | Snapshot/report timestamps and explicit active/terminal state; cancel/retry observes resulting run; owner/control-plane and drawer provider | Canonical cancellation previously qualified; Testing inputs/callbacks still require owner migration |
+| P | TestingState / pane navigation only | No remote operation required | LocalEphemeral presentation; window operator; current pane/selection | Derived from displayed evidence; no run; Surface/MachineSignal | Desktop-only; existing Testing UI checks |
+| D | Desktop seams, source lookup or cross-pane navigation | No remote window/clipboard operation; source resolution can later use AtlasApi.read | Local desktop action; window operator; selected source/artifact | Uses selected path and available file; no operational run; IDE, OS browser/files, clipboard or target pane | Desktop-only; existing UI checks |
+| A | Typed AtlasApi consumed by DesktopPaneNode and Agent views; production provider remains embedded until startup cutover | `atlas.query/read/graph`, AtlasApi | ReadOnly; trusted `hangar` plus fresh request UUID; workspace/declaration or graph revision | Existing strength/partial/omission metadata; bounded graph pages and revision restarts; no mutation; code provider | Actual OwnerKernel-backed AgentPaneRenderTest query/source/code-graph cases pass; BestBuds406a5afc. Production startup cutover remains open |
+
+| Action | Definition / visible control | Input → output | Profile |
+|---|---|---|---|
+| T01 | TestingPane / refresh | Workspace → verification catalog and read error | C |
+| T02 | TestingPane / automatic open or finished-run refresh | Workspace and latest finished run → report/status/history projection | R |
+| T03 | SourcePicker / Working tree | Workspace → changed files and affected checks | S |
+| T04 | SourcePicker / agent session | Session key → session-edited files and affected checks | S |
+| T05 | ChangesView / Run edited | Edited check set → admitted run or reviewed plan | E |
+| T06 | ChangesView / With users | Edited plus user check set → admitted run or reviewed plan | E |
+| T07 | ChangesView / Flows | Flow check set → admitted run or reviewed plan | E |
+| T08 | ChangesView / activate or Run this check | One affected CheckSpec → admitted run or reviewed plan | E |
+| T09 | ChangesView / Show in Checks | Check id → selected check and Checks view | P |
+| T10 | ChangesView / changed-file activation | File path → IDE source | D |
+| T11 | ChecksView / query | Search terms → filtered displayed checks | P |
+| T12 | FamilyPicker / kind | CheckFamily or all → filtered displayed checks | P |
+| T13 | ChecksView / status | CheckStatus or all → filtered displayed checks | P |
+| T14 | ChecksView / expand or collapse | Tree path → expanded paths | P |
+| T15 | checkActions and CheckInspector / Run | CheckSpec → admitted run or reviewed plan | E |
+| T16 | checkActions and CheckInspector / Rerun failing tests | Check and failed cases → exact plain test filters or Hangar flow ids, otherwise whole check | E |
+| T17 | checkActions and CheckInspector / Last run | Retained run id → drawer evidence | V |
+| T18 | ChecksView and CheckInspector / Show in Coverage | Check domains/aspects → Coverage focus | P |
+| T19 | CoverageGrid / aspect | Aspect → focused checks | P |
+| T20 | CoverageGrid / domain | Domain → focused checks | P |
+| T21 | CoverageGrid.Cell / domain-aspect cell | Domain and aspect → focused checks | P |
+| T22 | CoverageView / Show unclassified | Unclassified focus → checks without domain/aspect | P |
+| T23 | CoverageView / Every check | Clear focus → all checks | P |
+| T24 | CoverageView / Run focus | Runnable focused checks → admitted run or reviewed plan | E |
+| T25 | CoverageView / Show in Checks | Check id → selected check and Checks view | P |
+| T26 | CoverageView and CheckInspector / Show in build graph | Check id → Build graph selection | D |
+| T27 | Coverage Gap / Open DevTools audits | Domain/aspect gap → DevTools audits | D |
+| T28 | FailuresView / search | Case/class/check/message terms → displayed failing tests | P |
+| T29 | FailuresView and CaseInspector / Open source | TestCase source or symbol → resolved file/line in IDE | D |
+| T30 | FailuresView and CaseInspector / Rerun this test | One failed case → exact filter or whole check | E |
+| T31 | FailuresView / Rerun failing tests of check | Report failures → exact filters or flow ids | E |
+| T32 | FailuresView / Run whole check | CheckSpec → admitted run or reviewed plan | E |
+| T33 | FailuresView and CaseInspector / Copy failure | Case key and detail/message → clipboard | D |
+| T34 | FailuresView and CaseInspector / Show check | Check id → selected check inspector | P |
+| T35 | RunsView and RunInspector / Open drawer | Run id → retained/current run evidence | V |
+| T36 | RunsView and RunInspector / Cancel | Active run id → cancellation request and observed outcome | V |
+| T37 | RunsView and RunInspector / Run again | Retained run → retry admission or reviewed plan | V |
+| T38 | CheckInspector / Open report | HTML report path → OS browser | D |
+| T39 | CheckInspector / Show files | Existing result directory → OS file viewer | D |
+| T40 | CheckInspector / select failing case | Case key → case inspector | P |
+| T41 | CheckInspector / select leaf or parent | Check id → check inspector | P |
+| T42 | CheckInspector / Declared at | Declaration file/line → IDE | D |
+| T43 | CaseInspector / Open screenshot | Existing attachment file → OS viewer | D |
+| T44 | RunInspector / error source | Diagnostic file/line → IDE | D |
+| T45 | TestingViews / change view | View id → Changes/Coverage/Checks/Failures/Runs | P |
+| T46 | TestingPane and tables / select or clear | Check/case/run subject → inspector selection | P |
+| T47 | TestingPane / Show inspector | Inspector visibility → pane layout | P |
+| T48 | TestingPane / Show build model | Existing build/dependeasy directory → OS file viewer | D |
+| A01 | AgentAtlasView / ask and follow query | AtlasQuery → AtlasAnswer with evidence strength and next actions | A |
+| A02 | AgentAtlasView and AtlasItemDetail / open result or next source | AtlasRead → AtlasSource, partial source and next actions | A |
+| A03 | AgentCodeGraphView / open or refresh graph | AtlasGraphRequest page/revision → assembled graph, counts and omissions | A |
+
+AI definitions were read through Atlas on29 October: AiPane/AiView `3b45969d29f6`, AiPaneState `5f8520a9c35f`, AiGateway `dd18c62dc870`, AiModels `16b40db349e9`, AiBots `1a349ef31159`, AiInspector `cbee68d43a90`, source-only views `775c91201500`, and OperationalControlPlane.requestCloudflareAi `d47eeb083184`. This inventory does not qualify a headless AI contract. The existing question-only `inference.ask` uses Antigravity and is not a substitute for account administration or a selected Cloudflare model trial.
+
+| Profile | Current backend and GUI dependency | Operation and target contract | Effect, principal and scope | Freshness, run and providers | Evidence / disposition |
+|---|---|---|---|---|---|
+| AI-I | AiPaneState.readRepository → WorkspaceRepositories/AiInventory and bounded notebook walk in desktop | Owner inventory projection needed; scoped AI source facts through IntelligenceApi, cloud resources through CloudApi | ReadOnly source observation; trusted Hangar operator; canonical workspace/repositories | Source declarations, not deployed/installed evidence; explicit inventory failures; no operational run; repository files | Atlas source inventory only; extraction needed |
+| AI-R | AiView.request → embedded OperationalControlPlane.requestCloudflareAi → CloudflareAiCall | No API-equivalent typed contract yet; CloudApi account inventory/log reads | Existing LiveRead; trusted operator; configured workspace/account and optional gateway | Read is a recorded operational run; latest result/error/read time retained; Cloudflare account, credential, network and existing executor | Read/catalog/usage/gateway-traffic and logs are distinct actions; extraction needed |
+| AI-M | TryPanel → same embedded requestCloudflareAi complete path | IntelligenceApi model trial needed; question-only inference.ask cannot preserve model/system/gateway inputs | Existing task advertises LiveRead despite a billed call; migration must retain truthful paid-call admission and UUID receipts, never silently replay an unknown result | Run and captured completion/error; selected Workers AI model and optional gateway; Cloudflare credential/network | No headless equivalence qualified; extraction needed |
+| AI-G | CreateGateway → same embedded control plane, create-gateway | CloudApi reviewed account mutation needed | ProductionReversibleWrite; trusted operator and existing exact-plan policy; configured account/gateway | Pending plan or admitted run, existing gate/receipt; Cloudflare gateway credential | Existing gateway creation is not inference; extraction needed |
+| AI-P | AiPaneState, table/list and BlueprintCanvas controls | No remote operation required | LocalEphemeral presentation; window operator; current pane/selection | Derives only from displayed source/live evidence; no run; Surface/MachineSignal | Desktop-only |
+| AI-D | Desktop IDE, clipboard and external browser seams | No remote window operation; source resolution may use AtlasApi | Local desktop action; window operator; selected source/URL | Existing source/config location or external URL; no run; OS/IDE/browser/clipboard | Desktop-only |
+
+| Action | Definition / visible control | Input → output | Profile |
+|---|---|---|---|
+| AI01 | AiPane / open or repository refresh | Workspace → bots, workers, model/store/table declarations, on-device references and notebooks | AI-I |
+| AI02 | AiPane / Refresh | Account → catalog, week of model usage, gateway list and traffic, plus source inventory refresh | AI-R + AI-I |
+| AI03 | Logs / Read | Selected gateway → newest request logs and read time/error | AI-R |
+| AI04 | CreateGateway / Create | Missing declared gateway → exact pending plan or creation run | AI-G |
+| AI05 | TryPanel / Run or prompt submit | Model, optional gateway/system and prompt → billed run/completion/error | AI-M |
+| AI06 | AiModelsView / task, used, tools and search filters | Display filters → model rows | AI-P |
+| AI07 | AiModelsView and ModelDetail / Try this model | Text-generation model → selected trial model and Models view | AI-P |
+| AI08 | TryPanel / model, system, prompt and gateway editing | Text and route selection → local trial inputs | AI-P |
+| AI09 | AiHeader / view, bot scope and dismiss error | View/bot/error key → filtered display or dismissed local error | AI-P |
+| AI10 | AiBotsView / choose or clear bot | Bot identity → scoped workers/map/findings and inspector | AI-P |
+| AI11 | AiFindingList / choose or activate | Finding → selected subject, with Gateway navigation when applicable | AI-P |
+| AI12 | BotMap / card, pin, link or background | Graph subject → selection/port/highlight | AI-P |
+| AI13 | BlueprintCamera / Fit or Centre | Displayed layout/selection → canvas camera | AI-P |
+| AI14 | AiGatewayView and Traffic / select or clear | Gateway/traffic identity → logs target and inspector | AI-P |
+| AI15 | Logs / select or clear request | Request identity → local selection | AI-P |
+| AI16 | AiWorkersView, AiOnDeviceView and AiDataView / select or clear | Declared worker/model/store → inspector | AI-P |
+| AI17 | AiPane / clear, Show inspector and layout | Selection/layout → local pane presentation | AI-P |
+| AI18 | AiWorkersView / activate or Open in IDE | Worker config → IDE source | AI-D |
+| AI19 | AiOnDeviceView / activate or Open in IDE | Declared model reference → IDE source; no device model installation | AI-D |
+| AI20 | WorkerDetail / activate model use or Open in IDE | Source model use → IDE file/line | AI-D |
+| AI21 | Bot/finding/worker/model-use row actions / Copy | Selected source/display facts → clipboard | AI-D |
+| AI22 | TokenSetup / Open API Tokens | Fixed Cloudflare profile URL → browser; credential entry remains local | AI-D |
+| AI23 | AiNotebooksView / empty-state Open Google Colab | Fixed external URL → browser; existing notebook rows have no open action | AI-D |
+| AI24 | GatewayDetail / Open the Gateway view | Selected gateway → Gateway view | AI-P |
+
+Workers' live metrics consume a retained Cloud inventory result and do not initiate a new read from the AI pane. Data views show source bindings/table uses, not live database contents; Manna TypeScript SQL is not scanned. On-device references do not prove an installed model or working device runtime. Source inventory, account reads, paid trials and gateway mutations remain separate extraction requirements.
+
+Build-owned controls were read through Atlas at BuildPane `289a9f3c5b1f`, BuildTargets/StoryRow/BuildTargetDetail/BuildTargetDefinition `dd96416eb4fa`, BuildGraphPane `85b2f5fcceb9`, BuildInspection `7e10d2d41004`, LiveDeploys/DeployResourceInspector `00cefae13091` and OperationalSubjectInspector `a6cbafce5dea`. The following39 actions cover those definitions. Shared AppGraphPane controls and the operational Catalog/drawer remain separate incomplete inventory; this is not full Build parity.
+
+| Profile | Current backend and GUI dependency | Operation and target contract | Effect, principal and scope | Freshness, run and providers | Evidence / disposition |
+|---|---|---|---|---|---|
+| B-M | BuildDeliveryModel through typed KernelApi graph port; production provider remains embedded | build.model; future BuildApi projection | ReadOnly; authenticated hangar; canonical workspace/collection | Complete bounded topology or explicit stale/partial facts; no Gradle | Actual owner paging, disconnect/reconnect and no-file-fallback qualified in06147a2d/3fc44b7d |
+| B-R | BuildTargets and BuildInspection use graph-provided legacy KernelLink | build.story/show/receipts and operation.describe; future BuildApi/KernelApi | ReadOnly; hangar caller; selected node/run/collection | Retained plan/receipt observations carry stale truth and timestamps; paged continuation; no configuration | Retained read slice61c2cc63 qualified; typed migration remains open |
+| B-E | BuildInspection invokes legacy build.plan/run; reviewed/deploy path uses embedded OperationalControlPlane.requestRun | Future BuildApi preserving exact input schema, sealed plan and admission | Plan LocalArtifactWrite; execution retains declared task effect; operator/workspace/environment/node | Planning may configure Gradle; model must be current and complete; admitted run or pending review; build router/provider | Existing exact-plan UI case qualified; changed-input approval drawer cannot carry arbitrary inputs yet, explicitly disabled |
+| B-S | Embedded operational snapshots supply artifacts, run ledger and task availability | Owner snapshot plus RunsApi/BuildApi projection needed | ReadOnly observations; hangar; workspace/environment | Retained results are not current deployment health; existing snapshot refresh lifecycle | Extraction remains open; no claim that model read migrates snapshot/history ownership |
+| B-L | LocalSystemLinks and system.readCloud use embedded cloud state/executor | CloudApi inventory needed; cross-pane selection stays local | Existing LiveRead operational run; configured account/cluster/environment | Manual provider read; last-read timestamp/error; source-only resources remain source facts | Extraction remains open; no new read on table selection |
+| B-P | BuildTargetsState/AppGraphState/navigation/table controls | No remote operation | LocalEphemeral presentation; window selection | Derives only from displayed evidence; no operational run | Desktop-only |
+| B-D | Desktop seams and cross-pane verbs | No remote window operation | Local desktop action; selected path/target/run | Current selected file/line, or retained run reference; IDE/OS/other pane | Desktop-only; source lookup can use AtlasApi |
+
+| Action | Definition / visible control | Input → output | Profile |
+|---|---|---|---|
+| B01 | BuildTargets / open or Refresh | Workspace → model, bounded story and read status | B-M + B-R |
+| B02 | BuildTargets / build or All builds | Build identity → filtered target list | B-P |
+| B03 | BuildTargets / target group | Group → filtered targets | B-P |
+| B04 | BuildTargets / search | Query → matching targets | B-P |
+| B05 | BuildTargets / select, clear or Back | Node id → detail/compact layout | B-P |
+| B06 | StoryRow / activate | Top-level node → selected target | B-P |
+| B07 | BuildTargetDetail / Definition, Plan & run, Evidence | Section → visible detail | B-P |
+| B08 | BuildTargetDetail / Open declaration | SourceSite → IDE file/line | B-D |
+| B09 | BuildTargetDetail / Open kernel | Kernel source or class → IDE | B-D |
+| B10 | BuildTargetDetail / View graph | Node id → Build graph reveal | B-P |
+| B11 | BuildTargetDefinition / dependency | Edge destination → selected target | B-P |
+| B12 | BuildInspection / open or refresh schema/evidence | Node/run/offset → declared inputs and retained plans/receipts | B-R |
+| B13 | BuildInspection / producer kernel | Provider source/class → IDE | B-D |
+| B14 | BuildInspection / Previous or More producers | Offset → ten local provider rows | B-P |
+| B15 | BuildInspection / input edit | Typed input text → validated arguments, clears prepared plan | B-P |
+| B16 | BuildInspection / Request execution plan | Valid arguments/current model → exact PendingOperationalPlan | B-E |
+| B17 | BuildInspection / Run target or Review & run | Prepared plan → admission or shared review drawer | B-E |
+| B18 | BuildInspection / plan task link | Task identity → corresponding graph selection | B-P |
+| B19 | BuildInspection / Previous or More tasks | Offset → ten sealed-plan tasks | B-P |
+| B20 | BuildInspection / Open delivery run | Retained receipt run → run drawer | B-D |
+| B21 | BuildInspection / Previous or More delivery receipts | Node/collection/offset → retained delivery page | B-R |
+| B22 | BuildInspection / latest operational run | Run id → drawer/plane selection | B-D |
+| B23 | BuildInspection / Open receipt | Returned receipt path → IDE | B-D |
+| B24 | BuildInspection / Previous or More observations | Node/run/offset → recorded task outcomes | B-R |
+| B25 | BuildGraphPane / open or Refresh | Workspace → owner model and graph | B-M |
+| B26 | BuildPaneTabs / change view | View id → targets/graph/artifacts/runs/operations/live | B-P |
+| B27 | Build artifacts / open | Snapshot → retained resource rows and evidence | B-S |
+| B28 | Build artifacts / select or clear | Artifact subject → existing evidence inspector | B-P |
+| B29 | Build runs / open | Snapshot → retained run ledger | B-S |
+| B30 | Build runs / select | Run id → existing drawer | B-D |
+| B31 | Build operations / open | Snapshot/task availability → Catalog | B-S |
+| B32 | Build live / Refresh | Account/cluster/environment → admitted cloud inventory run | B-L |
+| B33 | LiveDeploys / select or clear Worker/workload | Resource id → deployment inspector | B-P |
+| B34 | LiveDeploys / activate or Open in Compute | Resource id → Cloud selection | B-D |
+| B35 | DeployResourceInspector / Open in Compute | Inspected resource → Cloud selection | B-D |
+| B36 | Build live / Show inspector | Layout → revealed evidence inspector | B-P |
+| B37 | Build artifact/live inspectors / layout | Inspector preferences → local layout | B-P |
+| B38 | LiveDeploys / sort table | Column key → displayed Worker/workload order | B-P |
+| B39 | Build artifacts / search | Search terms → matching retained resources | B-P |
+
+The UI source-authoring slice below was read through Atlas on29 October: UiComponents `7bdaab47a354`, UiWords/WordEditor/WordChanges `faad1674a0bb`, UiSizes and its use/value/token editors `93c6eb65fc7c`, PendingReview `d519737a4fc5`, UiAccessibility `d8cddaef960a`, UiResponsive `9ebd71140ba1` and UiStoryboard `4a7a464e8e4d`. Child canvas, component-detail, navigation, design-system and fallback fixture controls remain unenumerated. The source-editing actions belong to the HLD's StudioApi extraction, even though their current visible mode is UI. No headless contract parity is claimed.
+
+| Profile | Current backend and GUI dependency | Operation and target contract | Effect, principal and scope | Freshness, run and providers | Evidence / disposition |
+|---|---|---|---|---|---|
+| UI-R | UiComponents/Words/Sizes and PendingReview → desktop StudioCodebase/SourceIndex and word/size/design planners | No equivalent served operation yet; StudioApi authored reads/proposals with ChangesApi application | ReadOnly source read/plan; trusted operator; selected workspace, app runner source set and exact declaration | Source-derived, not deployed evidence; read generation, planner errors and changed drafts matter; local repository/compiler; no operational run | Source inventory only; extraction needed |
+| UI-E | Studio word/size/design draft state, validation and undo stacks in engine | Draft/editor state remains local; resulting authored proposals feed StudioApi/ChangesApi | LocalEphemeral draft mutation; window operator; selected app/source and draft revision | Live preview of a pending edit, not a source write or deployment; validation and interpolation/token constraints retained; no run | Desktop-only draft interaction; owner proposal generation still needed |
+| UI-W | rememberPlannedWrite / PendingReview → CodeWorkspace.apply(change, fingerprint); undo → retained plan revert | SourceWrite through exact reviewed ChangesApi path; no current pane-equivalent owner call | SourceWrite including Undo write; trusted operator; canonical workspace and exact file content | Must retain fingerprint/source checks, real changed files, error and receipt. Write all plans Studio, design, words, sizes sequentially on the preceding result; partial failure is explicitly reported, not atomic | Current direct desktop source mutation; extraction needed; no gate bypass implied |
+| UI-V | Studio mock app runner, replayable component instances and navigation previews inside desktop | No remote render required; semantic source/route inventory may be StudioApi, selection through HangarApi | LocalEphemeral preview activation; window operator; selected app/run generation | Mock/replay previews are not physical-device or production evidence; Compose/window provider; no kernel execution receipt | Desktop-only rendering; semantic read extraction open |
+| UI-P | SurfaceLabState, selection, filters, local list/tree expansion and input buffers | No owner operation required | LocalEphemeral presentation; window operator; current pane | Existing source/preview evidence only; no run/provider request | Desktop-only |
+| UI-D | Desktop seams and explicit Studio/evidence navigation | HangarApi selection where remote inspection is useful; IDE stays desktop | Local desktop action; window operator; exact source/selection | Existing source path/line or captured evidence; no cloud mutation; IDE/window provider | Desktop-only |
+| UI-A | UiAccessibility callback → existing focused device audit capture | DevicesApi audit/read required; opening retained evidence is UI-D | LiveRead for explicit device capture; trusted operator; focused device/application keys | Captured timestamp, metrics and findings retained; absence means no capture. Device transport and configured physical device required | Existing callback is not headless parity; extraction needed |
+
+| Action | Definition / visible control | Input → output | Profile |
+|---|---|---|---|
+| UI01 | UiComponents / open | App/workspace/source set → source component library and preview runner | UI-R + UI-V |
+| UI02 | UiComponents / filter or Enter | Name/folder query → matching components/first selection | UI-P |
+| UI03 | UiComponents / view choice | Levels/index choice → local presentation | UI-P |
+| UI04 | UiComponents / select component or level | Component/level key → selection, trail and expanded level | UI-P |
+| UI05 | UiComponents / preview width | Width key → replay viewport | UI-V |
+| UI06 | UiComponents / Edit in Studio | Seen component or route → Studio selection/open mock route | UI-V + UI-D |
+| UI07 | UiComponents / Show code | Component file/line → IDE | UI-D |
+| UI08 | UiWords / open or Read again | Workspace/app sources → literal words, interpolation constraints and errors | UI-R |
+| UI09 | UiWords / find | Words/file query → filtered rows | UI-P |
+| UI10 | UiWords / shown choice | Word-kind choice → seen/everything/tidy rows | UI-P |
+| UI11 | WordList or WordChanges / select | Word id → editor selection | UI-P |
+| UI12 | WordEditor / edit text | Text → validated local buffer | UI-P |
+| UI13 | WordEditor / Apply | Valid text + word id → pending word edit | UI-E |
+| UI14 | WordEditor / Change all | Same literal/interpolation shape + text → multiple pending edits | UI-E |
+| UI15 | WordEditor / Tidy | One suggested fix → pending edit | UI-E |
+| UI16 | UiWords / Tidy matching | Current tidy matches → pending edits | UI-E |
+| UI17 | UiWords / open or close Replace | Replacement UI state → local editor visibility | UI-P |
+| UI18 | UiWords / Replace | Search + replacement → matching pending word edits | UI-E |
+| UI19 | WordEditor/WordChanges / Reset or Revert | Word id → remove its pending edit | UI-E |
+| UI20 | UiWords / Undo | Draft undo stack → prior word draft | UI-E |
+| UI21 | UiWords / Redo | Draft redo stack → later word draft | UI-E |
+| UI22 | UiWords / Discard every edit | Word draft → empty draft | UI-E |
+| UI23 | UiWords / Write to code | Current ready word plan → exact file writes/result | UI-W |
+| UI24 | UiWords / Undo write | Retained last write → source reversion/result | UI-W |
+| UI25 | WordEditor / Show in Studio | Word source spot → Studio focus | UI-D |
+| UI26 | WordEditor / Open code | Word file/line → IDE | UI-D |
+| UI27 | UiSizes / open or Read again | Workspace/app source set → size index, holders and token uses | UI-R |
+| UI28 | UiSizes / find | Number/call/file query → filtered sizes/tokens | UI-P |
+| UI29 | UiSizes / shown choice | Size-kind/token/tidy/tokenize choice → local rows | UI-P |
+| UI30 | SizeScale/TokenScale/SizeChanges / select or expand | Size/token/use key → selection and expansion | UI-P |
+| UI31 | SizeField / type or increment/decrement | Numeric buffer → candidate value | UI-P |
+| UI32 | UseEditor / Apply | Valid value + one use → pending size edit | UI-E |
+| UI33 | UseEditor/ValueEditor / Change all | Valid value + same-size group → pending edits | UI-E |
+| UI34 | ValueEditor / Snap | Suggested common value → pending group edits | UI-E |
+| UI35 | UiSizes / Tidy matching | Current snap suggestions → pending edits | UI-E |
+| UI36 | UiSizes / Use tokens matching | Exact-value token fits → pending token substitutions | UI-E |
+| UI37 | UseEditor / Use token | One compatible use + existing token → pending substitution | UI-E |
+| UI38 | ValueEditor / Use token in group | Compatible unbound group uses → pending substitutions | UI-E |
+| UI39 | MakeToken / open or cancel | Chosen value/holder → local naming form | UI-P |
+| UI40 | MakeToken / Make | Valid new name + holder/uses → pending token definition and substitutions | UI-E |
+| UI41 | TokenEditor / Change token | Valid value + definition/followers → pending token edit | UI-E |
+| UI42 | UseEditor/TokenEditor/SizeChanges / Reset or Revert | Edit or new-token id → remove pending edit | UI-E |
+| UI43 | ValueEditor / Reset group | Edited group ids → remove pending group edits | UI-E |
+| UI44 | UiSizes / Undo | Size undo stack → prior draft | UI-E |
+| UI45 | UiSizes / Redo | Size redo stack → later draft | UI-E |
+| UI46 | UiSizes / Discard every edit | Size draft → empty draft | UI-E |
+| UI47 | UiSizes / Write to code | Current ready size/token plan → exact file writes/result | UI-W |
+| UI48 | UiSizes / Undo write | Retained last write → source reversion/result | UI-W |
+| UI49 | Size editors / Show in Studio | Size source spot → Studio focus | UI-D |
+| UI50 | Size editors / Open code | Definition/use file/line → IDE | UI-D |
+| UI51 | PendingReview / open or draft change | Studio/design/word/size revisions → current plans, rows, source diffs and stale indicator | UI-R |
+| UI52 | PendingReview / review views | Review selection → local displayed changes | UI-P |
+| UI53 | PendingReview / Write all | Fresh pending plans → sequential exact writes and explicit partial failure | UI-W |
+| UI54 | PendingReview / Undo write | Sizes/words/design/Studio last writes → reverse-order source reversions/result | UI-W |
+| UI55 | PendingReview / Open Studio | Unplanned or stale Studio edits → Studio focus | UI-D |
+| UI56 | UiAccessibility / Read focused devices | Focused device/app keys → timestamped accessibility captures/findings | UI-A |
+| UI57 | UiAccessibility / Open captured evidence | Finding evidence selection → device/evidence inspector | UI-D |
+| UI58 | UiResponsive / component choice | Current replayable component → fixed-width previews | UI-V |
+| UI59 | UiStoryboard / open | App runner/run generation → mock navigation workspace | UI-V |
+
+Graph main view and authoring toolbar — bounded inventory. Sources: `GraphPaneNode` `3eba0ea589f6`, `AppGraphPane`/`MapToolbar` `197434708595`, `EditToolbar` `6fd25a89ee4d`, `AppGraphInspector` `8f945300d8b2`, `GraphSourcePane` `c6a8b1dc6161`, `SubgraphsPane` `88201f0ef56c`, `KernelSubgraphs.put` `46e2eaaaa157` and `GraphRevisionArchive` `67cd8e595f9e`. Child canvas/editor/inspector controls remain unenumerated.
+
+| Profile | Current backend and GUI dependency | Operation and target contract | Effect, principal and scope | Freshness, run and providers | Evidence / disposition |
+|---|---|---|---|---|---|
+| G-R | GraphPaneNode combines local runtime shapes, device links, owner operational observations and desktop source islands | GraphApi projection plus owner telemetry/island reads; current node consumes KernelLink and embedded KernelGraph | Mixed source/retained reads; trusted desktop operator; workspace/app/environment/trace | Shapes carry definition digests; run keys and environment refresh observations; failures remain explicit | Direct embedded subgraphs and local source reads block owner-only parity |
+| G-L | GraphPaneNode requests `telemetry.refresh` and `islands.refresh` through its current invocation port | Existing owner operations; future GraphApi projection retains their authority | LiveRead; hangar; selected environment/trace/hosts | Starts retained operational work; read failures/approvals shown; deployed server, workers and devices | Existing gate remains authoritative; do not recast a refresh as ReadOnly |
+| G-H | GraphPaneNode retains device/telemetry topology in `.reaktor/graph-revisions` | Owner graph revision projection and store migration needed | LocalArtifactWrite; workspace/application/digest | Atomic retained artifacts, size/capacity checks, explicit retention failures; telemetry validates advertised digest | Observing the graph currently writes history; extraction must preserve that effect and retained revisions |
+| G-P | AppGraphState, layout cache, inspector and canvas | Presentation state; no new owner operation | Local presentation; desktop operator; current graph and selection | Recomputes from selected graph; no operational run | Controls stay in Hangar, underlying capability reads move to ports |
+| G-E | GraphEditor in EditToolbar | Local graph draft; ChangesApi for durable changes | Local draft edits until saved; app and base graph | Undo/redo, validity, dirty/locked/applied state | Editor child commands still need enumeration |
+| G-W | ChangeSets/templates/recoveries/preferences accessed directly from toolbar | ChangesApi draft persistence/claim/history needed | LocalArtifactWrite; operator; workspace/app/draft id and revision | Saved versions, editing claims, recoveries and applied detection; no source apply in Save | One owner store must replace direct per-surface persistence |
+| G-A | Try/Apply/Describe callbacks open the Agent workflow; toolbar does not itself execute the brief | AgentsApi task dispatch after existing user initiation | Dispatch may use quota and source-write authority; actual task admission must classify its requested effect | Brief binds saved draft/base/workspace; completed draft discovered by id; no claim that a callback is a completed run | Do not infer SourceWrite execution from the Apply button alone |
+| G-S | GraphSourcePane uses WorkspaceSource and shared KotlinLanguageServer in desktop | AtlasApi exact declaration/source and intelligence projections | Source reads plus existing local language-server lifecycle; workspace/qualified name | Refresh counter, multiple exact declarations, read-only editor, explicit missing source | Typed Agent Atlas migration does not cover this separate direct source consumer |
+| G-D | IDE, clipboard and screen/navigation seams | Hangar presentation/device navigation; underlying device interaction needs DevicesApi | Local desktop interaction; selected declaration/node | No owner run for IDE/clipboard; device evidence follows its link | Keep desktop integrations outside the headless owner |
+| G-Q | SubgraphsPane calls KernelSubgraphs directly, with a local fallback | GraphApi saved-subgraph operations | LocalArtifactWrite; operator; graph id/document/expected revision | Source validation, compare revision, file lock and atomic replace; equal document replay returns retained value | Owner-only migration removes the fallback and preserves revision conflict behavior |
+
+| ID | Definition / action | Concrete input → output | Profile |
+|---|---|---|---|
+| G01 | GraphPaneNode / open and follow | Workspace/environment/source/runtime/device evidence → assembled graph reading | G-R + G-H |
+| G02 | GraphPaneNode or pane / Read again | Refresh revision → updated source/observations | G-R + G-L |
+| G03 | GraphPaneNode / Read spans | Environment/trace/window → retained telemetry request and refusal state | G-L |
+| G04 | GraphPaneNode / Read islands | Environment + observed hosts/server → retained island request and refusal state | G-L |
+| G05 | GraphPaneNode / Show trace | Trace/call/retained digest → graph source and execution selection | G-P |
+| G06 | AppGraphPane / source choice | Available source id → selected graph and compatible detail | G-P + G-R |
+| G07 | AppGraphPane / environment choice | Deployed environment → operational environment selection/read | G-P + G-L |
+| G08 | AppGraphPane / Map, Findings, Ports or Subgraphs | Tab id → selected view | G-P |
+| G09 | MapToolbar / search | Query → matching graph nodes | G-P |
+| G10 | MapToolbar / detail | Allowed detail → layout request | G-P |
+| G11 | MapToolbar / focus | Focus kind → selected path/ports and execution visibility | G-P |
+| G12 | MapToolbar / telemetry lens | Lens → structure/call/access projection; access facts read when needed | G-P + G-R |
+| G13 | MapToolbar / Outline | Toggle → outline region visibility | G-P |
+| G14 | MapToolbar / Trace or Inspect executions | Toggle → execution region visibility | G-P |
+| G15 | AppGraphPane / region resize | Outline width/trace height → local pane preferences | G-P |
+| G16 | MapToolbar / Fit | Current layout bounds → camera transform | G-P |
+| G17 | MapToolbar / Centre | Selected node/path geometry → camera transform | G-P |
+| G18 | AppGraphPane / layout Retry | Retry count → recomputed primary layout | G-P |
+| G19 | AppGraphPane / Grid layout | Grid choice → alternate layout | G-P |
+| G20 | AppGraphPane / selection and clear | Node id/null → selection, inspector and callback | G-P |
+| G21 | AppGraphInspector / Details or Source | Inspector tab → selected details/source projection | G-P + G-S |
+| G22 | AppGraphInspector / focus choice | Focus option → map view and focus | G-P |
+| G23 | AppGraphInspector / Show screen | Screen node → DevTools navigation callback | G-D |
+| G24 | GraphSourcePane / Refresh source | Exact workspace/name + refresh → matching declarations/text | G-S |
+| G25 | GraphSourcePane / declaration choice | Candidate index → read-only source editor | G-P + G-S |
+| G26 | GraphSourcePane / Open externally | Declaration file/line → IDE | G-D |
+| G27 | EditToolbar / Edit | Source shape + settled port layout → graph editor | G-E |
+| G28 | EditToolbar / Drafts or ready agent draft | Saved draft id → resumed graph editor | G-W + G-E |
+| G29 | EditToolbar / Undo | Draft undo stack → earlier local graph | G-E |
+| G30 | EditToolbar / Redo | Draft redo stack → later local graph | G-E |
+| G31 | EditToolbar / Show changes | Toggle → draft differences | G-P |
+| G32 | EditToolbar / Save | Valid unlocked dirty draft → saved change-set revision or supplied sink | G-W |
+| G33 | EditToolbar / Discard | Dirty graph → reverted local draft | G-E |
+| G34 | EditToolbar / Try with agent | Saved valid draft + trial file → Agent brief | G-A |
+| G35 | EditToolbar / Apply with agent | Saved unapplied draft/base → Agent brief | G-A |
+| G36 | EditToolbar / Describe | Ask + selected nodes/base → draft request and Agent brief | G-W + G-A |
+| G37 | EditToolbar / Agent drafting check | Awaited ids → newly retained drafts/resume or notice | G-W + G-E |
+| G38 | EditToolbar / Done | Clean editor → cleared edit/selection state | G-P |
+| G39 | EditToolbar / templates, preferences, claim and recovery lifecycle | Editor callbacks/state → retained template/preferences/claim/recovery/history | G-W |
+| G40 | SubgraphsPane / save callback | Valid document + expected revision + source → saved subgraph or conflict | G-Q |
+
+Cloud shell/resources/Work inspection and Analytics shell — bounded inventory. Sources: `CloudPane` `2b9e7b65b686`, `CloudWorkspaceState.follow` `77927c39dd0a`, `CloudResources` `8881994457c8`, `CloudWorkView`/`CloudWorkState` `55b637689dc7`, `WorkInspectionSession.read` `abffe35b6e10`, `OperationalControlPlane.requestCloudInventoryRead` `d47eeb083184`, `AnalyticsPane` `feeaeb695d0a`, `ProductScope` `309a8f41c8af`, and `ProductAnalyticsState`/`runQuery` `dbb1858dc8a6`. This does not cover deployment/formation controls, provider-specific inspectors, Work command controls, charts or SQL editor commands.
+
+| Profile | Current backend and GUI dependency | Operation and target contract | Effect, principal and scope | Freshness, run and providers | Evidence / disposition |
+|---|---|---|---|---|---|
+| C-R | CloudWorkspaceState.follow reads RepositoryDeclarations, PipelineReader, system topology and deploy-task mappings locally; deployment receipts already use invocation port | CloudApi source/inventory projection; existing owner deployment evidence | Source and retained reads; desktop operator; workspace/app/environment | Scope change clears selections/snapshot; source reads combine with retained inventory, explicit stale/partial/error truth | Build evidence migration does not migrate these independent local reads |
+| C-L | CloudPane.refresh directly invokes controlPlane.requestCloudInventoryRead | CloudApi inventory refresh; existing `cloud/session/inventory/read` task | LiveRead; trusted operator; selected environment and declared machine credentials | Bounded180s retained operational task; Cloudflare, Google Cloud, Kubernetes; source declares available providers | Must reach the existing owner gate; no new direct provider credentials in a client |
+| C-P | CloudWorkspaceState, canvas, filters, inspector and navigation | Local presentation; no new kernel operation | Local view/selection state; workspace/app/current projection | Does not create a provider run unless paired with C-L/C-W | Child-specific controls remain open |
+| C-W | CloudWorkState calls existing WorkInspectionSession endpoint subscription | CloudApi/owner projection of registered Work inspection endpoints | LiveRead/subscription; endpoint-authenticated source scope and activation | Rejects wrong activation; generation rejects late replies; partial/stale/disconnected/unsupported remain distinct; cursor comes from returned page | Environment/tenant/principal filter text selects existing authorized hosts; it does not grant authority |
+| A-L | ProductAnalyticsState.read calls supplied DatabaseReadSession factory for each generated ProductQuery | AnalyticsApi read projection using existing DatabaseApi authority | LiveRead; selected target/environment; period/platform/custom funnel steps |200 rows/query,20s query timeout and45s reply wait; generation/scope guards late replies; each table retains its timestamp/failure | Caller-supplied factory ownership and SQL child commands still need wiring inventory; no complete owner parity claimed |
+| A-P | ProductAnalyticsState selection, query and local pane layout | Local presentation; underlying query reads use A-L | Local view state; current target/table/row | Changing period/platform clears old results/selections and advances generation | SQL document is explicitly independent of dashboard filters |
+
+| ID | Definition / action | Concrete input → output | Profile |
+|---|---|---|---|
+| C01 | CloudPane / open and follow | Workspace/source declarations + operational snapshots → inventory, topology, pipeline, deploy mappings/evidence | C-R |
+| C02 | CloudPane / Read again outside Work | Current scope → reread declarations and retained provider inventory task | C-R + C-L |
+| C03 | CloudPane / tab | Resources/Work/Operations/Deploy/Pipeline/Runs/Cost id → selected body | C-P |
+| C04 | CloudPane / clear selection | Current tab subject → cleared matching selection/navigation subject | C-P |
+| C05 | CloudPane / Show inspector | Pane layout → visible inspector | C-P |
+| C06 | CloudResources / Map, List or Radar | Available view id → resource presentation | C-P |
+| C07 | CloudResources / search | Query → matching resource rows/map | C-P |
+| C08 | CloudResources / detail | Overview/Resources/Everything → map detail | C-P |
+| C09 | CloudResources / focus | Whole map/neighbours/hops/path → map focus | C-P |
+| C10 | CloudResources / Problems only | Toggle → findings-filtered resources | C-P |
+| C11 | CloudResources / platform filter | Available platform toggle → hidden-platform set | C-P |
+| C12 | CloudResources / Fold opened groups | Current expansion → collapsed groups | C-P |
+| C13 | CloudResources / initial Read prompt | Unread inventory → same provider read as C02 | C-L |
+| C14 | CloudWorkView / Refresh | Selected registered source + view/filter → Work subscription | C-W |
+| C15 | CloudWorkView / Next page | Returned next cursor → next bounded Work page | C-W |
+| C16 | CloudWorkView / environment filter | Text → visible authorized hosts | C-P |
+| C17 | CloudWorkView / application filter | Text → visible authorized hosts | C-P |
+| C18 | CloudWorkView / tenant filter | Text → visible authorized hosts | C-P |
+| C19 | CloudWorkView / principal filter | Text → visible authorized hosts | C-P |
+| C20 | CloudWorkView / host filter | Text → visible authorized hosts | C-P |
+| C21 | CloudWorkView / definition filter | Text → subscription definition filter | C-W |
+| C22 | CloudWorkView / state filter | WorkState/all → subscription state filter | C-W |
+| C23 | CloudWorkView / history Work id | Record id → history subscription filter | C-W |
+| C24 | CloudWorkView / registered host | Authorized source/activation → new source, cleared subject and subscription | C-W + C-P |
+| C25 | CloudWorkView / Work, Workflows/DAG or History | View id → corresponding inspection subscription | C-W |
+| C26 | CloudWorkView / Runs or Definitions | Workflow view → runs/definition subscription and cleared node | C-W |
+| C27 | CloudWorkView / record, run, event or definition row | Stable returned id → inspector subject and reveal | C-P |
+| C28 | CloudWorkView / stale timer | No recent update for60s → explicit stale status | C-W |
+| A01 | AnalyticsPane / open or Read again | Selected target + dashboard scope → query tables with per-table outcomes | A-L |
+| A02 | AnalyticsPane / view tab | Catalog view id → chart/table or SQL workspace | A-P |
+| A03 | ProductScope / period |7/14/30 days → reset scope/results, then read | A-P + A-L |
+| A04 | ProductScope / platform | Allowed platform → reset scope/results, then read | A-P + A-L |
+| A05 | ProductScope / clear focused day | Selected day → unfiltered local chart view | A-P |
+| A06 | AnalyticsPane / search | Event/screen/platform/version/person query → filtered current results | A-P |
+| A07 | AnalyticsPane / clear selection | Dashboard row or SQL inspected result → cleared subject | A-P |
+| A08 | AnalyticsPane / Show inspector | Pane layout → visible current inspector | A-P |
+| A09 | AnalyticsPane / SQL view | Target + supplied session factory → SQL document/results workspace | A-L + A-P |
+
+Auth shell/state and Telemetry shell — bounded inventory. Sources: `AuthPane`/`AuthConsoleBody` `80619d47ec18`, `AuthConsoleState` `cf450c4ed262` (including `bind`, `refresh`, `scope`, query/filter/detail methods, `simulate`, `inspectToken`, `write`, `saveCatalog`, declarations and keys), `TelemetryPane` `feeaeb695d0a`, and `KernelTelemetry.refresh` `4b109830808a`. These are extraction requirements, not new remotely callable pane callbacks. Child management wizards, access editing, per-provider token operations, telemetry queries and child commands remain open.
+
+| Profile | Current backend and GUI dependency | Operation and target contract | Effect, principal and scope | Freshness, run and providers | Evidence / disposition |
+|---|---|---|---|---|---|
+| H-R | AuthConsoleState reader calls AuthDirectorySession through DesktopAuthNode; scope picks Postgres target and app/tenant | AuthApi directory/session/audit/simulation reads; no owner parity yet | LiveRead of authorized directory; trusted operator; workspace/target/environment/app/tenant | Read slots keep timestamp/failure; scope generation cancels old jobs and rejects late reads; connection blocker remains explicit | Move database session and query validation into owner before exposing |
+| H-K | Local AuthDeclarations/AuthCatalogs/PermissionReferences and JWKS fetch | AuthApi source/catalog/key projection | Source reads plus network LiveRead; kernel catalog and call-log access are separate inputs | Refresh rereads declarations/catalogs/keys; issuer-specific key sets are retained; production AuthReader credentials stay in their current owner | Local source and actual issuer observations must retain separate truth |
+| H-W | AuthConsoleState.write invokes AuthWriter; saveCatalog writes FGA source and starter model | Typed AuthApi management or ChangesApi reviewed source mutation | Directory mutations require per-command production classification; catalog writes are SourceWrite; trusted operator scoped to selected app/target | Catalog save compares exact read revision before write, reloads and records source receipt; directory success refreshes and failure is shown | Every management command still needs its own effect/authority inventory; no blanket write endpoint |
+| H-P | Auth view, selection, inspector, canvas and draft inputs | Local presentation; no new kernel operation | Local view state; current scope | Opening a view can trigger H-R; selecting Access also reaches its separate state | Access graph children remain open |
+| L-R | TelemetryPane reads retained KernelTelemetry, KernelCrashes, local logs/span ledger and instrumentation plan | TelemetryApi retained reads; current direct object consumers require migration | Retained/source/local-live observations kept distinct; workspace/environment and full query scope | Retained environment mismatch is not current data; provenance includes stale/partial/unknown/failure | Application-to-service-to-Hangar proof remains the delivery priority |
+| L-L | TelemetryPane calls KernelTelemetry.refresh/refreshAnalytics or supplied database sessions | TelemetryApi refresh and bounded DataApi queries | LiveRead; existing operational gate and configured read credentials; selected environment/query | Span refresh requires matching selected environment and limit1..500; explicit failure/receipt; backend refresh runs on view/query activation | SQL is an independent document, not rewritten by dashboard filters |
+| L-P | Telemetry selection, tabs, inspector, filters and context-preserving navigation | Local presentation; selected evidence can trigger L-L or child reads | Local view state; full trace/session/application/build/installation/platform/graph/activation scope | Changing source clears incompatible subject; inspector layout retains pin semantics | Child actions and socket lifecycle remain unqualified |
+| L-U | Continuous profiles and eBPF views show NotWiredYet | No supported owner operation claimed | Unsupported producer, not empty healthy data | Profiles need receiver/agent; eBPF needs Linux-side producer | Keep explicit absence until actual producer proof |
+
+| ID | Definition / action | Concrete input → output | Profile |
+|---|---|---|---|
+| H01 | AuthPane / bind selected environment | Postgres target, blocker, environment and workspace → scoped state and refresh | H-R + H-K |
+| H02 | AuthConsoleBody / Read again | Current scope → overview, active view, detail, declarations, catalogs and keys | H-R + H-K |
+| H03 | Auth views / open tab | View id → selected body and required lazy read | H-P + H-R |
+| H04 | Auth scope / app or tenant | App/tenant id → canceled old jobs, cleared scoped observations and new reads | H-R + H-P |
+| H05 | Auth / select subject | Principal/session/finding/access id → inspector and detail lookup | H-P + H-R |
+| H06 | Auth / clear selection | Selection/task → cleared inspector subject | H-P |
+| H07 | Auth / Show inspector or layout | Existing pane layout → visible/pinned inspector | H-P |
+| H08 | People / search and kind | Query/kind → directory people lookup | H-R |
+| H09 | Sessions / state, fixture and search filters | State/include-fixtures/query → scoped session lookup | H-R |
+| H10 | Sessions / Sessions or Tokens | Tab id → lazy sessions or tokens/people read | H-P + H-R |
+| H11 | Audit / filter | AuditFilter → scoped events lookup | H-R |
+| H12 | Simulation / principal, app and scope | SimulationInput → effective grants and principal detail | H-R |
+| H13 | Token inspection / text | Token text → local decode, issuer-key observation and scoped directory facts when applicable | H-K + H-R |
+| H14 | Principal candidate lookup | Search → authorized candidates | H-R |
+| H15 | Directory mutation entry | Typed AuthWrite → selected writer outcome, refresh or failure | H-W |
+| H16 | Catalog mutation entry | App, expected catalog revision and change → source files/receipt or conflict | H-W |
+| H17 | Workspace declarations / refresh | Registered repositories → declarations, catalogs and permission references | H-K |
+| H18 | Keys / refresh | Declared JWKS URL → timestamped key set or failure | H-K |
+| H19 | Access/roles open or refresh | Current app/catalog → access state reload | H-K + H-P |
+| H20 | Auth / notices and write failures | Current outcome → existing pane toast | H-P |
+| L01 | Telemetry / activate backend span view or query | Selected environment and TelemetryQuery → retained refresh request | L-L |
+| L02 | Telemetry / Read again on backend spans | Query and window → span plus analytics refresh | L-L |
+| L03 | Telemetry / Read again on application logs | Current log query/environment → application-log refresh | L-L |
+| L04 | Telemetry / primary view tab | Catalog id → corresponding body and scoped lazy reads | L-P |
+| L05 | Telemetry / section tab | Logs/crashes, instrumentation/delivery, metrics/alerts → section | L-P |
+| L06 | Logs / Application or Workbench | Source → cleared log selection and correct observation plane | L-P + L-R |
+| L07 | Spans / Backend or This workbench | Source → cleared span/execution/entry selection | L-P + L-R |
+| L08 | Telemetry / clear selection | SQL row or log/span/entry/signal ids → cleared subject | L-P |
+| L09 | Telemetry / inspector visibility and pin | Pane layout and selected subject → layout | L-P |
+| L10 | Signal inspector / open executions | Signal node/island and trace → scoped Spans view | L-P + L-L |
+| L11 | Application log inspector / trace | Log row trace/window → scoped backend Spans view | L-P + L-L |
+| L12 | Fleet / open device or trace executions | Returned device/installation/application/trace/window → backend span query | L-P + L-L |
+| L13 | Backend span inspector / node observations | Selected span/query → retained node projection | L-R |
+| L14 | Telemetry / SQL workspace | Selected read target and session factory → independent SQL document/results | L-L |
+| L15 | Telemetry / Grafana scope | Query/selected span → full dashboard context | L-P |
+| L16 | Telemetry / dashboard selection | UID → selected Grafana dashboard | L-P |
+| L17 | Telemetry / local Sources and Delivery | Instrumentation plan/span ledger → source/export facts | L-R |
+| L18 | Telemetry / performance to spans | Current performance observation → Spans view | L-P |
+| L19 | Telemetry / Profiles | Missing receiver/agent → explicit unavailable producer | L-U |
+| L20 | Telemetry / eBPF | Missing Linux producer → explicit unavailable producer | L-U |
+
+Data shell definitions were read through Atlas on29 October: DatabaseStudioPane `642c05ee894b`, DataRail `7dce0977f0e7`, DataStoreGroup `9c04c107b05b` and DataWorkspaceSections `6a344de2439b`. This is the entry surface, not the inventory of database mutation, migration, export, graph, object-store or messaging child commands.
+
+| Profile | Current backend and GUI dependency | Operation and target contract | Effect, principal and scope | Freshness, run and providers | Evidence / disposition |
+|---|---|---|---|---|---|
+| DB-S | Desktop target discovery, declared schema and retained session/catalog records | DataApi source and retained projections needed | ReadOnly source/recorded observation; workspace/engine/store/environment | Live schema and declared schema remain separate; environment mismatch, failure and stale evidence stay visible | Direct desktop/provider inputs remain to migrate |
+| DB-Q | DatabaseWorkspaceState/DatabaseSession and inspection sessions; connection checks use KernelConnections | DataApi typed query/inspection and existing run cancellation | Preserve the existing statement classifier, engine authority, row limits and exact plan for mutations; never classify arbitrary query text as ReadOnly | Scoped target/environment and configured connection credentials; recorded run/result/failure; Memgraph inspection limit or500 rows | Owner extraction and per-command authority inventory required |
+| DB-F | Postgres findings reader, schema/statistics requests and migration refresh entry | DataApi typed inspection projections | Authorized database LiveRead; migration writes remain a separate child workflow | Scoped target and current schema/read time; missing binding/query support stays unavailable | Source declaration is not a live finding |
+| DB-P | Tabs, rail, drafts, selection, inspector, layout and browser controls | Local presentation; semantic reads use DB-Q/DB-F | Window operator and active target/document | Selected source auto-expands; changing group normalizes tabs; independent query draft and scope | Desktop-only shell, with explicit effects when a view triggers a read |
+| DB-D | Rail copy and existing desktop navigation seams | No remote window callback | Local clipboard/OS action | Displayed subject and existing evidence location | Desktop-only |
+
+| ID | Definition / action | Concrete input → output | Profile |
+|---|---|---|---|
+| DB01 | Data / open and resolve resource selection | Workspace/environment/search/resource → matching targets, source and retained evidence | DB-S + DB-P |
+| DB02 | Source picker or source activation | Target id → selected source, document and resource link | DB-P + DB-S |
+| DB03 | Query editor / change draft | Target/document or unbound editor → retained local draft | DB-P |
+| DB04 | Data / Test the connection | Declared connection task → admitted check or visible failure | DB-Q |
+| DB05 | Data / Run query | Selected target, statement, parameters and row limit → classified run/result | DB-Q |
+| DB06 | Data or Schema / initial schema read | Query-capable target → schema request and timestamped result | DB-F |
+| DB07 | Schema / statistics read | Supported target and completed schema → statistics request/result | DB-F |
+| DB08 | Data / Explain | Statement and parameters → Explain-purpose run and inline operators | DB-Q |
+| DB09 | Data / Cancel | Current query or inspection session → cancellation request | DB-Q |
+| DB10 | Relationships / Refresh | Eligible non-Memgraph targets → separate schema inspection sessions | DB-F |
+| DB11 | Migrations / Refresh | Selected source → existing migration inspection callback | DB-F |
+| DB12 | Schema / findings read | Query-capable Postgres source → findings, progress or failure | DB-F |
+| DB13 | Data / Refresh | Active tab and query purpose → repeat query, Explain or schema read; optional statistics/findings | DB-Q + DB-F |
+| DB14 | Data / select tab | Engine group and view id → valid Data/Schema/History/Migrations/Relationships or engine-specific body | DB-P |
+| DB15 | Data rail / search | Name/table/source/engine/environment terms → filtered groups and rows | DB-P |
+| DB16 | Data rail / expand group or source | Group/source id → local expansion state and table visibility | DB-P |
+| DB17 | Data rail / activate group or table | Remembered/first store or table identity → source/table selection and navigation | DB-P |
+| DB18 | Data rail / Open table or Copy | Displayed row → table navigation or clipboard text | DB-P + DB-D |
+| DB19 | Data / clear subject | Table, result, plan, history, graph, store and message selections → cleared inspector subject | DB-P |
+| DB20 | Data / inspector layout | Visibility/pin/layout → current pane inspector | DB-P |
+| DB21 | Data / Auto-refresh toggle | Current query and parameters or PubSub selection → local refresh intent | DB-P + DB-Q |
+| DB22 | Query draft / replace or keep | Proposed table query and current draft → explicit local replacement or dismissal | DB-P |
+| DB23 | Data / connection settings, export panel or summary visibility | Current pane state → visible existing section; export execution remains a child command | DB-P |
+
+Remaining inventory: Graph child canvas/editor/inspector and subgraph controls; every action in DevTools and Studio; Data query/mutation/migration/export and engine-specific child commands; Auth management/access/token child commands and Telemetry query/log/span/fleet/crash/verification child commands; Cloud deployment/formation/cost/operations/provider-specific inspectors, Work command/DAG controls, Analytics chart/table/SQL commands; remaining UI children/design-system/canvas/workbench/fallback controls; non-Atlas Agent actions; shared controls, Catalog, menus/overflows and their provider-specific actions. No thirteen-mode parity completion is claimed.
 
 ## 9. Kickoff message for Codex
 
@@ -804,3 +1242,86 @@ Current CLI qualification, 24 Oct: Bb9c036c3 is committed and pushed. The instal
 - **29 Oct 2026 — U2 client binding detail.** `ContractNode` installs its identity and interceptor scope on its `Link`, so reusing one mutable link across contract nodes would overwrite their attribution. `OwnerKernel` takes one link factory, used lazily per contract (`connection::contractLink` for the current HTTP carrier). A second carrier parameter is deferred until U3 actually introduces streaming. This keeps each existing contract node independently attributed without adding a wrapper transport or dependency.
 
 - **29 Oct 2026 — U2 typed owner clients qualified.** BestBuds `d3d0f877` is pushed. `KernelServices` and lazy `OwnerKernel` expose the six existing contracts through independently attributed client nodes. The existing graph suite verifies actual authenticated HTTP calls, caller/request identity on Kernel and Checks, missing-caller refusal, dormant unused contracts and failure after disconnect without fallback. Focused engine check plus desktop compile passed in Gradle receipt `eb0a6062-4ec9-4e92-9f31-ff0b543e1a14` (router `20261029-120446-a80e41d6-bestbuds`). Removal pass retains only two graph types and one existing-suite case; no dependency or carrier added. Proof: `build/dependeasy/receipts/qualification/unification/hangar-typed-owner-clients-20261029.json`. Full U2 remains open for LocalKernel, pane consumers, background startup and the single store/history migration. Manna production includes its local-service integration and a real manna.ac-origin model request passed; Docs publication remains pending its declared delivery gate.
+
+- **29 Oct 2026 — next U2 disposable-client budget, before edits.** Add the third planned engine type, `LocalKernel`, in the existing client-graph file, with one case in the existing graph suite. An explicit owner-construction function lets each headless fixture declare its temporary workspace, store and executor; the variant lazily constructs and owns that disposable kernel, binds existing Served contracts through LocalLink and closes its owner. Acceptance: dormant construction opens nothing, caller/request identity and missing-caller refusal pass through the same server gate, close retires the owner and prevents opening an unused contract afterward. This variant is chosen explicitly and is never a production fallback. No new protocol, operation, store implementation, dependency or flag.
+
+- **29 Oct 2026 — Docs delivery gate correction budget, before edits.** The current production plan reaches the declared server gate and fails `GoogleConnectGatewayTest`: `calendar/calendarList.list` is now explicitly supported by the shared Google operations and requires a Calendar List scope, while the server test still calls it unknown. Budget: adjust that one existing test to assert scope-missing alongside Drive, retaining unsupported-route rejection and zero upstream calls without a grant. No production allow-list, auth rule, deployment prerequisite or new test suite changes. Acceptance: the existing gateway class passes, then retry the canonical sealed Docs delivery.
+
+- **29 Oct 2026 — production and disposable-client continuation.** Manna version `933c4ab5-ca21-416a-8cbb-994f5420341a` is live at 100%, deployment receipt `9286e171-e95c-479f-84fd-d0019ac237f3`, source `6a8b86d5` includes integration `2ed39fa`. A fresh actual manna.ac-origin discovery and real model request `cfb432cf-58f8-46c7-b4f5-cb78fe3f4d89` passed; authenticated Ask UI remains unqualified in the signed-out browser. The gateway correction is pushed as BestBuds `42bd3345`; all nine gateway cases pass in router `20261029-142035-1a755814-bestbuds`. Canonical Docs plan `ef2bebf062790a50a8f993b7` contains the retained website bundle, zero pending Docs D1 migrations and five declared ClickHouse prerequisites. Its `ship.apply` returned approval-required `0e40e81dab`; a person was asked to approve the exact plan. No Docs publication is claimed.
+
+- **29 Oct 2026 — disposable-client qualification pending.** LocalKernel and its existing-suite case are implemented. The focused pre-fix run passed the authenticated OwnerKernel case and exposed a real lazy first-call routing bug: connect installs the internal operation node, but KernelAgents.invoke retained its prior null binding and called a hidden tool through public MCP. The fix re-reads that binding after connect, preserving the remote fallback; invokeRunning uses the corrected path. The LocalKernel case also checks executor ownership, idempotent close and temporary owner-state cleanup. Final source has not been qualified or committed. Cleanup cannot evict active remote work, and Mac free space is about 11.8 GB, below the required 15 GB floor; no additional Gradle job is started by this continuation. Exact source hashes and failed pre-fix evidence are in `build/dependeasy/receipts/qualification/unification/local-kernel-pending-20261029.json`. Resume with focused client and kernel-check cases, the kernel boundary and desktop compilation after storage admission, then finish Docs publication and its actual Ask UI probe. Full U2–U8 acceptance remains open.
+
+- **29 Oct 2026 — focused first-call regression budget.** The combined rerun executes all three existing kernel check cases successfully but cannot compile the concurrently edited Auth UI, so it never runs the final LocalKernel case. Add one case to KernelAgentChecksTest to exercise the first lazy internal check invocation directly, without an engine dependency. It must start the temporary owner, reach its newly bound internal tool on the first call, preserve public MCP projection, and close/remove its state. No new suite, fixture abstraction or API. LocalKernel stays unqualified until the engine compiles.
+
+- **29 Oct 2026 — LocalKernel and first-call routing qualified.** BestBuds `6cb33e36` fixes the first internal call after lazy owner startup; four KernelAgentChecksTest cases and the kernel boundary pass in router `20261029-145243-3175617a-bestbuds`. BestBuds `5c39b721` adds LocalKernel; both actual/disposable client cases and desktop compilation pass in router `20261029-150032-f6b921af-bestbuds`. Both commits are pushed. LocalKernel opens only its explicit disposable owner, keeps caller/request attributes and the shared gate, and closes the executor once. Proofs: `qualification/unification/kernel-lazy-tools-20261029.json` and `qualification/unification/hangar-local-kernel-20261029.json`. The prior pending entry is superseded for these exact sources. Docs plan was approved in chat, but the interactive kernel approval remains unrecorded; replacement `54a3c31d95` expires at 2026-10-29T09:42:54Z. No publication claimed.
+
+- **29 Oct 2026 — bounded Build model bridge budget, before edits.** The Build graph still reads model.json in the desktop process; the existing shared modelPage returns summaries without all node details or a revision, so it cannot preserve the current graph inspector or prevent mixed topology. Budget: one request type and one ReadOnly `build.model` bridge operation in KernelOperations, one paged projection on existing BuildModels, and one case in KernelBuildNodeTest. Pages carry at most64 full nodes or edges and192KiB, declared build identities, exact model fingerprint and continuation offset. Every page checks current declarations and rejects a changed model, invalid cursor, unsupported view or oversized single item. No new contract root, module, dependency, store, cache, flag or Gradle execution. Acceptance: complete topology and source/spec fields across pages, byte/count bounds including Unicode, no source/configuration execution, unchanged outcome after non-model context changes, refusal after model/declaration changes. Hangar consumption follows this qualified owner projection through KernelApi.invoke.
+
+29 Oct U2 bounded model projection qualified: BestBuds `2053e9fa95917d32a760e43d24fc3949c9c543d2` is committed and pushed. Routed run `20261029-151149-9783efda-bestbuds` finished with exit 0; both existing KernelBuildNode cases pass and verifyKernelBoundary passes. The full node/edge projection is bounded to 64 items /192 KiB per page and rejects a changed model or declaration. Proof: `build/dependeasy/receipts/qualification/unification/kernel-build-model-pages-20261029.json`. It is not yet installed in the live owner; Hangar consumer/startup/store cutover stays open.
+
+29 Oct production authorization correction: the human explicitly reaffirmed standing superadmin authority for Claude/Codex user-initiated work and instructed no per-call approval prompts. Live `access.map` already reports both machine-policy superadmin seats and ship.apply Allowed. My previous generic cli attribution caused the prompt; no machine policy or approval record was changed. The exact reviewed apply through the actual codex seat passed authority but rejected a stale plan. Preparing a fresh canonical ship.plan; preserve plan/environment/prerequisite checks. This supersedes this log's pending-interactive-approval notes for this user-authorized deployment.
+
+- **29 Oct 2026 — U2 Build consumer budget, before edits.** Replace the Build graph file read with its existing pane consuming KernelApi.invoke through a graph port. Reconstruct source-validated full nodes and edges with the same collection fingerprint across bounded pages; use a fresh request id per page and retain the Hangar caller. The current served contract remains the provider until the separate startup cutover; no second owner, service locator, file fallback or new contract root. Budget: existing BuildGraphSource/Reading/Pane, BuildPane and its graph wiring, and existing UI/graph tests. Prove multiple pages preserve inspector/source paths, missing/disconnected owner removes evidence despite retained files, reconnect restores it, and reads never execute Gradle.
+
+- 29 Oct 2026 — Docs/Build qualification compile repair budget: the focused retry stops in the concurrently edited AccessDecisionsView because its existing mutable delegated state lacks mutableStateOf and setValue imports. Add only those two Compose imports, preserving its behavior and all foreign edits. No new tests or Auth behavior; rerun the same focused Build/graph and desktop compilation evidence, then canonical delivery.
+
+- **29 Oct 2026 — U2 Build graph consumer qualified.** BestBuds `06147a2d403e78448b3fac6531b569a5f4342a8e` routes Build graph declarations through a typed KernelApi graph port and cross-scope wiring. Routed run `20261029-160140-903bd6f7-bestbuds` passes27 engine cases (6 source,2 UI,19 graph) and desktop compilation in33.65s. Actual authenticated owner pages preserve65nodes/64edges, Hangar caller and request identities; disconnect produces an error and removes evidence despite retained files, reconnect restores it. Existing declaration/kernel source links and exact reviewed plan/run assertions remain. Proof: `build/dependeasy/receipts/qualification/unification/hangar-build-model-client-20261029.json`. Remaining Build inventory reads, other panes, background startup and single-store migration stay open. Docs delivery attempt under codex policy reached the full gate but compiled before the cross-scope wiring correction; that failing own run was cancelled. A fresh canonical plan is pending because the previous seal became stale; no Docs publication yet.
+
+- **29 Oct 2026 — next U2 Build inventory budget, before source edits.** Reuse the existing typed KernelApi pane port and bounded build.model projection for BuildDeliveryModel/BuildTargets. The inventory currently keeps stale and partial declarations inspectable while disabling planning; preserve that behavior through owner-supplied truth, unread and changed-declaration metadata included in collection identity. The graph source view stays strict, and execution admission still requires current complete inputs. Move the paged reconstruction into the existing BuildDeliveryModel reader and remove its desktop BuildModels file read. Budget: existing owner projection/description, inventory reader/graph adapter/BuildTargets/BuildPane and existing kernel, model and UI cases; no new contract root, operation, dependency, store, flag or cache. Acceptance includes bounded complete topology, stale/partial visibility without execution, changed-freshness continuation refusal, actual authenticated owner disconnection discarding retained inventory and reconnection. Source edits wait for the prioritized Docs production delivery.
+
+- **29 Oct 2026 — queued production delivery and bounded inventory continuation.** Docs plan request `720399f5-a8e2-4d43-9b72-9f1ac64364ee` is queued behind an unrelated desktop UI suite. The earlier plan failed the generated navigation check; `pnpm run nav` regenerated the derived views and `node scripts/build-nav.mjs --check` passes (80 docs, seven groups, 274 edges). Actual production still serves the previous Ask bundle; no Docs deployment is claimed. Storage recovered above 38 GB, and a cleanup waits for active builds. While the release waits, plan revision 35 authorizes the already-budgeted inventory slice; this supersedes the previous entry's instruction to wait before editing. Exact change plan `pb4e4eb8202f5611fd9fc` applied nine existing files. Focused kernel model/boundary, engine inventory/source/UI/graph and desktop compilation checks are queued, with no passing qualification claimed. Other agents' changes in shared kernel files remain separate.
+
+- **29 Oct 2026 — inventory qualification correction budget.** The kernel model cases pass (two cases, no skips) and verifyKernelBoundary passes in the routed focused retry; the engine initially stopped on active concurrent Auth edits. A later shared engine compile reaches this slice and reveals two missing aliases for the graph Node extension in the inventory fixtures. Budget: add the existing GraphNode import to BuildDeliveryModelTest and BuildTargetsRenderTest only; no behavior, API, state or new tests. Rerun the same focused inventory/source/UI/graph checks and desktop compilation. Docs request 1d2b2872 is being recovered through the restarted supervised owner using the same request ID; no Docs publication yet.
+
+- **29 Oct 2026 — shared fixture overlap observed.** The import-correction check failed with duplicate GraphNode aliases; immediately afterward another active session applied change p604031eb732d8213a56c and both fixture files now contain one alias each. No additional edit is made to those shared fixtures. Qualification will rerun on the resulting source; no completion or commit is inferred from the older failure. Docs recovery 1d2b2872 failed before sealing with ignored-directory discovery TimedOut. The exact Git discovery command now succeeds in0.35s with225 directories, so retry planning with a fresh request; no guard or timeout change.
+
+- **29 Oct 2026 — U2 Build inventory qualification passes.** Routed run `20261029-172709-c6530ae7-bestbuds` exits0:38 engine cases pass (3 delivery model,6 source,1 inventory UI,2 graph UI,19 desktop graph,7 operational reads), and desktop compilation passes. Execution59.12s after536.95s queue. Earlier kernel2cases and verifyKernelBoundary pass. The actual authenticated owner supplies inventory through KernelApi; disconnect clears targets and retained receipt UI despite local files, reconnect restores them, stale/partial declarations remain inspectable without planning, and read/paging/reconnect never configures Gradle. Proof: `build/dependeasy/receipts/qualification/unification/hangar-build-inventory-client-20261029.json`. Full U2 startup/store/domain migration remains open. Docs request `fd50a0a0-4439-4a56-a71b-505c15debcc0` follows the completed focused check and waits for shared Gradle admission under the authorized Codex superadmin seat; no per-call approval prompt or production Docs publication.
+
+- **29 Oct 2026 — live service and partial U0 measurements.** Fresh actual manna.ac-origin request `90fa8058-df62-42ab-aac6-4a3354e483c1` returns100 in23.828s through the restarted fixed listener: discovery and inferenceHTTP200, exactly one question-only inference.ask, no mocked routes and no JavaScript errors. Authenticated Manna UI remains unqualified in a signed-out browser. Both production origins pass discovery. A partial ReaktorPerformanceReport is retained at `build/dependeasy/receipts/qualification/unification/tooling-unification-performance-20261029.json`: five warm MCP samples give operation.catalog median26ms and operation.describe median7ms under shared load, with payload, current RSS and focused build timing metrics. The carrier includes MCP/tool overhead; the RSS snapshot is not peak memory. Cold-start, restart/reconnect, socket, worker and update measurements remain open, and U0 is not complete.
+
+- **29 Oct 2026 — U2 Testing catalog budget before edits.** Reuse the existing KernelApi.invoke graph port, bounded build.model projection and BuildDeliveryModel reader for TestingState, then derive Verifications.of from that owner-supplied model. Remove the desktop Verifications.read call; reports, local history, harness sessions and working-tree analysis remain explicit later migration work. Budget: existing TestingState and DesktopWorkbenchGraph, one existing lifecycle assertion and one focused owner-transport fixture. Add two required typed-call parameters to existing read/open methods, a typed consumer on the existing pane-state node and an internal post-wiring start method; no new operation, contract root, dependency, stored field, module, cache or flag. Acceptance: complete multi-page verification identity, actual authenticated OwnerKernel disconnection clears presented catalog/report evidence despite retained files, reconnect restores it, no model read executes Gradle, and existing Testing/desktop graph cases plus desktop compilation pass. This slice proceeds while the canonical Docs deployment waits for shared Gradle; publication retains priority.
+
+- **29 Oct 2026 — Docs planning recovery and navigation.** The15-minute carrier deadline preceded Gradle admission, so the unknown fd50a0a0 request was not redispatched while active. Its completed failure was recovered with the identical request ID: planBuildNode failed the generated navigation check after1517.22s queue/88.25s execution. Regenerated derived views; the existing navigation check passes80docs/seven groups/274edges. Fresh canonical production plan request14552295-1264-403a-846c-9ba5741a91fc is pending under the actual Codex superadmin seat. No per-call approval or Docs publication is claimed. The completed storage cleanup reports32.30GB remote,15.35GB temporary and53.09GB free, within both40GB budgets. Testing owner-catalog qualification remains queued.
+
+- **29 Oct 2026 — U2 Agent Atlas budget before edits.** Reuse AtlasApi query/read/graph and typed graph consumers for the existing Hangar Atlas and code-graph views. Replace their nullable KernelAgents parameters with required AtlasApi, wire the existing desktop embedded provider until the later startup cutover, and preserve caller/request identity, cancellation, page limits and revision restarts. Budget: one contract consumer on DesktopPaneNode, existing service exposure, required parameters through the existing Agent views, and a private OwnerKernel graph fixture used by both existing UI cases. No new contract, operation, public option, stored field, dependency or module. Acceptance: actual authenticated owner query/source/code graph through typed ports, existing Agent configuration/desktop graph cases and desktop compilation, alongside corrected Testing disconnect/reconnect. First Testing run compiled engine/tests/desktop with28 of29 cases passing; the corrected fixture now uses a separate reader connection and awaits rerun. Production Docs planning14552295 remains active, so it is not redispatched.
+
+- **29 Oct 2026 — focused-check compile unblock budget.** The joint Testing/Agent check reached engine test compilation but stopped at the concurrent AccessGraphTest fixture assigning AccessGraphState.traffic after its setter became private. Adapt only that existing case to its existing AccessTrafficSource and readTraffic API, preserving the saved/draft replay assertions; no production visibility change, new API, dependency or test. Rerun the same focused cases plus that affected Auth case and desktop compilation. Docs plan06832fa3 was refused after a concurrent build-model change; no publication, and a new sealed plan is required.
+
+- **29 Oct 2026 — U2 Testing owner catalog qualified.** BestBuds `c78dfdf5d589be8f7d72fee2a60dee88ae82163a` is committed and pushed. Routed run `20261029-192733-bba123a0-bestbuds` exits0:34 engine cases and desktop compilation pass, including the71-verification authenticated-owner paging/disconnect/reconnect case,3 Agent UI cases and the affected existing Auth fixture. Reads never configure or execute Gradle. Testing reports, history, harness sessions and working-tree analysis remain desktop-owned; full U2 remains open. Removal review found no further Testing changes. The shared graph commit includes only the four Testing hunks; foreign Auth/Cloud and Atlas hunks remain unstaged. Proof: `build/dependeasy/receipts/qualification/unification/hangar-testing-owner-catalog-20261029.json`. The legacy nonexistent KernelServicesTest selector matched no cases and is excluded from these counts. Docs plan51ab473cde8f23eae38cb0b4 was admitted through actual codex superadmin as run-1793282684972-13737; no approval records or machine policy were changed, and no publication is claimed before its terminal receipt.
+
+- **29 Oct 2026 — Docs Auth frame qualification budget.** The admitted production gate found the existing DesktopGraphCoverageTest Auth-frame assertion predates the committed AccessFactsSource wire from Auth into Graph. The production projection correctly places multi-feature providers in a shared feature. Budget: replace only that assertion with explicit shared feature membership and both Auth console and Graph AccessFacts wire assertions; no production API, dependency, policy or gate change. Acceptance is the existing graph coverage case, the focused owner-client cases and desktop compilation, followed by a fresh reviewed canonical production plan and real Docs Ask UI qualification. Keep the failing production run receipt.
+
+- **29 Oct 2026 — U2 Agent Atlas consumer qualified.** BestBuds `406a5afc` is committed and pushed. Routed run `20261029-195132-205e186b-bestbuds` passes44 engine cases and desktop compilation after removal of the unused Atlas import (77.93s execution,17.67s queue). Existing query/source and code-graph UI cases consume AtlasApi through OwnerKernel over authenticated transport; the configuration case, Testing paging/disconnect/reconnect and desktop graph cases also pass. The render artifacts were inspected. The first production Docs run failed on an outdated Auth-only feature assertion (720/721 engine cases pass); `bbd6e6fa` now verifies the shared Auth feature and both consumer wires, with all10 coverage cases passing in the44-case run. The aborted final-no-export attempt did not compile because shared remote storage exceeded40GB; cleanup later reports33.00GB remote/15.36GB temporary/49.94GB free. Proof: `build/dependeasy/receipts/qualification/unification/hangar-agent-atlas-client-20261029.json`. Production background startup, remaining Agent/Testing projections and single-store migration remain open. Fresh Docs production planning request39f7036b is pending under codex superadmin; no publication is claimed.
+
+- **29 Oct 2026 — Docs second release gate and AI inventory.** Production run `run-1793284246660-21842` is admitted under the actual Codex superadmin seat and still executing; it reports the old DatabaseStudioPaneRenderTest navigation assertion after the concurrent DataStoreGroup redesign. The owning session has already updated that assertion in the shared checkout; no overlap edit or skipped check is made here. A fresh canonical release will be needed if this run fails. U0 now records24 AI pane actions and their backend/effect/provider boundaries. AI code and headless contract qualification are unchanged.
+
+- **29 Oct 2026 — Docs Data render qualification budget.** The second production gate also finds DataPaneRenderTest expecting the old relational Query tab and inline Explain table. Atlas confirms the current grouped relational contract exposes Data and a dedicated Query plan map, with operator selection opening the existing PlanInspector. Radar shows no session editing DataPaneRenderTest. Budget: only that existing render fixture, replacing obsolete tab/control expectations while retaining schema, relationship, data, plan-statistics and inspector checks. No production code, API, dependency, timeout or skipped check. Do not edit the active Data feature files or its separately updated navigation fixture. Acceptance: existing DataPaneRenderTest and DatabaseStudioPaneRenderTest pass, followed by the unchanged canonical production gate.
+
+- **29 Oct 2026 — Docs second gate terminal evidence and storage recovery.** Run `run-1793284246660-21842` finished Failed:727 engine cases,725 passed, two old Data UI assertions; Gradle receipt `6740e431-58d0-4fc9-9ffc-de8ecc81b407`. No provider publication occurred. The active Data owner corrected DatabaseStudioPaneRenderTest. Exact plan `pd41ae9b62ee9bfb29765` updates only DataPaneRenderTest for current relational tabs, dedicated Query plan map and operator inspector. The first focused retry was refused before compilation because remote storage exceeded40GB. Completed cleanup reduces it from42.18GB to28.55GB; temporary19.30GB and free51.33GB. The same focused seven-case Data check is now awaiting routed execution. No skipped gate, policy change or per-call approval.
+
+
+- **29 Oct 2026 — current Data fixture alignment.** The seven-case focused check finished with6 passing and one stale Query-plan header expectation. The concurrent Data navigation now exposes Data/Schema/History/Migrations/Relationships and renders Explain inline in Data. Exact plan `p79e652c1267dda0bbefd` updates only the same existing fixture, retaining its real inline operator statistics and inspector assertions. The replacement focused run is queued. Fresh plan request `f316fd10-de2b-42c2-a839-2db03ca98076` ended unavailable while resolving ignored task directories; replacement `07d88f66-0c33-447b-9370-544f2b2a18ca` is pending. No production publication or gate exemption. The U0 ledger adds59 UI source-authoring/preview actions; remaining controls and modes stay explicitly open.
+
+- 29 October,20:50IST: focused Data release qualification passed the corrected header but found a second obsolete expectation that selected Sources start collapsed. The owning Data session updated group/initial-table visibility; this session retained those edits and added explicit collapse/re-expand checks via plan `pfe4901d3ef81dced6425`. Focused seven-case run is queued. Both preceding production plan requests (`f316fd10`, `07d88f66`) ended unavailable before any apply, on ignored-definition-directory discovery; a direct identical Git query now completes in0.7s. Fresh canonical prod request `e8b7124a-e7db-4c7b-9bd4-8347edf3c0e3` is pending; no Docs publication is claimed. Both exact production origins still discover the fixed local service withHTTP200.
+- Added40 bounded Graph main-view/authoring workflows to the partial U0 ledger. Read-only source display, operational refresh, revision-history writes, draft persistence/claims/recovery, saved-subgraph revision checks and Agent brief dispatch are distinguished. Child controls and full mode parity remain open.
+
+- 29 October,20:52IST: configured focused run `docs-production-data-20261029-collapse.log` completed successfully in18s, seven cases/zero failures. Proof `build/dependeasy/receipts/qualification/unification/docs-production-data-20261029.json` retains XML/source hashes and the exact command. Canonical prod plan `e8b7124a` passed model export and is queued at `planBuildNode`; production publication remains pending.
+
+- Added28 bounded Cloud shell/resources/Work-inspection and9 Analytics shell workflows. Source declarations and typed deployment-evidence reads are distinguished from direct inventory tasks, authenticated Work subscriptions and per-table live database queries. Provider inspectors, deployment/formation commands and Analytics/SQL child controls remain open.
+
+- **29 Oct 2026, 21:08 IST — Docs fresh-plan refusal retained.** Plan `dc50eabe28b5e3b9e7b12b63` completed after the focused seven-case Data pass. Its exact compact payload was submitted through the actual Codex superadmin seat as request `b9b6c394-5cb4-49b4-9ba1-757eaf885173`; the kernel refused it before execution because the Reaktor board build declaration had changed. The unchanged payload first exceeded the CLI byte limit because the local serializer inserted whitespace; compact serialization fits997764bytes without changing its JSON value. No provider publication or approval prompt. Refreshed model export succeeds, and fresh canonical plan `6aaa58c2-012b-4b24-ac3e-9d42c01e0955` is pending. Existing production gate and all approved prerequisites remain intact.
+
+- **29 Oct 2026 — U0 Auth/Telemetry bounded inventory.** Added20 Auth shell/state and20 Telemetry shell actions from current Atlas sources, keeping directory reads, issuer-key observations, source-catalog writes and per-command management effects distinct. Telemetry retains separate source/retained/local-live/backend truth, query scope, refresh requirements and unsupported profile/eBPF producers. Child management, SQL, fleet/crash/verification and access commands remain open. No source API, dependency, store, transport, policy or gate changes. Latest storage report is21.50GB remote,24.18GB temporary and43.68GB free; both40GB budgets and15GB floor hold.
+
+- **29 Oct 2026 — Docs admitted production gate.** Fresh plan `e87612a3ed067408bb7b8ad5` completed after the transient ignored-directory timeout. Exact compact JSON was applied as request `50323d41-9238-4f7d-b712-6567428dbf76`, starting `run-1793289481962-29673`. The run records “the codex superadmin seat's policy”; no approval requested. Scope remains one reaktor-web production deployment with the exact five approved ClickHouse prerequisites, no secrets/server/infrastructure changes and the full engine gate. Publication and real HTTPS Ask proof remain pending. Both production origins still discover the fixed local service with HTTP200.
+
+- **29 Oct 2026 — U0 Data entry surface.** Added23 actions covering target resolution, drafts, connection checks, classified query/Explain runs, schema/statistics/findings, scoped refresh, cancellation, rail/navigation and inspector controls. Existing statement authority and reviewed mutation plans remain required. Engine-specific query/migration/export/object-store/messaging children are not inventoried or qualified. No source API, dependency or operational store changed.
+
+
+- **29 Oct 2026 — bound Node sidecar planning budget.** Owner requested the attached Node-sidecar design be added to the kernel plan. Documentation only: amend the HLD ownership/transport/packaging/update sections, add private-process and job-flow diagrams plus U9 steps, acceptance and dependency budget, reconcile O9, and link the status ledger and kernel overview. Reuse the existing thread plan and add U9 with typed Atlas/toolchain refs. No runtime implementation, dependency installation, public endpoint, store or policy change. Acceptance: one elected JVM owns one Node generation; websites retain the fixed JVM endpoint; TypeScript indexing is the first executable slice; public owner HTTP/socket links and private gRPC are distinguished; actual parent-death, cancellation, upgrade and failure qualification remain explicit future work. Docs production run run-1793289481962-29673 retains priority.
+
+- **29 Oct 2026 — bound Node sidecar plan added.** HLD §3.9 and U9 now define a once-per-elected-JVM child, private authenticated gRPC, typed domain adapters, immutable checksummed runtime bundle, isolated workers and paired update compatibility. Added ownership/job-flow diagrams, staged TypeScript → Radar ownership → Lighthouse/SDK work, qualification matrix and O9/O10; the overview and U9 ledger agree. Fixed Reaktor+ browser endpoint and website publication priority remain. All nine HLD Mermaid diagrams parse and render to SVG in actual Chromium; Markdown fences, local links, decision/package uniqueness and git diff whitespace checks pass. The initial direct Node parser lacked a DOM; browser rendering provides the actual diagram evidence. No sidecar implementation, runtime dependency or recovery guarantee is qualified.
+
+- **29 Oct 2026 — Docs third production gate stopped.** Exact run run-1793289481962-29673 finished Failed/exit124 at1793290384555 after the900000ms process deadline. Engine gate completed; desktop output reported EveryWorkbenchPaneOpensTest (missing UI canvas/workbench strip entries) and ReaktorProductionCatalogE2ETest classMethod. XML files retained in the primary checkout predate this run and are not treated as current failure traces. No provider publication. The next step is focused reproduction against the current UI LabChoice navigation and catalog fixture, keeping the full declared release gate. Sidecar plan work is complete; implementation stays outstanding.
+
+- **29 Oct 2026 — focused desktop reproduction started.** After completed storage cleanup (21.63GB remote,24.19GB temporary,42.62GB free), the configured wrapper is running :reaktorDesktop:test for EveryWorkbenchPaneOpensTest and ReaktorProductionCatalogE2ETest only. Log: bestbuds/build/dependeasy/docs-production-desktop-focused-20261029.log; shell session90858. No desktop source or gate edit has been made. Atlas confirms UI canvas/workbench now live under the LabChoice menu, while the current sweep expects every authored id directly in the tab strip. Wait for the focused run and fresh XML before changing either existing fixture or preparing another sealed production plan.

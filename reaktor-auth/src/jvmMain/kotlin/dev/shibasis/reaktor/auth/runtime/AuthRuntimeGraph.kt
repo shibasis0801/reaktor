@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.auth.transport.RelationAccess
 import dev.shibasis.reaktor.auth.transport.bearerTokenFromHeader
 import dev.shibasis.reaktor.service.contract.Exchange
 import dev.shibasis.reaktor.service.contract.Served
+import dev.shibasis.reaktor.auth.runtime.nodes.AuthDeviceNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthAccountNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthAppServiceNode
 import dev.shibasis.reaktor.auth.runtime.nodes.AuthAuditNode
@@ -55,6 +56,7 @@ class AuthRuntimeGraph(
     val pat = Node(::AuthPatNode)
     val tokenGrants = Node(::AuthTokenGrantNode)
     val sessions = Node(::AuthSessionNode)
+    val devices = Node(::AuthDeviceNode)
     val authority = Node(::AuthAuthorityNode)
     val account = Node(::AuthAccountNode)
     val authHttp = Node(::AuthHttpServiceNode)

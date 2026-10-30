@@ -65,6 +65,49 @@ class SourceIsolationTest {
         store.remove(worktree.id)
     }
 
+    @Test fun untrackedDiffsKeepGitBytesAndOrderAcrossBatches() = fixture { root, _, artifacts, _ ->
+        val names = ((0..8).map { "new-$it.kt" } + "quoted name.kt" + "link.kt").sorted()
+        names.filter { it != "link.kt" }.forEachIndexed { index, name -> File(root, name).writeText("val value$index = $index\n") }
+        assertTrue(File(root, "new-0.kt").setExecutable(true))
+        Files.createSymbolicLink(File(root, "link.kt").toPath(), File("new-0.kt").toPath())
+        val index = File(root, ".git/index").readBytes()
+        val expected = names.joinToString("") { name ->
+            val process = ProcessBuilder("git", "-C", root.path, "diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--", "/dev/null", name).start()
+            val text = process.inputStream.bufferedReader().readText()
+            assertEquals(1, process.waitFor())
+            text
+        }
+        val source = SourceCandidates(root, artifacts)
+        val before = source.capture()
+        assertTrue(before.complete, before.notices.toString())
+        assertEquals(names, before.changedFiles)
+        assertEquals(expected, artifacts.text(requireNotNull(before.diff)))
+        val repeat = source.capture()
+        assertEquals(before.id, repeat.id)
+        assertEquals(before.diff, repeat.diff)
+        File(root, "new-4.kt").appendText("val changed = true\n")
+        assertNotEquals(before.id, source.capture().id)
+        assertContentEquals(index, File(root, ".git/index").readBytes())
+    }
+
+    @Test fun untrackedDiffsKeepTheFileAndByteRetentionLimits() = fixture { root, _, artifacts, _ ->
+        repeat(201) { File(root, "new-${it.toString().padStart(3, '0')}.kt").writeText("val value = $it\n") }
+        val source = SourceCandidates(root, artifacts)
+        val tooMany = source.capture()
+        assertFalse(tooMany.complete)
+        assertTrue("New-file diff budget exceeded" in tooMany.notices)
+        assertEquals(201, tooMany.changedFiles.size)
+        assertEquals(200, artifacts.text(requireNotNull(tooMany.diff)).lineSequence().count { it.startsWith("diff --git ") })
+        root.listFiles().orEmpty().filter { it.name.startsWith("new-") }.forEach { assertTrue(it.delete()) }
+        repeat(5) { File(root, "large-$it.kt").writeText("x".repeat(3_999_000)) }
+        val tooLarge = source.capture()
+        assertFalse(tooLarge.complete)
+        assertTrue("New-file diff budget exceeded" in tooLarge.notices)
+        val retained = artifacts.text(requireNotNull(tooLarge.diff))
+        assertTrue(retained.toByteArray().size <= 16_000_000)
+        assertEquals(4, retained.lineSequence().count { it.startsWith("diff --git ") })
+    }
+
     @Test fun abandonmentRetainsEveryIncludedRootAndRefusesAChangedOrIncompleteSnapshot() = fixture { root, _, artifacts, store ->
         val framework = File(root.parentFile, "framework").apply { mkdir() }
         git(framework, "init", "--quiet")

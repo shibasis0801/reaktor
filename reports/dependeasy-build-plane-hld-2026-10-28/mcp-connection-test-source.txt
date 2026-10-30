@@ -1,0 +1,170 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:54206f2dedf5
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt
+  25:7 class HybridConnectorTest: class HybridConnectorTest · kotlin:dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest@:reaktor-conductor:test:jvmTest@reaktor
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt · class HybridConnectorTest · 10864 of 15887 characters, partial · rev:54206f2dedf5
+ 17  /**
+ 18   * The connector driven the way ChatGPT drives it: over HTTP, one tool call at a time, with no
+ 19   * knowledge of the state machine underneath.
+ 20   *
+ 21   * Everything else in this module tests the seat from inside the process. This is the only test that
+ 22   * exercises what a connector actually touches — the wire, the secret, and whether four verbs are
+ 23   * enough to get a task from "waiting for a plan" to "done" without anyone reading Kotlin.
+ 24   */
+ 25  class HybridConnectorTest {
+ 26  
+ 27      @Test fun chatGptDrivesATaskToCompletionThroughFourVerbsAndGeminiDoesTheWork() = runBlocking {
+ 28          val root = source(); val directory = Files.createTempDirectory("connector")
+ 29          val executions = AtomicInteger()
+ 30          val gemini = object : AgentRuntime {
+ 31              override val kind = RuntimeKind.Gemini
+ 32              override fun run(request: AgentRequest) = flow {
+ 33                  val index = executions.incrementAndGet()
+ 34                  File(request.workingDirectory, "graph.kt").appendText("\nmarker $index")
+ 35                  emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id,
+ 36                      "appended marker $index", true, session = ProviderSession(RuntimeKind.Gemini, "conv-1"))))
+ 37              }
+ 38          }
+ 39          AgentWorkspace(root, directory, mapOf(RuntimeKind.Gemini to gemini),
+ 40              discover = { ProviderCapability(it) }).use { workspace ->
+ 41              val run = workspace.submit(AgentSubmission("connector", RuntimeKind.ChatGptGemini,
+ 42                  "Record two markers in graph.kt", allowWrites = true))
+ 43              stopped(workspace, run.id)
+ 44  
+ 45              HybridConnector.start(workspace).use { connector ->
+ 46                  val call = caller(connector)
+ 47  
+ 48                  assertEquals("reaktor-hybrid-planner",
+ 49                      call("initialize", buildJsonObject { put("protocolVersion", REAKTOR_MCP_PROTOCOL_VERSION_FOR_TEST) })
+ 50                          .obj("serverInfo").str("name"))
+ 51                  val names = call("tools/list", buildJsonObject {}).arr("tools").map { it.jsonObject.str("name") }
+ 52                  // The surface may grow sight, but never reach: no writing, no starting work, no
+ 53                  // reading another task's transcript.
+ 54                  assertTrue(names.containsAll(listOf("reaktor_waiting_tasks", "reaktor_packet", "reaktor_reply", "reaktor_await")), names.toString())
+ 55                  assertTrue(names.none { it.contains("submit") || it.contains("write") || it.contains("cancel") || it.contains("transcript") },
+ 56                      "the connector must not expose the workspace's own verbs: $names")
+ 57  
+ 58                  // 1. What needs me?
+ 59                  val waiting = tool(call, "reaktor_waiting_tasks", buildJsonObject {}).arr("tasks")
+ 60                  assertEquals(1, waiting.size)
+ 61                  val taskId = waiting.single().jsonObject.str("taskId")
+ 62                  assertTrue(waiting.single().jsonObject["waitingForYou"]!!.jsonPrimitive.boolean)
+ 63  
+ 64                  // 2. What is it?
+ 65                  val packet = tool(call, "reaktor_packet", buildJsonObject { put("taskId", taskId) })
+ 66                  assertEquals("Planning", packet.str("phase"))
+ 67                  assertTrue(packet.str("packet").contains("Record two markers"), "The operator's task reaches ChatGPT")
+ 68  
+ 69                  // 3. Tell Gemini what to do — and it starts, in one call.
+ 70                  val first = tool(call, "reaktor_reply", buildJsonObject {
+ 71                      put("taskId", taskId); put("text", "Append the first marker"); put("next", "execute")
+ 72                      putJsonArray("acceptanceCriteria") { add("graph.kt gained a marker") }
+ 73                  })
+ 74                  assertTrue(first.str("nextStep").contains("Gemini is working"))
+ 75  
+ 76                  // 4. Wait for it, then read what it did.
+ 77                  awaitIdle(call, taskId)
+ 78                  val review = tool(call, "reaktor_packet", buildJsonObject { put("taskId", taskId) })
+ 79                  assertEquals("Reviewing", review.str("phase"))
+ 80                  assertTrue(review.str("packet").contains("appended marker 1"), "Gemini's report reaches ChatGPT")
+ 81  
+ 82                  // 5. Not done — ask for more. This is the edge the old seat did not have.
+ 83                  tool(call, "reaktor_reply", buildJsonObject {
+ 84                      put("taskId", taskId); put("text", "Append the second marker"); put("next", "execute")
+ 85                  })
+ 86                  awaitIdle(call, taskId)
+ 87                  val second = tool(call, "reaktor_packet", buildJsonObject { put("taskId", taskId) })
+ 88                  assertEquals(2, second.obj("state")["completedCycles"]!!.jsonPrimitive.int)
+ 89  
+ 90                  // 6. Done.
+ 91                  val finish = tool(call, "reaktor_reply", buildJsonObject {
+ 92                      put("taskId", taskId); put("text", "Both markers are present."); put("next", "finish")
+ 93                  })
+ 94                  assertEquals("Completed", finish.str("phase"))
+ 95                  awaitIdle(call, taskId)
+ 96  
+ 97                  // The ledger must not call a connector-driven run operator-transferred: a person
+ 98                  // pasting and ChatGPT calling in reach the same code, and only this says which.
+ 99                  val answer = workspace.transcript(workspace.get(run.id).threadId).events
+100                      .last { it.author == Author.Agent(AgentId("chatgptgemini")) }
+101                  assertEquals("Connector", answer.attributes["plannerVia"])
+102                  assertEquals("automatic-chatgpt-agent", answer.attributes["plannerTransport"])
+103                  assertFalse(answer.text.contains("operator-transferred"), answer.text.take(200))
+104                  assertTrue(answer.text.contains("ChatGPT planned over its connector"), answer.text.take(200))
+105  
+106                  assertEquals(2, executions.get())
+107                  assertEquals(AgentRunStatus.Completed, workspace.get(run.id).status, workspace.get(run.id).failure)
+108                  assertEquals(2, File(root, "graph.kt").readLines().count { it.startsWith("marker") })
+109                  assertTrue(tool(call, "reaktor_waiting_tasks", buildJsonObject {}).arr("tasks").isEmpty(),
+110                      "A finished task stops asking for attention")
+111              }
+112          }
+113          root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
+114          Unit
+115      }
+116  
+117      @Test fun theUrlIsTheCredentialAndAWrongOneIsIndistinguishableFromNothingBeingThere() = runBlocking {
+118          val root = source(); val directory = Files.createTempDirectory("connector-auth")
+119          AgentWorkspace(root, directory, mapOf(RuntimeKind.Gemini to object : AgentRuntime {
+120              override val kind = RuntimeKind.Gemini
+121              override fun run(request: AgentRequest) = flow<AgentEvent> {}
+122          }), discover = { ProviderCapability(it) }).use { workspace ->
+123              HybridConnector.start(workspace).use { connector ->
+124                  val base = "http://127.0.0.1:${connector.port()}"
+125                  val body = """{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}"""
+126                  assertEquals(404, post("$base/mcp/${HybridConnector.newSecret()}", body).statusCode(),
+127                      "A wrong secret looks exactly like a wrong path")
+128                  assertEquals(404, post("$base/mcp/", body).statusCode())
+129                  assertEquals(404, post(base + "/", body).statusCode())
+130                  assertEquals(200, post(connector.url(base), body).statusCode())
+131                  // A browser must not be able to reach this even with the URL.
+132                  val cors = HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI(connector.url(base)))
+133                      .POST(HttpRequest.BodyPublishers.ofString(body)).header("Origin", "https://example.com").build(),
+134                      HttpResponse.BodyHandlers.ofString())
+135                  assertNull(cors.headers().firstValue("Access-Control-Allow-Origin").orElse(null))
+136                  assertEquals(405, HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI(connector.url(base))).GET().build(),
+137                      HttpResponse.BodyHandlers.ofString()).statusCode())
+138                  assertTrue(connector.secret.length >= 32)
+139              }
+140          }
+141          root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
+142          Unit
+143      }
+144  
+145      /**
+146       * The planner can see the code, and only the code it is entitled to.
+147       *
+148       * Sight is the whole point of these tools — every defect this seat has shipped was visible in the
+149       * file and invisible in the summary — but the surface is internet-reachable behind one URL, so the
+150       * confinement is as load-bearing as the reading.
+151       */
+152      @Test fun thePlannerCanReadTheWorkspaceAndNothingOutsideIt() = runBlocking {
+153          val root = source(); val directory = Files.createTempDirectory("connector-read")
+154          File(root, "nested").mkdirs()
+155          File(root, "nested/Zoom.kt").writeText("package a\n\nfun zoomIn() = 1\nfun zoomOut() = 2\n")
+156          val idle = object : AgentRuntime {
+157              override val kind = RuntimeKind.Gemini
+158              override fun run(request: AgentRequest) = flow<AgentEvent> {}
+159          }
+160          AgentWorkspace(root, directory, mapOf(RuntimeKind.Gemini to idle), discover = { ProviderCapability(it) }).use { workspace ->
+161              val run = workspace.submit(AgentSubmission("read", RuntimeKind.ChatGptGemini, "Inspect the zoom code"))
+162              stopped(workspace, run.id)
+163              HybridConnector.start(workspace).use { connector ->
+164                  val call = caller(connector)
+165                  val names = call("tools/list", buildJsonObject {}).arr("tools").map { it.jsonObject.str("name") }
+166                  assertTrue(names.containsAll(listOf("reaktor_read_file", "reaktor_search", "reaktor_list", "reaktor_diff")), names.toString())
+167  
+168                  val file = tool(call, "reaktor_read_file", buildJsonObject { put("taskId", run.id); put("path", "nested/Zoom.kt") })
+169                  assertTrue(file.str("text").contains("fun zoomIn()"), file.str("text"))
+170                  assertTrue(file.str("text").startsWith("1\t"), "lines are numbered so the planner can cite them")
+171                  assertEquals(4, file.getValue("totalLines").jsonPrimitive.int)
+172  
+173                  val found = tool(call, "reaktor_search", buildJsonObject { put("taskId", run.id); put("query", "zoomOut"); put("glob", "*.kt") })
+174                  assertTrue(found.arr("matches").any { it.jsonPrimitive.content.contains("nested/Zoom.kt") }, found.toString())
+175  
+176                  val entries = tool(call, "reaktor_list", buildJsonObject { put("taskId", run.id) }).arr("entries").map { it.jsonPrimitive.content }
+177                  assertTrue(entries.any { it == "nested/" }, entries.toString())
+178                  assertTrue(entries.none { it.startsWith(".git") }, "the git directory is not the planner'
+next: atlas_read {"id":"d:../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt:24:6@7bc834e8"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt:24:6@7bc834e8"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[0] {"from":{"text":"body is too large","path":"reaktor-tooling/src/jvmTest"}}
+error: reaktor-tooling/src/jvmTest matches 48 files: ../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/operation/SuperadminGateTest.kt, ../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/BuildDeclarationsTest.kt, ../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/ContrastAuditTest.kt, ../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/DefinitionDigestCacheTest.kt, ../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/DeviceInspectionTest.kt, ../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/DeviceToolsTest.kt and more; pass one of them

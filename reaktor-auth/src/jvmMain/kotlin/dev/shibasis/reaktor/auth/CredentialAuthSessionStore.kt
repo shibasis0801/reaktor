@@ -1,6 +1,5 @@
 package dev.shibasis.reaktor.auth
 
-import dev.shibasis.reaktor.security.CredentialStore
 import dev.shibasis.reaktor.service.Environment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

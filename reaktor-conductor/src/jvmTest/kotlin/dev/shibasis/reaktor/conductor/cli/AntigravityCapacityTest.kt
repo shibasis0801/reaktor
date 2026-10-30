@@ -22,14 +22,14 @@ class AntigravityCapacityTest {
 
     @Test fun afullModelStepsDownToTheNextOneAndOnlyTheAnsweringTurnIsTranscribed() = runBlocking {
         val root = Files.createTempDirectory("agy-capacity").toFile()
-        val binary = fakeAgy(root, full = setOf("gemini-4-argon-high", "gemini-3.8-flash-high"))
+        val binary = fakeAgy(root, full = setOf("gemini-4-argon-high", "gemini-4-argon-medium"))
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val executor = SupervisedProcessExecutor(scope = scope)
         try {
             val events = AntigravityRuntime(executor, binary.absolutePath).run(request(root)).toList()
             val outcome = (events.last() as AgentEvent.Finished).outcome
             assertTrue(outcome.ok, outcome.failure)
-            assertEquals("gemini-4-argon-medium", outcome.attributes["model"], "It settled on the first model with capacity")
+            assertEquals("gemini-4-argon-low", outcome.attributes["model"], "It settled on the first model with capacity")
 
             val switches = events.filterIsInstance<AgentEvent.Activity>().filter { it.item.id.startsWith("antigravity-capacity") }
             assertEquals(2, switches.size, "Both refusals are visible rather than silent")
@@ -81,6 +81,12 @@ class AntigravityCapacityTest {
         assertTrue("--model" in argv, "An unnamed model becomes whatever the CLI falls back to")
         assertEquals(defaultAntigravityModels.first(), argv[argv.indexOf("--model") + 1])
         assertTrue(defaultAntigravityModels.first().contains("argon-high"), "The default is a working tier, not the cheapest one")
+    }
+
+    @Test fun aNamedModelStepsDownOnlyToOtherEffortsOfItself() {
+        assertEquals(listOf("gemini-4-argon-medium", "gemini-4-argon-high", "gemini-4-argon-low"), antigravityModelOrder("gemini-4-argon-medium", defaultAntigravityModels))
+        assertEquals(listOf("gemini-3.8-flash-high"), antigravityModelOrder("gemini-3.8-flash-high", defaultAntigravityModels))
+        assertTrue(defaultAntigravityModels.all { it.startsWith("gemini-4-argon-") }, "Capacity never moves an unnamed run off Argon")
     }
 
     private fun AgentRequest.withPreferred() = copy(agent = agent.copy(model = defaultAntigravityModels.first()))

@@ -19,4 +19,6 @@ data class AuthRuntimeConfig(
     // exists. Read from the deploy environment at the composition root — never via getenv inside a node.
     val patBootstrapToken: String? = null,
     val access: AuthAccess? = null,
+    val deviceCredentialJwkJson: String = "",
+    val deviceCredentialNextJwkJson: String = "",
 )

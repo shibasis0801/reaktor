@@ -20,6 +20,8 @@ import dev.shibasis.reaktor.portgraph.port.registerProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
@@ -52,6 +54,7 @@ sealed interface TaskMessage {
 
 internal class TaskGraphRuntime(private val workspace: AgentWorkspace, private val owner: Graph) : AutoCloseable {
     private val scopes = ConcurrentHashMap<String, TaskGraphScope>()
+    private var closed = false
     private val watch: Job = owner.coroutineScope.launch(Dispatchers.IO) {
         workspace.revisions().conflate().collect {
             try { sync() } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) {}
@@ -60,6 +63,7 @@ internal class TaskGraphRuntime(private val workspace: AgentWorkspace, private v
     }
 
     @Synchronized fun sync() {
+        if (closed) return
         val graphs = workspace.board.graphs()
         val live = graphs.filter { graph ->
             graph.status == TaskGraphStatus.Running || scopes[graph.id]?.busy() == true ||
@@ -86,9 +90,17 @@ internal class TaskGraphRuntime(private val workspace: AgentWorkspace, private v
     }
 
     override fun close() {
+        val retiring = synchronized(this) {
+            if (closed) return
+            closed = true
+            scopes.values.toList().also { scopes.clear() }
+        }
         watch.cancel()
-        scopes.values.forEach { it.close() }
-        scopes.clear()
+        retiring.forEach { it.close() }
+        runBlocking {
+            watch.join()
+            retiring.mapNotNull { it.coroutineScope.coroutineContext[Job] }.joinAll()
+        }
     }
 }
 

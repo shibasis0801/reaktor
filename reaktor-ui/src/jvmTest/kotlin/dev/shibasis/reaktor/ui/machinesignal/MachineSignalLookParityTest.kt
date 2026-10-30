@@ -21,6 +21,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
@@ -267,7 +268,9 @@ class MachineSignalLookParityTest {
     @Composable
     private fun ToneLabel(label: String, tone: SignalTone, enabled: Boolean) = SignalText(
         text = label,
-        color = if (enabled) tone.text else MachineSignal.Text4,
+        color = if (!enabled) MachineSignal.Text4 else if (tone == SignalTone.Primary) {
+            (dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.colors?.onAccent ?: Color.White
+        } else tone.text,
         size = if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.label else MachineSignal.Type.control,
         weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) FontWeight.SemiBold else FontWeight.Medium,
     )

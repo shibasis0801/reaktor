@@ -1,0 +1,51 @@
+--- a/tools/remote-dev
++++ b/tools/remote-dev
+@@ -481,8 +481,9 @@
+             remote_repo = str(Path(target) / relative)
+             local_head = subprocess.check_output(['git', '-C', str(local_repo), 'rev-parse', 'HEAD'], text=True).strip()
+             ensure_repo = f'test -e {shlex.quote(remote_repo + "/.git")} || ' + shlex.join(['git', 'init', '--quiet', remote_repo])
+-            ssh(ensure_repo)
+-            remote_head = ssh(shlex.join(['git', '-C', remote_repo, 'rev-parse', '--verify', 'HEAD']) + ' 2>/dev/null || true',
++            prepare_repo = shlex.join(['mkdir', '-p', target]) + ' && (' + ensure_repo + ')'
++            remote_head = ssh(prepare_repo + ' && { ' +
++                              shlex.join(['git', '-C', remote_repo, 'rev-parse', '--verify', 'HEAD']) + ' 2>/dev/null || true; }',
+                               capture_output=True, text=True).stdout.strip()
+             if local_head != remote_head:
+                 run(['git', '-C', local_repo, 'push', '--quiet', f'{HOST}:{remote_repo}',
+@@ -490,7 +491,8 @@
+                 ssh(shlex.join(['git', '-C', remote_repo, 'reset', '--mixed', 'refs/remotes/source/current']),
+                     stdout=subprocess.DEVNULL)
+         files = source_files(name)
+-        ssh(shlex.join(['mkdir', '-p', target]))
++        if not repositories:
++            ssh(shlex.join(['mkdir', '-p', target]))
+         selected = files if transfer_files is None else sorted(set(files).intersection(transfer_files[name]))
+         print(f'Syncing {name}: {len(files)} source files, {len(selected)} transfer candidates', flush=True)
+         checked = set(selected) if transfer_files is not None else set()
+@@ -505,15 +507,12 @@
+                 run(['rsync', option, '--from0', f'--files-from={manifest.name}',
+                      '--rsync-path=ulimit -n 8192; /usr/bin/rsync',
+                      str(base) + '/', f'{HOST}:{target}/'])
+-        with tempfile.NamedTemporaryFile(mode='w') as manifest:
+-            json.dump(files, manifest)
+-            manifest.flush()
+-            run(['scp', '-q', manifest.name, f'{HOST}:{REMOTE}/.remote-dev/{name}.incoming.json'])
+         remote_python('''import json,sys,subprocess,os
+ from pathlib import Path
+ root=Path(sys.argv[1]); name=sys.argv[2]; base=root/name
+ state=root/'.remote-dev'; incoming=state/(name+'.incoming.json'); previous=state/(name+'.source.json')
+-new=set(json.loads(incoming.read_text())); ignored=set(json.loads(sys.argv[4]))
++incoming.write_text(sys.argv[6])
++new=set(json.loads(sys.argv[6])); ignored=set(json.loads(sys.argv[4]))
+ old=set(json.loads(previous.read_text())) if previous.exists() else set()
+ for repository in json.loads(sys.argv[3]):
+  tracked=subprocess.check_output(['git','-C',str(base/repository),'ls-files','-z']).decode().split('\\0')
+@@ -545,7 +544,7 @@
+  lines=[sdk if line.startswith('sdk.dir=') else line for line in original if not line.startswith('kotlin.apple.cocoapods.bin=')]
+  if sdk not in lines: lines.append(sdk)
+  if lines!=original: properties.write_text('\\n'.join(lines)+'\\n')
+-''', REMOTE, name, json.dumps([str(p) for p in repositories]), json.dumps(sorted(EXCLUDED)), str(frozen).lower())
++''', REMOTE, name, json.dumps([str(p) for p in repositories]), json.dumps(sorted(EXCLUDED)), str(frozen).lower(), json.dumps(files))
+ 
+ 
+ def prune_artifact_snapshot(snapshot, files):

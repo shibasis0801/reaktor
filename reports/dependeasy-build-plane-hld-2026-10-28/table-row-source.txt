@@ -1,0 +1,94 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:a69680185411
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt
+  303:17 function CollectionRow: @Composable private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index: Int, appearance: RowAppearance, row: @Composable ItemScope.(T) -> Unit) · kotlin:dev/shibasis/reaktor/surface/compose/#CollectionRow(dev.shibasis.reaktor.surface.compose.CollectionHost,dev.shibasis.reaktor.surface.ItemSource,kotlin.Int,dev.shibasis.reaktor.surface.compose.ComposeAppearance,kotlin.Function2)@:reaktor-surface-compose:main:commonMain@reaktor
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt · @Composable private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index: Int, appearance: RowAppearance, row: @Composable ItemScope.(T) -> Unit) · 2740 of 2740 characters · rev:a69680185411
+302  @Composable
+303  private fun <T> CollectionRow(host: CollectionHost, source: ItemSource<T>, index: Int, appearance: RowAppearance, row: @Composable ItemScope.(T) -> Unit) {
+304      val key = source.key(index)
+305      val flags = remember(host, key) { RowFlags(host, key) }
+306      val focus = remember { FocusRequester() }
+307      if (host.grid == null) DisposableEffect(host, key) {
+308          host.register(key, focus)
+309          onDispose { host.unregister(key, focus) }
+310      }
+311      val tree = source as? TreeItems
+312      val enabled = source.enabled(index)
+313      val expandable = tree?.expandable(index) == true
+314      val expanded = tree?.expanded(index) == true
+315      val checked = source.checked(index)
+316      val selected = flags.selected
+317      val state = RowState(flags.active, flags.hovered, flags.focusVisible)
+318      val scope = remember(flags, index) { ItemScope(key, index, flags, host) }
+319      val item = source[index]
+320      val automation = LocalAutomationScope.current
+321      Box(
+322          Modifier
+323              .then(if (automation == null) Modifier else Modifier.testId(automationId(automation, "row/$key")))
+324              .then(if (host.list == null) Modifier.onGloballyPositioned { host.rowCoordinates[key] = it } else Modifier)
+325              .focusRequester(focus)
+326              .onFocusChanged { host.onRowFocus(key, it.isFocused) }
+327              .focusProperties { canFocus = host.grid == null && host.canFocus(key) }
+328              .focusable()
+329              .semantics(mergeDescendants = host.grid == null) {
+330                  this.selected = selected
+331                  checked?.let { toggleableState = ToggleableState(it) }
+332                  collectionItemInfo = CollectionItemInfo(index, 1, 0, 1)
+333                  if (enabled) {
+334                      onClick { host.select(key); true }
+335                      customActions = listOf(CustomAccessibilityAction(OpenLabel) { host.open(key); true })
+336                  } else {
+337                      disabled()
+338                  }
+339                  if (expandable) {
+340                      if (expanded) collapse { host.expand(key, false); true } else expand { host.expand(key, true); true }
+341                  }
+342              }
+343              .focusProperties { onEnter = { if (host.grid == null) cancelFocusChange() } }
+344              .focusGroup(),
+345          propagateMinConstraints = true,
+346      ) {
+347          val content = remember(scope, item, row) { @Composable { scope.row(item) } }
+348          appearance.Content(
+349              RowProperties(selected, enabled, index, tree?.depth(index) ?: 0, expandable, expanded),
+350              state,
+351              LocalThemeSnapshot.current,
+352              rememberFeedback(pressed = false, focusVisible = state.focusVisible),
+353              RowSlots(content, if (tree == null) null else host.toggle(key, expandable, expanded)),
+354          )
+355      }
+356  }
+next: atlas_read {"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt:302:16@165e628f"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt:302:16@165e628f"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[0] {"path":"../reaktor/reaktor-surface-compose/src/jvmMain/kotlin/dev/shibasis/reaktor/surface/compose/Scrollbar.jvm.kt","part":"file"}
+../reaktor/reaktor-surface-compose/src/jvmMain/kotlin/dev/shibasis/reaktor/surface/compose/Scrollbar.jvm.kt · file · 1468 of 1468 characters · rev:2e953b0e8c4f
+ 1  package dev.shibasis.reaktor.surface.compose
+ 2  
+ 3  import androidx.compose.foundation.LocalScrollbarStyle
+ 4  import androidx.compose.foundation.VerticalScrollbar
+ 5  import androidx.compose.foundation.HorizontalScrollbar
+ 6  import androidx.compose.foundation.ScrollState
+ 7  import androidx.compose.foundation.layout.fillMaxWidth
+ 8  import androidx.compose.foundation.layout.fillMaxHeight
+ 9  import androidx.compose.foundation.lazy.LazyListState
+10  import androidx.compose.foundation.rememberScrollbarAdapter
+11  import androidx.compose.runtime.Composable
+12  import androidx.compose.ui.Modifier
+13  
+14  @Composable
+15  internal actual fun CollectionScrollbar(state: LazyListState, modifier: Modifier) {
+16      val adapter = rememberScrollbarAdapter(state)
+17      Scrollbar(state, modifier) { thumb ->
+18          val style = LocalScrollbarStyle.current.copy(thickness = thumb.thickness, shape = thumb.shape, unhoverColor = thumb.color, hoverColor = thumb.hoverColor)
+19          VerticalScrollbar(adapter, Modifier.fillMaxHeight(), style = style)
+20      }
+21  }
+22  
+23  @Composable
+24  internal actual fun TableScrollbar(state: ScrollState, modifier: Modifier) {
+25      val adapter = rememberScrollbarAdapter(state)
+26      Scrollbar(state.canScrollBackward || state.canScrollForward, modifier) { thumb ->
+27          val style = LocalScrollbarStyle.current.copy(thickness = thumb.thickness, shape = thumb.shape, unhoverColor = thumb.color, hoverColor = thumb.hoverColor)
+28          HorizontalScrollbar(adapter, Modifier.fillMaxWidth(), style = style)
+29      }
+30  }
+31  

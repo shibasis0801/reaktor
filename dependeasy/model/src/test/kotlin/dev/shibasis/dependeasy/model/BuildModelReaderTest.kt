@@ -1,6 +1,7 @@
 package dev.shibasis.dependeasy.model
 
 import java.io.File
+import java.nio.file.Files
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import org.junit.jupiter.api.io.TempDir
@@ -42,6 +43,13 @@ class BuildModelReaderTest {
         val page = BuildModelReader.modelPage(root, limit = 1)
         assertEquals(1, page.getValue("nextOffset").jsonPrimitive.int)
         assertEquals(2, page.getValue("total").jsonPrimitive.int)
+        assertEquals(app.id, BuildModelReader.json.decodeFromJsonElement<NodeId>(BuildModelReader.modelPage(root, offset = 1, limit = 1)
+            .getValue("nodes").jsonArray.single().jsonObject.getValue("id")))
+        assertEquals(1, BuildModelReader.modelPage(root, "edges", limit = 1).getValue("total").jsonPrimitive.int)
+        assertTrue(BuildModelReader.modelPage(root, "edges", offset = 1).getValue("edges").jsonArray.isEmpty())
+        val beyond = BuildModelReader.modelPage(root, offset = Int.MAX_VALUE)
+        assertTrue(beyond.getValue("nodes").jsonArray.isEmpty())
+        assertFalse(beyond.containsKey("nextOffset"))
         val tree = BuildModelReader.tree(root, node.id.toString())
         val treeRoot = tree.getValue("roots").jsonArray.single().jsonObject
         assertEquals(node.id.toString(), treeRoot.getValue("id").jsonPrimitive.content)
@@ -142,6 +150,52 @@ class BuildModelReaderTest {
         file.writeText(BuildModelReader.encode(declared))
         root.resolve(GradleProtocol.PlanDirectory + "/plan.json").writeText(BuildModelReader.json.encodeToString(invalid))
         assertFailsWith<IllegalArgumentException> { BuildModelReader.retainedPlan(root, app.id.toString()) }
+    }
+
+    @Test fun `deployment receipt batches preserve build environment service and stale-source boundaries`() {
+        val declaration = root.resolve("build.gradle.kts").apply { writeText("plugins {}") }
+        val deploy = node.copy(effect = Effect.Deploy)
+        val included = deploy.copy(id = NodeId("included", ":", "deploy"))
+        val declared = model().copy(builds = listOf(BuildIdentity("fixture", "."), BuildIdentity("included", "included")),
+            nodes = listOf(node.copy(id = node.id.copy(name = "verify")), deploy, included),
+            declarations = listOf(DeclarationInput("fixture", "build.gradle.kts", BuildModelReader.digest(declaration))))
+        root.resolve(BuildModelReader.RelativePath).apply { parentFile.mkdirs(); writeText(BuildModelReader.encode(declared)) }
+        val first = DeployReceipt(deploy.id, Environment("dev"), ServiceRef("first"), "first-run", "apply",
+            "fixture", "fixture", "plan", "artifact", "version", null, ReceiptStatus.Succeeded, "verify", 1, 2)
+        val second = first.copy(node = included.id, service = ServiceRef("second"), run = "included-run")
+        fun write(owner: File, receipt: DeployReceipt, file: String = receipt.run) {
+            owner.resolve("${GradleProtocol.ReceiptDirectory}/deploy/$file.json").apply {
+                parentFile.mkdirs(); writeText(BuildModelReader.json.encodeToString(receipt))
+            }
+        }
+        write(root, first)
+        write(root.resolve("included"), second)
+        write(root, first.copy(run = "older", finishedAtEpochMillis = 1))
+        write(root, first.copy(run = "other-service", service = ServiceRef("other"), finishedAtEpochMillis = 20))
+        repeat(12) { index -> write(root, first.copy(run = "prod-$index", environment = Environment("prod"), finishedAtEpochMillis = 30L + index)) }
+        val ids = listOf(deploy.id.toString(), included.id.toString())
+        fun receipts(result: JsonObject, id: NodeId) = result.getValue("receipts").jsonObject.getValue(id.toString()).jsonArray
+            .map { BuildModelReader.json.decodeFromJsonElement<DeployReceipt>(it) }
+        val result = BuildModelReader.deploymentReceipts(root, ids, "dev")
+        assertEquals("source", result.getValue("declarationTruth").jsonPrimitive.content)
+        assertEquals(listOf(first, first.copy(run = "other-service", service = ServiceRef("other"), finishedAtEpochMillis = 20)),
+            receipts(result, deploy.id))
+        assertEquals(listOf(second), receipts(result, included.id))
+        assertEquals("prod-11", receipts(BuildModelReader.deploymentReceipts(root, ids, "prod"), deploy.id).single().run)
+        assertTrue(receipts(BuildModelReader.deploymentReceipts(root, ids, "prod"), included.id).isEmpty())
+        declaration.writeText("changed")
+        val stale = BuildModelReader.deploymentReceipts(root, ids, "dev")
+        assertEquals("recorded", stale.getValue("truth").jsonPrimitive.content)
+        assertTrue(stale.getValue("stale").jsonPrimitive.boolean)
+        assertEquals(1, stale.getValue("changedDeclarationCount").jsonPrimitive.int)
+        assertEquals(receipts(result, included.id), receipts(stale, included.id))
+        for (invalid in listOf(emptyList(), ids + ids.first(), List(65) { "fixture:deploy$it" }, listOf("fixture:missing"),
+            listOf("fixture:verify"))) assertFailsWith<IllegalArgumentException> {
+            BuildModelReader.deploymentReceipts(root, invalid, "dev")
+        }
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.deploymentReceipts(root, ids, "") }
+        write(root, first.copy(artifactDigest = "x".repeat(192 * 1024)))
+        assertFailsWith<IllegalArgumentException> { BuildModelReader.deploymentReceipts(root, ids, "dev") }
     }
 
     @Test fun `large input collections remain reachable through bounded node pages`() {
@@ -321,6 +375,19 @@ class BuildModelReaderTest {
         assertEquals(included.sorted(), BuildDeclarationInputs.files(root.resolve(".")).map {
             it.relativeTo(root.resolve(".")).invariantSeparatorsPath
         })
+        Files.createSymbolicLink(root.resolve("internal.gradle.kts").toPath(), root.resolve("build.gradle.kts").toPath())
+        Files.createSymbolicLink(root.resolve("linked-directory").toPath(), root.resolve("module").toPath())
+        Files.createSymbolicLink(root.resolve("missing.gradle.kts").toPath(), root.resolve("missing").toPath())
+        val nested = root.resolve("nested").apply { mkdirs() }
+        Files.createSymbolicLink(nested.resolve("outside.gradle.kts").toPath(), root.resolve("build.gradle.kts").toPath())
+        assertTrue(BuildDeclarationInputs.files(nested).isEmpty())
+        assertEquals((included + "internal.gradle.kts" + "nested/outside.gradle.kts").sorted(),
+            BuildDeclarationInputs.files(root).map { it.relativeTo(root).invariantSeparatorsPath })
+        val membership = BuildDeclarationInputs.membership(root)
+        root.resolve("module/New.gradle.kts").writeText("plugins {}")
+        assertNotEquals(membership, BuildDeclarationInputs.membership(root))
+        assertTrue(root.resolve("module/New.gradle.kts").delete())
+        assertEquals(membership, BuildDeclarationInputs.membership(root))
     }
 
     @Test fun `membership and compiled build logic invalidate declared facts`() {

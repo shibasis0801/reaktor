@@ -1,0 +1,65 @@
+plan p8af8901f09abfa331c06 · Edit 5 files: 12 edits in 5 files · exact text
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt · 3 edits
+    11 - import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
+    12 - import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
+    11 + import dev.shibasis.reaktor.mcp.REAKTOR_MCP_MAX_REQUEST_BYTES
+    12 + import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
+    13 + import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
+   247 -         require(message.length <= 250000) { "Workspace message exceeds the transport budget" }
+   247 +         val body = message.encodeToByteArray()
+   248 +         require(body.size <= REAKTOR_MCP_MAX_REQUEST_BYTES) { "Workspace message exceeds the transport budget" }
+   251 -             .POST(HttpRequest.BodyPublishers.ofString(message))
+   251 +             .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+../reaktor/reaktor-mcp/src/commonMain/kotlin/dev/shibasis/reaktor/mcp/McpProtocol.kt · 1 edit
+    18 - const val REAKTOR_MCP_PROTOCOL_VERSION: String = "2025-11-25"
+    18 + const val REAKTOR_MCP_MAX_REQUEST_BYTES: Int = 1_048_576
+    19 + const val REAKTOR_MCP_PROTOCOL_VERSION: String = "2025-11-25"
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.kt · 3 edits
+     5 - import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
+     6 - import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
+     5 + import dev.shibasis.reaktor.mcp.REAKTOR_MCP_MAX_REQUEST_BYTES
+     6 + import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
+     7 + import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
+   133 -                     responseHeaders.set("MCP-Protocol-Version", versions?.singleOrNull() ?: REAKTOR_MCP_PROTOCOL_VERSION)
+   134 -                     val body = requestBody.readNBytes(1_048_577)
+   135 -                     if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
+   133 +                     responseHeaders.set("MCP-Protocol-Version", versions?.singleOrNull() ?: REAKTOR_MCP_PROTOCOL_VERSION)
+   134 +                     val body = requestBody.readNBytes(REAKTOR_MCP_MAX_REQUEST_BYTES + 1)
+   135 +                     if (body.size > REAKTOR_MCP_MAX_REQUEST_BYTES) { send(413, error("Request body is too large")); return }
+   148 -                 requestMethod == "POST" -> {
+   149 -                     val body = requestBody.readNBytes(1_048_577)
+   150 -                     if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
+   148 +                 requestMethod == "POST" -> {
+   149 +                     val body = requestBody.readNBytes(REAKTOR_MCP_MAX_REQUEST_BYTES + 1)
+   150 +                     if (body.size > REAKTOR_MCP_MAX_REQUEST_BYTES) { send(413, error("Request body is too large")); return }
+modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/AgentWorkspaceCli.kt · 4 edits
+     4 - import dev.shibasis.reaktor.conductor.workspace.*
+     5 - import kotlinx.coroutines.*
+     4 + import dev.shibasis.reaktor.conductor.workspace.*
+     5 + import dev.shibasis.reaktor.mcp.REAKTOR_MCP_MAX_REQUEST_BYTES
+     6 + import kotlinx.coroutines.*
+   208 -                 val path = File(file); require(path.length() in 1..250000); ConductorJson.parseToJsonElement(path.readText()).jsonObject
+   208 +                 val path = File(file); require(path.length() in 1..REAKTOR_MCP_MAX_REQUEST_BYTES.toLong()); ConductorJson.parseToJsonElement(path.readText()).jsonObject
+   244 -                 require(value.length < 250000) { "MCP input line exceeds the transport budget" }
+   244 +                 require(value.length < REAKTOR_MCP_MAX_REQUEST_BYTES) { "MCP input line exceeds the transport budget" }
+   249 -         if (line.isBlank()) continue
+   250 -         val parsed = runCatching { ConductorJson.parseToJsonElement(line).jsonObject }.getOrNull()
+   249 +         require(line.encodeToByteArray().size <= REAKTOR_MCP_MAX_REQUEST_BYTES) { "MCP input line exceeds the transport budget" }
+   250 +         if (line.isBlank()) continue
+   251 +         val parsed = runCatching { ConductorJson.parseToJsonElement(line).jsonObject }.getOrNull()
+modules/kernel/src/test/kotlin/dev/shibasis/reaktor/conductor/cli/StdioBridgeTest.kt · 1 edit
+    10 - class StdioBridgeTest {
+    10 + class StdioBridgeTest {
+    11 +     @Test fun aSealedPlanSizedCallAndTheFollowingCallCrossTheBridgeUnchanged() = runBlocking {
+    12 +         val call = buildJsonObject {
+    13 +             put("jsonrpc", "2.0"); put("id", 1); put("method", "tools/call")
+    14 +             putJsonObject("params") {
+    15 +                 put("name", "kernel")
+    16 +                 putJsonObject("arguments") {
+    17 +                     put("operation", "build.run")
+    18 +                     putJsonObject("arguments") {
+    19 +                         put("node", "bestbuds:serverImage")
+    20 +                         putJsonObject("plan") { put("tasks", "x".repeat(980_000)) }
+    21 +    
+checks: kernel · JVM tests; kernel · Kernel boundary; reaktor-conductor · JVM tests; reaktor-mcp · JVM tests; reaktor-mcp · JavaScript tests; reaktor-mcp · TypeScript checks; reaktor-tooling · JVM tests
+next: change_apply {"plan":"p8af8901f09abfa331c06"}

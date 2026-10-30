@@ -1,0 +1,70 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:2bf49e571b78
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt
+  12:12 class KernelApi: open class KernelApi : Service(Id) · kotlin:dev/shibasis/reaktor/tooling/kernel/KernelApi@:reaktor-tooling:main:jvmMain@reaktor
+next: atlas_read {"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt:11:11@02a16dc1"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt:11:11@02a16dc1"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[0] {"from":{"name":"RunsApi"}}
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:e131de9890b0
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/runs/RunsApi.kt
+  44:12 class RunsApi: open class RunsApi : Service("reaktor.run") · kotlin:dev/shibasis/reaktor/tooling/runs/RunsApi@:reaktor-tooling:main:jvmMain@reaktor
+next: atlas_read {"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/runs/RunsApi.kt:43:11@d0c3a306"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/runs/RunsApi.kt:43:11@d0c3a306"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[1] {"from":{"name":"ShipApi"}}
+2 of 2 · syntactic (git-grep) · rev:f00b3cdbcf3e
+../reaktor/plans/tooling-unification-hld.md
+  348 text: | Build | `BuildApi`, `RunsApi`, `ShipApi` | None; already headless | Tree, plan and artifact views |
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/owner-cutover-current-source.txt
+  27 text: 348 text: | Build | `BuildApi`, `RunsApi`, `ShipApi` | None; already headless | Tree, plan and artifact views |
+note: Nothing named ShipApi is declared in Kotlin in this repository and ../reaktor; these are the lines that contain it
+next: atlas_read {"id":"d:../reaktor/plans/tooling-unification-hld.md:347:34@8cf6268a"}
+--- reads[0] {"name":"KernelApi"}
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt · open class KernelApi : Service(Id) · 902 of 902 characters · rev:2bf49e571b78
+12  open class KernelApi : Service(Id) {
+13      open val hello by call<Unit, KernelHello>(effect = Effect.ReadOnly, summary = "The owner identity and the contracts it serves.")
+14      open val catalog by call<CatalogQuery, List<CatalogEntry>>(effect = Effect.ReadOnly, summary = "The workspace operation catalog.")
+15      open val describe by call<DescribeRequest, OperationDescriptor>(effect = Effect.ReadOnly, summary = "One workspace operation's descriptor.")
+16      open val invoke by call<KernelInvocation, JsonElement>(effect = Effect.UnknownRemoteEffect, deadline = 15.minutes,
+17          summary = "Invokes an operation that has not yet moved to a domain contract.")
+18  
+19      companion object {
+20          const val Id = "reaktor.kernel"
+21          const val WorkspaceHeader = "reaktor-workspace"
+22          const val CallerHeader = "reaktor-caller"
+23          const val IncarnationAttribute = "reaktor.owner.incarnation"
+24      }
+25  }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt:11:11@02a16dc1"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[1] {"name":"Backend"}
+modules/app/src/commonMain/kotlin/ai/bestbuds/app/Backend.kt · abstract class Backend(parent: Graph, label: String, val user: User) : Graph(parent, label = label) · 1156 of 1156 characters · rev:a5762ab3f7bf
+64  abstract class Backend(parent: Graph, label: String, val user: User) : Graph(parent, label = label) {
+65      abstract val messaging: Provides<MessagingApi>
+66      abstract val chatStream: Provides<ChatStream>
+67      abstract val userStream: Provides<UserStream>
+68      abstract val media: Provides<ChatMedia>
+69      abstract val stickers: Provides<StickerService>
+70      abstract val circles: Provides<CirclesApi>
+71      abstract val rounds: Provides<RoundsApi>
+72      abstract val trials: Provides<TrialsApi>
+73      abstract val compass: Provides<CompassApi>
+74      abstract val plans: Provides<PlansApi>
+75      abstract val onboarding: Provides<OnboardingApi>
+76      abstract val matching: Provides<MatchingApi>
+77      abstract val profile: Provides<ProfileApi>
+78      abstract val people: Provides<PeopleApi>
+79      abstract val inbox: Provides<NotificationsApi>
+80      abstract val groups: Provides<GroupsApi>
+81      abstract val verification: Provides<VerificationApi>
+82      abstract val invites: Provides<InvitesApi>
+83  
+84      abstract fun origin(service: KProperty1<Backend, Provides<*>>): Variant
+85  
+86      fun world(service: KProperty1<Backend, Provides<*>>): MockWorld? = (origin(service) as? Mocked)?.world
+87  }
+targets/reaktorDesktop/src/test/kotlin/ai/bestbuds/reaktor/fixtures/IslandsFixture.kt · val Backend · 339 of 339 characters · rev:735ce4dd3200
+35  val Backend = IslandsFixture {
+36              listOf(worker("circle-formation", CircleFormationApi()), worker("campaign-engagement", CampaignEngagementApi()), worker("bot", BotService()),
+37                  worker("text-moderator", TextModerationApi()), worker("image-moderator", ImageModerationApi()), worker("media", MediaService()))
+38          }
+next: atlas_query {"from":{"id":"d:modules/app/src/commonMain/kotlin/ai/bestbuds/app/Backend.kt:63:15@d2f7ba21"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[2] {"name":"DesktopWorkbenchGraph","part":"source"}
+error: Invalid arguments: dev.shibasis.reaktor.tooling.atlas.AtlasPart does not contain element with name 'source'

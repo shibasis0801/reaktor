@@ -1,0 +1,18 @@
+PaneTable (Hangar's production table) against DevToolsTable, 10000 rows, 1600x1000 Machine Signal Editor/Compact, 3 rounds each, alternating
+wheel round 1, reference: p95 2.7 ms; worst 10.2 ms; mean 2.5 ms; over 16.7 ms 0 of 600; render alone p95 1.8 ms
+wheel round 1, data table: p95 2.7 ms; worst 8.9 ms; mean 2.5 ms; over 16.7 ms 0 of 600; render alone p95 1.8 ms
+wheel round 2, reference: p95 2.5 ms; worst 10.3 ms; mean 2.3 ms; over 16.7 ms 0 of 600; render alone p95 1.7 ms
+wheel round 2, data table: p95 2.7 ms; worst 9.9 ms; mean 2.4 ms; over 16.7 ms 0 of 600; render alone p95 1.8 ms
+wheel round 3, reference: p95 2.5 ms; worst 9.7 ms; mean 2.3 ms; over 16.7 ms 0 of 600; render alone p95 1.7 ms
+wheel round 3, data table: p95 2.5 ms; worst 8.1 ms; mean 2.4 ms; over 16.7 ms 0 of 600; render alone p95 1.8 ms
+40 PageDowns round 1, reference: p95 14.0 ms; worst 15.8 ms; mean 9.7 ms; over 16.7 ms 0 of 40; reached {rows per page=30, first row on screen=1215}
+40 PageDowns round 1, data table: p95 13.3 ms; worst 15.6 ms; mean 10.5 ms; over 16.7 ms 0 of 40; End, Home and a typeahead jump: p95 11.1 ms; worst 11.1 ms; mean 7.9 ms; over 16.7 ms 0 of 3; reached {rows per page=30, first row on screen=1170, PageDown x40=1199, End=9999, Home=0, typeahead 5=5}
+40 PageDowns round 2, reference: p95 10.2 ms; worst 15.0 ms; mean 9.0 ms; over 16.7 ms 0 of 40; reached {rows per page=30, first row on screen=1215}
+40 PageDowns round 2, data table: p95 14.4 ms; worst 15.6 ms; mean 10.0 ms; over 16.7 ms 0 of 40; End, Home and a typeahead jump: p95 10.1 ms; worst 10.1 ms; mean 7.6 ms; over 16.7 ms 0 of 3; reached {rows per page=30, first row on screen=1170, PageDown x40=1199, End=9999, Home=0, typeahead 5=5}
+40 PageDowns round 3, reference: p95 15.0 ms; worst 15.5 ms; mean 10.2 ms; over 16.7 ms 0 of 40; reached {rows per page=30, first row on screen=1215}
+40 PageDowns round 3, data table: p95 13.5 ms; worst 17.0 ms; mean 10.9 ms; over 16.7 ms 1 of 40; End, Home and a typeahead jump: p95 13.7 ms; worst 13.7 ms; mean 9.6 ms; over 16.7 ms 0 of 3; reached {rows per page=30, first row on screen=1170, PageDown x40=1199, End=9999, Home=0, typeahead 5=5}
+median p95, wheel: reference 2.5 ms, data table 2.7 ms
+median of the mean PageDown frame: reference 9.7 ms, data table 10.5 ms; the data table's key p95 13.7 ms
+median candidate/reference within each round: wheel 1.000, PageDown 1.082; relative limit 1.1
+absolute budget, judged only where the reference holds it on this machine: wheel 8.3 ms, keys 16.7 ms
+load average over one minute: 8.20 at the start, 8.27 at the end, on 14 cores

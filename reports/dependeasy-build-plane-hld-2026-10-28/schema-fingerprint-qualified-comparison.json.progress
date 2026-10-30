@@ -1,0 +1,278 @@
+[
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 3832283000,
+    "allocatedBytes": 4600016624,
+    "sink": 22174875274000,
+    "pair": 0,
+    "variant": "baseline",
+    "jvmWallSeconds": 4.348379667,
+    "hostLoadBefore": [
+      7.16796875,
+      9.85400390625,
+      13.55419921875
+    ],
+    "hostLoadAfter": [
+      6.994140625,
+      9.77294921875,
+      13.50390625
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 2299844708,
+    "allocatedBytes": 1122096624,
+    "sink": 22174875274000,
+    "pair": 0,
+    "variant": "streaming",
+    "jvmWallSeconds": 2.8148367089999997,
+    "hostLoadBefore": [
+      6.994140625,
+      9.77294921875,
+      13.50390625
+    ],
+    "hostLoadAfter": [
+      6.994140625,
+      9.77294921875,
+      13.50390625
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 2504807875,
+    "allocatedBytes": 1122096624,
+    "sink": 22174875274000,
+    "pair": 1,
+    "variant": "streaming",
+    "jvmWallSeconds": 2.9404815409999996,
+    "hostLoadBefore": [
+      6.994140625,
+      9.77294921875,
+      13.50390625
+    ],
+    "hostLoadAfter": [
+      6.59375,
+      9.6435546875,
+      13.43603515625
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 3698676334,
+    "allocatedBytes": 4600016624,
+    "sink": 22174875274000,
+    "pair": 1,
+    "variant": "baseline",
+    "jvmWallSeconds": 4.183130167,
+    "hostLoadBefore": [
+      6.59375,
+      9.6435546875,
+      13.43603515625
+    ],
+    "hostLoadAfter": [
+      9.1083984375,
+      10.1142578125,
+      13.57958984375
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 3428564083,
+    "allocatedBytes": 4564368624,
+    "sink": 22174875274000,
+    "pair": 2,
+    "variant": "baseline",
+    "jvmWallSeconds": 4.078158041999998,
+    "hostLoadBefore": [
+      9.1083984375,
+      10.1142578125,
+      13.57958984375
+    ],
+    "hostLoadAfter": [
+      8.939453125,
+      10.0625,
+      13.541015625
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 2394728083,
+    "allocatedBytes": 1122096624,
+    "sink": 22174875274000,
+    "pair": 2,
+    "variant": "streaming",
+    "jvmWallSeconds": 2.8709894580000004,
+    "hostLoadBefore": [
+      8.939453125,
+      10.0625,
+      13.541015625
+    ],
+    "hostLoadAfter": [
+      8.939453125,
+      10.0625,
+      13.541015625
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 2404878667,
+    "allocatedBytes": 1122096624,
+    "sink": 22174875274000,
+    "pair": 3,
+    "variant": "streaming",
+    "jvmWallSeconds": 2.8835630000000023,
+    "hostLoadBefore": [
+      8.939453125,
+      10.0625,
+      13.541015625
+    ],
+    "hostLoadAfter": [
+      9.34423828125,
+      10.12744140625,
+      13.54345703125
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 3443472125,
+    "allocatedBytes": 4600016624,
+    "sink": 22174875274000,
+    "pair": 3,
+    "variant": "baseline",
+    "jvmWallSeconds": 3.964532792,
+    "hostLoadBefore": [
+      9.34423828125,
+      10.12744140625,
+      13.54345703125
+    ],
+    "hostLoadAfter": [
+      10.357421875,
+      10.32421875,
+      13.5927734375
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 3478426500,
+    "allocatedBytes": 4600016624,
+    "sink": 22174875274000,
+    "pair": 4,
+    "variant": "baseline",
+    "jvmWallSeconds": 4.021163292000001,
+    "hostLoadBefore": [
+      10.357421875,
+      10.32421875,
+      13.5927734375
+    ],
+    "hostLoadAfter": [
+      10.357421875,
+      10.32421875,
+      13.5927734375
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 2473287542,
+    "allocatedBytes": 1122096624,
+    "sink": 22174875274000,
+    "pair": 4,
+    "variant": "streaming",
+    "jvmWallSeconds": 2.9288791250000017,
+    "hostLoadBefore": [
+      10.357421875,
+      10.32421875,
+      13.5927734375
+    ],
+    "hostLoadAfter": [
+      9.84814453125,
+      10.21875,
+      13.5361328125
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 2396478959,
+    "allocatedBytes": 1122096624,
+    "sink": 22174875274000,
+    "pair": 5,
+    "variant": "streaming",
+    "jvmWallSeconds": 2.865532833000003,
+    "hostLoadBefore": [
+      9.84814453125,
+      10.21875,
+      13.5361328125
+    ],
+    "hostLoadAfter": [
+      9.84814453125,
+      10.21875,
+      13.5361328125
+    ]
+  },
+  {
+    "descriptors": 558,
+    "distinct": 558,
+    "genericSkipped": 0,
+    "fingerprintsSha256": "8e0df53f18ca38bbf878b9509e17ac47c5aedb71625b1b2f02fb766d9d11bc10",
+    "measuredCalls": 1116000,
+    "nanos": 3409055167,
+    "allocatedBytes": 4600016624,
+    "sink": 22174875274000,
+    "pair": 5,
+    "variant": "baseline",
+    "jvmWallSeconds": 3.917933166999994,
+    "hostLoadBefore": [
+      9.84814453125,
+      10.21875,
+      13.5361328125
+    ],
+    "hostLoadAfter": [
+      10.58056640625,
+      10.3642578125,
+      13.56787109375
+    ]
+  }
+]

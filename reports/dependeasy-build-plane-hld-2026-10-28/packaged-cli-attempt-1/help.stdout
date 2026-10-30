@@ -1,0 +1,16 @@
+Usage: reaktor [<options>]
+
+  Reaktor workspace operations, generated from the graph-owned catalog. Browse:
+  build list; build tree; build explain NODE. Verify: build plan NODE; build
+  run NODE. Inspect: run list; run show RUN; run logs RUN. Discover: operation
+  catalog; operation describe OPERATION. Phones: connect ios; connect android.
+  Independent physical-device trust, unlock and automation checks. Common
+  options before or after commands: --dir DIRECTORY (--workspace during
+  migration), --args JSON or -, --json, --detach, --request-id ID, --seat
+  HARNESS. No validated catalog cached here. Run reaktor --dir WORKSPACE
+  operation catalog explicitly to refresh it. Completion: completion
+  bash|zsh|fish. MCP: mcp install; mcp --stdio --seat HARNESS. Help, version
+  and static completion never start an owner.
+
+Options:
+  -h, --help  Show this message and exit

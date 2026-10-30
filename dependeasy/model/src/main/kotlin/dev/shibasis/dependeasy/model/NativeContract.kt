@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
     val imports: List<Library> = emptyList(),
     val sources: List<Source> = emptyList(),
     val compilationSources: List<String> = emptyList(),
-    val libraryKind: String = "STATIC",
+    val libraryKind: String = if (platform.startsWith("android/")) "SHARED" else "STATIC",
     val privateIncludeDirectories: List<String> = emptyList(),
     val executables: List<Executable> = emptyList(),
     val projects: List<Project> = emptyList(),

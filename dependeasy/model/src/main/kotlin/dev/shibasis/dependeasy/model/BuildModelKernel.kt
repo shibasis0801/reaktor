@@ -92,6 +92,7 @@ object BuildModelKernel {
                 is KernelSpec.WebContract -> spec.output.paths + spec.typeScriptConfiguration.paths
                 is KernelSpec.KotlinExportCatalog -> spec.output.paths
                 is KernelSpec.WorkerTypes -> spec.execution.outputs
+                is KernelSpec.ViteBundle -> spec.execution.outputs
                 is KernelSpec.PnpmLock -> spec.execution.outputs
                 is KernelSpec.ReleasePlan -> listOf(spec.output)
                 is KernelSpec.XcodeHost -> if (spec.checking) emptyList() else spec.files.drop(1) +
@@ -122,6 +123,8 @@ object BuildModelKernel {
             taskFamilies = taskFamilies(model, own), taskOptions = options, publicOutputs = public, kotlinExports = exports,
             distributionDirectories = owned.filter { it.kernel?.spec is KernelSpec.JvmDistribution }
                 .flatMap { it.outputs }.flatMap { it.paths }.distinct().sorted(),
+            bundleDirectories = owned.mapNotNull { it.kernel?.spec as? KernelSpec.ViteBundle }
+                .flatMap { it.execution.outputs }.distinct().sorted(),
             environment = (model.declarations.mapNotNull { it.option?.environment } + GradleProtocol.OperationRunVariable).distinct().sorted())
         val appleVariables = model.nodes.mapNotNull { (it.kernel?.spec as? KernelSpec.XcodeHost)?.host }
             .map { host -> "${host.targets.single { it.name == host.applicationTarget }.settingsPrefix}_GRADLE_ARGS" }

@@ -149,6 +149,7 @@ data class RunReceipt(
     val taskHosts: Map<String, HostRequirement> = emptyMap(),
     val publicOutputs: Map<String, List<String>> = emptyMap(),
     val distributionDirectories: List<String> = emptyList(),
+    val bundleDirectories: List<String> = emptyList(),
     val kotlinExports: List<String> = emptyList(),
     val environment: List<String> = emptyList(),
     val outputRoots: Map<String, List<String>> = mapOf(

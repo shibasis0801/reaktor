@@ -1,0 +1,260 @@
+--- a/include/mls/state.h
++++ b/include/mls/state.h
+@@ -42,6 +42,9 @@
+ class State
+ {
+ public:
++  bytes export_snapshot() const;
++  static State import_snapshot(const bytes& snapshot);
++
+   ///
+   /// Constructors
+   ///
+@@ -243,6 +246,9 @@
+   Tombstone handle_reinit_commit(const MLSMessage& commit);
+ 
+ protected:
++  explicit State(CipherSuite suite);
++  bool _private_message_used = false;
++
+   // Shared confirmed state
+   // XXX(rlb@ipv.sx): Can these be made const?
+   CipherSuite _suite;
+--- a/src/state.cpp
++++ b/src/state.cpp
+@@ -3,6 +3,219 @@
+ #include <set>
+ 
+ namespace MLS_NAMESPACE {
++
++namespace {
++constexpr size_t snapshot_byte_limit = 16 * 1024 * 1024;
++constexpr uint32_t snapshot_entry_limit = 65536;
++
++void snapshot_count(uint32_t count)
++{
++  if (count > snapshot_entry_limit) {
++    throw InvalidParameterError("Snapshot collection exceeds its bound");
++  }
++}
++
++template<typename K, typename V>
++void snapshot_write_map(tls::ostream& out, const std::map<K, V>& entries)
++{
++  snapshot_count(static_cast<uint32_t>(entries.size()));
++  out << static_cast<uint32_t>(entries.size());
++  for (const auto& entry : entries) {
++    out << entry.first << entry.second;
++  }
++}
++
++template<typename K, typename V>
++void snapshot_read_map(tls::istream& in, std::map<K, V>& entries)
++{
++  uint32_t count = 0;
++  in >> count;
++  snapshot_count(count);
++  for (uint32_t i = 0; i < count; ++i) {
++    K key;
++    V value;
++    in >> key >> value;
++    if (!entries.emplace(std::move(key), std::move(value)).second) {
++      throw InvalidParameterError("Duplicate snapshot map key");
++    }
++  }
++}
++}
++
++State::State(CipherSuite suite)
++  : _suite(suite)
++  , _epoch(0)
++  , _tree(suite)
++  , _transcript_hash(suite)
++  , _key_schedule(suite)
++  , _index(0)
++{}
++
++bytes
++State::export_snapshot() const
++{
++  if (_private_message_used) {
++    throw InvalidParameterError("Snapshots require public handshakes and exporter content");
++  }
++  tls::ostream out;
++  out << uint32_t(0x4d4c5353) << uint16_t(1) << _suite
++      << _group_id << _epoch << _tree.size << _tree
++      << _tree_priv.index << _tree_priv.update_secret;
++  snapshot_write_map(out, _tree_priv.path_secrets);
++  snapshot_write_map(out, _tree_priv.private_key_cache);
++  out << _transcript_hash.confirmed << _transcript_hash.interim << _extensions;
++  const auto& keys = _key_schedule;
++  out << keys.joiner_secret << keys.epoch_secret << keys.sender_data_secret
++      << keys.encryption_secret << keys.exporter_secret << keys.epoch_authenticator
++      << keys.external_secret << keys.confirmation_key << keys.confirmation_tag
++      << keys.membership_key << keys.resumption_psk << keys.init_secret
++      << keys.external_priv << _index << _identity_priv;
++  snapshot_write_map(out, _external_psks);
++  snapshot_count(static_cast<uint32_t>(_resumption_psks.size()));
++  out << static_cast<uint32_t>(_resumption_psks.size());
++  for (const auto& entry : _resumption_psks) {
++    out << std::get<0>(entry.first) << std::get<1>(entry.first) << entry.second;
++  }
++  snapshot_count(static_cast<uint32_t>(_pending_proposals.size()));
++  out << static_cast<uint32_t>(_pending_proposals.size());
++  for (const auto& proposal : _pending_proposals) {
++    out << proposal.ref << proposal.proposal << proposal.sender;
++  }
++  out << bool(_cached_update);
++  if (_cached_update) {
++    out << _cached_update->update_priv << _cached_update->proposal;
++  }
++  if (out.size() > snapshot_byte_limit) {
++    throw InvalidParameterError("Snapshot exceeds its byte bound");
++  }
++  return bytes(out.bytes());
++}
++
++State
++State::import_snapshot(const bytes& snapshot)
++{
++  if (snapshot.empty() || snapshot.size() > snapshot_byte_limit) {
++    throw InvalidParameterError("Invalid snapshot length");
++  }
++  tls::istream in(snapshot.as_vec());
++  uint32_t magic = 0;
++  uint16_t version = 0;
++  CipherSuite suite;
++  in >> magic >> version >> suite;
++  if (magic != 0x4d4c5353 || version != 1) {
++    throw InvalidParameterError("Unsupported snapshot format");
++  }
++  State state(suite);
++  LeafCount tree_size;
++  in >> state._group_id >> state._epoch >> tree_size >> state._tree;
++  if (state._group_id.empty() || tree_size.val == 0 || tree_size.val > 4096 ||
++      (tree_size.val & (tree_size.val - 1)) != 0 ||
++      state._tree.size.val > tree_size.val) {
++    throw InvalidParameterError("Invalid snapshot tree");
++  }
++  state._tree.suite = suite;
++  state._tree.size = tree_size;
++  for (uint32_t i = 0; i < NodeCount(tree_size).val; ++i) {
++    state._tree.nodes.emplace(NodeIndex(i), OptionalNode{});
++  }
++  state._tree.set_hash_all();
++  state._tree_priv.suite = suite;
++  in >> state._tree_priv.index >> state._tree_priv.update_secret;
++  snapshot_read_map(in, state._tree_priv.path_secrets);
++  snapshot_read_map(in, state._tree_priv.private_key_cache);
++  for (auto& entry : state._tree_priv.private_key_cache) {
++    entry.second.set_public_key(suite);
++  }
++  const auto node_limit = NodeCount(tree_size).val;
++  for (const auto& entry : state._tree_priv.path_secrets) {
++    if (entry.first.val >= node_limit || entry.second.size() != suite.secret_size()) {
++      throw InvalidParameterError("Invalid snapshot path secret");
++    }
++  }
++  for (const auto& entry : state._tree_priv.private_key_cache) {
++    if (entry.first.val >= node_limit) {
++      throw InvalidParameterError("Invalid snapshot private key index");
++    }
++  }
++  in >> state._transcript_hash.confirmed >> state._transcript_hash.interim
++     >> state._extensions;
++  auto& keys = state._key_schedule;
++  in >> keys.joiner_secret >> keys.epoch_secret >> keys.sender_data_secret
++     >> keys.encryption_secret >> keys.exporter_secret >> keys.epoch_authenticator
++     >> keys.external_secret >> keys.confirmation_key >> keys.confirmation_tag
++     >> keys.membership_key >> keys.resumption_psk >> keys.init_secret
++     >> keys.external_priv >> state._index >> state._identity_priv;
++  keys.external_priv.set_public_key(suite);
++  state._identity_priv.set_public_key(suite);
++  snapshot_read_map(in, state._external_psks);
++  uint32_t count = 0;
++  in >> count;
++  snapshot_count(count);
++  for (uint32_t i = 0; i < count; ++i) {
++    bytes group_id, secret;
++    epoch_t epoch;
++    in >> group_id >> epoch >> secret;
++    if (!state._resumption_psks.emplace(EpochRef{group_id, epoch}, secret).second) {
++      throw InvalidParameterError("Duplicate snapshot PSK");
++    }
++  }
++  in >> count;
++  snapshot_count(count);
++  std::set<ProposalRef> refs;
++  for (uint32_t i = 0; i < count; ++i) {
++    CachedProposal proposal;
++    in >> proposal.ref >> proposal.proposal >> proposal.sender;
++    if (!refs.insert(proposal.ref).second ||
++        (proposal.sender && !state._tree.has_leaf(*proposal.sender))) {
++      throw InvalidParameterError("Invalid snapshot proposal");
++    }
++    state._pending_proposals.push_back(std::move(proposal));
++  }
++  bool cached = false;
++  in >> cached;
++  if (cached) {
++    CachedUpdate update;
++    in >> update.update_priv >> update.proposal;
++    update.update_priv.set_public_key(suite);
++    if (update.update_priv.public_key != update.proposal.leaf_node.encryption_key) {
++      throw InvalidParameterError("Invalid snapshot cached update");
++    }
++    state._cached_update = std::move(update);
++  }
++  auto own_leaf = state._tree.leaf_node(state._index);
++  if (!in.empty() || !own_leaf || state._tree_priv.index != state._index ||
++      state._identity_priv.public_key != own_leaf->signature_key ||
++      !state._tree_priv.private_key(NodeIndex(state._index)) ||
++      !state._tree_priv.consistent(state._tree) || !state.validate_tree()) {
++    throw InvalidParameterError("Inconsistent snapshot state");
++  }
++  const std::vector<std::pair<std::string, bytes>> derived{
++    {"sender data", keys.sender_data_secret}, {"encryption", keys.encryption_secret},
++    {"exporter", keys.exporter_secret}, {"authentication", keys.epoch_authenticator},
++    {"external", keys.external_secret}, {"confirm", keys.confirmation_key},
++    {"membership", keys.membership_key}, {"resumption", keys.resumption_psk},
++    {"init", keys.init_secret}};
++  if (keys.epoch_secret.size() != suite.secret_size() ||
++      keys.joiner_secret.size() != suite.secret_size()) {
++    throw InvalidParameterError("Invalid snapshot key schedule");
++  }
++  for (const auto& entry : derived) {
++    if (suite.derive_secret(keys.epoch_secret, entry.first) != entry.second) {
++      throw InvalidParameterError("Inconsistent snapshot key schedule");
++    }
++  }
++  const auto expected_transcript = TranscriptHash(suite,
++    state._transcript_hash.confirmed, keys.confirmation_tag);
++  if (keys.confirmation_tag != suite.digest().hmac(keys.confirmation_key,
++        state._transcript_hash.confirmed) ||
++      expected_transcript.interim != state._transcript_hash.interim ||
++      keys.external_priv.data != HPKEPrivateKey::derive(suite, keys.external_secret).data) {
++    throw InvalidParameterError("Inconsistent snapshot transcript");
++  }
++  state._keys = keys.encryption_keys(tree_size);
++  return state;
++}
++
+ 
+ ///
+ /// Constructors
+@@ -400,6 +613,7 @@
+                                     group_context());
+ 
+     case WireFormat::mls_private_message:
++      _private_message_used = true;
+       return PrivateMessage::protect(std::move(content_auth),
+                                      _suite,
+                                      _keys,
+@@ -445,6 +659,7 @@
+         throw ProtocolError("PrivateMessage not for this epoch");
+       }
+ 
++      _private_message_used = true;
+       auto maybe_content_auth =
+         ct.unprotect(_suite, _keys, _key_schedule.sender_data_secret);
+       if (!maybe_content_auth) {

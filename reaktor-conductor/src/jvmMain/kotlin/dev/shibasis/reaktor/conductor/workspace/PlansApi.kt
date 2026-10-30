@@ -48,6 +48,7 @@ data class PlanWriteRequest(
     @Schema(openItems = true) val ops: List<JsonObject> = emptyList(),
     @Describe("The revision you read") @Schema(minimum = 0, nullable = false) val base: Long? = null,
     @Describe("Your seat when a person attached you to part of this plan") @Schema(nullable = false) val seat: String? = null,
+    @Describe("A note to the others on this plan: kept in its log and delivered to them at their next step") @Schema(nullable = false) val message: String? = null,
 )
 
 @Serializable

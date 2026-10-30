@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.tooling.mcp
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
+import dev.shibasis.reaktor.mcp.REAKTOR_MCP_MAX_REQUEST_BYTES
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
 import dev.shibasis.reaktor.mcp.McpMessageHandler
@@ -131,8 +132,8 @@ class LoopbackMcpServer private constructor(
                         send(400, error("Unsupported MCP protocol version")); return
                     }
                     responseHeaders.set("MCP-Protocol-Version", versions?.singleOrNull() ?: REAKTOR_MCP_PROTOCOL_VERSION)
-                    val body = requestBody.readNBytes(1_048_577)
-                    if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
+                    val body = requestBody.readNBytes(REAKTOR_MCP_MAX_REQUEST_BYTES + 1)
+                    if (body.size > REAKTOR_MCP_MAX_REQUEST_BYTES) { send(413, error("Request body is too large")); return }
                     val response = (if (browserPath) requireNotNull(browser).handler else mcp()).handle(body.decodeToString())
                     send(if (response == null) 202 else 200, response)
                 }
@@ -146,8 +147,8 @@ class LoopbackMcpServer private constructor(
                     send(response?.status ?: 404, response?.body ?: error("Not found"))
                 }
                 requestMethod == "POST" -> {
-                    val body = requestBody.readNBytes(1_048_577)
-                    if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
+                    val body = requestBody.readNBytes(REAKTOR_MCP_MAX_REQUEST_BYTES + 1)
+                    if (body.size > REAKTOR_MCP_MAX_REQUEST_BYTES) { send(413, error("Request body is too large")); return }
                     val response = postWithHeaders?.invoke(requestURI.path, body.decodeToString(), requestHeaders.entries.associate { it.key.lowercase() to it.value.toList() })
                         ?: post(requestURI.path, body.decodeToString())
                     response?.headers?.forEach { (name, value) -> responseHeaders.set(name, value) }

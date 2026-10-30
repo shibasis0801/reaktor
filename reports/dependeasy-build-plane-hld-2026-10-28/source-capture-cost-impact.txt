@@ -1,0 +1,25 @@
+13 of 13 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:ed7d674fafc9
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt
+  11:7 class SourceCandidates: class SourceCandidates(private val root: File, private val artifacts: LocalAgentArtifacts) · kotlin:dev/shibasis/reaktor/conductor/workspace/SourceCandidates@:reaktor-conductor:main:jvmMain@reaktor
+  12:17 property SourceCandidates.materializedRoots, called by SourceCandidates: private var materializedRoots: List<File>?
+  229:9 function CandidateSourceInputs.paths, called by SourceCandidates: fun paths(root: File)
+  19:17 function SourceCandidates.capture, called by SourceCandidates: private fun capture(subjects: List<AgentGraphSubject>, visited: MutableSet<String>): AgentCandidate
+  209:17 function SourceCandidates.git, called by SourceCandidates: private fun git(vararg args: String): String?
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleSourceRoots.kt
+  9:5 function gradleSourceRoots, called by SourceCandidates: fun gradleSourceRoots(root: File): GradleSourceRoots
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/LocalAgentArtifacts.kt
+  13:23 function LocalAgentArtifacts.put, called by SourceCandidates: @Synchronized fun put(text: String, kind: String): ArtifactRef
+../reaktor/reaktor-conductor/src/commonMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentEvidence.kt
+  10:12 class AgentCandidate, used by SourceCandidates: @Serializable data class AgentCandidate( val id: String, val workspaceRoot: String, val baseCommit: String?, val sourceDigest: String, val observedAt: Long, val changedFiles: List<String>, val diff: A
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AtomicWorkspaceFiles.kt
+  12:14 function digest, called by SourceCandidates: internal fun digest(text: String): String
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt
+  222:12 class ScopedDiff, used by SourceCandidates: data class ScopedDiff(val text: String, val notices: List<String>)
+  226:9 function CandidateSourceInputs.exclusions, called by SourceCandidates: fun exclusions(root: File)
+../reaktor/reaktor-conductor/src/commonMain/kotlin/dev/shibasis/reaktor/conductor/Hybrid.kt
+  404:12 class SourceManifest, used by SourceCandidates: @Serializable data class SourceManifest( val entries: Map<String, String> = emptyMap(), val available: Boolean = false, val truncated: Boolean = false, )
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt
+  206:17 function SourceCandidates.contentDigest, called by SourceCandidates: private fun contentDigest(bytes: ByteArray)
+next: atlas_read {"id":"d:../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt:10:6@5fb1694f"}
+--- reads[0] {"name":"OperationalControlPlane.executorCompleted"}
+error: Nothing named OperationalControlPlane.executorCompleted is declared in Kotlin or C++ in this repository and ../reaktor; atlas.query with from.text finds any text

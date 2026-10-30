@@ -20,7 +20,8 @@ library(namespace = "dev.shibasis.reaktor.auth", targets = Targets.All, ui = Com
             implementation(Versions.Android.GoogleId)
         }
         jvm {
-            api(Reaktor.Security, Reaktor.Tooling)
+            api(Reaktor.Tooling)
+            implementation(Versions.Native.Jna)
             api(Versions.Server.OAuth)
             api(Versions.Server.Security)
             api(Versions.Data.Exposed)

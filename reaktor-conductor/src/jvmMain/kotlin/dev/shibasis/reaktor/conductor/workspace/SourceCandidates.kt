@@ -93,12 +93,20 @@ class SourceCandidates(private val root: File, private val artifacts: LocalAgent
         val diff = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base ?: "--cached", "--") + inputPaths).toTypedArray())
         val additions = StringBuilder()
         var diffBytes = diff?.toByteArray()?.size ?: 0
-        for (name in untracked.take(200)) {
-            val addition = git("diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--", "/dev/null", name)
-            if (addition == null) { notices += "New-file diff unavailable: $name"; continue }
-            diffBytes += addition.toByteArray().size
-            if (diffBytes > 16_000_000) { notices += "New-file diff budget exceeded"; break }
-            additions.append(addition)
+        java.util.concurrent.Executors.newFixedThreadPool(4).use { workers ->
+            for (batch in untracked.take(200).chunked(4)) {
+                val pending = batch.map { name -> workers.submit(java.util.concurrent.Callable {
+                    git("diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--", "/dev/null", name)
+                }) }
+                for ((name, result) in batch.zip(pending)) {
+                    val addition = result.get()
+                    if (addition == null) { notices += "New-file diff unavailable: $name"; continue }
+                    diffBytes += addition.toByteArray().size
+                    if (diffBytes > 16_000_000) { notices += "New-file diff budget exceeded"; break }
+                    additions.append(addition)
+                }
+                if (diffBytes > 16_000_000) break
+            }
         }
         if (untracked.size > 200) notices += "New-file diff budget exceeded"
         if (diff == null) notices += "Diff unavailable or over 16 MB"

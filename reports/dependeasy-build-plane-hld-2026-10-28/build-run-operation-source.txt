@@ -1,0 +1,203 @@
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelOperations.kt · file · 15000 of 68863 characters, partial · rev:f10c45752d2d
+618   }
+619                  RunStarted(started.id, task.id, started.status)
+620              } else {
+621                  require(request.plan == null) { "Affected execution prepares each selected canonical node; a single-node reviewed plan cannot authorize a selection" }
+622                  val current = BuildModelReader.read(root)
+623                  val inventory = BuildModelReader.affectedInputs(root, request.affected)
+624                  require(inventory.getValue("truth").jsonPrimitive.content == "source" &&
+625                      inventory.getValue("modelDigest").jsonPrimitive.content == BuildModelReader.digest(BuildModelReader.encode(current))) { "Affected model changed; rerun exportBuildModel and review build.affected" }
+626                  val nodes = current.nodes.associateBy { it.id }
+627                  val affected = inventory.getValue("nodes").jsonArray.mapTo(hashSetOf()) { it.jsonObject.getValue("id").jsonPrimitive.content }
+628                  val edges = current.edges.filter { it !is Edge.OrderedAfter }.groupBy { it.from }
+629                  fun closure(id: dev.shibasis.dependeasy.model.NodeId): Set<dev.shibasis.dependeasy.model.NodeId> {
+630                      val found = linkedSetOf<dev.shibasis.dependeasy.model.NodeId>()
+631                      val pending = ArrayDeque(listOf(id))
+632                      while (pending.isNotEmpty()) {
+633                          val next = pending.removeFirst()
+634                          if (found.add(next)) edges[next].orEmpty().forEach { pending.addLast(it.to) }
+635                      }
+636                      return found
+637                  }
+638                  request.node?.let { id -> require(nodes.values.single { it.id.toString() == id }.effect == Effect.Verify) { "Affected execution accepts verification nodes only" } }
+639                  val candidates = current.nodes.filter { it.effect == Effect.Verify && it.id.toString() in affected &&
+640                      (request.node == null || request.node == it.id.toString()) }
+641                  val selected = candidates.filter { node ->
+642                      val spec = node.kernel?.spec as? dev.shibasis.dependeasy.model.KernelSpec.WorkspaceNode
+643                      request.node != null || spec == null || spec.requirements.isNotEmpty() ||
+644                          closure(node.id).none { it != node.id && nodes[it]?.effect == Effect.Verify && it.toString() in affected }
+645                  }.sortedBy { it.id.toString() }
+646                  val bound = kernel.snapshot.value.tasks.filter { it.buildNodeId != null }.associateBy { it.buildNodeId }
+647                  fun confirmedInputs(): JsonObject {
+648                      val confirmedModel = BuildModelReader.read(root)
+649                      val confirmed = BuildModelReader.affectedInputs(root, request.affected)
+650                      require(confirmed.getValue("modelDigest").jsonPrimitive.content == BuildModelReader.digest(BuildModelReader.encode(confirmedModel)) &&
+651                          confirmedModel.copy(declarations = current.declarations) == current &&
+652                          confirmedModel.declarations.filterNot { it.kind == dev.shibasis.dependeasy.model.DeclarationInputKind.Option } ==
+653                          current.declarations.filterNot { it.kind == dev.shibasis.dependeasy.model.DeclarationInputKind.Option } &&
+654                          (confirmed - "modelDigest") == (inventory - "modelDigest")) { "Affected inputs changed while planning; inspect build.affected again" }
+655                      return confirmed
+656                  }
+657                  var plannedDigest = inventory.getValue("modelDigest").jsonPrimitive.content
+658                  val prepared = selected.map { node ->
+659                      val dependencies = closure(node.id)
+660                      require(dependencies.all { nodes[it]?.effect in setOf(Effect.Build, Effect.Verify) }) { "${node.id} has an unresolved or non-verification execution dependency; inspect build.tree before running it explicitly" }
+661                      val task = requireNotNull(bound[node.id]) { "No canonical operation runs ${node.id}; refresh the owner catalog" }
+662                      require(!task.requiresApproval && task.unavailableReason == null) { "${node.id} is unavailable or needs approval; inspect it before running explicitly" }
+663                      Triple(node, task, buildArguments(current, node, request.options))
+664                  }.map { (node, task, arguments) ->
+665                      val plan = kernel.operations.previewPlan(task.id, arguments, environment).copy(toolingFingerprint = null)
+666                      if (plan.gradlePlan?.modelDigest != plannedDigest) {
+667                          val confirmed = confirmedInputs()
+668                          plannedDigest = confirmed.getValue("modelDigest").jsonPrimitive.content
+669                          require(plan.gradlePlan?.modelDigest == plannedDigest) { "Prepared plan does not match the confirmed affected model" }
+670                          kernel.operations.replaceCatalog(BestBudsOperationalCatalog.load(root))
+671                      }
+672                      Triple(task, arguments, plan)
+673                  }
+674                  val confirmed = confirmedInputs()
+675                  require(prepared.all { (_, _, plan) -> plan.gradlePlan?.modelDigest == confirmed.getValue("modelDigest").jsonPrimitive.content }) {
+676                      "Prepared plans do not share the confirmed affected model; inspect build.affected again"
+677                  }
+678                  kernel.operations.replaceCatalog(BestBudsOperationalCatalog.load(root))
+679                  val started = mutableListOf<RunStarted>()
+680                  var failure: String? = null
+681                  for ((task, arguments, plan) in prepared) {
+682                      val before = kernel.snapshot.value.runs.mapTo(hashSetOf()) { it.id }
+683                      try {
+684                          kernel.operations.requestRun(task.id, quiet = true, arguments = arguments, environment = environment, reviewedPlan = plan)
+685                          val run = requireNotNull(kernel.snapshot.value.runs.firstOrNull { it.id !in before && it.taskId == task.id }) { "No run was created for ${task.id}" }
+686                          started += RunStarted(run.id, task.id, run.status)
+687                      } catch (invalid: Exception) {
+688                          kernel.snapshot.value.runs.firstOrNull { it.id !in before && it.taskId == task.id }?.let { run ->
+689                              started += RunStarted(run.id, task.id, run.status)
+690                          }
+691                          failure = "${task.id}: ${invalid.message}; inspect all returned runs before retrying the selection"
+692                          break
+693                      }
+694                  }
+695                  val rows = confirmed.getValue("nodes").jsonArray
+696                  val evidence = buildJsonObject {
+697                      (confirmed - setOf("nodes", "changes", "omissions", "revisions")).forEach { (key, value) -> put(key, value) }
+698                      put("view", "nodes"); put("offset", 0); put("total", rows.size); put("nodes", JsonArray(rows.take(10)))
+699                      if (rows.size > 10) put("nextOffset", 10)
+700                      request.node?.let { put("node", it) }
+701                  }
+702                  AffectedRuns(evidence, started, failure)
+703              }
+704          },
+705  
+706      )
+707  }
+708  
+709  internal fun engineeringOperations(kernel: ReaktorKernel): List<Operation<*, *>> {
+710      suspend fun engineering(operation: String, arguments: JsonObject, caller: CallCaller? = null): JsonElement {
+711          val source = if (caller != null && (operation.startsWith("code.") || operation == "context.query")) kernel.source(caller)?.engineering else null
+712          val target = source ?: kernel.graph.engineering
+713          val result = target.invoke(buildJsonObject { put("workspaceRoot", target.code().root.toString()); put("operation", operation); put("arguments", arguments) }, allowAgentActions = true, caller = caller ?: CallCaller())
+714          check(!result.isError) { (result.data as? JsonObject)?.get("error")?.jsonPrimitive?.content ?: "$operation failed" }
+715          return result.data
+716      }
+717      fun schema(operation: String) = {
+718          val described = runBlocking { engineering("operation.schema", buildJsonObject { put("operation", operation) }) }.jsonObject
+719          described["inputSchema"]?.jsonObject ?: described
+720      }
+721      val node = kernel.graph.engineering
+722      return EngineeringEffects.map { (operation, effect) ->
+723          rawOperation(operation, EngineeringSummaries.getValue(operation), effect, schema(operation)) { arguments -> engineering(operation, arguments, invocation.caller) }
+724      } + listOf(
+725          rawOperation("code.apply", "Applies one code.plan proposal by its fingerprint and returns its receipt. A seat whose policy stops short of source writes waits for a person to approve that exact edit. Repeating an applied proposal returns the same receipt without asking again.",
+726              SafetyClass.SourceWrite, schema("code.apply"), effectFor = { arguments, caller -> (kernel.source(caller)?.engineering ?: node).applyEffect(arguments, caller) }) { arguments ->
+727              withContext(Dispatchers.IO) { (kernel.source(invocation.caller)?.engineering ?: node).apply(arguments, approval, invocation.caller) }
+728          },
+729          *BoardWriteSummaries.map { (operation, summary) ->
+730              rawOperation(operation, summary, SafetyClass.LocalArtifactWrite, { schema(operation)().withoutActor() }) { arguments ->
+731                  val result = node.boardWrite(operation, arguments, invocation.caller)
+732                  check(!result.isError) { (result.data as? JsonObject)?.get("error")?.jsonPrimitive?.content ?: result.text() }
+733                  result.data
+734              }
+735          }.toTypedArray(),
+736          *GraphActions.map { (operation, action) ->
+737              val (effect, summary) = action
+738              Operation(OperationId(operation), summary, effect, JsonObject.serializer(), JsonElement.serializer(), { schema(operation)().withoutActor() },
+739                  appliesOwnPlan = { arguments, caller -> if (operation == "taskgraph.patch") node.insideEnvelope(arguments, caller) else caller.seat == KernelEngineeringNode.HangarSeat },
+740              ) { arguments ->
+741                  val person = approval?.decidedBy?.takeIf { operation in KernelEngineeringNode.personActions }
+742                  val approvedBy = if (operation == "taskgraph.patch") approval?.decidedBy ?: "the ${invocation.caller.seat ?: "agent"} seat's policy" else null
+743                  val result = node.boardWrite(operation, arguments, invocation.caller, person, approvedBy)
+744                  check(!result.isError) { (result.data as? JsonObject)?.get("error")?.jsonPrimitive?.content ?: result.text() }
+745                  result.data
+746              }
+747          }.toTypedArray(),
+748          rawOperation("provider.call", "Calls one configured provider tool from provider.tools. Its effect is that provider's class for the tool, so reads run at once and writes wait for a person.",
+749              SafetyClass.UnknownRemoteEffect, schema("provider.call"), effectFor = { arguments, _ -> node.providerEffect(arguments) }) { arguments ->
+750              withContext(Dispatchers.IO) { node.providerCall(arguments) }
+751          },
+752      )
+753  }
+754  
+755  private val EngineeringEffects = linkedMapOf(
+756      "code.read" to SafetyClass.ReadOnly,
+757      "code.query" to SafetyClass.ReadOnly,
+758      "code.investigate" to SafetyClass.ReadOnly,
+759      "context.query" to SafetyClass.ReadOnly,
+760      "code.plan" to SafetyClass.LocalEphemeral,
+761      "code.receipt" to SafetyClass.ReadOnly,
+762      "task.list" to SafetyClass.ReadOnly,
+763      "task.read" to SafetyClass.ReadOnly,
+764      "task.children" to SafetyClass.ReadOnly,
+765      "task.wait" to SafetyClass.ReadOnly,
+766      "task.start" to SafetyClass.LocalArtifactWrite,
+767      "task.resume" to SafetyClass.LocalArtifactWrite,
+768      "task.message" to SafetyClass.LocalArtifactWrite,
+769      "task.cancel" to SafetyClass.LocalEphemeral,
+770      "peer.exchange" to SafetyClass.LiveRead,
+771      "board.list" to SafetyClass.ReadOnly,
+772      "board.read" to SafetyClass.ReadOnly,
+773      "bench.catalog" to SafetyClass.ReadOnly,
+774      "bench.measure" to SafetyClass.LocalArtifactWrite,
+775      "bench.churn" to SafetyClass.ReadOnly,
+776      "taskgraph.templates" to SafetyClass.ReadOnly,
+777      "taskgraph.template.read" to SafetyClass.ReadOnly,
+778      "profile.list" to SafetyClass.ReadOnly,
+779      "profile.read" to SafetyClass.ReadOnly,
+780      "taskgraph.list" to SafetyClass.ReadOnly,
+781      "taskgraph.read" to SafetyClass.ReadOnly,
+782      "taskgraph.seats" to SafetyClass.ReadOnly,
+783      "taskgraph.shape" to SafetyClass.ReadOnly,
+784      "taskgraph.context" to SafetyClass.ReadOnly,
+785      "memory.search" to SafetyClass.ReadOnly,
+786      "memory.read" to SafetyClass.ReadOnly,
+787      "memory.remember" to SafetyClass.LocalArtifactWrite,
+788      "memory.forget" to SafetyClass.LocalArtifactWrite,
+789      "provider.catalog" to SafetyClass.ReadOnly,
+790      "provider.tools" to SafetyClass.ReadOnly,
+791      "provider.schema" to SafetyClass.ReadOnly,
+792      "provider.refresh" to SafetyClass.LocalEphemeral,
+793  )
+794  
+795  private val EngineeringSummaries = mapOf(
+796      "code.read" to "Reads one source file with its digest and partial flags.",
+797      "code.query" to "Alias kept until every face uses the Atlas. atlas.query answers each kind: literal with from.text, identifier with from.name, outline with from.path, " +
+798          "definition and references with from.at and follow references (index for a SCIP artifact), impact with preset impact, graph with atlas.graph.",
+799      "code.investigate" to "Alias kept until every face uses the Atlas: atlas.query with preset investigate gives the same bounded answer about a declaration, with or without an index.",
+800      "context.query" to "Packs whole evidence entries for a question, with omission counts.",
+801      "code.plan" to "Binds a literal or rename proposal to exact source content and returns its fingerprint.",
+802      "code.receipt" to "The retained result of an applied proposal, by fingerprint.",
+803      "task.list" to "Native Codex and Claude tasks with their state.",
+804      "task.read" to "One native task with its turns and checks.",
+805      "task.children" to "Tasks started by one task.",
+806      "task.wait" to "Waits for a native task to change state.",
+807      "task.start" to "Starts a native Codex or Claude task; it may use model quota.",
+808      "task.resume" to "Resumes a stopped native task.",
+809      "task.message" to "Sends a message to a running native task.",
+810      "task.cancel" to "Stops a native task.",
+811      "check.catalog" to "Checks a task can run to prove its work.",
+812      "check.start" to "Starts a check for a task and retains its receipt.",
+813      "check.link" to "Links existing check evidence to a task.",
+814      "peer.exchange" to "Asks a peer model one bounded read-only question.",
+815      "board.list" to "The task board: every task with its column (Backlog, Planning, Running, Needs you, Review, Done). A column follows the Hangar runs and the Claude Code and Codex sessions linked to the task.",
+816      "board.read" to "One board task with its column, linked work, blocker and history.",
+817      "bench.catalog" to "Pinned benchmark scenarios and retained comparison runs; no native work starts.",
+818      "bench.measure" to "Retains exact-revision benchmark 
+next: atlas_read {"id":"f:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelOperations.kt@eb5623f8","part":"file","offset":57000}

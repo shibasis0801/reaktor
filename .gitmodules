@@ -7,3 +7,6 @@
 [submodule "reaktor-security/cpp/external/googletest"]
 	path = reaktor-security/cpp/external/googletest
 	url = https://github.com/google/googletest.git
+[submodule "reaktor-security/cpp/external/boringssl"]
+	path = reaktor-security/cpp/external/boringssl
+	url = https://boringssl.googlesource.com/boringssl

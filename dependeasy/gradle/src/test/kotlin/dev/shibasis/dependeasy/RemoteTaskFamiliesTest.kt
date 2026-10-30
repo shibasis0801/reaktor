@@ -24,7 +24,11 @@ class RemoteTaskFamiliesTest {
                 node("product", ":", "outputDeclaredBuildModel", "verification", ":exportBuildModel"),
                 node("product", ":desktop", "test", "jvm", ":desktop:test").copy(options = debug),
                 node("product", ":desktop", "outputVerificationResultsJvm", "verification", ":desktop:test").copy(options = tests),
-                node("product", ":web", "outputBrowserBundle", "web", ":web:bundle"),
+                node("product", ":web", "outputBrowserBundle", "web", ":web:bundle").copy(
+                    kernel = KernelRef("bundle", spec = KernelSpec.ViteBundle(ProcessExecution(
+                        directory = "web", executable = "pnpm", arguments = emptyList(),
+                        environmentKeys = emptyList(), tool = ToolRef("vite", "test"), inputs = emptyList(),
+                        outputs = listOf("web/dist")), configuration = null))),
                 node("product", ":web", "workerTypes", "web", ":web:workerTypes").copy(
                     kernel = KernelRef("types", spec = KernelSpec.WorkerTypes(ProcessExecution(
                         directory = "web", executable = "pnpm", arguments = listOf("exec", "wrangler", "types"),
@@ -45,6 +49,9 @@ class RemoteTaskFamiliesTest {
         assertContains(routing.environment, GradleProtocol.OperationRunVariable)
         assertEquals(listOf("kernel/build/custom-runtime"), routing.distributionDirectories)
         assertEquals(routing.distributionDirectories, routing.publicOutputs[":kernel:agentDist"])
+        assertEquals(listOf("web/dist"), routing.bundleDirectories)
+        assertEquals(routing.bundleDirectories, routing.publicOutputs[":web:bundle"])
+        assertEquals(routing.bundleDirectories, routing.publicOutputs[":web:outputBrowserBundle"])
         assertEquals(listOf("web/worker/types/worker-configuration.d.ts"), routing.publicOutputs[":web:workerTypes"])
         assertEquals(listOf("pnpm-lock.yaml"), routing.publicOutputs[":pnpmLock"])
         val lock = model.nodes.single { it.id.name == "pnpmLock" }

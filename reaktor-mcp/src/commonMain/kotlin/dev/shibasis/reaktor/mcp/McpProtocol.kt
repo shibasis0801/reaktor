@@ -15,6 +15,7 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
+const val REAKTOR_MCP_MAX_REQUEST_BYTES: Int = 1_048_576
 const val REAKTOR_MCP_PROTOCOL_VERSION: String = "2025-11-25"
 val REAKTOR_MCP_PROTOCOL_VERSIONS: Set<String> = setOf("2025-06-18", REAKTOR_MCP_PROTOCOL_VERSION, MCP_TASKS_VERSION)
 

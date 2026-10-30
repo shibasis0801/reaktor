@@ -1,0 +1,373 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:a4322b25020d
+../reaktor/reaktor-surface/src/commonMain/kotlin/dev/shibasis/reaktor/surface/Sources.kt
+  54:15 class ListSource: private class ListSource<T>( private val items: List<T>, private val keyOf: (T) -> String, private val textOf: (T) -> String?, private val enabledOf: (T) -> Boolean, private val selectableOf: (T) -> B · kotlin:dev/shibasis/reaktor/surface/ListSource@:reaktor-surface:main:commonMain@reaktor
+../reaktor/reaktor-surface/src/commonMain/kotlin/dev/shibasis/reaktor/surface/Sources.kt · private class ListSource<T>( private val items: List<T>, private val keyOf: (T) -> String, private val textOf: (T) -> String?, private val enabledOf: (T) -> Boolean, private val selectableOf: (T) -> B · 1918 of 1918 characters · rev:a4322b25020d
+54  private class ListSource<T>(
+55      private val items: List<T>,
+56      private val keyOf: (T) -> String,
+57      private val textOf: (T) -> String?,
+58      private val enabledOf: (T) -> Boolean,
+59      private val selectableOf: (T) -> Boolean,
+60      private val checkedOf: (T) -> Boolean?,
+61      private val diagnostics: SurfaceDiagnostics,
+62      private val activateOnPressOf: (T) -> Boolean,
+63  ) : ItemSource<T> {
+64      private val originals by lazy { items.map(keyOf) }
+65      private val keys by lazy {
+66          val occupied = originals.toMutableSet()
+67          val occurrences = mutableMapOf<String, Int>()
+68          val repeated = mutableSetOf<String>()
+69          val unique = originals.map { key ->
+70              val occurrence = occurrences.getOrElse(key) { 0 } + 1
+71              occurrences[key] = occurrence
+72              if (occurrence == 1) key else {
+73                  repeated += key
+74                  var suffix = occurrence
+75                  var candidate = "$key#$suffix"
+76                  while (!occupied.add(candidate)) candidate = "$key#${++suffix}"
+77                  candidate
+78              }
+79          }
+80          if (repeated.isNotEmpty()) diagnostics.duplicateKeys(repeated)
+81          unique
+82      }
+83      private val positions by lazy { keys.withIndex().associate { it.value to it.index } }
+84  
+85      override val size: Int get() = items.size
+86      override fun get(index: Int): T = items[index]
+87      override fun key(index: Int): String = keys[index]
+88      override fun originalKey(index: Int): String = originals[index]
+89      override fun indexOf(key: String): Int = positions[key] ?: -1
+90      override fun enabled(index: Int): Boolean = enabledOf(items[index])
+91      override fun text(index: Int): String? = textOf(items[index])
+92      override fun selectable(index: Int): Boolean = selectableOf(items[index])
+93      override fun checked(index: Int): Boolean? = checkedOf(items[index])
+94      override fun activateOnPress(index: Int): Boolean = activateOnPressOf(items[index])
+95  }
+next: atlas_read {"id":"d:../reaktor/reaktor-surface/src/commonMain/kotlin/dev/shibasis/reaktor/surface/Sources.kt:53:14@c620781e"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface/src/commonMain/kotlin/dev/shibasis/reaktor/surface/Sources.kt:53:14@c620781e"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[0] {"name":"CollectionPointerElement"}
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt · private data class CollectionPointerElement(val host: CollectionHost) : ModifierNodeElement<CollectionPointerNode>() · 263 of 263 characters · rev:a69680185411
+641  private data class CollectionPointerElement(val host: CollectionHost) : ModifierNodeElement<CollectionPointerNode>() {
+642      override fun create() = CollectionPointerNode(host)
+643  
+644      override fun update(node: CollectionPointerNode) {
+645          node.host = host
+646      }
+647  }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt:640:19@165e628f"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[1] {"name":"CollectionPointerNode"}
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt · private class CollectionPointerNode(var host: CollectionHost) : Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode, LayoutAwareModifierNode · 2016 of 2016 characters · rev:a69680185411
+649  private class CollectionPointerNode(var host: CollectionHost) :
+650      Modifier.Node(), PointerInputModifierNode, CompositionLocalConsumerModifierNode, LayoutAwareModifierNode {
+651      private var last: String? = null
+652      private var lastTime = 0L
+653      private var lastPosition = Offset.Zero
+654      private var clicks = 0
+655      private val tap = TouchTap()
+656  
+657      override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
+658          if (pass != PointerEventPass.Main) return
+659          val change = pointerEvent.changes.firstOrNull() ?: return
+660          if (change.type != PointerType.Mouse) {
+661              if (tap.completes(pointerEvent.type, change, currentValueOf(LocalViewConfiguration).touchSlop)) press(pointerEvent, change)
+662              return
+663          }
+664          when (pointerEvent.type) {
+665              PointerEventType.Enter, PointerEventType.Move -> host.hover(host.keyAt(change.position))
+666              PointerEventType.Exit -> host.hover(null)
+667              PointerEventType.Press -> if (!change.isConsumed) press(pointerEvent, change)
+668          }
+669      }
+670  
+671      private fun press(event: PointerEvent, change: PointerInputChange) {
+672          val key = host.keyAt(change.position) ?: return
+673          if (event.buttons.isSecondaryPressed) {
+674              host.secondary(key, change.position)
+675          } else {
+676              val configuration = currentValueOf(LocalViewConfiguration)
+677              val again = key == last && change.uptimeMillis - lastTime <= configuration.doubleTapTimeoutMillis &&
+678                  (change.position - lastPosition).getDistance() <= configuration.touchSlop
+679              clicks = if (again) clicks + 1 else 1
+680              last = key
+681              lastTime = change.uptimeMillis
+682              lastPosition = change.position
+683              host.press(key, event.keyboardModifiers, clicks)
+684          }
+685          change.consume()
+686      }
+687  
+688      override fun onCancelPointerInput() = tap.cancel()
+689  
+690      override fun onPlaced(coordinates: LayoutCoordinates) {
+691          host.coordinates = coordinates
+692      }
+693  }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt:648:14@165e628f"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[2] {"name":"CollectionHost"}
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt · @Stable internal class CollectionHost(private val selection: State<Set<String>>) · 11000 of 11356 characters, partial · rev:a69680185411
+371  @Stable
+372  internal class CollectionHost(private val selection: State<Set<String>>) {
+373      lateinit var machine: Machine<CollectionProperties, CollectionState, CollectionInput, CollectionEvent>
+374      var grid: GridBinding? = null
+375      var list: LazyListState? = null
+376      val rowCoordinates = HashMap<String, LayoutCoordinates>()
+377      private var properties: CollectionProperties? = null
+378      private var behavior: CollectionBehavior = DefaultKernel
+379      private var inputModes: InputModeManager? = null
+380      private val rows = HashMap<String, FocusRequester>()
+381      private val availability = HashMap<String, State<Set<CommandId>>>()
+382      private var pending: String? = null
+383      private var pointing = false
+384  
+385      var openMenu: ((IntRect) -> Unit)? = null
+386      var actions by mutableStateOf(RowActions.None)
+387      val menuOpen = mutableStateOf(false)
+388      var menuAnchor = IntRect.Zero
+389      var coordinates: LayoutCoordinates? = null
+390      private var pointerAnchor = IntRect.Zero
+391      private var nextAnchor: IntRect? = null
+392  
+393      var focused by mutableStateOf<String?>(null)
+394          private set
+395      var keyboard by mutableStateOf(false)
+396          private set
+397  
+398      val selected: Set<String> get() = selection.value
+399      val active: String? get() = machine.state.active
+400      val hovered: String? get() = machine.state.hovered
+401  
+402      fun update(properties: CollectionProperties, behavior: CollectionBehavior, inputModes: InputModeManager) {
+403          val viewport = list
+404          val previous = this.properties?.items
+405          if (viewport != null && viewport.firstVisibleItemIndex == 0 && viewport.firstVisibleItemScrollOffset == 0 &&
+406              previous != null && previous.size > 0 && properties.items.size > 0 && previous.key(0) != properties.items.key(0)) {
+407              viewport.requestScrollToItem(0)
+408          }
+409          this.properties = properties
+410          this.behavior = behavior
+411          this.inputModes = inputModes
+412          val cells = grid
+413          if (cells != null) {
+414              val active = cells.state.cursor.active
+415              if (active != null && (machine.state.within || pending == active.part.value)) {
+416                  val moved = previous?.indexOf(active.row) != properties.items.indexOf(active.row)
+417                  if (focused != active.part.value) focus(active.part.value)
+418                  if (moved || focused != active.part.value) {
+419                      reveal(active.row)
+420                      cells.revealColumn(active.column)
+421                  }
+422              }
+423              return
+424          }
+425          val gone = focused?.takeIf { properties.items.indexOf(it) < 0 } ?: return
+426          machine.state.active?.takeIf { it != gone }?.let {
+427              focus(it)
+428              reveal(it)
+429          }
+430      }
+431  
+432      fun execute(command: LocalCommand): Boolean = when (command) {
+433          is LocalCommand.Focus -> {
+434              focus(command.part.value)
+435              true
+436          }
+437          is LocalCommand.Reveal -> {
+438              val cells = grid
+439              val cell = cells?.state?.cursor?.active?.takeIf { it.part == command.part }
+440              if (cell == null) reveal(command.part.value) else {
+441                  reveal(cell.row)
+442                  cells.revealColumn(cell.column)
+443              }
+444              true
+445          }
+446          else -> false
+447      }
+448  
+449      fun register(key: String, focus: FocusRequester) {
+450          rows[key] = focus
+451          if (pending == key) {
+452              if (grid == null) pending = null
+453              focus.requestFocus()
+454          }
+455      }
+456  
+457      fun unregister(key: String, focus: FocusRequester) {
+458          if (rows[key] === focus) {
+459              rows.remove(key)
+460              rowCoordinates.remove(key)
+461              availability.remove(key)
+462          }
+463      }
+464  
+465      fun positioned(key: String) {
+466          if (pending == key && focused == key) pending = null
+467      }
+468  
+469      val focusTarget: String? get() = pending ?: focused
+470  
+471      fun canFocus(key: String): Boolean = machine.state.active == key
+472  
+473      fun waiting(): Boolean = (grid?.state?.cursor?.active?.part?.value ?: machine.state.active)?.let { it !in rows } ?: false
+474  
+475      fun onFocus(state: FocusState) {
+476          if (!state.hasFocus && !menuOpen.value) machine.send(CollectionInput.Blurred)
+477          if (!state.isFocused) return
+478          val cell = grid?.state?.cursor?.active
+479          val active = cell?.part?.value ?: machine.state.active ?: return
+480          if (inputModes?.inputMode == InputMode.Keyboard) keyboard = true
+481          focus(active)
+482          reveal(cell?.row ?: active)
+483          cell?.let { grid?.revealColumn?.invoke(it.column) }
+484      }
+485  
+486      fun onCellFocus(cell: GridCell, isFocused: Boolean) {
+487          if (isFocused) {
+488              if (pending == cell.part.value) pending = null
+489              focused = cell.part.value
+490              if (!pointing && inputModes?.inputMode == InputMode.Keyboard) keyboard = true
+491              grid?.send(GridInput.Focused(cell))
+492              machine.send(CollectionInput.Focused(cell.row))
+493          } else if (focused == cell.part.value) focused = null
+494      }
+495  
+496      fun pointCell(cell: GridCell) = pointed { grid?.send(GridInput.Point(cell)) }
+497  
+498      fun secondaryCell(cell: GridCell) = pointed {
+499          grid?.send(GridInput.Focused(cell))
+500          focus(cell.part.value)
+501      }
+502  
+503      fun onRowFocus(key: String, isFocused: Boolean) {
+504          if (isFocused) {
+505              if (pending == key) pending = null
+506              focused = key
+507              if (!pointing && inputModes?.inputMode == InputMode.Keyboard) keyboard = true
+508              machine.send(CollectionInput.Focused(key))
+509          } else if (focused == key) {
+510              focused = null
+511          }
+512      }
+513  
+514      fun onKey(event: KeyEvent): Boolean {
+515          if (event.type != KeyEventType.KeyDown) return false
+516          val stroke = event.stroke() ?: return false
+517          val cells = grid
+518          if (cells != null) {
+519              val active = cells.state.cursor.active ?: return false
+520              if (focusTarget != active.part.value) return false
+521              keyboard = true
+522              if (GridKernel.handles(cells.properties, stroke)) {
+523                  cells.send(GridInput.Stroke(stroke, page()))
+524                  return true
+525              }
+526              if (stroke.key == KeyName.ContextMenu || stroke.key == KeyName.F10 && stroke.shift && !stroke.meta && !stroke.control && !stroke.alt) {
+527                  machine.send(CollectionInput.Secondary(active.row, atPointer = false))
+528                  return true
+529              }
+530              return false
+531          }
+532          val properties = properties ?: return false
+533          if (!(behavior as? CollectionKernel ?: DefaultKernel).handles(properties, stroke, machine.state.active)) return false
+534          keyboard = true
+535          machine.send(CollectionInput.Stroke(stroke, page()))
+536          return true
+537      }
+538  
+539      fun press(key: String, modifiers: PointerKeyboardModifiers, clicks: Int) = pointed {
+540          val primary = if (properties?.keys == KeyConvention.Mac) modifiers.isMetaPressed else modifiers.isCtrlPressed
+541          machine.send(CollectionInput.Press(key, extend = modifiers.isShiftPressed, toggle = primary, clicks = clicks))
+542      }
+543  
+544      fun secondary(key: String, at: Offset) {
+545          pointerAnchor = coordinates?.takeIf { it.isAttached }?.let { IntRect(it.localToWindow(at).round(), IntSize.Zero) } ?: IntRect.Zero
+546          pointed { machine.send(CollectionInput.Secondary(key, atPointer = true)) }
+547      }
+548  
+549      fun menuFrom(key: String, anchor: IntRect) {
+550          nextAnchor = anchor
+551          pointed { machine.send(CollectionInput.Secondary(key, atPointer = true)) }
+552          nextAnchor = null
+553      }
+554  
+555      fun menu(request: CollectionEvent.MenuRequest) {
+556          val anchor = nextAnchor ?: if (request.atPointer) pointerAnchor else rowAnchor(request.key)
+557          nextAnchor = null
+558          openMenu?.invoke(anchor)
+559      }
+560  
+561      fun returnFocus() {
+562          (grid?.state?.cursor?.active?.part?.value ?: machine.state.active)?.let(::focus)
+563      }
+564  
+565      private fun rowAnchor(key: String): IntRect {
+566          rowCoordinates[key]?.takeIf { it.isAttached }?.let { return it.boundsInWindow().roundToIntRect() }
+567          val layout = coordinates?.takeIf { it.isAttached } ?: return IntRect.Zero
+568          val item = list?.layoutInfo?.visibleItemsInfo?.firstOrNull { it.key == key } ?: return IntRect(layout.localToWindow(Offset.Zero).round(), IntSize.Zero)
+569          val origin = layout.localToWindow(Offset(0f, item.offset.toFloat())).round()
+570          return IntRect(origin, IntSize(layout.size.width, item.size))
+571      }
+572  
+573      fun select(key: String) = machine.send(CollectionInput.Press(key, extend = false, toggle = false, clicks = 1))
+574  
+575      fun available(command: CommandId, key: String): Boolean = command in availability.getOrPut(key) {
+576          derivedStateOf { actions.commands(setOf(key)).commands.filter { it.availability == Availability.Available }.mapTo(mutableSetOf()) { it.id } }
+577      }.value
+578  
+579      fun run(command: CommandId, key: String) {
+580          val chosen = setOf(key)
+581          if (actions.commands(chosen).commands.any { it.id == command && it.availability == Availability.Available }) actions.onInvoke(command, chosen)
+582      }
+583  
+584      fun open(key: String) = machine.send(CollectionInput.Open(key))
+585  
+586      fun expand(key: String, expanded: Boolean) = machine.send(CollectionInput.Expand(key, expanded))
+587  
+588      fun hover(key: String?) {
+589          if (machine.state.hovered != key) machine.send(CollectionInput.Hover(key))
+590      }
+591  
+592      fun keyAt(position: Offset): String? {
+593          val list = list
+594          if (list == null) {
+595              val point = coordinates?.takeIf { it.isAttached }?.localToWindow(position) ?: return null
+596              return rowCoordinates.entries.firstOrNull { (_, row) -> row.isAttached && row.boundsInWindow().contains(point) }?.key
+597          }
+598          val y = position.y.toInt()
+599          return list.layoutInfo.visibleItemsInfo.firstOrNull { y >= it.offset && y < it.offset + it.size }?.key as? String
+600      }
+601  
+602      fun toggle(key: String, expandable: Boolean, expanded: Boolean): Modifier =
+603          if (expandable) Modifier.then(ToggleElement(this, key, expanded)) else Modifier.clearAndSetSemantics {}
+604  
+605      private inline fun pointed(send: () -> Unit) {
+606          keyboard = false
+607          pointing = true
+608          try {
+609              send()
+610          } finally {
+611              pointing = false
+612          }
+613      }
+614  
+615      private fun focus(key: String) {
+616          pending = key
+617          rows[key]?.let {
+618              if (grid == null) pending = null
+619              it.requestFocus()
+620          }
+621      }
+622  
+623      private fun reveal(key: String) {
+624          val list = list ?: return
+625          val index = properties?.items?.indexOf(key)?.takeIf { it >= 0 } ?: return
+626          val visible = list.layoutInfo.visibleItemsInfo
+627          val item = visible.firstOrNull { it.index == index }
+628          if (item != null && (grid == null || item.offset >= list.layoutInfo.viewportStartOffset && item.offset + item.size <= list.layoutInfo.viewportEndOffset)) return
+629          val first = visible.firstOrNull()?.index ?: 0
+630          list.requestScrollToItem(if (index < first || grid != null && index == first) index else (index - page() + 1).coerceAtLeast(0))
+631      }
+632  
+633      private fun page(): Int {
+634          val 
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Collections.kt:371:15@165e628f"},"follow":[{"rel":"references","dir":"in"}]}

@@ -192,6 +192,7 @@ private fun Board.card(item: BoardItem, point: BoardPoint, frame: BoardFrame, th
     }
     if (frame.draft?.editing != item.key) add(BoardLabel("$id:title", wrap(item.title, 27, if (item.resolution.isBlank()) 3 else 2), point.x + 22, point.y + 61, 18, theme.title))
     if (item.resolution.isNotBlank()) add(BoardLabel("$id:resolution", wrap(item.resolution, 34, 2), point.x + 22, point.y + 111, 11, theme.footer))
+    add(BoardRule("$id:rule", point.x + 22, point.y + 137, BoardGeometry.CardWidth - 44, theme.badgeLine))
     add(BoardLabel("$id:dependencies", footer(item), point.x + 22, point.y + 151, 12, theme.footer))
     if (item.initials.isNotBlank()) {
         add(BoardDot("$id:owner", point.x + 245, point.y + 137, 34.0, theme.owner, theme.owner, 0.0))

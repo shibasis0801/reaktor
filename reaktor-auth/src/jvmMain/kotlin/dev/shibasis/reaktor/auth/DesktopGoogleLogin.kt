@@ -2,7 +2,6 @@ package dev.shibasis.reaktor.auth
 
 import com.sun.net.httpserver.HttpServer
 import com.nimbusds.jwt.SignedJWT
-import dev.shibasis.reaktor.security.CredentialAccessException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

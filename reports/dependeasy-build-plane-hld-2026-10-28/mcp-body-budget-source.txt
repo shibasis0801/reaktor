@@ -1,0 +1,96 @@
+2 of 2 · syntactic (git-grep) · rev:5afc0b8b4295
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt
+  269 text in REAKTOR_MCP_PROTOCOL_VERSION_FOR_TEST: private const val REAKTOR_MCP_PROTOCOL_VERSION_FOR_TEST = "2025-06-18"
+../reaktor/reaktor-mcp/src/commonMain/kotlin/dev/shibasis/reaktor/mcp/McpProtocol.kt
+  18 text in REAKTOR_MCP_PROTOCOL_VERSION: const val REAKTOR_MCP_PROTOCOL_VERSION: String = "2025-11-25"
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt · private const val REAKTOR_MCP_PROTOCOL_VERSION_FOR_TEST · 70 of 70 characters · rev:54206f2dedf5
+269  private const val REAKTOR_MCP_PROTOCOL_VERSION_FOR_TEST = "2025-06-18"
+../reaktor/reaktor-mcp/src/commonMain/kotlin/dev/shibasis/reaktor/mcp/McpProtocol.kt · const val REAKTOR_MCP_PROTOCOL_VERSION: String · 61 of 61 characters · rev:9c011ff24d84
+18  const val REAKTOR_MCP_PROTOCOL_VERSION: String = "2025-11-25"
+next: atlas_read {"id":"d:../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt:268:8@7bc834e8"}
+--- queries[0] {"from":{"name":"LoopbackMcpServer.Companion.respond"},"read":true}
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:39853360fccd
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.kt
+  80:34 function LoopbackMcpServer.Companion.respond: private fun HttpExchange.respond( mcp: () -> McpMessageHandler, read: (String, Map<String, String>) -> LoopbackHttpResponse?, post: (String, String) -> LoopbackHttpResponse?, bearerToken: String?, pos · kotlin:dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.Companion#respond[com.sun.net.httpserver.HttpExchange](kotlin.Function0,kotlin.Function2,kotlin.Function2,kotlin.String,kotlin.Function3,dev.shibasis.reaktor.tooling.mcp.BrowserMcpEndpoint)@:reaktor-tooling:main:jvmMain@reaktor
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.kt · private fun HttpExchange.respond( mcp: () -> McpMessageHandler, read: (String, Map<String, String>) -> LoopbackHttpResponse?, post: (String, String) -> LoopbackHttpResponse?, bearerToken: String?, pos · 5401 of 5401 characters · rev:18f850d385f0
+ 80  private fun HttpExchange.respond(
+ 81              mcp: () -> McpMessageHandler,
+ 82              read: (String, Map<String, String>) -> LoopbackHttpResponse?,
+ 83              post: (String, String) -> LoopbackHttpResponse?,
+ 84              bearerToken: String?,
+ 85              postWithHeaders: ((String, String, Map<String, List<String>>) -> LoopbackHttpResponse?)?,
+ 86              browser: BrowserMcpEndpoint?,
+ 87          ) {
+ 88              responseHeaders.set("Cache-Control", "no-store")
+ 89              responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+ 90              responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Mcp-Protocol-Version, Mcp-Session-Id, Authorization, A2A-Version")
+ 91              responseHeaders.set("Access-Control-Expose-Headers", "Mcp-Protocol-Version, Mcp-Session-Id")
+ 92              val host = requestHeaders["Host"]?.singleOrNull()
+ 93              val origin = requestHeaders["Origin"]?.singleOrNull()
+ 94              val discoveryPath = requestURI.path == "/reaktor-plus/v1" && browser?.discovery?.isNotEmpty() == true
+ 95              val browserPath = requestURI.path == "/browser/mcp" || discoveryPath
+ 96              val pairing = if (browserPath) browser?.discovery?.get(origin)?.let { requireNotNull(origin) to it }
+ 97                  ?: browser?.credentials?.invoke() else null
+ 98              if (host == null || !loopbackUri("http://$host", authority = true)) {
+ 99                  send(403, error("Invalid Host header")); return
+100              }
+101              if (if (browserPath) pairing == null || origin != pairing.first
+102                  else requestHeaders.containsKey("Origin") && (origin == null || !loopbackUri(origin))) {
+103                  send(403, error("Origin is not permitted")); return
+104              }
+105              if (origin != null) {
+106                  responseHeaders.set("Access-Control-Allow-Origin", origin)
+107                  responseHeaders.set("Vary", "Origin")
+108              }
+109              if (browserPath && requestHeaders["Access-Control-Request-Private-Network"]?.singleOrNull() == "true") {
+110                  responseHeaders.set("Access-Control-Allow-Private-Network", "true")
+111              }
+112              val requiredToken = if (browserPath) pairing?.second else bearerToken
+113              if (requiredToken != null && requestMethod != "OPTIONS" && !(discoveryPath && requestMethod == "GET")) {
+114                  val supplied = requestHeaders["Authorization"]?.singleOrNull().orEmpty()
+115                  if (!MessageDigest.isEqual(supplied.toByteArray(), "Bearer $requiredToken".toByteArray())) {
+116                      send(401, error("Authentication required")); return
+117                  }
+118              }
+119              when {
+120                  requestMethod == "OPTIONS" -> send(204, null)
+121                  discoveryPath && requestMethod == "GET" -> send(200, buildJsonObject {
+122                      put("service", "reaktor-plus"); put("version", 1)
+123                      put("endpoint", "http://127.0.0.1:${localAddress.port}/browser/mcp")
+124                      put("token", requireNotNull(pairing).second)
+125                      putJsonArray("capabilities") { add("inference.ask") }
+126                      put("maxQuestionChars", 6000)
+127                  })
+128                  requestMethod == "POST" && (requestURI.path == "/mcp" || browserPath && !discoveryPath) -> {
+129                      val versions = requestHeaders["MCP-Protocol-Version"]
+130                      if (versions != null && versions.singleOrNull() !in REAKTOR_MCP_PROTOCOL_VERSIONS) {
+131                          send(400, error("Unsupported MCP protocol version")); return
+132                      }
+133                      responseHeaders.set("MCP-Protocol-Version", versions?.singleOrNull() ?: REAKTOR_MCP_PROTOCOL_VERSION)
+134                      val body = requestBody.readNBytes(1_048_577)
+135                      if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
+136                      val response = (if (browserPath) requireNotNull(browser).handler else mcp()).handle(body.decodeToString())
+137                      send(if (response == null) 202 else 200, response)
+138                  }
+139                  browserPath -> send(404, error("Not found"))
+140                  requestMethod == "GET" -> {
+141                      val query = requestURI.rawQuery.orEmpty().split('&').filter(String::isNotEmpty).associate {
+142                          decode(it.substringBefore('=')) to decode(it.substringAfter('=', ""))
+143                      }
+144                      val response = read(requestURI.path, query)
+145                      response?.headers?.forEach { (name, value) -> responseHeaders.set(name, value) }
+146                      send(response?.status ?: 404, response?.body ?: error("Not found"))
+147                  }
+148                  requestMethod == "POST" -> {
+149                      val body = requestBody.readNBytes(1_048_577)
+150                      if (body.size > 1_048_576) { send(413, error("Request body is too large")); return }
+151                      val response = postWithHeaders?.invoke(requestURI.path, body.decodeToString(), requestHeaders.entries.associate { it.key.lowercase() to it.value.toList() })
+152                          ?: post(requestURI.path, body.decodeToString())
+153                      response?.headers?.forEach { (name, value) -> responseHeaders.set(name, value) }
+154                      send(response?.status ?: 404, response?.body ?: error("Not found"))
+155                  }
+156                  else -> send(404, error("Not found"))
+157              }
+158          }
+next: atlas_read {"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.kt:79:33@ee664474"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.kt:79:33@ee664474"},"follow":[{"rel":"references","dir":"in"}]}

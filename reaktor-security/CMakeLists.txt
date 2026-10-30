@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION ${DEPE_CMAKE_MINIMUM})
 include("../dependeasy/cmake/api.cmake")
 reaktor_platform()
+set(CMAKE_MACOSX_BUNDLE OFF)
 project(${DEPE_NATIVE_TARGET} LANGUAGES C CXX)
 reaktor_configuration()
 reaktor_library(${PROJECT_NAME})

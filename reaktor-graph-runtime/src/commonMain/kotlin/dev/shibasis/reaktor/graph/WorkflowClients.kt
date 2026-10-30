@@ -7,4 +7,4 @@ import dev.shibasis.reaktor.service.contract.Service
 import dev.shibasis.reaktor.service.contract.over
 
 fun <S : Service> PortCapability.client(service: S): S =
-    service over PortLink(registerConsumer<S>(Key(""), contractType(service)))
+    service over PortLink(registerConsumer<S>(Key(service.id), contractType(service)))

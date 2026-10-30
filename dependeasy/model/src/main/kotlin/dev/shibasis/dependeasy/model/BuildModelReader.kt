@@ -189,6 +189,38 @@ object BuildModelReader {
         } finally { process.destroyForcibly() }
     }
 
+    fun deploymentReceipts(root: File, ids: List<String>, environment: String): JsonObject {
+        require(ids.size in 1..64 && ids.distinct().size == ids.size) { "Select 1 to 64 distinct deployment nodes" }
+        require(environment.isNotBlank() && environment.none(Char::isISOControl)) { "Select an explicit deployment environment" }
+        val scope = Environment(environment)
+        val model = declaredModel(root)
+        val byId = model.nodes.associateBy { it.id.toString() }
+        val selected = ids.map { requireNotNull(byId[it]) { "Unknown build node $it" } }
+        require(selected.all { it.effect == Effect.Deploy }) { "Select deployment nodes" }
+        val changed = changedDeclarations(root, model)
+        val receipts = selected.groupBy { it.id.build }.flatMap { (build, nodes) ->
+            WorkerDeployKernel.receipts(root.resolve(model.builds.single { it.name == build }.directory), nodes.mapTo(mutableSetOf()) { it.id })
+        }.filter { it.environment == scope }.groupBy { it.node }
+        val result = buildJsonObject {
+            put("truth", "recorded")
+            put("declarationTruth", if (changed.isEmpty()) "source" else "stale")
+            put("stale", changed.isNotEmpty())
+            put("changedDeclarationCount", changed.size)
+            put("changedDeclarations", buildJsonArray { changed.take(10).forEach { add("${it.build}:${it.path}") } })
+            put("environment", environment)
+            put("receipts", buildJsonObject {
+                selected.forEach { node ->
+                    val latest = receipts[node.id].orEmpty().groupBy { it.service }.values.map { versions ->
+                        versions.maxBy { it.finishedAtEpochMillis }
+                    }.sortedBy { it.service.name }
+                    put(node.id.toString(), json.encodeToJsonElement(latest))
+                }
+            })
+        }
+        require(result.toString().toByteArray(Charsets.UTF_8).size <= 192 * 1024) { "Deployment receipts exceed 192 KiB; select fewer nodes" }
+        return result
+    }
+
     fun node(root: File, id: String): Node = read(root).nodes.single { it.id.toString() == id }
     fun nodeDetails(root: File, id: String, collection: String? = null, offset: Int = 0, limit: Int = 10): JsonObject {
         require(offset >= 0 && limit in 1..10)
@@ -283,11 +315,11 @@ object BuildModelReader {
         val model = declaredModel(root)
         val changed = changedDeclarations(root, model)
         val values = when (view) {
-            "nodes" -> model.nodes.map { node ->
+            "nodes" -> model.nodes.drop(offset).take(limit).map { node ->
                 val encoded = json.encodeToJsonElement(Node.serializer(), node).jsonObject
                 JsonObject(encoded.filterKeys { it in setOf("id", "kind", "title", "label", "effect", "host", "declaredAt") })
             }
-            "edges" -> model.edges.map { json.encodeToJsonElement(Edge.serializer(), it) }
+            "edges" -> model.edges.drop(offset).take(limit).map { json.encodeToJsonElement(Edge.serializer(), it) }
             else -> error("Expected nodes or edges")
         }
         return buildJsonObject {
@@ -298,9 +330,10 @@ object BuildModelReader {
             put("omissionCounts", json.encodeToJsonElement(omissionCounts(model)))
             put("producer", json.encodeToJsonElement(Producer.serializer(), model.producer))
             put("builds", buildJsonArray { model.builds.forEach { add(json.encodeToJsonElement(BuildIdentity.serializer(), it)) } })
-            put("view", view); put("offset", offset); put("total", values.size)
-            put(view, JsonArray(values.drop(offset).take(limit)))
-            if (offset + limit < values.size) put("nextOffset", offset + limit)
+            val total = if (view == "nodes") model.nodes.size else model.edges.size
+            put("view", view); put("offset", offset); put("total", total)
+            put(view, JsonArray(values))
+            if (limit < total - offset) put("nextOffset", offset + limit)
         }
     }
 

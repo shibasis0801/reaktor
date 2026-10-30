@@ -137,10 +137,15 @@ class BuildDeclarationsTest {
 
     @Test fun freshDefaultPlanningUsesOneWrapperAndRetainsTheExecutableSeal() = fixture { root ->
         report(root, node("artifacts"))
+        val initial = BuildModelReader.read(root)
+        root.resolve(BuildDeclarations.Report).writeText(BuildModelReader.encode(initial.copy(declarations = initial.declarations +
+            DeclarationInput("fixture", "option:PATH:inherited", "inherited", DeclarationInputKind.Option,
+                OptionValue("PATH", OptionType.String, System.getenv("PATH").orEmpty(), OptionSource.Environment)))))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         val invocation = TaskInvocation(TaskId("fixture:artifacts"))
         val prepared = workspace.prepare(invocation)
-        workspace.prepare(invocation)
+        workspace.prepare(invocation, environment = mapOf(
+            "PATH" to System.getenv("PATH").orEmpty(), "REAKTOR_ENVIRONMENT" to "local"))
         assertFalse(root.resolve("build/exports.txt").exists())
         assertEquals(listOf(GradleProtocol.PlanTask, GradleProtocol.PlanTask),
             root.resolve("build/planning-invocations.txt").readLines())
@@ -152,6 +157,13 @@ class BuildDeclarationsTest {
         SupervisedProcessExecutor().use { executor ->
             assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) }
         }
+        val model = BuildModelReader.read(root)
+        root.resolve(BuildDeclarations.Report).writeText(BuildModelReader.encode(model.copy(declarations = model.declarations +
+            DeclarationInput("fixture", "option:PATH:old", "old-context", DeclarationInputKind.Option,
+                OptionValue("PATH", OptionType.String, "old-context", OptionSource.Environment)))))
+        assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(invocation,
+            environment = mapOf("PATH" to System.getenv("PATH").orEmpty()))
+        assertEquals(listOf("export"), root.resolve("build/exports.txt").readLines())
     }
 
     @Test fun aStaleModelKeepsItsBuildTasksMarkedAndPlanningExportsItOnceFirst() = fixture { root ->
@@ -280,7 +292,9 @@ class BuildDeclarationsTest {
                       assert any(node['id']==json.loads(request.read_text())['node'] for node in model['nodes'])
                       model['producer']['version']=os.environ.get('REAKTOR_ENVIRONMENT','fixture')
                       for declaration in model['declarations']:
-                        declaration['sha256']=hashlib.sha256((root/declaration['path']).read_bytes()).hexdigest()
+                        if declaration['kind']=='Option':
+                          option=declaration['option'];option['value']=os.environ.get(option.get('environment') or option['name'],'<absent>')
+                        else: declaration['sha256']=hashlib.sha256((root/declaration['path']).read_bytes()).hexdigest()
                       if (root/'build/export-moves-nodes').exists():
                         for node in model['nodes']:node['declaredAt']['line']+=1
                       if (root/'build/export-drops-nodes').exists():model['nodes']=[]

@@ -1,0 +1,1279 @@
+commit dca8ab5aa67d9aa279a3b9b4df511e3fae4257d9
+Author: Shibasis <shibasis0801@gmail.com>
+Date:   Fri Oct 23 01:37:54 2026 +0530
+
+    updates
+
+diff --git a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Buttons.kt b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Buttons.kt
+index defac550..e4182806 100644
+--- a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Buttons.kt
++++ b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Buttons.kt
+@@ -1,5 +1,7 @@
+ package dev.shibasis.reaktor.ui.machinesignal.surface
+ 
++import dev.shibasis.reaktor.ui.machinesignal.shapes
++
+ import dev.shibasis.reaktor.surface.compose.lineBox
+ import dev.shibasis.reaktor.surface.Type
+ import androidx.compose.foundation.layout.heightIn
+@@ -56,10 +58,10 @@ fun toneButton(tone: SignalTone): ButtonAppearance = when (tone) {
+     SignalTone.Danger -> DangerButton
+ }
+ 
+-val PrimaryButton: ButtonAppearance = toneLook(SignalTone.Primary)
+-val SecondaryButton: ButtonAppearance = toneLook(SignalTone.Secondary)
+-val GhostButton: ButtonAppearance = toneLook(SignalTone.Ghost)
+-val DangerButton: ButtonAppearance = toneLook(SignalTone.Danger)
++val PrimaryButton: ButtonAppearance = toneLook(SignalTone.Primary).withMatrix(MatrixButton(SignalTone.Primary))
++val SecondaryButton: ButtonAppearance = toneLook(SignalTone.Secondary).withMatrix(MatrixButton(SignalTone.Secondary))
++val GhostButton: ButtonAppearance = toneLook(SignalTone.Ghost).withMatrix(MatrixButton(SignalTone.Ghost))
++val DangerButton: ButtonAppearance = toneLook(SignalTone.Danger).withMatrix(MatrixButton(SignalTone.Danger))
+ 
+ val SendButton: ButtonAppearance = object : ButtonAppearance {
+     @Composable
+@@ -85,7 +87,7 @@ val SendButton: ButtonAppearance = object : ButtonAppearance {
+             CompositionLocalProvider(LocalContentColor provides if (properties.enabled) colors.onAccent else colors.textFaint, content = slots.content)
+         }
+     }
+-}
++}.withMatrix(MatrixButton(SignalTone.Primary))
+ 
+ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
+     ComponentRecipe<PressProperties, PressState, ButtonLook> { properties, state, theme ->
+@@ -114,7 +116,7 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
+             ),
+             busy = properties.busy,
+             focused = state.focusVisible,
+-            ring = FocusRing(colors.accent, metrics.focusRing, MachineSignal.Shape.Control),
++            ring = FocusRing(colors.accent, metrics.focusRing, signal.shapes.control),
+         )
+     },
+ ) { look, feedback, slots ->
+@@ -124,8 +126,8 @@ private fun toneLook(tone: SignalTone): ButtonAppearance = composeAppearance(
+             .focusRing(look.focused, feedback, look.ring)
+             .then(if (look.busy) Modifier.alpha(BusyAlpha) else Modifier)
+             .heightIn(min = look.height).lineBox(Type.Label, MachineSignal.Space.s1 / 2)
+-            .background(look.fill, MachineSignal.Shape.Control)
+-            .border(1.dp, look.line, MachineSignal.Shape.Control)
++            .background(look.fill, MachineSignal.shapes.control)
++            .border(1.dp, look.line, MachineSignal.shapes.control)
+             .padding(horizontal = look.padding),
+         horizontalArrangement = Arrangement.spacedBy(look.gap),
+         verticalAlignment = Alignment.CenterVertically,
+@@ -150,8 +152,8 @@ private fun MachineSignalColors.hover(tone: SignalTone): Color = when (tone) {
+ 
+ private fun MachineSignalColors.line(tone: SignalTone): Color = when (tone) {
+     SignalTone.Primary -> accentLine
+-    SignalTone.Secondary -> line
+-    SignalTone.Ghost -> lineSubtle
++    SignalTone.Secondary -> Color.Transparent
++    SignalTone.Ghost -> Color.Transparent
+     SignalTone.Danger -> error.copy(alpha = DangerLine)
+ }
+ 
+diff --git a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Choices.kt b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Choices.kt
+index f193ae87..79b76a8e 100644
+--- a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Choices.kt
++++ b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Choices.kt
+@@ -1,5 +1,7 @@
+ package dev.shibasis.reaktor.ui.machinesignal.surface
+ 
++import dev.shibasis.reaktor.ui.machinesignal.shapes
++
+ import dev.shibasis.reaktor.surface.compose.lineBox
+ import dev.shibasis.reaktor.surface.Type
+ import androidx.compose.foundation.Canvas
+@@ -65,7 +67,7 @@ private fun tabLook(selected: Boolean, enabled: Boolean, state: PressState, them
+     val colors = signal.colors
+     return TabLook(
+         height = signal.metrics.tabHeight,
+-        fill = if (selected && signal.variant == MachineSignalVariant.Editor) colors.controlAccentSoft else Color.Transparent,
++        fill = Color.Transparent,
+         underline = if (selected) colors.accent else Color.Transparent,
+         label = Label(
+             color = when {
+@@ -124,7 +126,7 @@ val UnderlineTab: ItemAppearance = object : ItemAppearance {
+     @Composable
+     override fun Content(properties: ItemProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ItemSlots) =
+         UnderlineFrame(tabLook(properties.selected, properties.enabled, state, theme), feedback, slots.icon, slots.content)
+-}
++}.withMatrix(MatrixTab)
+ 
+ internal data class ChipLook(
+     val fill: Color,
+@@ -144,11 +146,11 @@ val FilterChip: ItemAppearance = composeAppearance(
+         val hovered = properties.enabled && state.hovered
+         ChipLook(
+             fill = when {
+-                properties.selected -> colors.controlAccent.copy(alpha = 0.22f)
++                properties.selected -> colors.controlAccentSoft
+                 hovered -> colors.raised
+                 else -> Color.Transparent
+             },
+-            line = if (properties.selected) colors.controlAccent.copy(alpha = 0.6f) else colors.line,
++            line = Color.Transparent,
+             label = Label(
+                 color = when {
+                     !properties.enabled -> colors.textFaint
+@@ -163,7 +165,7 @@ val FilterChip: ItemAppearance = composeAppearance(
+             ring = FocusRing(colors.accent, signal.metrics.focusRing, ChipShape),
+         )
+     },
+-) { look, feedback, slots ->
++) { look, feedback, slots: ItemSlots ->
+     Box(
+         Modifier
+             .focusRing(look.focused, feedback, look.ring)
+@@ -182,7 +184,7 @@ val FilterChip: ItemAppearance = composeAppearance(
+             }
+         }
+     }
+-}
++}.withMatrix(MatrixChip)
+ 
+ internal data class MarkLook(
+     val well: Color,
+@@ -213,7 +215,7 @@ private fun markLook(on: Boolean, enabled: Boolean, state: PressState, theme: Th
+         label = Label(if (enabled) colors.text else colors.textFaint, signal.fonts.ui, signal.metrics.label),
+         height = signal.metrics.controlHeight,
+         focused = state.focusVisible,
+-        ring = FocusRing(colors.accent, signal.metrics.focusRing, MachineSignal.Shape.Control),
++        ring = FocusRing(colors.accent, signal.metrics.focusRing, signal.shapes.control),
+     )
+ }
+ 
+@@ -241,7 +243,7 @@ val RadioRow: ItemAppearance = object : ItemAppearance {
+             }
+         }
+     }
+-}
++}.withMatrix(MatrixRadio)
+ 
+ val TrackSwitch: SwitchAppearance = object : SwitchAppearance {
+     @Composable
+@@ -268,7 +270,7 @@ val TrackSwitch: SwitchAppearance = object : SwitchAppearance {
+             }
+         }
+     }
+-}
++}.withMatrix(MatrixSwitch)
+ 
+ val CheckRow: CheckboxAppearance = object : CheckboxAppearance {
+     @Composable
+@@ -284,7 +286,7 @@ val CheckRow: CheckboxAppearance = object : CheckboxAppearance {
+             verticalAlignment = Alignment.CenterVertically,
+         ) {
+             Box(
+-                Modifier.size(MarkSize).background(look.well, MachineSignal.Shape.Tight).border(1.dp, look.edge, MachineSignal.Shape.Tight),
++                Modifier.size(MarkSize).background(look.well, MachineSignal.shapes.tight).border(1.dp, look.edge, MachineSignal.shapes.tight),
+                 contentAlignment = Alignment.Center,
+             ) {
+                 when (properties.state) {
+@@ -296,7 +298,7 @@ val CheckRow: CheckboxAppearance = object : CheckboxAppearance {
+             ProvideLabel(look.label, slots.content)
+         }
+     }
+-}
++}.withMatrix(MatrixCheckbox)
+ 
+ @Composable
+ private fun Tick(color: Color) = Canvas(Modifier.size(10.dp)) {
+diff --git a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Display.kt b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Display.kt
+index 0f2e2576..2bb09d61 100644
+--- a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Display.kt
++++ b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Display.kt
+@@ -1,5 +1,7 @@
+ package dev.shibasis.reaktor.ui.machinesignal.surface
+ 
++import dev.shibasis.reaktor.ui.machinesignal.shapes
++
+ import dev.shibasis.reaktor.surface.compose.lineBox
+ import dev.shibasis.reaktor.surface.Type
+ import androidx.compose.foundation.Canvas
+@@ -37,6 +39,8 @@ import dev.shibasis.reaktor.surface.compose.SparklineAppearance
+ import dev.shibasis.reaktor.surface.compose.SparklineProperties
+ import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
+ import dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors
++import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
++import dev.shibasis.reaktor.ui.machinesignal.ProvenanceInk
+ import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSnapshot
+ import dev.shibasis.reaktor.ui.machinesignal.machineSignal
+ import dev.shibasis.reaktor.ui.machinesignal.signalOrBoard
+@@ -45,11 +49,11 @@ fun toneBadge(tone: (MachineSignalColors) -> Color): BadgeAppearance = signalBad
+ 
+ fun filledBadge(tone: (MachineSignalColors) -> Color): BadgeAppearance = signalBadge(filled = true, tone)
+ 
+-fun toneBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = false)
++fun toneBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = false).withMatrix(MatrixBadge(ink))
+ 
+-fun filledBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = true)
++fun filledBadge(ink: InkRole): BadgeAppearance = InkBadge(ink, filled = true).withMatrix(MatrixBadge(ink, filled = true))
+ 
+-fun compactBadge(ink: InkRole): BadgeAppearance = CompactBadge(ink)
++fun compactBadge(ink: InkRole): BadgeAppearance = CompactBadge(ink).withMatrix(MatrixBadge(ink))
+ 
+ private fun signalBadge(filled: Boolean, tone: (MachineSignalColors) -> Color): BadgeAppearance = object : BadgeAppearance {
+     @Composable
+@@ -64,11 +68,17 @@ private data class InkBadge(val ink: InkRole, val filled: Boolean) : BadgeAppear
+ }
+ 
+ @Composable
+-private fun SignalBadge(signal: MachineSignalSnapshot, color: Color, filled: Boolean, slots: BadgeSlots) = Box(
+-    Modifier.heightIn(min = 16.dp).clip(BadgeShape).background(if (filled) color else color.copy(alpha = .18f)).padding(horizontal = 5.dp),
++private fun SignalBadge(signal: MachineSignalSnapshot, color: Color, filled: Boolean, slots: BadgeSlots) {
++    if (signal.mode == MachineSignalMode.Matrix) {
++        MatrixBadgeFrame(signal, color, filled, slots)
++        return
++    }
++    Box(
++    Modifier.heightIn(min = 16.dp).clip(if (signal.mode == MachineSignalMode.Matrix) signal.shapes.control else BadgeShape).background(if (filled) color else color.copy(alpha = .18f)).padding(horizontal = 5.dp),
+     contentAlignment = Alignment.Center,
+ ) {
+     ProvideLabel(Label(if (filled) signal.colors.canvas else color, signal.fonts.ui, MachineSignal.Editor.meta, FontWeight.Normal)) { slots.content() }
++    }
+ }
+ 
+ private data class CompactBadge(val ink: InkRole) : BadgeAppearance {
+@@ -88,19 +98,20 @@ private data class CompactBadge(val ink: InkRole) : BadgeAppearance {
+ fun provenanceBadge(truth: TruthClass): BadgeAppearance = object : BadgeAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BadgeSlots) {
++        val signal = theme.signalOrBoard
+         val colors = MachineSignal.provenance(truth)
++        val ink = signal.ink(ProvenanceInk(truth))
++        val background = if (signal.mode == MachineSignalMode.Dark) colors.soft else ink.copy(alpha = colors.soft.alpha)
+         Box(
+             Modifier
+-                .background(colors.soft, MachineSignal.Shape.Tight)
+-                .border(1.dp, colors.line, MachineSignal.Shape.Tight)
++                .background(background, MachineSignal.shapes.control)
+                 .padding(horizontal = MachineSignal.Metrics.chipPaddingX, vertical = MachineSignal.Metrics.chipPaddingY),
+             contentAlignment = Alignment.Center,
+         ) {
+-            val signal = theme.signalOrBoard
+-            ProvideLabel(Label(if (truth == TruthClass.Unknown) signal.colors.textFaint else colors.base, signal.fonts.ui, MachineSignal.Type.micro, FontWeight.SemiBold)) { slots.content() }
++            ProvideLabel(Label(if (truth == TruthClass.Unknown) signal.colors.textFaint else ink, signal.fonts.ui, MachineSignal.Type.micro, FontWeight.SemiBold)) { slots.content() }
+         }
+     }
+-}
++}.withMatrix(MatrixBadge(ProvenanceInk(truth)))
+ 
+ fun kindBadge(kind: String): BadgeAppearance = object : BadgeAppearance {
+     @Composable
+@@ -108,7 +119,7 @@ fun kindBadge(kind: String): BadgeAppearance = object : BadgeAppearance {
+         KindFrame(theme.signalOrBoard, MachineSignal.entityColor(kind), slots)
+ }
+ 
+-fun kindBadge(ink: InkRole): BadgeAppearance = InkKindBadge(ink)
++fun kindBadge(ink: InkRole): BadgeAppearance = InkKindBadge(ink).withMatrix(MatrixBadge(ink))
+ 
+ private data class InkKindBadge(val ink: InkRole) : BadgeAppearance {
+     @Composable
+@@ -117,11 +128,15 @@ private data class InkKindBadge(val ink: InkRole) : BadgeAppearance {
+ }
+ 
+ @Composable
+-private fun KindFrame(signal: MachineSignalSnapshot, color: Color, slots: BadgeSlots) = Box(
++private fun KindFrame(signal: MachineSignalSnapshot, color: Color, slots: BadgeSlots) {
++    if (signal.mode == MachineSignalMode.Matrix) {
++        MatrixBadgeFrame(signal, color, false, slots)
++        return
++    }
++    Box(
+     Modifier
+         .heightIn(min = MachineSignal.Metrics.kindBadgeHeight)
+-        .background(color.copy(alpha = 0.16f), MachineSignal.Shape.Tight)
+-        .border(1.dp, color.copy(alpha = 0.32f), MachineSignal.Shape.Tight)
++        .background(color.copy(alpha = 0.12f), MachineSignal.shapes.control)
+         .padding(horizontal = MachineSignal.Metrics.kindBadgePaddingX),
+     contentAlignment = Alignment.Center,
+ ) {
+@@ -134,11 +149,12 @@ private fun KindFrame(signal: MachineSignalSnapshot, color: Color, slots: BadgeS
+             letterSpacing = MachineSignal.Type.kindTracking,
+         ),
+     ) { slots.content() }
++    }
+ }
+ 
+-fun pillBadge(ink: InkRole = Ink.Muted, code: Boolean = false): BadgeAppearance = PillBadge(ink, code, edged = false)
++fun pillBadge(ink: InkRole = Ink.Muted, code: Boolean = false): BadgeAppearance = PillBadge(ink, code, edged = false).withMatrix(MatrixBadge(ink))
+ 
+-fun chipBadge(ink: InkRole): BadgeAppearance = PillBadge(ink, code = true, edged = true)
++fun chipBadge(ink: InkRole): BadgeAppearance = PillBadge(ink, code = true, edged = true).withMatrix(MatrixBadge(ink))
+ 
+ private data class PillBadge(val ink: InkRole, val code: Boolean, val edged: Boolean) : BadgeAppearance {
+     @Composable
+@@ -147,8 +163,7 @@ private data class PillBadge(val ink: InkRole, val code: Boolean, val edged: Boo
+         val color = signal.ink(ink)
+         Box(
+             Modifier
+-                .background(signal.colors.surfaceAlt, MachineSignal.Shape.Tight)
+-                .border(MachineSignal.Stroke.hairline, if (edged) color.copy(alpha = .45f) else signal.colors.lineSubtle, MachineSignal.Shape.Tight)
++                .background(if (edged) color.copy(alpha = .1f) else signal.colors.surfaceAlt.copy(alpha = .55f), MachineSignal.shapes.control)
+                 .padding(horizontal = MachineSignal.Metrics.chipPaddingX, vertical = MachineSignal.Metrics.chipPaddingY),
+         ) {
+             ProvideLabel(Label(color, if (code) signal.fonts.mono else signal.fonts.ui, MachineSignal.Type.micro, FontWeight.Medium)) { slots.content() }
+@@ -163,15 +178,15 @@ val KeyBadge: BadgeAppearance = object : BadgeAppearance {
+         Box(
+             Modifier
+                 .heightIn(min = MachineSignal.Metrics.kbdHeight).lineBox(Type.Data.code, MachineSignal.Space.none)
+-                .background(signal.colors.raised, MachineSignal.Shape.Tight)
+-                .border(MachineSignal.Stroke.hairline, signal.colors.line, MachineSignal.Shape.Tight)
++                .background(signal.colors.raised, MachineSignal.shapes.tight)
++                .border(MachineSignal.Stroke.hairline, signal.colors.line, MachineSignal.shapes.tight)
+                 .padding(horizontal = MachineSignal.Metrics.kbdPaddingX),
+             contentAlignment = Alignment.Center,
+         ) {
+             ProvideLabel(Label(signal.colors.textMuted, signal.fonts.mono, MachineSignal.Type.data, FontWeight.SemiBold)) { slots.content() }
+         }
+     }
+-}
++}.withMatrix(MatrixBadge(Ink.Muted))
+ 
+ val NumberBadge: BadgeAppearance = object : BadgeAppearance {
+     @Composable
+@@ -179,19 +194,19 @@ val NumberBadge: BadgeAppearance = object : BadgeAppearance {
+         val signal = theme.signalOrBoard
+         Box(
+             Modifier
+-                .background(signal.colors.raisedAlt, RoundedCornerShape(MachineSignal.Radius.countBadge))
++                .background(signal.colors.raisedAlt, MachineSignal.shapes.countBadge)
+                 .padding(horizontal = MachineSignal.Metrics.countBadgePaddingX, vertical = MachineSignal.Metrics.countBadgePaddingY),
+             contentAlignment = Alignment.Center,
+         ) {
+             ProvideLabel(Label(signal.colors.text, signal.fonts.mono, MachineSignal.Type.dataMicro, FontWeight.SemiBold)) { slots.content() }
+         }
+     }
+-}
++}.withMatrix(MatrixBadge(Ink.Strong))
+ 
+ fun signalSparkline(tone: (MachineSignalColors) -> Color): SparklineAppearance = object : SparklineAppearance {
+     @Composable
+     override fun Content(properties: SparklineProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
+-        SignalSparkline(properties, theme.machineSignal.colors, tone(theme.machineSignal.colors))
++        SignalSparkline(properties, theme.machineSignal, tone(theme.machineSignal.colors))
+ }
+ 
+ fun signalSparkline(ink: InkRole): SparklineAppearance = InkSparkline(ink)
+@@ -199,19 +214,27 @@ fun signalSparkline(ink: InkRole): SparklineAppearance = InkSparkline(ink)
+ private data class InkSparkline(val ink: InkRole) : SparklineAppearance {
+     @Composable
+     override fun Content(properties: SparklineProperties, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
+-        SignalSparkline(properties, theme.machineSignal.colors, theme.machineSignal.ink(ink))
++        SignalSparkline(properties, theme.machineSignal, theme.machineSignal.ink(ink))
+ }
+ 
+ @Composable
+-private fun SignalSparkline(properties: SparklineProperties, colors: MachineSignalColors, color: Color) {
++private fun SignalSparkline(properties: SparklineProperties, signal: MachineSignalSnapshot, color: Color) {
++    val colors = signal.colors
+     Canvas(Modifier.fillMaxSize()) {
+         val step = size.width / (properties.values.size - 1)
++        if (signal.mode == MachineSignalMode.Matrix) {
++            for (row in 1..3) drawLine(colors.lineSubtle, Offset(0f, size.height * row / 4), Offset(size.width, size.height * row / 4), MachineSignal.Stroke.hairline.toPx())
++        }
+         properties.threshold?.let { line ->
+             val y = size.height - line * size.height
+             drawLine(colors.line, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
+         }
+         properties.values.zipWithNext().forEachIndexed { index, (from, to) ->
+-            drawLine(color, Offset(index * step, size.height - from * size.height), Offset((index + 1) * step, size.height - to * size.height), strokeWidth = 1.5f)
++            if (signal.mode == MachineSignalMode.Matrix) {
++                val corner = Offset((index + 1) * step, size.height - from * size.height)
++                drawLine(color, Offset(index * step, corner.y), corner, MachineSignal.Stroke.hairline.toPx())
++                drawLine(color, corner, Offset(corner.x, size.height - to * size.height), MachineSignal.Stroke.hairline.toPx())
++            } else drawLine(color, Offset(index * step, size.height - from * size.height), Offset((index + 1) * step, size.height - to * size.height), strokeWidth = 1.5f)
+         }
+     }
+ }
+@@ -219,18 +242,27 @@ private fun SignalSparkline(properties: SparklineProperties, colors: MachineSign
+ fun signalBars(tone: (MachineSignalColors) -> Color): BarsAppearance = object : BarsAppearance {
+     @Composable
+     override fun Content(properties: List<Float>, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) {
+-        val color = tone(theme.machineSignal.colors)
++        val signal = theme.machineSignal
++        val color = tone(signal.colors)
+         Canvas(Modifier.fillMaxSize()) {
+             val gap = 2.dp.toPx()
+             val width = (size.width - gap * (properties.size - 1)) / properties.size
+             properties.forEachIndexed { index, value ->
+                 val height = if (value == 0f) 1.dp.toPx() else size.height * value
+                 drawRect(
+-                    color = if (value == 0f) MachineSignal.Chart.empty else color.copy(alpha = .35f + .5f * (index + 1) / properties.size),
++                    color = if (value == 0f) { if (signal.mode == MachineSignalMode.Matrix) signal.colors.lineSubtle else MachineSignal.Chart.empty } else if (signal.mode == MachineSignalMode.Matrix) color else color.copy(alpha = .35f + .5f * (index + 1) / properties.size),
+                     topLeft = Offset(index * (width + gap), size.height - height),
+                     size = Size(width, height),
+                 )
+             }
++            if (signal.mode == MachineSignalMode.Matrix) {
++                val pitch = MachineSignal.Space.s1.toPx()
++                var y = pitch
++                while (y < size.height) {
++                    drawLine(signal.colors.canvas, Offset(0f, y), Offset(size.width, y), MachineSignal.Stroke.hairline.toPx())
++                    y += pitch
++                }
++            }
+         }
+     }
+ }
+@@ -238,7 +270,7 @@ fun signalBars(tone: (MachineSignalColors) -> Color): BarsAppearance = object :
+ fun signalRangeBar(tone: (MachineSignalColors) -> Color): RangeBarAppearance = object : RangeBarAppearance {
+     @Composable
+     override fun Content(properties: Range, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
+-        SignalRangeBar(properties, tone(theme.machineSignal.colors))
++        SignalRangeBar(properties, tone(theme.machineSignal.colors), theme.machineSignal)
+ }
+ 
+ fun signalRangeBar(ink: InkRole): RangeBarAppearance = InkRangeBar(ink)
+@@ -246,11 +278,15 @@ fun signalRangeBar(ink: InkRole): RangeBarAppearance = InkRangeBar(ink)
+ private data class InkRangeBar(val ink: InkRole) : RangeBarAppearance {
+     @Composable
+     override fun Content(properties: Range, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) =
+-        SignalRangeBar(properties, theme.machineSignal.ink(ink))
++        SignalRangeBar(properties, theme.machineSignal.ink(ink), theme.machineSignal)
+ }
+ 
+ @Composable
+-private fun SignalRangeBar(properties: Range, color: Color) {
++private fun SignalRangeBar(properties: Range, color: Color, signal: MachineSignalSnapshot) {
++    if (signal.mode == MachineSignalMode.Matrix) {
++        MatrixSegments(signal, properties.start, properties.end, color, Modifier.fillMaxWidth().height(MachineSignal.Space.s3))
++        return
++    }
+     Box(Modifier.fillMaxWidth().height(10.dp)) {
+         Box(Modifier.fillMaxWidth(properties.end).fillMaxHeight(), contentAlignment = Alignment.CenterEnd) {
+             Box(
+diff --git a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Frames.kt b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Frames.kt
+index dd2f681f..5cf8c3c5 100644
+--- a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Frames.kt
++++ b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Frames.kt
+@@ -1,5 +1,7 @@
+ package dev.shibasis.reaktor.ui.machinesignal.surface
+ 
++import dev.shibasis.reaktor.ui.machinesignal.shapes
++
+ import dev.shibasis.reaktor.surface.compose.lineBox
+ import dev.shibasis.reaktor.surface.Type
+ import androidx.compose.foundation.ScrollState
+@@ -69,6 +71,7 @@ import dev.shibasis.reaktor.surface.compose.TooltipAppearance
+ import dev.shibasis.reaktor.surface.compose.TooltipSlots
+ import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
+ import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSnapshot
++import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
+ import dev.shibasis.reaktor.ui.machinesignal.StatusDot
+ import dev.shibasis.reaktor.ui.machinesignal.machineSignal
+ import dev.shibasis.reaktor.ui.machinesignal.signalOrBoard
+@@ -76,7 +79,7 @@ import dev.shibasis.reaktor.ui.machinesignal.signalOrBoard
+ private val ToolStripHeight = 32.dp
+ private val ToolButtonSize = 24.dp
+ private val PinTipWidth = 380.dp
+-private val SectionHeading = 10.sp
++private val SectionHeading = MachineSignal.Editor.label
+ private val PropertyLabelWidth = 132.dp
+ private val DetailLabelWidth = 120.dp
+ private val TileWidth = 150.dp
+@@ -92,16 +95,22 @@ private val PanelHeaderHeight = 34.dp
+ val SignalIcon: IconAppearance = object : IconAppearance {
+     @Composable
+     override fun tint(ink: InkRole?, theme: ThemeSnapshot): Color = ink?.let(theme.machineSignal::ink) ?: LocalContentColor.current
++
++    @Composable
++    override fun Content(painter: androidx.compose.ui.graphics.painter.Painter, modifier: Modifier, ink: InkRole?, theme: ThemeSnapshot) {
++        if ((theme as? MachineSignalSnapshot)?.mode == MachineSignalMode.Matrix) MatrixIcon(painter, modifier, tint(ink, theme))
++        else super.Content(painter, modifier, ink, theme)
++    }
+ }
+ 
+-val ToolStrip: BarAppearance = strip(ToolStripHeight, MachineSignal.Editor.controlGap)
++val ToolStrip: BarAppearance = strip(ToolStripHeight, MachineSignal.Editor.controlGap).withMatrix(MatrixBar(ToolStripHeight, MachineSignal.Editor.controlGap))
+ 
+-val StatusStrip: BarAppearance = strip(MachineSignal.Editor.statusHeight, MachineSignal.Space.s3)
++val StatusStrip: BarAppearance = strip(MachineSignal.Editor.statusHeight, MachineSignal.Space.s3).withMatrix(MatrixBar(MachineSignal.Editor.statusHeight, MachineSignal.Space.s3))
+ 
+ private fun strip(height: Dp, gap: Dp): BarAppearance = object : BarAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BarSlots) = Row(
+-        Modifier.fillMaxWidth().heightIn(min = height).lineBox(Type.Meta, MachineSignal.Space.s1 / 2).background(theme.machineSignal.colors.surface).padding(horizontal = MachineSignal.Space.s2),
++        Modifier.fillMaxWidth().heightIn(min = height).lineBox(Type.Meta, MachineSignal.Space.s1 / 2).padding(horizontal = MachineSignal.Space.s2),
+         verticalAlignment = Alignment.CenterVertically,
+         horizontalArrangement = Arrangement.spacedBy(gap),
+         content = slots.content,
+@@ -112,14 +121,13 @@ val SegmentTrack: BarAppearance = object : BarAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: BarSlots) {
+         val colors = theme.machineSignal.colors
+-        val shape = RoundedCornerShape(MachineSignal.Editor.controlRadius)
+         Row(
+-            Modifier.heightIn(min = MachineSignal.Editor.controlHeight).lineBox(Type.Label, MachineSignal.Space.s1 / 2).height(IntrinsicSize.Min).clip(shape).background(colors.canvas).border(MachineSignal.Stroke.hairline, colors.line, shape),
++            Modifier.heightIn(min = MachineSignal.Editor.controlHeight).lineBox(Type.Label, MachineSignal.Space.s1 / 2).height(IntrinsicSize.Min).clip(MachineSignal.shapes.panel).background(colors.canvas.copy(alpha = .65f)).padding(MachineSignal.Space.s0_75),
+             verticalAlignment = Alignment.CenterVertically,
+             content = slots.content,
+         )
+     }
+-}
++}.withMatrix(MatrixSegmentTrack)
+ 
+ val SegmentItem: ItemAppearance = object : ItemAppearance {
+     @Composable
+@@ -127,15 +135,15 @@ val SegmentItem: ItemAppearance = object : ItemAppearance {
+         val signal = theme.machineSignal
+         val colors = signal.colors
+         Box(
+-            Modifier.fillMaxHeight().background(if (properties.selected) colors.controlAccent else Color.Transparent)
++            Modifier.fillMaxHeight().clip(MachineSignal.shapes.control).background(when { properties.selected -> colors.raised; state.hovered -> colors.surfaceAlt; else -> Color.Transparent })
+                 .then(if (state.focusVisible) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus)) else Modifier)
+-                .padding(horizontal = MachineSignal.Space.s3),
++                .padding(horizontal = MachineSignal.Space.s2),
+             contentAlignment = Alignment.Center,
+         ) {
+-            ProvideLabel(Label(if (properties.selected) colors.canvas else colors.textMuted, signal.fonts.ui, MachineSignal.Editor.label, FontWeight.Normal)) { slots.content() }
++            ProvideLabel(Label(if (properties.selected) colors.textStrong else colors.textMuted, signal.fonts.ui, MachineSignal.Editor.label, if (properties.selected) FontWeight.Medium else FontWeight.Normal)) { slots.content() }
+         }
+     }
+-}
++}.withMatrix(MatrixTab)
+ 
+ fun filterChip(ink: InkRole): ItemAppearance = AccentChip(ink)
+ 
+@@ -147,7 +155,7 @@ private data class AccentChip(val ink: InkRole) : ItemAppearance {
+     }
+ }
+ 
+-fun tintChip(ink: InkRole): ItemAppearance = TintChip(ink)
++fun tintChip(ink: InkRole): ItemAppearance = TintChip(ink).withMatrix(AccentChip(ink))
+ 
+ private data class TintChip(val ink: InkRole) : ItemAppearance {
+     @Composable
+@@ -165,9 +173,9 @@ private data class TintChip(val ink: InkRole) : ItemAppearance {
+ 
+ fun toolButton(active: Boolean): ButtonAppearance = if (active) ActiveToolButton else IdleToolButton
+ 
+-private val IdleToolButton: ButtonAppearance = ToolButtonLook(active = false)
++private val IdleToolButton: ButtonAppearance = ToolButtonLook(active = false).withMatrix(MatrixButton(dev.shibasis.reaktor.ui.machinesignal.SignalTone.Ghost))
+ 
+-private val ActiveToolButton: ButtonAppearance = ToolButtonLook(active = true)
++private val ActiveToolButton: ButtonAppearance = ToolButtonLook(active = true).withMatrix(MatrixButton(dev.shibasis.reaktor.ui.machinesignal.SignalTone.Ghost, active = true))
+ 
+ private data class ToolButtonLook(val active: Boolean) : ButtonAppearance {
+     @Composable
+@@ -183,7 +191,7 @@ private data class ToolButtonLook(val active: Boolean) : ButtonAppearance {
+                         else -> Color.Transparent
+                     },
+                 )
+-                .then(if (state.focusVisible) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus), MachineSignal.Shape.Control) else Modifier),
++                .then(if (state.focusVisible) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus), MachineSignal.shapes.control) else Modifier),
+             contentAlignment = Alignment.Center,
+         ) {
+             val tint = when {
+@@ -200,13 +208,13 @@ val NavigationRow: RowAppearance = object : RowAppearance {
+     @Composable
+     override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) =
+         NavigationFrame(theme.machineSignal, properties.selected, state.hovered, state.focusVisible, feedback, slots.content)
+-}
++}.withMatrix(MatrixNavigationRow)
+ 
+ fun navigationButton(selected: Boolean): ButtonAppearance = if (selected) SelectedNavigationButton else IdleNavigationButton
+ 
+-private val IdleNavigationButton: ButtonAppearance = NavigationButton(selected = false)
++private val IdleNavigationButton: ButtonAppearance = NavigationButton(selected = false).withMatrix(MatrixNavigationButton(selected = false))
+ 
+-private val SelectedNavigationButton: ButtonAppearance = NavigationButton(selected = true)
++private val SelectedNavigationButton: ButtonAppearance = NavigationButton(selected = true).withMatrix(MatrixNavigationButton(selected = true))
+ 
+ private data class NavigationButton(val selected: Boolean) : ButtonAppearance {
+     @Composable
+@@ -218,14 +226,14 @@ private data class NavigationButton(val selected: Boolean) : ButtonAppearance {
+ private fun NavigationFrame(signal: MachineSignalSnapshot, selected: Boolean, hovered: Boolean, focused: Boolean, feedback: ComposeFeedback, content: @Composable () -> Unit) {
+     val colors = signal.colors
+     Row(
+-        Modifier.fillMaxWidth().heightIn(min = MachineSignal.Editor.layerRowHeight)
+-            .background(when { selected -> colors.controlAccentSoft; hovered -> colors.raised; else -> Color.Transparent })
+-            .then(if (focused) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus)) else Modifier),
++        Modifier.fillMaxWidth().padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s0_5)
++            .heightIn(min = MachineSignal.Editor.layerRowHeight).clip(MachineSignal.shapes.control)
++            .background(when { selected -> colors.raised; hovered -> colors.surfaceAlt.copy(alpha = .5f); else -> Color.Transparent })
++            .then(if (focused) Modifier.border(signal.metrics.focusRing, colors.accent.copy(alpha = feedback.focus), MachineSignal.shapes.control) else Modifier),
+         verticalAlignment = Alignment.CenterVertically,
+     ) {
+-        Box(Modifier.width(MachineSignal.Stroke.bar).height(MachineSignal.Editor.layerRowHeight).background(if (selected) colors.controlAccent else Color.Transparent))
+         Box(Modifier.weight(1f).padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2)) {
+-            ProvideLabel(signal.label(colors.text, MachineSignal.Type.body, if (selected) FontWeight.SemiBold else FontWeight.Normal), content)
++            ProvideLabel(signal.label(if (selected) colors.textStrong else colors.textMuted, MachineSignal.Type.body, if (selected) FontWeight.Medium else FontWeight.Normal), content)
+         }
+     }
+ }
+@@ -238,7 +246,7 @@ private data class TabStrip(val scroll: ScrollState) : BarAppearance {
+         val colors = theme.machineSignal.colors
+         Column(Modifier.fillMaxWidth()) {
+             Row(
+-                Modifier.fillMaxWidth().background(colors.surface).horizontalScroll(scroll).padding(horizontal = MachineSignal.Metrics.shellPaddingX),
++                Modifier.fillMaxWidth().horizontalScroll(scroll).padding(horizontal = MachineSignal.Metrics.shellPaddingX),
+                 horizontalArrangement = Arrangement.spacedBy(MachineSignal.Metrics.subTabGap),
+                 verticalAlignment = Alignment.CenterVertically,
+                 content = slots.content,
+@@ -250,13 +258,13 @@ private data class TabStrip(val scroll: ScrollState) : BarAppearance {
+ 
+ val DropdownPlacement = Placement(Side.Below, Align.Start, gap = MachineSignal.Space.none, margin = DropdownMargin)
+ 
+-fun pinTip(ink: InkRole): TooltipAppearance = PinTip(ink)
++fun pinTip(ink: InkRole): TooltipAppearance = PinTip(ink).withMatrix(MatrixTooltip)
+ 
+ private data class PinTip(val ink: InkRole) : TooltipAppearance {
+     @Composable
+     override fun Content(properties: TipContent, state: TooltipState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: TooltipSlots) {
+         val signal = theme.machineSignal
+-        val shape = RoundedCornerShape(MachineSignal.Radius.panel)
++        val shape = MachineSignal.shapes.panel
+         Column(
+             Modifier.widthIn(max = PinTipWidth).clip(shape).background(signal.colors.raised)
+                 .border(MachineSignal.Stroke.hairline, signal.ink(ink).copy(alpha = .5f), shape).padding(MachineSignal.Space.s2_5),
+@@ -269,15 +277,15 @@ val InspectorSection: SectionAppearance = object : SectionAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SectionSlots) {
+         val signal = theme.machineSignal
+-        Column(Modifier.fillMaxWidth().padding(top = MachineSignal.Space.s2)) {
+-            Row(Modifier.padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s1), verticalAlignment = Alignment.CenterVertically) {
++        Column(Modifier.fillMaxWidth().padding(top = MachineSignal.Space.s3)) {
++            Row(Modifier.fillMaxWidth().padding(horizontal = MachineSignal.Space.s4, vertical = MachineSignal.Space.s2), verticalAlignment = Alignment.CenterVertically) {
+                 Box(Modifier.weight(1f)) { ProvideLabel(signal.label(signal.colors.textMuted, SectionHeading, FontWeight.SemiBold), slots.heading) }
+                 slots.trailing?.let { ProvideLabel(signal.label(signal.colors.textMuted, SectionHeading), it) }
+             }
+             slots.content(this)
+         }
+     }
+-}
++}.withMatrix(MatrixSection(MachineSignal.Space.none, framed = false))
+ 
+ val InlineSection: SectionAppearance = object : SectionAppearance {
+     @Composable
+@@ -289,7 +297,7 @@ val InlineSection: SectionAppearance = object : SectionAppearance {
+             slots.content(this)
+         }
+     }
+-}
++}.withMatrix(MatrixSection(MachineSignal.Space.none, framed = false))
+ 
+ val StackSection: SectionAppearance = object : SectionAppearance {
+     @Composable
+@@ -300,35 +308,33 @@ val StackSection: SectionAppearance = object : SectionAppearance {
+             slots.content(this)
+         }
+     }
+-}
++}.withMatrix(MatrixSection(MachineSignal.Space.none, framed = false))
+ 
+ val CardSection: SectionAppearance = object : SectionAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SectionSlots) {
+         val signal = theme.machineSignal
+         Column(
+-            Modifier.fillMaxWidth().background(signal.colors.surface, MachineSignal.Shape.Panel).padding(MachineSignal.Space.s3),
++            Modifier.fillMaxWidth().background(signal.colors.surface, MachineSignal.shapes.panel).padding(MachineSignal.Space.s3),
+             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+         ) {
+             ProvideLabel(signal.label(signal.colors.textFaint, MachineSignal.Editor.meta), slots.heading)
+             slots.content(this)
+         }
+     }
+-}
++}.withMatrix(MatrixSection())
+ 
+-val PanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.s3)
++val PanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.s3).withMatrix(MatrixSection())
+ 
+-val FlushPanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.none)
++val FlushPanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.none).withMatrix(MatrixSection(MachineSignal.Space.none))
+ 
+ private data class SignalPanelSection(val inset: Dp) : SectionAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SectionSlots) {
+         val signal = theme.signalOrBoard
+-        Column(Modifier.background(signal.colors.surface).then(
+-            if (signal.variant == MachineSignalVariant.Editor) Modifier.border(MachineSignal.Stroke.hairline, signal.colors.lineSubtle) else Modifier,
+-        )) {
++        Column(Modifier.clip(MachineSignal.shapes.panel).background(signal.colors.surface)) {
+             Row(
+-                Modifier.fillMaxWidth().heightIn(min = PanelHeaderHeight).lineBox(Type.Body, MachineSignal.Space.s1 / 2).padding(horizontal = inset),
++                Modifier.fillMaxWidth().heightIn(min = PanelHeaderHeight).lineBox(Type.Body, MachineSignal.Space.s1 / 2).padding(horizontal = MachineSignal.Space.s4, vertical = MachineSignal.Space.s2),
+                 horizontalArrangement = Arrangement.SpaceBetween,
+                 verticalAlignment = Alignment.CenterVertically,
+             ) {
+@@ -337,28 +343,27 @@ private data class SignalPanelSection(val inset: Dp) : SectionAppearance {
+                     Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2), verticalAlignment = Alignment.CenterVertically) { trailing() }
+                 }
+             }
+-            Box(Modifier.fillMaxWidth().height(MachineSignal.Stroke.hairline).background(signal.colors.lineSubtle))
+             Column(Modifier.padding(inset)) { slots.content(this) }
+         }
+     }
+ }
+ 
+-val InspectorProperty: PropertyAppearance = labelled(PropertyLabelWidth, MachineSignal.Space.none, Modifier.padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s0_75))
++val InspectorProperty: PropertyAppearance = labelled(PropertyLabelWidth, MachineSignal.Space.none, Modifier.padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s1_5)).withMatrix(MatrixProperty(PropertyLabelWidth))
+ 
+-val DetailProperty: PropertyAppearance = labelled(DetailLabelWidth, MachineSignal.Space.s2, Modifier)
++val DetailProperty: PropertyAppearance = labelled(DetailLabelWidth, MachineSignal.Space.s2, Modifier).withMatrix(MatrixProperty(DetailLabelWidth))
+ 
+ private fun labelled(width: Dp, gap: Dp, inset: Modifier): PropertyAppearance = object : PropertyAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: PropertySlots) {
+         val signal = theme.machineSignal
+         Row(Modifier.fillMaxWidth().then(inset), horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
+-            Box(Modifier.width(width)) { ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.meta), slots.label) }
+-            ProvideLabel(signal.label(signal.colors.text, MachineSignal.Editor.meta)) { slots.value(this) }
++            Box(Modifier.width(width)) { ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.label), slots.label) }
++            ProvideLabel(signal.label(signal.colors.textStrong, MachineSignal.Editor.label)) { slots.value(this) }
+         }
+     }
+ }
+ 
+-fun glanceProperty(labelWidth: Dp): PropertyAppearance = GlanceProperty(labelWidth)
++fun glanceProperty(labelWidth: Dp): PropertyAppearance = GlanceProperty(labelWidth).withMatrix(MatrixProperty(labelWidth))
+ 
+ private data class GlanceProperty(val labelWidth: Dp) : PropertyAppearance {
+     @Composable
+@@ -382,55 +387,55 @@ val StatusProperty: PropertyAppearance = object : PropertyAppearance {
+             ProvideLabel(signal.label(signal.colors.text, MachineSignal.Editor.meta)) { slots.value(this) }
+         }
+     }
+-}
++}.withMatrix(MatrixProperty(MachineSignal.Editor.navigatorWidth / 3))
+ 
+ val TileMetric: MetricAppearance = object : MetricAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: MetricSlots) {
+         val signal = theme.machineSignal
+         Column(
+-            Modifier.width(TileWidth).clip(RoundedCornerShape(MachineSignal.Editor.controlRadius)).background(signal.colors.surface).padding(MachineSignal.Space.s2),
++            Modifier.width(TileWidth).padding(horizontal = MachineSignal.Space.s4, vertical = MachineSignal.Space.s3),
+             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s0_5),
+         ) {
+             ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.meta), slots.label)
+-            ProvideLabel(signal.label(signal.colors.text, MachineSignal.Type.body), slots.value)
++            ProvideLabel(signal.label(signal.colors.textStrong, MachineSignal.Type.display, FontWeight.SemiBold), slots.value)
+             slots.trend?.let { Box(Modifier.fillMaxWidth().height(TileTrendHeight), propagateMinConstraints = true) { it() } }
+             slots.detail?.let { ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.meta), it) }
+         }
+     }
+-}
++}.withMatrix(MatrixMetric)
+ 
+ val StatMetric: MetricAppearance = object : MetricAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: MetricSlots) {
+         val signal = theme.machineSignal
+         Column(
+-            Modifier.clip(MachineSignal.Shape.Panel).background(signal.colors.surface).padding(horizontal = MachineSignal.Space.s2_5, vertical = MachineSignal.Space.s1_75),
++            Modifier.clip(MachineSignal.shapes.panel).background(signal.colors.surface).padding(horizontal = MachineSignal.Space.s2_5, vertical = MachineSignal.Space.s1_75),
+             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s0_25),
+         ) {
+-            ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Type.dataMicro, FontWeight.SemiBold), slots.label)
+-            ProvideLabel(signal.label(signal.colors.text, MachineSignal.Type.title2, FontWeight.SemiBold), slots.value)
++            ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.label), slots.label)
++            ProvideLabel(signal.label(signal.colors.textStrong, MachineSignal.Type.display, FontWeight.SemiBold), slots.value)
+             slots.detail?.let { ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Type.fine), it) }
+         }
+     }
+-}
++}.withMatrix(MatrixMetric)
+ 
+ val KpiMetric: MetricAppearance = object : MetricAppearance {
+     @Composable
+     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: MetricSlots) {
+         val signal = theme.machineSignal
+-        val shape = RoundedCornerShape(MachineSignal.Radius.card)
++        val shape = MachineSignal.shapes.panel
+         Column(
+-            Modifier.clip(shape).background(signal.colors.surface).border(MachineSignal.Stroke.hairline, signal.colors.line, shape)
++            Modifier.clip(shape).background(signal.colors.raised.copy(alpha = .45f))
+                 .padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s2),
+         ) {
+             ProvideLabel(signal.label(signal.colors.textMuted, MachineSignal.Editor.meta), slots.label)
+             ProvideLabel(signal.label(signal.colors.text, KpiValue, FontWeight.SemiBold, mono = true), slots.value)
+         }
+     }
+-}
++}.withMatrix(MatrixMetric)
+ 
+-fun authFinding(ink: InkRole): FindingAppearance = AuthFinding(ink)
++fun authFinding(ink: InkRole): FindingAppearance = AuthFinding(ink).withMatrix(MatrixFinding(ink))
+ 
+ private data class AuthFinding(val ink: InkRole) : FindingAppearance {
+     @Composable
+@@ -438,10 +443,10 @@ private data class AuthFinding(val ink: InkRole) : FindingAppearance {
+         val signal = theme.machineSignal
+         val colors = signal.colors
+         val tone = signal.ink(ink)
+-        val shape = MachineSignal.Shape.Panel
++        val shape = MachineSignal.shapes.panel
+         Row(
+             Modifier.fillMaxWidth().clip(shape).background(if (properties.selected) tone.copy(alpha = .12f) else colors.surface)
+-                .border(MachineSignal.Stroke.hairline, if (properties.selected) tone.copy(alpha = .6f) else colors.line, shape).padding(MachineSignal.Space.s2_5),
++                .border(MachineSignal.Stroke.hairline, if (properties.selected) tone.copy(alpha = .4f) else Color.Transparent, shape).padding(MachineSignal.Space.s2_5),
+             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2_5),
+         ) {
+             Column(Modifier.width(AuthFindingMarkWidth), verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1)) {
+@@ -464,7 +469,7 @@ private data class AuthFinding(val ink: InkRole) : FindingAppearance {
+     }
+ }
+ 
+-fun graphFinding(ink: InkRole): FindingAppearance = GraphFinding(ink)
++fun graphFinding(ink: InkRole): FindingAppearance = GraphFinding(ink).withMatrix(MatrixFinding(ink))
+ 
+ private data class GraphFinding(val ink: InkRole) : FindingAppearance {
+     @Composable
+@@ -473,8 +478,8 @@ private data class GraphFinding(val ink: InkRole) : FindingAppearance {
+         val colors = signal.colors
+         val tone = signal.ink(ink)
+         Column(
+-            Modifier.fillMaxWidth().padding(vertical = MachineSignal.Space.s1_25).background(tone.copy(alpha = .06f), MachineSignal.Shape.Panel)
+-                .border(MachineSignal.Stroke.hairline, tone.copy(alpha = .35f), MachineSignal.Shape.Panel).padding(MachineSignal.Space.s2_5),
++            Modifier.fillMaxWidth().padding(vertical = MachineSignal.Space.s1_25).background(tone.copy(alpha = .06f), MachineSignal.shapes.panel)
++                .padding(MachineSignal.Space.s2_5),
+             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
+         ) {
+             Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1_5), verticalAlignment = Alignment.CenterVertically) {
+@@ -489,7 +494,7 @@ private data class GraphFinding(val ink: InkRole) : FindingAppearance {
+     }
+ }
+ 
+-fun cloudFinding(ink: InkRole): FindingAppearance = CloudFinding(ink)
++fun cloudFinding(ink: InkRole): FindingAppearance = CloudFinding(ink).withMatrix(MatrixFinding(ink))
+ 
+ private data class CloudFinding(val ink: InkRole) : FindingAppearance {
+     @Composable
+@@ -498,8 +503,8 @@ private data class CloudFinding(val ink: InkRole) : FindingAppearance {
+         val colors = signal.colors
+         val tone = signal.ink(ink)
+         Column(
+-            Modifier.fillMaxWidth().padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s0_75).clip(MachineSignal.Shape.Panel)
+-                .background(tone.copy(alpha = .08f)).border(MachineSignal.Stroke.hairline, tone.copy(alpha = .35f), MachineSignal.Shape.Panel).padding(MachineSignal.Space.s2),
++            Modifier.fillMaxWidth().padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s0_75).clip(MachineSignal.shapes.panel)
++                .background(tone.copy(alpha = .06f)).padding(MachineSignal.Space.s2),
+             verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s0_75),
+         ) {
+             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1_5)) {
+@@ -514,7 +519,7 @@ private data class CloudFinding(val ink: InkRole) : FindingAppearance {
+     }
+ }
+ 
+-fun glanceFinding(ink: InkRole): FindingAppearance = GlanceFinding(ink)
++fun glanceFinding(ink: InkRole): FindingAppearance = GlanceFinding(ink).withMatrix(MatrixFinding(ink))
+ 
+ private data class GlanceFinding(val ink: InkRole) : FindingAppearance {
+     @Composable
+@@ -536,7 +541,7 @@ private data class GlanceFinding(val ink: InkRole) : FindingAppearance {
+     }
+ }
+ 
+-fun analyticsFinding(ink: InkRole): FindingAppearance = AnalyticsFinding(ink)
++fun analyticsFinding(ink: InkRole): FindingAppearance = AnalyticsFinding(ink).withMatrix(MatrixFinding(ink))
+ 
+ private data class AnalyticsFinding(val ink: InkRole) : FindingAppearance {
+     @Composable
+@@ -545,8 +550,7 @@ private data class AnalyticsFinding(val ink: InkRole) : FindingAppearance {
+         val colors = signal.colors
+         val tone = signal.ink(ink)
+         Row(
+-            Modifier.fillMaxWidth().clip(MachineSignal.Shape.Panel).background(tone.copy(alpha = .08f))
+-                .border(MachineSignal.Stroke.hairline, tone.copy(alpha = .35f), MachineSignal.Shape.Panel)
++            Modifier.fillMaxWidth().clip(MachineSignal.shapes.panel).background(tone.copy(alpha = .08f))
+                 .padding(horizontal = MachineSignal.Space.s2_5, vertical = MachineSignal.Space.s1_5),
+             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+         ) {
+@@ -559,9 +563,9 @@ private data class AnalyticsFinding(val ink: InkRole) : FindingAppearance {
+     }
+ }
+ 
+-fun verdictFinding(ink: InkRole): FindingAppearance = VerdictFinding(ink, MachineSignal.Space.s3_5, VerdictLarge)
++fun verdictFinding(ink: InkRole): FindingAppearance = VerdictFinding(ink, MachineSignal.Space.s3_5, VerdictLarge).withMatrix(MatrixFinding(ink))
+ 
+-fun bannerFinding(ink: InkRole): FindingAppearance = VerdictFinding(ink, MachineSignal.Space.s3, MachineSignal.Type.title3)
++fun bannerFinding(ink: InkRole): FindingAppearance = VerdictFinding(ink, MachineSignal.Space.s3, MachineSignal.Type.title3).withMatrix(MatrixFinding(ink))
+ 
+ private data class VerdictFinding(val ink: InkRole, val inset: Dp, val verdict: TextUnit) : FindingAppearance {
+     @Composable
+@@ -569,7 +573,7 @@ private data class VerdictFinding(val ink: InkRole, val inset: Dp, val verdict:
+         val signal = theme.machineSignal
+         val colors = signal.colors
+         val tone = signal.ink(ink)
+-        val shape = RoundedCornerShape(MachineSignal.Radius.card)
++        val shape = MachineSignal.shapes.panel
+         Row(
+             Modifier.fillMaxWidth().clip(shape).background(tone.copy(alpha = .12f)).border(MachineSignal.Stroke.hairline, tone.copy(alpha = .5f), shape).padding(inset),
+             verticalAlignment = Alignment.CenterVertically,
+diff --git a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Menus.kt b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Menus.kt
+index ad2ebd62..205be800 100644
+--- a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Menus.kt
++++ b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Menus.kt
+@@ -1,5 +1,7 @@
+ package dev.shibasis.reaktor.ui.machinesignal.surface
+ 
++import dev.shibasis.reaktor.ui.machinesignal.shapes
++
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.ui.text.TextStyle
+@@ -55,7 +57,7 @@ val ContextMenuPanel: PanelAppearance = object : PanelAppearance {
+         val shape = RoundedCornerShape(MachineSignal.Editor.controlRadius)
+         Column(
+             Modifier
+-                .shadow(3.dp, shape, clip = false)
++                .shadow(MachineSignal.Space.s4, shape, clip = false)
+                 .clip(shape)
+                 .background(colors.menu)
+                 .padding(vertical = PaneMenuPadding)
+@@ -65,7 +67,7 @@ val ContextMenuPanel: PanelAppearance = object : PanelAppearance {
+             CompositionLocalProvider(LocalContentColor provides colors.onMenu, content = slots.content)
+         }
+     }
+-}
++}.withMatrix(MatrixMenuPanel)
+ 
+ val ContextMenuItem: ButtonAppearance = object : ButtonAppearance {
+     @Composable
+@@ -77,7 +79,7 @@ val ContextMenuItem: ButtonAppearance = object : ButtonAppearance {
+                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
+                 .stateLayer(LocalContentColor.current, properties.enabled && state.hovered, feedback)
+                 .fillMaxWidth()
+-                .sizeIn(minWidth = PaneMenuMinWidth, maxWidth = PaneMenuMaxWidth, minHeight = PaneMenuRowHeight)
++                .sizeIn(minWidth = PaneMenuMinWidth, maxWidth = PaneMenuMaxWidth, minHeight = MachineSignal.Space.s6)
+                 .padding(horizontal = PaneMenuInset),
+             verticalAlignment = Alignment.CenterVertically,
+         ) {
+@@ -92,7 +94,7 @@ val ContextMenuItem: ButtonAppearance = object : ButtonAppearance {
+             }
+         }
+     }
+-}
++}.withMatrix(MatrixMenuItem)
+ 
+ val DenseMenuPanel: PanelAppearance = object : PanelAppearance {
+     @Composable
+@@ -102,15 +104,16 @@ val DenseMenuPanel: PanelAppearance = object : PanelAppearance {
+             Modifier
+                 .widthIn(min = DenseMenuMinWidth, max = MachineSignal.Editor.navigatorWidth * 2)
+                 .width(IntrinsicSize.Max)
+-                .background(colors.surface, MachineSignal.Shape.Control)
+-                .border(1.dp, colors.line, MachineSignal.Shape.Control)
+-                .padding(vertical = MachineSignal.Space.s1)
++                .shadow(MachineSignal.Space.s4, MachineSignal.shapes.panel, clip = false)
++                .background(colors.surface, MachineSignal.shapes.panel)
++                .border(MachineSignal.Stroke.hairline, colors.lineSubtle, MachineSignal.shapes.panel)
++                .padding(MachineSignal.Space.s1)
+                 .verticalScroll(rememberScrollState()),
+         ) {
+             CompositionLocalProvider(LocalContentColor provides colors.text, content = slots.content)
+         }
+     }
+-}
++}.withMatrix(MatrixMenuPanel)
+ 
+ val DenseMenuItem: ButtonAppearance = object : ButtonAppearance {
+     @Composable
+@@ -122,7 +125,7 @@ val DenseMenuItem: ButtonAppearance = object : ButtonAppearance {
+                 .focusRing(state.focusVisible, feedback, FocusRing(colors.accent, signal.metrics.focusRing, RectangleShape))
+                 .stateLayer(LocalContentColor.current, properties.enabled && state.hovered, feedback)
+                 .fillMaxWidth()
+-                .heightIn(min = signal.metrics.controlHeight)
++                .heightIn(min = MachineSignal.Space.s6)
+                 .padding(horizontal = MachineSignal.Space.s3),
+             horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
+             verticalAlignment = Alignment.CenterVertically,
+@@ -130,7 +133,7 @@ val DenseMenuItem: ButtonAppearance = object : ButtonAppearance {
+             ProvideLabel(Label(if (properties.enabled) colors.text else colors.textFaint, signal.fonts.ui, signal.metrics.label), slots.content)
+         }
+     }
+-}
++}.withMatrix(MatrixMenuItem)
+ 
+ val SignalCommand: CommandAppearance = object : CommandAppearance {
+     @Composable
+@@ -154,7 +157,7 @@ val SignalCommand: CommandAppearance = object : CommandAppearance {
+             }
+         }
+     }
+-}
++}.withMatrix(MatrixCommand)
+ 
+ val RuleSeparator: SeparatorAppearance = object : SeparatorAppearance {
+     @Composable
+@@ -167,11 +170,10 @@ val RuleSeparator: SeparatorAppearance = object : SeparatorAppearance {
+                 .background(theme.machineSignal.colors.line),
+         )
+     }
+-}
++}.withMatrix(MatrixSeparator(dev.shibasis.reaktor.surface.Axis.Horizontal, false))
+ 
+ private val PaneMenuPadding = 8.dp
+ private val PaneMenuInset = 12.dp
+-private val PaneMenuRowHeight = 48.dp
+ private val PaneMenuMinWidth = 112.dp
+ private val PaneMenuMaxWidth = 280.dp
+ private val DenseMenuMinWidth = 160.dp
+commit dca8ab5aa67d9aa279a3b9b4df511e3fae4257d9
+Author: Shibasis <shibasis0801@gmail.com>
+Date:   Fri Oct 23 01:37:54 2026 +0530
+
+    updates
+
+diff --git a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/MachineSignalSurface.kt b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/MachineSignalSurface.kt
+index 66e9a0bd..9ca42494 100644
+--- a/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/MachineSignalSurface.kt
++++ b/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/MachineSignalSurface.kt
+@@ -1,5 +1,6 @@
+ package dev.shibasis.reaktor.ui.machinesignal
+ 
++import androidx.compose.material3.LocalContentColor
+ import androidx.compose.material3.LocalTextStyle
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.CompositionLocalProvider
+@@ -19,11 +20,14 @@ import dev.shibasis.reaktor.surface.compose.BareTheme
+ import dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot
+ import dev.shibasis.reaktor.surface.compose.SurfaceTheme
+ import dev.shibasis.reaktor.ui.machinesignal.surface.MachineSignalAppearances
++import dev.shibasis.reaktor.ui.machinesignal.surface.matrixTextStyle
+ 
+ enum class MachineSignalVariant { Board, Editor }
+ 
+ enum class MachineSignalDensity { Comfortable, Compact }
+ 
++enum class MachineSignalMode(val label: String) { Dark("Dark"), Light("Light"), Matrix("Matrix") }
++
+ @Immutable
+ data class MachineSignalColors(
+     val canvas: Color,
+@@ -75,21 +79,108 @@ data class MachineSignalColors(
+             controlAccentSoft = MachineSignal.AccentSoft,
+         )
+ 
++        val Light = MachineSignalColors(
++            canvas = Color(0xFFF2F4F8),
++            surface = Color(0xFFFFFFFF),
++            surfaceAlt = Color(0xFFF5F7FA),
++            raised = Color(0xFFEBEEF4),
++            raisedAlt = Color(0xFFDCE1EA),
++            lineSubtle = Color(0xFFE6E9EF),
++            line = Color(0xFFD5DBE5),
++            lineStrong = Color(0xFFB4BDCC),
++            textStrong = Color(0xFF0B1220),
++            text = Color(0xFF1F2937),
++            textMuted = Color(0xFF4B5567),
++            textFaint = Color(0xFF5F687C),
++            controlAccent = Color(0xFF2F58F8),
++            controlAccentSoft = Color(0x122F58F8),
++            accent = Color(0xFF2F58F8),
++            accentHover = Color(0xFF2347E0),
++            accentSoft = Color(0x122F58F8),
++            accentLine = Color(0x662F58F8),
++            accentText = Color(0xFF2F58F8),
++            selection = Color(0x332F58F8),
++            ok = Color(0xFF087A4A),
++            warn = Color(0xFF8A5B00),
++            error = Color(0xFFB42333),
++            menu = Color(0xFFFFFFFF),
++            onMenu = Color(0xFF111827),
++            rowHover = Color(0xFFF0F2F5),
++            rowSelected = Color(0x122F58F8),
++            source = Color(0xFF2F58F8),
++            onAccent = Color.White,
++            entities = MachineSignalEntities(
++                route = Color(0xFF2F58F8), screen = Color(0xFF075985), container = Color(0xFF5B4CCB),
++                service = Color(0xFF087A4A), cloud = Color(0xFF075985), actor = Color(0xFF8A5B00),
++                auth = Color(0xFF6941C6), infra = Color(0xFF526078), agent = Color(0xFF2F58F8),
++                topic = Color(0xFF8A5B00), repo = Color(0xFF9A3412), interactor = Color(0xFF077571),
++                exec = Color(0xFF9A3412), navigation = Color(0xFF2F58F8), data = Color(0xFF075985),
++                attachment = Color(0xFF526078), containment = Color(0xFF5B4CCB), portOff = Color(0xFF526078),
++            ),
++        )
++
++        val Matrix = MachineSignalColors(
++            canvas = Color(0xFF020604),
++            surface = Color(0xFF040D08),
++            surfaceAlt = Color(0xFF07140D),
++            raised = Color(0xFF0A1E12),
++            raisedAlt = Color(0xFF10301C),
++            lineSubtle = Color(0xFF0C2314),
++            line = Color(0xFF174529),
++            lineStrong = Color(0xFF317848),
++            textStrong = Color(0xFFE0FFE7),
++            text = Color(0xFFBFECCD),
++            textMuted = Color(0xFF86B997),
++            textFaint = Color(0xFF78AA8A),
++            controlAccent = Color(0xFF64FF8F),
++            controlAccentSoft = Color(0x1464FF8F),
++            accent = Color(0xFF64FF8F),
++            accentHover = Color(0xFF9DFFB9),
++            accentSoft = Color(0x1464FF8F),
++            accentLine = Color(0x6664FF8F),
++            accentText = Color(0xFF9DFFB9),
++            selection = Color(0x4064FF8F),
++            ok = Color(0xFF64FF8F),
++            warn = Color(0xFFFFD47A),
++            error = Color(0xFFFF8C9A),
++            menu = Color(0xFF0B1E14),
++            onMenu = Color(0xFFE0FFE7),
++            rowHover = Color(0xFF10281B),
++            rowSelected = Color(0x2064FF8F),
++            source = Color(0xFF9DFFE0),
++            onAccent = Color(0xFF031208),
++            entities = MachineSignalEntities(
++                route = Color(0xFF64FF8F), screen = Color(0xFFA8F5C0), container = Color(0xFF7ADBA5),
++                service = Color(0xFFA3E874), cloud = Color(0xFF8CEBC7), actor = Color(0xFFD2E99B),
++                auth = Color(0xFFB6F4CC), infra = Color(0xFF86B997), agent = Color(0xFF64FF8F),
++                topic = Color(0xFFD2E99B), repo = Color(0xFFC4D98B), interactor = Color(0xFF76DFBA),
++                exec = Color(0xFFD2E99B), navigation = Color(0xFF64FF8F), data = Color(0xFF8CEBC7),
++                attachment = Color(0xFF86B997), containment = Color(0xFF7ADBA5), portOff = Color(0xFF78AA8A),
++            ),
++        )
++
+         val Editor = MachineSignalColors(
+             canvas = MachineSignal.Editor.Canvas,
+             surface = MachineSignal.Editor.Surface,
+-            surfaceAlt = MachineSignal.Editor.Surface,
++            surfaceAlt = MachineSignal.Editor.Raised,
+             raised = MachineSignal.Editor.Raised,
+-            raisedAlt = MachineSignal.Editor.Raised,
+-            lineSubtle = MachineSignal.Editor.Code.GutterLine,
++            raisedAlt = MachineSignal.Editor.Line,
++            lineSubtle = MachineSignal.Editor.Line.copy(alpha = .32f),
+             line = MachineSignal.Editor.Line,
+             lineStrong = MachineSignal.Editor.Line,
+             textStrong = MachineSignal.Editor.Text,
+-            text = MachineSignal.Editor.Text,
++            text = MachineSignal.Editor.Text.copy(alpha = .84f),
+             textMuted = MachineSignal.Editor.Muted,
+             textFaint = MachineSignal.Editor.Unknown,
+             controlAccent = MachineSignal.Editor.Accent,
+             controlAccentSoft = MachineSignal.Editor.AccentSoft,
++            accent = MachineSignal.Editor.Accent,
++            accentHover = MachineSignal.Editor.Source,
++            menu = MachineSignal.Editor.Raised,
++            onMenu = MachineSignal.Editor.Text,
++            rowHover = MachineSignal.Editor.Raised,
++            rowSelected = MachineSignal.Editor.AccentSoft,
++            onAccent = MachineSignal.Editor.Canvas,
+         )
+     }
+ }
+@@ -225,7 +316,7 @@ data class MachineSignalMetrics(
+             focusRing = MachineSignal.Space.s1 / 4,
+             itemRow = MachineSignal.Editor.treeRowHeight,
+             indent = MachineSignal.Editor.treeIndent,
+-            tableRow = MachineSignal.Metrics.kvRowHeight,
++            tableRow = MachineSignal.Space.s6,
+         )
+     }
+ }
+@@ -238,8 +329,10 @@ data class MachineSignalSnapshot(
+     val metrics: MachineSignalMetrics,
+     val fonts: MachineSignalFonts,
+     val type: MachineSignalType = MachineSignalType(),
++    val mode: MachineSignalMode = MachineSignalMode.Dark,
+ ) : ThemeSnapshot {
+-    override val id: String = "machine-signal/${variant.name.lowercase()}/${density.name.lowercase()}"
++    override val id: String = "machine-signal/${variant.name.lowercase()}/${density.name.lowercase()}" +
++        if (mode == MachineSignalMode.Dark) "" else "/${mode.name.lowercase()}"
+ 
+     fun ink(ink: InkRole): Color = when (ink) {
+         Ink.Strong -> colors.textStrong
+@@ -256,19 +349,27 @@ data class MachineSignalSnapshot(
+         Ink.OnAccent -> colors.onAccent
+         is EntityInk -> colors.entities[ink]
+         is EdgeInk -> colors.entities[ink]
+-        is ProvenanceInk -> MachineSignal.provenance(ink.truth).base
+-        BoardInk.Text1 -> MachineSignal.Text1
+-        BoardInk.Text2 -> MachineSignal.Text2
+-        BoardInk.Text3 -> MachineSignal.Text3
+-        BoardInk.Text4 -> MachineSignal.Text4
+-        BoardInk.AccentText -> MachineSignal.AccentText
++        is ProvenanceInk -> if (mode == MachineSignalMode.Dark) MachineSignal.provenance(ink.truth).base else when (ink.truth) {
++            TruthClass.Live -> colors.ok
++            TruthClass.Source -> colors.source
++            TruthClass.Inferred -> colors.entities.auth
++            TruthClass.Imported -> colors.entities.interactor
++            TruthClass.Stale, TruthClass.Partial -> colors.warn
++            TruthClass.Failed -> colors.error
++            TruthClass.Fixture, TruthClass.Unknown -> colors.textMuted
++        }
++        BoardInk.Text1 -> colors.textStrong
++        BoardInk.Text2 -> colors.text
++        BoardInk.Text3 -> colors.textMuted
++        BoardInk.Text4 -> colors.textFaint
++        BoardInk.AccentText -> colors.accentText
+         SignalInk.Soft -> colors.text.copy(alpha = .9f)
+         SignalInk.Dim -> colors.textMuted.copy(alpha = .6f)
+         SignalInk.ScreenReadout -> colors.onAccent.copy(alpha = .9f)
+         SignalInk.ScreenAction -> colors.onAccent.copy(alpha = .8f)
+         SignalInk.ScreenNote -> colors.onAccent.copy(alpha = .78f)
+-        SignalInk.Code -> MachineSignal.Editor.Code.Text
+-        SignalInk.Gutter -> MachineSignal.Editor.Code.Gutter
++        SignalInk.Code -> if (mode == MachineSignalMode.Dark) MachineSignal.Editor.Code.Text else colors.text
++        SignalInk.Gutter -> if (mode == MachineSignalMode.Dark) MachineSignal.Editor.Code.Gutter else colors.textFaint
+         SignalInk.Rule -> colors.line
+         else -> throw ThemeMismatch("$ink ink", id)
+     }
+@@ -281,18 +382,30 @@ data class MachineSignalSnapshot(
+             variant: MachineSignalVariant,
+             density: MachineSignalDensity,
+             fonts: MachineSignalFonts = MachineSignalFonts(),
+-        ): MachineSignalSnapshot = when (variant to density) {
+-            MachineSignalVariant.Board to MachineSignalDensity.Comfortable ->
+-                MachineSignalSnapshot(variant, density, MachineSignalColors.Board, MachineSignalMetrics.Comfortable, fonts)
+-            MachineSignalVariant.Editor to MachineSignalDensity.Compact ->
+-                MachineSignalSnapshot(variant, density, MachineSignalColors.Editor, MachineSignalMetrics.Compact, fonts)
+-            else -> throw IllegalArgumentException(
+-                "Machine Signal ships Board with Comfortable and Editor with Compact; $variant with $density is not defined",
+-            )
++            mode: MachineSignalMode = MachineSignalMode.Dark,
++        ): MachineSignalSnapshot {
++            val metrics = when (variant to density) {
++                MachineSignalVariant.Board to MachineSignalDensity.Comfortable -> MachineSignalMetrics.Comfortable
++                MachineSignalVariant.Editor to MachineSignalDensity.Compact -> MachineSignalMetrics.Compact
++                else -> throw IllegalArgumentException(
++                    "Machine Signal ships Board with Comfortable and Editor with Compact; $variant with $density is not defined",
++                )
++            }
++            val colors = when (mode) {
++                MachineSignalMode.Dark -> if (variant == MachineSignalVariant.Board) MachineSignalColors.Board else MachineSignalColors.Editor
++                MachineSignalMode.Light -> MachineSignalColors.Light
++                MachineSignalMode.Matrix -> MachineSignalColors.Matrix
++            }
++            return MachineSignalSnapshot(variant, density, colors, metrics,
++                if (mode == MachineSignalMode.Matrix) fonts.copy(ui = fonts.mono, graphLabel = fonts.mono) else fonts,
++                type = if (mode == MachineSignalMode.Matrix) MatrixType else MachineSignalType(), mode = mode)
+         }
+     }
+ }
+ 
++val MachineSignal.colors: MachineSignalColors
++    @Composable get() = LocalThemeSnapshot.current.machineSignal.colors
++
+ val InkRole.color: Color
+     @Composable get() = LocalThemeSnapshot.current.machineSignal.ink(this)
+ 
+@@ -312,15 +425,20 @@ fun MachineSignalSurface(
+     variant: MachineSignalVariant,
+     density: MachineSignalDensity,
+     fonts: MachineSignalFonts = LocalMachineSignalFonts.current,
++    mode: MachineSignalMode = (LocalThemeSnapshot.current as? MachineSignalSnapshot)?.mode ?: MachineSignalMode.Dark,
+     content: @Composable () -> Unit,
+ ) {
+-    val snapshot = remember(variant, density, fonts) { MachineSignalSnapshot.of(variant, density, fonts) }
++    val themeFonts = if (mode == MachineSignalMode.Matrix) matrixFonts(fonts) else fonts
++    val snapshot = remember(variant, density, themeFonts, mode) { MachineSignalSnapshot.of(variant, density, themeFonts, mode) }
+     val appearances = remember(snapshot) { MachineSignalAppearances(snapshot) }
++    val resolvedFonts = snapshot.fonts
+     SurfaceTheme(snapshot, appearances) {
+         CompositionLocalProvider(
+-            LocalMachineSignalFonts provides fonts,
+-            LocalTextStyle provides (fonts.base?.let { LocalTextStyle.current.merge(it.copy(fontFamily = fonts.ui)) } ?: LocalTextStyle.current).let {
+-                it.copy(fontFeatureSettings = listOfNotNull(it.fontFeatureSettings, "tnum").joinToString(","))
++            LocalMachineSignalFonts provides resolvedFonts,
++            LocalContentColor provides snapshot.colors.text,
++            LocalTextStyle provides (resolvedFonts.base?.let { LocalTextStyle.current.merge(it) } ?: LocalTextStyle.current).copy(fontFamily = resolvedFonts.ui).let {
++                if (mode == MachineSignalMode.Matrix) it.merge(matrixTextStyle(snapshot, snapshot.colors.text))
++                else it.copy(fontFeatureSettings = listOfNotNull(it.fontFeatureSettings, "tnum").joinToString(","))
+             },
+             content = content,
+         )

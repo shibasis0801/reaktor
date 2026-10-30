@@ -8,6 +8,7 @@ import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
 import dev.shibasis.reaktor.conductor.cli.CodexRuntime
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServer
+import dev.shibasis.reaktor.mcp.REAKTOR_MCP_MAX_REQUEST_BYTES
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
 import kotlinx.coroutines.Dispatchers
@@ -203,7 +204,7 @@ class AgentWorkspaceConnection private constructor(
 
     suspend fun call(name: String, args: JsonObject = buildJsonObject {}, timeout: Duration? = null): JsonElement {
         withContext(Dispatchers.IO) { refreshEndpoint() }
-        val patience = patience(args, timeout)
+        val patience = patience(args, if (name == "kernel" && timeout == null) LongestPatience else timeout)
         if (remote != null || endpoint.invocationVersion == null) return callMcp(name, args, patience)
         check(endpoint.invocationVersion == 1) { "Unsupported workspace invocation version" }
         val payload = buildJsonObject {
@@ -244,11 +245,12 @@ class AgentWorkspaceConnection private constructor(
 
     private suspend fun request(message: String, path: String, patience: Duration): JsonElement? = withContext(Dispatchers.IO) {
         refreshEndpoint()
-        require(message.length <= 250000) { "Workspace message exceeds the transport budget" }
+        val body = message.encodeToByteArray()
+        require(body.size <= REAKTOR_MCP_MAX_REQUEST_BYTES) { "Workspace message exceeds the transport budget" }
         if (remote != null) return@withContext remote.exchange(message)
         val builder = HttpRequest.newBuilder(URI("http://127.0.0.1:${endpoint.port}$path")).timeout(patience)
             .header("Authorization", "Bearer ${endpoint.token}").header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(message))
+            .POST(HttpRequest.BodyPublishers.ofByteArray(body))
         if (path == "/mcp") builder.header("MCP-Protocol-Version", protocolVersion)
         val response = runInterruptible { http.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream()) }
         val bytes = response.body().use { it.readNBytes(2_000_001) }

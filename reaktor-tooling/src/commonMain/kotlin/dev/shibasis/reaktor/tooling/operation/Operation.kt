@@ -62,7 +62,7 @@ data class OperationDescriptor(
     val subject: String? = null,
 )
 
-class OperationCall(val invocation: Invocation, val approval: DoorApproval? = null, val runId: dev.shibasis.reaktor.tooling.RunId? = null)
+class OperationCall(val invocation: Invocation, val approval: DoorApproval? = null, val runId: dev.shibasis.reaktor.tooling.RunId? = null, val superadmin: Boolean = false)
 
 class Operation<I, O>(
     val id: OperationId,

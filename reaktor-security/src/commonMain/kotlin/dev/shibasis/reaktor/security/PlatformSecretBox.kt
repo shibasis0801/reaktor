@@ -18,6 +18,7 @@ data class SecretAccessOptions(
     }
 }
 
+@kotlinx.serialization.Serializable
 data class SealedSecret(
     val version: Int,
     val algorithm: String,

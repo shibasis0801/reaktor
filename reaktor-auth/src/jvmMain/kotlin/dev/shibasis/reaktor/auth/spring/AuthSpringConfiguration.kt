@@ -25,6 +25,8 @@ open class AuthSpringConfiguration {
         @Value("\${reaktor.jwt.ec-jwk:}") ecJwkJson: String,
         @Value("\${reaktor.jwt.ec-jwk-prev:}") ecJwkPrevJson: String,
         @Value("\${reaktor.auth.allow-ephemeral-signing-key:false}") allowEphemeralSigningKey: Boolean,
+        @Value("\${reaktor.auth.device-credential-jwk:}") deviceCredentialJwkJson: String,
+        @Value("\${reaktor.auth.device-credential-next-jwk:}") deviceCredentialNextJwkJson: String,
     ): AuthRuntimeGraph {
         val providers = authProviderList.ifAvailable()
             ?: authProviderBeans.orderedStream().toList()
@@ -40,6 +42,8 @@ open class AuthSpringConfiguration {
                 // Env read lives here at the composition root, not hidden inside a graph node.
                 patBootstrapToken = System.getenv("REAKTOR_PAT_BOOTSTRAP_TOKEN")?.takeIf { it.isNotBlank() },
                 access = access.ifAvailable(),
+                deviceCredentialJwkJson = deviceCredentialJwkJson,
+                deviceCredentialNextJwkJson = deviceCredentialNextJwkJson,
             ),
             dependencyAdapter = SpringDependencyAdapter(applicationContext),
         )
@@ -51,7 +55,7 @@ open class AuthSpringConfiguration {
 
     @Bean
     open fun jwksController(runtime: AuthRuntimeGraph): JwksController =
-        JwksController(runtime.jwt.signingKeys)
+        JwksController(runtime.jwt.signingKeys, runtime.devices.issuer)
 }
 
 private fun <T : Any> ObjectProvider<T>.ifAvailable(): T? =

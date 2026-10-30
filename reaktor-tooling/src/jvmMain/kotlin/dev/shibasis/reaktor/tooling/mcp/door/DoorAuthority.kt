@@ -48,10 +48,10 @@ data class DoorPolicy(
             val machine = read(File(home, PATH))
             val project = read(File(workspace, PATH))
             if (project == null) return machine ?: DoorPolicy()
-            if (machine == null) return project
+            if (machine == null) return project.copy(seats = project.seats.mapValues { (_, seat) -> seat.copy(superadmin = false) })
             val seats = (machine.seats.keys + project.seats.keys).associateWith { name ->
                 val a = machine.seat(name); val b = project.seat(name)
-                SeatPolicy(minOf(a.allow, b.allow, compareBy(SafetyClass::rank)), minOf(a.ask, b.ask, compareBy(SafetyClass::rank)), a.plans && b.plans)
+                SeatPolicy(minOf(a.allow, b.allow, compareBy(SafetyClass::rank)), minOf(a.ask, b.ask, compareBy(SafetyClass::rank)), a.plans && b.plans, a.superadmin && b.superadmin)
             }
             return DoorPolicy(seats, minOf(machine.approvalMinutes, project.approvalMinutes), minOf(machine.maxResultChars, project.maxResultChars), machine.approvalDialog)
         }
@@ -68,6 +68,7 @@ data class SeatPolicy(
     /** Above [allow] and up to here a person is asked first; above it the call is refused. */
     val ask: SafetyClass = SafetyClass.UnknownRemoteEffect,
     val plans: Boolean = false,
+    val superadmin: Boolean = false,
 ) {
     companion object {
         val Guarded = SeatPolicy(SafetyClass.LiveRead, SafetyClass.Destructive, plans = true)

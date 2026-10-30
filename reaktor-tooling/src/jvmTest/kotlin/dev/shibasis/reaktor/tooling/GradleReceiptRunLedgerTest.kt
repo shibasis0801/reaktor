@@ -59,9 +59,52 @@ class GradleReceiptRunLedgerTest {
             assertEquals("rollback", rollback.artifacts.single().attributes["action"])
             assertTrue("private-provider-response" !in rollback.toString())
             assertEquals(setOf(run.id, deployed.id, rollback.id), ledger.runs().map { it.id }.toSet())
+            for (id in listOf("operation-run", "run-123", "kernel-123", "agent-123")) assertEquals(null, ledger.run(RunId(id)))
+            assertEquals(null, ledger.run(RunId("gradle-absent")))
+            assertEquals(null, ledger.run(RunId("deploy-absent")))
 
         } finally { root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
     }
+    @Test fun boundedReadsKeepNodeOrderAndFreshEvidenceAcrossArbitraryReceiptNames() = runBlocking {
+        val root = Files.createTempDirectory("gradle-bounded-receipts").toFile()
+        try {
+            val ledger = GradleReceiptRunLedger(root)
+            val directory = root.resolve(GradleProtocol.ReceiptDirectory)
+            val first = NodeId("fixture", ":one", "checks")
+            val second = NodeId("fixture", ":two", "checks")
+            val third = NodeId("fixture", ":three", "checks")
+            val receipt = RunReceipt(run = "multi", build = "fixture", requestedNodes = listOf(first, second),
+                requestedTasks = listOf(":one:checks", ":two:checks"), startedAtEpochMillis = 30,
+                finishedAtEpochMillis = 50, status = ReceiptStatus.Succeeded)
+            val older = directory.resolve("arbitrary-name.json")
+            older.writeText(BuildModelReader.json.encodeToString(receipt))
+            val newer = directory.resolve("also-arbitrary.json")
+            newer.writeText(BuildModelReader.json.encodeToString(receipt.copy(run = "latest",
+                requestedNodes = listOf(third), startedAtEpochMillis = 1, finishedAtEpochMillis = 60)))
+            val outside = root.resolve("outside.json")
+            outside.writeText(BuildModelReader.json.encodeToString(receipt.copy(run = "escaped",
+                finishedAtEpochMillis = 100)))
+            Files.createSymbolicLink(directory.resolve("linked.json").toPath(), outside.toPath())
+            val all = ledger.runs()
+            assertEquals(listOf("gradle-latest/$third", "gradle-multi/$first", "gradle-multi/$second"),
+                all.map { it.id.value })
+            for (limit in 0..3) assertEquals(all.take(limit), ledger.runs(limit = limit))
+            assertEquals(emptyList(), ledger.runs(WorkspaceId("another-workspace"), 3))
+            for (run in all) {
+                assertEquals(run, ledger.run(run.id))
+                val artifact = run.artifacts.single()
+                assertEquals(BuildModelReader.digest(File(artifact.location)), artifact.digest)
+            }
+            val previousDigest = all.last().artifacts.single().digest
+            older.writeText(BuildModelReader.json.encodeToString(receipt.copy(status = ReceiptStatus.Failed)))
+            val fresh = ledger.run(RunId("gradle-multi/$second"))!!
+            assertEquals(RunStatus.Failed, fresh.status)
+            assertNotEquals(previousDigest, fresh.artifacts.single().digest)
+            assertEquals(BuildModelReader.digest(older), fresh.artifacts.single().digest)
+            assertEquals(fresh, ledger.runs().last())
+        } finally { root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     @Test fun supervisedRunsLinkFailureReceiptsAndDecodeOnlyExplicitProgress() = runBlocking {
         val root = Files.createTempDirectory("gradle-supervised-receipt").toFile()
         try {

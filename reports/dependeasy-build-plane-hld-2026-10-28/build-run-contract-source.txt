@@ -1,0 +1,133 @@
+40 of 59 · syntactic (git-grep) · rev:7e0abd7eb9f5
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/appgraph/BuildInspection.kt
+  240 |                     try {
+  241 |                         withContext(Dispatchers.IO) {
+  242 |                             if (operation?.requiresApproval == true || declared.effect == Effect.Deploy) {
+  243 |                                 requireNotNull(plane).requestRun(requireNotNull(operation).id)
+  244 |                             } else {
+  245 text in BuildInspection: requireNotNull(invocations).invoke(OperationInvocation(OperationId("build.run"),
+  246 |                                     JsonObject(arguments + ("plan" to OperationJson.encodeToJsonElement(PendingOperationalPlan.serializer(), prepared))),
+  247 |                                     CallCaller(seat = "hangar"))).completedBuildResult()
+  248 |                             }
+  249 |                         }
+  250 |                     }
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/AgentExecutionTrace.kt
+  88 text in traceRows: "check_run", "checks.run", "build.run" -> "Build/check wait · ${step.name}"
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/shell/Workbench.kt
+  190 text in ReaktorWorkbenchContent: ownerResult("build.run", JsonObject(arguments + ("plan" to prepared)))
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/workbench/appgraph/BuildGraphPaneTest.kt
+  238 |                 Thread.sleep(20)
+  239 |             }
+  240 |             val executed = activePlane.snapshot.value.runs.filter { it.taskId == "fixture:app:outputVerificationResultsJvm" }
+  241 |             assertEquals(1, executed.size)
+  242 |             assertEquals(OperationalRunStatus.Succeeded, executed.single().status, executed.single().failure)
+  243 text in BuildGraphPaneTest.ownerWalkLinksTheTargetToJvmTestsKernelPlanAndRecordedReceipt: val executionCalls = calls.filter { it.operation.value in setOf("build.plan", "build.run") }
+  244 text in BuildGraphPaneTest.ownerWalkLinksTheTargetToJvmTestsKernelPlanAndRecordedReceipt: assertEquals(listOf("build.plan", "build.plan", "build.run"), executionCalls.map { it.operation.value })
+  245 text in BuildGraphPaneTest.ownerWalkLinksTheTargetToJvmTestsKernelPlanAndRecordedReceipt: assertIs<Outcome.Completed>(outcomes.single { it.first.operation.value == "build.run" }.second)
+  246 |             assertEquals(reviewed, executionCalls.last().arguments.getValue("plan"))
+  247 |             assertTrue(calls.all { it.caller.seat == "hangar" })
+  248 |             assertEquals(expectedInputs, JsonObject(executionCalls.last().arguments - "plan"))
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentMcpHost.kt
+  52 text in KernelAgentMcpHost.patience: "build.plan", "build.run" -> Duration.ofMinutes(15)
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAtlas.kt
+  1012 text in KernelAtlas.buildNode: answer.suggest("build.run", buildJsonObject { put("node", node) })
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelMcpTasks.kt
+  76 text in KernelMcpTasks.start: if (operation !in setOf("checks.run", "build.run")) return JsonNull
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelOperations.kt
+  593 text in workspaceOperations: Operation(OperationId("build.run"), "Starts one declared build, verify or develop node, or affected verifications since an explicit Git reference; follow all returned runs.", SafetyClass.DeviceWrite,
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt
+  217 text in OperationalControlPlane.requestRun: if (operation == "build.run") require(task.effect.rank <= SafetyClass.DeviceWrite.rank && task.approvalPhrase == null && !task.requiresSecondApproval) {
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelBuildNodeTest.kt
+  98 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: assertEquals((nodes + device).map { it.id.toString() }.toSet(), advertisedNodes("build.run"))
+  101 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: for (operation in listOf("build.plan", "build.run")) {
+  115 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: for (operation in listOf("build.plan", "build.run")) {
+  121 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: val rejectedDelivery = kernel.invoke(OperationInvocation(OperationId("build.run"), buildJsonObject {
+  186 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: val sourceInvocation = OperationInvocation(OperationId("build.run"), buildJsonObject {
+  201 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: val invalid = kernel.invoke(OperationInvocation(OperationId("build.run"), JsonObject(options + ("platform" to JsonPrimitive("microwave"))), caller))
+  203 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: val missing = kernel.invoke(OperationInvocation(OperationId("build.run"), options, caller))
+  209 text in KernelBuildNodeTest.declaredVerificationsEnterTheCheckCatalogAndLeaveAnExecutionReceipt: val invocation = OperationInvocation(OperationId("build.run"), JsonObject(options + ("plan" to planned.result)), caller, "fixture-device")
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelMcpTasksTest.kt
+  91 text in KernelMcpTasksTest.cancellationIsCooperativeAndCannotBeRequestedByAnotherCaller: "build.run" -> buildJsonObject { put("run", "one") }
+  97 text in KernelMcpTasksTest.cancellationIsCooperativeAndCannotBeRequestedByAnotherCaller: val handle = tasks.handle("tools/call", start("build.run"), caller)
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelSourceRoutingTest.kt
+  144 text in KernelSourceRoutingTest.aReviewReadsItsInputCandidateButNeitherWritePathCanOverrideItsReadOnlySeat: listOf("check.run", "checks.run", "build.run").forEach { operation ->
+  145 text in KernelSourceRoutingTest.aReviewReadsItsInputCandidateButNeitherWritePathCanOverrideItsReadOnlySeat: val args = if (operation == "build.run") buildJsonObject { put("affected", "HEAD") }
+reports/e2ee/p0-ios-build-run.json
+  1 text: {"type":"failed","message":"No answer for reaktor.kernel/invoke within the deadline","code":"outcome-unknown","reference":{"operation":"build.run","requestId":"bd2ac62d-dfc5-4753-8d9e-db493d4fe9f5","w
+targets/reaktorCli/src/test/kotlin/ai/bestbuds/reaktor/cli/BuildModelCliTest.kt
+  196 text in BuildModelCliTest.oneWalkUsesTheSameIdsThroughKernelPlanAndReceiptCommands: val descriptor = kernel.describeOperation(dev.shibasis.reaktor.tooling.operation.OperationId("build.run"))!!
+  218 text in BuildModelCliTest.oneWalkUsesTheSameIdsThroughKernelPlanAndReceiptCommands: buildJsonObject { put("operation", "build.run"); put("field", "platform") },
+  278 text in BuildModelCliTest.oneWalkUsesTheSameIdsThroughKernelPlanAndReceiptCommands: dev.shibasis.reaktor.tooling.operation.OperationId("build.run"),
+  419 text in BuildModelCliTest.affectedExecutionKeepsCanonicalVerificationPlansAndNeverClaimsCompleteCoverage: val descriptor = kernel.describeOperation(dev.shibasis.reaktor.tooling.operation.OperationId("build.run"))!!
+targets/reaktorCli/src/test/kotlin/ai/bestbuds/reaktor/cli/KernelCliTest.kt
+  37 text in KernelCliTest.everyOperationComesFromTheKernelCatalog: assertTrue(listOf("build.list", "build.show", "build.tree", "build.story", "build.plan", "build.run", "build.receipts", "ship.plan", "ship.apply", "ship.rollback", "ship.verify", "ship.run", "run.list
+  50 text in KernelCliTest.everyOperationComesFromTheKernelCatalog: assertEquals(SafetyClass.DeviceWrite, catalog.getValue("build.run").effect)
+  331 text in KernelCliTest.runsStartedAnywhereAreReadThroughTheSameKernel: "build.run" -> {
+  353 text in KernelCliTest.runsStartedAnywhereAreReadThroughTheSameKernel: domains.run(kernel.operationCatalog().single { it.id == OperationId("build.run") },
+  358 text in KernelCliTest.runsStartedAnywhereAreReadThroughTheSameKernel: InvocationReference(OperationId("build.run"), "fixture-run-request", root.canonicalPath, run.id)),
+  379 text in KernelCliTest.runsStartedAnywhereAreReadThroughTheSameKernel: "build.run" -> { starts++; Outcome.Completed(accepted) }
+  396 text in KernelCliTest.runsStartedAnywhereAreReadThroughTheSameKernel: val exit = runBlocking { domains.run(kernel.operationCatalog().single { it.id == OperationId("build.run") },
+  489 text in KernelCliTest.runsStartedAnywhereAreReadThroughTheSameKernel: "build.run" -> {
+  502 text in KernelCliTest.runsStartedAnywhereAreReadThroughTheSameKernel: assertEquals(2, runBlocking { domains.run(kernel.operationCatalog().single { it.id == OperationId("build.run") },
+  506 text in KernelCliTest.runsStartedAnywhereAreReadThroughTheSameKernel: assertEquals(InvocationReference(OperationId("build.run"), "uncertain-request", root.canonicalPath, run.id.takeIf { accepted }), result.reference)
+  561 text in KernelCliTest.theCliAndMcpReachTheKernelThroughTheWorkspaceOwner: assertTrue(catalog.any { it.id == OperationId("build.run") })
+  678 text in KernelCliTest.theCliAndMcpReachTheKernelThroughTheWorkspaceOwner: val buildEntry = catalog.single { it.id == OperationId("build.run") }
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/AgentExecutionTrace.kt · internal fun WorkLog.traceRows(): List<ExecutionTraceRow> · 3092 of 3092 characters · rev:2770aca9279c
+ 74  internal fun WorkLog.traceRows(): List<ExecutionTraceRow> = buildList {
+ 75      turns.forEachIndexed { index, turn ->
+ 76          val root = "turn:$index:${turn.id}"
+ 77          add(ExecutionTraceRow(root, emptyList(), "Turn ${index + 1}", listOfNotNull(if (earlier) "Partial session: only retained turns are shown." else null, turn.prompt).joinToString("\n"), turn.startedAt, turn.millis,
+ 78              turn.usage, if (turn.open) "Running" else if (turn.endedAt == null) "Interrupted" else "Finished", null))
+ 79          fun steps(items: List<WorkStep>, parent: String) {
+ 80              items.forEachIndexed { position, step ->
+ 81                  val id = "$parent/$position:${step.id}"
+ 82                  val title = when (step) {
+ 83                      is WorkStep.Message -> step.author?.let { "Message · $it" } ?: "Message"
+ 84                      is WorkStep.Reasoning -> "Reasoning"
+ 85                      is WorkStep.Command -> if (Regex("""(^|\s)(\./)?gradlew?(\s|$)""").containsMatchIn(step.command)) "Build/check wait" else "Command"
+ 86                      is WorkStep.Edit -> "Edit · ${step.file}"
+ 87                      is WorkStep.Tool -> when (step.operation()) {
+ 88                          "check_run", "checks.run", "build.run" -> "Build/check wait · ${step.name}"
+ 89                          "lease.wait" -> "Lease wait"
+ 90                          else -> step.name
+ 91                      }
+ 92                      is WorkStep.Plan -> "Plan"
+ 93                      is WorkStep.Subagent -> "Subagent · ${step.name}"
+ 94                      is WorkStep.Question -> "Person wait"
+ 95                      is WorkStep.Note -> step.kind.name
+ 96                  }
+ 97                  val detail = when (step) {
+ 98                      is WorkStep.Message -> step.text
+ 99                      is WorkStep.Reasoning -> step.text
+100                      is WorkStep.Command -> listOfNotNull(step.purpose, step.command, step.exitCode?.let { "Exit $it" }).joinToString("\n")
+101                      is WorkStep.Edit -> "${step.kind} · +${step.added} −${step.removed}"
+102                      is WorkStep.Tool -> listOfNotNull(step.server, step.summary).joinToString(" · ")
+103                      is WorkStep.Plan -> step.note.orEmpty()
+104                      is WorkStep.Subagent -> listOfNotNull(step.model?.let { "Model $it" }, step.prompt, step.result).joinToString("\n")
+105                      is WorkStep.Question -> step.text + (step.answer?.let { "\nAnswer: $it" } ?: "\nUnanswered")
+106                      is WorkStep.Note -> step.text
+107                  }
+108                  val millis = when (step) {
+109                      is WorkStep.Command -> step.millis
+110                      is WorkStep.Reasoning -> step.millis
+111                      is WorkStep.Tool -> step.millis
+112                      is WorkStep.Question -> step.at?.let { start -> step.answeredAt?.minus(start) }
+113                      else -> null
+114                  }?.takeIf { it >= 0 }
+115                  add(ExecutionTraceRow(id, listOf(parent), title, detail, step.at, millis, null, step.status.name, step.id))
+116                  if (step is WorkStep.Subagent) steps(step.steps, id)
+117              }
+118          }
+119          steps(turn.steps, root)
+120      }
+121  }
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentMcpHost.kt · fun patience(operation: String?): Duration? · 198 of 198 characters · rev:2b3eca57f569
+51  fun patience(operation: String?): Duration? = when (operation) {
+52          "build.plan", "build.run" -> Duration.ofMinutes(15)
+53          "change.plan" -> Duration.ofMinutes(3)
+54          else -> null
+55      }
+note: 19 more beyond the limit of 40
+note: 15 declarations are too long to send whole within the budget of 14000 characters, so the answer shows the statement around each result in them; atlas_read sends one whole
+note: 35 results in those declarations come without their surrounding lines, which the budget could not hold
+next: atlas_read {"id":"d:modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/appgraph/BuildInspection.kt:244:99@34163061"}

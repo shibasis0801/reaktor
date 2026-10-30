@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -39,13 +40,16 @@ internal fun workspaceColor(color: Color): Color {
         MachineSignal.Bg2 -> colors.surfaceAlt
         MachineSignal.Bg3 -> colors.raised
         MachineSignal.Bg4 -> colors.raisedAlt
-        MachineSignal.Line1 -> colors.lineSubtle
+        MachineSignal.Line1, MachineSignal.Editor.Code.GutterLine -> colors.lineSubtle
         MachineSignal.Line2 -> colors.line
         MachineSignal.Line3 -> colors.lineStrong
         MachineSignal.Text1 -> colors.textStrong
         MachineSignal.Text2 -> colors.text
         MachineSignal.Text3 -> colors.textMuted
         MachineSignal.Text4 -> colors.textFaint
+        MachineSignal.Accent -> colors.accent
+        MachineSignal.Accent2 -> colors.accentHover
+        MachineSignal.AccentLine -> colors.accentLine
         else -> color
     }
 }
@@ -105,19 +109,16 @@ fun SignalPanel(
     background: Color = MachineSignal.Bg1,
     contentPadding: Dp = MachineSignal.Space.s3,
     content: @Composable ColumnScope.() -> Unit,
-) = Column(modifier.background(workspaceColor(background)).then(
-    if ((LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor) Modifier.border(1.dp, MachineSignal.Editor.Code.GutterLine) else Modifier
-)) {
+) = Column(modifier.clip(MachineSignal.shapes.panel).background(workspaceColor(background))) {
     if (title != null || trailing != null) {
         Row(
-            Modifier.fillMaxWidth().height(34.dp).padding(horizontal = contentPadding),
+            Modifier.fillMaxWidth().heightIn(min = 34.dp).padding(horizontal = MachineSignal.Space.s4, vertical = MachineSignal.Space.s2),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SignalText(text = title.orEmpty(), color = MachineSignal.Text2, weight = FontWeight.Medium)
             if (trailing != null) Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2), verticalAlignment = Alignment.CenterVertically, content = trailing)
         }
-        DividerLine()
     }
     Column(Modifier.padding(contentPadding), content = content)
 }
@@ -132,8 +133,7 @@ fun SignalPill(
     mono: Boolean = false,
 ) = Box(
     modifier
-        .background(workspaceColor(fill), MachineSignal.Shape.Tight)
-        .border(1.dp, workspaceColor(line), MachineSignal.Shape.Tight)
+        .background(if (line == MachineSignal.Line1) workspaceColor(fill).copy(alpha = .55f) else workspaceColor(color).copy(alpha = .1f), MachineSignal.shapes.control)
         .padding(horizontal = MachineSignal.Metrics.chipPaddingX, vertical = MachineSignal.Metrics.chipPaddingY),
 ) {
     SignalText(label, color = color, size = MachineSignal.Type.micro, weight = FontWeight.Medium, mono = mono)
@@ -142,16 +142,20 @@ fun SignalPill(
 @Composable
 fun ProvenanceBadge(truth: TruthClass, modifier: Modifier = Modifier, detail: String? = null) {
     val colors = MachineSignal.provenance(truth)
+    val signal = LocalThemeSnapshot.current as? MachineSignalSnapshot
+    val ink = signal?.ink(ProvenanceInk(truth)) ?: colors.base
+    val background = if (signal == null || signal.mode == MachineSignalMode.Dark) colors.soft else ink.copy(alpha = colors.soft.alpha)
     Row(
         modifier
-            .background(colors.soft, MachineSignal.Shape.Tight)
-            .border(1.dp, colors.line, MachineSignal.Shape.Tight)
+            .background(background, MachineSignal.shapes.control)
             .padding(horizontal = MachineSignal.Metrics.chipPaddingX, vertical = MachineSignal.Metrics.chipPaddingY)
             .testTag("provenance-${truth.name.lowercase()}"),
         horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SignalText(truth.label, color = colors.base, size = MachineSignal.Type.micro, weight = FontWeight.SemiBold)
+        Text(truth.label, color = if (truth == TruthClass.Unknown) retiredColors().textFaint else ink,
+            fontFamily = retiredFonts().ui, fontSize = MachineSignal.Type.micro, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (detail != null) SignalText(detail, color = MachineSignal.Text4, size = MachineSignal.Type.micro)
     }
 }
@@ -182,8 +186,7 @@ fun CountBadge(count: Int, modifier: Modifier = Modifier) = Box(
 fun KindBadge(kind: String, modifier: Modifier = Modifier, color: Color = MachineSignal.entityColor(kind)) = Box(
     modifier
         .height(MachineSignal.Metrics.kindBadgeHeight)
-        .background(color.copy(alpha = 0.16f), MachineSignal.Shape.Tight)
-        .border(1.dp, color.copy(alpha = 0.32f), MachineSignal.Shape.Tight)
+        .background(color.copy(alpha = 0.12f), MachineSignal.shapes.control)
         .padding(horizontal = MachineSignal.Metrics.kindBadgePaddingX),
     contentAlignment = Alignment.Center,
 ) {
