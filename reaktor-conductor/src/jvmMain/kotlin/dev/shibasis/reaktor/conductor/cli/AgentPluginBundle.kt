@@ -16,6 +16,9 @@ object AgentPluginBundle {
         require(command.isNotEmpty() && command.zipWithNext().any { it == ("workspace" to "mcp") }) { "Export needs a workspace mcp launch command" }
         require("--seat" !in command) { "The plugin supplies its harness seat" }
         val following = AgentBundle.workspaceFollowingCommand(command)
+        val workspace = following.zipWithNext().indexOfLast { it == ("workspace" to "mcp") }
+        require(workspace > 0) { "Export needs a launcher before workspace mcp" }
+        val hooks = hooks(harness, following.take(workspace))
         val mcp = buildJsonObject {
             putJsonObject("mcpServers") {
                 putJsonObject(AgentBundle.SERVER_NAME) {
@@ -38,11 +41,14 @@ object AgentPluginBundle {
             if (harness != Harness.Antigravity) {
                 put("skills", "./skills/")
                 put("mcpServers", "./$mcpPath")
+                put("hooks", "./hooks/hooks.json")
             }
         }
         return buildMap {
             put(manifestPath, manifest.toString() + "\n")
             put(mcpPath, mcp.toString() + "\n")
+            hooks?.let { put("hooks/hooks.json", it.toString() + "\n") }
+            put("HOOKS.md", hookGuide(harness))
             put(if (harness == Harness.Antigravity) "rules/AGENTS.md" else "AGENTS.md", guide)
             put("skills/hangar/SKILL.md", HangarSkill.skill(harness.vendor))
             if (harness == Harness.Codex) put("skills/hangar/agents/openai.yaml", HangarSkill.content("codex-agent"))
@@ -63,6 +69,43 @@ object AgentPluginBundle {
             }
         }
     }
+
+    private fun hooks(harness: Harness, launcher: List<String>): JsonObject? {
+        val mode = when (harness) {
+            Harness.Claude -> "claude-context"
+            Harness.Codex -> "codex-context"
+            Harness.Antigravity -> return null
+        }
+        fun handler(command: String) = buildJsonObject {
+            put("type", "command")
+            put("command", (launcher + listOf("hook", command)).joinToString(" ") { "'" + it.replace("'", "'\\''") + "'" })
+            put("timeout", 10)
+        }
+        return buildJsonObject {
+            putJsonObject("hooks") {
+                listOf("SessionStart", "UserPromptSubmit", "PostToolUse").forEach { event ->
+                    putJsonArray(event) { add(buildJsonObject { putJsonArray("hooks") { add(handler(mode)) } }) }
+                }
+                if (harness == Harness.Codex) putJsonArray("Stop") {
+                    add(buildJsonObject { putJsonArray("hooks") { add(handler("codex-stop")) } })
+                }
+            }
+        }
+    }
+
+    private fun hookGuide(harness: Harness): String = if (harness == Harness.Antigravity) """
+        The Antigravity package has no receiving lifecycle hook adapter. Inbox delivery and session-start recall are unverified in a native Antigravity session. Use the authenticated door and prompt-derived skills for explicit recall and inbox reads. Managed Hangar runs use the plane's context delivery.
+
+        Package files do not attest installation, native loading or hook trust. Do not add another harness's hook configuration to this package.
+    """.trimIndent() + "\n" else """
+        SessionStart calls the running workspace owner's agent.identity and memory.recall operations, using the seat's registered plan when available. Recalled assertions include scope, revision and provenance; source freshness remains unknown until checked against source. The hook does not start an owner or call a model.
+
+        SessionStart, UserPromptSubmit and PostToolUse deliver only the process-authenticated thread's inbox through ThreadInbox. Delivery records consumption; explicit message.ack remains the reader's action. A payload session id cannot select another caller.
+
+        ${if (harness == Harness.Codex) "Stop calls seat.stop through the running owner. Register the current native thread through seat.keep-working with the real plan and paused=false; use paused=true to pause. Hangar registers its interactive Codex runs. Open /hooks in Codex and review the exact hook definitions before trusting them. Changed definitions need a new review. Preserve existing hook sources until a real continuation proves this replacement." else "Review this package and its commands in Claude Code's /hooks view. Native hook configuration and execution remain subject to the person's harness settings."}
+
+        Exporting or enabling this package does not attest native loading, hook trust or delivery. Missing identity or unavailable services produce an empty response. Cancellation stops the hook. Qualify native recall, inbox delivery and Codex continuation separately after installation.
+    """.trimIndent() + "\n"
 
     private fun workflow(prompt: McpPrompt): String = buildString {
         appendLine("---")
