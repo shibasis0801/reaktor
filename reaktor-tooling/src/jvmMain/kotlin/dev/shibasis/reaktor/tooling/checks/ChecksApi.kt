@@ -19,7 +19,7 @@ open class ChecksApi : Service("reaktor.check") {
 
     open val artifact by call<CheckArtifactRequest, JsonElement>(effect = Effect.ReadOnly, summary = "Read a bounded range of a retained non-sensitive check log.")
 
-    open val run by call<CheckRunRequest, CheckRunAnswer>(effect = Effect.LocalArtifactWrite, summary = "Runs affected test classes through the code graph by default, excluding window tests; narrow:false explicitly runs whole checks. Missing safe class selection is reported without broadening. Waits up to 25 seconds and reports run receipts, selected classes, reused results, compiler errors, assertions with source lines and Gradle failure causes in a bounded summary. Follow the returned run or runs while unfinished.")
+    open val run by call<CheckRunRequest, CheckRunAnswer>(effect = Effect.LocalArtifactWrite, summary = "Runs affected test classes through the code graph by default, excluding window tests; narrow:false explicitly runs whole checks. Missing safe class selection is reported without broadening. Waits up to 25 seconds and reports run receipts, selected classes, reused results, compiler errors, assertions with source lines and Gradle failure causes in a bounded summary. Queued admission follows the bound plan item's current priority and dependencies. Follow the returned next request while unfinished; waiting admissions continue with queue, admitted checks with run or runs.")
 }
 
 @Serializable
@@ -74,6 +74,8 @@ data class CheckRunRequest(
     @Describe("Run the tests even when Gradle would reuse their last result because nothing they read changed") val rerun: Boolean = false,
     @Describe("Default: run affected test classes through the code graph, excluding window tests. A test reached only through wiring or reflection is not run; false explicitly runs whole checks")
     val narrow: Boolean = true,
+    @Describe("Canonical open plan leaf, plan:<thread>#<item>; queued checks follow its current effective priority") val planItem: String? = null,
+    @Describe("Retained check admission id from an earlier check_run; continue it without submitting more checks") val queue: String? = null,
 )
 
 @Serializable
@@ -103,4 +105,5 @@ data class CheckRunAnswer(
     val failures: List<CheckFailed> = emptyList(),
     val source: String? = null,
     val started: List<String> = emptyList(),
+    val queue: String? = null,
 )
