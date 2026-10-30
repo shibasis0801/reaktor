@@ -40,6 +40,13 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
                 if (args.long("since") != null) put("news", changes(read.news))
             }
         },
+        McpTool("agent_plan_schedule", "Remaining item steps, critical path and slack, schedulable dependency width and unresolved blockers. No duration estimates.",
+            withActor(api.schedule.request.descriptor.jsonSchema()), true, true) { args ->
+            args.only("thread", "by")
+            val reader = args.actor() ?: error("by is required")
+            val read = workspace.plans.read(args.thread(reader), reader = reader)
+            AgentWorkspaceJson.encodeToJsonElement(PlanScheduleReport.serializer(), PlanAnalysis.report(read.plan))
+        },
         McpTool("agent_plan_next", "The next ready item ordered by inherited priority, work unblocked and age. take=true atomically claims an activity-renewed lease.",
             withActor(api.next.request.descriptor.jsonSchema()), false, false) { args ->
             args.only("thread", "agent", "seat", "by", "take")
