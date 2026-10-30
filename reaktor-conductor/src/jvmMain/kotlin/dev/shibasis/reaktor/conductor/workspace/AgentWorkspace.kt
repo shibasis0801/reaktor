@@ -66,6 +66,7 @@ class AgentWorkspace(
     }
     val entitlements = AgentEntitlements(directory.resolve("entitlements"))
     val profiles = AgentProfileStore(directory.resolve("profiles"))
+    val presence = AgentPresenceStore()
     private val seatResolver = TaskSeatResolver(profiles::read) { provider -> capabilities.firstOrNull { it.runtime == provider } }
     fun resolveSeat(seat: TaskSeat): ResolvedTaskSeat = seatResolver.resolve(seat)
     val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat, scopeModules = scopeModules, summarize = ::summarize)
@@ -75,7 +76,30 @@ class AgentWorkspace(
         if (actor.kind != BoardActorKind.Agent) return actor.copy(agent = null)
         val ref = actor.session ?: return actor.copy(agent = null)
         val run = planRun(ref)
-        return PlanIdentity.actor(actor, run, run?.let { runCatching { submission(it.id) }.getOrNull() })
+        return if (run == null && BoardRefs.pattern.matches(ref) && !ref.startsWith(BoardRefs.Hangar)) profiles.identity(actor).actor
+        else PlanIdentity.actor(actor, run, run?.let { runCatching { submission(it.id) }.getOrNull() })
+    }
+
+    fun identity(by: BoardActor): AgentIdentity {
+        require(by.kind == BoardActorKind.Agent && by.session != null) { "A named agent session is required" }
+        val run = planRun(by.session)
+        if (run == null) return profiles.identity(by)
+        val request = submission(run.id)
+        val resolved = request.resolvedSeat
+        val actor = PlanIdentity.actor(by, run, request)
+        val profile = AgentProfile(resolved?.seat?.profile ?: "managed-${run.provider.name.lowercase()}", actor.name, run.provider,
+            model = request.model, effort = request.effort?.value, instructions = resolved?.instructions.orEmpty(),
+            access = if (request.allowWrites) TaskAccess.Write else TaskAccess.Read, tools = resolved?.tools ?: ToolPolicy(),
+            revision = resolved?.profileRevision ?: 0, budget = resolved?.seat?.budget)
+        return AgentIdentity(actor, profile)
+    }
+
+    fun bindIdentity(by: BoardActor, profile: String, expectedRevision: Long, session: String? = null): AgentIdentity {
+        require(by.kind == BoardActorKind.Person || session == null || session == by.session) { "An agent may bind only its own session" }
+        val ref = session ?: by.session ?: error("Name the native session")
+        require(!ref.startsWith(BoardRefs.Hangar) && planRun(ref) == null) { "Managed runs retain their resolved profile" }
+        val target = BoardActor(BoardActorKind.Agent, "native", ref)
+        return profiles.bind(target, profile, by, expectedRevision)
     }
 
     private fun planRun(ref: String): AgentRunRecord? = synchronized(lock) {

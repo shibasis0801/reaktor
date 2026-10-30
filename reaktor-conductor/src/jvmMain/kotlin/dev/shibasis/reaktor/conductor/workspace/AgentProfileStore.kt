@@ -56,5 +56,46 @@ class AgentProfileStore(private val directory: Path, private val clock: () -> Lo
         return next
     }
 
+    @Synchronized fun identity(actor: BoardActor): AgentIdentity {
+        val canonical = PlanIdentity.actor(actor)
+        val agent = requireNotNull(canonical.agent) { "A named native agent session is required" }
+        val file = bindingFile(agent)
+        val binding = if (Files.exists(file)) {
+            require(Files.size(file) <= 16_384) { "Agent binding exceeds 16 KB" }
+            ConductorJson.decodeFromString(AgentProfileBinding.serializer(), Files.readString(file)).also {
+                require(it.agent == agent) { "Agent binding does not match its key" }
+            }
+        } else AgentProfileBinding(agent, by = canonical, updatedAt = clock()).also { saveBinding(it) }
+        val profile = binding.profile?.let(::read) ?: native(canonical)
+        return AgentIdentity(PlanIdentity.actor(canonical, profile = profile), profile, binding.revision)
+    }
+
+    @Synchronized fun bind(actor: BoardActor, profile: String, by: BoardActor, expectedRevision: Long): AgentIdentity {
+        val current = identity(actor)
+        val writer = PlanIdentity.actor(by)
+        require(by.kind == BoardActorKind.Person || writer.agent == current.actor.agent) { "An agent may bind only its own identity" }
+        require(expectedRevision == current.bindingRevision) { "Agent binding changed; read its current revision" }
+        val chosen = read(profile)
+        require(chosen.runtime == native(current.actor).runtime) { "The profile must use the native agent's runtime" }
+        saveBinding(AgentProfileBinding(requireNotNull(current.actor.agent), chosen.id, current.bindingRevision + 1, writer, clock()))
+        return identity(actor.copy(profile = null, profileRevision = null))
+    }
+
+    private fun native(actor: BoardActor): AgentProfile = when (actor.session?.substringBefore(':')) {
+        "codex" -> AgentProfile("native-codex", "Codex", dev.shibasis.reaktor.conductor.RuntimeKind.Codex, builtIn = true)
+        "claude" -> AgentProfile("native-claude", "Claude", dev.shibasis.reaktor.conductor.RuntimeKind.ClaudeCode, builtIn = true)
+        "agy" -> AgentProfile("native-agy", "Gemini", dev.shibasis.reaktor.conductor.RuntimeKind.Gemini, builtIn = true)
+        else -> error("A native session is required; managed runs use their resolved profile")
+    }
+
+    private fun bindingFile(agent: String): Path {
+        require(BoardRefs.pattern.matches(agent.removePrefix("agent:"))) { "Invalid native agent key" }
+        val bindings = directory.resolve("bindings")
+        privateDirectory(bindings)
+        return bindings.resolve("${agent.removePrefix("agent:").replace(':', '-')}.json")
+    }
+
+    private fun saveBinding(binding: AgentProfileBinding) = atomicWrite(bindingFile(binding.agent), ConductorJson.encodeToString(AgentProfileBinding.serializer(), binding))
+
     companion object { private val Id = Regex("[a-z][a-z0-9-]{0,63}") }
 }

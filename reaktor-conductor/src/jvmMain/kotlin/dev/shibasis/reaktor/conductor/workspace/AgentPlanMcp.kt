@@ -92,7 +92,7 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             args.only("by")
             buildJsonObject { put("archived", JsonArray(workspace.board.archive(args.actor() ?: error("by is required")).map(::JsonPrimitive))) }
         },
-    )
+    ) + agentIdentityTools(workspace)
 }
 
 internal object PlanJson {

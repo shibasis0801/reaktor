@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.conductor.workspace
 import dev.shibasis.reaktor.conductor.RuntimeKind
 
 object PlanIdentity {
-    fun actor(actor: BoardActor, run: AgentRunRecord? = null, request: AgentSubmission? = null): BoardActor {
+    fun actor(actor: BoardActor, run: AgentRunRecord? = null, request: AgentSubmission? = null, profile: AgentProfile? = null): BoardActor {
         if (actor.kind != BoardActorKind.Agent) return actor.copy(agent = null)
         val ref = actor.session ?: return actor.copy(agent = null)
         if (run != null) {
@@ -20,7 +20,8 @@ object PlanIdentity {
                 RuntimeKind.Gemini -> "Gemini"
                 else -> provider.name
             }
-            return actor.copy(name = name, agent = "agent:$vendor:${run.threadId}")
+            return actor.copy(name = name, agent = "agent:$vendor:${run.threadId}",
+                profile = request?.resolvedSeat?.seat?.profile, profileRevision = request?.resolvedSeat?.profileRevision)
         }
         val vendor = when (ref.substringBefore(':')) {
             "claude" -> "claude"
@@ -28,7 +29,8 @@ object PlanIdentity {
             "agy" -> "agy"
             else -> return actor.copy(agent = null)
         }
-        return actor.copy(agent = ref.takeIf { BoardRefs.pattern.matches(it) }?.let { "agent:$vendor:${it.substringAfter(':')}" })
+        val named = if (profile != null && actor.profile == null) actor.copy(name = profile.name, profile = profile.id, profileRevision = profile.revision) else actor
+        return named.copy(agent = ref.takeIf { BoardRefs.pattern.matches(it) }?.let { "agent:$vendor:${it.substringAfter(':')}" })
     }
 
     private fun vendor(runtime: RuntimeKind): String = when (runtime) {
