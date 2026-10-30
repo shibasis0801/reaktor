@@ -236,19 +236,74 @@ internal class CloudflareInventoryBuilder(
         ))
     }
 
-    fun queues(queues: List<JsonObject>) = queues.forEach { queue ->
+    fun queues(queues: List<JsonObject>, metrics: Map<String, JsonObject?> = emptyMap()) = queues.forEach { queue ->
         val name = queue.text("queue_name") ?: return@forEach
         val queueId = "cf:queue:$name"
+        val metric = metrics[queue.text("queue_id")]
+        val backlog = metric?.long("backlog_count")?.takeIf { it >= 0 }
+        val bytes = metric?.long("backlog_bytes")?.takeIf { it >= 0 }
         add(CloudResource(
             id = queueId, kind = CloudKind.Queue, platform = CloudPlatform.Cloudflare, name = name,
-            status = ResourceStatus.Healthy,
-            attributes = mapOfNotNull("id" to queue.text("queue_id"), "producers" to queue.objects("producers").size.toString(),
-                "consumers" to queue.objects("consumers").size.toString(), "created" to queue.text("created_on")),
-            evidence = listOf(evidence("queues")),
+            status = ResourceStatus.Unknown, statusDetail = "Queue configuration observed; delivery health is not inferred from backlog",
+            attributes = mapOfNotNull("id" to queue.text("queue_id"), "engine" to "Queues",
+                "producers" to queue.long("producers_total_count")?.toString(),
+                "consumers" to queue.long("consumers_total_count")?.toString(), "created" to queue.text("created_on"),
+                "backlogRecords" to backlog?.toString(), "backlogBytes" to bytes?.toString(),
+                "oldestMessageAt" to metric?.long("oldest_message_timestamp_ms")?.takeIf { it > 0 }?.toString(),
+                "metricCoverage" to if (metric == null) "unavailable" else "approximate",
+                "deliveryPaused" to queue.obj("settings").flag("delivery_paused")?.toString()),
+            metrics = buildList {
+                backlog?.let { add(CloudMetric("backlog", "Approximate backlog", it.toDouble(), CloudUnit.Count)) }
+                bytes?.let { add(CloudMetric("backlogBytes", "Approximate backlog bytes", it.toDouble(), CloudUnit.Bytes)) }
+            },
+            evidence = listOf(evidence("queues")) + if (metric == null) emptyList() else listOf(evidence("queues/metrics · best effort")),
             consoleUrl = "$dash/workers/queues/view/${queue.text("queue_id")}",
         ))
-        queue.objects("consumers").mapNotNull { it.text("script") ?: it.text("service") }.forEach { consumer ->
-            relate(queueId, "cf:worker:$consumer", CloudRelationKind.Sends, "consumer", targetHint(CloudKind.Worker, consumer), "queues")
+        queue.objects("producers").forEach { producer ->
+            when (producer.text("type")) {
+                "worker" -> producer.text("script")?.let { worker ->
+                    relate("cf:worker:$worker", queueId, CloudRelationKind.Sends, "producer", targetHint(CloudKind.Queue, name), "queues producers")
+                }
+                "r2_bucket" -> producer.text("bucket_name")?.let { bucket ->
+                    relate("cf:r2:$bucket", queueId, CloudRelationKind.Sends, "producer", targetHint(CloudKind.Queue, name), "queues producers")
+                }
+            }
+        }
+        queue.objects("consumers").mapNotNull { it.text("script_name") ?: it.text("script") ?: it.text("service") }.forEach { consumer ->
+            relate(queueId, "cf:worker:$consumer", CloudRelationKind.Sends, "consumer", targetHint(CloudKind.Worker, consumer), "queues consumers")
+        }
+    }
+
+    fun k2(streams: List<JsonObject>, subscriptions: Map<String, List<JsonObject>?> = emptyMap()) = streams.forEach { stream ->
+        val id = stream.text("id") ?: return@forEach
+        val name = stream.text("name") ?: return@forEach
+        val streamId = "cf:k2:$id"
+        add(CloudResource(
+            id = streamId, kind = CloudKind.Messaging, platform = CloudPlatform.Cloudflare, name = name,
+            status = ResourceStatus.Unknown, statusDetail = "K2 stream configuration observed; runtime health is not reported",
+            attributes = mapOfNotNull("id" to id, "engine" to "K2", "retentionSeconds" to stream.long("retention_seconds")?.toString(),
+                "httpEnabled" to stream.obj("http").flag("enabled")?.toString(),
+                "bindingEnabled" to stream.obj("worker_binding").flag("enabled")?.toString(),
+                "subscriptionCoverage" to if (subscriptions[id] == null) "unavailable" else "observed"),
+            evidence = listOf(evidence("k2/streams")),
+            createdAtMillis = instantMillis(stream.text("created_at")),
+        ))
+        subscriptions[id].orEmpty().forEach { subscription ->
+            val subscriptionId = subscription.text("id") ?: return@forEach
+            val lag = subscription.obj("lag")
+            val lagStatus = lag.text("status") ?: "unavailable"
+            val records = lag.text("records")?.takeIf { lagStatus == "available" && it.matches(Regex("0|[1-9][0-9]*")) }
+            val resourceId = "$streamId/subscription:$subscriptionId"
+            add(CloudResource(
+                id = resourceId, kind = CloudKind.Messaging, platform = CloudPlatform.Cloudflare,
+                name = subscription.text("name") ?: subscriptionId, status = ResourceStatus.Unknown,
+                statusDetail = if (records == null) "Consumer lag $lagStatus" else "Consumer position observed; lag includes in-flight records",
+                attributes = mapOfNotNull("id" to subscriptionId, "engine" to "K2 subscription", "streamId" to id,
+                    "lagStatus" to lagStatus, "lagRecords" to records, "startAt" to subscription.obj("start_at").text("type")),
+                evidence = listOf(evidence("k2/streams/$id/subscriptions")),
+                createdAtMillis = instantMillis(subscription.text("created_at")),
+            ))
+            relate(streamId, resourceId, CloudRelationKind.Sends, "subscription", targetHint(CloudKind.Messaging, subscription.text("name") ?: subscriptionId), "k2 subscriptions")
         }
     }
 

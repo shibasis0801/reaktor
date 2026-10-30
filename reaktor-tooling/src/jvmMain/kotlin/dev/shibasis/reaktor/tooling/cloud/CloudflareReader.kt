@@ -9,6 +9,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -20,6 +21,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.ConcurrentLinkedQueue
 import dev.shibasis.reaktor.core.framework.lenientJson
 
 fun interface CloudflareCredentials {
@@ -124,13 +126,61 @@ class CloudflareReader(
         val started = clock()
         val token = credentials.token()
         val gate = Semaphore(parallelism)
-        suspend fun get(path: String): JsonElement? = gate.withPermit { call(token, path) }
+        suspend fun get(path: String): JsonElement = gate.withPermit { call(token, path) }
+        val messagingCoverage = ConcurrentLinkedQueue<String>()
+        suspend fun <T> optional(label: String, read: suspend () -> T): T? = try {
+            read()
+        } catch (failure: Exception) {
+            if (failure is kotlinx.coroutines.CancellationException) throw failure
+            messagingCoverage.add(label)
+            null
+        }
+        suspend fun catalog(path: String, label: String): List<JsonObject> {
+            val rows = mutableListOf<JsonObject>()
+            for (page in 1..5) {
+                val response = optional(label) {
+                    get("$path?per_page=100&page=$page").also {
+                        require((it as? JsonObject)?.get("result") is JsonArray) { "Unreadable $label" }
+                    }
+                } ?: return rows
+                val batch = response.list("result")
+                rows.addAll(batch)
+                val info = response.obj("result_info")
+                val total = info.long("total_count")
+                val pages = info.long("total_pages")
+                if (total != null && rows.size >= total || pages != null && page >= pages ||
+                    total == null && pages == null && batch.size < 100) return rows
+                if (batch.isEmpty()) break
+            }
+            messagingCoverage.add("$label (first 500)")
+            return rows
+        }
         val scripts = async { get("/accounts/$accountId/workers/scripts").list("result") }
         val domains = async { get("/accounts/$accountId/workers/domains").list("result") }
         val databases = async { get("/accounts/$accountId/d1/database?per_page=100").list("result") }
         val buckets = async { get("/accounts/$accountId/r2/buckets").obj("result").objects("buckets") }
         val namespaces = async { get("/accounts/$accountId/storage/kv/namespaces?per_page=100").list("result") }
-        val queues = async { get("/accounts/$accountId/queues").list("result") }
+        val queues = async { catalog("/accounts/$accountId/queues", "queues") }
+        val streams = async { catalog("/accounts/$accountId/k2/streams", "K2 streams") }
+        val queueMetrics = async {
+            queues.await().mapNotNull { it.text("queue_id") }.map { queueId -> async {
+                queueId to optional("queue metrics $queueId") {
+                    (get("/accounts/$accountId/queues/$queueId/metrics") as? JsonObject)?.get("result") as? JsonObject
+                        ?: error("Unreadable queue metrics")
+                }
+            } }.awaitAll().toMap()
+        }
+        val subscriptions = async {
+            streams.await().mapNotNull { it.text("id") }.map { streamId -> async {
+                streamId to optional("K2 subscriptions $streamId") {
+                    val response = get("/accounts/$accountId/k2/streams/$streamId/subscriptions")
+                    require((response as? JsonObject)?.get("result") is JsonArray) { "Unreadable K2 subscriptions" }
+                    val rows = response.list("result")
+                    if (rows.size > 500) messagingCoverage.add("K2 subscriptions $streamId (first 500)")
+                    rows.take(500)
+                }
+            } }.awaitAll().toMap()
+        }
         val hyperdrives = async { get("/accounts/$accountId/hyperdrive/configs").list("result") }
         val tunnels = async { get("/accounts/$accountId/cfd_tunnel?is_deleted=false&per_page=100").list("result") }
         val zones = async { get("/zones?account.id=$accountId&per_page=50").list("result") }
@@ -153,7 +203,9 @@ class CloudflareReader(
         val trafficReading = analytics.await()
         val routeReadings = routes.awaitAll()
         val ingressReadings = ingress.awaitAll()
-        val unreadable = listOfNotNull(
+        val queueMetricReadings = queueMetrics.await()
+        val subscriptionReadings = subscriptions.await()
+        val unreadable = messagingCoverage.toList().sorted() + listOfNotNull(
             if (trafficReading == null) "analytics" else null,
             if (routeReadings.any { it.second == null }) "worker routes" else null,
             if (ingressReadings.any { it.second == null }) "tunnel ingress" else null,
@@ -166,7 +218,8 @@ class CloudflareReader(
         builder.databases(databases.await())
         builder.buckets(buckets.await())
         builder.namespaces(namespaces.await())
-        builder.queues(queues.await())
+        builder.queues(queues.await(), queueMetricReadings)
+        builder.k2(streams.await(), subscriptionReadings)
         builder.hyperdrives(hyperdrives.await())
         builder.durableObjects(objects.await())
         builder.tunnels(tunnels.await(), ingressReadings.associate { (tunnel, list) -> tunnel to list.orEmpty() })
@@ -200,7 +253,7 @@ class CloudflareReader(
         }
         val response = if (credentials is CloudflareLogin) credentials.authenticated(::send) { it.statusCode() == 401 } else send(token)
         val parsed = runCatching { lenientJson.parseToJsonElement(response.body()) }.getOrNull()
-        if (response.statusCode() !in 200..299) {
+        if (response.statusCode() !in 200..299 || parsed.flag("success") == false) {
             val reason = parsed.objects("errors").firstOrNull()?.text("message") ?: "HTTP ${response.statusCode()}"
             throw CloudflareFailure("${path.substringBefore('?').substringAfterLast('/')}: $reason")
         }
