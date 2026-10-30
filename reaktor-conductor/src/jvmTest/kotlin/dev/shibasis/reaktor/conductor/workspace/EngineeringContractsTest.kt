@@ -34,6 +34,17 @@ class EngineeringContractsTest {
     }
 
     @Test
+    fun checkRunsDefaultToAffectedClassesAndKeepBroadRunsExplicit() {
+        val serializer = dev.shibasis.reaktor.tooling.checks.CheckRunRequest.serializer()
+        val defaults = OperationJson.decodeFromJsonElement(serializer, JsonObject(emptyMap()))
+        assertEquals(true, defaults.narrow)
+        val broad = OperationJson.decodeFromJsonElement(serializer, buildJsonObject { put("narrow", false) })
+        assertEquals(false, broad.narrow)
+        assertEquals(null, defaults.planItem)
+        assertEquals(null, defaults.queue)
+    }
+
+    @Test
     fun planWritersCannotSupplyAnActorOrUnknownArguments() {
         for (field in listOf("by", "approvedBy", "caller")) {
             assertFailsWith<SerializationException> {

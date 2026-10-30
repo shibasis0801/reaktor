@@ -67,17 +67,19 @@ class AgentAdmissionTest {
         }
     }
 
-    @Test fun disjointWritersRunAcrossGraphsAndAnotherFileInTheOwnedModuleWaitsUntilSettlement() = fixture { workspace, _, _ ->
+    @Test fun disjointWritersShareAModuleAndTheSameFileWaitsUntilSettlement() = fixture { workspace, _, _ ->
         val first = workspace.task(listOf("modules/one/A.kt"))
         val second = workspace.task(listOf("modules/two/B.kt"))
         val third = workspace.task(listOf("modules/one/C.kt"))
+        val overlapping = workspace.task(listOf("modules/one/A.kt"))
         assertNotNull(workspace.start(first))
         assertNotNull(workspace.start(second))
-        assertNull(workspace.start(third))
-        assertEquals(TaskState.Pending, workspace.board.get(third.id).graph?.state)
-        assertTrue(workspace.board.get(third.id).graph?.note.orEmpty().contains(first.id))
+        assertNotNull(workspace.start(third))
+        assertNull(workspace.start(overlapping))
+        assertEquals(TaskState.Pending, workspace.board.get(overlapping.id).graph?.state)
+        assertTrue(workspace.board.get(overlapping.id).graph?.note.orEmpty().contains(first.id))
         workspace.settle(workspace.board.get(first.id))
-        assertNotNull(workspace.start(workspace.board.get(third.id)))
+        assertNotNull(workspace.start(workspace.board.get(overlapping.id)))
     }
 
     @Test fun moduleAliasesCanonicalPathsAndSymlinksDescribeTheSameOwner() = fixture { workspace, root, _ ->

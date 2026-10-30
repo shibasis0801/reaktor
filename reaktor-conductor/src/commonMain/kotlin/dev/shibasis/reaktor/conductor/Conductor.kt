@@ -77,6 +77,8 @@ class Conductor(
             createdAtEpochMillis = clock(),
         )
         var document = if (resumeFrom == null) initialThread.append(promptEvent) else initialThread
+        if (resumeProviderSession) document = document.copy(providerSessions =
+            document.providerSessions.filterKeys { it == (protocol as Protocol.Ask).agent.value })
         val added = mutableListOf(promptEvent)
         val completed = resumeFrom?.completed.orEmpty().toMutableMap()
         val inFlight = mutableSetOf<String>()

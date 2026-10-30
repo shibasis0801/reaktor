@@ -1723,7 +1723,7 @@
   },
   {
     "id": "check.run",
-    "summary": "Runs the checks a change affects, the tests of the modules its files belong to, as one Gradle run on the build worker, waits up to 25 seconds, and reports each check with how many tests ran or whether Gradle reused their last result, the compiler errors and failed tests, the phase that failed with Gradle's cause, paths as they are in this checkout, and the source snapshot the run read. While the run is unfinished, call it again with run.",
+    "summary": "Runs affected test classes through the code graph by default, excluding window tests; narrow:false explicitly runs whole checks. Missing safe class selection is reported without broadening. Waits up to 25 seconds and reports run receipts, selected classes, reused results, compiler errors, assertions with source lines and Gradle failure causes in a bounded summary. Queued admission follows the bound plan item's current priority and dependencies. Follow the returned next request while unfinished; waiting admissions continue with queue, admitted checks with run or runs.",
     "effect": "LocalArtifactWrite",
     "provider": "changes",
     "input": {
@@ -1779,7 +1779,21 @@
         },
         "narrow": {
           "type": "boolean",
-          "description": "Run only the test classes that use the changed code, found through the code graph; a test that reaches it only through wiring or reflection is not run"
+          "description": "Default: run affected test classes through the code graph, excluding window tests. A test reached only through wiring or reflection is not run; false explicitly runs whole checks"
+        },
+        "planItem": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Canonical open plan leaf, plan:<thread>#<item>; queued checks follow its current effective priority"
+        },
+        "queue": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Retained check admission id from an earlier check_run; continue it without submitting more checks"
         }
       },
       "additionalProperties": false
@@ -1915,6 +1929,18 @@
           }
         },
         "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "started": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "queue": {
           "type": [
             "string",
             "null"
@@ -2089,7 +2115,7 @@
   },
   {
     "id": "plan.write",
-    "summary": "Draws or changes a thread's plan, the high-level design and running checklist people watch and edit in Hangar: components and their tasks, checks and decisions: add, update, status (Todo, Doing, Done, Dropped), connect, disconnect, relate, unrelate and remove items, with links into Reaktor. The thread defaults to your own session. Pass base, the revision you read: an op on an item someone else changed after it is refused for that item only. An attached agent passes its seat.",
+    "summary": "Draws or changes a thread's plan, the high-level design and running checklist people watch and edit in Hangar: components and their tasks, checks and decisions: add, update, status (Todo, Doing, Done, Dropped), connect, disconnect, relate, unrelate and remove items, with links into Reaktor. A person can retire an unused seat with retire-seat. The thread defaults to your own session. Pass base, the revision you read: an op on an item someone else changed after it is refused for that item only. An attached agent passes its seat.",
     "effect": "LocalArtifactWrite",
     "provider": "engineering",
     "input": {
