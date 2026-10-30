@@ -139,10 +139,10 @@ class AgentWorkspace(
             val covered = made.items.flatMapTo(HashSet(), proposed::under)
             val scope = proposed.items.filter { it.id in covered }.flatMap { it.refs }
                 .filter { it.startsWith("file:") }.map { it.removePrefix("file:") }.distinct()
-            run = submit(AgentSubmission(requestId = "plan:${digest(thread).take(16)}:${made.id}", provider = provider,
+            run = admit(AgentSubmission(requestId = "plan:${digest(thread).take(16)}:${made.id}", provider = provider,
                 prompt = PlanBrief.seat(proposed, made, chosen.name, note), model = resolved.seat.model, scope = scope,
                 allowWrites = resolved.seat.access == TaskAccess.Write, effort = resolved.seat.effort?.let(::NativeEffort),
-                resolvedSeat = resolved, timeoutMillis = resolved.seat.budget?.timeoutMillis ?: (60 * 60 * 1000L)))
+                resolvedSeat = resolved, timeoutMillis = resolved.seat.budget?.timeoutMillis ?: (60 * 60 * 1000L)), keepWorkingPlan = thread)
             run.id
         }
         PlanAttached(plan, seat, run)
@@ -692,7 +692,7 @@ class AgentWorkspace(
             }
         } }
 
-    private fun admit(request: AgentSubmission, seed: ProtocolCheckpoint? = null, forkedFrom: String? = null): AgentRunRecord = synchronized(lock) {
+    private fun admit(request: AgentSubmission, seed: ProtocolCheckpoint? = null, forkedFrom: String? = null, keepWorkingPlan: String? = null): AgentRunRecord = synchronized(lock) {
         check(!closed) { "Workspace is closed" }
         check(!draining) { "Workspace is draining for a service upgrade" }
         require(request.requestId.isNotBlank() && request.requestId.length <= 200)
@@ -776,6 +776,7 @@ class AgentWorkspace(
             parentRunId = request.parentRunId,
             transport = if (useBatch(request)) AgentTransport.Batch else if ((runtimes[request.provider] as? InteractiveAgentRuntime)?.interactive?.usable == true) AgentTransport.Interactive else AgentTransport.Batch,
             effort = request.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none)
+        registerKeepWorking(record, request, keepWorkingPlan)
         atomicWrite(directory.resolve("requests/$id.json"), ConductorJson.encodeToString(AgentSubmission.serializer(), request))
         seed?.let { checkpoints.save(id, it.copy(thread = it.thread.copy(id = ThreadId(threadId)))) }
         persist(record)
@@ -784,6 +785,13 @@ class AgentWorkspace(
         atomicWrite(index, ConductorJson.encodeToString(ListSerializer(String.serializer()), recent))
         startRun(record, request)
         record
+    }
+
+    private fun registerKeepWorking(record: AgentRunRecord, request: AgentSubmission, plan: String? = null) {
+        if (record.provider != RuntimeKind.Codex || record.transport != AgentTransport.Interactive) return
+        val thread = BoardRefs.Hangar + record.id
+        val target = plan ?: request.planItem?.let { plans.candidate(it)?.thread } ?: (BoardRefs.Hangar + record.threadId)
+        KeepWorkingStore(directory).register(thread, target)
     }
 
     private fun startRun(record: AgentRunRecord, request: AgentSubmission) {
@@ -879,6 +887,7 @@ class AgentWorkspace(
             recoveryReason = "Continuing from saved stage results; completed stages are reused", failure = null, pendingHandoff = null,
             pending = emptyList(), participants = saved.participants.mapValues { it.value.copy(pending = emptyList(), activeTurn = null) },
             revision = saved.revision + 1, updatedAt = System.currentTimeMillis())
+        registerKeepWorking(next, request)
         persist(next); records[id] = next
         activity.append(id, "workspace", next.attempt, AgentActivityItem("recovery-${next.attempt}", ActivityKind.Recovery, "Resuming saved work", output = next.recoveryReason))
         startRun(next, request)

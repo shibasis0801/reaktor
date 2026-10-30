@@ -8,42 +8,49 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 
 class KeepWorkingStore(private val directory: Path, private val clock: () -> Long = System::currentTimeMillis) {
     private val file = directory.resolve("keep-working.json")
+    private val lock = locks.computeIfAbsent(directory.toFile().canonicalPath) { Any() }
 
-    @Synchronized fun read(thread: String): KeepWorkingSeat? = load().seats.singleOrNull { it.thread == thread }
+    fun read(thread: String): KeepWorkingSeat? = synchronized(lock) { load().seats.singleOrNull { it.thread == thread } }
 
-    @Synchronized fun configure(thread: String, plan: String, paused: Boolean): KeepWorkingSeat {
+    fun register(thread: String, plan: String): KeepWorkingSeat = synchronized(lock) {
+        require(BoardRefs.pattern.matches(thread) && BoardRefs.pattern.matches(plan)) { "A real thread and plan reference are required" }
+        load().seats.singleOrNull { it.thread == thread } ?: configure(thread, plan, false)
+    }
+
+    fun configure(thread: String, plan: String, paused: Boolean): KeepWorkingSeat = synchronized(lock) {
         require(BoardRefs.pattern.matches(thread) && BoardRefs.pattern.matches(plan)) { "A real thread and plan reference are required" }
         val registry = load()
         val previous = registry.seats.singleOrNull { it.thread == thread }
         val seat = KeepWorkingSeat(thread, plan, paused, (previous?.revision ?: 0) + 1, clock())
         save(registry.copy(seats = registry.seats.filterNot { it.thread == thread } + seat))
-        return seat
+        seat
     }
 
-    @Synchronized fun decide(expected: KeepWorkingSeat, actor: BoardActor, plan: WorkPlan?, next: PlanNext, latestInput: String): KeepWorkingResult {
+    fun decide(expected: KeepWorkingSeat, actor: BoardActor, plan: WorkPlan?, next: PlanNext, latestInput: String): KeepWorkingResult = synchronized(lock) {
         val registry = load()
         val seat = registry.seats.singleOrNull { it.thread == expected.thread }
-            ?: return KeepWorkingResult(reason = "This thread is not registered")
+            ?: return@synchronized KeepWorkingResult(reason = "This thread is not registered")
         fun allow(reason: String) = KeepWorkingResult(reason = reason, seat = seat)
-        if (seat.paused) return allow("Keep working is paused")
-        if (KeepWorkingPolicy.ownerStopped(latestInput)) return allow("The owner asked to stop")
-        if (seat.revision != expected.revision) return allow("The seat changed during the plan check")
-        if (actor.session != seat.thread || actor.agent == null) return allow("The authenticated seat is unavailable")
-        if (plan == null || plan.thread != seat.plan) return allow("The plan is unavailable")
-        if (next.quota != PlanNext().quota) return allow(next.reason.ifBlank { next.quota })
+        if (seat.paused) return@synchronized allow("Keep working is paused")
+        if (KeepWorkingPolicy.ownerStopped(latestInput)) return@synchronized allow("The owner asked to stop")
+        if (seat.revision != expected.revision) return@synchronized allow("The seat changed during the plan check")
+        if (actor.session != seat.thread || actor.agent == null) return@synchronized allow("The authenticated seat is unavailable")
+        if (plan == null || plan.thread != seat.plan) return@synchronized allow("The plan is unavailable")
+        if (next.quota != PlanNext().quota) return@synchronized allow(next.reason.ifBlank { next.quota })
         val work = KeepWorkingPolicy.work(plan, actor, next)
-        if (work.isEmpty()) return allow("No eligible work remains")
+        if (work.isEmpty()) return@synchronized allow("No eligible work remains")
         val fingerprint = MessageDigest.getInstance("SHA-256").digest(KeepWorkingPolicy.progress(plan).toByteArray()).joinToString("") { "%02x".format(it) }
         val nudges = if (fingerprint == seat.fingerprint) seat.nudges else 0
-        if (nudges >= 2) return allow("No plan progress after two nudges")
+        if (nudges >= 2) return@synchronized allow("No plan progress after two nudges")
         val reason = KeepWorkingPolicy.reason(plan.thread, work)
         val updated = seat.copy(revision = seat.revision + 1, updatedAt = clock(), fingerprint = fingerprint,
             nudges = nudges + 1, lastNudge = reason, lastNudgeAt = clock())
         save(registry.copy(seats = registry.seats.map { if (it.thread == seat.thread) updated else it }))
-        return KeepWorkingResult(true, reason, updated)
+        KeepWorkingResult(true, reason, updated)
     }
 
     private fun load(): Registry {
@@ -71,4 +78,8 @@ class KeepWorkingStore(private val directory: Path, private val clock: () -> Lon
     }
 
     @Serializable private data class Registry(val seats: List<KeepWorkingSeat> = emptyList())
+
+    private companion object {
+        val locks = ConcurrentHashMap<String, Any>()
+    }
 }
