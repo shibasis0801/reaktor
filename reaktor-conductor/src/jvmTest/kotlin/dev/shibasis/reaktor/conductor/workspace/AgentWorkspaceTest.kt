@@ -348,12 +348,12 @@ class AgentWorkspaceTest {
         } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
-    @Test fun applyingAChangeWaitsOnlyForSharedWritersWhoseScopeCoversItsFiles() = runBlocking {
+    @Test fun applyingAChangeWaitsOnlyForSharedWritersWhoseScopeCoversItsFiles(): Unit = runBlocking {
         val root = Files.createTempDirectory("agent-root").toFile()
         val directory = Files.createTempDirectory("agent-state")
         val harness = Harness(RuntimeKind.Codex)
         try {
-            AgentWorkspace(root, directory, mapOf(harness.kind to harness)).use { workspace ->
+            AgentWorkspace(root, directory, mapOf(harness.kind to harness), scopeModules = { listOf("workspace/module") }).use { workspace ->
                 fun refusal(vararg paths: String) = runCatching { workspace.admitWrite(paths.toList()) { } }.exceptionOrNull()?.message
                 workspace.submit(AgentSubmission("reader", harness.kind, "BLOCK_UNTIL_CANCEL"))
                 assertNull(refusal("src/a/A.kt"))
@@ -365,6 +365,13 @@ class AgentWorkspaceTest {
                 assertEquals("Source scope is held by run ${unscoped.id}; apply again when it finishes", refusal("src/b/B.kt"))
                 workspace.cancel(unscoped.id)
                 assertNull(refusal("src/b/B.kt"))
+                val module = workspace.submit(AgentSubmission("build-file", harness.kind, "BLOCK_UNTIL_CANCEL", allowWrites = true, scope = listOf("src/build.gradle.kts")))
+                assertEquals("Source scope is held by run ${module.id}; apply again when it finishes", refusal("src/b/B.kt"))
+                workspace.cancel(module.id)
+                val rootFile = workspace.submit(AgentSubmission("root-file", harness.kind, "BLOCK_UNTIL_CANCEL", allowWrites = true, scope = listOf("AGENTS.md")))
+                assertNull(refusal("src/b/B.kt"))
+                assertEquals("Source scope is held by run ${rootFile.id}; apply again when it finishes", refusal("AGENTS.md"))
+                workspace.cancel(rootFile.id)
             }
         } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }

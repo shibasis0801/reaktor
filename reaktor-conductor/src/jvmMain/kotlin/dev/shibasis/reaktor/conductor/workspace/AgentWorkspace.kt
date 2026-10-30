@@ -558,19 +558,7 @@ class AgentWorkspace(
         (request.task != null || request.isolation != AgentIsolation.Worktree) &&
             (request.allowWrites || request.workflow?.participants?.any { it.tools.allowWrites } == true)
 
-    private fun sourceScope(values: List<String>): List<String> {
-        if (values.isEmpty() || values.any { it.trim() in setOf("", "*", ".", "./") }) return listOf("*")
-        return values.flatMap { value ->
-            val path = value.trim().replace('\\', '/').substringBefore('*').trimEnd('/')
-            val modules = scopeModules(listOf(path))
-            if (':' in path && !File(path).isAbsolute) {
-                if (modules.isEmpty()) listOf("*") else modules.map { "module:$it" }
-            } else {
-                val file = File(path).let { if (it.isAbsolute) it else File(root, path) }.canonicalFile
-                listOf(file.invariantSeparatorsPath) + modules.map { "module:$it" }
-            }
-        }.distinct()
-    }
+    private fun sourceScope(values: List<String>): AgentSourceScope = AgentSourceScope.of(root, values, scopeModules)
 
     private fun admission(paths: List<String>, writes: Boolean, requestedSlots: Int, task: String? = null): String? {
         if (closed || draining) return "Workspace is closed or draining"
@@ -583,13 +571,13 @@ class AgentWorkspace(
         return holder(sourceScope(paths), others, runs)
     }
 
-    private fun holder(scope: List<String>, tasks: List<BoardTask>, runs: List<Pair<String, AgentSubmission>>): String? {
+    private fun holder(scope: AgentSourceScope, tasks: List<BoardTask>, runs: List<Pair<String, AgentSubmission>>): String? {
         tasks.firstOrNull { other ->
             (other.graph?.kind == TaskKind.Merge || (other.graph?.resolvedSeat?.seat ?: other.graph?.seat)?.access == TaskAccess.Write) &&
-                TaskGraphRules.overlaps(scope, sourceScope(other.scope))
+                scope.overlaps(sourceScope(other.scope))
         }?.let { return "Source scope is held by ${it.graph?.id}/${it.id} attempt ${it.graph?.attempt}" }
         return runs.firstOrNull { (_, request) ->
-            reservesSource(request) && TaskGraphRules.overlaps(scope, sourceScope(request.task?.let { board.get(it.task).scope } ?: request.scope))
+            reservesSource(request) && scope.overlaps(sourceScope(request.task?.let { board.get(it.task).scope } ?: request.scope))
         }?.let { "Source scope is held by run ${it.first}" }
     }
 
