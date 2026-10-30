@@ -121,6 +121,7 @@ internal fun Test.jvmTestEnvironment(settings: TestEnvironmentSpec) {
     setScanForTestClasses(settings.discovery == TestDiscovery.Annotations)
     if (settings.discovery == TestDiscovery.Conventional) include("**/*Test.class", "**/*Tests.class")
     testLogging.showStandardStreams = settings.standardStreams
+    testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     val home = if (TestDirectoryRoot.HostHome in settings.directories)
         project.option(BuildOption.systemProperty("user.home")).get().let { java.io.File(it) } else null
     TestEnvironmentKernel.plan(settings, project.layout.buildDirectory.get().asFile, project.projectDir, home)
