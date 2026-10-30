@@ -95,5 +95,5 @@ object HangarSkill {
         |- `plan.read {"since": <revision>}` lists what the person and the other agents changed. Follow those changes before you go on.
         |- An agent attached to a part passes its `seat` and changes only that part.
         |- `session.log {"session": "<an agent's session>"}` reads what another agent did.
-        |""".trimMargin()
+        |""".trimMargin() + "\n\n" + HangarWorkflow.guide
 }
