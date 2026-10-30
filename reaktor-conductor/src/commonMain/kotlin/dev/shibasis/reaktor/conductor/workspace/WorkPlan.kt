@@ -255,18 +255,25 @@ object PlanBrief {
     fun seat(plan: WorkPlan, seat: PlanSeat, agent: String, note: String): String = buildString {
         appendLine("You are $agent, attached to part of the plan “${plan.title}” (thread ${plan.thread}) as seat ${seat.id}.")
         if (plan.goal.isNotBlank()) appendLine("Goal: ${plan.goal}")
-        appendLine("Your items, with everything under them:")
-        seat.items.mapNotNull(plan::item).forEach { item ->
-            appendLine("- ${item.id} “${item.title}”${item.detail.takeIf(String::isNotBlank)?.let { ": $it" }.orEmpty()}")
-        }
+        appendLine("Plan revision: ${plan.revision}. Your items, with everything under them:")
         val covered = seat.items.flatMapTo(HashSet()) { plan.under(it) }
+        plan.items.filter { it.id in covered }.forEach { item ->
+            appendLine("- ${item.id} “${item.title}” (${item.kind}, ${plan.state(item.id)}, ${item.priority})")
+            if (item.detail.isNotBlank()) appendLine(item.detail)
+            item.parent?.let { appendLine("Parent: $it") }
+            if (item.after.isNotEmpty()) appendLine("Waits on: " + item.after.joinToString { id -> "$id (${plan.item(id)?.let { plan.state(it.id) } ?: "Unknown"})" })
+            if (item.refs.isNotEmpty()) appendLine("Refs: " + item.refs.joinToString())
+        }
         val ready = plan.ready().filter { it.id in covered }
         if (ready.isNotEmpty()) appendLine("Ready, highest priority first: " + ready.joinToString { "${it.id} (${it.priority})" })
         if (note.isNotBlank()) appendLine(note.trim())
-        append("Work through your items in dependency order. Read the plan with the reaktor kernel tool {operation: \"plan.read\", arguments: {thread: \"${plan.thread}\"}} ")
-        append("and change it with {operation: \"plan.write\", arguments: {thread: \"${plan.thread}\", seat: \"${seat.id}\", base: <revision you read>, ops: [...]}} using $Ops. ")
+        append("Work through your items in dependency order. The items above are your starting brief; do not fetch the whole plan to begin. ")
+        append("For news use the reaktor kernel tool {operation: \"plan.read\", arguments: {thread: \"${plan.thread}\", since: ${plan.revision}}} and inspect news. ")
+        append("Change it with {operation: \"plan.write\", arguments: {thread: \"${plan.thread}\", seat: \"${seat.id}\", base: <revision you read>, ops: [...]}} using $Ops. ")
         append("Break your items into the components, tasks, checks and decisions you find, relate them, and give each refs found with atlas_query. $Upkeep ")
-        append("People and other agents own the rest of the plan; plan.read with since lists their changes. Stay inside your items.")
+        append("People and other agents own the rest of the plan; update since to the revision each read returns. Stay inside your items. ")
+        append("For Hangar UI work in BestBuds, run ./gradlew :reaktorDesktop:hangarFlows -Dhangar.flows=<ids> -x :exportBuildModel -x :reaktorDesktop:test. ")
+        append("Receipts are under targets/reaktorDesktop/build/hangar-shards. A filtered :reaktorDesktop:test run does not run Hangar flows.")
     }
 }
 
