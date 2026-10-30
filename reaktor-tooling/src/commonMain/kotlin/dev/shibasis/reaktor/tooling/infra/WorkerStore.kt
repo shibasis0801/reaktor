@@ -38,10 +38,12 @@ data class StoreKeyQuery(
         require(key == null || (prefix.isEmpty() && cursor == null)) { "Use a key or a prefix and cursor" }
         require(!recursive || provider == "R2" && key == null) { "Recursive listing applies only to R2 prefixes" }
         if (provider == "DurableObjects") {
-            require(!instance.isNullOrBlank() && key == null && prefix.isEmpty() && cursor == null) {
+            require(!instance.isNullOrBlank() && prefix.isEmpty() && cursor == null) {
                 "Select a named instance to read its application state"
             }
             require(!instanceId || instance!!.matches(Regex("[a-fA-F0-9]{64}"))) { "Durable Object IDs contain 64 hexadecimal characters" }
+            require(key == null || action == DurableObjectReadAction.Overview) { "Storage keys cannot be combined with SQL reads" }
+            key?.let { require(it.isNotEmpty() && it.encodeToByteArray().size <= 2048) { "Storage keys must contain 1–2048 bytes" } }
             require((action == DurableObjectReadAction.Query) == (sql != null)) { "SQL is required only for an instance query" }
             require(!explain || action == DurableObjectReadAction.Query)
             sql?.let(SqlReadStatement::normalize)
