@@ -8,7 +8,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class WorkPlanStore(private val directory: Path, inbox: Path? = null,
-    private val identity: (BoardActor) -> BoardActor = { it }, private val clock: () -> Long = System::currentTimeMillis) {
+    private val identity: (BoardActor) -> BoardActor = { it }, private val clock: () -> Long = System::currentTimeMillis,
+    private val activity: (String) -> Long? = { null }) {
     private val inbox = inbox?.let(::ThreadInbox)
     private val plans = HashMap<String, WorkPlan>()
     private val changed = MutableStateFlow(0L)
@@ -21,15 +22,15 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         }
     }
 
-    @Synchronized fun list(): List<PlanSummary> = plans.values.sortedByDescending { it.updatedAt }.map(WorkPlan::summary)
+    @Synchronized fun list(): List<PlanSummary> { expire(); return plans.values.sortedByDescending { it.updatedAt }.map(WorkPlan::summary) }
 
-    @Synchronized fun plan(thread: String): WorkPlan? = plans[thread]?.let(::identified)
+    @Synchronized fun plan(thread: String): WorkPlan? { expire(); return plans[thread]?.let(::identified) }
 
     private fun identified(plan: WorkPlan): WorkPlan {
         val actors = HashMap<BoardActor, BoardActor>()
         fun actor(value: BoardActor) = actors.getOrPut(value) { identity(value) }
         return plan.copy(
-            items = plan.items.map { it.copy(by = it.by?.let(::actor)) },
+            items = plan.items.map { it.copy(by = it.by?.let(::actor), lease = it.lease?.let { lease -> lease.copy(by = actor(lease.by), expiresAt = lease.until(lease.by.agent?.let(activity))) }) },
             seats = plan.seats.map { seat -> seat.copy(agent = (seat.session ?: seat.run?.let { "${BoardRefs.Hangar}$it" })?.let { actor(BoardActor(BoardActorKind.Agent, seat.profile, it)).agent }) },
             changes = plan.changes.map { it.copy(by = actor(it.by)) },
         )
@@ -49,9 +50,21 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         return applied
     }
 
-    @Synchronized fun next(thread: String?, by: BoardActor, seat: String? = null, profile: (String) -> AgentProfile): PlanNext {
+    @Synchronized fun next(thread: String?, by: BoardActor, seat: String? = null, take: Boolean = false, profile: (String) -> AgentProfile): PlanNext {
         val actor = identity(by)
-        val all = if (thread == null) plans.keys.sorted().mapNotNull(::plan) else listOf(read(thread).plan)
+        expire()
+        require(!take || actor.kind == BoardActorKind.Agent && actor.agent != null) { "Taking work requires a canonical agent identity" }
+        val every = plans.keys.sorted().mapNotNull(::plan)
+        val all = if (thread == null) every else listOf(read(thread).plan)
+        if (take) {
+            val held = every.asSequence().flatMap { PlanSchedule.ranked(it).asSequence() }
+                .firstOrNull { it.item.status == PlanStatus.Doing && it.item.lease?.by?.same(actor) == true }
+            if (held != null) return PlanNext(held, "This agent already holds this leased item")
+        }
+        fun footprint(plan: WorkPlan, item: PlanItem): List<String> =
+            if (item.refs.any { it.startsWith("file:") }) item.refs
+            else generateSequence(item) { it.parent?.let(plan::item) }.flatMap { it.refs }.distinct().toList()
+        val busy = every.flatMap { plan -> plan.leaves().filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component && it.by?.same(actor) != true }.map { footprint(plan, it) } }
         val seated = all.any { plan -> plan.seats.any { it.heldBy(actor) } }
         val candidates = all.flatMap { plan ->
             val mine = plan.seats.filter { it.heldBy(actor) && (seat == null || it.id == seat) }
@@ -61,15 +74,41 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
             PlanSchedule.ready(plan).filter { candidate ->
                 val item = candidate.item
                 val owner = generateSequence(item) { it.parent?.let(plan::item) }.mapNotNull { it.seat?.let(plan::seat) }.firstOrNull()
-                val chosen = owner?.takeIf { it.heldBy(actor) }?.let { profile(it.profile) }
+                val chosen = (owner?.takeIf { it.heldBy(actor) }?.profile ?: actor.profile)?.let(profile)
                 (actor.kind == BoardActorKind.Person || item.kind != PlanKind.Decision) &&
                     (owner == null || owner.heldBy(actor)) && (mine.isEmpty() || item.id in covered) &&
+                      busy.none { PlanSchedule.conflicts(footprint(plan, item), it) } &&
                     (chosen == null || (chosen.planKinds.isEmpty() || item.kind in chosen.planKinds) &&
                         (chosen.planRefs.isEmpty() || chosen.planRefs.any { wanted -> item.refs.any { it == wanted || it.startsWith("$wanted/") } }))
             }
         }
         val candidate = candidates.minWithOrNull(compareByDescending<PlanCandidate> { it.priority }.thenByDescending { it.unblocks }.thenBy { it.age })
-        return PlanNext(candidate, if (candidate == null) "No ready item matches this agent, its seat and profile" else "")
+        if (!take || candidate == null) return PlanNext(candidate, if (candidate == null) "No ready item matches this agent, its seat, profile and free files" else "")
+        val current = read(candidate.thread).plan
+        val now = clock()
+        val applied = PlanRules.apply(current, PlanPatch(base = current.revision, seat = seat,
+            ops = listOf(PlanOp.Status(candidate.item.id, PlanStatus.Doing, reason = ""))), actor, now)
+        require(applied.refused.isEmpty()) { applied.refused.joinToString { it.reason } }
+        val leased = applied.plan.copy(items = applied.plan.items.map {
+            if (it.id == candidate.item.id) it.copy(lease = PlanLease(actor, now, now + PlanLease.DurationMillis)) else it
+        })
+        save(leased, current, actor)
+        return PlanNext(candidate.copy(revision = leased.revision, item = requireNotNull(leased.item(candidate.item.id))))
+    }
+
+    private fun expire() {
+        val now = clock()
+        val scheduler = BoardActor(BoardActorKind.Person, "Scheduler")
+        plans.values.toList().forEach { initial ->
+            val expired = initial.items.filter { it.status == PlanStatus.Doing && it.lease?.let { lease -> lease.until(lease.by.agent?.let(activity)) <= now } == true }
+            var plan = initial
+            expired.chunked(PlanRules.MaxOps).forEach { batch ->
+                val note = ("Lease expired after quiet activity: " + batch.joinToString { it.id }).take(900)
+                val applied = PlanRules.apply(plan, PlanPatch(ops = batch.map { PlanOp.Status(it.id, PlanStatus.Todo, reason = note) }, message = note), scheduler, now)
+                save(applied.plan, plan, scheduler)
+                plan = applied.plan
+            }
+        }
     }
 
     @Synchronized fun attach(thread: String, seat: (WorkPlan) -> PlanSeat): Pair<WorkPlan, PlanSeat> {

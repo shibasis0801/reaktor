@@ -49,8 +49,22 @@ class PlanNextTest {
         )), person)
         store.attach("hangar:one") { PlanSeat("s1", chosen.id, listOf("area"), person, 1, session = codex.session) }
         assertEquals("proof", store.next(null, codex, profile = { chosen }).candidate?.item?.id)
-        assertEquals("outside", store.next(null, claude, profile = { chosen }).candidate?.item?.id)
+        assertEquals("outside", store.next(null, claude, profile = { id -> if (id == chosen.id) chosen else profile.copy(id = id) }).candidate?.item?.id)
         assertFailsWith<IllegalArgumentException> { store.next("hangar:one", claude, "s1") { chosen } }
+    }
+
+    @Test fun nativeProfileFiltersTheCandidateBeforeTakingALease() = fixture { workspace ->
+        val chosen = workspace.profiles.save(profile.copy(planKinds = setOf(PlanKind.Check), planRefs = listOf("module:engine")), person)
+        workspace.bindIdentity(codex, chosen.id, workspace.identity(codex).bindingRevision)
+        workspace.plans.write("hangar:one", PlanPatch(title = "One", ops = listOf(
+            PlanOp.Add("Write", key = "write", priority = PlanPriority.Urgent, refs = listOf("module:engine")),
+            PlanOp.Add("Other", key = "other", kind = PlanKind.Check, priority = PlanPriority.Urgent, refs = listOf("module:core")),
+            PlanOp.Add("Proof", key = "proof", kind = PlanKind.Check, refs = listOf("module:engine")),
+        )), person)
+        val taken = workspace.nextPlan("hangar:one", codex, take = true).candidate
+        assertEquals("proof", taken?.item?.id)
+        assertEquals(chosen.id, taken?.item?.lease?.by?.profile)
+        assertEquals(chosen.revision, taken?.item?.lease?.by?.profileRevision)
     }
 
     @Test fun decisionsRemainForAPerson() = fixture { workspace ->

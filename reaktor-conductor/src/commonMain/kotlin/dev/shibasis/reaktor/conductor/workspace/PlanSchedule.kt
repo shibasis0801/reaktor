@@ -21,7 +21,7 @@ data class PlanNext(
 )
 
 object PlanSchedule {
-    fun ready(plan: WorkPlan): List<PlanCandidate> {
+    fun ranked(plan: WorkPlan): List<PlanCandidate> {
         val items = plan.items.associateBy { it.id }
         val children = plan.items.groupBy { it.parent }
         val states = plan.items.associate { it.id to plan.state(it.id) }
@@ -36,9 +36,8 @@ object PlanSchedule {
             }
         }
         return open.filter { item ->
-            item.status == PlanStatus.Todo && item.kind != PlanKind.Component && children[item.id].isNullOrEmpty() &&
-                parents[item.id].orEmpty().none { states[it.id] in setOf(PlanStatus.Done, PlanStatus.Dropped) } &&
-                (item.after + parents[item.id].orEmpty().flatMap { it.after }).all { states[it] == PlanStatus.Done }
+            item.kind != PlanKind.Component && children[item.id].isNullOrEmpty() &&
+                parents[item.id].orEmpty().none { states[it.id] in setOf(PlanStatus.Done, PlanStatus.Dropped) }
         }.map { item ->
             val followers = linkedSetOf(item.id)
             val queue = ArrayDeque(listOf(item.id))
@@ -50,5 +49,18 @@ object PlanSchedule {
                 followers.count { it != item.id && children[it].isNullOrEmpty() && items[it]?.kind != PlanKind.Component },
                 item.createdAt.takeIf { it > 0 } ?: plan.createdAt)
         }.sortedWith(compareByDescending<PlanCandidate> { it.priority }.thenByDescending { it.unblocks }.thenBy { it.age })
+    }
+
+    fun ready(plan: WorkPlan): List<PlanCandidate> = ranked(plan).filter { candidate ->
+        val item = candidate.item
+        val parents = generateSequence(item.parent?.let(plan::item)) { it.parent?.let(plan::item) }.take(plan.items.size)
+        item.status == PlanStatus.Todo && (item.after + parents.flatMap { it.after }).all { plan.state(it) == PlanStatus.Done }
+    }
+
+    fun conflicts(left: List<String>, right: List<String>): Boolean {
+        val a = left.filter { it.startsWith("file:") }.map { it.removePrefix("file:").removeSuffix("/") }
+        val b = right.filter { it.startsWith("file:") }.map { it.removePrefix("file:").removeSuffix("/") }
+        if (a.isNotEmpty() && b.isNotEmpty()) return a.any { x -> b.any { y -> x == y || x.startsWith("$y/") || y.startsWith("$x/") } }
+        return left.filter { it.startsWith("module:") }.intersect(right.filter { it.startsWith("module:") }.toSet()).isNotEmpty()
     }
 }

@@ -58,6 +58,7 @@ data class PlanItem(
     val reason: String = "",
     val replacement: String? = null,
     val createdAt: Long = 0,
+    val lease: PlanLease? = null,
 )
 
 @Serializable
@@ -377,7 +378,7 @@ object PlanRules {
             return why to next
         }
 
-        fun touch(item: PlanItem) = item.copy(revision = revision, by = by, changedAt = now)
+        fun touch(item: PlanItem) = item.copy(revision = revision, by = item.lease?.takeIf { item.status == PlanStatus.Doing }?.by ?: by, changedAt = now)
 
         fun open(status: PlanStatus) = status == PlanStatus.Todo || status == PlanStatus.Doing
 
@@ -442,7 +443,7 @@ object PlanRules {
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
                         capacity(op.status, item.status)
                         val (reason, replacement) = closing(op.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id)
-                        val changed = item.copy(status = op.status, reason = reason, replacement = replacement)
+                        val changed = item.copy(status = op.status, reason = reason, replacement = replacement, lease = item.lease.takeIf { op.status == PlanStatus.Doing })
                         if (changed == item) null else {
                             items[item.id] = touch(changed)
                             "${item.id} → ${op.status.label}"

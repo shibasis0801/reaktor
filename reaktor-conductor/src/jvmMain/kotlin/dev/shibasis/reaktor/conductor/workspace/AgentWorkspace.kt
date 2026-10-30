@@ -70,7 +70,7 @@ class AgentWorkspace(
     private val seatResolver = TaskSeatResolver(profiles::read) { provider -> capabilities.firstOrNull { it.runtime == provider } }
     fun resolveSeat(seat: TaskSeat): ResolvedTaskSeat = seatResolver.resolve(seat)
     val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat, scopeModules = scopeModules, summarize = ::summarize)
-    val plans = WorkPlanStore(directory.resolve("plans"), Path.of(System.getProperty("user.home"), ".reaktor", "inbox"), identity = ::planIdentity)
+    val plans = WorkPlanStore(directory.resolve("plans"), Path.of(System.getProperty("user.home"), ".reaktor", "inbox"), identity = ::planIdentity, activity = presence::lastSeen)
 
     internal fun planIdentity(actor: BoardActor): BoardActor {
         if (actor.kind != BoardActorKind.Agent) return actor.copy(agent = null)
@@ -108,7 +108,7 @@ class AgentWorkspace(
         direct ?: recent.asSequence().mapNotNull { records[it] ?: load(it) }.firstOrNull { ref in runRefs(it) }
     }
 
-    fun nextPlan(thread: String?, by: BoardActor, seat: String? = null, agent: String? = null): PlanNext {
+    fun nextPlan(thread: String?, by: BoardActor, seat: String? = null, agent: String? = null, take: Boolean = false): PlanNext {
         val actor = planIdentity(by)
         require(actor.kind == BoardActorKind.Person || actor.agent != null) { "A named agent session is required" }
         require(agent == null || agent == actor.agent || agent == actor.session) { "plan.next selects work for the authenticated agent only" }
@@ -124,7 +124,8 @@ class AgentWorkspace(
             recent.asSequence().mapNotNull { records[it] ?: load(it) }.filter { it.provider == provider }.maxByOrNull { it.updatedAt }?.usageLimit
         }?.takeIf { it.resetsAtEpochMillis == null || it.resetsAtEpochMillis > System.currentTimeMillis() }
         if (limit != null) return PlanNext(reason = limit.code, quota = "Provider reported a usage limit" + limit.resetsAtEpochMillis?.let { "; resets at $it" }.orEmpty())
-        return plans.next(thread, actor, seat, profiles::read)
+        val configured = if (actor.kind == BoardActorKind.Agent) identity(by).profile else null
+        return plans.next(thread, actor, seat, take) { id -> configured?.takeIf { it.id == id } ?: profiles.read(id) }
     }
 
     fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached {

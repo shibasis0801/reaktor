@@ -40,11 +40,11 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
                 if (args.long("since") != null) put("news", changes(read.news))
             }
         },
-        McpTool("agent_plan_next", "The next ready item for this agent, ordered by inherited priority, work unblocked and age. Reads only; does not claim it.",
-            withActor(api.next.request.descriptor.jsonSchema()), true, true) { args ->
-            args.only("thread", "agent", "seat", "by")
+        McpTool("agent_plan_next", "The next ready item ordered by inherited priority, work unblocked and age. take=true atomically claims an activity-renewed lease.",
+            withActor(api.next.request.descriptor.jsonSchema()), false, false) { args ->
+            args.only("thread", "agent", "seat", "by", "take")
             val actor = args.actor() ?: error("by is required")
-            AgentWorkspaceJson.encodeToJsonElement(PlanNext.serializer(), workspace.nextPlan(args.text("thread"), actor, args.text("seat"), args.text("agent")))
+            AgentWorkspaceJson.encodeToJsonElement(PlanNext.serializer(), workspace.nextPlan(args.text("thread"), actor, args.text("seat"), args.text("agent"), args["take"]?.jsonPrimitive?.booleanOrNull == true))
         },
         McpTool("agent_plan_write", "Draw or change a thread's plan; the first write starts it and names it with title. " +
             "Pass base, the revision you read: an op on an item someone else changed after it is refused for that item only, and news lists their changes. " +
