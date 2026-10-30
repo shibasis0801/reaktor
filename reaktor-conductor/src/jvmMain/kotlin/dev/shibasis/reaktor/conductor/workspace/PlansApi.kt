@@ -13,6 +13,8 @@ open class PlansApi : Service("reaktor.plan") {
 
     open val read by call<PlanReadRequest, JsonElement>(effect = Effect.ReadOnly, summary = "One thread's plan, your own when thread is left out: each item with its status, order, parent, links, seat and who changed it, and the revision to send as base. since <revision> adds what others changed after it.")
 
+    open val next by call<PlanNextRequest, JsonElement>(effect = Effect.ReadOnly, summary = "The highest ready item for the authenticated agent across plans, or one thread: inherited priority, work unblocked and age. Respects seats, profile kinds and refs, paused quota pools and reported provider limits. Leaves the item Todo; taking it is a separate lease.")
+
     open val write by call<PlanWriteRequest, JsonElement>(effect = Effect.LocalArtifactWrite, summary = "Draws or changes a thread's plan, the high-level design and running checklist people watch and edit in Hangar: components and their tasks, checks and decisions: add, update, status (Todo, Doing, Done, Dropped), connect, disconnect, relate, unrelate and remove items, with links into Reaktor. The thread defaults to your own session. Pass base, the revision you read: an op on an item someone else changed after it is refused for that item only. An attached agent passes its seat.")
 
     open val attach by call<PlanAttachRequest, JsonElement>(effect = Effect.LocalArtifactWrite, summary = "A person attaches a gallery agent (an agent profile) to items of a plan; Hangar starts that agent with a brief naming its seat.")
@@ -36,6 +38,13 @@ data class PlanReadRequest(
     @Describe("The revision you last read") @Schema(minimum = 0, nullable = false) val since: Long? = null,
     @Describe("Include the last 200 changes") val history: Boolean = false,
     @Schema(nullable = false) val by: PlanReader? = null,
+)
+
+@Serializable
+data class PlanNextRequest(
+    @Describe("One plan, or every plan when left out") @Schema(nullable = false) val thread: String? = null,
+    @Describe("The authenticated agent key or session; cannot select for another agent") @Schema(nullable = false) val agent: String? = null,
+    @Describe("An attached seat held by this agent") @Schema(nullable = false) val seat: String? = null,
 )
 
 @Serializable

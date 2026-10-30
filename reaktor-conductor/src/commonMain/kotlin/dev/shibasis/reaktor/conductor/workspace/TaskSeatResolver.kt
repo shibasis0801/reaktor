@@ -18,6 +18,8 @@ data class AgentProfile(
     val updatedAt: Long = 0,
     val builtIn: Boolean = false,
     val budget: AgentBudget? = null,
+    val planKinds: Set<PlanKind> = emptySet(),
+    val planRefs: List<String> = emptyList(),
 )
 
 @Serializable

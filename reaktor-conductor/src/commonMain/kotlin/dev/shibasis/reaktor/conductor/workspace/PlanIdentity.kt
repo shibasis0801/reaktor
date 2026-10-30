@@ -3,15 +3,24 @@ package dev.shibasis.reaktor.conductor.workspace
 import dev.shibasis.reaktor.conductor.RuntimeKind
 
 object PlanIdentity {
-    fun actor(actor: BoardActor, run: AgentRunRecord? = null): BoardActor {
+    fun actor(actor: BoardActor, run: AgentRunRecord? = null, request: AgentSubmission? = null): BoardActor {
         if (actor.kind != BoardActorKind.Agent) return actor.copy(agent = null)
         val ref = actor.session ?: return actor.copy(agent = null)
         if (run != null) {
             val participant = run.participants.values.firstOrNull { participant ->
                 participant.session?.let { BoardRefs.session(it.runtime, it.sessionId) } == ref
             }
-            val vendor = vendor(participant?.provider ?: run.provider)
-            return actor.copy(agent = "agent:$vendor:${run.threadId}")
+            val provider = participant?.provider ?: run.provider
+            val vendor = vendor(provider)
+            val profile = request?.resolvedSeat?.name?.takeIf(String::isNotBlank)
+            val seat = request?.requestId?.takeIf { it.matches(Regex("plan:[a-f0-9]{16}:s[1-9][0-9]*")) }?.substringAfterLast(':')
+            val name = profile?.let { if (seat == null) it else "$it · $seat" } ?: when (provider) {
+                RuntimeKind.ClaudeCode -> "Claude"
+                RuntimeKind.Codex -> "Codex"
+                RuntimeKind.Gemini -> "Gemini"
+                else -> provider.name
+            }
+            return actor.copy(name = name, agent = "agent:$vendor:${run.threadId}")
         }
         val vendor = when (ref.substringBefore(':')) {
             "claude" -> "claude"

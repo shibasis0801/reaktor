@@ -36,8 +36,15 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             val read = workspace.plans.read(args.thread(reader), args.long("since"), reader)
             buildJsonObject {
                 put("plan", plan(read.plan, args["history"]?.jsonPrimitive?.booleanOrNull == true))
+                put("ready", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanCandidate.serializer()), PlanSchedule.ready(read.plan).take(8)))
                 if (args.long("since") != null) put("news", changes(read.news))
             }
+        },
+        McpTool("agent_plan_next", "The next ready item for this agent, ordered by inherited priority, work unblocked and age. Reads only; does not claim it.",
+            withActor(api.next.request.descriptor.jsonSchema()), true, true) { args ->
+            args.only("thread", "agent", "seat", "by")
+            val actor = args.actor() ?: error("by is required")
+            AgentWorkspaceJson.encodeToJsonElement(PlanNext.serializer(), workspace.nextPlan(args.text("thread"), actor, args.text("seat"), args.text("agent")))
         },
         McpTool("agent_plan_write", "Draw or change a thread's plan; the first write starts it and names it with title. " +
             "Pass base, the revision you read: an op on an item someone else changed after it is refused for that item only, and news lists their changes. " +

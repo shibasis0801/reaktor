@@ -25,11 +25,15 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
 
     @Synchronized fun plan(thread: String): WorkPlan? = plans[thread]?.let(::identified)
 
-    private fun identified(plan: WorkPlan): WorkPlan = plan.copy(
-        items = plan.items.map { it.copy(by = it.by?.let(identity)) },
-        seats = plan.seats.map { seat -> seat.copy(agent = seat.session?.let { identity(BoardActor(BoardActorKind.Agent, seat.profile, it)).agent }) },
-        changes = plan.changes.map { it.copy(by = identity(it.by)) },
-    )
+    private fun identified(plan: WorkPlan): WorkPlan {
+        val actors = HashMap<BoardActor, BoardActor>()
+        fun actor(value: BoardActor) = actors.getOrPut(value) { identity(value) }
+        return plan.copy(
+            items = plan.items.map { it.copy(by = it.by?.let(::actor)) },
+            seats = plan.seats.map { seat -> seat.copy(agent = (seat.session ?: seat.run?.let { "${BoardRefs.Hangar}$it" })?.let { actor(BoardActor(BoardActorKind.Agent, seat.profile, it)).agent }) },
+            changes = plan.changes.map { it.copy(by = actor(it.by)) },
+        )
+    }
 
     @Synchronized fun read(thread: String, since: Long? = null, reader: BoardActor? = null): PlanRead {
         val plan = plan(thread) ?: error("$thread has no plan yet; its agent draws one with plan.write")
@@ -43,6 +47,29 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         val applied = PlanRules.apply(current ?: PlanRules.start(thread, patch, writer, now), patch, writer, now)
         if (current == null && (applied.plan.items.isNotEmpty() || applied.refused.isEmpty()) || current != null && applied.plan != current) save(applied.plan, current, writer)
         return applied
+    }
+
+    @Synchronized fun next(thread: String?, by: BoardActor, seat: String? = null, profile: (String) -> AgentProfile): PlanNext {
+        val actor = identity(by)
+        val all = if (thread == null) plans.keys.sorted().mapNotNull(::plan) else listOf(read(thread).plan)
+        val seated = all.any { plan -> plan.seats.any { it.heldBy(actor) } }
+        val candidates = all.flatMap { plan ->
+            val mine = plan.seats.filter { it.heldBy(actor) && (seat == null || it.id == seat) }
+            if (seat != null && thread != null) require(mine.isNotEmpty()) { "$seat is not held by this agent" }
+            if ((seated || seat != null) && mine.isEmpty()) return@flatMap emptyList()
+            val covered = mine.flatMapTo(HashSet()) { it.items.flatMap(plan::under) }
+            PlanSchedule.ready(plan).filter { candidate ->
+                val item = candidate.item
+                val owner = generateSequence(item) { it.parent?.let(plan::item) }.mapNotNull { it.seat?.let(plan::seat) }.firstOrNull()
+                val chosen = owner?.takeIf { it.heldBy(actor) }?.let { profile(it.profile) }
+                (actor.kind == BoardActorKind.Person || item.kind != PlanKind.Decision) &&
+                    (owner == null || owner.heldBy(actor)) && (mine.isEmpty() || item.id in covered) &&
+                    (chosen == null || (chosen.planKinds.isEmpty() || item.kind in chosen.planKinds) &&
+                        (chosen.planRefs.isEmpty() || chosen.planRefs.any { wanted -> item.refs.any { it == wanted || it.startsWith("$wanted/") } }))
+            }
+        }
+        val candidate = candidates.minWithOrNull(compareByDescending<PlanCandidate> { it.priority }.thenByDescending { it.unblocks }.thenBy { it.age })
+        return PlanNext(candidate, if (candidate == null) "No ready item matches this agent, its seat and profile" else "")
     }
 
     @Synchronized fun attach(thread: String, seat: (WorkPlan) -> PlanSeat): Pair<WorkPlan, PlanSeat> {

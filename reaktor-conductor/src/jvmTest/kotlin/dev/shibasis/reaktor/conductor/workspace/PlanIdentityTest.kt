@@ -33,6 +33,18 @@ class PlanIdentityTest {
         assertFalse(actors.first().same(PlanIdentity.actor(actors.last(), run("claude", provider = RuntimeKind.ClaudeCode))))
     }
 
+    @Test fun managedRunsUseTheirResolvedProfileAndSeat() {
+        val run = run("managed", provider = RuntimeKind.Gemini)
+        val request = AgentSubmission("plan:0123456789abcdef:s2", RuntimeKind.Gemini, "Work",
+            resolvedSeat = ResolvedTaskSeat(TaskSeat(profile = "gemini"), name = "Gemini 4 Argon"))
+        val actor = BoardActor(BoardActorKind.Agent, "spawned", "hangar:managed")
+        assertEquals("Gemini 4 Argon · s2", PlanIdentity.actor(actor, run, request).name)
+        assertEquals("Gemini 4 Argon · s2", PlanIdentity.actor(actor.copy(session = "agy:native-managed"), run, request).name)
+        assertEquals("Gemini 4 Argon", PlanIdentity.actor(actor, run, request.copy(requestId = "plain")).name)
+        assertEquals("Gemini", PlanIdentity.actor(actor, run).name)
+        assertEquals("spawned", PlanIdentity.actor(actor, request = request).name)
+    }
+
     @Test fun unknownRunCannotSupplyItsOwnIdentity() {
         val forged = BoardActor(BoardActorKind.Agent, "spawned", "hangar:unknown", "agent:codex:conversation")
         assertNull(PlanIdentity.actor(forged).agent)

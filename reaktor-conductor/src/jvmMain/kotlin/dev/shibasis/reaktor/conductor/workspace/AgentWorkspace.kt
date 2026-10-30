@@ -74,12 +74,33 @@ class AgentWorkspace(
     internal fun planIdentity(actor: BoardActor): BoardActor {
         if (actor.kind != BoardActorKind.Agent) return actor.copy(agent = null)
         val ref = actor.session ?: return actor.copy(agent = null)
-        val run = synchronized(lock) {
-            val direct = ref.takeIf { it.startsWith(BoardRefs.Hangar) }?.removePrefix(BoardRefs.Hangar)
-                ?.takeIf { it.matches(Regex("[a-f0-9]{64}")) }?.let { records[it] ?: load(it) }
-            direct ?: recent.asSequence().mapNotNull { records[it] ?: load(it) }.firstOrNull { ref in runRefs(it) }
+        val run = planRun(ref)
+        return PlanIdentity.actor(actor, run, run?.let { runCatching { submission(it.id) }.getOrNull() })
+    }
+
+    private fun planRun(ref: String): AgentRunRecord? = synchronized(lock) {
+        val direct = ref.takeIf { it.startsWith(BoardRefs.Hangar) }?.removePrefix(BoardRefs.Hangar)
+            ?.takeIf { it.matches(Regex("[a-f0-9]{64}")) }?.let { records[it] ?: load(it) }
+        direct ?: recent.asSequence().mapNotNull { records[it] ?: load(it) }.firstOrNull { ref in runRefs(it) }
+    }
+
+    fun nextPlan(thread: String?, by: BoardActor, seat: String? = null, agent: String? = null): PlanNext {
+        val actor = planIdentity(by)
+        require(actor.kind == BoardActorKind.Person || actor.agent != null) { "A named agent session is required" }
+        require(agent == null || agent == actor.agent || agent == actor.session) { "plan.next selects work for the authenticated agent only" }
+        val provider = when (actor.agent?.substringAfter("agent:")?.substringBefore(':')) {
+            "codex" -> RuntimeKind.Codex
+            "claude" -> RuntimeKind.ClaudeCode
+            "agy" -> RuntimeKind.Gemini
+            else -> null
         }
-        return PlanIdentity.actor(actor, run)
+        val paused = provider?.entitlements().orEmpty().map { entitlements.get(it.entitlement) }.filter { it.paused }
+        if (paused.isNotEmpty()) return PlanNext(reason = paused.joinToString { "${it.entitlement}: ${it.reason}" }, quota = "Operator paused this quota pool")
+        val limit = synchronized(lock) {
+            recent.asSequence().mapNotNull { records[it] ?: load(it) }.filter { it.provider == provider }.maxByOrNull { it.updatedAt }?.usageLimit
+        }?.takeIf { it.resetsAtEpochMillis == null || it.resetsAtEpochMillis > System.currentTimeMillis() }
+        if (limit != null) return PlanNext(reason = limit.code, quota = "Provider reported a usage limit" + limit.resetsAtEpochMillis?.let { "; resets at $it" }.orEmpty())
+        return plans.next(thread, actor, seat, profiles::read)
     }
 
     fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached {

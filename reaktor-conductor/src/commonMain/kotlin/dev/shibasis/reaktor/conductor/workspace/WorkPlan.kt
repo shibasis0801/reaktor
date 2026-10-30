@@ -57,6 +57,7 @@ data class PlanItem(
     val priority: PlanPriority = PlanPriority.Normal,
     val reason: String = "",
     val replacement: String? = null,
+    val createdAt: Long = 0,
 )
 
 @Serializable
@@ -110,10 +111,7 @@ data class WorkPlan(
         return items.filter { it.id !in parents }
     }
 
-    fun ready(): List<PlanItem> = leaves().filter { item ->
-        item.status == PlanStatus.Todo && item.after.all { state(it) in setOf(PlanStatus.Done, PlanStatus.Dropped) } &&
-            generateSequence(item.parent?.let(this::item)) { it.parent?.let(this::item) }.take(items.size).none { it.status == PlanStatus.Dropped }
-    }.sortedByDescending { it.priority.ordinal }
+    fun ready(): List<PlanItem> = PlanSchedule.ready(this).map { it.item }
 
     fun components(): List<PlanItem> {
         val parents = items.mapNotNullTo(HashSet()) { it.parent }
@@ -406,7 +404,7 @@ object PlanRules {
                         val id = key ?: generateSequence(next) { it + 1 }.map { "p$it" }.first { it !in items }.also { next = it.removePrefix("p").toInt() + 1 }
                         val (reason, replacement) = closing(op.status, op.reason, op.replacement, id)
                         items[id] = touch(PlanItem(id, title, detail, op.status, parent, after, links, at = op.at, kind = op.kind, priority = op.priority,
-                            reason = reason, replacement = replacement))
+                            reason = reason, replacement = replacement, createdAt = now))
                         "Added $id “$title”"
                     }
                     is PlanOp.Update -> {

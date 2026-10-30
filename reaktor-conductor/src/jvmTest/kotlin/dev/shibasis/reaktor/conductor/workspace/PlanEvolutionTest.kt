@@ -32,7 +32,7 @@ class PlanEvolutionTest {
             PlanOp.Add("Blocked urgent", key = "blocked", after = listOf("low"), priority = PlanPriority.Urgent),
             PlanOp.Add("Another high", key = "high-again", priority = PlanPriority.High),
             PlanOp.Add("Finished", key = "done", status = PlanStatus.Done))
-        assertEquals(listOf("urgent", "high", "high-again", "normal", "low"), plan.ready().map { it.id })
+        assertEquals(listOf("low", "urgent", "high", "high-again", "normal"), plan.ready().map { it.id })
         val finished = PlanRules.apply(plan, PlanPatch(ops = listOf(PlanOp.Status("low", PlanStatus.Done))), person, 3).plan
         assertEquals(listOf("urgent", "blocked"), finished.ready().take(2).map { it.id })
     }
