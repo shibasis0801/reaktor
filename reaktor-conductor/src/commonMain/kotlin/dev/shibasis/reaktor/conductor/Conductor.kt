@@ -115,9 +115,7 @@ class Conductor(
                     round = round,
                     createdAtEpochMillis = clock(),
                 )
-            val previous = snapshot.events.dropLast(1).lastOrNull()
-            val canResume = resumeProviderSession && previous?.author == Author.Agent(agent.id) && previous.kind != EventKind.Failure
-            val resume = if (canResume) snapshot.providerSessions[agent.id.value]?.takeIf { it.runtime == agent.runtime } else null
+            val resume = if (resumeProviderSession) snapshot.providerSessions[agent.id.value]?.takeIf { it.runtime == agent.runtime } else null
             fun turnUsage(outcome: AgentOutcome): AgentUsage? {
                 val baseline = snapshot.events.lastOrNull { it.session != null && it.session == outcome.session }?.reportedUsage
                 return outcome.usage?.forTurn(baseline, freshSession = resume == null)

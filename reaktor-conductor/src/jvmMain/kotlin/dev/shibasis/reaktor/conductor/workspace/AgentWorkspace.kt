@@ -69,7 +69,18 @@ class AgentWorkspace(
     private val seatResolver = TaskSeatResolver(profiles::read) { provider -> capabilities.firstOrNull { it.runtime == provider } }
     fun resolveSeat(seat: TaskSeat): ResolvedTaskSeat = seatResolver.resolve(seat)
     val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat, scopeModules = scopeModules, summarize = ::summarize)
-    val plans = WorkPlanStore(directory.resolve("plans"), Path.of(System.getProperty("user.home"), ".reaktor", "inbox"))
+    val plans = WorkPlanStore(directory.resolve("plans"), Path.of(System.getProperty("user.home"), ".reaktor", "inbox"), identity = ::planIdentity)
+
+    internal fun planIdentity(actor: BoardActor): BoardActor {
+        if (actor.kind != BoardActorKind.Agent) return actor.copy(agent = null)
+        val ref = actor.session ?: return actor.copy(agent = null)
+        val run = synchronized(lock) {
+            val direct = ref.takeIf { it.startsWith(BoardRefs.Hangar) }?.removePrefix(BoardRefs.Hangar)
+                ?.takeIf { it.matches(Regex("[a-f0-9]{64}")) }?.let { records[it] ?: load(it) }
+            direct ?: recent.asSequence().mapNotNull { records[it] ?: load(it) }.firstOrNull { ref in runRefs(it) }
+        }
+        return PlanIdentity.actor(actor, run)
+    }
 
     fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached {
         val chosen = profiles.read(profile)

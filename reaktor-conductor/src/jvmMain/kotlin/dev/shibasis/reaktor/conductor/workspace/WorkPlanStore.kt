@@ -7,7 +7,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.nio.file.Files
 import java.nio.file.Path
 
-class WorkPlanStore(private val directory: Path, inbox: Path? = null, private val clock: () -> Long = System::currentTimeMillis) {
+class WorkPlanStore(private val directory: Path, inbox: Path? = null,
+    private val identity: (BoardActor) -> BoardActor = { it }, private val clock: () -> Long = System::currentTimeMillis) {
     private val inbox = inbox?.let(::ThreadInbox)
     private val plans = HashMap<String, WorkPlan>()
     private val changed = MutableStateFlow(0L)
@@ -22,18 +23,25 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null, private va
 
     @Synchronized fun list(): List<PlanSummary> = plans.values.sortedByDescending { it.updatedAt }.map(WorkPlan::summary)
 
-    @Synchronized fun plan(thread: String): WorkPlan? = plans[thread]
+    @Synchronized fun plan(thread: String): WorkPlan? = plans[thread]?.let(::identified)
+
+    private fun identified(plan: WorkPlan): WorkPlan = plan.copy(
+        items = plan.items.map { it.copy(by = it.by?.let(identity)) },
+        seats = plan.seats.map { seat -> seat.copy(agent = seat.session?.let { identity(BoardActor(BoardActorKind.Agent, seat.profile, it)).agent }) },
+        changes = plan.changes.map { it.copy(by = identity(it.by)) },
+    )
 
     @Synchronized fun read(thread: String, since: Long? = null, reader: BoardActor? = null): PlanRead {
-        val plan = plans[thread] ?: error("$thread has no plan yet; its agent draws one with plan.write")
-        return PlanRead(plan, since?.let { plan.news(it, reader) }.orEmpty())
+        val plan = plan(thread) ?: error("$thread has no plan yet; its agent draws one with plan.write")
+        return PlanRead(plan, since?.let { plan.news(it, reader?.let(identity)) }.orEmpty())
     }
 
     @Synchronized fun write(thread: String, patch: PlanPatch, by: BoardActor): PlanApplied {
         val now = clock()
-        val current = plans[thread]
-        val applied = PlanRules.apply(current ?: PlanRules.start(thread, patch, by, now), patch, by, now)
-        if (current == null && (applied.plan.items.isNotEmpty() || applied.refused.isEmpty()) || current != null && applied.plan != current) save(applied.plan, current, by)
+        val current = plan(thread)
+        val writer = identity(by)
+        val applied = PlanRules.apply(current ?: PlanRules.start(thread, patch, writer, now), patch, writer, now)
+        if (current == null && (applied.plan.items.isNotEmpty() || applied.refused.isEmpty()) || current != null && applied.plan != current) save(applied.plan, current, writer)
         return applied
     }
 

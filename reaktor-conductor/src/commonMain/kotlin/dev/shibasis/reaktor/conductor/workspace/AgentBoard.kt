@@ -16,7 +16,7 @@ enum class BoardColumn(val label: String) {
 enum class BoardActorKind { Person, Agent, Schedule }
 
 @Serializable
-data class BoardActor(val kind: BoardActorKind, val name: String, val session: String? = null)
+data class BoardActor(val kind: BoardActorKind, val name: String, val session: String? = null, val agent: String? = null)
 
 @Serializable
 sealed interface BoardBlocker {

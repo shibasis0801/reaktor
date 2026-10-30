@@ -68,6 +68,7 @@ data class PlanSeat(
     val at: Long,
     val run: String? = null,
     val session: String? = null,
+    val agent: String? = null,
 )
 
 @Serializable
@@ -270,8 +271,16 @@ object PlanBrief {
     }
 }
 
-fun BoardActor.same(other: BoardActor?): Boolean = other != null && kind == other.kind &&
-    if (session != null || other.session != null) session == other.session else name == other.name
+fun BoardActor.same(other: BoardActor?): Boolean = other != null && kind == other.kind && when {
+    agent != null && other.agent != null -> agent == other.agent
+    session != null || other.session != null -> session == other.session
+    else -> name == other.name
+}
+
+fun PlanSeat.heldBy(actor: BoardActor): Boolean = when {
+    agent != null && actor.agent != null -> agent == actor.agent
+    else -> session != null && session == actor.session
+}
 
 object PlanRules {
     const val MaxItems = 200
@@ -301,8 +310,8 @@ object PlanRules {
         var seats = plan.seats
         val claimed = patch.seat?.let { id ->
             val seat = plan.seat(id) ?: error("$id is not a seat on this plan")
-            require(seat.session == null || by.session == null || seat.session == by.session) { "$id belongs to ${seat.session}" }
-            if (seat.session == null && by.session != null) seats = seats.map { if (it.id == id) it.copy(session = by.session) else it }
+            require(seat.session == null || by.session == null || seat.heldBy(by)) { "$id belongs to ${seat.session}" }
+            if (seat.session == null && by.session != null) seats = seats.map { if (it.id == id) it.copy(session = by.session, agent = by.agent) else it }
             seat
         }
         val seatedItems = claimed?.items.orEmpty().flatMapTo(HashSet()) { root -> plan.under(root) }
@@ -326,7 +335,7 @@ object PlanRules {
             if (claimed != null) return if (id in seatedItems || items[id]?.let { item -> generateSequence(item) { it.parent?.let(items::get) }.any { it.id in seatedItems } } == true) null
                 else "$id is outside your seat ${claimed.id}; it covers ${claimed.items.joinToString()}"
             val owner = ownedBy(id) ?: return null
-            return if (owner.session != null && owner.session == by.session) null else "$id belongs to seat ${owner.id} (${owner.profile}); only that agent, the thread's agent or a person changes it"
+            return if (owner.heldBy(by)) null else "$id belongs to seat ${owner.id} (${owner.profile}); only that agent, the thread's agent or a person changes it"
         }
 
         fun fresh(id: String): String? {
