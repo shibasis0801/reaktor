@@ -1,0 +1,16 @@
+{
+  "observedAt": "2026-10-29T13:25:31.934313+05:30",
+  "archiveSha256": "4da9cf45e81545a29535b84b0073357a005529197837c27706cf77b989f96134",
+  "distributions": {
+    "primary": {
+      "jars": 283,
+      "allHashesMatchCheckedPackage": true,
+      "serviceSha256": "4f91d5c5230f9d651da7cbd8e6592d5ef34b40f34407d82293c25c9f6d62bf32"
+    },
+    "agent": {
+      "jars": 274,
+      "allHashesMatchCheckedPackage": true,
+      "serviceSha256": "4f91d5c5230f9d651da7cbd8e6592d5ef34b40f34407d82293c25c9f6d62bf32"
+    }
+  }
+}

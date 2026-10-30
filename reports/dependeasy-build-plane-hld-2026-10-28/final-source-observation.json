@@ -1,0 +1,180 @@
+[
+  {
+    "path": "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt",
+    "currentSha256": "144766f9a57ab7f5d9de03f64d3a54622ba36f4383ea9ce1201eddf55994916e",
+    "frozenIdentity": [
+      "file",
+      "144766f9a57ab7f5d9de03f64d3a54622ba36f4383ea9ce1201eddf55994916e",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt",
+    "currentSha256": "e9e8ee454a0650a2fb447744ee30b7bc25fa1531c56463b164f89efb61358e1a",
+    "frozenIdentity": [
+      "file",
+      "e9e8ee454a0650a2fb447744ee30b7bc25fa1531c56463b164f89efb61358e1a",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt",
+    "currentSha256": "b299539309e43df670471841610cc787e2f5da361b6c15c5e16d97bae1ac4d6a",
+    "frozenIdentity": [
+      "file",
+      "b299539309e43df670471841610cc787e2f5da361b6c15c5e16d97bae1ac4d6a",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt",
+    "currentSha256": "c96dce3267644a974bd2041556a661508b4b0a6866c805015524479de84a039a",
+    "frozenIdentity": [
+      "file",
+      "c96dce3267644a974bd2041556a661508b4b0a6866c805015524479de84a039a",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/BackendPipelineTest.kt",
+    "currentSha256": "2526895775c023d9c9d61a6f282902eb933ad610ac8ae74c6961bc641842f00b",
+    "frozenIdentity": [
+      "file",
+      "2526895775c023d9c9d61a6f282902eb933ad610ac8ae74c6961bc641842f00b",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/GradlePlanningTest.kt",
+    "currentSha256": "42431cd19541eecdc6b0100e7239bf15ff08b5bbdba823843bd42108f59a311e",
+    "frozenIdentity": [
+      "file",
+      "42431cd19541eecdc6b0100e7239bf15ff08b5bbdba823843bd42108f59a311e",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleBuildPlanner.kt",
+    "currentSha256": "991a15c287a34817cf77354de16f572e2372c3bf952e54f3d8127cc8af05d45c",
+    "frozenIdentity": [
+      "file",
+      "991a15c287a34817cf77354de16f572e2372c3bf952e54f3d8127cc8af05d45c",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/BuildDeclarationsTest.kt",
+    "currentSha256": "9894b3a792d2fe980d043a725efe3aa6d504b78de669beba0e47113f0613bbc0",
+    "frozenIdentity": [
+      "file",
+      "9894b3a792d2fe980d043a725efe3aa6d504b78de669beba0e47113f0613bbc0",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "bestbuds/targets/reaktorCli/src/main/kotlin/ai/bestbuds/reaktor/cli/KernelCli.kt",
+    "currentSha256": "f446d48c40af15f6dbe3e574c8c81a76001da0c5765707821414eb3e5de215cd",
+    "frozenIdentity": [
+      "file",
+      "f446d48c40af15f6dbe3e574c8c81a76001da0c5765707821414eb3e5de215cd",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "bestbuds/modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/ConductorCli.kt",
+    "currentSha256": "5e741eca704aa85689228cbbb86603d4bfdaf0d2579d43cba9ffaf75f7d09d34",
+    "frozenIdentity": [
+      "file",
+      "5e741eca704aa85689228cbbb86603d4bfdaf0d2579d43cba9ffaf75f7d09d34",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelChanges.kt",
+    "currentSha256": "156db929f7ebbde49171699bd1cc11234b9ae8110397323ae9ed4c5b83cc8911",
+    "frozenIdentity": [
+      "file",
+      "156db929f7ebbde49171699bd1cc11234b9ae8110397323ae9ed4c5b83cc8911",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "tools/remote-dev",
+    "currentSha256": "8f9704e467e3365b642918a1e0aeeae3c20b85b269ee324aa7e30694630555f2",
+    "frozenIdentity": null,
+    "matchesFrozen": null
+  },
+  {
+    "path": "tools/test_remote_router.py",
+    "currentSha256": "897bdf936872abc3ba3f40110325439b883bc564d957c7f79ef584fa428ecca7",
+    "frozenIdentity": null,
+    "matchesFrozen": null
+  },
+  {
+    "path": "tools/README.md",
+    "currentSha256": "f955f5f01cb9879f306b1ffd1a2bd31bc204cbc6d805ae26a02cbd2661e55356",
+    "frozenIdentity": null,
+    "matchesFrozen": null
+  },
+  {
+    "path": "reaktor/gradle.properties",
+    "currentSha256": "40103d487bdba7369ecaffab7a700fb332b25bbba85be5caec8f8800f07546e0",
+    "frozenIdentity": [
+      "file",
+      "40103d487bdba7369ecaffab7a700fb332b25bbba85be5caec8f8800f07546e0",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt",
+    "currentSha256": "9ad0a2d7c86b3a9cce90c7d4e6e91c7899db570c7df88ee222a0b9cfa6f8f04b",
+    "frozenIdentity": [
+      "file",
+      "9ad0a2d7c86b3a9cce90c7d4e6e91c7899db570c7df88ee222a0b9cfa6f8f04b",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "bestbuds/targets/reaktorCli/README.md",
+    "currentSha256": "52b71fb00599fba106224ce31520ee84c16edee3945ef66fa5a26ec42f1de950",
+    "frozenIdentity": [
+      "file",
+      "52b71fb00599fba106224ce31520ee84c16edee3945ef66fa5a26ec42f1de950",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/operation/OperationGate.kt",
+    "currentSha256": "807b1b31f7307fa48310ab5ab1c869698b8c289ec53fc95c59c713aa20fdac8d",
+    "frozenIdentity": [
+      "file",
+      "807b1b31f7307fa48310ab5ab1c869698b8c289ec53fc95c59c713aa20fdac8d",
+      420
+    ],
+    "matchesFrozen": true
+  },
+  {
+    "path": "reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServerTest.kt",
+    "currentSha256": "0912119fbb093aaa1c3ae02a53417eec63c526d57f663ab78e479f5a357bd8eb",
+    "frozenIdentity": [
+      "file",
+      "0912119fbb093aaa1c3ae02a53417eec63c526d57f663ab78e479f5a357bd8eb",
+      420
+    ],
+    "matchesFrozen": true
+  }
+]

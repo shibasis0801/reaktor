@@ -1,0 +1,18 @@
+{
+  "run_id": "20261029-072053-8564b7d0-bestbuds",
+  "project": "bestbuds",
+  "worker": "local",
+  "tasks": [
+    "runBuildNode",
+    "-Pdependeasy.gradleRequest=/Users/ovd/dev/bestbuds/build/dependeasy/contracts/gradle/requests/9f55e56b345a205af09c8fa41412113820afaa7c3e95c2d0f5e6e703bda7a747.json",
+    "--console=plain"
+  ],
+  "workspace_root": "/Users/ovd/dev",
+  "started": "2026-10-29T07:20:53.065265",
+  "log": "/Users/ovd/dev/.remote-dev/logs/20261029-072053-8564b7d0-bestbuds.log",
+  "queue_seconds": 42.301247167,
+  "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+  "exit_code": 1,
+  "execution_seconds": 702.5635848329999,
+  "finished": "2026-10-29T07:32:35.634924"
+}

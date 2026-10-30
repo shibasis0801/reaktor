@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentExecutionTraceTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:23:03.537Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.013">
+  <properties/>
+  <testcase name="waitsUseOnlyRecordedNonnegativeDurationsAndStoppedCallsRemainInterrupted[jvm]" classname="ai.bestbuds.reaktor.AgentExecutionTraceTest" time="0.009"/>
+  <testcase name="hierarchyQualifiesRepeatedNativeIdsAndChargesUsageOnlyToTurns[jvm]" classname="ai.bestbuds.reaktor.AgentExecutionTraceTest" time="0.001"/>
+  <testcase name="missingOrReversedAttemptBoundsAndIncompleteCriticalPathsRemainUnknown[jvm]" classname="ai.bestbuds.reaktor.AgentExecutionTraceTest" time="0.001"/>
+  <testcase name="pendingRerunAndDeletedTasksDoNotEraseHistoryOrAcquireItsUsage[jvm]" classname="ai.bestbuds.reaktor.AgentExecutionTraceTest" time="0.001"/>
+  <testcase name="retainedAttemptsKeepTheirOwnBoundsAndOnlyCurrentEvidenceGetsTheCriticalPath[jvm]" classname="ai.bestbuds.reaktor.AgentExecutionTraceTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

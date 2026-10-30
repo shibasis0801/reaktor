@@ -150,9 +150,11 @@ class OperationGate internal constructor(
         val confirmationPhrase = runCatching { entry.confirmationPhrase?.invoke(invocation.arguments) }.getOrElse { failure ->
             return Outcome.Failed(failure.message ?: "Could not validate the reviewed approval").also { record("failed", it.message) }
         }
+        val seatPolicy = authority.policy.seat(seat)
         var approval: DoorApproval? = null
-        when (val decision = entry.decide(effect, authority.policy.seat(seat), ownPlan)) {
-            DoorDecision.Allowed -> Unit
+        var superadmin = false
+        when (val decision = entry.decide(effect, seatPolicy, ownPlan)) {
+            DoorDecision.Allowed -> superadmin = seatPolicy.superadmin
             is DoorDecision.Refused -> return Outcome.Refused(effect, decision.reason).also { record("refused", decision.reason) }
             is DoorDecision.Ask -> {
                 val approvals = authority.approvals
@@ -204,7 +206,7 @@ class OperationGate internal constructor(
             }
         }
         var outcome = try {
-            Outcome.Completed(entry.execute(OperationCall(invocation, approval, receipt?.id), invocation.arguments))
+            Outcome.Completed(entry.execute(OperationCall(invocation, approval, receipt?.id, superadmin), invocation.arguments))
         } catch (cancelled: CancellationException) {
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { finishReceipt(RunStatus.Cancelled) }
             throw cancelled
@@ -228,7 +230,7 @@ class OperationGate internal constructor(
         catch (failure: Exception) {
             outcome = Outcome.Failed("${descriptor.id} executed, but its final receipt could not be saved; inspect the run before retrying")
         }
-        record(if (outcome is Outcome.Completed) "ok" else "failed", listOfNotNull(effect.name, approval?.let { "approval ${it.id} by ${it.decidedBy}" },
+        record(if (outcome is Outcome.Completed) "ok" else "failed", listOfNotNull(effect.name, "superadmin policy".takeIf { superadmin }, approval?.let { "approval ${it.id} by ${it.decidedBy}" },
             (outcome as? Outcome.Failed)?.message).joinToString("; "))
         if (key != null && effect != SafetyClass.ReadOnly) synchronized(replies) { replies[key] = outcome }
         return outcome
@@ -244,7 +246,7 @@ class OperationGate internal constructor(
     ) {
         fun decide(effect: SafetyClass, seat: dev.shibasis.reaktor.tooling.mcp.door.SeatPolicy, ownPlan: Boolean = false): DoorDecision =
             DoorAuthority.decide(effect, seat, ownPlan).let { decision ->
-                if (decision == DoorDecision.Allowed && confirmationPhrase != null) DoorDecision.Ask(effect) else decision
+                if (decision == DoorDecision.Allowed && confirmationPhrase != null && !seat.superadmin) DoorDecision.Ask(effect) else decision
             }
     }
 

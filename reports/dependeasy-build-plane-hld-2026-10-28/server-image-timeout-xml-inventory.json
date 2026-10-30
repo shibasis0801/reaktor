@@ -1,0 +1,1775 @@
+[
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PresentationCacheTest.xml",
+    "name": "PresentationCacheTest[jvm]",
+    "timestamp": "2026-10-29T01:07:41.216Z",
+    "time": 0.013,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseStudioContractsTest.xml",
+    "name": "DatabaseStudioContractsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:01.498Z",
+    "time": 0.011,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkspaceContextLabelTest.xml",
+    "name": "WorkspaceContextLabelTest[jvm]",
+    "timestamp": "2026-10-29T01:03:02.343Z",
+    "time": 0.001,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsInspectorTitleTest.xml",
+    "name": "DevToolsInspectorTitleTest[jvm]",
+    "timestamp": "2026-10-29T01:07:02.199Z",
+    "time": 0.002,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNodeTest.xml",
+    "name": "GraphPaneNodeTest[jvm]",
+    "timestamp": "2026-10-29T01:05:36.468Z",
+    "time": 1.238,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.EvidenceWorkspaceStateTest.xml",
+    "name": "EvidenceWorkspaceStateTest[jvm]",
+    "timestamp": "2026-10-29T01:07:39.441Z",
+    "time": 0.021,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.DatabaseStudioPaneRenderTest.xml",
+    "name": "DatabaseStudioPaneRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:03:05.649Z",
+    "time": 0.53,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudWorkTest.xml",
+    "name": "CloudWorkTest[jvm]",
+    "timestamp": "2026-10-29T01:06:40.267Z",
+    "time": 6.454,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryExecutionPaneTest.xml",
+    "name": "TelemetryExecutionPaneTest[jvm]",
+    "timestamp": "2026-10-29T01:10:00.896Z",
+    "time": 0.063,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PlanBoardModelTest.xml",
+    "name": "PlanBoardModelTest[jvm]",
+    "timestamp": "2026-10-29T01:07:41.102Z",
+    "time": 0.06,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest.xml",
+    "name": "ProductAnalyticsStateTest[jvm]",
+    "timestamp": "2026-10-29T01:07:34.849Z",
+    "time": 1.193,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.DatabaseResultExportTest.xml",
+    "name": "DatabaseResultExportTest[jvm]",
+    "timestamp": "2026-10-29T01:02:06.676Z",
+    "time": 0.01,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest.xml",
+    "name": "AuthConsoleTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.561Z",
+    "time": 0.269,
+    "tests": 11,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.links.LiveDeploysTest.xml",
+    "name": "LiveDeploysTest[jvm]",
+    "timestamp": "2026-10-29T01:07:34.817Z",
+    "time": 0.031,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest.xml",
+    "name": "SurfaceLabRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:03:17.656Z",
+    "time": 12.396,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AuthPaneBaselineTest.xml",
+    "name": "AuthPaneBaselineTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.923Z",
+    "time": 0.001,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.AdaptiveOperationsTest.xml",
+    "name": "AdaptiveOperationsTest[jvm]",
+    "timestamp": "2026-10-29T01:04:01.446Z",
+    "time": 0.06,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.graph.DesktopOperationalReadsTest.xml",
+    "name": "DesktopOperationalReadsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:09.424Z",
+    "time": 1.753,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.AgentWorkTest.xml",
+    "name": "AgentWorkTest[jvm]",
+    "timestamp": "2026-10-29T01:05:02.338Z",
+    "time": 0.002,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.cloud.RadarSessionTest.xml",
+    "name": "RadarSessionTest[jvm]",
+    "timestamp": "2026-10-29T01:06:46.721Z",
+    "time": 0.633,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.OperationalInspectorTitleTest.xml",
+    "name": "OperationalInspectorTitleTest[jvm]",
+    "timestamp": "2026-10-29T01:07:39.480Z",
+    "time": 0.001,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SafeDeleteGuardTest.xml",
+    "name": "SafeDeleteGuardTest[jvm]",
+    "timestamp": "2026-10-29T01:02:13.506Z",
+    "time": 2.051,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.studio.StudioSizesTest.xml",
+    "name": "StudioSizesTest[jvm]",
+    "timestamp": "2026-10-29T01:10:00.857Z",
+    "time": 0.022,
+    "tests": 10,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest.xml",
+    "name": "WorkbenchSubsystemCoverageTest[jvm]",
+    "timestamp": "2026-10-29T01:02:50.005Z",
+    "time": 12.194,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentExecutionTraceTest.xml",
+    "name": "AgentExecutionTraceTest[jvm]",
+    "timestamp": "2026-10-29T01:01:26.977Z",
+    "time": 0.009,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.SplitterParityTest.xml",
+    "name": "SplitterParityTest[jvm]",
+    "timestamp": "2026-10-29T01:03:17.452Z",
+    "time": 0.202,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataResultIsolationTest.xml",
+    "name": "DataResultIsolationTest[jvm]",
+    "timestamp": "2026-10-29T01:06:59.308Z",
+    "time": 0.141,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceCrashIdsTest.xml",
+    "name": "DeviceCrashIdsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.835Z",
+    "time": 0.001,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.inspection.WorkbenchElementBindingsTest.xml",
+    "name": "WorkbenchElementBindingsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:34.672Z",
+    "time": 0.118,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceCancellationTest.xml",
+    "name": "DeviceCancellationTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.813Z",
+    "time": 0.021,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AccessGraphTest.xml",
+    "name": "AccessGraphTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.248Z",
+    "time": 0.245,
+    "tests": 11,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.buildgraph.BuildGraphSourceTest.xml",
+    "name": "BuildGraphSourceTest[jvm]",
+    "timestamp": "2026-10-29T01:05:54.188Z",
+    "time": 0.01,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.buildgraph.BuildDeliveryModelTest.xml",
+    "name": "BuildDeliveryModelTest[jvm]",
+    "timestamp": "2026-10-29T01:05:54.182Z",
+    "time": 0.005,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataPresentationTest.xml",
+    "name": "DataPresentationTest[jvm]",
+    "timestamp": "2026-10-29T01:06:59.303Z",
+    "time": 0.003,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudReadsTest.xml",
+    "name": "CloudReadsTest[jvm]",
+    "timestamp": "2026-10-29T01:06:40.265Z",
+    "time": 0.0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsRecorderTest.xml",
+    "name": "DevToolsRecorderTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.499Z",
+    "time": 0.005,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsUndoTest.xml",
+    "name": "DevToolsUndoTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.509Z",
+    "time": 0.3,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.TextScalePartsTest.xml",
+    "name": "TextScalePartsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:41.234Z",
+    "time": 0.15,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudApiExplorerRenderTest.xml",
+    "name": "CloudApiExplorerRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:05:57.294Z",
+    "time": 8.169,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphRenderTest.xml",
+    "name": "AppGraphRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:05:25.233Z",
+    "time": 9.035,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.HangarCommandsTest.xml",
+    "name": "HangarCommandsTest[jvm]",
+    "timestamp": "2026-10-29T01:04:01.508Z",
+    "time": 0.03,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.WorkbenchShellRenderTest.xml",
+    "name": "WorkbenchShellRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:03:30.054Z",
+    "time": 24.326,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PanePartsTest.xml",
+    "name": "PanePartsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:39.836Z",
+    "time": 1.262,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseBrowseQueriesTest.xml",
+    "name": "DatabaseBrowseQueriesTest[jvm]",
+    "timestamp": "2026-10-29T01:07:01.496Z",
+    "time": 0.001,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudPaneRenderTest.xml",
+    "name": "CloudPaneRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:06:05.486Z",
+    "time": 34.368,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentConversationStateTest.xml",
+    "name": "AgentConversationStateTest[jvm]",
+    "timestamp": "2026-10-29T01:01:16.435Z",
+    "time": 10.539,
+    "tests": 11,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryLogPinTest.xml",
+    "name": "TelemetryLogPinTest[jvm]",
+    "timestamp": "2026-10-29T01:10:01.149Z",
+    "time": 0.016,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SystemIslandsTest.xml",
+    "name": "SystemIslandsTest[jvm]",
+    "timestamp": "2026-10-29T01:02:42.896Z",
+    "time": 0.013,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SurfaceRetirementTest.xml",
+    "name": "SurfaceRetirementTest[jvm]",
+    "timestamp": "2026-10-29T01:02:41.753Z",
+    "time": 1.04,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.AgentConfigFilesTest.xml",
+    "name": "AgentConfigFilesTest[jvm]",
+    "timestamp": "2026-10-29T01:04:02.545Z",
+    "time": 0.047,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AuthInspectorTitleTest.xml",
+    "name": "AuthInspectorTitleTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.832Z",
+    "time": 0.09,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.links.ProductSqlTemplatesTest.xml",
+    "name": "ProductSqlTemplatesTest[jvm]",
+    "timestamp": "2026-10-29T01:07:36.060Z",
+    "time": 0.001,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphShapeTest.xml",
+    "name": "AppGraphShapeTest[jvm]",
+    "timestamp": "2026-10-29T01:05:34.269Z",
+    "time": 0.59,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest.xml",
+    "name": "UiAdaptersTest[jvm]",
+    "timestamp": "2026-10-29T01:07:41.387Z",
+    "time": 1.154,
+    "tests": 9,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.ReaktorEditorChromeGeometryTest.xml",
+    "name": "ReaktorEditorChromeGeometryTest[jvm]",
+    "timestamp": "2026-10-29T01:04:02.098Z",
+    "time": 0.106,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest.xml",
+    "name": "ComponentLevelsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:42.556Z",
+    "time": 0.003,
+    "tests": 9,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.MemgraphGraphResultsTest.xml",
+    "name": "MemgraphGraphResultsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:01.588Z",
+    "time": 0.561,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AuthPaneRenderTest.xml",
+    "name": "AuthPaneRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.925Z",
+    "time": 14.249,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest.xml",
+    "name": "WorkbenchTelemetryInstallationTest[jvm]",
+    "timestamp": "2026-10-29T01:10:02.212Z",
+    "time": 2.759,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.TaskGraphCanvasTest.xml",
+    "name": "TaskGraphCanvasTest[jvm]",
+    "timestamp": "2026-10-29T01:05:02.880Z",
+    "time": 0.006,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.AgentConversationFollowTest.xml",
+    "name": "AgentConversationFollowTest[jvm]",
+    "timestamp": "2026-10-29T01:04:14.665Z",
+    "time": 0.095,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.ReaktorDesktopPerformanceTest.xml",
+    "name": "ReaktorDesktopPerformanceTest[jvm]",
+    "timestamp": "2026-10-29T01:02:07.173Z",
+    "time": 6.332,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentWorkspaceInteractionTest.xml",
+    "name": "AgentWorkspaceInteractionTest[jvm]",
+    "timestamp": "2026-10-29T01:01:27.607Z",
+    "time": 15.895,
+    "tests": 11,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.studio.StudioIconsTest.xml",
+    "name": "StudioIconsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:42.590Z",
+    "time": 0.009,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest.xml",
+    "name": "DesktopGraphCoverageTest[jvm]",
+    "timestamp": "2026-10-29T01:07:06.157Z",
+    "time": 3.263,
+    "tests": 10,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryLedgerStateTest.xml",
+    "name": "TelemetryLedgerStateTest[jvm]",
+    "timestamp": "2026-10-29T01:10:00.960Z",
+    "time": 0.187,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AuthTokenInspectorTest.xml",
+    "name": "AuthTokenInspectorTest[jvm]",
+    "timestamp": "2026-10-29T01:05:54.175Z",
+    "time": 0.001,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceProbeTest.xml",
+    "name": "DeviceProbeTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.839Z",
+    "time": 0.001,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AccessIslandsTest.xml",
+    "name": "AccessIslandsTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.495Z",
+    "time": 0.036,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.TaskBoardTest.xml",
+    "name": "TaskBoardTest[jvm]",
+    "timestamp": "2026-10-29T01:05:02.352Z",
+    "time": 0.003,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetrySignalsPaneTest.xml",
+    "name": "TelemetrySignalsPaneTest[jvm]",
+    "timestamp": "2026-10-29T01:10:01.892Z",
+    "time": 0.094,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphSourcesTest.xml",
+    "name": "AppGraphSourcesTest[jvm]",
+    "timestamp": "2026-10-29T01:05:34.861Z",
+    "time": 0.033,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.links.ProductFindingsTest.xml",
+    "name": "ProductFindingsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:36.046Z",
+    "time": 0.002,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.CanonicalRouteTelemetryTest.xml",
+    "name": "CanonicalRouteTelemetryTest[jvm]",
+    "timestamp": "2026-10-29T01:05:36.271Z",
+    "time": 0.001,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudBlueprintTest.xml",
+    "name": "CloudBlueprintTest[jvm]",
+    "timestamp": "2026-10-29T01:06:05.464Z",
+    "time": 0.012,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.TaskContextPaneTest.xml",
+    "name": "TaskContextPaneTest[jvm]",
+    "timestamp": "2026-10-29T01:05:02.355Z",
+    "time": 0.524,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsPaneRenderTest.xml",
+    "name": "DevToolsPaneRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.498Z",
+    "time": 0.0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceLinkClearTest.xml",
+    "name": "DeviceLinkClearTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.837Z",
+    "time": 0.002,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AccessTrafficTest.xml",
+    "name": "AccessTrafficTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.533Z",
+    "time": 0.011,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.links.SystemLinksTest.xml",
+    "name": "SystemLinksTest[jvm]",
+    "timestamp": "2026-10-29T01:07:36.063Z",
+    "time": 0.004,
+    "tests": 17,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.FilterChipsTest.xml",
+    "name": "FilterChipsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:39.463Z",
+    "time": 0.014,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.MachineSignalTokenParityTest.xml",
+    "name": "MachineSignalTokenParityTest[jvm]",
+    "timestamp": "2026-10-29T01:02:07.126Z",
+    "time": 0.045,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.DesktopZoomLevelTest.xml",
+    "name": "DesktopZoomLevelTest[jvm]",
+    "timestamp": "2026-10-29T01:07:42.549Z",
+    "time": 0.001,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PlanCardMcpParityTest.xml",
+    "name": "PlanCardMcpParityTest[jvm]",
+    "timestamp": "2026-10-29T01:07:41.163Z",
+    "time": 0.052,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.AgentBoardTest.xml",
+    "name": "AgentBoardTest[jvm]",
+    "timestamp": "2026-10-23T17:19:12.129Z",
+    "time": 0.012,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.AgentMachineStateTest.xml",
+    "name": "AgentMachineStateTest[jvm]",
+    "timestamp": "2026-10-29T01:07:39.429Z",
+    "time": 0.01,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.design.HangarIconsTest.xml",
+    "name": "HangarIconsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:36.107Z",
+    "time": 3.32,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.studio.StudioTextFieldTest.xml",
+    "name": "StudioTextFieldTest[jvm]",
+    "timestamp": "2026-10-29T01:10:00.880Z",
+    "time": 0.006,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.PaneEvidenceBindingsTest.xml",
+    "name": "PaneEvidenceBindingsTest[jvm]",
+    "timestamp": "2026-10-29T01:04:02.096Z",
+    "time": 0.0,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.InspectorHeadingLayoutTest.xml",
+    "name": "InspectorHeadingLayoutTest[jvm]",
+    "timestamp": "2026-10-29T01:05:37.749Z",
+    "time": 1.092,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.inspection.WorkbenchDevToolsRoutingTest.xml",
+    "name": "WorkbenchDevToolsRoutingTest[jvm]",
+    "timestamp": "2026-10-29T01:07:18.468Z",
+    "time": 16.201,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.AgentDoorTest.xml",
+    "name": "AgentDoorTest[jvm]",
+    "timestamp": "2026-10-29T01:04:14.761Z",
+    "time": 0.079,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.ai.AiRowIdentityTest.xml",
+    "name": "AiRowIdentityTest[jvm]",
+    "timestamp": "2026-10-29T01:05:13.242Z",
+    "time": 0.0,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.TelemetryLensTest.xml",
+    "name": "TelemetryLensTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.224Z",
+    "time": 0.0,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphFeatureLayoutTest.xml",
+    "name": "AppGraphFeatureLayoutTest[jvm]",
+    "timestamp": "2026-10-29T01:05:13.246Z",
+    "time": 11.984,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.AgentWritePlanTest.xml",
+    "name": "AgentWritePlanTest[jvm]",
+    "timestamp": "2026-10-29T01:05:02.341Z",
+    "time": 0.003,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.links.DeployInspectorTitleTest.xml",
+    "name": "DeployInspectorTitleTest[jvm]",
+    "timestamp": "2026-10-29T01:07:34.798Z",
+    "time": 0.003,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.ReaktorEditorChromeToolRailTest.xml",
+    "name": "ReaktorEditorChromeToolRailTest[jvm]",
+    "timestamp": "2026-10-29T01:04:02.205Z",
+    "time": 0.022,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataDocumentsInteractionTest.xml",
+    "name": "DataDocumentsInteractionTest[jvm]",
+    "timestamp": "2026-10-29T01:06:47.355Z",
+    "time": 0.101,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkbenchTruthInvariantsTest.xml",
+    "name": "WorkbenchTruthInvariantsTest[jvm]",
+    "timestamp": "2026-10-29T01:03:02.203Z",
+    "time": 0.139,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataScopeDraftTest.xml",
+    "name": "DataScopeDraftTest[jvm]",
+    "timestamp": "2026-10-29T01:07:01.418Z",
+    "time": 0.07,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsFileWritesTest.xml",
+    "name": "DevToolsFileWritesTest[jvm]",
+    "timestamp": "2026-10-29T01:07:02.150Z",
+    "time": 0.048,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AuthAccessTest.xml",
+    "name": "AuthAccessTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.546Z",
+    "time": 0.013,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentContextAndDraftTest.xml",
+    "name": "AgentContextAndDraftTest[jvm]",
+    "timestamp": "2026-10-29T01:01:16.004Z",
+    "time": 0.43,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentScorecardTest.xml",
+    "name": "AgentScorecardTest[jvm]",
+    "timestamp": "2026-10-29T01:01:26.987Z",
+    "time": 0.619,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataResultViewsTest.xml",
+    "name": "DataResultViewsTest[jvm]",
+    "timestamp": "2026-10-29T01:06:59.456Z",
+    "time": 0.523,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.AgentConfigsPaneTest.xml",
+    "name": "AgentConfigsPaneTest[jvm]",
+    "timestamp": "2026-10-29T01:04:02.593Z",
+    "time": 12.07,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.BuildGraphPaneTest.xml",
+    "name": "BuildGraphPaneTest[jvm]",
+    "timestamp": "2026-10-29T01:05:34.897Z",
+    "time": 1.373,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.AgentConversationRenderTest.xml",
+    "name": "AgentConversationRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:03:02.368Z",
+    "time": 2.902,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest.xml",
+    "name": "GraphCandidateReviewTest[jvm]",
+    "timestamp": "2026-10-29T01:05:02.345Z",
+    "time": 0.006,
+    "tests": 10,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.TelemetryQueryWorkspaceTest.xml",
+    "name": "TelemetryQueryWorkspaceTest[jvm]",
+    "timestamp": "2026-10-29T01:07:41.230Z",
+    "time": 0.002,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.WorkbenchLogIndexTest.xml",
+    "name": "WorkbenchLogIndexTest[jvm]",
+    "timestamp": "2026-10-29T01:10:01.987Z",
+    "time": 0.222,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.links.CrossPaneVerbsTest.xml",
+    "name": "CrossPaneVerbsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:34.792Z",
+    "time": 0.005,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.MachineSignalSubpaneRenderTest.xml",
+    "name": "MachineSignalSubpaneRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:03:09.044Z",
+    "time": 8.406,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.TableLookParityTest.xml",
+    "name": "TableLookParityTest[jvm]",
+    "timestamp": "2026-10-29T01:02:42.910Z",
+    "time": 0.972,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.WorkbenchKeyboardRoutingTest.xml",
+    "name": "WorkbenchKeyboardRoutingTest[jvm]",
+    "timestamp": "2026-10-29T01:04:02.228Z",
+    "time": 0.316,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryPerformanceTest.xml",
+    "name": "TelemetryPerformanceTest[jvm]",
+    "timestamp": "2026-10-29T01:10:01.755Z",
+    "time": 0.105,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkbenchFeatureTest.xml",
+    "name": "WorkbenchFeatureTest[jvm]",
+    "timestamp": "2026-10-29T01:02:43.901Z",
+    "time": 6.103,
+    "tests": 9,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryPaneRenderTest.xml",
+    "name": "TelemetryPaneRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:10:01.226Z",
+    "time": 0.527,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.DesktopAppearanceTest.xml",
+    "name": "DesktopAppearanceTest[jvm]",
+    "timestamp": "2026-10-29T01:07:42.542Z",
+    "time": 0.007,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.tooling.JvmDiscoveryPerformanceTest.xml",
+    "name": "JvmDiscoveryPerformanceTest[jvm]",
+    "timestamp": "2026-10-29T01:03:54.389Z",
+    "time": 7.056,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AccessCheckWaysTest.xml",
+    "name": "AccessCheckWaysTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.225Z",
+    "time": 0.004,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.testing.CoverageMatrixTest.xml",
+    "name": "CoverageMatrixTest[jvm]",
+    "timestamp": "2026-10-29T01:10:05.284Z",
+    "time": 0.001,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PaneRowActionsTest.xml",
+    "name": "PaneRowActionsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:41.100Z",
+    "time": 0.001,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.ai.AiPaneRenderTest.xml",
+    "name": "AiPaneRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:05:03.132Z",
+    "time": 10.107,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.KubernetesInspectionTest.xml",
+    "name": "KubernetesInspectionTest[jvm]",
+    "timestamp": "2026-10-29T01:04:01.538Z",
+    "time": 0.002,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.WindowChromeInsetsTest.xml",
+    "name": "WindowChromeInsetsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:42.552Z",
+    "time": 0.0,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.design.HumanTypographyTest.xml",
+    "name": "HumanTypographyTest[jvm]",
+    "timestamp": "2026-10-29T01:03:02.345Z",
+    "time": 0.023,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest.xml",
+    "name": "SystemSpansTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.161Z",
+    "time": 0.062,
+    "tests": 9,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.DocumentTabParityTest.xml",
+    "name": "DocumentTabParityTest[jvm]",
+    "timestamp": "2026-10-29T01:03:06.505Z",
+    "time": 0.197,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.preview.UiPreviewInspectionTest.xml",
+    "name": "UiPreviewInspectionTest[jvm]",
+    "timestamp": "2026-10-29T01:07:36.068Z",
+    "time": 0.038,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryPromqlRenderTest.xml",
+    "name": "TelemetryPromqlRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:10:01.862Z",
+    "time": 0.029,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.studio.NavigationEditingTest.xml",
+    "name": "NavigationEditingTest[jvm]",
+    "timestamp": "2026-10-29T01:07:42.560Z",
+    "time": 0.029,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.GraphShapeIntegrationTest.xml",
+    "name": "GraphShapeIntegrationTest[jvm]",
+    "timestamp": "2026-10-29T01:02:07.091Z",
+    "time": 0.028,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.GraphWiringHealthTest.xml",
+    "name": "GraphWiringHealthTest[jvm]",
+    "timestamp": "2026-10-29T01:02:07.120Z",
+    "time": 0.003,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.GraphRevisionArchiveTest.xml",
+    "name": "GraphRevisionArchiveTest[jvm]",
+    "timestamp": "2026-10-29T01:05:37.708Z",
+    "time": 0.005,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.studio.StudioNavigationPerformanceTest.xml",
+    "name": "StudioNavigationPerformanceTest[jvm]",
+    "timestamp": "2026-10-29T01:07:42.602Z",
+    "time": 138.253,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.AgentPaneRenderTest.xml",
+    "name": "AgentPaneRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:04:14.842Z",
+    "time": 47.436,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.GraphSourcePaneCacheTest.xml",
+    "name": "GraphSourcePaneCacheTest[jvm]",
+    "timestamp": "2026-10-29T01:05:37.714Z",
+    "time": 0.032,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.HangarFontStackTest.xml",
+    "name": "HangarFontStackTest[jvm]",
+    "timestamp": "2026-10-29T01:03:06.703Z",
+    "time": 0.0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.SearchQueryTest.xml",
+    "name": "SearchQueryTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.846Z",
+    "time": 0.0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudPipelineTest.xml",
+    "name": "CloudPipelineTest[jvm]",
+    "timestamp": "2026-10-29T01:06:39.855Z",
+    "time": 0.409,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryNodeDisplayTest.xml",
+    "name": "TelemetryNodeDisplayTest[jvm]",
+    "timestamp": "2026-10-29T01:10:01.166Z",
+    "time": 0.057,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.ai.AiPaneStateTest.xml",
+    "name": "AiPaneStateTest[jvm]",
+    "timestamp": "2026-10-29T01:05:13.240Z",
+    "time": 0.001,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataResultWidthTest.xml",
+    "name": "DataResultWidthTest[jvm]",
+    "timestamp": "2026-10-29T01:06:59.982Z",
+    "time": 1.435,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.studio.StudioWordsTest.xml",
+    "name": "StudioWordsTest[jvm]",
+    "timestamp": "2026-10-29T01:10:00.887Z",
+    "time": 0.008,
+    "tests": 8,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentBenchPaneTest.xml",
+    "name": "AgentBenchPaneTest[jvm]",
+    "timestamp": "2026-10-29T01:01:14.457Z",
+    "time": 1.545,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.SubgraphWorkflowTest.xml",
+    "name": "SubgraphWorkflowTest[jvm]",
+    "timestamp": "2026-10-29T01:05:38.853Z",
+    "time": 0.306,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.ResourceAccessTest.xml",
+    "name": "ResourceAccessTest[jvm]",
+    "timestamp": "2026-10-29T01:05:54.176Z",
+    "time": 0.006,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsStreamViewsTest.xml",
+    "name": "DevToolsStreamViewsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.505Z",
+    "time": 0.003,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataPaneRenderTest.xml",
+    "name": "DataPaneRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:06:50.887Z",
+    "time": 8.415,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.design.HangarInksTest.xml",
+    "name": "HangarInksTest[jvm]",
+    "timestamp": "2026-10-29T01:07:39.428Z",
+    "time": 0.001,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceSessionReadsTest.xml",
+    "name": "DeviceSessionReadsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.841Z",
+    "time": 0.005,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.DesktopZoomPersistenceTest.xml",
+    "name": "DesktopZoomPersistenceTest[jvm]",
+    "timestamp": "2026-10-29T01:07:42.550Z",
+    "time": 0.002,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PaneReadStateTest.xml",
+    "name": "PaneReadStateTest[jvm]",
+    "timestamp": "2026-10-29T01:07:41.099Z",
+    "time": 0.0,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.WorkbenchMenusTest.xml",
+    "name": "WorkbenchMenusTest[jvm]",
+    "timestamp": "2026-10-29T01:07:42.553Z",
+    "time": 0.001,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.MachineSignalTooltipTest.xml",
+    "name": "MachineSignalTooltipTest[jvm]",
+    "timestamp": "2026-10-29T01:04:01.542Z",
+    "time": 0.553,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.links.ProductQueriesTest.xml",
+    "name": "ProductQueriesTest[jvm]",
+    "timestamp": "2026-10-29T01:07:36.050Z",
+    "time": 0.009,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest.xml",
+    "name": "KitRetirementParityTest[jvm]",
+    "timestamp": "2026-10-29T01:03:06.705Z",
+    "time": 2.336,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SurfaceDuplicateKeysRenderTest.xml",
+    "name": "SurfaceDuplicateKeysRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:02:15.559Z",
+    "time": 0.051,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.GraphDocumentIntegrationTest.xml",
+    "name": "GraphDocumentIntegrationTest[jvm]",
+    "timestamp": "2026-10-29T01:02:07.004Z",
+    "time": 0.085,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryProbeTest.xml",
+    "name": "WorkbenchTelemetryProbeTest[jvm]",
+    "timestamp": "2026-10-29T01:10:04.975Z",
+    "time": 0.308,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.auth.AccessDraftTest.xml",
+    "name": "AccessDraftTest[jvm]",
+    "timestamp": "2026-10-29T01:05:39.231Z",
+    "time": 0.015,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.DisplayParityTest.xml",
+    "name": "DisplayParityTest[jvm]",
+    "timestamp": "2026-10-29T01:03:06.181Z",
+    "time": 0.323,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SurfaceSourcePerformanceTest.xml",
+    "name": "SurfaceSourcePerformanceTest[jvm]",
+    "timestamp": "2026-10-29T01:02:42.794Z",
+    "time": 0.099,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.CollectionFrameTest.xml",
+    "name": "CollectionFrameTest[jvm]",
+    "timestamp": "2026-10-29T01:01:43.509Z",
+    "time": 19.594,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PaneFrameLayoutTest.xml",
+    "name": "PaneFrameLayoutTest[jvm]",
+    "timestamp": "2026-10-29T01:07:39.482Z",
+    "time": 0.351,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.inspection.DevToolsInspectionJourneyTest.xml",
+    "name": "DevToolsInspectionJourneyTest[jvm]",
+    "timestamp": "2026-10-29T01:07:18.389Z",
+    "time": 0.078,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.changes.ChangeSetsTest.xml",
+    "name": "ChangeSetsTest[jvm]",
+    "timestamp": "2026-10-29T01:05:57.274Z",
+    "time": 0.017,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SurfaceQualificationTest.xml",
+    "name": "SurfaceQualificationTest[jvm]",
+    "timestamp": "2026-10-29T01:02:15.615Z",
+    "time": 26.136,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.EngineArchitectureTest.xml",
+    "name": "EngineArchitectureTest[jvm]",
+    "timestamp": "2026-10-29T01:02:06.695Z",
+    "time": 0.308,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest.xml",
+    "name": "AuthPresentationParseTest[jvm]",
+    "timestamp": "2026-10-29T01:03:05.270Z",
+    "time": 0.002,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudObservationTest.xml",
+    "name": "CloudObservationTest[jvm]",
+    "timestamp": "2026-10-29T01:06:05.482Z",
+    "time": 0.002,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsLiveLinkTest.xml",
+    "name": "DevToolsLiveLinkTest[jvm]",
+    "timestamp": "2026-10-29T01:07:02.201Z",
+    "time": 0.0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkbenchCrashLogTest.xml",
+    "name": "WorkbenchCrashLogTest[jvm]",
+    "timestamp": "2026-10-29T01:02:43.883Z",
+    "time": 0.017,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.DesktopOperatorLoginTest.xml",
+    "name": "DesktopOperatorLoginTest[jvm]",
+    "timestamp": "2026-10-29T01:02:06.686Z",
+    "time": 0.007,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphFlowTest.xml",
+    "name": "AppGraphFlowTest[jvm]",
+    "timestamp": "2026-10-29T01:05:25.231Z",
+    "time": 0.0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest.xml",
+    "name": "DataInspectorsInteractionTest[jvm]",
+    "timestamp": "2026-10-29T01:06:47.460Z",
+    "time": 3.425,
+    "tests": 12,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.DatabaseSessionRetentionTest.xml",
+    "name": "DatabaseSessionRetentionTest[jvm]",
+    "timestamp": "2026-10-29T01:07:39.440Z",
+    "time": 0.0,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.RuntimeGraphOverlayTest.xml",
+    "name": "RuntimeGraphOverlayTest[jvm]",
+    "timestamp": "2026-10-29T01:05:38.844Z",
+    "time": 0.009,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.buildgraph.BuildTargetsRenderTest.xml",
+    "name": "BuildTargetsRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:05:54.200Z",
+    "time": 3.071,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.GraphTelemetryIntegrationTest.xml",
+    "name": "GraphTelemetryIntegrationTest[jvm]",
+    "timestamp": "2026-10-29T01:05:37.747Z",
+    "time": 0.001,
+    "tests": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.TaskMessageThreadTest.xml",
+    "name": "TaskMessageThreadTest[jvm]",
+    "timestamp": "2026-10-29T01:05:02.887Z",
+    "time": 0.243,
+    "tests": 7,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.agent.AgentWorkLogTest.xml",
+    "name": "AgentWorkLogTest[jvm]",
+    "timestamp": "2026-10-29T01:05:02.280Z",
+    "time": 0.057,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.ControllerCountTest.xml",
+    "name": "ControllerCountTest[jvm]",
+    "timestamp": "2026-10-29T01:02:03.106Z",
+    "time": 3.569,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.graph.DesktopApplicationBootstrapTest.xml",
+    "name": "DesktopApplicationBootstrapTest[jvm]",
+    "timestamp": "2026-10-29T01:07:04.847Z",
+    "time": 1.307,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsOwnedReadsTest.xml",
+    "name": "DevToolsOwnedReadsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:02.203Z",
+    "time": 2.29,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.DataProviderViewsRenderTest.xml",
+    "name": "DataProviderViewsRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:03:05.274Z",
+    "time": 0.374,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest.xml",
+    "name": "HangarPresentationTest[jvm]",
+    "timestamp": "2026-10-29T01:07:39.478Z",
+    "time": 0.002,
+    "tests": 13,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataResultIdentityTest.xml",
+    "name": "DataResultIdentityTest[jvm]",
+    "timestamp": "2026-10-29T01:06:59.307Z",
+    "time": 0.0,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest.xml",
+    "name": "DesktopOverlayTest[jvm]",
+    "timestamp": "2026-10-29T01:05:36.274Z",
+    "time": 0.193,
+    "tests": 11,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseTableBrowserTest.xml",
+    "name": "DatabaseTableBrowserTest[jvm]",
+    "timestamp": "2026-10-29T01:07:01.510Z",
+    "time": 0.076,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest.xml",
+    "name": "DesktopWorkbenchGraphTest[jvm]",
+    "timestamp": "2026-10-29T01:07:11.180Z",
+    "time": 7.202,
+    "tests": 17,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataResultStateCacheTest.xml",
+    "name": "DataResultStateCacheTest[jvm]",
+    "timestamp": "2026-10-29T01:06:59.453Z",
+    "time": 0.001,
+    "tests": 2,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudHistoryKeysTest.xml",
+    "name": "CloudHistoryKeysTest[jvm]",
+    "timestamp": "2026-10-29T01:06:05.477Z",
+    "time": 0.005,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.database.DataWorkspaceRelationshipsTest.xml",
+    "name": "DataWorkspaceRelationshipsTest[jvm]",
+    "timestamp": "2026-10-29T01:07:01.491Z",
+    "time": 0.004,
+    "tests": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  {
+    "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphDeviceRenderTest.xml",
+    "name": "AppGraphDeviceRenderTest[jvm]",
+    "timestamp": "2026-10-29T01:05:13.245Z",
+    "time": 0.0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0
+  }
+]

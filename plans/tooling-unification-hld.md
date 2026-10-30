@@ -1,8 +1,8 @@
 # Reaktor tooling unification: HLD and delivery plan
 
-Written 28 October 2026 for Codex to implement, and revised the same evening. Not published.
+Written 28 October 2026 for Codex to implement, revised that evening and extended on 29 October with the owner-requested bound Node sidecar. Not published.
 
-**What this revision changes.** The morning draft's outcomes and boundaries stand. This revision builds them from reaktor-graph primitives. Every kernel capability becomes a `reaktor-service` contract that the workspace owner serves as a graph node, and every client reaches it through contract client nodes and typed ports. The update controller is a `PersistentActorNode`, long work runs as `Workflow`s, and stores and outside systems are resource nodes. The revision also corrects five current-state statements (§2.3), writes each work package in the handoff's format (steps, acceptance, budget, don'ts), drops the gRPC trial (§11.2) and orders retained admission after automatic updates (§9).
+**What this revision changes.** The morning draft's outcomes and boundaries stand. This revision builds them from reaktor-graph primitives. Every kernel capability becomes a `reaktor-service` contract that the workspace owner serves as a graph node, and every client reaches it through contract client nodes and typed ports. The update controller is a `PersistentActorNode`, long work runs as `Workflow`s, and stores and outside systems are resource nodes. The revision also corrects five current-state statements (§2.3), writes each work package in the handoff's format (steps, acceptance, budget, don'ts) and orders retained admission after automatic updates (§9). The 29 October addition gives the JVM a bound Node runtime (§3.9, U9): private gRPC is adopted for that process boundary; the public owner link remains HTTP and sockets (§11.2).
 
 **Documents.**
 - This file holds the target design, the work packages and their acceptance.
@@ -12,7 +12,7 @@ Written 28 October 2026 for Codex to implement, and revised the same evening. No
 
 ## Summary
 
-One workspace owner per canonical root runs the kernel graph all the time. Every operation that Hangar, the CLI, MCP and website backends use becomes an operation of a `reaktor-service` contract, served by the owner as a graph node. Each client reaches those contracts through contract client nodes and typed ports, the same way BestBuds screens reach the Workers. Hangar keeps rendering, navigation and local interaction. The owner keeps semantic state, admission and execution. A small update host rebuilds the owner from source, qualifies the candidate and swaps it in.
+One workspace owner per canonical root runs the kernel graph all the time. Every operation that Hangar, the CLI, MCP and Reaktor+ websites use becomes an operation of a `reaktor-service` contract, served by the owner as a graph node. Each client reaches those contracts through contract client nodes and typed ports, the same way BestBuds screens reach the Workers. Hangar keeps rendering, navigation and local interaction. The owner keeps semantic state, admission and execution, and owns a bound Node sidecar for JavaScript integrations. A small update host rebuilds the owner and its runtime bundle from source, qualifies the candidate and swaps it in.
 
 This design reuses what already runs in production for the BestBuds app and Workers: `ContractNode` through `serve` and `remote`, links, interceptors, the four failure kinds, contract fingerprints and `Compatibility`, the `Backend` relay pattern, `Workflow` activities, `PersistentActorNode`, resource nodes and island shapes. It also finishes the merge that the [service layer page](/Users/ovd/dev/bestbuds/targets/reaktorWeb/docusaurus/docs/reaktor-service.md) names as the largest one left: the kernel, the conductor, DevTools and Hangar's agent reads still declare their operations in a second model, with 88 hand-written MCP tool schemas.
 
@@ -24,7 +24,7 @@ The gaps, highest leverage first:
 4. **Twenty-three capabilities need an open window.** The `hangar.*` reads, including DevTools and the Cloud views, exist only while Hangar runs. [E9]
 5. **Hangar polls.** It learns about runs and snapshots by long-polling `kernel.watch`. The owner's rule for live data is sockets, with polling only while a socket is down. [E19]
 
-Delivery follows the owner's order: code intelligence, then native agents, then system ownership, then verification, and working behaviour before resilience. The packages are U0 ledger and baselines, U1 engineering contracts, U2 Hangar as a client, U3 live views on one socket, U4 headless domains, U5 automatic qualified updates, U6 retained admission, U7 website intelligence and U8 hosted qualification (§9). gRPC, FFI as the owner link, distributed ownership, a new agent harness and new approval prompts for local seats are outside this plan; §11.2 says why and when to revisit each.
+Delivery prioritizes the working Reaktor+ website path, then code intelligence, native agents, system ownership and verification, with working behaviour before resilience. The packages are U0 ledger and baselines, U1 engineering contracts, U2 Hangar as a client, U3 live views on one socket, U4 headless domains, U5 automatic qualified updates, U6 retained admission, U7 website intelligence, U8 hosted qualification and U9 the bound JavaScript runtime (§9). U9 starts with TypeScript indexing after the first website vertical; it does not delay publishing Manna or Docs. gRPC and FFI as the public owner link, distributed ownership, a new agent harness and new approval prompts for local seats remain outside this plan (§11.2).
 
 ## 1. Rules for every package
 
@@ -167,7 +167,7 @@ flowchart TB
     subgraph Faces[Other faces]
         CLI[CLI]
         MCP[MCP adapter]
-        WEB[Website backend<br/>over a private tunnel]
+        WEB[Admin browser<br/>Manna and Reaktor Docs]
     end
     subgraph OwnerProc[Workspace owner]
         GATE[Gate and Spans<br/>interceptors]
@@ -186,7 +186,7 @@ flowchart TB
     KS -->|SocketLink<br/>and HttpLink| GATE
     CLI -->|HttpLink| GATE
     MCP -->|HttpLink| GATE
-    WEB --> ING
+    WEB -->|127.0.0.1:9317<br/>Reaktor+ endpoint| ING
     GATE --> KG
     ING --> KG
     KG --> SV
@@ -297,14 +297,14 @@ class OwnerKernel(parent: Graph, calls: Link, streams: Link) : KernelServices(pa
 ### 3.5 Links, compatibility and the loopback carrier
 
 - **First cut, U1 and U2.** The owner's existing authenticated loopback server gains a contract route that hands each request to `Served.dispatch`. Clients use `HttpLink` with the owner bearer from the discovery file. This needs no new dependency.
-- **Live views, U3.** The JDK `HttpServer` behind `LoopbackMcpServer` has no WebSocket support, so U3 moves that listener onto Ktor's CIO server engine with the websockets plugin, at the pinned Ktor 3.1.0, keeping its paths, token checks and limits. `ktor-server-core` already reaches the kernel through the MCP SDK 0.7.2 [E26], and the CIO engine and the websockets plugin are the one new dependency in this plan (O4). A WebSocket route on the owner's port runs one `SocketSession` per connection over the served contracts. Hangar binds streaming contracts to `SocketLink` and keeps unary calls on `HttpLink` unless U3's measurements give a reason to move them.
+- **Live views, U3.** The JDK `HttpServer` behind `LoopbackMcpServer` has no WebSocket support, so U3 moves that listener onto Ktor's CIO server engine with the websockets plugin, at the pinned Ktor 3.1.0, keeping its paths, token checks and limits. `ktor-server-core` already reaches the kernel through the MCP SDK 0.7.2 [E26]; U3 adds the CIO engine and websockets plugin (O4). A WebSocket route on the owner's port runs one `SocketSession` per connection over the served contracts. Hangar binds streaming contracts to `SocketLink` and keeps unary calls on `HttpLink` unless U3's measurements give a reason to move them.
 - **Compatibility.** On connect, a client calls `KernelApi.hello`. The answer carries the owner incarnation, the active release, the source and image digests, the update status and the served `ContractShape`s. The client runs `Compatibility.between` for each contract it consumes. The client never calls an Incompatible contract, and it shows "owner behind source" or "Hangar behind owner" from the update status. Every call still carries `reaktor-contract`, so drift after a reconnect arrives as `ContractDrift`.
-- **Other carriers.** gRPC and FFI do not carry the owner link in this plan (§11.2). Each would be one more `Link` implementation if a measured need appears.
+- **Other carriers.** gRPC and FFI do not carry the public owner link in this plan (§11.2). Private JVM-to-Node gRPC is an implementation boundary behind the owner's typed domain ports (§3.9); clients do not need a gRPC adapter. An FFI replacement remains a separate decision requiring a qualified process boundary.
 
 ### 3.6 Long work, stores and the owner's island
 
 - **Long work is a workflow.** Build runs, check runs, agent task dispatch and candidate builds are `Workflow`s whose steps are activities with declared effects. The Graph pane shows their step graphs, and their spans carry definition ids.
-- **Stores and outside systems are resource nodes.** The control-plane store, run ledger, plan store, admission store, receipts and image store are resource nodes, as are the Gradle router and `m1-worker`, launchd, the native Claude and Codex runtimes, the docs corpus and the Manna API. Each access goes through `uses(...)`, so it is a graph call with an effect.
+- **Stores and outside systems are resource nodes.** The control-plane store, run ledger, plan store, admission store, receipts and image store are resource nodes, as are the Gradle router and `m1-worker`, launchd, the native Claude and Codex runtimes, the bound Node runtime, the docs corpus and the Manna API. Each access goes through `uses(...)`, so it is a graph call with an effect.
 - **The owner is an island.** `kernel.graph` already reads the live kernel graph. A `GraphApi.shape` operation serves it as an `IslandShape` with the owner host, incarnation and release. Hangar's Graph pane draws it beside Hangar's own graph and the app islands. Stitch wires between Hangar's contract client nodes and the owner's server nodes rest on the contract link, which is the second exception the Graph pane rule allows.
 - **Coverage is measured.** `graph.coverage` extends to the owner island: each served contract, each client node wired to it, each required workflow activity, and each resource node reached through a port. This is how the plan measures graph coverage (§10).
 
@@ -327,8 +327,103 @@ Availability is explicit: available, starting, stale, disconnected, unsupported 
 | `KernelServices`, `OwnerKernel`, `LocalKernel` and pane consumers | BestBuds `modules/engine` | The workbench host |
 | CLI grammar | BestBuds `targets/reaktorCli` | Unchanged |
 | MCP projection from shapes | BestBuds `KernelAgentMcpHost`, with generic pieces in `reaktor-mcp` and `reaktor-tooling` | Product composition over generic mechanics |
+| Bound Node process lifecycle and private protocol | Generic process supervision in `reaktor-conductor`; domain DTOs stay in their existing owning modules; composition in BestBuds `modules/kernel` | One elected JVM owns the runtime and authority; no desktop dependency |
+| Node bundle and JavaScript integrations | Dependeasy's existing JavaScript toolchain and protobuf generation; TypeScript adapter beside `reaktor-code/tools` | Reuse pinned tools and domain implementation homes; add integrations individually |
 
 The plan adds no module. Hangar already pays for the kernel module's dependencies today. A separate client-only contract module is worth its cost only if U0 measures a distribution-size or startup cost that the split removes, which is the `reaktor-module` skill's test.
+
+### 3.9 Bound Node sidecar
+
+**Owner addition, 29 October. Planned, not implemented.** The background JVM owns a Node sidecar to use JavaScript and TypeScript tools and SDKs from the same graph capabilities available to Hangar, CLI, MCP and Reaktor+ websites. Binding means shared lifecycle, a qualified runtime bundle and a private authenticated connection. It does not create another kernel or move the public endpoint.
+
+#### Ownership and graph boundary
+
+The elected background owner starts exactly one sidecar per canonical workspace and owner incarnation. Hangar windows, CLI invocations, MCP adapters and ordinary `ReaktorKernel` construction never start it. This distinction is necessary while desktop startup still constructs an embedded kernel [E17]. Candidate qualification uses isolated state and an isolated sidecar without acquiring the production lease.
+
+The JVM owns graph identity, workspace and principal context, effect classification, authorization, admission, durable state, run ids and final receipts. Node executes selected JS integrations and keeps disposable caches. Each integration sits behind a typed domain port: TypeScript facts feed Atlas, audits feed Checks/Devices, and scoped SDK calls feed their owning domain. There is no public arbitrary JavaScript evaluation, shell or module-import operation, no second operation catalog and no Node approval/admission store. Local Claude/Codex calls retain the existing full-access seat behaviour.
+
+Portable product and orchestration logic stays in Kotlin/JVM. Node supplies the JS ecosystem where its runtime, compiler or SDK is needed; the existing JVM Cloud control plane and recorded build execution keep their owners.
+
+```mermaid
+flowchart TB
+    H[Hangar] --> K
+    C[CLI and MCP] --> K
+    W[Manna and Docs<br/>admin browser] -->|Fixed Reaktor+ endpoint| K
+    OS[OS service manager] --> K[JVM owner graph<br/>gate, runs and receipts]
+    K -->|Typed domain ports| NR[Node runtime resource]
+    NR -->|Private gRPC| N[Bound Node control process]
+    K -.->|Start, drain and stop| N
+    N --> T[Isolated TypeScript worker]
+    N --> L[Isolated audit or browser worker]
+    N --> S[Typed Node SDK adapters]
+    K -->|Recorded process ownership| R[Radar tunnel or qualified local binary]
+    R --> A[Kubernetes API]
+```
+
+The graph publishes runtime activation, process generation, bundle identity and per-capability availability using the existing truth/health model. A missing Node capability says why it is unavailable. Discovery and the JVM remain responsive, and website inference continues when it does not depend on that capability. Websites always call `http://127.0.0.1:9317/reaktor-plus/v1`; they never discover Node's port or credential.
+
+#### Private contract
+
+Use protobuf with `@grpc/grpc-js` in Node and the JVM gRPC runtime, extending the existing Dependeasy protobuf toolchain [E29]. This is a private integration protocol, not a replacement for `reaktor-service` domain contracts or `HttpLink`/`SocketLink`. Budget and pin the missing Node generation/runtime pieces during U9; existing JVM code generation alone does not establish cross-language runtime compatibility. The official [Node package comparison](https://github.com/grpc/grpc-node/blob/master/PACKAGE-COMPARISON.md) is the transport reference.
+
+| Private method family | Contract |
+|---|---|
+| Handshake | Protocol compatibility, build and bundle identity, owner incarnation, sidecar generation and supported capabilities; incompatible peers serve no jobs |
+| Capability status | Bounded stream of starting, ready, draining or failed activations, with generation and cause; projected into the JVM's existing availability vocabulary |
+| Typed integration methods | Concrete bounded inputs/results for an admitted domain job, starting with TypeScript indexing; canonical workspace scope, selected toolchain, deadline and kernel run id supplied by the JVM |
+| Job events and result | Bounded progress/artifact references tied to the kernel run id and generation; JVM validates result scope and freshness before publishing facts or finalizing its receipt |
+| Cancel and drain | Acknowledge actual worker termination or continuing work; stop accepting jobs and report named blockers before replacement |
+
+Bind to an ephemeral loopback port. Exchange the endpoint and a fresh bootstrap credential through the private parent–child pipe; keep them out of browser discovery, ordinary logs and command-line arguments. Authenticate the connection, bind requests to the expected owner/sidecar generation, and reject late results from an obsolete generation. The JVM supplies only the integration's required environment and scoped credentials; Node does not inherit general owner credentials by default.
+
+Every bounded RPC has a deadline. Cancelling or timing out an unaccepted call cancels its worker; an accepted long job belongs to the kernel run and survives a client disconnect or observation deadline. Explicit run cancellation reaches the real child process, not just the gRPC promise. This distinction follows §3.3; application code must stop underlying work when a deadline expires ([gRPC deadlines](https://grpc.io/docs/guides/deadlines/)).
+
+```mermaid
+sequenceDiagram
+    participant C as Hangar, CLI or MCP
+    participant K as JVM domain and gate
+    participant R as JVM run ledger
+    participant N as Bound Node runtime
+    participant W as Isolated worker
+    C->>K: Typed integration request
+    K->>K: Authorize, scope and validate
+    K->>R: Admit kernel run
+    K->>N: Typed job, run id and generation
+    N->>W: Start bounded work
+    K-->>C: Run reference
+    W-->>N: Progress and artifact
+    N-->>K: Generation-bound result
+    K->>K: Validate digest, compiler and scope
+    K->>R: Facts and terminal receipt
+    C->>K: Read or stream run evidence
+```
+
+#### Runtime bundle and execution
+
+Ship the verified Node executable, compiled sidecar, generated bindings and locked production dependencies as one immutable checksummed bundle. Reuse Dependeasy's checksummed Node installation [E29], use absolute packaged paths, and perform no dependency installation at service startup. Record OS/architecture and native-addon requirements; do not silently use shell Node or a different compiler to make a bundle start.
+
+TypeScript indexing is the first useful slice. Today `KernelTypeScriptFacts.scan` discovers Node on the owner's PATH and requires installed tools, while `scip-index.mjs` uses `spawnSync` to launch a compiler-qualified indexer with an 8 GiB heap ceiling [E27]. Run that work in a bounded child process outside Node's control loop. Keep health/status/cancel responsive during indexing; reuse kernel admission and the build router for resource scheduling. Start with one heavy index job per owner, account for other JVM/worker load, and set memory/concurrency budgets from measured U0 samples. Node synchronous child execution blocks its calling event loop ([Node child-process documentation](https://nodejs.org/api/child_process.html)).
+
+Preserve Atlas's compiler qualification, canonical target/exclusion rules, source digests, atomic fact publication, stale-result rejection and physical source-scope coordination across BestBuds/Manna owners. The sidecar replaces process/tool delivery; it does not weaken the meaning of checked facts. Large facts and audit artifacts stay in scoped artifact files with checked references instead of unbounded gRPC payloads. Streams have bounded buffers and explicit reset/re-read semantics.
+
+| Integration | Planned disposition |
+|---|---|
+| TypeScript intelligence | First adapter: packaged tools → isolated worker → existing facts format → Atlas and Hangar |
+| Radar | Move lifetime from `RadarSession` into the owner [E28], initially retaining the recorded cluster tunnel and Kubernetes identity. A packaged local Go binary is a later qualification choice, not a Node rewrite |
+| Lighthouse and browser tooling | Add an adapter for an actual interactive domain consumer; isolate browser/process lifetime and qualify its browser bundle separately |
+| Parsers, transforms, formatters and lint/test tools | Add typed Atlas, Changes or Checks adapters when consumed; retain reviewed source writes and recorded build/test execution |
+| Node SDKs | Add concrete typed adapters as needed, with per-job credential and effect scope |
+| External MCP providers | Keep dedicated child processes, restricted environments, timeout/cancellation and existing lifecycle machinery; do not merge providers into the Node control process |
+| Excalidraw | Keep bundled React execution in the native WebView |
+| Pulumi, Dagger and builds | Keep JVM/recorded execution ownership and existing receipts |
+
+#### Lifetime, updates and later recovery
+
+Node is a child of the elected JVM service. Closing Hangar leaves it and accepted work alive. Graceful owner shutdown drains admitted jobs, flushes JVM receipts, stops workers and then closes Node within a bounded shutdown. Parent death closes the lifetime pipe; Node and its descendants must terminate through that signal plus qualified OS process containment. A shutdown hook alone cannot prove this: process detachment and inherited handles affect lifetime ([Node process lifecycle](https://nodejs.org/api/child_process.html#optionsdetached)). Measure orphan-free behaviour on macOS and on the Linux hosted path before claiming it.
+
+First prove a working indexing call and explicit failure reporting. Then qualify bounded restart/backoff, worker cleanup and reconnect. A Node crash makes affected capabilities unavailable, keeps the JVM serving, and starts a fresh generation only under the owner. Reads may be retried where their semantics permit; interrupted external writes become `OutcomeUnknown` and reconcile through JVM receipts/provider evidence. Never replay a write just because the private channel broke.
+
+U5's manifest includes Node, dependency and protocol digests and the JVM/Node compatibility range. Compatible sidecar-only changes build and qualify in isolation, drain that sidecar's accepted jobs, atomically activate the bundle and fence the old generation. Protocol-breaking changes activate JVM and Node as one coordinated release. Failed qualification leaves the current bundle serving; rollback follows the existing store/outcome rules. Source edits never restart the active sidecar directly or create duplicate resources. Reuse `UpdateController`, its image store and its status stream.
 
 ## 4. Hangar capability parity
 
@@ -359,6 +454,8 @@ Extract each backend decision before putting it behind a contract. A database wr
 ### 5.1 Ownership
 
 The background owner is the only production owner. Hangar's startup discovers the workspace, connects through `AgentBackgroundService.connect`, which installs or starts the launchd agent when needed, and builds `OwnerKernel` over the discovery record. Hangar never opens `owner.lock`, never hosts and never falls back to an embedded writer. This supersedes handoff decision D3, which let Hangar host when it started first (O1). Tests and headless flows that need a disposable owner build `LocalKernel` on temporary state.
+
+Only the elected service owner starts the bound Node sidecar (§3.9). An embedded desktop kernel during migration and a contract client cannot start a second copy. Test/candidate runtimes own isolated disposable children, never the production child or its credentials.
 
 The `desktop` store's runs and history migrate into the owner's store once, and the per-surface sessions stop being written (K4 step 2). One owner per canonical root remains the rule. Overlapping physical source scopes across different owners, such as the Reaktor checkout included by both BestBuds and Manna, keep one writer at a time through the existing source-scope checks and `agent.radar`; two root locks do not protect one shared checkout.
 
@@ -416,7 +513,7 @@ The old owner keeps serving while a candidate builds and qualifies; the states d
 1. **Inputs.** Read the declared runtime inputs of `:kernel:agentDist` from the exported build model: Kotlin, TypeScript and native sources, build logic, generated contract inputs, resources and toolchain facts. `build.affected` already computes declared input changes, so no second filesystem scanner is needed. A docs edit does not rebuild the kernel; published tool contracts do take part.
 2. **Coalescing.** Coalesce rapid edits by input digest and build one candidate at a time per owner. A newer digest supersedes an unactivated candidate; it never stops the active owner or unrelated builds.
 3. **Build.** Build each candidate into its own output directory under the update host's state, through the configured `./gradlew` wrapper and the load router. Never build into the shared `modules/kernel/build/agent-dist`, which other sessions rewrite. Run storage cleanup first.
-4. **Image and manifest.** Snapshot the candidate into the content-addressed image store and write its release manifest: commit ids, the working-tree input digest, toolchain and build facts, the operation catalog digest, contract fingerprints, the build-model schema version, compatible store versions, checks and artifact checksums. A commit id alone cannot identify a candidate while agents have uncommitted edits.
+4. **Image and manifest.** Snapshot the candidate into the content-addressed image store and write its release manifest: commit ids, the working-tree input digest, toolchain and build facts, the operation catalog digest, contract fingerprints, the build-model schema version, compatible store versions, checks and artifact checksums. U9 adds the Node executable and dependency-lock digests, compiled sidecar/bindings digest, private protocol version, supported JVM/Node compatibility range and platform requirements. A commit id alone cannot identify a candidate while agents have uncommitted edits.
 5. **Consistent inputs.** If sources changed during compilation and the build cannot establish one consistent input set, reject the candidate and build the newer digest. Never label mixed output with the last observed source digest.
 6. **Qualification in isolation.** Start the candidate with a temporary state directory, no owner lease, no agent starts and no effectful credentials. Probe `hello`, the catalog, contract compatibility with the clients in use (the installed Hangar, the CLI and the MCP adapter), migrations on a disposable copy of the state, the build-model reader against the current `model.json`, and focused checks. A candidate never takes the production lease to prove it is ready.
 7. **Activation policy.** Activate qualified compatible candidates automatically. Hold incompatible ones for a person, and keep failed ones visible while the last good release serves.
@@ -426,6 +523,8 @@ Physical-device checks and installation run on `m1-worker`, desktop UI checks st
 ### 5.5 Activation and recovery
 
 The first implementation extends the existing serial replacement. The owner publishes its drain state as a stream, and the update host subscribes to it, replacing today's once-a-second poll. During the drain the owner refuses new effectful and long calls with `Unavailable` and a `Retry-After`, reads continue, and accepted runs finish. Then it flushes retained state and stops. The new process starts from the candidate image, takes the lease, publishes discovery atomically, and clients reconnect through `hello`.
+
+The drain includes accepted Node jobs and owner-managed integration resources. Private channel closure is not evidence that an effect stopped. Sidecar-only replacement and paired JVM/Node activation follow §3.9, with generation fencing and no duplicate production children.
 
 A reply lost exactly at the switch reaches its caller as `OutcomeUnknown`, which `Retry` never repeats for an unsafe call. That bounds the risk of automatic activation before retained admission (U6) adds lookup and recovery.
 
@@ -519,6 +618,7 @@ Cloudflare Containers route through a Worker and a Durable Object, accept HTTP i
 - Worker and container releases overlap during rollouts, so contracts stay compatible across that window and state migrations are gated separately [Container rollouts](https://developers.cloudflare.com/containers/configuration/rollouts/).
 - One authoritative owner placement per workspace. A cloud owner delegates local builds and device access to authenticated providers; a local owner serves scoped remote intelligence. Distributed takeover needs a real lease and fencing design first.
 - The hosted link is HTTP plus the socket protocol through the Worker and Durable Object, qualified on the real path.
+- If a hosted capability needs U9, package the compatible Node bundle in the same owner container and qualify Linux process containment, native addons, memory and browser requirements there. Keep JVM-to-Node gRPC private inside that deployment. A container without a qualified integration reports it unsupported; local macOS evidence does not establish hosted parity.
 
 Sequence: serve docs intelligence from the local owner through the ingress (U7); package a read-only docs owner in a container and prove authentication, corpus restoration, answers, retained receipts and restart recovery on the platform (U8); host a writable repository owner only after checkout persistence, secret scope, resource budgets and recovery qualify; add a local execution provider for devices that accepts explicit scoped jobs. The [server deployment report](/Users/ovd/dev/reaktor/reports/server-agent-deployment-2026-10-28.md) covers native-agent placement and model evaluation; reuse it and add no inference router or orchestration loop here.
 
@@ -537,22 +637,26 @@ flowchart LR
     U1 --> U7[U7 website<br/>intelligence]
     U6 -. broader retained admission .-> U7
     U7 --> U8[U8 hosted<br/>qualification]
+    U7 -->|first browser vertical| U9[U9 bound Node<br/>TypeScript first]
+    U1 --> U9
+    U9 -. paired bundle qualification .-> U5
     U4 --> Done[Local unification<br/>accepted]
     U5 --> Done
+    U9 --> Done
 ```
 
-The owner now prioritizes U0/U1, then the first useful U7 browser vertical, followed by U2, U3, U5, U4 domain slices, broader U6/U7 and U8. U5 comes before most of U4 because an owner that follows the source helps every later package. U5 waits for U2 because an embedded Hangar owner can take the lock during an activation. The first U7 vertical retains its own bounded request admission using the existing private inference directory; generalized U6 admission follows. Neither U7 nor U8 blocks local unification.
+The owner now prioritizes U0/U1, then publishing and proving the first useful U7 browser vertical. U9's packaged TypeScript path can then proceed alongside U2, provided startup attaches only to the elected service owner; its Radar lifetime cutover shares U2's ownership work. U3, U5, U4 domain slices, broader U6/U7 and U8 follow. U5 comes before most of U4 because an owner that follows the source helps every later package, and includes U9's paired-bundle qualification when that bundle is present. U5 waits for U2 because an embedded Hangar owner can take the lock during an activation. The first U7 vertical retains its own bounded request admission using the existing private inference directory; generalized U6 admission follows. Full U7 and hosted U8 do not block local unification; the first website vertical remains the delivery priority.
 
 ### U0. Ledger, baselines and decisions
 
 Goal: start from measured facts and settled decisions.
 
 Steps:
-1. Add the U0–U8 rows to the handoff's status table and a dated Log entry.
+1. Add the U0–U9 rows to the handoff's status table and a dated Log entry.
 2. Build the parity ledger in the handoff, one row per pane action across the 13 modes, with the fields in §4.
 3. Record the contract list: ids, homes (§3.8) and the package that migrates each domain.
 4. Measure baselines on this Mac and on the worker, recorded as `reaktor-performance` samples in its `Tooling`, `Build` and `Runtime` domains: owner cold start, Hangar cold start to its first interactive frame, client reconnect after an owner restart, `operation.catalog` and `operation.describe` latency and payload, `kernel.watch` event latency, a typical `run.wait`, `:kernel:agentDist` build time, image snapshot time, `--upgrade` drain wait, and owner and Hangar peak memory. Keep the samples with the qualification receipts.
-5. Ask the owner to settle O1–O9 (§11.1). Where the owner accepts a default, record it.
+5. Record the owner decisions O1–O10 (§11.1), including the 29 October sidecar direction. Ask only for genuinely unresolved choices; accepted defaults and full-access local-seat authorization persist.
 
 Acceptance: the ledger covers every pane action of the 13 modes; the baseline report names its environment; the decisions are recorded.
 
@@ -669,8 +773,8 @@ Goal: a source change by Claude, Codex or a person becomes a qualified owner wit
 Steps:
 1. Create the update host from the conductor's existing service mechanics: its own launchd label, launch from the pinned last-good image, its own loopback endpoint and token, and its own state directory.
 2. Implement the states and transitions of §5.3 on `PersistentActorNode` with an `ActorStore` file. Each transition's work is an activity with its effect.
-3. Read the declared runtime inputs of `:kernel:agentDist` from the build model and coalesce by input digest.
-4. Build each candidate into its own directory through the configured wrapper, snapshot it into the image store and write its manifest.
+3. Read the declared runtime inputs of `:kernel:agentDist`, including U9's sidecar sources, generated protocol inputs and dependency locks when present, from the build model and coalesce by input digest.
+4. Build each candidate into its own directory through the configured wrapper, snapshot it into the image store and write its JVM/Node compatibility manifest (§5.4).
 5. Qualify in isolation as §5.4 describes.
 6. Activate compatible qualified candidates automatically through the drain stream and the existing serial replacement, and hold the rest for a person.
 7. Show the status in the CLI under its existing grammar and in the Workspace popover. Once U5 qualifies, replace the manual install steps in BestBuds AGENTS.md "Local agent access" with the new flow.
@@ -737,6 +841,35 @@ Budget: written at the start of U8, once U7's measurements exist.
 
 Don't: depend on container disk for final evidence; run two active owners for one workspace.
 
+### U9. Bound JavaScript runtime
+
+Goal: the continuously running JVM owns a packaged Node sidecar that makes JS integrations available through the same typed kernel capabilities to every face. First prove TypeScript indexing; add integrations individually.
+
+Steps:
+1. Record the slice budget, selected pinned runtime/protocol dependencies and existing process-lifecycle reuse. Extend Dependeasy's Node installation and protobuf generation into an immutable sidecar bundle; declare its inputs and compatibility facts in the build model and release manifest.
+2. Start the child only after the background owner wins its lease. Implement the private handshake, lifetime pipe, generation-bound credential/connection and bounded capability stream. Isolated candidate/test owners use temporary state and their own child.
+3. Add the typed TypeScript adapter behind the existing Atlas path. Move the current indexer's execution to an isolated child worker, retaining compiler qualification, path scope, locks, digest checks, atomic artifacts and existing facts decoding. Use packaged absolute tool paths with no startup installation.
+4. Qualify one actual workspace index consumed by Atlas and Hangar with shell Node absent. Record control-call responsiveness and worker memory/concurrency while that index runs. Stop here to fix the working path before generalized recovery.
+5. Qualify explicit cancellation, Node failure and owner death with real child processes. Add bounded restart/backoff only after the working path passes. Reconcile uncertain effects through JVM receipts; reject obsolete-generation events/results.
+6. Move Radar lifetime from the Hangar window to an owner-managed resource shared by clients, retaining its existing recorded tunnel first. Qualify Kubernetes identity and lifetime before considering a packaged local Radar binary. This is owner extraction, not a required Node adapter.
+7. Add Lighthouse/browser and concrete Node SDK adapters when a real domain consumer needs them. Keep external MCP providers isolated, Excalidraw in its WebView, and builds/Pulumi/Dagger on their existing recorded paths.
+8. Extend U5 activation for compatible sidecar-only bundles and coordinated breaking JVM/Node releases. Qualify the hosted bundle separately under U8 where used.
+
+Acceptance:
+- One elected owner, two Hangar windows, CLI and MCP share exactly one production Node generation. Closing Hangar leaves accepted indexing and owner-managed Radar alive, with results/receipts available after reopening.
+- With shell Node absent from PATH and no sidecar dependency install at startup, a real qualified TypeScript workspace produces fresh Atlas facts through the private adapter and the normal typed consumer path. Compiler/source drift and out-of-scope or old-generation artifacts are rejected.
+- During heavy indexing, JVM discovery, website connection, Node health/status and explicit cancellation remain responsive within measured budgets. Cancellation terminates the actual worker tree; accepted jobs survive an observing client's disconnect.
+- Killing Node leaves the JVM and unrelated website inference serving, exposes a precise failed capability, and later recovery uses a new generation without a duplicate run. Killing the JVM leaves no Node, indexer, browser or owner-owned tunnel orphan, qualified on each supported OS.
+- An unauthenticated private connection or wrong owner/generation is refused. Integration code receives only its scoped environment/credentials, and results retain the JVM's principal/run attribution and receipt semantics. Human-initiated full-access Claude/Codex calls add no approval prompt.
+- Compatible bundle replacement drains the right jobs and starts one new generation. Incompatible handshake or failed qualification keeps the active bundle; a breaking protocol change activates the qualified JVM/Node pair together. An interrupted write is never blindly dispatched again.
+- Actual TypeScript, Radar and later adapter checks close separately with source/bundle identities and performance evidence. A catalog entry alone does not qualify an integration or recovery guarantee.
+
+Budget: one bound Node process role per elected owner, one runtime resource node/private adapter, one versioned private protobuf package with generated JVM/TS bindings, one compiled sidecar entry point, and extensions to the existing runtime manifest and tool bundle. The first executable integration is one TypeScript adapter and its worker boundary. Reuse existing domain contracts, run/admission stores, source-scope coordination, process supervision, build router and update actor. Add pinned `@grpc/grpc-js`, the minimal protobuf generation/codec packages and JVM runtime pieces not already present; record exact versions/lock changes before implementation. Radar and each later SDK/browser adapter receive their own bounded slice budget. No new module, public generic JS operation, second scheduler, authority store, browser endpoint or caller option.
+
+Don't: start Node from every kernel constructor; use ambient PATH tools; block the control event loop with SCIP; embed external MCP servers into this shared runtime; silently change the workspace compiler; retry unknown writes; promise orphan-free shutdown or hosted parity without actual process/platform evidence.
+
+Handoff: U9 status and Log; coordinates K4/K5 ownership, K8 Atlas and U5 image activation. Adding this plan does not mark implementation complete.
+
 ## 10. Qualification matrix
 
 | Scenario | Acceptance |
@@ -757,6 +890,10 @@ Don't: depend on container disk for final evidence; run two active owners for on
 | Activation failure | Compatible recovery restores the last good image; an incompatible state is detected before an unsafe write |
 | Lost effect reply | A repeated request id recovers the admitted run or result across owner replacement; a different payload with the same id conflicts |
 | Uncertain external effect | A crash between effect and receipt becomes inspect-and-reconcile, never a blind second dispatch |
+| Packaged JS runtime | No shell Node or startup package install; one checksummed bundle supplies a real TypeScript index with the same qualified facts and scope rules |
+| Bound runtime lifetime | One Node generation per elected owner; Hangar closure preserves accepted jobs; actual JVM death leaves no owned child-process orphan |
+| JS work pressure | Heavy indexing does not stall control/status/cancel or unrelated website inference; bounded workers and streams meet measured memory/latency budgets |
+| Private protocol and updates | Only the authenticated owner generation submits work; late results are rejected; compatible sidecar swap or coordinated JVM/Node update starts no duplicate resource |
 | Authority | A forged caller, expired decision, changed plan or revision, or out-of-scope principal gains no effect authority and reads no other principal's result |
 | Telemetry | One real application event is retained by the service, readable through the owner and visible in Hangar with its graph identity |
 | Website isolation | Public docs never retrieve private docs or source; Manna visibility and revocation apply to answers and citations; budgets hold |
@@ -781,11 +918,12 @@ Record startup and reconnect time, candidate build time, drain wait, source-to-a
 | O6 | Native agents during replacement | Wait for them to finish; never force-kill | U5 |
 | O7 | Website availability and budget | The local owner while the Mac is awake; the owner sets the per-request budget | U7 |
 | O8 | Distribution boundary | Contract roots open in Reaktor; servers, host and CLI closed in BestBuds | U1 |
-| O9 | gRPC | Not adopted (§11.2) | none |
+| O9 | gRPC | Adopted only for the private JVM-to-Node boundary in U9; the public owner link stays HTTP and sockets | U9 |
+| O10 | Bound JavaScript runtime | Owner requested 29 Oct: one packaged Node sidecar per elected background JVM; typed domain adapters, TypeScript first, JVM authority/state/receipts retained | U9 |
 
 ### 11.2 Not in this plan
 
-- **gRPC.** The owner link is a `Link`, and `SocketLink` already carries typed calls, cancellable streams and publish and subscribe over one socket, with the service layer's outcomes, deadlines and fingerprints. gRPC would add a second wire format, code generation and a runtime dependency with no present requirement. Browsers would also need gRPC-Web, and the Worker-to-container path is unproven for HTTP/2 trailers. Revisit if `SocketLink` misses a U3 budget measured on the real Mac and worker setup, or if a non-JVM native client needs HTTP/2 streams.
+- **gRPC as the public owner link.** The owner link is a `Link`, and `SocketLink` already carries typed calls, cancellable streams and publish and subscribe over one socket, with the service layer's outcomes, deadlines and fingerprints. U9 has a concrete cross-language process requirement and uses private gRPC there (§3.9). Hangar, CLI, MCP and browsers keep their existing HTTP/socket path; no gRPC-Web or Worker-to-container HTTP/2-trailer path is introduced. Revisit the public carrier only for a measured unmet requirement.
 - **FFI as the owner link.** FFI joins code inside one process, and independent processes still need IPC. Today's FFI makes synchronous JSON calls under thread confinement on mobile, and its JVM mobile factory is unsupported [E13]. The FFI page's design makes native calls a service `Link`; revisit when that link exists and a same-process face needs the kernel.
 - **Distributed ownership.** It needs a real lease and fencing design and a storage design first.
 - **A new agent harness, inference router or global scheduler.** Native runtimes, the build router and the existing stores stay.
@@ -797,7 +935,7 @@ Record startup and reconnect time, candidate build time, drain wait, source-to-a
 
 | Plan | How this plan relates |
 |---|---|
-| [Kernel handoff](/Users/ovd/dev/reaktor/plans/kernel-handoff.md) | Stays the status ledger. U2 completes K4 and K5 and rewrites K4 step 4 under O1. U1 and U4 carry K8, U1 carries K9, U6 carries K7 and K10, U4 carries K12, U7 carries K11, and U5 adds a continuous-update row. Its §7 rules apply to every package. |
+| [Kernel handoff](/Users/ovd/dev/reaktor/plans/kernel-handoff.md) | Stays the status ledger. U2 completes K4 and K5 and rewrites K4 step 4 under O1. U1 and U4 carry K8, U1 carries K9, U6 carries K7 and K10, U4 carries K12, U7 carries K11, U5 adds continuous updates and U9 adds the bound Node runtime with ownership/Atlas/update coordination. Its §7 rules apply to every package. |
 | [Kernel plan](/Users/ovd/dev/reaktor/plans/reaktor-kernel-plan.md) | Keeps its direction of one kernel, one catalog and one gate per workspace, and supplies the ownership, contract and update design. |
 | [CLI HLD](/Users/ovd/dev/reaktor/plans/cli-kernel-hld.md) | Its grammar, JSON behaviour, request ids, detach behaviour and exit codes are unchanged; update and owner status fit that grammar. |
 | [Graph protocol HLD](/Users/ovd/dev/reaktor/plans/graph-protocol-hld.md) | Its Connect, Query, Watch and Invoke domains get their first local profile here, through contracts, `hello`, streams with cursors and resets, and the outcome table mapped to service failure kinds plus run references. |
@@ -838,3 +976,6 @@ These links anchor the current-state statements. Proposed types and workflow cha
 - **E24** [Shared JSON defaults that ignore unknown keys](/Users/ovd/dev/reaktor/reaktor-core/src/commonMain/kotlin/dev/shibasis/reaktor/core/framework/Json.kt:21).
 - **E25** [HybridConnector listener](/Users/ovd/dev/reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnector.kt:73).
 - **E26** [Ktor pin](/Users/ovd/dev/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/Versions.kt:81) and the [MCP SDK pin](/Users/ovd/dev/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/versions/ToolingLibraries.kt:31); `kotlin-sdk-server-jvm` 0.7.2 depends on `ktor-server-core-jvm` and `ktor-server-sse-jvm`.
+- **E27** TypeScript facts [process launch](/Users/ovd/dev/bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelTypeScriptFacts.kt:178) (`673d8083a7e6`) and [synchronous SCIP child](/Users/ovd/dev/reaktor/reaktor-code/tools/scip-index.mjs:62) (`0bb16157f0ec`), read through Atlas on 29 October. These are current process paths, not a sidecar implementation.
+- **E28** Window-owned [Radar session](/Users/ovd/dev/bestbuds/modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/RadarSession.kt:34), including recorded startup and close (`a079acdd7a30`).
+- **E29** Checksummed [JavaScript toolchain](/Users/ovd/dev/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/toolchain/JavaScriptTools.kt:14) (`3e9474d15217`) and [protobuf generation](/Users/ovd/dev/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/codegen/ProtobufKernel.kt:10) (`c195641e0c1e`). Generated Node bindings and runtime compatibility still need U9 qualification.

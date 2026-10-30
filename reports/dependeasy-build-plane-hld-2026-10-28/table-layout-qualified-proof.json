@@ -1,0 +1,60 @@
+{
+  "sourceSha256": "f09013173d71b007af4bad8a66c6a04432f99caba7ff4f41c1c8c82c739a1c03",
+  "xml": [
+    {
+      "path": "/Users/ovd/dev/reaktor/reports/dependeasy-build-plane-hld-2026-10-28/table-treatment-xml",
+      "suites": 196,
+      "counts": {
+        "tests": 690,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "timestampRange": [
+        "2026-10-29T02:22:50.345Z",
+        "2026-10-29T02:31:41.234Z"
+      ]
+    },
+    {
+      "path": "/Users/ovd/dev/reaktor/reaktor-surface-compose/build/test-results/jvmTest",
+      "suites": 36,
+      "counts": {
+        "tests": 213,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "timestampRange": [
+        "2026-10-29T02:22:45.934Z",
+        "2026-10-29T02:22:52.600Z"
+      ]
+    }
+  ],
+  "router": [
+    {
+      "run_id": "20261029-075218-8455b108-bestbuds",
+      "project": "bestbuds",
+      "worker": "local",
+      "tasks": [
+        ":reaktor:reaktor-surface-compose:jvmTest",
+        ":reaktor:reaktor-surface-compose:jsNodeTest",
+        ":engine:jvmTest",
+        "--continue",
+        "--init-script",
+        "/Users/ovd/dev/reaktor/reports/dependeasy-build-plane-hld-2026-10-28/table-layout-qualification.init.gradle",
+        "--console=plain"
+      ],
+      "workspace_root": "/Users/ovd/dev",
+      "started": "2026-10-29T07:52:18.214243",
+      "log": "/Users/ovd/dev/.remote-dev/logs/20261029-075218-8455b108-bestbuds.log",
+      "queue_seconds": 13.463814375,
+      "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+      "exit_code": 0,
+      "execution_seconds": 566.1654177920001,
+      "finished": "2026-10-29T08:01:44.385215"
+    }
+  ],
+  "archiveSha256": "54571265e0533125e3b020b4b8e4f6eb64a44868a48aacb938cc53a8a5886fb4",
+  "assertions": "unchanged",
+  "JS": "jsNodeTest SKIPPED; compilation completed, not counted as executed tests"
+}

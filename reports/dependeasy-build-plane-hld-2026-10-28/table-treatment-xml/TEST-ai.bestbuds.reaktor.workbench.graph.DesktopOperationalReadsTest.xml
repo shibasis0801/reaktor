@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DesktopOperationalReadsTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:44.731Z" hostname="Shibasiss-MacBook-Pro-2.local" time="1.433">
+  <properties/>
+  <testcase name="sessionConnectionChangesPublishWithoutUnrelatedRunChanges[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopOperationalReadsTest" time="0.013"/>
+  <testcase name="environmentAndPendingApprovalRemainVisibleInEveryPane[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopOperationalReadsTest" time="0.321"/>
+  <testcase name="logIntakeKeepsBurstEventsBeyondTheRunSnapshotAndRetiresWithTheGraph[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopOperationalReadsTest" time="0.325"/>
+  <testcase name="streamedOutputDoesNotPublishShellOrUnrelatedPaneState[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopOperationalReadsTest" time="0.321"/>
+  <testcase name="backgroundReceiptsReachTheDrawerAndBecomeVisibleToTheShellWhenSelected[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopOperationalReadsTest" time="0.016"/>
+  <testcase name="agentPaneRetainsItsAiInventoryReceipt[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopOperationalReadsTest" time="0.008"/>
+  <testcase name="outputIsMaskedBoundedAndRetiresWithItsGraph[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopOperationalReadsTest" time="0.428"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,590 @@
+{
+  "status": "FailedSIGTRAP133; uninstrumented engine; first watcher replacement; not full qualification",
+  "freshCounts": {
+    "tests": 131,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "freshSuites": 41,
+  "previousSuites": 0,
+  "archive": "engine-first-native-watch-results.zip",
+  "sha256": "bc5f5b096527178f8ff475b691c762c36559b18f55ebbb35d1c046ef2ab9d209",
+  "crash": "java-2026-10-29-055844.ips",
+  "suites": [
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkspaceContextLabelTest.xml",
+      "suite": {
+        "name": "WorkspaceContextLabelTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:33.610Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.0"
+      },
+      "sha256": "5bd1f008d617ff88c2250126371a544038577253d3b349f6b56867f34c14f2d7"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.DatabaseStudioPaneRenderTest.xml",
+      "suite": {
+        "name": "DatabaseStudioPaneRenderTest[jvm]",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:36.954Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.57"
+      },
+      "sha256": "82a6a60386b567071dd4622df8387a5ac6b5648eaed41d8f55244447ae569fce"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.DatabaseResultExportTest.xml",
+      "suite": {
+        "name": "DatabaseResultExportTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:38.611Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.008"
+      },
+      "sha256": "a2a6255bb2a60f612fbb332db800c776560013d4490a58e2384d7b37f238552b"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest.xml",
+      "suite": {
+        "name": "SurfaceLabRenderTest[jvm]",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:49.274Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "12.698"
+      },
+      "sha256": "aa16825cd75c2cd4c88a89f4c7e842f97b5b7e31457fad7dec4deb447c7cc58f"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SafeDeleteGuardTest.xml",
+      "suite": {
+        "name": "SafeDeleteGuardTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:46.254Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "1.818"
+      },
+      "sha256": "26d92305a2776e97f14c90995d543511bba1894a9ddde35c61585a9af033c8c1"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest.xml",
+      "suite": {
+        "name": "WorkbenchSubsystemCoverageTest[jvm]",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:21.381Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "12.115"
+      },
+      "sha256": "43d0a39a1087a80ca186399300b10f45fe7f425f05abfbdb8e472847eda476e7"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentExecutionTraceTest.xml",
+      "suite": {
+        "name": "AgentExecutionTraceTest[jvm]",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:25:58.958Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.01"
+      },
+      "sha256": "684c0b079948b366ddd00560f6a353172808a22b7428fee0016363d915876d29"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.SplitterParityTest.xml",
+      "suite": {
+        "name": "SplitterParityTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:49.057Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.215"
+      },
+      "sha256": "48eb2b3ded2ab410e488d4954c5e964e51c3959543bee3760f6db0480583a697"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.WorkbenchShellRenderTest.xml",
+      "suite": {
+        "name": "WorkbenchShellRenderTest[jvm]",
+        "tests": "2",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:28:01.973Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "26.731"
+      },
+      "sha256": "057310028faec207eb7c34bf9f32fbfa476501910b5d75e6cf3fe62b92feb130"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentConversationStateTest.xml",
+      "suite": {
+        "name": "AgentConversationStateTest[jvm]",
+        "tests": "11",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:25:48.692Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "10.265"
+      },
+      "sha256": "4af5a4b4d581fc2ebfec7f3562e8cd8c95142c876b78894a87cd912846a51f21"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SystemIslandsTest.xml",
+      "suite": {
+        "name": "SystemIslandsTest[jvm]",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:14.406Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.009"
+      },
+      "sha256": "75e00593bc8b70a4db0f4b0d8498e6eab3999cc2cf99378e4552725e078dde36"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SurfaceRetirementTest.xml",
+      "suite": {
+        "name": "SurfaceRetirementTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:13.164Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "1.165"
+      },
+      "sha256": "ecdf31141a36e5bc5b9100b498a79b34c35fe75e3f2ba2e2debc205ce471ec9d"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.ReaktorDesktopPerformanceTest.xml",
+      "suite": {
+        "name": "ReaktorDesktopPerformanceTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:39.113Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "7.14"
+      },
+      "sha256": "f07e12fc0ce7a62e91d85ebdfc1578a077f0ebf08bb8a07b2054c040277685ec"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentWorkspaceInteractionTest.xml",
+      "suite": {
+        "name": "AgentWorkspaceInteractionTest[jvm]",
+        "tests": "11",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:25:59.342Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "16.603"
+      },
+      "sha256": "69ad3cfc3f771735278fcce65cf58b5d0289bc7bf2feffb7dac55f4b2d76033c"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.MachineSignalTokenParityTest.xml",
+      "suite": {
+        "name": "MachineSignalTokenParityTest[jvm]",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:39.062Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.049"
+      },
+      "sha256": "ae901c1dadb5ac670a715a60c448baca4e2ff099ac84d9e4986a6e7b81910ca7"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkbenchTruthInvariantsTest.xml",
+      "suite": {
+        "name": "WorkbenchTruthInvariantsTest[jvm]",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:33.497Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.109"
+      },
+      "sha256": "da89c8b2cb42c2c60646020a7f876e2d96dcb6abe98dbfbfe58d0f9bfa393d85"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentContextAndDraftTest.xml",
+      "suite": {
+        "name": "AgentContextAndDraftTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:25:48.209Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.482"
+      },
+      "sha256": "0984727eb4e92e1192c3ef6a825c224f8e4b0e7972fc4214078fcd4a14d63953"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentScorecardTest.xml",
+      "suite": {
+        "name": "AgentScorecardTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:25:58.968Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.373"
+      },
+      "sha256": "c421e4d2dbc96c26a461732532f15578080efd8ff52986505bb0254eaacbc02d"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.AgentConversationRenderTest.xml",
+      "suite": {
+        "name": "AgentConversationRenderTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:33.634Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "2.937"
+      },
+      "sha256": "2ba839cd91661651606ad812593d0797affdd32c46a5ab1851fc0c778cbec695"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.MachineSignalSubpaneRenderTest.xml",
+      "suite": {
+        "name": "MachineSignalSubpaneRenderTest[jvm]",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:40.721Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "8.334"
+      },
+      "sha256": "df017c41f0bb9baef5753e4629cca7984f05048ccb590e99c026a0e7b758405b"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.TableLookParityTest.xml",
+      "suite": {
+        "name": "TableLookParityTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:14.416Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.89"
+      },
+      "sha256": "602c4424309c1ae5f224e20a9ba5cbdc9ae2dadde7c71ddd9a0ca04e4aa0e247"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkbenchFeatureTest.xml",
+      "suite": {
+        "name": "WorkbenchFeatureTest[jvm]",
+        "tests": "9",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:15.325Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "6.055"
+      },
+      "sha256": "803eecdb74b466f01425f42473964ae29992fdad98b0324b351724ffabd9ebb0"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.design.HumanTypographyTest.xml",
+      "suite": {
+        "name": "HumanTypographyTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:33.611Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.023"
+      },
+      "sha256": "fa40d95a754a363b5b6deef55996d25981a93f7399ac0c788bdf9341d5a9319b"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.DocumentTabParityTest.xml",
+      "suite": {
+        "name": "DocumentTabParityTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:37.876Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.21"
+      },
+      "sha256": "c9e35d8c73b6108705c501acd62598d4d447781edf25ac60c08bb8a6117d1d86"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.GraphShapeIntegrationTest.xml",
+      "suite": {
+        "name": "GraphShapeIntegrationTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:39.015Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.04"
+      },
+      "sha256": "c6ed750a2d3f3b3ae403a51490087146de1d60314b15540e8204eb063fbaf309"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.GraphWiringHealthTest.xml",
+      "suite": {
+        "name": "GraphWiringHealthTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:39.058Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.002"
+      },
+      "sha256": "e68652c01bb4cc156e04b633dc7882292a769fb2841853ffb20350d43b6a1256"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.HangarFontStackTest.xml",
+      "suite": {
+        "name": "HangarFontStackTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:38.087Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.0"
+      },
+      "sha256": "f81edde340e34b93c333021f502f05a6912505b5c732a6bbf5258cca38bb2a11"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.AgentBenchPaneTest.xml",
+      "suite": {
+        "name": "AgentBenchPaneTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:25:46.806Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "1.402"
+      },
+      "sha256": "4adfd55806aacfa0afd3abba5acf874df57d4a4ffbee980209052db1f6a1e023"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest.xml",
+      "suite": {
+        "name": "KitRetirementParityTest[jvm]",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:38.088Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "2.63"
+      },
+      "sha256": "3eefb6cf8b10f57132b5271f684a92238219fadf870a6e6fd3fdde6b88aad309"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SurfaceDuplicateKeysRenderTest.xml",
+      "suite": {
+        "name": "SurfaceDuplicateKeysRenderTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:48.074Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.045"
+      },
+      "sha256": "82fe16fc43898541b25823f82caa367462fd6bd37c4864623612ba35547929f9"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.GraphDocumentIntegrationTest.xml",
+      "suite": {
+        "name": "GraphDocumentIntegrationTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:38.903Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.111"
+      },
+      "sha256": "0bce496e28526df98c821e796b90c9ed53b3bd349225f3b63d02da1ce1cb8cbc"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.DisplayParityTest.xml",
+      "suite": {
+        "name": "DisplayParityTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:37.526Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.349"
+      },
+      "sha256": "08cb6291254185e94aba4cb0996804f9634f01434bdf0a9c8f266027a35f3022"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SurfaceSourcePerformanceTest.xml",
+      "suite": {
+        "name": "SurfaceSourcePerformanceTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:14.330Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.074"
+      },
+      "sha256": "b724473fd8b2ce48f0ffc2e4d9884908e2d3afc9a15a033addd76ccdc542621c"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.CollectionFrameTest.xml",
+      "suite": {
+        "name": "CollectionFrameTest[jvm]",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:15.951Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "19.021"
+      },
+      "sha256": "6c2502533c86929285233210c4fa17cb6929388b729dfa9856008e531783ca13"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.SurfaceQualificationTest.xml",
+      "suite": {
+        "name": "SurfaceQualificationTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:48.122Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "25.041"
+      },
+      "sha256": "77e36a40429010cc99cc04b409a7b02e8d7dc0251ef81cc2f8b756496cc1687a"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.EngineArchitectureTest.xml",
+      "suite": {
+        "name": "EngineArchitectureTest[jvm]",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:38.627Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.275"
+      },
+      "sha256": "e555f22b9cba10f8a2424872e7d3055e90a3ff5fcb5facbf0b04c40bf8478a19"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest.xml",
+      "suite": {
+        "name": "AuthPresentationParseTest[jvm]",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:36.571Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.002"
+      },
+      "sha256": "7543aff5556102372e7792600bfadb61f54011aa2d076c40d2c28f8aa19f6f78"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.WorkbenchCrashLogTest.xml",
+      "suite": {
+        "name": "WorkbenchCrashLogTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:15.307Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.017"
+      },
+      "sha256": "e2b4fb8505b549fc13ab9c2d30c1442f565fbc3616339d3253cce61646a25b92"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.DesktopOperatorLoginTest.xml",
+      "suite": {
+        "name": "DesktopOperatorLoginTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:38.619Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.007"
+      },
+      "sha256": "01536e710df590e389c15689deb3f8a9ba76bbe9d0665bd736ca514dab061189"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.ControllerCountTest.xml",
+      "suite": {
+        "name": "ControllerCountTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:26:34.974Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "3.636"
+      },
+      "sha256": "c81402a13b5d376bf7fbed32f246b76817bb3f3009e431f875b0d8e24f9abe41"
+    },
+    {
+      "path": "bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.DataProviderViewsRenderTest.xml",
+      "suite": {
+        "name": "DataProviderViewsRenderTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:27:36.574Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "0.379"
+      },
+      "sha256": "6eadfe00b46a152fb98f7f3b258380f50ba158fdc0f35690566894a21914498b"
+    }
+  ]
+}

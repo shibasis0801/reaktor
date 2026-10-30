@@ -1745,9 +1745,33 @@ importers:
       '@js-joda/core':
         specifier: 3.2.0
         version: 3.2.0
+      '@sqlite.org/sqlite-wasm':
+        specifier: 3.53.4-build2
+        version: 3.53.4-build2
+      abort-controller:
+        specifier: 3.0.0
+        version: 3.0.0
+      format-util:
+        specifier: ^1.0.5
+        version: 1.0.5
+      hono:
+        specifier: 4.12.23
+        version: 4.12.23
+      node-fetch:
+        specifier: 2.7.0
+        version: 2.7.0
+      partyserver:
+        specifier: 0.5.6
+        version: 0.5.6(@cloudflare/workers-types@4.20260702.1)
+      postgres:
+        specifier: 3.4.9
+        version: 3.4.9
       reaktor-core:
         specifier: link:../../../../reaktor-core
         version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
     devDependencies:
       typescript:
         specifier: 6.0.3
@@ -1758,9 +1782,33 @@ importers:
       '@js-joda/core':
         specifier: 3.2.0
         version: 3.2.0
+      '@sqlite.org/sqlite-wasm':
+        specifier: 3.53.4-build2
+        version: 3.53.4-build2
+      abort-controller:
+        specifier: 3.0.0
+        version: 3.0.0
+      format-util:
+        specifier: ^1.0.5
+        version: 1.0.5
+      hono:
+        specifier: 4.12.23
+        version: 4.12.23
+      node-fetch:
+        specifier: 2.7.0
+        version: 2.7.0
+      partyserver:
+        specifier: 0.5.6
+        version: 0.5.6(@cloudflare/workers-types@4.20260702.1)
+      postgres:
+        specifier: 3.4.9
+        version: 3.4.9
       reaktor-core:
         specifier: link:../../../../reaktor-core
         version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
     devDependencies:
       kotlin-web-helpers:
         specifier: 3.3.0

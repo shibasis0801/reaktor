@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="UiAdaptersTest[jvm]" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-28T20:24:28.315Z" hostname="Shibasiss-MacBook-Pro-2.local" time="5.046">
+  <properties/>
+  <testcase name="networkKeepsCancellationVisibleAndOutOfTheFailedFilter[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="2.678"/>
+  <testcase name="selectedPathScopesTheVisibleTraceAndClearsWithoutStaleCalls[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="0.264"/>
+  <testcase name="responsiveRendersThreeRealViewportWidthsAndReactsToStoryState[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="0.316"/>
+  <testcase name="sourceDiffRendersTrackedChangesAndClearsEvidenceWhenTheWorkspaceIsRemoved[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="0.378"/>
+  <testcase name="accessibilityFiltersByFocusCategoryAndOpensExactCapturedEvidence[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="0.135"/>
+  <testcase name="traceExposesUnlinkedCallsAndItsDisplayLimit[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="0.335"/>
+  <testcase name="pipelineObservesLateExportFailureWithoutAnotherSpan[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="0.791"/>
+  <testcase name="flowUsesCurrentRouteEndpointsAndDropsThePreviousApplication[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="0.074"/>
+  <testcase name="sourceDiffWithoutDeclaredSourceShowsItsMissingRequirement[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="0.071"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

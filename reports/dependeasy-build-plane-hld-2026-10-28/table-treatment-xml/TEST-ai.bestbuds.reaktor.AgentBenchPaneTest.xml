@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentBenchPaneTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:22:50.345Z" hostname="Shibasiss-MacBook-Pro-2.local" time="1.636">
+  <properties/>
+  <testcase name="paneProposesPinnedRepeatsAndMeasuresThroughTheKernelWithoutStartingAgents[jvm]" classname="ai.bestbuds.reaktor.AgentBenchPaneTest" time="1.633"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

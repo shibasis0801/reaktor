@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="RadarSessionTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:22.002Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.634">
+  <properties/>
+  <testcase name="refreshKeepsAnAnsweringRadarWithoutAnotherProbe[jvm]" classname="ai.bestbuds.reaktor.workbench.cloud.RadarSessionTest" time="0.003"/>
+  <testcase name="refreshRetriesATransientMissWithoutStartingATunnel[jvm]" classname="ai.bestbuds.reaktor.workbench.cloud.RadarSessionTest" time="0.001"/>
+  <testcase name="requestsCoalesceAndALateProbeCannotStartAForwardAfterClose[jvm]" classname="ai.bestbuds.reaktor.workbench.cloud.RadarSessionTest" time="0.002"/>
+  <testcase name="failedForwardsCanRetryAndCannotClaimAnExternalTunnel[jvm]" classname="ai.bestbuds.reaktor.workbench.cloud.RadarSessionTest" time="0.626"/>
+  <testcase name="refreshReportsAnUnavailableRadarAndCanRecoverOnRecheck[jvm]" classname="ai.bestbuds.reaktor.workbench.cloud.RadarSessionTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

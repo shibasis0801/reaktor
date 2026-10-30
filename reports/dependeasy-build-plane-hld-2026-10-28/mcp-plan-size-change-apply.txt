@@ -1,0 +1,8 @@
+applied plan p8af8901f09abfa331c06 · receipt change-p8af8901f09abfa331c06-1793237189633-7568 · 5 files written
+  ../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt
+  ../reaktor/reaktor-mcp/src/commonMain/kotlin/dev/shibasis/reaktor/mcp/McpProtocol.kt
+  ../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.kt
+  modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/AgentWorkspaceCli.kt
+  modules/kernel/src/test/kotlin/dev/shibasis/reaktor/conductor/cli/StdioBridgeTest.kt
+checks: kernel · JVM tests; kernel · Kernel boundary; reaktor-conductor · JVM tests; reaktor-mcp · JVM tests; reaktor-mcp · JavaScript tests; reaktor-mcp · TypeScript checks; reaktor-tooling · JVM tests
+next: check_run {"change":"p8af8901f09abfa331c06"}

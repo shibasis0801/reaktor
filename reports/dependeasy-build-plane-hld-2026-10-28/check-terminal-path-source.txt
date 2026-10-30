@@ -1,0 +1,61 @@
+3 of 3 · syntactic (kotlin-psi/2.4.21, git-grep) · rev:f718540f9bce
+../reaktor/plans/audits/KernelInspectionAccessAuditTest.kt
+  23 text in KernelInspectionAccessAuditTest.unauthenticatedInspectionAudit: val plane = OperationalControlPlane(BestBudsCatalog("audit", root.toFile(), listOf("local"), emptyList(), listOf(task), emptyList()),
+../reaktor/plans/dependeasy-handoff.md
+  1466 text: through DiscoveredJvmWorkspace preparation and preserve the planner's artifact expectations through OperationalControlPlane. No new environment selector or artifact authority. Xcode's existing static-
+../reaktor/plans/expressive-code-scan.md
+  318 text: - **Files.** 31 are over 800 lines. The largest are `StudioModel.kt` (2,016), `KernelAtlas.kt` (1,996), `OperationalControlPlane.kt` (1,845) and `BestBudsOperationalCatalog.kt` (1,758).
+note: More lines contain OperationalControlPlane than one search returns; narrow with path
+note: Nothing named OperationalControlPlane is declared in Kotlin in ../reaktor; these are the lines that contain it
+next: atlas_read {"id":"d:../reaktor/plans/audits/KernelInspectionAccessAuditTest.kt:22:20@59955b1d"}
+--- queries[0] {"from":{"name":"OperationExecutor","path":"../reaktor"}}
+1 of 1 · syntactic (kotlin-psi/2.4.21, git-grep) · rev:55631688c1f4
+../reaktor/plans/audits/KernelInspectionAccessAuditTest.kt
+  24 text in KernelInspectionAccessAuditTest.unauthenticatedInspectionAudit: object : OperationExecutor {
+note: More lines contain OperationExecutor than one search returns; narrow with path
+note: Nothing named OperationExecutor is declared in Kotlin in ../reaktor; these are the lines that contain it
+next: atlas_read {"id":"d:../reaktor/plans/audits/KernelInspectionAccessAuditTest.kt:23:21@59955b1d"}
+--- reads[0] {"path":"modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelChecks.kt","part":"outline"}
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelChecks.kt · outline · 4334 of 4334 characters, partial · rev:842a4311adcf
+22  @Serializable data class ChecksQuery( @Describe("Files the change touches, relative to the workspace or absolute") val paths: List<String> = emptyList(), @Describe("A Claude Code or Codex session id whose edited files stand in when no paths are given") val session: String? = null, @Describe("Owned task whose exact candidate to check; supply candidateId too") val taskId: String? = null, @Describe("Captured candidate id owned by taskId") val candidateId: String? = null, )
+23    @Describe("Files the change touches, relative to the workspace or absolute") val paths: List<String>
+24    @Describe("A Claude Code or Codex session id whose edited files stand in when no paths are given") val session: String?
+25    @Describe("Owned task whose exact candidate to check; supply candidateId too") val taskId: String?
+26    @Describe("Captured candidate id owned by taskId") val candidateId: String?
+30  @Serializable data class ChecksRequest( @Describe("Files the change touches, relative to the workspace or absolute") val paths: List<String> = emptyList(), @Describe("A Claude Code or Codex session id whose edited files stand in when no paths are given") val session: String? = null, @Describe("Edited starts the edited modules' tests; add Users for the modules that use them and Flows for the slow Hangar and window flows") val reach: List<CheckReach> = listOf(CheckReach.Edited), @Describe("Run the tests even when Gradle would reuse their last result because nothing they read changed") val rerun:
+31    @Describe("Files the change touches, relative to the workspace or absolute") val paths: List<String>
+32    @Describe("A Claude Code or Codex session id whose edited files stand in when no paths are given") val session: String?
+34    @Describe("Edited starts the edited modules' tests; add Users for the modules that use them and Flows for the slow Hangar and window flows") val reach: List<CheckReach>
+35    @Describe("Run the tests even when Gradle would reuse their last result because nothing they read changed") val rerun: Boolean
+36    @Describe("Run only the test classes that use the changed code, through the code graph, as one Gradle run per check") val narrow: Boolean
+37    @Describe("Owned task whose exact candidate to check; supply candidateId too") val taskId: String?
+38    @Describe("Captured candidate id owned by taskId") val candidateId: String?
+42  @Serializable data class ChecksAnswer(val files: Int, val modules: List<String>, val checks: List<AffectedCheck>, val outside: List<String>, val notes: List<String> = emptyList())
+42    val files: Int
+42    val modules: List<String>
+42    val checks: List<AffectedCheck>
+42    val outside: List<String>
+42    val notes: List<String>
+45  @Serializable data class NarrowedRun(val node: String, val run: RunStarted, val tests: List<String>)
+45    val node: String
+45    val run: RunStarted
+45    val tests: List<String>
+48  @Serializable data class ChecksStarted(val run: RunStarted?, val checks: List<String>, val running: List<String>, val narrowed: List<NarrowedRun> = emptyList())
+48    val run: RunStarted?
+48    val checks: List<String>
+48    val running: List<String>
+48    val narrowed: List<NarrowedRun>
+50  internal fun checkOperations(kernel: ReaktorKernel): List<Operation<*, *>>
+87  private fun candidateTarget(taskId: String?, candidateId: String?, paths: List<String>, session: String?): Boolean
+93  private suspend fun candidateCheckCall(kernel: ReaktorKernel, name: String, args: JsonObject): JsonElement
+99  object KernelChecks
+100    fun affected(kernel: ReaktorKernel, paths: List<String>, session: String?): ChecksAnswer
+102    internal fun affected(kernel: ReaktorKernel, atlas: KernelAtlas, paths: List<String>, session: String?): ChecksAnswer
+121    fun run(kernel: ReaktorKernel, request: ChecksRequest): ChecksStarted
+134    private fun reached(atlas: KernelAtlas, changed: List<File>): Set<File>?
+145    private fun classes(atlas: KernelAtlas, root: File, files: List<File>): List<String>
+157    private const val MaxReach
+158    private const val MaxClasses
+159    private val TestHolders
+161    internal fun files( root: File, paths: List<String>, session: String?, home: File = File(System.getProperty("user.home")), now: Long = System.currentTimeMillis(), processes: HarnessProcesses = HarnessProcesses.System, ): List<String>
+next: atlas_read {"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelChecks.kt:21:11@393c1cb3"}

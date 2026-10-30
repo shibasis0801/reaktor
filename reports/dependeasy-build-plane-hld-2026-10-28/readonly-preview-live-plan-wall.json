@@ -1,0 +1,17 @@
+{
+  "command": [
+    "reaktor",
+    "--dir",
+    "/Users/ovd/dev/bestbuds",
+    "build",
+    "plan",
+    "bestbuds:workers:deployMessaging",
+    "--json",
+    "--request-id",
+    "dependeasy-readonly-preview-20261029-1432"
+  ],
+  "started": "2026-10-29T14:31:11.456130+05:30",
+  "wallSeconds": 33.857653500000005,
+  "exitCode": 1,
+  "scope": "Actual installed primary CLI provider preview, current modeled production environment; no apply, no external provider mutations. Source shared and elapsed not a paired September benchmark."
+}

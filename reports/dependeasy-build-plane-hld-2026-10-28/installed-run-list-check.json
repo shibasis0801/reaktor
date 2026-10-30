@@ -1,0 +1,172 @@
+{
+  "command": [
+    "reaktor",
+    "run",
+    "list",
+    "--limit",
+    "5",
+    "--json"
+  ],
+  "cwd": "/Users/ovd/dev/bestbuds",
+  "wallSeconds": 15.387280834,
+  "exitCode": 0,
+  "json": true,
+  "result": {
+    "type": "completed",
+    "result": [
+      {
+        "id": "kernel-0b7db5a9-31f2-4400-8e90-207119a1dbe9",
+        "taskId": "change.apply",
+        "taskTitle": "change.apply",
+        "environment": "unspecified",
+        "status": "Failed",
+        "startedAtMillis": 1793221794613,
+        "finishedAtMillis": 1793221794668,
+        "exitCode": 1,
+        "artifacts": [],
+        "receipt": {
+          "id": "kernel-0b7db5a9-31f2-4400-8e90-207119a1dbe9",
+          "workspaceId": "workspace-81fe809d391237c152810ad9",
+          "taskId": "change.apply",
+          "planId": "86a43f95ce52d2fe6262cd757a9dbf94394e875dd30ee2f0a86651c431f038d6",
+          "status": "Failed",
+          "createdAtEpochMillis": 1793221794613,
+          "startedAtEpochMillis": 1793221794613,
+          "finishedAtEpochMillis": 1793221794668,
+          "exitCode": 1,
+          "artifacts": []
+        }
+      },
+      {
+        "id": "kernel-eeed76b5-3931-4add-92a3-9151c93a09a5",
+        "taskId": "plan.write",
+        "taskTitle": "plan.write",
+        "environment": "unspecified",
+        "status": "Succeeded",
+        "startedAtMillis": 1793221794252,
+        "finishedAtMillis": 1793221794305,
+        "exitCode": 0,
+        "artifacts": [],
+        "receipt": {
+          "id": "kernel-eeed76b5-3931-4add-92a3-9151c93a09a5",
+          "workspaceId": "workspace-81fe809d391237c152810ad9",
+          "taskId": "plan.write",
+          "planId": "43778aa80715544fb31edfd7edc73128e363d56fe1c980df81c5b60ee18f22a4",
+          "status": "Succeeded",
+          "createdAtEpochMillis": 1793221794252,
+          "startedAtEpochMillis": 1793221794252,
+          "finishedAtEpochMillis": 1793221794305,
+          "exitCode": 0,
+          "artifacts": []
+        }
+      },
+      {
+        "id": "change-pf7406bdb24b1abbb5ecd-1793221794142-1075",
+        "taskId": "code/change/pf7406bdb24b1abbb5ecd",
+        "taskTitle": "Edit 1 file",
+        "environment": "local",
+        "status": "Succeeded",
+        "startedAtMillis": 1793221794142,
+        "finishedAtMillis": 1793221794150,
+        "exitCode": 0,
+        "artifacts": [
+          {
+            "id": "change-pf7406bdb24b1abbb5ecd-1793221794142-1075/0",
+            "kind": "code-change",
+            "path": "targets/telemetryServer/container/qualify-appliance.py",
+            "summary": "4f443f2b46718cb09a12fef8deeca74e34f5289ba5eaec296d1e236e2242124e",
+            "sensitive": false,
+            "verified": true
+          }
+        ],
+        "sourceRevision": "pf7406bdb24b1abbb5ecd",
+        "sensitive": false,
+        "approvedBy": "codex seat policy",
+        "connectionCheck": false,
+        "background": false,
+        "verifiedChecks": [],
+        "receipt": {
+          "id": "change-pf7406bdb24b1abbb5ecd-1793221794142-1075",
+          "workspaceId": "workspace-81fe809d391237c152810ad9",
+          "taskId": "code/change/pf7406bdb24b1abbb5ecd",
+          "planId": "unrecorded/change-pf7406bdb24b1abbb5ecd-1793221794142-1075",
+          "status": "Succeeded",
+          "createdAtEpochMillis": 1793221794142,
+          "startedAtEpochMillis": 1793221794142,
+          "finishedAtEpochMillis": 1793221794150,
+          "exitCode": 0,
+          "artifacts": [
+            {
+              "id": "change-pf7406bdb24b1abbb5ecd-1793221794142-1075/0",
+              "kind": "code-change",
+              "location": "targets/telemetryServer/container/qualify-appliance.py",
+              "attributes": {
+                "verified": "true"
+              }
+            },
+            {
+              "id": "operation-change-pf7406bdb24b1abbb5ecd-1793221794142-1075",
+              "kind": "operational-run",
+              "location": "change-pf7406bdb24b1abbb5ecd-1793221794142-1075",
+              "attributes": {
+                "sourceStatus": "Succeeded",
+                "planEvidence": "unrecorded"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "kernel-cd6a55ce-2e12-442d-9d53-eacb1eb1c4ef",
+        "taskId": "change.apply",
+        "taskTitle": "change.apply",
+        "environment": "unspecified",
+        "status": "Succeeded",
+        "startedAtMillis": 1793221794069,
+        "finishedAtMillis": 1793221794150,
+        "exitCode": 0,
+        "artifacts": [],
+        "receipt": {
+          "id": "kernel-cd6a55ce-2e12-442d-9d53-eacb1eb1c4ef",
+          "workspaceId": "workspace-81fe809d391237c152810ad9",
+          "taskId": "change.apply",
+          "planId": "90b3dc2d38f29fbcdb9a9bd4604affdfcaa84a8e5cc9db77fea53b5d3129ac92",
+          "status": "Succeeded",
+          "createdAtEpochMillis": 1793221794069,
+          "startedAtEpochMillis": 1793221794069,
+          "finishedAtEpochMillis": 1793221794150,
+          "exitCode": 0,
+          "artifacts": []
+        }
+      },
+      {
+        "id": "kernel-2a23d663-13b2-4c90-b6aa-cd96ef5d1aac",
+        "taskId": "change.plan",
+        "taskTitle": "change.plan",
+        "environment": "unspecified",
+        "status": "Succeeded",
+        "startedAtMillis": 1793221780848,
+        "finishedAtMillis": 1793221781368,
+        "exitCode": 0,
+        "artifacts": [],
+        "receipt": {
+          "id": "kernel-2a23d663-13b2-4c90-b6aa-cd96ef5d1aac",
+          "workspaceId": "workspace-81fe809d391237c152810ad9",
+          "taskId": "change.plan",
+          "planId": "534cb2d61b3b515ce7e1b9b063342443685dd7efa859c86d727e988ca8c8f47e",
+          "status": "Succeeded",
+          "createdAtEpochMillis": 1793221780848,
+          "startedAtEpochMillis": 1793221780848,
+          "finishedAtEpochMillis": 1793221781368,
+          "exitCode": 0,
+          "artifacts": []
+        }
+      }
+    ],
+    "reference": {
+      "operation": "run.list",
+      "requestId": "73f7e20b-8670-44d4-b18e-abb54df07845",
+      "workspace": "/Users/ovd/dev/bestbuds"
+    }
+  }
+}

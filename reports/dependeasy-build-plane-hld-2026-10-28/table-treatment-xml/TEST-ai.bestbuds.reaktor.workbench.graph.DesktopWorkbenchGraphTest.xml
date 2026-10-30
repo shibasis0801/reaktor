@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DesktopWorkbenchGraphTest[jvm]" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:46.166Z" hostname="Shibasiss-MacBook-Pro-2.local" time="7.159">
+  <properties/>
+  <testcase name="shellLayoutSurvivesNavigationCloseAndWorkspaceChanges[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.925"/>
+  <testcase name="desktopBorrowsTheKernelGraphAndSessionWithoutClosingThem[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.313"/>
+  <testcase name="resultCopyUsesTheGraphOwnerAndItsCommandsRetireWithTheGraph[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.31"/>
+  <testcase name="everyNativeModeUsesTheLiveControlPlaneAndItsOwnRoute[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.303"/>
+  <testcase name="featurePanesShareOneInspectedApplicationActivation[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.306"/>
+  <testcase name="agentTasksPushAcrossModesAndPauseWithoutGivingThePaneALifetime[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.348"/>
+  <testcase name="anExplicitlyShownUnpinnedInspectorKeepsItsIntentAcrossNavigationAndRestart[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.924"/>
+  <testcase name="aiRepositoryReadsStayWithTheGraphAcrossNavigationAndRetireOnClose[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.33"/>
+  <testcase name="graphNavigationPreservesSessionsAndUsesRealTypedDependencies[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.305"/>
+  <testcase name="testReportsAreReadBeforeTestingOpensAndRetireWithTheGraph[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.316"/>
+  <testcase name="lateNavigationAfterCloseIsANoop[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.309"/>
+  <testcase name="aSlowLayoutWriteCannotBlockEdtEditsOrCloseAndTheLatestWorkspacesAreSaved[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.31"/>
+  <testcase name="graphCommandsAndHistoryShareTheVisibleDestination[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.306"/>
+  <testcase name="aPinnedInspectorRemembersItsSubjectAcrossARestart[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.922"/>
+  <testcase name="migrationRefreshReadsTheInspectionSessionAndLeavesTheQueryDocumentAlone[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.307"/>
+  <testcase name="closingTheGraphReleasesOwnedScopesAndInspectedActivationsOnce[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.314"/>
+  <testcase name="closingAndCyclingWorkspacesRetainsTheirOwnedSessionsAndHistory[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest" time="0.311"/>
+  <system-out><![CDATA[Warn: Ignored navigation after the desktop graph closed
+Warn: Ignored navigation after the desktop graph closed
+Warn: Ignored navigation after the desktop graph closed
+]]></system-out>
+  <system-err><![CDATA[Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='panes' type='ReaktorModePaneStates' owner='Graph reading (f08d4cf6-aaad-4149-b1f9-809c0a85e7f7)' Unconnected
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.follow(GraphPaneNode.kt:371)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.access$follow(GraphPaneNode.kt:65)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$1.invokeSuspend(GraphPaneNode.kt)
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at kotlinx.coroutines.flow.internal.ChannelFlow$collectToFun$1.invokeSuspend(ChannelFlow.kt:56)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$start$2.invokeSuspend(GraphPaneNode.kt:124)
+Caused by: java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='panes' type='ReaktorModePaneStates' owner='Graph reading (f08d4cf6-aaad-4149-b1f9-809c0a85e7f7)' Unconnected
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.follow(GraphPaneNode.kt:371)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.access$follow(GraphPaneNode.kt:65)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$1.invokeSuspend(GraphPaneNode.kt)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='telemetry' type='WorkbenchTelemetry' owner='Graph reading (7ba5dc83-98b4-473f-b929-015d506b33bb)' Unconnected
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$sampled$1.invokeSuspend$lambda$0(GraphPaneNode.kt:283)
+	at androidx.compose.runtime.SnapshotFlowManagerImpl.runAndWatch$runtime(SnapshotFlow.kt:598)
+	at androidx.compose.runtime.SnapshotFlowManager.runAndWatch$runtime(SnapshotFlow.kt:118)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invokeSuspend(SnapshotFlow.kt:478)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invoke(SnapshotFlow.kt)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invoke(SnapshotFlow.kt)
+	at kotlinx.coroutines.flow.SafeFlow.collectSafely(Builders.kt:57)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperatorImpl.flowCollect(ChannelFlow.kt:191)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperator.collectTo$suspendImpl(ChannelFlow.kt:153)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperator.collectTo(ChannelFlow.kt)
+	at kotlinx.coroutines.flow.internal.ChannelFlow$collectToFun$1.invokeSuspend(ChannelFlow.kt:56)
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$sampled$1.invokeSuspend(GraphPaneNode.kt:204)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at kotlinx.coroutines.flow.internal.CombineKt$combineInternal$2$1.invokeSuspend(Combine.kt:28)
+	at kotlinx.coroutines.flow.internal.ChannelFlow$collectToFun$1.invokeSuspend(ChannelFlow.kt:56)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.follow(GraphPaneNode.kt:207)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$start$2$2.invokeSuspend(GraphPaneNode.kt:124)
+	at kotlinx.coroutines.flow.FlowKt__MergeKt$mapLatest$1.invokeSuspend(Merge.kt:213)
+	at kotlinx.coroutines.flow.internal.ChannelFlowTransformLatest$flowCollect$3$1$2.invokeSuspend(Merge.kt:30)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$start$2.invokeSuspend(GraphPaneNode.kt:124)
+Caused by: java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='telemetry' type='WorkbenchTelemetry' owner='Graph reading (7ba5dc83-98b4-473f-b929-015d506b33bb)' Unconnected
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$sampled$1.invokeSuspend$lambda$0(GraphPaneNode.kt:283)
+	at androidx.compose.runtime.SnapshotFlowManagerImpl.runAndWatch$runtime(SnapshotFlow.kt:598)
+	at androidx.compose.runtime.SnapshotFlowManager.runAndWatch$runtime(SnapshotFlow.kt:118)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invokeSuspend(SnapshotFlow.kt:478)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invoke(SnapshotFlow.kt)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invoke(SnapshotFlow.kt)
+	at kotlinx.coroutines.flow.SafeFlow.collectSafely(Builders.kt:57)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperatorImpl.flowCollect(ChannelFlow.kt:191)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperator.collectTo$suspendImpl(ChannelFlow.kt:153)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperator.collectTo(ChannelFlow.kt)
+	at kotlinx.coroutines.flow.internal.ChannelFlow$collectToFun$1.invokeSuspend(ChannelFlow.kt:56)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='telemetry' type='WorkbenchTelemetry' owner='Graph reading (9e6bd2bf-7223-4fe8-ad14-e33288e3cb88)' Unconnected
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$sampled$1.invokeSuspend$lambda$0(GraphPaneNode.kt:283)
+	at androidx.compose.runtime.SnapshotFlowManagerImpl.runAndWatch$runtime(SnapshotFlow.kt:598)
+	at androidx.compose.runtime.SnapshotFlowManager.runAndWatch$runtime(SnapshotFlow.kt:118)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invokeSuspend(SnapshotFlow.kt:478)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invoke(SnapshotFlow.kt)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invoke(SnapshotFlow.kt)
+	at kotlinx.coroutines.flow.SafeFlow.collectSafely(Builders.kt:57)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperatorImpl.flowCollect(ChannelFlow.kt:191)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperator.collectTo$suspendImpl(ChannelFlow.kt:153)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperator.collectTo(ChannelFlow.kt)
+	at kotlinx.coroutines.flow.internal.ChannelFlow$collectToFun$1.invokeSuspend(ChannelFlow.kt:56)
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$sampled$1.invokeSuspend(GraphPaneNode.kt:204)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at kotlinx.coroutines.flow.internal.CombineKt$combineInternal$2$1.invokeSuspend(Combine.kt:28)
+	at kotlinx.coroutines.flow.internal.ChannelFlow$collectToFun$1.invokeSuspend(ChannelFlow.kt:56)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.follow(GraphPaneNode.kt:207)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$start$2$2.invokeSuspend(GraphPaneNode.kt:124)
+	at kotlinx.coroutines.flow.FlowKt__MergeKt$mapLatest$1.invokeSuspend(Merge.kt:213)
+	at kotlinx.coroutines.flow.internal.ChannelFlowTransformLatest$flowCollect$3$1$2.invokeSuspend(Merge.kt:30)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$start$2.invokeSuspend(GraphPaneNode.kt:124)
+Caused by: java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='telemetry' type='WorkbenchTelemetry' owner='Graph reading (9e6bd2bf-7223-4fe8-ad14-e33288e3cb88)' Unconnected
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$sampled$1.invokeSuspend$lambda$0(GraphPaneNode.kt:283)
+	at androidx.compose.runtime.SnapshotFlowManagerImpl.runAndWatch$runtime(SnapshotFlow.kt:598)
+	at androidx.compose.runtime.SnapshotFlowManager.runAndWatch$runtime(SnapshotFlow.kt:118)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invokeSuspend(SnapshotFlow.kt:478)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invoke(SnapshotFlow.kt)
+	at androidx.compose.runtime.SnapshotStateKt__SnapshotFlowKt$snapshotFlowImpl$1.invoke(SnapshotFlow.kt)
+	at kotlinx.coroutines.flow.SafeFlow.collectSafely(Builders.kt:57)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperatorImpl.flowCollect(ChannelFlow.kt:191)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperator.collectTo$suspendImpl(ChannelFlow.kt:153)
+	at kotlinx.coroutines.flow.internal.ChannelFlowOperator.collectTo(ChannelFlow.kt)
+	at kotlinx.coroutines.flow.internal.ChannelFlow$collectToFun$1.invokeSuspend(ChannelFlow.kt:56)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+]]></system-err>
+</testsuite>

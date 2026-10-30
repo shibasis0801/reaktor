@@ -1,0 +1,14 @@
+{
+  "samples": 10,
+  "warmPairs": 4,
+  "warmupExcluded": 0,
+  "mediansSeconds": {
+    "per-node": 2.7864985415000003,
+    "batch": 0.137116917
+  },
+  "ratio": 20.32206238636477,
+  "reductionPercent": 95.07923959198669,
+  "allJoinsEqual": true,
+  "joinSha256": "817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29",
+  "scope": "Same model runtime, local JVM, copied model/declarations/receipts plus22 explicitly synthetic control receipts. Kernel function-call cost only; excludes RPC, Gradle, network and admission. No cold-build speedup claim."
+}

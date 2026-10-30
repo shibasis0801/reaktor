@@ -1,0 +1,171 @@
+{
+  "scope": "SourceCandidates.capture only; old installed class vs checked treatment overlay; identical runtime and current source; 4 alternating pairs; current foreign dirty submodule refusal preserved",
+  "rows": [
+    {
+      "pair": 0,
+      "variant": "old",
+      "seconds": 6.562093166,
+      "id": "b09bcc3905a4ac44e5a331552289882f74dcd3a731697753f68785af4068dc6d",
+      "candidateSha256": "97661dc7860ae1edc0a20831982d255abfe70012829c14ada0e48ca6d585a511",
+      "diffSha256": "87bdd10117a5f87a04b747f1b998f0b5570be8c831091e01b0ae151505b20e9b",
+      "complete": "false",
+      "files": 493,
+      "loadBefore": [
+        3.73046875,
+        3.9892578125,
+        6.98046875
+      ],
+      "loadAfter": [
+        3.83203125,
+        4.005859375,
+        6.96875
+      ]
+    },
+    {
+      "pair": 0,
+      "variant": "new",
+      "seconds": 3.23680375,
+      "id": "b09bcc3905a4ac44e5a331552289882f74dcd3a731697753f68785af4068dc6d",
+      "candidateSha256": "97661dc7860ae1edc0a20831982d255abfe70012829c14ada0e48ca6d585a511",
+      "diffSha256": "87bdd10117a5f87a04b747f1b998f0b5570be8c831091e01b0ae151505b20e9b",
+      "complete": "false",
+      "files": 493,
+      "loadBefore": [
+        3.83203125,
+        4.005859375,
+        6.96875
+      ],
+      "loadAfter": [
+        3.84521484375,
+        4.00537109375,
+        6.951171875
+      ]
+    },
+    {
+      "pair": 1,
+      "variant": "new",
+      "seconds": 3.055696125,
+      "id": "b09bcc3905a4ac44e5a331552289882f74dcd3a731697753f68785af4068dc6d",
+      "candidateSha256": "97661dc7860ae1edc0a20831982d255abfe70012829c14ada0e48ca6d585a511",
+      "diffSha256": "87bdd10117a5f87a04b747f1b998f0b5570be8c831091e01b0ae151505b20e9b",
+      "complete": "false",
+      "files": 493,
+      "loadBefore": [
+        3.84521484375,
+        4.00537109375,
+        6.951171875
+      ],
+      "loadAfter": [
+        4.017578125,
+        4.0380859375,
+        6.9453125
+      ]
+    },
+    {
+      "pair": 1,
+      "variant": "old",
+      "seconds": 4.538248541,
+      "id": "b09bcc3905a4ac44e5a331552289882f74dcd3a731697753f68785af4068dc6d",
+      "candidateSha256": "97661dc7860ae1edc0a20831982d255abfe70012829c14ada0e48ca6d585a511",
+      "diffSha256": "87bdd10117a5f87a04b747f1b998f0b5570be8c831091e01b0ae151505b20e9b",
+      "complete": "false",
+      "files": 493,
+      "loadBefore": [
+        4.017578125,
+        4.0380859375,
+        6.9453125
+      ],
+      "loadAfter": [
+        3.85595703125,
+        4.00390625,
+        6.916015625
+      ]
+    },
+    {
+      "pair": 2,
+      "variant": "old",
+      "seconds": 4.803558375,
+      "id": "b09bcc3905a4ac44e5a331552289882f74dcd3a731697753f68785af4068dc6d",
+      "candidateSha256": "97661dc7860ae1edc0a20831982d255abfe70012829c14ada0e48ca6d585a511",
+      "diffSha256": "87bdd10117a5f87a04b747f1b998f0b5570be8c831091e01b0ae151505b20e9b",
+      "complete": "false",
+      "files": 493,
+      "loadBefore": [
+        3.85595703125,
+        4.00390625,
+        6.916015625
+      ],
+      "loadAfter": [
+        3.787109375,
+        3.98681640625,
+        6.89306640625
+      ]
+    },
+    {
+      "pair": 2,
+      "variant": "new",
+      "seconds": 3.77885325,
+      "id": "b09bcc3905a4ac44e5a331552289882f74dcd3a731697753f68785af4068dc6d",
+      "candidateSha256": "97661dc7860ae1edc0a20831982d255abfe70012829c14ada0e48ca6d585a511",
+      "diffSha256": "87bdd10117a5f87a04b747f1b998f0b5570be8c831091e01b0ae151505b20e9b",
+      "complete": "false",
+      "files": 493,
+      "loadBefore": [
+        3.787109375,
+        3.98681640625,
+        6.89306640625
+      ],
+      "loadAfter": [
+        3.5634765625,
+        3.93701171875,
+        6.8583984375
+      ]
+    },
+    {
+      "pair": 3,
+      "variant": "new",
+      "seconds": 3.594093542,
+      "id": "b09bcc3905a4ac44e5a331552289882f74dcd3a731697753f68785af4068dc6d",
+      "candidateSha256": "97661dc7860ae1edc0a20831982d255abfe70012829c14ada0e48ca6d585a511",
+      "diffSha256": "87bdd10117a5f87a04b747f1b998f0b5570be8c831091e01b0ae151505b20e9b",
+      "complete": "false",
+      "files": 493,
+      "loadBefore": [
+        3.5634765625,
+        3.93701171875,
+        6.8583984375
+      ],
+      "loadAfter": [
+        3.5634765625,
+        3.93701171875,
+        6.8583984375
+      ]
+    },
+    {
+      "pair": 3,
+      "variant": "old",
+      "seconds": 5.811992333,
+      "id": "b09bcc3905a4ac44e5a331552289882f74dcd3a731697753f68785af4068dc6d",
+      "candidateSha256": "97661dc7860ae1edc0a20831982d255abfe70012829c14ada0e48ca6d585a511",
+      "diffSha256": "87bdd10117a5f87a04b747f1b998f0b5570be8c831091e01b0ae151505b20e9b",
+      "complete": "false",
+      "files": 493,
+      "loadBefore": [
+        3.5634765625,
+        3.93701171875,
+        6.8583984375
+      ],
+      "loadAfter": [
+        3.75830078125,
+        3.97119140625,
+        6.85302734375
+      ]
+    }
+  ],
+  "medianSeconds": {
+    "old": 5.307775354,
+    "new": 3.4154486459999998
+  },
+  "reductionPercent": 35.65197435445193,
+  "outputsIdentical": true
+}

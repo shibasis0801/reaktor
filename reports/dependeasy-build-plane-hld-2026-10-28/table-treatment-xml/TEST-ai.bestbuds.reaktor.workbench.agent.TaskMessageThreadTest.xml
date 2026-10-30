@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TaskMessageThreadTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:26:41.526Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.236">
+  <properties/>
+  <testcase name="paneSendsOneRetainedRequestAndReadsMessagesForClosedGraphs[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.TaskMessageThreadTest" time="0.088"/>
+  <testcase name="paneAnswerKeepsThreadAndRemovesQuestionFromNeedsYou[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.TaskMessageThreadTest" time="0.072"/>
+  <testcase name="onlyAnAnswerInTheSameGraphAndThreadResolvesTheQuestion[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.TaskMessageThreadTest" time="0.001"/>
+  <testcase name="staleSendKeepsItsExactDraftAndExplicitDiscardAllowsAReviewedNewRequest[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.TaskMessageThreadTest" time="0.075"/>
+  <testcase name="unresolvedQuestionsAppearAcrossGraphsWithoutOpeningThem[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.TaskMessageThreadTest" time="0.0"/>
+  <testcase name="personRedirectSettlesTheOriginalAndKeepsTheNewQuestionOpen[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.TaskMessageThreadTest" time="0.0"/>
+  <testcase name="completedSourceTasksStillOpenTheirQuestionInspector[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.TaskMessageThreadTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

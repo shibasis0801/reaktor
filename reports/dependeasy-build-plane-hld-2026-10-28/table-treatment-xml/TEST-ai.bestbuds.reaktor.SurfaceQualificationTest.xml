@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="SurfaceQualificationTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:23:50.984Z" hostname="Shibasiss-MacBook-Pro-2.local" time="26.189">
+  <properties/>
+  <testcase name="everyLabCellPaintsKeepsItsIdsUniqueNamesItsControlsAndShowsFocusAfterTab[jvm]" classname="ai.bestbuds.reaktor.SurfaceQualificationTest" time="26.189"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

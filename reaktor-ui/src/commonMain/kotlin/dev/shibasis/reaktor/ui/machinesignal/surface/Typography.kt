@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.em
 import dev.shibasis.reaktor.surface.InkRole
 import dev.shibasis.reaktor.surface.TextRole
 import dev.shibasis.reaktor.surface.ThemeSnapshot
@@ -16,7 +15,6 @@ import dev.shibasis.reaktor.surface.TypeFace
 import dev.shibasis.reaktor.surface.TypeScale
 import dev.shibasis.reaktor.surface.TypeWeight
 import dev.shibasis.reaktor.surface.compose.TextAppearance
-import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
 import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 
@@ -46,12 +44,7 @@ val SignalTypography: TextAppearance = object : TextAppearance {
             fontSize = size,
             fontWeight = role.weight.font,
             fontFamily = if (role.face == TypeFace.Code) signal.fonts.mono else signal.fonts.ui,
-            lineHeight = MachineSignal.Editor.Code.lineHeight.em,
-            letterSpacing = when (role.scale) {
-                TypeScale.Display, TypeScale.Title -> (-.025).em
-                TypeScale.Eyebrow -> signal.type.eyebrowTracking
-                else -> TextUnit.Unspecified
-            },
+            letterSpacing = if (role.scale == TypeScale.Eyebrow) signal.type.eyebrowTracking else TextUnit.Unspecified,
         )
     }
 

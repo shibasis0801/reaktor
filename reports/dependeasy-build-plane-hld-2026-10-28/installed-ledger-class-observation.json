@@ -1,0 +1,387 @@
+{
+  "runtimeImages": [
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/a1ce0574604a69f8d6d250f994f0881be4a699e3411042951c96618e9d69cd08.jar",
+      "modified": 1792705854.8025415,
+      "jarSha256": "a1ce0574604a69f8d6d250f994f0881be4a699e3411042951c96618e9d69cd08",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/9ea51281bd7beadc55362c56b8a2e328a9d7440d0960fdcad8c8096c93a38141.jar",
+      "modified": 1793205521.014638,
+      "jarSha256": "9ea51281bd7beadc55362c56b8a2e328a9d7440d0960fdcad8c8096c93a38141",
+      "ledgerClassSha256": "aac95cdee528638898bced2157c2465f9d1d6edfef839d35e6f5fc3cdcbc3713"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/e92c8cb3ce9ef244a9396ea6992df38e798f00c8330c20bcf92f44e711c7f554.jar",
+      "modified": 1792707449.1651466,
+      "jarSha256": "e92c8cb3ce9ef244a9396ea6992df38e798f00c8330c20bcf92f44e711c7f554",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/f1226491ce258e969e6dbce4eaeae164b1b4fbfc0026874a1fe61ad14114cc0d.jar",
+      "modified": 1792496911.485633,
+      "jarSha256": "f1226491ce258e969e6dbce4eaeae164b1b4fbfc0026874a1fe61ad14114cc0d",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/42329cf75d43fa255db5dd2057fe570a1240344fbe0f3482e7bca0b26bc3da9e.jar",
+      "modified": 1792590939.168848,
+      "jarSha256": "42329cf75d43fa255db5dd2057fe570a1240344fbe0f3482e7bca0b26bc3da9e",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/3e8695ae142c7cfead06014b88a6229d8f61ad5ecccdbc9528280a7e97e78df7.jar",
+      "modified": 1792305897.300143,
+      "jarSha256": "3e8695ae142c7cfead06014b88a6229d8f61ad5ecccdbc9528280a7e97e78df7",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/01881e488abded7bcd8d60be9c0135294a2b5c1050e60da95b7c7bb6d1d4866d.jar",
+      "modified": 1792760463.8108976,
+      "jarSha256": "01881e488abded7bcd8d60be9c0135294a2b5c1050e60da95b7c7bb6d1d4866d",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/ab79e17cab60757be118f93e8b09da7e5361eb6ed0556e06890caf94b2a13b9d.jar",
+      "modified": 1792754264.277824,
+      "jarSha256": "ab79e17cab60757be118f93e8b09da7e5361eb6ed0556e06890caf94b2a13b9d",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/da572d6e208db0fcb976ee3a8ac88a0f85b24002eca1b8001f85d5678caefc01.jar",
+      "modified": 1792596345.0678346,
+      "jarSha256": "da572d6e208db0fcb976ee3a8ac88a0f85b24002eca1b8001f85d5678caefc01",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/1051aa5b6fb3288b65828f5c685a3f45bcbeed2719b4a5f2926e641502ea187f.jar",
+      "modified": 1792559067.4419937,
+      "jarSha256": "1051aa5b6fb3288b65828f5c685a3f45bcbeed2719b4a5f2926e641502ea187f",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/70849283cad994ffaba210a74c0938bd1cd232fbbe09924418b7f674cf45f710.jar",
+      "modified": 1792690874.0766628,
+      "jarSha256": "70849283cad994ffaba210a74c0938bd1cd232fbbe09924418b7f674cf45f710",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/905cdf2e8c9c61ef1bf13d64c393d293a5001c751d6963b8b03a477712989706.jar",
+      "modified": 1792683251.0642593,
+      "jarSha256": "905cdf2e8c9c61ef1bf13d64c393d293a5001c751d6963b8b03a477712989706",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/9ce4c97e9b242b527fc00a82688ec7051739edac56ce72bfe8fede507e49ad00.jar",
+      "modified": 1792488645.2697494,
+      "jarSha256": "9ce4c97e9b242b527fc00a82688ec7051739edac56ce72bfe8fede507e49ad00",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/7481d14cd027672b7f1d157eb9375b9b090f2d9752afa25a588c0e9d5f05ce6f.jar",
+      "modified": 1792529516.4681752,
+      "jarSha256": "7481d14cd027672b7f1d157eb9375b9b090f2d9752afa25a588c0e9d5f05ce6f",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/830df8af8f9f9b2e9d7b08110ddbb4536b0e738e406d9687534b49ebdace6be2.jar",
+      "modified": 1793004512.7532537,
+      "jarSha256": "830df8af8f9f9b2e9d7b08110ddbb4536b0e738e406d9687534b49ebdace6be2",
+      "ledgerClassSha256": "fadc9af046cc123d3b62bb6c3e931a41caa5b730c168f7276aeef94208386bac"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/db16572e7058151cd3be38a2ad5b7cde62fcc263611c61bc7d526937c368fa10.jar",
+      "modified": 1792227086.4331274,
+      "jarSha256": "db16572e7058151cd3be38a2ad5b7cde62fcc263611c61bc7d526937c368fa10",
+      "ledgerClassSha256": "e3b23dd92311ec0caaa31ba116fce87385f626272728f4d04b5e43b58767a9a7"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/24e6c0814b1332e4e151582fdbe7ae54b582d13253e38c8229cd3f72ed1ebab7.jar",
+      "modified": 1793021882.5047321,
+      "jarSha256": "24e6c0814b1332e4e151582fdbe7ae54b582d13253e38c8229cd3f72ed1ebab7",
+      "ledgerClassSha256": "30288e49373aa028b6b344412b1e6cb9c5402e37c25bd617875f0076b6ca3f5b"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/5ef74f98f59f533435368b505a2e4ea5bdc46c5e773d8450f7060e29db13e137.jar",
+      "modified": 1792186233.765367,
+      "jarSha256": "5ef74f98f59f533435368b505a2e4ea5bdc46c5e773d8450f7060e29db13e137",
+      "ledgerClassSha256": "e3b23dd92311ec0caaa31ba116fce87385f626272728f4d04b5e43b58767a9a7"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/bdb38f3e0b316fd6fe60cfc3ecc98742a3143f983175ba935df8aae75864b743.jar",
+      "modified": 1792590434.9491549,
+      "jarSha256": "bdb38f3e0b316fd6fe60cfc3ecc98742a3143f983175ba935df8aae75864b743",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/d4deab6bec8a70c5cd6e1f10d17ab47040cf266000b90442e59bca3e64db8d53.jar",
+      "modified": 1792546238.1606698,
+      "jarSha256": "d4deab6bec8a70c5cd6e1f10d17ab47040cf266000b90442e59bca3e64db8d53",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/4de795ec6ffd82d926ceb930deb412d0a94ed7762ae215b3ec07f6c75e20ccf3.jar",
+      "modified": 1792577676.2808764,
+      "jarSha256": "4de795ec6ffd82d926ceb930deb412d0a94ed7762ae215b3ec07f6c75e20ccf3",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/1ea5a6cd892a7ab23dbc3542672b779550c6085282f0d2427ebf7c624c64a5ed.jar",
+      "modified": 1792492386.6242044,
+      "jarSha256": "1ea5a6cd892a7ab23dbc3542672b779550c6085282f0d2427ebf7c624c64a5ed",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/dfe12d42bfa49f38249636794060db5b7b532bd1e7a8a3f7423c844a2755c868.jar",
+      "modified": 1793087754.7757444,
+      "jarSha256": "dfe12d42bfa49f38249636794060db5b7b532bd1e7a8a3f7423c844a2755c868",
+      "ledgerClassSha256": "30288e49373aa028b6b344412b1e6cb9c5402e37c25bd617875f0076b6ca3f5b"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/01bc8f2fa86efb77cd68167732ebd1977d52a26f618789a58a130c5f6187c035.jar",
+      "modified": 1792619531.5513723,
+      "jarSha256": "01bc8f2fa86efb77cd68167732ebd1977d52a26f618789a58a130c5f6187c035",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/06e3130e01cf3554be10096dbd63b33593e44796e201718f65702122c7c3d7ee.jar",
+      "modified": 1793016174.6513317,
+      "jarSha256": "06e3130e01cf3554be10096dbd63b33593e44796e201718f65702122c7c3d7ee",
+      "ledgerClassSha256": "30288e49373aa028b6b344412b1e6cb9c5402e37c25bd617875f0076b6ca3f5b"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/2a835b92ea7c7a6fe7843b41a58e8fade0e53ca18f3f58d88c223333b295fe0a.jar",
+      "modified": 1792575358.96325,
+      "jarSha256": "2a835b92ea7c7a6fe7843b41a58e8fade0e53ca18f3f58d88c223333b295fe0a",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/25df9823c4c3d400e27b585b7d5afe27613b88daf6f79e8eaa2c3ab58a2ddb4d.jar",
+      "modified": 1793007145.8805218,
+      "jarSha256": "25df9823c4c3d400e27b585b7d5afe27613b88daf6f79e8eaa2c3ab58a2ddb4d",
+      "ledgerClassSha256": "30288e49373aa028b6b344412b1e6cb9c5402e37c25bd617875f0076b6ca3f5b"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/eb181345c25251a0ca17306a9e426b12d87041072c293d2659831b710d03a7cd.jar",
+      "modified": 1793096864.7432039,
+      "jarSha256": "eb181345c25251a0ca17306a9e426b12d87041072c293d2659831b710d03a7cd",
+      "ledgerClassSha256": "30288e49373aa028b6b344412b1e6cb9c5402e37c25bd617875f0076b6ca3f5b"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/6e11f4defb47eac5f50b281a8a58a9ca0403439a40d7ce7de9494409429bda0f.jar",
+      "modified": 1792586411.700379,
+      "jarSha256": "6e11f4defb47eac5f50b281a8a58a9ca0403439a40d7ce7de9494409429bda0f",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/91310309d849515e07cfb575c4d8658afd46809e14d2fc0c0f6388b8542d6a55.jar",
+      "modified": 1792716401.6109502,
+      "jarSha256": "91310309d849515e07cfb575c4d8658afd46809e14d2fc0c0f6388b8542d6a55",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/74c5e5ca51369f173bc16349c5c15cf952fff64d1f4882d89dd4e451d8fa2ac2.jar",
+      "modified": 1793172372.1198804,
+      "jarSha256": "74c5e5ca51369f173bc16349c5c15cf952fff64d1f4882d89dd4e451d8fa2ac2",
+      "ledgerClassSha256": "fe084a3188edbc7ad7f1f9c21f65764a9283ac6cedb068ac1a2e5713c3013a80"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/49a6bec6085d36b14140009be6fa51c8bcd0f66828fb115ba94a4331345e42d6.jar",
+      "modified": 1793209176.3103662,
+      "jarSha256": "49a6bec6085d36b14140009be6fa51c8bcd0f66828fb115ba94a4331345e42d6",
+      "ledgerClassSha256": "aac95cdee528638898bced2157c2465f9d1d6edfef839d35e6f5fc3cdcbc3713"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/f22360530c52407ecf018120453d1c253f3bfe08c0dce27bfe7a21a50ad00731.jar",
+      "modified": 1792993740.3425088,
+      "jarSha256": "f22360530c52407ecf018120453d1c253f3bfe08c0dce27bfe7a21a50ad00731",
+      "ledgerClassSha256": "fadc9af046cc123d3b62bb6c3e931a41caa5b730c168f7276aeef94208386bac"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/9e75b55786d09ebfa59f9d522bd1283e6fcbff13579b00a853b30821d6ee7001.jar",
+      "modified": 1792779750.385121,
+      "jarSha256": "9e75b55786d09ebfa59f9d522bd1283e6fcbff13579b00a853b30821d6ee7001",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/6e50d495f1f73f49d83a32aff84ec0f8c274c21295715bd71fbff2300f0a46dd.jar",
+      "modified": 1792555897.797601,
+      "jarSha256": "6e50d495f1f73f49d83a32aff84ec0f8c274c21295715bd71fbff2300f0a46dd",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/9d093570fe8cd40631419c049d49cec33490d7edc96d1ae2eee6ec610ed662ec.jar",
+      "modified": 1792914580.9068289,
+      "jarSha256": "9d093570fe8cd40631419c049d49cec33490d7edc96d1ae2eee6ec610ed662ec",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/aedc8b6bcfe039a02432e356ed680e53dc116e8476e0f6f915e3bc5bac8a82ad.jar",
+      "modified": 1792748483.6401944,
+      "jarSha256": "aedc8b6bcfe039a02432e356ed680e53dc116e8476e0f6f915e3bc5bac8a82ad",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/c6012315c12a80367d91166f19b54c5468bb18a7761b63ed3fb8560567a43ef1.jar",
+      "modified": 1792324306.114284,
+      "jarSha256": "c6012315c12a80367d91166f19b54c5468bb18a7761b63ed3fb8560567a43ef1",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/48b63062dd8031654075c7b6121622d92253a601f810a53cce1729bbd8c1276e.jar",
+      "modified": 1792494222.8023992,
+      "jarSha256": "48b63062dd8031654075c7b6121622d92253a601f810a53cce1729bbd8c1276e",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/82c1a84697a1d395a83a6417ae22beaaff07a4bf8d1d254c45a5a5a6dbdd5518.jar",
+      "modified": 1793213844.3543367,
+      "jarSha256": "82c1a84697a1d395a83a6417ae22beaaff07a4bf8d1d254c45a5a5a6dbdd5518",
+      "ledgerClassSha256": "aac95cdee528638898bced2157c2465f9d1d6edfef839d35e6f5fc3cdcbc3713"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/d3b2188cf101005366f9020cf27c1177874a8d1b9181e21712f81cee8882ef63.jar",
+      "modified": 1792907049.8736503,
+      "jarSha256": "d3b2188cf101005366f9020cf27c1177874a8d1b9181e21712f81cee8882ef63",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/27b5ad5167c2d67fc202588e81574fa9694695d0b6f509b0b31fc59078d33f27.jar",
+      "modified": 1792308801.8727756,
+      "jarSha256": "27b5ad5167c2d67fc202588e81574fa9694695d0b6f509b0b31fc59078d33f27",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/217f30cf8e81fa971d2fd877f580e4d1cf254c3c46641f20b02d66f65047e618.jar",
+      "modified": 1792531632.4516869,
+      "jarSha256": "217f30cf8e81fa971d2fd877f580e4d1cf254c3c46641f20b02d66f65047e618",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/38eb259ec916c6e452e4abe42469e90534254eb76db292382afcc8faeb219bfa.jar",
+      "modified": 1793221302.8186595,
+      "jarSha256": "38eb259ec916c6e452e4abe42469e90534254eb76db292382afcc8faeb219bfa",
+      "ledgerClassSha256": "1ed3f00a5eeca0133f5c48160fdf6b3ef2998e5e7e976990e0bdc1ece0322ac0"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/4daafa007c0d10038245052cbee97beed908466215a6ff551435ba8bf148bb51.jar",
+      "modified": 1792243535.9494438,
+      "jarSha256": "4daafa007c0d10038245052cbee97beed908466215a6ff551435ba8bf148bb51",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/6b3dbb1b29a0ce228d02f7325b5e7affb374f47a30fa4016727d6e8824c87dd8.jar",
+      "modified": 1792663766.1083293,
+      "jarSha256": "6b3dbb1b29a0ce228d02f7325b5e7affb374f47a30fa4016727d6e8824c87dd8",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/9eacd26bb6ac809ddcf0baa845e3c2ddb3fd5b53788ef8eacc4e2935ea4bfb58.jar",
+      "modified": 1792565871.236353,
+      "jarSha256": "9eacd26bb6ac809ddcf0baa845e3c2ddb3fd5b53788ef8eacc4e2935ea4bfb58",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/52606ebc7b038a5b9b4583001006255e6f5b18dfd32eb354dc2e00aaf9e05b09.jar",
+      "modified": 1792225627.9881444,
+      "jarSha256": "52606ebc7b038a5b9b4583001006255e6f5b18dfd32eb354dc2e00aaf9e05b09",
+      "ledgerClassSha256": "e3b23dd92311ec0caaa31ba116fce87385f626272728f4d04b5e43b58767a9a7"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/0157f6d9763bb5d3f6ed264fe18f754809e0247a2b226bcfbb484729ac7e40f4.jar",
+      "modified": 1792769130.7755647,
+      "jarSha256": "0157f6d9763bb5d3f6ed264fe18f754809e0247a2b226bcfbb484729ac7e40f4",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/432362781dca975a2d902058ef845934af8a90f7c308ef34e699a4b24587a032.jar",
+      "modified": 1792966256.8610704,
+      "jarSha256": "432362781dca975a2d902058ef845934af8a90f7c308ef34e699a4b24587a032",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/2fbd4b94cf10e1a0e2a21f377f4d9822e8a32f07d0abd0f11fbbbd7ebaab2b70.jar",
+      "modified": 1792820804.5548902,
+      "jarSha256": "2fbd4b94cf10e1a0e2a21f377f4d9822e8a32f07d0abd0f11fbbbd7ebaab2b70",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/974ba4a71eaf24ee1489e87c61e753e8b8d37609de63d03e734d99a16519a7c5.jar",
+      "modified": 1792543322.7140977,
+      "jarSha256": "974ba4a71eaf24ee1489e87c61e753e8b8d37609de63d03e734d99a16519a7c5",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/bac8092cd17257685a64c307eb297fe4fb9a0b22bb526ef3e5322649b6a62a87.jar",
+      "modified": 1792756623.4718866,
+      "jarSha256": "bac8092cd17257685a64c307eb297fe4fb9a0b22bb526ef3e5322649b6a62a87",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/d1a3f55b82f168508a46511c9e7154d1aacbc3739e6e1cde504a334a6383621d.jar",
+      "modified": 1792567750.560292,
+      "jarSha256": "d1a3f55b82f168508a46511c9e7154d1aacbc3739e6e1cde504a334a6383621d",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/91a44937406f46886088ff1e180a5bee6d5116714598476a5cb4f9efb47b846a.jar",
+      "modified": 1792525872.7036498,
+      "jarSha256": "91a44937406f46886088ff1e180a5bee6d5116714598476a5cb4f9efb47b846a",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/aa5a1ebfe8142daf9f84e52305d5e3f3edcddd50b23502f62b4edd435abb293c.jar",
+      "modified": 1792482181.9716716,
+      "jarSha256": "aa5a1ebfe8142daf9f84e52305d5e3f3edcddd50b23502f62b4edd435abb293c",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/ec8c78164ca2931c9ccaa330d35b7e4566415cd10adeae0b35fea41b016f8dcb.jar",
+      "modified": 1792694865.0128925,
+      "jarSha256": "ec8c78164ca2931c9ccaa330d35b7e4566415cd10adeae0b35fea41b016f8dcb",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/dd20091ca7f596374fe2d6fafcd006b611ab5a7349423033f5eb7d93fa3ea4ee.jar",
+      "modified": 1792260699.428471,
+      "jarSha256": "dd20091ca7f596374fe2d6fafcd006b611ab5a7349423033f5eb7d93fa3ea4ee",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/5b898b6e9113a297d9e265c5ba9f206bcd65f3a0196dcbe7dcf7656806a2d8f0.jar",
+      "modified": 1792534902.8433664,
+      "jarSha256": "5b898b6e9113a297d9e265c5ba9f206bcd65f3a0196dcbe7dcf7656806a2d8f0",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/2573b2d249338804e88f950580b89ff71290230fa3ab84e0c88aaf5e6521b45b.jar",
+      "modified": 1792660394.3301241,
+      "jarSha256": "2573b2d249338804e88f950580b89ff71290230fa3ab84e0c88aaf5e6521b45b",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/87782b74a1bf952f0687dab1b9146c94f1f2de15cf4c19795b8b48cb3ee5b877.jar",
+      "modified": 1792159122.351582,
+      "jarSha256": "87782b74a1bf952f0687dab1b9146c94f1f2de15cf4c19795b8b48cb3ee5b877",
+      "ledgerClassSha256": "e3b23dd92311ec0caaa31ba116fce87385f626272728f4d04b5e43b58767a9a7"
+    },
+    {
+      "file": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/89057000457cdb1b1e31e2c1de8851f5cc4958788af5bdc11c50e88329765450.jar",
+      "modified": 1792978100.4910846,
+      "jarSha256": "89057000457cdb1b1e31e2c1de8851f5cc4958788af5bdc11c50e88329765450",
+      "ledgerClassSha256": "4cf5264af78e1874c08e76d8947c04605dfd1f4a6147435366cc50a982b67bab"
+    }
+  ],
+  "qualifiedArtifact": {
+    "file": "/Users/ovd/dev/.remote-dev/artifacts/20261029-031203-fe3ed859-bestbuds/reaktor/reaktor-tooling/build/libs/reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar",
+    "classSha256": "2d20a6e4503285234df47ee7957f43efb5b558453f08def09264794f5a006da8"
+  },
+  "scope": "Class bytes only, immutable runtime can contain images other than active owner",
+  "launcherLedgerImages": [],
+  "owner": {
+    "processId": 82495,
+    "incarnation": "74254dae-97a5-4f70-8317-9932f2cc15d7",
+    "hostKind": "service"
+  }
+}

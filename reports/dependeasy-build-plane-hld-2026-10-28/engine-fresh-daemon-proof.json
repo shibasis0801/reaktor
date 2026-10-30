@@ -1,0 +1,203 @@
+{
+  "router": "20261029-063028-c6ca962f-bestbuds",
+  "outcome": "PASS",
+  "counts": {
+    "tests": 690,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": 196,
+  "freshTimestampRange": [
+    "2026-10-29T01:01:14.457Z",
+    "2026-10-29T01:10:05.284Z"
+  ],
+  "gradleSeconds": 579,
+  "routerReceipt": {
+    "run_id": "20261029-063028-c6ca962f-bestbuds",
+    "project": "bestbuds",
+    "worker": "local",
+    "tasks": [
+      ":engine:jvmTest",
+      "--continue",
+      "--no-daemon",
+      "--stacktrace",
+      "--console=plain"
+    ],
+    "workspace_root": "/Users/ovd/dev",
+    "started": "2026-10-29T06:30:28.848783",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-063028-c6ca962f-bestbuds.log",
+    "queue_seconds": 20.087099792,
+    "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+    "exit_code": 0,
+    "execution_seconds": 580.1888075,
+    "finished": "2026-10-29T06:40:09.069971"
+  },
+  "archive": "engine-fresh-daemon-results.zip",
+  "archiveSha256": "3f58101a95219ce4fe4f7a27cede659f52819da53c1452025ed5a9dcf7a5b700",
+  "navigationMetrics": {
+    "target": "studio-navigation",
+    "generatedAt": "2026-10-29T01:10:00.854373Z",
+    "marks": [],
+    "webVitals": null,
+    "appVitals": null,
+    "serverVitals": null,
+    "samples": [],
+    "metrics": [
+      {
+        "name": "capture.p95",
+        "value": 6.4,
+        "unit": "ms",
+        "domain": "Runtime",
+        "scope": {
+          "graphId": null,
+          "nodeId": null,
+          "route": null,
+          "service": null,
+          "operation": null,
+          "module": null,
+          "artifactPath": null,
+          "attributes": {}
+        },
+        "budgetLimit": 16.7,
+        "severity": "Error"
+      },
+      {
+        "name": "previews.bytes",
+        "value": 94453632.0,
+        "unit": "bytes",
+        "domain": "Runtime",
+        "scope": {
+          "graphId": null,
+          "nodeId": null,
+          "route": null,
+          "service": null,
+          "operation": null,
+          "module": null,
+          "artifactPath": null,
+          "attributes": {}
+        },
+        "budgetLimit": null,
+        "severity": "Error"
+      },
+      {
+        "name": "pan.p95",
+        "value": 5.0,
+        "unit": "ms",
+        "domain": "Runtime",
+        "scope": {
+          "graphId": null,
+          "nodeId": null,
+          "route": null,
+          "service": null,
+          "operation": null,
+          "module": null,
+          "artifactPath": null,
+          "attributes": {}
+        },
+        "budgetLimit": 16.7,
+        "severity": "Error"
+      },
+      {
+        "name": "zoom.p95",
+        "value": 5.9,
+        "unit": "ms",
+        "domain": "Runtime",
+        "scope": {
+          "graphId": null,
+          "nodeId": null,
+          "route": null,
+          "service": null,
+          "operation": null,
+          "module": null,
+          "artifactPath": null,
+          "attributes": {}
+        },
+        "budgetLimit": 16.7,
+        "severity": "Error"
+      },
+      {
+        "name": "apps.started",
+        "value": 2.0,
+        "unit": "count",
+        "domain": "Runtime",
+        "scope": {
+          "graphId": null,
+          "nodeId": null,
+          "route": null,
+          "service": null,
+          "operation": null,
+          "module": null,
+          "artifactPath": null,
+          "attributes": {}
+        },
+        "budgetLimit": null,
+        "severity": "Error"
+      },
+      {
+        "name": "camera.apps.started",
+        "value": 0.0,
+        "unit": "count",
+        "domain": "Runtime",
+        "scope": {
+          "graphId": null,
+          "nodeId": null,
+          "route": null,
+          "service": null,
+          "operation": null,
+          "module": null,
+          "artifactPath": null,
+          "attributes": {}
+        },
+        "budgetLimit": 0.0,
+        "severity": "Error"
+      }
+    ],
+    "buildArtifacts": [],
+    "buildTimings": [],
+    "flamegraph": [],
+    "profiles": [
+      {
+        "name": "navigation frames",
+        "profiler": "Jfr",
+        "platform": "Mac OS X",
+        "startedAt": "2026-10-29T01:07:42.603001Z",
+        "durationMs": 138131.0,
+        "outputPath": "/Users/ovd/dev/bestbuds/modules/engine/build/reports/studio-navigation/frames.jfr",
+        "sampleCount": null,
+        "topFrames": [],
+        "scope": {
+          "graphId": null,
+          "nodeId": null,
+          "route": null,
+          "service": null,
+          "operation": null,
+          "module": null,
+          "artifactPath": null,
+          "attributes": {}
+        }
+      }
+    ],
+    "toolRuns": [],
+    "budgets": []
+  },
+  "scope": "Normal load-routed local wrapper, fresh single-use Gradle daemon, original full engine test selection and assertions. Shared checkout, not frozen entire repository. Native watcher and Blueprint production hashes separately pinned.",
+  "selectedSourceSha256": {
+    "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelWatch.kt": "b7466338c8af573bff21e58bd72db612674e698ff761087b6e03575f59f15104",
+    "bestbuds/modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelWatchTest.kt": "3a3cf5b57f2c6e2aaa5b4863c38ad057354fb5a30307f622d45f606f82107c39",
+    "reaktor/reaktor-blueprint/src/commonMain/kotlin/dev/shibasis/reaktor/blueprint/BlueprintEngine.kt": "cc64714e47937889c1add09b38c6a78ba9a5458ba51b07e3df0e4316cf3acdee",
+    "reaktor/reaktor-blueprint/src/jvmTest/kotlin/dev/shibasis/reaktor/blueprint/BlueprintRoutingTest.kt": "c2250e3b65ce8f75bf4210daadf25b28ce85a17dd4623c82350af890a544f15c"
+  },
+  "kernelJarSha256": "da98535f9926e09be90a67ec683ca6a03875af6d0fda139dbfb975d9bd7cf3d4",
+  "selectedCases": [
+    {
+      "suite": "StudioNavigationPerformanceTest[jvm]",
+      "cases": [
+        "realScreensRemainCheapWhileTheCameraMoves[jvm]"
+      ],
+      "tests": "1",
+      "failures": "0",
+      "errors": "0"
+    }
+  ]
+}

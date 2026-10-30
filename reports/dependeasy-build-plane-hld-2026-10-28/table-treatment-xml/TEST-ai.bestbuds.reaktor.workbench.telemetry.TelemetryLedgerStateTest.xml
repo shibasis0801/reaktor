@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TelemetryLedgerStateTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:31:36.929Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.228">
+  <properties/>
+  <testcase name="rollupsAreCachedAndRefreshOnlyWithLedgerChanges[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryLedgerStateTest" time="0.001"/>
+  <testcase name="theInspectorPreservesTraceIdentityAndLabelsLegacyRowsAsMissing[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryLedgerStateTest" time="0.01"/>
+  <testcase name="repeatedSdkExportsKeepIdentityPrivateAndRetainedMemoryBounded[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryLedgerStateTest" time="0.177"/>
+  <testcase name="theInspectorReadsTheSelectedOperationAsItIsNow[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryLedgerStateTest" time="0.013"/>
+  <testcase name="aNewSpanKeepsTheOwnedScrollPosition[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryLedgerStateTest" time="0.027"/>
+  <system-out><![CDATA[LOCAL_LEDGER_DIRECTIONAL export_ms=[0.30556416, 0.42759125, 0.25842166, 0.16736542, 0.19362042] retained=2000 dropped=14000
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

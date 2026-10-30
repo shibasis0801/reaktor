@@ -54,7 +54,17 @@ internal class GradleBuildPlanner {
         }
         // PlanTask already depends on model export and validates its digest before selecting tasks.
         // A stale catalog or explicit context still needs the separate refresh handshake.
-        val refresh = reviewedPlan == null && (properties.isNotEmpty() || environment.isNotEmpty() ||
+        val localEnvironment = environment.all { (name, value) ->
+            name == "PATH" || name == "REAKTOR_ENVIRONMENT" && value == "local"
+        }
+        val changedEnvironment = previous.declarations.any { declaration ->
+            val option = declaration.option ?: return@any false
+            val name = option.environment ?: option.name
+            val value = environment[name] ?: System.getenv(name)
+            if (option.source == OptionSource.Environment) option.sensitive || value != option.value
+            else value != null && value != option.value
+        }
+        val refresh = reviewedPlan == null && (properties.isNotEmpty() || !localEnvironment || changedEnvironment ||
             sensitiveEnvironmentKeys.isNotEmpty() || BuildModelReader.changedDeclarations(root, previous).isNotEmpty())
         if (refresh) {
             val routing = write(GradleRequest(node = node.id, declaredAt = node.declaredAt,

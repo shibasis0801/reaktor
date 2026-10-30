@@ -1,0 +1,108 @@
+{
+  "rootWindow": {
+    "path": ":",
+    "root": "reaktor",
+    "start": 1793215607329,
+    "end": 1793215629874
+  },
+  "durationSeconds": 22.545,
+  "parkSecondsInWindow": 20.05877026367187,
+  "waits": [
+    {
+      "secondsInRootWindow": 0.012115966796875,
+      "start": "2026-10-29T00:56:47.672878167+05:30",
+      "duration": "PT0.012115917S",
+      "methods": [
+        "jdk/internal/misc/Unsafe.park",
+        "java/util/concurrent/locks/LockSupport.park",
+        "java/util/concurrent/FutureTask.awaitDone",
+        "java/util/concurrent/FutureTask.get",
+        "org/jetbrains/kotlin/buildtools/internal/KotlinToolchainsImpl$BuildSessionImpl.unwrapExecutionException"
+      ]
+    },
+    {
+      "secondsInRootWindow": 19.8229736328125,
+      "start": "2026-10-29T00:56:47.751340625+05:30",
+      "duration": "PT19.822973542S",
+      "methods": [
+        "jdk/internal/misc/Unsafe.park",
+        "java/util/concurrent/locks/LockSupport.parkNanos",
+        "java/util/concurrent/locks/AbstractQueuedSynchronizer.acquire",
+        "java/util/concurrent/locks/AbstractQueuedSynchronizer.tryAcquireSharedNanos",
+        "java/util/concurrent/CountDownLatch.await"
+      ]
+    },
+    {
+      "secondsInRootWindow": 0.02681396484375,
+      "start": "2026-10-29T00:57:07.612633667+05:30",
+      "duration": "PT0.026813917S",
+      "methods": [
+        "jdk/internal/misc/Unsafe.park",
+        "java/util/concurrent/locks/LockSupport.park",
+        "java/util/concurrent/locks/AbstractQueuedSynchronizer$ConditionNode.block",
+        "java/util/concurrent/ForkJoinPool.unmanagedBlock",
+        "java/util/concurrent/ForkJoinPool.managedBlock"
+      ]
+    },
+    {
+      "secondsInRootWindow": 0.040146728515625,
+      "start": "2026-10-29T00:57:09.170552334+05:30",
+      "duration": "PT0.040146625S",
+      "methods": [
+        "jdk/internal/misc/Unsafe.park",
+        "java/util/concurrent/locks/LockSupport.park",
+        "java/util/concurrent/FutureTask.awaitDone",
+        "java/util/concurrent/FutureTask.get",
+        "org/jetbrains/kotlin/buildtools/internal/KotlinToolchainsImpl$BuildSessionImpl.unwrapExecutionException"
+      ]
+    },
+    {
+      "secondsInRootWindow": 0.04202978515625,
+      "start": "2026-10-29T00:57:09.211008834+05:30",
+      "duration": "PT0.042029708S",
+      "methods": [
+        "jdk/internal/misc/Unsafe.park",
+        "java/util/concurrent/locks/LockSupport.park",
+        "java/util/concurrent/FutureTask.awaitDone",
+        "java/util/concurrent/FutureTask.get",
+        "org/jetbrains/kotlin/buildtools/internal/KotlinToolchainsImpl$BuildSessionImpl.unwrapExecutionException"
+      ]
+    },
+    {
+      "secondsInRootWindow": 0.03414111328125,
+      "start": "2026-10-29T00:57:09.260345250+05:30",
+      "duration": "PT0.034141125S",
+      "methods": [
+        "jdk/internal/misc/Unsafe.park",
+        "java/util/concurrent/locks/LockSupport.park",
+        "java/util/concurrent/FutureTask.awaitDone",
+        "java/util/concurrent/FutureTask.get",
+        "org/jetbrains/kotlin/buildtools/internal/KotlinToolchainsImpl$BuildSessionImpl.unwrapExecutionException"
+      ]
+    },
+    {
+      "secondsInRootWindow": 0.062421142578125,
+      "start": "2026-10-29T00:57:09.294772667+05:30",
+      "duration": "PT0.062421167S",
+      "methods": [
+        "jdk/internal/misc/Unsafe.park",
+        "java/util/concurrent/locks/LockSupport.park",
+        "java/util/concurrent/FutureTask.awaitDone",
+        "java/util/concurrent/FutureTask.get",
+        "org/jetbrains/kotlin/buildtools/internal/KotlinToolchainsImpl$BuildSessionImpl.unwrapExecutionException"
+      ]
+    },
+    {
+      "secondsInRootWindow": 0.0181279296875,
+      "start": "2026-10-29T00:57:09.364342500+05:30",
+      "duration": "PT0.018127959S",
+      "methods": [
+        "jdk/internal/misc/Unsafe.park",
+        "java/util/concurrent/locks/LockSupport.park",
+        "java/util/concurrent/FutureTask.awaitDone",
+        "java/util/concurrent/FutureTask.get",
+        "org/jetbrains/kotlin/buildtools/internal/KotlinToolchainsImpl$BuildSessionImpl.unwrapExecutionException"
+      ]
+    }
+  ]
+}

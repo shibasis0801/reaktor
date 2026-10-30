@@ -11,7 +11,9 @@ export interface LoopbackAnswer {
 export class LoopbackMcpClient {
   private sequence = 0;
   private readonly endpoint: string;
-  constructor(private readonly pairing: LoopbackMcpPairing) {
+  private readonly pairing: LoopbackMcpPairing;
+  constructor(pairing: LoopbackMcpPairing) {
+    this.pairing = pairing;
     const url = new URL(pairing.endpoint);
     if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) ||
       url.pathname !== '/browser/mcp' || url.username || url.password || url.search || url.hash || pairing.token.length < 32) {

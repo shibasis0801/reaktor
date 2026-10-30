@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentConfigFilesTest[jvm]" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:25:37.788Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.044">
+  <properties/>
+  <testcase name="symlinkedProjectDirectoriesCannotRedirectConfigurationWrites[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConfigFilesTest" time="0.002"/>
+  <testcase name="externalEditsAndNewlyCreatedFilesDoNotGetOverwritten[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConfigFilesTest" time="0.028"/>
+  <testcase name="configuredHomesAndExistingProfileFilesAreDiscoverable[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConfigFilesTest" time="0.002"/>
+  <testcase name="malformedJsonAndTomlCannotReplaceASavedConfiguration[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConfigFilesTest" time="0.005"/>
+  <testcase name="userAndWorkspaceConfigurationsAreIndependentAndPreserveContentsAndPermissions[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConfigFilesTest" time="0.002"/>
+  <testcase name="defaultsComeFromTheSettingsFileThatWins[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConfigFilesTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

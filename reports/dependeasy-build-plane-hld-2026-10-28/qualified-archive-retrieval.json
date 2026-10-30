@@ -1,0 +1,39 @@
+{
+  "exitCode": 0,
+  "workerBuildWallSeconds": 40.803376458003186,
+  "tasks": [
+    ":reaktorCli:test",
+    ":reaktor:reaktor-tooling:jvmTest",
+    ":kernel:verifyKernelBoundary",
+    ":reaktorCli:distZip",
+    "--continue",
+    "--max-workers=6",
+    "--console=plain"
+  ],
+  "source": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds/targets/reaktorCli/build/distributions/reaktor.zip",
+  "sha256": "c69182557c93e8f7b902791de413c2f46b28bb09c0c9509c9bf87788263422a6",
+  "bytes": 202460579,
+  "verifiedLibraryHashes": {
+    "reaktor-db-jvm-2026.1.6-SNAPSHOT.jar": "99d52509d12c1e83108db169a792cd98b7deca14d5e1855e150e5a6009b038bf",
+    "reaktor-graph-port-jvm-2026.1.6-SNAPSHOT.jar": "de2d6e3f24c954fc82c7306d2ea3a0e154733eef4cd472ec2b2646df506a4da7",
+    "reaktor-graph-runtime-jvm-2026.1.6-SNAPSHOT.jar": "6bd42c9ae8ba99715aa3b8cbfda0e62df6169fe87f6479b5c93c14a7ff57b654",
+    "reaktor-auth-core-jvm-2026.1.6-SNAPSHOT.jar": "923b807612545ea3900d73d97af2e131c9edf4561cda40c2454d97be1768e31e",
+    "reaktor-work-jvm-2026.1.6-SNAPSHOT.jar": "1d8caa387ef65a25a70632a8470db81b2b5337305a7cc7ef098f90a77f5268af",
+    "reaktor-service-jvm-2026.1.6-SNAPSHOT.jar": "94e28608f7f25970fed250889587157e87ffe19a8bd2c8551ac11b3b56f7d0d7",
+    "reaktor-mcp-jvm-2026.1.6-SNAPSHOT.jar": "3b159be75146f94c525ba21e9c408953685aea546801dfe2b0cbb54c39ad1d94",
+    "reaktor-code-jvm-2026.1.6-SNAPSHOT.jar": "9938bdde3fdf2f15c949dc6a8b39ce37b44113519cb1cb52bd59ec7ec8822459",
+    "reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar": "49a6bec6085d36b14140009be6fa51c8bcd0f66828fb115ba94a4331345e42d6",
+    "reaktor-conductor-jvm-2026.1.6-SNAPSHOT.jar": "b4fa654c65fecfcfee3a076549817968cc6ef69ffe240728007b8a2130fd4fa6",
+    "reaktor-io-jvm-2026.1.6-SNAPSHOT.jar": "a37cbe849df4ca384754983df23d175bdb7e7a2c0b30dd77ff21e63bc12e72d9",
+    "reaktor-telemetry-jvm-2026.1.6-SNAPSHOT.jar": "4c291e4341647b99ef517595b747771e663499e882af19e6a3ea411a5623275b",
+    "reaktor-idb-2026.1.6-SNAPSHOT.jar": "9ad0f515ef539ebff3cc93bb8c15700b60379316480fc48a0dcb7d41c45fae90",
+    "reaktor-core-jvm-2026.1.6-SNAPSHOT.jar": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269",
+    "reaktorCli.jar": "629be6600d882362140c578cbcd718de8c419694ad605a609587b053e7672dd8",
+    "kernel.jar": "1f257c20b64ff905a4cbee2dc5712f36e0b4534da60fffc0dec5ad6021678b95"
+  },
+  "destination": "/Users/ovd/dev/.remote-dev/artifacts/20261028-qualified-cli-worker/reaktor.zip",
+  "snapshot": "1ebf1b435c92c8e0700176378ebac967c15ceb2df56d6af4dbe9ef42626557a0",
+  "workerSlot": 1,
+  "admissionSeconds": 83.347725333,
+  "scope": "Fresh checked Gradle distZip built and collected while holding the same worker lease. Previous shared-slot outputs had already been trimmed; no stale archive was substituted."
+}

@@ -1,0 +1,931 @@
+{
+  "run": "20261029-031203-fe3ed859-bestbuds",
+  "scope": "Focused normal-router tooling/kernel/CLI/boundary qualification; shared checkout, not a whole-source frozen snapshot",
+  "suites": {
+    "reaktor/reaktor-tooling/build/test-results/jvmTest": {
+      "totals": {
+        "tests": 251,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "xml": [
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.BuildDeclarationsTest.xml",
+          "sha256": "91156a2bc27cec661bba33ea09b3e4b5b7bbc635242988ea8a4aa42fce164a04",
+          "timestamp": "2026-10-28T21:42:35.409Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.ContrastAuditTest.xml",
+          "sha256": "c1d6abdc8ddf84a26b92e447f641443fb698b2a0299d3f28ad12443046ca7e5e",
+          "timestamp": "2026-10-28T21:42:40.494Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.DefinitionDigestCacheTest.xml",
+          "sha256": "0b520a187ec50155b303a60809571e48d3a4f9244d163fa0ec40e1336f55b7a9",
+          "timestamp": "2026-10-28T21:42:41.667Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.DeviceInspectionTest.xml",
+          "sha256": "64c0a9ceb9101fd77cf7e6f12e5f653b68086488246e53530322b4751c03c336",
+          "timestamp": "2026-10-28T21:42:41.845Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.DeviceToolsTest.xml",
+          "sha256": "d8b37b2c3d4605bc108bff0b4a0590a6538b0428b6915db80c5423882ad07e18",
+          "timestamp": "2026-10-28T21:42:41.899Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.GradleReceiptRunLedgerTest.xml",
+          "sha256": "3138126940c35b0b403d5bdd71c44b1c730496db5831db2e34bb4bef577a92a8",
+          "timestamp": "2026-10-28T21:42:46.764Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.IslandJvmClientTest.xml",
+          "sha256": "a7824d4d6cd98650cde41da21098768582cf750812738caf526a2442ae7f7fe8",
+          "timestamp": "2026-10-28T21:42:46.995Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.JvmDiscoveryPerformanceTest.xml",
+          "sha256": "5ff53d398129213496ddf5f05873f6887c54099f8ae027e0fa0a13f66575d83f",
+          "timestamp": "2026-10-28T21:42:47.002Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.JvmProjectDiscoverySealTest.xml",
+          "sha256": "90fa9437e0330eb080a60aeab84fbab23cbc888960077ee04a67916e4144ac5f",
+          "timestamp": "2026-10-28T21:42:47.119Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.KotlinSourceIndexTest.xml",
+          "sha256": "cef17e0c7f569b46c0f555cf39aa3e6e468fe3850c8fe68788c4a8b7b2919fec",
+          "timestamp": "2026-10-28T21:42:47.218Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.KubernetesJvmClientTest.xml",
+          "sha256": "7c27cbc328da7657263a3f3f2b71536c82b610f6d7f413cedb6b83c2f0134dd2",
+          "timestamp": "2026-10-28T21:42:47.230Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.NativeInfrastructureTest.xml",
+          "sha256": "684fde9b3ec9aca8c6ec285d91f99aba634e6dcfc146cfa02b37d55f0e0e2350",
+          "timestamp": "2026-10-28T21:42:47.991Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.ProcessQueryTest.xml",
+          "sha256": "ae23ff17749ef775d193442dbfa8f895dedfcf7d9a574f18068f9e6ab2c51f77",
+          "timestamp": "2026-10-28T21:42:48.144Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.QueryValueOrderTest.xml",
+          "sha256": "f9e96c64b66e2c29961e422e6e65d57221d5fde0e6f8f29ab6eb15f289ab2258",
+          "timestamp": "2026-10-28T21:42:48.314Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.ServiceTokenClientTest.xml",
+          "sha256": "9b3e0e47f1225efddd5f783eb669c59325a6a716112f6376e5a6c1e46cdccf2c",
+          "timestamp": "2026-10-28T21:42:48.327Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.StructuredProcessCaptureTest.xml",
+          "sha256": "e9967c522facf77037f24622d0ad458eb89f69815a2d4992d9602e18c45323d5",
+          "timestamp": "2026-10-28T21:42:48.331Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.api.ApiSurfaceTest.xml",
+          "sha256": "e5b481717828644c4bb4fb0314270ee43e4bf2a8d988a77004f24930f042d5f7",
+          "timestamp": "2026-10-28T21:42:48.399Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.api.CloudApisLiveTest.xml",
+          "sha256": "1f04d583ee10cb5f43390430314bce17a2564c7dfa0eb39b5682e7c20f333681",
+          "timestamp": "2026-10-28T21:42:48.416Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.auth.AuthConsoleSearchTest.xml",
+          "sha256": "c47151584b4f515844b1c138a280d503f038e81a17a2a623f2b5a3f8918cb010",
+          "timestamp": "2026-10-28T21:42:48.418Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.CloudInventoryAssemblyTest.xml",
+          "sha256": "3171ed1e7343759592c419f64f13ee20c13ac25b7be4cdefbcf8766eea3f66f4",
+          "timestamp": "2026-10-28T21:42:48.476Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.CloudInventoryLiveTest.xml",
+          "sha256": "ac045d5eff8de9a28b2f08ead2c97067ee552b702c16e5b92a4cc10f24d602cb",
+          "timestamp": "2026-10-28T21:42:48.586Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.CloudflareAiTest.xml",
+          "sha256": "c73e47aa562a8fb6ec8153a73559f8e5700a6480c7f38aa46ae5dfb83225c9ae",
+          "timestamp": "2026-10-28T21:42:48.588Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.CloudflareLoginTest.xml",
+          "sha256": "441d12255c0175f06a9db8b6b7e785dacca3e770ad40b7bd90453ee249b31937",
+          "timestamp": "2026-10-28T21:42:48.614Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.GoogleSignInTest.xml",
+          "sha256": "3ff0d73936d1407ec34da8d4ea305968ff015bbfac827b47be2e4f3cc01636fa",
+          "timestamp": "2026-10-28T21:42:48.618Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.HangarProvidersLiveTest.xml",
+          "sha256": "e840a47c7a74b0df065d8b059258d6003ea4a9be7a9fd2ac2abf43d3ff8122e3",
+          "timestamp": "2026-10-28T21:42:48.638Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.WranglerLoginTest.xml",
+          "sha256": "b589957d832fca4a6f73fd90bb6afa760b0f53b956284090283ffc1bc489a4a0",
+          "timestamp": "2026-10-28T21:42:48.640Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.MemgraphInspectionTest.xml",
+          "sha256": "edd4f7e80647f2bfe361b9fb2938c612c807561be0d72918ba738e81b90f1374",
+          "timestamp": "2026-10-28T21:42:48.660Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.MemgraphReadPageTest.xml",
+          "sha256": "8e51439f6fa107bba31f1c7e90130286da5a77119194c8b9cf8c331594944941",
+          "timestamp": "2026-10-28T21:42:48.667Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.MessagePayloadTest.xml",
+          "sha256": "96dc716ca4ea645e18709f2a9480393a2a0c98cafb42690eff49762535ea20c2",
+          "timestamp": "2026-10-28T21:42:48.670Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.MigrationLedgerTest.xml",
+          "sha256": "53261fdfc25f8cfd4017b81943e814b402f84a9263d36be4cdeb0c148438a268",
+          "timestamp": "2026-10-28T21:42:48.675Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.PrefixInventoryTest.xml",
+          "sha256": "170da4a9c36dc4b2150da725a1b7dd1c8c46eaae1c475b669e2990707cd1ef25",
+          "timestamp": "2026-10-28T21:42:48.680Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryPlanOperatorsTest.xml",
+          "sha256": "d023979de49051f8bea0193088556dc6721ec05cb0617549bd6a8d6fc5a0275e",
+          "timestamp": "2026-10-28T21:42:48.684Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryPlotTest.xml",
+          "sha256": "c055ba518e851b9bdb44d914e92e628b0847c2131f96092feb9e84da63a486b5",
+          "timestamp": "2026-10-28T21:42:48.688Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryReceiptTest.xml",
+          "sha256": "2d38e135786710efcde00cacd93489a12987c871a754d719ae3e421b97e8b582",
+          "timestamp": "2026-10-28T21:42:48.692Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryResultComparisonTest.xml",
+          "sha256": "27e729410bd1b90ecd0711c630ec8050973773e1a21ab0ea782534dcd278e4b4",
+          "timestamp": "2026-10-28T21:42:48.708Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryResultExportTest.xml",
+          "sha256": "cecc0fba98d8c576beeee2c05304ee05dcd8bd190030b6cd85010eaeb0dd09e5",
+          "timestamp": "2026-10-28T21:42:48.713Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.SqlReadStatementTest.xml",
+          "sha256": "c3a92821b22bc6a2d1f0ec688d774e281ed22fca4100ef5ddcb879e08ce91b36",
+          "timestamp": "2026-10-28T21:42:48.719Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.device.AdbDeviceBackendLiveTest.xml",
+          "sha256": "a28b3d7778864657858b7de3e513792c989c3d80a1c03664a0943d7e3ddf15df",
+          "timestamp": "2026-10-28T21:42:48.720Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.device.AppleDeviceBackendLiveTest.xml",
+          "sha256": "dabeb937ba32b76c25094186a5dd3b9bac2bd4e3a4997bcecd2dbb92b047c284",
+          "timestamp": "2026-10-28T21:42:49.345Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.git.WorkspaceRevisionTest.xml",
+          "sha256": "395a1b38e1067ef0b23ddf4f2fbad8c0103a45709122b528dcbb74a2bf2ae745",
+          "timestamp": "2026-10-28T21:42:51.804Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.ide.ReaktorIdeTest.xml",
+          "sha256": "0a73c3e99666526ab13e87ff56a8c03da8074632eb1be7ff2a732bff12ac7968",
+          "timestamp": "2026-10-28T21:42:51.816Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.CrashlyticsEventsTest.xml",
+          "sha256": "a2d5d1adb73dbbc8323381271de111eea09c5337f922b87b09673ae76b835392",
+          "timestamp": "2026-10-28T21:42:51.820Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.CrashlyticsReportTest.xml",
+          "sha256": "efce60127e563f03378b61a44c6c50ea4e87120a2e2737289447ee4029fd67d9",
+          "timestamp": "2026-10-28T21:42:51.834Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.PubSubObservationPageTest.xml",
+          "sha256": "3b5d1cffed430637c77208cc90b348d079353230508d30255ba0179cda444f9f",
+          "timestamp": "2026-10-28T21:42:51.840Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.SQLiteJvmClientTest.xml",
+          "sha256": "fcdc2e54ee067cfd3956144d12fa52a0144a0573dcb0cb9a219a09076947da6e",
+          "timestamp": "2026-10-28T21:42:51.849Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.SpanJvmClientTest.xml",
+          "sha256": "9357a03abf4283fe7e102ef684170e1dacb6d0e68178bb0b8e611a1a96d7395a",
+          "timestamp": "2026-10-28T21:42:52.497Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.io.SafeFilesTest.xml",
+          "sha256": "43ea1a33fd778f98d305e1cffdc8e7d78d44b7c0a44747c821c32bc5f92c80e0",
+          "timestamp": "2026-10-28T21:42:52.508Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.lsp.ClangdLanguageServerTest.xml",
+          "sha256": "99240fd4749b0da0b16860d878c531d8b0ea1043b0f68c1edcd1af09a2191a4c",
+          "timestamp": "2026-10-28T21:42:52.515Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.lsp.KotlinLanguageServerTest.xml",
+          "sha256": "0d7a3e75c59b1dc8be389e92171759d202c69286d67dbb6c4d7ed229fdeecc49",
+          "timestamp": "2026-10-28T21:42:53.647Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServerTest.xml",
+          "sha256": "db0fa5653fde1dcd3772c8a70373f15012a26c1650fe4f09f49d359fd21afd65",
+          "timestamp": "2026-10-28T21:42:53.656Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.mcp.door.CloudApiDoorTest.xml",
+          "sha256": "98b011042c947d5488d5c807298aa244544d2389065e4ca116be7de00860b036",
+          "timestamp": "2026-10-28T21:42:53.794Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.mcp.door.DoorAuthorityTest.xml",
+          "sha256": "7a08dd59bc09c57869d4b4e0a7f0313c7aa2e354f4a7d404229d9b530c4d798b",
+          "timestamp": "2026-10-28T21:42:53.882Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.mcp.door.McpDoorTest.xml",
+          "sha256": "7bb8ce2a249c948e0e329db1e132e767b8ad6054e7e28963c9f04131edb269fd",
+          "timestamp": "2026-10-28T21:42:53.967Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.operation.OperationContractTest.xml",
+          "sha256": "1e5f87f923228d8aa66b23aa8f6a23077b467a6bc51bf164cfb7cd7dd49037d3",
+          "timestamp": "2026-10-28T21:42:54.222Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.operation.OperationKernelTest.xml",
+          "sha256": "a1bc0d368e5cbddddd5deb3686614080214e15beb431d02abe21edc31181ed53",
+          "timestamp": "2026-10-28T21:42:54.305Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.operation.SuperadminGateTest.xml",
+          "sha256": "4e40e6d229a1765f02ad590bf305d0449643bf027a579ea15387362f274d1a66",
+          "timestamp": "2026-10-28T21:42:54.451Z"
+        },
+        {
+          "path": "reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.source.SourceHandoffTest.xml",
+          "sha256": "1edcc22a1a7bb25db95796435bebb271f1377c0e54d41daf3bbd058b1e2942ba",
+          "timestamp": "2026-10-28T21:42:54.468Z"
+        }
+      ]
+    },
+    "bestbuds/modules/kernel/build/test-results/test": {
+      "totals": {
+        "tests": 520,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 11
+      },
+      "xml": [
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.DatabaseQueryBackendTest.xml",
+          "sha256": "c93f94c67eb185e914414696b711bb53cc40af58c14944f83966269c2a5c85cb",
+          "timestamp": "2026-10-28T21:42:41.480Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.DesktopPreferencesTest.xml",
+          "sha256": "814dcb94b6d4eeaa09a74a541b1f3dadfd5dd982b12dced40312570ffa4dac76",
+          "timestamp": "2026-10-28T21:42:43.035Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.CatalogNodeTest.xml",
+          "sha256": "e0e4a34e7f8a63f6408cf81e34d9fdd169e628a6217ca01b70334b0ac6a4558c",
+          "timestamp": "2026-10-28T21:42:43.055Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.CatalogStartupPerformanceTest.xml",
+          "sha256": "54249450c000b2427d2754d03a02251419cfa71b358c93581416d48b410dbd6c",
+          "timestamp": "2026-10-28T21:43:05.299Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.ConnectionCatalogTest.xml",
+          "sha256": "e2dd4da6b839ff1f93fa251b0310f4e1728c3bf2fc0c3d96712a7c747b52a13b",
+          "timestamp": "2026-10-28T21:43:05.302Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.DataCatalogTest.xml",
+          "sha256": "7c39cdd178dbbbb2a7ac771b944994c6c29b308afc0947f28b33f2c2ac6b19e7",
+          "timestamp": "2026-10-28T21:43:05.344Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.DatabaseWriterTest.xml",
+          "sha256": "345d1884d393fe50fb4256b334c4b11ff978524c2dcec84af67e43657543a1da",
+          "timestamp": "2026-10-28T21:43:05.371Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.IslandCatalogTest.xml",
+          "sha256": "1d4dce4ff631238675ff09e02e0552450432489ddcdd0fc8b13f13f45cd8398e",
+          "timestamp": "2026-10-28T21:43:05.401Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAcceptanceTest.xml",
+          "sha256": "3b15fcd44db5932c1e62c4185886854dc9930926cba21d137c368d0f89da4447",
+          "timestamp": "2026-10-28T21:43:05.795Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAccessTest.xml",
+          "sha256": "bfe60750eddeb7a021aa23181e3faefc20ac2cd85c170a1789cefac87bb93af7",
+          "timestamp": "2026-10-28T21:43:11.586Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentChecksTest.xml",
+          "sha256": "5a3f88d9a7168d98378ec62502e64057a7ec8c1ebf884db85efe3cd53c071c0b",
+          "timestamp": "2026-10-28T21:43:11.858Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentEvidenceTest.xml",
+          "sha256": "81c047afa4d21a81b014aaefe7493171735de2b317129b76aa1096d27704729c",
+          "timestamp": "2026-10-28T21:43:15.633Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentServiceTest.xml",
+          "sha256": "6b41ca2135db60817ce022ea64fdf07cad9ddeea8e784c7cd2763cddfd58fdeb",
+          "timestamp": "2026-10-28T21:43:16.242Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentsLifecycleTest.xml",
+          "sha256": "00eeb8c8b5e63c0ad4de07ddaec506760b1993b5e4d60d178bce52daedc48eee",
+          "timestamp": "2026-10-28T21:43:16.248Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelApplicationLogsTest.xml",
+          "sha256": "ffe9cb482c95b2b4f9cdb480b14d6a02d07f197a228170fe24e5721f86319d81",
+          "timestamp": "2026-10-28T21:43:16.261Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasCompiledTest.xml",
+          "sha256": "59354dc854913d5f6060a983aea051d7742632bbff161d4b184ac532f9619435",
+          "timestamp": "2026-10-28T21:43:16.271Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasPresetsTest.xml",
+          "sha256": "8445ec987addf2d46301203bdd9057ea93b3a345b4015c36ac214ab2bbd05f87",
+          "timestamp": "2026-10-28T21:43:17.027Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasTest.xml",
+          "sha256": "bdaed1354c78830e03682b1e878627a93ad604d0830ed863b06d69243772df92",
+          "timestamp": "2026-10-28T21:43:18.925Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelBoardTest.xml",
+          "sha256": "23fcc56dcda9d6cd630865caa5ca2fd45296c5915c47de32ea0ae2179ec51798",
+          "timestamp": "2026-10-28T21:43:21.553Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelBuildNodeTest.xml",
+          "sha256": "e24cf2751e8110d6568392b77b4f4b03a157daf2d1c445b589766d5935b76501",
+          "timestamp": "2026-10-28T21:43:21.807Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCandidateChecksTest.xml",
+          "sha256": "aa5eac85585f1de95465a008cc9e7ab8d26af07b5ae97967a975a8177cfe0d23",
+          "timestamp": "2026-10-28T21:43:24.205Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelChangesTest.xml",
+          "sha256": "27aefb7a1f2c8d05c518593163c4a57073fefaefde0415b8c8b749288c010e3f",
+          "timestamp": "2026-10-28T21:43:39.208Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCodeGraphTest.xml",
+          "sha256": "e916af2b004b0b25fba6fd24ce24b52cce15e3172e9d155123f11d4559f04857",
+          "timestamp": "2026-10-28T21:43:44.609Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionBatchTest.xml",
+          "sha256": "5b069cba6c25dc1e879e3ecb606360d4b1a86405881ff1c427b5d3ef2b2c5b94",
+          "timestamp": "2026-10-28T21:43:45.032Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionFailuresTest.xml",
+          "sha256": "b3c6988bc89eeea03fa25ad5c557c6396735c70a938b5c073234bd39b689d8ed",
+          "timestamp": "2026-10-28T21:43:45.648Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionsTest.xml",
+          "sha256": "3d8eb09745569f37432e2b58a503c7ecfd473c6f2e01f7b8fd1392a1b2ef4436",
+          "timestamp": "2026-10-28T21:43:45.911Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCppFactsTest.xml",
+          "sha256": "f6211e00ad273a6061039eb892897b3f5daa86ea7ba5938589c5c1413df510fb",
+          "timestamp": "2026-10-28T21:43:45.947Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCrashEventsTest.xml",
+          "sha256": "6685a68e5504befa367bf1cb6e5525c63a17ba27e7ad3dcaaad10e5e5d4f959d",
+          "timestamp": "2026-10-28T21:43:48.667Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCrashesTest.xml",
+          "sha256": "62f2aff34f16202ac1f6418ee6da0b8ccd317ad941427b97e2dc7643ebf71ef7",
+          "timestamp": "2026-10-28T21:43:48.676Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelDatabaseTargetsTest.xml",
+          "sha256": "c964120d2c83e1da3d64b9a3c0cff425e259889cccb2f1a7899465815df8d57b",
+          "timestamp": "2026-10-28T21:43:48.678Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelDoorTest.xml",
+          "sha256": "6a6dcf9a4de017f442ec9792a5fd6ed90d78a5ec8d1d4b5a5f160ad3966e0aee",
+          "timestamp": "2026-10-28T21:43:48.685Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelEngineeringTest.xml",
+          "sha256": "2fd8ea8ed34dd1d4916878d8bad7c7a4187de2a1a52ab9da35be5533f5b6cafa",
+          "timestamp": "2026-10-28T21:43:49.923Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelFlowCoverageTest.xml",
+          "sha256": "b23a8289d17419e2a062f74e82ee0512c0073d7ca5efc6f6696e29ea6a65d559",
+          "timestamp": "2026-10-28T21:43:51.086Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelGeneratedSourcesTest.xml",
+          "sha256": "542b20bd64012264d9a74371a8633878742aecf12016144bd706d9b52dc52934",
+          "timestamp": "2026-10-28T21:43:51.093Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelGraphTest.xml",
+          "sha256": "edb1bbc685bac71d2330cec3813174441b4288ad0e20f6824b55c0f87932c928",
+          "timestamp": "2026-10-28T21:43:51.385Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelHouseRulesTest.xml",
+          "sha256": "fe7f23e19942396f0950d1de59ad4cd174724fe12b113475da77e7394802f0d0",
+          "timestamp": "2026-10-28T21:43:51.406Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelInboxTest.xml",
+          "sha256": "480b2fa104fe5e02c605acf9c59b0c762936eed3b65fc1805535b5ad352be687",
+          "timestamp": "2026-10-28T21:43:52.010Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelIntegrationTest.xml",
+          "sha256": "9171c9c46d8bda54d1d0a75412da40b462120ebee31c16781d7ed9a7c039b52e",
+          "timestamp": "2026-10-28T21:43:52.057Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelKotlinFamiliesTest.xml",
+          "sha256": "bc3a3ae3ecef8ef70041d58636ac9435cef2f5f305de4d2fba993617e93281c7",
+          "timestamp": "2026-10-28T21:43:52.189Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelMcpTasksTest.xml",
+          "sha256": "281b93bbdb2e5a24abd0f798843a3420ef396a8907ab8e9c4934dcb6d91be601",
+          "timestamp": "2026-10-28T21:43:52.229Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelNodeTelemetryTest.xml",
+          "sha256": "963835cbef0cd9a7eaad5104f22577824ba3225cdab6cd3567c8ad0c5fb49457",
+          "timestamp": "2026-10-28T21:43:52.234Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelOwnerTransportTest.xml",
+          "sha256": "7d7221da54077017d639c82275d38394d2f3022378c98759fde6ded34317330f",
+          "timestamp": "2026-10-28T21:43:52.274Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelPlanTest.xml",
+          "sha256": "491c6e5fb3a1b7a1c2ff20731a95d2c49643edfc904ffc7cdc59ec97a0df2f55",
+          "timestamp": "2026-10-28T21:43:52.382Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelPrincipalTest.xml",
+          "sha256": "3b26cd6e18abecec9d3ef94e9fdecf006250f4960f61642abab463041e08c252",
+          "timestamp": "2026-10-28T21:43:52.471Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelRadarTest.xml",
+          "sha256": "c579a7f3bb7ec382e73492170109ed3d330c31618d100ce93537dfddf21722e9",
+          "timestamp": "2026-10-28T21:43:52.475Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelReaktorFactsTest.xml",
+          "sha256": "d804593e86fec323c38f202845157fdf097432e41db0a176a4e69c4ff24b53ae",
+          "timestamp": "2026-10-28T21:43:52.493Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelRunReadTest.xml",
+          "sha256": "680bc4cff6d0b475ceb60c9eef496e849e718d3f0e0b405f159ee00434f4f159",
+          "timestamp": "2026-10-28T21:43:53.546Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSemanticFactsTest.xml",
+          "sha256": "02e66163216754e1c78f74e720b346675dfc1dbfb38144c1a043d1dcf23809f7",
+          "timestamp": "2026-10-28T21:43:53.552Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSessionLogTest.xml",
+          "sha256": "b481bee2db16b19781561aa59594c9cbe07e8d7cfacb56d699a89706bee41552",
+          "timestamp": "2026-10-28T21:43:53.649Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSourceRoutingTest.xml",
+          "sha256": "d92ba786ec04b060df3db2ce9856c9297796e3727adfeb122afdf2188bccade1",
+          "timestamp": "2026-10-28T21:43:53.825Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSubgraphsTest.xml",
+          "sha256": "7c8a7c465dfc563c7d0548cfa7a0231abc5aadf8263463e678c43ab9c0a1046c",
+          "timestamp": "2026-10-28T21:44:00.721Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTaskGraphTest.xml",
+          "sha256": "3332a2e2a4f701203b94cf0b16a813135a41a7504285dc087b1dde0193c04db9",
+          "timestamp": "2026-10-28T21:44:00.817Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryFleetTest.xml",
+          "sha256": "45f4fe30222aa48ac37973e274c9b68649fcc56d620d1e28e801c690880b1924",
+          "timestamp": "2026-10-28T21:44:02.189Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetrySignalsTest.xml",
+          "sha256": "47237b055a8e85c3aee6087bca8c2863a5f1c7ad0ea052eb8c7250f84c798fba",
+          "timestamp": "2026-10-28T21:44:02.199Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryTest.xml",
+          "sha256": "6066d7364cadd4b165a4983cb509b3c72ccfa6f590008b57cccb67121aab7862",
+          "timestamp": "2026-10-28T21:44:02.204Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryVerificationTest.xml",
+          "sha256": "3894042d93b56ff8064f157c3592a1ab1c5449292300ffcad1627d053cfe0ab4",
+          "timestamp": "2026-10-28T21:44:02.222Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTypeScriptFactsTest.xml",
+          "sha256": "980906d4302b5793920540f11c6c77ff137ef9743c19e81801525b9e4c5699aa",
+          "timestamp": "2026-10-28T21:44:02.228Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelWatchTest.xml",
+          "sha256": "345586813962e99f1a7e56470e4232317677d64d0cc159e2806a7cb23b62ede8",
+          "timestamp": "2026-10-28T21:44:02.456Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelWorkspaceTest.xml",
+          "sha256": "e4a564d0987d1a4dfbaf940398f8e395c2a6ff6d6484348e39194ab3886d1bc6",
+          "timestamp": "2026-10-28T21:44:12.116Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.NativeKernelExecutionTest.xml",
+          "sha256": "e8c1c3662ab9a4d62fc91753bf86ff36b43427be040ae9892f9bf03a578dca8c",
+          "timestamp": "2026-10-28T21:44:12.637Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.OperatorAuthorityTest.xml",
+          "sha256": "afcada2ce6d162ad1dcc74a4883f2585b22e7970110789e4fbf43d24a567153f",
+          "timestamp": "2026-10-28T21:44:12.661Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.ProductionConnectionsTest.xml",
+          "sha256": "617ee9022cb9c42c36cbff41a30f62354d78685e323b10554b5ada8c1a3bf8e9",
+          "timestamp": "2026-10-28T21:44:12.671Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.WorkspaceRepositoriesTest.xml",
+          "sha256": "75d3e61bbca486108c2d60f2f3fdd5c52a90f0cb299394da1461c6823e419403",
+          "timestamp": "2026-10-28T21:44:12.675Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.auth.AuthDeclarationsTest.xml",
+          "sha256": "5815bc681396ffcd54a03ddfc00ab1434f9100341e1bc043acadc89fc9d99f9c",
+          "timestamp": "2026-10-28T21:44:12.887Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelAuthToolsTest.xml",
+          "sha256": "dad37773bda56db12c07738e75c4342be48e72e05dda33535f49280b8f2c8c07",
+          "timestamp": "2026-10-28T21:44:12.902Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelCheckResultTest.xml",
+          "sha256": "3a2cc136354baf86c44025e74cf168ccad65ad53e035a905556027bd7bdad960",
+          "timestamp": "2026-10-28T21:44:12.919Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelGraphQueryTest.xml",
+          "sha256": "e9a9f18e45fe9be4f0edb82fa5c4098c331b6830325d93a070d3da06da8c4ec2",
+          "timestamp": "2026-10-28T21:44:12.925Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.BuildModelsTest.xml",
+          "sha256": "956d3afbd2cd16e716a9136108372297c68be71ecda79cf0b4ceffe9188dc79f",
+          "timestamp": "2026-10-28T21:44:12.931Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.ChangeChecksTest.xml",
+          "sha256": "7174dd5c62b89485d90ea8b10f9bb00fa40cd0368a8535502a4be777f964d23d",
+          "timestamp": "2026-10-28T21:44:12.940Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.WorkModulesTest.xml",
+          "sha256": "fa6a9bdc732ab92bc3d067fcee48e05f3e0b68a7ab6f2ecbc68bb3fa154aa0e2",
+          "timestamp": "2026-10-28T21:44:13.006Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.ai.AiInventoryDiscoveryTest.xml",
+          "sha256": "2cca51c1f4b8821400d3f266d20ff3ab55ee89c61bec6145e9316311f2d046ed",
+          "timestamp": "2026-10-28T21:44:13.012Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.ai.AiInventoryTest.xml",
+          "sha256": "1a0b845f776c87e6709650da16dc3bb91e663939cabc101c21915bc42d263d1a",
+          "timestamp": "2026-10-28T21:44:13.041Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.AuthDirectorySessionTest.xml",
+          "sha256": "baad536d0550ad6fc26841e28549bfad40924a429891e7a7cc6784f0ae36108b",
+          "timestamp": "2026-10-28T21:44:17.299Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DataCodeUsageTest.xml",
+          "sha256": "49363288af1c8bd6a9b902c4579dd8f1f8515e22bb9cc2f090df4b216bfee82a",
+          "timestamp": "2026-10-28T21:44:17.470Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseDocumentsTest.xml",
+          "sha256": "79a0c7c1d8b14967424a570f4fcf11c39b5fea82841c6bdb7264367f65e5f507",
+          "timestamp": "2026-10-28T21:44:17.477Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseFindingsTest.xml",
+          "sha256": "8882e638f011c37cf0f563be5edcb79cc6c6bdc632c12bb56eeea9139cc5f882",
+          "timestamp": "2026-10-28T21:44:17.479Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseGraphExplorationTest.xml",
+          "sha256": "8e587c5ed63e5a4731d68fad55e4abc31f3e74b25e821c8bffecc27eeb17b489",
+          "timestamp": "2026-10-28T21:44:17.489Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseMigrationQueriesTest.xml",
+          "sha256": "fc58ee9ce58bdebce672976a887fc12d842c66ab00d7f5479324d795231c11d9",
+          "timestamp": "2026-10-28T21:44:17.495Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabasePinnedResultsTest.xml",
+          "sha256": "412351550d8a3889f9686a1fb929a5c0c428147485440f5a40188abd7fcb4023",
+          "timestamp": "2026-10-28T21:44:17.499Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSchemaExplorationTest.xml",
+          "sha256": "3ff6ab2de0a6d892144f1717f1c757b442e8467c6df241699c71147f2b5f2283",
+          "timestamp": "2026-10-28T21:44:17.502Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSchemaSnapshotTest.xml",
+          "sha256": "b91ce52f7cceb186fabbd1f65801b375bdc798e18a0fe30459daaa5874a4ff07",
+          "timestamp": "2026-10-28T21:44:17.504Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSeekPagingTest.xml",
+          "sha256": "f073ad7a58c443f745635d5f537655526efed999cf57316b4c1187f8714a28ab",
+          "timestamp": "2026-10-28T21:44:17.511Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DeviceDatabaseTargetTest.xml",
+          "sha256": "a6d5af223681f08f901f481010402ca64d8cfae5bdc04c15199589fac0e38c7e",
+          "timestamp": "2026-10-28T21:44:17.514Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.MemgraphInspectionBrokerTest.xml",
+          "sha256": "4709dd88741701bac757cb58919c6c9130ad56aa9b7333a9760252c6659a934b",
+          "timestamp": "2026-10-28T21:44:17.516Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.NativeDatabaseSessionTest.xml",
+          "sha256": "f2cf890c736441bd83b92b13c7e3c4af9988a32204d3d62470b57242cfb55ff7",
+          "timestamp": "2026-10-28T21:44:19.492Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PostgresInspectionTest.xml",
+          "sha256": "1beacc87235c1340992f44b03ecdefe7bb50b7a2600a1f363cc3b1e85afb0ba7",
+          "timestamp": "2026-10-28T21:44:19.493Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PostgresSessionConnectionTest.xml",
+          "sha256": "62819b4a274eda5ece84d2955aa0bf0b27d4ef0cb810eb12ba485343c55584ff",
+          "timestamp": "2026-10-28T21:44:19.500Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PubSubSessionTest.xml",
+          "sha256": "929b96e64a62abc9cf7342913618b7eb051cee3ae37a54174c86158f43a0789f",
+          "timestamp": "2026-10-28T21:44:19.504Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.SavedDataDocumentsTest.xml",
+          "sha256": "4a3246e164f867a69ba034de8819c0787ab380be3871a43302eab09df09dea4f",
+          "timestamp": "2026-10-28T21:44:19.505Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.StorePrefixSurveyTest.xml",
+          "sha256": "af0a035de73cde40bc7388e985e872d84f4a9a7ddb7f5001bb27715fcaf47aaf",
+          "timestamp": "2026-10-28T21:44:19.512Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.WorkerStoreSessionTest.xml",
+          "sha256": "4d25f2992afeb62d29aea8bca35efaee7a2795a1a9fa117c2d815f26848f20dd",
+          "timestamp": "2026-10-28T21:44:19.521Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.inspection.ElementBindingRegistryTest.xml",
+          "sha256": "546a77d701d725f08fc83034fe86d8bc8297e290132438d7fe1209feebe88ce6",
+          "timestamp": "2026-10-28T21:44:19.524Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.inspection.WorkbenchInspectionSessionTest.xml",
+          "sha256": "8d9f336b3c8323d4a45d43b9ed5093e0bd440ca7a8f8227eed3df0ea61089aee",
+          "timestamp": "2026-10-28T21:44:19.537Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.mcp.DesktopMcpSessionTest.xml",
+          "sha256": "f33b6b5d9237da57464b4c3aad9e45beff2d2b55d48deda06b0618fcedd60ffa",
+          "timestamp": "2026-10-28T21:44:19.553Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ClickHouseBackupPlanTest.xml",
+          "sha256": "5d7816d05071feff155ba68dfbbea6aa037e8802170be00c521acd42ccd35af1",
+          "timestamp": "2026-10-28T21:44:19.557Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ClickHouseRestorePlanTest.xml",
+          "sha256": "fe92667fc55a7d9ce3af10de2adc1ed6fc9e8b9d548d1bd2b04fc1b7ed47f255",
+          "timestamp": "2026-10-28T21:44:19.811Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.DeployArtifactsTest.xml",
+          "sha256": "be1b344eb40bc75f4d3acad7b0cc56c5d0076e89b7b9f3169678b8987ceb3be9",
+          "timestamp": "2026-10-28T21:44:23.341Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.FirebaseReportsPlanTest.xml",
+          "sha256": "f42167d088b2b7639ff9464775cb4602c5981d9d1f82da086b3b245b66e1bb29",
+          "timestamp": "2026-10-28T21:44:24.093Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.GradleReceiptVisibilityTest.xml",
+          "sha256": "5228d1605c6379bfd86bd860128c5c644f87a33a2d65271a50ec8d09a4a4c558",
+          "timestamp": "2026-10-28T21:44:24.368Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.HostLocalOperationTest.xml",
+          "sha256": "c52276ac4a97412bc4231af907e8b76e03bb1fc24605b590e9c25dd49a10c71d",
+          "timestamp": "2026-10-28T21:44:30.387Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationRulesTest.xml",
+          "sha256": "86ca9d8eb3d08dbc5bd9bc76e78b7a03edc37f04b2595a15bc9153e981c84a19",
+          "timestamp": "2026-10-28T21:44:30.661Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationalCatalogCacheTest.xml",
+          "sha256": "193e9eb8f2f1f487a2bde68bd9a6c4ecc58981796113e3dcb40588d8af6501b1",
+          "timestamp": "2026-10-28T21:44:30.665Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationalEnvironmentTest.xml",
+          "sha256": "0b6cf5b6c1c8905dbd1f11468a7f12e5d7a7a007bd2a443cfe32ad8c4e2f840d",
+          "timestamp": "2026-10-28T21:44:33.036Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.PlanConfirmationTest.xml",
+          "sha256": "13587c1015ac1d425cdc88a2760ea0e14be2c0a9902411ed83902f73405968c8",
+          "timestamp": "2026-10-28T21:44:33.043Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ServiceSpanMigrationTest.xml",
+          "sha256": "c3647f4c3c2a4c66aa948f01eef79f0f4a2df4ccf9ffdaf7179d55b1a54d6d61",
+          "timestamp": "2026-10-28T21:44:33.062Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.SessionReadsAreBoundedTest.xml",
+          "sha256": "ded31bc7e29edaccd9162546d62a46a2f3e3af6c96dd8827e19d1ce7d2e75d21",
+          "timestamp": "2026-10-28T21:44:33.309Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.WorkerInputLifecycleTest.xml",
+          "sha256": "3f53b15e379aa43d5ae658d46188596ed246adef7efa7d8bb421bee4ea1ba15b",
+          "timestamp": "2026-10-28T21:44:34.422Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.CheckReportsTest.xml",
+          "sha256": "2a06bfd23c19e51a3f01a2d6428fe72895109a67f66f11486b80ed0309c4ca26",
+          "timestamp": "2026-10-28T21:44:34.431Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.VerificationsTest.xml",
+          "sha256": "9fb838768f4ce95e2886c9f7ff14d56e52cc3910a71ab85e687e3a81768df4d6",
+          "timestamp": "2026-10-28T21:44:34.453Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.WorkingTreeTest.xml",
+          "sha256": "f5b6b49e0e1c0a96ba719bb41323610ac60044be9158bf318eb49d7019c9acda",
+          "timestamp": "2026-10-28T21:44:34.457Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.BestBudsSchemaCatalogTest.xml",
+          "sha256": "f831671e321079b2e9351b1c5b66f508f8a694855ce984a09dda96ce39a4eeb4",
+          "timestamp": "2026-10-28T21:44:34.460Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.BestBudsSystemTopologyTest.xml",
+          "sha256": "4b8a6f9ad735c916dc8dbf7e7e640fc69c875d5abf485892fee5a480fa62fec2",
+          "timestamp": "2026-10-28T21:44:34.808Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.SupabaseDumpSchemaTest.xml",
+          "sha256": "edfef09cb9ecf31a672ed9c2750606fea9dce4851b41135ec02b391654a78c3a",
+          "timestamp": "2026-10-28T21:44:40.433Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-dev.shibasis.reaktor.conductor.cli.HarnessUsageTest.xml",
+          "sha256": "53ca377299c51742988d4dc091a26369ecf4dd8de7d262d2d7375b838f61767c",
+          "timestamp": "2026-10-28T21:44:40.475Z"
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-dev.shibasis.reaktor.conductor.cli.StdioBridgeTest.xml",
+          "sha256": "5bbae8a86b12103fa4f969c3d6718725d4ddb04a7be59785b0b43a92b3e0c53b",
+          "timestamp": "2026-10-28T21:44:40.506Z"
+        }
+      ]
+    },
+    "bestbuds/targets/reaktorCli/build/test-results/test": {
+      "totals": {
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xml": [
+        {
+          "path": "bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.BuildModelCliTest.xml",
+          "sha256": "9132a89a438b0435535b4da31a525c89ec6bd131925675b07c3b9baebea1d533",
+          "timestamp": "2026-10-28T21:42:45.057Z"
+        },
+        {
+          "path": "bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.KernelCliTest.xml",
+          "sha256": "f3471d14c61bf53ef87a2c1665ddbf34c5e7e8ffb080c84ace5176e7583cf7de",
+          "timestamp": "2026-10-28T21:42:41.391Z"
+        },
+        {
+          "path": "bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.ReaktorCommandTest.xml",
+          "sha256": "285cb9a5f1065115ac6b0069be166d3d48ec81cdc5c2b6e26c056e0192247b59",
+          "timestamp": "2026-10-28T21:42:55.161Z"
+        }
+      ]
+    }
+  },
+  "boundary": "passed",
+  "pen": "excluded by user",
+  "ledgerCases": [
+    "boundedReadsKeepNodeOrderAndFreshEvidenceAcrossArbitraryReceiptNames[jvm]",
+    "externalReceiptsKeepNodeIdentityAndWakeWatchService[jvm]",
+    "supervisedRunsLinkFailureReceiptsAndDecodeOnlyExplicitProgress[jvm]"
+  ],
+  "timing": {
+    "queue_seconds": 290.84087174999996,
+    "sync_seconds": 15.986591916000009,
+    "execution_seconds": 160.007740959,
+    "collection_seconds": 38.151645916999996,
+    "publication_seconds": 0.5201437079999778
+  },
+  "gradleSecondsRounded": 159,
+  "archiveSha256": "a6bc6650d19565890879c1dce66544bcbb92856909486f7b39b9242c8920972e",
+  "authoredSourceNow": {
+    "reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleReceiptRunLedger.kt": "7d097703c930f493a25b522c09300a6a315e278c4b268272e09c6d5a5b9d440d",
+    "reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/GradleReceiptRunLedgerTest.kt": "5b6a3fa957aeeec622bcb2a304647d51da8cc4d6689d2516d03ea6d0d689b472"
+  }
+}

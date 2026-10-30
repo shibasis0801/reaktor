@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AppGraphFeatureLayoutTest[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:26:50.806Z" hostname="Shibasiss-MacBook-Pro-2.local" time="12.185">
+  <properties/>
+  <testcase name="a signed out desktop still maps the whole app with the session marked dormant[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.AppGraphFeatureLayoutTest" time="0.025"/>
+  <testcase name="renders the pane at ultrawide size[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.AppGraphFeatureLayoutTest" time="11.795"/>
+  <testcase name="features follow the app's routes and fill a wide screen[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.AppGraphFeatureLayoutTest" time="0.058"/>
+  <testcase name="Hangar's own map fits a wide screen with a frame per pane[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.AppGraphFeatureLayoutTest" time="0.307"/>
+  <system-out><![CDATA[Info: (Reaktor:HttpClient) REQUEST: https://chat.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://social.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://messaging.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://notification.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://config.bestbuds.ai/
+METHOD: GET
+Info: (Reaktor:HttpClient) REQUEST: https://analytics.bestbuds.ai/events
+METHOD: POST
+Info: (Reaktor:HttpClient) REQUEST: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+METHOD: GET
+Info: (Reaktor:HttpClient) RESPONSE: 404 
+METHOD: HEAD
+FROM: https://chat.bestbuds.ai/
+Info: (Reaktor:HttpClient) REQUEST https://analytics.bestbuds.ai/events failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://config.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) RESPONSE: 204 
+METHOD: HEAD
+FROM: https://notification.bestbuds.ai/
+Info: (Reaktor:HttpClient) REQUEST https://social.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://messaging.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) RESPONSE: 401 Unauthorized
+METHOD: GET
+FROM: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+Info: (Reaktor:HttpClient) RESPONSE wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?… failed with exception: io.ktor.client.plugins.websocket.WebSocketException: Handshake exception, expected status code 101 but was 401
+Info: (Reaktor:HttpClient) REQUEST: https://notification.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://messaging.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://social.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://chat.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://config.bestbuds.ai/
+METHOD: GET
+Info: (Reaktor:HttpClient) REQUEST: https://analytics.bestbuds.ai/events
+METHOD: POST
+Info: (Reaktor:HttpClient) REQUEST: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+METHOD: GET
+Info: (Reaktor:HttpClient) RESPONSE: 204 
+METHOD: HEAD
+FROM: https://notification.bestbuds.ai/
+Info: (Reaktor:HttpClient) RESPONSE: 404 
+METHOD: HEAD
+FROM: https://chat.bestbuds.ai/
+Info: (Reaktor:HttpClient) REQUEST https://analytics.bestbuds.ai/events failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://config.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://social.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://messaging.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) RESPONSE: 401 Unauthorized
+METHOD: GET
+FROM: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+Info: (Reaktor:HttpClient) RESPONSE wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?… failed with exception: io.ktor.client.plugins.websocket.WebSocketException: Handshake exception, expected status code 101 but was 401
+Info: (Reaktor:HttpClient) REQUEST: https://notification.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://messaging.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://chat.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://social.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://config.bestbuds.ai/
+METHOD: GET
+Info: (Reaktor:HttpClient) REQUEST: https://analytics.bestbuds.ai/events
+METHOD: POST
+Info: (Reaktor:HttpClient) REQUEST: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+METHOD: GET
+Info: (Reaktor:HttpClient) REQUEST https://analytics.bestbuds.ai/events failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://social.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://messaging.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://chat.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://notification.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://config.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+feature Start: 11 · /age-gate, /, /verified, /verify
+feature Chats: 33 · /buds, /chats/{id}, /chats, /chats/{id}/info, /groups/new, /people/{id}, /invite/{code}
+feature Circles: 24 · /discover, /circles/{id}/choices, /circles/{id}/people, /circles/{id}/welcome, /circles, /lobby, /onboarding/{step}, /circles/{id}/outcome
+feature You: 11 · /you/compass, /you, /you/verify
+feature Plans: 9 · /plans/new, /plans/{id}, /plans
+feature Settings: 6 · /settings/blocked, /settings/developer, /settings
+feature Trials: 5 · /trials/{id}, /trials/sent
+feature Profile: 3 · /profile/edit
+feature Dev: 2 · /dev/gallery
+feature Home: 1 · 
+feature Notifications: 1 · /notifications
+feature Shared services: 23 · 
+feature Shared data: 28 · 
+feature Shared logic: 4 · 
+Info: (Reaktor:HttpClient) RESPONSE: 401 Unauthorized
+METHOD: GET
+FROM: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+Info: (Reaktor:HttpClient) RESPONSE wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?… failed with exception: io.ktor.client.plugins.websocket.WebSocketException: Handshake exception, expected status code 101 but was 401
+feature layout 11914x5597 ratio 2.13 · 14 frames · 194 crossing links · 52 routes
+hangar layout 8690x4773 ratio 1.82 · 18 frames
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="CloudBlueprintTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:41.417Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.012">
+  <properties/>
+  <testcase name="aRepositoryOnlyMapDoesNotCallEveryBindingMissing[jvm]" classname="ai.bestbuds.reaktor.workbench.cloud.CloudBlueprintTest" time="0.009"/>
+  <testcase name="servicesBecomeFramesAndSharedStoresGetTheirOwn[jvm]" classname="ai.bestbuds.reaktor.workbench.cloud.CloudBlueprintTest" time="0.001"/>
+  <testcase name="bindingsAreInputPinsAndLinksRunFromProviderToConsumer[jvm]" classname="ai.bestbuds.reaktor.workbench.cloud.CloudBlueprintTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

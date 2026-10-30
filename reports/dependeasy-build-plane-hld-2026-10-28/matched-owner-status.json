@@ -1,0 +1,30 @@
+{
+  "observedAt": "2026-10-29T04:11:00+05:30",
+  "status": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"type\":\"completed\",\"result\":{\"owner\":\"ec4612de9ae94f2a26678442cb80b251a22e73d04b6567f3b0cbb8507e004aab.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 29 Oct 04:00; this process started 29 Oct 04:01\",\"capabilities\":\"54c6f112297c\",\"operations\":290,\"recipes\":[\"rename\",\"edit\",\"structural\",\"change-type\"],\"presets\":[\"map\",\"investigate\",\"impact\",\"affected-checks\",\"explain\",\"wiring\",\"runtime\",\"routes\"],\"behind\":[],\"sources\":[\"this repository at 3a352e5b 29 Oct 01:17 Auth pane reads at a glance; the access model reads as OpenFGA, Kotlin or JSON, 124 files changed and not committed\",\"../reaktor at 7122b598 29 Oct 03:50 Open a source in place on Surface graphs: an open control, opaque frames, packed layouts, labels clear of cards, 287 files changed and not committed\"],\"models\":[\"build/dependeasy/model.json: 1903 build nodes\",\"compilations export version 2 (this kernel reads 2): 733 compilations, exported 63 minutes ago\"],\"helpers\":[\"the Kotlin helper ../reaktor/reaktor-code/build/distributions/kotlin-semantics.zip, built 23 Oct 07:17, taking up to 2048 modules a session\"],\"indexing\":[\"kotlin-analysis-api/2.5.0-Beta2-59 has indexed 3413 of 3413 Kotlin files\",\"scip-typescript/0.4.0 has indexed 232 of 232 TypeScript files in 21 projects with typescript/6.0.3, typescript/5.9.3\",\"clangd ready with /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clangd for 4 native modules: ../reaktor/reaktor-ffi from its host compile commands, 3 own sources and 506 vendored left out; ../reaktor/reaktor-security from its host compile commands, 2 own sources; ../reaktor/reaktor-flexbuffer from its host compile commands, 6 own sources; ../reaktor/reaktor-performance from its iphonesimulator compile commands, 1 own sources; open now: ../reaktor/reaktor-security, ../reaktor/reaktor-flexbuffer\"],\"unavailable\":[\"retained telemetry: no span of production is retained for the last 60 minutes\",\"runtime: the kernel retains no telemetry span; telemetry.refresh reads spans, and devtools, rgp/1 and a test recorder would add activations\"]}}"
+      }
+    ],
+    "isError": false
+  },
+  "buildList": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"type\":\"completed\",\"result\":{\"total\":1903,\"nodes\":[{\"id\":\"bestbuds:androidArtifacts\",\"kind\":\"ArtifactSet\",\"effect\":\"Build\",\"label\":\"androidArtifacts\",\"declaredAt\":\"build.gradle.kts:117\"},{\"id\":\"bestbuds:androidFirebase\",\"kind\":\"Release\",\"effect\":\"Deploy\",\"label\":\"androidFirebase\",\"declaredAt\":\"build.gradle.kts:159\"}],\"stale\":false,\"changedDeclarations\":[],\"offset\":0,\"nextOffset\":2}}"
+      }
+    ],
+    "isError": false
+  },
+  "qualification": {
+    "content": [
+      {
+        "type": "text",
+        "text": "checks passed · run run-1793225839590-6480 · source 54731c7fa459\n  4 checks · kernel, reaktorCli, reaktor-conductor: passed\nnote: Files changed while the run read them, so its result belongs to no single source snapshot; check_run again checks the files as they are now"
+      }
+    ],
+    "isError": false
+  }
+}

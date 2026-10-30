@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DesktopOverlayTest[jvm]" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:13.969Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.213">
+  <properties/>
+  <testcase name="directionalPathAndEdgeMedianProfileUsesRetainedSampleBounds[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.198"/>
+  <testcase name="sharedConsumerTimingDoesNotChooseAnArbitraryIncomingEdge[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.0"/>
+  <testcase name="connectionCrossesDependencyDirectionsAndDirectedNavigationWithoutPullingInBranches[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.001"/>
+  <testcase name="selectedPathKeepsItsStartAndExcludesBranchesAndDisconnectedNodes[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.0"/>
+  <testcase name="navigationSpansUseExactRouteAttachmentsWithoutInventingScreenPortTraffic[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.0"/>
+  <testcase name="freshActivityDoesNotDependOnTraceOrderOrChooseAnArbitraryFanoutEdge[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.001"/>
+  <testcase name="duplicateLabelsReceiveOnlyTheirOwnInstancesTraffic[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.0"/>
+  <testcase name="localAndDeviceOverlaysRetainCancellationWithoutScoringItAsErrorOrLatency[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.012"/>
+  <testcase name="groupedFanoutCountsSharedProviderOnceAndSeparatedLinksStayUnattributed[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.001"/>
+  <testcase name="unknownInstancesAndAmbiguousLegacyLabelsAreNeverGuessed[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.0"/>
+  <testcase name="edgeMedianPoolsRawDurationsAndDoesNotAssignSharedProviderToAnArbitraryEdge[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest" time="0.0"/>
+  <system-out><![CDATA[GRAPH_PATH_PROFILE nodes=1000 retained_calls=500 edges=999 median_ms=1.3 report=build/reports/graph-path-profile/report.json
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

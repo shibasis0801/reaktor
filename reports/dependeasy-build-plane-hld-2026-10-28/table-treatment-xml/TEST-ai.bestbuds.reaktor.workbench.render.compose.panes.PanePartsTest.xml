@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="PanePartsTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:16.168Z" hostname="Shibasiss-MacBook-Pro-2.local" time="1.25">
+  <properties/>
+  <testcase name="searchHeadersAndTimeCellsKeepTheirMeaningAtThreeWidths[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PanePartsTest" time="1.25"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

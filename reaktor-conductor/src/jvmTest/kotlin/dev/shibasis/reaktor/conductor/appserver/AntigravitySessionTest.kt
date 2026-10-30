@@ -71,17 +71,17 @@ class AntigravitySessionTest {
     }
 
     @Test fun aFullModelStepsDownBeforeAnythingIsShown() =
-        session(Finish.Immediately, full = setOf("gemini-4-argon-high", "gemini-3.8-flash-high")) { root, runtime ->
+        session(Finish.Immediately, full = setOf("gemini-4-argon-high", "gemini-4-argon-medium")) { root, runtime ->
             val events = withTimeout(30_000) { runtime.run(request(root)).toList() }
             val outcome = events.filterIsInstance<AgentEvent.Finished>().single().outcome
             assertTrue(outcome.ok, outcome.failure)
-            assertEquals("gemini-4-argon-medium", outcome.attributes["model"])
+            assertEquals("gemini-4-argon-low", outcome.attributes["model"])
             val switches = events.filterIsInstance<AgentEvent.Activity>().filter { it.item.id.startsWith("antigravity-capacity") }
-            assertEquals(listOf("gemini-4-argon-high is at capacity; trying gemini-3.8-flash-high",
-                "gemini-3.8-flash-high is at capacity; trying gemini-4-argon-medium"), switches.map { it.item.title })
+            assertEquals(listOf("gemini-4-argon-high is at capacity; trying gemini-4-argon-medium",
+                "gemini-4-argon-medium is at capacity; trying gemini-4-argon-low"), switches.map { it.item.title })
             assertEquals(1, events.count { it is AgentEvent.Started })
             assertEquals(1, events.count { it is AgentEvent.TurnStarted })
-            assertEquals(listOf("gemini-4-argon-high", "gemini-3.8-flash-high", "gemini-4-argon-medium"), File(root, "calls.txt").readLines())
+            assertEquals(listOf("gemini-4-argon-high", "gemini-4-argon-medium", "gemini-4-argon-low"), File(root, "calls.txt").readLines())
             assertNoneAlive(root)
         }
 

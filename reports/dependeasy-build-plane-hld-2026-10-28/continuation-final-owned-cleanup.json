@@ -1,0 +1,15 @@
+{
+  "remote": {
+    "removed": "/Users/ovd/dev/offload/.remote-dev/performance-followup-20261028",
+    "stoppedOwnedCompilerPids": [],
+    "exists": false
+  },
+  "temporaryRemoved": [
+    "/Users/ovd/dev/tmp/dependeasy-perf-followup-20261028",
+    "/Users/ovd/dev/tmp/dependeasy-receipt-benchmark",
+    "/Users/ovd/dev/tmp/dependeasy-scan-benchmark",
+    "/Users/ovd/dev/tmp/dependeasy-cold-events.json",
+    "/Users/ovd/dev/tmp/dependeasy-cold-samples.json"
+  ],
+  "sharedWorkerSlotUntouched": true
+}

@@ -1,0 +1,71 @@
+{
+  "router": {
+    "project": "bestbuds",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/bestbuds",
+    "source_head": "3a352e5b339d6bc0366cc9919723c8bfc85b691d",
+    "tasks": [
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      "--continue",
+      "--no-daemon",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      "--continue",
+      "--no-daemon",
+      "--console=plain",
+      ":exportBuildModel"
+    ],
+    "started": "2026-10-29T03:29:32.446494",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-032932-d0e9ce6f-bestbuds.log",
+    "run_id": "20261029-032932-d0e9ce6f-bestbuds",
+    "exit_code": 1,
+    "sync_seconds": 19.139201209000007,
+    "queue_seconds": 111.50362799999999,
+    "owner": {
+      "pid": 97766,
+      "started": "Thu Oct 29 03:27:21 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 0,
+    "publication": "changed-files",
+    "source_epoch": 1793224753.308532,
+    "execution_seconds": 164.30768400000002,
+    "worker_started_epoch": 1793224772.5557034,
+    "dry_run": false,
+    "builds": {
+      "bestbuds": "bestbuds",
+      "dependeasy": "reaktor",
+      "reaktor": "reaktor"
+    },
+    "artifact_family": "verification",
+    "collected": "2026-10-29T03:33:00.245970",
+    "copied_files": 723,
+    "copy_error": null,
+    "collection_seconds": 43.411124625000014,
+    "publication_queue_seconds": 50.75755112500002,
+    "withheld_outputs": {
+      "bestbuds": 465,
+      "reaktor": 4
+    },
+    "finished": "2026-10-29T03:33:52.201123",
+    "publication_seconds": 51.953458624999996
+  },
+  "counts": {
+    "tests": 520,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 11
+  },
+  "failures": [
+    [
+      "TEST-ai.bestbuds.reaktor.kernel.KernelTaskGraphTest.xml",
+      "java.nio.file.FileSystemException: Failed to delete one or more files. See suppressed exceptions for details."
+    ]
+  ],
+  "archiveSha256": "36dc6560d80b7635689795db84f00b91f60d62b7fda0248a93cd686ce6f708d2"
+}

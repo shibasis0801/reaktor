@@ -1,0 +1,9 @@
+allprojects {
+    tasks.withType(Test).configureEach {
+        if (path == ':engine:jvmTest') {
+            jvmArgs '-XX:StartFlightRecording=settings=profile,filename=/Users/ovd/dev/reaktor/reports/dependeasy-build-plane-hld-2026-10-28/table-baseline-profile.jfr,dumponexit=true'
+            reports.junitXml.required = true
+            reports.junitXml.outputLocation = new File('/Users/ovd/dev/reaktor/reports/dependeasy-build-plane-hld-2026-10-28/table-baseline-xml')
+        }
+    }
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="WorkbenchTelemetryInstallationTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:31:38.159Z" hostname="Shibasiss-MacBook-Pro-2.local" time="2.766">
+  <properties/>
+  <testcase name="drivingTheMountedApplicationPutsSpansInThePanesLedger[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest" time="0.305"/>
+  <testcase name="theDesktopGraphProvidesOneTelemetryInstallationToThePanes[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest" time="0.305"/>
+  <testcase name="detachingStopsTracingAndKeepsWhatWasAlreadySeen[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest" time="0.61"/>
+  <testcase name="theSameGraphOperationReachesTheLocalLedgerAndOtlpWithResourceIdentity[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest" time="0.316"/>
+  <testcase name="thePanesRenderTheRunningApplicationsOwnTelemetry[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest" time="0.609"/>
+  <testcase name="rejectedRemoteExportPreservesTheLocalLedgerAndReportsFailures[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest" time="0.311"/>
+  <testcase name="aBlockedCollectorDoesNotBlockTheTracedCallerOrWindowClose[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest" time="0.309"/>
+  <system-out><![CDATA[[telemetry-desktop] 26 spans from the desktop graph -> /Users/ovd/dev/bestbuds/modules/engine/build/reports/telemetry-panes
+]]></system-out>
+  <system-err><![CDATA[Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='applications' type='DesktopApplicationNode' owner='Graph reading (e7b2b225-64be-45b3-ad57-cc8172f50704)' Unconnected
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.follow(GraphPaneNode.kt:378)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.access$follow(GraphPaneNode.kt:65)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$1.invokeSuspend(GraphPaneNode.kt)
+	at _COROUTINE._BOUNDARY._(CoroutineDebugging.kt:42)
+	at kotlinx.coroutines.flow.internal.ChannelFlow$collectToFun$1.invokeSuspend(ChannelFlow.kt:56)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$start$2.invokeSuspend(GraphPaneNode.kt:124)
+Caused by: java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='applications' type='DesktopApplicationNode' owner='Graph reading (e7b2b225-64be-45b3-ad57-cc8172f50704)' Unconnected
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.follow(GraphPaneNode.kt:378)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode.access$follow(GraphPaneNode.kt:65)
+	at ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode$follow$1.invokeSuspend(GraphPaneNode.kt)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+]]></system-err>
+</testsuite>

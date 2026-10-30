@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"type\":\"completed\",\"result\":{\"type\":\"ai.bestbuds.reaktor.kernel.RunStarted\",\"run\":\"run-1793256249691-1\",\"task\":\"bestbuds:serverImage\",\"status\":\"Running\"}}"
+    }
+  ],
+  "isError": false
+}

@@ -1,0 +1,60 @@
+{
+  "scope": "charged_sizes only; no eviction/admission behavior changed; no whole-build speed claim",
+  "roots": [
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-070559-d909058b-bestbuds"
+  ],
+  "identity": [
+    "979ea19c433afd144ec2039d8bc87122f524fe074acb46b74288993e328a8f41",
+    6671
+  ],
+  "chargedBytes": {
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-070559-d909058b-bestbuds": 554864640
+  },
+  "rows": [
+    {
+      "pair": 0,
+      "mode": "serial",
+      "seconds": 0.04225395799999998
+    },
+    {
+      "pair": 0,
+      "mode": "parallel",
+      "seconds": 0.026852832999999965
+    },
+    {
+      "pair": 1,
+      "mode": "parallel",
+      "seconds": 0.028910042000000025
+    },
+    {
+      "pair": 1,
+      "mode": "serial",
+      "seconds": 0.04889674999999999
+    },
+    {
+      "pair": 2,
+      "mode": "serial",
+      "seconds": 0.04521508399999996
+    },
+    {
+      "pair": 2,
+      "mode": "parallel",
+      "seconds": 0.03228712500000003
+    },
+    {
+      "pair": 3,
+      "mode": "parallel",
+      "seconds": 0.03149975000000005
+    },
+    {
+      "pair": 3,
+      "mode": "serial",
+      "seconds": 0.047177334000000015
+    }
+  ],
+  "medians": {
+    "serial": 0.04619620899999999,
+    "parallel": 0.030204896000000037
+  },
+  "changePercent": -34.61607206773169
+}

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="SystemSpansTest[jvm]" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:16.840Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.061">
+  <properties/>
+  <testcase name="twoSameContractServicesInOneHostedShapeEarnNoGraphAttribution[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest" time="0.001"/>
+  <testcase name="retainedIngressAndRawCallsStayInTheSameTraceWhenGraphLinksAreMissing[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest" time="0.0"/>
+  <testcase name="twoHostsReportingTheSameIslandDoNotChooseTheLastHost[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest" time="0.0"/>
+  <testcase name="directionalBoundedReadProfileUsesLargeObservedShapesWithoutInventedLimits[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest" time="0.058"/>
+  <testcase name="canonicalClaimDoesNotCreateAnObservedRuntimeNodeLink[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest" time="0.001"/>
+  <testcase name="rejectedHttpCallsAppearInBothTraceAndGraphTrafficFailures[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest" time="0.0"/>
+  <testcase name="uniqueObservedServiceTrafficAndTraceFilteringRemainBounded[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest" time="0.0"/>
+  <testcase name="reopeningARetainedReadDoesNotMoveItsCallTimestamps[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest" time="0.0"/>
+  <testcase name="phoneAndWorkerSubjectsRequireTheirOwnExactDefinitionDigestAndPort[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest" time="0.001"/>
+  <system-out><![CDATA[ABDE_GRAPH_OVERLAY_PROFILE nodes=1000 spans=500 warmup=20 measured=100 median_ns=325625 samples_ns=303493,306637,325625,456158,629329
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

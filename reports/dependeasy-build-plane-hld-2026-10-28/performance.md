@@ -98,13 +98,17 @@ These are proposed acceptance targets, not measured improvements:
 | Priority | Dimension and current evidence | Next implementation/qualification | Proposed acceptance |
 |---|---|---|---|
 | P0, delivered | Warm configuration and artifact ownership | Default cache and typed JAR collection; analysis format stays compatible | Keep 4–5s cache-reuse Gradle path and byte-exact artifacts; detect declaration changes. |
-| P1 | Cold regression: original controlled 81.92s vs September 50.35s; identical-source gap 29.76s | Reduce settings/build-logic and project configuration; evaluate prebuilt versioned build logic and remaining eager JS-metadata resolution seen in the real distribution build. Preserve private-plugin isolation. | Recover September cold parity on the same frozen target, worker, dependency state and toolchain; three alternating pairs before claiming a gain. |
+| P1 | Cold regression: original controlled 81.92s vs September 50.35s; identical-source gap 29.76s | Reduce settings/build-logic and project configuration; evaluate prebuilt versioned build logic and remaining configuration work in the real distribution build. Preserve private-plugin isolation. | Recover September cold parity on the same frozen target, worker, dependency state and toolchain; three alternating pairs before claiming a gain. |
 | P1 | E2E still around 13s despite 4s Gradle on cache reuse | Measure and reduce sync, verification, supervision and required evidence transfer separately; retain source/provenance checks. | Warm reserved E2E below 10s on this target, then ordinary-admission p50/p95 from real runs. |
 | P1 | 12-minute publication queue on the full suite; 29.8-minute slot queue on the owner distribution | Quantify queue occupancy and foreground publication constraints before changing admission. Keep devices and shared checkouts safe. | No global p95 claim from campaign admission. Establish a week of actual per-run queue and execution data first. |
 | P2 | Shared KT-62686 compiler fallback | Evaluate a separately pinned toolchain candidate on body/ABI edits and Android/web/native outputs; do not bypass correctness checks. | Demonstrate real compiler incremental work plus exact output correctness, not just one changed JAR class. |
 | P2 | Resource/cost coverage incomplete | Record whole process-tree peak RSS, CPU, network and cache/storage growth across representative target families. | Performance gains do not trade for OOMs, unbounded storage, stale models or failed release gates. |
 
 The new graph and receipts provide the identities needed to measure these dimensions. They do not by themselves make compilation, queues or provider calls faster.
+
+### Model-page projection continuation — 29 October
+
+Profiling the real1,907-node/2,216-edge model found that a one-node metadata request serialized every node before taking its page. Pagination now precedes serialization, preserving strict decode, declaration validation and wire output. Existing model/kernel/CLI/boundary qualification passes552tests with11declared skips; the checked model JAR matches the measured bytecode. Four warmups and eight alternating pairs per scope preserve exact JSON and stable fixture/runtime hashes. First-node median44.85→37.11ms (17.3% reduction), middle41.56→36.52ms (12.1%), final40.79→33.42ms (18.1%), empty42.22→35.97ms (14.8%). Edges29.74→32.41ms is a retained9.0% regression. These function measurements exclude declaration filesystem IO, RPC and Gradle/build E2E; JSON decoding remains dominant in JFR. See [scope and raw proof](model-page-proof.json), [baseline profile](model-page-baseline-profile.json) and [qualification](model-page-qualification-proof.json).
 
 ## Compatible continuation — 24 paired commands and real producer qualification
 
@@ -128,3 +132,120 @@ A separate frozen qualification runs the real `:reaktor-code:compileKotlinAnalys
 The corrected complete Dependeasy run also passes129 plugin cases across44 suites and25 model cases across8 suites, without failures/errors/skips. Gradle takes7m15s;392.39s admission and14.71s publication queue are separate. The missing-model assertion was added afterward and qualified in the focused real fixture above. [Complete-suite receipt and XML hashes](continuation-dependeasy-suite.json) and [69 transport checks](continuation-transport-tests.json) describe their exact scope.
 
 The evidence prioritizes two different costs: configuration reuse already cuts the measured warm Gradle path from about15.5s to4s; the additional lazy changes protect unrelated configuration but do not recover September cold parity. Normal planning's repeated wrappers and ordinary admission/publication still require their own end-to-end proof. Reserved13s E2E remains a different timing boundary from an ordinary client call.
+
+## Synchronization round-trip experiment
+
+Source synchronization combines repository preparation/HEAD discovery and streams its manifest with reconciliation. Checksums, Git heads, worker leases, dirty files and deletion semantics are retained. The added real-Git fixture brings the passing transport/build/retention suite to70 cases. This removes three transport calls per Git repository; it does not establish a timing win.
+
+Six alternating warm commands on the same source/slot/private Gradle home all pass with an identical JAR. Median sync is5.924→5.896s and reserved E2E14.047→14.157s. The first baseline command misses configuration reuse and takes18s Gradle; it is retained. Later baseline Gradle times are5s and4s, versus4s in all three after commands. Collection also contains more retained test reports from intervening shared-slot work, so these E2E values must not be pooled with the24-command matrix. There is no material measured sync or E2E improvement here. [Samples](sync-transport-results.json), [summary](sync-transport-summary.json), [source/slot reservation](sync-transport-reservation.json) and [70-case log](sync-transport-tests.log) retain the boundaries.
+
+## Ordinary planner and CLI integration
+
+The planner omits its separate export wrapper only for an unchanged default context. `PlanTask` still depends on the real export producer and checks the model digest before selecting tasks. Explicit properties, changed declarations, modeled environment drift and sensitive environment retain the refresh handshake. Source/model/request/context/executable seals remain enforced. The new default-context fixture and the original affected-build environment rejection fixture both pass.
+
+The21:48 combined qualification, before the final two-file inherited-environment correction, passes1,238 cases with28 declared skips and no failures/errors:17 CLI,245 tooling,475 conductor and501 kernel passes, plus the kernel boundary. Both distributions and both model exports complete. [Exact scope and XML hashes](final-qualification-before-inherited-environment-fix.json) retain the19 tracked source hashes at request/admission/collection. Earlier failed attempts are not recast as successes.
+
+The CLI carrier owns and closes its quiet HTTP client so HTTP request/response logs cannot contaminate JSON, completion or MCP stdio. Canonical catalog/describe identity is preserved inside the existing authority gate. These are functional integration fixes; no per-call latency improvement is inferred from them.
+
+The packaged acceptance first refuses the three stale declaration inputs left in the shared slot after restoring frozen source. This is a valid stale-model rejection. The harness now runs the actual `exportBuildModel` producer for that frozen source before starting its isolated matching owner. That bootstrap is separate from measured plan/run calls and does not weaken the model guard. The accepted archive identity and actual wrapper counts are recorded with the packaged evidence.
+
+
+## Packaged planning — three alternating pairs
+
+The fresh frozen package **`c69182557c93e8f7b902791de413c2f46b28bb09c0c9509c9bf87788263422a6`** passes17 CLI and245 tooling cases, with1 declared tooling skip and no failures/errors. Both test tasks execute; the kernel boundary is up to date and `distZip` executes. Gradle takes40s; the worker command takes40.80s and slot admission83.35s is separate. Sixteen packaged library hashes match the checked producers. The archive is copied under the same lease, then the full29192-file source manifest is verified again. [Package result](qualified-archive-retrieval.json), [XML identities](qualified-package-suite-results.json) and [final qualification proof](final-qualification-proof.json) retain the exact boundary.
+
+The actual launcher, both owner-free CLI help/version paths, matching isolated owner, typed JVM plan, build and receipt queries all pass. First and repeat planning each invoke one Gradle wrapper. Repeat planning takes10.00s; the build call takes29.28s and reaches `Succeeded`. Its167296-byte JVM JAR has SHA-256 `62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269`. The Gradle result and all associated receipts join to the same operation run and request digest. Seventeen actual client calls complete successfully, including warmups and measured trials. The bootstrap export runs before owner startup and outside the timed calls.
+
+Three alternating before/after planning pairs use the same frozen source, worker slot1, JDK25, environment and cache. Only the two `GradleBuildPlanner` class entries differ between the tooling JARs; every other library is identical. Owner startup and two priming calls are excluded. All six measured calls have identical model/context/request digests.
+
+| Measured planning call | Before CLI wall | After CLI wall | Before / after wrappers |
+|---|---:|---:|---:|
+| Pair1 |16.40s|12.36s|2 /1|
+| Pair2, reversed order |15.44s|11.91s|2 /1|
+| Pair3 |15.45s|10.72s|2 /1|
+| **Median** |**15.45s**|**11.91s**|**2 /1**|
+
+The observed median reduction is **22.9%**. Worker load averages range13.90–20.83 and remain in the raw samples; this is a small controlled campaign under recorded contention. It measures CLI wall time and wrapper count, not Gradle-only duration, September migration speed, a queue percentile or a production SLO. [Packaged evidence](packaged-cli/summary.json) and [reservation/variant identities](packaged-cli-reservation.json) retain all samples and controls. The original September cold regression and the no-gain lazy/sync campaigns remain unchanged.
+
+The isolated owners are stopped and the experiment's remote homes and local materialized workspace are removed after retaining evidence. This package acceptance does not replace the concurrently changing installed owner. Caller migration, TUI and the server/device/principal/store/tracing gates stay represented individually in the HLD.
+
+
+Final storage audit: `.remote-dev`32.04GB/40GB, combined temporary work20.15GB/40GB, Mac free22.66GB above the15GB floor. An already-running cleanup owned the maintenance lock; the separate exact budget check passes all three limits. [Owned cleanup](final-owned-cleanup.json) and [budget check](final-storage-budget-check.json) retain the results.
+
+### Measured receipt path
+
+The fixed-input comparison uses the same current model runtime and NIO scanner in one local JDK25 JVM. It freezes the real BestBuds model,439 unique declaration files and719 retained receipt files. For the equal-join control it adds22 explicitly synthetic newest dev receipts to both variants, one per selected real deployment node, retaining existing service identity where available. No deployment occurs. Model and fixture hashes remain unchanged. Rep0 is warmup; four subsequent pairs alternate order.
+
+| Function-call scope | Per-node reader | Batched reader |
+|---|---:|---:|
+| Median,22 nodes |2.7865s|0.1371s|
+| Relative read cost |1.00|0.0492|
+| Joined service receipts |22|22|
+
+The measured reduction is95.08% (20.32× lower median read time). Every control sample has the same joined-evidence SHA256. This excludes CLI/RPC startup, Gradle, source synchronization, admission and native UI rendering; it is not a cold-build or whole-system speedup. The original-history diagnostic is retained separately: the old ten-item page hides one valid dev receipt behind newer receipts, while the environment-first batch returns it. That correctness difference is not mixed into the equal-output timing comparison.
+
+[Raw controlled pairs](receipt-read-controlled.jsonl), [summary](receipt-read-controlled-summary.json), [fixed input/runtime proof](receipt-read-controlled-proof.json), [original history diagnostic](receipt-read-original-history-diagnostic.jsonl), [harness](ReceiptReadBenchmark.java).
+
+The installed BestBuds owner was independently observed built29Oct00:27 with290 operations, including read-only `ship.receipts`. After explicit catalog refresh the installed `reaktor` discovers the same schema. Three actual22-node CLI calls complete successfully in29.85s,6.77s and2.74s, with one retained dev receipt and explicit stale-source disclosure. The first slow call remains in the record; these changing-workspace calls establish working access, not a controlled speedup. [Actual CLI timing and arguments](live-cli-ship-receipts-timing.json), [first result](live-cli-ship-receipts-0.json).
+
+The scanner-only earlier diagnostic uses matching path membership and alternating pairs; its roughly9.5% local improvement is separate from the batched receipt change. The original September cold/warm/edit regression remains unchanged. Full owner/store, caller/TUI, server/Pulumi, physical push and tracing acceptance each retain their own HLD status.
+
+
+## Cold bootstrap profile — 29 October
+
+A frozen cache-disabled JDK21 cold diagnostic on the same reserved worker slot succeeds in90.800s Gradle /103.960s reserved E2E. Campaign admission49.298s is separate. Root evaluation lasts22.545s. The Gradle daemon spends20.059s parked during that interval, including one19.823s latch wait while the included model/plugin build compiles. The profile records model compilation10.519s, plugin9.087s and buildSrc9.773s; these overlap evaluation and must not be added to it. Dependency-resolution time is small; this diagnostic does not identify network downloads as the cold bottleneck.
+
+The observation supports reducing bootstrap compilation and reusing valid configuration. Fifteen root execution samples are too sparse to estimate CPU percentages or identify one hot method. The retained JFR contains only an explicit allowlist of execution/native samples, thread/monitor waits, GC and CPU events; environment, system-property and other event families are removed with `jfr scrub`. The original and retained hashes are recorded. This diagnostic uses the compatible frozen continuation, not the later receipt/UI edits, and is not an extra September pair.
+
+[Diagnostic result](cold-diagnostic-result.json), [reservation](cold-diagnostic-reservation.json), [root waits](cold-root-waits.json), [root samples](cold-root-profile.json), [scrubbed recording and hashes](cold-diagnostic-recording.json), [harness](cold_diagnostic.py).
+
+
+## Bootstrap compiler treatment — completed, not adopted
+
+Eighteen routed commands compare the compatible frozen continuation with two backend compiler threads in Dependeasy's existing bootstrap build scripts. Only `dependeasy/build.gradle.kts` and `dependeasy/buildSrc/build.gradle.kts` differ between variants. Three pairs alternate execution order; each runs cold, warm and the same real one-file edit. Both use worker slot1, JDK21, six workers,8GB Gradle/Kotlin heaps, no daemon, no build-result cache and no configuration cache. Cold resets owned generated build state while preserving downloaded dependencies. The normal router and exact source-manifest verification remain in the path.
+
+| State | Before Gradle | Treatment Gradle | Before reserved E2E | Treatment reserved E2E |
+|---|---:|---:|---:|---:|
+| Cold |91.070s|87.770s|101.047s|97.364s|
+| Warm |16.641s|16.548s|25.229s|25.320s|
+| Real source edit |21.990s|21.380s|31.921s|30.813s|
+
+All18 commands pass, all9 paired archives are byte-identical, and each of6 edits changes only `TimeKt.class`. The observed cold median falls3.62%; edited Gradle median falls2.77%; warm E2E rises0.36%. The treatment's last edit is26.473s Gradle /36.263s E2E and remains included. Worker1-minute load ranges11.56–28.05. These small and inconsistent changes under contention do not establish a reliable material improvement, so the compiler flags are **not adopted**. The existing configuration-cache, planning and receipt-read gains remain the accepted improvements. The September cold regression is not resolved by this experiment.
+
+The campaign acquires its slot in0.118s, separately from each reserved E2E sample. The raw router `queue_seconds` field accumulates campaign bookkeeping under the manually held reservation; it is not a per-command admission delay and is not added to the measured wall time. This campaign must not be pooled with either the September comparison or the cache-enabled continuation.
+
+[All18 results](bootstrap-parallel-results.json), [medians and9archive/6edit assertions](bootstrap-parallel-summary.json), [frozen identities](bootstrap-parallel-snapshots.json), [reservation](bootstrap-parallel-reservation.json), [harness](bootstrap_parallel_experiment.py), [analysis](analyze_bootstrap_parallel.py). Owned experiment homes/materializations are removed after retaining evidence; the shared worker slot is preserved.
+
+
+## Bounded run reads — 29 October
+
+`run.show`, logs and wait polls previously serialized the whole control-plane catalog before selecting a run. The existing read model now projects only runs, and a single-run read selects its ID before serialization. Existing redaction is reused. Retained receipts use the ledger's exact-ID lookup; the Gradle ledger rejects IDs outside its own `gradle-`/`deploy-` namespaces before scanning files. No public operation, state, scheduler or authority rule changes.
+
+A fixed-runtime synthetic microbenchmark on reserved worker slot1 uses2,000 catalog tasks,250 runs and5,000 events. Eight alternating measured pairs per scope follow five warmup pairs; every sample checks identical redacted JSON. Runtime JAR hashes remain unchanged. List projection median falls3.778→0.918ms (75.69%); selected-run projection3.882→0.0179ms (99.54%). This isolates serialization/projection work, excluding ledger access, RPC, UI, Gradle and build E2E. It does not explain or claim elimination of the earlier41–54s live `run.show` timeouts. Worker load19.97 and53.40s admission are disclosed separately.
+
+[Raw samples](run-projection-samples.jsonl), [fixed-runtime proof and all pairs](run-projection-proof.json), [harness](RunProjectionBenchmark.java). The frozen qualification is terminal and green: snapshot `93d47f8e39cbb2bb7d24ccb19de9c9cd942bfd5b41d6bf6b22be73524a319f1c` contains29,253 files and is verified before and after execution. Kernel508 passes/11 skips, CLI17 passes and tooling249 passes/1 skip total **774 passes/12 declared skips**, with no failures/errors; the headless kernel boundary also passes. Gradle takes142s, worker execution142.982s and slot admission73.765s is separate. [Proof and XML archive identity](bounded-runs-proof.json), [raw XML archive](bounded-runs-test-results.zip), [exact source manifest](bounded-runs-manifest.json). This snapshot predates the later palette/typography work and does not qualify desktop, device or release behavior.
+
+
+### Live ledger cost isolated after projection qualification
+
+On the02:31 installed owner, one exact run read returns in0.930s; list observations include a deadline failure and successful15.277s/9.961s calls. These are observations under changing load, not before/after pairs. Java stack capture identifies repeated receipt SHA-256 work in the list path. Frozen real history contains5,952 JSON files/444.296MB. A1,000-node selection uses412 files/36.008MB. The applied reader defers evidence hashing until ID/order/limit selection and hashes shared receipt files once per call. Watchers and correlated result collection retain eager exact evidence.
+
+The fixed-history benchmark is complete: two warmup pairs and four alternating measured pairs for each operation, on reserved secondary worker slot1 with JDK25/2GB heap. All paired complete serialized outputs, including actual evidence hashes, match. The5,952 files/444,295,648 bytes and runtime libraries remain unchanged before/after. Only ledger/evidence bytecode differs.
+
+| Ledger operation | Before median | After median | Reduction |
+| --- | ---: | ---: | ---: |
+| List5 |3.461s|2.712s|21.6%|
+| List1000 |3.184s|2.715s|14.7%|
+| Exact show |3.187s|2.514s|21.1%|
+
+These are ledger-function measurements; they exclude RPC/CLI startup, Gradle, source synchronization and build E2E. Campaign admission is0.068s, separate from113.076s measurement wall time. Worker load ranges around18–19. The remaining2.5–2.7s history parsing cost is measurable and remains a performance target. No whole-system or cold-build gain follows from this result. [Proof](receipt-ledger-proof.json), [all samples](receipt-ledger-samples.jsonl), [harness](ReceiptLedgerBenchmark.java). Focused normal-router tooling/kernel/CLI/boundary qualification passes:776 tests,12 declared skips,0 failures/errors. The three ledger fixtures execute. Gradle159s rounded /worker160.008s;admission290.841s,source sync15.987s,collection38.152s andpublication0.520s are separate. This normal shared-checkout run is not a whole-source frozen qualification; exact XML archive and current authored source hashes are retained in [qualification proof](receipt-ledger-qualification-proof.json). The over-broad shared-checkout impact fallback was canceled before execution.
+
+## Demand-driven intelligence startup — 29 October
+
+A real checkout watch event launched `atlasCompilationsAll --init-script … --no-configuration-cache --continue -q` before an intelligence consumer existed. This adds a full Gradle export to passive source watching. The strengthened existing watcher fixture fails against the old behavior and retains the exact command. Both Kotlin-file watcher callers now nudge an already-started semantic worker; explicit current/rename demand still starts it, and the watcher fixture requires a real export after that demand. No second scheduler or persistent cache is added.
+
+The full kernel attempt passes all three watcher cases but fails one independent taskgraph fixture cleanup (508pass/11skip/1failure,164.308sworker,111.504sadmission). TaskGraphRuntime cancels actors without joining; its lifecycle is being qualified separately. Fresh local Build pane evidence-browsing/reconnect cases pass3/3 and desktop compilation passes:76sroundedGradle/77.08scommandwall. These demonstrate behavior, not a controlled timing speedup, and do not establish the cause of the earlier whole-engine sentinel failure. [Before diagnostic](watch-demand-before-proof.json), [full attempt](watch-demand-full-attempt-proof.json), [local pane proof](build-read-after-watch-proof.json).
+
+### Workspace close: correctness qualification, not a build speed claim
+
+A deterministic blocked-finalizer regression fails on the old `TaskGraphRuntime.close`; the fix joins its watcher and owned graph jobs. Normal-router acceptance passes 1,010 tests/27 declared skips plus the headless boundary: 284s rounded Gradle, 287.527s worker execution, 29.815s admission and 63.137s collection. Publication wait is separate. These are validation-run durations, not paired performance samples. The matching package has the exact checked production class bytes; no end-to-end speed improvement is inferred from its 27s Gradle packaging time.

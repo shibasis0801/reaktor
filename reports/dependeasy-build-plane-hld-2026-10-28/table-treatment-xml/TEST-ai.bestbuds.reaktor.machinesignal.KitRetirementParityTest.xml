@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="KitRetirementParityTest[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:24:42.014Z" hostname="Shibasiss-MacBook-Pro-2.local" time="2.399">
+  <properties/>
+  <testcase name="findingsVerdictsAndPinTipsMatchThePrivateWidgets[jvm]" classname="ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest" time="0.814"/>
+  <testcase name="sectionsPropertiesAndTitlesMatchThePrivateWidgets[jvm]" classname="ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest" time="0.507"/>
+  <testcase name="chromeAndMarksMatchTheRetiredKit[jvm]" classname="ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest" time="0.577"/>
+  <testcase name="controlsMatchTheRetiredKit[jvm]" classname="ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest" time="0.501"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

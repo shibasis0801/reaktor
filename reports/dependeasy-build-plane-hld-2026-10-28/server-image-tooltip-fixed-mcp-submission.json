@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"type\":\"failed\",\"message\":\"Reviewed Gradle node, model or options changed; run build.plan again\",\"code\":\"invalid-arguments\"}"
+    }
+  ],
+  "isError": false
+}

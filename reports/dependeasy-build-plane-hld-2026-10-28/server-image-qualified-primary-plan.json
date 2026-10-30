@@ -1,0 +1,1 @@
+{"type":"failed","message":"Task definition changed after planning; refresh the catalog before planning 'bestbuds:serverImage'","code":"unavailable","reference":{"operation":"build.plan","requestId":"8b96e3d6-0502-4d3e-820a-64dc16275216","workspace":"/Users/ovd/dev/bestbuds"}}

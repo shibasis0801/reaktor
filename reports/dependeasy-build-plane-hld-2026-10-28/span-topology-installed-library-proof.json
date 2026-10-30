@@ -1,0 +1,18 @@
+{
+  "checkedJar": "/Users/ovd/dev/.remote-dev/artifacts/20261029-140538-8fa1b08b-bestbuds/reaktor/reaktor-tooling/build/libs/reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar",
+  "sha256": "df765d5fe048a1e09fa5372d8c1ea4e5ed4ee837d91891777f38eebf75f0e460",
+  "time": "2026-10-29T14:23:37.524823+05:30",
+  "scope": "Only checked binary-compatible tooling adapter; other installed client libraries unchanged",
+  "targets": [
+    {
+      "path": "/Users/ovd/.reaktor/libexec/lib/reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar",
+      "before": "585b4072d3010e5b78e5571e68550eb193dbd521884f85300724b4d3345d1095",
+      "after": "df765d5fe048a1e09fa5372d8c1ea4e5ed4ee837d91891777f38eebf75f0e460"
+    },
+    {
+      "path": "/Users/ovd/.reaktor/dist/conductor/lib/reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar",
+      "before": "585b4072d3010e5b78e5571e68550eb193dbd521884f85300724b4d3345d1095",
+      "after": "df765d5fe048a1e09fa5372d8c1ea4e5ed4ee837d91891777f38eebf75f0e460"
+    }
+  ]
+}

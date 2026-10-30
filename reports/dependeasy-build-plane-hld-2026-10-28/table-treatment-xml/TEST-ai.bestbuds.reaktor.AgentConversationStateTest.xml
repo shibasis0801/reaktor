@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentConversationStateTest[jvm]" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:22:52.466Z" hostname="Shibasiss-MacBook-Pro-2.local" time="11.069">
+  <properties/>
+  <testcase name="selectingTasksRestoresBothEffortsAndTheirDrafts[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="1.232"/>
+  <testcase name="viewPositionsAreKeptOnlyForRecentlyShownViews[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="0.002"/>
+  <testcase name="multiwordSearchReachesBothScopedSourcesWithoutRewritingTheQuery[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="0.76"/>
+  <testcase name="aLiveAntigravityTurnIsQueuedBehindWhileCodexIsSteered[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="1.077"/>
+  <testcase name="modelAndProviderChangesKeepBothSeatsValidAndRejectedEffortsStayEditable[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="0.302"/>
+  <testcase name="theePaneAnswersARequestTheProviderIsBlockedOn[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="0.489"/>
+  <testcase name="dismissingAConnectionErrorSurvivesPollingUntilAnExplicitRefresh[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="2.048"/>
+  <testcase name="paneSubmitsCouncilWithIndependentModelsAndRetainsItsReceipt[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="0.972"/>
+  <testcase name="effortFollowsTheProviderAndNeverReachesOneThatWouldRefuseIt[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="0.293"/>
+  <testcase name="paneAndMcpClientObserveAndCancelTheSameRun[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="0.331"/>
+  <testcase name="earlierTranscriptPagesSurviveARefreshAndANewTurn[jvm]" classname="ai.bestbuds.reaktor.AgentConversationStateTest" time="3.562"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

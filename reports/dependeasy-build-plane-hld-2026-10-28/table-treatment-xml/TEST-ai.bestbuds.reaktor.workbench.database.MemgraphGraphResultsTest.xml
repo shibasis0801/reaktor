@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="MemgraphGraphResultsTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:36.898Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.55">
+  <properties/>
+  <testcase name="selectionTraversesActualReturnedEndpointsAndFocusesOnlyTheirReturnedNeighbors[jvm]" classname="ai.bestbuds.reaktor.workbench.database.MemgraphGraphResultsTest" time="0.293"/>
+  <testcase name="profileBoundedReturnedPageProjectionAcrossCanvasShapes[jvm]" classname="ai.bestbuds.reaktor.workbench.database.MemgraphGraphResultsTest" time="0.255"/>
+  <testcase name="onlySucceededRegisteredRecordResultsBecomeAnInspectableGraph[jvm]" classname="ai.bestbuds.reaktor.workbench.database.MemgraphGraphResultsTest" time="0.0"/>
+  <system-out><![CDATA[100-relationships/1.5-aspect: median=1.7 ms worst=2.4 ms
+100-relationships/3.3-aspect: median=1.8 ms worst=4.2 ms
+500-relationships/1.5-aspect: median=9.1 ms worst=9.3 ms
+500-relationships/3.3-aspect: median=7.6 ms worst=12.5 ms
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

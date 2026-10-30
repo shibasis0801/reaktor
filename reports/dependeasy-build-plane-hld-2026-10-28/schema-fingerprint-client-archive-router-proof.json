@@ -1,0 +1,71 @@
+{
+  "runId": "20261029-130902-db1f643b-bestbuds",
+  "workerSlot": 1,
+  "exitCode": 0,
+  "reservedAdmissionSeconds": 0.00035908400000000257,
+  "endToEndSeconds": 1183.998002,
+  "receipt": {
+    "project": "bestbuds",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds",
+    "source_head": "247c9980fca0e9f82e83074629bc217172de6de7",
+    "tasks": [
+      ":reaktorCli:distZip",
+      ":kernel:agentDist",
+      "--no-daemon",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      ":reaktorCli:distZip",
+      ":kernel:agentDist",
+      "--no-daemon",
+      "--console=plain",
+      ":exportBuildModel"
+    ],
+    "started": "2026-10-29T13:09:02.727037",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-130902-db1f643b-bestbuds.log",
+    "run_id": "20261029-130902-db1f643b-bestbuds",
+    "exit_code": 0,
+    "sync_seconds": 14.700651917000002,
+    "queue_seconds": 9.935585708,
+    "owner": {
+      "pid": 79351,
+      "started": "Thu Oct 29 13:08:38 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 1,
+    "publication": "changed-files",
+    "source_epoch": 1793259528.027437,
+    "execution_seconds": 27.902648957999997,
+    "worker_started_epoch": 1793259542.846833,
+    "dry_run": false,
+    "builds": {
+      "bestbuds": "bestbuds",
+      "dependeasy": "reaktor",
+      "reaktor": "reaktor"
+    },
+    "artifact_family": "all",
+    "collected": "2026-10-29T13:09:37.243760",
+    "copied_files": 52,
+    "copy_error": null,
+    "collection_seconds": 6.544336790999999,
+    "worker_slot_trimmed": 0,
+    "publication_queue_seconds": 1124.341348625,
+    "withheld_outputs": {
+      "bestbuds": 8
+    },
+    "unverified_copies": {
+      "bestbuds": 1
+    },
+    "finished": "2026-10-29T13:28:22.086028",
+    "publication_seconds": 1124.8069523329998
+  },
+  "ownedSourceSha256": {
+    "/Users/ovd/dev/reaktor/reaktor-service/src/commonMain/kotlin/dev/shibasis/reaktor/service/Operation.kt": "7d21d47703adf5e8d7d457e5128ad65fdd192c8e09fd8a28f47c50fe7ff3646e",
+    "/Users/ovd/dev/reaktor/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildModel.kt": "5e17c3182f4f083a592d9fa43aa2c999c7e62f176d39412f4ec4eac569ab8ff6",
+    "/Users/ovd/dev/reaktor/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildModelKernel.kt": "48b383387b35cd5b0b82c913bfb457396bfd9425e8a1874430723dc5d7b70043"
+  },
+  "ownedSourceStillMatches": true,
+  "scope": "Normal slot_build/collection/publication; shared source, no frozen whole-workspace claim."
+}

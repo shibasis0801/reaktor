@@ -1,0 +1,280 @@
+2 of 2 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:cfe602ffa607
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt
+  144:9 function DataTable: @Composable fun <T> DataTable( source: ItemSource<T>, columns: List<TableColumn<T>>, selection: Set<String>, onSelectionChange: (Set<String>) -> Unit, modifier: Modifier = Modifier, mode: SelectionMod · kotlin:dev/shibasis/reaktor/surface/compose/#DataTable(dev.shibasis.reaktor.surface.ItemSource,kotlin.collections.List,kotlin.collections.Set,kotlin.Function1,androidx.compose.ui.Modifier,dev.shibasis.reaktor.surface.SelectionMode,kotlin.Function1,dev.shibasis.reaktor.surface.compose.RowActions,dev.shibasis.reaktor.surface.compose.TableState,kotlin.Boolean,dev.shibasis.reaktor.surface.BehaviorKernel,dev.shibasis.reaktor.surface.compose.ComposeAppearance,dev.shibasis.reaktor.surface.compose.TableGrid,kotlin.Function0)@:reaktor-surface-compose:main:commonMain@reaktor
+../reaktor/reaktor-surface/src/jsMain/kotlin/dev/shibasis/reaktor/surface/react/DataTable.kt
+  10:9 function SurfaceData.DataTable: fun DataTable(props: dynamic): dynamic · kotlin:dev/shibasis/reaktor/surface/react/SurfaceData#DataTable(?)@:reaktor-surface:main:jsMain@reaktor
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt · @Composable fun <T> DataTable( source: ItemSource<T>, columns: List<TableColumn<T>>, selection: Set<String>, onSelectionChange: (Set<String>) -> Unit, modifier: Modifier = Modifier, mode: SelectionMod · 6084 of 6084 characters · rev:5d1da91886d8
+143  @Composable
+144  fun <T> DataTable(
+145      source: ItemSource<T>,
+146      columns: List<TableColumn<T>>,
+147      selection: Set<String>,
+148      onSelectionChange: (Set<String>) -> Unit,
+149      modifier: Modifier = Modifier,
+150      mode: SelectionMode = SelectionMode.Single,
+151      onActivate: (String) -> Unit = {},
+152      actions: RowActions = RowActions.None,
+153      state: TableState = rememberTableState(),
+154      busy: Boolean = false,
+155      behavior: CollectionBehavior = CollectionKernel(),
+156      appearance: RowAppearance = LocalAppearances.current[Appearance.TableRow],
+157      grid: TableGrid? = null,
+158      empty: @Composable () -> Unit = {},
+159  ) {
+160      val header = LocalAppearances.current[Appearance.TableHeader]
+161      val step = with(LocalDensity.current) { ColumnStep.toPx() }
+162      val mirrored = LocalLayoutDirection.current == LayoutDirection.Rtl
+163      val automation = LocalAutomationScope.current
+164      val measured = remember(columns, LocalDensity.current, LocalThemeSnapshot.current) { mutableStateMapOf<String, Float>() }
+165      val cachedWidths = remember(measured, state) { derivedStateOf { measured + state.layout.widths } }
+166      val widths = { cachedWidths.value }
+167      val record: (TableColumn<T>, Float) -> Unit = { column, width ->
+168          val content = column.width as? ColumnWidth.Content
+169          if (content != null && column.key !in state.layout.widths) {
+170              val next = width.coerceIn(content.min.value, content.max.value)
+171              if (next > (measured[column.key] ?: content.min.value)) measured[column.key] = next
+172          }
+173      }
+174      BoxWithConstraints(modifier.busy(busy).onKeyEvent { state.scrollColumns(it, if (mirrored) -step else step) }) {
+175          val tableWidth = maxOf(maxWidth, columns.narrowest(widths()))
+176          val density = LocalDensity.current
+177          val viewport = with(density) { maxWidth.roundToPx() }
+178          val layoutWidth = with(density) { tableWidth.roundToPx() }
+179          val pins = remember(state) { derivedStateOf { state.layout.pins } }
+180          val geometryState = remember(columns, state, measured, density, viewport, layoutWidth) {
+181              derivedStateOf { ColumnGeometry(columnSpans(columns, widths(), layoutWidth, density), columns.map { pins.value[it.key] }, viewport) }
+182          }
+183          val geometry = { geometryState.value }
+184          val gridBinding = grid?.let { cells ->
+185              val gridColumns = remember(columns, cells.columns) { RovingList(columns.filter { it.key in cells.columns }.map { RovingItem(it.key) }) }
+186              val properties = GridProperties(source, gridColumns, LocalSurfaceEnvironment.current.keys, mirrored)
+187              val binding = remember(state) { GridBinding(state, properties) }
+188              binding.onEvent = cells.onEvent
+189              binding.revealColumn = { key ->
+190                  val index = columns.indexOfFirst { it.key == key }
+191                  if (index >= 0) state.horizontal.dispatchRawDelta((geometry().reveal(index, state.horizontal.value, LocalCommand.Reveal(dev.shibasis.reaktor.surface.PartKey(key))) - state.horizontal.value).toFloat())
+192              }
+193              SideEffect {
+194                  binding.properties = properties
+195                  state.cursor = GridKernel.reconcile(properties, state.cursor).state
+196              }
+197              binding
+198          }
+199          if (gridBinding != null) {
+200              val focusedCell = gridBinding.state.cursor.active?.takeIf { gridBinding.host?.focusTarget == it.part.value }
+201              DisposableEffect(geometry(), state.horizontal.maxValue, gridBinding) {
+202                  if (focusedCell != null) {
+203                      gridBinding.host?.execute(LocalCommand.Focus(focusedCell.part))
+204                      gridBinding.revealColumn(focusedCell.column)
+205                  }
+206                  onDispose { }
+207              }
+208          }
+209          val visible by remember(geometryState, state) { derivedStateOf { geometry().visible(state.horizontal.value) } }
+210          var rowsTop by remember { mutableIntStateOf(0) }
+211          Column(Modifier.fillMaxSize().horizontalScroll(state.horizontal)) {
+212              HeaderRow(columns, state, Modifier.width(tableWidth), header, geometry, visible, record)
+213              if (busy) Progress(null, Modifier.width(tableWidth))
+214              val body = Modifier.width(tableWidth).weight(1f).onPlaced { rowsTop = it.positionInParent().y.roundToInt() }
+215              if (source.size == 0) {
+216                  Box(body) { empty() }
+217              } else {
+218                  val row = remember(columns, state, geometryState, visible, gridBinding) {
+219                      val content: @Composable ItemScope.(T) -> Unit = { item ->
+220                          val scope = this
+221                          ColumnBands(geometry, state.horizontal, Modifier) { band ->
+222                              val shown = visible[band]
+223                              val cells = remember(columns, geometryState, index, shown, band) { CellsPolicy(columns, geometry, state.horizontal, band, index, record, shown) }
+224                              Layout(shown.map { column -> @Composable { key(columns[column].key) {
+225                                  if (gridBinding != null && gridBinding.properties.columns.indexOf(columns[column].key) >= 0)
+226                                      GridCellContent(scope, columns[column].key, appearance) { columns[column].cell(scope, item) }
+227                                  else columns[column].cell(scope, item)
+228                              } } }, measurePolicy = cells)
+229                          }
+230                      }
+231                      content
+232                  }
+233                  Collection(source, selection, onSelectionChange, { _, _ -> }, body, mode, onActivate, { _, _ -> }, actions, state.list, behavior, appearance, false, true, row, gridBinding)
+234              }
+235          }
+236          CollectionScrollbar(state.list, Modifier.align(Alignment.TopEnd).padding(top = with(LocalDensity.current) { rowsTop.toDp() }).fillMaxHeight())
+237          if (state.horizontal.maxValue > 0) TableScrollbar(state.horizontal, Modifier.align(Alignment.BottomStart).fillMaxWidth()
+238              .then(if (automation == null) Modifier else Modifier.testId(automationId(automation, "scrollbar/horizontal"))))
+239      }
+240  }
+../reaktor/reaktor-surface/src/jsMain/kotlin/dev/shibasis/reaktor/surface/react/DataTable.kt · fun DataTable(props: dynamic): dynamic · 6601 of 6601 characters · rev:b3b837558b36
+ 9  /** Caller owns row ordering and layout; the common grid kernel owns keyboard focus/ranges/copy. */
+10      fun DataTable(props: dynamic): dynamic {
+11          val environment = useSurfaceEnvironment()
+12          val rightToLeft = props.dir == "rtl" || (props.dir == null && environment.rightToLeft)
+13          val rows = choices(props)
+14          val columns = props.columns as Array<dynamic>
+15          val rowItems = useMemo(rows) { ReactItems(rows) }
+16          val columnItems = useMemo(columns) { ReactItems(columns) }
+17          val properties = GridProperties(rowItems, columnItems, useSurfaceEnvironment().keys, rightToLeft)
+18          val machine = useSurfaceMachine(GridKernel, properties) { event -> when (event) {
+19              is GridEvent.Activate -> if (props.onActivate != null) props.onActivate(event.cell.row, event.cell.column)
+20              is GridEvent.Copy -> if (props.onCopy != null) props.onCopy(event.rows.toTypedArray(), event.columns.toTypedArray())
+21          } }
+22          val layout = props.layout.unsafeCast<TableLayout?>() ?: TableLayout()
+23          val sort = layout.sort ?: (props.sort?.column as String?)?.let { Sort(it, props.sort.descending == true) }
+24          val window = useRowWindow(rows.size, (props.height as Number?)?.toDouble() ?: 0.0, (props.rowHeight as Number?)?.toDouble() ?: 0.0)
+25          machine.reveal = { key ->
+26              val cell = machine.state.active
+27              if (cell != null && cell.part == key) window.reveal(rowItems.indexOf(cell.row))
+28          }
+29          val range = machine.state.range(properties)
+30          fun style(index: Int): dynamic {
+31              val column = columns[index]
+32              val key = column.id as String
+33              val result = attrs("width" to layout.widths[key], "minWidth" to layout.widths[key])
+34              val pin = layout.pins[key]
+35              if (pin != null) {
+36                  result.position = "sticky"; result.zIndex = 1
+37                  val preceding = if (pin == Edge.First) 0 until index else index + 1 until columns.size
+38                  val offset = preceding.filter { layout.pins[columns[it].id as String] == pin }.sumOf { (layout.widths[columns[it].id as String] ?: 160f).toDouble() }
+39                  result[if (pin == Edge.First) "insetInlineStart" else "insetInlineEnd"] = offset
+40              }
+41              return result
+42          }
+43          val attributes = attrs("role" to "grid", "aria-label" to props.label, "aria-rowcount" to rows.size + 1,
+44              "aria-colcount" to columns.size, "className" to "surface-data-table", "dir" to props.dir)
+45          attributes.onKeyDown = { event: dynamic -> keyStroke(event)?.let { stroke -> if (GridKernel.handles(properties, stroke)) {
+46              event.preventDefault(); machine.send(GridInput.Stroke(stroke, (props.pageSize as Int?) ?: 10))
+47          } } }
+48          val table = element("table", attributes,
+49              element("thead", attrs("style" to if (window.enabled) attrs("position" to "sticky", "top" to 0, "zIndex" to 2) else null), element("tr", attrs("role" to "row"), *columns.mapIndexed { index, column ->
+50                  val id = column.id as String
+51                  element("th", attrs("key" to id, "role" to "columnheader", "scope" to "col", "style" to style(index), "aria-sort" to if (sort?.column != id) "none" else if (sort.descending) "descending" else "ascending"),
+52                      if (column.sortable == true) element("button", attrs("type" to "button", "onClick" to { _: dynamic ->
+53                          val next = sort.next(id)
+54                          if (props.onLayoutChange != null) props.onLayoutChange(layout.copy(sort = next))
+55                          if (props.onSort != null) props.onSort(if (next == null) null else attrs("column" to next.column, "descending" to next.descending))
+56                      }), column.label) else column.label,
+57                      if (column.resizable != true || props.onLayoutChange == null) null else element(SurfaceReact.asDynamic().Splitter, attrs(
+58                          "label" to "Resize ${column.label}", "value" to (layout.widths[id] ?: 160f), "min" to 48, "max" to 2000,
+59                          "onChange" to { width: Float, _: Boolean -> props.onLayoutChange(layout.copy(widths = layout.widths + (id to width))) })),
+60                      if (column.pinnable != true || props.onLayoutChange == null) null else element("button", attrs("type" to "button",
+61                          "aria-label" to "Pin ${column.label}", "aria-pressed" to (id in layout.pins), "onClick" to { _: dynamic ->
+62                              props.onLayoutChange(layout.copy(pins = if (id in layout.pins) layout.pins - id else layout.pins + (id to Edge.First))) }), "Pin"))
+63              }.toTypedArray())),
+64              element("tbody", null,
+65                  if (window.enabled) element("tr", attrs("aria-hidden" to true), element("td", attrs("colSpan" to columns.size, "style" to attrs("height" to window.before, "padding" to 0)))) else null,
+66                  *rows.sliceArray(window.first until window.end).mapIndexed { offset, row ->
+67                  val rowIndex = window.first + offset
+68                  element("tr", attrs("key" to row.id, "role" to "row", "aria-rowindex" to rowIndex + 2, "style" to if (window.enabled) attrs("height" to window.rowHeight) else null),
+69                  *columns.mapIndexed { columnIndex, column ->
+70                      val cell = GridCell(row.id as String, column.id as String)
+71                      element("td", attrs("key" to column.id, "role" to "gridcell", "aria-colindex" to columnIndex + 1,
+72                          "style" to style(columnIndex),
+73                          "aria-selected" to (range != null && rowIndex in range.first && columnIndex in range.second),
+74                          "tabIndex" to if (machine.state.active == cell) 0 else -1, "ref" to machine.part(cell.part),
+75                          "onFocus" to { _: dynamic -> machine.send(GridInput.Focused(cell)) },
+76                          "onClick" to { _: dynamic -> machine.send(GridInput.Point(cell)) }),
+77                          if (jsTypeOf(props.renderCell) == "function") props.renderCell(row, column) else row[column.id as String])
+78                  }.toTypedArray()) }.toTypedArray(),
+79                  if (window.enabled) element("tr", attrs("aria-hidden" to true), element("td", attrs("colSpan" to columns.size, "style" to attrs("height" to window.after(rows.size), "padding" to 0)))) else null))
+80          return surfaceAppearance("DataTable", props, if (window.enabled) element("div", attrs("ref" to window.reference,
+81              "onScroll" to window.onScroll, "style" to attrs("height" to window.viewport, "overflow" to "auto")), table) else table)
+82      }
+next: atlas_read {"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt:143:8@91f6f745"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt:143:8@91f6f745"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[0] {"name":"LegacyNetworkTable"}
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/LegacyNetworkTable.kt · @Composable internal fun <T> LegacyNetworkTable( rows: List<T>, columns: List<TableColumn<T>>, key: (T) -> Any, modifier: Modifier = Modifier, selected: T? = null, onSelect: (T) -> Unit = {}, emptyTit · 4287 of 4287 characters · rev:7f3c77877553
+ 52  @Composable
+ 53  internal fun <T> LegacyNetworkTable(
+ 54      rows: List<T>,
+ 55      columns: List<TableColumn<T>>,
+ 56      key: (T) -> Any,
+ 57      modifier: Modifier = Modifier,
+ 58      selected: T? = null,
+ 59      onSelect: (T) -> Unit = {},
+ 60      emptyTitle: String = "Nothing here yet",
+ 61      emptyDetail: String = "",
+ 62      rowHeight: Dp = MachineSignal.Space.s6,
+ 63      rowActions: (T) -> List<PaneAction> = { emptyList() },
+ 64  ) {
+ 65      val titles = columns.map { it.title }
+ 66      var sortColumn by remember(titles) { mutableStateOf<Int?>(null) }
+ 67      var ascending by remember(titles) { mutableStateOf(false) }
+ 68  
+ 69      val ordered = remember(rows, sortColumn, ascending) {
+ 70          val index = sortColumn
+ 71          val sorter = index?.let { columns.getOrNull(it)?.sortKey }
+ 72          if (sorter == null) rows
+ 73          else {
+ 74              @Suppress("UNCHECKED_CAST")
+ 75              val comparator = compareBy<T> { sorter(it) as? Comparable<Any> }
+ 76              if (ascending) rows.sortedWith(comparator) else rows.sortedWith(comparator.reversed())
+ 77          }
+ 78      }
+ 79  
+ 80      Column(modifier.fillMaxSize().background(MachineSignal.Editor.Canvas)) {
+ 81          Row(
+ 82              Modifier.fillMaxWidth().height(MachineSignal.Editor.controlHeight).clipToBounds()
+ 83                  .drawBehind { drawLine(MachineSignal.Editor.Line, Offset(0f, size.height), Offset(size.width, size.height), MachineSignal.Stroke.hairline.toPx()) },
+ 84              verticalAlignment = Alignment.CenterVertically,
+ 85          ) {
+ 86              columns.forEachIndexed { index, column ->
+ 87                  val sortable = column.sortKey != null
+ 88                  Box(
+ 89                      cellModifier(column)
+ 90                          .fillMaxHeight()
+ 91                          .let { base ->
+ 92                              if (!sortable) base else base.clickable {
+ 93                                  if (sortColumn == index) ascending = !ascending
+ 94                                  else {
+ 95                                      sortColumn = index
+ 96                                      ascending = false
+ 97                                  }
+ 98                              }
+ 99                          }
+100                          .padding(horizontal = MachineSignal.Space.s2),
+101                      contentAlignment = if (column.align == TextAlign.End) Alignment.CenterEnd else Alignment.CenterStart,
+102                  ) {
+103                      Text(
+104                          column.title + if (sortColumn == index) (if (ascending) " ▲" else " ▼") else "",
+105                          role = Type.Label.medium,
+106                          ink = if (sortColumn == index) Ink.Accent else Ink.Muted,
+107                      )
+108                  }
+109              }
+110          }
+111  
+112          if (ordered.isEmpty()) {
+113              StateView(ViewState.Empty) {
+114                  Column(verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2), horizontalAlignment = Alignment.CenterHorizontally) {
+115                      Text(emptyTitle, role = Type.Body, ink = Ink.Text)
+116                      Text(emptyDetail, role = Type.Label, ink = Ink.Muted, lines = 4)
+117                  }
+118              }
+119              return@Column
+120          }
+121  
+122          val listState = rememberLazyListState()
+123          Box(Modifier.fillMaxSize()) {
+124          LazyColumn(Modifier.fillMaxSize(), state = listState) {
+125              items(ordered, key = key) { row ->
+126                  TableRow(
+127                      row = row,
+128                      columns = columns,
+129                      isSelected = row == selected,
+130                      index = ordered.indexOf(row),
+131                      rowHeight = rowHeight,
+132                      actions = rowActions(row),
+133                      onClick = { onSelect(row) },
+134                  )
+135              }
+136          }
+137          val shape = RoundedCornerShape(MachineSignal.Space.s0_5)
+138          Box(Modifier.align(Alignment.CenterEnd).fillMaxHeight()
+139              .background(if (listState.canScrollBackward || listState.canScrollForward) MachineSignal.Editor.Line.copy(alpha = .35f) else Color.Transparent, shape)) {
+140              VerticalScrollbar(rememberScrollbarAdapter(listState), Modifier.fillMaxHeight(), style = LocalScrollbarStyle.current.copy(
+141                  thickness = MachineSignal.Space.s1, shape = shape,
+142                  unhoverColor = MachineSignal.Editor.Muted.copy(alpha = .5f), hoverColor = MachineSignal.Editor.Muted,
+143              ))
+144          }
+145          }
+146      }
+147  }
+next: atlas_query {"from":{"id":"d:modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/LegacyNetworkTable.kt:52:17@aad47144"},"follow":[{"rel":"references","dir":"in"}]}

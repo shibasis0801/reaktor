@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="PaneReadStateTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:17.419Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.0">
+  <properties/>
+  <testcase name="manualReadsNeverStartFromVisibility[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PaneReadStateTest" time="0.0"/>
+  <testcase name="refreshRetainsReadAgeButScopeChangeClearsIt[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PaneReadStateTest" time="0.0"/>
+  <testcase name="onOpenReadsOnlyMissingOrStaleData[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PaneReadStateTest" time="0.0"/>
+  <testcase name="clearingAuthorityRemovesReadAgeAndFailure[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PaneReadStateTest" time="0.0"/>
+  <testcase name="failedRefreshPreservesLastSuccessfulReadAndItsReason[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PaneReadStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

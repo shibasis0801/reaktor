@@ -1,0 +1,4 @@
+applied plan p0a7c7b4a53757d78e89c · receipt change-p0a7c7b4a53757d78e89c-1793240485434-8188 · 1 file written
+  ../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt
+checks: reaktor-surface-compose · JVM tests; reaktor-surface-compose · JavaScript tests
+next: check_run {"change":"p0a7c7b4a53757d78e89c"}

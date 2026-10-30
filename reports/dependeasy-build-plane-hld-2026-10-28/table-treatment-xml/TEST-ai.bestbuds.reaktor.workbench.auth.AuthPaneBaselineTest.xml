@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AuthPaneBaselineTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:17.606Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.002">
+  <properties/>
+  <testcase name="timestampsParseInTheShapesPostgresActuallyReturns[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthPaneBaselineTest" time="0.0"/>
+  <testcase name="ageReadsForwardsAndBackwards[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthPaneBaselineTest" time="0.0"/>
+  <testcase name="theReadEdgeAppliesBothTimeAndMaskingAcrossEveryRow[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthPaneBaselineTest" time="0.001"/>
+  <testcase name="identifiersShowInFullAndSecretsShowTheMarker[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthPaneBaselineTest" time="0.0"/>
+  <testcase name="expiryIsACountdownAndSaysSoWhenItHasPassed[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthPaneBaselineTest" time="0.0"/>
+  <testcase name="anUnreadableTimestampSurvivesUnchanged[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthPaneBaselineTest" time="0.0"/>
+  <testcase name="maskingIsIdempotent[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthPaneBaselineTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

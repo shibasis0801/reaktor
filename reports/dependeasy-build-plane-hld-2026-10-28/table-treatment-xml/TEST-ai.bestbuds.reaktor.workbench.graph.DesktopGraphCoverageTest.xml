@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DesktopGraphCoverageTest[jvm]" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:41.456Z" hostname="Shibasiss-MacBook-Pro-2.local" time="3.27">
+  <properties/>
+  <testcase name="noWorkbenchStateHidesInAProcessWideStatic[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.19"/>
+  <testcase name="systemLinksUsesTheOwnedCloudSnapshotAndImmediatelyDropsTheOldEnvironment[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.308"/>
+  <testcase name="twoGraphsCarryTheirOwnEmbeddingRatherThanSharingOne[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.617"/>
+  <testcase name="independentlyOwnedDatabaseSessionsAreNotDeclaredRedundantByMatchingKeys[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.307"/>
+  <testcase name="theKubernetesPaneReadsItsTunnelThroughTheGraph[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.309"/>
+  <testcase name="featureLinksReadTheSelectedApplicationWithoutOpeningGraphAndDropOldSelections[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.311"/>
+  <testcase name="modeTabsDeclareReachableTransitionsAndUseTheirCurrentRouteEdges[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.308"/>
+  <testcase name="hangarMapsItselfWithNamedPortsAndAFramePerPane[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.306"/>
+  <testcase name="everyLongLivedWorkbenchResourceIsOwnedByANode[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.305"/>
+  <testcase name="buildingTheGraphRunsNoOperation[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest" time="0.309"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

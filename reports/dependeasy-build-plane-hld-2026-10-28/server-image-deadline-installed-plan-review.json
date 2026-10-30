@@ -1,0 +1,21 @@
+{
+  "sameAsLastFullPlan": {
+    "node": true,
+    "invocation": true,
+    "tasks": true,
+    "preparationTasks": true,
+    "deployments": true,
+    "serverDeployments": true,
+    "secrets": true,
+    "migrations": true,
+    "infrastructure": true
+  },
+  "tasks": 2105,
+  "preparation": 42,
+  "fingerprint": "a75f526f9462df4033f5476b",
+  "modelDigest": "5075f7019656249d0b08b5fa546224f156e75ae7fad9ca33848cb5c7ebc41e76",
+  "requestDigest": "d8ac4aaf26e3d97b5d1b891c97ba486fdc70f5b7005c24e7a62d5cb0fe35826e",
+  "contextDigest": "1486744a63663fdae8e70a26927f1cf31f6690367bcdc1695370e9bbdea1941c",
+  "argumentsSha256": "2f0a650a07fd2ddf5eeadde92ef9ecffc8f2ea0b557a545289c8fc1c8c912b92",
+  "effects": "LocalArtifactWrite only; no deployment, server rollout, secrets, migrations or infrastructure effects"
+}

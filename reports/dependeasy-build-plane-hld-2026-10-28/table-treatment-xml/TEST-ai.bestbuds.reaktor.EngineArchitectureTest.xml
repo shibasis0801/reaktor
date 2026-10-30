@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="EngineArchitectureTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:23:42.428Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.297">
+  <properties/>
+  <testcase name="desktopPanesDoNotImportTheRetiredKit[jvm]" classname="ai.bestbuds.reaktor.EngineArchitectureTest" time="0.175"/>
+  <testcase name="workbenchGraphIsComposedFromPaneSubgraphs[jvm]" classname="ai.bestbuds.reaktor.EngineArchitectureTest" time="0.073"/>
+  <testcase name="desktopUsesTheHangarIconCatalogue[jvm]" classname="ai.bestbuds.reaktor.EngineArchitectureTest" time="0.045"/>
+  <testcase name="rendererThemesReuseCommonDesignTokens[jvm]" classname="ai.bestbuds.reaktor.EngineArchitectureTest" time="0.0"/>
+  <testcase name="workbenchCommonCodeUsesLayeredPackages[jvm]" classname="ai.bestbuds.reaktor.EngineArchitectureTest" time="0.0"/>
+  <testcase name="workbenchCommonLayerUsesActorsRepositoriesAndTypedApiPorts[jvm]" classname="ai.bestbuds.reaktor.EngineArchitectureTest" time="0.002"/>
+  <testcase name="composeRendererUsesLayeredPackages[jvm]" classname="ai.bestbuds.reaktor.EngineArchitectureTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,182 @@
+{
+  "refresh": {
+    "type": "completed",
+    "result": {
+      "taskId": "graph/spans/read",
+      "environment": "production",
+      "windowMinutes": 1440,
+      "limit": 500
+    }
+  },
+  "spans": {
+    "type": "completed",
+    "result": {
+      "environment": "production",
+      "spans": [
+        {
+          "trace_id": "ab9a3fbc4500c16aa6c23af940531231",
+          "span_id": "e8ba85dfdf0924ef",
+          "parent_id": "ba4bc614311d9ba4",
+          "phase": "SERVER",
+          "island": "reaktor-server",
+          "contract": "reaktor.auth",
+          "operation": "sessionRefresh",
+          "started_ms": 1793197890899,
+          "duration_ms": 426.181,
+          "status": 200,
+          "application_session": "1a1828b0017-5a879220b260c7f8",
+          "environment": "prod",
+          "build": "523f8e098d548e3053ec5ec4fea1b2293205558d27db40e3ec0b46e74fc78f2f",
+          "node": "node:d8e5ea309f969c5296d6d6bd9a045b2335f7005e68b68aa3862619844b095863",
+          "graph_digest": "a16759b9ccb6794d408ac740f51341c9852b9a03d4a781e61b8056188e037cef",
+          "port": "port:b097423ae1df5404913f694da88247ddd2fa8aad7a6b2d273a957b3f61fbbd86",
+          "edge": "",
+          "activation": "a528e123-a44d-4c9f-87a9-d15ffe584e36",
+          "application": "",
+          "installation": "",
+          "platform": "",
+          "access": "",
+          "decisions": {}
+        },
+        {
+          "trace_id": "ab9a3fbc4500c16aa6c23af940531231",
+          "span_id": "ba4bc614311d9ba4",
+          "parent_id": "9c4d363b51547821",
+          "phase": "CLIENT",
+          "island": "bestbuds-client",
+          "contract": "reaktor.auth",
+          "operation": "sessionRefresh",
+          "started_ms": 1793197890531,
+          "duration_ms": 800,
+          "status": 200,
+          "application_session": "1a1828b0017-5a879220b260c7f8",
+          "environment": "prod",
+          "build": "4e09872fe7fc5d2ecb8781fcc116536c245e92b7.dirty",
+          "node": "node:19b0af75624f482fce2d414b59b9a36a49a7d8fbeaebbb7432ee5b18b322da36",
+          "graph_digest": "4d2312b65a24b38b839ff3068b225636b5a86909d0fa7213acac06ce75cfe0ad",
+          "port": "port:407c5abefba12852e6d876b25d1301988b61413c8211e0d4b6b1360fa8dcb261",
+          "edge": "edge:68f93e4b760e217d742f1c0377ce443f6e1ae24df62d6ec80adb695eabc5df36",
+          "activation": "c80145a8-3874-42e0-8071-ffaa9f17e2e7",
+          "application": "bestbuds",
+          "installation": "74a3b49f-60df-4f04-a913-e422bb11ea0a",
+          "platform": "web",
+          "access": "",
+          "decisions": {}
+        },
+        {
+          "trace_id": "ab9a3fbc4500c16aa6c23af940531231",
+          "span_id": "9c4d363b51547821",
+          "parent_id": "",
+          "phase": "CLIENT",
+          "island": "bestbuds-client",
+          "contract": "AuthAdapter",
+          "operation": "AuthAdapter.authentication",
+          "started_ms": 1793197890528,
+          "duration_ms": 1413.4,
+          "status": 200,
+          "application_session": "1a1828b0017-5a879220b260c7f8",
+          "environment": "prod",
+          "build": "4e09872fe7fc5d2ecb8781fcc116536c245e92b7.dirty",
+          "node": "node:19b0af75624f482fce2d414b59b9a36a49a7d8fbeaebbb7432ee5b18b322da36",
+          "graph_digest": "4d2312b65a24b38b839ff3068b225636b5a86909d0fa7213acac06ce75cfe0ad",
+          "port": "port:407c5abefba12852e6d876b25d1301988b61413c8211e0d4b6b1360fa8dcb261",
+          "edge": "edge:68f93e4b760e217d742f1c0377ce443f6e1ae24df62d6ec80adb695eabc5df36",
+          "activation": "c80145a8-3874-42e0-8071-ffaa9f17e2e7",
+          "application": "bestbuds",
+          "installation": "74a3b49f-60df-4f04-a913-e422bb11ea0a",
+          "platform": "web",
+          "access": "",
+          "decisions": {}
+        }
+      ],
+      "truth": "Partial",
+      "reading": false,
+      "error": null,
+      "receipt": "run-1793264144189-1",
+      "readAtMillis": 1793264149724,
+      "source": "clickhouse/bestbuds/service_spans",
+      "windowMinutes": 1440,
+      "sourceLimit": 500,
+      "sourceBounded": false,
+      "queryTruncated": false,
+      "retainedRows": 3,
+      "rejectedRows": 0,
+      "duplicateRows": 0,
+      "missingFields": [
+        "application",
+        "installation",
+        "platform"
+      ],
+      "missingParents": [],
+      "sourceFilter": {
+        "trace": "ab9a3fbc4500c16aa6c23af940531231",
+        "session": null,
+        "build": null,
+        "node": null,
+        "graphDigest": null,
+        "port": null,
+        "activation": null,
+        "application": null,
+        "installation": null,
+        "platform": null
+      },
+      "graphDefinitions": []
+    }
+  },
+  "verification": {
+    "type": "completed",
+    "result": {
+      "expectation": {
+        "environment": "production",
+        "trace": "ab9a3fbc4500c16aa6c23af940531231",
+        "fromMillis": 1793197880531,
+        "toMillis": 1793197950531,
+        "stages": [
+          {
+            "name": "application",
+            "phase": "CLIENT",
+            "operation": "sessionRefresh",
+            "node": "node:19b0af75624f482fce2d414b59b9a36a49a7d8fbeaebbb7432ee5b18b322da36",
+            "graphDigest": "4d2312b65a24b38b839ff3068b225636b5a86909d0fa7213acac06ce75cfe0ad"
+          },
+          {
+            "name": "service",
+            "phase": "SERVER",
+            "operation": "sessionRefresh",
+            "node": "node:d8e5ea309f969c5296d6d6bd9a045b2335f7005e68b68aa3862619844b095863",
+            "graphDigest": "a16759b9ccb6794d408ac740f51341c9852b9a03d4a781e61b8056188e037cef"
+          }
+        ],
+        "application": "bestbuds",
+        "installation": "74a3b49f-60df-4f04-a913-e422bb11ea0a",
+        "session": "1a1828b0017-5a879220b260c7f8",
+        "build": "4e09872fe7fc5d2ecb8781fcc116536c245e92b7.dirty"
+      },
+      "truth": "Imported",
+      "stages": [
+        {
+          "name": "application",
+          "truth": "Imported",
+          "spanIds": [
+            "ba4bc614311d9ba4"
+          ],
+          "detail": "Observed in the backend receipt and available to Hangar"
+        },
+        {
+          "name": "service",
+          "truth": "Imported",
+          "spanIds": [
+            "e8ba85dfdf0924ef"
+          ],
+          "detail": "Observed in the backend receipt and available to Hangar"
+        }
+      ],
+      "receipt": "run-1793264144189-1",
+      "missingParents": [],
+      "coverage": "Qualified only for the required stages in this trace and receipt. Producer acknowledgement and Crashlytics delivery need independent evidence. Missing stages never imply zero failures.",
+      "producerAcknowledgement": "Unknown",
+      "crashDelivery": "Unknown"
+    }
+  },
+  "scope": "Fresh backend read of an existing production BestBuds web trace. Exact client application/install/session/build and graph identities, server node and direct parent linkage qualified. Not a new deployment, device push, producer acknowledgement, crash delivery or visual pane assertion."
+}

@@ -1,0 +1,17 @@
+{
+  "xml": [
+    {
+      "name": "CollectionFrameTest[jvm]",
+      "tests": "3",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-29T02:09:12.106Z",
+      "hostname": "Shibasiss-MacBook-Pro-2.local",
+      "time": "20.217"
+    }
+  ],
+  "timing": "see table-baseline-profile.log, normal routed local run",
+  "assertions": "unchanged",
+  "profile": "table-baseline-profile.jfr"
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentConfigsPaneTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:25:37.834Z" hostname="Shibasiss-MacBook-Pro-2.local" time="12.001">
+  <properties/>
+  <testcase name="bothAgentsCanBeEditedAndSavedFromHangarWithDraftRetentionAndConflictChecks[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConfigsPaneTest" time="12.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

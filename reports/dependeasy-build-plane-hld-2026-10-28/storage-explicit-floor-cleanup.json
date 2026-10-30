@@ -1,0 +1,90 @@
+{
+  "started_epoch": 1793255289.1479192,
+  "dry_run": false,
+  "free_bytes_before": 12019105792,
+  "minimum_free_bytes": 15000000000,
+  "tmp_workspace_roots": [
+    "/Users/ovd/dev/tmp",
+    "/Users/ovd/dev/reaktor/tmp",
+    "/Users/ovd/dev/reaktor/.tmp",
+    "/Users/ovd/dev/manna/tmp",
+    "/Users/ovd/dev/bestbuds/tmp",
+    "/Users/ovd/dev/bestbuds/.tmp",
+    "/Users/ovd/.codex/tmp",
+    "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/worktrees/9c71ad7c6640cc0ea7021f6ef3fbb4051806a8d44d510b89b72693a4afa195ec/bestbuds",
+    "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/worktrees/9c71ad7c6640cc0ea7021f6ef3fbb4051806a8d44d510b89b72693a4afa195ec/reaktor"
+  ],
+  "tmp_system_roots": [
+    "/private/tmp",
+    "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T"
+  ],
+  "tmp": {
+    "limit_bytes": 40000000000,
+    "bytes_before": 17601160192,
+    "bytes_after": 17601131520,
+    "removed": [
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpduWkih",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmps3gNcE",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp75Mc1a",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpV4fr5j",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmphWMvQy",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp3D4Trb",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpNuBCv5",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpmFMIJK",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpggI9xB",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpGJmAgk",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp09AMNP",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpnTWfSh",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/manna-calendar-api.log",
+        "charged_bytes": 16384
+      }
+    ],
+    "disk_bound_bytes": 14620265984,
+    "within_limit": true
+  },
+  "remote": {
+    "skipped": "active build or graph",
+    "limit_bytes": 40000000000,
+    "bytes_after": 31334211584,
+    "within_limit": true
+  },
+  "free_bytes_after": 11821883392,
+  "finished_epoch": 1793255311.0838459
+}

@@ -1,0 +1,128 @@
+{
+  "run": "run-1793237230198-7575",
+  "router": "20261029-065803-9adc77e9-bestbuds",
+  "status": "Failed: Node cannot parse browser constructor; six other checks pass",
+  "checks": {
+    "kernel": {
+      "tests": 524,
+      "failures": 0,
+      "errors": 0,
+      "skips": 11,
+      "freshSuites": 115,
+      "firstTimestamp": "2026-10-29T01:28:44.153Z",
+      "lastTimestamp": "2026-10-29T01:31:38.450Z"
+    },
+    "conductor": {
+      "tests": 500,
+      "failures": 0,
+      "errors": 0,
+      "skips": 16,
+      "freshSuites": 90,
+      "firstTimestamp": "2026-10-29T01:28:39.646Z",
+      "lastTimestamp": "2026-10-29T01:32:45.338Z"
+    },
+    "mcpJvm": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "freshSuites": 3,
+      "firstTimestamp": "2026-10-29T01:28:33.921Z",
+      "lastTimestamp": "2026-10-29T01:28:34.040Z"
+    },
+    "mcpJs": {
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "freshSuites": 4,
+      "firstTimestamp": "2026-10-29T01:28:45.467Z",
+      "lastTimestamp": "2026-10-29T01:28:45.469Z"
+    },
+    "tooling": {
+      "tests": 251,
+      "failures": 0,
+      "errors": 0,
+      "skips": 1,
+      "freshSuites": 57,
+      "firstTimestamp": "2026-10-29T01:28:35.867Z",
+      "lastTimestamp": "2026-10-29T01:28:51.742Z"
+    }
+  },
+  "archive": {
+    "path": "mcp-plan-size-first-results.zip",
+    "sha256": "cc0cb85745a029f9f954faf0658093416c0d948439e16a190fd3a7a87aa9ecc1"
+  },
+  "transportSourceHashes": {
+    "/Users/ovd/dev/bestbuds/modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/AgentWorkspaceCli.kt": "6ded207062a7ffc270462691ac422557ea30e50eece813f4c8ad10169306d9f7",
+    "/Users/ovd/dev/bestbuds/modules/kernel/src/test/kotlin/dev/shibasis/reaktor/conductor/cli/StdioBridgeTest.kt": "9ba447d62a3b34e219d828e9bcbbfd930cf0d5ad0478020f54d2e60fdb957c2a",
+    "/Users/ovd/dev/reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt": "54383027f0c8199ecfd50fc26c484a31208af124a7c75f45c51c5510ac7f90f5",
+    "/Users/ovd/dev/reaktor/reaktor-mcp/src/commonMain/kotlin/dev/shibasis/reaktor/mcp/McpProtocol.kt": "dc1fe3633924a777dcc499a6c639598a82e63d8d821432d2ca423d9a1f26304c",
+    "/Users/ovd/dev/reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.kt": "ffdc970da00db98fe345f543f98d55e4d43cf63dbc8321c150e5dcd230960bf8"
+  },
+  "timing": {
+    "project": "bestbuds",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/bestbuds",
+    "source_head": "3a352e5b339d6bc0366cc9919723c8bfc85b691d",
+    "tasks": [
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      ":reaktor:reaktor-conductor:jvmTest",
+      ":reaktor:reaktor-mcp:completeTypeScriptChecks",
+      ":reaktor:reaktor-mcp:jsNodeTest",
+      ":reaktor:reaktor-mcp:jvmTest",
+      ":reaktor:reaktor-tooling:jvmTest",
+      "--continue",
+      "--no-daemon",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      ":reaktor:reaktor-conductor:jvmTest",
+      ":reaktor:reaktor-mcp:completeTypeScriptChecks",
+      ":reaktor:reaktor-mcp:jsNodeTest",
+      ":reaktor:reaktor-mcp:jvmTest",
+      ":reaktor:reaktor-tooling:jvmTest",
+      "--continue",
+      "--no-daemon",
+      "--console=plain",
+      ":exportBuildModel"
+    ],
+    "started": "2026-10-29T06:58:03.851779",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-065803-9adc77e9-bestbuds.log",
+    "run_id": "20261029-065803-9adc77e9-bestbuds",
+    "exit_code": 1,
+    "sync_seconds": 15.109232708000004,
+    "queue_seconds": 31.359136874999997,
+    "owner": {
+      "pid": 24770,
+      "started": "Thu Oct 29 06:57:17 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 0,
+    "publication": "changed-files",
+    "source_epoch": 1793237268.743364,
+    "execution_seconds": 286.37532275,
+    "worker_started_epoch": 1793237283.945742,
+    "dry_run": false,
+    "builds": {
+      "bestbuds": "bestbuds",
+      "dependeasy": "reaktor",
+      "reaktor": "reaktor"
+    },
+    "artifact_family": "verification",
+    "collected": "2026-10-29T07:03:28.328974",
+    "copied_files": 673,
+    "copy_error": null,
+    "collection_seconds": 38.030488666,
+    "publication_queue_seconds": 0.0006466250000016771,
+    "unverified_copies": {
+      "bestbuds": 67
+    },
+    "finished": "2026-10-29T07:03:28.967986",
+    "publication_seconds": 0.6375931250000235
+  }
+}

@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.auth.runtime.ports
 
+import dev.shibasis.reaktor.auth.Session
+import dev.shibasis.reaktor.auth.api.DeviceCredentialRequest
+import dev.shibasis.reaktor.auth.api.DeviceCredentialResponse
 import dev.shibasis.reaktor.auth.App
 import dev.shibasis.reaktor.auth.AuthAuditEventType
 import dev.shibasis.reaktor.auth.AuthAuditOutcome
@@ -75,7 +78,12 @@ interface AuthPersonalTokens {
     suspend fun revokePersonalAccessToken(tokenId: String): Boolean
 }
 
+interface AuthDevices {
+    suspend fun issue(request: DeviceCredentialRequest): DeviceCredentialResponse
+}
+
 interface AuthSessionLifecycle {
+    fun activeSession(sessionId: String, environment: Environment = Environment.PROD): Session?
     // `environment` selects the tier's database — sessions live alongside their principal.
     fun createSession(
         principalId: String,

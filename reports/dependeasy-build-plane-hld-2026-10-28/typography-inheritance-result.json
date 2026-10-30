@@ -1,0 +1,1041 @@
+{
+  "observedAt": "2026-10-29T03:04:24.413973",
+  "counts": {
+    "reaktor-ui": {
+      "tests": 135,
+      "failures": 11,
+      "errors": 0,
+      "skipped": 0
+    },
+    "engine": {
+      "tests": 647,
+      "failures": 18,
+      "errors": 0,
+      "skipped": 1
+    }
+  },
+  "suites": {
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.code.CodeCompletionTest.xml": {
+      "sha256": "320f4fdf0eb1b446f16cf23743c273dd07237377cc0b777d337f4e52c1471283",
+      "mtime": 1793222490.8339546
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.code.CodeDocumentTest.xml": {
+      "sha256": "343d01377b16291a9c2ed49aeda997aafabeb26087d3f0fc54567456e0d70ad0",
+      "mtime": 1793222490.8341365
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.code.CodeEditorRenderTest.xml": {
+      "sha256": "937107fc4625fdd01c08d6b0945487b621f2401ca8550707d0df2889b1776108",
+      "mtime": 1793222490.83432
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.code.CodeEditorStateTest.xml": {
+      "sha256": "c0dfeaf674341596c37a2dffc75b8ac7f5723d45625df158f8c756ac2c80bee5",
+      "mtime": 1793222490.8346212
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.code.CodeIntelligenceWiringTest.xml": {
+      "sha256": "b388185ad38c9dfea3a521d19aa4edce7a5abfdc474cad081f45d27a94caaa6d",
+      "mtime": 1793222490.8345163
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.code.CodeSyntaxTest.xml": {
+      "sha256": "90397845ae42e92e2762002fa8d8de62cdf8e9cf5ef6fe688463c5c6cc47e4e4",
+      "mtime": 1793222490.8347256
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.code.CodeViewTest.xml": {
+      "sha256": "48ff0cc6b76ab3a579b9eaa3a40b383b900d8d6ee8d6ad58c02c2c05d7f35285",
+      "mtime": 1793222490.8347757
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.core.adaptive.AuthoredLayoutTest.xml": {
+      "sha256": "b42be0b036b07230e1a8bbb4dfbf54ef679ea316e6b3bb65f37eb099f1a2512c",
+      "mtime": 1793222490.8348649
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.MachineSignalAppearancesTest.xml": {
+      "sha256": "196414fe64e6cc4bf3c6b14267d4372d9e2b419b2923937a44051b9ec8ac026e",
+      "mtime": 1793222490.8354986
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.MachineSignalLookParityTest.xml": {
+      "sha256": "1ebea3c36b0c3baebe2a662364c634e068d150ebf82252859aab9a2cdee01536",
+      "mtime": 1793222490.8341484
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.MachineSignalModeTest.xml": {
+      "sha256": "07cfbcfce28a2fba1ec31b5a61892af4a020e31db7795d671a768af124ed6bcd",
+      "mtime": 1793222490.8349984
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.MachineSignalThemeTest.xml": {
+      "sha256": "986ebf1f44e8206eb2f66e07d6132490b35ff35c6782b2a8293be3e54e712457",
+      "mtime": 1793222490.8351188
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.MatrixAppearanceTest.xml": {
+      "sha256": "d15ab895592b541130b5dfe8c3964098ee66c6c23b64d33449ff575b188d8b76",
+      "mtime": 1793222490.8352442
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.MatrixAtomIsolationTest.xml": {
+      "sha256": "2aec665bd3cba109c3e40262c92456991b593435c00bf38aa187ce18e4a4e5f3",
+      "mtime": 1793222490.8353612
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.MatrixInteractionTest.xml": {
+      "sha256": "4de35b8f3aa3a65a5a2c481eb411b696d77ec3779a3664215d945cac9c9651a7",
+      "mtime": 1793222490.8354635
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.MatrixLoadingTest.xml": {
+      "sha256": "d522d6a26eca35d614cdfa4b497c408ccd0cdb5dafa8bce29c3cba6c0d6a5585",
+      "mtime": 1793222490.835589
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.MatrixWorkspaceTest.xml": {
+      "sha256": "bfe58542549d4995bf4b434a03ab4d34189394fa37f948ab5da9df7e285ff305",
+      "mtime": 1793222490.8356164
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.RetiredAtomParityTest.xml": {
+      "sha256": "879775efb2b5b43695e03da286e98e8df690934f47907dc5b5372fb113df2c8c",
+      "mtime": 1793222490.8112898
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.SignalGlyphTest.xml": {
+      "sha256": "f289ae00a9d0e5d0eaea1343a41f486ce816c76ed3586498791d79169d72c95a",
+      "mtime": 1793222490.8336132
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.SignalMarkdownTest.xml": {
+      "sha256": "1bf7049dfdb8764a8f3818b62bb5a4e4c51b0209d5bd5b6be220ccaafbdefb2e",
+      "mtime": 1793222490.8357048
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.SignalTypographyTest.xml": {
+      "sha256": "57de86738a1cb8350f6e61fcdcfb0439c613c7dfca806da4b2ffea1bf679c675",
+      "mtime": 1793222490.8340955
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.WrapperCostTest.xml": {
+      "sha256": "427a1cce17d007bcf40c5f1462e71e5276f945f3401d37877d226e4a73843cb6",
+      "mtime": 1793222490.835723
+    },
+    "reaktor-ui/TEST-dev.shibasis.reaktor.ui.machinesignal.WrapperParityTest.xml": {
+      "sha256": "279f1e7ce19f98e8dd5bcb7d5b5453f02ac9d34cf29b80e4eee15746a22aa29e",
+      "mtime": 1793222490.834193
+    },
+    "engine/TEST-ai.bestbuds.reaktor.AgentBenchPaneTest.xml": {
+      "sha256": "45eb277e1aa9670301391757ae80da641b63eee4f402b04aa3da7627e5e27d16",
+      "mtime": 1793221030.1915228
+    },
+    "engine/TEST-ai.bestbuds.reaktor.AgentContextAndDraftTest.xml": {
+      "sha256": "666fd95235db21af28bc5a34300661ad4790561ef5899c79adbb25a0e3c945da",
+      "mtime": 1793221030.1915562
+    },
+    "engine/TEST-ai.bestbuds.reaktor.AgentConversationStateTest.xml": {
+      "sha256": "20ad89464fdd32542b0e69457b676e05616a5fd34ef00cc28f0a63226c2e13e1",
+      "mtime": 1793221030.1915781
+    },
+    "engine/TEST-ai.bestbuds.reaktor.AgentExecutionTraceTest.xml": {
+      "sha256": "730b6e1fd31e84264820ee8182889ec7cb78f6eb449f0f3e12a567fb27778c5d",
+      "mtime": 1793221030.191521
+    },
+    "engine/TEST-ai.bestbuds.reaktor.AgentScorecardTest.xml": {
+      "sha256": "28a65df8241c0f18cbc7528e22f0073cae4c01ffbbaa155ef037e88d1055b00e",
+      "mtime": 1793221030.1915307
+    },
+    "engine/TEST-ai.bestbuds.reaktor.AgentWorkspaceInteractionTest.xml": {
+      "sha256": "209c4f3c936fc17300e92974dcd2d39bf0b06377b0d30bb557af98d7740b3b2f",
+      "mtime": 1793221030.1916347
+    },
+    "engine/TEST-ai.bestbuds.reaktor.CollectionFrameTest.xml": {
+      "sha256": "fe1f276a1c00929f8b7fedee6fd97f3f24332ce5f7e887d4026987c068c1dde6",
+      "mtime": 1793221030.1919863
+    },
+    "engine/TEST-ai.bestbuds.reaktor.ControllerCountTest.xml": {
+      "sha256": "f70a60eaa796b24b28ceffaddd2e9c73789bd93810bfeda717f7dd5749ffdfdf",
+      "mtime": 1793221030.192378
+    },
+    "engine/TEST-ai.bestbuds.reaktor.DatabaseResultExportTest.xml": {
+      "sha256": "6d369b1b6012b1773f2a947db0297f0e09205b1fbcb82c7c24dcfb674d4cdc33",
+      "mtime": 1793221030.191794
+    },
+    "engine/TEST-ai.bestbuds.reaktor.DesktopOperatorLoginTest.xml": {
+      "sha256": "43a5cac78ae96911a2f5eea9873101082e3f23d363988cc8a87375743eaf7150",
+      "mtime": 1793221030.192041
+    },
+    "engine/TEST-ai.bestbuds.reaktor.EngineArchitectureTest.xml": {
+      "sha256": "372d023c2b4405c390437fea04ffe2646abaef60ade546729f87aa8a8460fa94",
+      "mtime": 1793221030.1918302
+    },
+    "engine/TEST-ai.bestbuds.reaktor.GraphDocumentIntegrationTest.xml": {
+      "sha256": "c0f55be28773e19604856cf4cd5e8a6b977dc9c8a7aef938a1f68bf5c1cc178a",
+      "mtime": 1793221030.1931124
+    },
+    "engine/TEST-ai.bestbuds.reaktor.GraphShapeIntegrationTest.xml": {
+      "sha256": "139b67e7e2ad7d930b4cf7a450ddbcb08675615164884a6c5f7f75569c5fba56",
+      "mtime": 1793221030.1921833
+    },
+    "engine/TEST-ai.bestbuds.reaktor.GraphWiringHealthTest.xml": {
+      "sha256": "72426a692db743606d4a449fa5ecb623201697ecd32c36c7da1299d726e18766",
+      "mtime": 1793221030.1920912
+    },
+    "engine/TEST-ai.bestbuds.reaktor.MachineSignalTokenParityTest.xml": {
+      "sha256": "0a90d28bfb4a9b465144e31590e123b2d464f3222585ef6af12d39429696362a",
+      "mtime": 1793221030.1921282
+    },
+    "engine/TEST-ai.bestbuds.reaktor.ReaktorDesktopPerformanceTest.xml": {
+      "sha256": "01171213682f4ed745c1b3431200e5cf62fc395a886195aa389f24d64fd1f162",
+      "mtime": 1793221030.201819
+    },
+    "engine/TEST-ai.bestbuds.reaktor.SafeDeleteGuardTest.xml": {
+      "sha256": "a963d43cdcbafbd299555fa8efe1cb6f1d44ddc695c3e82acd5acb91bc5deaae",
+      "mtime": 1793221030.1922421
+    },
+    "engine/TEST-ai.bestbuds.reaktor.SurfaceDuplicateKeysRenderTest.xml": {
+      "sha256": "488c21b88bda29dd9429b15cdb56c3ae11c2943768f204705d9703c99286ad0a",
+      "mtime": 1793221030.1922765
+    },
+    "engine/TEST-ai.bestbuds.reaktor.SurfaceQualificationTest.xml": {
+      "sha256": "24f21bce5bf641c175f26e5a67bbe9efdb5d37201c2d98c1b49873caed74a201",
+      "mtime": 1793221030.1945407
+    },
+    "engine/TEST-ai.bestbuds.reaktor.SurfaceRetirementTest.xml": {
+      "sha256": "94e40515e6bdaede35f9c2e448cfdfddec5474bba8af017cef8fd700b0e407fe",
+      "mtime": 1793221030.1930118
+    },
+    "engine/TEST-ai.bestbuds.reaktor.SurfaceSourcePerformanceTest.xml": {
+      "sha256": "67052a5b9cba13117b65ad5e7e00b192e154453752a2b530220463bc4497ec8e",
+      "mtime": 1793221030.1924386
+    },
+    "engine/TEST-ai.bestbuds.reaktor.SystemIslandsTest.xml": {
+      "sha256": "a58af3c820c535867989640ba5a6f5f558c4aa1c986b59fc58b3e211b53468e4",
+      "mtime": 1793221030.1925786
+    },
+    "engine/TEST-ai.bestbuds.reaktor.TableLookParityTest.xml": {
+      "sha256": "c1ccc99d1ae66330d0d2343e7c843a494d072b075b73c975652c42e0d4bca119",
+      "mtime": 1793221030.1932166
+    },
+    "engine/TEST-ai.bestbuds.reaktor.WorkbenchCrashLogTest.xml": {
+      "sha256": "c8ce59ece81f5e4714c918c633d62d839067aeb729a491f42d11794c9327ae53",
+      "mtime": 1793221030.1928213
+    },
+    "engine/TEST-ai.bestbuds.reaktor.WorkbenchFeatureTest.xml": {
+      "sha256": "6d60f11ea51d69d8b517ce9b1eb6df014a256cb25a50aaaf189e49ac7a963407",
+      "mtime": 1793221030.193161
+    },
+    "engine/TEST-ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest.xml": {
+      "sha256": "face26b1e0121c743bfe4de17da84160984fd08f3392fc105983c69d22d43f4b",
+      "mtime": 1793221030.1941962
+    },
+    "engine/TEST-ai.bestbuds.reaktor.WorkbenchTruthInvariantsTest.xml": {
+      "sha256": "88281035f3be2469eb1556ace2db8ed5bff08a473c2ca8e2d670903811d7efd2",
+      "mtime": 1793221030.1934872
+    },
+    "engine/TEST-ai.bestbuds.reaktor.WorkspaceContextLabelTest.xml": {
+      "sha256": "0174dca7a4bf7d5a8764f58ab959e8cbe43a5145bfc65de3676ce39ea4b08689",
+      "mtime": 1793221030.1934268
+    },
+    "engine/TEST-ai.bestbuds.reaktor.design.HumanTypographyTest.xml": {
+      "sha256": "64ff285250b4f47a2465f9b04aef8a3742ace73c6c6d8ec9cac4a40777e0a29b",
+      "mtime": 1793221030.1991577
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.AgentConversationRenderTest.xml": {
+      "sha256": "a912cc83656bd36f207cb608f4c7ae30bcd46504095dd4e6fda819fa6f37dd52",
+      "mtime": 1793221030.1936722
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest.xml": {
+      "sha256": "412497ff4ff9565187f7ee053771f44ff860e477f00ca78302e674ed107f24cc",
+      "mtime": 1793221030.193914
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.DataProviderViewsRenderTest.xml": {
+      "sha256": "a01f165bdcc4f8e1f1a4819c0685875faa519f30d475b3cf06ec204a5e86c548",
+      "mtime": 1793221030.1939027
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.DatabaseStudioPaneRenderTest.xml": {
+      "sha256": "543790843a1921c50de46f3db443a5d1c6518329f6f012af1ab1c01211a9f702",
+      "mtime": 1793221030.1940765
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.DisplayParityTest.xml": {
+      "sha256": "7788fbbea10f424cac7063ad7d03bbe19e688872d823dda2fcca1e0942609f42",
+      "mtime": 1793221030.1940935
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.DocumentTabParityTest.xml": {
+      "sha256": "ca88d784c459d578f86d5a079700000a77bc8d66cf2f603a8c1eb60c8c9ef7f4",
+      "mtime": 1793221030.1942263
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.HangarFontStackTest.xml": {
+      "sha256": "e8c02e4c1368c0cf74cf4f29e98c2c45f8927bc191cbac8162819061f8583d61",
+      "mtime": 1793221030.1942627
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest.xml": {
+      "sha256": "1db58cf990f0d2811d3e3509b361b98fec2edd85060fca3fb8ffb0c43fe7c203",
+      "mtime": 1793221030.196156
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.MachineSignalSubpaneRenderTest.xml": {
+      "sha256": "6651fd4a20101842e57943cdf1b621665f4cd4827a043980ec96e92b8ce2a0af",
+      "mtime": 1793221030.1945918
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.SplitterParityTest.xml": {
+      "sha256": "57becc58f33e7ad2f4e63b1812380b28d6bb3b12ece1bc66315b30026889839c",
+      "mtime": 1793221030.1945074
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest.xml": {
+      "sha256": "55228f721e868813bd73ad1e2e79cd0c783a1a7c2e4fca7261c694b42c8bf350",
+      "mtime": 1793221030.199689
+    },
+    "engine/TEST-ai.bestbuds.reaktor.machinesignal.WorkbenchShellRenderTest.xml": {
+      "sha256": "d9e990ce55e7b34fee64319f7822fd0ba74cff5c8e82b04d77969f49d8ab4551",
+      "mtime": 1793221030.1997766
+    },
+    "engine/TEST-ai.bestbuds.reaktor.tooling.JvmDiscoveryPerformanceTest.xml": {
+      "sha256": "24c78beba032174e3acc675991ebe917d9b6af66d643c2243bbe62ccc94c29bf",
+      "mtime": 1793221030.1982067
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.AdaptiveOperationsTest.xml": {
+      "sha256": "9399b41ea374d1b6f7954ec455935020622a35e39b7db00dd1569de1eee10b69",
+      "mtime": 1793221030.1963594
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.HangarCommandsTest.xml": {
+      "sha256": "9c45e465f9fe32961cef3da593a91c8c16c9d678202cc996fa3ffa0a0b57536c",
+      "mtime": 1793221030.1965804
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.KubernetesInspectionTest.xml": {
+      "sha256": "1abb51e12d4c515debc67dfa51d8d533be78a58ad94a8c9417ecac30af0e5a03",
+      "mtime": 1793221030.1967888
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.MachineSignalTooltipTest.xml": {
+      "sha256": "ec1b0e5df6dde3f3a12c04b09dd890b19d6ceb58c6382a2cbbdb5f602b29d024",
+      "mtime": 1793221030.19696
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.PaneEvidenceBindingsTest.xml": {
+      "sha256": "4446b9713c981ff7f6ffc3254fbe720f21bcc925491da16101471a1223bd0f8e",
+      "mtime": 1793221030.1971138
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.ReaktorEditorChromeGeometryTest.xml": {
+      "sha256": "15b78dbe05fc705bf504f114404c4352a423ace1291d2072c93280514a8fef3d",
+      "mtime": 1793221030.197288
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.ReaktorEditorChromeToolRailTest.xml": {
+      "sha256": "02a8945226aa2697771268cb280d61afb16aaa0e76c614adc2a702943b7fe795",
+      "mtime": 1793221030.1974921
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.WorkbenchKeyboardRoutingTest.xml": {
+      "sha256": "d6254555e8b0d5e5e69af24f7051aa18adf41a9f83edbd04f16244aa9d2522d8",
+      "mtime": 1793221030.1976762
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.AgentConfigFilesTest.xml": {
+      "sha256": "fb5270d90efa666db1143e716c777d94f173549e33e4060c19a4151341ca3624",
+      "mtime": 1793221030.1978374
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.AgentConfigsPaneTest.xml": {
+      "sha256": "d79db04743f7a1f148344fa1185274ccfecb7988cfc09d97cecce7b95e5e0d8f",
+      "mtime": 1793221030.198101
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.AgentConversationFollowTest.xml": {
+      "sha256": "84c972bef81c3e55b03d34f1b6985de813735ebdd3a11c88a9d367370ef331ec",
+      "mtime": 1793221030.1985564
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.AgentDoorTest.xml": {
+      "sha256": "b7a826b2c49fc3807157f56d377013f533e91b35b798cf10f8fcca59d3abe558",
+      "mtime": 1793221030.198525
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.AgentPaneRenderTest.xml": {
+      "sha256": "a4d711345f0897cc0e3c9626cf80ab00710b8e1ed7f37ffedca9c256842e5afd",
+      "mtime": 1793221030.1988497
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.AgentWorkLogTest.xml": {
+      "sha256": "13bd995460131ec658e457bf82155589c12a7ac2cb2472b3173b884eebe41337",
+      "mtime": 1793221030.1988833
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.AgentWorkTest.xml": {
+      "sha256": "9fea4692fd7b99d8bd11df36d18b64969d35d2e8e70b2ea5a73b5d97063ef43c",
+      "mtime": 1793221030.1990912
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.AgentWritePlanTest.xml": {
+      "sha256": "4ac91cd554e36e4b5b66733779302cda01bffd9f898d620ef0b235325a20bdd8",
+      "mtime": 1793221030.1991303
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest.xml": {
+      "sha256": "5c2a0874a3314e72c319e582d36cd344cad0024edfc3e40b9bf3ed2da25c8b1d",
+      "mtime": 1793221030.1996028
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.TaskBoardTest.xml": {
+      "sha256": "67d67f7895359e20f846c0467ce4750da136289167e69fb56dd08653b80743fd",
+      "mtime": 1793221030.1995478
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.TaskContextPaneTest.xml": {
+      "sha256": "d181d07767edf51466cf86439f145e1820c5b3c3ee3468ea541bf1c25c35a131",
+      "mtime": 1793221030.1995149
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.TaskGraphCanvasTest.xml": {
+      "sha256": "ea99e672dffa175bf1b67d5bb5f8895845df7119f1e1ede7a3904e86deed1229",
+      "mtime": 1793221030.1996868
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.agent.TaskMessageThreadTest.xml": {
+      "sha256": "9cc5b8009064e3b73cf1e3624c7127cdf05ef40931027ec1ecb83072197e5a1c",
+      "mtime": 1793221030.1997418
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.ai.AiPaneRenderTest.xml": {
+      "sha256": "2473a1c8dcfcfd3665c7a55a9dd8d614b87987a61c0e4702ad3992816987704f",
+      "mtime": 1793221030.1998947
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.ai.AiPaneStateTest.xml": {
+      "sha256": "8da8d056c71c18fee3acab6aa6390da0214439d015d0bfeb7717f5b027c1d968",
+      "mtime": 1793221030.1999347
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.ai.AiRowIdentityTest.xml": {
+      "sha256": "46c8e3501cdb967655f7dcbe25fc97e3de59ebe86fbaadaeef750d723a2f7189",
+      "mtime": 1793221030.1999743
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphDeviceRenderTest.xml": {
+      "sha256": "69cabe7599101ef8cbc173c252dfc825996462c5b81022ee37e7804b31f9e510",
+      "mtime": 1793221030.19998
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphFeatureLayoutTest.xml": {
+      "sha256": "2a3ed8d7c29be7c8749d49f48298657623afe24c0897d28a47f82126fc8afa1a",
+      "mtime": 1793221030.2013085
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphFlowTest.xml": {
+      "sha256": "1bbc3f97b3f0d667bded63e920dcfe8960fcf4118088e3efade8a92835e1e58e",
+      "mtime": 1793221030.2000709
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphRenderTest.xml": {
+      "sha256": "2ab9d74dd0f06c63f9942cf120ca94e7cfb222c6a75ff1fe6dc41547ce812d88",
+      "mtime": 1793221030.2015235
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphShapeTest.xml": {
+      "sha256": "12ef5c3570de2e31e72b8a3e21e080012d8adad6b78ea4cb4dc8982fe9933ef7",
+      "mtime": 1793221030.2015672
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.AppGraphSourcesTest.xml": {
+      "sha256": "2a349291fa0a9482d417898bc989ed8f9a2901714a168da343239c5f8c28939a",
+      "mtime": 1793221030.2001429
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.BuildGraphPaneTest.xml": {
+      "sha256": "3cd924324996f6fe22358212177a509284860316a9dcce9f29c2c992995806d1",
+      "mtime": 1793221030.2003465
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.CanonicalRouteTelemetryTest.xml": {
+      "sha256": "59a438638178c32b2435e1d13658200d4b9dbaa52b7872d93c2678c77383fbbf",
+      "mtime": 1793221030.2002623
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.DesktopOverlayTest.xml": {
+      "sha256": "7faccb4ce69df2ded471cfdc3c31a9d248e18036ae4efed98af1e834ce9e9453",
+      "mtime": 1793221030.20078
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNodeTest.xml": {
+      "sha256": "013b18c08cc0ce4c7e47b5b6c181cd9b8d9a22e021ac01ba5ebcda139a9d378c",
+      "mtime": 1793221030.2006185
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.GraphRevisionArchiveTest.xml": {
+      "sha256": "6a36aba821688e6d2146c64597c2f944e5267d98d8c0d9c1fb44fd462c87e872",
+      "mtime": 1793221030.200879
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.GraphSourcePaneCacheTest.xml": {
+      "sha256": "598486dc28a410696a54cf1ddc9177b5d6a060c5ec322223a74f75d1d5ecd5b4",
+      "mtime": 1793221030.2009244
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.GraphTelemetryIntegrationTest.xml": {
+      "sha256": "c9d2146dd495c477ce31a17c6afb25245f926a7cdd9be72d2e9a7ba81fb3c5d2",
+      "mtime": 1793221030.2010958
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.InspectorHeadingLayoutTest.xml": {
+      "sha256": "f43932147d94d836fc31cfce76fb59903d9f9bba8d14c34587c2a0ca28cfc0be",
+      "mtime": 1793221030.2014241
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.RuntimeGraphOverlayTest.xml": {
+      "sha256": "b2e03616ae1960673b30d79b5ca6c62d475ff7686567a40a2ece31e240997342",
+      "mtime": 1793221030.2014153
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.SubgraphWorkflowTest.xml": {
+      "sha256": "d5c45fdc0fabbbb463487f69be12f39647102dcb0f0187281f930c84fcd50eae",
+      "mtime": 1793221030.201709
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.SystemSpansTest.xml": {
+      "sha256": "b045b8bd5789d090da6aac80ff56e43e3cee82dacb7ee83bd2ac25b5e37708e9",
+      "mtime": 1793221030.2016802
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.appgraph.TelemetryLensTest.xml": {
+      "sha256": "738cf122f71d8029d4bdaca49ef051fcb92ab17f130896b222c2090c1da1a83e",
+      "mtime": 1793221030.2017388
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AccessCheckWaysTest.xml": {
+      "sha256": "428878dbd2fdcae833b095f938f529500161267ccf6f24e860a30af665df902b",
+      "mtime": 1793221030.201781
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AccessDraftTest.xml": {
+      "sha256": "7c1bb5d814f92681abc20a6390702b1da393f3aed46baaa22944db4e3aaca813",
+      "mtime": 1793221030.2018824
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AccessGraphTest.xml": {
+      "sha256": "1693d2dc94efe7b3c104f975f22fa88da44105917c97be64cc782dcf6a9c42f0",
+      "mtime": 1793221030.2020845
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AccessIslandsTest.xml": {
+      "sha256": "afec5dd911c6caafaed343fd0650f23a9ada12072c05a4f04274a7609bca2e87",
+      "mtime": 1793221030.2019062
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AccessTrafficTest.xml": {
+      "sha256": "3d7c50ab81472949114e46f676eda99ef1d42512ef777daee051ca6896970739",
+      "mtime": 1793221030.2020512
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AuthAccessTest.xml": {
+      "sha256": "7cb22d1b56c089669846714b255c8b87e741f5a84e9fcaa3b2bda63ed2172545",
+      "mtime": 1793221030.202008
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest.xml": {
+      "sha256": "ba07a8eefea1c8231a914e5d59b4cc978d731e48d841aa255b7ed23d68a5d56a",
+      "mtime": 1793221030.202251
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AuthInspectorTitleTest.xml": {
+      "sha256": "23f3ca1c144798a9e49c18ef9691f8b19a1550643a338b51403adeb36b338877",
+      "mtime": 1793221030.20225
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AuthPaneBaselineTest.xml": {
+      "sha256": "9a2c86e0beea1addff09f1d4ce715d20d8ebdc4e4062d62b0213092f85d5871f",
+      "mtime": 1793221030.202196
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AuthPaneRenderTest.xml": {
+      "sha256": "4b2e82067e44896cd8fa1b02ee8d556482581701f7f5af950dbe35ef7b8bf4b9",
+      "mtime": 1793221030.2023768
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.AuthTokenInspectorTest.xml": {
+      "sha256": "18a85c102bf9e52818871264a8007a2589ee76341734ae9cba5dadcecc7b475c",
+      "mtime": 1793221030.2023995
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.auth.ResourceAccessTest.xml": {
+      "sha256": "5ba90028657a6fb3c6a89fb5f831d2b539829bf548788dce83af11cb8517ee0a",
+      "mtime": 1793221030.2025683
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.buildgraph.BuildDeliveryModelTest.xml": {
+      "sha256": "732173ed26a52048912d921b690b629537700a40daa07c9e947e4b618b3e1244",
+      "mtime": 1793221030.2024503
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.buildgraph.BuildGraphSourceTest.xml": {
+      "sha256": "3a942e6f15891fb7dfe617b8ca0882a1680efd4460686f09226bf2448aea3b14",
+      "mtime": 1793221030.2025218
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.buildgraph.BuildTargetsRenderTest.xml": {
+      "sha256": "307201cc14eef14c52dbe1dfcca0edb6c86873f8a804343e8a10c6d1358c7078",
+      "mtime": 1793221030.2025113
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.changes.ChangeSetsTest.xml": {
+      "sha256": "8f19277c15e5a890a082482ca2f009a326a7d02b94119a6c73a6209916469adc",
+      "mtime": 1793221030.202624
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudApiExplorerRenderTest.xml": {
+      "sha256": "0201b50a341f066adbbda8efe8c36dcec247fdd22f0d07769966c1f8f2693beb",
+      "mtime": 1793221030.2026079
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudBlueprintTest.xml": {
+      "sha256": "1fefd0f929fb12618c2bcf7be617d704c66c1476fb02efbc9491d2164a48f558",
+      "mtime": 1793221030.2026503
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudHistoryKeysTest.xml": {
+      "sha256": "3a6f7279655e1ca8521aa3691289b3bde0b94da24454a8cef77531b607300e5a",
+      "mtime": 1793221030.2026834
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudObservationTest.xml": {
+      "sha256": "05f1d4e32c568bd5018b4c313ec32668bda0c9e40397c3e4747c7afb354ffbe3",
+      "mtime": 1793221030.202759
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudPaneRenderTest.xml": {
+      "sha256": "b6d5d6ebd45a55557f164b7e8e1cd60786155954bb6f3fd70e7183e286ae23fb",
+      "mtime": 1793221030.2029133
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudPipelineTest.xml": {
+      "sha256": "78c1675b958448bc675f8047d859e94efa880704fc6d414827b5e048bd1c35ec",
+      "mtime": 1793221030.2028115
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudReadsTest.xml": {
+      "sha256": "112c812b106e6de2cdb3d2e62003b9960b284183ed7573802e43ff0e3266aca8",
+      "mtime": 1793221030.2028906
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.cloud.CloudWorkTest.xml": {
+      "sha256": "169b52881049cce9a75b08fa190acf73a1df9c71c446df200d6808131a509f30",
+      "mtime": 1793221030.2028406
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.cloud.RadarSessionTest.xml": {
+      "sha256": "440c8b370f3d5e8d1dbd4a0044f9e5e032e1b20e6e73cf75950a0dff7c247c8a",
+      "mtime": 1793221030.2029157
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataDocumentsInteractionTest.xml": {
+      "sha256": "db9e7d70d6d7068671ba00d9f62be9acd1f1cd552ffcbc745ad74f6c372bc3ab",
+      "mtime": 1793221030.2030745
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest.xml": {
+      "sha256": "6488c91d32cfa2a03ea3d676be39b1518bb844bf4306514a6410df8272ec6d66",
+      "mtime": 1793221030.2040067
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataPaneRenderTest.xml": {
+      "sha256": "845fbb1c43a196524df2e8d9b82f8fe413b680062803ed417a0c7f2cd2e2e425",
+      "mtime": 1793221030.2030106
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataPresentationTest.xml": {
+      "sha256": "90ac512daf313289c546b2ecb91fd72ae0b217935dd8f009f052b259ee3c96bb",
+      "mtime": 1793221030.2031772
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataResultIdentityTest.xml": {
+      "sha256": "f22e4d34e0097ade5657b52ebb0715d5f2d38645ae9f3075ba7bd479fd631449",
+      "mtime": 1793221030.2031374
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataResultIsolationTest.xml": {
+      "sha256": "7df3ec273e04c861fcc35acbee477edab3505954d4d43e621b0b9ed0aafa03dd",
+      "mtime": 1793221030.2032573
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataResultStateCacheTest.xml": {
+      "sha256": "124c8cd8e7bc14e283db4221e2bd3661ff31ceba6b500d4e414868804b71e976",
+      "mtime": 1793221030.2031815
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataResultViewsTest.xml": {
+      "sha256": "cd43cd46940ff2c252607cd397b8e8adb25ca2fe7df681d39453af446961a3cb",
+      "mtime": 1793221030.2032642
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataResultWidthTest.xml": {
+      "sha256": "f9e9f565f7cd8fd84d518f5ff7dc2e342bc9a73565f8bcfdf016c6201ebbc6af",
+      "mtime": 1793221030.2033346
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataScopeDraftTest.xml": {
+      "sha256": "bd91da662b11f892c6384503295589f01d8ff21a82595f69168899adf77434a4",
+      "mtime": 1793221030.2035022
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DataWorkspaceRelationshipsTest.xml": {
+      "sha256": "148ce34e8bbb925aeb0dc096a6864b9fbcfe84f143e311fd2d78d0e1e7cc8964",
+      "mtime": 1793221030.2034938
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseBrowseQueriesTest.xml": {
+      "sha256": "af118f7771bb87f22cc4e16b1f58ebfa6a8e4e972e945f2d2e1e1d68aa243eeb",
+      "mtime": 1793221030.2034175
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseStudioContractsTest.xml": {
+      "sha256": "ff1eff091d9db9750adcb744fc0da24273affa509d0fd19b7d7ba14e6d891f11",
+      "mtime": 1793221030.2034335
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseTableBrowserTest.xml": {
+      "sha256": "b032c6774b99896c66620143d460d9bab046d77d361bf4ce3f086096cc75c28c",
+      "mtime": 1793221030.2035608
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.database.MemgraphGraphResultsTest.xml": {
+      "sha256": "ecaeded601c0ba2df5eef02e5023a058318d04186dcd202fc90497c04a10277b",
+      "mtime": 1793221030.203805
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsFileWritesTest.xml": {
+      "sha256": "4bac6c3b91d7f2b453e4da4666d4804ec696f8301dfce297f14988e1b70c1fda",
+      "mtime": 1793221030.203638
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsInspectorTitleTest.xml": {
+      "sha256": "f814a7ed2e9488fedb1e1d867f43b936b358acb4df49bd35a8f4cf67fca23ef7",
+      "mtime": 1793221030.2037375
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsLiveLinkTest.xml": {
+      "sha256": "eb3447763c17ada6ec40878f88c41e57c4967e0378d96058ca042857a7f3d76a",
+      "mtime": 1793221030.2036583
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsOwnedReadsTest.xml": {
+      "sha256": "739a250dde16538e693c99e469a4e8291354451b6674b2c32b4008951ad75656",
+      "mtime": 1793221030.2037082
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsPaneRenderTest.xml": {
+      "sha256": "63e48acd74aae5f12d8bc21fec5ab86769098f43824a5406cca1d341225eaf2d",
+      "mtime": 1793221030.2037466
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsRecorderTest.xml": {
+      "sha256": "418b74308a4162ef6551ef0c5a62e03b8fa1395d8d97951b0538e2ca2c2cc5a7",
+      "mtime": 1793221030.2037904
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsStreamViewsTest.xml": {
+      "sha256": "72ad45aed4080eaf132b73353ccbfbabcd21d0cbee46f5c43f4630a76ee3072f",
+      "mtime": 1793221030.2039115
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DevToolsUndoTest.xml": {
+      "sha256": "701667ab9e22c0a6c4c534a383fa389de7657cd0063c2ef8af65b9eed6038bdf",
+      "mtime": 1793221030.2039597
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceCancellationTest.xml": {
+      "sha256": "5d9aa1cdbdcd9b55032e5da414acca7221eeb1adfdfac13891f335dc74512992",
+      "mtime": 1793221030.2040036
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceCrashIdsTest.xml": {
+      "sha256": "aad14c995796a40ada96b6b79f49775c588670bf8e3ac4ac7dfb93ba25d4c534",
+      "mtime": 1793221030.2040033
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceLinkClearTest.xml": {
+      "sha256": "10cf9b04a4721028e7b3f409da283ed801e82c96ca666f9b73f09801f8560fbc",
+      "mtime": 1793221030.2040691
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceProbeTest.xml": {
+      "sha256": "eb9b9be6aed668edb82351a6c5d409e1111a2ffdb6fac52524d9013526ba0187",
+      "mtime": 1793221030.2041721
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.DeviceSessionReadsTest.xml": {
+      "sha256": "1125f3743afd92d6749aed9bf1b1cfc4432a5ea5879758c297e7970954d695be",
+      "mtime": 1793221030.204192
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.devices.SearchQueryTest.xml": {
+      "sha256": "e3b1811c60719743bc75ebd1a6fe81e4eb309b7c675be193ebbd5ff9a563662f",
+      "mtime": 1793221030.2042403
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.graph.DesktopApplicationBootstrapTest.xml": {
+      "sha256": "be1c0b9c682844463582eb625bedf52ddea601c27c6af727a8000290ee0ecbee",
+      "mtime": 1793221030.2042203
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.graph.DesktopGraphCoverageTest.xml": {
+      "sha256": "3ad42dbe124d10678c5d1f3511b1f4a2579a9a1d66083d6651629779458991a9",
+      "mtime": 1793221030.2043507
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.graph.DesktopOperationalReadsTest.xml": {
+      "sha256": "d9e0e8d221ab78701865f25f87f8548cff6e6443a187f3a5dbdfe730778832ba",
+      "mtime": 1793221030.204362
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.graph.DesktopWorkbenchGraphTest.xml": {
+      "sha256": "7ad528dbf75c067ec74102c7243a88b83fbeb99cf46cac5672776d49f57f5f47",
+      "mtime": 1793221030.2044444
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.inspection.DevToolsInspectionJourneyTest.xml": {
+      "sha256": "66e01958a64d403c915567a7c121b49db6e83aa346f496321af01614ff3aa672",
+      "mtime": 1793221030.204439
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.inspection.WorkbenchDevToolsRoutingTest.xml": {
+      "sha256": "95eddca89ea44c428715cda85f44feb808c09ace31a3ea60ab40a3c7f062d8cc",
+      "mtime": 1793221030.2045772
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.inspection.WorkbenchElementBindingsTest.xml": {
+      "sha256": "93471e0c21a4290534e3c53a9cde5b9fe93f825c5ccb25654a77aaeb7a880ecf",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.links.CrossPaneVerbsTest.xml": {
+      "sha256": "1c7d5c1d815c893af58e902dea119767ef350313e65926bc9fd09815af5ce455",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.links.DeployInspectorTitleTest.xml": {
+      "sha256": "0ed0c9ff4ead015a273dc526432d48e011c774f2a213af95877430ba6e48828f",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.links.LiveDeploysTest.xml": {
+      "sha256": "0338c5cd891a5b847e7201981ae20e4f87c78de40490fb3b4a92eb2aad976030",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest.xml": {
+      "sha256": "a8fd8d6412a8cfaf7e129083e27f282118b4127dc72ea3698ed0576e255892aa",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.links.ProductFindingsTest.xml": {
+      "sha256": "633eb2c321edbbe953d420c497db02659fdca18a2c97af617b03855b6292fd85",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.links.ProductQueriesTest.xml": {
+      "sha256": "2967a654b8316f556a6029087e9d84d257f716aba0b386b98d81c318b4ad6c77",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.links.ProductSqlTemplatesTest.xml": {
+      "sha256": "131260b9b5d047ee6fa117a3c5e256256583398d403c82946698c9cd32b7c864",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.links.SystemLinksTest.xml": {
+      "sha256": "2441bb1f57bca1f5cb0f76ebdb13fde807de22f63c46eb96b97a448a602c1485",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.preview.UiPreviewInspectionTest.xml": {
+      "sha256": "943c8e0497c64a46c90695f502d5c28aa5ab25a1606a887ff0699bae8fbfbf2c",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.design.HangarIconsTest.xml": {
+      "sha256": "9f9ad375c7634a214f5ddf85fddfa4648b60f22cd0762540344585f53409705a",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.design.HangarInksTest.xml": {
+      "sha256": "3fd6bd96e737b23060a326f467157bd3de817d7f0c5908c6e4be69476bd4d50a",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.AgentBoardTest.xml": {
+      "sha256": "3f7d5c679531bdf2614b5cd900024f31a74f2e7c6a5d27dd6a51e6ef00eecdf2",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.AgentMachineStateTest.xml": {
+      "sha256": "415c2ba41dcfee2e8d9204397356c609d7bb591e972d712d87d8e5616540c3d2",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.DatabaseSessionRetentionTest.xml": {
+      "sha256": "e980ae319a231b2ddcb9d4ff5d1c31dcd590456175e1c3efe28fef25115cac90",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.EvidenceWorkspaceStateTest.xml": {
+      "sha256": "5712d98d87acdbd93b64352c4aae56a1a044f3edf8cfb6320adfd69f6637c67b",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.FilterChipsTest.xml": {
+      "sha256": "6b39692d25d94fe9c535e2b7cd8ed01dc7f4a30ad9c02a037e0c5379f83e7198",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest.xml": {
+      "sha256": "e8faac30c56559eb102eb97bc69fb11f9872c4e5484503dc1ebc361701c12a3a",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.OperationalInspectorTitleTest.xml": {
+      "sha256": "4f4a5807cedbc9531f48cf2c74d7435258f20e77572d220fbb51ac501d3fc392",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PaneFrameLayoutTest.xml": {
+      "sha256": "ae672ffaf865ea21ac6eafd23a086bc5e767bcc31baa60f95a882181503cf3b4",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PanePartsTest.xml": {
+      "sha256": "e2b4a4c67c01a94944648ca23ee84372599f4cd395b12f698562d1a1849f2d5d",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PaneReadStateTest.xml": {
+      "sha256": "595ac01618912acaef429d2e7e238a379a1393172bd4d90d5aa9ceaeafbb563b",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PaneRowActionsTest.xml": {
+      "sha256": "f48be859948c16c4fd5ebeb81481b89e1dd2251e44045923051dcbe81335e3ad",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PlanCardMcpParityTest.xml": {
+      "sha256": "18d8f40c89507a15cca5a5b686d42a65827033112460b67f377ad8bb686c09e6",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.PresentationCacheTest.xml": {
+      "sha256": "9a49045b579d8a4e4fc663a07d01c5ff55523f336dd7e14e49ad4ad62ebf6795",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.TelemetryQueryWorkspaceTest.xml": {
+      "sha256": "5977b885038ee59dd976c5f56a527cb3dfd36c37116c67d19b8cb279125e6fbb",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.TextScalePartsTest.xml": {
+      "sha256": "5a257b8ea04e0bdc059a5be544a2f23bbe177dd89b807eba5253c905b3bbe3e0",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest.xml": {
+      "sha256": "212a8f020ddf68868f5a84e0c2dd163d346b05f33158229489e431c581b30e90",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.DesktopAppearanceTest.xml": {
+      "sha256": "8d81658e8f01668a7ef7828d68c385fb5f3e3ebe2fcc1a6369f15e4815d5c847",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.DesktopZoomLevelTest.xml": {
+      "sha256": "49f81986dddeeffe8744e913f3ed0e9b790dc553415b31730a23998a6d6e6840",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.DesktopZoomPersistenceTest.xml": {
+      "sha256": "792685067bea66622ee890189466cfbc24e1ce335fa279815ad23424ae3b040e",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.WindowChromeInsetsTest.xml": {
+      "sha256": "7feffd4577ff2441c581984b4fc4c73868ef5187f1c9481729e13d0824ca61aa",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.render.compose.shell.WorkbenchMenusTest.xml": {
+      "sha256": "6c651662852c979114059bd8cd5c5b94a802465b3aec461af1f43b70a8c27d31",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryExecutionPaneTest.xml": {
+      "sha256": "f14e09ffe2fa974e84cd5b357647c8c56cae4a9bddf84ff0fd92d06218731c06",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryLedgerStateTest.xml": {
+      "sha256": "d5d6accf969640d2fb34600323edf9a4634a97864985692ff57b461307922a91",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryLogPinTest.xml": {
+      "sha256": "7883532d83864d83db39bb2a3b61498261c15b10ebb8cf900089f8bc97608af8",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryNodeDisplayTest.xml": {
+      "sha256": "7e843f0334b489f8743708a18d0ed6fdc56b3fd016bf712b906263781ab2ab0d",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryPaneRenderTest.xml": {
+      "sha256": "c0d333ce87185d32ceaa9061d899163bca1499f1de7365b7a52ce214b382fd18",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryPerformanceTest.xml": {
+      "sha256": "36008c8865d0c2b126de653a238678cd665e12081cddb34cd1a8d4982aa15ed5",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryPromqlRenderTest.xml": {
+      "sha256": "c59dfaa967ed48e754fa8054e202c4ebb313c8e3a58a43427be5f75149627b8c",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.WorkbenchLogIndexTest.xml": {
+      "sha256": "d0b4541fb1e26fb6c709658679bd76cf74723c23def9264353daab81a23fa9e3",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest.xml": {
+      "sha256": "85ef6fac395dd063718e68c564e5156db3cdf3dbe347702b306d455b7dbb4861",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryProbeTest.xml": {
+      "sha256": "b30e9008130e85684cd1edce23d2a82af48cd5530ac1eee977da8201f916115e",
+      "mtime": 1792775962.0
+    },
+    "engine/TEST-ai.bestbuds.reaktor.workbench.testing.CoverageMatrixTest.xml": {
+      "sha256": "5c7d006f3ea3e90a86afe54afbe0c0e5183cf31f27f62c54ec481d5106e8e11d",
+      "mtime": 1792775962.0
+    }
+  },
+  "failures": [
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.MachineSignalLookParityTest",
+      "test": "subTabsKeepLegacyPaintWithEnoughRoomForTheLabelLine[jvm]",
+      "message": "java.lang.AssertionError: tab/editor/x1.0/selected=true/count=null/tabs: 3500 pixels differ by more than 8 (max 27)\ntab/editor/x1.0/selected=true/count=12/tabs: 4019 pixels differ by more than 8 (max 27)\ntab/editor/x1.0/selected=true/hovered/tabs: 3490 pixels differ by more than 8 (max 25)\ntab/editor/x2.0/selected=true/count=null/tabs: 13982 pixels differ by more than 8 (max 27)\ntab/editor/x2.0/selected=true/count=12/tabs: 16058 pixels differ by more than 8 (max 27)\ntab/editor/x2.0/selected=true"
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.MachineSignalLookParityTest",
+      "test": "tonesMatchSignalButtonAtRestDisabledAndHovered[jvm]",
+      "message": "java.lang.AssertionError: button/editor/x1.0/Primary/enabled: 2281 pixels differ by more than 8 (max 19)\nbutton/editor/x1.0/Secondary/enabled: 235 pixels differ by more than 8 (max 22)\nbutton/editor/x1.0/Secondary/hovered: 5 pixels differ by more than 8 (max 10)\nbutton/editor/x2.0/Primary/enabled: 9307 pixels differ by more than 8 (max 19)\nbutton/editor/x2.0/Secondary/enabled: 937 pixels differ by more than 8 (max 22)\nbutton/editor/x2.0/Secondary/hovered: 33 pixels differ by more than 8 (max 11)"
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.MachineSignalLookParityTest",
+      "test": "theMenuLooksMatchSignalContextMenu[jvm]",
+      "message": "java.lang.AssertionError: menu/editor/x1.0: the Surface panel is at IntRect.fromLTRB(40, 104, 176, 216), the legacy one at IntRect.fromLTRB(40, 104, 176, 264)\nmenu/editor/x1.0/rest: 21714 pixels differ by more than 8 (max 221)\nmenu/editor/x1.0/hovered item: legacy is 136x48, Surface is 136x32\nmenu/editor/x2.0: the Surface panel is at IntRect.fromLTRB(80, 208, 351, 432), the legacy one at IntRect.fromLTRB(80, 208, 351, 528)\nmenu/editor/x2.0/rest: 86601 pixels differ by more than 8 (max 221)\nmenu/"
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.RetiredAtomParityTest",
+      "test": "dividersDrawWhatTheRetiredLinesDrew[jvm]",
+      "message": "java.lang.AssertionError: gutter-divider: 1248 pixels differ"
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.RetiredAtomParityTest",
+      "test": "badgeLooksDrawWhatTheRetiredPillsAndMarksDrew[jvm]",
+      "message": "java.lang.AssertionError: pill/Board: 8025 pixels differ\ncode-pill/Board: 4475 pixels differ\nwarn-pill/Board: 5214 pixels differ\nrisk-chip/Board: 7032 pixels differ\nkind/Board: 4450 pixels differ\nprovenance/Live/Board: 490 pixels differ\nprovenance/Source/Board: 618 pixels differ\nprovenance/Imported/Board: 710 pixels differ\nprovenance/Unknown/Board: 718 pixels differ\nprovenance-detail/Board: 1446 pixels differ\npill/Editor: 8017 pixels differ\ncode-pill/Editor: 4464 pixels differ\nwarn-pill/Editor: "
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.RetiredAtomParityTest",
+      "test": "keptAtomsDrawWhatTheyDrewBeforeTheyReadRoles[jvm]",
+      "message": "java.lang.AssertionError: key-value/Source/Board: 618 pixels differ\nkey-value/Unknown/Board: 718 pixels differ\nnot-wired/Board: 716 pixels differ\nkey-value/Source/Editor: 618 pixels differ\nkey-value/Unknown/Editor: 714 pixels differ\nnot-wired/Editor: 716 pixels differ\ncontext-bar: 618 pixels differ"
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.RetiredAtomParityTest",
+      "test": "panelSectionsDrawWhatTheRetiredPanelDrew[jvm]",
+      "message": "java.lang.AssertionError: panel/Board: 16006 pixels differ\nflush-panel/Board: 7525 pixels differ\npanel/Editor: 18907 pixels differ\nflush-panel/Editor: 10437 pixels differ"
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.SignalTypographyTest",
+      "test": "everyRoleDrawsExactlyWhatSignalTextDrew[jvm]",
+      "message": "java.lang.AssertionError: TextRole(scale=Display, weight=Regular, face=Text)/hangar=true: 9944 pixels differ\nTextRole(scale=Display, weight=Regular, face=Code)/hangar=true: 9170 pixels differ\nTextRole(scale=Display, weight=Medium, face=Text)/hangar=true: 10879 pixels differ\nTextRole(scale=Display, weight=Medium, face=Code)/hangar=true: 9861 pixels differ\nTextRole(scale=Display, weight=Strong, face=Text)/hangar=true: 9906 pixels differ\nTextRole(scale=Display, weight=Strong, face=Code)/hangar=true"
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.SignalTypographyTest",
+      "test": "aBaseInTheFontsReplacesTheRootTextStyle[jvm]",
+      "message": "java.lang.AssertionError: base/TextRole(scale=Title, weight=Strong, face=Text) differs"
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.SignalTypographyTest",
+      "test": "everyInkDrawsTheColourItsCallSitePassed[jvm]",
+      "message": "java.lang.AssertionError: Busy: 1805 pixels differ\nOnAccent: 1846 pixels differ\nText1: 1769 pixels differ\nText2: 1846 pixels differ\nText3: 1805 pixels differ\nText4: 1846 pixels differ\nScreenReadout: 1846 pixels differ\nScreenAction: 1846 pixels differ\nScreenNote: 1846 pixels differ"
+    },
+    {
+      "suite": "reaktor-ui",
+      "class": "dev.shibasis.reaktor.ui.machinesignal.WrapperParityTest",
+      "test": "signalButtonIsTheLegacyButtonInEveryToneStateAndSize[jvm]",
+      "message": "java.lang.AssertionError: button/editor/x1.0/Primary/enabled: 2626 pixels differ by more than 8 (max 233)\nbutton/editor/x1.0/Primary/hovered: 485 pixels differ by more than 8 (max 233)\nbutton/editor/x1.0/Secondary/enabled: 235 pixels differ by more than 8 (max 22)\nbutton/editor/x1.0/Secondary/hovered: 5 pixels differ by more than 8 (max 10)\nbutton/editor/x1.0/weighted: 1981 pixels differ by more than 8 (max 233)\nbutton/editor/x1.0/sized: 133 pixels differ by more than 8 (max 22)\nbutton/editor/x2"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.SurfaceQualificationTest",
+      "test": "everyLabCellPaintsKeepsItsIdsUniqueNamesItsControlsAndShowsFocusAfterTab[jvm]",
+      "message": "dev.shibasis.reaktor.surface.ThemeMismatch: A Machine Signal appearance was drawn under the theme 'human-signal/light'"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.SurfaceRetirementTest",
+      "test": "theEngineAndLauncherHaveRetiredTheKit[jvm]",
+      "message": "java.lang.AssertionError: literal size: 8\n  literal size  modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/studio/StudioScreens.kt:95  Column(Modifier.fillMaxSize().signalBackground(colors.background).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),\n  literal size  modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/studio/StudioScreens.kt:96  verticalArrangement = Arrangement.spacedBy(12.dp)) {\n  literal size  modules/engine/src/jvm"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.TableLookParityTest",
+      "test": "machineSignalDataTableMatchesDevToolsTableAtRestHoveredSelectedAndZebra[jvm]",
+      "message": "java.lang.AssertionError: data-table/x1.0: reference bounds [IntRect.fromLTRB(0, 0, 64, 24), IntRect.fromLTRB(64, 0, 128, 24), IntRect.fromLTRB(128, 0, 618, 24), IntRect.fromLTRB(618, 0, 682, 24), IntRect.fromLTRB(682, 0, 746, 24), IntRect.fromLTRB(746, 0, 810, 24), IntRect.fromLTRB(0, 24, 960, 46), IntRect.fromLTRB(0, 46, 960, 68), IntRect.fromLTRB(0, 68, 960, 90), IntRect.fromLTRB(0, 90, 960, 112), IntRect.fromLTRB(0, 112, 960, 134), IntRect.fromLTRB(0, 134, 960, 156), IntRect.fromLTRB(0, 156,"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest",
+      "test": "findingsVerdictsAndPinTipsMatchThePrivateWidgets[jvm]",
+      "message": "java.lang.AssertionError: auth-finding/false: Comparison(actualSize=(1440, 300), expectedSize=(1440, 300), differingRatio=0.038335648148148146, meanDelta=3.255025462962963, maxDelta=209, diff=BufferedImage@bb6611a: type = 2 DirectColorModel: rmask=ff0000 gmask=ff00 bmask=ff amask=ff000000 IntegerInterleavedRaster: width = 1440 height = 300 #Bands = 4 xOff = 0 yOff = 0 dataOffset[0] 0)\nauth-finding/true: Comparison(actualSize=(1440, 300), expectedSize=(1440, 300), differingRatio=0.038821759259259"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest",
+      "test": "sectionsPropertiesAndTitlesMatchThePrivateWidgets[jvm]",
+      "message": "java.lang.AssertionError: pane-property: Comparison(actualSize=(840, 120), expectedSize=(840, 120), differingRatio=0.04830357142857143, meanDelta=6.619761904761905, maxDelta=221, diff=BufferedImage@2352854b: type = 2 DirectColorModel: rmask=ff0000 gmask=ff00 bmask=ff amask=ff000000 IntegerInterleavedRaster: width = 840 height = 120 #Bands = 4 xOff = 0 yOff = 0 dataOffset[0] 0)\npane-section: Comparison(actualSize=(840, 180), expectedSize=(840, 180), differingRatio=0.03630952380952381, meanDelta=4"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest",
+      "test": "chromeAndMarksMatchTheRetiredKit[jvm]",
+      "message": "java.lang.AssertionError: toolbar: Comparison(actualSize=(960, 120), expectedSize=(960, 120), differingRatio=0.5023524305555556, meanDelta=3.9998177083333335, maxDelta=8, diff=BufferedImage@20c1040f: type = 2 DirectColorModel: rmask=ff0000 gmask=ff00 bmask=ff amask=ff000000 IntegerInterleavedRaster: width = 960 height = 120 #Bands = 4 xOff = 0 yOff = 0 dataOffset[0] 0)\nstatus-bar: Comparison(actualSize=(960, 100), expectedSize=(960, 100), differingRatio=0.4474375, meanDelta=3.544791666666667, ma"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.machinesignal.KitRetirementParityTest",
+      "test": "controlsMatchTheRetiredKit[jvm]",
+      "message": "java.lang.AssertionError: segmented: Comparison(actualSize=(640, 100), expectedSize=(640, 100), differingRatio=0.303859375, meanDelta=25.07684375, maxDelta=232, diff=BufferedImage@50d043d1: type = 2 DirectColorModel: rmask=ff0000 gmask=ff00 bmask=ff amask=ff000000 IntegerInterleavedRaster: width = 640 height = 100 #Bands = 4 xOff = 0 yOff = 0 dataOffset[0] 0)\nnavigation-row/false: Comparison(actualSize=(840, 120), expectedSize=(840, 120), differingRatio=0.04294642857142857, meanDelta=4.778581349"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest",
+      "test": "everyStoryRendersInEveryLanguageAndEnvironment[jvm]",
+      "message": "dev.shibasis.reaktor.surface.ThemeMismatch: A Machine Signal appearance was drawn under the theme 'human-signal/light'"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.appgraph.AppGraphFeatureLayoutTest",
+      "test": "Hangar's own map fits a wide screen with a frame per pane[jvm]",
+      "message": "java.lang.AssertionError: Shared data wraps into a grid: 2817x4555"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.auth.AccessGraphTest",
+      "test": "theServicesBestBudsServerRunsSitInTheirOwnGraphBesideTheApp[jvm]",
+      "message": "java.lang.AssertionError: expected:<12> but was:<13>"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.auth.AccessGraphTest",
+      "test": "whatTheContractsDeclareIsDrawnAsDeclaredAndReplayedForOlderCalls[jvm]",
+      "message": "java.lang.AssertionError: expected:<[accountDeactivate, authorityGrants, authorityResolve, sessionLogoutAll, sessionMe]> but was:<[accountDeactivate, authorityGrants, authorityResolve, deviceCredential, sessionLogoutAll, sessionMe]>"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.buildgraph.BuildTargetsRenderTest",
+      "test": "targetsKeepTheirSelectionAtNarrowWidthsAndStaleSourceCannotPlan[jvm]",
+      "message": "java.lang.AssertionError: Expected value to be false."
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest",
+      "test": "messageSearchDecoderAndSavedFilterStayWithinTheSubscription[jvm]",
+      "message": "java.lang.IllegalStateException: Missing text '1 / 2 observations'; observed: [?, Text, Json, Base64 \u2192 UTF-8, Hex, 2 / 2 observations, Name this filter\u2026, Save filter, Saved (0), first, Publish time not reported, {\n    \"order\": 42\n}, second, Publish time not reported, other]"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest",
+      "test": "telemetrySqlHasAnIndependentGraphOwnedSessionAndCancelsAtScopeBoundaries[jvm]",
+      "message": "java.lang.IllegalArgumentException: Required value was null."
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.links.SystemLinksTest",
+      "test": "aServicesOwnNameChoosesItsWorkerBeforeItsClassName[jvm]",
+      "message": "java.lang.AssertionError: expected:<worker named social-service> but was:<null>"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.render.compose.design.HangarInksTest",
+      "test": "cloudGraphAndSystemRolesKeepTheirEntityColours[jvm]",
+      "message": "java.lang.AssertionError: Connected expected:<Color(0.93333334, 0.9372549, 0.9490196, 1.0, sRGB IEC61966-2.1)> but was:<Color(0.93333334, 0.9372549, 0.9490196, 0.8392157, sRGB IEC61966-2.1)>"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.render.compose.panes.PanePartsTest",
+      "test": "searchHeadersAndTimeCellsKeepTheirMeaningAtThreeWidths[jvm]",
+      "message": "java.lang.AssertionError: Missing time tooltip at 1920; observed: [[Filter\u2026], [?], [Muted reference], [Permissions], [State], [Door calls], [one], [one], [one], [\u22ef], [in 27d]]"
+    },
+    {
+      "suite": "engine",
+      "class": "ai.bestbuds.reaktor.workbench.render.compose.panes.TextScalePartsTest",
+      "test": "actualLabelsFitTheirControlsAtEveryTextScaleAndKeepNumericAndPathMeaning[jvm]",
+      "message": "java.lang.AssertionError: The segmented control sizes to its line at Editor/1.6. Expected <28.0> with absolute tolerance <1.0>, actual <32.0>."
+    }
+  ],
+  "xmlArchiveSha256": "1f31499ae90bd3b77ac27542cda0381f1de286a99f17fdebbfc1307b0fe628ff",
+  "sourceScope": "Shared checkout; UI run predates subsequent receipt-ledger edits. This does not attest one frozen platform snapshot."
+}

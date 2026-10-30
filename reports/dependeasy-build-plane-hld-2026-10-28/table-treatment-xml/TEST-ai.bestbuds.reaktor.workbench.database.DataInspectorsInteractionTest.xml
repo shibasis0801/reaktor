@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DataInspectorsInteractionTest[jvm]" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:22.739Z" hostname="Shibasiss-MacBook-Pro-2.local" time="3.393">
+  <properties/>
+  <testcase name="graphOpensAfterACatalogReadAndPagingUsesTheVisibleRecordKind[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.072"/>
+  <testcase name="theSchemaViewSelectsFromTheMapSummaryAndTableListAndActsOnTheTable[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.261"/>
+  <testcase name="graphExpansionUndoAndSavedReplayUseFreshBoundedReads[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.652"/>
+  <testcase name="messageSearchDecoderAndSavedFilterStayWithinTheSubscription[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.822"/>
+  <testcase name="aForeignKeyCellOpensTheRowItPointsToAndBackReturns[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.066"/>
+  <testcase name="resultChartLinksOriginalRowsAndBrushingNarrowsTheTable[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.163"/>
+  <testcase name="durableObjectInspectorSeparatesStateAndAlarmsAndExecutesSelectedTable[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.111"/>
+  <testcase name="memgraphSchemaDisplaysItsNativeCatalogWithoutSqlTableControls[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.039"/>
+  <testcase name="schemaFocusExpansionUndoAndExplicitSaveUseTheRealSchemaEdges[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.963"/>
+  <testcase name="zeroRowsWithRlsDefaultDenyExplainTheObserverAndRefreshPolicyEvidence[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.045"/>
+  <testcase name="migrationDiscoveryAndPagingReadTheSelectedSqliteLedger[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.12"/>
+  <testcase name="oneClickReadsBothCatalogScansSoTheGraphArrivesWithItsRelationships[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataInspectorsInteractionTest" time="0.078"/>
+  <system-out><![CDATA[FocusRelatedWarning: 
+   FocusRequester is not initialized. Here are some possible fixes:
+
+   1. Remember the FocusRequester: val focusRequester = remember { FocusRequester() }
+   2. Did you forget to add a Modifier.focusRequester() ?
+   3. Are you attempting to request focus during composition? Focus requests should be made in
+   response to some event. Eg Modifier.clickable { focusRequester.requestFocus() }
+
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

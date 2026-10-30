@@ -64,7 +64,7 @@ class ContractNode<S : Service>(
 
     val interceptors: Interceptors = Interceptors(InterceptorScope.Node).apply { add(*interceptors) }
 
-    override val port: ProviderPort<S> = registerProvider(Key(""), contractType(api), api)
+    override val port: ProviderPort<S> = registerProvider(Key(api.id), contractType(api), api)
 
     @Suppress("UNCHECKED_CAST")
     val calls: List<ProviderPort<*>> = api.operations.filterIsInstance<Call<*, *>>().map { it as Call<Any?, Any?> }.map { call ->
@@ -116,7 +116,7 @@ fun Graph.served(): List<Served<*>> = contracts().mapNotNull { it.served }
 
 fun <S : Service> PortCapability.consumes(service: S) =
     PropertyDelegateProvider<PortCapability, PortDelegate<S>> { node, _ ->
-        val stub = service over PortLink(node.registerConsumer<S>(Key(""), contractType(service)))
+        val stub = service over PortLink(node.registerConsumer<S>(Key(service.id), contractType(service)))
         PortDelegate { _, _ -> stub }
     }
 

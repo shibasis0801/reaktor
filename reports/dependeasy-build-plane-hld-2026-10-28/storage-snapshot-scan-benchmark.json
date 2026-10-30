@@ -1,0 +1,60 @@
+{
+  "scope": "charged_sizes only; no eviction/admission behavior changed; no whole-build speed claim",
+  "roots": [
+    "/Users/ovd/dev/.remote-dev/snapshots"
+  ],
+  "identity": [
+    "40e01f74ffeceaae3575c797b8be0467f2f5860c4513eb65568d6bb438005241",
+    173246
+  ],
+  "chargedBytes": {
+    "/Users/ovd/dev/.remote-dev/snapshots": 19599491072
+  },
+  "rows": [
+    {
+      "pair": 0,
+      "mode": "serial",
+      "seconds": 2.4790230419999997
+    },
+    {
+      "pair": 0,
+      "mode": "parallel",
+      "seconds": 1.5424707079999997
+    },
+    {
+      "pair": 1,
+      "mode": "parallel",
+      "seconds": 1.5610773340000001
+    },
+    {
+      "pair": 1,
+      "mode": "serial",
+      "seconds": 2.4032117920000022
+    },
+    {
+      "pair": 2,
+      "mode": "serial",
+      "seconds": 2.64079675
+    },
+    {
+      "pair": 2,
+      "mode": "parallel",
+      "seconds": 1.5878227500000008
+    },
+    {
+      "pair": 3,
+      "mode": "parallel",
+      "seconds": 1.5069592080000014
+    },
+    {
+      "pair": 3,
+      "mode": "serial",
+      "seconds": 2.441015416999999
+    }
+  ],
+  "medians": {
+    "serial": 2.4600192294999994,
+    "parallel": 1.551774021
+  },
+  "changePercent": -36.92024833011573
+}

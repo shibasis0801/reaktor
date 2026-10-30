@@ -1,0 +1,57 @@
+{
+  "router": "20261029-055243-2ccf5380-bestbuds",
+  "suite": {
+    "name": "ai.bestbuds.reaktor.kernel.KernelWatchTest",
+    "tests": "4",
+    "skipped": "0",
+    "failures": "0",
+    "errors": "0",
+    "timestamp": "2026-10-29T00:23:24.642Z",
+    "hostname": "Shibasiss-MacBook-Pro.local",
+    "time": "13.118"
+  },
+  "cases": [
+    {
+      "name": "aBatchCarriesTheSourcesBuildScriptsAndGeneratedFilesThatChangedAndNeverOtherBuildOutput",
+      "classname": "ai.bestbuds.reaktor.kernel.KernelWatchTest",
+      "time": "4.302"
+    },
+    {
+      "name": "aPathIsASourceABuildScriptOrATypeScriptInput",
+      "classname": "ai.bestbuds.reaktor.kernel.KernelWatchTest",
+      "time": "0.003"
+    },
+    {
+      "name": "theKernelWatchesItsCheckoutAndSaysSoAmongItsProviders",
+      "classname": "ai.bestbuds.reaktor.kernel.KernelWatchTest",
+      "time": "8.439"
+    },
+    {
+      "name": "fileEventsStayOnAJavaOwnedThreadWhileFlightRecorderSamples",
+      "classname": "ai.bestbuds.reaktor.kernel.KernelWatchTest",
+      "time": "0.371"
+    }
+  ],
+  "boundary": "PASS",
+  "gradleSeconds": 55,
+  "archive": "kernel-native-watch-results.zip",
+  "sha256": "21430a81234440a00b84ad614a4dafad1f898430aa978579db1796d2209958c5",
+  "qualification": "All4actualnativewatchercasesexecute,including real file events under1msprofileJFR and joinedJavaownedcallbackthread. Prior055008firstvariant silentlyreturnedunsupported; rejected as native qualification.",
+  "sampledThreads": [
+    {
+      "event": "jdk.NativeMethodSample",
+      "thread": "/127.0.0.1:59803 to /127.0.0.1:59802 workers Thread 3",
+      "samples": 165
+    },
+    {
+      "event": "jdk.ExecutionSample",
+      "thread": "Test worker",
+      "samples": 7
+    },
+    {
+      "event": "jdk.NativeMethodSample",
+      "thread": "kernel-file-events",
+      "samples": 5
+    }
+  ]
+}

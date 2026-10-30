@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DesktopOperatorLoginTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:23:42.419Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.007">
+  <properties/>
+  <testcase name="aProviderFailureLeavesSignInRetryableAndCancellationReleasesThePendingAttempt[jvm]" classname="ai.bestbuds.reaktor.DesktopOperatorLoginTest" time="0.007"/>
+  <testcase name="unknownAndLocalEnvironmentsNeverBecomeRemoteAuthority[jvm]" classname="ai.bestbuds.reaktor.DesktopOperatorLoginTest" time="0.0"/>
+  <system-out><![CDATA[Info: Auth login state: idle
+Info: Auth login state: provider.lookup
+Info: Auth login state: provider.login
+Info: Auth login state: failure.provider
+Info: Auth login state: provider.lookup
+Info: Auth login state: provider.login
+Info: Auth login state: idle
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

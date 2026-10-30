@@ -1,54 +1,97 @@
 flowchart TB
-  subgraph Authoring["Dependeasy · declarations and contracts"]
-    D["🟢 Product DSL + typed handles<br/>components · outputs · environments"]
-    I["🟢 Stable plugin/toolchain boundary<br/>private implementation isolation"]
-    S["🟢 Typed specs + declared inputs<br/>Gradle-free Kotlin kernels"]
-    B["🟢 Thin Gradle bindings"]
-    M["🟢 Versioned build model<br/>IDs · edges · origins · freshness<br/>JVM archives qualified<br/>lazy analysis · compatible Process format"]
-    D --> I --> S
-    S --> B
-    S --> M
+  subgraph authoring["Dependeasy declarations and build contracts"]
+    dsl["CHECKED: Product DSL and typed handles"]
+    isolation["CHECKED: Private plugin and toolchain isolation"]
+    specs["CHECKED: Typed inputs, outputs, options and Kotlin kernels"]
+    bindings["CHECKED: Thin Gradle bindings"]
+    model["CHECKED: Versioned model, origins, freshness and JVM archives"]
+    dsl --> isolation --> specs
+    specs --> bindings
+    specs --> model
   end
-  subgraph Faces["Operator and agent clients"]
-    C["🟡 reaktor + reaktor-agent<br/>working · consolidation pending"]
-    H["🟡 Hangar<br/>Build / Deploy / Evidence"]
-    P["🟡 MCP projection<br/>working reads · write parity pending"]
-    T["⚪ Interactive terminal<br/>planned"]
+  subgraph clients["Operator and agent clients"]
+    cli["PARTIAL: reaktor and reaktor-agent; packaged plan/run checked"]
+    hangar["PARTIAL: Hangar Build, Deploy and evidence; receipt read uses owner"]
+    mcp["PARTIAL: MCP; 980 KB transport checked and installed; caller parity pending"]
+    tui["PLANNED: Interactive terminal"]
   end
-  subgraph Plane["Reaktor+ workspace build plane"]
-    K["🟡 Graph-owned headless kernel<br/>catalog · effects · one invocation gate"]
-    Q["🟡 Sealed plans + approvals<br/>fingerprints work · principal parity pending"]
-    L["🟡 Runs · receipts · artifacts · ledger<br/>automatic history bounded · store cutover pending"]
-    A["🟢 Atlas + native agent adapters<br/>qualified capabilities"]
-    F["🟡 Installed owner freshness<br/>BestBuds new owner serving · 286 operations<br/>three-root adoption still pending"]
-    K --> A
-    Q --> L
-    F -.-> K
+  subgraph plane["Reaktor workspace build plane"]
+    kernel["LIVE: Graph-owned kernel; catalog, effects and invocation gate"]
+    fileWatch["CHECKED: Java-owned native watcher; kernel 510 pass, 11 skips"]
+    graphLayout["CHECKED: Compact graph packing; 96 JVM, 7 JS and full engine pass"]
+    sourceCapture["CHECKED: Source capture 35.7% faster; 1016 passes, 27 skips; installed"]
+    routing["CHECKED: Routing function 17.9% faster, 82.3% fewer allocations; 103 tests and 4 real UI flows pass"]
+    cliDeadline["CHECKED: Compatibility kernel deadline; 487 conductor and 530 client passes; installed and live MCP checks pass"]
+    lifecycle["CHECKED: Task graph shutdown joins writers; 1010 passes, 27 skips"]
+    plans["CHECKED: Retained sealed plans; original scope revalidated at execution"]
+    ledger["PARTIAL: Runs, artifacts and receipts; final store cutover pending"]
+    receiptRead["CHECKED: Bounded ship.receipts; one model read per batch"]
+    runRead["CHECKED: Run reads; 776 passes, 12 skips; ledger reads 15-22% faster"]
+    atlas["CHECKED: Atlas and native agent adapters"]
+    identity["PARTIAL: Principal and distinct-approver parity"]
+    modelRead["CHECKED: Bounded model pages; 552 passes, 11 skips; node pages 12-18% faster"]
+    owner["LIVE: Owner PID35565; kernel d103c6eee6b5; checked tooling adapter installed; 290 operations"]
+    ownerClients["PARTIAL: Typed owner clients qualified; explicit local client applied; model paging checking; full store cutover pending"]
+    ownerClients --> kernel
+    kernel --> fileWatch
+    kernel --> graphLayout
+    graphLayout --> routing
+    cli --> cliDeadline --> kernel
+    schemaFingerprint["CHECKED: Schema fingerprints 30.6% faster, 75.6% fewer allocated bytes; 110 service and 691 prior engine passes; installed"]
+    kernel --> schemaFingerprint
+    kernel --> sourceCapture
+    kernel --> lifecycle
+    kernel --> atlas
+    kernel --> receiptRead
+    kernel --> runRead
+    kernel --> modelRead
+    runRead --> ledger
+    identity --> plans
+    plans --> ledger
+    owner -.-> kernel
   end
-  subgraph Execution["Execution and delivery"]
-    G["🟢 Gradle<br/>task closure + scheduling"]
-    R["🟡 Mac / m1-worker / Dagger<br/>portable CI passed · JVM copy-back qualified<br/>broader transport faults open"]
-    X["🟢 Shared Kotlin kernels + native tools<br/>Kotlin · web · CMake · Apple · tests"]
-    W["🟢 Cloudflare dev apply + rollback<br/>canonical live receipt joins"]
-    V["🟡 Server digest releases + Pulumi<br/>image prerequisite tests failed<br/>live adoption / release gates open"]
-    N["🔴 Two-phone push acceptance<br/>runner works · dev deliveries missing"]
-    O["🟡 Invocation telemetry<br/>live application → service → Hangar proof open"]
-    Perf["🟡 Performance<br/>Final JVM cache reuse: 4s Gradle /13s E2E<br/>typed archives + bounded history qualified<br/>cold / queues / resources still open"]
-    R -.-> Perf
-    G --> R --> X
-    X --> W
-    X --> V
-    X --> N
-    X --> L
-    L --> O
+  subgraph execution["Execution and delivery"]
+    gradle["CHECKED: Gradle task closure and scheduling"]
+    router["PARTIAL: Mac, m1-worker and Dagger; frozen source and JVM copy-back checked"]
+    storage["CHECKED: Storage scan 35.7% faster; 102 router/storage tests"]
+    native["CHECKED: Shared Kotlin kernels and native compilers/tools"]
+    worker["CHECKED: Cloudflare dev apply, rollback and receipt joins"]
+    server["FAILED: Latest image: wheel1.236 exceeds1.1 and engine600s; kernel passes; tooltip scoped checks pass"]
+    pulumi["PARTIAL: Pulumi adoption and live release acceptance"]
+    phones["FAILED: Two-phone dev push receipt acceptance"]
+    telemetry["PARTIAL: Retained production web CLIENT to SERVER journey verified; visual pane, devices and producer ack separate"]
+    performance["PARTIAL: Warm cache, planning and receipt gains; cold regression"]
+    gradle --> router --> native
+    bundlePublication["CHECKED: Typed web bundle publication; 157 model/plugin and 51 router passes; real slot-1 exact copyback"]
+    router --> bundlePublication
+    preview["CHECKED: Read-only provider preview; 157 tests; installed sealed 2105-task plan passes"]
+    plans --> preview --> gradle
+    router --> storage
+    native --> worker
+    native --> server
+    native --> pulumi
+    native --> phones
+    native --> ledger
+    ledger --> telemetry
+    router -.-> performance
   end
-  C --> K
-  H --> K
-  P --> K
-  T -.-> K
-  M --> K
-  K -->|"select and prepare"| Q
-  Q -->|"build request"| G
-  Q -->|"shipping request"| X
-  B --> G
-  L -.->|"recorded evidence"| K
+  model --> kernel
+  cli --> kernel
+  hangar --> kernel
+  mcp --> kernel
+  tui -.-> kernel
+  bindings --> gradle
+  kernel -->|"prepare and review"| plans
+  plans -->|"sealed build and delivery request"| gradle
+  ledger -->|"recorded deployment evidence"| receiptRead
+  receiptRead --> hangar
+  classDef checked fill:#e7f5ec,stroke:#24804a,color:#143e25
+  classDef partial fill:#fff4d7,stroke:#ae7b17,color:#513b10
+  classDef failed fill:#fce7e7,stroke:#b83b3b,color:#682222
+  classDef planned fill:#eeeeee,stroke:#777777,color:#333333
+  class schemaFingerprint,bundlePublication,cliDeadline,routing,sourceCapture,storage,dsl,isolation,specs,bindings,model,kernel,fileWatch,graphLayout,lifecycle,plans,receiptRead,runRead,modelRead,atlas,gradle,native,worker checked
+  class ownerClients,cli,hangar,mcp,ledger,identity,owner,router,pulumi,telemetry,performance partial
+  class phones,server failed
+  class tui planned
+
+  class preview checked

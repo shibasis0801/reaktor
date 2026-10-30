@@ -1,0 +1,7 @@
+{
+  "slot": 1,
+  "admissionSeconds": 583.673960458,
+  "snapshot": "bc1581702ae7a00ad4be18a9e37a2a4967501ab2ce563ca89823e523162bb882",
+  "distributionSha256": "4f27ea3f4e7d80a5690d416b8e9c0283cd12078b1b7888a3c6f746e10986585c",
+  "scope": "Actual packaged CLI and isolated foreground owner; frozen compatible Reaktor source; functional proof, not an additional timing comparison."
+}

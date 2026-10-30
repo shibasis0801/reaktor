@@ -1,0 +1,238 @@
+0 of 0 · declared · rev:e3b0c44298fc
+note: Not answered: from needs one of id, name, text, at, path, node, operation or symbol
+--- queries[0] {"from":{"name":"CollectionFrameTest"},"read":true}
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:158fa2df3f8e
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/CollectionFrameTest.kt
+  38:7 class CollectionFrameTest: class CollectionFrameTest · kotlin:ai/bestbuds/reaktor/CollectionFrameTest@:engine:test:jvmTest@bestbuds
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/CollectionFrameTest.kt · class CollectionFrameTest · 11000 of 18127 characters, partial · rev:158fa2df3f8e
+ 38  class CollectionFrameTest {
+ 39      private val rowCount = 10_000
+ 40      private val rowsPerFrame = 3
+ 41      private val warmUpFrames = 120
+ 42      private val measuredFrames = 600
+ 43      private val width = 1600
+ 44      private val height = 1000
+ 45      private val frameNanos = 16_666_667L
+ 46      private val reports = File("build/reports/collection-frame")
+ 47      private val rounds = 3
+ 48      private val pageDowns = 40
+ 49      private val relativeBudget = 1.1
+ 50      private val frameAt120Hz = 8.3
+ 51      private val frameAt60Hz = 16.7
+ 52      private val referenceTabsToFirstRow = 7
+ 53  
+ 54      private class WheelRun(val frames: ReaktorFrameVitals, val renders: List<Double>, val scrolledRows: Float, val loadBefore: Double, val loadAfter: Double)
+ 55  
+ 56      @Test
+ 57      fun theReferenceDevToolsTableScrollsTenThousandNetworkRowsThreeRowsAFrame() {
+ 58          val calls = labNetworkCalls(rowCount)
+ 59          val columns = networkColumns(calls)
+ 60          val run = wheelScroll { ReferenceNetworkTable(calls, columns, selected = null, Modifier.fillMaxSize()) }
+ 61          val cores = Runtime.getRuntime().availableProcessors()
+ 62          val report = listOf(
+ 63              "reference DevToolsTable, $rowCount Network rows, ${width}x$height Machine Signal Editor/Compact, $rowsPerFrame rows a frame",
+ 64              "frames (wheel dispatch and render): ${run.frames.frameCount} after $warmUpFrames warm-up; p95 ${run.frames.p95FrameMs} ms; worst ${run.frames.maxFrameMs} ms; mean ${run.frames.averageFrameMs} ms; over 16.7 ms ${run.frames.droppedFrames}",
+ 65              "render alone: p95 ${percentile(run.renders, .95)} ms; worst ${percentile(run.renders, 1.0)} ms",
+ 66              "rows scrolled: ${run.scrolledRows} of ${(warmUpFrames + measuredFrames) * rowsPerFrame}",
+ 67              "load average over one minute: ${"%.2f".format(run.loadBefore)} before, ${"%.2f".format(run.loadAfter)} after, on $cores cores",
+ 68          )
+ 69          reports.mkdirs()
+ 70          File(reports, "reference.txt").writeText(report.joinToString("\n"))
+ 71          report.forEach { println("CollectionFrameTest $it") }
+ 72          assertEquals(measuredFrames, run.frames.frameCount)
+ 73          val expectedRows = ((warmUpFrames + measuredFrames) * rowsPerFrame).toFloat()
+ 74          assertEquals(expectedRows, run.scrolledRows, expectedRows * .05f)
+ 75      }
+ 76  
+ 77      @Test
+ 78      fun thePaneTableScrollsAndPagesTenThousandNetworkRowsNoSlowerThanTheReference() {
+ 79          val calls = labNetworkCalls(rowCount)
+ 80          val columns = networkColumns(calls)
+ 81          val wheels = mutableListOf<Pair<WheelRun, WheelRun>>()
+ 82          val pages = mutableListOf<Pair<KeyRun, KeyRun>>()
+ 83          repeat(rounds) { round ->
+ 84              wheels += paired(round,
+ 85                  { wheelScroll { ReferenceNetworkTable(calls, columns, selected = null, Modifier.fillMaxSize()) } },
+ 86                  { wheelScroll { PaneNetworkTable(calls, Modifier.fillMaxSize()) } })
+ 87          }
+ 88          val referencePages = @Composable { ReferenceNetworkTable(calls, columns, selected = null, Modifier.fillMaxSize()) }
+ 89          val tablePages = @Composable { PaneNetworkTable(calls, Modifier.fillMaxSize()) }
+ 90          keyScripts(tabsToFirstRow = referenceTabsToFirstRow, jumps = false, referencePages)
+ 91          keyScripts(tabsToFirstRow = 0, jumps = true, tablePages)
+ 92          repeat(rounds) { round ->
+ 93              pages += paired(round,
+ 94                  { keyScripts(tabsToFirstRow = referenceTabsToFirstRow, jumps = false, referencePages) },
+ 95                  { keyScripts(tabsToFirstRow = 0, jumps = true, tablePages) })
+ 96          }
+ 97          val wheelReference = wheels.map { checkNotNull(it.first.frames.p95FrameMs) }.median()
+ 98          val wheelTable = wheels.map { checkNotNull(it.second.frames.p95FrameMs) }.median()
+ 99          val pageReference = pages.map { checkNotNull(it.first.pages.averageFrameMs) }.median()
+100          val pageTable = pages.map { checkNotNull(it.second.pages.averageFrameMs) }.median()
+101          val wheelRatio = wheels.map { checkNotNull(it.second.frames.p95FrameMs) / checkNotNull(it.first.frames.p95FrameMs) }.median()
+102          val pageRatio = pages.map { checkNotNull(it.second.pages.averageFrameMs) / checkNotNull(it.first.pages.averageFrameMs) }.median()
+103          val keyTable = pages.map { maxOf(checkNotNull(it.second.pages.p95FrameMs), checkNotNull(it.second.jumps?.p95FrameMs)) }.median()
+104          val wheelBudget = absoluteBudget(wheelReference)
+105          val pageBudget = absoluteBudget(pages.map { checkNotNull(it.first.pages.p95FrameMs) }.median())
+106          val cores = Runtime.getRuntime().availableProcessors()
+107          val report = listOf(
+108              "PaneTable (Hangar's production table) against DevToolsTable, $rowCount rows, ${width}x$height Machine Signal Editor/Compact, $rounds rounds each, alternating",
+109          ) + wheels.flatMapIndexed { round, (reference, table) ->
+110              listOf("wheel round ${round + 1}, reference: ${reference.describe()}", "wheel round ${round + 1}, data table: ${table.describe()}")
+111          } + pages.flatMapIndexed { round, (reference, table) ->
+112              listOf(
+113                  "$pageDowns PageDowns round ${round + 1}, reference: ${reference.pages.describe()}; reached ${reference.reached}",
+114                  "$pageDowns PageDowns round ${round + 1}, data table: ${table.pages.describe()}; End, Home and a typeahead jump: ${table.jumps?.describe()}; reached ${table.reached}",
+115              )
+116          } + listOf(
+117              "median p95, wheel: reference $wheelReference ms, data table $wheelTable ms",
+118              "median of the mean PageDown frame: reference ${"%.1f".format(pageReference)} ms, data table ${"%.1f".format(pageTable)} ms; the data table's key p95 $keyTable ms",
+119              "median candidate/reference within each round: wheel ${"%.3f".format(wheelRatio)}, PageDown ${"%.3f".format(pageRatio)}; relative limit $relativeBudget",
+120              "absolute budget, judged only where the reference holds it on this machine: wheel ${wheelBudget?.let { "$it ms" } ?: "not judged"}, keys ${pageBudget?.let { "$it ms" } ?: "not judged"}",
+121              "load average over one minute: ${"%.2f".format(wheels.first().first.loadBefore)} at the start, ${"%.2f".format(wheels.last().second.loadAfter)} at the end, on $cores cores",
+122          )
+123          reports.mkdirs()
+124          File(reports, "data-table.txt").writeText(report.joinToString("\n"))
+125          report.forEach { println("CollectionFrameTest $it") }
+126          val expectedRows = ((warmUpFrames + measuredFrames) * rowsPerFrame).toFloat()
+127          wheels.forEach { (_, table) -> assertEquals(expectedRows, table.scrolledRows, expectedRows * .05f) }
+128          pages.forEach { (_, table) ->
+129              assertTrue(table.reached.getValue("PageDown x$pageDowns") >= pageDowns * table.reached.getValue("rows per page") - 1, "${table.reached}")
+130              assertTrue(table.reached.getValue("first row on screen") > 0, "${table.reached}")
+131              assertEquals(rowCount - 1, table.reached.getValue("End"))
+132              assertEquals(0, table.reached.getValue("Home"))
+133              assertEquals(5, table.reached.getValue("typeahead 5"))
+134          }
+135          assertTrue(wheelRatio <= relativeBudget, "the data table's median wheel p95 ratio $wheelRatio is over $relativeBudget")
+136          assertTrue(pageRatio <= relativeBudget, "the data table's median PageDown frame ratio $pageRatio is over $relativeBudget")
+137          wheelBudget?.let { assertTrue(wheelTable <= it, "the data table's wheel p95 $wheelTable ms is over $it ms") }
+138          pageBudget?.let { assertTrue(keyTable <= it, "the data table's key p95 $keyTable ms is over $it ms") }
+139      }
+140  
+141      @Test
+142      fun aClickAndAnArrowRebuildNeitherTheSortNorTheColumnsOfAPaneTable() {
+143          val calls = labNetworkCalls(1_000)
+144          val sorts = AtomicInteger()
+145          val cells = AtomicInteger()
+146          val (click, arrow) = onEdt {
+147              var nanos = 0L
+148              val scene = ImageComposeScene(width, height, Density(1f), coroutineContext = Dispatchers.Swing) {
+149                  HangarEditorRoot { PaneNetworkTable(calls, Modifier.fillMaxSize(), sorts, cells) }
+150              }
+151              try {
+152                  fun render() = repeat(3) {
+153                      nanos += frameNanos
+154                      Snapshot.sendApplyNotifications()
+155                      scene.render(nanos).close()
+156                  }
+157                  fun click(node: SemanticsNode) {
+158                      val at = node.boundsInRoot.center
+159                      scene.sendPointerEvent(PointerEventType.Press, at, buttons = PointerButtons(isPrimaryPressed = true), button = PointerButton.Primary)
+160                      scene.sendPointerEvent(PointerEventType.Release, at, buttons = PointerButtons(), button = PointerButton.Primary)
+161                      render()
+162                  }
+163                  fun counted(action: () -> Unit): Pair<Int, Int> {
+164                      sorts.set(0)
+165                      cells.set(0)
+166                      action()
+167                      return sorts.get() to cells.get()
+168                  }
+169                  render()
+170                  click(nodes(scene).first { it.config.getOrNull(SemanticsProperties.Text)?.joinToString() == "Time" })
+171                  check(rowNumber(rowNodes(scene).first()) == 0) { "the table did not sort by time" }
+172                  fun selectedRow() = rowNumber(rowNodes(scene).single { it.config.getOrNull(SemanticsProperties.Selected) == true })
+173                  val third = rowNumber(rowNodes(scene)[3])
+174                  val fourth = rowNumber(rowNodes(scene)[4])
+175                  val clicked = counted { click(rowNodes(scene)[3]) }
+176                  check(selectedRow() == third) { "the click did not select" }
+177                  val arrowed = counted {
+178                      scene.sendKeyEvent(KeyEvent(Key.DirectionDown, KeyEventType.KeyDown))
+179                      scene.sendKeyEvent(KeyEvent(Key.DirectionDown, KeyEventType.KeyUp))
+180                      render()
+181                  }
+182                  check(selectedRow() == fourth) { "the arrow did not move the selection" }
+183                  clicked to arrowed
+184              } finally {
+185                  scene.close()
+186              }
+187          }
+188          println("CollectionFrameTest rebuilds: a click re-ran ${click.first} sort keys and ${click.second} cells; an arrow ${arrow.first} and ${arrow.second}")
+189          assertEquals(0 to 0, click, "a click re-sorted or redrew rows it did not change")
+190          assertEquals(0 to 0, arrow, "an arrow re-sorted or redrew rows it did not change")
+191      }
+192  
+193      private fun nodes(scene: ImageComposeScene): List<SemanticsNode> {
+194          fun descend(node: SemanticsNode): List<SemanticsNode> = listOf(node) + node.children.flatMap(::descend)
+195          return scene.semanticsOwners.flatMap { descend(it.rootSemanticsNode) }
+196      }
+197  
+198      private fun absoluteBudget(reference: Double): Double? = listOf(frameAt120Hz, frameAt60Hz).firstOrNull { reference <= it }
+199  
+200      private fun WheelRun.describe() = "${frames.describe()}; render alone p95 ${percentile(renders, .95)} ms"
+201  
+202      private fun ReaktorFrameVitals.describe() = "p95 $p95FrameMs ms; worst $maxFrameMs ms; mean $averageFrameMs ms; over 16.7 ms $droppedFrames of $frameCount"
+203  
+204      private fun List<Double
+next: atlas_read {"id":"d:modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/CollectionFrameTest.kt:37:6@ae65f77e"}
+next: atlas_query {"from":{"id":"d:modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/CollectionFrameTest.kt:37:6@ae65f77e"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[1] {"from":{"name":"SourceCandidates"},"follow":[{"rel":"references","dir":"in"}]}
+38 of 38 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59, kotlin-lexer/2.4.21, git-grep) · the compiler checked 13 of the 13 files searched; 31 uses on 30 lines · rev:e3336bcfa9a2
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt
+  11:7 class SourceCandidates: class SourceCandidates(private val root: File, private val artifacts: LocalAgentArtifacts) · kotlin:dev/shibasis/reaktor/conductor/workspace/SourceCandidates@:reaktor-conductor:main:jvmMain@reaktor
+  84 use ×2 in SourceCandidates.capture: else (materializedRoots?.let { SourceCandidates(dependency, artifacts, it) } ?: SourceCandidates(dependency, artifacts)).capture(emptyList(), visited).also {
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalEvidence.kt
+  14 use in OperationalEvidence.sources: private val sources = SourceCandidates(root.canonicalFile, artifacts)
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentEvidenceTest.kt
+  54 use in KernelAgentEvidenceTest.executionRetainsEarlyDiagnosticsAndBindsTheActualDirtySource: val current = SourceCandidates(root.canonicalFile, LocalAgentArtifacts(data.resolve("test-artifacts"))).capture()
+  57 use in KernelAgentEvidenceTest.executionRetainsEarlyDiagnosticsAndBindsTheActualDirtySource: assertNotEquals(SourceCandidates(root.canonicalFile, LocalAgentArtifacts(data.resolve("test-artifacts"))).capture().id, check.revision)
+targets/reaktorDesktop/src/test/kotlin/ai/bestbuds/reaktor/fixtures/AgentChoicesFixture.kt
+  36 use in seedAgentChoices: val candidate = SourceCandidates(checkout, evidence.artifacts).capture()
+targets/reaktorDesktop/src/test/kotlin/ai/bestbuds/reaktor/fixtures/AgentLandingFixture.kt
+  176 use in seedAgentLanding: val candidate = SourceCandidates(checkout, evidence.artifacts).capture()
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentEvidenceStore.kt
+  10 use in AgentEvidenceStore.candidates: private val candidates = SourceCandidates(root, artifacts)
+  100 use in AgentEvidenceStore.accept: else SourceCandidates(File(candidate.workspaceRoot), artifacts, candidate.sourceRoots.map(::File)).capture(candidate.subjects)
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentMemoryStore.kt
+  48 use in AgentMemoryStore.propose: val source = SourceCandidates(root, artifacts).capture()
+  139 use in AgentMemoryStore.search: val source = SourceCandidates(root, artifacts).capture()
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspace.kt
+  805 use in AgentWorkspace.resume: require(SourceCandidates(currentRoot, evidence.artifacts).capture().sourceDigest == expected) {
+  841 use in AgentWorkspace.fork: val revision = SourceCandidates(root, evidence.artifacts).capture().sourceDigest
+  1171 use in AgentWorkspace.execute: sourceRevision = SourceCandidates(workingRoot, evidence.artifacts).capture().sourceDigest
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorktrees.kt
+  33 use in AgentWorktrees.capture: return SourceCandidates(workingRoot, artifacts, roots).capture(subjects)
+  109 use in AgentWorktrees.prepare: prepare(runId, participant) { SourceCandidates(root, artifacts).capture() }
+  161 use in AgentWorktrees.freeze: val before = SourceCandidates(root, artifacts).capture()
+  168 use in AgentWorktrees.freeze: val after = SourceCandidates(root, artifacts).capture()
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridHandoffs.kt
+  35 use in HybridHandoffs.prepare: val candidate = SourceCandidates(File(request.workingDirectory), artifacts).capture()
+  55 use in HybridHandoffs.verifySource: val current = SourceCandidates(File(value.workspaceRoot), artifacts).capture()
+  256 use in HybridHandoffs.beforeExecution: val current = SourceCandidates(File(value.workspaceRoot), artifacts)
+  280 use in HybridHandoffs.observed: val source = SourceCandidates(File(old.workspaceRoot), artifacts)
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorktreeRouterTest.kt
+  82 use in AgentWorktreeRouterTest.sparsePairsPreserveDirtySourceAndExcludeOnlyBestbudsEvidence: val candidates = SourceCandidates(root, artifacts, listOf(root, framework))
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt
+  48 use in SourceIsolationTest.snapshotsKeepAuthoredDirtyInputsAndExcludeRuntimeAndDatedEvidence: val candidates = SourceCandidates(root, artifacts)
+  124 use in SourceIsolationTest.movingCaptureAndMovingSnapshotRetryAndDiscardTheOldTrial: SourceCandidates(root, artifacts).capture().let {
+  143 use in SourceIsolationTest.persistentSourceMotionStopsAfterThreeAttemptsAndLeavesNoTrials: SourceCandidates(root, artifacts).capture()
+  169 use in SourceIsolationTest.nestedIncludedBuildsAreCoveredByTheirOwningRepository: val candidate = SourceCandidates(root, artifacts).capture()
+  188 use in SourceIsolationTest.gitlinksRetainTheirPinnedRevisionAndDirtySubmoduleSourceRefusesIsolation: val candidates = SourceCandidates(root, artifacts)
+  205 use in SourceIsolationTest.gitlinksRetainTheirPinnedRevisionAndDirtySubmoduleSourceRefusesIsolation: assertTrue(SourceCandidates(checkout, artifacts).capture().complete)
+  215 use in SourceIsolationTest.incompleteCoverageAfterSnapshotRefusesAndRemovesTheTrial: SourceCandidates(root, artifacts).capture().let {
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/TaskContextTest.kt
+  55 use in TaskContextTest.seed: val source = SourceCandidates(root, owner.evidence.artifacts).capture()
+agent/graph-native-20261007/PLAN.md
+  20 text: andidate capture includes a literal composite-build dependency. Dirty dependency edits change candidate identity even with the same primary HEAD. | [Candidate identity](evidence/candidate-identity.jso
+agent/graph-native-20261007/manifest.json
+  91 text: "path": "reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt",
+agent/graph-native-20261007/run.py
+  36 text: 'reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt',
+papers/reaktor-graph-v2/mapping-evidence/04-hangar-agents-tooling.md
+  442 text: - Where: CJ/workspace/{AgentEvidenceStore,SourceCandidates,KernelCheckImport}.kt, K/kernel/{KernelAgentChecks,KernelAgentCheckRunner}.kt, CC/{CheckResult,CheckReducers}.kt.
+  445 text: - Each turn, the candidate is sha256(root, HEAD, every tracked or untracked file up to 256 MB) [code: CJ/workspace/SourceCandidates.kt:22-95].
+../reaktor/reports/dependeasy-benchmark-2026-10-28/source-manifests/03edc40d007277661b4e0657afe6b892b3c14412abe643f85fdc3c8a3e68e34e.json
+  1 text: b607", 420], "reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt": ["file", "5fb1694fef388030c4673813eb3254927190700efbaa0c7ad6f55111567d1dd9", 4
+../reaktor/reports/dependeasy-benchmark-2026-10-28/source-manifests/18f37eefc6cfaf00ccbff8c62b0647acf4de25b302ee8e5e54b17c0c864fc21e.json
+  1 text: b607", 420], "reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt": ["file", "5fb1694fef388030c4673813eb3254927190700efbaa0c7ad6f55111567d1dd9", 4
+note: More lines contain SourceCandidates than one search returns; narrow with path
+note: Also lists 7 lines that mention SourceCandidates outside Kotlin code: comments, strings and other files
+next: atlas_read {"id":"d:../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt:10:6@5fb1694f"}

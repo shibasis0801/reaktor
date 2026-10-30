@@ -1,0 +1,17 @@
+{
+  "slot": 1,
+  "admissionSeconds": 0.07871758300007059,
+  "snapshot": "bc1581702ae7a00ad4be18a9e37a2a4967501ab2ce563ca89823e523162bb882",
+  "distributionSha256": "c69182557c93e8f7b902791de413c2f46b28bb09c0c9509c9bf87788263422a6",
+  "pairedPlanner": {
+    "eligible": true,
+    "changedJarEntries": [
+      "dev/shibasis/reaktor/tooling/GradleBuildPlanner$prepare$gradle$1.class",
+      "dev/shibasis/reaktor/tooling/GradleBuildPlanner.class"
+    ],
+    "jarName": "reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar",
+    "beforeJarSha256": "9ea51281bd7beadc55362c56b8a2e328a9d7440d0960fdcad8c8096c93a38141",
+    "afterJarSha256": "49a6bec6085d36b14140009be6fa51c8bcd0f66828fb115ba94a4331345e42d6"
+  },
+  "scope": "Actual packaged CLI/isolated-owner acceptance and three alternating planner pairs; frozen source, slot 1, JDK 25 and inherited environment held constant. Admission and bootstrap excluded from timed CLI calls."
+}

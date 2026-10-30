@@ -1,0 +1,23 @@
+{
+  "run_id": "20261029-040752-807a52b0-bestbuds",
+  "project": "bestbuds",
+  "worker": "local",
+  "tasks": [
+    ":reaktor:reaktor-ui:jvmTest",
+    "--tests",
+    "*SignalTypographyTest",
+    ":engine:jvmTest",
+    "--tests",
+    "*SurfaceLabRenderTest",
+    "--continue",
+    "--console=plain"
+  ],
+  "workspace_root": "/Users/ovd/dev",
+  "started": "2026-10-29T04:07:52.728827",
+  "log": "/Users/ovd/dev/.remote-dev/logs/20261029-040752-807a52b0-bestbuds.log",
+  "queue_seconds": 70.19030441700001,
+  "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+  "exit_code": 1,
+  "execution_seconds": 108.055914459,
+  "finished": "2026-10-29T04:09:40.778545"
+}

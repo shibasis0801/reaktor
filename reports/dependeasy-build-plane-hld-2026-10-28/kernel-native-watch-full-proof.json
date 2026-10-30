@@ -1,0 +1,1674 @@
+{
+  "router": "20261029-055808-da8a4cf7-bestbuds",
+  "counts": {
+    "kernel": {
+      "tests": 521,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 11
+    },
+    "cli": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "archive": "kernel-native-watch-full-results.zip",
+  "sha256": "3c5aa48bdbc60f6b2dbd94d0c5976701b03549a912a460fc7eca75fec5b40142",
+  "suites": [
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.WorkingTreeTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.testing.WorkingTreeTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:46.848Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.002"
+      },
+      "sha256": "8a3ffa2c00222f00694c80f29759ae72c4eb6491e1a46f010427706cb47d0488"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabasePinnedResultsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabasePinnedResultsTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.485Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.001"
+      },
+      "sha256": "d24cb294dbcb2d8036347578b9611217d6a7082e3cf1035192ef3db1df525d7c"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.inspection.WorkbenchInspectionSessionTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.inspection.WorkbenchInspectionSessionTest",
+        "tests": "13",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.212Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.013"
+      },
+      "sha256": "4cd6c65aed6d52538447e9c620dc41c69a0ddc37aac96f213c8c1f647348adf7"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.DataCatalogTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.DataCatalogTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:20.080Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.025"
+      },
+      "sha256": "9b5dd3532712802fef2a1c6758afa35d08870f054c8715afc9db7c085d73e945"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAtlasTest",
+        "tests": "29",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:31.915Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "2.375"
+      },
+      "sha256": "6649aa8f2d3992826085973cdb48d02eb28249ba0fbaae316485a29cc7d9ef64"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ClickHouseRestorePlanTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.ClickHouseRestorePlanTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.575Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "3.372"
+      },
+      "sha256": "396d2257f51dc42836acce6f464773c04b2d3b92df826ad0e339c3e745ce9043"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.DeployArtifactsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.DeployArtifactsTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:37.948Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.749"
+      },
+      "sha256": "e8ce9a490f9778e9ab3faa89b44e9dd177e4dcbfd8aa6966a25ffc44a04007be"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelHouseRulesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelHouseRulesTest",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:03.091Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.641"
+      },
+      "sha256": "fb83cfea750da7b89a8e931a869704da4e350427c607461a9e5c98d866150d28"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTaskGraphTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTaskGraphTest",
+        "tests": "13",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:12.901Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "1.261"
+      },
+      "sha256": "9a6f6ebfc5d849077449ff28f28b80aae9d3deae30f5d2c8f27e0a4bb081a14c"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.PlanConfirmationTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.PlanConfirmationTest",
+        "tests": "8",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:45.406Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.016"
+      },
+      "sha256": "e1f4e0aca249907751f17aaa16a5d4503f842548b160cb0b8640137592dc9d6e"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.auth.AuthDeclarationsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.auth.AuthDeclarationsTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.408Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.013"
+      },
+      "sha256": "a554040232d3e3212f0be2318734dcbb15c81708388c5625789e91dc499b1a0e"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.mcp.DesktopMcpSessionTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.mcp.DesktopMcpSessionTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.226Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.003"
+      },
+      "sha256": "1210312e510cfdf4d68847348bc2b1b49dd75fea04ce5697e96edc3b205f76ca"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTelemetryTest",
+        "tests": "10",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:14.176Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.015"
+      },
+      "sha256": "646dd2360eadd0590d1b782767dbf85199ecfb058060d2a1cbc85ac6f474362e"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DataCodeUsageTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DataCodeUsageTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.457Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.005"
+      },
+      "sha256": "96f7d160da7925c616e0ccbed3f050edf81d1f6d3a136d4da1ad7726f570524b"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.SessionReadsAreBoundedTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.SessionReadsAreBoundedTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:45.665Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "1.111"
+      },
+      "sha256": "82cbb3c95025e22724ca60e67239444933b88693c881145413c78e6be74a2b7e"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.CheckReportsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.testing.CheckReportsTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:46.810Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.033"
+      },
+      "sha256": "4ee8f8ce5ee1cc12d407cadb80ce0c2aee047d8851a207fc3e805761495d2f11"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.BestBudsSchemaCatalogTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.topology.BestBudsSchemaCatalogTest",
+        "tests": "8",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:46.851Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.42"
+      },
+      "sha256": "e85af84d49e821968212aed5ae47e95193ff09af308e869d67eb4c1aabb76961"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ClickHouseBackupPlanTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.ClickHouseBackupPlanTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.230Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.344"
+      },
+      "sha256": "b058c56322707354aeeb7f85a71d0bbe5919baebd5317edbba9bed06f76d3de2"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PubSubSessionTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.PubSubSessionTest",
+        "tests": "1",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.184Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.0"
+      },
+      "sha256": "47944cd53ff2f09a373068b391eb6716c8e4167f8dd2e56287e4d62040b6b7f3"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseFindingsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseFindingsTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.467Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.008"
+      },
+      "sha256": "c40d0c6056a23fb967b789b6fcade7b5ece4f92c97916f8ec6c168b0d0218be7"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseGraphExplorationTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseGraphExplorationTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.476Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.004"
+      },
+      "sha256": "576ef43857f0ef40c5fe06f8ccc8aa4ec7c18d42e7e1bdfdf6084b5c70d34944"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.inspection.ElementBindingRegistryTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.inspection.ElementBindingRegistryTest",
+        "tests": "11",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.200Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.01"
+      },
+      "sha256": "a77c3271db129db0fba78da057281279b268546b6304dfb12eab439df77e9b7a"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.ai.AiInventoryTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.ai.AiInventoryTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.562Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "4.733"
+      },
+      "sha256": "8584bb1ce76a464c517a17df56ac840e9724ad327c33feb5c9ae2917f3a2534f"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelRadarTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelRadarTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:04.192Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.012"
+      },
+      "sha256": "3df4b4bebba25b540612e86b18e3988e92b1a9bcde0d9ed209f9c37b7552a598"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCandidateChecksTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCandidateChecksTest",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:36.822Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "14.346"
+      },
+      "sha256": "a29c8752279facab5adbed01fd0d0baad1235535b95dc1a849cbac663de4a7b3"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelConnectionsTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:57.851Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.036"
+      },
+      "sha256": "94663a0a534346bda0e926a1aae2babdbfb2e351302c72dc354ffebbb0a23979"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelPrincipalTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelPrincipalTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:04.188Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.003"
+      },
+      "sha256": "7f36dc48bb20e527fc7e78dfc20cf5ad3b877eaec7374bfafc01fc5fc7181426"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelEngineeringTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelEngineeringTest",
+        "tests": "20",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:01.595Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "1.166"
+      },
+      "sha256": "a578b1c9882bc56bfbff6a6525b7b4a7b6a3f3617c25fb7e730cdfdc4168495b"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelDatabaseTargetsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelDatabaseTargetsTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:00.348Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.006"
+      },
+      "sha256": "d06ec3141c17c220ee11464bc944ff22cfee0855c78fa144325f0ed3b14e8961"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelGeneratedSourcesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelGeneratedSourcesTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:02.768Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.301"
+      },
+      "sha256": "9a1a1a49fa21cca0584d5ac24658e47cf7e898d3305de0200bb891dd229d0740"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionFailuresTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelConnectionFailuresTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:57.559Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.292"
+      },
+      "sha256": "8b5312505c6f4536f2b4562b76a954b3112ba1d711baaedbc8f6587ddfadcd24"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.BuildModelsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.agent.BuildModelsTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.448Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.007"
+      },
+      "sha256": "3f83a083454327a41f0275a41cf1db89c8d4e2ec565fc5b90711c95a50fdbe0a"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.OperatorAuthorityTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.OperatorAuthorityTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.226Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.006"
+      },
+      "sha256": "2b47aebe6c93cc1f06bf59fecfbb3497fee65134f0aab02520af56654f71f701"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasPresetsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAtlasPresetsTest",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:30.212Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "1.7"
+      },
+      "sha256": "8013d5a9ac3b20db61dd6aafa15d74081c47c397da93ca8952355460d8453744"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.CatalogStartupPerformanceTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.CatalogStartupPerformanceTest",
+        "tests": "1",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:20.035Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.003"
+      },
+      "sha256": "86949a467a2304a683d200edf84d56924a283b098f566e602751d0d4af4b6fb6"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelMcpTasksTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelMcpTasksTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:03.941Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.004"
+      },
+      "sha256": "b5088ed0a3c9f94f1d160ff16ae48592c8cdf5ee1f7f024741cd08b8c4404fc4"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentsLifecycleTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAgentsLifecycleTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:29.570Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.011"
+      },
+      "sha256": "070a7793f13ddc301e95d85b8c49acdb43b2dfeed4aea7a6c860130be0385a8c"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSchemaExplorationTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseSchemaExplorationTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.487Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.001"
+      },
+      "sha256": "1ba6acc4011d739b843c42a49890164ff9edf8787deb935bdd7c4d8e01cbab1d"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-dev.shibasis.reaktor.conductor.cli.HarnessUsageTest.xml",
+      "suite": {
+        "name": "dev.shibasis.reaktor.conductor.cli.HarnessUsageTest",
+        "tests": "17",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:54.526Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.031"
+      },
+      "sha256": "dfb95b2cd8fe7ac634b75980a670ca4fa6b06b2453c0f9145e35caa8815e84fa"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.SavedDataDocumentsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.SavedDataDocumentsTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.185Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.005"
+      },
+      "sha256": "83d724a952771c847f57f64e68b5c2a102ba2e50f32c1a2db7e21835f45662af"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.FirebaseReportsPlanTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.FirebaseReportsPlanTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:38.698Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.225"
+      },
+      "sha256": "8e1d9dc9d05bed656771e2a4c46c4218f67b4935ea1a24b8c25429056247f9ae"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DeviceDatabaseTargetTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DeviceDatabaseTargetTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.499Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.001"
+      },
+      "sha256": "38a8c406e24fa4e001951524b57befda5a7050b0861347b83bf33d80fab311b1"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelIntegrationTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelIntegrationTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:03.781Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.122"
+      },
+      "sha256": "c5cbceac24f048bbade9d89879349fa58cc01700c603f68cca226d7c3f300b86"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelOwnerTransportTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelOwnerTransportTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:03.980Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.109"
+      },
+      "sha256": "ed7d4390c1e74c76b47024f762664c5f1a903700a126ef3cff55bf05d4001672"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasCompiledTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAtlasCompiledTest",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:29.589Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.621"
+      },
+      "sha256": "22da30af0bf8ebb05df61f6931db2b72f44c594618ee20d927d7f32c55c92265"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.BestBudsSystemTopologyTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.topology.BestBudsSystemTopologyTest",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:47.272Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "7.204"
+      },
+      "sha256": "34d2fdc6254957d9d9530cc78edd88f5fa7cc4799b251cf0a50200e506ec6481"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelNodeTelemetryTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelNodeTelemetryTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:03.946Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.034"
+      },
+      "sha256": "7c580cc4a5329d550e01a3e5026bca4ba2be9d77fc65d15b6c1a3028b0e643c3"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelInboxTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelInboxTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:03.733Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.047"
+      },
+      "sha256": "542547bee3bda5e03f5d79f7bec1939bdc860ebb8b563a77d1457f72f17bec23"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.ProductionConnectionsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.ProductionConnectionsTest",
+        "tests": "3",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.233Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.002"
+      },
+      "sha256": "9b657906e418dd2c2d0fb59959c563ae1e4bab5af838b8872360e02490216e5b"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseDocumentsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseDocumentsTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.465Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.0"
+      },
+      "sha256": "98cd3b0bbc220540124f719a36be96013b0b431d07f9bf5b007530acff489430"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.WorkerStoreSessionTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.WorkerStoreSessionTest",
+        "tests": "1",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.198Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.001"
+      },
+      "sha256": "04f1e6d76f98a5dc29acbddc6e2c716b9b74f53d7133c56110502a8bc50ce4d4"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-dev.shibasis.reaktor.conductor.cli.StdioBridgeTest.xml",
+      "suite": {
+        "name": "dev.shibasis.reaktor.conductor.cli.StdioBridgeTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:54.558Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.153"
+      },
+      "sha256": "864036dd882db5b6d3e1e69b70748136e87d129d58a63f2cbeb410ee720033c1"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.DatabaseWriterTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.DatabaseWriterTest",
+        "tests": "9",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:20.107Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.029"
+      },
+      "sha256": "90f779881b90993e01b64f67cf5811b1955222cc2532a28781bab9fdb9010834"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.NativeKernelExecutionTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.NativeKernelExecutionTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.203Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.022"
+      },
+      "sha256": "726ee5547865e45c14a01db527fce13f1c2e76099118756945c31a21284829b1"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelWorkspaceTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelWorkspaceTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:26.681Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.521"
+      },
+      "sha256": "4afa20b012f6c18b53314e45c5212ca238c797df2de334bd86f61dcbe8200cde"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.MemgraphInspectionBrokerTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.MemgraphInspectionBrokerTest",
+        "tests": "2",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.501Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "1.67"
+      },
+      "sha256": "829dfb1ec05b4c74e600e09b77302ce31ee4b9c1755b456d8ec223147016fd3e"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSessionLogTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelSessionLogTest",
+        "tests": "12",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:05.401Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.18"
+      },
+      "sha256": "a2a37db0fb2f3e13d8ea2780ec002c5c57ed76bc6ad8e12f8364a7e6ec385e91"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelChangesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelChangesTest",
+        "tests": "19",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:51.171Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "5.37"
+      },
+      "sha256": "b9caf0614f43181d77f7a15f3e220eeb09d1478c5de5ecd604b1c776f75dbd58"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAcceptanceTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAcceptanceTest",
+        "tests": "8",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:20.533Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "5.183"
+      },
+      "sha256": "2420b4d3337078ceee34bd618c8ba184dda0bb674a0715de45fd09df99d36a0c"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionBatchTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelConnectionBatchTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:56.941Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.617"
+      },
+      "sha256": "1bc66790bf5831428da6f69befdf85527fb17911ef6bd2beed1ab4142cea467e"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentChecksTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAgentChecksTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:25.920Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "3.114"
+      },
+      "sha256": "64987932c5bd4aa09f8904db0125d0e104d1d33b18ca13c43b39edb09cfd6e9d"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationRulesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.OperationRulesTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:43.203Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.001"
+      },
+      "sha256": "61dda95c8bb099c0bfd131a20813174d5ef8db38c683c47d6fa902b5b14f6a12"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.AuthDirectorySessionTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.AuthDirectorySessionTest",
+        "tests": "13",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.297Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.159"
+      },
+      "sha256": "63efa18155f1d6b87f1c1b94750c0985fbc199f3c1a89a73074d361a5b518bfe"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ServiceSpanMigrationTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.ServiceSpanMigrationTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:45.423Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.241"
+      },
+      "sha256": "1d48dd92f1addad92a97e1224065e059152920c3aa307378eefe0d3d69737fdf"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelCheckResultTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.mcp.KernelCheckResultTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.437Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.004"
+      },
+      "sha256": "345908194983c3c39e0f7a1914ca0fda97a0e637fa8de26cc1469a708a733e92"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelBoardTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelBoardTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:34.291Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.157"
+      },
+      "sha256": "23f57d9f504bb71e6b6588e7519e42b2706f4d9c3f34fd814b83fac5ede66953"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTypeScriptFactsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTypeScriptFactsTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:14.196Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.252"
+      },
+      "sha256": "85b76a3002d96ee9eaa43b4f37f180ee58ed42a757fd94bc5640c6e891bb6604"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryFleetTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTelemetryFleetTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:14.163Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.009"
+      },
+      "sha256": "d3e05781f292a4af69930e1605e9cb08ce3f6cb23b6312837058704aa155eaa1"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSubgraphsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelSubgraphsTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:12.812Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.086"
+      },
+      "sha256": "cd26ad3dc307a29b00d434f4c713ebf220edd27fa95b4d1116b5177be1c8e3f8"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.SupabaseDumpSchemaTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.topology.SupabaseDumpSchemaTest",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:54.478Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.045"
+      },
+      "sha256": "fc466696a14b97ab993d1123866a4780f26616dfdf1432946e6bfdbdcd66ec55"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.WorkspaceRepositoriesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.WorkspaceRepositoriesTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.236Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.171"
+      },
+      "sha256": "695feb078d6519507337984f22b47c542bc35ca79b3d5c373d9613871aa44f0e"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.VerificationsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.testing.VerificationsTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:46.843Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.005"
+      },
+      "sha256": "9f16a8b0ae8879117d976e673214b9a1a2cdfe9166829fbd28d11ba10178a04a"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCppFactsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCppFactsTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:57.889Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "2.448"
+      },
+      "sha256": "742fbd8e87794a03bcbbe490749eb0ea4f12f80c7a2d0a95e3dbe2ef9dd64a8a"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.NativeDatabaseSessionTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.NativeDatabaseSessionTest",
+        "tests": "2",
+        "skipped": "2",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.173Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.0"
+      },
+      "sha256": "807c4f84b7cf154e92407a3fea413a3e3574c798b44c9228dbdc7d91947f9a55"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCodeGraphTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCodeGraphTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:56.542Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.398"
+      },
+      "sha256": "ea56f88d0365563f068bc2ce4478c145a8e3de720d53a759f3406e31364099cb"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetrySignalsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTelemetrySignalsTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:14.173Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.002"
+      },
+      "sha256": "1336180fec3dd1e5ad275a6ad74f6649aa6b742425509144618608b269128ffd"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.DatabaseQueryBackendTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.DatabaseQueryBackendTest",
+        "tests": "11",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:07:56.190Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "1.607"
+      },
+      "sha256": "4b9683a5bd2bef2203d2200a79f12ac96101d4c96d81b32532666b0b8079e729"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.IslandCatalogTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.IslandCatalogTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:20.137Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.394"
+      },
+      "sha256": "c2f335ac2cebc352fd3a22bedd9d87665ff53b29c70d284db081fbbc581c5fcf"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PostgresInspectionTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.PostgresInspectionTest",
+        "tests": "2",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.174Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.005"
+      },
+      "sha256": "98afb3634be379510469117a6107eb6081b24e961ff5e8890dd77e1bb35a9e0e"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.ConnectionCatalogTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.ConnectionCatalogTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:20.039Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.04"
+      },
+      "sha256": "811501f97ad89485d658ba27ea380d9900a6a7960da9cb5776a673d751c40fb3"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelRunReadTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelRunReadTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:05.300Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.001"
+      },
+      "sha256": "80348b48ceb946b02e606168bb29b355756c339ce899ec0b433368b24970dd68"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.ChangeChecksTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.agent.ChangeChecksTest",
+        "tests": "11",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.456Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.07"
+      },
+      "sha256": "4595c232221d5c1e54b43e0104fa8fb842153a20f82ec20858d37eb1e558d505"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.WorkerInputLifecycleTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.WorkerInputLifecycleTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:46.778Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.031"
+      },
+      "sha256": "27119c15bf2d4f6f0306b6d388818603672cecfc9a3d95947f1a6d811d5c4fa9"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelFlowCoverageTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelFlowCoverageTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:02.762Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.004"
+      },
+      "sha256": "cd1eeb5e097e8be6e5a1825c2e85aa75e331093ae0c8b3a0c5a118df736751ab"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryVerificationTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTelemetryVerificationTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:14.192Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.003"
+      },
+      "sha256": "cf6b6f33c4e572b9afe08fd4ff907a65f7fe5577851b5bab74a947c3ff7709e9"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.WorkModulesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.agent.WorkModulesTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.527Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.005"
+      },
+      "sha256": "02638324a6ac3b988ed2b452dd1790acd66c8b7b0cc4f225e4663de240398017"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.CatalogNodeTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.CatalogNodeTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:07:57.817Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "22.218"
+      },
+      "sha256": "663af7ba0cfb90152ba1166148f816e4964f89d2e8a133a760eb5e0881588df1"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelDoorTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelDoorTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:00.354Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "1.238"
+      },
+      "sha256": "8b3080b9c5d7ff2182a3e9d463cf0b34290344dabea3ed8c7c675fe770ad646f"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.GradleReceiptVisibilityTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.GradleReceiptVisibilityTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:38.924Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "4.024"
+      },
+      "sha256": "b6399bbcbbf7746f44b1d1b5db9e9b9476b1a3b132f084dbcfff0f1641288095"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelPlanTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelPlanTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:04.090Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.097"
+      },
+      "sha256": "7e0f3ca46c16e684bba108bfd65e7ea344bfbf8bd0894396a4f065931958621f"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentServiceTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAgentServiceTest",
+        "tests": "2",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:29.566Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.003"
+      },
+      "sha256": "4426725c0f2ab830e08a8816f3263780b99154c8dfaaf6805794646b03946206"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationalCatalogCacheTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.OperationalCatalogCacheTest",
+        "tests": "11",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:43.206Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "2.192"
+      },
+      "sha256": "73f73ced714576888716d0736f95f0e501db502f4457b520579579eecfc7ab67"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelBuildNodeTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelBuildNodeTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:34.448Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "2.374"
+      },
+      "sha256": "66e5166a832da5d3102d282a03054fb6c2ffc4d34bb1ad3161b8db4d5f4522a4"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCrashEventsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCrashEventsTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:00.337Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.008"
+      },
+      "sha256": "2805157ae33f394d345c768a06de90e64e3dd3263b475c05260bb9fd96c8d04c"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelReaktorFactsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelReaktorFactsTest",
+        "tests": "10",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:04.206Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "1.093"
+      },
+      "sha256": "7672bbee446f93ad4fb9999e4fb615dc2a035e2323ba0795148870e565dfae63"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseMigrationQueriesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseMigrationQueriesTest",
+        "tests": "2",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.481Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.003"
+      },
+      "sha256": "80e968e1a4b95747ee9126cb062f220b2f56ce5a33f5572a53ad558f16c9a10b"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAccessTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAccessTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:25.719Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.2"
+      },
+      "sha256": "0af46cb8005da36791cd0b7a514b85ee48d7577f9f71d0d95d8fa98644f22995"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSemanticFactsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelSemanticFactsTest",
+        "tests": "6",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:05.303Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.093"
+      },
+      "sha256": "db4b741c7d585560d94c6732724c94a305d03dab963c4aeb6fc18ec725f2b25a"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelGraphQueryTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.mcp.KernelGraphQueryTest",
+        "tests": "9",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.443Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.004"
+      },
+      "sha256": "fc67be41afd47ee17efd85eb2ab3cf41c045e3627830cf343e4ebdc1e3ccbc06"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSourceRoutingTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelSourceRoutingTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:05.582Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "7.229"
+      },
+      "sha256": "23b35486b41e087e7c7dc6697e1499358fe7b2dc5aab50b9e099ab310837880a"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.DesktopPreferencesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.DesktopPreferencesTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:07:57.798Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.018"
+      },
+      "sha256": "f7db97d0fa339a37dd3c9a5484fc09317feded14554b48f61177ad495d410843"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.ai.AiInventoryDiscoveryTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.ai.AiInventoryDiscoveryTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.532Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.029"
+      },
+      "sha256": "fd69596a51e5c248917b3c16b2ef6c2298464e4f2b53a959be05949ffebba1c3"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCrashesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCrashesTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:00.346Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.001"
+      },
+      "sha256": "48b11ba68f8d04d2047f3e0b62b1924241b4a104214546650f6b3908befa5a1b"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationalEnvironmentTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.OperationalEnvironmentTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:45.400Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.005"
+      },
+      "sha256": "eeea571d3529be5f642bb6c952bbb3a409274e94bce34f8c3834555015e0ca3f"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelAuthToolsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.mcp.KernelAuthToolsTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:27.422Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.014"
+      },
+      "sha256": "d591d30eea58327e95b849cc2df30634cc0900ded3f6d1114a79229ad3acadb8"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelGraphTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelGraphTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:03.070Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.02"
+      },
+      "sha256": "bd55618f125234aa359ee59528c586869668c7b2502761a001165354ea17eb9f"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSeekPagingTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseSeekPagingTest",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.496Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.002"
+      },
+      "sha256": "0b2d80253cd33148792f8a270b4c25661574275974a4f3c888e157da0ce97dae"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PostgresSessionConnectionTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.PostgresSessionConnectionTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.180Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.003"
+      },
+      "sha256": "1827d14653859d89064aae937b45302411100e9b30b9ca7d58a7e96ff3844da8"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelKotlinFamiliesTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelKotlinFamiliesTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:03.905Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.035"
+      },
+      "sha256": "9e2617f6dbfbbaf3cf95e35360a842929aace57914b46e5a969e1dcc46e9ab71"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelApplicationLogsTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelApplicationLogsTest",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:29.582Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.004"
+      },
+      "sha256": "a306e5b7460e85c9bde481d8c9c14ad579416396d69e018e82c45e42737c7b2d"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentEvidenceTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAgentEvidenceTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:29.035Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.53"
+      },
+      "sha256": "63337f5992a1f8d0c5f7fb096477a9274226498194a052d1fd10bc6802e2dfd0"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.StorePrefixSurveyTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.StorePrefixSurveyTest",
+        "tests": "2",
+        "skipped": "1",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:34.190Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.007"
+      },
+      "sha256": "be358b1b206b10825d0e7bd0a0cc9103d11fe7a9e94eaa75083ba7d0c8ceba64"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelWatchTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.kernel.KernelWatchTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:24.642Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "13.118"
+      },
+      "sha256": "ede2c66f8396a38241889c9dd00693f0b5078a7b88d9340e582a81f752a15870"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSchemaSnapshotTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseSchemaSnapshotTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:32.489Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.006"
+      },
+      "sha256": "474343a8d7c3b0e808b280b9b66f1952670bb5c49b8a5cf130937cde8a6aaec1"
+    },
+    {
+      "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.HostLocalOperationTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.workbench.operations.HostLocalOperationTest",
+        "tests": "6",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:09:42.949Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.253"
+      },
+      "sha256": "2253ae3734122929070aba0c60d61ab55ea5a154d2811fcdc72a9ffebdf5fb32"
+    },
+    {
+      "path": "bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.BuildModelCliTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.cli.BuildModelCliTest",
+        "tests": "4",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:31:37.565Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "12.1"
+      },
+      "sha256": "4cb81232d7b39136c080802a5cb7b5b186633e97e577cec669804651c9a7075b"
+    },
+    {
+      "path": "bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.ReaktorCommandTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.cli.ReaktorCommandTest",
+        "tests": "8",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:31:51.086Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "1.447"
+      },
+      "sha256": "57d1da9b56debd513bcc37c966beb0c8ccee5477005071f577ac8ff186640216"
+    },
+    {
+      "path": "bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.KernelCliTest.xml",
+      "suite": {
+        "name": "ai.bestbuds.reaktor.cli.KernelCliTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:31:49.670Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "1.414"
+      },
+      "sha256": "0b21ba212d8530288148fac8d8043a727e66fad4440df7e4606350426ca2dbb8"
+    }
+  ],
+  "sourceScope": "Initial watcher replacement only. Worker source_epoch 1793233673 predates pd750064fe53e507f321f applied at1793233677 and finalpc4c53f26449e4ee00a20. Earlier interruptedjoin attribution was incorrect."
+}

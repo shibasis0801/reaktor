@@ -1,0 +1,21 @@
+{
+  "taskId": "bestbuds:serverImage",
+  "environment": "local",
+  "summary": "Kernel serverImage in local \u00b7 LocalArtifactWrite \u00b7 source dependeasy#bestbuds/build.gradle.kts:166",
+  "fingerprint": "b39546a000728913df9a06e3",
+  "requiresSecondApproval": false,
+  "displayCommand": [
+    "/Users/ovd/dev/bestbuds/gradlew",
+    "runBuildNode",
+    "-Pdependeasy.gradleRequest=/Users/ovd/dev/bestbuds/build/dependeasy/contracts/gradle/requests/c12c00a62038459693f7156549bda57f4e0d6c785076f844344ecf83729b67b1.json",
+    "--console=plain"
+  ],
+  "workingDirectory": "/Users/ovd/dev/bestbuds",
+  "taskCount": 2105,
+  "preparationTaskCount": 42,
+  "configuredMillis": 10881,
+  "review": "Local image qualification only; no production/provider effect; original gates unchanged.",
+  "modelDigest": "78994068827422af51eec98c213541c21d50ed7465d8ee277bc41446c9ef2899",
+  "requestDigest": "7f7e7c289989f593f34933b26167362e09c1e7592f5ac16a448a23527d1e1c4f",
+  "contextDigest": "1486744a63663fdae8e70a26927f1cf31f6690367bcdc1695370e9bbdea1941c"
+}

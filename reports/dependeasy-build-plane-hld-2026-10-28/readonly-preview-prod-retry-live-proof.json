@@ -1,0 +1,96 @@
+{
+  "status": "completed",
+  "fingerprint": "88dfd0fed14ae96e16cbf98c",
+  "environment": "prod",
+  "taskId": "bestbuds:workers:deployMessaging",
+  "configuredMillis": 23824,
+  "selectedTasks": 2105,
+  "gradlePlanKeys": [
+    "schema",
+    "node",
+    "modelDigest",
+    "requestDigest",
+    "contextDigest",
+    "invocation",
+    "configuredMillis",
+    "tasks",
+    "preparationTasks",
+    "deployments",
+    "serverDeployments",
+    "secrets",
+    "migrations",
+    "infrastructure"
+  ],
+  "verificationTasksPresent": [
+    {
+      "build": "bestbuds",
+      "project": ":engine",
+      "name": "jvmTest"
+    }
+  ],
+  "executedVerificationTasks": [],
+  "executedTaskLines": 860,
+  "gradleReceipt": {
+    "run_id": "20261029-150140-41713161-bestbuds",
+    "project": "bestbuds",
+    "worker": "local",
+    "tasks": [
+      "planBuildNode",
+      "-Pdependeasy.gradleRequest=/Users/ovd/dev/bestbuds/build/dependeasy/contracts/gradle/requests/dd08232cf1e4ca7d6be6c07cedf058860ef8171157dcea1be5c8bbade40591b8.json",
+      "-Pdependeasy.environment=prod",
+      "--console=plain"
+    ],
+    "workspace_root": "/Users/ovd/dev",
+    "started": "2026-10-29T15:01:40.936750",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-150140-41713161-bestbuds.log",
+    "queue_seconds": 47.267219250000004,
+    "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+    "exit_code": 0,
+    "execution_seconds": 114.786082,
+    "finished": "2026-10-29T15:03:35.724239"
+  },
+  "exportReceipt": {
+    "run_id": "20261029-150004-c56506af-bestbuds",
+    "project": "bestbuds",
+    "worker": "local",
+    "tasks": [
+      "exportBuildModel",
+      "-Pdependeasy.gradleRequest=/Users/ovd/dev/bestbuds/build/dependeasy/contracts/gradle/requests/ee3022a8f590d69ac500eecce52fd44576052d390d4b4a59ab69456a2584b824.json",
+      "-Pdependeasy.environment=prod",
+      "--console=plain"
+    ],
+    "workspace_root": "/Users/ovd/dev",
+    "started": "2026-10-29T15:00:04.221969",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-150004-c56506af-bestbuds.log",
+    "queue_seconds": 115.029141708,
+    "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+    "exit_code": 0,
+    "execution_seconds": 14.743316499999992,
+    "finished": "2026-10-29T15:00:18.965619"
+  },
+  "wall": {
+    "command": [
+      "reaktor",
+      "--dir",
+      "/Users/ovd/dev/bestbuds",
+      "build",
+      "plan",
+      "bestbuds:workers:deployMessaging",
+      "--dependeasy.environment",
+      "prod",
+      "--json",
+      "--request-id",
+      "dependeasy-readonly-preview-prod-retry-20261029-1456"
+    ],
+    "started": "2026-10-29T14:57:11.272695+05:30",
+    "wallSeconds": 458.65194383399995,
+    "exitCode": 0,
+    "scope": "Repeated actual installed CLI read-only provider plan; prod per request, shared context unchanged; current shared source/load. Previous post-Gradle seal timeout retained. No apply/provider mutation or paired September claim."
+  },
+  "sourceSha256": {
+    "/Users/ovd/dev/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/GradleToolingRunner.kt": "3c874fc345073281f901761cf12272199966efc778d810ccc0edcbd177c80621",
+    "/Users/ovd/dev/reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/GradlePlanningTest.kt": "c0e531d92f18c98ca308f74fc104cc795189400d2aec032566242f279967267b"
+  },
+  "cliResultSha256": "1642aad26c7243f109434f7122db69704a9f2d2e8be4eac1d6bba21708cbb8ef",
+  "scope": "Actual installed CLI plan only. Full graph retained and provider preview qualified; no apply or provider mutation. Shared source/load, not paired speed measurement. Prior post-Gradle discovery timeout retained."
+}

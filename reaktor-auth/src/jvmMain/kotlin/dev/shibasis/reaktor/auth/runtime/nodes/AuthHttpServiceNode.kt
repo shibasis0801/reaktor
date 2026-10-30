@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.auth.runtime.nodes
 
 import dev.shibasis.reaktor.auth.api.AuthService
+import dev.shibasis.reaktor.auth.runtime.ports.AuthDevices
 import dev.shibasis.reaktor.auth.runtime.AuthAccount
 import dev.shibasis.reaktor.auth.runtime.AuthLogin
 import dev.shibasis.reaktor.auth.runtime.AuthPat
@@ -18,6 +19,7 @@ class AuthHttpServiceNode(graph: Graph) : BasicNode(graph) {
     val sessionsPort by consumes<AuthSessions>()
     val accountPort by consumes<AuthAccount>()
     val authorityPort by consumes<AuthAuthority>()
+    val devicesPort by consumes<AuthDevices>()
 
     val service: AuthService = object : AuthService() {
         override val authorityGrants = super.authorityGrants.handle { request -> authorityPort.suspended { grants(request) } }
@@ -30,6 +32,7 @@ class AuthHttpServiceNode(graph: Graph) : BasicNode(graph) {
         override val sessionRefresh = super.sessionRefresh.handle { request -> sessionsPort.suspended { refresh(request) } }
         override val sessionLogout = super.sessionLogout.handle { request -> sessionsPort.suspended { logout(request) } }
         override val sessionMe = super.sessionMe.handle { request -> sessionsPort.suspended { me(request) } }
+        override val deviceCredential = super.deviceCredential.handle { request -> devicesPort.suspended { issue(request) } }
         override val sessionLogoutAll = super.sessionLogoutAll.handle { request -> sessionsPort.suspended { logoutAll(request) } }
         override val accountDeactivate = super.accountDeactivate.handle { request -> accountPort.suspended { deactivate(request) } }
     }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TelemetryNodeDisplayTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:31:37.174Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.051">
+  <properties/>
+  <testcase name="anUnreadAnalyticsSourceIsUnknownRatherThanAnObservedZero[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryNodeDisplayTest" time="0.015"/>
+  <testcase name="relatedAnalyticsAndSpanFactsStayReadableWhenCrashlyticsIsUnavailable[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryNodeDisplayTest" time="0.013"/>
+  <testcase name="exporterFailuresAndRealQueueDropsAreSeparateFromLocalMemoryRetention[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryNodeDisplayTest" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

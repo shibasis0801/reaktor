@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="UiPreviewInspectionTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:12.446Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.037">
+  <properties/>
+  <testcase name="noPreviewNeverCapturesWorkbenchChrome[jvm]" classname="ai.bestbuds.reaktor.workbench.preview.UiPreviewInspectionTest" time="0.015"/>
+  <testcase name="capturesEverySiblingPreviewAndScopesOverlappingLocalCoordinates[jvm]" classname="ai.bestbuds.reaktor.workbench.preview.UiPreviewInspectionTest" time="0.012"/>
+  <testcase name="zoomedPreviewBoundsRemainInLocalCoordinates[jvm]" classname="ai.bestbuds.reaktor.workbench.preview.UiPreviewInspectionTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

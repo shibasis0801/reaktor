@@ -1,0 +1,223 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.sun.jna.Native in an unnamed module (file:/Users/ovd/dev/offload/.remote-dev/performance-followup-20261028/cli/distribution/reaktor/lib/jna-5.17.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+Kernel outputJvmLibrary in local · LocalArtifactWrite · source dependeasy#reaktor/reaktor-core/build.gradle.kts:19
+Reaktor framework started reaktor:reaktor-core:outputJvmLibrary
+Calculating task graph as no cached configuration is available for tasks: runBuildNode
+Type-safe project accessors is an incubating feature.
+> Task :dependeasy:buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :dependeasy:buildSrc:compileKotlin UP-TO-DATE
+> Task :dependeasy:buildSrc:compileJava NO-SOURCE
+> Task :dependeasy:buildSrc:compileGroovy NO-SOURCE
+> Task :dependeasy:buildSrc:pluginDescriptors UP-TO-DATE
+> Task :dependeasy:buildSrc:processResources UP-TO-DATE
+> Task :dependeasy:buildSrc:classes UP-TO-DATE
+> Task :dependeasy:buildSrc:jar UP-TO-DATE
+> Task :dependeasy:options:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :dependeasy:toolchain:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :dependeasy:toolchain:pluginDescriptors UP-TO-DATE
+> Task :dependeasy:toolchain:processResources UP-TO-DATE
+> Task :dependeasy:options:compileKotlin UP-TO-DATE
+> Task :dependeasy:options:compileJava NO-SOURCE
+> Task :dependeasy:options:processResources NO-SOURCE
+> Task :dependeasy:options:classes UP-TO-DATE
+> Task :dependeasy:options:jar UP-TO-DATE
+> Task :dependeasy:toolchain:compileKotlin UP-TO-DATE
+> Task :dependeasy:toolchain:compileJava NO-SOURCE
+> Task :dependeasy:toolchain:classes UP-TO-DATE
+> Task :dependeasy:toolchain:jar UP-TO-DATE
+> Task :dependeasy:model:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :dependeasy:gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :dependeasy:gradle:pluginDescriptors UP-TO-DATE
+> Task :dependeasy:gradle:processResources UP-TO-DATE
+> Task :dependeasy:model:compileKotlin UP-TO-DATE
+> Task :dependeasy:model:compileJava NO-SOURCE
+> Task :dependeasy:model:processResources NO-SOURCE
+> Task :dependeasy:model:classes UP-TO-DATE
+> Task :dependeasy:model:jar UP-TO-DATE
+> Task :dependeasy:gradle:compileKotlin UP-TO-DATE
+> Task :dependeasy:gradle:compileJava NO-SOURCE
+> Task :dependeasy:gradle:classes UP-TO-DATE
+> Task :dependeasy:gradle:jar UP-TO-DATE
+
+> Configure project :compose-flow
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+
+> Task :reaktor-code:kotlinAnalysisModel UP-TO-DATE
+> Task :dependeasy:exportBuildModel UP-TO-DATE
+> Task :exportBuildModel UP-TO-DATE
+Calculating task graph as no cached configuration is available for tasks: :reaktor-core:jvmJar
+Type-safe project accessors is an incubating feature.
+:dependeasy:buildSrc:checkKotlinGradlePluginConfigurationErrors: Started
+:dependeasy:buildSrc:checkKotlinGradlePluginConfigurationErrors: Skipped
+:dependeasy:buildSrc:compileKotlin: Started
+> Task :dependeasy:buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+:dependeasy:buildSrc:compileKotlin: UpToDate
+:dependeasy:buildSrc:compileJava: Started
+:dependeasy:buildSrc:compileJava: Skipped
+:dependeasy:buildSrc:compileGroovy: Started
+:dependeasy:buildSrc:compileGroovy: Skipped
+:dependeasy:buildSrc:pluginDescriptors: Started
+:dependeasy:buildSrc:pluginDescriptors: UpToDate
+:dependeasy:buildSrc:processResources: Started
+:dependeasy:buildSrc:processResources: UpToDate
+:dependeasy:buildSrc:classes: Started
+:dependeasy:buildSrc:classes: UpToDate
+:dependeasy:buildSrc:jar: Started
+:dependeasy:buildSrc:jar: UpToDate
+> Task :dependeasy:buildSrc:compileKotlin UP-TO-DATE
+> Task :dependeasy:buildSrc:compileJava NO-SOURCE
+> Task :dependeasy:buildSrc:compileGroovy NO-SOURCE
+> Task :dependeasy:buildSrc:pluginDescriptors UP-TO-DATE
+> Task :dependeasy:buildSrc:processResources UP-TO-DATE
+> Task :dependeasy:buildSrc:classes UP-TO-DATE
+> Task :dependeasy:buildSrc:jar UP-TO-DATE
+:dependeasy:toolchain:checkKotlinGradlePluginConfigurationErrors: Started
+:dependeasy:options:checkKotlinGradlePluginConfigurationErrors: Started
+:dependeasy:toolchain:checkKotlinGradlePluginConfigurationErrors: Skipped
+:dependeasy:options:checkKotlinGradlePluginConfigurationErrors: Skipped
+:dependeasy:toolchain:pluginDescriptors: Started
+:dependeasy:options:compileKotlin: Started
+:dependeasy:toolchain:pluginDescriptors: UpToDate
+:dependeasy:toolchain:processResources: Started
+:dependeasy:toolchain:processResources: UpToDate
+:dependeasy:options:compileKotlin: UpToDate
+:dependeasy:options:compileJava: Started
+:dependeasy:options:compileJava: Skipped
+:dependeasy:options:processResources: Started
+:dependeasy:toolchain:compileKotlin: Started
+:dependeasy:options:processResources: Skipped
+:dependeasy:options:classes: Started
+:dependeasy:options:classes: UpToDate
+:dependeasy:options:jar: Started
+:dependeasy:options:jar: UpToDate
+> Task :dependeasy:toolchain:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :dependeasy:options:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :dependeasy:toolchain:pluginDescriptors UP-TO-DATE
+> Task :dependeasy:toolchain:processResources UP-TO-DATE
+> Task :dependeasy:options:compileKotlin UP-TO-DATE
+> Task :dependeasy:options:compileJava NO-SOURCE
+> Task :dependeasy:options:processResources NO-SOURCE
+> Task :dependeasy:options:classes UP-TO-DATE
+> Task :dependeasy:options:jar UP-TO-DATE
+:dependeasy:toolchain:compileKotlin: UpToDate
+:dependeasy:toolchain:compileJava: Started
+:dependeasy:toolchain:compileJava: Skipped
+:dependeasy:toolchain:classes: Started
+:dependeasy:toolchain:classes: UpToDate
+:dependeasy:toolchain:jar: Started
+:dependeasy:toolchain:jar: UpToDate
+> Task :dependeasy:toolchain:compileKotlin UP-TO-DATE
+> Task :dependeasy:toolchain:compileJava NO-SOURCE
+> Task :dependeasy:toolchain:classes UP-TO-DATE
+> Task :dependeasy:toolchain:jar UP-TO-DATE
+:dependeasy:gradle:checkKotlinGradlePluginConfigurationErrors: Started
+:dependeasy:model:checkKotlinGradlePluginConfigurationErrors: Started
+:dependeasy:model:checkKotlinGradlePluginConfigurationErrors: Skipped
+:dependeasy:gradle:checkKotlinGradlePluginConfigurationErrors: Skipped
+:dependeasy:gradle:pluginDescriptors: Started
+:dependeasy:model:compileKotlin: Started
+:dependeasy:gradle:pluginDescriptors: UpToDate
+:dependeasy:gradle:processResources: Started
+:dependeasy:gradle:processResources: UpToDate
+:dependeasy:model:compileKotlin: UpToDate
+:dependeasy:model:compileJava: Started
+:dependeasy:model:compileJava: Skipped
+:dependeasy:model:processResources: Started
+:dependeasy:gradle:compileKotlin: Started
+:dependeasy:model:processResources: Skipped
+:dependeasy:model:classes: Started
+:dependeasy:model:classes: UpToDate
+:dependeasy:model:jar: Started
+:dependeasy:model:jar: UpToDate
+> Task :dependeasy:gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :dependeasy:model:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :dependeasy:gradle:pluginDescriptors UP-TO-DATE
+> Task :dependeasy:gradle:processResources UP-TO-DATE
+> Task :dependeasy:model:compileKotlin UP-TO-DATE
+> Task :dependeasy:model:compileJava NO-SOURCE
+> Task :dependeasy:model:processResources NO-SOURCE
+> Task :dependeasy:model:classes UP-TO-DATE
+> Task :dependeasy:model:jar UP-TO-DATE
+:dependeasy:gradle:compileKotlin: UpToDate
+:dependeasy:gradle:compileJava: Started
+:dependeasy:gradle:compileJava: Skipped
+:dependeasy:gradle:classes: Started
+:dependeasy:gradle:classes: UpToDate
+:dependeasy:gradle:jar: Started
+:dependeasy:gradle:jar: UpToDate
+> Task :dependeasy:gradle:compileKotlin UP-TO-DATE
+> Task :dependeasy:gradle:compileJava NO-SOURCE
+> Task :dependeasy:gradle:classes UP-TO-DATE
+> Task :dependeasy:gradle:jar UP-TO-DATE
+
+> Configure project :compose-flow
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+:reaktor-core:kmpPartiallyResolvedDependenciesChecker: Started
+:reaktor-core:kspKotlinJvm: Started
+:reaktor-core:kspKotlinJvm: Skipped
+:reaktor-core:jvmProcessResources: Started
+:reaktor-core:jvmProcessResources: Skipped
+:reaktor-core:processJvmMainResources: Started
+:reaktor-core:processJvmMainResources: Skipped
+
+> Task :reaktor-core:kspKotlinJvm SKIPPED
+:reaktor-core:kmpPartiallyResolvedDependenciesChecker: Executed
+:reaktor-core:checkKotlinGradlePluginConfigurationErrors: Started
+:reaktor-core:checkKotlinGradlePluginConfigurationErrors: Skipped
+:reaktor-core:compileKotlinJvm: Started
+:reaktor-core:compileKotlinJvm: UpToDate
+:reaktor-core:compileJvmMainJava: Started
+:reaktor-core:compileJvmMainJava: Skipped
+:reaktor-core:jvmMainClasses: Started
+:reaktor-core:jvmMainClasses: UpToDate
+:reaktor-core:jvmJar: Started
+:reaktor-core:jvmJar: UpToDate
+> Task :reaktor-core:jvmProcessResources NO-SOURCE
+> Task :reaktor-core:processJvmMainResources SKIPPED
+> Task :reaktor-core:kmpPartiallyResolvedDependenciesChecker
+> Task :reaktor-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :reaktor-core:compileKotlinJvm UP-TO-DATE
+> Task :reaktor-core:compileJvmMainJava NO-SOURCE
+> Task :reaktor-core:jvmMainClasses UP-TO-DATE
+> Task :reaktor-core:jvmJar UP-TO-DATE
+Kotlin build report is written to file:///Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/reports/kotlin-build/reaktor-build-2026-10-28-22-04-36-0.txt
+
+[Incubating] Problems report is available at: file:///Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.7.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 17s
+19 actionable tasks: 1 executed, 18 up-to-date
+Configuration cache entry stored.
+> Task :runBuildNode
+Kotlin build report is written to file:///Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/reports/kotlin-build/reaktor-build-2026-10-28-22-04-37-0.txt
+
+[Incubating] Problems report is available at: file:///Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.7.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 29s
+20 actionable tasks: 1 executed, 19 up-to-date
+Configuration cache entry stored.
+Completed successfully

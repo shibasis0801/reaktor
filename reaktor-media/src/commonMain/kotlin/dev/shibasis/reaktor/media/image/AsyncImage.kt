@@ -52,24 +52,26 @@ fun AsyncImage(
     contentDescription: String = "image",
     contentScale: ContentScale = ContentScale.Fit,
     onSize: ((Size) -> Unit)? = null,
+    onError: (() -> Unit)? = null,
 ) {
     val studio = LocalSurfaceStudio.current
-    if (studio == null) BytesImage(bytes, modifier, contentDescription, contentScale, onSize)
+    if (studio == null) BytesImage(bytes, modifier, contentDescription, contentScale, onSize, onError)
     else studio.Element(SurfaceCall("Image", modifier, listOf(
         SurfaceField.text("description", contentDescription),
         SurfaceField.choice("contentScale", contentScale, StudioValues.Scales),
     ))) { edits ->
-        BytesImage(bytes, edits.modifier, edits.value("description") ?: contentDescription, edits.choice("contentScale", contentScale, StudioValues.Scales), onSize)
+        BytesImage(bytes, edits.modifier, edits.value("description") ?: contentDescription, edits.choice("contentScale", contentScale, StudioValues.Scales), onSize, onError)
     }
 }
 
 @Composable
-private fun BytesImage(bytes: ByteArray, modifier: Modifier, contentDescription: String, contentScale: ContentScale, onSize: ((Size) -> Unit)?) {
+private fun BytesImage(bytes: ByteArray, modifier: Modifier, contentDescription: String, contentScale: ContentScale, onSize: ((Size) -> Unit)?, onError: (() -> Unit)?) {
     CoilAsyncImage(
         model = bytes,
         contentDescription = contentDescription,
         modifier = modifier,
         contentScale = contentScale,
         onSuccess = onSize?.let { report -> { loaded -> report(loaded.painter.intrinsicSize) } },
+        onError = onError?.let { report -> { report() } },
     )
 }

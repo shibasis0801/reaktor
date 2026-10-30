@@ -51,8 +51,8 @@ class SpanJvmClient(private val session: InfrastructureSession) {
             val available = request("SELECT name FROM system.columns WHERE database = '${op.database}' AND table = 'graph_definitions' FORMAT JSONEachRow")
                 .lineSequence().filter(String::isNotBlank).map { Json.parseToJsonElement(it).jsonObject.getValue("name").jsonPrimitive.content }.toSet()
             if (!available.containsAll(listOf("application", "graph_digest", "definition", "recorded_at"))) emptyList() else
-                request("SELECT application, graph_digest, argMax(definition, recorded_at) AS definition FROM ${op.database}.graph_definitions " +
-                    "WHERE graph_digest IN (${digests.joinToString { "'$it'" }}) AND length(definition) <= 524288 " +
+                request("SELECT application, graph_digest, argMax(source.definition, source.recorded_at) AS definition FROM ${op.database}.graph_definitions AS source " +
+                    "WHERE graph_digest IN (${digests.joinToString { "'$it'" }}) AND length(source.definition) <= 524288 " +
                     "GROUP BY application, graph_digest ORDER BY graph_digest LIMIT 8 SETTINGS max_result_bytes=8388608, result_overflow_mode='throw' FORMAT JSONEachRow")
                     .lineSequence().filter(String::isNotBlank).map(Json::parseToJsonElement).toList().also { definitions ->
                         require(definitions.size <= 8 && definitions.all { it.jsonObject["graph_digest"]?.jsonPrimitive?.content in digests })

@@ -1,0 +1,93 @@
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleBuildPlanner.kt · fun prepare(root: File, wrapper: String, node: Node, arguments: List<String>, seal: ProcessDefinitionSeal, redactions: Set<String>, environment: Map<String, String>, sensitiveEnvironmentKeys: Set<Stri · 7399 of 7399 characters · rev:a0d634f3c5c3
+ 18  fun prepare(root: File, wrapper: String, node: Node, arguments: List<String>,
+ 19                  seal: ProcessDefinitionSeal, redactions: Set<String>, environment: Map<String, String>,
+ 20                  sensitiveEnvironmentKeys: Set<String>, reviewedPlan: GradlePlan? = null): PreparedGradleBuild {
+ 21          val properties = arguments.filter { it.startsWith("-P") }
+ 22          val previous = if (reviewedPlan == null) BuildModelReader.readAllowingStale(root) else BuildModelReader.read(root)
+ 23          fun gradle(tasks: List<String>, definitions: ProcessDefinitionSeal, failure: String) = runBlocking {
+ 24              SupervisedProcessExecutor().use { executor ->
+ 25                  val prepared = AdHocProcessPlan.create(listOf(wrapper) + tasks + properties + "--console=plain", root, TaskId(node.id.toString()),
+ 26                      SafetyPolicy(SafetyClass.LocalArtifactWrite), redactions = redactions, definitionSeal = definitions,
+ 27                      environment = environment, sensitiveEnvironmentKeys = sensitiveEnvironmentKeys)
+ 28                  val handle = executor.start(prepared)
+ 29                  val tail = StringBuilder()
+ 30                  val collector = launch { handle.events.collect { event ->
+ 31                      if (event is RunEvent.Output) {
+ 32                          tail.append(event.text).append('\n')
+ 33                          if (tail.length > 8192) tail.delete(0, tail.length - 8192)
+ 34                      }
+ 35                  } }
+ 36                  val completed = handle.await(); collector.join()
+ 37                  check(completed.status == RunStatus.Succeeded) { "$failure: " +
+ 38                      (completed.failure?.message.orEmpty() + "\n" + tail.toString()).takeLast(8192) }
+ 39              }
+ 40          }
+ 41          fun write(value: GradleRequest): File {
+ 42              val text = BuildModelReader.json.encodeToString(value) + "\n"
+ 43              val path = root.resolve(GradleProtocol.RequestDirectory).toPath()
+ 44              require(path.toFile().canonicalFile.toPath() == path.toAbsolutePath().normalize()) { "Gradle request path escapes its owner" }
+ 45              Files.createDirectories(path)
+ 46              Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwx------"))
+ 47              val file = path.resolve(BuildModelReader.digest(text) + ".json")
+ 48              if (!Files.exists(file)) {
+ 49                  Files.createFile(file, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")))
+ 50                  Files.writeString(file, text)
+ 51              }
+ 52              require(Files.readString(file) == text && !Files.isSymbolicLink(file)) { "Gradle request content changed" }
+ 53              return file.toFile()
+ 54          }
+ 55          // PlanTask already depends on model export and validates its digest before selecting tasks.
+ 56          // A stale catalog or explicit context still needs the separate refresh handshake.
+ 57          val localEnvironment = environment.all { (name, value) ->
+ 58              name == "PATH" || name == "REAKTOR_ENVIRONMENT" && value == "local"
+ 59          }
+ 60          val changedEnvironment = previous.declarations.any { declaration ->
+ 61              val option = declaration.option ?: return@any false
+ 62              val name = option.environment ?: option.name
+ 63              val value = environment[name] ?: System.getenv(name)
+ 64              if (option.source == OptionSource.Environment) option.sensitive || value != option.value
+ 65              else value != null && value != option.value
+ 66          }
+ 67          val refresh = reviewedPlan == null && (properties.isNotEmpty() || !localEnvironment || changedEnvironment ||
+ 68              sensitiveEnvironmentKeys.isNotEmpty() || BuildModelReader.changedDeclarations(root, previous).isNotEmpty())
+ 69          if (refresh) {
+ 70              val routing = write(GradleRequest(node = node.id, declaredAt = node.declaredAt,
+ 71                  modelDigest = BuildModelReader.digest(BuildModelReader.encode(previous)), arguments = arguments))
+ 72              gradle(listOf(GradleProtocol.ExportTask, "-P${GradleProtocol.RequestOption}=${routing.absolutePath}"),
+ 73                  ProcessDefinitionSeal.capture(seal.files + routing, seal.directories),
+ 74                  "Exporting the build model for the requested context failed")
+ 75          }
+ 76          val model = if (reviewedPlan == null) BuildModelReader.readAllowingStale(root) else previous
+ 77          val current = requireNotNull(model.nodes.singleOrNull { it.id == node.id }) {
+ 78              "${node.id} is no longer declared in the build; refresh the catalog"
+ 79          }
+ 80          val context = properties.singleOrNull { it.startsWith("-P${GradleProtocol.EnvironmentOption}=") }?.substringAfter('=')
+ 81          val sourceInputs = previous.declarations.filterNot { it.kind == DeclarationInputKind.Option }
+ 82          val contextOnly = context != null && node.environments.any { it.name == context } &&
+ 83              previous.nodes.singleOrNull { it.id == node.id } == node && sourceInputs.isNotEmpty() &&
+ 84              sourceInputs == model.declarations.filterNot { it.kind == DeclarationInputKind.Option } &&
+ 85              current.copy(kernel = current.kernel?.copy(spec = node.kernel?.spec), bindings = node.bindings) == node
+ 86          require(current == node || contextOnly) {
+ 87              "The declaration of ${node.id} changed" + (current.declaredAt?.let { " at ${it.build}/${it.file}:${it.line}" } ?: "") +
+ 88                  " since the catalog was read; refresh the catalog"
+ 89          }
+ 90          val request = GradleRequest(node = node.id, declaredAt = node.declaredAt,
+ 91              modelDigest = BuildModelReader.digest(BuildModelReader.encode(model)), arguments = arguments)
+ 92          val contract = write(request)
+ 93          require(reviewedPlan == null || reviewedPlan.node == node.id && reviewedPlan.modelDigest == request.modelDigest &&
+ 94              reviewedPlan.requestDigest == BuildModelReader.digest(contract)) { "Reviewed Gradle node, model or options changed; run build.plan again" }
+ 95          if (reviewedPlan == null) gradle(listOf(GradleProtocol.PlanTask, "-P${GradleProtocol.RequestOption}=${contract.absolutePath}"),
+ 96              ProcessDefinitionSeal.capture(seal.files + contract, seal.directories), "Gradle planning failed")
+ 97          val planFile = root.resolve("${GradleProtocol.PlanDirectory}/${contract.name}")
+ 98          require(planFile.isFile) { "Gradle plan is no longer retained; run build.plan again" }
+ 99          val plan = BuildModelReader.readPlan(planFile)
+100          require(reviewedPlan == null || reviewedPlan == plan) { "Retained Gradle plan changed after review; run build.plan again" }
+101          require(plan.node == node.id && plan.modelDigest == request.modelDigest && plan.requestDigest == BuildModelReader.digest(contract))
+102          val executable = write(request.copy(expectedContextDigest = plan.contextDigest, deployments = plan.deployments,
+103              serverDeployments = plan.serverDeployments, secrets = plan.secrets, migrations = plan.migrations, infrastructure = plan.infrastructure))
+104          val argv = listOf(wrapper, GradleProtocol.RunTask, "-P${GradleProtocol.RequestOption}=${executable.absolutePath}", "--console=plain") + properties
+105          return PreparedGradleBuild(argv, ProcessDefinitionSeal.capture(seal.files + executable + planFile, seal.directories),
+106              plan, listOf(ArtifactExpectation("gradle-result", "${GradleProtocol.ResultDirectory}/${executable.name}", true)),
+107              listOf("gradle-plan", BuildModelReader.digest(planFile), "configuration-ms=${plan.configuredMillis}"))
+108      }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleBuildPlanner.kt:17:8@991a15c2"},"follow":[{"rel":"references","dir":"in"}]}

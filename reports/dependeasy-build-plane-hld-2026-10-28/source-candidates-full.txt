@@ -1,0 +1,212 @@
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt · class SourceCandidates(private val root: File, private val artifacts: LocalAgentArtifacts) · 14881 of 14881 characters · rev:ed7d674fafc9
+ 10  /** Captures working files, not just HEAD. A budget miss prevents an acceptance claim. */
+ 11  class SourceCandidates(private val root: File, private val artifacts: LocalAgentArtifacts) {
+ 12      private var materializedRoots: List<File>? = null
+ 13      private val inputPaths = CandidateSourceInputs.paths(root)
+ 14      internal constructor(root: File, artifacts: LocalAgentArtifacts, roots: List<File>) : this(root, artifacts) {
+ 15          require(roots.size in 1..16 && roots.any { it.canonicalFile == root.canonicalFile })
+ 16          materializedRoots = roots.map(File::getCanonicalFile).distinct()
+ 17      }
+ 18      fun capture(subjects: List<AgentGraphSubject> = emptyList()): AgentCandidate = capture(subjects, mutableSetOf())
+ 19      private fun capture(subjects: List<AgentGraphSubject>, visited: MutableSet<String>): AgentCandidate {
+ 20          visited += root.canonicalPath
+ 21          val notices = mutableListOf<String>()
+ 22          val base = git("rev-parse", "HEAD")?.trim()
+ 23          val files = git(*(listOf("ls-files", "-z", "--cached", "--others", "--exclude-standard", "--") + inputPaths).toTypedArray())
+ 24          if (files == null) notices += "Git source inventory unavailable"
+ 25          val names = files.orEmpty().split('\u0000').filter { it.isNotEmpty() }.distinct().sorted()
+ 26          val stages = git(*(listOf("ls-files", "--stage", "-z", "--") + inputPaths).toTypedArray())
+ 27          if (stages == null) notices += "Git source modes unavailable"
+ 28          val gitlinks = stages.orEmpty()
+ 29              .split('\u0000').filter { it.startsWith("160000 ") && '\t' in it }
+ 30              .associate { it.substringAfter('\t') to it.substringBefore('\t').split(' ')[1] }
+ 31          val hash = MessageDigest.getInstance("SHA-256")
+ 32          var remaining = 512_000_000L
+ 33          var bulky = 0
+ 34          for (name in names) {
+ 35              hash.update(name.toByteArray()); hash.update(0)
+ 36              val file = File(root, name)
+ 37              if (!file.toPath().normalize().startsWith(root.toPath().normalize())) { notices += "Source outside workspace: $name"; continue }
+ 38              when {
+ 39                  Files.isSymbolicLink(file.toPath()) -> hash.update(Files.readSymbolicLink(file.toPath()).toString().toByteArray())
+ 40                  name in gitlinks -> {
+ 41                      val initialized = File(file, ".git").exists()
+ 42                      val revision = if (initialized) git("-C", file.canonicalPath, "rev-parse", "HEAD")?.trim() else gitlinks[name]
+ 43                      if (revision == null) notices += "Submodule revision unavailable: $name" else hash.update(revision.toByteArray())
+ 44                      if (initialized) {
+ 45                          val dirty = git("-C", file.canonicalPath, "status", "--porcelain=v1", "--untracked-files=all")
+ 46                          if (dirty == null || dirty.isNotBlank()) notices += "Submodule source is not clean: $name; commit its source before isolation"
+ 47                      }
+ 48                  }
+ 49                  !file.exists() -> hash.update("deleted".toByteArray())
+ 50                  !file.isFile -> notices += if (File(file, ".git").exists()) "Unregistered nested repository source: $name" else "Non-file source: $name"
+ 51                  // An APK, a vendored framework or a checked-in archive is not source, and reading one
+ 52                  // costs the snapshot a hundred megabytes of budget that the code it exists to cover
+ 53                  // then cannot have. Fingerprinting it by size keeps it in the revision — a replaced
+ 54                  // binary almost always changes length — for the price of one stat call. Size rather
+ 55                  // than mtime on purpose: rebuilding an identical artifact moves mtime, and a
+ 56                  // revision that flips on that would abort live tasks for no change at all.
+ 57                  file.length() > CONTENT_LIMIT -> { hash.update("size:${file.length()}".toByteArray()); bulky++ }
+ 58                  file.length() > remaining -> notices += "Source capture budget exceeded at $name"
+ 59                  else -> {
+ 60                      hash.update(if (file.canExecute()) 1 else 0)
+ 61                      val before = file.lastModified() to file.length()
+ 62                      try { file.inputStream().use { input ->
+ 63                          val buffer = ByteArray(65536)
+ 64                          while (true) {
+ 65                              val count = input.read(buffer)
+ 66                              if (count < 0) break
+ 67                              remaining -= count
+ 68                              if (remaining < 0) { notices += "Source grew beyond capture budget: $name"; break }
+ 69                              hash.update(buffer, 0, count)
+ 70                          }
+ 71                      } } catch (_: java.io.IOException) { notices += "Source changed during capture: $name" }
+ 72                      if (before != file.lastModified() to file.length()) notices += "Source changed during capture: $name"
+ 73                  }
+ 74              }
+ 75              hash.update(0)
+ 76          }
+ 77          val declared = if (materializedRoots == null) gradleSourceRoots(root) else null
+ 78          if (declared?.unresolved == true) notices += "Dynamic included-build roots require an evaluated build graph"
+ 79          val outside = (materializedRoots ?: requireNotNull(declared).roots).map(File::getCanonicalFile).distinct()
+ 80              .filter { it.canonicalPath !in visited && !it.toPath().startsWith(root.canonicalFile.toPath()) }
+ 81          val dependencies = outside.filter { dependency -> outside.none { it != dependency && dependency.toPath().startsWith(it.toPath()) } }
+ 82          val captured = dependencies.take((16 - visited.size).coerceAtLeast(0)).mapNotNull { dependency ->
+ 83              if (!dependency.isDirectory) { notices += "Missing included source root: ${dependency.path}"; null }
+ 84              else (materializedRoots?.let { SourceCandidates(dependency, artifacts, it) } ?: SourceCandidates(dependency, artifacts)).capture(emptyList(), visited).also {
+ 85                  hash.update(it.id.toByteArray())
+ 86                  if (!it.complete) notices += it.notices.map { notice -> "${dependency.name}: $notice" }
+ 87              }
+ 88          }
+ 89          if (dependencies.size > captured.size) notices += "Included source coverage is incomplete"
+ 90          val sourceDigest = hash.digest().joinToString("") { "%02x".format(it) }
+ 91          val untracked = (git(*(listOf("ls-files", "-z", "--others", "--exclude-standard", "--") + inputPaths).toTypedArray()) ?: "").split('\u0000').filter { it.isNotEmpty() }
+ 92          val changed = (git(*(listOf("diff", "--name-only", "-z", base ?: "--cached", "--") + inputPaths).toTypedArray()) ?: "").split('\u0000') + untracked
+ 93          val diff = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base ?: "--cached", "--") + inputPaths).toTypedArray())
+ 94          val additions = StringBuilder()
+ 95          var diffBytes = diff?.toByteArray()?.size ?: 0
+ 96          for (name in untracked.take(200)) {
+ 97              val addition = git("diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--", "/dev/null", name)
+ 98              if (addition == null) { notices += "New-file diff unavailable: $name"; continue }
+ 99              diffBytes += addition.toByteArray().size
+100              if (diffBytes > 16_000_000) { notices += "New-file diff budget exceeded"; break }
+101              additions.append(addition)
+102          }
+103          if (untracked.size > 200) notices += "New-file diff budget exceeded"
+104          if (diff == null) notices += "Diff unavailable or over 16 MB"
+105          if (base == null) notices += "No base commit; initial source has no committed baseline"
+106          val combinedDiff = diff?.let { local -> local + additions + captured.joinToString("") { child ->
+107              "\n# Included source root: ${child.workspaceRoot}\n" + child.diff?.let(artifacts::text).orEmpty()
+108          } }
+109          val diffArtifact = combinedDiff?.let {
+110              if (it.toByteArray().size > 16_000_000) { notices += "Combined diff exceeds 16 MB"; null } else artifacts.put(it, "source-diff")
+111          }
+112          val allChanged = changed.filter { it.isNotBlank() } + captured.flatMap { child ->
+113              val prefix = File(child.workspaceRoot).relativeTo(root.canonicalFile).path
+114              child.changedFiles.map { "$prefix/$it" }
+115          }
+116          return AgentCandidate(digest(root.canonicalPath + "\n" + base + "\n" + sourceDigest), root.canonicalPath,
+117              base, sourceDigest, System.currentTimeMillis(), allChanged.distinct(),
+118              diffArtifact, notices.isEmpty(), notices.distinct().take(100), subjects,
+119              sourceRoots = (listOf(root.canonicalPath) + captured.flatMap { it.sourceRoots }).distinct(),
+120              // Deliberately not a notice: a repository with one committed PDF would otherwise be
+121              // permanently incomplete, and incomplete is what blocks an acceptance claim. This is a
+122              // narrower statement — the bytes of these files are outside the revision — and it
+123              // belongs in what the packet says the snapshot cannot see, not in what voids it.
+124              fingerprintedBySize = bulky + captured.sumOf { it.fingerprintedBySize })
+125      }
+126      /**
+127       * The diff for [paths] alone: what one turn did, rather than how the checkout differs from HEAD.
+128       *
+129       * [capture] answers the second question, which is the right one for a candidate and useless for
+130       * review — in a repository carrying other uncommitted work it buries a twenty-line change under
+131       * deleted images and unrelated config. A reviewer who cannot cheaply see what a task changed
+132       * ends up trusting the executor's description of it, which is the one thing this seat exists to
+133       * avoid.
+134       *
+135       * Still measured against HEAD, so a file the turn edited that the operator had *also* edited
+136       * before it started shows both changes. Only a task-local overlay fixes that; this fixes the
+137       * much larger half, which is the hundred files the turn never touched at all.
+138       */
+139      fun diffOf(paths: List<String>): ScopedDiff {
+140          val notices = mutableListOf<String>()
+141          val wanted = paths.filter { it.isNotBlank() }.distinct().sorted()
+142          if (wanted.isEmpty()) return ScopedDiff("", emptyList())
+143          val bounded = wanted.take(SCOPE_LIMIT)
+144          if (wanted.size > bounded.size) notices += "Diff scoped to the first ${bounded.size} of ${wanted.size} changed paths"
+145          val untracked = (git(*(listOf("ls-files", "-z", "--others", "--exclude-standard", "--") + inputPaths).toTypedArray()) ?: "")
+146              .split(NUL).filter { it.isNotEmpty() }.toSet()
+147          val base = git("rev-parse", "HEAD")?.trim() ?: "--cached"
+148          val text = StringBuilder()
+149          // Chunked because a path list is argv, and a turn that touches hundreds of files would
+150          // otherwise run into the platform's argument limit and produce nothing at all.
+151          bounded.filter { it !in untracked }.chunked(ARGV_CHUNK).forEach { chunk ->
+152              val part = git(*(listOf("diff", "--no-ext-diff", "--no-textconv", "--no-color", base, "--") + chunk + CandidateSourceInputs.exclusions(root)).toTypedArray())
+153              if (part == null) notices += "Diff unavailable for ${chunk.size} tracked ${if (chunk.size == 1) "path" else "paths"}"
+154              else text.append(part)
+155          }
+156          bounded.filter { it in untracked }.forEach { name ->
+157              val addition = git("diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--", "/dev/null", name)
+158              if (addition == null) notices += "New-file diff unavailable: $name" else text.append(addition)
+159          }
+160          return ScopedDiff(text.toString(), notices)
+161      }
+162  
+163      /**
+164       * A fingerprint of every file git currently considers dirty, for telling one turn's work apart.
+165       *
+166       * [capture] answers "how does this tree differ from HEAD", which is the right question for a
+167       * candidate and the wrong one for a report: in a checkout carrying other uncommitted work it
+168       * names a hundred files the agent never touched, and the planner is told the agent changed them
+169       * all. Comparing two of these instead answers "what did *this* turn do".
+170       *
+171       * Only the dirty set is fingerprinted, because a file the agent edits necessarily becomes dirty:
+172       * a clean file it touches enters the set, a dirty file it edits changes digest, one it reverts
+173       * leaves. Fingerprinting the whole tree would also be correct, and far too slow to run twice a
+174       * cycle on a real repository.
+175       */
+176      fun dirtyManifest(): SourceManifest {
+177          val status = git(*(listOf("status", "--porcelain=v1", "-z", "--untracked-files=all", "--") + inputPaths).toTypedArray())
+178              ?: return SourceManifest(emptyMap(), available = false)
+179          // Porcelain v1 with -z emits "XY path" records separated by NUL; a rename or copy adds a
+180          // second record holding the original path, which is not itself a changed file.
+181          val records = status.split(NUL).filter { it.length > 3 }
+182          val paths = mutableListOf<String>()
+183          var index = 0
+184          while (index < records.size) {
+185              val record = records[index]
+186              paths += record.substring(3)
+187              if (record[0] == 'R' || record[0] == 'C') index++
+188              index++
+189          }
+190          val distinct = paths.distinct().sorted()
+191          val entries = distinct.take(MANIFEST_LIMIT).associateWith { name ->
+192              val file = File(root, name)
+193              when {
+194                  Files.isSymbolicLink(file.toPath()) ->
+195                      "link:" + runCatching { Files.readSymbolicLink(file.toPath()).toString() }.getOrDefault("?")
+196                  !file.exists() -> "absent"
+197                  !file.isFile -> "directory"
+198                  // Too big to hash twice a cycle; size and mtime still move when it is edited.
+199                  file.length() > MANIFEST_FILE_LIMIT -> "large:" + file.length() + ":" + file.lastModified()
+200                  else -> contentDigest(file.readBytes())
+201              }
+202          }
+203          return SourceManifest(entries, available = true, truncated = distinct.size > MANIFEST_LIMIT)
+204      }
+205  
+206      private fun contentDigest(bytes: ByteArray) =
+207          MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+208  
+209      private fun git(vararg args: String): String? = runCatching {
+210          val process = ProcessBuilder(listOf("git", "--no-optional-locks", "-C", root.canonicalPath) + args)
+211              .redirectError(ProcessBuilder.Redirect.DISCARD).start()
+212          val reader = java.util.concurrent.CompletableFuture.supplyAsync { process.inputStream.use { it.readNBytes(16_000_001) } }
+213          try {
+214              val bytes = reader.get(30, TimeUnit.SECONDS)
+215              if (bytes.size > 16_000_000) { process.destroyForcibly(); return@runCatching null }
+216              if (!process.waitFor(5, TimeUnit.SECONDS) || process.exitValue() !in if ("--no-index" in args) setOf(0, 1) else setOf(0)) null else bytes.decodeToString()
+217          } finally { if (process.isAlive) process.destroyForcibly() }
+218      }.getOrNull()
+219  }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt:10:6@5fb1694f"},"follow":[{"rel":"references","dir":"in"}]}

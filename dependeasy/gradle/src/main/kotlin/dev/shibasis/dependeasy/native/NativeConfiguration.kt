@@ -17,6 +17,15 @@ open class NativeLibrary internal constructor(
     internal val testExecutables = mutableListOf<dev.shibasis.dependeasy.model.NativeContract.Executable>()
     private var supportedPlatforms = NativePlatform.entries.toSet()
     private var supportedAbis = NativeAbi.defaults
+    internal val linkages = linkedMapOf<NativePlatform, NativeLinkage>()
+    internal fun linkage(platform: dev.shibasis.dependeasy.tasks.CmakePlatform): String {
+        val key = when (platform) {
+            is dev.shibasis.dependeasy.tasks.CmakePlatform.Android -> NativePlatform.Android
+            is dev.shibasis.dependeasy.tasks.CmakePlatform.Darwin -> NativePlatform.Darwin
+            is dev.shibasis.dependeasy.tasks.CmakePlatform.Host -> NativePlatform.Host
+        }
+        return (linkages[key] ?: if (key == NativePlatform.Android) NativeLinkage.Shared else NativeLinkage.Static).name.uppercase()
+    }
 
     fun dependencies(vararg dependencies: NativeDependency) {
         if (dependencies.any { it.source != null }) project.nativeTools.register(project)

@@ -1,0 +1,713 @@
+{
+  "command": [
+    "/Users/ovd/.local/bin/reaktor-agent",
+    "workspace",
+    "mcp",
+    "--dir",
+    "/Users/ovd/dev/bestbuds",
+    "--seat",
+    "codex"
+  ],
+  "responses": [
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "protocolVersion": "2025-11-25",
+        "capabilities": {
+          "tools": {
+            "listChanged": false
+          },
+          "resources": {
+            "listChanged": false
+          },
+          "prompts": {
+            "listChanged": false
+          }
+        },
+        "serverInfo": {
+          "name": "reaktor",
+          "version": "1.0.0"
+        },
+        "instructions": "One door to this workspace and the builds it includes, such as ../reaktor. For code questions use atlas_query and atlas_read before rg or whole files. atlas_query {from: {name: \"Type.member\"}, follow: [{rel: \"references\", dir: \"in\"}]} lists its uses with the declaration each sits in, then every comment, string and file that mentions it; dir \"out\" lists what it calls and the types it names; {from: {text: \"...\"}} finds literal text. queries and reads answer more lookups in the same call; a part not ready in time comes back as a retry: line to repeat shortly, and next: lines suggest a following step. An answer's first line says how much of it the compiler checked, and a use marked \"name match\" was found by name, not confirmed by the compiler. atlas_read {name: \"Type.member\"} or {at: \"File.kt:42\"} returns exact source with line numbers, overloads together; paths reads up to 16 files. change_plan returns every line a change would make and writes nothing: rename renames the uses the compiler confirms and lists the rest, edit replaces exact text, structural rewrites matching Kotlin expressions. change_apply writes a plan; check_run {change: plan} runs the checks it affects and names the phase and cause of a failure. Everything else goes through the kernel tool: operation.catalog lists the preferred operations first, and kernel.status says which build is answering and what each provider lacks. approval-required waits for a person in Hangar or a terminal."
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "result": {
+        "tools": [
+          {
+            "name": "kernel",
+            "description": "Every workspace operation through one gate: {operation, arguments, requestId}. Start with operation.catalog: alone it lists every operation id by domain; {query: \"words\"} or {domain} adds summaries and effects, and {all: true} lists every entry in full. operation.describe gives one operation's arguments. The result's type is completed, failed, refused, denied or approval-required. approval-required means a person must approve it in Hangar or at a terminal; tell them the approval id and repeat the identical call only after they say so.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string"
+                },
+                "arguments": {
+                  "type": "object"
+                },
+                "requestId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "operation"
+              ],
+              "additionalProperties": false
+            },
+            "annotations": {
+              "readOnlyHint": false,
+              "destructiveHint": true,
+              "idempotentHint": false,
+              "openWorldHint": true
+            }
+          },
+          {
+            "name": "atlas_query",
+            "description": "Answers a code question in one bounded call, across this repository and the builds it includes: a Kotlin, TypeScript or C++ declaration by name (Type.member works), its uses with the declaration each sits in and every other mention, what a declaration or file calls and the types it uses, literal text in any tracked file, a file's declarations, build nodes and operations. queries and reads answer more questions and atlas_read requests in the same call. Presets: map gives the workspace at a glance; impact and affected-checks give what a change reaches and the checks that cover it; explain and wiring answer how reaktor-graph graphs, nodes, ports and routes fit together; runtime and routes say which nodes ran and which routes a flow opens. Use it before rg or reading whole files.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A handle from an earlier answer"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A declaration name; Type.member or Receiver.function picks one owner"
+                    },
+                    "kind": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Narrows a name: class, interface, object, enum, function, property or typealias"
+                    },
+                    "path": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A workspace-relative file or folder; it narrows a name or text, and with line and column it is a position"
+                    },
+                    "line": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Zero-based line; an answer's at of File.kt:42:5 is line 41"
+                    },
+                    "column": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Zero-based UTF-16 column; an answer's at of File.kt:42:5 is column 4"
+                    },
+                    "node": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A declared build node, build:project:name"
+                    },
+                    "operation": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A kernel operation id"
+                    },
+                    "symbol": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A compiler address such as kotlin:pkg/Type#member()@module, as answers print them; or an exact symbol from an index answer, with index"
+                    },
+                    "text": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Literal text to find in every tracked file: a message, a string, a call such as code.outline, a task name"
+                    },
+                    "at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A position as answers print it: path:line or path:line:column"
+                    },
+                    "changed": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Files changed in the checkouts, for the impact and affected-checks presets: worktree for what is not committed, or a git ref such as origin/main for everything since it"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "description": "Where the question starts: one of id, name, text, at, path, node, operation or symbol"
+                },
+                "follow": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rel": {
+                        "type": "string",
+                        "enum": [
+                          "contains",
+                          "references",
+                          "includes",
+                          "calls",
+                          "overrides",
+                          "implements",
+                          "typeOf",
+                          "actualOf"
+                        ]
+                      },
+                      "dir": {
+                        "type": "string",
+                        "enum": [
+                          "in",
+                          "out"
+                        ]
+                      },
+                      "depth": {
+                        "type": "integer",
+                        "description": "1 to 4"
+                      }
+                    },
+                    "required": [
+                      "rel"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Relations to follow: references (in) finds uses with the declaration each sits in, then the comments, strings and other files that mention the name; references (out) finds what a declaration or file uses, the functions it calls and the types it names, depth 1 to 4; contains (out) lists declarations; includes (out) walks the build tree. From a Kotlin declaration, as the compiler resolves them: calls (in: the call sites and their callers; out: the functions it calls), overrides (in: what overrides it; out: what it overrides), implements (in: the types that extend it; out: its supertypes), typeOf (in: declarations of this type; out: its declared type) and actualOf (in: the actuals of an expect; out: the expect of an actual)"
+                },
+                "index": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "A reaktor-scip-v1 artifact; with it names and references resolve through the indexer"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "1 to 128; counts stay complete when fewer are shown"
+                },
+                "budget": {
+                  "type": "integer",
+                  "description": "Largest answer in characters, 1000 to 22000; counts stay complete when items are cut"
+                },
+                "read": {
+                  "type": "boolean",
+                  "description": "With true, the answer also carries the source of each Kotlin declaration a result sits in, with line numbers, while the budget lasts"
+                },
+                "context": {
+                  "type": "integer",
+                  "description": "Lines to show before and after each result, 0 to 10, in any file; overlapping lines show once"
+                },
+                "imports": {
+                  "type": "boolean",
+                  "description": "With true, the answer also carries the package and import lines of each Kotlin file a result sits in, as an edit needs them"
+                },
+                "queries": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "description": "More atlas_query requests, each with this tool's arguments, answered in this call after this one; lookups that do not wait on each other go together"
+                },
+                "reads": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  },
+                  "description": "atlas_read requests, each with atlas_read's arguments, answered in this call after the queries"
+                },
+                "path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The same as from.path, for a request that puts it beside from"
+                },
+                "preset": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "map",
+                    "investigate",
+                    "impact",
+                    "affected-checks",
+                    "explain",
+                    "wiring",
+                    "runtime",
+                    "routes"
+                  ],
+                  "description": "A stored question. map: the builds, their modules and platforms, the app graphs and the latest commits, to start a session with. investigate: one bounded answer about a declaration (from.name, at, id, or symbol with index): its source, every use with the lines around it and the declaration it sits in, and the files they sit in. impact: what a change reaches, from a declaration (from.name, id or at) or files (from.path or from.changed): its uses grouped by module, checked by the compiler for a declaration, and the checks that cover them, each with its reason. affected-checks: the checks for files (from.path, a file or folder) or from.changed, each with its reason and latest run. explain and wiring, for reaktor-graph code: what a graph, node class, port type or route is, its nodes and ports and what wires to each; which provider each consumer gets, matched as autoWire matches them. Name the graph (class or label), node, port type or route in from.name, give from.path for those declared in a file or folder, or neither for the tree of graphs. runtime: the app graphs' nodes with the telemetry spans retained for the last hour, joined by definition id; from.name narrows it to a graph or node. routes: each declared route and the Maestro flows whose openLink opens it"
+                },
+                "need": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "inferred",
+                    "syntactic",
+                    "declared",
+                    "resolved",
+                    "observed"
+                  ],
+                  "description": "The least evidence the answer may rest on: inferred, syntactic, declared, resolved or observed. An answer that cannot meet it is refused with PROVIDER_UNAVAILABLE, which names the provider it needs and its state"
+                }
+              },
+              "additionalProperties": false
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "atlas_read",
+            "description": "Reads only what a question needs, with line numbers: a declaration's source by name, handle or path:line (overloads come together), the outline or imports of one file or several, or a window of any text file. Use it instead of reading a whole file.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "A handle from atlas.query"
+                },
+                "path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "A workspace-relative file; with name it narrows the search"
+                },
+                "paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Up to 16 workspace-relative files read together, such as their imports before an edit"
+                },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Zero-based line inside the declaration"
+                },
+                "column": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Zero-based UTF-16 column"
+                },
+                "part": {
+                  "type": "string",
+                  "enum": [
+                    "declaration",
+                    "outline",
+                    "imports",
+                    "file"
+                  ],
+                  "description": "declaration: its own source; outline: the file's declarations; imports: the file's package and import lines; file: the file text"
+                },
+                "budget": {
+                  "type": "integer",
+                  "description": "Largest text in characters, 1000 to 22000"
+                },
+                "offset": {
+                  "type": "integer",
+                  "description": "Characters of the file to skip, to read a long file in pieces"
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "A declaration to read without a handle; Type.member or Receiver.function picks one owner, and a name with up to four declarations, such as overloads, reads each"
+                },
+                "kind": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Narrows a name: class, interface, object, enum, function, property or typealias"
+                },
+                "at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "A position as answers print it: path:line or path:line:column"
+                }
+              },
+              "additionalProperties": false
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "change_plan",
+            "description": "Plans a source change without writing it: a plan id, every line it changes, the matches it leaves and the checks it affects. recipe rename renames one Kotlin declaration and its uses across modules and the builds this repository includes, as the compiler resolves them; a match the compiler did not confirm is left and listed, and need syntactic or include renames it as the Atlas reads it, marked by name. recipe edit replaces exact text, found once in a file or inside one declaration, in several files together. change_apply writes a plan.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "recipe": {
+                  "type": "string",
+                  "enum": [
+                    "rename",
+                    "edit",
+                    "structural",
+                    "change-type"
+                  ],
+                  "description": "rename renames one Kotlin or C++ declaration and its uses across modules and the builds this repository includes; edit replaces exact text in one or more files together; structural rewrites every match of a Kotlin expression pattern; change-type moves every use of one Kotlin type to another"
+                },
+                "target": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A handle from an earlier answer"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A declaration name; Type.member or Receiver.function picks one owner"
+                    },
+                    "kind": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Narrows a name: class, interface, object, enum, function, property or typealias"
+                    },
+                    "path": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A workspace-relative file or folder; it narrows a name or text, and with line and column it is a position"
+                    },
+                    "line": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Zero-based line; an answer's at of File.kt:42:5 is line 41"
+                    },
+                    "column": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "description": "Zero-based UTF-16 column; an answer's at of File.kt:42:5 is column 4"
+                    },
+                    "node": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A declared build node, build:project:name"
+                    },
+                    "operation": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A kernel operation id"
+                    },
+                    "symbol": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A compiler address such as kotlin:pkg/Type#member()@module, as answers print them; or an exact symbol from an index answer, with index"
+                    },
+                    "text": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Literal text to find in every tracked file: a message, a string, a call such as code.outline, a task name"
+                    },
+                    "at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "A position as answers print it: path:line or path:line:column"
+                    },
+                    "changed": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Files changed in the checkouts, for the impact and affected-checks presets: worktree for what is not committed, or a git ref such as origin/main for everything since it"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "description": "rename: the declaration, as atlas_query names it: {name: \"Type.member\"}, {at: \"File.kt:42:9\"} or {id}. structural: keep only the matches in which the compiler resolves a name outside the holes to this declaration, an override of it or its constructor. change-type: the type whose uses move"
+                },
+                "to": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "rename: the new name. change-type: the type the uses move to, as atlas_query names it, such as \"NewType\" or \"Outer.NewType\""
+                },
+                "edits": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "A workspace-relative file; find must occur in it exactly once"
+                      },
+                      "id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "A handle from atlas_query or atlas_read; find is looked for only inside that declaration"
+                      },
+                      "find": {
+                        "type": "string",
+                        "description": "Exact text to replace, copied from atlas_read; it must occur exactly once where it is looked for"
+                      },
+                      "replacement": {
+                        "type": "string",
+                        "description": "The text that replaces it"
+                      }
+                    },
+                    "required": [
+                      "find",
+                      "replacement"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "edit: 1 to 64 replacements, written together or not at all"
+                },
+                "pattern": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "structural: one Kotlin expression with holes; $X stands for any one expression and $$$ARGS for any run of arguments, and a hole used twice must match the same text, for example $RECEIVER.answer($$$ARGS)"
+                },
+                "rewrite": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "structural: the text each match becomes, with the pattern's holes, for example $RECEIVER.reply($$$ARGS)"
+                },
+                "paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "structural: files or folders to search; without them every Kotlin file that names the pattern's longest name is searched"
+                },
+                "need": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "inferred",
+                    "syntactic",
+                    "declared",
+                    "resolved",
+                    "observed"
+                  ],
+                  "description": "rename: the least evidence a renamed match may rest on. resolved, the default, renames what the compiler confirms and lists the rest as left; syntactic also renames the matches the Atlas reads as uses where the compiler did not check them, each marked by name in the plan"
+                },
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "rename: positions from a plan's left list, as path:line:column, to rename as well, each marked by name in the plan"
+                }
+              },
+              "required": [
+                "recipe"
+              ],
+              "additionalProperties": false
+            },
+            "annotations": {
+              "readOnlyHint": false,
+              "destructiveHint": false,
+              "idempotentHint": false,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "change_apply",
+            "description": "Writes one change_plan plan, every file or none, refusing it when a file changed since the plan, and returns the receipt; check_run then runs the affected checks. Repeating it returns the same receipt. A seat whose policy stops short of source writes waits for a person to approve the plan, unless its policy lets it apply its own plans, every file is in this checkout and, when the session is linked to a board task whose scope names paths or modules, inside that scope.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "plan": {
+                  "type": "string",
+                  "description": "The plan id from change_plan"
+                }
+              },
+              "required": [
+                "plan"
+              ],
+              "additionalProperties": false
+            },
+            "annotations": {
+              "readOnlyHint": false,
+              "destructiveHint": true,
+              "idempotentHint": false,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "check_run",
+            "description": "Runs the checks a change affects, the tests of the modules its files belong to, as one Gradle run on the build worker, waits up to 25 seconds, and reports each check with how many tests ran or whether Gradle reused their last result, the compiler errors and failed tests, the phase that failed with Gradle's cause, paths as they are in this checkout, and the source snapshot the run read. While the run is unfinished, call it again with run.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "change": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "A plan id from change_apply; the files it wrote choose the checks"
+                },
+                "paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Workspace-relative files whose checks to run, when there is no change"
+                },
+                "run": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "A run id from an earlier check_run, to wait for it again instead of starting checks"
+                },
+                "runs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The exact run ids from a multi-check continuation; waits without starting checks"
+                },
+                "reach": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "Edited",
+                      "Users",
+                      "Flows"
+                    ]
+                  },
+                  "description": "Edited runs the tests of the modules the files belong to; add Users for the modules that use them and Flows for the slow Hangar and window flows"
+                },
+                "wait": {
+                  "type": "integer",
+                  "description": "Seconds to wait for the run, 0 to 25"
+                },
+                "rerun": {
+                  "type": "boolean",
+                  "description": "Run the tests even when Gradle would reuse their last result because nothing they read changed"
+                },
+                "narrow": {
+                  "type": "boolean",
+                  "description": "Run only the test classes that use the changed code, found through the code graph; a test that reaches it only through wiring or reflection is not run"
+                }
+              },
+              "additionalProperties": false
+            },
+            "annotations": {
+              "readOnlyHint": false,
+              "destructiveHint": false,
+              "idempotentHint": false,
+              "openWorldHint": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"completed\",\"result\":{\"owner\":\"ec4612de9ae94f2a26678442cb80b251a22e73d04b6567f3b0cbb8507e004aab.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 29 Oct 04:00; this process started 29 Oct 04:01\",\"capabilities\":\"54c6f112297c\",\"operations\":290,\"recipes\":[\"rename\",\"edit\",\"structural\",\"change-type\"],\"presets\":[\"map\",\"investigate\",\"impact\",\"affected-checks\",\"explain\",\"wiring\",\"runtime\",\"routes\"],\"behind\":[],\"sources\":[\"this repository at 3a352e5b 29 Oct 01:17 Auth pane reads at a glance; the access model reads as OpenFGA, Kotlin or JSON, 124 files changed and not committed\",\"../reaktor at 7122b598 29 Oct 03:50 Open a source in place on Surface graphs: an open control, opaque frames, packed layouts, labels clear of cards, 285 files changed and not committed\"],\"models\":[\"build/dependeasy/model.json: 1907 build nodes\",\"compilations export version 2 (this kernel reads 2): 733 compilations, exported 61 minutes ago\"],\"helpers\":[\"the Kotlin helper ../reaktor/reaktor-code/build/distributions/kotlin-semantics.zip, built 23 Oct 07:17, taking up to 2048 modules a session\"],\"indexing\":[\"kotlin-analysis-api/2.5.0-Beta2-59 has indexed 3413 of 3413 Kotlin files\",\"scip-typescript/0.4.0 has indexed 232 of 232 TypeScript files in 21 projects with typescript/6.0.3, typescript/5.9.3\",\"clangd ready with /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clangd for 4 native modules: ../reaktor/reaktor-ffi from its host compile commands, 3 own sources and 506 vendored left out; ../reaktor/reaktor-security from its host compile commands, 2 own sources; ../reaktor/reaktor-flexbuffer from its host compile commands, 6 own sources; ../reaktor/reaktor-performance from its iphonesimulator compile commands, 1 own sources; none is open now\"],\"unavailable\":[\"retained telemetry: no span of production is retained for the last 60 minutes\",\"runtime: the kernel retains no telemetry span; telemetry.refresh reads spans, and devtools, rgp/1 and a test recorder would add activations\"]}}"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "jsonrpc": "2.0",
+      "id": 4,
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelSourceNode.kt \u00b7 internal class KernelSourceNode(kernel: ReaktorKernel, val roots: List<Path>) : BasicNode(kernel.graph) \u00b7 1462 of 1462 characters \u00b7 rev:157ae5dd12eb\n 7  internal class KernelSourceNode(kernel: ReaktorKernel, val roots: List<Path>) : BasicNode(kernel.graph) {\n 8      private val root = roots.first()\n 9      override val label = \"Owned source: $root\"\n10      private val workspace = CodeWorkspaceNode(graph, root) { changes.facts.generated(root) }\n11      init { graph.attach(workspace) }\n12      val engineering = KernelEngineeringNode(graph, kernel.graph.operationsNode, kernel.graph.agentsNode, workspace)\n13      val atlas = KernelAtlas(kernel, this)\n14      val changes = KernelChanges(kernel, atlas)\n15      val codeGraph = KernelCodeGraph(atlas::roots, changes.facts, { changes.semantic.current() }, { changes.semantic.typescript.peek() }) { atlas.reaktor.facts() }\n16  \n17      private val watch = KernelWatch({ roots }, changes.facts::generated) { batch ->\n18          if (batch.any { KernelWatch.script(it) }) changes.facts.changed()\n19          if (batch.any { KernelWatch.kotlin(it) }) changes.semantic.nudge(start = false)\n20          if (batch.any { KernelWatch.typescript(it) }) changes.semantic.typescript.nudge()\n21          if (batch.any { KernelWatch.kotlin(it) || KernelWatch.typescript(it) }) codeGraph.refresh()\n22      }.start()\n23  \n24      init { graph.attach(engineering) }\n25  \n26      override fun close() {\n27          watch.close()\n28          try { changes.close() } finally {\n29              try { codeGraph.close() } finally {\n30                  graph.detach(engineering)\n31                  graph.detach(workspace)\n32                  super.close()\n33              }\n34          }\n35      }\n36  }\nnext: atlas_query {\"from\":{\"id\":\"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelSourceNode.kt:6:15@28a8dd63\"},\"follow\":[{\"rel\":\"references\",\"dir\":\"in\"}]}\n"
+          }
+        ],
+        "isError": false
+      }
+    }
+  ]
+}

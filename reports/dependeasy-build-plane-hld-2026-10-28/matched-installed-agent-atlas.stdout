@@ -1,0 +1,32 @@
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelSourceNode.kt · internal class KernelSourceNode(kernel: ReaktorKernel, val roots: List<Path>) : BasicNode(kernel.graph) · 1462 of 1462 characters · rev:157ae5dd12eb
+ 7  internal class KernelSourceNode(kernel: ReaktorKernel, val roots: List<Path>) : BasicNode(kernel.graph) {
+ 8      private val root = roots.first()
+ 9      override val label = "Owned source: $root"
+10      private val workspace = CodeWorkspaceNode(graph, root) { changes.facts.generated(root) }
+11      init { graph.attach(workspace) }
+12      val engineering = KernelEngineeringNode(graph, kernel.graph.operationsNode, kernel.graph.agentsNode, workspace)
+13      val atlas = KernelAtlas(kernel, this)
+14      val changes = KernelChanges(kernel, atlas)
+15      val codeGraph = KernelCodeGraph(atlas::roots, changes.facts, { changes.semantic.current() }, { changes.semantic.typescript.peek() }) { atlas.reaktor.facts() }
+16  
+17      private val watch = KernelWatch({ roots }, changes.facts::generated) { batch ->
+18          if (batch.any { KernelWatch.script(it) }) changes.facts.changed()
+19          if (batch.any { KernelWatch.kotlin(it) }) changes.semantic.nudge(start = false)
+20          if (batch.any { KernelWatch.typescript(it) }) changes.semantic.typescript.nudge()
+21          if (batch.any { KernelWatch.kotlin(it) || KernelWatch.typescript(it) }) codeGraph.refresh()
+22      }.start()
+23  
+24      init { graph.attach(engineering) }
+25  
+26      override fun close() {
+27          watch.close()
+28          try { changes.close() } finally {
+29              try { codeGraph.close() } finally {
+30                  graph.detach(engineering)
+31                  graph.detach(workspace)
+32                  super.close()
+33              }
+34          }
+35      }
+36  }
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelSourceNode.kt:6:15@28a8dd63"},"follow":[{"rel":"references","dir":"in"}]}

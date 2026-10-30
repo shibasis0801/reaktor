@@ -1,0 +1,157 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:0b64f3bf0e0d
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/NetworkTableFixture.kt
+  98:14 function PaneNetworkTable: @Composable internal fun PaneNetworkTable(calls: List<NetworkCall>, modifier: Modifier = Modifier, sorts: AtomicInteger = remember { AtomicInteger() }, cells: AtomicInteger = remember { AtomicInteger( · kotlin:ai/bestbuds/reaktor/#PaneNetworkTable(kotlin.collections.List,androidx.compose.ui.Modifier,java.util.concurrent.atomic.AtomicInteger,java.util.concurrent.atomic.AtomicInteger)@:engine:test:jvmTest@bestbuds
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/NetworkTableFixture.kt · @Composable internal fun PaneNetworkTable(calls: List<NetworkCall>, modifier: Modifier = Modifier, sorts: AtomicInteger = remember { AtomicInteger() }, cells: AtomicInteger = remember { AtomicInteger( · 2634 of 2634 characters · rev:0b64f3bf0e0d
+ 97  @Composable
+ 98  internal fun PaneNetworkTable(calls: List<NetworkCall>, modifier: Modifier = Modifier, sorts: AtomicInteger = remember { AtomicInteger() }, cells: AtomicInteger = remember { AtomicInteger() }) {
+ 99      var selectedId by remember { mutableStateOf<String?>(null) }
+100      val (start, span) = remember(calls) {
+101          val start = calls.minOfOrNull { it.startNanos } ?: 0L
+102          val end = calls.maxOfOrNull { it.startNanos + it.durationMillis * 1_000_000 } ?: start
+103          start to (end - start).coerceAtLeast(1L).toFloat()
+104      }
+105      val selected = remember(calls, selectedId) { calls.firstOrNull { it.id == selectedId } }
+106      Box(modifier.background(MachineSignal.Editor.Canvas)) {
+107          PaneTable("network",
+108              rows = calls,
+109              columns = listOf(
+110                  TableColumn("Status", width = 64.dp, sortKey = { sorts.incrementAndGet(); it.statusCode ?: -1 },
+111                      value = { it.statusCode?.toString() ?: it.failure ?: "pending" }, cell = { StatusCell(it) }),
+112                  TableColumn("Method", width = 64.dp, sortKey = { sorts.incrementAndGet(); it.method }, value = { it.method }, cell = { MethodCell(it) }),
+113                  TableColumn("Request", weight = 1f, sortKey = { sorts.incrementAndGet(); it.path }, value = { it.path + " " + it.host }, cell = { call ->
+114                      Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+115                          RequestCell(call)
+116                      }
+117                  }),
+118                  TableColumn("Type", width = 64.dp, sortKey = { sorts.incrementAndGet(); it.contentType }, value = { cells.incrementAndGet(); it.contentType }),
+119                  TableColumn("Size", width = 64.dp, align = TextAlign.End, sortKey = { sorts.incrementAndGet(); it.responseBytes },
+120                      value = { cells.incrementAndGet(); HangarPresentation.bytes(it.responseBytes) }),
+121                  TableColumn("Time", width = 64.dp, align = TextAlign.End, sortKey = { sorts.incrementAndGet(); it.durationMillis },
+122                      value = { cells.incrementAndGet(); HangarPresentation.duration(it.durationMillis) }),
+123                  TableColumn("Waterfall", width = 150.dp, cell = { call ->
+124                      WaterfallCell(call, start, span)
+125                  }),
+126              ),
+127              key = { it.id },
+128              modifier = Modifier.fillMaxSize(),
+129              selected = selected,
+130              onSelect = { selectedId = it.id },
+131              onClearSelection = { selectedId = null },
+132              rowActions = { listOf(PaneAction("Copy as cURL") {}, PaneAction("Copy URL") {}) },
+133          )
+134      }
+135  }
+next: atlas_read {"id":"d:modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/NetworkTableFixture.kt:97:13@5704ddbb"}
+next: atlas_query {"from":{"id":"d:modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/NetworkTableFixture.kt:97:13@5704ddbb"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[0] {"name":"ReferenceNetworkTable"}
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/NetworkTableFixture.kt · @Composable internal fun ReferenceNetworkTable(calls: List<NetworkCall>, columns: List<TableColumn<NetworkCall>>, selected: NetworkCall?, modifier: Modifier = Modifier) · 423 of 423 characters · rev:0b64f3bf0e0d
+86  @Composable
+87  internal fun ReferenceNetworkTable(calls: List<NetworkCall>, columns: List<TableColumn<NetworkCall>>, selected: NetworkCall?, modifier: Modifier = Modifier) =
+88      LegacyNetworkTable(
+89          rows = calls,
+90          columns = columns,
+91          key = { it.id },
+92          modifier = modifier,
+93          selected = selected,
+94          rowActions = { listOf(PaneAction("Copy as cURL") {}, PaneAction("Copy URL") {}) },
+95      )
+next: atlas_query {"from":{"id":"d:modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/NetworkTableFixture.kt:86:13@5704ddbb"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[1] {"name":"PaneTable"}
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/PaneTable.kt · @Composable internal fun <T> PaneTable( id: String, rows: List<T>, columns: List<TableColumn<T>>, key: (T) -> Any, modifier: Modifier = Modifier, selected: T? = null, onSelect: (T) -> Unit = {}, onAct · 1270 of 1270 characters · rev:42baebb8994b
+30  @Composable
+31  internal fun <T> PaneTable(
+32      id: String,
+33      rows: List<T>,
+34      columns: List<TableColumn<T>>,
+35      key: (T) -> Any,
+36      modifier: Modifier = Modifier,
+37      selected: T? = null,
+38      onSelect: (T) -> Unit = {},
+39      onActivate: (T) -> Unit = onSelect,
+40      onClearSelection: () -> Unit = {},
+41      emptyTitle: String = "Nothing here yet",
+42      emptyDetail: String = "",
+43      rowActions: (T) -> List<PaneAction> = { emptyList() },
+44      busy: Boolean = false,
+45      rowTag: ((T) -> String)? = null,
+46  ) {
+47      val indexed = remember(rows, key) { rows.associateBy { key(it).toString() } }
+48      PaneTable(id, rows, columns, { key(it).toString() }, selected?.let { setOf(key(it).toString()) }.orEmpty(),
+49          { ids -> if (ids.isEmpty()) onClearSelection() else ids.firstOrNull()?.let(indexed::get)?.let(onSelect) }, rememberPaneTable(id), modifier,
+50          onActivate = { indexed[it]?.let(onActivate) }, rowActions = rowActions, busy = busy, rowTag = rowTag,
+51          empty = { StateView(ViewState.Empty) {
+52              Column(horizontalAlignment = Alignment.CenterHorizontally) {
+53                  Text(emptyTitle, role = Type.Body, ink = Ink.Text)
+54                  if (emptyDetail.isNotBlank()) Text(emptyDetail, role = Type.Body, ink = Ink.Muted)
+55              }
+56          } })
+57  }
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/PaneTable.kt · @Composable internal fun <T> PaneTable( id: String, rows: List<T>, columns: List<TableColumn<T>>, key: (T) -> String, selection: Set<String>, onSelectionChange: (Set<String>) -> Unit, state: TableStat · 3813 of 3813 characters · rev:42baebb8994b
+ 59  @Composable
+ 60  internal fun <T> PaneTable(
+ 61      id: String,
+ 62      rows: List<T>,
+ 63      columns: List<TableColumn<T>>,
+ 64      key: (T) -> String,
+ 65      selection: Set<String>,
+ 66      onSelectionChange: (Set<String>) -> Unit,
+ 67      state: TableState,
+ 68      modifier: Modifier = Modifier,
+ 69      onActivate: (String) -> Unit = {},
+ 70      rowActions: (T) -> List<PaneAction> = { emptyList() },
+ 71      busy: Boolean = false,
+ 72      rowTag: ((T) -> String)? = null,
+ 73      empty: @Composable () -> Unit = {},
+ 74  ) {
+ 75      val desktop = LocalHangarSeams.current.desktop
+ 76      val inheritedToasts = LocalPaneToasts.current
+ 77      val toasts = inheritedToasts ?: rememberToastQueue()
+ 78      val keys = remember(columns) {
+ 79          val names = columns.map { it.title.lowercase(Locale.ROOT).replace(' ', '-') }
+ 80          names.mapIndexed { index, name -> if (name.isEmpty() || names.count { it == name } > 1) "$name-$index" else name }
+ 81      }
+ 82      val byKey = remember(rows, key) { rows.associateBy(key) }
+ 83      val sort = state.layout.sort
+ 84      val ordered = remember(rows, columns, sort) {
+ 85          val sorter = sort?.let { columns.getOrNull(keys.indexOf(it.column))?.sortKey }
+ 86          if (sorter == null) rows else {
+ 87              @Suppress("UNCHECKED_CAST")
+ 88              val comparison = compareBy<T> { sorter(it) as? Comparable<Any> }
+ 89              rows.sortedWith(if (sort?.descending == true) comparison.reversed() else comparison)
+ 90          }
+ 91      }
+ 92      val source = remember(ordered, key, columns) { listSource(ordered, key, text = { columns.joinToString(" ") { column -> column.value(it) } }) }
+ 93      val actions = paneRowActions(byKey, { row -> columns.joinToString("\t") { it.value(row) } }, rowActions) { value ->
+ 94          desktop.copy(value); toasts.show("Copied row")
+ 95      }
+ 96      val more = rememberSignalGlyph("⋯", centred = true)
+ 97      val surfaceColumns = remember(columns, keys, id, key, more) {
+ 98          columns.mapIndexed { index, column ->
+ 99              dev.shibasis.reaktor.surface.compose.TableColumn<T>(keys[index], column.width?.let(ColumnWidth::Fixed) ?: ColumnWidth.Share(column.weight.takeIf { it > 0 } ?: 1f),
+100                  sortable = column.sortKey != null, cellAlign = if (column.align == TextAlign.End) Alignment.End else Alignment.Start, cellPadding = MachineSignal.Space.s2,
+101                  header = {
+102                      Text(column.title, Modifier.fillMaxWidth(), role = Type.Meta, ink = Ink.Text)
+103                  }) { row ->
+104                  column.commandCell?.invoke(this, row) ?: column.cell?.invoke(row) ?: Text(column.value(row), role = Type.Meta, ink = column.ink(row) ?: Ink.Text)
+105              }
+106          } + dev.shibasis.reaktor.surface.compose.TableColumn<T>("actions", ColumnWidth.Fixed(MachineSignal.Editor.controlHeight), header = {}) {
+107              MenuTrigger(Modifier.size(MachineSignal.Editor.controlHeight).testTag("$id-more-${key(it)}").then(more)) {}
+108          }
+109      }
+110      val look = LocalAppearances.current[Appearance.TableRow]
+111      val appearance = remember(look, rowTag, ordered) {
+112          if (rowTag == null) look else object : RowAppearance {
+113              @Composable
+114              override fun Content(properties: RowProperties, state: RowState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: RowSlots) {
+115                  Box(Modifier.testTag(rowTag(ordered[properties.index])).then(Modifier.semantics { this.selected = properties.selected }), propagateMinConstraints = true) {
+116                      look.Content(properties, state, theme, feedback, slots)
+117                  }
+118              }
+119          }
+120      }
+121      AutomationScope(id) {
+122          DataTable(source, surfaceColumns, selection, onSelectionChange, modifier, onActivate = onActivate, actions = actions, state = state, busy = busy, appearance = appearance, empty = empty)
+123      }
+124      if (inheritedToasts == null) ToastHost(toasts) { Text(it.message, role = Type.Body, ink = Ink.Text) }
+125  }
+next: atlas_query {"from":{"id":"d:modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/PaneTable.kt:30:17@26f0f44c"},"follow":[{"rel":"references","dir":"in"}]}

@@ -1,0 +1,7 @@
+{
+  "processId": 35565,
+  "kernelSha256": "d103c6eee6b50c131a89809ebfeddc795142b6996551a015eb5e70393f73d2ab",
+  "toolingSha256": "df765d5fe048a1e09fa5372d8c1ea4e5ed4ee837d91891777f38eebf75f0e460",
+  "runtimeIncludesCheckedTooling": true,
+  "scope": "Standard graceful owner upgrade; one tooling JAR changed; checked previous kernel/service/conductor retained"
+}

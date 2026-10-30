@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="GraphPaneNodeTest[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:14.183Z" hostname="Shibasiss-MacBook-Pro-2.local" time="1.245">
+  <properties/>
+  <testcase name="aRefreshRereadsTheMapAndClosingStopsFollowing[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNodeTest" time="0.311"/>
+  <testcase name="theLayoutCacheKeepsOnlyLayoutsThatSucceeded[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNodeTest" time="0.001"/>
+  <testcase name="graphReadsKeepTheTelemetryWindowWhenOpeningAndRefreshingATrace[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNodeTest" time="0.323"/>
+  <testcase name="theGraphPaneReadsHangarThroughItsNodeOnlyOnceTheGraphIsOpen[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNodeTest" time="0.61"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

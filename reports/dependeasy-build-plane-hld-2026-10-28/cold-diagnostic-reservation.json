@@ -1,0 +1,8 @@
+{
+  "slot": 1,
+  "queueSeconds": 49.298062625,
+  "baseSnapshot": "bc1581702ae7a00ad4be18a9e37a2a4967501ab2ce563ca89823e523162bb882",
+  "diagnosticSnapshot": "96b15bc1357b5a037a5141ba30023e120bd9e3464b0c11ace0358e4d15dd3e67",
+  "remote": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+  "scope": "JDK21 profiled cold diagnostic; no before/after timing claim"
+}

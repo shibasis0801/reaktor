@@ -6,6 +6,8 @@ import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import org.koin.dsl.koinApplication
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -214,6 +216,58 @@ class TaskGraphRuntimeTest {
                     assertTrue(done.summaries.getValue(task.id).limitations.any { "Device acceptance" in it })
                 }
             }
+        }
+    }
+
+    @Test fun closingRuntimeJoinsGraphWritersAndCannotRecreateScopes() = runBlocking {
+        val root = Files.createTempDirectory("taskgraph-close-root").toFile()
+        val data = Files.createTempDirectory("taskgraph-close-data")
+        val dependencies = koinApplication {}
+        val graph = Graph(dependencyAdapter = KoinDependencyAdapter(dependencies))
+        val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+        try {
+            AgentWorkspace(root, data, emptyMap()).use { workspace ->
+                val runtime = TaskGraphRuntime(workspace, graph)
+                val proposed = workspace.board.propose(TaskGraphDraft("Close", tasks = listOf(
+                    TaskGraphOp.Add("Accept", kind = TaskKind.Gate))), person)
+                workspace.board.start(proposed.graph.id, person)
+                runtime.sync()
+                val scope = graph.owned.single()
+                val started = kotlinx.coroutines.CompletableDeferred<Unit>()
+                val stopping = kotlinx.coroutines.CompletableDeferred<Unit>()
+                val writer = scope.coroutineScope.launch {
+                    try { started.complete(Unit); kotlinx.coroutines.awaitCancellation() }
+                    finally { kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        stopping.complete(Unit)
+                        release.await()
+                        Files.writeString(data.resolve("writer-stopped"), "Stopped before close returned")
+                    } }
+                }
+                try {
+                    withTimeout(10_000) { started.await() }
+                    val closing = async(kotlinx.coroutines.Dispatchers.IO) { runtime.close() }
+                    withTimeout(10_000) { stopping.await() }
+                    assertNull(kotlinx.coroutines.withTimeoutOrNull(250) { closing.await(); true },
+                        "Close returned while a graph writer could still persist")
+                    release.complete(Unit)
+                    withTimeout(10_000) { closing.await() }
+                    assertTrue(writer.isCompleted)
+                    assertTrue(Files.isRegularFile(data.resolve("writer-stopped")))
+                    runtime.sync()
+                    assertTrue(graph.owned.isEmpty(), "A closed runtime recreated its graph scope")
+                } finally {
+                    release.complete(Unit)
+                    withTimeout(10_000) { writer.join() }
+                    runtime.close()
+                }
+            }
+        } finally {
+            release.complete(Unit)
+            graph.close()
+            withTimeout(10_000) { graph.coroutineScope.coroutineContext[kotlinx.coroutines.Job]?.join() }
+            dependencies.close()
+            root.deleteTreeSafely(within = temporary)
+            data.toFile().deleteTreeSafely(within = temporary)
         }
     }
 

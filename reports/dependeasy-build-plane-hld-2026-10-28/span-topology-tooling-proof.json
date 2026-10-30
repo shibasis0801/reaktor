@@ -1,0 +1,30 @@
+{
+  "run": "run-1793262746693-7266",
+  "router": "20261029-140538-8fa1b08b-bestbuds",
+  "scope": "Fresh tooling suite from retained normal-router artifact; normal publication succeeded; shared checkout, not frozen whole-tree qualification",
+  "cases": 251,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 1,
+  "suites": 57,
+  "first": "2026-10-29T08:36:15.948Z",
+  "last": "2026-10-29T08:36:31.060Z",
+  "jar": "/Users/ovd/dev/.remote-dev/artifacts/20261029-140538-8fa1b08b-bestbuds/reaktor/reaktor-tooling/build/libs/reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar",
+  "jarSha256": "df765d5fe048a1e09fa5372d8c1ea4e5ed4ee837d91891777f38eebf75f0e460",
+  "xmlArchiveSha256": "99b064fe1779e74708b7234cd635182722bccd765b735ea18a61f0f74b4bc954",
+  "nativeReadBefore": "ProviderHttpFailure at graph definitions; exact SQL fails live ClickHouse Code184 ILLEGAL_AGGREGATION",
+  "nativeReadAfter": "SpanRead succeeded; receipt length=1128",
+  "nativeCheckStatus": "passed",
+  "routerTimings": {
+    "started": "2026-10-29T14:05:38.661196",
+    "exit_code": 0,
+    "sync_seconds": 122.71484329200001,
+    "queue_seconds": 50.13317575,
+    "worker_slot": 0,
+    "execution_seconds": 56.59417233400001,
+    "collection_seconds": 46.367233208000016,
+    "publication_queue_seconds": 930.366704584,
+    "finished": "2026-10-29T14:23:00.704587",
+    "publication_seconds": 938.8595056249999
+  }
+}

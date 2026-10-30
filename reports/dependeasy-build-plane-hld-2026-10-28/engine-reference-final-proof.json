@@ -1,0 +1,17 @@
+{
+  "scope": "focused engine reference parity and text scaling; original assertions/tolerances",
+  "counts": {
+    "tests": 7,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "archive": "engine-reference-final-results.zip",
+  "sha256": "fda2c01435ea955a07ad2b377660ef7135a2a716b0130447102542cd028bbaed",
+  "sourceSha256": {
+    "src/jvmTest/kotlin/ai/bestbuds/reaktor/LegacyNetworkTable.kt": "aad4714482683827a653ac2c963fe7e4006eda5f2572711576edb6717ccf6e39",
+    "src/jvmTest/kotlin/ai/bestbuds/reaktor/machinesignal/RetiredWidgets.kt": "368df5bad0a7a16344e71cfc9c522f08ec3038cae328a128b93f6caaed50acd6",
+    "src/jvmTest/kotlin/ai/bestbuds/reaktor/machinesignal/LegacyMarks.kt": "b72c804c8fb1b3bbd97dffe3ab8bd1774e579d4e2761aea717e8f444f28dbec6",
+    "src/jvmTest/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/TextScalePartsTest.kt": "92ed4724fada008e5aea4df24e573fbc570d0e6c06d3182616931c5c3a122639"
+  }
+}

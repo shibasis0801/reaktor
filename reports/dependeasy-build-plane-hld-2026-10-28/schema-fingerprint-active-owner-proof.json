@@ -1,0 +1,11 @@
+{
+  "observedAt": "2026-10-29T13:26:38.508274+05:30",
+  "matched": [
+    {
+      "pid": 89938,
+      "runtimeServiceJar": "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime/4f91d5c5230f9d651da7cbd8e6592d5ef34b40f34407d82293c25c9f6d62bf32.jar",
+      "sha256": "4f91d5c5230f9d651da7cbd8e6592d5ef34b40f34407d82293c25c9f6d62bf32"
+    }
+  ],
+  "scope": "Actual BestBuds service process classpath includes the exact benchmarked and checked production service JAR."
+}

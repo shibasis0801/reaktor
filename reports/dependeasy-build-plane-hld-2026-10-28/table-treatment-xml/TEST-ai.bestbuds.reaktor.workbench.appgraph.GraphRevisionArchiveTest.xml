@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="GraphRevisionArchiveTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:15.431Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.007">
+  <properties/>
+  <testcase name="retainedTopologyReadsSpansWithoutAConnectedDeviceAndMatchesOnlyItsDigest[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphRevisionArchiveTest" time="0.001"/>
+  <testcase name="wholeSystemUsesTheSelectedApplicationWhenAnotherAppIsActiveOnTheDevice[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphRevisionArchiveTest" time="0.003"/>
+  <testcase name="aCanonicalRevisionSurvivesReconnectAndRestartWithoutRuntimeValues[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphRevisionArchiveTest" time="0.002"/>
+  <testcase name="telemetryCatalogRetainsTheExactDefinitionWithoutADeviceAndRejectsTampering[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphRevisionArchiveTest" time="0.001"/>
+  <testcase name="archiveRejectionIsVisibleWithoutClaimingHistoricalTopology[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphRevisionArchiveTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TelemetryLensTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:16.902Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.0">
+  <properties/>
+  <testcase name="everyTelemetryLensHonorsTheSelectedTraceAndPreservesTheRetainedSample[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.TelemetryLensTest" time="0.0"/>
+  <testcase name="selectedTraceUsesTheMedianOfBothMiddleDurations[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.TelemetryLensTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -348,6 +348,7 @@ open class AuthService : Service("reaktor.auth") {
     open val sessionRefresh by post<RefreshRequest, RefreshResponse>("/auth/session/refresh")
     open val sessionLogout by post<LogoutRequest, LogoutResponse>("/auth/session/logout")
     open val sessionMe by post<MeRequest, MeResponse>("/auth/session/me")
+    open val deviceCredential by post<DeviceCredentialRequest, DeviceCredentialResponse>("/auth/devices/credential")
     open val sessionLogoutAll by post<LogoutAllRequest, LogoutAllResponse>("/auth/session/logout-all")
     open val accountDeactivate by post<DeactivateAccountRequest, DeactivateAccountResponse>("/auth/account/deactivate")
     open val authorityGrants by post<AuthorityGrantsRequest, AuthorityGrantsResponse>("/auth/authority/grants")

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentPaneRenderTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:25:50.003Z" hostname="Shibasiss-MacBook-Pro-2.local" time="50.9">
+  <properties/>
+  <testcase name="theAtlasAsksTheOwnerAndReadsTheSourceOfWhatItFinds[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentPaneRenderTest" time="9.907"/>
+  <testcase name="theCodeGraphDrawsEveryFileOfTheWorkspaceAsOneGraph[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentPaneRenderTest" time="27.497"/>
+  <testcase name="theRosterAndTheDoorShowEveryAgentAndHowItReachesReaktor[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentPaneRenderTest" time="13.496"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

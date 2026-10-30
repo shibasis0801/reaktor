@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="SurfaceLabRenderTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:24:52.899Z" hostname="Shibasiss-MacBook-Pro-2.local" time="12.211">
+  <properties/>
+  <testcase name="machineSignalColumnsRenderEveryStory[jvm]" classname="ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest" time="2.594"/>
+  <testcase name="aStoryDrawsBareAndSaysSoWhereALanguageLacksItsLooks[jvm]" classname="ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest" time="0.101"/>
+  <testcase name="designSystemListsEveryColourRole[jvm]" classname="ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest" time="0.348"/>
+  <testcase name="everyControlHasAStoryInEveryLanguage[jvm]" classname="ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest" time="0.0"/>
+  <testcase name="canvasRendersTheStoryInEveryLanguage[jvm]" classname="ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest" time="0.143"/>
+  <testcase name="everyStoryRendersInEveryLanguageAndEnvironment[jvm]" classname="ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest" time="8.905"/>
+  <testcase name="workbenchRendersOneLiveStory[jvm]" classname="ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest" time="0.12"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

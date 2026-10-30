@@ -1,0 +1,27 @@
+[
+  {
+    "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-221245-bfce4855-bestbuds/bestbuds/targets/reaktorCli/build/test-results/test",
+    "counts": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "failed": []
+  },
+  {
+    "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-221245-bfce4855-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest",
+    "counts": {
+      "tests": 246,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 1
+    },
+    "failed": [
+      [
+        "serviceTunnelResolvesNamedPortSkipsUnreadyPodsAndTransportsBothWays[jvm]",
+        "java.lang.AssertionError: Expected an exception to be thrown, but was completed successfully."
+      ]
+    ]
+  }
+]

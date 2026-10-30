@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AuthPresentationParseTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:24:40.539Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.001">
+  <properties/>
+  <testcase name="anOffsetlessTimestampIsReadInTheLocalZone[jvm]" classname="ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest" time="0.0"/>
+  <testcase name="unreadableValuesReturnNullWithoutThrowing[jvm]" classname="ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest" time="0.0"/>
+  <testcase name="isoInstantsStillRead[jvm]" classname="ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest" time="0.001"/>
+  <testcase name="postgresTimestampWithFullOffset[jvm]" classname="ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest" time="0.0"/>
+  <testcase name="epochSecondsAndMillisStillRead[jvm]" classname="ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest" time="0.0"/>
+  <testcase name="aReadableTimestampRendersAsATimeRatherThanItself[jvm]" classname="ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest" time="0.0"/>
+  <testcase name="postgresTimestampWithTwoDigitOffset[jvm]" classname="ai.bestbuds.reaktor.machinesignal.AuthPresentationParseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

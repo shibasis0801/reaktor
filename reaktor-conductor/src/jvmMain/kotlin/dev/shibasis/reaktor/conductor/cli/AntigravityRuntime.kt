@@ -85,25 +85,28 @@ internal fun requireAntigravityGoogleAccount() {
 }
 
 internal fun antigravityModelOrder(requested: String?, candidates: List<String>): List<String> =
-    if (requested != null) listOf(requested) + candidates.filter { it != requested } else candidates
+    if (requested != null) listOf(requested) + candidates.filter { it != requested && it.antigravityFamily == requested.antigravityFamily } else candidates
+
+private val String.antigravityFamily: String get() = substringBeforeLast('-')
 
 internal fun antigravityCapacitySwitch(agent: AgentId, index: Int, model: String, next: String, refused: AgentOutcome) =
     AgentEvent.Activity(agent, AgentActivityItem("antigravity-capacity-$index", ActivityKind.Control,
         "$model is at capacity; trying $next", ActivityStatus.Recorded, output = refused.failure?.take(2000)))
 
 /**
- * Antigravity's preference order for this seat, best first.
+ * Antigravity's preference order for this seat, best first: Gemini 4 Argon only, since a run that
+ * steps down to Gemini 3.8 Flash is a different agent from the one the owner chose. A named model
+ * steps down only to other efforts of itself (see [antigravityModelOrder]).
  *
- * Verified present on `agy models` (agy 1.4.0) and answering on this account, 17 October 2026. Antigravity
+ * Verified present on `agy models` (agy 1.4.10) and answering on this account, 30 October 2026. Antigravity
  * also serves `claude-*` and `gpt-oss-*` on the same allowance; those are reachable by naming one
  * explicitly, and are deliberately not the default, because a seat called ChatGPT + Gemini that
  * quietly runs Claude is a seat nobody can reason about when they are choosing a fallback.
  */
 val defaultAntigravityModels: List<String> = listOf(
     "gemini-4-argon-high",
-    "gemini-3.8-flash-high",
     "gemini-4-argon-medium",
-    "gemini-3.8-flash-medium",
+    "gemini-4-argon-low",
 )
 
 val antigravityModelNames: Map<String, String> = linkedMapOf(

@@ -1,0 +1,31 @@
+{
+  "normalizedConstantPoolIndices": true,
+  "entries": [
+    {
+      "class": "dev.shibasis.dependeasy.model.BuildModelReader",
+      "changedMethods": [
+        "  public final kotlinx.serialization.json.JsonObject modelPage(java.io.File, java.lang.String, int, int);"
+      ]
+    },
+    {
+      "class": "dev.shibasis.dependeasy.model.BuildModelReader$omissionCounts$$inlined$groupingBy$1",
+      "changedMethods": []
+    },
+    {
+      "class": "dev.shibasis.dependeasy.model.BuildModelReader$receiptPage$2",
+      "changedMethods": []
+    },
+    {
+      "class": "dev.shibasis.dependeasy.model.BuildModelReader$receiptPage$lambda$3$$inlined$sortByDescending$1",
+      "changedMethods": []
+    },
+    {
+      "class": "dev.shibasis.dependeasy.model.BuildModelReader$retainedPlan$$inlined$sortedByDescending$1",
+      "changedMethods": []
+    },
+    {
+      "class": "dev.shibasis.dependeasy.model.BuildModelReader$story$3",
+      "changedMethods": []
+    }
+  ]
+}

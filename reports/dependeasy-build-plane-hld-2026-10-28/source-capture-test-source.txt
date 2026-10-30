@@ -1,0 +1,44 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:7673a01157dc
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt
+  9:7 class SourceIsolationTest: class SourceIsolationTest · kotlin:dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest@:reaktor-conductor:test:jvmTest@reaktor
+next: atlas_read {"id":"d:../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt:8:6@1b9c079a"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt:8:6@1b9c079a"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[0] {"name":"SourceIsolationTest.snapshotsKeepAuthoredDirtyInputsAndExcludeRuntimeAndDatedEvidence"}
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt · @Test fun snapshotsKeepAuthoredDirtyInputsAndExcludeRuntimeAndDatedEvidence() · 2587 of 2587 characters · rev:7673a01157dc
+31  @Test fun snapshotsKeepAuthoredDirtyInputsAndExcludeRuntimeAndDatedEvidence() = fixture { root, _, artifacts, store ->
+32          fun write(name: String, value: String) = File(root, name).apply { parentFile.mkdirs(); writeText(value) }
+33          write("agent/audit-20261025/screen.png", "old evidence")
+34          write(".reaktor/libexec/runtime.jar", "old runtime")
+35          git(root, "add", ".")
+36          git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Evidence baseline")
+37          val index = File(root, ".git/index").readBytes()
+38          write("Source.kt", "val value = 2\n")
+39          write("modules/assets/icon.png", "authored asset")
+40          write("agent/config.json", "{\"authored\":true}")
+41          write("agent/audit-20261025/probe.py", "print('authored probe')")
+42          write("agent/audit-20261025/screen.png", "new evidence")
+43          write(".reaktor/libexec/runtime.jar", "new runtime")
+44          repeat(250) { write("reports/capture-20261025/$it.json", "{\"generated\":true}") }
+45          val nested = File(root, ".claude/worktrees/other").apply { mkdirs() }
+46          git(nested, "init", "--quiet")
+47          File(nested, "Other.kt").writeText("val other = 1")
+48          val candidates = SourceCandidates(root, artifacts)
+49          val before = candidates.capture()
+50          assertTrue(before.complete, before.notices.toString())
+51          assertEquals(setOf("Source.kt", "modules/assets/icon.png", "agent/config.json", "agent/audit-20261025/probe.py"), before.changedFiles.toSet())
+52          assertFalse("new evidence" in artifacts.text(before.diff!!))
+53          assertEquals(before.changedFiles.toSet(), candidates.dirtyManifest().entries.keys)
+54          write("agent/audit-20261025/screen.png", "moving evidence again")
+55          assertEquals(before.sourceDigest, candidates.capture().sourceDigest)
+56          val worktree = store.prepare("source-inputs", "writer")
+57          val checkout = File(worktree.roots.single().path)
+58          assertEquals("val value = 2\n", File(checkout, "Source.kt").readText())
+59          assertEquals("authored asset", File(checkout, "modules/assets/icon.png").readText())
+60          assertEquals("old evidence", File(checkout, "agent/audit-20261025/screen.png").readText())
+61          assertEquals("old runtime", File(checkout, ".reaktor/libexec/runtime.jar").readText())
+62          assertFalse(File(checkout, "reports/capture-20261025/0.json").exists())
+63          assertFalse(File(checkout, ".claude/worktrees/other").exists())
+64          assertContentEquals(index, File(root, ".git/index").readBytes())
+65          store.remove(worktree.id)
+66      }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt:30:14@1b9c079a"},"follow":[{"rel":"references","dir":"in"}]}

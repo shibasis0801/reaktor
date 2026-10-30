@@ -101,6 +101,21 @@ class BoardTest {
     }
 
     @Test
+    fun statusBadgesKeepTheirFullLabelAndLeaveRoomForTheKind() {
+        val item = items[1].copy(eyebrow = "Human decision", badge = "In progress", mark = BoardInk.Busy)
+        val board = board.copy(items = listOf(item))
+        val shapes = board.scene(BoardFrame(board.items, mapOf(item.key to BoardPoint(0.0, 0.0)))).associateBy { it.id }
+        val label = shapes.getValue("card:b:priority-text") as BoardLabel
+        val badge = shapes.getValue("card:b:priority") as BoardBox
+        val kind = shapes.getValue("card:b:code") as BoardLabel
+        assertEquals("In progress", label.text)
+        assertEquals(BoardTheme().ink(BoardInk.Busy), label.color)
+        assertTrue(label.x > badge.x && label.x + label.text.length * 7 <= badge.x + badge.width)
+        assertTrue(kind.x + kind.text.length * 7 < badge.x)
+        assertTrue(shapes.getValue("card:b:rule") is BoardRule)
+    }
+
+    @Test
     fun dagSceneDrawsElbowArrows() {
         val at = board.positions(BoardView.Dag, items, mapOf("c" to BoardPoint(900.0, 400.0)))
         val shapes = board.scene(BoardFrame(items, at)).associateBy { it.id }

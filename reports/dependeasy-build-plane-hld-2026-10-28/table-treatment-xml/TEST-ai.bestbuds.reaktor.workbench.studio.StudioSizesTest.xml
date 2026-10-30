@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="StudioSizesTest[jvm]" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:31:36.835Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.018">
+  <properties/>
+  <testcase name="studioFindsTheColoursAndTextStylesAnElementUses[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.002"/>
+  <testcase name="studioShowsSizeEditsOnTheElementThatWritesThem[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.001"/>
+  <testcase name="tokenValuesFollowEveryUseLiveAndWriteOneLine[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.005"/>
+  <testcase name="sizeEditsWriteBackAndFollowMovedLines[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.001"/>
+  <testcase name="useTokensFindsEveryLiteralWhoseValueHasAToken[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.001"/>
+  <testcase name="tidySnapsRareSizesToTheValuesTheAppUsesMost[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.001"/>
+  <testcase name="studioFindsTheTokensAnElementUsesAndChangesThemLive[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.001"/>
+  <testcase name="studioUndoTakesBackADesignTokenRunInOneStep[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.001"/>
+  <testcase name="tokensReplaceLiteralsAndNewTokensJoinTheDesignSystem[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.005"/>
+  <testcase name="sizesSortIntoWhatTheyShape[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.StudioSizesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

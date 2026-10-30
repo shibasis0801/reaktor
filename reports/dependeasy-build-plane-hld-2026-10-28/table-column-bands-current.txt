@@ -1,0 +1,17 @@
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt · @Composable private fun ColumnBands(geometry: () -> ColumnGeometry, scroll: ScrollState, modifier: Modifier, content: @Composable (Int) -> Unit) · 1041 of 1041 characters · rev:5d1da91886d8
+345  @Composable
+346  private fun ColumnBands(geometry: () -> ColumnGeometry, scroll: ScrollState, modifier: Modifier, content: @Composable (Int) -> Unit) {
+347      val bands = geometry().bands.indices.filter { geometry().bands[it].isNotEmpty() }
+348      Layout(content = { bands.forEach { band -> Box(Modifier.clipToBounds(), propagateMinConstraints = true) { content(band) } } }, modifier = modifier) { measurables, constraints ->
+349          val shape = geometry()
+350          val placeables = measurables.mapIndexed { index, measurable ->
+351              val band = bands[index]
+352              measurable.measure(constraints.copy(minWidth = shape.rooms[band], maxWidth = shape.rooms[band]))
+353          }
+354          val height = constraints.constrainHeight(placeables.maxOfOrNull { it.height } ?: 0)
+355          layout(constraints.constrainWidth(shape.spans.sum()), height) {
+356              placeables.forEachIndexed { index, placeable -> placeable.placeRelative(scroll.value + shape.edges[bands[index]], Alignment.CenterVertically.align(placeable.height, height)) }
+357          }
+358      }
+359  }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt:345:12@91f6f745"},"follow":[{"rel":"references","dir":"in"}]}

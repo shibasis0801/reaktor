@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="WorkbenchSubsystemCoverageTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:24:25.317Z" hostname="Shibasiss-MacBook-Pro-2.local" time="12.11">
+  <properties/>
+  <testcase name="graphDocumentsCoverAllRealWorkbenchTargets[jvm]" classname="ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest" time="0.022"/>
+  <testcase name="graphCatalogRepositoryRefreshesEverySubsystemThroughPorts[jvm]" classname="ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest" time="3.201"/>
+  <testcase name="commandAndDataApisCoverEveryCoreWorkbenchOperation[jvm]" classname="ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest" time="3.153"/>
+  <testcase name="serviceMocksExposeAllRegisteredHandlersDirectly[jvm]" classname="ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest" time="2.482"/>
+  <testcase name="sharedSnapshotCoversEveryModeTargetAndRendererCatalog[jvm]" classname="ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest" time="0.0"/>
+  <testcase name="everyPaneInteractorRoundTripsAllNestedViewsAndTabs[jvm]" classname="ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest" time="0.004"/>
+  <testcase name="subsystemApiReturnsSummaryAndSnapshotForEveryRegisteredSubsystem[jvm]" classname="ai.bestbuds.reaktor.WorkbenchSubsystemCoverageTest" time="3.248"/>
+  <system-out><![CDATA[Info: (Reaktor:HttpClient) REQUEST: https://notification.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://chat.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://social.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://messaging.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://config.bestbuds.ai/
+METHOD: GET
+Info: (Reaktor:HttpClient) REQUEST: https://analytics.bestbuds.ai/events
+METHOD: POST
+Info: (Reaktor:HttpClient) REQUEST: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+METHOD: GET
+Info: (Reaktor:HttpClient) REQUEST https://analytics.bestbuds.ai/events failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://social.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://notification.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://chat.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://messaging.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://config.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) RESPONSE: 401 Unauthorized
+METHOD: GET
+FROM: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+Info: (Reaktor:HttpClient) RESPONSE wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?… failed with exception: io.ktor.client.plugins.websocket.WebSocketException: Handshake exception, expected status code 101 but was 401
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

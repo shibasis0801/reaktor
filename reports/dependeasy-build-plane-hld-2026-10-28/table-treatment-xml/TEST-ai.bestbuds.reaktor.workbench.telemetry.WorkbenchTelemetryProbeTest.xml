@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="WorkbenchTelemetryProbeTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:31:40.927Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.306">
+  <properties/>
+  <testcase name="theWorkbenchTracesItsOwnPortsAndReportsWhatItSaw[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryProbeTest" time="0.306"/>
+  <system-out><![CDATA[[workbench-telemetry] 493 ports instrumented, 0 skipped, 38 spans observed -> /Users/ovd/dev/bestbuds/modules/engine/build/reports/workbench-telemetry/probe.json
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

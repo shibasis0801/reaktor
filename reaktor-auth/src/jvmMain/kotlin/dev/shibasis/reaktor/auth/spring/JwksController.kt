@@ -18,7 +18,10 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class JwksController(
     private val signingKeys: SigningKeys,
+    private val deviceCredentials: dev.shibasis.reaktor.auth.services.DeviceCredentialIssuer? = null,
 ) {
     @GetMapping("/.well-known/jwks.json", produces = ["application/json"])
-    fun jwks(): String = signingKeys.publicJwkSet().toString()
+    fun jwks(): String = com.nimbusds.jose.jwk.JWKSet(
+        signingKeys.publicJwkSet().keys + deviceCredentials?.publicJwkSet()?.keys.orEmpty()
+    ).toString()
 }

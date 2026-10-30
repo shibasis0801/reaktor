@@ -79,7 +79,7 @@ class AuthRuntimeGraphIntegrationTest {
     fun theRuntimeServesEveryAuthAndAppCall() {
         val fx = AuthRuntimeGraphFixture()
 
-        assertEquals(12, fx.runtime.service.calls.size)
+        assertEquals(13, fx.runtime.service.calls.size)
         assertEquals(2, fx.runtime.appService.calls.size)
     }
 }

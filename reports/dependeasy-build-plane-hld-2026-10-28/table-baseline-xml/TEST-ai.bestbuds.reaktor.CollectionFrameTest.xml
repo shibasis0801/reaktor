@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="CollectionFrameTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:09:12.106Z" hostname="Shibasiss-MacBook-Pro-2.local" time="20.217">
+  <properties/>
+  <testcase name="theReferenceDevToolsTableScrollsTenThousandNetworkRowsThreeRowsAFrame[jvm]" classname="ai.bestbuds.reaktor.CollectionFrameTest" time="3.482"/>
+  <testcase name="thePaneTableScrollsAndPagesTenThousandNetworkRowsNoSlowerThanTheReference[jvm]" classname="ai.bestbuds.reaktor.CollectionFrameTest" time="16.655"/>
+  <testcase name="aClickAndAnArrowRebuildNeitherTheSortNorTheColumnsOfAPaneTable[jvm]" classname="ai.bestbuds.reaktor.CollectionFrameTest" time="0.076"/>
+  <system-out><![CDATA[CollectionFrameTest reference DevToolsTable, 10000 Network rows, 1600x1000 Machine Signal Editor/Compact, 3 rows a frame
+CollectionFrameTest frames (wheel dispatch and render): 600 after 120 warm-up; p95 4.5 ms; worst 12.2 ms; mean 3.2 ms; over 16.7 ms 0
+CollectionFrameTest render alone: p95 2.2 ms; worst 4.3 ms
+CollectionFrameTest rows scrolled: 2160.0 of 2160
+CollectionFrameTest load average over one minute: 16.20 before, 15.46 after, on 14 cores
+CollectionFrameTest PaneTable (Hangar's production table) against DevToolsTable, 10000 rows, 1600x1000 Machine Signal Editor/Compact, 3 rounds each, alternating
+CollectionFrameTest wheel round 1, reference: p95 2.9 ms; worst 9.7 ms; mean 2.7 ms; over 16.7 ms 0 of 600; render alone p95 1.9 ms
+CollectionFrameTest wheel round 1, data table: p95 3.1 ms; worst 11.3 ms; mean 2.6 ms; over 16.7 ms 0 of 600; render alone p95 1.9 ms
+CollectionFrameTest wheel round 2, reference: p95 2.4 ms; worst 8.7 ms; mean 2.3 ms; over 16.7 ms 0 of 600; render alone p95 1.7 ms
+CollectionFrameTest wheel round 2, data table: p95 2.6 ms; worst 8.6 ms; mean 2.4 ms; over 16.7 ms 0 of 600; render alone p95 1.8 ms
+CollectionFrameTest wheel round 3, reference: p95 2.4 ms; worst 9.0 ms; mean 2.3 ms; over 16.7 ms 0 of 600; render alone p95 1.7 ms
+CollectionFrameTest wheel round 3, data table: p95 2.4 ms; worst 8.2 ms; mean 2.3 ms; over 16.7 ms 0 of 600; render alone p95 1.7 ms
+CollectionFrameTest 40 PageDowns round 1, reference: p95 11.0 ms; worst 16.7 ms; mean 9.5 ms; over 16.7 ms 0 of 40; reached {rows per page=30, first row on screen=1215}
+CollectionFrameTest 40 PageDowns round 1, data table: p95 13.5 ms; worst 18.1 ms; mean 10.7 ms; over 16.7 ms 1 of 40; End, Home and a typeahead jump: p95 10.8 ms; worst 10.8 ms; mean 7.8 ms; over 16.7 ms 0 of 3; reached {rows per page=30, first row on screen=1170, PageDown x40=1199, End=9999, Home=0, typeahead 5=5}
+CollectionFrameTest 40 PageDowns round 2, reference: p95 13.5 ms; worst 21.0 ms; mean 10.0 ms; over 16.7 ms 1 of 40; reached {rows per page=30, first row on screen=1215}
+CollectionFrameTest 40 PageDowns round 2, data table: p95 10.9 ms; worst 14.9 ms; mean 9.9 ms; over 16.7 ms 0 of 40; End, Home and a typeahead jump: p95 16.7 ms; worst 16.7 ms; mean 10.3 ms; over 16.7 ms 0 of 3; reached {rows per page=30, first row on screen=1170, PageDown x40=1199, End=9999, Home=0, typeahead 5=5}
+CollectionFrameTest 40 PageDowns round 3, reference: p95 13.8 ms; worst 15.8 ms; mean 9.9 ms; over 16.7 ms 0 of 40; reached {rows per page=30, first row on screen=1215}
+CollectionFrameTest 40 PageDowns round 3, data table: p95 13.2 ms; worst 17.2 ms; mean 10.5 ms; over 16.7 ms 1 of 40; End, Home and a typeahead jump: p95 10.8 ms; worst 10.8 ms; mean 7.8 ms; over 16.7 ms 0 of 3; reached {rows per page=30, first row on screen=1170, PageDown x40=1199, End=9999, Home=0, typeahead 5=5}
+CollectionFrameTest median p95, wheel: reference 2.4 ms, data table 2.6 ms
+CollectionFrameTest median of the mean PageDown frame: reference 9.9 ms, data table 10.5 ms; the data table's key p95 13.5 ms
+CollectionFrameTest median candidate/reference within each round: wheel 1.069, PageDown 1.061; relative limit 1.1
+CollectionFrameTest absolute budget, judged only where the reference holds it on this machine: wheel 8.3 ms, keys 16.7 ms
+CollectionFrameTest load average over one minute: 15.46 at the start, 13.39 at the end, on 14 cores
+CollectionFrameTest rebuilds: a click re-ran 0 sort keys and 0 cells; an arrow 0 and 0
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

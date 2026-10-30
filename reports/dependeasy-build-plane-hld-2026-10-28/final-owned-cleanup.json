@@ -1,0 +1,16 @@
+{
+  "removedOwnedTemporaryRoot": "/Users/ovd/dev/tmp/dependeasy-perf-followup-20261028",
+  "localFreeBytesBefore": 21252456448,
+  "localFreeBytesAfter": 21378453504,
+  "worker": {
+    "removedOwnedRoot": "/Users/ovd/dev/offload/.remote-dev/performance-followup-20261028",
+    "children": [
+      "cli",
+      "package"
+    ],
+    "activeOwners": [],
+    "workerFreeBytesBefore": 21616533504,
+    "workerFreeBytesAfter": 22069182464
+  },
+  "atEpoch": 1793208638.522569
+}

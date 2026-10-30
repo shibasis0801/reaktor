@@ -1,0 +1,19 @@
+{
+  "scope": "Only successful collected runs named by this task retained evidence; source/logs/receipts and active runs preserved",
+  "removed": [
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-025139-6058a223-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-030958-0c694616-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-031203-fe3ed859-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-034812-8c4768b3-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-041452-f108b05b-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-042301-7c6b5fad-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-043717-0feff578-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-055158-0aa7a4c1-reaktor",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-055243-2ccf5380-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-055808-da8a4cf7-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-060644-82f5f7d6-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-061931-38f74ae6-bestbuds"
+  ],
+  "freeBytes": 15254409216,
+  "epoch": 1793253162.268864
+}

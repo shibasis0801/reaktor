@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DevToolsPaneRenderTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:39.788Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.0">
+  <properties/>
+  <testcase name="renders the pane against the attached phones[jvm]" classname="ai.bestbuds.reaktor.workbench.devices.DevToolsPaneRenderTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

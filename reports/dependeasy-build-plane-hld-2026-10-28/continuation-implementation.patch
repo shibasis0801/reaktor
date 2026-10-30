@@ -1,0 +1,249 @@
+--- a/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt
++++ b/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt
+@@ -7,6 +7,7 @@
+ import org.gradle.api.tasks.Classpath
+ import org.gradle.api.tasks.Input
+ import org.gradle.api.tasks.Internal
++import org.gradle.api.tasks.OutputFile
+ import org.gradle.work.DisableCachingByDefault
+ import java.io.File
+ 
+@@ -17,10 +18,22 @@
+     @get:Internal abstract val classesDirectory: DirectoryProperty
+     @get:Input abstract val bytecode: Property<Int>
+ 
+-    override fun commandArguments(): List<String> = KotlinCompiler.arguments(
+-        compilerClasspath.asPath, runtimeClasspath.asPath, classesDirectory.get().asFile.path,
+-        bytecode.get(), sourceFiles.files.filter { it.extension == "kt" }.map(File::getPath).sorted(),
+-    )
++    @get:OutputFile val compilerArgumentsFile: File get() = classesDirectory.get().asFile.resolveSibling("compiler.args")
++
++    override fun commandArguments(): List<String> = listOf("@${compilerArgumentsFile.path}")
++
++    override fun executeKernel() {
++        val command = KotlinCompiler.arguments(
++            compilerClasspath.asPath, runtimeClasspath.asPath, classesDirectory.get().asFile.path,
++            bytecode.get(), sourceFiles.files.filter { it.extension == "kt" }.map(File::getPath).sorted(),
++        )
++        compilerArgumentsFile.parentFile.mkdirs()
++        compilerArgumentsFile.writeText(command.joinToString("\n", postfix = "\n") { argument ->
++            "\"" + argument.replace("\\", "\\\\").replace("\"", "\\\"")
++                .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t") + "\""
++        })
++        super.executeKernel()
++    }
+ }
+ 
+ internal object KotlinCompiler {
+--- a/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt
++++ b/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt
+@@ -68,10 +68,8 @@
+                 generatedFiles.from(project.file(path))
+             }
+         }
+-        owner.afterEvaluate {
+-            val locations = contracts.files.map { it.absolutePath }.sorted()
+-            generation.configure { packageContracts.put(path, locations) }
+-        }
++        val locations = owner.providers.provider { contracts.files.map { it.absolutePath }.sorted() }
++        generation.configure { packageContracts.put(path, locations) }
+         outputs.forEach { consume(project.node(generation), it) }
+     }
+ 
+--- a/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt
++++ b/reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt
+@@ -3,7 +3,6 @@
+ import dev.shibasis.dependeasy.process.ProcessTask
+ import dev.shibasis.dependeasy.toolchain.ToolchainVersions
+ import dev.shibasis.dependeasy.workspace.BuildWorkspace
+-import dev.shibasis.dependeasy.workspace.hasBuildDirectory
+ import org.gradle.api.Project
+ import org.gradle.api.tasks.TaskProvider
+ import org.gradle.kotlin.dsl.register
+@@ -62,12 +61,12 @@
+             sourceInputs.add(files.asFileTree.matching {
+                 exclude("**/build/**", "**/node_modules/**", "**/dist/**", "**/.git/**", "**/.gradle/**", "**/.kotlin/**")
+             })
+-            project.afterEvaluate {
+-                val locations = files.files.toList()
+-                contract.configure {
+-                    packageContracts.from(locations.filter { it.extension == "json" })
+-                    packageManifests.from(locations.filter(project::hasBuildDirectory).map { it.resolve("package.json") })
+-                }
++            val manifests = project.providers.provider {
++                files.files.filter { it.isDirectory }.map { it.resolve("package.json") }
++            }
++            contract.configure {
++                packageContracts.from(files.filter { it.extension == "json" })
++                packageManifests.from(manifests)
+             }
+             val model = BuildWorkspace.get(project)
+             model.consume(project.node(contract), output)
+@@ -89,19 +88,20 @@
+         }
+         val files = project.outputFiles(from)
+         val kotlinLibrary = from.kind == OutputKind.KotlinJsLibrary
+-        val assets = project.objects.mapProperty(String::class.java, java.io.File::class.java)
++        val sourcePackage = from.kind == OutputKind.JavaScriptPackage
+         val root = directory
+-        contract.configure { dependsOn(files) }
+-        project.afterEvaluate {
+-            val published = if (from.kind == OutputKind.JavaScriptPackage) files.files.single(project::hasBuildDirectory) else files.singleFile
++        val locations = project.providers.provider {
++            val published = files.files.let { candidates ->
++                if (sourcePackage) candidates.single { it.isDirectory } else candidates.single()
++            }
+             val dependencies = if (kotlinLibrary) published.parentFile.resolve("node_modules") else published
+-            val locations = paths.associate { it.destination to dependencies.resolve(it.source) }
+-            assets.set(locations)
+-            contract.configure {
+-                this.assets.putAll(locations.mapValues { it.value.relativeTo(root).invariantSeparatorsPath })
+-            }
+-        }
+-        return assets
++            paths.associate { it.destination to dependencies.resolve(it.source) }
++        }
++        contract.configure {
++            dependsOn(files)
++            assets.putAll(locations.map { assets -> assets.mapValues { it.value.relativeTo(root).invariantSeparatorsPath } })
++        }
++        return locations
+     }
+ 
+     fun build(target: String, vararg projects: String,
+@@ -132,19 +132,15 @@
+         sourceInputs.addAll(producers)
+         prerequisites.addAll(producers)
+         contract.configure { dependsOn(producers) }
+-        project.afterEvaluate {
+-            val locations = producers.map { files -> files.files.map { it.resolve("package.json") } }
+-            contract.configure { manifests.from(locations) }
+-        }
++        val manifests = project.providers.provider { producers.map { files -> files.files.map { it.resolve("package.json") } } }
++        contract.configure { this.manifests.from(manifests) }
+     }
+ 
+     fun kotlinRuntime(output: OutputHandle) {
+         kotlinLibraries(output)
+         val files = project.outputFiles(output)
+-        project.afterEvaluate {
+-            val manifest = files.singleFile.resolve("package.json")
+-            contract.configure { runtimeManifest.set(manifest) }
+-        }
++        val manifest = project.layout.file(project.providers.provider { files.singleFile.resolve("package.json") })
++        contract.configure { runtimeManifest.set(manifest) }
+     }
+ 
+     internal fun script(script: String, output: String): TaskProvider<PackageCommand> = command(script, output, "run", script)
+--- a/reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt
++++ b/reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt
+@@ -847,6 +847,9 @@
+             kotlinAnalysis()
+             check(configurations.getByName("kotlinAnalysisCompiler").state == org.gradle.api.artifacts.Configuration.State.UNRESOLVED)
+             check(configurations.getByName("kotlinAnalysisRuntime").state == org.gradle.api.artifacts.Configuration.State.UNRESOLVED)
++            for (name in listOf("kotlinAnalysisCompiler", "kotlinAnalysisRuntime")) {
++                configurations.getByName(name).incoming.beforeResolve { error("Model export resolved unused analysis classpath: ${'$'}name") }
++            }
+             val fixture = BuildHandle("fixture", "dev.fixture")
+             val single = ModuleHandle(fixture, "single")
+             kotlin.common {
+@@ -941,7 +944,10 @@
+         assertTrue(model.edges.any { it is Edge.Consumes && it.from == exportNode && it.to == projection })
+         assertTrue(model.edges.any { it is Edge.After && it.from == exportNode && it.to == projection })
+         val process = analysis.kernel?.spec as dev.shibasis.dependeasy.model.KernelSpec.Process
+-        assertContains(process.execution.arguments, "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
++        assertEquals(listOf("@desktop/build/kotlin-analysis/compiler.args"), process.execution.arguments)
++        assertTrue(process.execution.fileInputs.any { it.kind == FileInputKind.Configuration && it.identity == "kotlinAnalysisCompiler" })
++        assertTrue(process.execution.fileInputs.any { it.kind == FileInputKind.Configuration && it.identity == "kotlinAnalysisRuntime" })
++        assertFalse(directory.resolve("desktop/build/kotlin-analysis/compiler.args").exists())
+         for ((consumer, producer) in listOf("kotlinSemanticDistZip" to "compileKotlinAnalysis", "kotlinSemanticTest" to "kotlinSemanticDistZip")) {
+             val from = analysis.id.copy(name = consumer)
+             val to = analysis.id.copy(name = producer)
+--- a/reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/BackendPipelineTest.kt
++++ b/reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/BackendPipelineTest.kt
+@@ -312,7 +312,15 @@
+                 }
+                 workspace { val verifyExports by artifacts { include(consumer.tests(FileSet(listOf("verify.mjs")), consumer.installation)) } }
+             }
+-        """.trimIndent())
++            gradle.projectsEvaluated {
++                configurations.filter { it.name.startsWith("dependeasy") && it.isCanBeResolved }.forEach {
++                    check(it.state == org.gradle.api.artifacts.Configuration.State.UNRESOLVED) {
++                        "Unused output resolved during configuration: " + it.name
++                    }
++                }
++            }
++        """.trimIndent())
++        assertNull(run("help").task(":library:exportKotlinLibrary"))
+         prepareLock("library")
+         val first = run("verifyExports")
+         assertEquals(TaskOutcome.SUCCESS, first.task(":library:exportKotlinLibrary")?.outcome)
+--- a/reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/GradlePlanningTest.kt
++++ b/reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/GradlePlanningTest.kt
+@@ -170,7 +170,10 @@
+         val contract = directory.resolve("${GradleProtocol.RequestDirectory}/$digest.json")
+         contract.parentFile.mkdirs(); contract.writeText(text)
+         val option = "-P${GradleProtocol.RequestOption}=${contract.absolutePath}"
+-        bridgeRunner(GradleProtocol.PlanTask, option).build()
++        assertTrue(directory.resolve(BuildModelReader.RelativePath).delete())
++        val planned = bridgeRunner(GradleProtocol.PlanTask, option).build()
++        assertEquals(org.gradle.testkit.runner.TaskOutcome.SUCCESS, planned.task(":exportBuildModel")?.outcome)
++        assertEquals(model, BuildModelReader.read(directory))
+         val planFile = directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json")
+         val plan = BuildModelReader.readPlan(planFile)
+         val copied = NodeId("receiptFixture", ":", "copied")
+--- a/reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleBuildPlanner.kt
++++ b/reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleBuildPlanner.kt
+@@ -52,7 +52,14 @@
+             require(Files.readString(file) == text && !Files.isSymbolicLink(file)) { "Gradle request content changed" }
+             return file.toFile()
+         }
+-        if (reviewedPlan == null) {
++        // PlanTask already depends on model export and validates its digest before selecting tasks.
++        // A stale catalog or explicit context still needs the separate refresh handshake.
++        val localEnvironment = environment.all { (name, value) ->
++            name == "PATH" || name == "REAKTOR_ENVIRONMENT" && value == "local"
++        }
++        val refresh = reviewedPlan == null && (properties.isNotEmpty() || !localEnvironment ||
++            sensitiveEnvironmentKeys.isNotEmpty() || BuildModelReader.changedDeclarations(root, previous).isNotEmpty())
++        if (refresh) {
+             val routing = write(GradleRequest(node = node.id, declaredAt = node.declaredAt,
+                 modelDigest = BuildModelReader.digest(BuildModelReader.encode(previous)), arguments = arguments))
+             gradle(listOf(GradleProtocol.ExportTask, "-P${GradleProtocol.RequestOption}=${routing.absolutePath}"),
+--- a/reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/BuildDeclarationsTest.kt
++++ b/reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/BuildDeclarationsTest.kt
+@@ -135,6 +135,26 @@
+         assertEquals(listOf("fixture:build.gradle.kts"), BuildDeclarations.read(root).single().changedDeclarations)
+     }
+ 
++    @Test fun freshDefaultPlanningUsesOneWrapperAndRetainsTheExecutableSeal() = fixture { root ->
++        report(root, node("artifacts"))
++        val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
++        val invocation = TaskInvocation(TaskId("fixture:artifacts"))
++        val prepared = workspace.prepare(invocation)
++        workspace.prepare(invocation, environment = mapOf(
++            "PATH" to System.getenv("PATH").orEmpty(), "REAKTOR_ENVIRONMENT" to "local"))
++        assertFalse(root.resolve("build/exports.txt").exists())
++        assertEquals(listOf(GradleProtocol.PlanTask, GradleProtocol.PlanTask),
++            root.resolve("build/planning-invocations.txt").readLines())
++        val request = File(prepared.request.argv[2].substringAfter('='))
++        val contract = BuildModelReader.readRequest(request)
++        assertEquals("fixture-context", contract.expectedContextDigest)
++        assertEquals(BuildModelReader.digest(BuildModelReader.encode(BuildModelReader.read(root))), contract.modelDigest)
++        request.appendText(" ")
++        SupervisedProcessExecutor().use { executor ->
++            assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) }
++        }
++    }
++
+     @Test fun aStaleModelKeepsItsBuildTasksMarkedAndPlanningExportsItOnceFirst() = fixture { root ->
+         report(root, node("artifacts"))
+         root.resolve("build.gradle.kts").appendText("\n")
+@@ -275,6 +295,7 @@
+                       report.write_text(json.dumps(model))
+                       with open(root/'build/exports.txt','a') as exports:exports.write('export\n')
+                       sys.exit(0)
++                    with open(root/'build/planning-invocations.txt','a') as calls:calls.write(sys.argv[1]+'\n')
+                     request=Path(next(arg.split('=',1)[1] for arg in sys.argv if arg.startswith('-Pdependeasy.gradleRequest=')))
+                     value=json.loads(request.read_text())
+                     digest=hashlib.sha256(request.read_bytes()).hexdigest()

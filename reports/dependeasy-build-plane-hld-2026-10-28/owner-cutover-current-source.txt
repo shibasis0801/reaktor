@@ -1,0 +1,188 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:a37b423b15a6
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt
+  73:7 class DesktopWorkbenchGraph: class DesktopWorkbenchGraph( val controlPlane: OperationalControlPlane, initialApp: ReaktorAppDefinition = ReaktorApps.bestBuds, initialMode: ReaktorMode = ReaktorMode.Graph, private val ownsControlPl · kotlin:ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph@:engine:main:jvmMain@bestbuds
+next: atlas_read {"id":"d:modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt:72:6@2e788473"}
+next: atlas_query {"from":{"id":"d:modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt:72:6@2e788473"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[0] {"from":{"name":"KernelServices"}}
+6 of 6 · syntactic (git-grep) · rev:cc466ad2e841
+../reaktor/plans/tooling-unification-hld.md
+  275 text: abstract class KernelServices(parent: Graph) : Graph(parent, label = "Kernel") {
+  281 text: class OwnerKernel(parent: Graph, calls: Link, streams: Link) : KernelServices(parent) {
+  290 text: - `DesktopWorkbenchGraph` receives a `KernelServices` graph. Its `kernelGraph` parameter, the `ownedKernel` it builds and the `/kernel` container go away. Desktop nodes declare `consumes(RunsApi())` o
+  327 text: | `KernelServices`, `OwnerKernel`, `LocalKernel` and pane consumers | BestBuds `modules/engine` | The workbench host |
+  597 text: 1. Add `KernelServices`, `OwnerKernel` and `LocalKernel` in `modules/engine`, following BestBuds `Backend`.
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/completion-plan.json
+  144 text: "evidence": "KernelServices/OwnerKernel/LocalKernel remain design-only; production startup and single-store cutover not qualified."
+note: Nothing named KernelServices is declared in Kotlin in this repository and ../reaktor; these are the lines that contain it
+next: atlas_read {"id":"d:../reaktor/plans/tooling-unification-hld.md:274:15@8cf6268a"}
+--- queries[1] {"from":{"name":"KernelApi"}}
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:2bf49e571b78
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt
+  12:12 class KernelApi: open class KernelApi : Service(Id) · kotlin:dev/shibasis/reaktor/tooling/kernel/KernelApi@:reaktor-tooling:main:jvmMain@reaktor
+next: atlas_read {"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt:11:11@02a16dc1"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt:11:11@02a16dc1"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[2] {"from":{"name":"BuildApi"}}
+1 of 1 · syntactic (git-grep) · rev:ec002b8f7c29
+../reaktor/plans/tooling-unification-hld.md
+  348 text: | Build | `BuildApi`, `RunsApi`, `ShipApi` | None; already headless | Tree, plan and artifact views |
+note: Nothing named BuildApi is declared in Kotlin in this repository and ../reaktor; these are the lines that contain it
+next: atlas_read {"id":"d:../reaktor/plans/tooling-unification-hld.md:347:11@8cf6268a"}
+--- queries[3] {"from":{"name":"OwnerKernel"}}
+7 of 7 · syntactic (git-grep) · rev:cc466ad2e841
+../reaktor/plans/tooling-unification-hld.md
+  164 text: KS[OwnerKernel<br/>remote contract nodes]
+  281 text: class OwnerKernel(parent: Graph, calls: Link, streams: Link) : KernelServices(parent) {
+  288 text: - `OwnerKernel` provides each contract with `remote(XApi() over link)`. Its members are lazy, so an unused contract opens nothing. Until U3 adds the socket, `calls` and `streams` are the same `HttpLin
+  327 text: | `KernelServices`, `OwnerKernel`, `LocalKernel` and pane consumers | BestBuds `modules/engine` | The workbench host |
+  361 text: gentBackgroundService.connect`, which installs or starts the launchd agent when needed, and builds `OwnerKernel` over the discovery record. Hangar never opens `owner.lock`, never hosts and never falls
+  597 text: 1. Add `KernelServices`, `OwnerKernel` and `LocalKernel` in `modules/engine`, following BestBuds `Backend`.
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/completion-plan.json
+  144 text: "evidence": "KernelServices/OwnerKernel/LocalKernel remain design-only; production startup and single-store cutover not qualified."
+note: Nothing named OwnerKernel is declared in Kotlin in this repository and ../reaktor; these are the lines that contain it
+next: atlas_read {"id":"d:../reaktor/plans/tooling-unification-hld.md:163:11@8cf6268a"}
+--- reads[0] {"path":"modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt","part":"outline"}
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt · outline · 7333 of 11785 characters, partial · rev:cd39d7a0eb39
+73  class DesktopWorkbenchGraph( val controlPlane: OperationalControlPlane, initialApp: ReaktorAppDefinition = ReaktorApps.bestBuds, initialMode: ReaktorMode = ReaktorMode.Graph, private val ownsControlPlane: Boolean = false, private val graphDependencies: KoinApplication = koinApplication {}, kernelGraph: KernelGraph? = null, /** What this workbench may embed. The desktop target supplies the browser; nothing else does. */ embeddedSurfaces: WorkbenchEmbedding = WorkbenchEmbedding(), val seams: ai.bestbuds.reaktor.workbench.seams.HangarSeams = ai.bestbuds.reaktor.workbench.seams.HangarSeams(), ) : 
+74    val controlPlane: OperationalControlPlane
+77    private val ownsControlPlane: Boolean
+78    private val graphDependencies: KoinApplication
+82    val seams: ai.bestbuds.reaktor.workbench.seams.HangarSeams
+84    @Volatile var isClosed: Boolean
+86    private var navigationReady
+87    private val ownedKernel
+89    val kernel
+91    private val kernelContainer
+93    internal val applications
+94    internal val navigation
+95    internal val database
+96    internal val auth
+97    internal val embedding
+98    internal val radar
+99    internal val cloud
+100    internal val mcp
+101    internal val telemetry
+102    internal val agents
+103    internal val notices
+104    internal val paneStates
+105    internal val devToolsReads
+106    internal val workHosts
+107    internal val logIndex
+108    internal val systemLinksNode
+109    internal val graphPane
+110    internal val shell
+111    internal val routes
+117    internal val panes
+144    private fun route(destination: ReaktorWorkspaceDestination): RouteNode<Payload, *>
+149    private fun commitHistory(history: ReaktorWorkspaceHistory): Boolean
+165    override fun dispatch(navCommand: NavCommand)
+190    fun systemLinks(): ai.bestbuds.reaktor.workbench.links.SystemLinks?
+192    fun graphReading(): ai.bestbuds.reaktor.workbench.appgraph.GraphReading?
+194    fun cloudReads(): CloudWorkspaceState?
+196    fun devToolsReads(): ai.bestbuds.reaktor.workbench.devices.DevToolsState?
+198    fun coverage(): DesktopGraphCoverage
+212    @Synchronized override fun close()
+227  data class DesktopGraphCoverage( val modes: Set<String>, val wiredModes: Set<String>, val unconnectedConsumers: Int, val surfaceOwners: Map<String, String> = emptyMap(), )
+228    val modes: Set<String>
+229    val wiredModes: Set<String>
+230    val unconnectedConsumers: Int
+231    val surfaceOwners: Map<String, String>
+234    val isComplete: Boolean
+237  internal data class DesktopApplicationState( val app: ReaktorAppDefinition, val instance: Graph?, val failed: Boolean = false, )
+238    val app: ReaktorAppDefinition
+239    val instance: Graph?
+240    val failed: Boolean
+243  internal class DesktopApplicationNode( graph: Graph, initial: ReaktorAppDefinition, ) : StateInteractor<DesktopApplicationState>(graph, DesktopApplicationState(initial, graph.takeIf { initial.id == ReaktorApps.workbench.id }))
+248    override val label
+249    val applications
+250    private val identity
+251    val session
+270    @Synchronized fun request()
+282    @Synchronized fun select(app: ReaktorAppDefinition)
+292  internal data class DesktopNavigationState( val history: ReaktorWorkspaceHistory, val documents: List<ReaktorMode>, )
+293    val history: ReaktorWorkspaceHistory
+294    val documents: List<ReaktorMode>
+297  internal class DesktopNavigationNode( graph: Graph, initial: ReaktorMode, private val commit: (ReaktorWorkspaceHistory) -> Boolean, ) : StateInteractor<DesktopNavigationState>(graph, DesktopNavigationState( ReaktorWorkspaceHistory.start(destination(initial)), listOf(ReaktorMode.Graph, initial).distinct(), ))
+300    private val commit: (ReaktorWorkspaceHistory) -> Boolean
+304    override val label
+305    val navigation
+308    @Synchronized fun open(mode: ReaktorMode)
+313    @Synchronized fun close(mode: ReaktorMode)
+326    @Synchronized fun cycle(backward: Boolean = false)
+333    @Synchronized fun restore(history: ReaktorWorkspaceHistory, mode: ReaktorMode? = null)
+337    internal fun accept(history: ReaktorWorkspaceHistory, mode: ReaktorMode? = null)
+346      internal fun destination(mode: ReaktorMode): ReaktorWorkspaceDestination
+352  internal class DesktopDatabaseNode( graph: Graph, kernel: KernelGraph, private val seams: ai.bestbuds.reaktor.workbench.seams.HangarSeams, ) : BasicNode(graph)
+355    private val seams: ai.bestbuds.reaktor.workbench.seams.HangarSeams
+357    override val label
+358    val operations
+359    val session
+360    val documents
+361    val saved
+362    val exports
+363    val targets
+364    val catalog
+374    private val state
+377    val database
+415    private fun export(runId: String, format: dev.shibasis.reaktor.tooling.database.QueryExportFormat)
+432    override fun close()
+435  internal class DesktopAuthNode( graph: Graph, kernel: KernelGraph, seams: ai.bestbuds.reaktor.workbench.seams.AuthSeams = ai.bestbuds.reaktor.workbench.seams.AuthSeams(), clock: Clock, ) : BasicNode(graph)
+441    override val label
+442    val directorySession
+443    val authority
+444    val targets
+445    val repositories
+452    private val state
+453    val console
+456    val agents
+462    private val login
+463    val operatorLogin
+464    override fun close()
+467  internal class DesktopCloudNode( graph: Graph, kernel: KernelGraph, radarProvider: DesktopRadarNode, embeddingProvider: DesktopEmbeddingNode, clock: Clock, ) : BasicNode(graph)
+474    override val label
+475    val snapshots
+476    val invocations
+477    val radar
+478    val embedding
+479    val work
+487    private val state
+492    val cloud
+504  internal class DesktopRadarNode( graph: Graph, kernel: KernelGraph, endpoint: RadarEndpoint, probe: ai.bestbuds.reaktor.workbench.seams.RadarProbe, ) : BasicNode(graph)
+510    override val label
+511    val snapshots
+512    val invocations
+517    private val session
+518    val radar
+519    override fun close()
+529  internal class DesktopEmbeddingNode(graph: Graph, value: WorkbenchEmbedding) : BasicNode(graph)
+530    override val label
+531    val embedding
+534  internal class DesktopMcpNode(graph: Graph, clock: Clock) : BasicNode(graph)
+535    override val label
+536    private val state
+537    val mcp
+538    override fun close()
+541  internal class DesktopAgentNode(graph: Graph, kernel: KernelGraph, clock: Clock) : BasicNode(graph)
+542    override val label
+543    val agents
+545    private val state
+548    val conversation
+549    override fun close()
+552  internal class DesktopNoticesNode(graph: Graph, kernel: KernelGraph, agentNode: DesktopAgentNode, mcpNode: DesktopMcpNode, seams: ai.bestbuds.reaktor.workbench.seams.HangarSeams) : BasicNode(graph)
+554    override val label
+555    val conversation
+556    val mcp
+557    val door
+563    private val notices
+585  internal class DesktopTelemetryNode(graph: Graph, kernel: KernelGraph, seams: ai.bestbuds.reaktor.workbench.seams.TelemetrySeams) : BasicNode(graph)
+586    override val label
+587    val backend
+589    private val installation
+591    val telemetry
+592    override fun close()
+595  internal class DesktopPaneStateNode(graph: Graph, kernel: KernelGraph, navigationProvider: DesktopNavigationNode, seams: ai.bestbuds.reaktor.workbench.seams.HangarSeams) : BasicNode(graph)
+597    override val label
+598    val readers
+599    val snapshots
+604    val repositories
+605    va
+next: atlas_read {"id":"d:modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt:72:6@2e788473"}

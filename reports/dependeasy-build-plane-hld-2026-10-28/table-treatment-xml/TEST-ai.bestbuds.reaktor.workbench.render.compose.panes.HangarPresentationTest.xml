@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="HangarPresentationTest[jvm]" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:15.823Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.002">
+  <properties/>
+  <testcase name="numericFormatsDoNotDependOnTheProcessLocale[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="secretsShowOneMarkerThatHidesTheirLength[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.001"/>
+  <testcase name="absoluteTimeDropsTodaysDateAndKeepsOtherDates[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="headerMapsHideSecretHeadersAndRedactTheRest[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="identifiersShowInFull[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="jsonMasksEverythingUnderASecretKey[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="nestedJsonKeepsIdentifiersAndFactsAndHidesSecrets[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="logSecretsAreRedactedWithoutRemovingUsefulContext[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="namesAndOtherIdentifiersStayReadable[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="plainSqlValuesKeepTheirRepresentation[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="sqlPlaceholdersAreNotTreatedAsSecrets[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="expiredAndFutureTimesRetainTheirMeaning[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.0"/>
+  <testcase name="commonTokenFormatsAreRedactedWhereverTheyAppear[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.HangarPresentationTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

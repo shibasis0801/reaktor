@@ -1,0 +1,107 @@
+{
+  "transport": "20261028-222301-0953f474-bestbuds",
+  "suites": [
+    {
+      "suite": "CLI",
+      "taskOutcome": "UP-TO-DATE from passing22:13 execution",
+      "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-221245-bfce4855-bestbuds/bestbuds/targets/reaktorCli/build/test-results/test",
+      "counts": {
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlSha256": {
+        "TEST-ai.bestbuds.reaktor.cli.BuildModelCliTest.xml": "45f94eff7ff95bdf7c249f4a5d18dc31a4b6ea6a0a2989fed060cf0a06c3bb62",
+        "TEST-ai.bestbuds.reaktor.cli.ReaktorCommandTest.xml": "54e715750148e4b63eca56bc49bea8db2e04125bdac7aea9e4852e66f15f6699",
+        "TEST-ai.bestbuds.reaktor.cli.KernelCliTest.xml": "ab93cb66a8fa9cad0afc9dae4cd9732f1fc7d51a15b9df6b3e981c8394685a01"
+      }
+    },
+    {
+      "suite": "Tooling",
+      "taskOutcome": "EXECUTED in successful42s run",
+      "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-222301-0953f474-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest",
+      "counts": {
+        "tests": 246,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      },
+      "xmlSha256": {
+        "TEST-dev.shibasis.reaktor.tooling.GradleReceiptRunLedgerTest.xml": "d42df7e14dbfbca5a640fd4b0aebe1e1b77cae02548a69300ceaac6f2392fc7d",
+        "TEST-dev.shibasis.reaktor.tooling.cloud.WranglerLoginTest.xml": "f80f4495c67c80a5373cf25bc6a8c7e605e46d2dabb6d894d1e3e6cab4ac46f9",
+        "TEST-dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServerTest.xml": "148e5699ce3e09ea354270db62df50b7a6eb221be45769f2b99c340a0db183b5",
+        "TEST-dev.shibasis.reaktor.tooling.database.QueryPlotTest.xml": "099d091790d56fc7fabd82ba91aede02eb0b3e7339edef366ba2066778eb81c8",
+        "TEST-dev.shibasis.reaktor.tooling.cloud.CloudInventoryAssemblyTest.xml": "f7c35243225cffe53910edc6efa6608a8c9cacfb94a3d00a64acb3ff3b999d8f",
+        "TEST-dev.shibasis.reaktor.tooling.operation.OperationContractTest.xml": "9201270662fad903f24499aa94957d0b43ec5dc6fb30553b21c91a51f61eabaf",
+        "TEST-dev.shibasis.reaktor.tooling.database.MemgraphReadPageTest.xml": "5a07337dbcdd290e9bf37da4dc525c650711168ddfe886670ac579fdd83cdabf",
+        "TEST-dev.shibasis.reaktor.tooling.mcp.door.DoorAuthorityTest.xml": "673702734dafd0e8daea1ffc6fb048fca083cfe1319e5002826977029d3f6bb6",
+        "TEST-dev.shibasis.reaktor.tooling.StructuredProcessCaptureTest.xml": "a21bff5498f1ae07fb6c339618c22a360416875d8a2dc067f24750cae38138d4",
+        "TEST-dev.shibasis.reaktor.tooling.operation.OperationKernelTest.xml": "374587737083dbaee3fe9babb6df8be4240367c08b00bb5820dc04dac0f150f0",
+        "TEST-dev.shibasis.reaktor.tooling.database.QueryResultComparisonTest.xml": "b7118038f180d2e356545307ce484aa0cab6b5d7518ed40fbcd48e6393b9d4e7",
+        "TEST-dev.shibasis.reaktor.tooling.cloud.CloudflareLoginTest.xml": "3e66e8e90fabf4d3e41625f8abb859c820ee3039c126ae346eb80ac89177f61b",
+        "TEST-dev.shibasis.reaktor.tooling.database.MessagePayloadTest.xml": "6c7e9800807d2b328a96aff53288fa10b1660e0b07e0166466aa15e33638f205",
+        "TEST-dev.shibasis.reaktor.tooling.cloud.CloudflareAiTest.xml": "aa972bd33ed2f4a8c31f4dfffcdef2faa9e3dbb8f3ce3c55e9039c22c789dade",
+        "TEST-dev.shibasis.reaktor.tooling.lsp.ClangdLanguageServerTest.xml": "20474e99b8da474396bf89aa12f8423f9f0f338f49cf21c5fab36e75d1724042",
+        "TEST-dev.shibasis.reaktor.tooling.device.AppleDeviceBackendLiveTest.xml": "8e661290e1e06cc08abf0f14584f367e9d302b9891b5ecbfddb889569d25580d",
+        "TEST-dev.shibasis.reaktor.tooling.database.PrefixInventoryTest.xml": "9414cece75ae6b879ba9eeff5d60804c2868d2f161b8f86795cf28b72752637f",
+        "TEST-dev.shibasis.reaktor.tooling.DeviceToolsTest.xml": "103f67e0fe2c6af52959d57f8ee913c51e275faa90773c9951d8d5367408dc4b",
+        "TEST-dev.shibasis.reaktor.tooling.git.WorkspaceRevisionTest.xml": "8e9359f8b5ea8988f762c2d19a6b9d77c985eeb41706347ca6495f623ba4d127",
+        "TEST-dev.shibasis.reaktor.tooling.infra.CrashlyticsReportTest.xml": "17be93e8e88283eebf2880a4db095f5460526dd370982e1ea05957d35b038ab3",
+        "TEST-dev.shibasis.reaktor.tooling.device.AdbDeviceBackendLiveTest.xml": "2548f61b10dcd169cf5129a619787915b567ed06ee4f421250a58cc7f2dabe0c",
+        "TEST-dev.shibasis.reaktor.tooling.mcp.door.CloudApiDoorTest.xml": "b26daeca282b4851962ad5b77133e3a1c18660b954a9b0272f5d564a4d6600e0",
+        "TEST-dev.shibasis.reaktor.tooling.infra.SQLiteJvmClientTest.xml": "3e5c82fd2702a1e106f228e26857481fdc7550fb6d13e6b93c783aa67bc37163",
+        "TEST-dev.shibasis.reaktor.tooling.cloud.CloudInventoryLiveTest.xml": "c6b07df52a1872946c0c5403bde2f6d97c7394d18736c0b4363b0580dd7fecae",
+        "TEST-dev.shibasis.reaktor.tooling.ServiceTokenClientTest.xml": "3ed2a221a1468a3b527d7258ed8b60567c93a5a1352c47ab922a9dabb387e8ef",
+        "TEST-dev.shibasis.reaktor.tooling.api.ApiSurfaceTest.xml": "13145f324a63958f4163ac5651294e39bce40bb805b034b17f05c052ccd559ce",
+        "TEST-dev.shibasis.reaktor.tooling.infra.PubSubObservationPageTest.xml": "9d6bcfce74f3c7e10421cdbdd7c515f4cd0046a70f4ce5a47db9c68d4317b990",
+        "TEST-dev.shibasis.reaktor.tooling.ContrastAuditTest.xml": "457e7d1418a7c75e181b95efa24ab06a64112d83f657b71ccee416fd78cf3749",
+        "TEST-dev.shibasis.reaktor.tooling.api.CloudApisLiveTest.xml": "b39be69c9c50d0f29ace33f29565c203db79d00ab532c4cea6a64891619181d4",
+        "TEST-dev.shibasis.reaktor.tooling.auth.AuthConsoleSearchTest.xml": "b6aeb093824c57cd7d047ef7e462fbb26492597f664f1ffaaf53d83c96684051",
+        "TEST-dev.shibasis.reaktor.tooling.BuildDeclarationsTest.xml": "82bacf3fa25706f7c9d05b8eb75cc0c468c42424e696ea6d880c297182265b67",
+        "TEST-dev.shibasis.reaktor.tooling.io.SafeFilesTest.xml": "425548eee06366aa3dcc2d22e36249da806cdd067d1bea1e05abb9e913c98ff6",
+        "TEST-dev.shibasis.reaktor.tooling.database.SqlReadStatementTest.xml": "d34d731128e516a6cc6b5ec0cf4682bef37d774d0b09db365044c6a5ff9bd3e5",
+        "TEST-dev.shibasis.reaktor.tooling.IslandJvmClientTest.xml": "4517327262f86db82a8a36ec5b9363f4e27ea3c0c6db17acf30ed264d5610f6d",
+        "TEST-dev.shibasis.reaktor.tooling.JvmProjectDiscoverySealTest.xml": "a9a9ff85df2277ac9174f2eb2c919eae3d2a67cb318867961e2b2ed21e93c5c8",
+        "TEST-dev.shibasis.reaktor.tooling.cloud.HangarProvidersLiveTest.xml": "4e7fc0c9a290c7275b68369e01dc1c0a66cd84468449770a40b8dcb3da749a6c",
+        "TEST-dev.shibasis.reaktor.tooling.ProcessQueryTest.xml": "ab272a920b085c70c69b85ec3de7d24dc41ef0be0f97526aeea3e264d1b46671",
+        "TEST-dev.shibasis.reaktor.tooling.database.MemgraphInspectionTest.xml": "4d15d6166e4ff7aa340acd07c1cec5779334b9beb820c33d4644f3961eca6b4f",
+        "TEST-dev.shibasis.reaktor.tooling.ide.ReaktorIdeTest.xml": "6eff48329763cdab553147c293e38eb160104fb8996960d51e1d05b9e970cf75",
+        "TEST-dev.shibasis.reaktor.tooling.DefinitionDigestCacheTest.xml": "0e92ec50edd7832f82566856c87e8338d2a606d898ed2e0c67dacb9f99d89cfa",
+        "TEST-dev.shibasis.reaktor.tooling.infra.CrashlyticsEventsTest.xml": "97d5f46c427fa848eebfcbaf12818621e3a4c1fcced5996d9bf5e0f07e25a5cf",
+        "TEST-dev.shibasis.reaktor.tooling.mcp.door.McpDoorTest.xml": "adabcf728888fe9265750a68ac057f2f94ac67c6bb77bb4ba1350a229393aeab",
+        "TEST-dev.shibasis.reaktor.tooling.KubernetesJvmClientTest.xml": "74e02b3040070d7946506d8c0819d1bddae09c2be82f8d629ca532ee0303c260",
+        "TEST-dev.shibasis.reaktor.tooling.NativeInfrastructureTest.xml": "745c7850bd6a2d6336bba8f14ba4df0e0876d76239d461939fd9a9f8ad711da9",
+        "TEST-dev.shibasis.reaktor.tooling.QueryValueOrderTest.xml": "05e4d64a30e55428d33aec4a4ba8aa9d5c83f4e3dcd285cec44f6c6547d723f3",
+        "TEST-dev.shibasis.reaktor.tooling.database.QueryReceiptTest.xml": "c17baf7b87fc039f1858f59a578608a8c6554803e69190851c78a7be00e02566",
+        "TEST-dev.shibasis.reaktor.tooling.infra.SpanJvmClientTest.xml": "fd9631d71f05362234c707ca6da430e27ce9b30416f81649416eca7c9e80b677",
+        "TEST-dev.shibasis.reaktor.tooling.database.MigrationLedgerTest.xml": "1dc8476f8a0f25637b9b5ae3b2de03a03c4464aba2aeac6c66e58ebcd2808ed5",
+        "TEST-dev.shibasis.reaktor.tooling.DeviceInspectionTest.xml": "eebc8a5348dd3ab18e23bc78ad29499e8a97b08741c8f3900a739914c0531c59",
+        "TEST-dev.shibasis.reaktor.tooling.JvmDiscoveryPerformanceTest.xml": "aa6da66125a5b5e9d2a41a19bfab88bd4ee12c81f13b63285999a2d06e6afe6b",
+        "TEST-dev.shibasis.reaktor.tooling.KotlinSourceIndexTest.xml": "208f8bd3e1958a17f419f4d7e8b14af25c359d6c1b3029a2af293d046778bba5",
+        "TEST-dev.shibasis.reaktor.tooling.database.QueryResultExportTest.xml": "459761adcff73a7776d937587f6974ff07a0c22e31b33720c3be4db1fec277b2",
+        "TEST-dev.shibasis.reaktor.tooling.database.QueryPlanOperatorsTest.xml": "001d18c4a9d68faeb077816cfe1ad776073acd6a80d2f2d5c94692d2425ec473",
+        "TEST-dev.shibasis.reaktor.tooling.source.SourceHandoffTest.xml": "318a9975967021d128ee6dc1a8ad4096d1f679145f8d72ff3b87f4f057c052c8",
+        "TEST-dev.shibasis.reaktor.tooling.cloud.GoogleSignInTest.xml": "4e34215e92d6af4d6b625741a42d42bb293d710c581139dfe0398201ca9fe4df",
+        "TEST-dev.shibasis.reaktor.tooling.lsp.KotlinLanguageServerTest.xml": "4f4841e1927be94513fb96f754956a8cc8facf23daa4ae0ab46822df75f8ec6a"
+      }
+    }
+  ],
+  "sourceChangedSinceRequest": [],
+  "sourceRecords": [
+    "inherited-environment-recheck-source-request.json",
+    "inherited-environment-recheck-source-admission.json",
+    "inherited-environment-recheck-source-collected.json"
+  ],
+  "transportSeconds": {
+    "sync_seconds": 14.145604125000034,
+    "queue_seconds": 312.37128187499997,
+    "execution_seconds": 46.530066834000024,
+    "collection_seconds": 8.728153166000027,
+    "publication_queue_seconds": 92.62655275000003,
+    "publication_seconds": 92.85440191700002
+  },
+  "gradleConsoleSeconds": 42,
+  "distribution": "qualified-archive-retrieval.json",
+  "note": "42s successful affected run. All19 owned/integration source hashes unchanged across request,admission,collection. Older CLI XML deliberately retained because its task was up-to-date; tooling executed. Prior failed tooling attempt retained."
+}

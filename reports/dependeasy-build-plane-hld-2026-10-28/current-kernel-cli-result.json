@@ -1,0 +1,23 @@
+{
+  "exitCode": 0,
+  "workerBuildWallSeconds": 148.7805002090172,
+  "tasks": [
+    ":kernel:test",
+    "--rerun",
+    ":reaktorCli:test",
+    "--rerun",
+    ":kernel:verifyKernelBoundary",
+    "--rerun",
+    "--continue",
+    "--no-daemon",
+    "--max-workers=6",
+    "--console=plain"
+  ],
+  "runtime": "\n------------------------------------------------------------\nGradle 9.7.0\n------------------------------------------------------------\n\nBuild time:    2026-08-06 14:07:35 UTC\nRevision:      3defbfc59d757b873d787b2261de5c7f8a00970a\n\nKotlin:        2.4.0\nGroovy:        4.0.32\nAnt:           Apache Ant(TM) version 1.10.17 compiled on April 6 2026\nLauncher JVM:  25.0.2 (Eclipse Adoptium 25.0.2+10-LTS)\nDaemon JVM:    Compatible with Java 25, any vendor, nativeImageCapable=false (from gradle/gradle-daemon-jvm.properties)\nOS:            Mac OS X 26.5.2 aarch64\n\n",
+  "xmlArchiveSha256": "b40b006664a5ba157c5388945e9ffc58cc7f2333d179b86e13c220ab046232fd",
+  "snapshot": "2e3bc3ea9142723e9fdb5d35bfe2298a5e3b62cde32fc58c45ae854a39d3d6f6",
+  "workerSlot": 1,
+  "admissionSeconds": 52.556999167,
+  "sourceVerifiedBeforeAndAfter": true,
+  "harnessSha256": "dd72c1ffca63889d75bd01c10ea3c1a3ec9c3fb26f9b80e41a9cb1a28e50e318"
+}

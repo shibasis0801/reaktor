@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="HangarCommandsTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:25:36.754Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.029">
+  <properties/>
+  <testcase name="thePaletteListsTheSameEnabledActions[jvm]" classname="ai.bestbuds.reaktor.workbench.HangarCommandsTest" time="0.002"/>
+  <testcase name="shellCommandsAndKeyboardNavigationAgreeOnBothPlatforms[jvm]" classname="ai.bestbuds.reaktor.workbench.HangarCommandsTest" time="0.026"/>
+  <testcase name="disabledCommandsNeverInvokeAndPublishingUsesTheLatestCallback[jvm]" classname="ai.bestbuds.reaktor.workbench.HangarCommandsTest" time="0.0"/>
+  <testcase name="macCommandChordsLeaveControlForEditingAndDocumentCycling[jvm]" classname="ai.bestbuds.reaktor.workbench.HangarCommandsTest" time="0.0"/>
+  <testcase name="theNativeBarGetsTheSameShortcuts[jvm]" classname="ai.bestbuds.reaktor.workbench.HangarCommandsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

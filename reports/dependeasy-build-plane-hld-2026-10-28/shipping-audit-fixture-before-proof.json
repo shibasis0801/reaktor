@@ -1,0 +1,8 @@
+{
+  "observedAt": "2026-10-29T13:42:48.331411",
+  "scope": "Read-only failure from parallel qualification run20261029-133356-bdae5e90-bestbuds, not this session execution",
+  "xml": "shipping-audit-fixture-before.xml",
+  "xmlSha256": "601f803e7149072210978579df86910d4468fa03e19dd0cdd874d31a51c6fe39",
+  "sourceSha256": "2b1190ed6f9f6696c4095a906cf141caa9a6b16b5aeea002f228dec038634fca",
+  "failure": "line285 expected unchanged history; prior approval decision arrives asynchronously"
+}

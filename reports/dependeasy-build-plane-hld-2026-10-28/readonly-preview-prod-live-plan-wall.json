@@ -1,0 +1,19 @@
+{
+  "command": [
+    "reaktor",
+    "--dir",
+    "/Users/ovd/dev/bestbuds",
+    "build",
+    "plan",
+    "bestbuds:workers:deployMessaging",
+    "--dependeasy.environment",
+    "prod",
+    "--json",
+    "--request-id",
+    "dependeasy-readonly-preview-prod-20261029-1445"
+  ],
+  "started": "2026-10-29T14:46:10.283176+05:30",
+  "wallSeconds": 398.80482974999995,
+  "exitCode": 1,
+  "scope": "Actual installed primary CLI read-only deployment preview with explicit prod option; shared owner selection unchanged. No provider mutation; wall includes current contention and is not a paired September measurement."
+}

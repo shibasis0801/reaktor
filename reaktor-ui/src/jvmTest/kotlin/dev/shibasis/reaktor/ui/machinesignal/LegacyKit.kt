@@ -79,7 +79,12 @@ fun LegacySignalButton(
                     },
                     MachineSignal.Shape.Control,
                 )
-                .border(1.dp, if (editor && tone == SignalTone.Ghost) Color.Transparent else workspaceColor(if (enabled) tone.line else MachineSignal.Line1), MachineSignal.Shape.Control)
+                .border(1.dp, when {
+                    editor && tone == SignalTone.Ghost -> Color.Transparent
+                    !enabled -> workspaceColor(MachineSignal.Line1)
+                    tone == SignalTone.Secondary || tone == SignalTone.Ghost -> Color.Transparent
+                    else -> workspaceColor(tone.line)
+                }, MachineSignal.Shape.Control)
                 .padding(
                     horizontal = if (editor) MachineSignal.Space.s2 else if (tone == SignalTone.Ghost) {
                         MachineSignal.Metrics.ghostPaddingX
@@ -93,7 +98,9 @@ fun LegacySignalButton(
             leading?.invoke()
             SignalText(
                 text = label,
-                color = if (enabled) tone.text else MachineSignal.Text4,
+                color = if (!enabled) MachineSignal.Text4 else if (tone == SignalTone.Primary) {
+                    (dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.colors?.onAccent ?: Color.White
+                } else tone.text,
                 size = if (editor) MachineSignal.Editor.label else MachineSignal.Type.control,
                 weight = if (tone == SignalTone.Primary || tone == SignalTone.Danger) {
                     FontWeight.SemiBold
@@ -116,7 +123,7 @@ fun LegacySubTab(
     modifier
         .width(IntrinsicSize.Max)
         .height(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor)) MachineSignal.Editor.documentTabHeight else MachineSignal.Metrics.subTabHeight)
-        .background(if (((dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.variant == MachineSignalVariant.Editor) && selected) MachineSignal.Editor.AccentSoft else Color.Transparent)
+        .background(Color.Transparent)
         .clickable(role = Role.Tab, onClick = onClick)
         .semantics { this.selected = selected; this.role = Role.Tab }
         .padding(
@@ -145,7 +152,7 @@ fun LegacySubTab(
         Modifier
             .fillMaxWidth()
             .height(MachineSignal.Metrics.subTabUnderlineHeight)
-            .background(if (selected) MachineSignal.Accent else Color.Transparent),
+            .background(if (selected) workspaceColor(MachineSignal.Accent) else Color.Transparent),
     )
 }
 
@@ -159,13 +166,16 @@ fun LegacySignalContextMenu(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        modifier = Modifier.background(MachineSignal.Bg2),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(MachineSignal.Editor.controlRadius),
+        containerColor = (dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.colors?.menu ?: MachineSignal.Bg2,
+        tonalElevation = 0.dp,
+        shadowElevation = MachineSignal.Space.s4,
     ) {
         actions.forEach { action ->
             DropdownMenuItem(
                 enabled = action.enabled,
                 onClick = { onDismiss(); action.onInvoke() },
-                modifier = Modifier.testTag(action.id ?: "signal-action-${action.label}"),
+                modifier = Modifier.height(MachineSignal.Space.s6).testTag(action.id ?: "signal-action-${action.label}"),
                 text = {
                     SignalText(
                         action.label,

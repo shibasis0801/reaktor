@@ -1,0 +1,10 @@
+{
+  "epoch": 1793220237.199478,
+  "removed": "/Users/ovd/dev/.remote-dev/snapshots/2e3bc3ea9142723e9fdb5d35bfe2298a5e3b62cde32fc58c45ae854a39d3d6f6",
+  "chargedBytesBefore": 7215480832,
+  "retainedEvidence": [
+    "current-kernel-cli-manifest.json",
+    "current-kernel-cli-proof.json"
+  ],
+  "reason": "Completed task-owned rematerializable frozen cache; source primary and evidence preserved"
+}

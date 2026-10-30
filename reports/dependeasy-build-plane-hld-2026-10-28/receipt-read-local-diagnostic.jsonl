@@ -1,0 +1,10 @@
+{"rep":0,"variant":"per-node","seconds":4.843183292,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}
+{"rep":0,"variant":"batch","seconds":0.209309792,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}
+{"rep":1,"variant":"batch","seconds":0.243278209,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}
+{"rep":1,"variant":"per-node","seconds":5.028946917,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}
+{"rep":2,"variant":"per-node","seconds":4.081054834,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}
+{"rep":2,"variant":"batch","seconds":0.108991542,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}
+{"rep":3,"variant":"batch","seconds":0.118876875,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}
+{"rep":3,"variant":"per-node","seconds":3.265209333,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}
+{"rep":4,"variant":"per-node","seconds":4.183059417,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}
+{"rep":4,"variant":"batch","seconds":0.190121459,"nodes":22,"joinedServices":22,"joinsEqual":true,"joinSha256":"817cacac30ac91eb6e86f826b9ef73286836b4d591b0aa6f12566a972a7a5f29"}

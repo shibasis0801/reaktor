@@ -6,10 +6,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption.APPEND
-import java.nio.file.StandardOpenOption.CREATE
 
-class WorkPlanStore(private val directory: Path, private val inbox: Path? = null, private val clock: () -> Long = System::currentTimeMillis) {
+class WorkPlanStore(private val directory: Path, inbox: Path? = null, private val clock: () -> Long = System::currentTimeMillis) {
+    private val inbox = inbox?.let(::ThreadInbox)
     private val plans = HashMap<String, WorkPlan>()
     private val changed = MutableStateFlow(0L)
     val changes: StateFlow<Long> = changed.asStateFlow()
@@ -64,17 +63,13 @@ class WorkPlanStore(private val directory: Path, private val inbox: Path? = null
         val inbox = inbox ?: return
         val fresh = plan.changes.filter { it.revision > (previous?.revision ?: 0) && it.by.same(by) }
         if (fresh.isEmpty()) return
+        val writer = by.session ?: plan.thread.takeIf { by.kind == BoardActorKind.Agent }
         val readers = (listOf(plan.thread) + plan.seats.mapNotNull { it.session } + plan.changes.mapNotNull { it.by.session })
-            .filter { it.startsWith(BoardRefs.Claude) && it != by.session }.distinct()
-        if (readers.isEmpty()) return
-        privateDirectory(inbox)
+            .filter { (it.startsWith(BoardRefs.Claude) || it.startsWith(BoardRefs.Codex)) && it != writer }.distinct()
         val lines = fresh.joinToString("") { change -> "- r${change.revision} · ${change.by.name}: ${change.summary.joinToString("; ")}\n" }
         readers.forEach { reader ->
-            val file = inbox.resolve("${reader.replace(':', '-')}.txt")
-            val header = if (Files.exists(file)) "" else "Your Reaktor plan “${plan.title}” changed. Read {operation: \"plan.read\", arguments: {thread: \"${plan.thread}\", " +
-                "since: ${(previous?.revision ?: 0)}}} and follow the changes before you go on:\n"
-            Files.writeString(file, header + lines, CREATE, APPEND)
-            if (Files.size(file) > InboxChars) Files.writeString(file, Files.readString(file).takeLast(InboxChars))
+            inbox.write(reader, lines, opening = "Your Reaktor plan “${plan.title}” changed. Read {operation: \"plan.read\", arguments: {thread: \"${plan.thread}\", " +
+                "since: ${(previous?.revision ?: 0)}}} and follow the changes before you go on:\n")
         }
     }
 
@@ -82,6 +77,5 @@ class WorkPlanStore(private val directory: Path, private val inbox: Path? = null
 
     companion object {
         const val MaxChars = 512 * 1024
-        const val InboxChars = 8_000
     }
 }

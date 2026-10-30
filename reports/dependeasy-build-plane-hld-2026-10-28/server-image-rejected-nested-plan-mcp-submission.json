@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"type\":\"failed\",\"message\":\"Encountered an unknown key 'schema' at element: $\\nUse 'ignoreUnknownKeys = true' in 'Json {}' builder or '@JsonIgnoreUnknownKeys' annotation to ignore unknown keys.\\nJSON input: .....yments\\\":[],\\\"secrets\\\":[],\\\"migrations\\\":[],\\\"infrastructure\\\":[]}\",\"code\":\"unavailable\"}"
+    }
+  ],
+  "isError": false
+}

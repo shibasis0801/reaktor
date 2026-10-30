@@ -1,0 +1,347 @@
+{
+  "router": "20261029-055158-0aa7a4c1-reaktor",
+  "counts": {
+    "jvmTest": {
+      "tests": 95,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "jsNodeTest": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "archive": "graph-height-partition-results.zip",
+  "sha256": "ca2b1b2e5599f6291bcfe4448e7995c6d47392c01074bf21ea24e5e22af44515",
+  "suites": [
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.graph.AppGraphSwitchersTest.xml",
+      "suite": {
+        "name": "AppGraphSwitchersTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:15.574Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.004"
+      },
+      "sha256": "4717cc6b84c4bc4fb64eda6433376fa19e65dfce0a5ce1557dd3693c7015dac2"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.graph.AppGraphRoutesTest.xml",
+      "suite": {
+        "name": "AppGraphRoutesTest[jvm]",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:15.560Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.013"
+      },
+      "sha256": "cdd986c72bf46686f5e59f1c22be0175829ddbadfe931f57242aa44c9e8efb36"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.graph.AppGraphFeaturesTest.xml",
+      "suite": {
+        "name": "AppGraphFeaturesTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:15.549Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.009"
+      },
+      "sha256": "f92561daf7bfe7e00da239e439c72d6c893ea6267d3db62b8a791fee3a53f38a"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.editor.RedactionTest.xml",
+      "suite": {
+        "name": "RedactionTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:12.670Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.008"
+      },
+      "sha256": "f814744d33fa93bd63d8ff441ab683891e1abd1bdbf7c76bd8a5372366332d16"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.editor.GraphEditorTest.xml",
+      "suite": {
+        "name": "GraphEditorTest[jvm]",
+        "tests": "13",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:12.654Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.015"
+      },
+      "sha256": "41bc42ea81db37e2e429fa8fefc7a7894153a5fa73f4ca2d384b763815d1eba4"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.graph.AppGraphWorkflowTest.xml",
+      "suite": {
+        "name": "AppGraphWorkflowTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:15.579Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.002"
+      },
+      "sha256": "5c05233ba92de7eb4b567c4a307093907d7a9124c673040d7bfd2bc875e44a95"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.gallery.LayoutGalleryTest.xml",
+      "suite": {
+        "name": "LayoutGalleryTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:12.680Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "2.868"
+      },
+      "sha256": "c880a657f9fdd77200f17b64cd74dd4b72eb480b1a7ab0b1c8956c12d2561770"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.NavigationLayoutTest.xml",
+      "suite": {
+        "name": "NavigationLayoutTest[jvm]",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:12.527Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.02"
+      },
+      "sha256": "6171fb36f296cb98a0fea72cfda5632afea22b38cb2ac8867f2c1cb5a4ca9c2e"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.editor.GraphEditorFeaturesTest.xml",
+      "suite": {
+        "name": "GraphEditorFeaturesTest[jvm]",
+        "tests": "12",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:12.552Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.075"
+      },
+      "sha256": "10faa65c65eb3a4c2a6b13b7abc1fc9fc6a3f385d973b0e39ae1021a38274d1e"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.NavigationCameraTest.xml",
+      "suite": {
+        "name": "NavigationCameraTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:12.526Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.0"
+      },
+      "sha256": "fb0f27476420de8cc3e103c154c78d85dbd72bb9089f6a0de3b48024588a758a"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.product.SurfaceGraphMotionTest.xml",
+      "suite": {
+        "name": "SurfaceGraphMotionTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:15.740Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "3.722"
+      },
+      "sha256": "324a78e9c680438f63ea49256af65bdec624ace45f42efd090e399d031ac267d"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.BlueprintDoorsTest.xml",
+      "suite": {
+        "name": "BlueprintDoorsTest[jvm]",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:22:57.975Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.027"
+      },
+      "sha256": "c870cef68118c563603d1e78723da53461bc9e73963646aa665210b5c135423c"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.LayeredTest.xml",
+      "suite": {
+        "name": "LayeredTest[jvm]",
+        "tests": "9",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:12.372Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.152"
+      },
+      "sha256": "6d28e52b0d68e25b0161ad91907a76cb0bd20e03fd248666f03a954296b6ca43"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.BlueprintCardContentTest.xml",
+      "suite": {
+        "name": "BlueprintCardContentTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:22:53.238Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "4.735"
+      },
+      "sha256": "e586b56a72d4120e375918f0f03a70081bb6efd0180acf12b6971d9faeb1e66a"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.product.SurfaceGraphDetailTest.xml",
+      "suite": {
+        "name": "SurfaceGraphDetailTest[jvm]",
+        "tests": "10",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:15.584Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.152"
+      },
+      "sha256": "8b111c99da42cc480f4b1602de386f2a633a7de924567e246b5e1623822ed30d"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.BlueprintCanvasMotionTest.xml",
+      "suite": {
+        "name": "BlueprintCanvasMotionTest[jvm]",
+        "tests": "2",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:22:43.124Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "10.112"
+      },
+      "sha256": "a8ef2caf086d022d0b6493fde9075597719ea98bb7d8b595cfa7127f5f009f3a"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.editor.GraphEditorNextTest.xml",
+      "suite": {
+        "name": "GraphEditorNextTest[jvm]",
+        "tests": "15",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:12.630Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.022"
+      },
+      "sha256": "aa243f88d048e817f8bdb2c7ce9bb9cb4d231c3263fdade3809a0406b626008d"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.ElkFrameLayouterTest.xml",
+      "suite": {
+        "name": "ElkFrameLayouterTest[jvm]",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:22:58.022Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "14.348"
+      },
+      "sha256": "c41d401e11afafeb5d7d3f612958a83c493c8f3e321ab979d23560fc692a684a"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.BlueprintBitmapCameraTest.xml",
+      "suite": {
+        "name": "BlueprintBitmapCameraTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:22:40.868Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "2.253"
+      },
+      "sha256": "d4ff78e9ce7e5d2881e4a3806a0238545b8757bf70607662d56ff3208ca33378"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.blueprint.BlueprintRoutingTest.xml",
+      "suite": {
+        "name": "BlueprintRoutingTest[jvm]",
+        "tests": "3",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:22:58.004Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.016"
+      },
+      "sha256": "1ebc7dbf3947aa4719d12ac5d92ace6baf984c0b80b2237f297ef577acb14304"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.blueprint.NavigationCameraTest.xml",
+      "suite": {
+        "name": "jsNodeTest.dev.shibasis.reaktor.blueprint.NavigationCameraTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:21.999Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.001"
+      },
+      "sha256": "a5b216542f536e767f9b897c21b6acf34bb7832795e36af7378bd56a6ca25b06"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.blueprint.NavigationLayoutTest.xml",
+      "suite": {
+        "name": "jsNodeTest.dev.shibasis.reaktor.blueprint.NavigationLayoutTest",
+        "tests": "5",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:22Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.001"
+      },
+      "sha256": "b8c3809acac172df343843e5ecfb430b3113917a0a89dfdcc8f3ba37822eb1ba"
+    },
+    {
+      "path": "reaktor/reaktor-blueprint/build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.blueprint.editor.RedactionTest.xml",
+      "suite": {
+        "name": "jsNodeTest.dev.shibasis.reaktor.blueprint.editor.RedactionTest",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-29T00:23:22.001Z",
+        "hostname": "Shibasiss-MacBook-Pro.local",
+        "time": "0.0"
+      },
+      "sha256": "d5c8702e62a81260f7ed7d22d3c9fb79d6f94d39367c1b307d59d736b2d8b7f6"
+    }
+  ],
+  "sources": {
+    "reaktor/reaktor-blueprint/src/commonMain/kotlin/dev/shibasis/reaktor/blueprint/BlueprintEngine.kt": "995e757f8cc9e2e26fb2114174df552657d71d9d0455aa79f9612cf37597947b",
+    "reaktor/reaktor-blueprint/src/jvmTest/kotlin/dev/shibasis/reaktor/blueprint/BlueprintRoutingTest.kt": "ff01eca85ddeeaa641a2511d45136a15a020ddfb8845fa4219f12c113d4e685b"
+  }
+}

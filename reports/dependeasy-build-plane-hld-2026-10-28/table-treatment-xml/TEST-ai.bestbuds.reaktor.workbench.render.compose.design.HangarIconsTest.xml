@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="HangarIconsTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:12.484Z" hostname="Shibasiss-MacBook-Pro-2.local" time="3.289">
+  <properties/>
+  <testcase name="vectorProjectionPreservesTheCatalogueOutlines[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.design.HangarIconsTest" time="3.288"/>
+  <testcase name="exactOutlineGeometryIsCachedAndUnknownIconsAreRejected[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.design.HangarIconsTest" time="0.0"/>
+  <testcase name="everyRegisteredIconBuildsANonemptyFiniteNativePath[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.design.HangarIconsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

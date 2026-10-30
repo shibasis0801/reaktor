@@ -1,0 +1,14 @@
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalEvidence.kt · outline · 556 of 556 characters · rev:5c511f8ced83
+11  internal class OperationalEvidence(root: File)
+12    private val directory
+13    val artifacts
+14    private val sources
+15    fun candidate(): AgentCandidate?
+16    fun begin(): Log
+22    inner class Log(private val file: File)
+22      private val file: File
+23      private var bytes
+24      private var partial
+25      @Synchronized fun append(text: String)
+32      @Synchronized fun finish(command: List<String>, exitCode: Int?, candidate: AgentCandidate?, environment: String, duration: Long, capture: (() -> AgentCandidate?)? = null): CheckResult
+next: atlas_read {"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalEvidence.kt:10:15@c72ae498"}

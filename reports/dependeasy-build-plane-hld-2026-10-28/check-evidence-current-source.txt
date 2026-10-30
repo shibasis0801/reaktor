@@ -1,0 +1,38 @@
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalEvidence.kt · internal class OperationalEvidence(root: File) · 2270 of 2270 characters · rev:5c511f8ced83
+11  internal class OperationalEvidence(root: File) {
+12      private val directory = AgentWorkspaceConnection.defaultDirectory(root).resolve("kernel-evidence")
+13      val artifacts = LocalAgentArtifacts(directory.resolve("artifacts"))
+14      private val sources = SourceCandidates(root.canonicalFile, artifacts)
+15      fun candidate(): AgentCandidate? = runCatching { sources.capture().takeIf { it.complete } }.getOrNull()
+16      fun begin(): Log {
+17          Files.createDirectories(directory)
+18          val path = Files.createTempFile(directory, "run-", ".log")
+19          Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
+20          return Log(path.toFile())
+21      }
+22      inner class Log(private val file: File) {
+23          private var bytes = 0
+24          private var partial = false
+25          @Synchronized fun append(text: String) {
+26              val incoming = (text + "\n").toByteArray()
+27              val kept = incoming.take((16_000_000 - bytes).coerceAtLeast(0)).toByteArray()
+28              if (kept.size < incoming.size) partial = true
+29              Files.write(file.toPath(), kept, APPEND)
+30              bytes += kept.size
+31          }
+32          @Synchronized fun finish(command: List<String>, exitCode: Int?, candidate: AgentCandidate?, environment: String, duration: Long, capture: (() -> AgentCandidate?)? = null): CheckResult {
+33              val output = file.readText()
+34              val artifact = artifacts.put(output, "kernel-check-log")
+35              val current = candidate?.let { runCatching { if (capture == null) candidate() else capture() }.getOrNull() }
+36              val stable = candidate != null && current?.id == candidate.id
+37              val reduced = CheckReducers.reduce(command, exitCode, output,
+38                  revision = candidate?.id.takeIf { stable }, environment = environment, durationMillis = duration, log = artifact)
+39              file.delete()
+40              return if (!partial && stable) reduced else reduced.copy(coverage = CheckCoverage.Partial(
+41                  (reduced.coverage as? CheckCoverage.Partial)?.unrecognisedLines ?: 0,
+42                  listOfNotNull(if (partial) "Log exceeded 16 MB retention" else null,
+43                      if (!stable) "Source identity unavailable or changed during execution" else null).joinToString("; ")))
+44          }
+45      }
+46  }
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalEvidence.kt:10:15@c72ae498"},"follow":[{"rel":"references","dir":"in"}]}

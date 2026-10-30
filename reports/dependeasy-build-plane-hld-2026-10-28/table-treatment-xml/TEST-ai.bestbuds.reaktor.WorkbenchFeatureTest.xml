@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="WorkbenchFeatureTest[jvm]" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:24:19.251Z" hostname="Shibasiss-MacBook-Pro-2.local" time="6.064">
+  <properties/>
+  <testcase name="workbenchInteractorDelegatesCommandsAndBumpsSystemRevision[jvm]" classname="ai.bestbuds.reaktor.WorkbenchFeatureTest" time="0.005"/>
+  <testcase name="paneInteractorsCoverEveryWorkbenchSubsystem[jvm]" classname="ai.bestbuds.reaktor.WorkbenchFeatureTest" time="0.005"/>
+  <testcase name="appTargetsStayRealAndProductScoped[jvm]" classname="ai.bestbuds.reaktor.WorkbenchFeatureTest" time="0.0"/>
+  <testcase name="graphCatalogRepositoryRefreshesThroughTypedSubsystemApi[jvm]" classname="ai.bestbuds.reaktor.WorkbenchFeatureTest" time="0.285"/>
+  <testcase name="commandQueueActorSerializesServiceBackedCommandWorkflow[jvm]" classname="ai.bestbuds.reaktor.WorkbenchFeatureTest" time="2.41"/>
+  <testcase name="mockServicesReturnTypedWorkbenchData[jvm]" classname="ai.bestbuds.reaktor.WorkbenchFeatureTest" time="3.35"/>
+  <testcase name="shellInteractorsExposeMutableSharedWorkbenchState[jvm]" classname="ai.bestbuds.reaktor.WorkbenchFeatureTest" time="0.006"/>
+  <testcase name="commandQueueTransitionsAreDeterministic[jvm]" classname="ai.bestbuds.reaktor.WorkbenchFeatureTest" time="0.002"/>
+  <testcase name="routeLookupCoversEveryWorkbenchMode[jvm]" classname="ai.bestbuds.reaktor.WorkbenchFeatureTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

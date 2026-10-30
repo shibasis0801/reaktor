@@ -1,0 +1,2177 @@
+[
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/engine/build/classes/kotlin/jvm/test",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/0-test",
+    "sha256": "ea6fbb8e840a17ce46ba6e290d4488c15a86f9b481b9e0b66f3c498adc63401a"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/engine/build/classes/java/jvmTest",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/1-jvmTest",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/engine/build/generated/ksp/jvm/jvmTest/classes",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/2-classes",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/engine/build/processedResources/jvm/test",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/3-test",
+    "sha256": "feec1097305add6957304c762140509cd0d17d374ac1c20ef76bdfd9741fda74"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/engine/build/classes/kotlin/jvm/main",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/4-main",
+    "sha256": "0c668207f9c6038396ec295dc35e14b5a170740b51e2626a091cba9d252f2e1f"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/engine/build/classes/java/jvmMain",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/5-jvmMain",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/engine/build/generated/ksp/jvm/jvmMain/classes",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/6-classes",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/engine/build/processedResources/jvm/main",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/7-main",
+    "sha256": "48c68f38cf4678dfcc9becce85f90f065b83b75e6f6af97770c6264adb140719"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/app/build/libs/app-jvm-1.0.0.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/8-app-jvm-1.0.0.jar",
+    "sha256": "3871e60f2f3a95d0317ba8942efdb39f23b213e2f64d146e63843df899198e13"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/design/build/libs/design-jvm-1.0.0.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/9-design-jvm-1.0.0.jar",
+    "sha256": "058381d563cb2a3fe89c7ac77978bc74cb1e1d1e86865ebccebcb3cc18749791"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-google/build/libs/reaktor-google-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/10-reaktor-google-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "2478586bfa42f0a9dde3eda2ca1d3c46563239e3f78486f74ee3a24658979a13"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-security/build/libs/reaktor-security-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/11-reaktor-security-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "3c5d4f101cc76499aa57ac5e782dfcfb26ec21fb497b32d5cf14c4e7b3417f68"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-auth/build/libs/reaktor-auth-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/12-reaktor-auth-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "a25f07e052d0b56325e93dedae835b3322ee0e1105d610641b500c0b7b3890f1"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-blueprint/build/libs/reaktor-blueprint-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/13-reaktor-blueprint-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "9d9ab95892c71db781e773a8df91436d89bf360ea9cd95bef5695defd8d2530c"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-cloud/build/libs/reaktor-cloud-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/14-reaktor-cloud-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "530b16e54e0d883dc22c2da3c5180b4df5edc67af5624be87959a4966136d4af"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-cloud/build/libs/grafana-sdk-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/15-grafana-sdk-2026.1.6-SNAPSHOT.jar",
+    "sha256": "44c65fd9db761e10a8aaad49e9d9ccb79d042998472853ec84f312745949e847"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-notification/build/libs/reaktor-notification-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/16-reaktor-notification-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "3b74807e503f184b72dd53d9c016fcf0a31528e20758dd5b3df0e7d7d9a301f8"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-graph/build/libs/reaktor-graph-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/17-reaktor-graph-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "e844190e605c6e1f5c724714409562ddf631b4274924152c113cdac99cdaaab4"
+  },
+  {
+    "original": "/Users/ovd/dev/bestbuds/modules/kernel/build/libs/kernel.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/18-kernel.jar",
+    "sha256": "13fc2cf867ada3a4f5417ad357cdf4d77782ee9ab5b8b55f6ac084041e79e45b"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-conductor/build/libs/reaktor-conductor-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/19-reaktor-conductor-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "fdeea5bc51040a7d4f6be7757d399eee146b1d23005bbd92490f3e1968dc5fd1"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-tooling/build/libs/reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/20-reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "585b4072d3010e5b78e5571e68550eb193dbd521884f85300724b4d3345d1095"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-telemetry/build/libs/reaktor-telemetry-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/21-reaktor-telemetry-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "4c291e4341647b99ef517595b747771e663499e882af19e6a3ea411a5623275b"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-mcp/build/libs/reaktor-mcp-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/22-reaktor-mcp-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "24c1dbf71aea0f641ba68c355c163cde805ec0024380fdde569238cd817c7f43"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-media/build/libs/reaktor-media-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/23-reaktor-media-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "9c5f2db60959d72eb36df4e33f99f76b5b83ae61136c51ddeaa148822753771a"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-location/build/libs/reaktor-location-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/24-reaktor-location-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "8bd10addfb2ab5a0c55691cf9666e430b56f12e2841f05120225ca302f78fe6f"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-ui/build/libs/reaktor-ui-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/25-reaktor-ui-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "137ea94f5893868f30a2b12f329248e25ba433f55757e54e73001123ac44c84f"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-code/build/libs/reaktor-code-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/26-reaktor-code-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "9938bdde3fdf2f15c949dc6a8b39ce37b44113519cb1cb52bd59ec7ec8822459"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-web/build/libs/reaktor-web-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/27-reaktor-web-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "42cd0558d0a51c428cc3c6c5542e88b32fe2f324b7d44b2031168af418bff586"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-devtools/build/libs/reaktor-devtools-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/28-reaktor-devtools-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "3c79af07ee5e71d6c0b9c84602d0e3077dfeeffebdae0c7f0d8735e5b4ce1ac8"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-work/build/libs/reaktor-work-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/29-reaktor-work-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "1d8caa387ef65a25a70632a8470db81b2b5337305a7cc7ef098f90a77f5268af"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-graph-runtime/build/libs/reaktor-graph-runtime-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/30-reaktor-graph-runtime-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "63e2f09f80aadc3f4fbc48dfe8603bc121c52a6f8328f9c4617f71d05464aa06"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-db/build/libs/reaktor-db-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/31-reaktor-db-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "99d52509d12c1e83108db169a792cd98b7deca14d5e1855e150e5a6009b038bf"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-board/build/libs/reaktor-board-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/32-reaktor-board-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "f27805d806e039b10614dc4033defaa3d43dcbe5c715223d1f5ff3bd41760e33"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-service/build/libs/reaktor-service-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/33-reaktor-service-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "94e28608f7f25970fed250889587157e87ffe19a8bd2c8551ac11b3b56f7d0d7"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-performance/build/libs/reaktor-performance-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/34-reaktor-performance-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "75452f63aaa356e8710f8f756b7d726d497fb730e2a56eebe458701bc3a613f6"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-surface-compose/build/libs/reaktor-surface-compose-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/35-reaktor-surface-compose-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "2ed1d23cd59b5ad40a21ae174e2d44c5b895261c5db92d9922a5bcfb2ba06ef6"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/compose-flow/build/libs/compose-flow-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/36-compose-flow-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "b3458f42ef1b4c4bb43646df2c2070b60f41bb5537e0baf49f92c6b334bb3e05"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.material3/material3-desktop/1.9.0/19004c4eb3dc6618eb66a076bbe3d7e1a2e7b85/material3-desktop-1.9.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.material3/material3-desktop/1.9.0/19004c4eb3dc6618eb66a076bbe3d7e1a2e7b85/material3-desktop-1.9.0.jar",
+    "sha256": "78f0787a1c6d20f9b2460a387f51ecf554e211d3c874b22d66530a540390b811"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.components/components-resources-desktop/1.12.1/7fdb66431787bd9615dc099a4ee83682297a02cf/library-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.components/components-resources-desktop/1.12.1/7fdb66431787bd9615dc099a4ee83682297a02cf/library-desktop-1.12.1.jar",
+    "sha256": "9d5ad07d082fffc19c728516e87d51d3e439c00087cc067f821a116f27e8b29e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.insert-koin/koin-compose-jvm/4.1.0/4d92aaf21d3ed7f84cb60a51813db2e06430bf54/koin-compose-jvm-4.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.insert-koin/koin-compose-jvm/4.1.0/4d92aaf21d3ed7f84cb60a51813db2e06430bf54/koin-compose-jvm-4.1.0.jar",
+    "sha256": "76c1f2201a50515d2ddc1c16357212f43ace864a5b9084599391fd86a9e2c39c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.desktop/desktop-jvm/1.12.1/55722afc383641f44e5059e3a87e076436190826/desktop-jvm-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.desktop/desktop-jvm/1.12.1/55722afc383641f44e5059e3a87e076436190826/desktop-jvm-1.12.1.jar",
+    "sha256": "adaea6ec630420712dcfd52a356b46aef603129ca7f76cba204569112fa80e1c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.material/material-desktop/1.12.1/6d090e795e1575f46fcd5f993f38c2e34b976a32/material-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.material/material-desktop/1.12.1/6d090e795e1575f46fcd5f993f38c2e34b976a32/material-desktop-1.12.1.jar",
+    "sha256": "0c1dd397b45a7cd830234ddf30d253b586259e726a5cd816cca2e79119a47fa2"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.animation/animation-core-desktop/1.12.1/a14cdb09ab8792b6b20d298d0a26530969228b0f/animation-core-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.animation/animation-core-desktop/1.12.1/a14cdb09ab8792b6b20d298d0a26530969228b0f/animation-core-desktop-1.12.1.jar",
+    "sha256": "d988b6b7d867146825a9da38e1522fc50580aa14986ab22a8b724fcdcef17875"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.material/material-ripple-desktop/1.12.1/b4b34a8be94b8c41526d448a58d7ce2256872df5/material-ripple-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.material/material-ripple-desktop/1.12.1/b4b34a8be94b8c41526d448a58d7ce2256872df5/material-ripple-desktop-1.12.1.jar",
+    "sha256": "06ac72a5f57b2e724ea129efbc71973a27a9e1ceeb7f568281dcb0d1ef4448fd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.animation/animation-desktop/1.12.1/4e815509a4bedbf3ff9f3ce292c548989a00ff53/animation-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.animation/animation-desktop/1.12.1/4e815509a4bedbf3ff9f3ce292c548989a00ff53/animation-desktop-1.12.1.jar",
+    "sha256": "755ca81764d5aae7afb2d5f72e3253a44a1cc9c0f890d1dcc319f0eb8f00736b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.foundation/foundation-layout-desktop/1.12.1/64d4f43ec090a85f3069762a5c39a147c6d2c9aa/foundation-layout-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.foundation/foundation-layout-desktop/1.12.1/64d4f43ec090a85f3069762a5c39a147c6d2c9aa/foundation-layout-desktop-1.12.1.jar",
+    "sha256": "57b54c104bae9eea0e90bb26487f8b64ead09a473f1b32cbed8579084f485e7b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-compose-jvm/3.6.3/2fb8abf7c7be435403d4bbd295e4ad67bebcc577/coil-compose-jvm-3.6.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-compose-jvm/3.6.3/2fb8abf7c7be435403d4bbd295e4ad67bebcc577/coil-compose-jvm-3.6.3.jar",
+    "sha256": "fbf5b118f659e974095575537064d5aeffb972007f39f8cd311f8e24b20a6e78"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-compose-core-jvm/3.6.3/8498f8eb1ba3517190b425963924d5d58eb6f2d8/coil-compose-core-jvm-3.6.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-compose-core-jvm/3.6.3/8498f8eb1ba3517190b425963924d5d58eb6f2d8/coil-compose-core-jvm-3.6.3.jar",
+    "sha256": "00e7ed120f34bcc93d6dfae2a32c0f78a95fc4062f7518e2a8e2ee1b0b995254"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.foundation/foundation-desktop/1.12.1/cb418f810ab36f9268c13816a6b21d9cd6ffa4b7/foundation-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.foundation/foundation-desktop/1.12.1/cb418f810ab36f9268c13816a6b21d9cd6ffa4b7/foundation-desktop-1.12.1.jar",
+    "sha256": "e1dc29cd9de2f1628a741866a112eedc62fec43bc548d0e4f434bf31207fd1e3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.material/material-icons-core-desktop/1.7.3/414b3096050fe647b0638832eace80f22c06b85c/material-icons-core-desktop-1.7.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.material/material-icons-core-desktop/1.7.3/414b3096050fe647b0638832eace80f22c06b85c/material-icons-core-desktop-1.7.3.jar",
+    "sha256": "bcf6c853b6db2ff148d2d3aad3b7a7ea54d93fc7b42e0afd840eb6daf1a1c681"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-geometry-desktop/1.12.1/21ca5715bcde50586e57506f07b280ff8b626bdb/ui-geometry-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-geometry-desktop/1.12.1/21ca5715bcde50586e57506f07b280ff8b626bdb/ui-geometry-desktop-1.12.1.jar",
+    "sha256": "2cde44d95ba21654dcced3a3098bdd171b3ef5b17ef7fc6cec0d25983dbc9fa0"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-tooling-preview-desktop/1.12.1/9871d626c28849c2f353e15d7694e38d7996ddcc/ui-tooling-preview-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-tooling-preview-desktop/1.12.1/9871d626c28849c2f353e15d7694e38d7996ddcc/ui-tooling-preview-desktop-1.12.1.jar",
+    "sha256": "19f5005baa27dfbf3f435feed44dfba9c938ba386ac6753d00a67a270cd72231"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-unit-desktop/1.12.1/e0670f2fc4ace09368fdba41c15558e1fa79e866/ui-unit-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-unit-desktop/1.12.1/e0670f2fc4ace09368fdba41c15558e1fa79e866/ui-unit-desktop-1.12.1.jar",
+    "sha256": "7c4998f1224f241dbe88fa59701d697d598fe8979a4acaed717b8365d4cd9300"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-graphics-desktop/1.12.1/dc0dbaa823b75a72d2306459e0a118b65769aa22/ui-graphics-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-graphics-desktop/1.12.1/dc0dbaa823b75a72d2306459e0a118b65769aa22/ui-graphics-desktop-1.12.1.jar",
+    "sha256": "92fddd7609d77a803f7083b1b7dd5a651cba10be27c105361a5d0b3894932085"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-util-desktop/1.12.1/2d41b1dcda0c16efa86718f309fe2159a2890028/ui-util-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-util-desktop/1.12.1/2d41b1dcda0c16efa86718f309fe2159a2890028/ui-util-desktop-1.12.1.jar",
+    "sha256": "bb81e9748c9bcadeaeb99bab647e21442e62e253a3a497a213c68e040cb2b385"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-text-desktop/1.12.1/af2aab56220491e300daa1def6ce1e586f18d84/ui-text-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-text-desktop/1.12.1/af2aab56220491e300daa1def6ce1e586f18d84/ui-text-desktop-1.12.1.jar",
+    "sha256": "672331d7e1440f2406f6a9b6d3d61475316cf622d0dbbe910e47bdbd69861c38"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-desktop/1.12.1/a6d765fb5086ca7046af0172a7fc2ff3b32a3e59/ui-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-desktop/1.12.1/a6d765fb5086ca7046af0172a7fc2ff3b32a3e59/ui-desktop-1.12.1.jar",
+    "sha256": "eaee42812c81cf1f1a925088bd7e847a343decbc3ccb1682f00f203123a51a17"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-backhandler-desktop/1.12.1/170494f680ff0f7532eeba0f4ba936b54224ed32/ui-backhandler-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.ui/ui-backhandler-desktop/1.12.1/170494f680ff0f7532eeba0f4ba936b54224ed32/ui-backhandler-desktop-1.12.1.jar",
+    "sha256": "0bc021accc616c2a99afe0c39ca1ec29082fa78a7b99868ed122d162eab828bd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.runtime/runtime-desktop/1.12.1/d9b0c5277cd9ba7a116fbb06e1716d02d0b33401/runtime-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.runtime/runtime-desktop/1.12.1/d9b0c5277cd9ba7a116fbb06e1716d02d0b33401/runtime-desktop-1.12.1.jar",
+    "sha256": "9a40fb9ac9b98a1b2d8be51ce57dbcf733e768fa06a9e4859a1775cb52bf6806"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.runtime/runtime-saveable-desktop/1.12.1/b4a48d211ac0281b049bf42cb21f715c71b69145/runtime-saveable-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.compose.runtime/runtime-saveable-desktop/1.12.1/b4a48d211ac0281b049bf42cb21f715c71b69145/runtime-saveable-desktop-1.12.1.jar",
+    "sha256": "d81973dced223d6aea7bf9f6d4ead285494c656ea003b59072babefd25470c7b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-runtime-desktop/2.11.0/c2b5e2f7d739375538c2a74757531a30607f85ff/lifecycle-runtime-desktop-2.11.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-runtime-desktop/2.11.0/c2b5e2f7d739375538c2a74757531a30607f85ff/lifecycle-runtime-desktop-2.11.0.jar",
+    "sha256": "09f75a4a8d763cee5d6af36f422139a0205d3f6df2e2c5288cae42836f0b36ea"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-desktop/2.11.0/156dea0e0e4862b60bc14881891bae1e5df64f81/lifecycle-viewmodel-desktop-2.11.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-desktop/2.11.0/156dea0e0e4862b60bc14881891bae1e5df64f81/lifecycle-viewmodel-desktop-2.11.0.jar",
+    "sha256": "175c349266ccbb6a2036615725b7066ee3f3319665c98af42206ab3a582a43c3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-runtime-compose-desktop/2.11.0/8a85615b7e4f5728106bf7bc3cfa95f429eb6264/lifecycle-runtime-compose-desktop-2.11.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-runtime-compose-desktop/2.11.0/8a85615b7e4f5728106bf7bc3cfa95f429eb6264/lifecycle-runtime-compose-desktop-2.11.0.jar",
+    "sha256": "d5336753ea4d5881ccfb8b0613e034eb241f0d8b4349536df1cd0ec86cf63664"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.androidx.lifecycle/lifecycle-runtime-compose-desktop/2.9.6/7b6b6793f3c4c5996b20d1d99cf728e5fac00364/lifecycle-runtime-compose-desktop-2.9.6.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.androidx.lifecycle/lifecycle-runtime-compose-desktop/2.9.6/7b6b6793f3c4c5996b20d1d99cf728e5fac00364/lifecycle-runtime-compose-desktop-2.9.6.jar",
+    "sha256": "31c3c4b6dea38f078c46829dee2c43abba2bf8757b7ee8a0f660f31217364898"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.androidx.savedstate/savedstate-compose-desktop/1.3.6/63692375ffe667f12cb3ea8aa1e605d659ed2add/savedstate-compose-desktop-1.3.6.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.androidx.savedstate/savedstate-compose-desktop/1.3.6/63692375ffe667f12cb3ea8aa1e605d659ed2add/savedstate-compose-desktop-1.3.6.jar",
+    "sha256": "0f3d045c5fd7e1301ab6c38cd0778067b0484cf39acac1233be71a723a6a8075"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.savedstate/savedstate-compose-desktop/1.4.0/d3d6e0e2108528eb6080dc250da925a572be4202/savedstate-compose-desktop-1.4.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.savedstate/savedstate-compose-desktop/1.4.0/d3d6e0e2108528eb6080dc250da925a572be4202/savedstate-compose-desktop-1.4.0.jar",
+    "sha256": "c02a98b0c2b35cdde245c0bfe6e7ff453c7b6d06a5eb8681d25b7f54b874ea48"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.savedstate/savedstate-desktop/1.4.0/3b049a0f81643d6b4b900de95bc23efc085c32d5/savedstate-desktop-1.4.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.savedstate/savedstate-desktop/1.4.0/3b049a0f81643d6b4b900de95bc23efc085c32d5/savedstate-desktop-1.4.0.jar",
+    "sha256": "e965ed7a011be83a271ac7d82249a776368479ee3a2b07948c3445b51d640856"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-common-jvm/2.11.0/2c4f7d92f1fd723121d394c93455f50158403ad9/lifecycle-common-jvm-2.11.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-common-jvm/2.11.0/2c4f7d92f1fd723121d394c93455f50158403ad9/lifecycle-common-jvm-2.11.0.jar",
+    "sha256": "e6a66e67b9f63a0fb6344f165c1d872376e5fe6d235bffb138af45122cf452a9"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-savedstate-desktop/2.11.0/4e8025bc47a196b0ee403b8d915393ae7922c21a/lifecycle-viewmodel-savedstate-desktop-2.11.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-savedstate-desktop/2.11.0/4e8025bc47a196b0ee403b8d915393ae7922c21a/lifecycle-viewmodel-savedstate-desktop-2.11.0.jar",
+    "sha256": "ca21720ce7f370cb21cabb5329b959eda624107ec06282e3bdc92582917b1d27"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-compose-desktop/2.11.0/29daa46bc0d2d574ee95309be1f325764f40b35b/lifecycle-viewmodel-compose-desktop-2.11.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-compose-desktop/2.11.0/29daa46bc0d2d574ee95309be1f325764f40b35b/lifecycle-viewmodel-compose-desktop-2.11.0.jar",
+    "sha256": "1b4c58125c7b3693444f40c8ab76881d17fa74726860c24872a3dec3e0fad34b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.compose.runtime/runtime-saveable-desktop/1.12.1/8cacc17c590b2ac5fabf040c4f66d432092a821/runtime-saveable-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.compose.runtime/runtime-saveable-desktop/1.12.1/8cacc17c590b2ac5fabf040c4f66d432092a821/runtime-saveable-desktop-1.12.1.jar",
+    "sha256": "069949667409ab6de21053f9fdbff0869ae2a1f70a7212cdb89e7d409fd2552c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.androidx.navigationevent/navigationevent-compose-desktop/1.1.0/d4c4408fbc6ac4dbddaef91d82013f435c02a9c5/navigationevent-compose-desktop-1.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.androidx.navigationevent/navigationevent-compose-desktop/1.1.0/d4c4408fbc6ac4dbddaef91d82013f435c02a9c5/navigationevent-compose-desktop-1.1.0.jar",
+    "sha256": "0514f5d5c14de3b422c48a4eaf1d9dd2ce265041339e4c51ce30db8da1690874"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.navigationevent/navigationevent-compose-desktop/1.1.1/ef8d1270c6439178474691b1886e2c3dc97f9ce/navigationevent-compose-desktop-1.1.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.navigationevent/navigationevent-compose-desktop/1.1.1/ef8d1270c6439178474691b1886e2c3dc97f9ce/navigationevent-compose-desktop-1.1.1.jar",
+    "sha256": "1d7d20d7826a2cc63ace9862cddd8a7085a11a3ea2cff258c28b3d58e57f143b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.navigationevent/navigationevent-desktop/1.1.1/10a65e605d90c6dc98f3de9d32ae32824a7d0a1f/navigationevent-desktop-1.1.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.navigationevent/navigationevent-desktop/1.1.1/10a65e605d90c6dc98f3de9d32ae32824a7d0a1f/navigationevent-desktop-1.1.1.jar",
+    "sha256": "4c92508d4bd3b9cafb2785e8211057d39ed8465b529660223864a19625cedb5b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.compose.runtime/runtime-annotation-jvm/1.12.1/4cf2b71ea98c0d69c95a2885e521ba28af5fa7a0/runtime-annotation-jvm-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.compose.runtime/runtime-annotation-jvm/1.12.1/4cf2b71ea98c0d69c95a2885e521ba28af5fa7a0/runtime-annotation-jvm-1.12.1.jar",
+    "sha256": "e291a6ae01ab71a7f48a568ec9744c6bf9b3f46ef72fbcdeb28c3407ae531c5e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.compose.runtime/runtime-retain-desktop/1.12.1/3aa3ec26ef2a3d26bc556b51b33d09efc1a198e8/runtime-retain-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.compose.runtime/runtime-retain-desktop/1.12.1/3aa3ec26ef2a3d26bc556b51b33d09efc1a198e8/runtime-retain-desktop-1.12.1.jar",
+    "sha256": "9b7e62a7df333c33eff9e1a6d6c2508a4d8fe4b7a43778075538fe3da4bc4485"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.compose.runtime/runtime-desktop/1.12.1/82e40832ddf785e9c0c15c4186d32f8c894fd914/runtime-desktop-1.12.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.compose.runtime/runtime-desktop/1.12.1/82e40832ddf785e9c0c15c4186d32f8c894fd914/runtime-desktop-1.12.1.jar",
+    "sha256": "ed390d7bf7bdba951359d127f4c1ddd223f535f5a6a63078c5c5ac6b6924eb08"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-auth-core/build/libs/reaktor-auth-core-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/77-reaktor-auth-core-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "7753bbc486ba753a1c9a2a6b5c948d77f71555be7e9d99eec0b0d9e3f68898b0"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-tactile/build/libs/reaktor-tactile-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/78-reaktor-tactile-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "93dd36832e94c2e137498f70e79627b9464197a2d891783f023c4a0254266ed5"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-io/build/libs/reaktor-io-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/79-reaktor-io-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "a37cbe849df4ca384754983df23d175bdb7e7a2c0b30dd77ff21e63bc12e72d9"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-ffi/build/libs/reaktor-ffi-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/80-reaktor-ffi-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "2a791512781a208090a77627803362592ab882b5d0a64b30ea81beace6bf7dcb"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-flexbuffer/build/libs/reaktor-flexbuffer-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/81-reaktor-flexbuffer-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "fb066c65e41138ba51c0265a9a6e9706f7087f49d1f4036083ed321d9c8711eb"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-graph-port/build/libs/reaktor-graph-port-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/82-reaktor-graph-port-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "de2d6e3f24c954fc82c7306d2ea3a0e154733eef4cd472ec2b2646df506a4da7"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-core/build/libs/reaktor-core-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/83-reaktor-core-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.exposed/exposed-jdbc/1.0.0-beta-2/12d8f584cd5356ac010966913f4b621157bbfff/exposed-jdbc-1.0.0-beta-2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.exposed/exposed-jdbc/1.0.0-beta-2/12d8f584cd5356ac010966913f4b621157bbfff/exposed-jdbc-1.0.0-beta-2.jar",
+    "sha256": "9a781480328710bef853448189f8494f5d58d59ab2ac165b686f7f9c3cdeffca"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.exposed/exposed-json/1.0.0-beta-2/580fe233e5e6f651de94a8620c295231e745fe76/exposed-json-1.0.0-beta-2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.exposed/exposed-json/1.0.0-beta-2/580fe233e5e6f651de94a8620c295231e745fe76/exposed-json-1.0.0-beta-2.jar",
+    "sha256": "22c7a7a992e48c1d39c7149a002931dc9987dc2cf9b3cdc2cfd4dfb181c11a5b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.exposed/exposed-core/1.0.0-beta-2/94ad708a09dfa8aaded5d106dca42d98f2615945/exposed-core-1.0.0-beta-2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.exposed/exposed-core/1.0.0-beta-2/94ad708a09dfa8aaded5d106dca42d98f2615945/exposed-core-1.0.0-beta-2.jar",
+    "sha256": "8cc0cda4abf512c75dd4f79f877de2ddbec8468f7dbe401c6cfc1f3acaae971a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-reactor/1.10.2/c3c84182041bf45210c51b16e4d119589fd182c3/kotlinx-coroutines-reactor-1.10.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-reactor/1.10.2/c3c84182041bf45210c51b16e4d119589fd182c3/kotlinx-coroutines-reactor-1.10.2.jar",
+    "sha256": "3a873628e7744f3fb8a3145bb086530e43d1a35c568265d12650c7219b80a0da"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.4.21/3cd9c37c505fb9879e03ebeaf91d9c9500ab6eca/kotlin-compiler-embeddable-2.4.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.4.21/3cd9c37c505fb9879e03ebeaf91d9c9500ab6eca/kotlin-compiler-embeddable-2.4.21.jar",
+    "sha256": "ef19419c765e7ac8404465fa026ca8fc4dbb8a822de0fc79aa53c8dce29f1d02"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.skiko/skiko-awt-runtime-macos-arm64/0.150.1/22e0f09cd9c161686d6fba382e82fd9dd18ed919/skiko-awt-runtime-macos-arm64-0.150.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.skiko/skiko-awt-runtime-macos-arm64/0.150.1/22e0f09cd9c161686d6fba382e82fd9dd18ed919/skiko-awt-runtime-macos-arm64-0.150.1.jar",
+    "sha256": "bd186dd6bf8736eb69be190107e1b3ab7bd2452ae917faaa516ef513217a5f33"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-svg-jvm/3.6.3/1540b3709f807028cdae231e3433f557b1b4e925/coil-svg-jvm-3.6.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-svg-jvm/3.6.3/1540b3709f807028cdae231e3433f557b1b4e925/coil-svg-jvm-3.6.3.jar",
+    "sha256": "6826cef54fc14486d47176d8b9f8633539c738c3eb8ff2e5584ca54144f32055"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-network-ktor3-jvm/3.6.3/410b9fa2277f9cad616ec9af8976d123690e5440/coil-network-ktor3-jvm-3.6.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-network-ktor3-jvm/3.6.3/410b9fa2277f9cad616ec9af8976d123690e5440/coil-network-ktor3-jvm-3.6.3.jar",
+    "sha256": "8ae7298a0aca21ad4872bc13a802c6b954dfd5d8e00b535e3b62a5a5f11bd031"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-jvm/3.6.3/ea66ca5921be7ce8029ed104e0fa91a10f5be705/coil-jvm-3.6.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-jvm/3.6.3/ea66ca5921be7ce8029ed104e0fa91a10f5be705/coil-jvm-3.6.3.jar",
+    "sha256": "a9dbefb674b8a53eb18c7496d76f95485b19270d67e8d0a1ba6a66aea101d130"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-network-core-jvm/3.6.3/4b132b893f681f9029dee4579e6fe7dda9ef132/coil-network-core-jvm-3.6.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-network-core-jvm/3.6.3/4b132b893f681f9029dee4579e6fe7dda9ef132/coil-network-core-jvm-3.6.3.jar",
+    "sha256": "34219972e871cf33d43bb6ad731e307cc3e80e8847b046d024b7d730453b6c18"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-core-jvm/3.6.3/1be096d9c4e73144282b72daea92fd9553fc1214/coil-core-jvm-3.6.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.coil-kt.coil3/coil-core-jvm/3.6.3/1be096d9c4e73144282b72daea92fd9553fc1214/coil-core-jvm-3.6.3.jar",
+    "sha256": "cd331249f4cb50a15df956d1ce3970eb46afa593e8e18be0f7521a40120aae9b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.skiko/skiko-awt/0.150.1/e03fd8140c0e331c3c7018b00a9710ec98d78fc1/skiko-awt-0.150.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.skiko/skiko-awt/0.150.1/e03fd8140c0e331c3c7018b00a9710ec98d78fc1/skiko-awt-0.150.1.jar",
+    "sha256": "bb610ada28509ebee3a623c0469aff3665689fbec73d118055f3dbf5a37211f5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.10.2/4a9f78ef49483748e2c129f3d124b8fa249dafbf/kotlinx-coroutines-core-jvm-1.10.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.10.2/4a9f78ef49483748e2c129f3d124b8fa249dafbf/kotlinx-coroutines-core-jvm-1.10.2.jar",
+    "sha256": "5ca175b38df331fd64155b35cd8cae1251fa9ee369709b36d42e0a288ccce3fd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-test-jvm/1.10.2/deb87732ba15dc455f08af4b120fca0d96d6cb5f/kotlinx-coroutines-test-jvm-1.10.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-test-jvm/1.10.2/deb87732ba15dc455f08af4b120fca0d96d6cb5f/kotlinx-coroutines-test-jvm-1.10.2.jar",
+    "sha256": "590a549f8c1db590c9d98a8a20424a1f581a34162a369e6a6bd884ce7d36d3d7"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-reactive/1.10.2/c6c237106b2877792433204732b7e89adb26c5d0/kotlinx-coroutines-reactive-1.10.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-reactive/1.10.2/c6c237106b2877792433204732b7e89adb26c5d0/kotlinx-coroutines-reactive-1.10.2.jar",
+    "sha256": "12a7bd4fb4e6a1a5a55f9a32ce4beffda543036cf14fd10a077285381a9dfafe"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-swing/1.10.2/ccb5a2e7c83fa76da0ba4677f05678d3bd3eed57/kotlinx-coroutines-swing-1.10.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-swing/1.10.2/ccb5a2e7c83fa76da0ba4677f05678d3bd3eed57/kotlinx-coroutines-swing-1.10.2.jar",
+    "sha256": "02bdb85f20ec08004429abf6887e8d0e40f3ab637d7462f817f0f8abbe7d1eb5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-logging-jvm/3.1.0/436d63f9ecdf263e1f37cbd05b387d588b81c2bd/ktor-client-logging-jvm-3.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-logging-jvm/3.1.0/436d63f9ecdf263e1f37cbd05b387d588b81c2bd/ktor-client-logging-jvm-3.1.0.jar",
+    "sha256": "3146043eac2fedb0359e44a7ad00f27ce5098b32da99fc411b03a6aced3592d1"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-mock-jvm/3.1.0/839b4da97b4926c36dd770d7754c92a22adedcf2/ktor-client-mock-jvm-3.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-mock-jvm/3.1.0/839b4da97b4926c36dd770d7754c92a22adedcf2/ktor-client-mock-jvm-3.1.0.jar",
+    "sha256": "8681ec8a606945e3e5c5815b366be07adb0b2936a23297d4b680cb035ac2ecd8"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-content-negotiation-jvm/3.1.0/d955a0bd7795ad5333a71259f994d2f9841216bd/ktor-client-content-negotiation-jvm-3.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-content-negotiation-jvm/3.1.0/d955a0bd7795ad5333a71259f994d2f9841216bd/ktor-client-content-negotiation-jvm-3.1.0.jar",
+    "sha256": "5526fe0b47c84909b1e6049bb5c277b674a2a79770379cbee63dce1a7bc1b26f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.modelcontextprotocol/kotlin-sdk-client-jvm/0.7.2/d594a43fecd9af836264844cb599d9e2ac165f7f/kotlin-sdk-client-jvm-0.7.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.modelcontextprotocol/kotlin-sdk-client-jvm/0.7.2/d594a43fecd9af836264844cb599d9e2ac165f7f/kotlin-sdk-client-jvm-0.7.2.jar",
+    "sha256": "a1a2fe383557055982de9a5a6404f26c3476deb2afa3402bdc2c30603110bea7"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-okhttp-jvm/3.1.0/3480a6d9941003a991734458c7c27d82cc9cf00a/ktor-client-okhttp-jvm-3.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-okhttp-jvm/3.1.0/3480a6d9941003a991734458c7c27d82cc9cf00a/ktor-client-okhttp-jvm-3.1.0.jar",
+    "sha256": "582c98d96ae2b93d25bbdfdb8ba138d5cae71dac8f67b5362be4e4e376a06000"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-core-jvm/3.3.0/29608f1fee6d4eee03a91c04f43c2043def362f5/ktor-client-core-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-client-core-jvm/3.3.0/29608f1fee6d4eee03a91c04f43c2043def362f5/ktor-client-core-jvm-3.3.0.jar",
+    "sha256": "37609338606f0df7092974aeeee264dc3ecf4ab7cef3618bcae82ce9982ca68b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-slf4j/1.10.2/1271f9d4a929150bb87ab8d1dc1e86d4bcf039f3/kotlinx-coroutines-slf4j-1.10.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-slf4j/1.10.2/1271f9d4a929150bb87ab8d1dc1e86d4bcf039f3/kotlinx-coroutines-slf4j-1.10.2.jar",
+    "sha256": "d65dee3cafa6f7bfaefedb493fc68b5c63abe750734fb8af92fac7a0d3101457"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-jdk8/1.10.2/809f71bf722bad7e78ebe8ec710c0327c23b7a31/kotlinx-coroutines-jdk8-1.10.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-jdk8/1.10.2/809f71bf722bad7e78ebe8ec710c0327c23b7a31/kotlinx-coroutines-jdk8-1.10.2.jar",
+    "sha256": "f861f9fa3b3088e6f7c59bc92a91adacf687b5bdeb081cf3608c5454f7739625"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/dependeasy/model/build/libs/model-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/108-model-2026.1.6-SNAPSHOT.jar",
+    "sha256": "d862a6b58a5bf4a3d2b0a4377b7d6ddf39b1a3c12734d7d99012dc0e70fb9b60"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-idb/build/libs/reaktor-idb-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/109-reaktor-idb-2026.1.6-SNAPSHOT.jar",
+    "sha256": "9ad0f515ef539ebff3cc93bb8c15700b60379316480fc48a0dcb7d41c45fae90"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.android.tools.adblib/adblib/9.4.0/dae8eea8c0e349a7b226ccddf29d69d58381a260/adblib-9.4.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.android.tools.adblib/adblib/9.4.0/dae8eea8c0e349a7b226ccddf29d69d58381a260/adblib-9.4.0.jar",
+    "sha256": "ee4362dba99b5c64f72cc69073f66913e17318289204e861971a0b901a9a1ef9"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-surface/build/libs/reaktor-surface-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/111-reaktor-surface-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "15f89498f1228dfae16bece0f7397211be01b69f4bec8dc1ca0802aaaa42a615"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.apollographql.apollo/apollo-runtime-jvm/4.4.3/f18559b89deebbac7599ac067fbe7f3c516f6fa2/apollo-runtime-jvm-4.4.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.apollographql.apollo/apollo-runtime-jvm/4.4.3/f18559b89deebbac7599ac067fbe7f3c516f6fa2/apollo-runtime-jvm-4.4.3.jar",
+    "sha256": "9469fdc1bd7a7c0f777cca586eb0951560420cc9e32586916b1db2fe4fda250e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-serialization-kotlinx-json-jvm/3.1.0/25640c4a27d0fc441eb00e82445897c17676936f/ktor-serialization-kotlinx-json-jvm-3.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-serialization-kotlinx-json-jvm/3.1.0/25640c4a27d0fc441eb00e82445897c17676936f/ktor-serialization-kotlinx-json-jvm-3.1.0.jar",
+    "sha256": "db811bb39e217bc1dcca10be9d0574d657debc61524e91b3bc86d6e5a67081b9"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/implementation-jvm/0.1.0/d85c91dbb7049544d4204c93561db3bd7870e7d7/implementation-jvm-0.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/implementation-jvm/0.1.0/d85c91dbb7049544d4204c93561db3bd7870e7d7/implementation-jvm-0.1.0.jar",
+    "sha256": "aa07a5dd65ae46d0595005e9cbdb65ff7b0eb80c4364b1d4004b12623f8bec20"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/reaktor-crypto/build/libs/reaktor-crypto-jvm-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/115-reaktor-crypto-jvm-2026.1.6-SNAPSHOT.jar",
+    "sha256": "6029ca6e12a622b84ecad1b8ffcc1b0430acdf0fbd89580c6b27a8f5e2d9307b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-fx-coroutines-jvm/2.2.0/d7b7e1ae2dff332287ffcd0d6493a3593ff87b1/arrow-fx-coroutines-jvm-2.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-fx-coroutines-jvm/2.2.0/d7b7e1ae2dff332287ffcd0d6493a3593ff87b1/arrow-fx-coroutines-jvm-2.2.0.jar",
+    "sha256": "2aad1477f275430886fe11bf2d4079d1aac7b3fefa37ec865faf3ea9f4eb6444"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-resilience-jvm/2.2.0/bc575604805c842eba0b06932d74b45577036c78/arrow-resilience-jvm-2.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-resilience-jvm/2.2.0/bc575604805c842eba0b06932d74b45577036c78/arrow-resilience-jvm-2.2.0.jar",
+    "sha256": "28f87942ef3e3352420be6f0059fda170b037a4820d89729b29d49b63a887387"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-serialization-kotlinx-jvm/3.1.0/2eb024ac4637ef21363a35b89f932bfa80cc4575/ktor-serialization-kotlinx-jvm-3.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-serialization-kotlinx-jvm/3.1.0/2eb024ac4637ef21363a35b89f932bfa80cc4575/ktor-serialization-kotlinx-jvm-3.1.0.jar",
+    "sha256": "e97f82fb74da338e478e2e0ed35deb3969242f583b86e08e6ed4ccaf86d90cc7"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/exporters-core-jvm/0.1.0/1698818c92fee6515b4ffece99536eb22da1ad7d/exporters-core-jvm-0.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/exporters-core-jvm/0.1.0/1698818c92fee6515b4ffece99536eb22da1ad7d/exporters-core-jvm-0.1.0.jar",
+    "sha256": "034ae34dfe8df1f306b8ef7d20f7f740b94cdbbc13749477c600f473b134b4d8"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.modelcontextprotocol/kotlin-sdk-server-jvm/0.7.2/6289cb6f48f20327ea9610dd034aff5662552f76/kotlin-sdk-server-jvm-0.7.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.modelcontextprotocol/kotlin-sdk-server-jvm/0.7.2/6289cb6f48f20327ea9610dd034aff5662552f76/kotlin-sdk-server-jvm-0.7.2.jar",
+    "sha256": "08d58b5d9a5113c9dc77c18a0b82b780be65386d57f8eda8fd59f00f270c9a36"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.modelcontextprotocol/kotlin-sdk-core-jvm/0.7.2/154c350d789b092d43d519b9aab2085651bef402/kotlin-sdk-core-jvm-0.7.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.modelcontextprotocol/kotlin-sdk-core-jvm/0.7.2/154c350d789b092d43d519b9aab2085651bef402/kotlin-sdk-core-jvm-0.7.2.jar",
+    "sha256": "605c9be60fe56bac1c3fb345c84b35917552dd148a3d0c15afbc7f9b5f2dc9ce"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-server-sse-jvm/3.3.0/172a262a79f8d2d7b779e55fc2ee52810366afda/ktor-server-sse-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-server-sse-jvm/3.3.0/172a262a79f8d2d7b779e55fc2ee52810366afda/ktor-server-sse-jvm-3.3.0.jar",
+    "sha256": "e2414eb88a09180fcb26c52f8eecdd2ff0ca4542a54b8d6559fdf890d5b52816"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-server-websockets-jvm/3.3.0/f7e2dbee153b0de8e72962a19893e6804cb24176/ktor-server-websockets-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-server-websockets-jvm/3.3.0/f7e2dbee153b0de8e72962a19893e6804cb24176/ktor-server-websockets-jvm-3.3.0.jar",
+    "sha256": "7bf930dc7938307303deba3458adbb05f09c15c0f6deb55c8d658b8804c2d09a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-server-core-jvm/3.3.0/a75887ca2a0b32ddec0351f889517f74fee2143d/ktor-server-core-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-server-core-jvm/3.3.0/a75887ca2a0b32ddec0351f889517f74fee2143d/ktor-server-core-jvm-3.3.0.jar",
+    "sha256": "5f813aa42934ac88c7f03ae1a189082181395aa8baa5e88f9f87a8ec1e080acc"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-http-cio-jvm/3.3.0/5107799ea75211704419342661cb4552e3fa74f7/ktor-http-cio-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-http-cio-jvm/3.3.0/5107799ea75211704419342661cb4552e3fa74f7/ktor-http-cio-jvm-3.3.0.jar",
+    "sha256": "f86eb9a2784b5e6a23dfa93b696ffb06efec982c50b5e02fccf911964d5c75e5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-websocket-serialization-jvm/3.3.0/6b82e2bb17bc763dff14d07d8a0c275c27ad4bcf/ktor-websocket-serialization-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-websocket-serialization-jvm/3.3.0/6b82e2bb17bc763dff14d07d8a0c275c27ad4bcf/ktor-websocket-serialization-jvm-3.3.0.jar",
+    "sha256": "8f447448206a50d9d519da4f3b6802e3db75b893df68897e2570f6f35572db29"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-serialization-jvm/3.3.0/e56aab7a830a5e1b890aa8dd0a0f7b603552880/ktor-serialization-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-serialization-jvm/3.3.0/e56aab7a830a5e1b890aa8dd0a0f7b603552880/ktor-serialization-jvm-3.3.0.jar",
+    "sha256": "a2028dcb11db1b2b8d3bc90fff7f8e63ff2580c590ad809532373112dc2107c5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-websockets-jvm/3.3.0/10743663e919fe33527367d3e43b940ae434aef1/ktor-websockets-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-websockets-jvm/3.3.0/10743663e919fe33527367d3e43b940ae434aef1/ktor-websockets-jvm-3.3.0.jar",
+    "sha256": "9a5734f07ec390da6f3d421594c6656c97b44ad523765ba3ef74580c8537833b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-http-jvm/3.3.0/8a42afc0f195c1be521ad91aa41055021fa3b94b/ktor-http-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-http-jvm/3.3.0/8a42afc0f195c1be521ad91aa41055021fa3b94b/ktor-http-jvm-3.3.0.jar",
+    "sha256": "5c701a41ff1bc5b3bc802ba5855b2eb5db496492f8c7b32d6ee24edde44ac750"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-events-jvm/3.3.0/c8a50b2be72062ba419638034f9159ce8122cad/ktor-events-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-events-jvm/3.3.0/c8a50b2be72062ba419638034f9159ce8122cad/ktor-events-jvm-3.3.0.jar",
+    "sha256": "7b8771e2e9016bb219d1f60b439d87e8d086837589c8ac75aac14874415bc5dd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-sse-jvm/3.3.0/6f8a76ce7ffb1384108f216138db28a3b19c6144/ktor-sse-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-sse-jvm/3.3.0/6f8a76ce7ffb1384108f216138db28a3b19c6144/ktor-sse-jvm-3.3.0.jar",
+    "sha256": "20992d37762c4fa2092d9bb453abea54c8f4d9f3c0839e3f5e54da7a4c54333f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-network-jvm/3.3.0/eeddf5465e4e0d4265a73b35da4d71bbe3a1d73e/ktor-network-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-network-jvm/3.3.0/eeddf5465e4e0d4265a73b35da4d71bbe3a1d73e/ktor-network-jvm-3.3.0.jar",
+    "sha256": "b50f0db7dff7204575546a38c4136729672787422ccaae175e320eba1c45b78e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-utils-jvm/3.3.0/2e8d26ef0c392e07b63460009776df0e7fea653e/ktor-utils-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-utils-jvm/3.3.0/2e8d26ef0c392e07b63460009776df0e7fea653e/ktor-utils-jvm-3.3.0.jar",
+    "sha256": "d69ef73e7bf5a60007f72de96aa34e247f16083a18b84c699436c2f043ac6423"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-io-jvm/3.3.0/46a30b23c1138234d63d4e7e6531dc1dd0055228/ktor-io-jvm-3.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.ktor/ktor-io-jvm/3.3.0/46a30b23c1138234d63d4e7e6531dc1dd0055228/ktor-io-jvm-3.3.0.jar",
+    "sha256": "b39900cda9a393a11025ef513b1c63d94ac6ac16526b1ce805383ca57f4e6559"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.appstractive/jwt-kt-jvm/1.2.1/750aee42efe3bdf7eec33768de3763726a9ef573/jwt-kt-jvm-1.2.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.appstractive/jwt-kt-jvm/1.2.1/750aee42efe3bdf7eec33768de3763726a9ef573/jwt-kt-jvm-1.2.1.jar",
+    "sha256": "e7e3271ccf57079f68b383b2fd01bf987b54c252705944789c049feb6f1308c8"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-core-jvm/1.9.0/91448df39c558f7c6147b8bd8db01debe16e0cc1/kotlinx-serialization-core-jvm-1.9.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-core-jvm/1.9.0/91448df39c558f7c6147b8bd8db01debe16e0cc1/kotlinx-serialization-core-jvm-1.9.0.jar",
+    "sha256": "1f0afa172110e45a7231ef1b44ae8fd84c1ebaff96f3fc3ad68ef8c48120b59c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-protobuf-jvm/1.9.0/a5283767be771d6a8263f021e0837b95961a9ac8/kotlinx-serialization-protobuf-jvm-1.9.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-protobuf-jvm/1.9.0/a5283767be771d6a8263f021e0837b95961a9ac8/kotlinx-serialization-protobuf-jvm-1.9.0.jar",
+    "sha256": "555035205ad1a21254b49fd6b5ddbe6ad1abb5c7baba244258bd758f80687bca"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-json-io-jvm/1.9.0/3a371942a591532d0d9245ca6787ee677853bebd/kotlinx-serialization-json-io-jvm-1.9.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-json-io-jvm/1.9.0/3a371942a591532d0d9245ca6787ee677853bebd/kotlinx-serialization-json-io-jvm-1.9.0.jar",
+    "sha256": "98abb132b03e11b80318d45350ec9ebbb5453d26505e81331bf2eea7143b6fbe"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-json-jvm/1.9.0/aea6f7d49fe5c458f8963ee6d4bdaf4a459ab3e7/kotlinx-serialization-json-jvm-1.9.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-json-jvm/1.9.0/aea6f7d49fe5c458f8963ee6d4bdaf4a459ab3e7/kotlinx-serialization-json-jvm-1.9.0.jar",
+    "sha256": "d94cc34cae39246a1af74fda63f9c4812ce12216ef641d5fa3bbbb539a6922d8"
+  },
+  {
+    "original": "/Users/ovd/dev/reaktor/dependeasy/options/build/libs/options-2026.1.6-SNAPSHOT.jar",
+    "snapshot": "/Users/ovd/dev/tmp/dependeasy-navigation-runtime/140-options-2026.1.6-SNAPSHOT.jar",
+    "sha256": "df4b21bfcc5e41874e41fde99464ede0f0d7fd0d29ce36e936a503ce0c5a4194"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-core-jvm/0.5.0/d0fc25786ede38c33893236eacc3d6ab11d2ad10/cryptography-core-jvm-0.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-core-jvm/0.5.0/d0fc25786ede38c33893236eacc3d6ab11d2ad10/cryptography-core-jvm-0.5.0.jar",
+    "sha256": "88b94b978995d435e6b71607bf17bf90a561dc99953231ac6aea5a77807c41be"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-bigint-jvm/0.5.0/97ac3202bf7f3792b3c8bc788a7bbb1b33ca2485/cryptography-bigint-jvm-0.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-bigint-jvm/0.5.0/97ac3202bf7f3792b3c8bc788a7bbb1b33ca2485/cryptography-bigint-jvm-0.5.0.jar",
+    "sha256": "9de95a611871ce55bf334032ce6a28e2a01e1d371e5d7e36c9b43861dea3a3b5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-random-jvm/0.5.0/8e77668891b60f6058f1262e032d8b06d137bdde/cryptography-random-jvm-0.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-random-jvm/0.5.0/8e77668891b60f6058f1262e032d8b06d137bdde/cryptography-random-jvm-0.5.0.jar",
+    "sha256": "9f704bf6732f7d5c845d046adb5d36af0181f37810fe71e6bb08c87010146435"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-serialization-pem-jvm/0.5.0/7b5cb41c77698e6fb3fab21e67bf7b9e988e11a2/cryptography-serialization-pem-jvm-0.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-serialization-pem-jvm/0.5.0/7b5cb41c77698e6fb3fab21e67bf7b9e988e11a2/cryptography-serialization-pem-jvm-0.5.0.jar",
+    "sha256": "3f2110eda5055afa643cb177be69555966b472de4f8827e13f5b2da266ca27de"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-serialization-asn1-modules-jvm/0.5.0/9308027088c76026a5b96f5b5b400859310ca1af/cryptography-serialization-asn1-modules-jvm-0.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-serialization-asn1-modules-jvm/0.5.0/9308027088c76026a5b96f5b5b400859310ca1af/cryptography-serialization-asn1-modules-jvm-0.5.0.jar",
+    "sha256": "e348fe568a088c4a5d75fbeca9ff40b26245143ad27ad666a18fd9aec94a4347"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-provider-optimal-jvm/0.5.0/f0ff9daaf78932f6348ee90d014ca4c78337971b/cryptography-provider-optimal-jvm-0.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-provider-optimal-jvm/0.5.0/f0ff9daaf78932f6348ee90d014ca4c78337971b/cryptography-provider-optimal-jvm-0.5.0.jar",
+    "sha256": "8b3fa43502edf7f47fefd76339134fd20f2407377d9341c44c903e8adff765a4"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-provider-jdk-jvm/0.5.0/3a2721ac930c182a0e424f2d558cfa9d52cc1b3/cryptography-provider-jdk-jvm-0.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-provider-jdk-jvm/0.5.0/3a2721ac930c182a0e424f2d558cfa9d52cc1b3/cryptography-provider-jdk-jvm-0.5.0.jar",
+    "sha256": "30138fa9d12cb85d6f07f60159c71a7d15e80aace2179f382b0d81b506772d12"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-provider-base-jvm/0.5.0/e03b79926494512ac452ca00cfa5e27135262d32/cryptography-provider-base-jvm-0.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-provider-base-jvm/0.5.0/e03b79926494512ac452ca00cfa5e27135262d32/cryptography-provider-base-jvm-0.5.0.jar",
+    "sha256": "2927668f4affb2060d5ec7d2139496470eaa639dd9172b135c8aa38755fb3049"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-serialization-asn1-jvm/0.5.0/242a38b98c1dd201f499485925f22c972858c153/cryptography-serialization-asn1-jvm-0.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/dev.whyoleg.cryptography/cryptography-serialization-asn1-jvm/0.5.0/242a38b98c1dd201f499485925f22c972858c153/cryptography-serialization-asn1-jvm-0.5.0.jar",
+    "sha256": "3a668b68471dc7e59136fb9a3d2a2c6dd4657596b3380fd4266797a328a04374"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-test-junit/2.4.21/76e5b699278e0131bbb3c20a422a117c375d3eba/kotlin-test-junit-2.4.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-test-junit/2.4.21/76e5b699278e0131bbb3c20a422a117c375d3eba/kotlin-test-junit-2.4.21.jar",
+    "sha256": "ed178dcb76ea94acc8e9317178213a65092f4ecd0133ba748b23c40a11865ebd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-test/2.4.21/a7c19fa95e7d3433cef81f4d2c9d46af9e355e1d/kotlin-test-2.4.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-test/2.4.21/a7c19fa95e7d3433cef81f4d2c9d46af9e355e1d/kotlin-test-2.4.21.jar",
+    "sha256": "4b43f419bf41a9ede07094652db97b5034984a8cdc642f3c5b2bfd4767f6e365"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/app.cash.sqldelight/sqlite-driver/2.1.0/807322616732301cd109c7e13e0cabe671b93587/sqlite-driver-2.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/app.cash.sqldelight/sqlite-driver/2.1.0/807322616732301cd109c7e13e0cabe671b93587/sqlite-driver-2.1.0.jar",
+    "sha256": "c24a7dd0048ab3ce4369b3353fceaf5d50222a79284f5594d9951ae0f3058d72"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/2.4.21/123e9b5b31f85b43025149fb1a34bb569288157/kotlin-reflect-2.4.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/2.4.21/123e9b5b31f85b43025149fb1a34bb569288157/kotlin-reflect-2.4.21.jar",
+    "sha256": "7c9e8bda3cafa85b65692065acd22578b2843292b4e4baa8361bdc9175746e88"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/app.cash.sqldelight/jdbc-driver/2.1.0/b99868158e00c9140b907624b3c43987059b299f/jdbc-driver-2.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/app.cash.sqldelight/jdbc-driver/2.1.0/b99868158e00c9140b907624b3c43987059b299f/jdbc-driver-2.1.0.jar",
+    "sha256": "a8bb05f2af956bc4100e3c2e1fbe948a6378bb7d4e21110d15159bf64aaac1d1"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/app.cash.sqldelight/runtime-jvm/2.1.0/c2041f176390624670c7a53b9b78034c4405d775/runtime-jvm-2.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/app.cash.sqldelight/runtime-jvm/2.1.0/c2041f176390624670c7a53b9b78034c4405d775/runtime-jvm-2.1.0.jar",
+    "sha256": "948a99350cbad763577469dbc7bf53fc58d8a2576b75f480f2830da49b0098ae"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.insert-koin/koin-core-jvm/4.1.0/fa2551d34ac9aa9e698490c0fa73585afdf75353/koin-core-jvm-4.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.insert-koin/koin-core-jvm/4.1.0/fa2551d34ac9aa9e698490c0fa73585afdf75353/koin-core-jvm-4.1.0.jar",
+    "sha256": "8c06115832515e40049b5d6b9781b6b4ee5c210f227cec6426630627410aa845"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.insert-koin/koin-annotations-jvm/2.0.0/80c43d0871402b9ae8a2f44c1809640d713c6b0c/koin-annotations-jvm-2.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.insert-koin/koin-annotations-jvm/2.0.0/80c43d0871402b9ae8a2f44c1809640d713c6b0c/koin-annotations-jvm-2.0.0.jar",
+    "sha256": "d3f9061eac934f97faed58c02c36402bb8f9074e52ada0e75164c86ae98c2882"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/noop-jvm/0.1.0/438f1c5d06e6f76dd739ae3ff9ef6678427e4338/noop-jvm-0.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/noop-jvm/0.1.0/438f1c5d06e6f76dd739ae3ff9ef6678427e4338/noop-jvm-0.1.0.jar",
+    "sha256": "2970a2fffb2727b889f6f5487811add508a8747582cfd2ed78fc6b441dd80077"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/model-jvm/0.1.0/e0ab01ed7589c679a3b7e8c388c04f7718d0522a/model-jvm-0.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/model-jvm/0.1.0/e0ab01ed7589c679a3b7e8c388c04f7718d0522a/model-jvm-0.1.0.jar",
+    "sha256": "30bae43cc05acddab0bf0731e86198ee0beefcd65383a765c4270f9a154d06f8"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/api-ext-jvm/0.1.0/36ef2a2f8c41c273e8be3f53f25e90acc805165a/api-ext-jvm-0.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/api-ext-jvm/0.1.0/36ef2a2f8c41c273e8be3f53f25e90acc805165a/api-ext-jvm-0.1.0.jar",
+    "sha256": "ad72b643ca8cff040c08e2dbed9ca8a3296c0f752db0b6a6074ad746d8471c65"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/platform-implementations-jvm/0.1.0/aa52838f512a35c322fc70fa37a53038cba969a2/platform-implementations-jvm-0.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/platform-implementations-jvm/0.1.0/aa52838f512a35c322fc70fa37a53038cba969a2/platform-implementations-jvm-0.1.0.jar",
+    "sha256": "5f1bb66ff23313e3e8cf0ed75b498310938c0bea676a80edd364bd3868e916cb"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/sdk-api-jvm/0.1.0/326a6b7bcdb7b5530c20fcfabb88e05353f21317/sdk-api-jvm-0.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/sdk-api-jvm/0.1.0/326a6b7bcdb7b5530c20fcfabb88e05353f21317/sdk-api-jvm-0.1.0.jar",
+    "sha256": "f8d52862a065ca518ef74a882ec38aa6b252a6947c3420ab3ec25bdff1a24bb7"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/api-jvm/0.1.0/370cee6c5d5c78bed070f415fdc13d245074e260/api-jvm-0.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry.kotlin/api-jvm/0.1.0/370cee6c5d5c78bed070f415fdc13d245074e260/api-jvm-0.1.0.jar",
+    "sha256": "10518f0f5b2f1a7d55bb53366b88dee08677f621dae1eb8d79609ad4af2a2bfb"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp3/okhttp-sse/4.12.0/eca9c68c54ae7fd18d465beba65d80a44e9667e4/okhttp-sse-4.12.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp3/okhttp-sse/4.12.0/eca9c68c54ae7fd18d465beba65d80a44e9667e4/okhttp-sse-4.12.0.jar",
+    "sha256": "bff4fbcaef7aac2d910d4ff46dafaa4e6d15da127df6bac97216da46943a7d4c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/2.2.10/80cc9a776a058eeda7053731350bc41af8858a5a/kotlin-stdlib-jdk8-2.2.10.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk8/2.2.10/80cc9a776a058eeda7053731350bc41af8858a5a/kotlin-stdlib-jdk8-2.2.10.jar",
+    "sha256": "8974bfdd08b1d81843fe8d11f0729ab6e5b3c1f88d671ebe0c006358129ce149"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-okhttp/1.84.0/9f1425e286d49e3dc76eba9dee507d27c2ddf553/grpc-okhttp-1.84.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-okhttp/1.84.0/9f1425e286d49e3dc76eba9dee507d27c2ddf553/grpc-okhttp-1.84.0.jar",
+    "sha256": "e7fba0986c7a6c9133b6b99fca064551229f747e08f5a8d17308c3d772eb97cd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.apollographql.apollo/apollo-api-jvm/4.4.3/1296adef6932ebac5d634b9da2b591f8fce0032a/apollo-api-jvm-4.4.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.apollographql.apollo/apollo-api-jvm/4.4.3/1296adef6932ebac5d634b9da2b591f8fce0032a/apollo-api-jvm-4.4.3.jar",
+    "sha256": "6ec564e0be4a175386175ffd403b34631318be8a5079500e3cc86675103527cd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.kubernetes/client-java/27.0.0/10fc0459315298167d91f9b025e8236c70907a06/client-java-27.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.kubernetes/client-java/27.0.0/10fc0459315298167d91f9b025e8236c70907a06/client-java-27.0.0.jar",
+    "sha256": "91f95c6504446b41f114d547d134412048630995c9fafd28f6a6d8a4eb6ff68b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.kubernetes/client-java-api/27.0.0/1cce7e2b0d35e1f7536bfc42d480d3a8cb919370/client-java-api-27.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.kubernetes/client-java-api/27.0.0/1cce7e2b0d35e1f7536bfc42d480d3a8cb919370/client-java-api-27.0.0.jar",
+    "sha256": "1cc6b6c28784536c528e91022924bbd04fe161b589cb5c8a8175d17e7e3352a1"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp3/logging-interceptor/5.4.0/fe14f73ca5363de4bc44a9056445d2004379139b/logging-interceptor-5.4.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp3/logging-interceptor/5.4.0/fe14f73ca5363de4bc44a9056445d2004379139b/logging-interceptor-5.4.0.jar",
+    "sha256": "44abfdb49fb13ac012ae4a36bfb734eba9ad5479cb09361b84f053b6b809ee47"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp3/okhttp-jvm/5.4.0/e1fae6fccaae70e60b31153c6a7680306a86ed31/okhttp-jvm-5.4.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.squareup.okhttp3/okhttp-jvm/5.4.0/e1fae6fccaae70e60b31153c6a7680306a86ed31/okhttp-jvm-5.4.0.jar",
+    "sha256": "b15e605ca0a4b12c62ea7f657dad413c236c947e875854767349cdbe20df473c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.squareup.okio/okio-jvm/3.18.1/a3a8128bb3a0157d23ecc18c17e8330d9c0ac96c/okio-jvm-3.18.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.squareup.okio/okio-jvm/3.18.1/a3a8128bb3a0157d23ecc18c17e8330d9c0ac96c/okio-jvm-3.18.1.jar",
+    "sha256": "b97b640557a650d15411f2be29aef558c4e422a83653cb18ba494311dbed18be"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-core-jvm/2.2.0/6d14acc4898e2c070cdd79d171f89a362ea40cbc/arrow-core-jvm-2.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-core-jvm/2.2.0/6d14acc4898e2c070cdd79d171f89a362ea40cbc/arrow-core-jvm-2.2.0.jar",
+    "sha256": "5811d59dc29be04f2e97787183cafb1e935a7390e45726f95b37dab18f48d2ac"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/kermit-jvm/2.0.5/238fc9aa9136744e960444e965de2d02ce9fb6ab/kermit-jvm-2.0.5.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/kermit-jvm/2.0.5/238fc9aa9136744e960444e965de2d02ce9fb6ab/kermit-jvm-2.0.5.jar",
+    "sha256": "8c595b6ba0567b1ce5a6e199dbf1ee004c8fad658e28fac6c62dcad3f7446f18"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-datetime-jvm/0.7.1/81c2e0246bd28cc2dcbdf0ab53628322e66a9de9/kotlinx-datetime-jvm-0.7.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-datetime-jvm/0.7.1/81c2e0246bd28cc2dcbdf0ab53628322e66a9de9/kotlinx-datetime-jvm-0.7.1.jar",
+    "sha256": "3b8b98657c9aff3be7f6b4b575e9f3fb9a3a1f452a801da0f438901734acdade"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/atomicfu-jvm/0.28.0/6a9ac536f4b2144e57c176fd4e26821eb12084f4/atomicfu-jvm-0.28.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/atomicfu-jvm/0.28.0/6a9ac536f4b2144e57c176fd4e26821eb12084f4/atomicfu-jvm-0.28.0.jar",
+    "sha256": "39576ec46b83412ff7a2909d24cccbba90400e91f9aa67b250309bc0872ecf52"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-collections-immutable-jvm/0.4.0/82499bf608b0fc3ae6737a5eac1a1f1325279bbf/kotlinx-collections-immutable-jvm-0.4.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-collections-immutable-jvm/0.4.0/82499bf608b0fc3ae6737a5eac1a1f1325279bbf/kotlinx-collections-immutable-jvm-0.4.0.jar",
+    "sha256": "d767014ad0c9a27d27d26fd38e7afa030aee0d141338f108781ff02ecf2fdab5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.collection/collection-jvm/1.5.0/7ba2c69414d46ebc2dd76598bdd0a75c54281a57/collection-jvm-1.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.collection/collection-jvm/1.5.0/7ba2c69414d46ebc2dd76598bdd0a75c54281a57/collection-jvm-1.5.0.jar",
+    "sha256": "70b35924e4babcdffa37d0e575ee039c56a2d97123342624c48b603233704341"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.benasher44/uuid-jvm/0.8.2/f9a2eba1cc4cb9efa3b86407c9bb9b1b7d8522a6/uuid-jvm-0.8.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.benasher44/uuid-jvm/0.8.2/f9a2eba1cc4cb9efa3b86407c9bb9b1b7d8522a6/uuid-jvm-0.8.2.jar",
+    "sha256": "4520ffe0fcccdf8e72c8ce67d9ea6546e38946bbe11cc2963f1864be2eb2c5e3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/stately-concurrent-collections-jvm/2.1.0/5c03b644537d7926a8f77e5735a8bebb55dafdcd/stately-concurrent-collections-jvm-2.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/stately-concurrent-collections-jvm/2.1.0/5c03b644537d7926a8f77e5735a8bebb55dafdcd/stately-concurrent-collections-jvm-2.1.0.jar",
+    "sha256": "0e0d9e7f20eaee18f7862309064c8db58ce6a3a861d8871f561546af63df1893"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/stately-concurrency-jvm/2.1.0/6285428408c4d7e4a6d9a09511de877103effd81/stately-concurrency-jvm-2.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/stately-concurrency-jvm/2.1.0/6285428408c4d7e4a6d9a09511de877103effd81/stately-concurrency-jvm-2.1.0.jar",
+    "sha256": "86739675892fb1c17d6bd36d05347e89ff313957421bb01a45a743ce774e8e29"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.arch.core/core-common/2.2.0/5e1b8b81dfd5f52c56a8d53b18ca759c19a301f3/core-common-2.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.arch.core/core-common/2.2.0/5e1b8b81dfd5f52c56a8d53b18ca759c19a301f3/core-common-2.2.0.jar",
+    "sha256": "65308a06b1c00ee186cb9e19321383f043b993813f1522c47f4a3e3303bdba41"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.annotation/annotation-jvm/1.9.1/b17951747e38bf3986a24431b9ba0d039958aa5f/annotation-jvm-1.9.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/androidx.annotation/annotation-jvm/1.9.1/b17951747e38bf3986a24431b9ba0d039958aa5f/annotation-jvm-1.9.1.jar",
+    "sha256": "1e343917ebf27ba96fe4dc52b1cad7fd32b738fbc6355bb6cd5b3b305d7212d0"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk7/2.2.10/18cc96ae090a71726822631e1808c7d329faab5d/kotlin-stdlib-jdk7-2.2.10.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-jdk7/2.2.10/18cc96ae090a71726822631e1808c7d329faab5d/kotlin-stdlib-jdk7-2.2.10.jar",
+    "sha256": "cf95eccc6cc784dff479dee0b8834f3584b93292cc5d91972e82f5d7b9e13e3b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.github.oshai/kotlin-logging-jvm/7.0.13/59500693668b6c70e9580c651298734054d20284/kotlin-logging-jvm-7.0.13.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.github.oshai/kotlin-logging-jvm/7.0.13/59500693668b6c70e9580c651298734054d20284/kotlin-logging-jvm-7.0.13.jar",
+    "sha256": "c373f7f4c9efc85c4f70f11519f2a1b7878bc0ed75a325364d034af3fa21f776"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-autoclose-jvm/2.2.0/fea9e8231f287752d3d3bc246a6674fdc64ce5a2/arrow-autoclose-jvm-2.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-autoclose-jvm/2.2.0/fea9e8231f287752d3d3bc246a6674fdc64ce5a2/arrow-autoclose-jvm-2.2.0.jar",
+    "sha256": "20a5223916966e41231c51b27c1646e11bc1ecf93d2a72a9acb9c0b55f8cbaac"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-atomic-jvm/2.2.0/fa38bf1bfd41d546a73560607617d95825e4ab26/arrow-atomic-jvm-2.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-atomic-jvm/2.2.0/fa38bf1bfd41d546a73560607617d95825e4ab26/arrow-atomic-jvm-2.2.0.jar",
+    "sha256": "fdb36c4e152a89676239b8cbd5a132aae8a72fca14b56d91c7e7ac6b47e97bf1"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-annotations-jvm/2.2.0/153a6d785a7dc1a5e77efc553aadeb90fcc6081/arrow-annotations-jvm-2.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.arrow-kt/arrow-annotations-jvm/2.2.0/153a6d785a7dc1a5e77efc553aadeb90fcc6081/arrow-annotations-jvm-2.2.0.jar",
+    "sha256": "8f58f6524062290979e8c8d70ddccab810d14c7d6c1bc2205aa4e48ffe9ddc4c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/kermit-core-jvm/2.0.5/baa6b1a01cee4909051d78a6391e2815f4b51c73/kermit-core-jvm-2.0.5.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/kermit-core-jvm/2.0.5/baa6b1a01cee4909051d78a6391e2815f4b51c73/kermit-core-jvm-2.0.5.jar",
+    "sha256": "64768e6d09600a6916b08cb3ca4c93c85d6e051deb3cca15c7121b3eaf34f40e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-io-core-jvm/0.8.0/358a9f2ba2dc81c5dc84c3d1853f6e5efba63be1/kotlinx-io-core-jvm-0.8.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-io-core-jvm/0.8.0/358a9f2ba2dc81c5dc84c3d1853f6e5efba63be1/kotlinx-io-core-jvm-0.8.0.jar",
+    "sha256": "610770cc855edf1c57d9fcd7c69fd040af57adaf8834505f91805de680783d13"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.apollographql.apollo/apollo-mpp-utils-jvm/4.4.3/1f3acb970c8c82a24fa1326d3915c1ea85a33e0c/apollo-mpp-utils-jvm-4.4.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.apollographql.apollo/apollo-mpp-utils-jvm/4.4.3/1f3acb970c8c82a24fa1326d3915c1ea85a33e0c/apollo-mpp-utils-jvm-4.4.3.jar",
+    "sha256": "d48cbd330a2a1469ef104eee06c14a100097ae9f6081e7f2f248b989af308275"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.apollographql.apollo/apollo-annotations-jvm/4.4.3/f8cf2efe543f6881ae2dc912d97d5a411c1da109/apollo-annotations-jvm-4.4.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.apollographql.apollo/apollo-annotations-jvm/4.4.3/f8cf2efe543f6881ae2dc912d97d5a411c1da109/apollo-annotations-jvm-4.4.3.jar",
+    "sha256": "4ae727309db715cd32cd3bf7a7d989d92ea68e5a22409c8808672ea239a26ee7"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/stately-strict-jvm/2.1.0/3ae8369209065455f4630793bf6aca0fb88c8b6b/stately-strict-jvm-2.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/co.touchlab/stately-strict-jvm/2.1.0/3ae8369209065455f4630793bf6aca0fb88c8b6b/stately-strict-jvm-2.1.0.jar",
+    "sha256": "581070db2802cbad81f6e6e2d9d2494835443153b314458d53aa43c68260c9fa"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-io-bytestring-jvm/0.8.0/89c5399596250e71f2bba6d2415972a078a525c7/kotlinx-io-bytestring-jvm-0.8.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-io-bytestring-jvm/0.8.0/89c5399596250e71f2bba6d2415972a078a525c7/kotlinx-io-bytestring-jvm-0.8.0.jar",
+    "sha256": "3da805e9da2ff3cb119f744dcd11de6a18e32a5b933518f17418ba5795cfa775"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.4.21/c343e135bd1e7dd94b7ed76b4159068d888d09db/kotlin-stdlib-2.4.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.4.21/c343e135bd1e7dd94b7ed76b4159068d888d09db/kotlin-stdlib-2.4.21.jar",
+    "sha256": "bd8250210584cb659847dce9cda660f8e9906e5def7fbebcea93dc6dcb6a88a3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-buildpack-platform/4.0.0/a1b6dcd2613dc215f8146f452508fd2d57fd4614/spring-boot-buildpack-platform-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-buildpack-platform/4.0.0/a1b6dcd2613dc215f8146f452508fd2d57fd4614/spring-boot-buildpack-platform-4.0.0.jar",
+    "sha256": "c80068f0944348d418648f05fdc808343fe70d18eb44644594fcdada1416091a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.tomlj/tomlj/1.1.1/3c48b7b4014599bf89fee2edc8a9a70812db9c4c/tomlj-1.1.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.tomlj/tomlj/1.1.1/3c48b7b4014599bf89fee2edc8a9a70812db9c4c/tomlj-1.1.1.jar",
+    "sha256": "383b7c66966c42ee4913ec977a7b6573631866bddc5318ec4a6215b688dd0d6c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-oauth2-resource-server/4.0.0/2a32e42437d94eb32fd2603dcd600ad7ae52016d/spring-boot-starter-oauth2-resource-server-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-oauth2-resource-server/4.0.0/2a32e42437d94eb32fd2603dcd600ad7ae52016d/spring-boot-starter-oauth2-resource-server-4.0.0.jar",
+    "sha256": "7edbcced256b18984212a92e1fba3ba8dfc8aa6cc8788fd93f3a68944e97a3e6"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-security/4.0.0/79db96e5a5fb84ace88d7d7a93883e01875e0471/spring-boot-starter-security-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-security/4.0.0/79db96e5a5fb84ace88d7d7a93883e01875e0471/spring-boot-starter-security-4.0.0.jar",
+    "sha256": "59468cd0446e52d3651bddac6e0dde6883c0677bb1822dd0f9f53bc96fd3b3dc"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.github.sebasbaumh/postgis-java-ng/23.2.0/a99d1877f377e7811a092498339cd6586ac8c1cf/postgis-java-ng-23.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.github.sebasbaumh/postgis-java-ng/23.2.0/a99d1877f377e7811a092498339cd6586ac8c1cf/postgis-java-ng-23.2.0.jar",
+    "sha256": "f7f6c8f60c2047619e7f31493f19983e3fc2587a1797fb9d43af3e3158105c81"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.postgresql/postgresql/42.7.13/a6e1bd21b412d6ffb3df23cd13d507bc2cc9e37d/postgresql-42.7.13.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.postgresql/postgresql/42.7.13/a6e1bd21b412d6ffb3df23cd13d507bc2cc9e37d/postgresql-42.7.13.jar",
+    "sha256": "6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna-platform/5.17.0/a4934c44d25a9d8c2ddf4203affd20330cb3426f/jna-platform-5.17.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna-platform/5.17.0/a4934c44d25a9d8c2ddf4203affd20330cb3426f/jna-platform-5.17.0.jar",
+    "sha256": "b7e3d46c87bad2eb409b0e704916bcd81206168e357312dfddd0e253679cd9e0"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna/5.18.1/b27ba04287cc4abe769642fe8318d39fc89bf937/jna-5.18.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.java.dev.jna/jna/5.18.1/b27ba04287cc4abe769642fe8318d39fc89bf937/jna-5.18.1.jar",
+    "sha256": "260c4b1e22b1db9e110ee441c4f13ce115f841fa48c41d78750986214b395557"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.driver/neo4j-java-driver/5.28.9/41d4d82e52ed61459a1a250e51093c8ecb0bd713/neo4j-java-driver-5.28.9.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.driver/neo4j-java-driver/5.28.9/41d4d82e52ed61459a1a250e51093c8ecb0bd713/neo4j-java-driver-5.28.9.jar",
+    "sha256": "1d1c11c2cf019705d7941c42a9a839102a3ea95c74387ad2cd1717ea1048f301"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.elk/org.eclipse.elk.alg.layered/0.12.0/f8f6b72f295d385476e04f6c6d927f135dae3087/org.eclipse.elk.alg.layered-0.12.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.elk/org.eclipse.elk.alg.layered/0.12.0/f8f6b72f295d385476e04f6c6d927f135dae3087/org.eclipse.elk.alg.layered-0.12.0.jar",
+    "sha256": "11774d76e4855f181335ba61c268e9b7434f2ddf5c6b87e82dd1dc51d6e6821d"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.xtext/org.eclipse.xtext.xbase.lib/2.44.0/3fbb0b5ade6675bf0e773f400030be7309472c21/org.eclipse.xtext.xbase.lib-2.44.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.xtext/org.eclipse.xtext.xbase.lib/2.44.0/3fbb0b5ade6675bf0e773f400030be7309472c21/org.eclipse.xtext.xbase.lib-2.44.0.jar",
+    "sha256": "c6c2b8593cd39c279e74e7055cbd146d39dc6f16011961b4928b92728d32d00d"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-webflux/4.0.0/5a21d04fa8fed3804bdb5f7f8483516bdd09c605/spring-boot-starter-webflux-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-webflux/4.0.0/5a21d04fa8fed3804bdb5f7f8483516bdd09c605/spring-boot-starter-webflux-4.0.0.jar",
+    "sha256": "ba53185b044e099456a6f1dbffca8528094ae4abf8d1f59b78f00c1630b015a6"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.projectreactor.kotlin/reactor-kotlin-extensions/1.2.3/dcfc1a3c65a6c0b71767377d3ee614cfbe821541/reactor-kotlin-extensions-1.2.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.projectreactor.kotlin/reactor-kotlin-extensions/1.2.3/dcfc1a3c65a6c0b71767377d3ee614cfbe821541/reactor-kotlin-extensions-1.2.3.jar",
+    "sha256": "43b69e738189d98786f93a3cc6dae77e318a0abe89be252f4e6090236c9aa675"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/23.0.0/8cc20c07506ec18e0834947b84a864bfc094484e/annotations-23.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains/annotations/23.0.0/8cc20c07506ec18e0834947b84a864bfc094484e/annotations-23.0.0.jar",
+    "sha256": "7b0f19724082cbfcbc66e5abea2b9bc92cf08a1ea11e191933ed43801eb3cd05"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.xerial/sqlite-jdbc/3.49.1.0/145d3a6819b86f3618728273329392269104c8c7/sqlite-jdbc-3.49.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.xerial/sqlite-jdbc/3.49.1.0/145d3a6819b86f3618728273329392269104c8c7/sqlite-jdbc-3.49.1.0.jar",
+    "sha256": "5c8609d2ca341deb8c6f71778974b5ba4995c7d32d7c7c89d9392a3e72c39291"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.pulumi/kubernetes/4.27.0/9d77387bc46ef54892e8d5486c4cb40ccba11010/kubernetes-4.27.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.pulumi/kubernetes/4.27.0/9d77387bc46ef54892e8d5486c4cb40ccba11010/kubernetes-4.27.0.jar",
+    "sha256": "f056cd2b8302d9d61cfcd162d9df151a6d4ca5b8942c6735f32c58adbb4753e2"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.pulumi/pulumi/1.0.0/a43062087b5655e08a2ea02de0aa6c2e9922cf2f/pulumi-1.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.pulumi/pulumi/1.0.0/a43062087b5655e08a2ea02de0aa6c2e9922cf2f/pulumi-1.0.0.jar",
+    "sha256": "71304d4e9a7a32fcae5cbd97ee1288ea32005a339bd29d2da8848048acfb81e7"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.cloud/google-cloud-pubsub/1.147.0/cd896328791100c80c95408c0b7dd175ea4c4c4/google-cloud-pubsub-1.147.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.cloud/google-cloud-pubsub/1.147.0/cd896328791100c80c95408c0b7dd175ea4c4c4/google-cloud-pubsub-1.147.0.jar",
+    "sha256": "5ddad4965d6b698ebb5f9a084fa00a6b576f828e0c75db21337325c578e52c14"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-netty-shaded/1.84.0/7dec5d6b9c624f2a85e9c69451edd261920d6871/grpc-netty-shaded-1.84.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-netty-shaded/1.84.0/7dec5d6b9c624f2a85e9c69451edd261920d6871/grpc-netty-shaded-1.84.0.jar",
+    "sha256": "f07624d7ca0b0bce8dded33dfe261fd9be59168bb6a77f0580ab09ecd22f113d"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.apis/google-api-services-sheets/v4-rev20250211-2.0.0/62d31ec0330aada41be370e02970a07d31d91851/google-api-services-sheets-v4-rev20250211-2.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.apis/google-api-services-sheets/v4-rev20250211-2.0.0/62d31ec0330aada41be370e02970a07d31d91851/google-api-services-sheets-v4-rev20250211-2.0.0.jar",
+    "sha256": "111dd70aee30e4647b19189f3045e75f4db5c5577f2e03dd4ed52819d78b396c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.apis/google-api-services-calendar/v3-rev20260708-2.0.0/b7d10fad67e6afac07122275a98f9a062aa147c/google-api-services-calendar-v3-rev20260708-2.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.apis/google-api-services-calendar/v3-rev20260708-2.0.0/b7d10fad67e6afac07122275a98f9a062aa147c/google-api-services-calendar-v3-rev20260708-2.0.0.jar",
+    "sha256": "3aceb6b93195b3ad2b1bf28aca5a77d3537ca135c8f1f151cc132e84dd7dffbf"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.apis/google-api-services-drive/v3-rev20260916-2.0.0/554a9afb109d5efa9d022d4e6aaa312a92f02b6e/google-api-services-drive-v3-rev20260916-2.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.apis/google-api-services-drive/v3-rev20260916-2.0.0/554a9afb109d5efa9d022d4e6aaa312a92f02b6e/google-api-services-drive-v3-rev20260916-2.0.0.jar",
+    "sha256": "e832bcda9930c3d790da918784fe86c5faead8da850dcef53ad70167a7e3faae"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.apis/google-api-services-youtube/v3-rev20260924-2.0.0/59df671a701db80836285b63d9b75086f06e6aec/google-api-services-youtube-v3-rev20260924-2.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.apis/google-api-services-youtube/v3-rev20260924-2.0.0/59df671a701db80836285b63d9b75086f06e6aec/google-api-services-youtube-v3-rev20260924-2.0.0.jar",
+    "sha256": "28d129e8bbfdc039954a8f80aa548cde4a67ad2c0a366e04a4c8942fb53ffa42"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api-client/google-api-client/2.7.2/495d58d6e31c2c5e24a707a50d6355ba92dd3d0c/google-api-client-2.7.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api-client/google-api-client/2.7.2/495d58d6e31c2c5e24a707a50d6355ba92dd3d0c/google-api-client-2.7.2.jar",
+    "sha256": "63b754b7c4a92347c4992c42d295812f8d2ed6b9e8743edba4a8c98b92e9ca9b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.auth/google-auth-library-oauth2-http/1.48.0/6f60491221a120e373d43fa366e0ce2f5b60a8d3/google-auth-library-oauth2-http-1.48.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.auth/google-auth-library-oauth2-http/1.48.0/6f60491221a120e373d43fa366e0ce2f5b60a8d3/google-auth-library-oauth2-http-1.48.0.jar",
+    "sha256": "2ab4c031319b0e933a1be7cdc89dc8eef1cc5ce03eb779a3bfd7fd9dc5e15cd8"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-util/1.84.0/f68b53189fcf477e4a100fdedae8a811fc6be02c/grpc-util-1.84.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-util/1.84.0/f68b53189fcf477e4a100fdedae8a811fc6be02c/grpc-util-1.84.0.jar",
+    "sha256": "b64b8eedb714ec8c22ddc57361c7f2c0718cd51fa9d44a8cff68b30c117a6c23"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-core/1.84.0/b6852cdd0e696848920847f76d17584a5251f419/grpc-core-1.84.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-core/1.84.0/b6852cdd0e696848920847f76d17584a5251f419/grpc-core-1.84.0.jar",
+    "sha256": "750c08018e22014cb5e6b6ac64fd4d0b2302b7db9cb2b83a1e0914d0561ed71c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.lsp4j/org.eclipse.lsp4j/0.23.1/d31602b86d6226f7351b0ea72f24ed75fb1b0410/org.eclipse.lsp4j-0.23.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.lsp4j/org.eclipse.lsp4j/0.23.1/d31602b86d6226f7351b0ea72f24ed75fb1b0410/org.eclipse.lsp4j-0.23.1.jar",
+    "sha256": "b16bbc6232a3946e03d537bb9be74e18489dbc6a8b8c5ab6cb7980854df8440f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.lsp4j/org.eclipse.lsp4j.jsonrpc/0.23.1/20f146513350b3681c347c6026ca30111d00502b/org.eclipse.lsp4j.jsonrpc-0.23.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.lsp4j/org.eclipse.lsp4j.jsonrpc/0.23.1/20f146513350b3681c347c6026ca30111d00502b/org.eclipse.lsp4j.jsonrpc-0.23.1.jar",
+    "sha256": "4e1aa77474de1791d96dc55932fb46efdf53233548f38f62ba7376f8b0bc6650"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.oauth-client/google-oauth-client/1.36.0/dc3f07bc8f49dd52fe8fcc15958f3cfeb003e20f/google-oauth-client-1.36.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.oauth-client/google-oauth-client/1.36.0/dc3f07bc8f49dd52fe8fcc15958f3cfeb003e20f/google-oauth-client-1.36.0.jar",
+    "sha256": "8fee7bbe7aaee214ce461f0cd983e3c438fd43941697394391aaa01edb7d703b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.http-client/google-http-client-gson/2.1.0/e65ea98fe4e8d3a512559698a0d8664908fd36f3/google-http-client-gson-2.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.http-client/google-http-client-gson/2.1.0/e65ea98fe4e8d3a512559698a0d8664908fd36f3/google-http-client-gson-2.1.0.jar",
+    "sha256": "3cf72c7b88375a34bf721c664f42edc8e096e2370e4126c9b8933c3c92e591f3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.gsonfire/gson-fire/1.9.0/4950bed0140515ac8f1eb0eef625b73ca8694dab/gson-fire-1.9.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.gsonfire/gson-fire/1.9.0/4950bed0140515ac8f1eb0eef625b73ca8694dab/gson-fire-1.9.0.jar",
+    "sha256": "73f56642ef43381efda085befb1e6cb51ce906af426d8db19632d396a5bb7a91"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.14.0/efc0e34ede4e3204eaefb84a00e55e8c86634382/gson-2.14.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.code.gson/gson/2.14.0/efc0e34ede4e3204eaefb84a00e55e8c86634382/gson-2.14.0.jar",
+    "sha256": "2cbd119bf1961c28788310963dc80ba65f58cdeec1dd139c8bdb1240faa2c36f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-protobuf/1.84.0/590378c7e1eb202c24131412062268a28e5f37b9/grpc-protobuf-1.84.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-protobuf/1.84.0/590378c7e1eb202c24131412062268a28e5f37b9/grpc-protobuf-1.84.0.jar",
+    "sha256": "076ad68d91d59132970dd739ff908d0b8fffea9fb0ccbea9310d933e0a677802"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-stub/1.84.0/e096606644a861868524be035e3c69a57b1c8a7e/grpc-stub-1.84.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-stub/1.84.0/e096606644a861868524be035e3c69a57b1c8a7e/grpc-stub-1.84.0.jar",
+    "sha256": "5d7c9eac0386fbf6f1c9dc90171034939093c9f72196bd9242acf819c5f10a4a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.http-client/google-http-client-apache-v2/1.45.2/709e720ca21bf6e201dd244137d38281548172e/google-http-client-apache-v2-1.45.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.http-client/google-http-client-apache-v2/1.45.2/709e720ca21bf6e201dd244137d38281548172e/google-http-client-apache-v2-1.45.2.jar",
+    "sha256": "b2b1b242e162c8f9e41b3ab89ddfb72d14299f96e831fcbd68ba42212a0930cd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.http-client/google-http-client/2.1.0/f4c08fa160a5199af19f81080fbaa921ae2193c7/google-http-client-2.1.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.http-client/google-http-client/2.1.0/f4c08fa160a5199af19f81080fbaa921ae2193c7/google-http-client-2.1.0.jar",
+    "sha256": "20aa0948f6ceb5cfa9b2b3adddd9b7e990ab40230e084081642cbb81235d3eef"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opencensus/opencensus-contrib-http-util/0.31.1/3c13fc5715231fadb16a9b74a44d9d59c460cfa8/opencensus-contrib-http-util-0.31.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opencensus/opencensus-contrib-http-util/0.31.1/3c13fc5715231fadb16a9b74a44d9d59c460cfa8/opencensus-contrib-http-util-0.31.1.jar",
+    "sha256": "3ea995b55a4068be22989b70cc29a4d788c2d328d1d50613a7a9afd13fdd2d0a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opencensus/opencensus-api/0.31.1/66a60c7201c2b8b20ce495f0295b32bb0ccbbc57/opencensus-api-0.31.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opencensus/opencensus-api/0.31.1/66a60c7201c2b8b20ce495f0295b32bb0ccbbc57/opencensus-api-0.31.1.jar",
+    "sha256": "f1474d47f4b6b001558ad27b952e35eda5cc7146788877fc52938c6eba24b382"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-context/1.84.0/214c022a1267b85e75ca7a7670b937a22e5f9767/grpc-context-1.84.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-context/1.84.0/214c022a1267b85e75ca7a7670b937a22e5f9767/grpc-context-1.84.0.jar",
+    "sha256": "e6f6e5db0d704e34d03f013cceb6be326c9ed3916346378ca1587ed41f943080"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-protobuf-lite/1.84.0/79a952c6a29db5b32c70257476cc17b140ceff14/grpc-protobuf-lite-1.84.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-protobuf-lite/1.84.0/79a952c6a29db5b32c70257476cc17b140ceff14/grpc-protobuf-lite-1.84.0.jar",
+    "sha256": "12827fd4ba3d75f7ab5fceb3296c5ac9f473826e6b2aa67684d32879b7fa239b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-api/1.84.0/16630e2bc8581f08fd486df70094da368155a8ee/grpc-api-1.84.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-api/1.84.0/16630e2bc8581f08fd486df70094da368155a8ee/grpc-api-1.84.0.jar",
+    "sha256": "a2a57594571a4392751609bf4c63cf838ba7dcdbc8e5fd07983c313cb1565ac8"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api/api-common/2.64.0/cf7d93aa7a4d348be7bf41d8afe3b104e16382be/api-common-2.64.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api/api-common/2.64.0/cf7d93aa7a4d348be7bf41d8afe3b104e16382be/api-common-2.64.0.jar",
+    "sha256": "d2e69f2f7ab50eb3197ae33c532ee1d67902e964a49fbf711ab11b077ac39b0f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.protobuf/protobuf-java-util/4.33.2/3c40e96546f9152b213b128798a7e5df7568b66b/protobuf-java-util-4.33.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.protobuf/protobuf-java-util/4.33.2/3c40e96546f9152b213b128798a7e5df7568b66b/protobuf-java-util-4.33.2.jar",
+    "sha256": "810ecf895fde89e0f0f0bc34f3fec0bfa949c8173e941c15f9f2bb9f0ed7644a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api.grpc/proto-google-cloud-pubsub-v1/1.129.0/e277e70787c7729db54b49b0d60f7704f230fa81/proto-google-cloud-pubsub-v1-1.129.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api.grpc/proto-google-cloud-pubsub-v1/1.129.0/e277e70787c7729db54b49b0d60f7704f230fa81/proto-google-cloud-pubsub-v1-1.129.0.jar",
+    "sha256": "f20d0ab04ad7a245e50a26b867bf509746f369d35f15b1b471de5bc661346caa"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.code.findbugs/jsr305/3.0.2/25ea2e8b0c338a877313bd4672d3fe056ea78f0d/jsr305-3.0.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.code.findbugs/jsr305/3.0.2/25ea2e8b0c338a877313bd4672d3fe056ea78f0d/jsr305-3.0.2.jar",
+    "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-jackson/4.0.0/d07fc644068b91bce67cf885354829722ef83747/spring-boot-starter-jackson-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-jackson/4.0.0/d07fc644068b91bce67cf885354829722ef83747/spring-boot-starter-jackson-4.0.0.jar",
+    "sha256": "ce2f5ebfbb9735cdb0b56af447b30075d3e9df604d8f1c019d1478618284d55e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-reactor-netty/4.0.0/8b8d3491745286f4a140afbbb3c71fc94845ca88/spring-boot-starter-reactor-netty-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-reactor-netty/4.0.0/8b8d3491745286f4a140afbbb3c71fc94845ca88/spring-boot-starter-reactor-netty-4.0.0.jar",
+    "sha256": "22155e81d1640168bef9b68ae0a837df647cfa3d73a26f05b00da3fb6b83c07e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter/4.0.0/21b8df99b718ba756ad4e20458c59e801865d6e8/spring-boot-starter-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter/4.0.0/21b8df99b718ba756ad4e20458c59e801865d6e8/spring-boot-starter-4.0.0.jar",
+    "sha256": "f932d20df5d41dc3c18fe7d388ec3e7768b5a3127c06d64ab7fea476205073d5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.yaml/snakeyaml/2.7/47713fda569f07641538ff7f2fa9cb3ead4603e5/snakeyaml-2.7.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.yaml/snakeyaml/2.7/47713fda569f07641538ff7f2fa9cb3ead4603e5/snakeyaml-2.7.jar",
+    "sha256": "2e194eba45a67dee19a4e272f4a04b18de8054e9f598b094382f6dae0b0e4b5e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.antlr/antlr4-runtime/4.11.1/69214c1de1960040729702eb58deac8827135e7/antlr4-runtime-4.11.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.antlr/antlr4-runtime/4.11.1/69214c1de1960040729702eb58deac8827135e7/antlr4-runtime-4.11.1.jar",
+    "sha256": "e06c6553c1ccc14d36052ec4b0fc6f13b808cf957b5b1dc3f61bf401996ada59"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.checkerframework/checker-qual/3.55.1/3d40699936a66b2d4c1f759f2f1a0446c8cf64fc/checker-qual-3.55.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.checkerframework/checker-qual/3.55.1/3d40699936a66b2d4c1f759f2f1a0446c8cf64fc/checker-qual-3.55.1.jar",
+    "sha256": "857658c8bdcbff794949a8d9922f88d63ee3751c203c7cd7d21ea97f9e745288"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-security-oauth2-resource-server/4.0.0/8ef235f443b60cc1f2d3775727f57d040d03f8be/spring-boot-security-oauth2-resource-server-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-security-oauth2-resource-server/4.0.0/8ef235f443b60cc1f2d3775727f57d040d03f8be/spring-boot-security-oauth2-resource-server-4.0.0.jar",
+    "sha256": "ddb9687257f7c61edee2cd19ec90da29a7d396a23bf7201e814cc186f5180b20"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-security/4.0.0/42e6d8d8d7fab41fb645525297d5921143bea7a3/spring-boot-security-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-security/4.0.0/42e6d8d8d7fab41fb645525297d5921143bea7a3/spring-boot-security-4.0.0.jar",
+    "sha256": "d5e652c7d99d6d12a8e3e235ecd9fb59a9fce014c4e5db7033756348b04d3852"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-config/7.0.0/b1656f5dee5da087a17a439a16fa8dc2d19ea1e8/spring-security-config-7.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-config/7.0.0/b1656f5dee5da087a17a439a16fa8dc2d19ea1e8/spring-security-config-7.0.0.jar",
+    "sha256": "287f17a67af2af125e65ec877ca3b6e5b1513feb438ceb618fe7d3cba2e1d2a5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-oauth2-resource-server/7.0.0/8dd9567ea663838b41c17f4009559733b8de2d08/spring-security-oauth2-resource-server-7.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-oauth2-resource-server/7.0.0/8dd9567ea663838b41c17f4009559733b8de2d08/spring-security-oauth2-resource-server-7.0.0.jar",
+    "sha256": "857b96294b3719fe29d290fb985e95da0a0c5d68af3f28e4bf56414123bbbd82"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-web/7.0.0/6ef120349ad31459866804f00bdda1676ee4fba6/spring-security-web-7.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-web/7.0.0/6ef120349ad31459866804f00bdda1676ee4fba6/spring-security-web-7.0.0.jar",
+    "sha256": "dd44d6853c34cc8723265d04af9b22e2d23780e4af3b2a0bba2417ac0b427f43"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-webflux/4.0.0/e18552c0af7eea485f745260727053f015f98e7f/spring-boot-webflux-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-webflux/4.0.0/e18552c0af7eea485f745260727053f015f98e7f/spring-boot-webflux-4.0.0.jar",
+    "sha256": "7c301ca8d1c726ad2b2343d9ed7e0659289a80af15ac242fe6d00f91a425935b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-autoconfigure/4.0.0/5348987fff66867326396839a066e0c2e52ee989/spring-boot-autoconfigure-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-autoconfigure/4.0.0/5348987fff66867326396839a066e0c2e52ee989/spring-boot-autoconfigure-4.0.0.jar",
+    "sha256": "871a6b490bfc3327a397cdfb5c3ce6487cbdf1023360e7c979506b94c2f8688a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-jackson/4.0.0/ce6c55e2dc62422bf57ce38692b6a8adcd31aa13/spring-boot-jackson-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-jackson/4.0.0/ce6c55e2dc62422bf57ce38692b6a8adcd31aa13/spring-boot-jackson-4.0.0.jar",
+    "sha256": "5cd8796b8dbf3e2a873ece0d1fe94fff99b53ce1e18e7460e70e38e94d5a449d"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-reactor/4.0.0/61056a96d6410830f5852bd54d3c1d740937adff/spring-boot-reactor-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-reactor/4.0.0/61056a96d6410830f5852bd54d3c1d740937adff/spring-boot-reactor-4.0.0.jar",
+    "sha256": "a2a95d4e0a8ab9278a940181510df958bf01baed4b70069d2e496602476d5514"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-reactor-netty/4.0.0/10baf3e523e1701c98559410dc2457ddcac2a12/spring-boot-reactor-netty-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-reactor-netty/4.0.0/10baf3e523e1701c98559410dc2457ddcac2a12/spring-boot-reactor-netty-4.0.0.jar",
+    "sha256": "b6857b2c030bbdff89aaa8ce10f97332cc6bb30c17bfae11dcbd564910473b0f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-web-server/4.0.0/2289b961ed87261801524f9486aac77d1c1dc985/spring-boot-web-server-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-web-server/4.0.0/2289b961ed87261801524f9486aac77d1c1dc985/spring-boot-web-server-4.0.0.jar",
+    "sha256": "f7ccd92eebf23f9929972f6e676bcff102ef3dc10e377776fd03692e44359fcc"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-http-codec/4.0.0/ae5f312b5bd6e8a7efa49ac16eff80a752445d74/spring-boot-http-codec-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-http-codec/4.0.0/ae5f312b5bd6e8a7efa49ac16eff80a752445d74/spring-boot-http-codec-4.0.0.jar",
+    "sha256": "3a336e92d4c05b45b253fdfd09e1df2c35f2d3cfffa874813668d353764b575a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-netty/4.0.0/6b72f00dd006fb84b34f3663bd7f6c29e234c8e8/spring-boot-netty-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-netty/4.0.0/6b72f00dd006fb84b34f3663bd7f6c29e234c8e8/spring-boot-netty-4.0.0.jar",
+    "sha256": "13437b7868170e1d024d6dcdec713f2532c08d50dfd10fc44ef6dd1b95537a3b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot/4.0.0/92d3fdafcd16e3ffb8fb48a51cff98b5dd6c0432/spring-boot-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot/4.0.0/92d3fdafcd16e3ffb8fb48a51cff98b5dd6c0432/spring-boot-4.0.0.jar",
+    "sha256": "ebd1d628f57703a5a7375196fc4ce9f6d34933dec4671e4a6c75a20b7dcad1b9"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-oauth2-jose/7.0.0/70b4a6f4f3f0c993d3d3cc47a75f3ae7282a4cef/spring-security-oauth2-jose-7.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-oauth2-jose/7.0.0/70b4a6f4f3f0c993d3d3cc47a75f3ae7282a4cef/spring-security-oauth2-jose-7.0.0.jar",
+    "sha256": "777fa7c542f9fecd0fc69c25fa57c085ce7a6ff52e1c2e6eae2684ad5b0b9c0f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-oauth2-core/7.0.0/47a059f186bc24070af0b1bda29fef0959f4bb18/spring-security-oauth2-core-7.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-oauth2-core/7.0.0/47a059f186bc24070af0b1bda29fef0959f4bb18/spring-security-oauth2-core-7.0.0.jar",
+    "sha256": "6c801f489c5c3b3eea86f27c93128531bfa7c967cb35899223f3685d63da7528"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-core/7.0.0/6ee0ad74730198aa83c4e58524b65265be32fa83/spring-security-core-7.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-core/7.0.0/6ee0ad74730198aa83c4e58524b65265be32fa83/spring-security-core-7.0.0.jar",
+    "sha256": "3e5c427dda220766238bb464ba7c727baabcad4bb446b945b3d1147e238da8fc"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-context/7.0.1/c75dc812b47a9d6b23568448fbb4518af795bc9e/spring-context-7.0.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-context/7.0.1/c75dc812b47a9d6b23568448fbb4518af795bc9e/spring-context-7.0.1.jar",
+    "sha256": "8398d61b26ba08a9f98830ea0b9bbacb686f923d3f7b702e737a7e0a2ad691d4"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-aop/7.0.1/20cd632e7fc2fb98f292e9bda0418e725caa0070/spring-aop-7.0.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-aop/7.0.1/20cd632e7fc2fb98f292e9bda0418e725caa0070/spring-aop-7.0.1.jar",
+    "sha256": "67c070b7cd0327f5c0f5f9fc5dfd9f76e4f4cf0b71fa6a00ed2bafb94a51e3a1"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.quartz-scheduler/quartz/2.5.1/6adf5b05d1991459c1a879baac8fbf6432f2509f/quartz-2.5.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.quartz-scheduler/quartz/2.5.1/6adf5b05d1991459c1a879baac8fbf6432f2509f/quartz-2.5.1.jar",
+    "sha256": "e83fffd3a173506eb053d6bf57f2a787c5d68a375e26332407c0da3cc910193e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.bitbucket.b_c/jose4j/0.9.6/357a3836bb5da16f314f3a1e954518e5468cd915/jose4j-0.9.6.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.bitbucket.b_c/jose4j/0.9.6/357a3836bb5da16f314f3a1e954518e5468cd915/jose4j-0.9.6.jar",
+    "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/sts/2.46.18/fbb43c829541cf060e217581c09ff3fc881b1d7a/sts-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/sts/2.46.18/fbb43c829541cf060e217581c09ff3fc881b1d7a/sts-2.46.18.jar",
+    "sha256": "578672a4704f2b81a55ccc7571ea18b3a56b0f24eb9b8e726236c413421f751f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/aws-query-protocol/2.46.18/bb5484d0772f1ac37909dff57944562c8ade1f22/aws-query-protocol-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/aws-query-protocol/2.46.18/bb5484d0772f1ac37909dff57944562c8ade1f22/aws-query-protocol-2.46.18.jar",
+    "sha256": "f122432e3d90977299cbeab288052f76bb5a91d4952b03ff38f36edf242647e5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/protocol-core/2.46.18/2bc3989e011e566baf182fefe02f2ce32eb07009/protocol-core-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/protocol-core/2.46.18/2bc3989e011e566baf182fefe02f2ce32eb07009/protocol-core-2.46.18.jar",
+    "sha256": "c8f83f64f538a56740f3f93f1f0e10ad5e8bd2ec57d6a076261051bbe8f8b007"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/aws-core/2.46.18/14d66c4319732c2c4d7391565fbf4d6396261b07/aws-core-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/aws-core/2.46.18/14d66c4319732c2c4d7391565fbf4d6396261b07/aws-core-2.46.18.jar",
+    "sha256": "7d56bbf475e26a3c8089d430c97c2083d0b6cc27dd63bd36bb6da8af0b417459"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/auth/2.46.18/af87e067cd25f473e1b8325b39b9f791e8acf03d/auth-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/auth/2.46.18/af87e067cd25f473e1b8325b39b9f791e8acf03d/auth-2.46.18.jar",
+    "sha256": "e3d06954fa93a891d2d5bf1422ee8d96ed18c1bb7a86cd9fdca85314adc6ed35"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/regions/2.46.18/391e83d33b97b4b16f0c640faa18e21a04cad7d3/regions-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/regions/2.46.18/391e83d33b97b4b16f0c640faa18e21a04cad7d3/regions-2.46.18.jar",
+    "sha256": "5d79881884dc3e6747ef3b895cab875b0e436047b097d51f3384cc58356f49a2"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/sdk-core/2.46.18/e069cf4a817d6f7d74980f3f2842ef4a18619f45/sdk-core-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/sdk-core/2.46.18/e069cf4a817d6f7d74980f3f2842ef4a18619f45/sdk-core-2.46.18.jar",
+    "sha256": "d122925903691a073b52a5f84c9031c4d73bdeae8d7a7e74c5423880cdbde51a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/profiles/2.46.18/4be1413b28f772914d5028a03d9696f6396bb4c0/profiles-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/profiles/2.46.18/4be1413b28f772914d5028a03d9696f6396bb4c0/profiles-2.46.18.jar",
+    "sha256": "97ca540d3497ac891bac6ddf9df8863fd6053534b5096d893b2d6a644d3d0108"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-auth-aws/2.46.18/fa0c2899775a9c8235f16b529406d237a6110220/http-auth-aws-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-auth-aws/2.46.18/fa0c2899775a9c8235f16b529406d237a6110220/http-auth-aws-2.46.18.jar",
+    "sha256": "224058ae3e6421480c74095b5b56ea1c4d254c41a4f470cf75474167eec2f9b0"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-auth/2.46.18/b78bac06502d42b8c64d702f5c3cab8f396bc6a7/http-auth-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-auth/2.46.18/b78bac06502d42b8c64d702f5c3cab8f396bc6a7/http-auth-2.46.18.jar",
+    "sha256": "be6eb746dac54cbac93e0e5aa985dcf44f849783f6d9c6ffa17b8a6d6aec02ac"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-auth-spi/2.46.18/b9c662fc14157c9c045fabbd9f91b701791030bd/http-auth-spi-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-auth-spi/2.46.18/b9c662fc14157c9c045fabbd9f91b701791030bd/http-auth-spi-2.46.18.jar",
+    "sha256": "2655fda736a7af5f0cafe4b5c8e1d70d14a294da17bc54a407fcde331d2bf3b6"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/identity-spi/2.46.18/e99762270949b9cd05caaa899323de522e4b6659/identity-spi-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/identity-spi/2.46.18/e99762270949b9cd05caaa899323de522e4b6659/identity-spi-2.46.18.jar",
+    "sha256": "45771d7a6267ab00ab757614461a5634abf0236e7b965c0dc976031d216a830a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/apache5-client/2.46.18/662303b4b9001c88ad7b3bd31270dcd70489454f/apache5-client-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/apache5-client/2.46.18/662303b4b9001c88ad7b3bd31270dcd70489454f/apache5-client-2.46.18.jar",
+    "sha256": "3a6310a6bc7869735a874cf37e9c43ab10507dcb81e5b6e107698894181d045f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/netty-nio-client/2.46.18/9bb2d34b3d70bc53b504acb4417f448a2bd36079/netty-nio-client-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/netty-nio-client/2.46.18/9bb2d34b3d70bc53b504acb4417f448a2bd36079/netty-nio-client-2.46.18.jar",
+    "sha256": "65349ba3fdbe457d18f2e6b0ea42a10198e2efae7c566fd4cf13e61fe7856a56"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-client-spi/2.46.18/3ddb986fef3f8c8bc910551f1070e0f483eb1958/http-client-spi-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-client-spi/2.46.18/3ddb986fef3f8c8bc910551f1070e0f483eb1958/http-client-spi-2.46.18.jar",
+    "sha256": "44eecb51b98abb948f370249b4df0a4ab3d87e2837de8673c2a18d0b72c1b5f3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/metrics-spi/2.46.18/7b66d600d308a90e250ed17dcb60ecd7f003fcc7/metrics-spi-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/metrics-spi/2.46.18/7b66d600d308a90e250ed17dcb60ecd7f003fcc7/metrics-spi-2.46.18.jar",
+    "sha256": "c08de36c96d7d632e25c75d40543cbb12ad5b6be94456a664871563158a43c3e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/json-utils/2.46.18/c96b60da16c3dd6a54ee18c6504851ea612eb526/json-utils-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/json-utils/2.46.18/c96b60da16c3dd6a54ee18c6504851ea612eb526/json-utils-2.46.18.jar",
+    "sha256": "5a4e0a0edebfb5e6ad6998d44e2a58f54e2bf77500f28bdee446e763bdf231f4"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/retries/2.46.18/6b8d1a7e8628c0b8a829956480289c7fba271a31/retries-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/retries/2.46.18/6b8d1a7e8628c0b8a829956480289c7fba271a31/retries-2.46.18.jar",
+    "sha256": "38e20c7fca0c8701a18a7a465d026ef7b6075370ad796aeada9f5bbbb536da26"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/retries-spi/2.46.18/a488d7445b3aad40a4d496d8d3ca078cf719510d/retries-spi-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/retries-spi/2.46.18/a488d7445b3aad40a4d496d8d3ca078cf719510d/retries-spi-2.46.18.jar",
+    "sha256": "ceea728c074c2d624956635b8cce5dcd2fa41f2b45bd05c4d3142208d02276e8"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/checksums/2.46.18/fba721b278827a0fb77997c1a28f4f7c5270f2c6/checksums-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/checksums/2.46.18/fba721b278827a0fb77997c1a28f4f7c5270f2c6/checksums-2.46.18.jar",
+    "sha256": "c0762abc3368ac508b39d82752e4642b5df06dc3c34229b9e71accab072f34e1"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/utils/2.46.18/6e7909cc90d44084c4a3a2a6000c562faebb62a8/utils-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/utils/2.46.18/6e7909cc90d44084c4a3a2a6000c562faebb62a8/utils-2.46.18.jar",
+    "sha256": "74b7165f5f133e0bfed5c9638a4541b4ca2e5184db9fce0990721f7693451d42"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-logging/4.0.0/82de562895828f2cdb91284d3f66458c800bfb5d/spring-boot-starter-logging-4.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-starter-logging/4.0.0/82de562895828f2cdb91284d3f66458c800bfb5d/spring-boot-starter-logging-4.0.0.jar",
+    "sha256": "9eb37fcb342e69429a640618a54aa747377137274d3e2b7a2d251ca765105023"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/ch.qos.logback/logback-classic/1.5.21/904915aa29a0bbff111ae90ed85541b2991a72fc/logback-classic-1.5.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/ch.qos.logback/logback-classic/1.5.21/904915aa29a0bbff111ae90ed85541b2991a72fc/logback-classic-1.5.21.jar",
+    "sha256": "b2523f7b0dabf4386c81312f0371d267e3a9fbce409046f16b042bf68571ba4a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-to-slf4j/2.25.2/3843798847a7623c1724a9522002233e14fcb0ff/log4j-to-slf4j-2.25.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-to-slf4j/2.25.2/3843798847a7623c1724a9522002233e14fcb0ff/log4j-to-slf4j-2.25.2.jar",
+    "sha256": "529016f771a1df93c57c9a95dfab6790e58c109dfcc536029cc29d69514be452"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.slf4j/jul-to-slf4j/2.0.17/524cb6ccc2b68a57604750e1ab8b13b5a786a6aa/jul-to-slf4j-2.0.17.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.slf4j/jul-to-slf4j/2.0.17/524cb6ccc2b68a57604750e1ab8b13b5a786a6aa/jul-to-slf4j-2.0.17.jar",
+    "sha256": "a7afcd23b9cfd1475e55c94f943b808c5922035e7e2c2a5c65a487a4106bc538"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents.client5/httpclient5/5.6.1/b418ba210ace28adf920f1decf64d673953d07cf/httpclient5-5.6.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents.client5/httpclient5/5.6.1/b418ba210ace28adf920f1decf64d673953d07cf/httpclient5-5.6.1.jar",
+    "sha256": "1e3d8444c3c27772e4b9d42a790f06b3345a8ece4fd16d00981f2f2460e1e772"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.slf4j/slf4j-api/2.0.18/78a9e7a37cd6360e0b818e86341b24123d28d4df/slf4j-api-2.0.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.slf4j/slf4j-api/2.0.18/78a9e7a37cd6360e0b818e86341b24123d28d4df/slf4j-api-2.0.18.jar",
+    "sha256": "44508fd1576500688c790b190acdd16fec4f8c79a3e0b900afd70503cf055f55"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.bolt/neo4j-bolt-connection-netty/6.0.2/ccd9c26bc7fe938ab0956c45903d8f8e3b3f316a/neo4j-bolt-connection-netty-6.0.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.bolt/neo4j-bolt-connection-netty/6.0.2/ccd9c26bc7fe938ab0956c45903d8f8e3b3f316a/neo4j-bolt-connection-netty-6.0.2.jar",
+    "sha256": "86a36929fa51bce37c6961c0a02d7589fccb4c12bf929cf23de674c4fd762312"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.bolt/neo4j-bolt-connection-pooled/6.0.2/86ae3389f7b5474843c3bb972fbb0129ffaa1b2c/neo4j-bolt-connection-pooled-6.0.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.bolt/neo4j-bolt-connection-pooled/6.0.2/86ae3389f7b5474843c3bb972fbb0129ffaa1b2c/neo4j-bolt-connection-pooled-6.0.2.jar",
+    "sha256": "b817e374f88013f348dca36b83c1c0352fe4a3ca3aca66f9772b658e6b6c9702"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.bolt/neo4j-bolt-connection-routed/6.0.2/fdb64b37111a3b613967c643628334e280ec9388/neo4j-bolt-connection-routed-6.0.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.bolt/neo4j-bolt-connection-routed/6.0.2/fdb64b37111a3b613967c643628334e280ec9388/neo4j-bolt-connection-routed-6.0.2.jar",
+    "sha256": "5301c92aee13ac5b10a2e8626b017523ac05e91e5dee1f904f183376dd8d7e5e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.bolt/neo4j-bolt-connection/6.0.2/3d6dd407ddb9d84beb3b6666a29fcbb645be53cb/neo4j-bolt-connection-6.0.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.neo4j.bolt/neo4j-bolt-connection/6.0.2/3d6dd407ddb9d84beb3b6666a29fcbb645be53cb/neo4j-bolt-connection-6.0.2.jar",
+    "sha256": "0fa0a8c5e5969189495a2071c7059fdd066fbff7ed6174d8e6b65269e0bf5cef"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-webflux/7.0.1/3f9c015b56e85905e2474c4bce52cf44844203f9/spring-webflux-7.0.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-webflux/7.0.1/3f9c015b56e85905e2474c4bce52cf44844203f9/spring-webflux-7.0.1.jar",
+    "sha256": "09ab73c152526693302960918b32323407e2e0b0b791e5f5bf396f52b004f4c0"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.projectreactor.netty/reactor-netty-http/1.3.0/7741a8da179c6b28f4a11265a7ceb369dd3f15f/reactor-netty-http-1.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.projectreactor.netty/reactor-netty-http/1.3.0/7741a8da179c6b28f4a11265a7ceb369dd3f15f/reactor-netty-http-1.3.0.jar",
+    "sha256": "bf5cf747356bbea154e550a935f8b08925e1f08571948042f10630c643810708"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.projectreactor.netty/reactor-netty-core/1.3.0/e61bc1afa13461df8ab176a1df553dac62d91a72/reactor-netty-core-1.3.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.projectreactor.netty/reactor-netty-core/1.3.0/e61bc1afa13461df8ab176a1df553dac62d91a72/reactor-netty-core-1.3.0.jar",
+    "sha256": "5d4f51f46ead2dae89adbe33ec12404d712ea24f2e256ee630487b2215472ec1"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.projectreactor/reactor-core/3.8.0/21d51d40dda28f8cc3ab9a22fb35dd6146e4323b/reactor-core-3.8.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.projectreactor/reactor-core/3.8.0/21d51d40dda28f8cc3ab9a22fb35dd6146e4323b/reactor-core-3.8.0.jar",
+    "sha256": "d195fbaaff25fbd5ea482f721a832c1cb441e8c3e5e72ef8301f559adc6f3f14"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.reactivestreams/reactive-streams/1.0.4/3864a1320d97d7b045f729a326e1e077661f31b7/reactive-streams-1.0.4.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.reactivestreams/reactive-streams/1.0.4/3864a1320d97d7b045f729a326e1e077661f31b7/reactive-streams-1.0.4.jar",
+    "sha256": "f75ca597789b3dac58f61857b9ac2e1034a68fa672db35055a8fb4509e325f28"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.elk/org.eclipse.elk.alg.common/0.12.0/3ff93398767ece88cafb0cf03e0d1f9ee702effb/org.eclipse.elk.alg.common-0.12.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.elk/org.eclipse.elk.alg.common/0.12.0/3ff93398767ece88cafb0cf03e0d1f9ee702effb/org.eclipse.elk.alg.common-0.12.0.jar",
+    "sha256": "e7fe9dd838f2ab33b30e4da639ba710c44c8734e9c25b06d715a91a7880e6172"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.elk/org.eclipse.elk.core/0.12.0/f346854df1814ab8c394a271d7e209b615625d88/org.eclipse.elk.core-0.12.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.elk/org.eclipse.elk.core/0.12.0/f346854df1814ab8c394a271d7e209b615625d88/org.eclipse.elk.core-0.12.0.jar",
+    "sha256": "d56dc3cc650c1f346675f2180e64efed458d264ae221ec677e60f6edc7526502"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.elk/org.eclipse.elk.graph/0.12.0/4ba968592020dadf2ec9b2dae42b216ccc092120/org.eclipse.elk.graph-0.12.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.elk/org.eclipse.elk.graph/0.12.0/4ba968592020dadf2ec9b2dae42b216ccc092120/org.eclipse.elk.graph-0.12.0.jar",
+    "sha256": "44b0263d6206ab9c2d6a96e8db596a89c934f1223fabd2f209ada1b7300222eb"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/33.6.0-android/c376b13067cc99a5774403530953f7b05a91e218/guava-33.6.0-jre.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.guava/guava/33.6.0-android/c376b13067cc99a5774403530953f7b05a91e218/guava-33.6.0-jre.jar",
+    "sha256": "dc573e1fca4fd5454f4a5fd3d7da2df03002876a4175bafc14a95980dd7713b3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.runtime/jbr-api/1.9.0/2bc161f5472b5fd5610740e4d6ebe896c811cb0e/jbr-api-1.9.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.runtime/jbr-api/1.9.0/2bc161f5472b5fd5610740e4d6ebe896c811cb0e/jbr-api-1.9.0.jar",
+    "sha256": "7e37284e33b5b304ee6174dcaa92db949b257cc4c8991ca865e7daf5113d8279"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/junit/junit/4.13.2/8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12/junit-4.13.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/junit/junit/4.13.2/8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12/junit-4.13.2.jar",
+    "sha256": "8e495b634469d64fb8acfa3495a065cbacc8a0fff55ce1e31007be4c16dc57d3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.javacrumbs.future-converter/future-converter-java8-guava/1.2.0/9d6d59ee4e8f337ccf69ddd66e291a1ef77fbf4e/future-converter-java8-guava-1.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.javacrumbs.future-converter/future-converter-java8-guava/1.2.0/9d6d59ee4e8f337ccf69ddd66e291a1ef77fbf4e/future-converter-java8-guava-1.2.0.jar",
+    "sha256": "3b47ae8e2b2bfad810586c37537f002273c05237bd3adecafe9f9f57a2b18fde"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.kubernetes/client-java-proto/27.0.0/e48fa890d876246211318b7e8e0a531327fac414/client-java-proto-27.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.kubernetes/client-java-proto/27.0.0/e48fa890d876246211318b7e8e0a531327fac414/client-java-proto-27.0.0.jar",
+    "sha256": "bf677b0af625cd7381f00c67ce985a03e10729996bb35b4f4e57cc6335d9e932"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api.grpc/proto-google-common-protos/2.65.0/cb31f36e1e5ca74fff3aa76c708027ae136c9486/proto-google-common-protos-2.65.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api.grpc/proto-google-common-protos/2.65.0/cb31f36e1e5ca74fff3aa76c708027ae136c9486/proto-google-common-protos-2.65.0.jar",
+    "sha256": "69ddf862fe5fc3816e939a4c4469f19df2e73bfefa44fc6b75e1b6c3a7bc1a42"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.protobuf/protobuf-java/4.36.1/b5db3504aebb79f4af24eb99246eabedb3859c1b/protobuf-java-4.36.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.protobuf/protobuf-java/4.36.1/b5db3504aebb79f4af24eb99246eabedb3859c1b/protobuf-java-4.36.1.jar",
+    "sha256": "26434a93561a1a44bf7157b2630fa73a5b4d8df20e94df167bc03fcd14abd7e4"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy/1.14.15/11c9440bc7f9468761e5a82778a05205169d49a9/byte-buddy-1.14.15.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy/1.14.15/11c9440bc7f9468761e5a82778a05205169d49a9/byte-buddy-1.14.15.jar",
+    "sha256": "7472e3961992c12a9fd4f6d67c21de4280abe18f292704dd49d7338289f8acf5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.errorprone/error_prone_annotations/2.50.0/74ba43e49ab1184d41634af2ef0047e82c4064b0/error_prone_annotations-2.50.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.errorprone/error_prone_annotations/2.50.0/74ba43e49ab1184d41634af2ef0047e82c4064b0/error_prone_annotations-2.50.0.jar",
+    "sha256": "4667724877f1d37a689202da191e23efa7657c62eef93ccdac406eccfe5cdd0a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.perfmark/perfmark-api/0.27.0/f86f575a41b091786a4b027cd9c0c1d2e3fc1c01/perfmark-api-0.27.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.perfmark/perfmark-api/0.27.0/f86f575a41b091786a4b027cd9c0c1d2e3fc1c01/perfmark-api-0.27.0.jar",
+    "sha256": "c7b478503ec524e55df19b424d46d27c8a68aeb801664fadd4f069b71f52d0f6"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.codehaus.mojo/animal-sniffer-annotations/1.27/c8dc3113676f4d40d4cec38366d4e02ebb8c70cb/animal-sniffer-annotations-1.27.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.codehaus.mojo/animal-sniffer-annotations/1.27/c8dc3113676f4d40d4cec38366d4e02ebb8c70cb/animal-sniffer-annotations-1.27.jar",
+    "sha256": "cfd7e51a828fe6b98bc0dbb99e34900c9e9012322cb9ddd57fd8dd0b02da5e27"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-compress/1.28.0/e482f2c7a88dac3c497e96aa420b6a769f59c8d7/commons-compress-1.28.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-compress/1.28.0/e482f2c7a88dac3c497e96aa420b6a769f59c8d7/commons-compress-1.28.0.jar",
+    "sha256": "e1522945218456f3649a39bc4afd70ce4bd466221519dba7d378f2141a4642ca"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/brotli4j/1.23.0/eec13740c1ee09cbe9c6e836f17ee2c984a10333/brotli4j-1.23.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/brotli4j/1.23.0/eec13740c1ee09cbe9c6e836f17ee2c984a10333/brotli4j-1.23.0.jar",
+    "sha256": "5fcf13ad78d07319cc507465dcf61cbc3efee9f45c9ae1c42a9902414696bc0b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-osx-aarch64/1.23.0/27cdad40a0e72285551979ac81bd9cfc00c26fca/native-osx-aarch64-1.23.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-osx-aarch64/1.23.0/27cdad40a0e72285551979ac81bd9cfc00c26fca/native-osx-aarch64-1.23.0.jar",
+    "sha256": "be3bc53688dbaff26d9d554301837de2bfa9ec09090b64d1ebf1fb6b23c28e61"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-osx-x86_64/1.23.0/b0c99f418aa28c7f907f62da2d5f65ff8dadf8d8/native-osx-x86_64-1.23.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-osx-x86_64/1.23.0/b0c99f418aa28c7f907f62da2d5f65ff8dadf8d8/native-osx-x86_64-1.23.0.jar",
+    "sha256": "392774ced607a625ac316b5efeb7065d300e722fe03d8963ab0ffb2fdd40e982"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-linux-aarch64/1.23.0/6e59e19928a926e8ec5e982465da37af97aab35f/native-linux-aarch64-1.23.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-linux-aarch64/1.23.0/6e59e19928a926e8ec5e982465da37af97aab35f/native-linux-aarch64-1.23.0.jar",
+    "sha256": "900c73dac7330ebe966071c770d2d4357c4de3f9417262ed4408dc08f2b573b6"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-linux-x86_64/1.23.0/6eac7a222b9fba79f2171dd51e08ff2f66efa31b/native-linux-x86_64-1.23.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-linux-x86_64/1.23.0/6eac7a222b9fba79f2171dd51e08ff2f66efa31b/native-linux-x86_64-1.23.0.jar",
+    "sha256": "c504e243961c4229d8e486ca8f87b757ad9a033dda471061c0134c050ddcaa7c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-windows-aarch64/1.23.0/b7b3da618bca57ec7648d07af72ece2d543678d6/native-windows-aarch64-1.23.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-windows-aarch64/1.23.0/b7b3da618bca57ec7648d07af72ece2d543678d6/native-windows-aarch64-1.23.0.jar",
+    "sha256": "47220a8cbaa2c10131618cee9e454bfe570a2add7f72227110cac966db0bcfbb"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-windows-x86_64/1.23.0/6a0f3eb6016709c7866342d93550c7fbfae863e0/native-windows-x86_64-1.23.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/native-windows-x86_64/1.23.0/6a0f3eb6016709c7866342d93550c7fbfae863e0/native-windows-x86_64-1.23.0.jar",
+    "sha256": "8f770f6d6c29caade53fc9fc7d848338a09471b080096ed7d5ce851e31cb9504"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/jakarta.annotation/jakarta.annotation-api/3.0.0/54f928fadec906a99d558536756d171917b9d936/jakarta.annotation-api-3.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/jakarta.annotation/jakarta.annotation-api/3.0.0/54f928fadec906a99d558536756d171917b9d936/jakarta.annotation-api-3.0.0.jar",
+    "sha256": "b01f55552284cfb149411e64eabca75e942d26d2e1786b32914250e4330afaa2"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_httpserver/0.16.0/2c23f53ca22d7d8885fc4522ddcadcfe7f01a783/simpleclient_httpserver-0.16.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_httpserver/0.16.0/2c23f53ca22d7d8885fc4522ddcadcfe7f01a783/simpleclient_httpserver-0.16.0.jar",
+    "sha256": "cab87de10b6a474151cceebc3b634329a973ffb602ce6efef2c0fd97a90365c8"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_common/0.16.0/a09a8c790a20309b942a9fdbfe77da22407096e6/simpleclient_common-0.16.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_common/0.16.0/a09a8c790a20309b942a9fdbfe77da22407096e6/simpleclient_common-0.16.0.jar",
+    "sha256": "eba6ec26ce7e40cbb8725e05fb83247a9f4f44945b9e7522e3375dde67b9f059"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient/0.16.0/28b0eaf7c500c506976da8d0fc9cad6c278e8d87/simpleclient-0.16.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient/0.16.0/28b0eaf7c500c506976da8d0fc9cad6c278e8d87/simpleclient-0.16.0.jar",
+    "sha256": "22c374f237f7bc4fdb1f0ec2da379c0ba00e69ad2ffe8b6ade543d73062d377f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpclient/4.5.14/1194890e6f56ec29177673f2f12d0b8e627dec98/httpclient-4.5.14.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpclient/4.5.14/1194890e6f56ec29177673f2f12d0b8e627dec98/httpclient-4.5.14.jar",
+    "sha256": "c8bc7e1c51a6d4ce72f40d2ebbabf1c4b68bfe76e732104b04381b493478e9d6"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/commons-codec/commons-codec/1.22.0/6b3eb4beb7058c2a638f5f17bcb388649fd339dd/commons-codec-1.22.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/commons-codec/commons-codec/1.22.0/6b3eb4beb7058c2a638f5f17bcb388649fd339dd/commons-codec-1.22.0.jar",
+    "sha256": "d164fe79f262c32d9b18a0b5b2d317d1c27653d5e98fd2b998c24bf901c72ce4"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-lang3/3.20.0/65897b3e5731220962e659e001904af3c3cbeba9/commons-lang3-3.20.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-lang3/3.20.0/65897b3e5731220962e659e001904af3c3cbeba9/commons-lang3-3.20.0.jar",
+    "sha256": "69e5c9fa35da7a51a5fd2099dfe56a2d8d32cf233e2f6d770e796146440263f4"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.22.0/5b1e18bc0ad651ed878029d83f88d9c8189fd51e/commons-io-2.22.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/commons-io/commons-io/2.22.0/5b1e18bc0ad651ed878029d83f88d9c8189fd51e/commons-io-2.22.0.jar",
+    "sha256": "2b9a7b1f726fb86216dbd2c8321eabe0221dbd5b1be81c18e1cb53811b104758"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.84/dab889a3259e27caec6e6c2f3bde94af036b2fcc/bcpkix-jdk18on-1.84.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.84/dab889a3259e27caec6e6c2f3bde94af036b2fcc/bcpkix-jdk18on-1.84.jar",
+    "sha256": "c87f16ed9e5ec61bc94151e9f3646ac44e50cd448121ce84367fa4b7ec7ec1bb"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-collections4/4.5.0/e5cf89f0c6e132fc970bd9a465fdcb8dbe94f75a/commons-collections4-4.5.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.commons/commons-collections4/4.5.0/e5cf89f0c6e132fc970bd9a465fdcb8dbe94f75a/commons-collections4-4.5.0.jar",
+    "sha256": "00f93263c267be201b8ae521b44a7137271b16688435340bf629db1bac0a5845"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.auto.value/auto-value-annotations/1.11.0/f0d047931d07cfbc6fa4079854f181ff62891d6f/auto-value-annotations-1.11.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.auto.value/auto-value-annotations/1.11.0/f0d047931d07cfbc6fa4079854f181ff62891d6f/auto-value-annotations-1.11.0.jar",
+    "sha256": "5a055ce4255333b3346e1a8703da5bf8ff049532286fdcd31712d624abe111dd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.auth/google-auth-library-credentials/1.48.0/ed2bbb1e309727bff5fb80c93cdd49cb814ed88e/google-auth-library-credentials-1.48.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.auth/google-auth-library-credentials/1.48.0/ed2bbb1e309727bff5fb80c93cdd49cb814ed88e/google-auth-library-credentials-1.48.0.jar",
+    "sha256": "220b419a81679b2711cb2d3496e34ebcbef03c3ca38b68fac848462db37e1935"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-web/7.0.1/5b43495ea93d89fe8ba2ce4affbd75f98f5d2226/spring-web-7.0.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-web/7.0.1/5b43495ea93d89fe8ba2ce4affbd75f98f5d2226/spring-web-7.0.1.jar",
+    "sha256": "2ce795c983617b3c1d034fe13368d62c7a23e74996630b850c11a9ae475d4be4"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-beans/7.0.1/4ac0dd2d2b27f636385a77a3b40c8597aef8ec06/spring-beans-7.0.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-beans/7.0.1/4ac0dd2d2b27f636385a77a3b40c8597aef8ec06/spring-beans-7.0.1.jar",
+    "sha256": "29b15610e22f79d749f218d8ed062e896d627d1dc0fe2c7db1393627830c2ec5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-expression/7.0.1/e094d34f17777125adcb01ed5778075aa876c8e6/spring-expression-7.0.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-expression/7.0.1/e094d34f17777125adcb01ed5778075aa876c8e6/spring-expression-7.0.1.jar",
+    "sha256": "1ef7c0e7eb616df57b610888103e74c6fc2c5133d5bef54494d493172a513035"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-core/7.0.1/a885a444df1d0777989ec11df84eb3e8e7eee2cd/spring-core-7.0.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework/spring-core/7.0.1/a885a444df1d0777989ec11df84eb3e8e7eee2cd/spring-core-7.0.1.jar",
+    "sha256": "2bceaaa6986c1b993cfdc730ee86367325fe26273f0fe298f5117f775bbb5085"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-http2/4.2.7.Final/ce3234f38c9b7a5f625bc75765fa9b62c99d7f71/netty-codec-http2-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-http2/4.2.7.Final/ce3234f38c9b7a5f625bc75765fa9b62c99d7f71/netty-codec-http2-4.2.7.Final.jar",
+    "sha256": "c98254983dffa9c62bccb0e39638e1138feb4dd7b46e7a663e790f6a070a9306"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-http3/4.2.7.Final/c9b6155713d6017a21e71dea3e041c4143facf5c/netty-codec-http3-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-http3/4.2.7.Final/c9b6155713d6017a21e71dea3e041c4143facf5c/netty-codec-http3-4.2.7.Final.jar",
+    "sha256": "2d4d60ab8e3fda66f8b436ea1b034f68690a067e61957547a41be7792663c7d5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-handler-proxy/4.2.7.Final/a1b6d07504fe98163f49d34c9a5efb22d8e84212/netty-handler-proxy-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-handler-proxy/4.2.7.Final/a1b6d07504fe98163f49d34c9a5efb22d8e84212/netty-handler-proxy-4.2.7.Final.jar",
+    "sha256": "8a31f546099256a5b9365213a1a950cc7fd2ceb9827ac63e0506216df6fa72f6"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-http/4.2.7.Final/b734c108854099c421fd94d92d9f865e4d4da853/netty-codec-http-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-http/4.2.7.Final/b734c108854099c421fd94d92d9f865e4d4da853/netty-codec-http-4.2.7.Final.jar",
+    "sha256": "2984dd38420a61c4dd68fcacc51ffc528eb46f73f7795cdafdb3a4d6fcb76862"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-resolver-dns-native-macos/4.2.7.Final/b872d902363468f59069a53916c895ee0bb46688/netty-resolver-dns-native-macos-4.2.7.Final-osx-x86_64.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-resolver-dns-native-macos/4.2.7.Final/b872d902363468f59069a53916c895ee0bb46688/netty-resolver-dns-native-macos-4.2.7.Final-osx-x86_64.jar",
+    "sha256": "89fb8a6257e12fc8f7100f0d42170d41fc40d4acdc9bfe99bb8e2475aee39af8"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-resolver-dns-classes-macos/4.2.7.Final/f3ab2296dcb690b012729417c66bada9fd2852f0/netty-resolver-dns-classes-macos-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-resolver-dns-classes-macos/4.2.7.Final/f3ab2296dcb690b012729417c66bada9fd2852f0/netty-resolver-dns-classes-macos-4.2.7.Final.jar",
+    "sha256": "d285a28a5e2f7721bfabdcb3e1a1998e42c90844f98c16990bdf6c82bf02e8f9"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-resolver-dns/4.2.7.Final/5975d21835704a84d51405b5c4f843337cbf2bb5/netty-resolver-dns-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-resolver-dns/4.2.7.Final/5975d21835704a84d51405b5c4f843337cbf2bb5/netty-resolver-dns-4.2.7.Final.jar",
+    "sha256": "e42ef6295648685e465f9d9f306664ec7b4452e972ae4b3eaa707a94b313f62b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/6a3e4398852f926c4b22f381d89dae2388446ae8/netty-codec-native-quic-4.2.7.Final-linux-x86_64.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/6a3e4398852f926c4b22f381d89dae2388446ae8/netty-codec-native-quic-4.2.7.Final-linux-x86_64.jar",
+    "sha256": "fb41fd610684c872329a5350ee746bb1f338c9e57af1a45c961a632aacc4e63f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/7ecd8d1de6b3eb7eeb3dcdb1034780826e141f1c/netty-codec-native-quic-4.2.7.Final-linux-aarch_64.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/7ecd8d1de6b3eb7eeb3dcdb1034780826e141f1c/netty-codec-native-quic-4.2.7.Final-linux-aarch_64.jar",
+    "sha256": "9ddc92ea8c9cfcb247de06f217402e787bc40c8a698c45dee76f8f399cd14853"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/f3679a6cc103292931098b1dc835ffb831e27368/netty-codec-native-quic-4.2.7.Final-osx-x86_64.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/f3679a6cc103292931098b1dc835ffb831e27368/netty-codec-native-quic-4.2.7.Final-osx-x86_64.jar",
+    "sha256": "ad5dff4f9ef9d3980edb77530e9d38bc5504e8b19a40752043ee9b51ebd4dd87"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/c30d746bd588c07bac4ac04abde576c05a3c0a28/netty-codec-native-quic-4.2.7.Final-osx-aarch_64.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/c30d746bd588c07bac4ac04abde576c05a3c0a28/netty-codec-native-quic-4.2.7.Final-osx-aarch_64.jar",
+    "sha256": "e80b5751fa50a21732ac87979d0063171362195c838b60a20d5d6395253e40b9"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/c4f177d2a99668c209acc31b8b85df58e9166218/netty-codec-native-quic-4.2.7.Final-windows-x86_64.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-native-quic/4.2.7.Final/c4f177d2a99668c209acc31b8b85df58e9166218/netty-codec-native-quic-4.2.7.Final-windows-x86_64.jar",
+    "sha256": "02440b1f0a62a439cf6899f0e569c98b66560bf838f583cf50d8803bb17b43db"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-classes-quic/4.2.7.Final/98e80e8a575aa5cacd0db278a91fc4b34e4721fe/netty-codec-classes-quic-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-classes-quic/4.2.7.Final/98e80e8a575aa5cacd0db278a91fc4b34e4721fe/netty-codec-classes-quic-4.2.7.Final.jar",
+    "sha256": "7b26fb6ca2b9dee4f557229579bf7bd954320e54dd1f07faab342bdd22d3c75b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-handler/4.2.7.Final/7ad8a1f851e2e6fe93cdd091871fda2b81c03b5b/netty-handler-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-handler/4.2.7.Final/7ad8a1f851e2e6fe93cdd091871fda2b81c03b5b/netty-handler-4.2.7.Final.jar",
+    "sha256": "21d063409c12dbcec46d380c8856a0f7b6a5b68bb5f1d005eb065b4d64146cb3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-tcnative-classes/2.0.72.Final/d67316bc03c7b929517c34737d36cd7da5946c4f/netty-tcnative-classes-2.0.72.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-tcnative-classes/2.0.72.Final/d67316bc03c7b929517c34737d36cd7da5946c4f/netty-tcnative-classes-2.0.72.Final.jar",
+    "sha256": "3962e01a71ee252de979fd3249c5ea9068bd7c8955ecabe119f31d381f6138a3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore.xmi/2.12.0/ad136ea23fcdaebec17ec6c730dfdf74b2077c37/org.eclipse.emf.ecore.xmi-2.12.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore.xmi/2.12.0/ad136ea23fcdaebec17ec6c730dfdf74b2077c37/org.eclipse.emf.ecore.xmi-2.12.0.jar",
+    "sha256": "b8c305ee775d885a089256c5b681f64dce78fc821d2714a2194c894048c03e11"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.guava/failureaccess/1.0.3/aeaffd00d57023a2c947393ed251f0354f0985fc/failureaccess-1.0.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.guava/failureaccess/1.0.3/aeaffd00d57023a2c947393ed251f0354f0985fc/failureaccess-1.0.3.jar",
+    "sha256": "cbfc3906b19b8f55dd7cfd6dfe0aa4532e834250d7f080bd8d211a3e246b59cb"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/b421526c5f297295adef1c886e5246c39d4ac629/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/b421526c5f297295adef1c886e5246c39d4ac629/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+    "sha256": "b372a037d4230aa57fbeffdef30fd6123f9c0c2db85d0aced00c91b974f33f99"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.micrometer/micrometer-observation/1.16.0/3dc3a2bec5121417b638191b1f3aed16c9764667/micrometer-observation-1.16.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.micrometer/micrometer-observation/1.16.0/3dc3a2bec5121417b638191b1f3aed16c9764667/micrometer-observation-1.16.0.jar",
+    "sha256": "cd7bc6d61a05edeaf4a503969f65541d2db45ee291eaba1fc9adf3088fe1ca84"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.micrometer/micrometer-commons/1.16.0/d45ae92945c59eecf485433923fa6a5cf9ce0dbe/micrometer-commons-1.16.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.micrometer/micrometer-commons/1.16.0/d45ae92945c59eecf485433923fa6a5cf9ce0dbe/micrometer-commons-1.16.0.jar",
+    "sha256": "9655e601f913ad93e2a7e740e998259b36c2844649e5e668bb8f2fe8392bae3f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jspecify/jspecify/1.0.0/7425a601c1c7ec76645a78d22b8c6a627edee507/jspecify-1.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jspecify/jspecify/1.0.0/7425a601c1c7ec76645a78d22b8c6a627edee507/jspecify-1.0.0.jar",
+    "sha256": "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.j2objc/j2objc-annotations/3.1/a892ca9507839bbdb900d64310ac98256cab992f/j2objc-annotations-3.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.j2objc/j2objc-annotations/3.1/a892ca9507839bbdb900d64310ac98256cab992f/j2objc-annotations-3.1.jar",
+    "sha256": "84d3a150518485f8140ea99b8a985656749629f6433c92b80c75b36aba3b099b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-api/2.4.21/f5fd68c20ba38519b91ab2411b004a1730453d6f/kotlin-build-tools-api-2.4.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-build-tools-api/2.4.21/f5fd68c20ba38519b91ab2411b004a1730453d6f/kotlin-build-tools-api-2.4.21.jar",
+    "sha256": "c5cd6a49bd072b529ae10809111c16a7aa0f92147e95d288354017fd65799461"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-script-runtime/2.4.21/abc7ff9f7e229cb6bdfadad81e93c871e6cdde41/kotlin-script-runtime-2.4.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-script-runtime/2.4.21/abc7ff9f7e229cb6bdfadad81e93c871e6cdde41/kotlin-script-runtime-2.4.21.jar",
+    "sha256": "a658cf5902a1525a06c264a5e42b437e97a6679ddeef8ca641246f270cf6a013"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/2.4.21/5d9b0394b3ff65cd3dd33c6c31a2956b1d59885a/kotlin-daemon-embeddable-2.4.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-daemon-embeddable/2.4.21/5d9b0394b3ff65cd3dd33c6c31a2956b1d59885a/kotlin-daemon-embeddable-2.4.21.jar",
+    "sha256": "7b3ef24674e5bcffcadfc4e43202ea314194939ecbcdd90a4770b2f1b04e0d07"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.hamcrest/hamcrest-core/1.3/42a25dc3219429f0e5d060061f71acb49bf010a0/hamcrest-core-1.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.hamcrest/hamcrest-core/1.3/42a25dc3219429f0e5d060061f71acb49bf010a0/hamcrest-core-1.3.jar",
+    "sha256": "66fdef91e9739348df7a096aa384a5685f4e875584cce89386a7a47251c4d8e9"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/jakarta.xml.bind/jakarta.xml.bind-api/4.0.4/d6d2327f3817d9a33a3b6b8f2e15a96bc2e7afdc/jakarta.xml.bind-api-4.0.4.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/jakarta.xml.bind/jakarta.xml.bind-api/4.0.4/d6d2327f3817d9a33a3b6b8f2e15a96bc2e7afdc/jakarta.xml.bind-api-4.0.4.jar",
+    "sha256": "c507ca69a8c6dd11bf4afeec9e0d412c4fa3933fffb0a84680ea5727e8472124"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api.grpc/proto-google-iam-v1/1.60.0/f4057c8c09e89872e0b5acec2ce31173230020a5/proto-google-iam-v1-1.60.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api.grpc/proto-google-iam-v1/1.60.0/f4057c8c09e89872e0b5acec2ce31173230020a5/proto-google-iam-v1-1.60.0.jar",
+    "sha256": "e9b4884a3edccd4a62ab49c265bd4fe97691ef2cbcec8578d98d39edde938e7b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api/gax/2.74.0/f8aad16910fabdcb8014a5feb15788970083c3e1/gax-2.74.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api/gax/2.74.0/f8aad16910fabdcb8014a5feb15788970083c3e1/gax-2.74.0.jar",
+    "sha256": "2556c895209645434ae263f3e54d597ca3aad9fc3fcc6b8f1b2a7eb5e7e886bc"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api/gax-grpc/2.74.0/bdca5a3a76d35377a0ab718894f0ae6b23f9c56/gax-grpc-2.74.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api/gax-grpc/2.74.0/bdca5a3a76d35377a0ab718894f0ae6b23f9c56/gax-grpc-2.74.0.jar",
+    "sha256": "f9a699dce4915e8f6f7b8af128901d0c5bf867626059c2760a9b19de5ae4ab02"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-inprocess/1.76.2/d19aaa202020d8ba39cd4b3f8c3f972002ce66b9/grpc-inprocess-1.76.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-inprocess/1.76.2/d19aaa202020d8ba39cd4b3f8c3f972002ce66b9/grpc-inprocess-1.76.2.jar",
+    "sha256": "261bdb1a71ecf7454898edda41981a15929cc43379a31f4c4d4c3c9710975e09"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.android/annotations/4.1.1.4/a1678ba907bf92691d879fef34e1a187038f9259/annotations-4.1.1.4.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.android/annotations/4.1.1.4/a1678ba907bf92691d879fef34e1a187038f9259/annotations-4.1.1.4.jar",
+    "sha256": "ba734e1e84c09d615af6a09d33034b4f0442f8772dec120efb376d86a565ae15"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-alts/1.76.2/5be814ed9b23c52c1d689a79e820811b0684f9ae/grpc-alts-1.76.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-alts/1.76.2/5be814ed9b23c52c1d689a79e820811b0684f9ae/grpc-alts-1.76.2.jar",
+    "sha256": "b53bfb144def7803317ddf6ff4318fdafff7092f0e17a0826ddf085b8e113fd7"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-grpclb/1.76.2/bbd28d63a51261397fd8858586e7cdf1f4fec436/grpc-grpclb-1.76.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-grpclb/1.76.2/bbd28d63a51261397fd8858586e7cdf1f4fec436/grpc-grpclb-1.76.2.jar",
+    "sha256": "e9efb20aea79b58bedb81da3e0ddee2be1f13ce99dfc443e4ba8fe2f6dca6065"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.conscrypt/conscrypt-openjdk-uber/2.5.2/d858f142ea189c62771c505a6548d8606ac098fe/conscrypt-openjdk-uber-2.5.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.conscrypt/conscrypt-openjdk-uber/2.5.2/d858f142ea189c62771c505a6548d8606ac098fe/conscrypt-openjdk-uber-2.5.2.jar",
+    "sha256": "eaf537d98e033d0f0451cd1b8cc74e02d7b55ec882da63c88060d806ba89c348"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-auth/1.76.2/534130696c51d22c6288d5a5b894c1081edb1dd8/grpc-auth-1.76.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-auth/1.76.2/534130696c51d22c6288d5a5b894c1081edb1dd8/grpc-auth-1.76.2.jar",
+    "sha256": "66928fb5388e4d9d0ace7617d5fc82208ecb8bbdd2453c6039c0c46909253ca2"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-googleapis/1.76.2/1c053c3f16f6f6bf85f8c9ffa23e7d02b9b633e2/grpc-googleapis-1.76.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-googleapis/1.76.2/1c053c3f16f6f6bf85f8c9ffa23e7d02b9b633e2/grpc-googleapis-1.76.2.jar",
+    "sha256": "6372ddbcd3a2aa53753ab18d067e1d0a0841eb486af4a5ac3e4d7864f7cc6c37"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-xds/1.76.2/4992ea9b86cbb7dac7547b0bc254f271aa921265/grpc-xds-1.76.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-xds/1.76.2/4992ea9b86cbb7dac7547b0bc254f271aa921265/grpc-xds-1.76.2.jar",
+    "sha256": "16fd53a43872d8fc1771c854ac42408422a4b270ca260a75cb47dc5b6ee6f4ed"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-services/1.76.2/e1e9b5e7a8a1f3e9c09e1f7f9bf2eb3870fa85fb/grpc-services-1.76.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-services/1.76.2/e1e9b5e7a8a1f3e9c09e1f7f9bf2eb3870fa85fb/grpc-services-1.76.2.jar",
+    "sha256": "d97b1b96576db7c1a9be4f671990f1163de03fcf34110c36c4f2796a540650bd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.re2j/re2j/1.8/12c25e923e9e4fb1575a7640a2698745c6f19a94/re2j-1.8.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.re2j/re2j/1.8/12c25e923e9e4fb1575a7640a2698745c6f19a94/re2j-1.8.jar",
+    "sha256": "7b52c72156dd7f98b3237a5b35c1d34fba381b21048c89208913ad80a45dfbd7"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api/gax-httpjson/2.74.0/3d96e94b2eab8250acb4062e763f6c08fd8d74e8/gax-httpjson-2.74.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.google.api/gax-httpjson/2.74.0/3d96e94b2eab8250acb4062e763f6c08fd8d74e8/gax-httpjson-2.74.0.jar",
+    "sha256": "ce0b76ed3c35a7231c80090fb4fb2c148c303ba103342b9c7e05d6e521f1ffda"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.threeten/threetenbp/1.7.0/8703e893440e550295aa358281db468625bc9a05/threetenbp-1.7.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.threeten/threetenbp/1.7.0/8703e893440e550295aa358281db468625bc9a05/threetenbp-1.7.0.jar",
+    "sha256": "857917d2319a4e92dc1c5e3aeb75a0dac84445ed315e7ac3d82bb8d2b298977f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpcore/4.4.16/51cf043c87253c9f58b539c9f7e44c8894223850/httpcore-4.4.16.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents/httpcore/4.4.16/51cf043c87253c9f58b539c9f7e44c8894223850/httpcore-4.4.16.jar",
+    "sha256": "6c9b3dd142a09dc468e23ad39aad6f75a0f2b85125104469f026e52a474e464f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry/opentelemetry-api/1.51.0/9806bcb604f693fb4b75962df9d4d2d19da4806d/opentelemetry-api-1.51.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry/opentelemetry-api/1.51.0/9806bcb604f693fb4b75962df9d4d2d19da4806d/opentelemetry-api-1.51.0.jar",
+    "sha256": "ed88c2876e5a525ccbb56eb918d7955797b9a245f113d50b9798d1634a90951d"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry/opentelemetry-context/1.51.0/e807ef03950f5b01f7b8c2698c0abba4072288ed/opentelemetry-context-1.51.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.opentelemetry/opentelemetry-context/1.51.0/e807ef03950f5b01f7b8c2698c0abba4072288ed/opentelemetry-context-1.51.0.jar",
+    "sha256": "df4e308883ef2a2f28415140c5629901f72223f9ec713063f93395cff11bf4a1"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/javax.annotation/javax.annotation-api/1.3.2/934c04d3cfef185a8008e7bf34331b79730a9d43/javax.annotation-api-1.3.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/javax.annotation/javax.annotation-api/1.3.2/934c04d3cfef185a8008e7bf34331b79730a9d43/javax.annotation-api-1.3.2.jar",
+    "sha256": "e04ba5195bcd555dc95650f7cc614d151e4bcd52d29a10b8aa2197f3ab89ab9b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.javacrumbs.future-converter/future-converter-java8-common/1.2.0/575932e773d58ddd459af417b2df31e2d07c4afc/future-converter-java8-common-1.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.javacrumbs.future-converter/future-converter-java8-common/1.2.0/575932e773d58ddd459af417b2df31e2d07c4afc/future-converter-java8-common-1.2.0.jar",
+    "sha256": "bed25293fabbf59e048f67f88e55140ebc1cfa4fa899e397545d0193e866a65c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.javacrumbs.future-converter/future-converter-guava-common/1.2.0/b329c26e298bd77994cc2e304e4ac20da6f1569f/future-converter-guava-common-1.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.javacrumbs.future-converter/future-converter-guava-common/1.2.0/b329c26e298bd77994cc2e304e4ac20da6f1569f/future-converter-guava-common-1.2.0.jar",
+    "sha256": "82bfab706005ea51c3e76958a62564367cf9cae207c0b1d55b9734876b9780c1"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.javacrumbs.future-converter/future-converter-common/1.2.0/5fc7ea7c58ee0ce950e6104d5dda899f81959d7b/future-converter-common-1.2.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/net.javacrumbs.future-converter/future-converter-common/1.2.0/5fc7ea7c58ee0ce950e6104d5dda899f81959d7b/future-converter-common-1.2.0.jar",
+    "sha256": "567aeb2907088298fe5e67fd0fb1843571c24b46ef5b369f495c3d52c654b67b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/tools.jackson.core/jackson-core/3.0.2/620677db2f2085d59d916b0d6547bbaac7d6f674/jackson-core-3.0.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/tools.jackson.core/jackson-core/3.0.2/620677db2f2085d59d916b0d6547bbaac7d6f674/jackson-core-3.0.2.jar",
+    "sha256": "fa74515ba5fc01282cecab7e5970fa12a0f4ff23bd6c2061e9c7783338d0b436"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/tools.jackson.core/jackson-databind/3.0.2/a72d3b8a1c36c166df13726b13d34877f6ea9b1c/jackson-databind-3.0.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/tools.jackson.core/jackson-databind/3.0.2/a72d3b8a1c36c166df13726b13d34877f6ea9b1c/jackson-databind-3.0.2.jar",
+    "sha256": "f54f69bfc780380a3f4de42fb2c3e82b22c8ef4d84ba918cff81d22c6aa1069f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/service/1.23.0/872c4907f6b97765dcad9693f2b1ae118b8bc435/service-1.23.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.aayushatharva.brotli4j/service/1.23.0/872c4907f6b97765dcad9693f2b1ae118b8bc435/service-1.23.0.jar",
+    "sha256": "7f298d44dbb7688419f0179ee1dfa0e4436633272b05d38a5faf3a2b8d08697b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_tracer_otel/0.16.0/cc3d2b7b7cb6f077e3b1ee1d3e99eb54fddfa151/simpleclient_tracer_otel-0.16.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_tracer_otel/0.16.0/cc3d2b7b7cb6f077e3b1ee1d3e99eb54fddfa151/simpleclient_tracer_otel-0.16.0.jar",
+    "sha256": "a2a84c59bef3796bb7f9c6f2ae8b7de8b905313ef28180ac3de7ff61dd68df3f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_tracer_otel_agent/0.16.0/9d724771e339ff7ec6cd7c0cc170d3470904c5/simpleclient_tracer_otel_agent-0.16.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_tracer_otel_agent/0.16.0/9d724771e339ff7ec6cd7c0cc170d3470904c5/simpleclient_tracer_otel_agent-0.16.0.jar",
+    "sha256": "7ad2bb40df74a772d9f5445a3d03579b49d6b37a47d5e90f6cf3f59ecf41ad06"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.swagger/swagger-annotations/1.6.16/371ecf09af06ffcb74aa821a0e380032cf75daef/swagger-annotations-1.6.16.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.swagger/swagger-annotations/1.6.16/371ecf09af06ffcb74aa821a0e380032cf75daef/swagger-annotations-1.6.16.jar",
+    "sha256": "c832295d639aa54139404b7406fb2f8fbf1da8c57219df3395de475503464297"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.fasterxml.jackson.core/jackson-core/2.22.0/f25b20bdff54546bcaf9d1ac4701447f2d3968f7/jackson-core-2.22.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.fasterxml.jackson.core/jackson-core/2.22.0/f25b20bdff54546bcaf9d1ac4701447f2d3968f7/jackson-core-2.22.0.jar",
+    "sha256": "d2e8dd4df1e0f61b786ea06792f5bf4235d8278f158f3be6e997e955931c0c98"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.fasterxml.jackson.core/jackson-databind/2.22.0/7aa54fc3755a9285eec2e73053bde1b9b845a9b2/jackson-databind-2.22.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.fasterxml.jackson.core/jackson-databind/2.22.0/7aa54fc3755a9285eec2e73053bde1b9b845a9b2/jackson-databind-2.22.0.jar",
+    "sha256": "3520a0351f294699e3e1b7a37c7a726afd81e1a89ae702ac7d47ff347fd2ecbf"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.bouncycastle/bcutil-jdk18on/1.84/79bfd1f9c6bd7431ff22e29935ec20f12f0af0d3/bcutil-jdk18on-1.84.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.bouncycastle/bcutil-jdk18on/1.84/79bfd1f9c6bd7431ff22e29935ec20f12f0af0d3/bcutil-jdk18on-1.84.jar",
+    "sha256": "b374e16963421fb9cfb01cc20d7ad8fd2f8b8188e3eef0ec0a8965e245f7619a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/endpoints-spi/2.46.18/7e2ca83e8cb5b8b814e336dadc79ff090f0dde74/endpoints-spi-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/endpoints-spi/2.46.18/7e2ca83e8cb5b8b814e336dadc79ff090f0dde74/endpoints-spi-2.46.18.jar",
+    "sha256": "1122c6a54638e748e375c1a71a2ea8f67a415d932343c8e648641ede26707fdc"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/checksums-spi/2.46.18/51e7746369f605e7f1b9e658f4f218511059ad98/checksums-spi-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/checksums-spi/2.46.18/51e7746369f605e7f1b9e658f4f218511059ad98/checksums-spi-2.46.18.jar",
+    "sha256": "6dde7d0e198b8d9d8d986dcf7fab0e03b0cddc1f6fb1b9a3c670d273dbb3c49d"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-auth-aws-eventstream/2.46.18/9313c555424d11e296faa54a9269358a74c293d5/http-auth-aws-eventstream-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/http-auth-aws-eventstream/2.46.18/9313c555424d11e296faa54a9269358a74c293d5/http-auth-aws-eventstream-2.46.18.jar",
+    "sha256": "ca17c5d235d045ce1ce8985c3eb4a79223167563091bcc31f75ab913ed11cbc3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/utils-lite/2.46.18/d503fa5842a9683fbbfe6d0bd47dd529f795c4b/utils-lite-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/utils-lite/2.46.18/d503fa5842a9683fbbfe6d0bd47dd529f795c4b/utils-lite-2.46.18.jar",
+    "sha256": "b53b0aa4502758f44df3eb1cf767b2d2b8144fe2993a42faedf79a4485e142dd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/annotations/2.46.18/2ff1a7e280a2a90f9d5971f8d7847c8ddee120f9/annotations-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/annotations/2.46.18/2ff1a7e280a2a90f9d5971f8d7847c8ddee120f9/annotations-2.46.18.jar",
+    "sha256": "7ba5589cf51edf5a850d9da9c539953f2909b2ec25e40398837cb5bd1372dab0"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.nimbusds/nimbus-jose-jwt/10.4/ca983d3f13080567e36ea554a15af38f31a0cb4/nimbus-jose-jwt-10.4.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.nimbusds/nimbus-jose-jwt/10.4/ca983d3f13080567e36ea554a15af38f31a0cb4/nimbus-jose-jwt-10.4.jar",
+    "sha256": "6f13f3480ddc53d820d276f582f54843cff1daf5c6e35e534947e9de7723b46b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/commons-logging/commons-logging/1.3.5/a3fcc5d3c29b2b03433aa2d2f2d2c1b1638924a1/commons-logging-1.3.5.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/commons-logging/commons-logging/1.3.5/a3fcc5d3c29b2b03433aa2d2f2d2c1b1638924a1/commons-logging-1.3.5.jar",
+    "sha256": "6d7a744e4027649fbb50895df9497d109f98c766a637062fe8d2eabbb3140ba4"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec/4.1.135.Final/cf36e54dc81aa160a93780478727bdb3c3fa4600/netty-codec-4.1.135.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec/4.1.135.Final/cf36e54dc81aa160a93780478727bdb3c3fa4600/netty-codec-4.1.135.Final.jar",
+    "sha256": "7252171264dbb5bb8ed38e77f89643b31e3cabc96144ec27b6882435d718a61e"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-transport-native-epoll/4.2.7.Final/e83998bfc10b5289d9bcbe807c4079ef0eed8e6f/netty-transport-native-epoll-4.2.7.Final-linux-x86_64.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-transport-native-epoll/4.2.7.Final/e83998bfc10b5289d9bcbe807c4079ef0eed8e6f/netty-transport-native-epoll-4.2.7.Final-linux-x86_64.jar",
+    "sha256": "7f395c8fdbe6990f7664408b57d919042401b893178fcba48bebf1a61bf78618"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-compression/4.2.7.Final/572341bc1ca90fd9d6e47f1d2694aab5258566e9/netty-codec-compression-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-compression/4.2.7.Final/572341bc1ca90fd9d6e47f1d2694aab5258566e9/netty-codec-compression-4.2.7.Final.jar",
+    "sha256": "edd53ad34991804301a46571113d8ffb4d6f67e6d874674dafbb915724275cb3"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-dns/4.2.7.Final/95a2b329442a22a7d77de5fc5ecebbcf26b8cd4e/netty-codec-dns-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-dns/4.2.7.Final/95a2b329442a22a7d77de5fc5ecebbcf26b8cd4e/netty-codec-dns-4.2.7.Final.jar",
+    "sha256": "148f08291e4d6f4e361f33ee691ce66b8c9a95ff845176bfb6bd88cffb95b2fd"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-socks/4.2.7.Final/9f26324e436e8884bb4aa801a6e9151c0b50a754/netty-codec-socks-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-socks/4.2.7.Final/9f26324e436e8884bb4aa801a6e9151c0b50a754/netty-codec-socks-4.2.7.Final.jar",
+    "sha256": "a5e245fb9038544d2a9bc8db86efd819aa6adb3be3257a879dafbe1bf78eff33"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-base/4.2.7.Final/915e381ebabcf115f1c7ff7032d55c48afb50210/netty-codec-base-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-codec-base/4.2.7.Final/915e381ebabcf115f1c7ff7032d55c48afb50210/netty-codec-base-4.2.7.Final.jar",
+    "sha256": "6360415b7c87160afcde5e7d4946c35539b9f043e8166c91a7fff95cc6067d9f"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-transport-classes-epoll/4.2.7.Final/1075c09f48a78eef9d819fbfd9096b903fdd362a/netty-transport-classes-epoll-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-transport-classes-epoll/4.2.7.Final/1075c09f48a78eef9d819fbfd9096b903fdd362a/netty-transport-classes-epoll-4.2.7.Final.jar",
+    "sha256": "4492948e6a7694398e5197cf15ed2e21d6662a739d010ae666fa276e7222853c"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-transport-native-unix-common/4.2.7.Final/89953f04259ea7502cffb313630dd51e00e60669/netty-transport-native-unix-common-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-transport-native-unix-common/4.2.7.Final/89953f04259ea7502cffb313630dd51e00e60669/netty-transport-native-unix-common-4.2.7.Final.jar",
+    "sha256": "736703b3f6d127e182f5be888b6e15732b0c08d6634e00725352a6a9d19974b2"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-transport/4.2.7.Final/83ea548981d0d8c4a98027cc1a6f9624f902e142/netty-transport-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-transport/4.2.7.Final/83ea548981d0d8c4a98027cc1a6f9624f902e142/netty-transport-4.2.7.Final.jar",
+    "sha256": "aadc6fb05c14fb789368ca3f854721549c72f6c0d81798bbccf9de1bb716892b"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-buffer/4.2.7.Final/5555ff561643bf2f8430fb57c24403c0efe15994/netty-buffer-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-buffer/4.2.7.Final/5555ff561643bf2f8430fb57c24403c0efe15994/netty-buffer-4.2.7.Final.jar",
+    "sha256": "b81613c8ed22b1cc39eccf2a28bd0c1d4561fb2e5e542061617ef4ce1d228bf5"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-resolver/4.2.7.Final/5f3e5ef8de03992cd4fb46960dc0085ec1a12a12/netty-resolver-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-resolver/4.2.7.Final/5f3e5ef8de03992cd4fb46960dc0085ec1a12a12/netty-resolver-4.2.7.Final.jar",
+    "sha256": "7e4d569867e6c08437fb21a220ea01c294b0e38f01149b683c895a1bcd928438"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-common/4.2.7.Final/11aa30df26af4fca3239ac1917f303a280f301e1/netty-common-4.2.7.Final.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.netty/netty-common/4.2.7.Final/11aa30df26af4fca3239ac1917f303a280f301e1/netty-common-4.2.7.Final.jar",
+    "sha256": "2345bc0ed5843fa57aa49eba67529485c3a1d420fcf0429324c8220c7a80e9a6"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.common/2.12.0/ce79e5cc3c2de3e8d96a6df4dad3bf5c9fa6b7d7/org.eclipse.emf.common-2.12.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.common/2.12.0/ce79e5cc3c2de3e8d96a6df4dad3bf5c9fa6b7d7/org.eclipse.emf.common-2.12.0.jar",
+    "sha256": "80b9ddd0174bbc5623767ed9f4c96b17ae98ffaefb8edbcc780d59b0d7efef83"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore/2.12.0/644751074e8b448526815f9bdeda26770df2e213/org.eclipse.emf.ecore-2.12.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.eclipse.emf/org.eclipse.emf.ecore/2.12.0/644751074e8b448526815f9bdeda26770df2e213/org.eclipse.emf.ecore-2.12.0.jar",
+    "sha256": "2ac691cc4fa09fdf18beef6bdd457b7bdfe4d301f9707a8c89c6cb209139f4f9"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/jakarta.activation/jakarta.activation-api/2.1.4/9e5c2a0d75dde71a0bedc4dbdbe47b78a5dc50f8/jakarta.activation-api-2.1.4.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/jakarta.activation/jakarta.activation-api/2.1.4/9e5c2a0d75dde71a0bedc4dbdbe47b78a5dc50f8/jakarta.activation-api-2.1.4.jar",
+    "sha256": "c9db52100ce6c8aac95cc39075f95720d2e561b11f8051b81c121ad4effd7004"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents.core5/httpcore5-h2/5.4/83cdd62ef3140664f46be59c2c2727141d1c5a32/httpcore5-h2-5.4.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents.core5/httpcore5-h2/5.4/83cdd62ef3140664f46be59c2c2727141d1c5a32/httpcore5-h2-5.4.jar",
+    "sha256": "2e0f4ace15db2d1609c2b06eca6012e7582afe4a99ad8d15073f62dd8edb3460"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents.core5/httpcore5/5.4.3/32a0699fbcb103f5621c00983ee8f5aac080e4a6/httpcore5-5.4.3.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.httpcomponents.core5/httpcore5/5.4.3/32a0699fbcb103f5621c00983ee8f5aac080e4a6/httpcore5-5.4.3.jar",
+    "sha256": "18bfbbabb478dfb67f31aeaf428c387f3c3df654582e1309f708ee1f3086830a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.fasterxml.jackson.core/jackson-annotations/2.22/15c67f9498d6934cff9510fc70c5a12e52290457/jackson-annotations-2.22.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.fasterxml.jackson.core/jackson-annotations/2.22/15c67f9498d6934cff9510fc70c5a12e52290457/jackson-annotations-2.22.jar",
+    "sha256": "21ddb598807d3a51a876704eb979d9296e1c6a6f47ab1826ff88c6d6a127a2d0"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_tracer_common/0.16.0/dec00ef7c6155c4ca1109ec8248f7ff58d8f6cd3/simpleclient_tracer_common-0.16.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/io.prometheus/simpleclient_tracer_common/0.16.0/dec00ef7c6155c4ca1109ec8248f7ff58d8f6cd3/simpleclient_tracer_common-0.16.0.jar",
+    "sha256": "e84a784ac8e24f182ee62da80b6b5c8140774b75bfa4bf9cc3d3b8390db625f6"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.bouncycastle/bcprov-jdk18on/1.84/2d5651789941d2f8ae9b8771f23356de6b61e96b/bcprov-jdk18on-1.84.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.bouncycastle/bcprov-jdk18on/1.84/2d5651789941d2f8ae9b8771f23356de6b61e96b/bcprov-jdk18on-1.84.jar",
+    "sha256": "64d6c5a6121fcd927152dd182cbed39afe0fda641a970d9bcc0c9cb1858b2731"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.eventstream/eventstream/1.0.1/6ff8649dffc5190366ada897ba8525a836297784/eventstream-1.0.1.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.eventstream/eventstream/1.0.1/6ff8649dffc5190366ada897ba8525a836297784/eventstream-1.0.1.jar",
+    "sha256": "0c37d8e696117f02c302191b8110b0d0eb20fa412fce34c3a269ec73c16ce822"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/third-party-jackson-core/2.46.18/cb5770cdf77c51762cf86c9565c50875a6dff94b/third-party-jackson-core-2.46.18.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/software.amazon.awssdk/third-party-jackson-core/2.46.18/cb5770cdf77c51762cf86c9565c50875a6dff94b/third-party-jackson-core-2.46.18.jar",
+    "sha256": "1f55e5c350362870e0192fbe60f2680b63da48a689dcc4fcec30a8e299447951"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/ch.qos.logback/logback-core/1.5.21/970bf47cbc34d24e47f375b6b4e407d6d699474f/logback-core-1.5.21.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/ch.qos.logback/logback-core/1.5.21/970bf47cbc34d24e47f375b6b4e407d6d699474f/logback-core-1.5.21.jar",
+    "sha256": "0825ac1fc5296369121e5423e397c52d125b0e3fae743cfc0d8e416159f14f44"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-api/2.25.2/292c1a2b1702f1e1e3adb13e1c57e5bff60335ff/log4j-api-2.25.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-api/2.25.2/292c1a2b1702f1e1e3adb13e1c57e5bff60335ff/log4j-api-2.25.2.jar",
+    "sha256": "9fd66c9fe0bea06fa9666c147989a46cafaa92b4a88753697d3945cc43338cbb"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-crypto/7.0.0/b0dd95e57fdbbacc21d89c19ff194224d1e9f042/spring-security-crypto-7.0.0.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.springframework.security/spring-security-crypto/7.0.0/b0dd95e57fdbbacc21d89c19ff194224d1e9f042/spring-security-crypto-7.0.0.jar",
+    "sha256": "1f3a08d53873aaf9be97faf3e51dddeb10693652f8c9310288f8f4e07b01be3a"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.typesafe/config/1.4.4/f19816be89ef80f9106535828ba32fd4cd8e6b77/config-1.4.4.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/com.typesafe/config/1.4.4/f19816be89ef80f9106535828ba32fd4cd8e6b77/config-1.4.4.jar",
+    "sha256": "ab16decc45cc678b0cf17fb9668f380a73bfdf11b75af1fa1ddec5da82805aea"
+  },
+  {
+    "original": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.fusesource.jansi/jansi/2.4.2/ba7387c31622c6650b83edba1bbb115f1fe462ba/jansi-2.4.2.jar",
+    "snapshot": "/Users/ovd/.gradle/caches/modules-2/files-2.1/org.fusesource.jansi/jansi/2.4.2/ba7387c31622c6650b83edba1bbb115f1fe462ba/jansi-2.4.2.jar",
+    "sha256": "0b7b8b003a90ea491579b62f5118828e45112914c65589b00faa49d6ec785839"
+  }
+]

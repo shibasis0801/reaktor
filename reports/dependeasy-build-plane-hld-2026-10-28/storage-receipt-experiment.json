@@ -1,0 +1,8 @@
+{
+  "remoteBytes": 27254067200,
+  "temporaryBytes": 21195735040,
+  "freeBytes": 18525962240,
+  "remoteLimitBytes": 40000000000,
+  "temporaryLimitBytes": 40000000000,
+  "freeFloorBytes": 15000000000
+}

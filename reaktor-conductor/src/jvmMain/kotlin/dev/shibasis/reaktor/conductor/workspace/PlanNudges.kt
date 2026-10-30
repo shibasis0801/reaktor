@@ -2,28 +2,26 @@ package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.cli.HarnessSession
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption.APPEND
-import java.nio.file.StandardOpenOption.CREATE
 
 data class PlanReminder(val thread: String, val kind: String, val text: String)
 
-class PlanNudges(private val inbox: Path) {
+class PlanNudges(inbox: Path) {
+    private val inbox = ThreadInbox(inbox)
     private val sent = HashMap<Pair<String, String>, Long>()
 
     @Synchronized fun check(sessions: List<HarnessSession>, plans: Map<String, WorkPlan>, now: Long): List<PlanReminder> =
-        sessions.filter { it.runtime == RuntimeKind.ClaudeCode && it.live(now) }.mapNotNull { session ->
+        sessions.filter { it.runtime in Reached && it.live(now) }.mapNotNull { session ->
             val thread = BoardRefs.session(session.runtime, session.id)
             val reminder = of(thread, plans[thread], session, now) ?: return@mapNotNull null
             if (sent.any { (key, at) -> key.first == thread && now - at < QuietMillis } || reminder.kind == Flat && (thread to Flat) in sent) return@mapNotNull null
             sent[thread to reminder.kind] = now
-            privateDirectory(inbox)
-            Files.writeString(inbox.resolve("${thread.replace(':', '-')}.txt"), reminder.text + "\n", CREATE, APPEND)
+            inbox.write(thread, reminder.text + "\n")
             reminder
         }
 
     companion object {
+        val Reached = setOf(RuntimeKind.ClaudeCode, RuntimeKind.Codex)
         const val QuietMillis = 15 * 60_000L
         const val Draw = "draw"
         const val Flat = "flat"

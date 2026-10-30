@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="MachineSignalSubpaneRenderTest[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:24:44.418Z" hostname="Shibasiss-MacBook-Pro-2.local" time="8.267">
+  <properties/>
+  <testcase name="everyAuthoredSubpaneRenders[jvm]" classname="ai.bestbuds.reaktor.machinesignal.MachineSignalSubpaneRenderTest" time="4.241"/>
+  <testcase name="migratedSubpanesFillTheirBody[jvm]" classname="ai.bestbuds.reaktor.machinesignal.MachineSignalSubpaneRenderTest" time="2.927"/>
+  <testcase name="theSelectedSubtabLooksDifferentFromTheRest[jvm]" classname="ai.bestbuds.reaktor.machinesignal.MachineSignalSubpaneRenderTest" time="1.076"/>
+  <testcase name="noAuthoredSubtabIsTruncatedToItsFirstWord[jvm]" classname="ai.bestbuds.reaktor.machinesignal.MachineSignalSubpaneRenderTest" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

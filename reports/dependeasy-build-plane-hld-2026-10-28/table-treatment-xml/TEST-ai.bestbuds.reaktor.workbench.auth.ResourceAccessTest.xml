@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ResourceAccessTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:32.554Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.004">
+  <properties/>
+  <testcase name="aResourceListsItsRelationsItsStoredSharesAndWhatItsServiceSupplies[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.ResourceAccessTest" time="0.002"/>
+  <testcase name="storedMembershipIsAnsweredFromTheStore[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.ResourceAccessTest" time="0.002"/>
+  <testcase name="aMissingMembershipNeedsObjectContextWhileABlockIsADefiniteDenial[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.ResourceAccessTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

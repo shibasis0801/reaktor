@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AdaptiveOperationsTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:25:36.694Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.056">
+  <properties/>
+  <testcase name="splitterDragAndAccessibilityActionsResizeRealContentAtBothMonitorSizes[jvm]" classname="ai.bestbuds.reaktor.workbench.AdaptiveOperationsTest" time="0.037"/>
+  <testcase name="responsiveValuesAndModifiersFollowTheirActualParentWidth[jvm]" classname="ai.bestbuds.reaktor.workbench.AdaptiveOperationsTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

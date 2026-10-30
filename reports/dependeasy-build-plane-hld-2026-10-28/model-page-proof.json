@@ -1,0 +1,61 @@
+{
+  "recordedAt": 1793228946.394037,
+  "loadAfter": [
+    7.10595703125,
+    9.7529296875,
+    14.99609375
+  ],
+  "summary": [
+    {
+      "scope": "nodes:0:1",
+      "beforeSeconds": 0.0448536455,
+      "afterSeconds": 0.0371096875,
+      "reductionPercent": 17.26494672545623,
+      "speedup": 1.208677531978678,
+      "measuredPairs": 8,
+      "outputSha256": "b101b36203b5c8a4cb601447722b2a1af5961b9d163103668671d80540225261"
+    },
+    {
+      "scope": "nodes:1000:10",
+      "beforeSeconds": 0.041564854,
+      "afterSeconds": 0.036523,
+      "reductionPercent": 12.130089522268017,
+      "speedup": 1.1380459984119595,
+      "measuredPairs": 8,
+      "outputSha256": "0de83769c1ba9813909ab54e2c5a578e5ec409e0e6079f99a933ca5b842c6167"
+    },
+    {
+      "scope": "nodes:1906:10",
+      "beforeSeconds": 0.040786083,
+      "afterSeconds": 0.03341925,
+      "reductionPercent": 18.062124279009595,
+      "speedup": 1.2204368141116273,
+      "measuredPairs": 8,
+      "outputSha256": "2633984e4f4d3c2b9bacf06075f3c3a8146aa5b699892f0ab7f6754d230d50c2"
+    },
+    {
+      "scope": "nodes:3000:1",
+      "beforeSeconds": 0.042221499499999995,
+      "afterSeconds": 0.035974520499999996,
+      "reductionPercent": 14.795729839012473,
+      "speedup": 1.1736500977129076,
+      "measuredPairs": 8,
+      "outputSha256": "963e0eb60f1b34606f4584a6a320dc77cf82bc249cd8968b9cd2e1a8932063ba"
+    },
+    {
+      "scope": "edges:1000:10",
+      "beforeSeconds": 0.029737812500000002,
+      "afterSeconds": 0.032405208000000005,
+      "reductionPercent": -8.969709860131792,
+      "speedup": 0.9176862095747078,
+      "measuredPairs": 8,
+      "outputSha256": "aebbdbf3dd83da90485faa5f977439b108689865bbf66927e7b7f92723978173"
+    }
+  ],
+  "fixtureUnchanged": true,
+  "runtimeUnchanged": true,
+  "sampleSha256": "5bf8257a89de489d5800f8b701947b882577c386c1158fa5b024cdaad9494f40",
+  "scope": "Fixed real-model decode and bounded projection, declarations excluded. Not RPC, filesystem staleness IO or Gradle/build E2E.",
+  "inputProof": "model-page-inputs.json",
+  "profile": "model-page-baseline.jfr"
+}

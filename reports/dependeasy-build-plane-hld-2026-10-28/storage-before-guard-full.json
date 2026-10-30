@@ -1,0 +1,37 @@
+{
+  "started_epoch": 1793231862.442364,
+  "dry_run": false,
+  "free_bytes_before": 20647215104,
+  "minimum_free_bytes": 15000000000,
+  "tmp_workspace_roots": [
+    "/Users/ovd/dev/tmp",
+    "/Users/ovd/dev/reaktor/tmp",
+    "/Users/ovd/dev/reaktor/.tmp",
+    "/Users/ovd/dev/manna/tmp",
+    "/Users/ovd/dev/bestbuds/tmp",
+    "/Users/ovd/dev/bestbuds/.tmp",
+    "/Users/ovd/.codex/tmp",
+    "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/worktrees/9c71ad7c6640cc0ea7021f6ef3fbb4051806a8d44d510b89b72693a4afa195ec/bestbuds",
+    "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/worktrees/9c71ad7c6640cc0ea7021f6ef3fbb4051806a8d44d510b89b72693a4afa195ec/reaktor"
+  ],
+  "tmp_system_roots": [
+    "/private/tmp",
+    "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T"
+  ],
+  "tmp": {
+    "limit_bytes": 40000000000,
+    "bytes_before": 15917327360,
+    "bytes_after": 15917327360,
+    "removed": [],
+    "disk_bound_bytes": 21564542464,
+    "within_limit": true
+  },
+  "remote": {
+    "skipped": "active build or graph",
+    "limit_bytes": 40000000000,
+    "bytes_after": 29318209536,
+    "within_limit": true
+  },
+  "free_bytes_after": 20646297600,
+  "finished_epoch": 1793231881.7783492
+}

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "reaktor",
+    "--dir",
+    "/Users/ovd/dev/bestbuds",
+    "build",
+    "plan",
+    "bestbuds:workers:deployMessaging",
+    "--dependeasy.environment",
+    "prod",
+    "--json",
+    "--request-id",
+    "dependeasy-readonly-preview-prod-retry-20261029-1456"
+  ],
+  "started": "2026-10-29T14:57:11.272695+05:30",
+  "wallSeconds": 458.65194383399995,
+  "exitCode": 0,
+  "scope": "Repeated actual installed CLI read-only provider plan; prod per request, shared context unchanged; current shared source/load. Previous post-Gradle seal timeout retained. No apply/provider mutation or paired September claim."
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DocumentTabParityTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:24:41.818Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.194">
+  <properties/>
+  <testcase name="machineSignalDocumentTabsMatchTheShellsStrip[jvm]" classname="ai.bestbuds.reaktor.machinesignal.DocumentTabParityTest" time="0.194"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

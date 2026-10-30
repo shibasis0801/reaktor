@@ -1,0 +1,89 @@
+{
+  "scope": "Retained real StudioNavigationPerformanceTest JFR; weighted allocation samples are estimates, not precise bytes",
+  "jfrSha256": "7e8c4fc77b40f0cc395ae95f4dc80e164cb06ce924f82c7c45d4ceab0382ee26",
+  "durationSeconds": 138,
+  "heapMaxBytes": 536870912,
+  "gcEvents": 809,
+  "applicationAllocationSampleWeights": [
+    [
+      "dev.shibasis.reaktor.blueprint.NavigationLayoutKt.navigationPath",
+      2072711480
+    ],
+    [
+      "dev.shibasis.reaktor.service.OperationKt.canonicalize",
+      1424264320
+    ],
+    [
+      "ai.bestbuds.reaktor.workbench.studio.StudioTables.walk$visit",
+      1364915280
+    ],
+    [
+      "dev.shibasis.reaktor.graph.core.GraphDefinitionKt.withDefinitionIdentity",
+      1291417488
+    ],
+    [
+      "dev.shibasis.reaktor.blueprint.NavigationLayoutKt.navigationPath$clear",
+      1084498904
+    ],
+    [
+      "dev.shibasis.reaktor.blueprint.NavigationLayoutKt.navigationPath$push",
+      1080946232
+    ],
+    [
+      "dev.shibasis.reaktor.graph.core.GraphShapeKt.shape$visit",
+      1071267792
+    ],
+    [
+      "dev.shibasis.reaktor.graph.core.GraphDefinitionKt.digest",
+      984839056
+    ],
+    [
+      "ai.bestbuds.reaktor.workbench.studio.SourceIndexKt.appFrames",
+      807769912
+    ],
+    [
+      "dev.shibasis.reaktor.portgraph.port.TypedKeyedMapKt.flattenedValues",
+      656775392
+    ],
+    [
+      "dev.shibasis.reaktor.graph.core.GraphDefinitionKt.definitionStructure",
+      572110424
+    ],
+    [
+      "dev.shibasis.reaktor.service.OperationKt.fingerprint",
+      422891696
+    ],
+    [
+      "ai.bestbuds.reaktor.workbench.studio.StudioHost.Element",
+      417758888
+    ],
+    [
+      "dev.shibasis.reaktor.graph.core.GraphShapeKt.portShapes",
+      411982576
+    ],
+    [
+      "ai.bestbuds.app.data.analytics.HttpAnalyticsSink.retainGraph$bestbuds_app",
+      393780112
+    ],
+    [
+      "dev.shibasis.reaktor.graph.core.PortShape.copy",
+      272027328
+    ],
+    [
+      "dev.shibasis.reaktor.graph.core.NodeShape.copy",
+      270577416
+    ],
+    [
+      "dev.shibasis.reaktor.service.contract.Installed.getShape",
+      265847376
+    ],
+    [
+      "dev.shibasis.reaktor.graph.core.WireShape.copy",
+      158298680
+    ],
+    [
+      "dev.shibasis.reaktor.telemetry.port.PortTelemetryInterceptor.bind$dev_shibasis_reaktor_telemetry",
+      154115168
+    ]
+  ]
+}

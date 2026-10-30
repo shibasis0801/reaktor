@@ -1,0 +1,1443 @@
+[
+  {
+    "label": "version",
+    "code": 0,
+    "seconds": 0.32627683301689103,
+    "wrappers": {},
+    "text": "reaktor sha256:629be6600d88 (kernel wire v1)\n"
+  },
+  {
+    "label": "help",
+    "code": 0,
+    "seconds": 0.6770494999946095,
+    "wrappers": {},
+    "text": "Usage: reaktor [<options>]\n\n  Reaktor workspace operations, generated from the graph-owned catalog. Browse:\n  build list; build tree; build explain NODE. Verify: build plan NODE; build\n  run NODE. Inspect: run list; run show RUN; run logs RUN. Discover: operation\n  catalog; operation describe OPERATION. Phones: connect ios; connect android.\n  Independent physical-device trust, unlock and automation checks. Common\n  options before or after commands: --dir DIRECTORY (--workspace during\n  migration), --args JSON or -, --json, --detach, --request-id ID, --seat\n  HARNESS. No validated catalog cached here. Run reaktor --dir WORKSPACE\n  operation catalog explicitly to refresh it. Completion: completion\n  bash|zsh|fish. MCP: mcp install; mcp --stdio --seat HARNESS. Help, version\n  and static completion never start an owner.\n\nOptions:\n  -h, --help  Show this message and exit\n"
+  },
+  {
+    "label": "agent-version",
+    "code": 0,
+    "seconds": 0.21100950002437457,
+    "wrappers": {},
+    "text": "reaktor-agent sha256:f98d2704ca97\n"
+  },
+  {
+    "label": "agent-help",
+    "code": 0,
+    "seconds": 0.20482529199216515,
+    "wrappers": {},
+    "text": "reaktor-agent - workspace lifecycle, Atlas and standalone agent protocols.\nUse reaktor for build, check, deploy, runs and other workspace operations.\n\n  workspace           workspace owner, MCP, browser pairing and agent lifecycle\n  atlas               code queries, source reads, change plans and checks\n  usage [--since <ISO-date>] [--until <ISO-date>] [--dir <cwd-root>] [--requests <new.jsonl>]\n                      read local Codex/Claude request usage; defaults to the last seven days\n\n  --prompt <text>      the task (required)\n  --dir <path>         working directory the agents read (default: current directory)\n  --protocol <name>    ask | all | council | pipeline | planned   (default: ask)\n  --plan <file>        a Protocol as JSON: your own topology, used instead of --protocol\n  --agents <a,b,c>     agent ids to involve (default: every participant)\n  --roster <file>      JSON array of AgentSpec: your own agents (default: a small sample roster)\n  --thread <file>      read and write the canonical thread here\n  --context <file>     scoped ContextPacket JSON (e.g. Manna context_for_task result data)\n  --dry                use the offline Echo runtime; spawns nothing\n  --isolate-config     run harnesses without your own config (reproducible; ignores your setup)\n  --quiet              do not stream agent output\n\nThe built-in roster and pipeline are samples. Real use is --roster with your own agents and\n--plan with your own topology, or --protocol planned to let an agent design both.\n\nExamples:\n  --protocol council --prompt \"Should reaktor-db own sync, or should reaktor-service?\"\n  --roster team.json --plan review.json --prompt \"Harden the notification path\"\n  --protocol planned --agents architect --prompt \"Port the FFI wire to credit backpressure\"\n  --protocol ask --agents skeptic --prompt \"What breaks in this design?\"\n"
+  },
+  {
+    "label": "kernel-status",
+    "code": 0,
+    "seconds": 3.3576223750133067,
+    "wrappers": {},
+    "outcome": {
+      "type": "completed",
+      "result": {
+        "owner": "kernel.jar in /Users/ovd/dev/offload/.remote-dev/performance-followup-20261028/cli/distribution/reaktor/lib, built 28 Oct 22:02; this process started 28 Oct 22:02",
+        "capabilities": "c2c8cf08bff1",
+        "operations": 266,
+        "recipes": [
+          "rename",
+          "edit",
+          "structural",
+          "change-type"
+        ],
+        "presets": [
+          "map",
+          "investigate",
+          "impact",
+          "affected-checks",
+          "explain",
+          "wiring",
+          "runtime",
+          "routes"
+        ],
+        "behind": [],
+        "sources": [
+          "this repository at 1810d443c 28 Oct 15:04 cloudflare: mount a graph's contracts except the ones only queues reach, 89 files changed and not committed"
+        ],
+        "models": [
+          "build/dependeasy/model.json: 1387 build nodes",
+          "the compilations are not exported yet"
+        ],
+        "helpers": [
+          "no Kotlin helper is built: ./gradlew :reaktor:reaktor-code:kotlinSemanticDistZip builds it"
+        ],
+        "indexing": [
+          "kotlin-analysis-api/2.5.0-Beta2-59 has indexed 0 of 0 Kotlin files",
+          "No TypeScript project is declared: no pnpm-workspace.yaml lists a package with a tsconfig.json",
+          "clangd no native module has compile commands under build/dependeasy/native yet; building one writes them"
+        ],
+        "unavailable": [
+          "kotlin-analysis-api/2.5.0-Beta2-59: has indexed 0 of 0 Kotlin files",
+          "scip-typescript/0.4.0: No TypeScript project is declared: no pnpm-workspace.yaml lists a package with a tsconfig.json",
+          "clangd: no native module has compile commands under build/dependeasy/native yet; building one writes them",
+          "atlas-compilations: not exported yet; the first rename plan or indexing exports it",
+          "retained telemetry: no span of production is retained for the last 60 minutes",
+          "semantic: no compiler has indexed a file yet",
+          "runtime: the kernel retains no telemetry span; telemetry.refresh reads spans, and devtools, rgp/1 and a test recorder would add activations"
+        ]
+      },
+      "reference": {
+        "operation": "kernel.status",
+        "requestId": "c45655ab-1921-4568-bd63-3852af673596",
+        "workspace": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor"
+      }
+    }
+  },
+  {
+    "label": "plan-first",
+    "code": 0,
+    "seconds": 41.01330145902466,
+    "wrappers": {
+      "83549": "java -Xmx64m -Xms64m -Dorg.gradle.appname=gradlew -jar /Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/gradle/wrapper/gradle-wrapper.jar exportBuildModel -Pdependeasy.gradleRequest=/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/contracts/gradle/requests/eb30afe2fb677dde76459dcc4664ea8fbc6814d21cfb0366ffcf8b183bfba0e9.json --console=plain",
+      "83636": "java -Xmx64m -Xms64m -Dorg.gradle.appname=gradlew -jar /Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/gradle/wrapper/gradle-wrapper.jar planBuildNode -Pdependeasy.gradleRequest=/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/contracts/gradle/requests/eb30afe2fb677dde76459dcc4664ea8fbc6814d21cfb0366ffcf8b183bfba0e9.json --console=plain"
+    },
+    "outcome": {
+      "type": "completed",
+      "result": {
+        "taskId": "reaktor:reaktor-core:outputJvmLibrary",
+        "environment": "local",
+        "summary": "Kernel outputJvmLibrary in local \u00b7 LocalArtifactWrite \u00b7 source dependeasy#reaktor/reaktor-core/build.gradle.kts:19",
+        "fingerprint": "22fd275880c2f541f82b3d8d",
+        "requiresSecondApproval": false,
+        "displayCommand": [
+          "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/gradlew",
+          "runBuildNode",
+          "-Pdependeasy.gradleRequest=/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/contracts/gradle/requests/fd023c7946c4a8174ca364225dabfd78cd4a5042da622103750d0955cfa10f47.json",
+          "--console=plain"
+        ],
+        "workingDirectory": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor",
+        "gradlePlan": {
+          "schema": 1,
+          "node": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "outputJvmLibrary"
+          },
+          "modelDigest": "4bf459911eb6195192752fb444cd8342872d1c8d743615a3f7a4d6e764945569",
+          "requestDigest": "eb30afe2fb677dde76459dcc4664ea8fbc6814d21cfb0366ffcf8b183bfba0e9",
+          "contextDigest": "26309eb47c01cceec6b4a6a135a4456cf824c3b21d39db82632a3c1e816758f6",
+          "invocation": [
+            ":reaktor-core:jvmJar"
+          ],
+          "configuredMillis": 16092,
+          "tasks": [
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "checkKotlinGradlePluginConfigurationErrors"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kmpPartiallyResolvedDependenciesChecker"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "compileJvmMainJava"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileKotlinJvm"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kspKotlinJvm"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "compileKotlinJvm"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "checkKotlinGradlePluginConfigurationErrors"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kmpPartiallyResolvedDependenciesChecker"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kspKotlinJvm"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "jvmJar"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileJvmMainJava"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileKotlinJvm"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "jvmMainClasses"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "jvmProcessResources"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "jvmMainClasses"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileJvmMainJava"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileKotlinJvm"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "jvmProcessResources"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "processJvmMainResources"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "jvmProcessResources"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kspKotlinJvm"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "kmpPartiallyResolvedDependenciesChecker"
+              },
+              "dependencies": [],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "kspKotlinJvm"
+              },
+              "dependencies": [],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "processJvmMainResources"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "jvmProcessResources"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            }
+          ],
+          "preparationTasks": [
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "compileGroovy"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "pluginDescriptors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "processResources"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "pluginDescriptors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "processResources"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "processResources"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "processResources"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "pluginDescriptors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "processResources"
+            }
+          ],
+          "deployments": [],
+          "serverDeployments": [],
+          "secrets": [],
+          "migrations": [],
+          "infrastructure": []
+        }
+      },
+      "reference": {
+        "operation": "build.plan",
+        "requestId": "1ee8cd2e-4740-410e-8fc2-00307b2a89dc",
+        "workspace": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor"
+      }
+    }
+  },
+  {
+    "label": "plan-repeat",
+    "code": 0,
+    "seconds": 13.857271082990337,
+    "wrappers": {
+      "83952": "java -Xmx64m -Xms64m -Dorg.gradle.appname=gradlew -jar /Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/gradle/wrapper/gradle-wrapper.jar exportBuildModel -Pdependeasy.gradleRequest=/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/contracts/gradle/requests/eb30afe2fb677dde76459dcc4664ea8fbc6814d21cfb0366ffcf8b183bfba0e9.json --console=plain",
+      "84019": "java -Xmx64m -Xms64m -Dorg.gradle.appname=gradlew -jar /Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/gradle/wrapper/gradle-wrapper.jar planBuildNode -Pdependeasy.gradleRequest=/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/contracts/gradle/requests/eb30afe2fb677dde76459dcc4664ea8fbc6814d21cfb0366ffcf8b183bfba0e9.json --console=plain"
+    },
+    "outcome": {
+      "type": "completed",
+      "result": {
+        "taskId": "reaktor:reaktor-core:outputJvmLibrary",
+        "environment": "local",
+        "summary": "Kernel outputJvmLibrary in local \u00b7 LocalArtifactWrite \u00b7 source dependeasy#reaktor/reaktor-core/build.gradle.kts:19",
+        "fingerprint": "22fd275880c2f541f82b3d8d",
+        "requiresSecondApproval": false,
+        "displayCommand": [
+          "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/gradlew",
+          "runBuildNode",
+          "-Pdependeasy.gradleRequest=/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/contracts/gradle/requests/fd023c7946c4a8174ca364225dabfd78cd4a5042da622103750d0955cfa10f47.json",
+          "--console=plain"
+        ],
+        "workingDirectory": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor",
+        "gradlePlan": {
+          "schema": 1,
+          "node": {
+            "build": "reaktor",
+            "project": ":reaktor-core",
+            "name": "outputJvmLibrary"
+          },
+          "modelDigest": "4bf459911eb6195192752fb444cd8342872d1c8d743615a3f7a4d6e764945569",
+          "requestDigest": "eb30afe2fb677dde76459dcc4664ea8fbc6814d21cfb0366ffcf8b183bfba0e9",
+          "contextDigest": "26309eb47c01cceec6b4a6a135a4456cf824c3b21d39db82632a3c1e816758f6",
+          "invocation": [
+            ":reaktor-core:jvmJar"
+          ],
+          "configuredMillis": 16092,
+          "tasks": [
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "checkKotlinGradlePluginConfigurationErrors"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kmpPartiallyResolvedDependenciesChecker"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "compileJvmMainJava"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileKotlinJvm"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kspKotlinJvm"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "compileKotlinJvm"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "checkKotlinGradlePluginConfigurationErrors"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kmpPartiallyResolvedDependenciesChecker"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kspKotlinJvm"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "jvmJar"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileJvmMainJava"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileKotlinJvm"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "jvmMainClasses"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "jvmProcessResources"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "jvmMainClasses"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileJvmMainJava"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "compileKotlinJvm"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "jvmProcessResources"
+                },
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "processJvmMainResources"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "jvmProcessResources"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "kspKotlinJvm"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "kmpPartiallyResolvedDependenciesChecker"
+              },
+              "dependencies": [],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "kspKotlinJvm"
+              },
+              "dependencies": [],
+              "dependenciesOutsideSelection": []
+            },
+            {
+              "id": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "processJvmMainResources"
+              },
+              "dependencies": [
+                {
+                  "build": "reaktor",
+                  "project": ":reaktor-core",
+                  "name": "jvmProcessResources"
+                }
+              ],
+              "dependenciesOutsideSelection": []
+            }
+          ],
+          "preparationTasks": [
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "compileGroovy"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "pluginDescriptors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":buildSrc",
+              "name": "processResources"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "pluginDescriptors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":gradle",
+              "name": "processResources"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":model",
+              "name": "processResources"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":options",
+              "name": "processResources"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "checkKotlinGradlePluginConfigurationErrors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "classes"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "compileJava"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "compileKotlin"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "jar"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "pluginDescriptors"
+            },
+            {
+              "build": "dependeasy",
+              "project": ":toolchain",
+              "name": "processResources"
+            }
+          ],
+          "deployments": [],
+          "serverDeployments": [],
+          "secrets": [],
+          "migrations": [],
+          "infrastructure": []
+        }
+      },
+      "reference": {
+        "operation": "build.plan",
+        "requestId": "cfe2fbb9-142f-45e2-8edd-d95f24269ebf",
+        "workspace": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor"
+      }
+    }
+  },
+  {
+    "label": "run",
+    "code": 0,
+    "seconds": 40.48965337499976,
+    "wrappers": {
+      "84319": "java -Xmx64m -Xms64m -Dorg.gradle.appname=gradlew -jar /Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/gradle/wrapper/gradle-wrapper.jar runBuildNode -Pdependeasy.gradleRequest=/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/contracts/gradle/requests/fd023c7946c4a8174ca364225dabfd78cd4a5042da622103750d0955cfa10f47.json --console=plain"
+    },
+    "outcome": {
+      "type": "completed",
+      "result": {
+        "id": "run-1793205243668-1",
+        "taskId": "reaktor:reaktor-core:outputJvmLibrary",
+        "taskTitle": "outputJvmLibrary",
+        "environment": "local",
+        "status": "Succeeded",
+        "startedAtMillis": 1793205243669,
+        "finishedAtMillis": 1793205277661,
+        "exitCode": 0,
+        "artifacts": [
+          {
+            "id": "gradle-cb4025a8-ab6a-49fc-84b2-1c393df1db03",
+            "kind": "gradle-receipt",
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/cb4025a8-ab6a-49fc-84b2-1c393df1db03.json",
+            "summary": "Gradle run receipt, SHA-256 031317482a3c1503f83fcfbcbd7d0682321eecf98730843935821114c3aab66d",
+            "sensitive": false,
+            "verified": true
+          },
+          {
+            "id": "run-1793205243668-1-artifact-0",
+            "kind": "jar",
+            "path": "reaktor-core/build/libs/reaktor-core-jvm-2026.1.6-SNAPSHOT.jar",
+            "summary": "Expected output; existence has not been verified",
+            "sensitive": false,
+            "verified": false
+          }
+        ],
+        "sensitive": false,
+        "connectionCheck": false,
+        "checkResult": {
+          "command": [
+            "reaktor:reaktor-core:outputJvmLibrary"
+          ],
+          "outcome": "Passed",
+          "exitCode": 0,
+          "environment": "local",
+          "failures": [],
+          "failureCount": 0,
+          "log": {
+            "id": "43f0c27f4b5f4456333cb4eb0f98a47e320e775910a4aa844ffdca711698fb6e",
+            "bytes": 10919,
+            "kind": "kernel-check-log"
+          },
+          "parser": "kotlin-gradle/1",
+          "coverage": {
+            "type": "dev.shibasis.reaktor.conductor.CheckCoverage.Partial",
+            "unrecognisedLines": 119,
+            "reason": "Source identity unavailable or changed during execution"
+          },
+          "durationMillis": 33963,
+          "warnings": [],
+          "warningCount": 0
+        },
+        "background": false,
+        "verifiedChecks": [],
+        "planFingerprint": "22fd275880c2f541f82b3d8d",
+        "parentRunId": "kernel-28ad9337-7545-4808-b98d-a78885223b51",
+        "receipt": {
+          "id": "run-1793205243668-1",
+          "workspaceId": "workspace-b7c6ba7645a2b7f5a77419ce",
+          "taskId": "reaktor:reaktor-core:outputJvmLibrary",
+          "planId": "22fd275880c2f541f82b3d8d",
+          "status": "Succeeded",
+          "createdAtEpochMillis": 1793205243669,
+          "startedAtEpochMillis": 1793205243669,
+          "finishedAtEpochMillis": 1793205277661,
+          "exitCode": 0,
+          "artifacts": [
+            {
+              "id": "gradle-cb4025a8-ab6a-49fc-84b2-1c393df1db03",
+              "kind": "gradle-receipt",
+              "location": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/cb4025a8-ab6a-49fc-84b2-1c393df1db03.json",
+              "attributes": {
+                "verified": "true"
+              }
+            },
+            {
+              "id": "run-1793205243668-1-artifact-0",
+              "kind": "jar",
+              "location": "reaktor-core/build/libs/reaktor-core-jvm-2026.1.6-SNAPSHOT.jar",
+              "attributes": {
+                "verified": "false"
+              }
+            },
+            {
+              "id": "operation-run-1793205243668-1",
+              "kind": "operational-run",
+              "location": "run-1793205243668-1",
+              "attributes": {
+                "sourceStatus": "Succeeded",
+                "planEvidence": "recorded",
+                "parentRunId": "kernel-28ad9337-7545-4808-b98d-a78885223b51"
+              }
+            }
+          ]
+        }
+      },
+      "reference": {
+        "operation": "build.run",
+        "requestId": "b4917870-a498-4fc4-b27b-b38fb8dc8ca9",
+        "workspace": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor",
+        "run": "run-1793205243668-1"
+      }
+    }
+  },
+  {
+    "label": "receipts",
+    "code": 0,
+    "seconds": 2.065691041003447,
+    "wrappers": {},
+    "outcome": {
+      "type": "completed",
+      "result": {
+        "node": "reaktor:reaktor-core:outputJvmLibrary",
+        "truth": "recorded",
+        "totalRuns": 12,
+        "runs": [
+          {
+            "run": "cb4025a8-ab6a-49fc-84b2-1c393df1db03",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793205276673,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/cb4025a8-ab6a-49fc-84b2-1c393df1db03.json",
+            "dryRun": false
+          },
+          {
+            "run": "90b1cbff-a331-4f14-9802-0a27dc7d06ac",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793205220873,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/90b1cbff-a331-4f14-9802-0a27dc7d06ac.json",
+            "dryRun": true
+          },
+          {
+            "run": "6abe9d50-03b9-478e-ab14-bfa96b106314",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793199457326,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/6abe9d50-03b9-478e-ab14-bfa96b106314.json",
+            "dryRun": false
+          },
+          {
+            "run": "98103348-5747-4383-9c26-1fc8888a0f93",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793199435323,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/98103348-5747-4383-9c26-1fc8888a0f93.json",
+            "dryRun": false
+          },
+          {
+            "run": "572423be-cec7-4a5f-9cb4-b34f93191912",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793199413396,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/572423be-cec7-4a5f-9cb4-b34f93191912.json",
+            "dryRun": false
+          },
+          {
+            "run": "036dbc30-3e2f-421c-8152-beb00a012993",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793199389597,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/036dbc30-3e2f-421c-8152-beb00a012993.json",
+            "dryRun": false
+          },
+          {
+            "run": "f656f652-9184-454a-83f6-818db7906d6e",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793199367109,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/f656f652-9184-454a-83f6-818db7906d6e.json",
+            "dryRun": false
+          },
+          {
+            "run": "68fc99ed-ee7b-4748-bd22-a245618762e5",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793199341684,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/68fc99ed-ee7b-4748-bd22-a245618762e5.json",
+            "dryRun": false
+          },
+          {
+            "run": "8d476978-7be7-485e-8673-62fc284e6972",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793198273857,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/8d476978-7be7-485e-8673-62fc284e6972.json",
+            "dryRun": false
+          },
+          {
+            "run": "1afefec6-bddc-4472-b8c8-88ab9cd56afb",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793198246929,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/1afefec6-bddc-4472-b8c8-88ab9cd56afb.json",
+            "dryRun": false
+          },
+          {
+            "run": "78280863-0f51-4845-b69b-147d8126bf8e",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793198224300,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/78280863-0f51-4845-b69b-147d8126bf8e.json",
+            "dryRun": false
+          },
+          {
+            "run": "4b607b4d-91ff-4877-b148-1aa01bb2a692",
+            "status": "Succeeded",
+            "finishedAtEpochMillis": 1793198189848,
+            "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/4b607b4d-91ff-4877-b148-1aa01bb2a692.json",
+            "dryRun": false
+          }
+        ],
+        "receipt": {
+          "schema": 1,
+          "run": "cb4025a8-ab6a-49fc-84b2-1c393df1db03",
+          "build": "reaktor",
+          "requestedNodes": [
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "jvmJar"
+            },
+            {
+              "build": "reaktor",
+              "project": ":reaktor-core",
+              "name": "outputJvmLibrary"
+            }
+          ],
+          "requestedTasks": [
+            ":reaktor-core:jvmJar"
+          ],
+          "startedAtEpochMillis": 1793205275749,
+          "finishedAtEpochMillis": 1793205276673,
+          "status": "Succeeded",
+          "dryRun": false,
+          "modelDigest": "4bf459911eb6195192752fb444cd8342872d1c8d743615a3f7a4d6e764945569",
+          "modelOmission": null,
+          "failures": [],
+          "requestDigest": "fd023c7946c4a8174ca364225dabfd78cd4a5042da622103750d0955cfa10f47",
+          "operationRunId": "run-1793205243668-1",
+          "omissionCounts": {},
+          "offset": 0,
+          "totalTasks": 9,
+          "totalOptions": 20,
+          "resolvedOptions": [
+            {
+              "build": "reaktor",
+              "path": "option:::ASPROF_JAR:b7e8067353a1dcaa",
+              "sha256": "b7e8067353a1dcaae6f2eb20de888db9f72eacf511bfccec463ecf4b987ac1d0",
+              "kind": "Option",
+              "option": {
+                "name": "ASPROF_JAR",
+                "type": "String",
+                "value": "<absent>",
+                "source": "Absent",
+                "file": null,
+                "sensitive": false,
+                "environment": "ASPROF_JAR",
+                "scope": ":",
+                "defaultValue": null,
+                "resolutionOrder": [
+                  "Environment"
+                ]
+              }
+            },
+            {
+              "build": "reaktor",
+              "path": "option:::ASPROF_LIB:82d72989d8c6d993",
+              "sha256": "82d72989d8c6d993314a7c55f160a7a97d4d140ed1e436725027b2c10e63b269",
+              "kind": "Option",
+              "option": {
+                "name": "ASPROF_LIB",
+                "type": "String",
+                "value": "<absent>",
+                "source": "Absent",
+                "file": null,
+                "sensitive": false,
+                "environment": "ASPROF_LIB",
+                "scope": ":",
+                "defaultValue": null,
+                "resolutionOrder": [
+                  "Environment"
+                ]
+              }
+            },
+            {
+              "build": "reaktor",
+              "path": "option:::CMAKE_BUILD_PARALLEL_LEVEL:dfe86c833803c4d4",
+              "sha256": "dfe86c833803c4d453a6d3a9ccbe58bf54be016a2f2bf2c03deca8892c614fd2",
+              "kind": "Option",
+              "option": {
+                "name": "CMAKE_BUILD_PARALLEL_LEVEL",
+                "type": "String",
+                "value": "3",
+                "source": "Default",
+                "file": null,
+                "sensitive": false,
+                "environment": "CMAKE_BUILD_PARALLEL_LEVEL",
+                "scope": ":",
+                "defaultValue": "3",
+                "resolutionOrder": [
+                  "Environment",
+                  "Default"
+                ]
+              }
+            },
+            {
+              "build": "reaktor",
+              "path": "option:::GITHUB_ACTOR:c35592394719c69a",
+              "sha256": "c35592394719c69adde457f186b87c373ef2883129c35358de539dc9a1d9471c",
+              "kind": "Option",
+              "option": {
+                "name": "GITHUB_ACTOR",
+                "type": "String",
+                "value": "<absent>",
+                "source": "Absent",
+                "file": null,
+                "sensitive": false,
+                "environment": "GITHUB_ACTOR",
+                "scope": ":",
+                "defaultValue": null,
+                "resolutionOrder": [
+                  "Environment"
+                ]
+              }
+            },
+            {
+              "build": "reaktor",
+              "path": "option:::GITHUB_PACKAGES_TOKEN:9e5eede66cec25d5",
+              "sha256": "9e5eede66cec25d5921290838a181ea26cf0f23143c99340671e6117c7e2379f",
+              "kind": "Option",
+              "option": {
+                "name": "GITHUB_PACKAGES_TOKEN",
+                "type": "String",
+                "value": "<absent>",
+                "source": "Absent",
+                "file": null,
+                "sensitive": true,
+                "environment": "GITHUB_PACKAGES_TOKEN",
+                "scope": ":",
+                "defaultValue": null,
+                "resolutionOrder": [
+                  "Environment"
+                ]
+              }
+            },
+            {
+              "build": "reaktor",
+              "path": "option:::GITHUB_PACKAGES_USERNAME:0cc4b6c383ffde35",
+              "sha256": "0cc4b6c383ffde3536f8dabc0d13c61232fa8e57e8e9534400765f5bb04455f8",
+              "kind": "Option",
+              "option": {
+                "name": "GITHUB_PACKAGES_USERNAME",
+                "type": "String",
+                "value": "<absent>",
+                "source": "Absent",
+                "file": null,
+                "sensitive": false,
+                "environment": "GITHUB_PACKAGES_USERNAME",
+                "scope": ":",
+                "defaultValue": null,
+                "resolutionOrder": [
+                  "Environment"
+                ]
+              }
+            },
+            {
+              "build": "reaktor",
+              "path": "option:::GITHUB_TOKEN:51efc3b52422aab6",
+              "sha256": "51efc3b52422aab62acf7ff5b97b0e87b6feb2873d90f16c20c54ae0f1b9af57",
+              "kind": "Option",
+              "option": {
+                "name": "GITHUB_TOKEN",
+                "type": "String",
+                "value": "<absent>",
+                "source": "Absent",
+                "file": null,
+                "sensitive": true,
+                "environment": "GITHUB_TOKEN",
+                "scope": ":",
+                "defaultValue": null,
+                "resolutionOrder": [
+                  "Environment"
+                ]
+              }
+            },
+            {
+              "build": "reaktor",
+              "path": "option:::OPENSSL_ROOT_DIR:d506e36ae2f1135e",
+              "sha256": "d506e36ae2f1135ebe59ec267a83b4538e2c30d5d3512398c60a6c10245d9019",
+              "kind": "Option",
+              "option": {
+                "name": "OPENSSL_ROOT_DIR",
+                "type": "String",
+                "value": "<absent>",
+                "source": "Absent",
+                "file": null,
+                "sensitive": false,
+                "environment": "OPENSSL_ROOT_DIR",
+                "scope": ":",
+                "defaultValue": null,
+                "resolutionOrder": [
+                  "Environment"
+                ]
+              }
+            },
+            {
+              "build": "reaktor",
+              "path": "option:::PATH:616eaf9bfea36e47",
+              "sha256": "616eaf9bfea36e47f18f69b989bd35f5a2a7cdb06ffc0143f0294f050a4dcaf1",
+              "kind": "Option",
+              "option": {
+                "name": "PATH",
+                "type": "String",
+                "value": "/Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+                "source": "Environment",
+                "file": null,
+                "sensitive": false,
+                "environment": "PATH",
+                "scope": ":",
+                "defaultValue": "",
+                "resolutionOrder": [
+                  "Environment",
+                  "Default"
+                ]
+              }
+            },
+            {
+              "build": "reaktor",
+              "path": "option:::dependeasy.githubPackagesToken:02b1d140c5c376e8",
+              "sha256": "02b1d140c5c376e8f1ac503e08d137232e76d9097581b811e03a3a6845e32624",
+              "kind": "Option",
+              "option": {
+                "name": "dependeasy.githubPackagesToken",
+                "type": "String",
+                "value": "<redacted>",
+                "source": "Default",
+                "file": null,
+                "sensitive": true,
+                "environment": "ORG_GRADLE_PROJECT_dependeasy.githubPackagesToken",
+                "scope": ":",
+                "defaultValue": "<redacted>",
+                "resolutionOrder": [
+                  "CommandLine",
+                  "SystemProperty",
+                  "UserGradleProperties",
+                  "RootGradleProperties",
+                  "Environment",
+                  "LocalProperties",
+                  "Default"
+                ]
+              }
+            }
+          ],
+          "tasks": [
+            {
+              "task": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "kmpPartiallyResolvedDependenciesChecker"
+              },
+              "outcome": "Executed",
+              "startedAtEpochMillis": 1793205275749,
+              "durationMillis": 10,
+              "failures": []
+            },
+            {
+              "task": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "kspKotlinJvm"
+              },
+              "outcome": "Skipped",
+              "startedAtEpochMillis": 1793205275749,
+              "durationMillis": 1,
+              "failures": []
+            },
+            {
+              "task": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "jvmProcessResources"
+              },
+              "outcome": "Skipped",
+              "startedAtEpochMillis": 1793205275750,
+              "durationMillis": 4,
+              "failures": []
+            },
+            {
+              "task": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "processJvmMainResources"
+              },
+              "outcome": "Skipped",
+              "startedAtEpochMillis": 1793205275754,
+              "durationMillis": 1,
+              "failures": []
+            },
+            {
+              "task": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "checkKotlinGradlePluginConfigurationErrors"
+              },
+              "outcome": "Skipped",
+              "startedAtEpochMillis": 1793205275759,
+              "durationMillis": 1,
+              "failures": []
+            },
+            {
+              "task": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "compileKotlinJvm"
+              },
+              "outcome": "UpToDate",
+              "startedAtEpochMillis": 1793205275760,
+              "durationMillis": 52,
+              "failures": []
+            },
+            {
+              "task": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "compileJvmMainJava"
+              },
+              "outcome": "Skipped",
+              "startedAtEpochMillis": 1793205275813,
+              "durationMillis": 1,
+              "failures": []
+            },
+            {
+              "task": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "jvmJar"
+              },
+              "outcome": "UpToDate",
+              "startedAtEpochMillis": 1793205275814,
+              "durationMillis": 2,
+              "failures": []
+            },
+            {
+              "task": {
+                "build": "reaktor",
+                "project": ":reaktor-core",
+                "name": "jvmMainClasses"
+              },
+              "outcome": "UpToDate",
+              "startedAtEpochMillis": 1793205275814,
+              "durationMillis": 0,
+              "failures": []
+            }
+          ],
+          "nextOffset": 10
+        },
+        "path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor/build/dependeasy/receipts/cb4025a8-ab6a-49fc-84b2-1c393df1db03.json",
+        "sha256": "031317482a3c1503f83fcfbcbd7d0682321eecf98730843935821114c3aab66d",
+        "matchesCurrentModel": true
+      },
+      "reference": {
+        "operation": "build.receipts",
+        "requestId": "04aade52-5d10-4e56-88c5-ce28f112675d",
+        "workspace": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor"
+      }
+    }
+  }
+]

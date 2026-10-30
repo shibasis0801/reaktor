@@ -1,0 +1,20 @@
+{
+  "observedAt": "2026-10-28T20:27:02.003561+00:00",
+  "changePlan": "pa8822feae9388776e874",
+  "ownerCheck": "run-1793218549340-1534",
+  "routerRun": "20261029-015235-f54d1e13-bestbuds",
+  "cases": 9,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "gradleSeconds": 123,
+  "routedExecutionSeconds": 123.69719562499995,
+  "admissionSeconds": 401.15950587500004,
+  "diagnostic": {
+    "measuredWidePixels": 1100,
+    "clippedVisiblePixels": 931
+  },
+  "xmlSha256": "4d82aa3646bb008cf500808822db7b67ff9e94fc00224476259bc772882503a4",
+  "sourceSha256": "3bf1e19fd1ba56d62123f42d8fc5c63ec029a6361c5c53a44bf7f10eed1e9fe9",
+  "scope": "Measured dimensions, exact authored widths and state interaction; no production design, tolerance or baseline edits"
+}

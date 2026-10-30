@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentWritePlanTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:26:40.972Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.004">
+  <properties/>
+  <testcase name="acceptanceRequiresTheSelectedTaskAndCurrentKernelChecks[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentWritePlanTest" time="0.002"/>
+  <testcase name="approvalBindsTheWholeCandidateEvidenceAndRunRevision[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentWritePlanTest" time="0.002"/>
+  <testcase name="patchApprovalBindsReviewAndRefusesAnotherRunOrConflict[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentWritePlanTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

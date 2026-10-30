@@ -1,0 +1,111 @@
+{
+  "run": "20261029-034438-3356c5e3-bestbuds",
+  "scope": "Before production runtime change; deterministic owned writer has blocked noncancellable finalizer. Fixture cleanup explicitly joins its graph.",
+  "router": {
+    "project": "bestbuds",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds",
+    "source_head": "3a352e5b339d6bc0366cc9919723c8bfc85b691d",
+    "tasks": [
+      ":reaktor:reaktor-conductor:jvmTest",
+      "--tests",
+      "dev.shibasis.reaktor.conductor.workspace.TaskGraphRuntimeTest.closingRuntimeJoinsGraphWritersAndCannotRecreateScopes",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      ":reaktor:reaktor-conductor:jvmTest",
+      "--tests",
+      "dev.shibasis.reaktor.conductor.workspace.TaskGraphRuntimeTest.closingRuntimeJoinsGraphWritersAndCannotRecreateScopes",
+      "--console=plain",
+      ":exportBuildModel"
+    ],
+    "started": "2026-10-29T03:44:38.729587",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-034438-3356c5e3-bestbuds.log",
+    "run_id": "20261029-034438-3356c5e3-bestbuds",
+    "exit_code": 1,
+    "sync_seconds": 16.559719833999992,
+    "queue_seconds": 121.032464958,
+    "owner": {
+      "pid": 10280,
+      "started": "Thu Oct 29 03:42:20 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 1,
+    "publication": "changed-files",
+    "source_epoch": 1793225662.1702569,
+    "execution_seconds": 34.35383058300002,
+    "worker_started_epoch": 1793225678.799279,
+    "dry_run": false,
+    "builds": {
+      "bestbuds": "bestbuds",
+      "dependeasy": "reaktor",
+      "reaktor": "reaktor"
+    },
+    "artifact_family": "verification",
+    "collected": "2026-10-29T03:45:15.391756",
+    "copied_files": 20,
+    "copy_error": null,
+    "collection_seconds": 2.239221458000003,
+    "pending_publications": [
+      [
+        "bestbuds",
+        [
+          "build/dependeasy/model.json",
+          "build/dependeasy/receipts/4871f145-9042-4978-842e-5333e7e6542b.json",
+          "build/dependeasy/remote/hosts.json",
+          "build/reports/problems/problems-report.html",
+          "targets/reaktorCli/build/reports/tests/test/ai.bestbuds.reaktor.cli.BuildModelCliTest/affectedExecutionKeepsCanonicalVerificationPlansAndNeverClaimsCompleteCoverage.html"
+        ]
+      ],
+      [
+        "reaktor",
+        [
+          "build/dependeasy/model.json",
+          "build/dependeasy/receipts/f98be42d-69d0-48e3-b366-7eef60fea0ce.json",
+          "build/dependeasy/remote/hosts.json",
+          "build/reports/kotlin-build/reaktor-build-2026-10-29-03-41-13-0.txt",
+          "build/reports/kotlin-build/reaktor-build-2026-10-29-03-43-46-0.txt",
+          "build/reports/kotlin-build/reaktor-build-2026-10-29-03-45-09-0.txt",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphRuntimeTest/closingRuntimeJoinsGraphWritersAndCannotRecreateScopes.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphRuntimeTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/index.html",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphRuntimeTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/binary/output-events.bin",
+          "reaktor-conductor/build/test-results/jvmTest/binary/results-generic.bin",
+          "reaktor-conductor/build/test-results/kotlin-test-tasks-state.bin",
+          "reaktor-security/build/reports/tests/jvmTest/dev.shibasis.reaktor.security.DevDirectoryJvmTest/index.html",
+          "reaktor-security/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.security.DevDirectoryJvmTest.xml"
+        ]
+      ]
+    ],
+    "pending_xcode": false,
+    "unverified_outputs": {
+      "bestbuds": [
+        "targets/reaktorCli/build/reports/tests/test/ai.bestbuds.reaktor.cli.BuildModelCliTest/affectedExecutionKeepsCanonicalVerificationPlansAndNeverClaimsCompleteCoverage.html"
+      ],
+      "reaktor": [
+        "build/reports/kotlin-build/reaktor-build-2026-10-29-03-41-13-0.txt",
+        "build/reports/kotlin-build/reaktor-build-2026-10-29-03-43-46-0.txt",
+        "reaktor-security/build/reports/tests/jvmTest/dev.shibasis.reaktor.security.DevDirectoryJvmTest/index.html",
+        "reaktor-security/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.security.DevDirectoryJvmTest.xml"
+      ]
+    },
+    "worker_slot_trimmed": 0
+  },
+  "xmlSha256": "8182fcb979ad7617ee89746f090f03001adb566f5a3becf5824512bcb9ad9cd2",
+  "results": {
+    "name": "TaskGraphRuntimeTest[jvm]",
+    "tests": "1",
+    "skipped": "0",
+    "failures": "1",
+    "errors": "0",
+    "timestamp": "2026-10-28T22:15:08.963Z",
+    "hostname": "Shibasiss-MacBook-Pro.local",
+    "time": "0.252"
+  },
+  "failure": {
+    "message": "java.lang.AssertionError: Close returned while a graph writer could still persist expected null, but was:<true>",
+    "type": "java.lang.AssertionError"
+  }
+}

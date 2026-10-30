@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="GraphSourcePaneCacheTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:15.439Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.036">
+  <properties/>
+  <testcase name="repeatedRefreshClicksAdvanceTheRetainedSubjectState[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.GraphSourcePaneCacheTest" time="0.036"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

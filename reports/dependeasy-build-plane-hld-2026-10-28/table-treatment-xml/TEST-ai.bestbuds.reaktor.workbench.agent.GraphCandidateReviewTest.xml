@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="GraphCandidateReviewTest[jvm]" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:26:40.978Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.006">
+  <properties/>
+  <testcase name="anotherCandidateOrUnrelatedDecisionDoesNotEnableAcceptance[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.001"/>
+  <testcase name="usageLimitedTaskKeepsItsResetChoiceInNeedsYouWhilePaused[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.004"/>
+  <testcase name="sharedOrReadOnlyTasksCannotOfferLanding[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.0"/>
+  <testcase name="alternativesOfferAcceptanceOnlyAfterExactSelection[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.0"/>
+  <testcase name="needsYouContainsTheReviewedWriterUntilItLands[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.0"/>
+  <testcase name="integratedCandidateUsesItsOwnReviewAndCheckEvidenceForAcceptanceAndNeedsYou[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.0"/>
+  <testcase name="acceptanceEnablesLandingOnlyAfterVerifiedPersonAcceptance[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.0"/>
+  <testcase name="landedTaskHasNoFurtherWriteAction[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.0"/>
+  <testcase name="interruptedAttemptStaysInNeedsYouWhenItsGraphIsPaused[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.0"/>
+  <testcase name="pendingChecksWrongCandidateReceiptsAndBlockingFindingsDisableBothButtons[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.GraphCandidateReviewTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

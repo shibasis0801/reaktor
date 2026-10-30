@@ -1,0 +1,25 @@
+{
+  "runId": "20261029-130001-383fcf9d-bestbuds",
+  "modules": {
+    "kernel": {
+      "tests": 524,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 11,
+      "suites": 115,
+      "firstSuite": "2026-10-29T07:30:36.620Z",
+      "lastSuite": "2026-10-29T07:33:25.964Z"
+    },
+    "reaktorCli": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suites": 3,
+      "firstSuite": "2026-10-29T07:30:36.189Z",
+      "lastSuite": "2026-10-29T07:30:49.572Z"
+    }
+  },
+  "kernelJarSha256": "d103c6eee6b50c131a89809ebfeddc795142b6996551a015eb5e70393f73d2ab",
+  "serviceJarSha256": "4f91d5c5230f9d651da7cbd8e6592d5ef34b40f34407d82293c25c9f6d62bf32"
+}

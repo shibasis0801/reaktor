@@ -1,0 +1,10 @@
+{
+  "stoppedOwnedDaemonPids": [
+    59021
+  ],
+  "removedOwnedTemporaryHomes": [
+    "/Users/ovd/dev/offload/.remote-dev/performance-followup-20261028/before",
+    "/Users/ovd/dev/offload/.remote-dev/performance-followup-20261028/after"
+  ],
+  "workerFreeBytes": 36111306752
+}

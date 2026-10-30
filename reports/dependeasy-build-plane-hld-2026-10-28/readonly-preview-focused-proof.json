@@ -1,0 +1,11 @@
+{
+  "router": "20261029-142817-22fc8c06-reaktor",
+  "checks": 1,
+  "failures": 0,
+  "gradleSeconds": 26,
+  "scope": "Real existing worker deployment bridge fixture; preview preserves all selected graph tasks, no check invocation in preview; check executes on apply and failure blocks provider writes. Configuration cache enabled throughout. Earlier two ad-hoc task fixture failures retained separately. Full suite and live plan separate.",
+  "sourceSha256": {
+    "dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/GradleToolingRunner.kt": "3c874fc345073281f901761cf12272199966efc778d810ccc0edcbd177c80621",
+    "dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/GradlePlanningTest.kt": "c0e531d92f18c98ca308f74fc104cc795189400d2aec032566242f279967267b"
+  }
+}

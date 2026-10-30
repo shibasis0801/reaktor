@@ -1,0 +1,7 @@
+{
+  "installerSha256": "af5167b19edd573a175cf06ceb2284fda7aab58021b54e44dc550e3082ca70b5",
+  "shim": "/Users/ovd/dev/tmp/dependeasy-matched-install-20261029",
+  "archive": "/Users/ovd/dev/.remote-dev/artifacts/20261029-035454-81b87759-bestbuds/bestbuds/targets/reaktorCli/build/distributions/reaktor.zip",
+  "archiveSha256": "474b0db024195097fd782054fc3c9f59acaeef14fe581e08e3476853ef7489e2",
+  "reason": "Use the unmodified normal installer with the verified staged archive while source output publication waits for the checkout lease; no scratch source checkout."
+}

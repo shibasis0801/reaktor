@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="BuildGraphSourceTest[jvm]" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:32.563Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.009">
+  <properties/>
+  <testcase name="composite ownership and omitted foreign tasks retain their full identities[jvm]" classname="ai.bestbuds.reaktor.workbench.buildgraph.BuildGraphSourceTest" time="0.0"/>
+  <testcase name="cycles stay visible without claiming ambiguous providers[jvm]" classname="ai.bestbuds.reaktor.workbench.buildgraph.BuildGraphSourceTest" time="0.001"/>
+  <testcase name="source links resolve owned declarations and class files without claiming execution[jvm]" classname="ai.bestbuds.reaktor.workbench.buildgraph.BuildGraphSourceTest" time="0.001"/>
+  <testcase name="project frames preserve dependency identities and layout membership[jvm]" classname="ai.bestbuds.reaktor.workbench.buildgraph.BuildGraphSourceTest" time="0.001"/>
+  <testcase name="unknown schemas and duplicate identities are rejected[jvm]" classname="ai.bestbuds.reaktor.workbench.buildgraph.BuildGraphSourceTest" time="0.0"/>
+  <testcase name="the shared reader bounds every consumer to the same eight MiB[jvm]" classname="ai.bestbuds.reaktor.workbench.buildgraph.BuildGraphSourceTest" time="0.006"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

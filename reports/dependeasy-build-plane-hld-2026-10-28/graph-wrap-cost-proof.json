@@ -1,0 +1,33 @@
+{
+  "scope": "Current exact production wrapLayers function cost only. No before/after speed claim; correctness fix for unequal-height cards. 5warmups/20samples each; fixed mixed-height fixtures; caller/IO/graph-construction excluded.",
+  "jarSha256": "b0f3c700e9787257a31a9eca394be0de07ce8ccd6b82d98477177b998e777d0a",
+  "load": [
+    9.13720703125,
+    9.3046875,
+    8.5341796875
+  ],
+  "samples": [
+    {
+      "cards": 24,
+      "medianMs": 0.246813,
+      "p95Ms": 0.27875,
+      "width": 2144.0,
+      "height": 1322.0
+    },
+    {
+      "cards": 100,
+      "medianMs": 0.703062,
+      "p95Ms": 0.805666,
+      "width": 16808.0,
+      "height": 1182.0
+    },
+    {
+      "cards": 400,
+      "medianMs": 9.455563,
+      "p95Ms": 10.192709,
+      "width": 67664.0,
+      "height": 1182.0
+    }
+  ],
+  "profile": "graph-wrap-cost.jfr"
+}

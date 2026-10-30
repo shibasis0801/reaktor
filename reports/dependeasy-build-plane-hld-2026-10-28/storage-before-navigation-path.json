@@ -1,0 +1,474 @@
+{
+  "started_epoch": 1793253012.1119502,
+  "dry_run": false,
+  "free_bytes_before": 13161111552,
+  "minimum_free_bytes": 15000000000,
+  "tmp_workspace_roots": [
+    "/Users/ovd/dev/tmp",
+    "/Users/ovd/dev/reaktor/tmp",
+    "/Users/ovd/dev/reaktor/.tmp",
+    "/Users/ovd/dev/manna/tmp",
+    "/Users/ovd/dev/bestbuds/tmp",
+    "/Users/ovd/dev/bestbuds/.tmp",
+    "/Users/ovd/.codex/tmp",
+    "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/worktrees/9c71ad7c6640cc0ea7021f6ef3fbb4051806a8d44d510b89b72693a4afa195ec/bestbuds",
+    "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/worktrees/9c71ad7c6640cc0ea7021f6ef3fbb4051806a8d44d510b89b72693a4afa195ec/reaktor"
+  ],
+  "tmp_system_roots": [
+    "/private/tmp",
+    "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T"
+  ],
+  "tmp": {
+    "limit_bytes": 40000000000,
+    "bytes_before": 15057292288,
+    "bytes_after": 15036676096,
+    "removed": [
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-dev-auth-proxy.log",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-dev-auth-tunnel.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-p3-check.log",
+        "charged_bytes": 94208
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-p3-check-2.log",
+        "charged_bytes": 86016
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-content-resolver.mjs",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/reaktor-shell-render8405271668684783504",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/reaktor-shell-render1421269538450712501",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/reaktor-capability-10480944725811159503.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-p3-js-compile.log",
+        "charged_bytes": 90112
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-run-content-tests.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-apply-dev-content.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.18-44-07-988.00.log",
+        "charged_bytes": 671744
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-content-schema",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-dev-chat-id",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/reaktor-capability-12947288851702480803.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-jfr-native-20261029",
+        "charged_bytes": 733184
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/reaktor-capability-17389439619225903232.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-messaging-ship-plan.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-native-test",
+        "charged_bytes": 3387392
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-run-dev-proof.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.05-55-17-091.02.log",
+        "charged_bytes": 1056768
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.05-55-17-091.01.log",
+        "charged_bytes": 1101824
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.05-55-17-091.00.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.06-49-40-943.01.log",
+        "charged_bytes": 1056768
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.06-49-40-943.00.log",
+        "charged_bytes": 159744
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.07-21-35-466.02.log",
+        "charged_bytes": 1052672
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.07-21-35-466.01.log",
+        "charged_bytes": 1093632
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.07-21-35-466.00.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.07-39-00-982.00.log",
+        "charged_bytes": 372736
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-source-capture-comparison",
+        "charged_bytes": 6430720
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/source-capture-comparison.log",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-owner-cutover-current.txt",
+        "charged_bytes": 16384
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/table-treatment-thread-snapshot.txt",
+        "charged_bytes": 118784
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-cloud-pane-test.txt",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-kernel-client-contracts.txt",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/table-treatment-thread-current.txt",
+        "charged_bytes": 77824
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-kernel-graph.txt",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-build-plan-operation.json",
+        "charged_bytes": 266240
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-build-run-operation.json",
+        "charged_bytes": 1802240
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-owner-operation-clients.txt",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.07-52-35-215.00.log",
+        "charged_bytes": 212992
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/dependeasy-current-map.txt",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/table-current-atlas.txt",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/table-withdraw-radar.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/current-completion-plan.json",
+        "charged_bytes": 32768
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/owner-client-map.txt",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/owner-pane-bindings.txt",
+        "charged_bytes": 20480
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/image-plan-current-runs.json",
+        "charged_bytes": 24576
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/image-pending-plan-logs.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/build-plan-stale-source.txt",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/catalog-refresh-operations.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/workspace-current-operations.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/build-plan-guard.txt",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/owner-plan-thread-snapshot.txt",
+        "charged_bytes": 98304
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/catalog-reload-operations.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/catalog-replacement-map.txt",
+        "charged_bytes": 16384
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/image-initial-plan-status.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/catalog-refresh-source.txt",
+        "charged_bytes": 16384
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/catalog-node-source.txt",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/catalog-refresh-context.txt",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/plan-timeout-client-source.txt",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/owner-connection-source.txt",
+        "charged_bytes": 20480
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/legacy-kernel-call-source.txt",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/kernel-patience-source.txt",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/tmp/kernel-patience-tests-map.txt",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-29.08-16-13-361.00.log",
+        "charged_bytes": 253952
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp6Gsdst",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpG8jXND",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpjdM5RD",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpyBUnfc",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQJOvVO",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpCYJYkd",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpk53a5n",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpjkS1qC",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpRUTZiY",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpU4HLX3",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpaK4fdh",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp468SQ9",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpZK88KA",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpCSpMZe",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp00C5JC",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpPfASym",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmppNx3Ht",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp34aknb",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpzBrpgB",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp17uDMm",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpzeiviF",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpDrz72f",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpcHMnWh",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpDGmIKj",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpjbjzGM",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp48Y6Ql",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmprRzmd2",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpd9H9qo",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpTR4p93",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQqvWBq",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpoh9YdD",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpxqrAPF",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpK3CdKE",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpoHt34S",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmplMUTuz",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpqNBvmL",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp4V8ET9",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpTmjAzs",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmplMknEj",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpnzOIvi",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpCMA4vL",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQdZjQK",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpdK1m8i",
+        "charged_bytes": 1024
+      }
+    ],
+    "disk_bound_bytes": 13218403840,
+    "within_limit": true
+  },
+  "remote": {
+    "skipped": "active build or graph",
+    "limit_bytes": 40000000000,
+    "bytes_after": 31391842304,
+    "within_limit": true
+  },
+  "free_bytes_after": 13152092160,
+  "finished_epoch": 1793253030.134175
+}

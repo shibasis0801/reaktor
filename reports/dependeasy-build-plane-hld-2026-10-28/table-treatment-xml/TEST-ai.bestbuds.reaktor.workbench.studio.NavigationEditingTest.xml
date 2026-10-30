@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="NavigationEditingTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:18.869Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.03">
+  <properties/>
+  <testcase name="newScreenForwardsTypedNavigationThroughItsViewCallback[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.NavigationEditingTest" time="0.02"/>
+  <testcase name="missingSourceCannotWriteHalfANavigationChange[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.NavigationEditingTest" time="0.001"/>
+  <testcase name="retargetWritesTheTypedExitAndSourceUndoRestoresIt[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.NavigationEditingTest" time="0.006"/>
+  <testcase name="deletingAnUnwrittenButtonCancelsItsExitAndUndoRestoresBoth[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.NavigationEditingTest" time="0.0"/>
+  <testcase name="addAndDeleteUseOneUndoLineAndACompletePlan[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.NavigationEditingTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

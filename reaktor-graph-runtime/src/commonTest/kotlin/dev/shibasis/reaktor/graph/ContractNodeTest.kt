@@ -82,7 +82,9 @@ class ContractNodeTest {
         assertEquals("server", node.attributes["role"])
         assertEquals("test.counter", node.label)
         assertEquals(listOf("add", "total"), node.operations.map { it.operation }.sorted())
-        assertTrue(shape.wires.any { it.consumer == screen.id.toString() && it.type == "contract:test.counter" })
+        assertTrue(shape.nodes.flatMap { it.ports }.all { it.key.isNotBlank() })
+        assertTrue(shape.wires.any { it.consumer == screen.id.toString() && it.type == "contract:test.counter" &&
+            it.consumerPort == "test.counter" && it.providerPort == "test.counter" })
         graph.close()
     }
 

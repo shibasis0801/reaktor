@@ -1,0 +1,67 @@
+{
+  "scope": "charged_sizes only; no eviction/admission behavior changed; no whole-build speed claim",
+  "roots": [
+    "/Users/ovd/dev/.remote-dev/snapshots"
+  ],
+  "identity": [
+    "40e01f74ffeceaae3575c797b8be0467f2f5860c4513eb65568d6bb438005241",
+    173246
+  ],
+  "chargedBytes": {
+    "/Users/ovd/dev/.remote-dev/snapshots": 19599491072
+  },
+  "rows": [
+    {
+      "pair": 0,
+      "mode": "serial",
+      "seconds": 1.9852712080000003
+    },
+    {
+      "pair": 0,
+      "mode": "parallel",
+      "seconds": 1.449949041
+    },
+    {
+      "pair": 1,
+      "mode": "parallel",
+      "seconds": 1.4010149589999994
+    },
+    {
+      "pair": 1,
+      "mode": "serial",
+      "seconds": 2.2107083749999994
+    },
+    {
+      "pair": 2,
+      "mode": "serial",
+      "seconds": 2.6102057500000004
+    },
+    {
+      "pair": 2,
+      "mode": "parallel",
+      "seconds": 1.6508906659999987
+    },
+    {
+      "pair": 3,
+      "mode": "parallel",
+      "seconds": 1.7408242499999993
+    },
+    {
+      "pair": 3,
+      "mode": "serial",
+      "seconds": 2.700443916000001
+    }
+  ],
+  "medians": {
+    "serial": 2.4104570625,
+    "parallel": 1.5504198534999993
+  },
+  "changePercent": -35.679424553118366,
+  "qualification": {
+    "tests": 102,
+    "failures": 0,
+    "log": "storage-scan-full-tests.log",
+    "productionSourceSha256": "24d9300287dafb0178da4848dc1d5a8d2cdfba326eedc4952d50f28cf4b530a5",
+    "testSourceSha256": "a7a028086cfc867041127415caa1fa57091bc71e684821157147d5732012216f"
+  }
+}

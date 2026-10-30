@@ -1,0 +1,52 @@
+{
+  "scope": "Focused current shared-checkout Build pane checks; no full-suite root cause claim",
+  "source": {
+    "/Users/ovd/dev/bestbuds/modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/workbench/buildgraph/BuildTargetsRenderTest.kt": "510504594a208f56ff73c5c3505c72b859a20e4369becbdae8d75757facd6281"
+  },
+  "suites": {
+    "TEST-ai.bestbuds.reaktor.workbench.appgraph.BuildGraphPaneTest.xml": {
+      "name": "BuildGraphPaneTest[jvm]",
+      "tests": "2",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T21:49:58.582Z",
+      "hostname": "Shibasiss-MacBook-Pro-2.local",
+      "time": "6.699",
+      "sha256": "7a280116f9ec249195313ad12ac9973ea792bac14cc587807871cdda8a3d4638"
+    },
+    "TEST-ai.bestbuds.reaktor.workbench.buildgraph.BuildTargetsRenderTest.xml": {
+      "name": "BuildTargetsRenderTest[jvm]",
+      "tests": "1",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-28T21:50:05.284Z",
+      "hostname": "Shibasiss-MacBook-Pro-2.local",
+      "time": "9.622",
+      "sha256": "c56e9914ee529d84111fa1b7f5288ea163ade7a7aba124e121d4888f7512f86a"
+    }
+  },
+  "router": {
+    "run_id": "20261029-031848-477ab6f8-bestbuds",
+    "project": "bestbuds",
+    "worker": "local",
+    "tasks": [
+      ":engine:jvmTest",
+      "--tests",
+      "ai.bestbuds.reaktor.workbench.buildgraph.BuildTargetsRenderTest",
+      "--tests",
+      "ai.bestbuds.reaktor.workbench.appgraph.BuildGraphPaneTest",
+      "--console=plain"
+    ],
+    "workspace_root": "/Users/ovd/dev",
+    "started": "2026-10-29T03:18:48.596703",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-031848-477ab6f8-bestbuds.log",
+    "queue_seconds": 31.065799166999998,
+    "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+    "exit_code": 0,
+    "execution_seconds": 90.272178833,
+    "finished": "2026-10-29T03:20:18.879459"
+  },
+  "archiveSha256": "fc372d82cd05a1cced80b51199ed08d03c76bba5fd791d6a38a6c6a30a704758"
+}

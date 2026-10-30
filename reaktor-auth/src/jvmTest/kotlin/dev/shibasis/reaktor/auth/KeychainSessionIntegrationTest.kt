@@ -5,7 +5,6 @@ import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.auth.kernel.PrincipalRef
 import dev.shibasis.reaktor.auth.kernel.PrincipalKind
 import dev.shibasis.reaktor.auth.kernel.AuthMethod
-import dev.shibasis.reaktor.security.MacKeychainCredentialStore
 import dev.shibasis.reaktor.service.Environment
 import kotlinx.coroutines.runBlocking
 import java.util.UUID

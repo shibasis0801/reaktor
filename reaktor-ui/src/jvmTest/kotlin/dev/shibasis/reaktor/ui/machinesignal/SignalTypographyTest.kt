@@ -57,9 +57,9 @@ class SignalTypographyTest {
     private val failures = mutableListOf<String>()
 
     private val sizes = mapOf(
-        TypeScale.Display to 24.sp, TypeScale.Title to 17.sp, TypeScale.Title2 to 16.sp, TypeScale.Title3 to 15.sp,
+        TypeScale.Display to 28.sp, TypeScale.Title to 20.sp, TypeScale.Title2 to 16.sp, TypeScale.Title3 to 15.sp,
         TypeScale.Title4 to 14.sp, TypeScale.Body to 13.sp, TypeScale.Label to 12.sp, TypeScale.Body2 to 11.5.sp,
-        TypeScale.Meta to 11.sp, TypeScale.Data to 10.5.sp, TypeScale.Caption to 10.sp, TypeScale.Micro to 9.5.sp,
+        TypeScale.Meta to 11.sp, TypeScale.Data to 11.5.sp, TypeScale.Caption to 10.sp, TypeScale.Micro to 9.5.sp,
     )
     private val weights = mapOf(
         TypeWeight.Regular to FontWeight.Normal, TypeWeight.Medium to FontWeight.Medium,
@@ -68,8 +68,8 @@ class SignalTypographyTest {
     private val inks: Map<InkRole, Color> = mapOf(
         Ink.Strong to MachineSignal.Editor.Text, Ink.Text to MachineSignal.Editor.Text, Ink.Muted to MachineSignal.Editor.Muted,
         Ink.Unknown to MachineSignal.Editor.Unknown, Ink.Accent to MachineSignal.Editor.Accent, Ink.Source to MachineSignal.Editor.Source,
-        Ink.Busy to MachineSignal.Accent, Ink.Ok to MachineSignal.Status.Ok, Ink.Warn to MachineSignal.Status.Warn,
-        Ink.Danger to MachineSignal.Status.Error, Ink.Inverse to MachineSignal.Editor.Canvas, Ink.OnAccent to Color.White,
+        Ink.Busy to MachineSignal.Editor.Accent, Ink.Ok to MachineSignal.Status.Ok, Ink.Warn to MachineSignal.Status.Warn,
+        Ink.Danger to MachineSignal.Status.Error, Ink.Inverse to MachineSignal.Editor.Canvas, Ink.OnAccent to MachineSignal.Editor.Canvas,
         EntityInk.Route to MachineSignal.Entity.Route, EntityInk.Screen to MachineSignal.Entity.Screen,
         EntityInk.Container to MachineSignal.Entity.Container, EntityInk.Service to MachineSignal.Entity.Service,
         EntityInk.Cloud to MachineSignal.Entity.Cloud, EntityInk.Actor to MachineSignal.Entity.Actor,
@@ -80,11 +80,11 @@ class SignalTypographyTest {
         EdgeInk.Data to MachineSignal.Edge.Data, EdgeInk.Attachment to MachineSignal.Edge.Attachment,
         EdgeInk.Containment to MachineSignal.Edge.Containment, EdgeInk.PortOff to MachineSignal.Edge.PortOff,
         ProvenanceInk(TruthClass.Imported) to MachineSignal.provenance(TruthClass.Imported).base,
-        BoardInk.Text1 to MachineSignal.Text1, BoardInk.Text2 to MachineSignal.Text2, BoardInk.Text3 to MachineSignal.Text3,
-        BoardInk.Text4 to MachineSignal.Text4, BoardInk.AccentText to MachineSignal.AccentText,
+        BoardInk.Text1 to MachineSignal.Editor.Text, BoardInk.Text2 to MachineSignal.Editor.Text, BoardInk.Text3 to MachineSignal.Editor.Muted,
+        BoardInk.Text4 to MachineSignal.Editor.Unknown, BoardInk.AccentText to MachineSignal.AccentText,
         SignalInk.Soft to MachineSignal.Editor.Text.copy(alpha = .9f), SignalInk.Dim to MachineSignal.Editor.Muted.copy(alpha = .6f),
-        SignalInk.ScreenReadout to Color.White.copy(alpha = .9f), SignalInk.ScreenAction to Color.White.copy(alpha = .8f),
-        SignalInk.ScreenNote to Color.White.copy(alpha = .78f), SignalInk.Code to MachineSignal.Editor.Code.Text,
+        SignalInk.ScreenReadout to MachineSignal.Editor.Canvas.copy(alpha = .9f), SignalInk.ScreenAction to MachineSignal.Editor.Canvas.copy(alpha = .8f),
+        SignalInk.ScreenNote to MachineSignal.Editor.Canvas.copy(alpha = .78f), SignalInk.Code to MachineSignal.Editor.Code.Text,
         SignalInk.Gutter to MachineSignal.Editor.Code.Gutter, SignalInk.Rule to MachineSignal.Editor.Line,
     )
 

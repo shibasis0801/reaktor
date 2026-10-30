@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentDoorTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:25:49.922Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.078">
+  <properties/>
+  <testcase name="theDoorListsWhatWaitsAndWhatWasCalledNewestFirst[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentDoorTest" time="0.003"/>
+  <testcase name="allowingNeedsTheTypedIdAndRecordsTheDecision[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentDoorTest" time="0.074"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

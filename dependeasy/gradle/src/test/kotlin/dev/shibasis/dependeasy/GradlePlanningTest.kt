@@ -327,6 +327,18 @@ class GradlePlanningTest {
             option(BuildOption.string(GradleProtocol.EnvironmentOption, "dev")).get()
             val deployment = WorkerDeployment(Environment("dev"), ServiceRef("fixture-dev"), secrets = listOf("CLIENT_SECRET"), retiredSecrets = listOf("RETIRED"))
             val fleetWorker = FleetWorker(WorkerRef("fixture", "."), NodeId("receiptFixture", ":", "deployFixture"), listOf(deployment))
+            abstract class RequiredCheck : DefaultTask() {
+                @get:Internal abstract val countFile: RegularFileProperty
+                @get:Internal abstract val failureFile: RegularFileProperty
+                @TaskAction fun verify() {
+                    countFile.get().asFile.appendText("checked\n")
+                    check(!failureFile.get().asFile.exists()) { "Required fixture check failed" }
+                }
+            }
+            val requiredCheck = tasks.register<RequiredCheck>("requiredCheck") {
+                countFile.set(layout.projectDirectory.file("check-count"))
+                failureFile.set(layout.projectDirectory.file("fail-check"))
+            }
             val deploy = tasks.register<WranglerDeploy>("deployFixture") {
                 workingDirectory.set(layout.projectDirectory)
                 executable.set(layout.projectDirectory.file("tool").asFile.absolutePath)
@@ -357,6 +369,8 @@ class GradlePlanningTest {
                 sourceFiles.from(fileTree("migrations") { include("*.sql") })
             }
             extensions.getByType<dev.shibasis.dependeasy.plugins.DependeasyExtension>().workspace {
+                val checks by verify { include(node(requiredCheck)) }
+                node(deploy).after(checks)
                 val release by verify { include(node(deploy), node(secrets), node(migrations)) }
             }
         """.trimIndent())
@@ -393,7 +407,8 @@ class GradlePlanningTest {
         val (digest, option) = contract(request)
         bridge(GradleProtocol.PlanTask, option)
         val plan = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json"))
-        assertEquals(setOf(node.id), plan.tasks.map { it.id }.toSet())
+        assertEquals(setOf(node.id, NodeId("receiptFixture", ":", "checks"), NodeId("receiptFixture", ":", "requiredCheck")), plan.tasks.map { it.id }.toSet())
+        assertFalse(directory.resolve("check-count").exists(), "Read-only preview must not execute verification prerequisites")
         assertFalse(node.id in plan.preparationTasks)
         assertEquals(node.id, plan.deployments.single().spec.node)
         assertEquals(initial, plan.deployments.single().previousVersion)
@@ -411,6 +426,14 @@ class GradlePlanningTest {
         val details = BuildModelReader.nodeDetails(directory, node.id.toString())
         assertTrue(details.getValue("deploymentReceipts").jsonArray.any { it.jsonObject["action"]?.jsonPrimitive?.content == "apply" })
         assertEquals(spec.deployment.service, receipt.service)
+        assertEquals(1, directory.resolve("check-count").readLines().size)
+        directory.resolve("fail-check").writeText("fail")
+        val blocked = GradleRunner.create().withProjectDir(directory)
+            .withArguments(GradleProtocol.RunTask, execution, environmentArgument, "--configuration-cache", "--stacktrace").buildAndFail()
+        assertContains(blocked.output, "Required fixture check failed")
+        assertEquals(2, directory.resolve("check-count").readLines().size)
+        assertEquals(1, BuildModelReader.json.parseToJsonElement(directory.resolve("state.json").readText()).jsonObject.getValue("writes").jsonPrimitive.int)
+        directory.resolve("fail-check").delete()
         bridge(GradleProtocol.PlanTask, option)
         val rollbackPlan = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json"))
         val (rollbackDigest, _) = contract(request.copy(expectedContextDigest = rollbackPlan.contextDigest, deployments = rollbackPlan.deployments))

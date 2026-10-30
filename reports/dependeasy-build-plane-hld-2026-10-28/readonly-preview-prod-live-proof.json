@@ -1,0 +1,32 @@
+{
+  "cliOutcome": "Failed after Gradle success: ignored task-definition directory query TimedOut",
+  "cliWallSeconds": 398.80482975,
+  "gradleInvocationSeconds": 56.929175625,
+  "planConfiguredMillis": 23023,
+  "selectedTasks": 2105,
+  "selectedIncludesEngineTests": true,
+  "deploymentPreviewCount": 1,
+  "receipt": {
+    "run_id": "20261029-145136-9d6c7cf9-bestbuds",
+    "project": "bestbuds",
+    "worker": "local",
+    "tasks": [
+      "planBuildNode",
+      "-Pdependeasy.gradleRequest=/Users/ovd/dev/bestbuds/build/dependeasy/contracts/gradle/requests/dd08232cf1e4ca7d6be6c07cedf058860ef8171157dcea1be5c8bbade40591b8.json",
+      "-Pdependeasy.environment=prod",
+      "--console=plain"
+    ],
+    "workspace_root": "/Users/ovd/dev",
+    "started": "2026-10-29T14:51:36.549766",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-145136-9d6c7cf9-bestbuds.log",
+    "queue_seconds": 75.404861958,
+    "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+    "exit_code": 0,
+    "execution_seconds": 56.92917562500001,
+    "finished": "2026-10-29T14:52:33.479470"
+  },
+  "planSha256": "cf85e3a7fd97c76465df84ede3e9da77b3a632161a7fe4a96849ea2a04ba604b",
+  "scope": "Real installed CLI prod request; original selected plan remains2105tasks; provider preview written; no apply. Owner post-plan seal fails so full operation is not qualified. Shared source/load; no paired speed claim.",
+  "realGradleNoCheckExecution": true,
+  "evidence": "Normal Gradle log includes no :engine:jvmTest, :kernel:test or :pr execution. Exact full dry-run plan retains2105tasks and engine JVM tests; one real deployment provider preview produced."
+}

@@ -1,0 +1,679 @@
+{
+  "routerId": "20261029-114543-89cba13d-bestbuds",
+  "counts": {
+    "kernel": {
+      "tests": 524,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 11
+    },
+    "cli": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "suites": {
+    "kernel": [
+      {
+        "name": "ai.bestbuds.reaktor.workbench.testing.WorkingTreeTest",
+        "timestamp": "2026-10-29T06:19:03.452Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabasePinnedResultsTest",
+        "timestamp": "2026-10-29T06:18:49.311Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.inspection.WorkbenchInspectionSessionTest",
+        "timestamp": "2026-10-29T06:18:50.736Z",
+        "tests": 13
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.DataCatalogTest",
+        "timestamp": "2026-10-29T06:16:39.322Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAtlasTest",
+        "timestamp": "2026-10-29T06:16:58.324Z",
+        "tests": 29
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.ClickHouseRestorePlanTest",
+        "timestamp": "2026-10-29T06:18:51.021Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.DeployArtifactsTest",
+        "timestamp": "2026-10-29T06:18:54.657Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelHouseRulesTest",
+        "timestamp": "2026-10-29T06:18:05.942Z",
+        "tests": 7
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTaskGraphTest",
+        "timestamp": "2026-10-29T06:18:20.214Z",
+        "tests": 13
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.PlanConfirmationTest",
+        "timestamp": "2026-10-29T06:19:01.962Z",
+        "tests": 8
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.auth.AuthDeclarationsTest",
+        "timestamp": "2026-10-29T06:18:44.575Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.mcp.DesktopMcpSessionTest",
+        "timestamp": "2026-10-29T06:18:50.751Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTelemetryTest",
+        "timestamp": "2026-10-29T06:18:24.544Z",
+        "tests": 10
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DataCodeUsageTest",
+        "timestamp": "2026-10-29T06:18:49.283Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.SessionReadsAreBoundedTest",
+        "timestamp": "2026-10-29T06:19:02.264Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.testing.CheckReportsTest",
+        "timestamp": "2026-10-29T06:19:03.422Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.topology.BestBudsSchemaCatalogTest",
+        "timestamp": "2026-10-29T06:19:03.455Z",
+        "tests": 8
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.ClickHouseBackupPlanTest",
+        "timestamp": "2026-10-29T06:18:50.756Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.PubSubSessionTest",
+        "timestamp": "2026-10-29T06:18:50.704Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseFindingsTest",
+        "timestamp": "2026-10-29T06:18:49.292Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseGraphExplorationTest",
+        "timestamp": "2026-10-29T06:18:49.301Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.inspection.ElementBindingRegistryTest",
+        "timestamp": "2026-10-29T06:18:50.723Z",
+        "tests": 11
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.ai.AiInventoryTest",
+        "timestamp": "2026-10-29T06:18:44.717Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelRadarTest",
+        "timestamp": "2026-10-29T06:18:08.764Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCandidateChecksTest",
+        "timestamp": "2026-10-29T06:17:11.353Z",
+        "tests": 7
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelConnectionsTest",
+        "timestamp": "2026-10-29T06:17:50.837Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelPrincipalTest",
+        "timestamp": "2026-10-29T06:18:08.756Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelEngineeringTest",
+        "timestamp": "2026-10-29T06:17:56.771Z",
+        "tests": 20
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelDatabaseTargetsTest",
+        "timestamp": "2026-10-29T06:17:55.484Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelGeneratedSourcesTest",
+        "timestamp": "2026-10-29T06:18:04.304Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelConnectionFailuresTest",
+        "timestamp": "2026-10-29T06:17:49.522Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.agent.BuildModelsTest",
+        "timestamp": "2026-10-29T06:18:44.618Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.OperatorAuthorityTest",
+        "timestamp": "2026-10-29T06:18:44.356Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAtlasPresetsTest",
+        "timestamp": "2026-10-29T06:16:55.582Z",
+        "tests": 7
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.CatalogStartupPerformanceTest",
+        "timestamp": "2026-10-29T06:16:39.277Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelMcpTasksTest",
+        "timestamp": "2026-10-29T06:18:07.751Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAgentsLifecycleTest",
+        "timestamp": "2026-10-29T06:16:53.354Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseSchemaExplorationTest",
+        "timestamp": "2026-10-29T06:18:49.313Z",
+        "tests": 1
+      },
+      {
+        "name": "dev.shibasis.reaktor.conductor.cli.HarnessUsageTest",
+        "timestamp": "2026-10-29T06:19:10.692Z",
+        "tests": 17
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.SavedDataDocumentsTest",
+        "timestamp": "2026-10-29T06:18:50.705Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.FirebaseReportsPlanTest",
+        "timestamp": "2026-10-29T06:18:55.428Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DeviceDatabaseTargetTest",
+        "timestamp": "2026-10-29T06:18:49.326Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelIntegrationTest",
+        "timestamp": "2026-10-29T06:18:07.358Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelOwnerTransportTest",
+        "timestamp": "2026-10-29T06:18:08.104Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAtlasCompiledTest",
+        "timestamp": "2026-10-29T06:16:53.372Z",
+        "tests": 7
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.topology.BestBudsSystemTopologyTest",
+        "timestamp": "2026-10-29T06:19:03.855Z",
+        "tests": 7
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelNodeTelemetryTest",
+        "timestamp": "2026-10-29T06:18:07.756Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelInboxTest",
+        "timestamp": "2026-10-29T06:18:07.023Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.ProductionConnectionsTest",
+        "timestamp": "2026-10-29T06:18:44.368Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseDocumentsTest",
+        "timestamp": "2026-10-29T06:18:49.289Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.WorkerStoreSessionTest",
+        "timestamp": "2026-10-29T06:18:50.721Z",
+        "tests": 1
+      },
+      {
+        "name": "dev.shibasis.reaktor.conductor.cli.StdioBridgeTest",
+        "timestamp": "2026-10-29T06:19:10.726Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.DatabaseWriterTest",
+        "timestamp": "2026-10-29T06:16:39.657Z",
+        "tests": 9
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.NativeKernelExecutionTest",
+        "timestamp": "2026-10-29T06:18:44.307Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelWorkspaceTest",
+        "timestamp": "2026-10-29T06:18:43.327Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.MemgraphInspectionBrokerTest",
+        "timestamp": "2026-10-29T06:18:49.329Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelSessionLogTest",
+        "timestamp": "2026-10-29T06:18:11.631Z",
+        "tests": 12
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelChangesTest",
+        "timestamp": "2026-10-29T06:17:31.030Z",
+        "tests": 19
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAcceptanceTest",
+        "timestamp": "2026-10-29T06:16:40.327Z",
+        "tests": 8
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelConnectionBatchTest",
+        "timestamp": "2026-10-29T06:17:40.638Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAgentChecksTest",
+        "timestamp": "2026-10-29T06:16:48.205Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.OperationRulesTest",
+        "timestamp": "2026-10-29T06:18:59.990Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.AuthDirectorySessionTest",
+        "timestamp": "2026-10-29T06:18:49.114Z",
+        "tests": 13
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.ServiceSpanMigrationTest",
+        "timestamp": "2026-10-29T06:19:01.980Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.mcp.KernelCheckResultTest",
+        "timestamp": "2026-10-29T06:18:44.605Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelBoardTest",
+        "timestamp": "2026-10-29T06:17:07.748Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTypeScriptFactsTest",
+        "timestamp": "2026-10-29T06:18:24.573Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTelemetryFleetTest",
+        "timestamp": "2026-10-29T06:18:24.515Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelSubgraphsTest",
+        "timestamp": "2026-10-29T06:18:19.885Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.topology.SupabaseDumpSchemaTest",
+        "timestamp": "2026-10-29T06:19:10.642Z",
+        "tests": 7
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.WorkspaceRepositoriesTest",
+        "timestamp": "2026-10-29T06:18:44.372Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.testing.VerificationsTest",
+        "timestamp": "2026-10-29T06:19:03.448Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCppFactsTest",
+        "timestamp": "2026-10-29T06:17:52.496Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.NativeDatabaseSessionTest",
+        "timestamp": "2026-10-29T06:18:50.691Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCodeGraphTest",
+        "timestamp": "2026-10-29T06:17:39.385Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTelemetrySignalsTest",
+        "timestamp": "2026-10-29T06:18:24.537Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.DatabaseQueryBackendTest",
+        "timestamp": "2026-10-29T06:16:16.027Z",
+        "tests": 11
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.IslandCatalogTest",
+        "timestamp": "2026-10-29T06:16:39.702Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.PostgresInspectionTest",
+        "timestamp": "2026-10-29T06:18:50.692Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.ConnectionCatalogTest",
+        "timestamp": "2026-10-29T06:16:39.280Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelRunReadTest",
+        "timestamp": "2026-10-29T06:18:11.535Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.agent.ChangeChecksTest",
+        "timestamp": "2026-10-29T06:18:44.626Z",
+        "tests": 11
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.WorkerInputLifecycleTest",
+        "timestamp": "2026-10-29T06:19:03.410Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelFlowCoverageTest",
+        "timestamp": "2026-10-29T06:18:04.282Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelTelemetryVerificationTest",
+        "timestamp": "2026-10-29T06:18:24.566Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.agent.WorkModulesTest",
+        "timestamp": "2026-10-29T06:18:44.683Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.CatalogNodeTest",
+        "timestamp": "2026-10-29T06:16:16.927Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelDoorTest",
+        "timestamp": "2026-10-29T06:17:55.496Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.GradleReceiptVisibilityTest",
+        "timestamp": "2026-10-29T06:18:55.681Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelPlanTest",
+        "timestamp": "2026-10-29T06:18:08.429Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAgentServiceTest",
+        "timestamp": "2026-10-29T06:16:53.350Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.OperationalCatalogCacheTest",
+        "timestamp": "2026-10-29T06:18:59.993Z",
+        "tests": 11
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelBuildNodeTest",
+        "timestamp": "2026-10-29T06:17:08.393Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCrashEventsTest",
+        "timestamp": "2026-10-29T06:17:55.458Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelReaktorFactsTest",
+        "timestamp": "2026-10-29T06:18:08.787Z",
+        "tests": 10
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseMigrationQueriesTest",
+        "timestamp": "2026-10-29T06:18:49.307Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAccessTest",
+        "timestamp": "2026-10-29T06:16:46.943Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelSemanticFactsTest",
+        "timestamp": "2026-10-29T06:18:11.542Z",
+        "tests": 6
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.mcp.KernelGraphQueryTest",
+        "timestamp": "2026-10-29T06:18:44.612Z",
+        "tests": 9
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelSourceRoutingTest",
+        "timestamp": "2026-10-29T06:18:11.786Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.DesktopPreferencesTest",
+        "timestamp": "2026-10-29T06:16:16.913Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.ai.AiInventoryDiscoveryTest",
+        "timestamp": "2026-10-29T06:18:44.688Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelCrashesTest",
+        "timestamp": "2026-10-29T06:17:55.479Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.OperationalEnvironmentTest",
+        "timestamp": "2026-10-29T06:19:01.955Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.mcp.KernelAuthToolsTest",
+        "timestamp": "2026-10-29T06:18:44.590Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelGraphTest",
+        "timestamp": "2026-10-29T06:18:05.282Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseSeekPagingTest",
+        "timestamp": "2026-10-29T06:18:49.323Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.PostgresSessionConnectionTest",
+        "timestamp": "2026-10-29T06:18:50.700Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelKotlinFamiliesTest",
+        "timestamp": "2026-10-29T06:18:07.690Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelApplicationLogsTest",
+        "timestamp": "2026-10-29T06:16:53.365Z",
+        "tests": 3
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelAgentEvidenceTest",
+        "timestamp": "2026-10-29T06:16:52.350Z",
+        "tests": 1
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.StorePrefixSurveyTest",
+        "timestamp": "2026-10-29T06:18:50.711Z",
+        "tests": 2
+      },
+      {
+        "name": "ai.bestbuds.reaktor.kernel.KernelWatchTest",
+        "timestamp": "2026-10-29T06:18:25.907Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.database.DatabaseSchemaSnapshotTest",
+        "timestamp": "2026-10-29T06:18:49.316Z",
+        "tests": 5
+      },
+      {
+        "name": "ai.bestbuds.reaktor.workbench.operations.HostLocalOperationTest",
+        "timestamp": "2026-10-29T06:18:59.708Z",
+        "tests": 6
+      }
+    ],
+    "cli": [
+      {
+        "name": "ai.bestbuds.reaktor.cli.BuildModelCliTest",
+        "timestamp": "2026-10-29T06:16:14.462Z",
+        "tests": 4
+      },
+      {
+        "name": "ai.bestbuds.reaktor.cli.ReaktorCommandTest",
+        "timestamp": "2026-10-29T06:16:27.445Z",
+        "tests": 8
+      },
+      {
+        "name": "ai.bestbuds.reaktor.cli.KernelCliTest",
+        "timestamp": "2026-10-29T06:16:24.301Z",
+        "tests": 5
+      }
+    ]
+  },
+  "router": {
+    "project": "bestbuds",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds",
+    "source_head": "247c9980fca0e9f82e83074629bc217172de6de7",
+    "tasks": [
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      ":reaktorCli:test",
+      ":kernel:agentDist",
+      ":reaktorCli:installDist",
+      "--continue",
+      "--no-daemon",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      ":reaktorCli:test",
+      ":kernel:agentDist",
+      ":reaktorCli:installDist",
+      "--continue",
+      "--no-daemon",
+      "--console=plain",
+      ":exportBuildModel"
+    ],
+    "started": "2026-10-29T11:45:43.267617",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-114543-89cba13d-bestbuds.log",
+    "run_id": "20261029-114543-89cba13d-bestbuds",
+    "exit_code": 0,
+    "sync_seconds": 14.817296916,
+    "queue_seconds": 17.500829709,
+    "owner": {
+      "pid": 15401,
+      "started": "Thu Oct 29 11:45:10 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 1,
+    "publication": "changed-files",
+    "source_epoch": 1793254528.452203,
+    "execution_seconds": 212.37771362499998,
+    "worker_started_epoch": 1793254543.416515,
+    "dry_run": false,
+    "builds": {
+      "bestbuds": "bestbuds",
+      "dependeasy": "reaktor",
+      "reaktor": "reaktor"
+    },
+    "artifact_family": "all",
+    "collected": "2026-10-29T11:49:38.128194",
+    "copied_files": 17748,
+    "copy_error": null,
+    "collection_seconds": 22.41140358300001,
+    "worker_slot_trimmed": 0,
+    "publication_queue_seconds": 726.446665084,
+    "withheld_outputs": {
+      "bestbuds": 256,
+      "reaktor": 8
+    },
+    "unverified_copies": {
+      "bestbuds": 17033
+    },
+    "finished": "2026-10-29T12:01:54.963403",
+    "publication_seconds": 736.775010084
+  }
+}

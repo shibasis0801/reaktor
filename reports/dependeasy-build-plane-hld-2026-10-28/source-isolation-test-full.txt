@@ -1,0 +1,218 @@
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt · class SourceIsolationTest · 14135 of 14135 characters · rev:7673a01157dc
+  9  class SourceIsolationTest {
+ 10      private fun git(root: File, vararg args: String): String {
+ 11          val process = ProcessBuilder(listOf("git", "-C", root.path) + args).redirectErrorStream(true).start()
+ 12          val result = process.inputStream.bufferedReader().readText()
+ 13          check(process.waitFor() == 0) { result }
+ 14          return result.trim()
+ 15      }
+ 16  
+ 17      private fun fixture(body: (File, File, LocalAgentArtifacts, AgentWorktrees) -> Unit) {
+ 18          val workspace = Files.createTempDirectory("source-isolation").toFile()
+ 19          val root = File(workspace, "project").apply { mkdir() }
+ 20          val data = File(workspace, "data").apply { mkdir() }
+ 21          val artifacts = LocalAgentArtifacts(File(data, "artifacts").toPath())
+ 22          try {
+ 23              git(root, "init", "--quiet")
+ 24              File(root, "Source.kt").writeText("val value = 1\n")
+ 25              git(root, "add", ".")
+ 26              git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Baseline")
+ 27              body(root, data, artifacts, AgentWorktrees(root, File(data, "worktrees").toPath(), artifacts))
+ 28          } finally { workspace.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
+ 29      }
+ 30  
+ 31      @Test fun snapshotsKeepAuthoredDirtyInputsAndExcludeRuntimeAndDatedEvidence() = fixture { root, _, artifacts, store ->
+ 32          fun write(name: String, value: String) = File(root, name).apply { parentFile.mkdirs(); writeText(value) }
+ 33          write("agent/audit-20261025/screen.png", "old evidence")
+ 34          write(".reaktor/libexec/runtime.jar", "old runtime")
+ 35          git(root, "add", ".")
+ 36          git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Evidence baseline")
+ 37          val index = File(root, ".git/index").readBytes()
+ 38          write("Source.kt", "val value = 2\n")
+ 39          write("modules/assets/icon.png", "authored asset")
+ 40          write("agent/config.json", "{\"authored\":true}")
+ 41          write("agent/audit-20261025/probe.py", "print('authored probe')")
+ 42          write("agent/audit-20261025/screen.png", "new evidence")
+ 43          write(".reaktor/libexec/runtime.jar", "new runtime")
+ 44          repeat(250) { write("reports/capture-20261025/$it.json", "{\"generated\":true}") }
+ 45          val nested = File(root, ".claude/worktrees/other").apply { mkdirs() }
+ 46          git(nested, "init", "--quiet")
+ 47          File(nested, "Other.kt").writeText("val other = 1")
+ 48          val candidates = SourceCandidates(root, artifacts)
+ 49          val before = candidates.capture()
+ 50          assertTrue(before.complete, before.notices.toString())
+ 51          assertEquals(setOf("Source.kt", "modules/assets/icon.png", "agent/config.json", "agent/audit-20261025/probe.py"), before.changedFiles.toSet())
+ 52          assertFalse("new evidence" in artifacts.text(before.diff!!))
+ 53          assertEquals(before.changedFiles.toSet(), candidates.dirtyManifest().entries.keys)
+ 54          write("agent/audit-20261025/screen.png", "moving evidence again")
+ 55          assertEquals(before.sourceDigest, candidates.capture().sourceDigest)
+ 56          val worktree = store.prepare("source-inputs", "writer")
+ 57          val checkout = File(worktree.roots.single().path)
+ 58          assertEquals("val value = 2\n", File(checkout, "Source.kt").readText())
+ 59          assertEquals("authored asset", File(checkout, "modules/assets/icon.png").readText())
+ 60          assertEquals("old evidence", File(checkout, "agent/audit-20261025/screen.png").readText())
+ 61          assertEquals("old runtime", File(checkout, ".reaktor/libexec/runtime.jar").readText())
+ 62          assertFalse(File(checkout, "reports/capture-20261025/0.json").exists())
+ 63          assertFalse(File(checkout, ".claude/worktrees/other").exists())
+ 64          assertContentEquals(index, File(root, ".git/index").readBytes())
+ 65          store.remove(worktree.id)
+ 66      }
+ 67  
+ 68      @Test fun abandonmentRetainsEveryIncludedRootAndRefusesAChangedOrIncompleteSnapshot() = fixture { root, _, artifacts, store ->
+ 69          val framework = File(root.parentFile, "framework").apply { mkdir() }
+ 70          git(framework, "init", "--quiet")
+ 71          File(framework, "Framework.kt").writeText("val framework = 1\n")
+ 72          git(framework, "add", ".")
+ 73          git(framework, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Framework")
+ 74          File(root, "settings.gradle.kts").writeText("includeBuild(\"../framework\")")
+ 75          File(root, ".gitignore").writeText("build/\n")
+ 76          File(root, "build/dependeasy/model.json").apply { parentFile.mkdirs(); writeText(
+ 77              """{"schema":4,"producer":{"version":"fixture"},"builds":[{"name":"project","directory":"."},{"name":"framework","directory":"../framework"}]}""") }
+ 78          git(root, "add", ".")
+ 79          git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Include")
+ 80          val tree = store.prepare("abandoned-roots", "writer")
+ 81          assertEquals(2, tree.roots.size)
+ 82          val indices = listOf(root, framework).associateWith { File(it, ".git/index").readBytes() }
+ 83          tree.roots.forEach { File(it.path, "New.kt").writeText("val retained = \"${File(it.source).name}\"\n") }
+ 84          val snapshot = store.retainSnapshot(tree.id)
+ 85          val manifest = dev.shibasis.reaktor.conductor.ConductorJson.parseToJsonElement(artifacts.text(snapshot)).jsonObject
+ 86          val missingRoot = artifacts.put(kotlinx.serialization.json.JsonObject(manifest.toMutableMap().apply {
+ 87              put("roots", kotlinx.serialization.json.JsonArray(manifest.getValue("roots").jsonArray.take(1)))
+ 88          }).toString(), "worktree-snapshot")
+ 89          assertFailsWith<IllegalArgumentException> { store.abandon(tree.id, missingRoot) }
+ 90          assertTrue(tree.roots.all { File(it.path, "New.kt").exists() })
+ 91          val moved = File(tree.roots.first().path, "New.kt")
+ 92          val saved = moved.readText()
+ 93          moved.appendText("val later = true\n")
+ 94          assertFailsWith<IllegalArgumentException> { store.abandon(tree.id, snapshot) }
+ 95          assertTrue(tree.roots.all { File(it.path).exists() })
+ 96          moved.writeText(saved)
+ 97          store.abandon(tree.id, snapshot)
+ 98          assertTrue(tree.roots.all { !File(it.path).exists() })
+ 99          manifest.getValue("roots").jsonArray.forEach { item ->
+100              val entry = item.jsonObject
+101              val source = File(entry.getValue("source").jsonPrimitive.content)
+102              val ref = entry.getValue("ref").jsonPrimitive.content
+103              assertEquals("val retained = \"${source.name}\"", git(source, "show", "$ref:New.kt"))
+104          }
+105          indices.forEach { (source, index) -> assertContentEquals(index, File(source, ".git/index").readBytes()) }
+106      }
+107  
+108      @Test fun snapshotWriteFailureNeverRemovesTheOwnedCheckout() = fixture { root, _, _, store ->
+109          val tree = store.prepare("failed-snapshot", "writer")
+110          File(tree.roots.single().path, "Untracked.kt").writeText("val recover = true\n")
+111          File(root, ".git/refs/reaktor").mkdirs()
+112          File(root, ".git/refs/reaktor/abandoned").writeText("reference namespace blocked")
+113          assertFailsWith<Exception> { store.retainSnapshot(tree.id) }
+114          assertTrue(File(tree.roots.single().path, "Untracked.kt").exists())
+115          assertEquals(tree, store.read(tree.id))
+116      }
+117  
+118      @Test fun movingCaptureAndMovingSnapshotRetryAndDiscardTheOldTrial() = fixture { root, _, artifacts, store ->
+119          val index = File(root, ".git/index").readBytes()
+120          var captures = 0
+121          val worktree = store.prepare("moving", "writer") {
+122              captures++
+123              if (captures == 3) File(root, "Source.kt").writeText("val value = 3\n")
+124              SourceCandidates(root, artifacts).capture().let {
+125                  if (captures == 1) it.copy(complete = false, notices = listOf("Source changed during capture: Source.kt")) else it
+126              }
+127          }
+128          assertEquals(5, captures)
+129          assertEquals("val value = 3\n", File(worktree.roots.single().path, "Source.kt").readText())
+130          assertEquals(2, git(root, "worktree", "list", "--porcelain").lineSequence().count { it.startsWith("worktree ") })
+131          assertContentEquals(index, File(root, ".git/index").readBytes())
+132          store.remove(worktree.id)
+133          assertTrue(store.list("moving").isEmpty())
+134          assertEquals(1, git(root, "worktree", "list", "--porcelain").lineSequence().count { it.startsWith("worktree ") })
+135      }
+136  
+137      @Test fun persistentSourceMotionStopsAfterThreeAttemptsAndLeavesNoTrials() = fixture { root, data, artifacts, store ->
+138          var captures = 0
+139          val failure = assertFailsWith<IllegalStateException> {
+140              store.prepare("always-moving", "writer") {
+141                  captures++
+142                  if (captures % 2 == 0) File(root, "Source.kt").writeText("val value = $captures\n")
+143                  SourceCandidates(root, artifacts).capture()
+144              }
+145          }
+146          assertTrue("three isolation attempts" in failure.message.orEmpty())
+147          assertEquals(6, captures)
+148          assertTrue(File(data, "worktrees").listFiles().orEmpty().isEmpty())
+149          assertEquals(1, git(root, "worktree", "list", "--porcelain").lineSequence().count { it.startsWith("worktree ") })
+150      }
+151  
+152      @Test fun nestedIncludedBuildsAreCoveredByTheirOwningRepository() = fixture { root, _, artifacts, store ->
+153          val framework = File(root.parentFile, "framework").apply { mkdir() }
+154          git(framework, "init", "--quiet")
+155          listOf(root, framework).forEach { repository ->
+156              File(repository, ".gitignore").writeText("build/\n")
+157              File(repository, "settings.gradle.kts").writeText("includeBuild(\"plugin\")")
+158              File(repository, "plugin").mkdir()
+159              File(repository, "plugin/settings.gradle.kts").writeText("includeBuild(System.getenv(\"DYNAMIC_BUILD\"))")
+160              File(repository, "plugin/Plugin.kt").writeText("val plugin = 1\n")
+161              git(repository, "add", ".")
+162              git(repository, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Included build")
+163          }
+164          File(root, "build/dependeasy/model.json").apply { parentFile.mkdirs(); writeText(
+165              """{"schema":4,"producer":{"version":"fixture"},"builds":[{"name":"project","directory":"."},{"name":"plugin","directory":"plugin"},{"name":"framework","directory":"../framework"},{"name":"framework-plugin","directory":"../framework/plugin"}]}""") }
+166          File(framework, "build/dependeasy/model.json").apply { parentFile.mkdirs(); writeText(
+167              """{"schema":4,"producer":{"version":"fixture"},"builds":[{"name":"framework","directory":"."},{"name":"plugin","directory":"plugin"}]}""") }
+168          File(framework, "plugin/Plugin.kt").writeText("val plugin = 2\n")
+169          val candidate = SourceCandidates(root, artifacts).capture()
+170          assertTrue(candidate.complete, candidate.notices.toString())
+171          assertEquals(setOf(root.canonicalPath, framework.canonicalPath), candidate.sourceRoots.toSet())
+172          val worktree = store.prepare("included-builds", "writer")
+173          assertEquals(2, worktree.roots.size)
+174          assertEquals("val plugin = 2\n", File(worktree.roots.single { it.source == framework.canonicalPath }.path, "plugin/Plugin.kt").readText())
+175          store.remove(worktree.id)
+176      }
+177  
+178      @Test fun gitlinksRetainTheirPinnedRevisionAndDirtySubmoduleSourceRefusesIsolation() = fixture { root, _, artifacts, store ->
+179          val library = File(root.parentFile, "library").apply { mkdir() }
+180          git(library, "init", "--quiet")
+181          File(library, "Library.kt").writeText("val library = 1\n")
+182          git(library, "add", ".")
+183          git(library, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Library baseline")
+184          val vendor = File(root, "vendor/library").apply { parentFile.mkdirs() }
+185          git(library, "worktree", "add", "--detach", vendor.path, "HEAD")
+186          git(root, "add", "vendor/library")
+187          git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Pin library")
+188          val candidates = SourceCandidates(root, artifacts)
+189          val initial = candidates.capture()
+190          assertTrue(initial.complete, initial.notices.toString())
+191          assertEquals(listOf(root.canonicalPath), initial.sourceRoots)
+192          File(vendor, "Library.kt").writeText("val library = 2\n")
+193          val dirty = candidates.capture()
+194          assertFalse(dirty.complete)
+195          assertTrue(dirty.notices.any { "Submodule source is not clean: vendor/library" in it })
+196          assertFailsWith<IllegalArgumentException> { store.prepare("dirty-library", "writer") }
+197          git(vendor, "add", ".")
+198          git(vendor, "-c", "user.name=Fixture", "-c", "user.email=fixture@localhost", "commit", "--quiet", "-m", "Library update")
+199          val updated = candidates.capture()
+200          assertTrue(updated.complete, updated.notices.toString())
+201          assertNotEquals(initial.sourceDigest, updated.sourceDigest)
+202          val worktree = store.prepare("pinned-library", "writer")
+203          val checkout = File(worktree.roots.single().path)
+204          assertTrue(git(checkout, "ls-files", "--stage", "vendor/library").contains(git(vendor, "rev-parse", "HEAD")))
+205          assertTrue(SourceCandidates(checkout, artifacts).capture().complete)
+206          store.remove(worktree.id)
+207          git(library, "worktree", "remove", "--force", vendor.path)
+208      }
+209  
+210      @Test fun incompleteCoverageAfterSnapshotRefusesAndRemovesTheTrial() = fixture { root, data, artifacts, store ->
+211          var captures = 0
+212          assertFailsWith<IllegalArgumentException> {
+213              store.prepare("incomplete", "writer") {
+214                  captures++
+215                  SourceCandidates(root, artifacts).capture().let {
+216                      if (captures == 2) it.copy(complete = false, notices = listOf("New-file diff budget exceeded")) else it
+217                  }
+218              }
+219          }
+220          assertEquals(2, captures)
+221          assertTrue(File(data, "worktrees").listFiles().orEmpty().isEmpty())
+222          assertEquals(1, git(root, "worktree", "list", "--porcelain").lineSequence().count { it.startsWith("worktree ") })
+223      }
+224  }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt:8:6@1b9c079a"},"follow":[{"rel":"references","dir":"in"}]}

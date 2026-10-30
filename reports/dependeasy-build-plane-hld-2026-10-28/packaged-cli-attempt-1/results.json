@@ -1,0 +1,90 @@
+[
+  {
+    "label": "version",
+    "code": 0,
+    "seconds": 0.15207483305130154,
+    "wrappers": {},
+    "text": "reaktor sha256:629be6600d88 (kernel wire v1)\n"
+  },
+  {
+    "label": "help",
+    "code": 0,
+    "seconds": 0.4244067500112578,
+    "wrappers": {},
+    "text": "Usage: reaktor [<options>]\n\n  Reaktor workspace operations, generated from the graph-owned catalog. Browse:\n  build list; build tree; build explain NODE. Verify: build plan NODE; build\n  run NODE. Inspect: run list; run show RUN; run logs RUN. Discover: operation\n  catalog; operation describe OPERATION. Phones: connect ios; connect android.\n  Independent physical-device trust, unlock and automation checks. Common\n  options before or after commands: --dir DIRECTORY (--workspace during\n  migration), --args JSON or -, --json, --detach, --request-id ID, --seat\n  HARNESS. No validated catalog cached here. Run reaktor --dir WORKSPACE\n  operation catalog explicitly to refresh it. Completion: completion\n  bash|zsh|fish. MCP: mcp install; mcp --stdio --seat HARNESS. Help, version\n  and static completion never start an owner.\n\nOptions:\n  -h, --help  Show this message and exit\n"
+  },
+  {
+    "label": "agent-version",
+    "code": 0,
+    "seconds": 0.1986644160351716,
+    "wrappers": {},
+    "text": "reaktor-agent sha256:f98d2704ca97\n"
+  },
+  {
+    "label": "agent-help",
+    "code": 0,
+    "seconds": 0.19022150000091642,
+    "wrappers": {},
+    "text": "reaktor-agent - workspace lifecycle, Atlas and standalone agent protocols.\nUse reaktor for build, check, deploy, runs and other workspace operations.\n\n  workspace           workspace owner, MCP, browser pairing and agent lifecycle\n  atlas               code queries, source reads, change plans and checks\n  usage [--since <ISO-date>] [--until <ISO-date>] [--dir <cwd-root>] [--requests <new.jsonl>]\n                      read local Codex/Claude request usage; defaults to the last seven days\n\n  --prompt <text>      the task (required)\n  --dir <path>         working directory the agents read (default: current directory)\n  --protocol <name>    ask | all | council | pipeline | planned   (default: ask)\n  --plan <file>        a Protocol as JSON: your own topology, used instead of --protocol\n  --agents <a,b,c>     agent ids to involve (default: every participant)\n  --roster <file>      JSON array of AgentSpec: your own agents (default: a small sample roster)\n  --thread <file>      read and write the canonical thread here\n  --context <file>     scoped ContextPacket JSON (e.g. Manna context_for_task result data)\n  --dry                use the offline Echo runtime; spawns nothing\n  --isolate-config     run harnesses without your own config (reproducible; ignores your setup)\n  --quiet              do not stream agent output\n\nThe built-in roster and pipeline are samples. Real use is --roster with your own agents and\n--plan with your own topology, or --protocol planned to let an agent design both.\n\nExamples:\n  --protocol council --prompt \"Should reaktor-db own sync, or should reaktor-service?\"\n  --roster team.json --plan review.json --prompt \"Harden the notification path\"\n  --protocol planned --agents architect --prompt \"Port the FFI wire to credit backpressure\"\n  --protocol ask --agents skeptic --prompt \"What breaks in this design?\"\n"
+  },
+  {
+    "label": "kernel-status",
+    "code": 0,
+    "seconds": 2.353604624979198,
+    "wrappers": {},
+    "outcome": {
+      "type": "completed",
+      "result": {
+        "owner": "kernel.jar in /Users/ovd/dev/offload/.remote-dev/performance-followup-20261028/cli/distribution/reaktor/lib, built 28 Oct 21:49; this process started 28 Oct 21:49",
+        "capabilities": "c2c8cf08bff1",
+        "operations": 266,
+        "recipes": [
+          "rename",
+          "edit",
+          "structural",
+          "change-type"
+        ],
+        "presets": [
+          "map",
+          "investigate",
+          "impact",
+          "affected-checks",
+          "explain",
+          "wiring",
+          "runtime",
+          "routes"
+        ],
+        "behind": [],
+        "sources": [
+          "this repository at 1810d443c 28 Oct 15:04 cloudflare: mount a graph's contracts except the ones only queues reach, 89 files changed and not committed"
+        ],
+        "models": [
+          "build/dependeasy/model.json: 1387 build nodes",
+          "the compilations are not exported yet"
+        ],
+        "helpers": [
+          "no Kotlin helper is built: ./gradlew :reaktor:reaktor-code:kotlinSemanticDistZip builds it"
+        ],
+        "indexing": [
+          "kotlin-analysis-api/2.5.0-Beta2-59 has indexed 0 of 0 Kotlin files",
+          "No TypeScript project is declared: no pnpm-workspace.yaml lists a package with a tsconfig.json",
+          "clangd no native module has compile commands under build/dependeasy/native yet; building one writes them"
+        ],
+        "unavailable": [
+          "kotlin-analysis-api/2.5.0-Beta2-59: has indexed 0 of 0 Kotlin files",
+          "scip-typescript/0.4.0: No TypeScript project is declared: no pnpm-workspace.yaml lists a package with a tsconfig.json",
+          "clangd: no native module has compile commands under build/dependeasy/native yet; building one writes them",
+          "atlas-compilations: not exported yet; the first rename plan or indexing exports it",
+          "retained telemetry: no span of production is retained for the last 60 minutes",
+          "semantic: no compiler has indexed a file yet",
+          "runtime: the kernel retains no telemetry span; telemetry.refresh reads spans, and devtools, rgp/1 and a test recorder would add activations"
+        ]
+      },
+      "reference": {
+        "operation": "kernel.status",
+        "requestId": "dd1a43eb-3b16-4768-9c3d-d7736d2de235",
+        "workspace": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/reaktor"
+      }
+    }
+  }
+]

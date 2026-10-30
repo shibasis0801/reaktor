@@ -1,0 +1,45 @@
+{
+  "observedAt": 1793227038.623057,
+  "rows": [
+    {
+      "label": "primary-status",
+      "exitCode": 0,
+      "seconds": 2.153389916,
+      "stdoutSha256": "d571ab361f01e688df9529ba2a92abb1c26088e3b8b7668697d5a546b0231152"
+    },
+    {
+      "label": "agent-atlas",
+      "exitCode": 0,
+      "seconds": 0.9573924169999999,
+      "stdoutSha256": "a6a86ac4815d4eee21c3b7eb281b2ac199454974ca7aa7c56196c5186772e065"
+    },
+    {
+      "label": "primary-stdio-mcp",
+      "initialize": true,
+      "tools": [
+        "kernel",
+        "atlas_query",
+        "atlas_read",
+        "change_plan",
+        "change_apply",
+        "check_run"
+      ],
+      "owner": "ec4612de9ae94f2a26678442cb80b251a22e73d04b6567f3b0cbb8507e004aab.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 29 Oct 04:00; this process started 29 Oct 04:01",
+      "atlasRead": true
+    },
+    {
+      "label": "agent-stdio-mcp",
+      "initialize": true,
+      "tools": [
+        "kernel",
+        "atlas_query",
+        "atlas_read",
+        "change_plan",
+        "change_apply",
+        "check_run"
+      ],
+      "owner": "ec4612de9ae94f2a26678442cb80b251a22e73d04b6567f3b0cbb8507e004aab.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 29 Oct 04:00; this process started 29 Oct 04:01",
+      "atlasRead": true
+    }
+  ]
+}

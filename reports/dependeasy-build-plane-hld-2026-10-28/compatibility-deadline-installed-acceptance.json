@@ -1,0 +1,46 @@
+{
+  "observedAt": 1793256071.622553,
+  "rows": [
+    {
+      "label": "primary-stdio-mcp",
+      "protocol": "2025-06-18",
+      "tools": [
+        "kernel",
+        "atlas_query",
+        "atlas_read",
+        "change_plan",
+        "change_apply",
+        "check_run"
+      ],
+      "owner": "d103c6eee6b50c131a89809ebfeddc795142b6996551a015eb5e70393f73d2ab.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 29 Oct 12:10; this process started 29 Oct 12:10",
+      "operations": 290,
+      "behind": [],
+      "sourceReadSha256": "02629c854642d0a05b7d7c09211a34f881e37b0f5ebaecbadfb3167ad5b08ff6",
+      "largeReadRequestBytes": 980159,
+      "largeReadResult": "completed: empty catalog",
+      "followingStatusSameOwner": true,
+      "seconds": 3.095603333
+    },
+    {
+      "label": "agent-stdio-mcp",
+      "protocol": "2025-06-18",
+      "tools": [
+        "kernel",
+        "atlas_query",
+        "atlas_read",
+        "change_plan",
+        "change_apply",
+        "check_run"
+      ],
+      "owner": "d103c6eee6b50c131a89809ebfeddc795142b6996551a015eb5e70393f73d2ab.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 29 Oct 12:10; this process started 29 Oct 12:10",
+      "operations": 290,
+      "behind": [],
+      "sourceReadSha256": "02629c854642d0a05b7d7c09211a34f881e37b0f5ebaecbadfb3167ad5b08ff6",
+      "largeReadRequestBytes": 980159,
+      "largeReadResult": "completed: empty catalog",
+      "followingStatusSameOwner": true,
+      "seconds": 2.127785541
+    }
+  ],
+  "scope": "Fresh installed launchers, SHA256-equal checked distributions and normally upgraded BestBuds owner. Both CLI transports include the qualified kernel invocation deadline."
+}

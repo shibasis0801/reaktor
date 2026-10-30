@@ -105,6 +105,77 @@ class WorkPlanTest {
         assertContains(text, "views → Won't do")
     }
 
+    @Test fun codexThreadsHearOfOthersChangesButNotOfTheirOwn() {
+        val inbox = directory("plan-codex-inbox")
+        val store = WorkPlanStore(directory("plan-codex-store"), inbox)
+        val unnamed = BoardActor(BoardActorKind.Agent, "codex")
+        store.write("codex:c9", PlanPatch(title = "Parser", ops = listOf(PlanOp.Add("Map it", key = "map"))), unnamed)
+        store.write("codex:c9", PlanPatch(ops = listOf(PlanOp.Status("map", PlanStatus.Doing))), unnamed)
+        assertFalse(Files.exists(inbox.resolve("codex-c9.txt")))
+        store.write("codex:c9", PlanPatch(ops = listOf(PlanOp.Status("map", PlanStatus.Done))), person)
+        assertContains(Files.readString(inbox.resolve("codex-c9.txt")), "map → Done")
+    }
+
+    @Test fun anItemAnotherAgentHasInProgressStaysTheirsUntilTheyLetItGo() {
+        val store = WorkPlanStore(directory("plan-claims"))
+        store.write("hangar:launch", PlanPatch(title = "Hangar launch", ops = listOf(
+            PlanOp.Add("Data pane", key = "data", kind = PlanKind.Component),
+            PlanOp.Add("Group stores by type", key = "rail", parent = "data"),
+            PlanOp.Add("File tree", key = "tree", parent = "data"),
+        )), claude)
+        store.write("hangar:launch", PlanPatch(ops = listOf(PlanOp.Status("tree", PlanStatus.Doing))), codex)
+        val taken = store.write("hangar:launch", PlanPatch(ops = listOf(
+            PlanOp.Status("tree", PlanStatus.Done), PlanOp.Update("tree", detail = "mine now"), PlanOp.Add("Icons", key = "icons", parent = "tree"),
+            PlanOp.Status("rail", PlanStatus.Doing),
+        )), claude)
+        assertEquals(listOf("tree", "tree", "icons"), taken.refused.map { it.item })
+        assertTrue(taken.refused.all { "in progress by codex" in it.reason })
+        assertEquals(PlanStatus.Doing, taken.plan.item("rail")?.status)
+        assertEquals(listOf("rail"), store.write("hangar:launch", PlanPatch(ops = listOf(PlanOp.Status("rail", PlanStatus.Done))), codex).refused.map { it.item })
+        store.write("hangar:launch", PlanPatch(ops = listOf(PlanOp.Status("tree", PlanStatus.Done))), codex)
+        assertEquals(emptyList(), store.write("hangar:launch", PlanPatch(ops = listOf(PlanOp.Update("tree", detail = "Next: icons"))), claude).refused)
+        assertEquals(emptyList(), store.write("hangar:launch", PlanPatch(ops = listOf(PlanOp.Status("rail", PlanStatus.Todo))), person).refused)
+    }
+
+    @Test fun aMessageIsKeptInThePlansLogAndReachesTheOthersOnIt() {
+        val inbox = directory("plan-message-inbox")
+        val store = WorkPlanStore(directory("plan-message-store"), inbox)
+        store.write("hangar:launch", PlanPatch(title = "Hangar launch", ops = listOf(PlanOp.Add("Data pane", key = "data"))), claude)
+        store.write("hangar:launch", PlanPatch(ops = listOf(PlanOp.Status("data", PlanStatus.Doing)), message = "Taking the data pane;\n  the file tree lands first"), codex)
+        assertEquals("Says: Taking the data pane; the file tree lands first", store.read("hangar:launch").plan.changes.last().summary.last())
+        assertContains(Files.readString(inbox.resolve("claude-s1.txt")), "codex: data → In progress; Says: Taking the data pane; the file tree lands first")
+        assertFalse(Files.exists(inbox.resolve("codex-c1.txt")))
+        val said = store.write("hangar:launch", PlanPatch(message = "Done for tonight"), claude)
+        assertEquals(listOf("Says: Done for tonight"), said.plan.changes.last().summary)
+        assertContains(Files.readString(inbox.resolve("codex-c1.txt")), "Done for tonight")
+    }
+
+    @Test fun aThreadsInboxIsTakenOnceAndKeptAsRead() {
+        val inbox = ThreadInbox(directory("thread-inbox"))
+        inbox.write("codex:c1", "- r2 · owner: Edited a\n", opening = "Your plan changed:\n")
+        inbox.write("codex:c1", "- r3 · owner: Edited b\n", opening = "Your plan changed:\n")
+        assertTrue(inbox.waiting(BoardRefs.Codex))
+        assertFalse(inbox.waiting(BoardRefs.Claude))
+        assertEquals("Your plan changed:\n- r2 · owner: Edited a\n- r3 · owner: Edited b", inbox.take("codex:c1"))
+        assertNull(inbox.take("codex:c1"))
+        assertFalse(inbox.waiting(BoardRefs.Codex))
+        assertContains(Files.readString(inbox.directory.resolve("codex-c1.txt.read")), "r3 · owner")
+        assertNull(ThreadInbox(directory("thread-inbox-none").resolve("missing")).take("claude:s1"))
+    }
+
+    @Test fun aLentNoteStaysWaitingUntilItIsSettled() {
+        val inbox = ThreadInbox(directory("thread-lend"))
+        inbox.write("codex:c1", "first\n")
+        assertEquals("first", inbox.lend("codex:c1"))
+        assertTrue(inbox.waiting(BoardRefs.Codex))
+        inbox.write("codex:c1", "second\n")
+        assertEquals("first\nsecond", inbox.lend("codex:c1"))
+        inbox.settle("codex:c1")
+        assertFalse(inbox.waiting(BoardRefs.Codex))
+        assertNull(inbox.lend("codex:c1"))
+        assertEquals("first\nsecond\n", Files.readString(inbox.directory.resolve("codex-c1.txt.read")))
+    }
+
     @Test fun statusWordsAgentsUseAreRead() {
         val ops = Json.decodeFromJsonElement(ListSerializer(PlanOp.serializer()),
             PlanJson.statuses(Json.parseToJsonElement("""[{"type":"status","item":"a","status":"in progress"},{"type":"status","item":"b","status":"won't do"}]""")))
@@ -204,6 +275,9 @@ class WorkPlanTest {
         assertContains(Files.readString(inbox.resolve("claude-s1.txt")), "nothing on your plan “Design” is in progress")
         assertEquals(emptyList(), nudges.check(listOf(session("modules/app/A.kt" to now)), emptyMap(), now + 60_000))
         assertEquals(listOf(PlanNudges.Draw), nudges.check(listOf(session("modules/app/A.kt" to now + 20 * 60_000).copy(lastActiveAt = now + 20 * 60_000)), emptyMap(), now + 20 * 60_000).map { it.kind })
+        val codex = session("modules/app/A.kt" to now + 30 * 60_000).copy(runtime = RuntimeKind.Codex, id = "c1", lastActiveAt = now + 40 * 60_000)
+        assertEquals(listOf("codex:c1"), nudges.check(listOf(codex), emptyMap(), now + 40 * 60_000).map { it.thread })
+        assertContains(Files.readString(inbox.resolve("codex-c1.txt")), "no plan yet")
     }
 
     private val revamp = HarnessSession(RuntimeKind.ClaudeCode, "c8", "Revamp the pane", "/w", startedAt = 1, lastActiveAt = 5, origin = null, version = null, branch = null,

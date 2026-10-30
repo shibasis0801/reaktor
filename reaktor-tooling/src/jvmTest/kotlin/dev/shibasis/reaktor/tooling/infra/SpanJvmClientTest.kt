@@ -90,6 +90,10 @@ class SpanJvmClientTest {
         val receipt = Json.decodeFromString(SpanReadReceipt.serializer(), output)
         assertEquals(digest, receipt.graphDefinitions.single().jsonObject.getValue("graph_digest").jsonPrimitive.content)
         assertTrue("graph_digest IN ('$digest')" in requests.last())
+        assertTrue("argMax(source.definition, source.recorded_at) AS definition" in requests.last())
+        assertTrue("FROM bestbuds_dev.graph_definitions AS source" in requests.last())
+        assertTrue("length(source.definition) <= 524288" in requests.last())
+        assertFalse("length(definition)" in requests.last())
         assertTrue("LIMIT 8" in requests.last())
         assertTrue(requests.none { "INSERT" in it || "ALTER" in it })
     }

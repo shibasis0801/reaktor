@@ -1,0 +1,16 @@
+{
+  "suites": [
+    {
+      "name": "ProductAnalyticsStateTest[jvm]",
+      "tests": "7",
+      "skipped": "0",
+      "failures": "0",
+      "errors": "0",
+      "timestamp": "2026-10-29T00:13:25.920Z",
+      "hostname": "Shibasiss-MacBook-Pro-2.local",
+      "time": "2.311"
+    }
+  ],
+  "archive": "analytics-interaction-after-results.zip",
+  "sha256": "a105ce612b427e317c5e18232b0f6333704caa890cff2eed93286a3c76a741ff"
+}

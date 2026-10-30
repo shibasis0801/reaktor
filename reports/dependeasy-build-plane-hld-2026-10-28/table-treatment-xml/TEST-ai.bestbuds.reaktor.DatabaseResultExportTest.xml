@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DatabaseResultExportTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:23:42.408Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.011">
+  <properties/>
+  <testcase name="exportsPreserveNullEmptyDuplicateColumnsAndMultilineValues[jvm]" classname="ai.bestbuds.reaktor.DatabaseResultExportTest" time="0.006"/>
+  <testcase name="rawExportsPreserveCompactJsonAndMaskOnlySecretNamedColumns[jvm]" classname="ai.bestbuds.reaktor.DatabaseResultExportTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TextScalePartsTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:17.557Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.15">
+  <properties/>
+  <testcase name="actualLabelsFitTheirControlsAtEveryTextScaleAndKeepNumericAndPathMeaning[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.TextScalePartsTest" time="0.15"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

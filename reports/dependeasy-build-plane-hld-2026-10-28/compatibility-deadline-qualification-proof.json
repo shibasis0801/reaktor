@@ -1,0 +1,767 @@
+{
+  "run": "run-1793253733073-8208",
+  "router": {
+    "project": "bestbuds",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds",
+    "source_head": "247c9980fca0e9f82e83074629bc217172de6de7",
+    "tasks": [
+      ":reaktor:reaktor-conductor:jvmTest",
+      "--continue",
+      "--no-daemon",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      ":reaktor:reaktor-conductor:jvmTest",
+      "--continue",
+      "--no-daemon",
+      "--console=plain",
+      ":exportBuildModel"
+    ],
+    "started": "2026-10-29T11:34:15.850826",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-113415-31fedc86-bestbuds.log",
+    "run_id": "20261029-113415-31fedc86-bestbuds",
+    "exit_code": 0,
+    "sync_seconds": 26.76088891699999,
+    "queue_seconds": 86.71066875000001,
+    "owner": {
+      "pid": 1374,
+      "started": "Thu Oct 29 11:32:22 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 1,
+    "publication": "changed-files",
+    "source_epoch": 1793253829.107975,
+    "execution_seconds": 348.005154167,
+    "worker_started_epoch": 1793253856.0221553,
+    "dry_run": false,
+    "builds": {
+      "bestbuds": "bestbuds",
+      "dependeasy": "reaktor",
+      "reaktor": "reaktor"
+    },
+    "artifact_family": "verification",
+    "collected": "2026-10-29T11:40:09.122172",
+    "copied_files": 231,
+    "copy_error": null,
+    "collection_seconds": 5.16013454199998,
+    "pending_publications": [
+      [
+        "bestbuds",
+        [
+          "build/dependeasy/model.json",
+          "build/dependeasy/model.json",
+          "build/dependeasy/model.json",
+          "build/dependeasy/receipts/e1ff7bec-6482-4838-bd08-d66c4ebe7f57.json",
+          "build/dependeasy/remote/hosts.json",
+          "build/dependeasy/remote/hosts.json",
+          "build/dependeasy/remote/hosts.json",
+          "build/reports/problems/problems-report.html",
+          "modules/app/build/test-results/jvmTest/binary/results-generic.bin",
+          "targets/reaktorCli/build/reports/tests/test/ai.bestbuds.reaktor.cli.BuildModelCliTest/affectedExecutionKeepsCanonicalVerificationPlansAndNeverClaimsCompleteCoverage.html"
+        ]
+      ],
+      [
+        "reaktor",
+        [
+          "build/dependeasy/model.json",
+          "build/dependeasy/model.json",
+          "build/dependeasy/model.json",
+          "build/dependeasy/receipts/ea775b63-f47f-4260-aa20-aa0689a3d857.json",
+          "build/dependeasy/remote/hosts.json",
+          "build/dependeasy/remote/hosts.json",
+          "build/dependeasy/remote/hosts.json",
+          "build/reports/kotlin-build/reaktor-build-2026-10-29-11-40-00-0.txt",
+          "reaktor-code/build/dependeasy/kotlin-analysis-model.json",
+          "reaktor-code/build/libs/reaktor-code-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-conductor/build/libs/reaktor-conductor-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.CapabilityTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.CheckReducerTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.ContextCompilerTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.ContextPacketTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.CustomTopologyTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.ProtocolTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.ThreadTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.UsageSummaryTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.AntigravitySessionLiveTest/aLiveTurnStreamsStopsAndResumes.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.AntigravitySessionLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.AntigravitySessionTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.ClaudeCodeSessionLiveTest/aSessionRunsATurnAndAcceptsAControlRequest.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.ClaudeCodeSessionLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.CodexAccountTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.CodexAppServerLiveTest/aRealTurnReportsItsEffectiveEffortAndStreamsBeforeItCompletes.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.CodexAppServerLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.GeminiLiveTest/anEditingTurnWritesAndTheSameInspectingTurnIsRefused.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.GeminiLiveTest/cachedGoogleLoginReadsARealFileThroughAntigravity.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.GeminiLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.InteractiveWorkspaceLiveTest/aWorkspaceOnInteractiveTransportsObservesEffortAndContinuesItsThread.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.InteractiveWorkspaceLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.JsonRpcStdioTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.NativeActivityLiveTest/claudeToolsReachTheDurableActivityFeed.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.NativeActivityLiveTest/codexToolsReachTheDurableActivityFeed.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.NativeActivityLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.NativeChildIsolationTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.NativeControlsLiveTest/claudeQuestionAndPermissionAreAnsweredThroughTheNativeHost.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.NativeControlsLiveTest/codexCommandApprovalCanBeDeniedAndCannotBeReplayed.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.NativeControlsLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.NativeRequestTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.appserver.StructuredReviewTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.AgentBundleTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.AntigravityCapacityTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.AntigravityGrantsTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.AntigravityParserTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.ClaudeRulesTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.CliCancellationTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.CliCapabilitiesTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.HarnessParserTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.HarnessSessionsTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.cli.NativeAgentProfilesTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.context.PgVectorCandidateSearchTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.context.PgVectorIntegrationTest/exactSearchExcludesOtherTenantsWorkspacesRevisionsModelsDimensionsAndUnauthorizedSources.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.context.PgVectorIntegrationTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.gateway.GatewayLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.gateway.GatewayRuntimeTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.store.FileThreadStoreTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.worklog.CodexCallsTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.worklog.WorkLogsTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.worklog.WorkScoreTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentA2aWorkspaceTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentActivityStoreTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentAdmissionTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentBackgroundProcessTest/clientsDetachAndLaunchdRestartsACrashedOwner.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentBackgroundProcessTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentBackgroundServicesTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentBenchmarksTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentBoardTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentBrowserMcpTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentCodeQualityTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentCollaborationTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentEvidenceTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentMessageDeliveryTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentMessageTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentOperationsTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentQueueTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentRecoveryTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentServicePathTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentTaskUpdatesTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentWorkflowTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceInvocationTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.AgentWorktreeRouterTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.EngineeringContractsTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridAutoLiveTest/chatGptPlansGeminiExecutesAndTheRunFinishesWithoutAnyOperatorTransfer.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridAutoLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridAutoLiveTest/twoScriptedCyclesDriveTheRealGeminiHarnessAndCarryItsConversationForward.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridChecksTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridConnectorTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridCouncilTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridEvidenceGateTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridLiveTest/aRealGeminiTurnCarriesTheTransferredPlanAndReturnsEvidenceForReview.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridLiveTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridLoopTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridTaskScopeTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridTunnelTest/arequestFromThePublicInternetReachesTheConnector.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.HybridTunnelTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.IncludedBuildsTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.KernelCheckImportTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.SourceIsolationTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskContextTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskCoordinationTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphCheckTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphChoicesTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphInputsTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphLandingTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphLintTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphMergeTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphRuntimeTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphTemplatesTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskGraphTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskReviewPanelTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskSeatResolverTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskSummaryStoreTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.TaskWorkSummaryTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/dev.shibasis.reaktor.conductor.workspace.WorkPlanTest/index.html",
+          "reaktor-conductor/build/reports/tests/jvmTest/index.html",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.CapabilityTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.CheckReducerTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.ContextCompilerTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.ContextPacketTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.CustomTopologyTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.ProtocolTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.ThreadTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.UsageSummaryTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.AntigravitySessionLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.AntigravitySessionTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.ClaudeCodeSessionLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.CodexAccountTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.CodexAppServerLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.GeminiLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.InteractiveWorkspaceLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.JsonRpcStdioTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.NativeActivityLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.NativeChildIsolationTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.NativeControlsLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.NativeRequestTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.StructuredReviewTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.AgentBundleTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.AntigravityCapacityTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.AntigravityGrantsTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.AntigravityParserTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.ClaudeRulesTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.CliCancellationTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.CliCapabilitiesTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.HarnessParserTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.HarnessSessionsTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.NativeAgentProfilesTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.context.PgVectorCandidateSearchTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.context.PgVectorIntegrationTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.gateway.GatewayLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.gateway.GatewayRuntimeTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.store.FileThreadStoreTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.worklog.CodexCallsTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.worklog.WorkLogsTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.worklog.WorkScoreTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentA2aWorkspaceTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentActivityStoreTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentAdmissionTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBackgroundProcessTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBackgroundServicesTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBenchmarksTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBoardTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBrowserMcpTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentCodeQualityTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentCollaborationTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentEvidenceTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentMessageDeliveryTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentMessageTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentOperationsTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentQueueTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentRecoveryTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentServicePathTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentTaskUpdatesTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentWorkflowTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceInvocationTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentWorktreeRouterTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.EngineeringContractsTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridAutoLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridChecksTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridConnectorTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridCouncilTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridEvidenceGateTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridLiveTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridLoopTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridTaskScopeTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridTunnelTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.IncludedBuildsTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.KernelCheckImportTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.SourceIsolationTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskContextTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskCoordinationTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphCheckTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphChoicesTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphInputsTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphLandingTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphLintTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphMergeTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphRuntimeTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphTemplatesTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskReviewPanelTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskSeatResolverTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskSummaryStoreTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskWorkSummaryTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.WorkPlanTest.xml",
+          "reaktor-conductor/build/test-results/jvmTest/binary/output-events.bin",
+          "reaktor-conductor/build/test-results/jvmTest/binary/results-generic.bin",
+          "reaktor-conductor/build/test-results/kotlin-test-tasks-state.bin",
+          "reaktor-core/build/libs/reaktor-core-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-db/build/libs/reaktor-db-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-graph-port/build/libs/reaktor-graph-port-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-graph-runtime/build/libs/reaktor-graph-runtime-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-idb/build/libs/reaktor-idb-2026.1.6-SNAPSHOT.jar",
+          "reaktor-io/build/libs/reaktor-io-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-mcp/build/libs/reaktor-mcp-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-service/build/libs/reaktor-service-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-telemetry/build/libs/reaktor-telemetry-jvm-2026.1.6-SNAPSHOT.jar",
+          "reaktor-tooling/build/libs/reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar"
+        ]
+      ]
+    ],
+    "pending_xcode": false,
+    "unverified_outputs": {
+      "bestbuds": [
+        "modules/app/build/test-results/jvmTest/binary/results-generic.bin",
+        "targets/reaktorCli/build/reports/tests/test/ai.bestbuds.reaktor.cli.BuildModelCliTest/affectedExecutionKeepsCanonicalVerificationPlansAndNeverClaimsCompleteCoverage.html"
+      ]
+    },
+    "worker_slot_trimmed": 0
+  },
+  "counts": {
+    "tests": 503,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 16
+  },
+  "suites": [
+    {
+      "name": "UsageSummaryTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.865Z",
+      "time": "0.001"
+    },
+    {
+      "name": "AgentWorkflowTest[jvm]",
+      "timestamp": "2026-10-29T06:07:09.563Z",
+      "time": "4.322"
+    },
+    {
+      "name": "HybridTaskScopeTest[jvm]",
+      "timestamp": "2026-10-29T06:08:25.988Z",
+      "time": "6.783"
+    },
+    {
+      "name": "TaskReviewPanelTest[jvm]",
+      "timestamp": "2026-10-29T06:09:57.942Z",
+      "time": "0.004"
+    },
+    {
+      "name": "NativeAgentProfilesTest[jvm]",
+      "timestamp": "2026-10-29T06:06:14.694Z",
+      "time": "0.661"
+    },
+    {
+      "name": "CliCancellationTest[jvm]",
+      "timestamp": "2026-10-29T06:06:03.418Z",
+      "time": "0.046"
+    },
+    {
+      "name": "AntigravityParserTest[jvm]",
+      "timestamp": "2026-10-29T06:06:03.413Z",
+      "time": "0.002"
+    },
+    {
+      "name": "HybridCouncilTest[jvm]",
+      "timestamp": "2026-10-29T06:08:04.584Z",
+      "time": "9.109"
+    },
+    {
+      "name": "AgentActivityStoreTest[jvm]",
+      "timestamp": "2026-10-29T06:06:17.869Z",
+      "time": "0.866"
+    },
+    {
+      "name": "TaskWorkSummaryTest[jvm]",
+      "timestamp": "2026-10-29T06:09:59.111Z",
+      "time": "0.001"
+    },
+    {
+      "name": "AgentCollaborationTest[jvm]",
+      "timestamp": "2026-10-29T06:06:27.475Z",
+      "time": "4.536"
+    },
+    {
+      "name": "NativeActivityLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:05:50.934Z",
+      "time": "0.001"
+    },
+    {
+      "name": "KernelCheckImportTest[jvm]",
+      "timestamp": "2026-10-29T06:08:33.649Z",
+      "time": "0.232"
+    },
+    {
+      "name": "AgentMessageDeliveryTest[jvm]",
+      "timestamp": "2026-10-29T06:06:37.269Z",
+      "time": "9.796"
+    },
+    {
+      "name": "AgentCodeQualityTest[jvm]",
+      "timestamp": "2026-10-29T06:06:25.260Z",
+      "time": "2.214"
+    },
+    {
+      "name": "HybridConnectorTest[jvm]",
+      "timestamp": "2026-10-29T06:08:01.341Z",
+      "time": "3.242"
+    },
+    {
+      "name": "AgentWorkspaceInvocationTest[jvm]",
+      "timestamp": "2026-10-29T06:07:13.887Z",
+      "time": "36.459"
+    },
+    {
+      "name": "AgentOperationsTest[jvm]",
+      "timestamp": "2026-10-29T06:06:50.953Z",
+      "time": "0.118"
+    },
+    {
+      "name": "TaskSeatResolverTest[jvm]",
+      "timestamp": "2026-10-29T06:09:57.947Z",
+      "time": "0.045"
+    },
+    {
+      "name": "ThreadTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.864Z",
+      "time": "0.001"
+    },
+    {
+      "name": "AgentBenchmarksTest[jvm]",
+      "timestamp": "2026-10-29T06:06:22.560Z",
+      "time": "1.823"
+    },
+    {
+      "name": "AntigravitySessionLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.866Z",
+      "time": "0.005"
+    },
+    {
+      "name": "NativeChildIsolationTest[jvm]",
+      "timestamp": "2026-10-29T06:05:50.936Z",
+      "time": "0.507"
+    },
+    {
+      "name": "PgVectorCandidateSearchTest[jvm]",
+      "timestamp": "2026-10-29T06:06:15.363Z",
+      "time": "0.003"
+    },
+    {
+      "name": "PgVectorIntegrationTest[jvm]",
+      "timestamp": "2026-10-29T06:06:15.366Z",
+      "time": "0.001"
+    },
+    {
+      "name": "HarnessParserTest[jvm]",
+      "timestamp": "2026-10-29T06:06:14.546Z",
+      "time": "0.004"
+    },
+    {
+      "name": "StructuredReviewTest[jvm]",
+      "timestamp": "2026-10-29T06:05:51.452Z",
+      "time": "2.32"
+    },
+    {
+      "name": "AgentEvidenceTest[jvm]",
+      "timestamp": "2026-10-29T06:06:32.014Z",
+      "time": "5.252"
+    },
+    {
+      "name": "TaskGraphTest[jvm]",
+      "timestamp": "2026-10-29T06:09:56.624Z",
+      "time": "1.317"
+    },
+    {
+      "name": "EngineeringContractsTest[jvm]",
+      "timestamp": "2026-10-29T06:07:59.930Z",
+      "time": "0.035"
+    },
+    {
+      "name": "AntigravitySessionTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.872Z",
+      "time": "2.403"
+    },
+    {
+      "name": "HybridChecksTest[jvm]",
+      "timestamp": "2026-10-29T06:07:59.968Z",
+      "time": "1.371"
+    },
+    {
+      "name": "TaskGraphLandingTest[jvm]",
+      "timestamp": "2026-10-29T06:09:23.907Z",
+      "time": "16.26"
+    },
+    {
+      "name": "HybridTunnelTest[jvm]",
+      "timestamp": "2026-10-29T06:08:32.772Z",
+      "time": "0.001"
+    },
+    {
+      "name": "AgentRecoveryTest[jvm]",
+      "timestamp": "2026-10-29T06:06:53.048Z",
+      "time": "2.656"
+    },
+    {
+      "name": "AgentBackgroundServicesTest[jvm]",
+      "timestamp": "2026-10-29T06:06:22.481Z",
+      "time": "0.076"
+    },
+    {
+      "name": "GatewayRuntimeTest[jvm]",
+      "timestamp": "2026-10-29T06:06:15.369Z",
+      "time": "0.02"
+    },
+    {
+      "name": "ContextCompilerTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.827Z",
+      "time": "0.003"
+    },
+    {
+      "name": "CustomTopologyTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.832Z",
+      "time": "0.019"
+    },
+    {
+      "name": "SourceIsolationTest[jvm]",
+      "timestamp": "2026-10-29T06:08:33.884Z",
+      "time": "11.053"
+    },
+    {
+      "name": "TaskGraphRuntimeTest[jvm]",
+      "timestamp": "2026-10-29T06:04:51.961Z",
+      "time": "55.751"
+    },
+    {
+      "name": "AntigravityGrantsTest[jvm]",
+      "timestamp": "2026-10-29T06:05:58.663Z",
+      "time": "4.749"
+    },
+    {
+      "name": "HybridLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:08:17.952Z",
+      "time": "0.001"
+    },
+    {
+      "name": "TaskSummaryStoreTest[jvm]",
+      "timestamp": "2026-10-29T06:09:57.993Z",
+      "time": "1.116"
+    },
+    {
+      "name": "HybridAutoLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:07:59.966Z",
+      "time": "0.002"
+    },
+    {
+      "name": "ContextPacketTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.831Z",
+      "time": "0.0"
+    },
+    {
+      "name": "AgentBoardTest[jvm]",
+      "timestamp": "2026-10-29T06:06:24.391Z",
+      "time": "0.801"
+    },
+    {
+      "name": "JsonRpcStdioTest[jvm]",
+      "timestamp": "2026-10-29T06:05:50.805Z",
+      "time": "0.128"
+    },
+    {
+      "name": "NativeControlsLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:05:51.444Z",
+      "time": "0.001"
+    },
+    {
+      "name": "AntigravityCapacityTest[jvm]",
+      "timestamp": "2026-10-29T06:05:57.018Z",
+      "time": "1.644"
+    },
+    {
+      "name": "AgentAdmissionTest[jvm]",
+      "timestamp": "2026-10-29T06:06:18.737Z",
+      "time": "3.737"
+    },
+    {
+      "name": "AgentServicePathTest[jvm]",
+      "timestamp": "2026-10-29T06:06:55.709Z",
+      "time": "0.005"
+    },
+    {
+      "name": "TaskCoordinationTest[jvm]",
+      "timestamp": "2026-10-29T06:08:55.919Z",
+      "time": "9.129"
+    },
+    {
+      "name": "AgentA2aWorkspaceTest[jvm]",
+      "timestamp": "2026-10-29T06:06:15.510Z",
+      "time": "2.358"
+    },
+    {
+      "name": "AgentWorktreeRouterTest[jvm]",
+      "timestamp": "2026-10-29T06:07:55.812Z",
+      "time": "4.117"
+    },
+    {
+      "name": "ProtocolTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.852Z",
+      "time": "0.011"
+    },
+    {
+      "name": "TaskGraphChoicesTest[jvm]",
+      "timestamp": "2026-10-29T06:09:05.108Z",
+      "time": "9.036"
+    },
+    {
+      "name": "HarnessSessionsTest[jvm]",
+      "timestamp": "2026-10-29T06:06:14.555Z",
+      "time": "0.138"
+    },
+    {
+      "name": "CheckReducerTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.811Z",
+      "time": "0.015"
+    },
+    {
+      "name": "WorkPlanTest[jvm]",
+      "timestamp": "2026-10-29T06:09:59.116Z",
+      "time": "0.184"
+    },
+    {
+      "name": "CodexAccountTest[jvm]",
+      "timestamp": "2026-10-29T06:05:50.278Z",
+      "time": "0.517"
+    },
+    {
+      "name": "AgentMessageTest[jvm]",
+      "timestamp": "2026-10-29T06:06:47.067Z",
+      "time": "3.885"
+    },
+    {
+      "name": "HybridEvidenceGateTest[jvm]",
+      "timestamp": "2026-10-29T06:08:13.695Z",
+      "time": "4.256"
+    },
+    {
+      "name": "TaskGraphInputsTest[jvm]",
+      "timestamp": "2026-10-29T06:09:14.145Z",
+      "time": "9.761"
+    },
+    {
+      "name": "CodexAppServerLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:05:50.795Z",
+      "time": "0.001"
+    },
+    {
+      "name": "NativeRequestTest[jvm]",
+      "timestamp": "2026-10-29T06:05:51.446Z",
+      "time": "0.005"
+    },
+    {
+      "name": "GatewayLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:06:15.367Z",
+      "time": "0.001"
+    },
+    {
+      "name": "CodexCallsTest[jvm]",
+      "timestamp": "2026-10-29T06:06:15.433Z",
+      "time": "0.014"
+    },
+    {
+      "name": "InteractiveWorkspaceLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:05:50.801Z",
+      "time": "0.002"
+    },
+    {
+      "name": "AgentBackgroundProcessTest[jvm]",
+      "timestamp": "2026-10-29T06:06:22.477Z",
+      "time": "0.002"
+    },
+    {
+      "name": "AgentQueueTest[jvm]",
+      "timestamp": "2026-10-29T06:06:51.072Z",
+      "time": "1.975"
+    },
+    {
+      "name": "TaskGraphCheckTest[jvm]",
+      "timestamp": "2026-10-29T06:09:05.049Z",
+      "time": "0.057"
+    },
+    {
+      "name": "TaskContextTest[jvm]",
+      "timestamp": "2026-10-29T06:08:44.938Z",
+      "time": "10.979"
+    },
+    {
+      "name": "FileThreadStoreTest[jvm]",
+      "timestamp": "2026-10-29T06:06:15.390Z",
+      "time": "0.043"
+    },
+    {
+      "name": "IncludedBuildsTest[jvm]",
+      "timestamp": "2026-10-29T06:08:32.774Z",
+      "time": "0.874"
+    },
+    {
+      "name": "AgentTaskUpdatesTest[jvm]",
+      "timestamp": "2026-10-29T06:06:55.717Z",
+      "time": "13.845"
+    },
+    {
+      "name": "WorkLogsTest[jvm]",
+      "timestamp": "2026-10-29T06:06:15.449Z",
+      "time": "0.055"
+    },
+    {
+      "name": "AgentBrowserMcpTest[jvm]",
+      "timestamp": "2026-10-29T06:06:25.193Z",
+      "time": "0.064"
+    },
+    {
+      "name": "AgentBundleTest[jvm]",
+      "timestamp": "2026-10-29T06:05:53.774Z",
+      "time": "3.243"
+    },
+    {
+      "name": "WorkScoreTest[jvm]",
+      "timestamp": "2026-10-29T06:06:15.505Z",
+      "time": "0.004"
+    },
+    {
+      "name": "AgentWorkspaceTest[jvm]",
+      "timestamp": "2026-10-29T06:07:50.348Z",
+      "time": "5.462"
+    },
+    {
+      "name": "CliCapabilitiesTest[jvm]",
+      "timestamp": "2026-10-29T06:06:03.466Z",
+      "time": "11.078"
+    },
+    {
+      "name": "GeminiLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:05:50.797Z",
+      "time": "0.003"
+    },
+    {
+      "name": "TaskGraphTemplatesTest[jvm]",
+      "timestamp": "2026-10-29T06:09:56.119Z",
+      "time": "0.503"
+    },
+    {
+      "name": "HybridLoopTest[jvm]",
+      "timestamp": "2026-10-29T06:08:17.955Z",
+      "time": "8.031"
+    },
+    {
+      "name": "ClaudeRulesTest[jvm]",
+      "timestamp": "2026-10-29T06:06:03.415Z",
+      "time": "0.002"
+    },
+    {
+      "name": "TaskGraphMergeTest[jvm]",
+      "timestamp": "2026-10-29T06:09:40.185Z",
+      "time": "15.932"
+    },
+    {
+      "name": "CapabilityTest[jvm]",
+      "timestamp": "2026-10-29T06:05:47.713Z",
+      "time": "0.097"
+    },
+    {
+      "name": "TaskGraphLintTest[jvm]",
+      "timestamp": "2026-10-29T06:09:40.168Z",
+      "time": "0.016"
+    },
+    {
+      "name": "ClaudeCodeSessionLiveTest[jvm]",
+      "timestamp": "2026-10-29T06:05:50.276Z",
+      "time": "0.001"
+    }
+  ],
+  "conductorJarSha256": "fdeea5bc51040a7d4f6be7757d399eee146b1d23005bbd92490f3e1968dc5fd1",
+  "scope": "Fresh normal worker full conductor check; >35s authenticated native and MCP calls; no default ordinary/explicit timeout changes; shared source checked only as named",
+  "publication": {
+    "publication_queue_seconds": 697.256774959,
+    "publication_seconds": 698.6481932500001,
+    "finished": "2026-10-29T11:51:47.937208",
+    "copy_error": null
+  }
+}

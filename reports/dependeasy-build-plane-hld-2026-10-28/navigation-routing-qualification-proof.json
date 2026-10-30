@@ -1,0 +1,22 @@
+{
+  "router": "20261029-111639-bba6eab1-bestbuds",
+  "kernelRun": "run-1793252702300-7118",
+  "GradleSeconds": 86,
+  "status": "Gradle succeeded; normal checkout publication still waiting for other active local build",
+  "suites": {
+    "jvmTest": {
+      "files": 20,
+      "tests": 96,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "jsNodeTest": {
+      "files": 3,
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  }
+}

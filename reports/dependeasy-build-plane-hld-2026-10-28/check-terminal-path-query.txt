@@ -1,0 +1,124 @@
+35 of 35 · syntactic (git-grep) · rev:1bbf6fdb67f1
+AGENTS.md
+  33 text: d` with the same `paths` (or `session`, your session id) lists the checks your change affects, and `checks.run` starts them as one Gradle run and returns its id. Follow that run with `run.wait` `{run,
+  441 text: ow Hangar and window flows. Flow files under `tests/reaktorDesktop` count as the desktop target's. `checks.run` starts the edited modules' checks as one Gradle run on the build worker, which runs them
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/AgentExecutionTrace.kt
+  88 text in traceRows: "check_run", "checks.run", "build.run" -> "Build/check wait · ${step.name}"
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/AgentExecutionTraceTest.kt
+  40 text in AgentExecutionTraceTest.waitsUseOnlyRecordedNonnegativeDurationsAndStoppedCallsRemainInterrupted: WorkStep.Tool("check", 120, ToolKind.Other, "mcp__reaktor__kernel", input = """{"operation":"checks.run"}""", millis = 30),
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelChecks.kt
+  62 text in checkOperations: operation<ChecksRequest, ChecksStarted>("checks.run",
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelMcpTasks.kt
+  76 text in KernelMcpTasks.start: if (operation !in setOf("checks.run", "build.run")) return JsonNull
+  103 text in KernelMcpTasks.start: val followed = if (operation == "checks.run" && shared.isNotEmpty()) {
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelOperations.kt
+  889 text in PreferredOperations: "code.plan" to "change.plan", "code.apply" to "change.apply", "code.receipt" to "change.apply", "checks.run" to "check.run",
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/ReaktorKernel.kt
+  237 text in ReaktorKernel.Companion.openAgentWorkspace: workflowCheck = { taskId, requestId, stage -> checks.run(workspace, taskId, requestId, stage) },
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelAcceptanceTest.kt
+  117 text in KernelAcceptanceTest.kernelStatusSaysWhatIsAnsweringAndTheCatalogListsPreferredOperationsFirst: assertEquals("check.run", catalog.single { it.id.value == "checks.run" }.prefer?.value)
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelCandidateChecksTest.kt
+  171 text in KernelCandidateChecksTest.publicCheckOperationsResolveTheOwnedTargetAndLaunchItsBatch: val started = AgentWorkspaceJson.decodeFromJsonElement(ChecksStarted.serializer(), invoke("checks.run"))
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelEngineeringTest.kt
+  564 text in KernelEngineeringTest.authenticatedNativeWorkspaceBorrowsTheKernelAndProjectsOneMcpTool: e("""{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"kernel","arguments":{"operation":"checks.run","arguments":{}},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.m
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelMcpTasksTest.kt
+  16 text in KernelMcpTasksTest.start: private fun start(operation: String = "checks.run", request: String = "original", options: Int = 1) = buildJsonObject {
+  34 text in KernelMcpTasksTest.allRunsMustFinishAndTheirTerminalResultSurvivesRestart: "checks.run" -> { starts++; buildJsonObject {
+  64 text in KernelMcpTasksTest.checksAlreadyRunningAreFollowedWithoutCancellingSomeoneElsesRun: "checks.run" -> buildJsonObject { putJsonArray("running") { add("fixture:test") } }
+  131 text in KernelMcpTasksTest.aSlowAdmissionDoesNotBlockPollingOrAdmitTheSameRequestTwice: if (invocation.operation.value == "checks.run") {
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelSourceRoutingTest.kt
+  144 text in KernelSourceRoutingTest.aReviewReadsItsInputCandidateButNeitherWritePathCanOverrideItsReadOnlySeat: listOf("check.run", "checks.run", "build.run").forEach { operation ->
+targets/reaktorWeb/docusaurus/docs/agent-guide.md
+  219 text: `checks.run` starts them as one Gradle run on the build worker, and `run.wait`, with a timeout of 45 seconds or less,
+  274 text: | Run the checks a change affects | `checks.affected`, `checks.run`, `run.wait` |
+targets/reaktorWeb/docusaurus/docs/private/hangar-agent-flow.md
+  634 text: - Files: `kernel/KernelChecks.kt` (`checks.affected` and `checks.run`), `KernelAgentCheckRunner.kt` and its existing owner tools, the existing `OperationalControlPlane`/`OperationalEvidence` execution
+  1442 text: - **MB5 Long operations as MCP Tasks. Built and qualified 26 October for checks and builds; bench and trace consumers follow EV2/EV3.** `checks.run`, builds and bench runs return a task handle that th
+  1697 text: calls keep their exact path and tool ordering. The owner persists a bounded projection of existing `checks.run` and `build.run` receipts through `FileControlPlaneStore`, invokes the normal operation g
+  1781 text: edits affect and runs them on the build worker, from the Work tab or through `checks.affected` and `checks.run` (section 7.4). The agent build with full access and these operations went live that nigh
+  1925 text: - **It proves changes itself.** `checks.affected` and `checks.run` map edits to build modules and to the modules that use them, across bestbuds and reaktor, and run their tests on m1-worker (7.4). The
+  2003 text: own kind. An Agent task submits a run to `AgentWorkspace` with the task's agent, links the run to the task and follows it. A Check task runs `checks.run` against the task's code. A Gate task waits for
+  2070 text: 2. **Execution on reaktor-graph.** New: the coordinator and task actors, port wiring, scheduling, handing results on, the failure policy and restarts. Already there: `AgentWorkspace`'s runs and recove
+  2524 text: - **Built, 17 October.** `checks.affected` and `checks.run`, shared by Hangar and agents. A session's edited files come from its whole transcript, read incrementally: the session list keeps only the l
+targets/reaktorWeb/docusaurus/private-static/private/hangar-agent-flow-figures/task-graphs-hld.svg
+  96 text: <text x="852" y="624" fill="#33495b" font-family="system-ui,sans-serif" font-size="13.5">checks.run on m1-worker</text>
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/build-run-contract-source.txt
+  15 text: 88 text in traceRows: "check_run", "checks.run", "build.run" -> "Build/check wait · ${step.name}"
+  35 text: 76 text in KernelMcpTasks.start: if (operation !in setOf("checks.run", "build.run")) return JsonNull
+  53 text: 144 text in KernelSourceRoutingTest.aReviewReadsItsInputCandidateButNeitherWritePathCanOverrideItsReadOnlySeat: listOf("check.run", "checks.run", "build.run").forEach { operation ->
+  90 text: 88                          "check_run", "checks.run", "build.run" -> "Build/check wait · ${step.name}"
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/live-cli-catalog-refresh.json
+  1 text: thout invoking it.","effect":"ReadOnly","provider":"ToolNode","prefer":"operation.describe"},{"id":"checks.run","summary":"Starts the affected checks that are not already running as one Gradle run on 
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/mcp-plan-size-check-start.json
+  1 text: {"type":"failed","message":"Workspace reply unavailable; inspect the retained runs or request before retrying.","code":"delivery_unknown","reference":{"operation":"checks.run","requestId":"83b710dc-27
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/mcp-plan-size-run-list.json
+  1 text: nning","planEvidence":"recorded"}}]}},{"id":"kernel-991e9195-19fc-497a-92b1-c0ed14138818","taskId":"checks.run","taskTitle":"checks.run","environment":"unspecified","status":"Succeeded","startedAtMill
+next: atlas_read {"id":"d:AGENTS.md:32:519@72ed66e1"}
+--- queries[0] {"from":{"name":"OperationalControlPlane"}}
+40 of 330 · syntactic (kotlin-psi/2.4.21, git-grep) · rev:d8c17ef38258
+agent/reaktor-investigation-2026-09-13/evidence/12-deploy.txt
+  163 text: 161 button (selectable) Deployment run history, Approved Desktop runs retain bounded status, output, artifacts, fingerprint, environment and failure evidence, RunLedger · available · reaktor · all · l
+agent/reaktor-mcp-gateway-plan-20260921.md
+  244 text: | approval, "no second mutator" | `SafetyApproval.planFingerprint`; the kernel re-derives the fingerprint at four points, the last one just before the process is spawned | `OperationalControlPlane.kt:
+docs/REAKTOR_DESKTOP_GOLDEN_DEVELOPMENT_LOOP.md
+  36 text: - Control plane and executor: [`OperationalControlPlane.kt`](../modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt), [`OperationExecutor.kt`](../modu
+  284 text: | Deterministic adapter boundary | [`TestOperationalControlPlane.kt`](../targets/reaktorDesktop/src/test/kotlin/ai/bestbuds/reaktor/TestOperationalControlPlane.kt) | Full representative catalog plus a
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/ai/AiPane.kt
+  8 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  56 text in AiView.controlPlane: val controlPlane: OperationalControlPlane,
+  81 text in AiPane: controlPlane: OperationalControlPlane,
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/appgraph/BuildGraphPane.kt
+  8 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  15 text in LocalBuildOperations: internal val LocalBuildOperations = staticCompositionLocalOf<OperationalControlPlane?> { null }
+  25 text in BuildGraphPane: controlPlane: OperationalControlPlane? = null,
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/auth/AuthConsoleState.kt
+  127 text in AuthConsoleState.connectionDraft: internal fun connectionDraft(controlPlane: ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane, environment: String) =
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/auth/AuthPane.kt
+  9 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  73 text in AuthPane: controlPlane: OperationalControlPlane,
+  212 text in NotConnected: private fun NotConnected(state: AuthConsoleState, snapshot: OperationalReadState, controlPlane: OperationalControlPlane) {
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/circles/CircleFormationPane.kt
+  29 text in CircleFormationPane: internal fun CircleFormationPane(snapshot: OperationalReadState, control: OperationalControlPlane, state: ai.bestbuds.reaktor.workbench.cloud.CloudWorkspaceState, modifier: Modifier=Modifier) {
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/cloud/CloudApiExplorer.kt
+  5 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  109 text in CloudApiExplorer: internal fun CloudApiExplorer(snapshot: OperationalReadState, controlPlane: OperationalControlPlane, state: CloudApiExplorerState, modifier: Modifier = Modifier) {
+  174 text in CloudApiInspector: internal fun CloudApiInspector(snapshot: OperationalReadState, controlPlane: OperationalControlPlane, state: CloudApiExplorerState, scroll: ScrollState) {
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/cloud/CloudDeployView.kt
+  5 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  99 text in CloudDeployView: controlPlane: OperationalControlPlane,
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/cloud/CloudOperationsView.kt
+  19 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  79 text in CloudOperationsView: controlPlane: OperationalControlPlane,
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/cloud/CloudPane.kt
+  7 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  54 text in CloudPane: controlPlane: OperationalControlPlane,
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/cloud/CloudRunsView.kt
+  5 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  105 text in CloudRunsView: controlPlane: OperationalControlPlane,
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/cloud/CloudWorkPane.kt
+  63 text in CloudWorkView: internal fun CloudWorkView(state: CloudWorkState, reveal: () -> Unit, snapshot: ai.bestbuds.reaktor.workbench.operations.OperationalReadState, controlPlane: ai.bestbuds.reaktor.workbench.operations.Op
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/devices/DevToolsPane.kt
+  7 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  71 text in DevToolsPane: controlPlane: OperationalControlPlane? = null,
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/devices/DevToolsState.kt
+  3 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  118 text in DevToolsState.controlPlane: var controlPlane: OperationalControlPlane? = null
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/devices/DeviceTab.kt
+  15 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  62 text in DeviceTab: internal fun DeviceTab(state: DevToolsState, snapshot: OperationalReadState?, controlPlane: OperationalControlPlane?) {
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt
+  26 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  74 text in DesktopWorkbenchGraph.controlPlane: val controlPlane: OperationalControlPlane,
+  358 text in DesktopDatabaseNode.operations: val operations by consumes<OperationalControlPlane>()
+  861 text in DesktopPaneNode.operations: val operations by consumes<OperationalControlPlane>()
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/links/ProductAnalyticsViews.kt
+  3 text: import ai.bestbuds.reaktor.workbench.operations.OperationalControlPlane
+  51 text in ProductReadHeader: fun ProductReadHeader(state: ProductAnalyticsState, snapshot: OperationalReadState, controlPlane: OperationalControlPlane, title: String, subtitle: String) {
+  99 text in ProductOverview: fun ProductOverview(state: ProductAnalyticsState, snapshot: OperationalReadState, controlPlane: OperationalControlPlane, modifier: Modifier = Modifier) {
+note: 13 more files may declare OperationalControlPlane; narrow with kind, path or Type.member
+note: More lines contain OperationalControlPlane than one search returns; narrow with path
+note: Nothing named OperationalControlPlane is declared in Kotlin in this repository and ../reaktor; these are the lines that contain it
+note: 290 more beyond the limit of 40
+next: atlas_read {"id":"d:agent/reaktor-investigation-2026-09-13/evidence/12-deploy.txt:162:229@a434751f"}
+--- reads[0] {"name":"OperationalControlPlane","part":"outline"}
+error: Nothing named OperationalControlPlane is declared in Kotlin or C++ in this repository and ../reaktor; atlas.query with from.text finds any text

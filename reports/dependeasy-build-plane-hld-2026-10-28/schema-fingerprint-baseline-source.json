@@ -1,0 +1,8 @@
+{
+  "path": "/Users/ovd/dev/reaktor/reaktor-service/src/commonMain/kotlin/dev/shibasis/reaktor/service/Operation.kt",
+  "sha256": "8f1cf7ab740dc3c1bea8c999b7f0ef5071a6d103380d66342140cd8735936413",
+  "retainedSource": "schema-fingerprint-baseline-Operation.kt",
+  "matchedLiveServiceJar": "schema-fingerprint-baseline.jar",
+  "candidatePlan": "pf3d63d4c0fb126e1b187",
+  "state": "Plan only; no production edit while image prerequisites run"
+}

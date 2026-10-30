@@ -1,0 +1,25 @@
+{
+  "observedAt": "2026-10-28T20:40:27.837Z",
+  "environment": "production",
+  "truth": "Partial",
+  "source": "owner/reaktor-kernel/process-local",
+  "reading": false,
+  "error": "Span read failed; inspect execution receipt run-1793218854784-1539",
+  "receipt": null,
+  "readAtMillis": 1793220004596,
+  "retainedRows": 1024,
+  "queryTruncated": true,
+  "sourceBounded": true,
+  "returnedSpans": 100,
+  "nonemptyJoinCounts": {
+    "application_session": 0,
+    "build": 0,
+    "application": 0,
+    "node": 100,
+    "graph_digest": 100,
+    "parent_id": 48,
+    "activation": 48
+  },
+  "localRunObservations": [],
+  "interpretation": "Owner-local client/server instrumentation is present. Application/session/build joins and successful application-to-service-to-Hangar acceptance are not established. Earlier production refresh run-1793218854784-1539 failed; no provider writes were performed."
+}

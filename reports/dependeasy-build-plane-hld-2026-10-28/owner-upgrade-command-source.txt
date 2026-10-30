@@ -1,0 +1,39 @@
+15 of 15 · syntactic (git-grep) · rev:a329b9eea060
+AGENTS.md
+  432 text: the workspace owner with `java -cp "$HOME/.reaktor/dist/conductor/lib/*" ai.bestbuds.reaktor.kernel.KernelAgentServiceKt --upgrade <repo>`, using the Java that `bin/reaktor-agent` names. The new serve
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentService.kt
+  9 text in KernelAgentService.command: fun command(root: File): List<String> = javaCommand() + listOf("ai.bestbuds.reaktor.kernel.KernelAgentServiceKt", root.canonicalPath)
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentServiceTest.kt
+  20 text in KernelAgentServiceTest.launcherCommandsUsePrivateHostClassesAndHonorExplicitMcpOverrides: assertEquals("ai.bestbuds.reaktor.kernel.KernelAgentServiceKt", service[3])
+  38 text in KernelAgentServiceTest.packagedKernelEntryPointHostsChecksWithoutTheDesktop: System.getProperty("reaktor.kernel.testClasspath"), "ai.bestbuds.reaktor.kernel.KernelAgentServiceKt", root.path)
+targets/reaktorDesktop/src/test/kotlin/ai/bestbuds/reaktor/fixtures/E2EAgentSeams.kt
+  376 text in seedMachine: launchAgent("e2egone", "${home.path}/gone-workspace", "ai.bestbuds.reaktor.kernel.KernelAgentServiceKt")
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentBackgroundServices.kt
+  91 text in AgentBackgroundServices.read: arguments.any { it.endsWith("KernelAgentServiceKt") } -> BackgroundKind.Owner
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentBackgroundServicesTest.kt
+  48 text in AgentBackgroundServicesTest.listsEveryOwnerAndPrunesOnlyTheOnesThatNeedIt: val owner = arrayOf("ai.bestbuds.reaktor.kernel.KernelAgentServiceKt")
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/help-upgrade-client-threads.txt
+  40 text: at ai.bestbuds.reaktor.kernel.KernelAgentServiceKt.main(KernelAgentService.kt:31)
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/help-upgrade-owner-threads.txt
+  42 text: at ai.bestbuds.reaktor.kernel.KernelAgentServiceKt.main(KernelAgentService.kt:70)
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/list-owner-java-threads.txt
+  44 text: at ai.bestbuds.reaktor.kernel.KernelAgentServiceKt.main(KernelAgentService.kt:70)
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/mcp-check-completion-owner-threads.txt
+  36 text: at ai.bestbuds.reaktor.kernel.KernelAgentServiceKt.main(KernelAgentService.kt:70)
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/owner-install-proof.json
+  23 text: "command": "KernelAgentServiceKt --upgrade /Users/ovd/dev/bestbuds using the distribution Java25",
+  31 text: "command": "KernelAgentServiceKt --upgrade /Users/ovd/dev/bestbuds",
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/packaged_cli_qualification.py
+  113 text: owner=subprocess.Popen(common+['ai.bestbuds.reaktor.kernel.KernelAgentServiceKt',str(root)],cwd=root,env=env,stdout=ownerlog,stderr=subprocess.STDOUT)
+  156 text: owner=subprocess.Popen(common+['ai.bestbuds.reaktor.kernel.KernelAgentServiceKt',str(root)],cwd=root,env=env,stdout=ownerlog,stderr=subprocess.STDOUT)
+note: Nothing named KernelAgentServiceKt is declared in Kotlin in this repository and ../reaktor; these are the lines that contain it
+next: atlas_read {"id":"d:AGENTS.md:431:472@72ed66e1"}
+--- queries[0] {"from":{"name":"KernelAgentService"}}
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:d4967de759b6
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentService.kt
+  8:8 object KernelAgentService: object KernelAgentService · kotlin:ai/bestbuds/reaktor/kernel/KernelAgentService@:kernel:main:main@bestbuds
+next: atlas_read {"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentService.kt:7:7@c455e473"}
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentService.kt:7:7@c455e473"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[1] {"from":{"name":"KernelAgentService.main"}}
+0 of 0 · syntactic (kotlin-psi/2.4.21, git-grep) · rev:9aeeb7a1ad6f
+note: Nothing named KernelAgentService.main is declared or written in this repository and ../reaktor

@@ -1,0 +1,210 @@
+{
+  "completedCommands": 18,
+  "treatmentPaths": [
+    "reaktor/dependeasy/build.gradle.kts",
+    "reaktor/dependeasy/buildSrc/build.gradle.kts"
+  ],
+  "sourceFiles": 10143,
+  "equalArchivePairs": [
+    {
+      "rep": 101,
+      "phase": "cold",
+      "jarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269"
+    },
+    {
+      "rep": 101,
+      "phase": "warm",
+      "jarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269"
+    },
+    {
+      "rep": 101,
+      "phase": "incremental",
+      "jarSha256": "9ac0037b33ca5235c1d5c2b0236a2b5aaa1017a114cc26da081db8b33dd0afbb"
+    },
+    {
+      "rep": 102,
+      "phase": "cold",
+      "jarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269"
+    },
+    {
+      "rep": 102,
+      "phase": "warm",
+      "jarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269"
+    },
+    {
+      "rep": 102,
+      "phase": "incremental",
+      "jarSha256": "9ac0037b33ca5235c1d5c2b0236a2b5aaa1017a114cc26da081db8b33dd0afbb"
+    },
+    {
+      "rep": 103,
+      "phase": "cold",
+      "jarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269"
+    },
+    {
+      "rep": 103,
+      "phase": "warm",
+      "jarSha256": "62b3136043b4510f4bef8cfc296d9be9d0a6659da57dbe1b2726d8b872a2c269"
+    },
+    {
+      "rep": 103,
+      "phase": "incremental",
+      "jarSha256": "9ac0037b33ca5235c1d5c2b0236a2b5aaa1017a114cc26da081db8b33dd0afbb"
+    }
+  ],
+  "editAssertions": [
+    {
+      "rep": 101,
+      "variant": "before",
+      "changedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 101,
+      "variant": "after",
+      "changedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 102,
+      "variant": "before",
+      "changedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 102,
+      "variant": "after",
+      "changedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 103,
+      "variant": "before",
+      "changedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    },
+    {
+      "rep": 103,
+      "variant": "after",
+      "changedClasses": [
+        "dev/shibasis/reaktor/core/utils/TimeKt.class"
+      ]
+    }
+  ],
+  "summary": {
+    "cold": {
+      "before": {
+        "gradleMedianSeconds": 91.07,
+        "reservedE2EMedianSeconds": 101.04731845799995,
+        "gradleSamples": [
+          89.42,
+          102.37,
+          91.07
+        ],
+        "reservedE2ESamples": [
+          100.324889625,
+          110.00166787500007,
+          101.04731845799995
+        ]
+      },
+      "after": {
+        "gradleMedianSeconds": 87.77,
+        "reservedE2EMedianSeconds": 97.3641658329999,
+        "gradleSamples": [
+          90.68,
+          87.77,
+          86.67
+        ],
+        "reservedE2ESamples": [
+          99.62439995900002,
+          96.640338875,
+          97.3641658329999
+        ]
+      },
+      "gradleChangePercent": -3.623586252333366,
+      "reservedE2EChangePercent": -3.6449780966042566
+    },
+    "warm": {
+      "before": {
+        "gradleMedianSeconds": 16.641,
+        "reservedE2EMedianSeconds": 25.22915212500004,
+        "gradleSamples": [
+          17.766,
+          16.641,
+          16.103
+        ],
+        "reservedE2ESamples": [
+          26.574715916999992,
+          25.046856875000003,
+          25.22915212500004
+        ]
+      },
+      "after": {
+        "gradleMedianSeconds": 16.548,
+        "reservedE2EMedianSeconds": 25.319752166999933,
+        "gradleSamples": [
+          16.402,
+          16.548,
+          17.222
+        ],
+        "reservedE2ESamples": [
+          25.702839499999982,
+          25.31331341699996,
+          25.319752166999933
+        ]
+      },
+      "gradleChangePercent": -0.5588606453939104,
+      "reservedE2EChangePercent": 0.3591085485196155
+    },
+    "incremental": {
+      "before": {
+        "gradleMedianSeconds": 21.99,
+        "reservedE2EMedianSeconds": 31.92082608299995,
+        "gradleSamples": [
+          20.863,
+          22.38,
+          21.99
+        ],
+        "reservedE2ESamples": [
+          28.148895209000017,
+          32.02216662500007,
+          31.92082608299995
+        ]
+      },
+      "after": {
+        "gradleMedianSeconds": 21.38,
+        "reservedE2EMedianSeconds": 30.812834374999966,
+        "gradleSamples": [
+          21.38,
+          19.934,
+          26.473
+        ],
+        "reservedE2ESamples": [
+          30.812834374999966,
+          27.832784500000002,
+          36.2630227919999
+        ]
+      },
+      "gradleChangePercent": -2.773988176443831,
+      "reservedE2EChangePercent": -3.4710621370480976
+    }
+  },
+  "reservation": {
+    "queueSeconds": 0.11820479200000023,
+    "slot": 1,
+    "remote": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "scriptSha256": "aadb74aa0cc6f18088f5bfb6783c8bc110e6aa9b3755234cb6a9479d8bc14f6e",
+    "treatment": "two backend threads in Dependeasy bootstrap only; no live source changes"
+  },
+  "workerLoadAverage1mRange": [
+    11.560546875,
+    28.0517578125
+  ],
+  "timingBoundary": "Normal routed build wall under one reserved slot lease; admission is the reservation value. Per-row transport queue_seconds is cumulative campaign bookkeeping and is not per-build waiting time.",
+  "sampleSha256": "8af469b79f9e9d727ab47f67a435c81d7e3e83b2122c8c9fcef48ba8a055dc62"
+}

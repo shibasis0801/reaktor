@@ -1,0 +1,1537 @@
+{
+  "type": "completed",
+  "result": {
+    "id": "run-1793262746693-7266",
+    "taskId": "testing/checks/:reaktor:reaktor-tooling:jvmTest",
+    "taskTitle": "reaktor-tooling · JVM tests",
+    "environment": "local",
+    "status": "Succeeded",
+    "startedAtMillis": 1793262746693,
+    "finishedAtMillis": 1793263980856,
+    "exitCode": 0,
+    "events": [
+      {
+        "sequence": 7267,
+        "timestampMillis": 1793262746693,
+        "stream": "System",
+        "text": "Check reaktor-tooling · JVM tests in local · LocalArtifactWrite · source Reaktor checks · agent"
+      },
+      {
+        "sequence": 7268,
+        "timestampMillis": 1793262765662,
+        "stream": "System",
+        "text": "Reaktor framework started testing/checks/:reaktor:reaktor-tooling:jvmTest"
+      },
+      {
+        "sequence": 7269,
+        "timestampMillis": 1793262768474,
+        "stream": "Stdout",
+        "text": "Routing to m1-worker: 81% CPU idle, 40% memory capacity, pressure 2, 51% compressed, 17.0 GiB swap"
+      },
+      {
+        "sequence": 7361,
+        "timestampMillis": 1793262821905,
+        "stream": "Stdout",
+        "text": "Syncing reaktor: 18944 source files, 18944 transfer candidates"
+      },
+      {
+        "sequence": 7366,
+        "timestampMillis": 1793262900007,
+        "stream": "Stdout",
+        "text": "Syncing bestbuds: 10349 source files, 10349 transfer candidates"
+      },
+      {
+        "sequence": 7367,
+        "timestampMillis": 1793262934560,
+        "stream": "Stdout",
+        "text": "Syncing manna: 1863 source files, 1863 transfer candidates"
+      },
+      {
+        "sequence": 7368,
+        "timestampMillis": 1793262937996,
+        "stream": "Stdout",
+        "text": "Syncing gymbuddy: 110 source files, 110 transfer candidates"
+      },
+      {
+        "sequence": 7369,
+        "timestampMillis": 1793262938666,
+        "stream": "Stdout",
+        "text": "Building bestbuds on m1-worker; log: /Users/ovd/dev/.remote-dev/logs/20261029-140538-8fa1b08b-bestbuds.log"
+      },
+      {
+        "sequence": 7370,
+        "timestampMillis": 1793262942297,
+        "stream": "Stdout",
+        "text": "WARNING: A restricted method in java.lang.System has been called"
+      },
+      {
+        "sequence": 7371,
+        "timestampMillis": 1793262942297,
+        "stream": "Stdout",
+        "text": "WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/Users/ovd/.gradle/wrapper/dists/gradle-9.7.0-bin/d4tj7w02tcgubx9zk9hbippn6/gradle-9.7.0/lib/native-platform-0.22-milestone-29.jar)"
+      },
+      {
+        "sequence": 7372,
+        "timestampMillis": 1793262942298,
+        "stream": "Stdout",
+        "text": "WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module"
+      },
+      {
+        "sequence": 7373,
+        "timestampMillis": 1793262942298,
+        "stream": "Stdout",
+        "text": "WARNING: Restricted methods will be blocked in a future release unless native access is enabled"
+      },
+      {
+        "sequence": 7374,
+        "timestampMillis": 1793262942298,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7375,
+        "timestampMillis": 1793262942298,
+        "stream": "Stdout",
+        "text": "To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.7.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation."
+      },
+      {
+        "sequence": 7376,
+        "timestampMillis": 1793262942298,
+        "stream": "Stdout",
+        "text": "Daemon will be stopped at the end of the build "
+      },
+      {
+        "sequence": 7377,
+        "timestampMillis": 1793262942299,
+        "stream": "Stdout",
+        "text": "Type-safe project accessors is an incubating feature."
+      },
+      {
+        "sequence": 7378,
+        "timestampMillis": 1793262945608,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7379,
+        "timestampMillis": 1793262945608,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:buildSrc:compileKotlin UP-TO-DATE"
+      },
+      {
+        "sequence": 7380,
+        "timestampMillis": 1793262945608,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:buildSrc:compileJava NO-SOURCE"
+      },
+      {
+        "sequence": 7381,
+        "timestampMillis": 1793262945608,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:buildSrc:compileGroovy NO-SOURCE"
+      },
+      {
+        "sequence": 7382,
+        "timestampMillis": 1793262945608,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:buildSrc:pluginDescriptors UP-TO-DATE"
+      },
+      {
+        "sequence": 7383,
+        "timestampMillis": 1793262945608,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:buildSrc:processResources UP-TO-DATE"
+      },
+      {
+        "sequence": 7384,
+        "timestampMillis": 1793262945609,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:buildSrc:classes UP-TO-DATE"
+      },
+      {
+        "sequence": 7385,
+        "timestampMillis": 1793262945609,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:buildSrc:jar UP-TO-DATE"
+      },
+      {
+        "sequence": 7386,
+        "timestampMillis": 1793262948998,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:options:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7387,
+        "timestampMillis": 1793262948998,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:toolchain:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7388,
+        "timestampMillis": 1793262948998,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:toolchain:pluginDescriptors UP-TO-DATE"
+      },
+      {
+        "sequence": 7389,
+        "timestampMillis": 1793262948999,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:toolchain:processResources UP-TO-DATE"
+      },
+      {
+        "sequence": 7390,
+        "timestampMillis": 1793262948999,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:options:compileKotlin UP-TO-DATE"
+      },
+      {
+        "sequence": 7391,
+        "timestampMillis": 1793262948999,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:options:compileJava NO-SOURCE"
+      },
+      {
+        "sequence": 7392,
+        "timestampMillis": 1793262948999,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:options:processResources NO-SOURCE"
+      },
+      {
+        "sequence": 7393,
+        "timestampMillis": 1793262948999,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:options:classes UP-TO-DATE"
+      },
+      {
+        "sequence": 7394,
+        "timestampMillis": 1793262948999,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:options:jar UP-TO-DATE"
+      },
+      {
+        "sequence": 7395,
+        "timestampMillis": 1793262948999,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:toolchain:compileKotlin UP-TO-DATE"
+      },
+      {
+        "sequence": 7396,
+        "timestampMillis": 1793262948999,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:toolchain:compileJava NO-SOURCE"
+      },
+      {
+        "sequence": 7397,
+        "timestampMillis": 1793262948999,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:toolchain:classes UP-TO-DATE"
+      },
+      {
+        "sequence": 7398,
+        "timestampMillis": 1793262949000,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:toolchain:jar UP-TO-DATE"
+      },
+      {
+        "sequence": 7399,
+        "timestampMillis": 1793262949000,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7400,
+        "timestampMillis": 1793262949000,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:model:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7401,
+        "timestampMillis": 1793262949000,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:gradle:pluginDescriptors UP-TO-DATE"
+      },
+      {
+        "sequence": 7402,
+        "timestampMillis": 1793262949000,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:gradle:processResources UP-TO-DATE"
+      },
+      {
+        "sequence": 7403,
+        "timestampMillis": 1793262949000,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:model:compileKotlin UP-TO-DATE"
+      },
+      {
+        "sequence": 7404,
+        "timestampMillis": 1793262949001,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:model:compileJava NO-SOURCE"
+      },
+      {
+        "sequence": 7405,
+        "timestampMillis": 1793262949001,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:model:processResources NO-SOURCE"
+      },
+      {
+        "sequence": 7406,
+        "timestampMillis": 1793262949001,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:model:classes UP-TO-DATE"
+      },
+      {
+        "sequence": 7407,
+        "timestampMillis": 1793262949001,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:model:jar UP-TO-DATE"
+      },
+      {
+        "sequence": 7408,
+        "timestampMillis": 1793262949001,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:gradle:compileKotlin UP-TO-DATE"
+      },
+      {
+        "sequence": 7409,
+        "timestampMillis": 1793262949001,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:gradle:compileJava NO-SOURCE"
+      },
+      {
+        "sequence": 7410,
+        "timestampMillis": 1793262949001,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:gradle:classes UP-TO-DATE"
+      },
+      {
+        "sequence": 7411,
+        "timestampMillis": 1793262949001,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:gradle:jar UP-TO-DATE"
+      },
+      {
+        "sequence": 7412,
+        "timestampMillis": 1793262952353,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7413,
+        "timestampMillis": 1793262952353,
+        "stream": "Stdout",
+        "text": "> Configure project :reaktor:compose-flow"
+      },
+      {
+        "sequence": 7414,
+        "timestampMillis": 1793262952353,
+        "stream": "Stdout",
+        "text": "WARNING: The option setting 'android.builtInKotlin=false' is deprecated."
+      },
+      {
+        "sequence": 7415,
+        "timestampMillis": 1793262952353,
+        "stream": "Stdout",
+        "text": "The current default is 'true'."
+      },
+      {
+        "sequence": 7416,
+        "timestampMillis": 1793262952353,
+        "stream": "Stdout",
+        "text": "It will be removed in version 10.0 of the Android Gradle plugin."
+      },
+      {
+        "sequence": 7417,
+        "timestampMillis": 1793262952355,
+        "stream": "Stdout",
+        "text": "WARNING: The option setting 'android.newDsl=false' is deprecated."
+      },
+      {
+        "sequence": 7418,
+        "timestampMillis": 1793262952355,
+        "stream": "Stdout",
+        "text": "The current default is 'true'."
+      },
+      {
+        "sequence": 7419,
+        "timestampMillis": 1793262952355,
+        "stream": "Stdout",
+        "text": "It will be removed in version 10.0 of the Android Gradle plugin."
+      },
+      {
+        "sequence": 7420,
+        "timestampMillis": 1793262959048,
+        "stream": "Stdout",
+        "text": "Project accessors enabled, but root project name not explicitly set for 'buildSrc'. Checking out the project in different folders will impact the generated code and implicitly the buildscript classpath, breaking caching."
+      },
+      {
+        "sequence": 7421,
+        "timestampMillis": 1793262959049,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7422,
+        "timestampMillis": 1793262959049,
+        "stream": "Stdout",
+        "text": "> Configure project :buildSrc"
+      },
+      {
+        "sequence": 7423,
+        "timestampMillis": 1793262959049,
+        "stream": "Stdout",
+        "text": "WARNING: Unsupported Kotlin plugin version."
+      },
+      {
+        "sequence": 7424,
+        "timestampMillis": 1793262959050,
+        "stream": "Stdout",
+        "text": "The `embedded-kotlin` and `kotlin-dsl` plugins rely on features of Kotlin `2.4.0` that might work differently than in the requested version `2.4.21`."
+      },
+      {
+        "sequence": 7425,
+        "timestampMillis": 1793262959052,
+        "stream": "Stdout",
+        "text": "Using the `kotlin-dsl` plugin together with a different Kotlin version (for example, by using the Kotlin Gradle plugin (`kotlin(jvm)`)) in the same project is not recommended."
+      },
+      {
+        "sequence": 7426,
+        "timestampMillis": 1793262959053,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7427,
+        "timestampMillis": 1793262959053,
+        "stream": "Stdout",
+        "text": "See https://docs.gradle.org/9.7.0/userguide/kotlin_dsl.html#sec:kotlin-dsl_plugin for more details on how the `kotlin-dsl` plugin works (same applies to `embedded-kotlin`)."
+      },
+      {
+        "sequence": 7428,
+        "timestampMillis": 1793262959053,
+        "stream": "Stdout",
+        "text": "It applies a certain version of the `org.jetbrains.kotlin.jvm` plugin and also add a dependency on the Kotlin Standard Library."
+      },
+      {
+        "sequence": 7429,
+        "timestampMillis": 1793262959053,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7430,
+        "timestampMillis": 1793262959053,
+        "stream": "Stdout",
+        "text": "Applying other version of the `org.jetbrains.kotlin.jvm` plugin in the build and/or adding dependencies to different versions of the Kotlin Standard Library can cause incompatibilities."
+      },
+      {
+        "sequence": 7431,
+        "timestampMillis": 1793262959053,
+        "stream": "Stdout",
+        "text": "See https://docs.gradle.org/9.7.0/userguide/kotlin_dsl.html#sec:kotlin"
+      },
+      {
+        "sequence": 7432,
+        "timestampMillis": 1793262959053,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7433,
+        "timestampMillis": 1793262959054,
+        "stream": "Stdout",
+        "text": "> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7434,
+        "timestampMillis": 1793262959054,
+        "stream": "Stdout",
+        "text": "> Task :buildSrc:compileKotlin UP-TO-DATE"
+      },
+      {
+        "sequence": 7435,
+        "timestampMillis": 1793262959054,
+        "stream": "Stdout",
+        "text": "> Task :buildSrc:compileJava NO-SOURCE"
+      },
+      {
+        "sequence": 7436,
+        "timestampMillis": 1793262959054,
+        "stream": "Stdout",
+        "text": "> Task :buildSrc:compileGroovy NO-SOURCE"
+      },
+      {
+        "sequence": 7437,
+        "timestampMillis": 1793262959071,
+        "stream": "Stdout",
+        "text": "> Task :buildSrc:pluginDescriptors UP-TO-DATE"
+      },
+      {
+        "sequence": 7438,
+        "timestampMillis": 1793262959071,
+        "stream": "Stdout",
+        "text": "> Task :buildSrc:processResources NO-SOURCE"
+      },
+      {
+        "sequence": 7439,
+        "timestampMillis": 1793262959072,
+        "stream": "Stdout",
+        "text": "> Task :buildSrc:classes UP-TO-DATE"
+      },
+      {
+        "sequence": 7440,
+        "timestampMillis": 1793262959072,
+        "stream": "Stdout",
+        "text": "> Task :buildSrc:jar UP-TO-DATE"
+      },
+      {
+        "sequence": 7441,
+        "timestampMillis": 1793262962269,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7442,
+        "timestampMillis": 1793262962269,
+        "stream": "Stdout",
+        "text": "> Configure project :app"
+      },
+      {
+        "sequence": 7443,
+        "timestampMillis": 1793262962269,
+        "stream": "Stdout",
+        "text": "WARNING: The option setting 'android.builtInKotlin=false' is deprecated."
+      },
+      {
+        "sequence": 7444,
+        "timestampMillis": 1793262962272,
+        "stream": "Stdout",
+        "text": "The current default is 'true'."
+      },
+      {
+        "sequence": 7445,
+        "timestampMillis": 1793262962272,
+        "stream": "Stdout",
+        "text": "It will be removed in version 10.0 of the Android Gradle plugin."
+      },
+      {
+        "sequence": 7446,
+        "timestampMillis": 1793262962272,
+        "stream": "Stdout",
+        "text": "WARNING: The option setting 'android.newDsl=false' is deprecated."
+      },
+      {
+        "sequence": 7447,
+        "timestampMillis": 1793262962272,
+        "stream": "Stdout",
+        "text": "The current default is 'true'."
+      },
+      {
+        "sequence": 7448,
+        "timestampMillis": 1793262962272,
+        "stream": "Stdout",
+        "text": "It will be removed in version 10.0 of the Android Gradle plugin."
+      },
+      {
+        "sequence": 7449,
+        "timestampMillis": 1793262962273,
+        "stream": "Stdout",
+        "text": "w: ⚠️ The 'org.jetbrains.kotlin.multiplatform' plugin deprecated compatibility with Android Gradle plugin: 'com.android.library'"
+      },
+      {
+        "sequence": 7450,
+        "timestampMillis": 1793262962273,
+        "stream": "Stdout",
+        "text": "The 'org.jetbrains.kotlin.multiplatform' plugin is not compatible with 'com.android.library' starting with Android Gradle Plugin 9.0.0."
+      },
+      {
+        "sequence": 7451,
+        "timestampMillis": 1793262962273,
+        "stream": "Stdout",
+        "text": "Solution: Please use the 'com.android.kotlin.multiplatform.library' plugin instead of 'com.android.library'."
+      },
+      {
+        "sequence": 7452,
+        "timestampMillis": 1793262962273,
+        "stream": "Stdout",
+        "text": "See https://kotl.in/gradle/agp-new-kmp for more details."
+      },
+      {
+        "sequence": 7453,
+        "timestampMillis": 1793262962273,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7454,
+        "timestampMillis": 1793262962273,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7455,
+        "timestampMillis": 1793262962273,
+        "stream": "Stdout",
+        "text": "> Configure project :appAndroid"
+      },
+      {
+        "sequence": 7456,
+        "timestampMillis": 1793262962274,
+        "stream": "Stdout",
+        "text": "w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage"
+      },
+      {
+        "sequence": 7457,
+        "timestampMillis": 1793262962274,
+        "stream": "Stdout",
+        "text": "The 'org.jetbrains.kotlin.android' plugin in project ':appAndroid' is no longer required for Kotlin support since AGP 9.0."
+      },
+      {
+        "sequence": 7458,
+        "timestampMillis": 1793262962274,
+        "stream": "Stdout",
+        "text": "Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin."
+      },
+      {
+        "sequence": 7459,
+        "timestampMillis": 1793262962274,
+        "stream": "Stdout",
+        "text": "See https://kotl.in/gradle/agp-built-in-kotlin for more details."
+      },
+      {
+        "sequence": 7460,
+        "timestampMillis": 1793262962275,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7461,
+        "timestampMillis": 1793262962275,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7462,
+        "timestampMillis": 1793262962275,
+        "stream": "Stdout",
+        "text": "> Configure project :design"
+      },
+      {
+        "sequence": 7463,
+        "timestampMillis": 1793262962275,
+        "stream": "Stdout",
+        "text": "w: ⚠️ The 'org.jetbrains.kotlin.multiplatform' plugin deprecated compatibility with Android Gradle plugin: 'com.android.library'"
+      },
+      {
+        "sequence": 7464,
+        "timestampMillis": 1793262962275,
+        "stream": "Stdout",
+        "text": "The 'org.jetbrains.kotlin.multiplatform' plugin is not compatible with 'com.android.library' starting with Android Gradle Plugin 9.0.0."
+      },
+      {
+        "sequence": 7465,
+        "timestampMillis": 1793262962275,
+        "stream": "Stdout",
+        "text": "Solution: Please use the 'com.android.kotlin.multiplatform.library' plugin instead of 'com.android.library'."
+      },
+      {
+        "sequence": 7466,
+        "timestampMillis": 1793262962275,
+        "stream": "Stdout",
+        "text": "See https://kotl.in/gradle/agp-new-kmp for more details."
+      },
+      {
+        "sequence": 7467,
+        "timestampMillis": 1793262962275,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7468,
+        "timestampMillis": 1793262962276,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7469,
+        "timestampMillis": 1793262962276,
+        "stream": "Stdout",
+        "text": "> Configure project :engine"
+      },
+      {
+        "sequence": 7470,
+        "timestampMillis": 1793262962277,
+        "stream": "Stdout",
+        "text": "w: ⚠️ The 'org.jetbrains.kotlin.multiplatform' plugin deprecated compatibility with Android Gradle plugin: 'com.android.library'"
+      },
+      {
+        "sequence": 7471,
+        "timestampMillis": 1793262962277,
+        "stream": "Stdout",
+        "text": "The 'org.jetbrains.kotlin.multiplatform' plugin is not compatible with 'com.android.library' starting with Android Gradle Plugin 9.0.0."
+      },
+      {
+        "sequence": 7472,
+        "timestampMillis": 1793262962281,
+        "stream": "Stdout",
+        "text": "Solution: Please use the 'com.android.kotlin.multiplatform.library' plugin instead of 'com.android.library'."
+      },
+      {
+        "sequence": 7473,
+        "timestampMillis": 1793262962281,
+        "stream": "Stdout",
+        "text": "See https://kotl.in/gradle/agp-new-kmp for more details."
+      },
+      {
+        "sequence": 7474,
+        "timestampMillis": 1793262962281,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7475,
+        "timestampMillis": 1793262968902,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7476,
+        "timestampMillis": 1793262968906,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-idb:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7477,
+        "timestampMillis": 1793262968906,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-idb:generateIdbProto UP-TO-DATE"
+      },
+      {
+        "sequence": 7478,
+        "timestampMillis": 1793262968907,
+        "stream": "Stdout",
+        "text": "> Task :dependeasy:exportBuildModel UP-TO-DATE"
+      },
+      {
+        "sequence": 7479,
+        "timestampMillis": 1793262968907,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7480,
+        "timestampMillis": 1793262968907,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7481,
+        "timestampMillis": 1793262968907,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7482,
+        "timestampMillis": 1793262968907,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7483,
+        "timestampMillis": 1793262968907,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:kotlinAnalysisModel UP-TO-DATE"
+      },
+      {
+        "sequence": 7484,
+        "timestampMillis": 1793262968907,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-core:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7485,
+        "timestampMillis": 1793262968908,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-core:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7486,
+        "timestampMillis": 1793262968908,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-core:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7487,
+        "timestampMillis": 1793262968908,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-idb:compileKotlin UP-TO-DATE"
+      },
+      {
+        "sequence": 7488,
+        "timestampMillis": 1793262968908,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-idb:compileJava UP-TO-DATE"
+      },
+      {
+        "sequence": 7489,
+        "timestampMillis": 1793262968908,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-idb:processResources NO-SOURCE"
+      },
+      {
+        "sequence": 7490,
+        "timestampMillis": 1793262968908,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-idb:classes UP-TO-DATE"
+      },
+      {
+        "sequence": 7491,
+        "timestampMillis": 1793262968908,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-idb:jar UP-TO-DATE"
+      },
+      {
+        "sequence": 7492,
+        "timestampMillis": 1793262968908,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-core:compileKotlinJvm UP-TO-DATE"
+      },
+      {
+        "sequence": 7493,
+        "timestampMillis": 1793262968909,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-core:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7494,
+        "timestampMillis": 1793262968909,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-core:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7495,
+        "timestampMillis": 1793262968909,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-core:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7496,
+        "timestampMillis": 1793262968909,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-core:jvmMainClasses UP-TO-DATE"
+      },
+      {
+        "sequence": 7497,
+        "timestampMillis": 1793262968909,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-core:jvmJar UP-TO-DATE"
+      },
+      {
+        "sequence": 7498,
+        "timestampMillis": 1793262968909,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-port:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7499,
+        "timestampMillis": 1793262968909,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-port:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7500,
+        "timestampMillis": 1793262968909,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-port:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7501,
+        "timestampMillis": 1793262968910,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7502,
+        "timestampMillis": 1793262968910,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7503,
+        "timestampMillis": 1793262968910,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:generateBuildKonfig UP-TO-DATE"
+      },
+      {
+        "sequence": 7504,
+        "timestampMillis": 1793262968910,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7505,
+        "timestampMillis": 1793262968912,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-port:compileKotlinJvm UP-TO-DATE"
+      },
+      {
+        "sequence": 7506,
+        "timestampMillis": 1793262968912,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-port:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7507,
+        "timestampMillis": 1793262968913,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-port:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7508,
+        "timestampMillis": 1793262968913,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-port:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7509,
+        "timestampMillis": 1793262968913,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-port:jvmMainClasses UP-TO-DATE"
+      },
+      {
+        "sequence": 7510,
+        "timestampMillis": 1793262968913,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-port:jvmJar UP-TO-DATE"
+      },
+      {
+        "sequence": 7511,
+        "timestampMillis": 1793262968913,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:compileKotlinJvm UP-TO-DATE"
+      },
+      {
+        "sequence": 7512,
+        "timestampMillis": 1793262968913,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7513,
+        "timestampMillis": 1793262968913,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7514,
+        "timestampMillis": 1793262968913,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7515,
+        "timestampMillis": 1793262968914,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:jvmMainClasses UP-TO-DATE"
+      },
+      {
+        "sequence": 7516,
+        "timestampMillis": 1793262968916,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-io:jvmJar UP-TO-DATE"
+      },
+      {
+        "sequence": 7517,
+        "timestampMillis": 1793262968916,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-service:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7518,
+        "timestampMillis": 1793262968916,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-service:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7519,
+        "timestampMillis": 1793262968916,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-service:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7520,
+        "timestampMillis": 1793262968917,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-db:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7521,
+        "timestampMillis": 1793262968917,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-db:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7522,
+        "timestampMillis": 1793262968917,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-service:compileKotlinJvm UP-TO-DATE"
+      },
+      {
+        "sequence": 7523,
+        "timestampMillis": 1793262968917,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-service:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7524,
+        "timestampMillis": 1793262968917,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-service:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7525,
+        "timestampMillis": 1793262968917,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-service:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7526,
+        "timestampMillis": 1793262968918,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-service:jvmMainClasses UP-TO-DATE"
+      },
+      {
+        "sequence": 7527,
+        "timestampMillis": 1793262968918,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-service:jvmJar UP-TO-DATE"
+      },
+      {
+        "sequence": 7528,
+        "timestampMillis": 1793262968918,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-db:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7529,
+        "timestampMillis": 1793262968918,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-db:compileKotlinJvm UP-TO-DATE"
+      },
+      {
+        "sequence": 7530,
+        "timestampMillis": 1793262968918,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-db:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7531,
+        "timestampMillis": 1793262968918,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-db:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7532,
+        "timestampMillis": 1793262968918,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-db:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7533,
+        "timestampMillis": 1793262968918,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-db:jvmMainClasses UP-TO-DATE"
+      },
+      {
+        "sequence": 7534,
+        "timestampMillis": 1793262968918,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-db:jvmJar UP-TO-DATE"
+      },
+      {
+        "sequence": 7535,
+        "timestampMillis": 1793262968919,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-runtime:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7536,
+        "timestampMillis": 1793262968919,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-runtime:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7537,
+        "timestampMillis": 1793262968919,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-runtime:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7538,
+        "timestampMillis": 1793262968919,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-runtime:compileKotlinJvm UP-TO-DATE"
+      },
+      {
+        "sequence": 7539,
+        "timestampMillis": 1793262968919,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-runtime:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7540,
+        "timestampMillis": 1793262968919,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-runtime:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7541,
+        "timestampMillis": 1793262968919,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-runtime:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7542,
+        "timestampMillis": 1793262968919,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-runtime:jvmMainClasses UP-TO-DATE"
+      },
+      {
+        "sequence": 7543,
+        "timestampMillis": 1793262968919,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-graph-runtime:jvmJar UP-TO-DATE"
+      },
+      {
+        "sequence": 7544,
+        "timestampMillis": 1793262968920,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7545,
+        "timestampMillis": 1793262968920,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-telemetry:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7546,
+        "timestampMillis": 1793262968920,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-telemetry:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7547,
+        "timestampMillis": 1793262968920,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-telemetry:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7548,
+        "timestampMillis": 1793262968920,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-mcp:kmpPartiallyResolvedDependenciesChecker"
+      },
+      {
+        "sequence": 7549,
+        "timestampMillis": 1793262968927,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-mcp:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+      },
+      {
+        "sequence": 7550,
+        "timestampMillis": 1793262968927,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-mcp:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7551,
+        "timestampMillis": 1793262968927,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:compileKotlinJvm UP-TO-DATE"
+      },
+      {
+        "sequence": 7552,
+        "timestampMillis": 1793262968927,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7553,
+        "timestampMillis": 1793262968928,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-mcp:compileKotlinJvm UP-TO-DATE"
+      },
+      {
+        "sequence": 7554,
+        "timestampMillis": 1793262968928,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7555,
+        "timestampMillis": 1793262968928,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7556,
+        "timestampMillis": 1793262968928,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:jvmMainClasses UP-TO-DATE"
+      },
+      {
+        "sequence": 7557,
+        "timestampMillis": 1793262968928,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-mcp:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7558,
+        "timestampMillis": 1793262968928,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-mcp:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7559,
+        "timestampMillis": 1793262968929,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-mcp:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7560,
+        "timestampMillis": 1793262968929,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-code:jvmJar UP-TO-DATE"
+      },
+      {
+        "sequence": 7561,
+        "timestampMillis": 1793262968929,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-mcp:jvmMainClasses UP-TO-DATE"
+      },
+      {
+        "sequence": 7562,
+        "timestampMillis": 1793262968929,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-mcp:jvmJar UP-TO-DATE"
+      },
+      {
+        "sequence": 7563,
+        "timestampMillis": 1793262968929,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-telemetry:compileKotlinJvm UP-TO-DATE"
+      },
+      {
+        "sequence": 7564,
+        "timestampMillis": 1793262968929,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-telemetry:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7565,
+        "timestampMillis": 1793262968929,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-telemetry:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7566,
+        "timestampMillis": 1793262968929,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-telemetry:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7567,
+        "timestampMillis": 1793262968930,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-telemetry:jvmMainClasses UP-TO-DATE"
+      },
+      {
+        "sequence": 7568,
+        "timestampMillis": 1793262968930,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-telemetry:jvmJar UP-TO-DATE"
+      },
+      {
+        "sequence": 7569,
+        "timestampMillis": 1793262968930,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:kspKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7570,
+        "timestampMillis": 1793262968930,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:exportBuildModel FROM-CACHE"
+      },
+      {
+        "sequence": 7571,
+        "timestampMillis": 1793262968930,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:jvmProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7572,
+        "timestampMillis": 1793262968930,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:processJvmMainResources SKIPPED"
+      },
+      {
+        "sequence": 7573,
+        "timestampMillis": 1793262968930,
+        "stream": "Stdout",
+        "text": "> Task :exportBuildModel FROM-CACHE"
+      },
+      {
+        "sequence": 7574,
+        "timestampMillis": 1793262975434,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:compileKotlinJvm"
+      },
+      {
+        "sequence": 7575,
+        "timestampMillis": 1793262975434,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:compileJvmMainJava NO-SOURCE"
+      },
+      {
+        "sequence": 7576,
+        "timestampMillis": 1793262975435,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:jvmMainClasses"
+      },
+      {
+        "sequence": 7577,
+        "timestampMillis": 1793262975435,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:jvmJar"
+      },
+      {
+        "sequence": 7578,
+        "timestampMillis": 1793262975435,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:kspTestKotlinJvm SKIPPED"
+      },
+      {
+        "sequence": 7579,
+        "timestampMillis": 1793262975435,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:jvmTestProcessResources NO-SOURCE"
+      },
+      {
+        "sequence": 7580,
+        "timestampMillis": 1793262975435,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:processJvmTestResources SKIPPED"
+      },
+      {
+        "sequence": 7581,
+        "timestampMillis": 1793262975435,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:compileTestKotlinJvm"
+      },
+      {
+        "sequence": 7582,
+        "timestampMillis": 1793262975436,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:compileJvmTestJava NO-SOURCE"
+      },
+      {
+        "sequence": 7583,
+        "timestampMillis": 1793262975436,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:jvmTestClasses"
+      },
+      {
+        "sequence": 7585,
+        "timestampMillis": 1793262991919,
+        "stream": "Stdout",
+        "text": "WARNING: A restricted method in java.lang.System has been called"
+      },
+      {
+        "sequence": 7586,
+        "timestampMillis": 1793262991919,
+        "stream": "Stdout",
+        "text": "WARNING: java.lang.System::load has been called by org.sqlite.SQLiteJDBCLoader in an unnamed module (file:/Users/ovd/.gradle/caches/modules-2/files-2.1/org.xerial/sqlite-jdbc/3.49.1.0/145d3a6819b86f3618728273329392269104c8c7/sqlite-jdbc-3.49.1.0.jar)"
+      },
+      {
+        "sequence": 7587,
+        "timestampMillis": 1793262991919,
+        "stream": "Stdout",
+        "text": "WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module"
+      },
+      {
+        "sequence": 7588,
+        "timestampMillis": 1793262991919,
+        "stream": "Stdout",
+        "text": "WARNING: Restricted methods will be blocked in a future release unless native access is enabled"
+      },
+      {
+        "sequence": 7589,
+        "timestampMillis": 1793262991919,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7590,
+        "timestampMillis": 1793262991920,
+        "stream": "Stdout",
+        "text": "> Task :reaktor:reaktor-tooling:jvmTest"
+      },
+      {
+        "sequence": 7591,
+        "timestampMillis": 1793262995351,
+        "stream": "Stdout",
+        "text": "Kotlin build report is written to file:///Users/ovd/dev/offload/reaktor/build/reports/kotlin-build/reaktor-build-2026-10-29-14-06-32-0.txt"
+      },
+      {
+        "sequence": 7592,
+        "timestampMillis": 1793262995351,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7593,
+        "timestampMillis": 1793262995351,
+        "stream": "Stdout",
+        "text": "[Incubating] Problems report is available at: file:///Users/ovd/dev/offload/bestbuds/build/reports/problems/problems-report.html"
+      },
+      {
+        "sequence": 7594,
+        "timestampMillis": 1793262995351,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7595,
+        "timestampMillis": 1793262995351,
+        "stream": "Stdout",
+        "text": "Deprecated Gradle features were used in this build, making it incompatible with Gradle 10."
+      },
+      {
+        "sequence": 7596,
+        "timestampMillis": 1793262995352,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7597,
+        "timestampMillis": 1793262995352,
+        "stream": "Stdout",
+        "text": "You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins."
+      },
+      {
+        "sequence": 7598,
+        "timestampMillis": 1793262995352,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7599,
+        "timestampMillis": 1793262995352,
+        "stream": "Stdout",
+        "text": "For more on this, please refer to https://docs.gradle.org/9.7.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation."
+      },
+      {
+        "sequence": 7600,
+        "timestampMillis": 1793262995353,
+        "stream": "Stdout",
+        "text": ""
+      },
+      {
+        "sequence": 7601,
+        "timestampMillis": 1793262995353,
+        "stream": "Stdout",
+        "text": "BUILD SUCCESSFUL in 54s"
+      },
+      {
+        "sequence": 7602,
+        "timestampMillis": 1793262995353,
+        "stream": "Stdout",
+        "text": "60 actionable tasks: 14 executed, 2 from cache, 44 up-to-date"
+      },
+      {
+        "sequence": 7603,
+        "timestampMillis": 1793262995353,
+        "stream": "Stdout",
+        "text": "Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.7.0/userguide/configuration_cache_enabling.html"
+      },
+      {
+        "sequence": 7610,
+        "timestampMillis": 1793263005811,
+        "stream": "Stdout",
+        "text": "Copied 297 artifact/report paths from bestbuds to /Users/ovd/dev/.remote-dev/artifacts/20261029-140538-8fa1b08b-bestbuds/bestbuds"
+      },
+      {
+        "sequence": 7676,
+        "timestampMillis": 1793263041800,
+        "stream": "Stdout",
+        "text": "Copied 144 artifact/report paths from reaktor to /Users/ovd/dev/.remote-dev/artifacts/20261029-140538-8fa1b08b-bestbuds/reaktor"
+      },
+      {
+        "sequence": 8817,
+        "timestampMillis": 1793263980743,
+        "stream": "Stdout",
+        "text": "bestbuds: exit 0; receipt /Users/ovd/dev/.remote-dev/logs/20261029-140538-8fa1b08b-bestbuds.json"
+      },
+      {
+        "sequence": 8818,
+        "timestampMillis": 1793263980856,
+        "stream": "System",
+        "text": "Completed successfully"
+      }
+    ],
+    "artifacts": [],
+    "sensitive": false,
+    "connectionCheck": false,
+    "checkResult": {
+      "command": [
+        "testing/checks/:reaktor:reaktor-tooling:jvmTest"
+      ],
+      "outcome": "Passed",
+      "exitCode": 0,
+      "environment": "local",
+      "failures": [],
+      "failureCount": 0,
+      "log": {
+        "id": "37955f744f10c3758910138b60b66674126780115eb5dde903fa2ad3775fc3c3",
+        "bytes": 15543,
+        "kind": "kernel-check-log"
+      },
+      "parser": "kotlin-gradle/1",
+      "coverage": {
+        "type": "dev.shibasis.reaktor.conductor.CheckCoverage.Partial",
+        "unrecognisedLines": 70,
+        "reason": "Source identity unavailable or changed during execution"
+      },
+      "durationMillis": 1234106,
+      "warnings": [],
+      "warningCount": 0
+    },
+    "background": true,
+    "verifiedChecks": [],
+    "planFingerprint": "e906ebfe5aa5554de73dccf2",
+    "receipt": {
+      "id": "run-1793262746693-7266",
+      "workspaceId": "workspace-81fe809d391237c152810ad9",
+      "taskId": "testing/checks/:reaktor:reaktor-tooling:jvmTest",
+      "planId": "e906ebfe5aa5554de73dccf2",
+      "status": "Succeeded",
+      "createdAtEpochMillis": 1793262746693,
+      "startedAtEpochMillis": 1793262746693,
+      "finishedAtEpochMillis": 1793263980856,
+      "exitCode": 0,
+      "artifacts": [
+        {
+          "id": "operation-run-1793262746693-7266",
+          "kind": "operational-run",
+          "location": "run-1793262746693-7266",
+          "attributes": {
+            "sourceStatus": "Succeeded",
+            "planEvidence": "recorded"
+          }
+        }
+      ]
+    }
+  }
+}

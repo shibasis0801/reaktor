@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DesktopApplicationBootstrapTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:40.115Z" hostname="Shibasiss-MacBook-Pro-2.local" time="1.339">
+  <properties/>
+  <testcase name="selectingAnotherAppDiscardsALateActivationWithoutRelabelingIt[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopApplicationBootstrapTest" time="0.307"/>
+  <testcase name="aFailedActivationRetriesWithoutChangingTheSelection[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopApplicationBootstrapTest" time="0.31"/>
+  <testcase name="firstApplicationProjectionBuildsOffUiAndPaneChangesRetainTheActivation[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopApplicationBootstrapTest" time="0.312"/>
+  <testcase name="returningFromAFailedSwitchRestoresTheRetainedActivation[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopApplicationBootstrapTest" time="0.314"/>
+  <testcase name="bestBudsFactoriesCreateIndependentOwnedRoots[jvm]" classname="ai.bestbuds.reaktor.workbench.graph.DesktopApplicationBootstrapTest" time="0.095"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

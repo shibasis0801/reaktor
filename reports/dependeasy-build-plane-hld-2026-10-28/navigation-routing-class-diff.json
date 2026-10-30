@@ -1,0 +1,8 @@
+{
+  "entries": [
+    "dev/shibasis/reaktor/blueprint/NavigationLayoutKt.class"
+  ],
+  "baselineSha256": "b6c40f0a798216483dfd70edf6bc6e2354757e47a1ed7874756ccd6e7be55f07",
+  "treatmentSha256": "0d06e29507206b515e365c1f6165a73eb8954f8a5977d2afddf1a550bcc9efea",
+  "qualifiedArtifact": "/Users/ovd/dev/.remote-dev/artifacts/20261029-111639-bba6eab1-bestbuds/reaktor/reaktor-blueprint/build/libs/reaktor-blueprint-jvm-2026.1.6-SNAPSHOT.jar"
+}

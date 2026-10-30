@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DataResultWidthTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:35.283Z" hostname="Shibasiss-MacBook-Pro-2.local" time="1.444">
+  <properties/>
+  <testcase name="typedNumbersAndNullsAlignAtTheLogicalEndAndTypeOnlyUpdatesReconcile[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataResultWidthTest" time="0.088"/>
+  <testcase name="thirtyColumnsAt1512PixelsKeepVisibleHeadersWholeAndRevealTheLastColumnBetweenPins[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataResultWidthTest" time="0.054"/>
+  <testcase name="recordsArrivalFramesForFiveHundredRowsAndThirtyJsonColumns[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DataResultWidthTest" time="1.302"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

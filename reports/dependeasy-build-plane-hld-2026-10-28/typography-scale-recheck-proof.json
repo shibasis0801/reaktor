@@ -1,0 +1,29 @@
+{
+  "rows": [
+    {
+      "file": "/Users/ovd/dev/reaktor/reaktor-ui/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.ui.machinesignal.SignalTypographyTest.xml",
+      "name": "SignalTypographyTest[jvm]",
+      "tests": "5",
+      "skipped": "0",
+      "failures": "1",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:39:11.216Z",
+      "hostname": "Shibasiss-MacBook-Pro-2.local",
+      "time": "8.603"
+    },
+    {
+      "file": "/Users/ovd/dev/bestbuds/modules/engine/build/test-results/jvmTest/TEST-ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest.xml",
+      "name": "SurfaceLabRenderTest[jvm]",
+      "tests": "7",
+      "skipped": "0",
+      "failures": "1",
+      "errors": "0",
+      "timestamp": "2026-10-28T22:39:24.051Z",
+      "hostname": "Shibasiss-MacBook-Pro-2.local",
+      "time": "12.988"
+    }
+  ],
+  "archiveSha256": "39ab91d7d516c9f98fc32e595ec5190c87b20eca318746540f1b4b7efd06ef18",
+  "fixtureSha256": "fbc6f3ee8c65c44e9c98c0711cabfc399c4fc3e2fa0f92286626df20947bccba",
+  "scope": "Local focused run after three scale expectations. 10 passes, 2 failures. Source shared; no frozen checkout claim."
+}

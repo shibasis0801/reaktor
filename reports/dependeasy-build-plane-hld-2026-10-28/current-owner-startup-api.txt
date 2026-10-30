@@ -1,0 +1,262 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:ab6709235101
+targets/reaktorDesktop/src/main/kotlin/WorkspaceBootstrap.kt
+  152:22 function openDesktopKernel: internal suspend fun openDesktopKernel(root: File): ReaktorKernel · kotlin:ai/bestbuds/reaktor/#openDesktopKernel(java.io.File)@:reaktorDesktop:main:main@bestbuds
+targets/reaktorDesktop/src/main/kotlin/WorkspaceBootstrap.kt · internal suspend fun openDesktopKernel(root: File): ReaktorKernel · 481 of 481 characters · rev:ab6709235101
+152  internal suspend fun openDesktopKernel(root: File): ReaktorKernel {
+153      var kernel: ReaktorKernel? = null
+154      return try {
+155          coroutineScope {
+156              val opening = async(Dispatchers.Default) { ReaktorKernel.open(root).also { kernel = it } }
+157              withContext(Dispatchers.Default) { initReaktorDesktopFeatures() }
+158              opening.await()
+159          }
+160      } catch (failure: Throwable) {
+161          kernel?.let(::closeWorkspaceInBackground)
+162          throw failure
+163      }
+164  }
+next: atlas_read {"id":"d:targets/reaktorDesktop/src/main/kotlin/WorkspaceBootstrap.kt:151:21@373a6098"}
+next: atlas_query {"from":{"id":"d:targets/reaktorDesktop/src/main/kotlin/WorkspaceBootstrap.kt:151:21@373a6098"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[0] {"name":"KernelApi"}
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt · open class KernelApi : Service(Id) · 902 of 902 characters · rev:2bf49e571b78
+12  open class KernelApi : Service(Id) {
+13      open val hello by call<Unit, KernelHello>(effect = Effect.ReadOnly, summary = "The owner identity and the contracts it serves.")
+14      open val catalog by call<CatalogQuery, List<CatalogEntry>>(effect = Effect.ReadOnly, summary = "The workspace operation catalog.")
+15      open val describe by call<DescribeRequest, OperationDescriptor>(effect = Effect.ReadOnly, summary = "One workspace operation's descriptor.")
+16      open val invoke by call<KernelInvocation, JsonElement>(effect = Effect.UnknownRemoteEffect, deadline = 15.minutes,
+17          summary = "Invokes an operation that has not yet moved to a domain contract.")
+18  
+19      companion object {
+20          const val Id = "reaktor.kernel"
+21          const val WorkspaceHeader = "reaktor-workspace"
+22          const val CallerHeader = "reaktor-caller"
+23          const val IncarnationAttribute = "reaktor.owner.incarnation"
+24      }
+25  }
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/kernel/KernelApi.kt:11:11@02a16dc1"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[1] {"name":"KernelGraph"}
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelGraph.kt · class KernelGraph( controlPlane: OperationalControlPlane, private val ownsOperations: Boolean = true, private val graphDependencies: KoinApplication = koinApplication {}, agentConnector: ((java.io.Fil · 3788 of 3788 characters · rev:402a7b0f8653
+ 43  class KernelGraph(
+ 44      controlPlane: OperationalControlPlane,
+ 45      private val ownsOperations: Boolean = true,
+ 46      private val graphDependencies: KoinApplication = koinApplication {},
+ 47      agentConnector: ((java.io.File) -> dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection)? = null,
+ 48      agentHome: (java.io.File) -> java.io.File = { java.io.File(System.getProperty("user.home")) },
+ 49      generatedSources: (java.nio.file.Path) -> Collection<java.nio.file.Path> = { emptyList() },
+ 50      invoker: KernelLink? = null,
+ 51  ) : Graph(dependencyAdapter = KoinDependencyAdapter(graphDependencies), label = "Reaktor Kernel") {
+ 52      private val closed = AtomicBoolean()
+ 53      val operationsNode = Node { KernelOperationsNode(it, controlPlane, invoker) }
+ 54      val workNode = Node { dev.shibasis.reaktor.work.WorkInspectionSession(it) }
+ 55      internal val taskCatalogNode = Node { CatalogNode(it, operationsNode) }
+ 56      val databaseNode: KernelDatabaseNode = Node { KernelDatabaseNode(it, operationsNode) { authNode.operatorAuthority() } }
+ 57      val authNode: KernelAuthNode = Node { KernelAuthNode(it, operationsNode, databaseNode) }
+ 58      val connectionsNode = Node { KernelConnectionsNode(it, operationsNode) }
+ 59      val workspaceNode = Node { KernelWorkspaceNode(it, operationsNode) }
+ 60      val repositoriesNode = Node { WorkspaceRepositories(it, controlPlane.catalog.root) }
+ 61      val identityNode = Node { WorkspaceIdentityNode(it, operationsNode) }
+ 62      val savedDataNode = Node { KernelSavedDataNode(it, operationsNode) }
+ 63      val subgraphsNode = Node { KernelSubgraphsNode(it, operationsNode) }
+ 64      val agentsNode = Node { KernelAgentsNode(it, operationsNode, agentConnector, agentHome) }
+ 65      internal val ledgerNode = Node { KernelRunLedger(it, operationsNode, agentsNode) }
+ 66      internal val ledger get() = ledgerNode.ledger()
+ 67      internal val codeNode = Node { owner -> controlPlane.catalog.root.toPath().let { root -> dev.shibasis.reaktor.code.CodeWorkspaceNode(owner, root) { generatedSources(root) } } }
+ 68      val engineeringNode = Node { KernelEngineeringNode(it, operationsNode, agentsNode, codeNode) }
+ 69      val crashesNode = Node { KernelCrashesNode(it, operationsNode) }
+ 70      val telemetryNode = Node { KernelTelemetryNode(it, operationsNode, authNode, databaseNode, crashesNode) }
+ 71      val operations get() = operationsNode.operations()
+ 72      val database get() = databaseNode.database()
+ 73      val documents get() = databaseNode.documents()
+ 74      val catalog get() = databaseNode.catalog()
+ 75      val resultExports get() = databaseNode.exports()
+ 76      val savedDataDocuments get() = savedDataNode.documents()
+ 77      val subgraphs get() = subgraphsNode.subgraphs()
+ 78      val auth get() = authNode.auth()
+ 79      val operatorAuthority get() = authNode.operatorAuthority()
+ 80      val connections get() = connectionsNode.connections()
+ 81      val agents get() = agentsNode.agents()
+ 82      val engineering get() = engineeringNode.engineering()
+ 83      val telemetry get() = telemetryNode.telemetry()
+ 84      val crashes get() = crashesNode.crashes()
+ 85  
+ 86      init { autoWire(); requireFullyWired() }
+ 87  
+ 88      @Synchronized
+ 89      fun databaseSession(): DatabaseStudioSession {
+ 90          check(!closed.get()) { "Kernel graph is closed" }
+ 91          return Node { KernelDatabaseSessionNode(it, operationsNode, databaseNode) }.database()
+ 92      }
+ 93  
+ 94      @Synchronized
+ 95      fun authDirectorySession(): AuthDirectorySession {
+ 96          check(!closed.get()) { "Kernel graph is closed" }
+ 97          return Node { KernelAuthNode(it, operationsNode, databaseNode) }.auth()
+ 98      }
+ 99  
+100      @Synchronized override fun close() {
+101          if (!closed.compareAndSet(false, true)) return
+102          val plane = operations
+103          try { super.close() }
+104          finally {
+105              try { if (ownsOperations) plane.close() }
+106              finally { graphDependencies.close() }
+107          }
+108      }
+109  }
+next: atlas_query {"from":{"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelGraph.kt:42:6@4d1ba2ba"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[2] {"name":"DesktopWorkbenchGraph"}
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt · class DesktopWorkbenchGraph( val controlPlane: OperationalControlPlane, initialApp: ReaktorAppDefinition = ReaktorApps.bestBuds, initialMode: ReaktorMode = ReaktorMode.Graph, private val ownsControlPl · 8909 of 8909 characters · rev:cd39d7a0eb39
+ 73  class DesktopWorkbenchGraph(
+ 74      val controlPlane: OperationalControlPlane,
+ 75      initialApp: ReaktorAppDefinition = ReaktorApps.bestBuds,
+ 76      initialMode: ReaktorMode = ReaktorMode.Graph,
+ 77      private val ownsControlPlane: Boolean = false,
+ 78      private val graphDependencies: KoinApplication = koinApplication {},
+ 79      kernelGraph: KernelGraph? = null,
+ 80      /** What this workbench may embed. The desktop target supplies the browser; nothing else does. */
+ 81      embeddedSurfaces: WorkbenchEmbedding = WorkbenchEmbedding(),
+ 82      val seams: ai.bestbuds.reaktor.workbench.seams.HangarSeams = ai.bestbuds.reaktor.workbench.seams.HangarSeams(),
+ 83  ) : Graph(dependencyAdapter = KoinDependencyAdapter(graphDependencies), label = Hangar.Name) {
+ 84      @Volatile var isClosed: Boolean = false
+ 85          private set
+ 86      private var navigationReady = false
+ 87      private val ownedKernel = if (kernelGraph == null) ai.bestbuds.reaktor.kernel.ReaktorKernel(controlPlane,
+ 88          ownsOperations = ownsControlPlane, agentConnector = seams.agents.connector, agentHome = seams.agents.machineHome) else null
+ 89      val kernel = kernelGraph ?: requireNotNull(ownedKernel).graph
+ 90      init { require(kernel.operations === controlPlane) { "Desktop must use its kernel control plane" } }
+ 91      private val kernelContainer = Node { object : ContainerNode(it, "/kernel", arrayListOf(kernel)) { override val label = "Kernel" } }
+ 92  
+ 93      internal val applications = Node { DesktopApplicationNode(it, initialApp) }
+ 94      internal val navigation = Node { DesktopNavigationNode(it, initialMode, ::commitHistory) }
+ 95      internal val database = Node { DesktopDatabaseNode(it, kernel, seams) }
+ 96      internal val auth = Node { DesktopAuthNode(it, kernel, seams.auth, seams.clock) }
+ 97      internal val embedding = Node { DesktopEmbeddingNode(it, embeddedSurfaces) }
+ 98      internal val radar = Node { DesktopRadarNode(it, kernel, embeddedSurfaces.radar, seams.cloud.radar) }
+ 99      internal val cloud = Node { DesktopCloudNode(it, kernel, radar, embedding, seams.clock) }
+100      internal val mcp = Node { DesktopMcpNode(it, seams.clock) }
+101      internal val telemetry = Node { DesktopTelemetryNode(it, kernel, seams.telemetry) }
+102      internal val agents = Node { DesktopAgentNode(it, kernel, seams.clock) }
+103      internal val notices = Node { DesktopNoticesNode(it, kernel, agents, mcp, seams) }
+104      internal val paneStates = Node { DesktopPaneStateNode(it, kernel, navigation, seams) }
+105      internal val devToolsReads = Node { ai.bestbuds.reaktor.workbench.devices.DevToolsReadNode(it, paneStates) }
+106      internal val workHosts = Node { ai.bestbuds.reaktor.workbench.cloud.WorkDeviceHostsNode(it, kernel, paneStates, cloud) }
+107      internal val logIndex = Node { WorkbenchLogIndex(it, kernel.operationsNode, paneStates.paneStates().logs, seams.clock) }
+108      internal val systemLinksNode = Node { ai.bestbuds.reaktor.workbench.links.SystemLinksNode(it, kernel, cloud, paneStates, applications) }
+109      internal val graphPane = Node { ai.bestbuds.reaktor.workbench.appgraph.GraphPaneNode(it, kernel, paneStates, applications, navigation, telemetry, seams.clock) }
+110      internal val shell = Node { DesktopShellNode(it, kernel, seams.desktop.layoutStore) }
+111      internal val routes = ReaktorMode.entries.associateWith { mode ->
+112          val path = if (mode == ReaktorMode.Deploy) "/${mode.subsystemId}" else "/${mode.label.lowercase()}"
+113          object : RouteNode<Payload, DesktopModeBinding>(this@DesktopWorkbenchGraph, path, mode.name, { DesktopModeBinding(mode) }) {
+114              override val label = pattern.original
+115          }.also(::attach)
+116      }
+117      internal val panes = ReaktorMode.entries.associateWith { mode -> Node { DesktopPaneNode(it, mode, kernel) } }
+118  
+119      init {
+120          routes.values.forEach { from -> routes.values.filter { it !== from }.forEach { from.edge(it) } }
+121          autoWire()
+122          requireFullyWired()
+123          paneStates.paneStates().onViewChange = shell::rememberView
+124          paneStates.paneStates().onTableChange = shell::rememberTable
+125          shell.restorePaneLayout()
+126          auth.console().onInspectorOpen = {
+127              val layout = shell.state.value
+128              shell.inspector(ReaktorMode.Auth.name, layout.sizes["inspector/Auth"] ?: 360f, "Auth" in layout.pinnedInspectors, hidden = layout.inspectorVisibility(ReaktorMode.Auth.name)?.takeUnless { it })
+129          }
+130          addRoot(routes.getValue(initialMode))
+131          navigationReady = true
+132          graphPane.start()
+133          applications.coroutineScope.launch {
+134              navigation.state.map { it.history.current }.distinctUntilChanged().collect { destination ->
+135                  if (destination == ReaktorWorkspaceDestination.ApplicationGraph ||
+136                      destination == ReaktorWorkspaceDestination.ModePane(ReaktorMode.Ui) ||
+137                      destination == ReaktorWorkspaceDestination.ModePane(ReaktorMode.Studio) ||
+138                      destination == ReaktorWorkspaceDestination.ModePane(ReaktorMode.Analytics) ||
+139                      destination == ReaktorWorkspaceDestination.ModePane(ReaktorMode.Cloud)) applications.request()
+140              }
+141          }
+142      }
+143  
+144      private fun route(destination: ReaktorWorkspaceDestination): RouteNode<Payload, *> = when (destination) {
+145          ReaktorWorkspaceDestination.ApplicationGraph -> routes.getValue(ReaktorMode.Graph)
+146          is ReaktorWorkspaceDestination.ModePane -> routes.getValue(destination.mode)
+147      }
+148  
+149      private fun commitHistory(history: ReaktorWorkspaceHistory): Boolean {
+150          if (isClosed) {
+151              co.touchlab.kermit.Logger.w { "Ignored navigation after the desktop graph closed" }
+152              return false
+153          }
+154          val desired = history.activeDestinations.map(::route)
+155          val existing = backStack.entries.value.map { it.edge.end }
+156          val shared = existing.zip(desired).takeWhile { (left, right) -> left === right }.size
+157          repeat(existing.size - shared) { super.dispatch(Pop) }
+158          desired.drop(shared).forEach { target ->
+159              val from = currentRoute ?: sentinel
+160              super.dispatch(Push(from.edge(target), Payload()))
+161          }
+162          return true
+163      }
+164  
+165      override fun dispatch(navCommand: NavCommand) {
+166          if (!navigationReady) { super.dispatch(navCommand); return }
+167          synchronized(navigation) {
+168              if (isClosed) {
+169                  co.touchlab.kermit.Logger.w { "Ignored navigation after the desktop graph closed" }
+170                  return
+171              }
+172              val before = navigation.state.value.history
+173              val after = if (navCommand is Forward<*, *>) {
+174                  val target = navCommand.entry.edge.end
+175                  val mode = routes.entries.firstOrNull { it.value === target }?.key
+176                      ?: error("Desktop navigation must target a registered native mode.")
+177                  val destination = DesktopNavigationNode.destination(mode)
+178                  if (navCommand is Replace<*, *>) before.replace(destination) else before.push(destination)
+179              } else {
+180                  if (!before.canGoBack) return
+181                  before.back()
+182              }
+183              // Keep caller-provided return values and payloads on the actual graph entry.
+184              if (after === before) return
+185              super.dispatch(navCommand)
+186              navigation.accept(after)
+187          }
+188      }
+189  
+190      fun systemLinks(): ai.bestbuds.reaktor.workbench.links.SystemLinks? = if (isClosed) null else systemLinksNode.links().read()
+191  
+192      fun graphReading(): ai.bestbuds.reaktor.workbench.appgraph.GraphReading? = if (isClosed) null else graphPane.reading.value
+193  
+194      fun cloudReads(): CloudWorkspaceState? = if (isClosed) null else cloud.cloud()
+195  
+196      fun devToolsReads(): ai.bestbuds.reaktor.workbench.devices.DevToolsState? = if (isClosed) null else paneStates.devTools().also { it.start() }
+197  
+198      fun coverage(): DesktopGraphCoverage = DesktopGraphCoverage(
+199          modes = ReaktorMode.entries.mapTo(linkedSetOf()) { it.name },
+200          wiredModes = panes.filter { (mode, node) ->
+201              node.routeBinding.isConnected() && routes.getValue(mode).attachedNodes().singleOrNull() === node
+202          }.keys.mapTo(linkedSetOf()) { it.name },
+203          unconnectedConsumers = unconnectedConsumers().size,
+204          surfaceOwners = ai.bestbuds.reaktor.workbench.render.compose.panes.WorkbenchPaneCatalog.runtimeFamilies(controlPlane.snapshot.value)
+205              .flatMap { family ->
+206                  val mode = ReaktorMode.entries.single { it.subsystemId == family.key || it == ReaktorMode.Insights && family.key == "telemetry" }
+207                  family.ids.map { id -> "${family.key}/$id" to panes.getValue(mode).id.toString() }
+208              }.toMap(),
+209      )
+210  
+211      @Synchronized
+212      override fun close() {
+213          if (isClosed) return
+214          isClosed = true
+215          try {
+216              super.close()
+217          } finally {
+218              try {
+219                  ownedKernel?.close()
+220              } finally {
+221                  graphDependencies.close()
+222              }
+223          }
+224      }
+225  }
+next: atlas_query {"from":{"id":"d:modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt:72:6@2e788473"},"follow":[{"rel":"references","dir":"in"}]}

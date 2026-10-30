@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ComponentLevelsTest[jvm]" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:18.866Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.003">
+  <properties/>
+  <testcase name="cyclesSettle[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest" time="0.001"/>
+  <testcase name="membersFollowTheLevels[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest" time="0.001"/>
+  <testcase name="memberComposablesResolveOnlyInsideTheirFile[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest" time="0.0"/>
+  <testcase name="eachPlaceSaysWhy[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest" time="0.0"/>
+  <testcase name="partsUsersAndLayersBelow[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest" time="0.0"/>
+  <testcase name="familyNamesWhatHoldsWhat[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest" time="0.0"/>
+  <testcase name="componentsSortIntoAtomicLevels[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest" time="0.001"/>
+  <testcase name="aDeclarationWithoutCallsTakesItsTwinsPlace[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest" time="0.0"/>
+  <testcase name="privateHelpersResolveOnlyInsideTheirFile[jvm]" classname="ai.bestbuds.reaktor.workbench.studio.ComponentLevelsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

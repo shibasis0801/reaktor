@@ -25,7 +25,8 @@
     "publicFlags": 0,
     "storedState": 0,
     "publicContracts": [
-      "One JVM library archive OutputKind, published from the existing JVM compiler target and consumed by existing output routing"
+      "One JVM library archive OutputKind, published from the existing JVM compiler target and consumed by existing output routing",
+      "One bounded ReadOnly ship.receipts operation on the existing build model owner;64distinct deploynodes per request,192KiB response cap"
     ],
     "existingOwners": [
       "dependeasy analysis adapter and model export",
@@ -33,23 +34,242 @@
       "tools/remote-dev scoped artifact transport",
       "existing root Gradle performance settings after actual invocation qualification",
       "existing GradleBuildPlanner and BuildDeclarationsTest",
-      "existing primary and compatibility CLI entry owners"
+      "existing primary and compatibility CLI entry owners",
+      "existing workspace contract client lifecycle; suppress protocol-carrier HTTP logs on stdout",
+      "OperationalControlPlane retained reviewed plans and execution revalidation",
+      "BuildModelReader and WorkerDeployKernel batched deployment evidence; Cloud reads invoke existing owner",
+      "BuildDeclarationInputs NIO membership scan and canonical named service ports"
     ],
     "evidence": "Typed archive ownership, compatible argument-file compilation, cache reuse, stale/missing-model producer fixtures, history filtering and checked source synchronization. First incompatible subtype experiment remains withdrawn historical evidence."
   },
   "sharedCheckout": "Preserve all foreign Graph/Auth/agent/mobile work. Radar before source edits. Do not retire legacy production writers before real replacement acceptance.",
   "productionGate": "BestBuds AGENTS.md: Production rollout requires the owner's go at that moment. Prepare image/digest, diff, apply and rollback plans first.",
   "progress": {
-    "fullSuite": "Corrected compatible source passes129 plugin +25 model cases. Later missing-model fixture separately passes. Latest transport suite70/70 after sync coalescing.",
+    "fullSuite": "Compatible Dependeasy suite129 plugin +25 model passes; real missing-model producer fixture passes separately. Latest router/build/retention suite71/71 includes staged submodules absent from the parent commit.",
     "analysisExecution": "Existing Process wire shape; real analysis compilation22s and repeat4s with cache reuse, exact class and argument-file bytes. No new serial subtype.",
     "typedJvmArchives": "Typed JVM archive outputs and observed-producer-only collection qualified by final6 DSL/25 model cases,68 router cases and seven final byte-checked JVM invocations. Earlier paired transfer delta includes the withdrawn analysis experiment and is scoped separately.",
     "cacheAcceptance": "All7 final compatible cache checks pass. Warm4s rounded Gradle /13.09s reserved E2E, real body edit11s /19.86s; declaration edit/restoration invalidate and rerun export. Historical TOKEN misses/profiler failure retained.",
-    "serverCandidate": "fresh real image build blocked by app and Hangar prerequisite failures; own attempt stopped, no gates bypassed",
-    "installedOwner": "New BestBuds owner serves286 operations/1908 nodes after startup timeout. Final compatible model query sees44 archives, stale=false. Three-root/whole-candidate rollout remains open.",
-    "finishCriteria": "Do not claim full build plane completion or performance improvement outside measured target/cache/timing boundaries",
-    "performance": "24 paired commands isolate three compatible lazy files. All pass; exact paired JARs. Cold86\u219289s,firstwarm16\u219216,steadywarm4\u21924,edit10\u219210: no material additional timing win. Original configuration-cache gain remains. Source-sync phase about5.95s; new paired transport benchmark queued.",
-    "cliQualification": "17 fresh CLI cases pass during real server prerequisites; full fresh kernel suite not claimed.",
-    "ordinaryPlanning": "Live build.plan fails after exact own wrapper interruption during publication wait: worker Gradle passed43s; admission284.38s, sync33.39s, execution45.86s, collection8.70s. run.cancel returnedfalse. Normal publication resume requested; successful plan/run qualification remains open. Normal remote-dev resume completes0 with no copy_error or pending publication; original plan remains failed."
+    "serverCandidate": "Latest full sealed run-1793262055227-301 Failed: wheel1.236>1.1,PageDown1.119>1.1,engine600s after333cases. Kernel passes; zerofreshcompletedengineXML; priorXMLexcluded. Noimage/digest/providerwrites.",
+    "installedOwner": "PID35565 standard graceful upgrade14:23; kerneld103c6eee6b5/service4f91d5c5 unchanged; only checked toolingdf765d5f replaced in both installeddistributions.",
+    "finishCriteria": "The bounded compatible model, typed JVM CLI path and measured performance continuation are implemented and qualified. HLD retains independent platform/rollout acceptance states.",
+    "performance": "24 compatible lazy and6 sync paired commands all pass; no additional material timing gain. Proven configuration reuse remains ~4s Gradle/~13s reserved E2E. September cache-disabled cold regression remains documented.",
+    "cliQualification": "Fresh full frozen package:17CLI and245tooling passes/1declaredskip, boundary,distZip;16 library hashes match checked producers. Actual launcher/help/version, isolated-owner typed JVM plan/run/receipt joins all pass across17 client calls. Earlier broad1238/28skip has its separate source boundary.",
+    "ordinaryPlanning": "Actual packaged repeat planning uses1wrapper. Three alternating pairs change only2planner class entries: median CLI wall 15.45\u219211.91s (22.9% observed reduction),2\u21921wrappers, identical model/context/request digests. Worker contention retained; no Gradle-only or global p95 claim.",
+    "transport": "71 router/build/retention cases pass. Frozen synchronization follows exact manifest including staged nested repositories; full package manifest verified before/after. Bounded history and typed JVM artifacts qualified. Six earlier sync pairs show no material timing win.",
+    "cleanup": "Normal router cleanup:18.008GB free,22.891GB remote,15.115GB temporary, both40GB budgets and15GB free-space floor pass; source/Git/open work retained.",
+    "retainedPlans": "Original reviewed scope retained across catalog/selection refresh; all execution checks rerun. Fresh4kernel+23engine+boundary pass39s.",
+    "deploymentReads": "Bounded canonical ship.receipts parses each model/history once per64node batch, filters environment before paging, retains stale recorded provenance. Hangar Cloud consumes actual owner invocation; unavailable owner has no local-file fallback.26model+kernel/engine accepted; equal-output4pair read median2.78650\u21920.13712s(20.32x), not E2E/Gradle.",
+    "continuationFixtures": "Canonical nonblank named service ports:39JVM+39JS pass45s. DeviceTools4+AgentBrowser2 safe-delete fixtures pass34s on worker.",
+    "coldProfile": "JDK21 frozen diagnostic90.8sGradle/103.96sreservedE2E;49.30sadmission. Root22.545s includes20.059scompiler waits.18-command2-backend-thread treatment all passes,9exactarchivepairs/6TimeKt-onlyedits; cold91.07\u219287.77s,warm16.641\u219216.548s,edit21.99\u219221.38s. Small/variable differences under load; not adopted. September cold regression remains.",
+    "currentQualification": "Frozen2e3bc3ea9142 verified before/after;kernel503passes/11declaredskips,CLI17passes,boundarypass.148sGradle/148.781sworker/52.557sadmission. Source later changed by other sessions; this exact boundary is retained in current-kernel-cli-proof.json.",
+    "responsiveFixture": "9UiAdapters cases pass after correcting clipped-semantic-bounds assertion to actual measuredlayoutwidth;wide1100measured/931visible.123.697sexecution and401.160sadmission separate. Ownercheck later fails foreign AuthDevices imports/source drift; localXMLscope only.",
+    "boundedRunReads": "Frozen93d47f8e39cb:774pass12skip,boundarypass;29253sourcefilesverifiedbefore/after.142sGradle142.982sworker73.765sadmission. Fixed-runtime synthetic projection list3.778\u21920.918ms;single3.882\u21920.01793ms;exactredactedJSON. No RPC/E2E speed claim.",
+    "workspaceLock": "Reaktor pnpmLock33s/frozen install24s pass with48 importer-only lines. BestBuds root lock unchanged0e167d2c40cd; frozen install run20261029-030958-0c694616 passes26s Gradle. No dependency upgrades.",
+    "receiptLedger": "Captured5952files444.296MB; 2warmup+4alternatingpairs peroperation, exactJSON/evidencehash equality. List5 3.461\u21922.712s(-21.6%); list1000 3.184\u21922.715s(-14.7%); show3.187\u21922.514s(-21.1%). Slot1/JDK25/2GB,0.068sadmission; function-only. Focused normal-router qualification passes776tests/12skips/boundary;159sGradle/160.008sexec/290.841sadmission;exactXMLarchive retained. Shared source scope explicit.",
+    "buildPaneRead": "Demand-only semantic worker startup keeps real watcher events from configuring Gradle before a consumer. Before fixture failed; fresh full kernel520cases509pass11skip now passes, including3KernelWatch cases. Focused Build pane3cases and desktop compile pass in separate local76sGradle/77.08commandwall run. No whole-suite original-sentinel causal attribution.",
+    "taskGraphClose": "Old runtime fails deterministic blocked-finalizer regression: close returns while a graph writer can persist. Runtime now marks closed under sync lock, cancels and joins watcher/graph jobs. Normal worker run20261029-034812-8c4768b3:1037cases/1010pass27declaredskips0failures; conductor484pass16skip,kernel509pass11skip,CLI17pass,boundarypass. Gradle4m44s/287.527sexec/29.815sadmission;63.137scollection;418.265spublicationqueue/419.447stotalpublication complete. XMLarchive3b14c19954c5d5901e8dc04c92e6d5c7cccb1879fdca7938d3202c4c8e9f2ef4. Production/fixture source hashes match the worker. Owner explicitly reports source drift; this is not a frozen checkout. Tested selected production classes match installed packages.",
+    "typographyContinuation": "Three fixture scale values aligned to explicit token-source intent. Fresh12localcases:4typographypass/1inkfailure;6Labpass/1MachineSignal-under-HumanSignal failure.107sGradle108.04commandexec. All size/base/inheritance assertions pass; ink/pixel/theme checks retained. Pen excluded.",
+    "workspaceHelp": "Qualified509kernelpasses/11skips,boundary,8classbytes exact; four actual installed top/nested--help/-h with forbidden--dir / pass0.12\u20130.28s; normalownerupgraded and freshbothMCP accepted.",
+    "typographyInheritance": "5Typography+3Mode pass; explicit Oct23 palette expectations aligned without tolerance/assertion changes.",
+    "hangarStoryTheme": "7LabRender+1SurfaceQualification pass; exact8unsupported Hangar-onlycells; shared Island still all languages with explicit themed foreign content. Focus/IDs/control/painting assertions preserved.",
+    "modelPageCost": "552passes/11declaredskips plusboundary, modelJARmatchescheckedworker; onlymodelPageinstructionschanged. Fixedrealmodel4warmups8alternatingpairs/5scopes, exactJSONallpairs; nodepages12\u201318%faster; edgepage9%slower retained; functiononly, declarationIO/RPC/Gradle/E2Eexcluded. JFRdecode dominant.",
+    "installedModelPage": {
+      "status": "Done",
+      "router": "20261029-044237-da8cb43f-bestbuds",
+      "ownerPid": 58564,
+      "modelJar": "d862a6b58a5bf4a3d2b0a4377b7d6ddf39b1a3c12734d7d99012dc0e70fb9b60",
+      "installedLibraries": {
+        "agent": 274,
+        "primary": 283
+      },
+      "freshMcp": "model-page-owner-mcp-acceptance.json",
+      "freshCompilationExport": 733
+    },
+    "currentPrerequisites": "Currentkernel513PASS11skip/boundary; latestfullimageenginefailureseparate; prior691passenginehistorical.",
+    "graphHeightPacking": {
+      "earlierSyntheticOnly": {
+        "jvmPass": 95,
+        "jsPass": 7,
+        "proof": "graph-height-partition-proof.json",
+        "limitation": "Did not fix the actual Shared-data graph"
+      },
+      "current": {
+        "jvmPass": 96,
+        "js": 7,
+        "realHangarAssertion": "1/1 isolated, unchanged assertion",
+        "sharedData": [
+          4344,
+          2117
+        ],
+        "proof": "graph-beside-core-proof.json",
+        "fullEngine": "690/690 PASS",
+        "publication": "completed exit0"
+      }
+    },
+    "nativeWatcher": {
+      "kernelPass": 510,
+      "declaredSkips": 11,
+      "freshSuites": 115,
+      "nativeCases": 4,
+      "boundary": "PASS",
+      "proof": "kernel-native-watch-owned-cleanup-proof.json",
+      "publication": "completed exit0; 1059.39s publication queue separate from201sGradle",
+      "fullEngine": "690/690 PASS,138sJFRsamplingretained",
+      "installedFinalSource": true
+    },
+    "mcpPlanSize": {
+      "status": "Done",
+      "change": "p8af8901f09abfa331c06",
+      "run": "run-1793237230198-7575",
+      "actualPlanBytes": 976466,
+      "budgetBytes": 1048576,
+      "scope": "Existing MCP stdio, workspace connection, file call and HTTP share fixed UTF-8 request budget; new large-call, following-call and byte-limit regressions.",
+      "proof": "mcp-parity-installed-acceptance.json"
+    },
+    "mcpPlanSizeParity": {
+      "status": "qualified-and-installed",
+      "owner": "bf52e5ae472c",
+      "actualRequestBytes": 980159,
+      "paths": [
+        "primary MCP",
+        "agent MCP"
+      ],
+      "proof": "mcp-parity-installed-acceptance.json"
+    },
+    "appAnalyticsProvider": {
+      "status": "qualified",
+      "tests": 863,
+      "platforms": [
+        "JVM",
+        "Android unit",
+        "JS"
+      ],
+      "proof": "mcp-app-cli-qualified-proof.json"
+    },
+    "browserTypeScript": {
+      "status": "qualified",
+      "tests": 8,
+      "proof": "mcp-app-cli-qualified-proof.json"
+    },
+    "storageScan": {
+      "status": "qualified",
+      "tests": 102,
+      "serialSeconds": 2.4104570625,
+      "parallelSeconds": 1.5504198535,
+      "scope": "charged_sizes function only",
+      "proof": "storage-production-scan-benchmark.json"
+    },
+    "sourceCapture": {
+      "status": "qualified-and-installed",
+      "tests": 1016,
+      "declaredSkips": 27,
+      "serialSeconds": 5.307775354,
+      "parallelSeconds": 3.415448646,
+      "reductionPercent": 35.65197435445193,
+      "scope": "SourceCandidates.capture function only",
+      "proof": "source-capture-comparison.json"
+    },
+    "navigationRouting": {
+      "status": "Qualified function and four real unchanged UI flows; no whole-flow speed gain",
+      "medianBeforeMs": 303.964,
+      "medianAfterMs": 249.611,
+      "reductionPercent": 17.8813,
+      "allocatedBytesBefore": 318537852,
+      "allocatedBytesAfter": 56433840,
+      "allocationReductionPercent": 82.2835,
+      "pairs": 6,
+      "exactRouteCount": 222,
+      "jvmPass": 96,
+      "jsPass": 7,
+      "uiBaselinePass": 1,
+      "publication": "completed exit0; navigation-routing-router-final.json",
+      "proof": "navigation-routing-comparison.json",
+      "ui": "Four unchanged full UI flows pass; old median138.152s/new139.062s;0.66%slower,not accepted UI/E2E gain; scoped routing17.9%/allocation82.3% benefit retained"
+    },
+    "compatibilityPlanningDeadline": {
+      "status": "Done",
+      "implementation": "Default kernel carrier uses existing LongestPatience; ordinary35s and explicit timeouts preserved",
+      "qualification": "487 conductor passes/16 declared skips; kernel513+CLI17 passes/11 declared skips; boundary/agentDist/installDist pass",
+      "installed": "All276 agent files and283 primary libs match checked producer hashes; normal upgrade succeeded; both installed MCPs/status/Atlas/980159B read pass against owner d103c6eee6b5",
+      "evidence": [
+        "compatibility-deadline-qualification-proof.json",
+        "compatibility-deadline-client-package-proof.json",
+        "compatibility-deadline-installed-library-proof.json",
+        "compatibility-deadline-installed-acceptance.json"
+      ]
+    },
+    "serverPlanAttempt": "Latest plan executed fully and failed prerequisite gates; no planning-pending claim.",
+    "schemaFingerprint": {
+      "status": "Qualified source and production function; installed package remains previous version",
+      "passes": 110,
+      "enginePasses": 691,
+      "functionFasterPercent": 30.635250729347398,
+      "allocationLessPercent": 75.60668328576024,
+      "proof": "schema-fingerprint-qualified-producer-proof.json",
+      "engineProof": "schema-fingerprint-engine-qualified-proof.json"
+    },
+    "webBundlePublication": {
+      "status": "Qualified real producer and normal publication",
+      "pluginPasses": 131,
+      "modelPasses": 26,
+      "routerPasses": 51,
+      "bundleFiles": 112,
+      "brotliBytes": 13792,
+      "budgetBytes": 20000,
+      "proof": "web-bundle-real-publication-proof.json"
+    },
+    "schemaFingerprintMatchedClients": "Installed and active;283 primary and274 agent JARs equal checked packages, exact benchmark service4f91d5c5 in owner PID89938. Both installed980159B MCP sessions and following status/Atlas pass.530 client passes/11skips+boundary.",
+    "serverImageCurrent": "run-1793262055227-301 Failed; see server-image-tooltip-final-proof.json",
+    "tooltipScene": "Existing Swing dispatcher and suspending hover delay;5Gradle+16freshJVMcases pass, no production/assertion/timeout/dependency change.",
+    "telemetryTopology": "ClickHouseCode184 alias repair250PASS1skip; publicationcomplete. Fresh read receipt run-1793264144189-1, exact required BestBudswebCLIENT+SERVERjourney Imported. Separate visualpane/device/crash/produceracceptance.",
+    "readonlyPreview": "Planning-only provider-preview verification exclusion candidate; original dry-run graph and execution gates preserved. Focused fixture qualifying; no measured gain yet.",
+    "readonlyDeployPreview": {
+      "status": "Done",
+      "pluginPass": 131,
+      "modelPass": 26,
+      "skips": 0,
+      "failures": 0,
+      "proof": "readonly-preview-full-proof.json",
+      "liveProof": "readonly-preview-prod-retry-live-proof.json",
+      "liveCliExitCode": 0,
+      "selectedTasks": 2105,
+      "cliWallSeconds": 458.651943834,
+      "scope": "Full original graph and definition sealing retained. Provider-preview invocation excludes explicitly modeled verification only. Actual execute still enforces checks; failing verification prevents provider writes. Live shared source/load, no paired speed percentage."
+    },
+    "latestInstalledMcp": "Both actual installed six-tool MCP transports pass980159B request and following same-owner status/Atlas after sole checked tooling replacement; span-topology-installed-mcp-acceptance.json",
+    "finalStorageProof": "storage-final-preview-proof.json",
+    "visualHangarAcceptance": {
+      "status": "Not qualified",
+      "attempts": 2,
+      "error": "CUA inventory initialization: failed to write kernel assets (No such file or directory)",
+      "scope": "No discovered window or screenshot. Backend trace verification remains independently qualified; no sign-in requested."
+    }
   },
-  "updated": "2026-10-28T20:24:41.168486+05:30"
+  "updated": "2026-10-29T15:08:32.738077+05:30",
+  "status": "Read-only preview implemented, full157 tests pass and installed sealed CLI plan succeeds. Telemetry adapter qualified/installed and retained web journey verified. Image, devices and owner/client cutover retain their recorded independent acceptance states.",
+  "remainingAcceptance": [
+    {
+      "task": "single-owner",
+      "status": "Doing",
+      "owner": "Plan Reaktor tooling unification \u2014 codex:01a18203-d9ad-70b3-9045-994e121740a0",
+      "evidence": "Separate active chat has qualified lazy authenticated typed clients and applied explicit disposable LocalKernel; paged model operation now being checked. Full production pane/store/caller migration retains independent acceptance."
+    },
+    {
+      "task": "client-parity",
+      "status": "Todo",
+      "evidence": "Shared forms/caller authority/TUI follow owner/identity lifecycle. Shell CLIs work; interactive terminal not implemented."
+    },
+    {
+      "task": "delivery-acceptance",
+      "status": "Todo",
+      "evidence": "Image prerequisites currently fail; Pulumi resource adoption and production go require a concrete reviewed candidate; real two-phone receive acceptance fails."
+    },
+    {
+      "task": "end-to-end-evidence",
+      "status": "Doing",
+      "evidence": "Fresh owner backendreceipt and exact retained BestBudswebCLIENT\u2192SERVERjourney Imported. VisualHangar pane, physicalpush, build/run linkage and producer/crash acknowledgement retain independent acceptance."
+    }
+  ],
+  "lastQualification": "2026-10-29T15:08:32.738077+05:30",
+  "updatedAt": "2026-10-29T15:08:32.738077+05:30"
 }

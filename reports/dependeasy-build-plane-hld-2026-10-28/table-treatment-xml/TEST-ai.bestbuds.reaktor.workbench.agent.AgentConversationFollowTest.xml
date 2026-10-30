@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentConversationFollowTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:25:49.837Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.084">
+  <properties/>
+  <testcase name="aReplyTallerThanTheTranscriptArrivesWithItsLastLineInView[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConversationFollowTest" time="0.017"/>
+  <testcase name="growingLiveOutputKeepsItsLastLineInView[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConversationFollowTest" time="0.017"/>
+  <testcase name="liveOutputDoesNotPullAReaderWhoScrolledBack[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConversationFollowTest" time="0.017"/>
+  <testcase name="jumpToLatestRevealsTheEndOfATallReply[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConversationFollowTest" time="0.018"/>
+  <testcase name="aReaderWhoScrolledBackIsNotPulledDown[jvm]" classname="ai.bestbuds.reaktor.workbench.agent.AgentConversationFollowTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

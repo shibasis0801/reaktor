@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AccessTrafficTest[jvm]" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:17.224Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.012">
+  <properties/>
+  <testcase name="theStatementGroupsDecisionsPerEnvironmentWithinAWeek[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AccessTrafficTest" time="0.002"/>
+  <testcase name="replayAnswersEachRecordedCallWithTheSavedModelAndTheDraft[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AccessTrafficTest" time="0.004"/>
+  <testcase name="recordedRowsBecomeDecisionsWithTheFactsEachCallCarried[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AccessTrafficTest" time="0.001"/>
+  <testcase name="aRefusedCircleIsReplayedForItsOwnRelationWithTheMembershipItCarried[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AccessTrafficTest" time="0.002"/>
+  <testcase name="aRefusedCallSuggestsTheNarrowestGrantThatWouldLetItThrough[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AccessTrafficTest" time="0.001"/>
+  <testcase name="theKernelsCallLogReplaysEachSeatAgainstTheHangarModel[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AccessTrafficTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

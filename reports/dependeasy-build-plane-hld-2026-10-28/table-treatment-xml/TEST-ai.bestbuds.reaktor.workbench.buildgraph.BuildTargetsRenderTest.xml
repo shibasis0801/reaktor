@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="BuildTargetsRenderTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:32.574Z" hostname="Shibasiss-MacBook-Pro-2.local" time="3.064">
+  <properties/>
+  <testcase name="targetsKeepTheirSelectionAtNarrowWidthsAndStaleSourceCannotPlan[jvm]" classname="ai.bestbuds.reaktor.workbench.buildgraph.BuildTargetsRenderTest" time="3.064"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

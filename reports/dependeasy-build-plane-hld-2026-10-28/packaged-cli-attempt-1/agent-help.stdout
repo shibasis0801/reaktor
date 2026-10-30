@@ -1,0 +1,28 @@
+reaktor-agent - workspace lifecycle, Atlas and standalone agent protocols.
+Use reaktor for build, check, deploy, runs and other workspace operations.
+
+  workspace           workspace owner, MCP, browser pairing and agent lifecycle
+  atlas               code queries, source reads, change plans and checks
+  usage [--since <ISO-date>] [--until <ISO-date>] [--dir <cwd-root>] [--requests <new.jsonl>]
+                      read local Codex/Claude request usage; defaults to the last seven days
+
+  --prompt <text>      the task (required)
+  --dir <path>         working directory the agents read (default: current directory)
+  --protocol <name>    ask | all | council | pipeline | planned   (default: ask)
+  --plan <file>        a Protocol as JSON: your own topology, used instead of --protocol
+  --agents <a,b,c>     agent ids to involve (default: every participant)
+  --roster <file>      JSON array of AgentSpec: your own agents (default: a small sample roster)
+  --thread <file>      read and write the canonical thread here
+  --context <file>     scoped ContextPacket JSON (e.g. Manna context_for_task result data)
+  --dry                use the offline Echo runtime; spawns nothing
+  --isolate-config     run harnesses without your own config (reproducible; ignores your setup)
+  --quiet              do not stream agent output
+
+The built-in roster and pipeline are samples. Real use is --roster with your own agents and
+--plan with your own topology, or --protocol planned to let an agent design both.
+
+Examples:
+  --protocol council --prompt "Should reaktor-db own sync, or should reaktor-service?"
+  --roster team.json --plan review.json --prompt "Harden the notification path"
+  --protocol planned --agents architect --prompt "Port the FFI wire to credit backpressure"
+  --protocol ask --agents skeptic --prompt "What breaks in this design?"

@@ -8,7 +8,7 @@ actual val http = HttpClient(OkHttp) {
     middleware()
     engine {
         config {
-            followRedirects(true)
+            followRedirects(false)
             pingInterval(15, TimeUnit.SECONDS)
         }
 //        addInterceptor(interceptor)

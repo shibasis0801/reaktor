@@ -1,0 +1,1 @@
+{"type":"failed","message":"deployMessaging is not allowed in production; choose dev, prod","code":"unavailable","reference":{"operation":"build.plan","requestId":"dependeasy-readonly-preview-20261029-1432","workspace":"/Users/ovd/dev/bestbuds"}}

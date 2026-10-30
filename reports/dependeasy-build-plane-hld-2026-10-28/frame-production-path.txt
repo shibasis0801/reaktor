@@ -1,0 +1,53 @@
+0 of 0 · syntactic (kotlin-psi/2.4.21, git-grep) · rev:0b64f3bf0e0d
+note: Nothing named CollectionFrameTest.PaneNetworkTable is declared or written in this repository and ../reaktor
+--- reads[0] {"name":"CollectionFrameTest.wheelScroll"}
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/CollectionFrameTest.kt · private fun wheelScroll(table: @Composable () -> Unit): WheelRun · 2190 of 2190 characters · rev:158fa2df3f8e
+280  private fun wheelScroll(table: @Composable () -> Unit): WheelRun = onEdt {
+281          val load = ManagementFactory.getOperatingSystemMXBean()
+282          val loadBefore = load.systemLoadAverage
+283          var nanos = 0L
+284          val scene = ImageComposeScene(width, height, Density(1f), coroutineContext = Dispatchers.Swing) { HangarEditorRoot(table) }
+285          try {
+286              fun render() {
+287                  nanos += frameNanos
+288                  Snapshot.sendApplyNotifications()
+289                  scene.render(nanos).close()
+290              }
+291              val source = JPanel()
+292              val pointer = Offset(width / 2f, height / 2f)
+293              fun wheel(units: Float) = scene.sendPointerEvent(
+294                  PointerEventType.Scroll, pointer, scrollDelta = Offset(0f, units),
+295                  nativeEvent = MouseWheelEvent(source, MouseEvent.MOUSE_WHEEL, 0L, 0, pointer.x.toInt(), pointer.y.toInt(), pointer.x.toInt(), pointer.y.toInt(), 0, false, MouseWheelEvent.WHEEL_UNIT_SCROLL, 1, 0, units.toDouble()),
+296              )
+297              repeat(30) { render() }
+298              scene.sendPointerEvent(PointerEventType.Move, pointer)
+299              render()
+300              val rowHeight = rowNodes(scene).first().size.height.toFloat()
+301              val origin = position(scene)
+302              wheel(1f)
+303              render()
+304              val unit = position(scene) - origin
+305              val units = rowsPerFrame * rowHeight / unit
+306              repeat(warmUpFrames) {
+307                  wheel(units)
+308                  render()
+309              }
+310              val collector = ReaktorAppVitalsCollector()
+311              val renders = mutableListOf<Double>()
+312              repeat(measuredFrames) {
+313                  val started = System.nanoTime()
+314                  wheel(units)
+315                  val dispatched = System.nanoTime()
+316                  render()
+317                  val ended = System.nanoTime()
+318                  collector.recordFrame((ended - started) / 1_000_000.0)
+319                  renders += (ended - dispatched) / 1_000_000.0
+320              }
+321              WheelRun(collector.snapshot().frames, renders, (position(scene) - origin - unit) / rowHeight, loadBefore, load.systemLoadAverage)
+322          } finally {
+323              scene.close()
+324          }
+325      }
+next: atlas_query {"from":{"id":"d:modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/CollectionFrameTest.kt:279:16@ae65f77e"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[1] {"name":"CollectionFrameTest.ReferenceNetworkTable"}
+error: Nothing named CollectionFrameTest.ReferenceNetworkTable is declared in Kotlin or C++ in this repository and ../reaktor; atlas.query with from.text finds any text

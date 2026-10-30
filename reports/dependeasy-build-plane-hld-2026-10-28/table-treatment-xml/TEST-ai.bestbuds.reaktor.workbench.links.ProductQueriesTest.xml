@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ProductQueriesTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:12.427Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.01">
+  <properties/>
+  <testcase name="customEventNamesAreLiteralValuesAndTheWindowUsesMillisecondPrecision[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductQueriesTest" time="0.001"/>
+  <testcase name="everyScopeProducesOnlyBoundedReadStatementsFromItsEnvironment[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductQueriesTest" time="0.009"/>
+  <testcase name="changingScopeClearsExplorationAndRejectsUnsupportedFiltersAtomically[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductQueriesTest" time="0.0"/>
+  <testcase name="retentionWithholdsTheWholeIncompleteReturnDayAndNeverInventsMissingCells[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductQueriesTest" time="0.0"/>
+  <testcase name="comparisonSeriesKeepsTheSharedBoundaryDayInItsCorrectPeriodAndFillsGaps[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductQueriesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

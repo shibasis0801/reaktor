@@ -1,0 +1,67 @@
+{
+  "producer": "/Users/ovd/dev/.remote-dev/artifacts/20261029-123028-7559cdaf-bestbuds/reaktor/reaktor-service/build/libs/reaktor-service-jvm-2026.1.6-SNAPSHOT.jar",
+  "producerSha256": "4f91d5c5230f9d651da7cbd8e6592d5ef34b40f34407d82293c25c9f6d62bf32",
+  "testTotals": {
+    "jsNodeTest": {
+      "tests": 55,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "jvmTest": {
+      "tests": 55,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "xmlSha256": {
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.ActivityCaptureTest.xml": "e4a683df091340ac1a6029f1d8ccdbe3864f942f5026f1c16cb9af0fe6334817",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.GraphHttpAttributionTest.xml": "003955aba8ba8df5361a8673a542aa2b53a60320dba72fb47e23e72bc6fea319",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.HttpTracingTest.xml": "9e5f39eee25ccda050710e1f8b001090774febf6ec97eea6185fd14e2ccfe279",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.ResponseTransportTest.xml": "ed4842332d808afe760dcdf8900cea0abbe80f9d52012b5b072de0939fddcb3d",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.SchemaFingerprintTest.xml": "22b7d5fee8b9227a9f7eee505e15fb7c0492ddc71b5348efb0660ae3e2abeac6",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.SpanBufferTest.xml": "ba9cc88fd10102f0b914fca3bc563eb086e0142e2f4a3f814ec1a88644c2adf4",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.TraceCorrelationTest.xml": "af95daa5cea2249c95ffe22ead8fc5809af12f08e4a6586a71bb6f94c5e27a7e",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.contract.ActivityDecisionsTest.xml": "e7a56a1f6d6f7b0ec31f15193edaf1a9a1e91277145bc3997177254f7f1e9121",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.contract.BrokerTest.xml": "7c490971bf9e01c9994c6a54548cf3f2ea95d1c1b2d95225d10b3821577dc884",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.contract.ContractTest.xml": "45bb81ba3c38a3f3237a692a6e82afe19e14429c0dde9a368704391d156fad5b",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.contract.JoinTest.xml": "94be3d467a6418a00e5d7a60cbe7defc833dc0ad65f4f67d515d09368624a09b",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.contract.SocketTest.xml": "9f553fdc07f110814f65db77e0b3064737e753c1a8ec1acf096afac2f14161ee",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.contract.TaggedWireTest.xml": "56a5e863b5f33c07b6802445d64ef9e3168508dc7427c7814688e0c457409c82",
+    "build/test-results/jsNodeTest/TEST-jsNodeTest.dev.shibasis.reaktor.service.contract.WireTest.xml": "261aad56dfe6eb0703844e90acab64a2256532eada0afc5655ecf943b7a91ead",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.ActivityCaptureTest.xml": "1f1fafd3fade00e8748f292ce215d96360ca4fde1c0c4c7b457e737b68c2f462",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.GraphHttpAttributionTest.xml": "1003811ccb296d89f2fbd73d45d0556f60f2da7c4374c17a5b1def42cede94be",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.HttpTracingTest.xml": "3e85f6ba3e3f6d7e81220476a473b308a54e97dd32751f5e82fd86a8c237d1f1",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.ResponseTransportTest.xml": "c17d046a2a624f56d6c0312c6503954b36ae00fc395171a0e31e085d981bc751",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.SchemaFingerprintTest.xml": "d5fad24643fc41aa803f0c73d67ca4d39691416b96540f6b368d888bca1390be",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.SpanBufferTest.xml": "e63b1ee1317a98a163944393ab78312abbab990c71ec74795f77b3f972a474f0",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.TraceCorrelationTest.xml": "40d0bdf688a90dbd2a023759cb123c8b9da96b38e67b222defd63110782e44cb",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.contract.ActivityDecisionsTest.xml": "fa645a779d32ab95e61a06d526af9f199fa11225df3b92a89c430a201008d947",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.contract.BrokerTest.xml": "b3aaa91265396a2975e69e70c077d16b0b8c9efff9850144eb63dd4aa2ec2c15",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.contract.ContractTest.xml": "66f8dbcb1a758d3421abc25647b5fa0f0ed106a2a2b41bf0a87564953ae69b1d",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.contract.JoinTest.xml": "3c78f71541cfcecdbf9752f3f792192d685c32c33a969b23cf9c1e3d2ff6f851",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.contract.SocketTest.xml": "f1b37aa1054e76603b5d73eebe91c8e7006c2d827e7909ec202902cde4ec844a",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.contract.TaggedWireTest.xml": "a0c2d76f2931b1607f872042b6fca88134c8938c6940f9402493dd0233a438a8",
+    "build/test-results/jvmTest/TEST-dev.shibasis.reaktor.service.contract.WireTest.xml": "c96f860b0aa08903a2aed77dfa4d92332a2ef0bcf03ca48a28db2fd8fa214170"
+  },
+  "overlay": "/Users/ovd/dev/reaktor/reports/dependeasy-build-plane-hld-2026-10-28/schema-fingerprint-qualified-OperationKt.jar",
+  "overlaySha256": "211f2ca54674d9d64bbe0f7ae51a9c4b5dd55536c814ffc9493c7ba4e190cbb4",
+  "qualification": "Successful native service JVM/JS run and completed normal publication, with exact producer-class benchmark overlay.",
+  "router": {
+    "run_id": "20261029-123028-7559cdaf-bestbuds",
+    "started": "2026-10-29T12:30:28.863472",
+    "finished": "2026-10-29T12:40:05.615089",
+    "queue_seconds": 135.00171358400002,
+    "sync_seconds": 27.664366166000008,
+    "execution_seconds": 45.734840375000005,
+    "collection_seconds": 39.081103583000015,
+    "publication_queue_seconds": 491.49008204099994,
+    "publication_seconds": 491.83068437500003,
+    "exit_code": 0,
+    "worker": "m1-worker",
+    "worker_slot": 0
+  },
+  "publicApiUnchanged": true,
+  "publicApi": "Compiled from \"Operation.kt\"\npublic final class dev.shibasis.reaktor.service.OperationKt {\n  public static final dev.shibasis.reaktor.service.SchemaRef schemaRef(kotlinx.serialization.KSerializer<?>);\n  public static final java.lang.String fingerprint(kotlinx.serialization.descriptors.SerialDescriptor);\n}\n"
+}

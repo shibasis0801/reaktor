@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DatabaseStudioContractsTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:36.809Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.011">
+  <properties/>
+  <testcase name="switchingSourcesCannotReuseThePreviousDocumentsBrowserFacts[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DatabaseStudioContractsTest" time="0.001"/>
+  <testcase name="workspacePrefersCurrentEnvironmentWithoutReplacingManualSelectionOrDrafts[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DatabaseStudioContractsTest" time="0.0"/>
+  <testcase name="automaticDocumentsPreserveSourceIntentAcrossEnvironmentFallbacks[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DatabaseStudioContractsTest" time="0.001"/>
+  <testcase name="sameTargetDocumentsKeepTheirOwnDraftSelectionAndBrowserWhileTheViewStaysWithThePane[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DatabaseStudioContractsTest" time="0.001"/>
+  <testcase name="sessionReadBoundaryStartsOnlySealedSensitiveReadsWithoutCatalogTasks[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DatabaseStudioContractsTest" time="0.006"/>
+  <testcase name="operationalSnapshotMapsOnlyConcreteDatabaseTargets[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DatabaseStudioContractsTest" time="0.001"/>
+  <testcase name="workspaceRetainsDocumentsAndDoesNotReplayExternalSelectionOnModeReturn[jvm]" classname="ai.bestbuds.reaktor.workbench.database.DatabaseStudioContractsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

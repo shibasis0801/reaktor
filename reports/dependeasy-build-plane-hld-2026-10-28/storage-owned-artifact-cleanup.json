@@ -1,0 +1,13 @@
+{
+  "scope": "Completed collected outputs for this task; durable test archives and receipts retained, installed distribution preserved; no source removed",
+  "removed": [
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-070559-d909058b-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-035454-81b87759-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-044237-da8cb43f-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-062831-295e6d9f-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-063245-fe179fd3-bestbuds",
+    "/Users/ovd/dev/.remote-dev/artifacts/20261029-073908-a7f7505f-bestbuds"
+  ],
+  "freeBytes": 14650212352,
+  "epoch": 1793253070.834882
+}

@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
@@ -24,7 +25,7 @@ class AgentBrowserMcpTest {
             val second = AgentBrowserPairing.pair(directory, "https://manna.ac", "http://127.0.0.1:1234")
             assertNotEquals(first["token"], second["token"])
             assertEquals(second.getValue("token").jsonPrimitive.content, AgentBrowserPairing.credentials(directory)?.second)
-        } finally { directory.toFile().deleteRecursively() }
+        } finally { directory.toFile().deleteTreeSafely(within = directory.parent.toFile()) }
     }
 
     @Test fun inferenceReceivesOnlyTheQuestionAndReportsTheObservedModel() = runBlocking {
@@ -72,6 +73,6 @@ class AgentBrowserMcpTest {
                 assertTrue(reopened.ask(arguments).isError)
                 assertEquals(2, calls, "An interrupted admission must not start again")
             }
-        } finally { graph.close(); dependencies.close(); directory.toFile().deleteRecursively() }
+        } finally { graph.close(); dependencies.close(); directory.toFile().deleteTreeSafely(within = directory.parent.toFile()) }
     }
 }

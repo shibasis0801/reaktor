@@ -1,0 +1,10 @@
+{"rep":0,"variant":"per-node","seconds":3.943259334,"nodes":22,"joinedServices":0,"joinsEqual":true,"joinSha256":"f07fff0063ed6f8ddfda3791842fa84b911691e0b8e55f647d84180865c4c999"}
+{"rep":0,"variant":"batch","seconds":0.142014042,"nodes":22,"joinedServices":1,"joinsEqual":false,"joinSha256":"b641c42ef4d34da58ea82e72964e496019231f862595e4aed7bbe68c65df7a5e"}
+{"rep":1,"variant":"batch","seconds":0.131228625,"nodes":22,"joinedServices":1,"joinsEqual":false,"joinSha256":"b641c42ef4d34da58ea82e72964e496019231f862595e4aed7bbe68c65df7a5e"}
+{"rep":1,"variant":"per-node","seconds":2.731505333,"nodes":22,"joinedServices":0,"joinsEqual":true,"joinSha256":"f07fff0063ed6f8ddfda3791842fa84b911691e0b8e55f647d84180865c4c999"}
+{"rep":2,"variant":"per-node","seconds":2.690423209,"nodes":22,"joinedServices":0,"joinsEqual":true,"joinSha256":"f07fff0063ed6f8ddfda3791842fa84b911691e0b8e55f647d84180865c4c999"}
+{"rep":2,"variant":"batch","seconds":0.120888709,"nodes":22,"joinedServices":1,"joinsEqual":false,"joinSha256":"b641c42ef4d34da58ea82e72964e496019231f862595e4aed7bbe68c65df7a5e"}
+{"rep":3,"variant":"batch","seconds":0.141444250,"nodes":22,"joinedServices":1,"joinsEqual":false,"joinSha256":"b641c42ef4d34da58ea82e72964e496019231f862595e4aed7bbe68c65df7a5e"}
+{"rep":3,"variant":"per-node","seconds":2.943940000,"nodes":22,"joinedServices":0,"joinsEqual":true,"joinSha256":"f07fff0063ed6f8ddfda3791842fa84b911691e0b8e55f647d84180865c4c999"}
+{"rep":4,"variant":"per-node","seconds":2.706486334,"nodes":22,"joinedServices":0,"joinsEqual":true,"joinSha256":"f07fff0063ed6f8ddfda3791842fa84b911691e0b8e55f647d84180865c4c999"}
+{"rep":4,"variant":"batch","seconds":0.112365958,"nodes":22,"joinedServices":1,"joinsEqual":false,"joinSha256":"b641c42ef4d34da58ea82e72964e496019231f862595e4aed7bbe68c65df7a5e"}

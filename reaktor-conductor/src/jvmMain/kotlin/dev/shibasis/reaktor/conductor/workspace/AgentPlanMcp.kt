@@ -45,11 +45,11 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             "The answer lists what applied, what was refused and why, and the new revision.",
             withActor(api.write.request.descriptor.jsonSchema()),
             readOnly = false, idempotent = false) { args ->
-            args.only("thread", "title", "goal", "ops", "base", "seat", "by")
+            args.only("thread", "title", "goal", "ops", "base", "seat", "message", "by")
             val writer = args.actor() ?: error("by is required: who makes this change")
             val patch = PlanPatch(
                 ops = AgentWorkspaceJson.decodeFromJsonElement(ListSerializer(PlanOp.serializer()), PlanJson.statuses(args["ops"] ?: JsonArray(emptyList()))),
-                title = args.text("title"), goal = args.text("goal"), base = args.long("base"), seat = args.text("seat"),
+                title = args.text("title"), goal = args.text("goal"), base = args.long("base"), seat = args.text("seat"), message = args.text("message"),
             )
             val applied = workspace.plans.write(args.thread(writer), patch, writer)
             buildJsonObject {

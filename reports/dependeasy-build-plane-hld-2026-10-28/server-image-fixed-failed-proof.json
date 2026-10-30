@@ -1,0 +1,1614 @@
+{
+  "run": "run-1793238604387-1",
+  "fingerprint": "b62ea7ce0ac69a215e20d7d9",
+  "status": "Failed",
+  "gradleNestedSeconds": 683,
+  "gradleWrapperSeconds": 702,
+  "ownerSeconds": 751.362,
+  "router": {
+    "run_id": "20261029-072053-8564b7d0-bestbuds",
+    "project": "bestbuds",
+    "worker": "local",
+    "tasks": [
+      "runBuildNode",
+      "-Pdependeasy.gradleRequest=/Users/ovd/dev/bestbuds/build/dependeasy/contracts/gradle/requests/9f55e56b345a205af09c8fa41412113820afaa7c3e95c2d0f5e6e703bda7a747.json",
+      "--console=plain"
+    ],
+    "workspace_root": "/Users/ovd/dev",
+    "started": "2026-10-29T07:20:53.065265",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-072053-8564b7d0-bestbuds.log",
+    "queue_seconds": 42.301247167,
+    "resourceScope": "time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded",
+    "exit_code": 1,
+    "execution_seconds": 702.5635848329999,
+    "finished": "2026-10-29T07:32:35.634924"
+  },
+  "xml": [
+    {
+      "suite": "PresentationCacheTest[jvm]",
+      "timestamp": "2026-10-29T01:07:41.216Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DatabaseStudioContractsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:01.498Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkspaceContextLabelTest[jvm]",
+      "timestamp": "2026-10-29T01:03:02.343Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DevToolsInspectorTitleTest[jvm]",
+      "timestamp": "2026-10-29T01:07:02.199Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "GraphPaneNodeTest[jvm]",
+      "timestamp": "2026-10-29T01:05:36.468Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "EvidenceWorkspaceStateTest[jvm]",
+      "timestamp": "2026-10-29T01:07:39.441Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DatabaseStudioPaneRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:03:05.649Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CloudWorkTest[jvm]",
+      "timestamp": "2026-10-29T01:06:40.267Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetryExecutionPaneTest[jvm]",
+      "timestamp": "2026-10-29T01:10:00.896Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "PlanBoardModelTest[jvm]",
+      "timestamp": "2026-10-29T01:07:41.102Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ProductAnalyticsStateTest[jvm]",
+      "timestamp": "2026-10-29T01:07:34.849Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DatabaseResultExportTest[jvm]",
+      "timestamp": "2026-10-29T01:02:06.676Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AuthConsoleTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.561Z",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "LiveDeploysTest[jvm]",
+      "timestamp": "2026-10-29T01:07:34.817Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SurfaceLabRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:03:17.656Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AuthPaneBaselineTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.923Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AdaptiveOperationsTest[jvm]",
+      "timestamp": "2026-10-29T01:04:01.446Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DesktopOperationalReadsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:09.424Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentWorkTest[jvm]",
+      "timestamp": "2026-10-29T01:05:02.338Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "RadarSessionTest[jvm]",
+      "timestamp": "2026-10-29T01:06:46.721Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "OperationalInspectorTitleTest[jvm]",
+      "timestamp": "2026-10-29T01:07:39.480Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SafeDeleteGuardTest[jvm]",
+      "timestamp": "2026-10-29T01:02:13.506Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "StudioSizesTest[jvm]",
+      "timestamp": "2026-10-29T01:10:00.857Z",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchSubsystemCoverageTest[jvm]",
+      "timestamp": "2026-10-29T01:02:50.005Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentExecutionTraceTest[jvm]",
+      "timestamp": "2026-10-29T01:01:26.977Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SplitterParityTest[jvm]",
+      "timestamp": "2026-10-29T01:03:17.452Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataResultIsolationTest[jvm]",
+      "timestamp": "2026-10-29T01:06:59.308Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DeviceCrashIdsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.835Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchElementBindingsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:34.672Z",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DeviceCancellationTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.813Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AccessGraphTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.248Z",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "BuildGraphSourceTest[jvm]",
+      "timestamp": "2026-10-29T01:05:54.188Z",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "BuildDeliveryModelTest[jvm]",
+      "timestamp": "2026-10-29T01:05:54.182Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataPresentationTest[jvm]",
+      "timestamp": "2026-10-29T01:06:59.303Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CloudReadsTest[jvm]",
+      "timestamp": "2026-10-29T01:06:40.265Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DevToolsRecorderTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.499Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DevToolsUndoTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.509Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TextScalePartsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:41.234Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CloudApiExplorerRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:05:57.294Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AppGraphRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:05:25.233Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "HangarCommandsTest[jvm]",
+      "timestamp": "2026-10-29T01:04:01.508Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchShellRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:03:30.054Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "PanePartsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:39.836Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DatabaseBrowseQueriesTest[jvm]",
+      "timestamp": "2026-10-29T01:07:01.496Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CloudPaneRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:06:05.486Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentConversationStateTest[jvm]",
+      "timestamp": "2026-10-29T01:01:16.435Z",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetryLogPinTest[jvm]",
+      "timestamp": "2026-10-29T01:10:01.149Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SystemIslandsTest[jvm]",
+      "timestamp": "2026-10-29T01:02:42.896Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SurfaceRetirementTest[jvm]",
+      "timestamp": "2026-10-29T01:02:41.753Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentConfigFilesTest[jvm]",
+      "timestamp": "2026-10-29T01:04:02.545Z",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AuthInspectorTitleTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.832Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ProductSqlTemplatesTest[jvm]",
+      "timestamp": "2026-10-29T01:07:36.060Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AppGraphShapeTest[jvm]",
+      "timestamp": "2026-10-29T01:05:34.269Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "UiAdaptersTest[jvm]",
+      "timestamp": "2026-10-29T01:07:41.387Z",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ReaktorEditorChromeGeometryTest[jvm]",
+      "timestamp": "2026-10-29T01:04:02.098Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ComponentLevelsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:42.556Z",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "MemgraphGraphResultsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:01.588Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AuthPaneRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.925Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchTelemetryInstallationTest[jvm]",
+      "timestamp": "2026-10-29T01:10:02.212Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TaskGraphCanvasTest[jvm]",
+      "timestamp": "2026-10-29T01:05:02.880Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentConversationFollowTest[jvm]",
+      "timestamp": "2026-10-29T01:04:14.665Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ReaktorDesktopPerformanceTest[jvm]",
+      "timestamp": "2026-10-29T01:02:07.173Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentWorkspaceInteractionTest[jvm]",
+      "timestamp": "2026-10-29T01:01:27.607Z",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "StudioIconsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:42.590Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DesktopGraphCoverageTest[jvm]",
+      "timestamp": "2026-10-29T01:07:06.157Z",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetryLedgerStateTest[jvm]",
+      "timestamp": "2026-10-29T01:10:00.960Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AuthTokenInspectorTest[jvm]",
+      "timestamp": "2026-10-29T01:05:54.175Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DeviceProbeTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.839Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AccessIslandsTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.495Z",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TaskBoardTest[jvm]",
+      "timestamp": "2026-10-29T01:05:02.352Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetrySignalsPaneTest[jvm]",
+      "timestamp": "2026-10-29T01:10:01.892Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AppGraphSourcesTest[jvm]",
+      "timestamp": "2026-10-29T01:05:34.861Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ProductFindingsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:36.046Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CanonicalRouteTelemetryTest[jvm]",
+      "timestamp": "2026-10-29T01:05:36.271Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CloudBlueprintTest[jvm]",
+      "timestamp": "2026-10-29T01:06:05.464Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TaskContextPaneTest[jvm]",
+      "timestamp": "2026-10-29T01:05:02.355Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DevToolsPaneRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.498Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DeviceLinkClearTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.837Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AccessTrafficTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.533Z",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SystemLinksTest[jvm]",
+      "timestamp": "2026-10-29T01:07:36.063Z",
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "FilterChipsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:39.463Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "MachineSignalTokenParityTest[jvm]",
+      "timestamp": "2026-10-29T01:02:07.126Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DesktopZoomLevelTest[jvm]",
+      "timestamp": "2026-10-29T01:07:42.549Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "PlanCardMcpParityTest[jvm]",
+      "timestamp": "2026-10-29T01:07:41.163Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentBoardTest[jvm]",
+      "timestamp": "2026-10-23T17:19:12.129Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentMachineStateTest[jvm]",
+      "timestamp": "2026-10-29T01:07:39.429Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "HangarIconsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:36.107Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "StudioTextFieldTest[jvm]",
+      "timestamp": "2026-10-29T01:10:00.880Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "PaneEvidenceBindingsTest[jvm]",
+      "timestamp": "2026-10-29T01:04:02.096Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "InspectorHeadingLayoutTest[jvm]",
+      "timestamp": "2026-10-29T01:05:37.749Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchDevToolsRoutingTest[jvm]",
+      "timestamp": "2026-10-29T01:07:18.468Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentDoorTest[jvm]",
+      "timestamp": "2026-10-29T01:04:14.761Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AiRowIdentityTest[jvm]",
+      "timestamp": "2026-10-29T01:05:13.242Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetryLensTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.224Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AppGraphFeatureLayoutTest[jvm]",
+      "timestamp": "2026-10-29T01:05:13.246Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentWritePlanTest[jvm]",
+      "timestamp": "2026-10-29T01:05:02.341Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DeployInspectorTitleTest[jvm]",
+      "timestamp": "2026-10-29T01:07:34.798Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ReaktorEditorChromeToolRailTest[jvm]",
+      "timestamp": "2026-10-29T01:04:02.205Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataDocumentsInteractionTest[jvm]",
+      "timestamp": "2026-10-29T01:06:47.355Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchTruthInvariantsTest[jvm]",
+      "timestamp": "2026-10-29T01:03:02.203Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataScopeDraftTest[jvm]",
+      "timestamp": "2026-10-29T01:07:01.418Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DevToolsFileWritesTest[jvm]",
+      "timestamp": "2026-10-29T01:07:02.150Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AuthAccessTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.546Z",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentContextAndDraftTest[jvm]",
+      "timestamp": "2026-10-29T01:01:16.004Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentScorecardTest[jvm]",
+      "timestamp": "2026-10-29T01:01:26.987Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataResultViewsTest[jvm]",
+      "timestamp": "2026-10-29T01:06:59.456Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentConfigsPaneTest[jvm]",
+      "timestamp": "2026-10-29T01:04:02.593Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "BuildGraphPaneTest[jvm]",
+      "timestamp": "2026-10-29T01:05:34.897Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentConversationRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:03:02.368Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "GraphCandidateReviewTest[jvm]",
+      "timestamp": "2026-10-29T01:05:02.345Z",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetryQueryWorkspaceTest[jvm]",
+      "timestamp": "2026-10-29T01:07:41.230Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchLogIndexTest[jvm]",
+      "timestamp": "2026-10-29T01:10:01.987Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CrossPaneVerbsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:34.792Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "MachineSignalSubpaneRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:03:09.044Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TableLookParityTest[jvm]",
+      "timestamp": "2026-10-29T01:02:42.910Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchKeyboardRoutingTest[jvm]",
+      "timestamp": "2026-10-29T01:04:02.228Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetryPerformanceTest[jvm]",
+      "timestamp": "2026-10-29T01:10:01.755Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchFeatureTest[jvm]",
+      "timestamp": "2026-10-29T01:02:43.901Z",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetryPaneRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:10:01.226Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DesktopAppearanceTest[jvm]",
+      "timestamp": "2026-10-29T01:07:42.542Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "JvmDiscoveryPerformanceTest[jvm]",
+      "timestamp": "2026-10-29T01:03:54.389Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AccessCheckWaysTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.225Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CoverageMatrixTest[jvm]",
+      "timestamp": "2026-10-29T01:10:05.284Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "PaneRowActionsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:41.100Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AiPaneRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:05:03.132Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "KubernetesInspectionTest[jvm]",
+      "timestamp": "2026-10-29T01:04:01.538Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WindowChromeInsetsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:42.552Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "HumanTypographyTest[jvm]",
+      "timestamp": "2026-10-29T01:03:02.345Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SystemSpansTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.161Z",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DocumentTabParityTest[jvm]",
+      "timestamp": "2026-10-29T01:03:06.505Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "UiPreviewInspectionTest[jvm]",
+      "timestamp": "2026-10-29T01:07:36.068Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetryPromqlRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:10:01.862Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "NavigationEditingTest[jvm]",
+      "timestamp": "2026-10-29T01:07:42.560Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "GraphShapeIntegrationTest[jvm]",
+      "timestamp": "2026-10-29T01:02:07.091Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "GraphWiringHealthTest[jvm]",
+      "timestamp": "2026-10-29T01:02:07.120Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "GraphRevisionArchiveTest[jvm]",
+      "timestamp": "2026-10-29T01:05:37.708Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "StudioNavigationPerformanceTest[jvm]",
+      "timestamp": "2026-10-29T01:07:42.602Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentPaneRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:04:14.842Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "GraphSourcePaneCacheTest[jvm]",
+      "timestamp": "2026-10-29T01:05:37.714Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "HangarFontStackTest[jvm]",
+      "timestamp": "2026-10-29T01:03:06.703Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SearchQueryTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.846Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CloudPipelineTest[jvm]",
+      "timestamp": "2026-10-29T01:06:39.855Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TelemetryNodeDisplayTest[jvm]",
+      "timestamp": "2026-10-29T01:10:01.166Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AiPaneStateTest[jvm]",
+      "timestamp": "2026-10-29T01:05:13.240Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataResultWidthTest[jvm]",
+      "timestamp": "2026-10-29T01:06:59.982Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "StudioWordsTest[jvm]",
+      "timestamp": "2026-10-29T01:10:00.887Z",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentBenchPaneTest[jvm]",
+      "timestamp": "2026-10-29T01:01:14.457Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SubgraphWorkflowTest[jvm]",
+      "timestamp": "2026-10-29T01:05:38.853Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ResourceAccessTest[jvm]",
+      "timestamp": "2026-10-29T01:05:54.176Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DevToolsStreamViewsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.505Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataPaneRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:06:50.887Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "HangarInksTest[jvm]",
+      "timestamp": "2026-10-29T01:07:39.428Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DeviceSessionReadsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.841Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DesktopZoomPersistenceTest[jvm]",
+      "timestamp": "2026-10-29T01:07:42.550Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "PaneReadStateTest[jvm]",
+      "timestamp": "2026-10-29T01:07:41.099Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchMenusTest[jvm]",
+      "timestamp": "2026-10-29T01:07:42.553Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "MachineSignalTooltipTest[jvm]",
+      "timestamp": "2026-10-29T01:04:01.542Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ProductQueriesTest[jvm]",
+      "timestamp": "2026-10-29T01:07:36.050Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "KitRetirementParityTest[jvm]",
+      "timestamp": "2026-10-29T01:03:06.705Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SurfaceDuplicateKeysRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:02:15.559Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "GraphDocumentIntegrationTest[jvm]",
+      "timestamp": "2026-10-29T01:02:07.004Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchTelemetryProbeTest[jvm]",
+      "timestamp": "2026-10-29T01:10:04.975Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AccessDraftTest[jvm]",
+      "timestamp": "2026-10-29T01:05:39.231Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DisplayParityTest[jvm]",
+      "timestamp": "2026-10-29T01:03:06.181Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SurfaceSourcePerformanceTest[jvm]",
+      "timestamp": "2026-10-29T01:02:42.794Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CollectionFrameTest[jvm]",
+      "timestamp": "2026-10-29T01:01:43.509Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "PaneFrameLayoutTest[jvm]",
+      "timestamp": "2026-10-29T01:07:39.482Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DevToolsInspectionJourneyTest[jvm]",
+      "timestamp": "2026-10-29T01:07:18.389Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ChangeSetsTest[jvm]",
+      "timestamp": "2026-10-29T01:05:57.274Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "SurfaceQualificationTest[jvm]",
+      "timestamp": "2026-10-29T01:02:15.615Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "EngineArchitectureTest[jvm]",
+      "timestamp": "2026-10-29T01:02:06.695Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AuthPresentationParseTest[jvm]",
+      "timestamp": "2026-10-29T01:03:05.270Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CloudObservationTest[jvm]",
+      "timestamp": "2026-10-29T01:06:05.482Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DevToolsLiveLinkTest[jvm]",
+      "timestamp": "2026-10-29T01:07:02.201Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "WorkbenchCrashLogTest[jvm]",
+      "timestamp": "2026-10-29T01:02:43.883Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DesktopOperatorLoginTest[jvm]",
+      "timestamp": "2026-10-29T01:02:06.686Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AppGraphFlowTest[jvm]",
+      "timestamp": "2026-10-29T01:05:25.231Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataInspectorsInteractionTest[jvm]",
+      "timestamp": "2026-10-29T01:06:47.460Z",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DatabaseSessionRetentionTest[jvm]",
+      "timestamp": "2026-10-29T01:07:39.440Z",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "RuntimeGraphOverlayTest[jvm]",
+      "timestamp": "2026-10-29T01:05:38.844Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "BuildTargetsRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:05:54.200Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "GraphTelemetryIntegrationTest[jvm]",
+      "timestamp": "2026-10-29T01:05:37.747Z",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "TaskMessageThreadTest[jvm]",
+      "timestamp": "2026-10-29T01:05:02.887Z",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AgentWorkLogTest[jvm]",
+      "timestamp": "2026-10-29T01:05:02.280Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "ControllerCountTest[jvm]",
+      "timestamp": "2026-10-29T01:02:03.106Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DesktopApplicationBootstrapTest[jvm]",
+      "timestamp": "2026-10-29T01:07:04.847Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DevToolsOwnedReadsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:02.203Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataProviderViewsRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:03:05.274Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "HangarPresentationTest[jvm]",
+      "timestamp": "2026-10-29T01:07:39.478Z",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataResultIdentityTest[jvm]",
+      "timestamp": "2026-10-29T01:06:59.307Z",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DesktopOverlayTest[jvm]",
+      "timestamp": "2026-10-29T01:05:36.274Z",
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DatabaseTableBrowserTest[jvm]",
+      "timestamp": "2026-10-29T01:07:01.510Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DesktopWorkbenchGraphTest[jvm]",
+      "timestamp": "2026-10-29T01:07:11.180Z",
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataResultStateCacheTest[jvm]",
+      "timestamp": "2026-10-29T01:06:59.453Z",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "CloudHistoryKeysTest[jvm]",
+      "timestamp": "2026-10-29T01:06:05.477Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "DataWorkspaceRelationshipsTest[jvm]",
+      "timestamp": "2026-10-29T01:07:01.491Z",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "AppGraphDeviceRenderTest[jvm]",
+      "timestamp": "2026-10-29T01:05:13.245Z",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "archive": "server-image-fixed-failed-engine-results.zip",
+  "archiveSha256": "4423b9f835da0fad3fb72024720a03e2fcfb2e60063b2879151113b5f2519861",
+  "claim": "Actual full unchanged server-image prerequisites fail; app compilation repaired, wheel gate retained; no image produced.",
+  "xmlScope": "Historical canonical XML, not fresh for this failed run: timestamps precede07:20start. Retained archive is reference only; do not use its695passes to qualify the run. Actual failed gate is captured in owner events and current data-table report.",
+  "historicalXmlTotals": {
+    "tests": 695,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  }
+}

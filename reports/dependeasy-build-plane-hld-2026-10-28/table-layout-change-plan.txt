@@ -1,0 +1,11 @@
+plan p0a7c7b4a53757d78e89c · Edit 1 file: 3 edits in 1 file · exact text
+../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt · 3 edits
+   228 -                             } } }, measurePolicy = cells)
+   228 +                             } } }, modifier = Modifier.clipToBounds(), measurePolicy = cells)
+   348 -     Layout(content = { bands.forEach { band -> Box(Modifier.clipToBounds(), propagateMinConstraints = true) { content(band) } } }, modifier = modifier) { measurables, constraints ->
+   348 +     Layout(content = { bands.forEach { band -> content(band) } }, modifier = modifier) { measurables, constraints ->
+   398 -         Layout(content = { shown.forEach { index -> key(columns[index].key) { HeaderCell(columns[index], state, machine, appearance) } } }) { measurables, constraints ->
+   398 +         Layout(content = { shown.forEach { index -> key(columns[index].key) { HeaderCell(columns[index], state, machine, appearance) } } }, modifier = Modifier.clipToBounds()) { measurables, constraints ->
+checks: reaktor-surface-compose · JVM tests; reaktor-surface-compose · JavaScript tests
+note: Files in other modules use what this plan changes: engine · JVM tests (modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/appgraph/AppGraphState.kt: TableState); reaktor-ui · JVM tests (../reaktor/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Collections.kt: HeaderProperties, HeaderProperties.descending, HeaderProperties.sortable, HeaderSlots, HeaderSlots.content, TableHeaderAppearance); reaktor-ui · JavaScript tests (../reaktor/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Collections.kt: HeaderProperties, HeaderProperties.descending, HeaderProperties.sortable, HeaderSlots, HeaderSlots.content, TableHeaderAppearance); reaktor-ui · TypeScript checks (../reaktor/reaktor-ui/src/commonMain/kotlin/dev/shibasis/reaktor/ui/machinesignal/surface/Collections.kt: HeaderProperties, HeaderProperties.descending, HeaderProperties.sortable, HeaderSlots, HeaderSlots.content, TableHeaderAppearance). check_run with reach ["Edited", "Users"] runs their tests too
+next: change_apply {"plan":"p0a7c7b4a53757d78e89c"}

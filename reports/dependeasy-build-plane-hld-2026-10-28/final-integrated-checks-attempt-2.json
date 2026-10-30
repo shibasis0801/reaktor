@@ -1,0 +1,1147 @@
+{
+  "transport": {
+    "project": "bestbuds",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds",
+    "source_head": "879db7088cac15ba4a54f327eeb04265f31810b3",
+    "tasks": [
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      ":reaktorCli:test",
+      ":reaktor:reaktor-tooling:jvmTest",
+      ":reaktorCli:distZip",
+      ":kernel:agentDist",
+      ":exportBuildModel",
+      ":reaktor:exportBuildModel",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      ":reaktorCli:test",
+      ":reaktor:reaktor-tooling:jvmTest",
+      ":reaktorCli:distZip",
+      ":kernel:agentDist",
+      ":exportBuildModel",
+      ":reaktor:exportBuildModel",
+      "--console=plain"
+    ],
+    "started": "2026-10-28T20:59:56.251834",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261028-205956-ab5e9c89-bestbuds.log",
+    "run_id": "20261028-205956-ab5e9c89-bestbuds",
+    "exit_code": 1,
+    "sync_seconds": 10.102169040999968,
+    "queue_seconds": 463.457829625,
+    "owner": {
+      "pid": 26993,
+      "started": "Wed Oct 28 20:52:02 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 1,
+    "publication": "changed-files",
+    "source_epoch": 1793201386.150763,
+    "execution_seconds": 169.45609808399996,
+    "worker_started_epoch": 1793201396.425293,
+    "dry_run": false,
+    "builds": {
+      "bestbuds": "bestbuds",
+      "dependeasy": "reaktor",
+      "reaktor": "reaktor"
+    },
+    "artifact_family": "all",
+    "collected": "2026-10-28T21:02:49.193640",
+    "copied_files": 271,
+    "copy_error": null,
+    "collection_seconds": 3.4180630829999927,
+    "worker_slot_trimmed": 0,
+    "publication_queue_seconds": 320.984058,
+    "withheld_outputs": {
+      "bestbuds": 1,
+      "reaktor": 3
+    },
+    "finished": "2026-10-28T21:08:10.882522",
+    "publication_seconds": 321.615505125
+  },
+  "testResults": {
+    "kernel": {
+      "files": [
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.DatabaseQueryBackendTest.xml",
+          "sha256": "2c892da2631c64a4b48ba78c6f7ce1d54d29d137a0b25337427db7fbc72109ec",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.DesktopPreferencesTest.xml",
+          "sha256": "d690fa10c0c5753ed2db24a301a1b3c8dc7a12e1ee2463c5cc09789ec19e410a",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.CatalogNodeTest.xml",
+          "sha256": "c034bbd130b626da69a005693849e9ad5acff426c3c2ebc763647a7f20b0bfde",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.CatalogStartupPerformanceTest.xml",
+          "sha256": "19fa18c745f6c261a83ab5d2eb853f0da5b093eb138ba82bffc829445f5610ae",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.ConnectionCatalogTest.xml",
+          "sha256": "f3196e4c5d0021ed434e9059eba830f1e460422db76288d6a0697a7ec6a40f38",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.DataCatalogTest.xml",
+          "sha256": "6058801bff66bbe59894d548ca1aa557ac76af2aa4e29259562b01144a0dacdd",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.DatabaseWriterTest.xml",
+          "sha256": "0852c0e0c0495364edd22fe35dccd7d2206526149f853782b441e04e4bb0ee8d",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.IslandCatalogTest.xml",
+          "sha256": "f8bb5a8240645910378227ba56c0f8ddfeb5ced53bf318f9df1f0923758f9a2d",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAcceptanceTest.xml",
+          "sha256": "5fd8096ea3a119ee078404366b5742a20f84f6201b3e63ac445d9a08e4372a90",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAccessTest.xml",
+          "sha256": "a65a63563723ece3771b5d8d7b6ae5d0ac5a891fe402b354f3361b7a26ebf715",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentChecksTest.xml",
+          "sha256": "7cf11515a3afa283c096fef19c64935d85f8381ecdf8705b4b876aab75ee12d9",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentEvidenceTest.xml",
+          "sha256": "df7eb5928e558fc93099d6f1b2a6d4b01be203b803d08c8b13d4cc878edcf57e",
+          "tests": 1,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": [
+            {
+              "test": "executionRetainsEarlyDiagnosticsAndBindsTheActualDirtySource",
+              "message": "java.lang.IllegalStateException: Tool is no longer advertised; refresh the connection"
+            }
+          ]
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentServiceTest.xml",
+          "sha256": "7f5d931f7dedf1f82f939cc7b37ca772cc0d224686725915a588a6f1d075c100",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentsLifecycleTest.xml",
+          "sha256": "30151dd6014ee178c82475df8164fda21646e37dcb693544a9a43d3a2f5e3657",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelApplicationLogsTest.xml",
+          "sha256": "457a4bfff4e902488011ee2d974c2b1ad0618e427cea5fd490406f9ce3d88c9c",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasCompiledTest.xml",
+          "sha256": "c664b2e518361d305c2f6c437a054bb69e5293cc415881feaca5e4620044f835",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasPresetsTest.xml",
+          "sha256": "a7b682ca816cf151b1a0762904caa8ff563854edf023a34ba3a5c40b61e784fa",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasTest.xml",
+          "sha256": "e1ebdc8e66306461fb9dd3f3cfcbb7c005838e3a7314390cd68f76f3994dd2ce",
+          "tests": 29,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelBoardTest.xml",
+          "sha256": "3e56e5d986d94006c9369cdddb7cff56358e88dd94da5b50217fda0f4604a28f",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelBuildNodeTest.xml",
+          "sha256": "0b1daaefebbbf11b64cf0c5699c133a060d6383c2213290e8f100ca0377a01ed",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCandidateChecksTest.xml",
+          "sha256": "f9473a521cd16cdda7bded73d87b15080b7c5e85c790cac807a1075d4b9759b1",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelChangesTest.xml",
+          "sha256": "47fdaa6bd8cf456f8b64f87fd1262add928d6399da03ba7528f7bdbfeb588b7d",
+          "tests": 19,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCodeGraphTest.xml",
+          "sha256": "10baa58c884574153a5fd1ae4afb0aeacf30fac4c571bfabbf1d4c537a42e6ac",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionBatchTest.xml",
+          "sha256": "e23e6b1d0f0a9003b27adac46b29f52412ee435d009a07dfaae32c1ada12042e",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionFailuresTest.xml",
+          "sha256": "365a601a6fe0650ec61510295d10de841cc7247a6411d3e662e6a4862a842aa8",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionsTest.xml",
+          "sha256": "fb5cd7a60bbbbee7b6f924e0ec3f1be739446a1be042a26f0980d26deafecde4",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCppFactsTest.xml",
+          "sha256": "6a99f125147a992f43634f7ce50db457fc5ffa1c23f4c6779a885d44831dc90f",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCrashEventsTest.xml",
+          "sha256": "c0813d2dd3e14b82a298dbb1c1dd8e1b9948cef46ab58607447138c550ff6131",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCrashesTest.xml",
+          "sha256": "84f7b91e27acf9bc6d90a2c45a08b847f163260c05c4b4185c2ed93309c8c50c",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelDatabaseTargetsTest.xml",
+          "sha256": "504a8dca9cea0b6d4642b86e8aeda5f2abefd194336595393f3fb27a3971c840",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelDoorTest.xml",
+          "sha256": "0e51bec7130642a11bcbf6fa6ee5d3eebcd09b7c3988e99d280eb38ac27759ae",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelEngineeringTest.xml",
+          "sha256": "d66b2c4cce294c678fb16400cb14862e5df31f2458c622fe20908ffee6db3926",
+          "tests": 20,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": [
+            {
+              "test": "authenticatedNativeWorkspaceBorrowsTheKernelAndProjectsOneMcpTool",
+              "message": "java.lang.AssertionError: Expected value to be true."
+            }
+          ]
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelFlowCoverageTest.xml",
+          "sha256": "8da36653acedbfeaa35d1b2c48f45adc0712365af59c93a712e0fb8dffa9f0dc",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelGeneratedSourcesTest.xml",
+          "sha256": "851657aa94a7dea62da4ee18545a993c275d9b0ee920ef68ec3dc675316295b2",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelGraphTest.xml",
+          "sha256": "8026005e4e5dc91c4fc58dd3fda2cb2bf62297fdc97cb1ebefe6ecb88ff669be",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelHouseRulesTest.xml",
+          "sha256": "079315c043375ddfcf771e1e4b4a6941c4a4183080524b69b7d4bc4577761df7",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelIntegrationTest.xml",
+          "sha256": "a3adfbb41023720b9c3e737c089b53fec8916796c22eaf81e32ef2a88b0f7dfb",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelKotlinFamiliesTest.xml",
+          "sha256": "c7640a16b642a873f15238a789b42a5b4deeacae1d82804581dd7520e232a1ea",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelMcpTasksTest.xml",
+          "sha256": "cb2ab788bacf4d3c2538dedff4fef66ad17813ce86fdaf1a502235c34b7ff409",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelNodeTelemetryTest.xml",
+          "sha256": "90984f7223cae73b535b003968e614dae8338a14a3ad93279f2c29cf0f3ef5d5",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelPlanTest.xml",
+          "sha256": "c5152b86337846fae4504080295f9b7b68e7e027ffb778f8c76258e1470b6e80",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelPrincipalTest.xml",
+          "sha256": "d908faacf47ea1bc3af5a9b7433fc525c12aff318aa9dc16ae29cfff017b5d89",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelRadarTest.xml",
+          "sha256": "14212dad94922f1ec9b89d78016f9b081b01a5718b876df99db6c6e8243d6a93",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelReaktorFactsTest.xml",
+          "sha256": "baa934221cdc34f6ad1f730a61611edf935efa10b22de530d4a207f4f30b4ad3",
+          "tests": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSemanticFactsTest.xml",
+          "sha256": "1aa99230d195e7fb3d2415034dbe76aa6661163baf28d2b9a9f2a9ac0114938e",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSessionLogTest.xml",
+          "sha256": "52b414312a3df837b89b3d043dc0d4921258a9b57578c56d657c8e73d98324d1",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSourceRoutingTest.xml",
+          "sha256": "91a6f59099b27e01562d44504ec91bd43bd0e23db0d3f4b3f8b44eea60471d6b",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSubgraphsTest.xml",
+          "sha256": "8ad18ed009d3b577087b00a419eb2c88e424b5f9a6038ee7066499d8ceb5100c",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTaskGraphTest.xml",
+          "sha256": "d2ac47ee798744a9f8e738ed7413b87c7c7dd8fa9bae2e15b3e3f4b342bd617e",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryFleetTest.xml",
+          "sha256": "3c05c0e9b1298314c08d4e671755eb9e9c55c07ccc5f4eb07ae9d8d46c2426ea",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetrySignalsTest.xml",
+          "sha256": "1b1637bc8242379740e9c826408734aeccc26f329af47a9e7534bdc3cc97a4f2",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryTest.xml",
+          "sha256": "f06e6951e8f611145d6ee617fb3401a0b1e71ebbb65537affbf3f8442709147d",
+          "tests": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryVerificationTest.xml",
+          "sha256": "08adf5af03c0412f3a06d55a778498bee32d9917a031fb72d1c5c999f7af940f",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTypeScriptFactsTest.xml",
+          "sha256": "2956b24f8374dac1bb26ebce0726d63225e26f2f2e30681ed65cae6a07c34e1b",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelWatchTest.xml",
+          "sha256": "44acbb8f0a8549131646fb221a6615e97fb596f3c927980cf7e354fdc46a3fe5",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelWorkspaceTest.xml",
+          "sha256": "4651de4af501378a07da66c8571d2b099d8628af7aab70dd532913b3b8974066",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.NativeKernelExecutionTest.xml",
+          "sha256": "8739477992534d3549b00c4d16941777a90ab4fe042d927f0e32dd8f1af85bac",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.OperatorAuthorityTest.xml",
+          "sha256": "27d7edbcfb05c6b0ab5e66e34e7ef71b6b682dda7bb7afb89a78b53f2f34fb3a",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.ProductionConnectionsTest.xml",
+          "sha256": "8b0e3acb777b29a101a5b892cedaa835897239b93f434b9f1d28e1705374bd58",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.WorkspaceRepositoriesTest.xml",
+          "sha256": "3a53ef4fb019b9bd35a7a5b4ab2574db8085802c0fdbbf8440cbccde4fe9a388",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.auth.AuthDeclarationsTest.xml",
+          "sha256": "953e2826ed2dca6059eba6d8566a222657f64ab06f25b42dbe826485014e346c",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelAuthToolsTest.xml",
+          "sha256": "70b0f08b04ad5d09465418e186af09fffcace4127a9ef42683e6dfa7394ca35f",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelCheckResultTest.xml",
+          "sha256": "4207160d6985539ba74ec1b5c19d3229e02743920c4b4375dee1491eb2860e9b",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelGraphQueryTest.xml",
+          "sha256": "dbc0ab9932d9c50943114af75acc1ead4efc868ae4d79e4ad691faa2eb912917",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.BuildModelsTest.xml",
+          "sha256": "9d19d7018444dabcbd2c6b9f039db8650aee53a63b2a84625326e5fb19589f17",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.ChangeChecksTest.xml",
+          "sha256": "14ec4a0488f70fd4aa8081735b98adf41f2f6e2cc87e1fb9b4a5f877099f4f84",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.WorkModulesTest.xml",
+          "sha256": "68324a33893d47d8b3b83d1be66886ca99d3a2e20af4130384e1b15865621cef",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.ai.AiInventoryDiscoveryTest.xml",
+          "sha256": "7397f6fd6e36fafe85f69ac7895cae8ddf43f8f485633b6ddea5a6b74ef92b3b",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.ai.AiInventoryTest.xml",
+          "sha256": "bc3defa746d45dda3083bb70244c27d9f1d9ced4386edacfb50711f48406211d",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.AuthDirectorySessionTest.xml",
+          "sha256": "14b334a09f64dcdf2c36bf9ca7ac82cc28e809091ddae5d0ef541f621abd2887",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DataCodeUsageTest.xml",
+          "sha256": "0947e7ddc4a1dec4d810a86dd39e98cdf8cc0f70d0c4c3bb82225ae1bcb4c04b",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseDocumentsTest.xml",
+          "sha256": "37b8c054c020ef10aed7fc8042a067d3b91fc575b9ccd41174c47fc3e82a3ca6",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseFindingsTest.xml",
+          "sha256": "39b6417722e027be2ae5f620e1752e881128da3069769b6fee33b82e6b9b04c3",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseGraphExplorationTest.xml",
+          "sha256": "a2947c157271a42ca572b35a2ac80f9b201bd38f411ac9b98a85950394664fa3",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseMigrationQueriesTest.xml",
+          "sha256": "f17fb2e51b3cc45306e834479072f455e411bb79142ae291ff9ed42b5f8b8bfd",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabasePinnedResultsTest.xml",
+          "sha256": "2c976494357208c1f73a5901245c49c79726ffa89572c4211fbcf7849e0e2766",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSchemaExplorationTest.xml",
+          "sha256": "1928d9944135a66f11b0aa0136135d570938eca30b4d53045be98383192cdb03",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSchemaSnapshotTest.xml",
+          "sha256": "b821665b569c9e692c8864d3a5a0a646c6a165371ccb3379ec49b56224b7f91a",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSeekPagingTest.xml",
+          "sha256": "775210649daa5242c6b6c6d85cf9d058e7118eab39b04ff15bba0fa8df437817",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DeviceDatabaseTargetTest.xml",
+          "sha256": "8492a32b0e8b9196ff429410cceb47fe9465b8f7fd1a5c07de4002544fbd3da3",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.MemgraphInspectionBrokerTest.xml",
+          "sha256": "8c5ddd98770d9442c6dcade10f93b51cffc8a970058a92c0331fbbac6e28a8e0",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.NativeDatabaseSessionTest.xml",
+          "sha256": "c2e8aa421c733bf37fdf9778d62eb006004a12244fef9577f6663f86812f701e",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 2,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PostgresInspectionTest.xml",
+          "sha256": "8cc87e826b515db7cf905d91fc28aba2b6758ae3f0cc67489900ad8acfc186b8",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PostgresSessionConnectionTest.xml",
+          "sha256": "8af81e1070621c6d4d82a388d7d67f0cff179a0169e7b3ccf264c2a20d733f2f",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PubSubSessionTest.xml",
+          "sha256": "fdfff85330f76a006f858719771e67842e1debad906deb81def51632ef21a8e6",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.SavedDataDocumentsTest.xml",
+          "sha256": "e67e1307a968f0be945e9ab40e228bfd502936632a3844963c5a3ae342ff4a04",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.StorePrefixSurveyTest.xml",
+          "sha256": "1a4a78bd413cd3071a8f12910f7983a63ec2b8509ed3a5cfc7f4c924bbe6c0d6",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.WorkerStoreSessionTest.xml",
+          "sha256": "57308dc7c74ae033de963f27b180c80691ff67398b01bffac5e39434eb1947ce",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.inspection.ElementBindingRegistryTest.xml",
+          "sha256": "230371d8104f93eeb801532366fd8c48f69d70f094aec74fba70245a072b8865",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.inspection.WorkbenchInspectionSessionTest.xml",
+          "sha256": "1d12e308c336a1189d3df122c287c7f2f2a2face26297efebde56e37d3745c14",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.mcp.DesktopMcpSessionTest.xml",
+          "sha256": "c872909307e62e20d50a04ad5feabe37d2cf84e7d811fea3d5705229ab4890a8",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ClickHouseBackupPlanTest.xml",
+          "sha256": "11822c8e812581365bf719c7fb72e0e007eae56490e2ef2a5c98c39cc4450126",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ClickHouseRestorePlanTest.xml",
+          "sha256": "c8673520e4b4b325247885682fbc462425945e0f508fc08b9b98218c0f35e513",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.DeployArtifactsTest.xml",
+          "sha256": "d514240ee1e72660c140a7759f67d182ac4f333bb5139621f61f0ea5b40a25a8",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.FirebaseReportsPlanTest.xml",
+          "sha256": "80b0e841ba3fef21570d0a39423080c6db6e3ef6e74fb5c63a0cd60c217bc920",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.GradleReceiptVisibilityTest.xml",
+          "sha256": "a4fcf729713bcdabc32988462c5806ef8ab8b49ef3fb71423f7355f9ae3b0575",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.HostLocalOperationTest.xml",
+          "sha256": "10141abd18fc12ae2a71e7853109ce620e2cc93c0a49232ac7a9b46231718128",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationRulesTest.xml",
+          "sha256": "08eeb0b48bf4caff1c8c274faa84e1d0cc8ed10815ae60a1c2bee1d26f9184d4",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationalCatalogCacheTest.xml",
+          "sha256": "10abd38264bb256e05805c2a2240806d08d2d9d444576e62b8dd50eec52d68c0",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationalEnvironmentTest.xml",
+          "sha256": "e684c3a2ab4b0ed9491835d880382baf4c410e467c0f33718a22582c1504ac8a",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.PlanConfirmationTest.xml",
+          "sha256": "bb6803798c180b1a48d8c1d41436cf875a101ba7cfb1d5caa967bb27c1f68872",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ServiceSpanMigrationTest.xml",
+          "sha256": "0a68f331373eecc8331924d73d5d06220439b450a16c946b1786d447ddef3264",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.SessionReadsAreBoundedTest.xml",
+          "sha256": "473cee25758adb25519a4b749a045d8df72616138c93a3c82fe600005404411f",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.WorkerInputLifecycleTest.xml",
+          "sha256": "afe7c4ec04c8530b5274e4c1d3bb78dd8efe1ae46e3144012878bca3b71b5b86",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.CheckReportsTest.xml",
+          "sha256": "51ceb1b85ea858b5ec3ebd773574f607afc2b1d841bd301e2b4d2f773a78e031",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.VerificationsTest.xml",
+          "sha256": "b678453313d949bee3b45f99cb79d58222effe73ba199b81bde21a5027ce2b72",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.WorkingTreeTest.xml",
+          "sha256": "139969b828f0fdd5f109d1edc088770c0ab1f05559b3c4f6a7f804f99c67932b",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.BestBudsSchemaCatalogTest.xml",
+          "sha256": "192c4612521def7cecf09d971adc77fbffc46b64e8f4ceebff48f15b343c5383",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.BestBudsSystemTopologyTest.xml",
+          "sha256": "196309975b6cb137935dfbf0df493e310ed2424d505f3de46ca90877ee131439",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.SupabaseDumpSchemaTest.xml",
+          "sha256": "def4e1e6ef9a07ff8844b6b4a986721aa80172f1518ee025e3b7ecc9237660e9",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-dev.shibasis.reaktor.conductor.cli.HarnessUsageTest.xml",
+          "sha256": "2ce8fc8b1d3193e5db3666dfc9d629b113140d4f558f1e759f27c3a7d5b55741",
+          "tests": 17,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/modules/kernel/build/test-results/test/TEST-dev.shibasis.reaktor.conductor.cli.StdioBridgeTest.xml",
+          "sha256": "07451097ad2fb75d2c2a54ce6037bc7879e1fafe33109e1e46ddd0d0eb3f140d",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        }
+      ],
+      "totals": {
+        "tests": 511,
+        "failures": 2,
+        "errors": 0,
+        "skipped": 11
+      }
+    },
+    "cli": {
+      "files": [
+        {
+          "path": "bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.BuildModelCliTest.xml",
+          "sha256": "59169b000f3da37b6a3b3e75240ea1f108f45868756e4a09f652f6278fcf9b2b",
+          "tests": 4,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": [
+            {
+              "test": "affectedExecutionKeepsCanonicalVerificationPlansAndNeverClaimsCompleteCoverage",
+              "message": "java.lang.AssertionError: Expected value to be true."
+            }
+          ]
+        },
+        {
+          "path": "bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.KernelCliTest.xml",
+          "sha256": "dedc1e005ea3b9209bf330c1808b0c3d294b106210ddfbe271d7bf8786cbe3a5",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        },
+        {
+          "path": "bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.ReaktorCommandTest.xml",
+          "sha256": "379a1b5b315bcfed85f4dfb8137fe140d100dadfdd34baf79c99e88b53df514a",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "failuresDetail": []
+        }
+      ],
+      "totals": {
+        "tests": 17,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "tooling": {
+      "files": [],
+      "totals": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    }
+  }
+}

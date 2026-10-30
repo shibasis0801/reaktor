@@ -1,0 +1,11 @@
+allprojects {
+    tasks.withType(Test).configureEach {
+        if (path == ':engine:jvmTest') {
+            reports.junitXml.required = true
+            reports.junitXml.outputLocation = new File('/Users/ovd/dev/reaktor/reports/dependeasy-build-plane-hld-2026-10-28/table-treatment-xml')
+            doFirst {
+                new File('/Users/ovd/dev/reaktor/reports/dependeasy-build-plane-hld-2026-10-28/table-test-runtime.json').text = groovy.json.JsonOutput.toJson([classpath: classpath.files.collect {it.absolutePath}, jvmArgs: allJvmArgs, systemProperties: systemProperties, environment: environment.findAll { k,v -> k in ['DISPLAY','JAVA_HOME','SKIKO_RENDER_API','SKIKO_LIBRARY_PATH','PATH'] }])
+            }
+        }
+    }
+}

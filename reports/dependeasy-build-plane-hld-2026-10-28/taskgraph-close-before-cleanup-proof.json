@@ -1,0 +1,15 @@
+{
+  "run": "20261029-034041-73706bdb-bestbuds",
+  "scope": "Before production change, new fixture assertion masked by same cleanup race. Test fixture now explicitly joins its owned root graph in final cleanup so the assertion survives. No production fix applied yet.",
+  "xmlSha256": "4969dd752024e5562c353819bcd4681bba212cfc0ad76aaf13d1679913835633",
+  "results": {
+    "name": "TaskGraphRuntimeTest[jvm]",
+    "tests": "1",
+    "skipped": "0",
+    "failures": "1",
+    "errors": "0",
+    "timestamp": "2026-10-28T22:11:12.961Z",
+    "hostname": "Shibasiss-MacBook-Pro.local",
+    "time": "0.266"
+  }
+}

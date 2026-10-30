@@ -5,6 +5,7 @@ import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
 import dev.shibasis.reaktor.tooling.device.AppleDeviceBackend
 import dev.shibasis.reaktor.tooling.device.DeviceConnectionNode
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -126,7 +127,7 @@ class DeviceToolsTest {
             } finally {
                 graph.close()
                 dependencies.close()
-                root.deleteRecursively()
+                root.deleteTreeSafely(within = root.parentFile)
             }
         }
     }

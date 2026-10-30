@@ -1,0 +1,112 @@
+{
+  "old": {
+    "jvmMedianSeconds": 138.15204083919525,
+    "passes": 2,
+    "rows": [
+      {
+        "pair": 0,
+        "seconds": 134.41295886039734,
+        "metrics": [
+          {
+            "name": "capture.p95",
+            "value": 7.2,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          },
+          {
+            "name": "pan.p95",
+            "value": 6.8,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          },
+          {
+            "name": "zoom.p95",
+            "value": 7.8,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          }
+        ]
+      },
+      {
+        "pair": 1,
+        "seconds": 141.89112281799316,
+        "metrics": [
+          {
+            "name": "capture.p95",
+            "value": 7.4,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          },
+          {
+            "name": "pan.p95",
+            "value": 6.5,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          },
+          {
+            "name": "zoom.p95",
+            "value": 6.7,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          }
+        ]
+      }
+    ]
+  },
+  "new": {
+    "jvmMedianSeconds": 139.06223261356354,
+    "passes": 2,
+    "rows": [
+      {
+        "pair": 0,
+        "seconds": 135.2799220085144,
+        "metrics": [
+          {
+            "name": "capture.p95",
+            "value": 7.1,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          },
+          {
+            "name": "pan.p95",
+            "value": 6.1,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          },
+          {
+            "name": "zoom.p95",
+            "value": 6.4,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          }
+        ]
+      },
+      {
+        "pair": 1,
+        "seconds": 142.84454321861267,
+        "metrics": [
+          {
+            "name": "capture.p95",
+            "value": 6.7,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          },
+          {
+            "name": "pan.p95",
+            "value": 6.3,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          },
+          {
+            "name": "zoom.p95",
+            "value": 6.5,
+            "unit": "ms",
+            "budgetLimit": 16.7
+          }
+        ]
+      }
+    ]
+  },
+  "reductionPercent": -0.6588333902556753,
+  "scope": "Four unchanged full UI flows;435identical frozenclasspath entries; only navigation routing class differs;load16\u2192182on14cores retained. All original screenshot/source/graph-invalidation/frame-budget assertions pass; no whole-flow speed gain."
+}

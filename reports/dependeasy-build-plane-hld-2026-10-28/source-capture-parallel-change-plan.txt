@@ -1,0 +1,31 @@
+plan p2df804f98b6ea6d30d71 · Edit 2 files: 2 edits in 2 files · exact text
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceCandidates.kt · 1 edit
+    96 -         for (name in untracked.take(200)) {
+    97 -             val addition = git("diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--", "/dev/null", name)
+    98 -             if (addition == null) { notices += "New-file diff unavailable: $name"; continue }
+    99 -             diffBytes += addition.toByteArray().size
+   100 -             if (diffBytes > 16_000_000) { notices += "New-file diff budget exceeded"; break }
+   101 -             additions.append(addition)
+   102 -         }
+    96 +         java.util.concurrent.Executors.newFixedThreadPool(4).use { workers ->
+    97 +             for (batch in untracked.take(200).chunked(4)) {
+    98 +                 val pending = batch.map { name -> workers.submit(java.util.concurrent.Callable {
+    99 +                     git("diff", "--no-index", "--no-ext-diff", "--no-textconv", "--no-color", "--", "/dev/null", name)
+   100 +                 }) }
+   101 +                 for ((name, result) in batch.zip(pending)) {
+   102 +                     val addition = result.get()
+   103 +                     if (addition == null) { notices += "New-file diff unavailable: $name"; continue }
+   104 +               
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/SourceIsolationTest.kt · 1 edit
+    68 -     @Test fun abandonmentRetainsEveryIncludedRootAndRefusesAChangedOrIncompleteSnapshot() = fixture { root, _, artifacts, store ->
+    68 +     @Test fun untrackedDiffsKeepGitBytesAndOrderAcrossBatches() = fixture { root, _, artifacts, _ ->
+    69 +         val names = ((0..8).map { "new-$it.kt" } + "quoted name.kt" + "link.kt").sorted()
+    70 +         names.filter { it != "link.kt" }.forEachIndexed { index, name -> File(root, name).writeText("val value$index = $index\n") }
+    71 +         assertTrue(File(root, "new-0.kt").setExecutable(true))
+    72 +         Files.createSymbolicLink(File(root, "link.kt").toPath(), File("new-0.kt").toPath())
+    73 +         val index = File(root, ".git/index").readBytes()
+    74 +         val expected = names.joinToString("") { name ->
+    75 +          
+checks: reaktor-conductor · JVM tests
+note: Files in other modules use what this plan changes: kernel · JVM tests (modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalEvidence.kt: SourceCandidates, SourceCandidates.capture); kernel · Kernel boundary (modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalEvidence.kt: SourceCandidates, SourceCandidates.capture); reaktorDesktop · JVM tests (targets/reaktorDesktop/src/test/kotlin/ai/bestbuds/reaktor/fixtures/AgentChoicesFixture.kt: SourceCandidates, SourceCandidates.capture). check_run with reach ["Edited", "Users"] runs their tests too
+next: change_apply {"plan":"p2df804f98b6ea6d30d71"}

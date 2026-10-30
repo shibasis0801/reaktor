@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DatabaseStudioPaneRenderTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:24:40.931Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.547">
+  <properties/>
+  <testcase name="databaseNavigationShowsTheAuthoredViewsWithProviderSpecificNames[jvm]" classname="ai.bestbuds.reaktor.machinesignal.DatabaseStudioPaneRenderTest" time="0.005"/>
+  <testcase name="queryStudioRetainsItsRealResultStateAtMediumAndCompactWidths[jvm]" classname="ai.bestbuds.reaktor.machinesignal.DatabaseStudioPaneRenderTest" time="0.349"/>
+  <testcase name="connectedQueryStudioAndTypedResultsRenderAsDifferentRealStates[jvm]" classname="ai.bestbuds.reaktor.machinesignal.DatabaseStudioPaneRenderTest" time="0.193"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="PaneFrameLayoutTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:15.827Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.338">
+  <properties/>
+  <testcase name="theInspectorOverlaysTheBodyAtNarrowWidthsAndKeepsItsActualFocus[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PaneFrameLayoutTest" time="0.088"/>
+  <testcase name="inlineInspectorTabsKeepTheirActualFocusAndBoundsAcrossWidthsAndTextScales[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PaneFrameLayoutTest" time="0.225"/>
+  <testcase name="explicitShowDoesNotPinAndSelectionRevealKeepsItsAutomaticIntent[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PaneFrameLayoutTest" time="0.025"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,14 @@
+{
+  "agentLibraries": {
+    "count": 274,
+    "matches": true,
+    "missing": [],
+    "extra": []
+  },
+  "cliLibraries": {
+    "count": 283,
+    "matches": true,
+    "missing": [],
+    "extra": []
+  }
+}

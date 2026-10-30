@@ -1,0 +1,203 @@
+40 of 114 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59, kotlin-lexer/2.4.21, git-grep) · the compiler checked 78 of the 78 files searched; 82 uses on 81 lines · rev:daaf578d2352
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt
+  43:7 class AgentWorkspaceConnection: class AgentWorkspaceConnection private constructor( @Volatile private var endpoint: AgentEndpoint, val discoveryFile: Path, val ownsService: Boolean, private val remote: AgentRemoteWorkspace? = null,  · kotlin:dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection@:reaktor-conductor:main:jvmMain@reaktor
+  281 use ×2 in AgentWorkspaceConnection.Companion.remote: fun remote(profile: AgentRemoteProfile): AgentWorkspaceConnection = AgentWorkspaceConnection(
+  323 use in AgentWorkspaceConnection.Companion.open: scopeModules: (List<String>) -> List<String> = { emptyList() }): AgentWorkspaceConnection {
+  336 use in AgentWorkspaceConnection.Companion.open: return AgentWorkspaceConnection(readEndpoint(discovery, root.canonicalPath), discovery, false)
+  346 use in AgentWorkspaceConnection.Companion.open: return AgentWorkspaceConnection(readEndpoint(discovery, root.canonicalPath), discovery, false)
+  404 use in AgentWorkspaceConnection.Companion.open: return AgentWorkspaceConnection(endpoint, discovery, true, hybridConnector = connector, closeOwner = {
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/AgentConversationState.kt
+  122 use in AgentConversationState.connect: private val connect: () -> AgentWorkspaceConnection,
+  553 use in AgentConversationState.readTasks: private suspend fun readTasks(connection: AgentWorkspaceConnection): Long {
+  628 use in AgentConversationState.boardNow: private suspend fun <T> boardNow(action: suspend AgentWorkspaceConnection.() -> T): T {
+  831 use in AgentConversationState.applyGraphEdit: private suspend fun AgentWorkspaceConnection.applyGraphEdit(id: String, patch: TaskGraphPatch): TaskGraph? {
+  893 use in AgentConversationState.graphCommand: private fun graphCommand(action: suspend AgentWorkspaceConnection.() -> Unit) {
+  945 use in AgentConversationState.connection: internal fun connection(): AgentWorkspaceConnection = connect()
+  949 use in AgentConversationState.boardCommand: private fun boardCommand(action: suspend AgentWorkspaceConnection.() -> Unit) {
+  960 use in AgentConversationState.readBoard: private suspend fun readBoard(connection: AgentWorkspaceConnection) {
+  970 use in AgentConversationState.readGraphs: private suspend fun readGraphs(connection: AgentWorkspaceConnection) {
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/AgentHybridState.kt
+  12 use in AgentHybridState.connect: class AgentHybridState(private val connect: () -> AgentWorkspaceConnection, private val scope: CoroutineScope) {
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/render/compose/panes/AgentPlans.kt
+  32 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+  70 use in AgentPlans.connection: @Volatile var connection: (() -> AgentWorkspaceConnection)? = null
+modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/seams/AgentSeams.kt
+  4 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+  8 use in AgentSeams.connector: val connector: ((File) -> AgentWorkspaceConnection)? = null,
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/AgentWorkspaceInteractionTest.kt
+  514 use in AgentWorkspaceInteractionTest.Fixture.owner: val owner: AgentWorkspaceConnection
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/workbench/agent/AgentDoorTest.kt
+  21 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+modules/engine/src/jvmTest/kotlin/ai/bestbuds/reaktor/workbench/agent/AgentPaneRenderTest.kt
+  44 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAccess.kt
+  3 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentMcpHost.kt
+  4 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+  57 use in KernelAgentMcpHost.connect: suspend fun connect(root: File): AgentWorkspaceConnection {
+  64 use in KernelAgentMcpHost.server: fun server(connection: AgentWorkspaceConnection, seat: String? = null): ReaktorMcpServer {
+  179 use in KernelAgentMcpHost.serve: suspend fun serve(root: File, connection: AgentWorkspaceConnection? = null, seat: String? = null) {
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgents.kt
+  3 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+  13 use in KernelAgents.connector: private val connector: ((File) -> AgentWorkspaceConnection)? = null,
+  16 use in KernelAgents.connection: private var connection: AgentWorkspaceConnection? = null
+  25 use in KernelAgents.ownerFactory: private var ownerFactory: ((File) -> AgentWorkspaceConnection)? = null
+  27 use in KernelAgents.bindOwner: @Synchronized internal fun bindOwner(factory: (File) -> AgentWorkspaceConnection) {
+  106 use in KernelAgents.call: private suspend fun call(owner: AgentWorkspaceConnection, name: String, arguments: JsonObject): dev.shibasis.reaktor.mcp.ToolResult {
+  153 use in KernelAgents.connect: fun connect(): AgentWorkspaceConnection = synchronized(startupLock) {
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelDoor.kt
+  4 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/AtlasCli.kt
+  5 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/WorkspaceDoor.kt
+  3 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelAcceptanceTest.kt
+  4 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelAccessTest.kt
+  11 use: import dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceConnection
+note: Left out 179 matches of AgentWorkspaceConnection that the compiler resolves to other declarations or that name no declaration
+note: More lines contain AgentWorkspaceConnection than one search returns; narrow with path
+note: Also lists 32 lines that mention AgentWorkspaceConnection outside Kotlin code: comments, strings and other files
+note: 74 more beyond the limit of 40
+next: atlas_read {"id":"d:../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt:42:6@0b9ed5c7"}
+--- queries[0] {"from":{"name":"BestBudsApplication"}}
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:97aead51240a
+modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBudsApp.kt
+  88:12 class BestBudsApplication: open class BestBudsApplication(id: Uuid) : Graph(id = id) · kotlin:ai/bestbuds/app/BestBudsApplication@:app:main:commonMain@bestbuds
+next: atlas_read {"id":"d:modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBudsApp.kt:87:11@34407e9d"}
+next: atlas_query {"from":{"id":"d:modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBudsApp.kt:87:11@34407e9d"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[1] {"from":{"name":"AnalyticsDeliveryNode.securitySpans"},"read":true}
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:5d6cfb662dbd
+modules/app/src/commonMain/kotlin/ai/bestbuds/app/data/analytics/AnalyticsDeliveryNode.kt
+  159:9 property AnalyticsDeliveryNode.securitySpans: val securitySpans · kotlin:ai/bestbuds/app/data/analytics/AnalyticsDeliveryNode#securitySpans@:app:main:commonMain@bestbuds
+modules/app/src/commonMain/kotlin/ai/bestbuds/app/data/analytics/AnalyticsDeliveryNode.kt · val securitySpans · 924 of 924 characters · rev:5d6cfb662dbd
+159  val securitySpans = SpanSink { span ->
+160          if (enabled) {
+161              val subject = subjects.value[span.node] ?: run { refreshSubjects(); subjects.value[span.node].orEmpty() }
+162              record(span.copy(island = "bestbuds-client", applicationSession = SessionContext.currentSessionId(),
+163                  environment = AppEnvironment.current.name, build = GeneratedBuildFlags.sourceRevision,
+164                  node = subject[ReaktorAttributes.NodeId].orEmpty(), graphDigest = subject[ServiceCall.GraphAttribute].orEmpty(),
+165                  activation = id.toString()))
+166              if (span.operation == "open" && span.status >= 400 && span.status != 499)
+167                  logEvent(BestBudsEvents.CHAT_DECRYPTION_FAILED, mapOf(BestBudsEventKeys.REASON to (span.decisions["failure"] ?: "unknown")))
+168              if (span.operation == "commit" && span.status == 409) logEvent(BestBudsEvents.CHAT_COMMIT_CONFLICT)
+169          }
+170      }
+next: atlas_read {"id":"d:modules/app/src/commonMain/kotlin/ai/bestbuds/app/data/analytics/AnalyticsDeliveryNode.kt:158:8@7eeeb209"}
+next: atlas_query {"from":{"id":"d:modules/app/src/commonMain/kotlin/ai/bestbuds/app/data/analytics/AnalyticsDeliveryNode.kt:158:8@7eeeb209"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[0] {"at":"modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBudsApp.kt:226"}
+modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBudsApp.kt · class MessagingGraph(parent: Graph, backend: Backend) : Graph(parent, label = "messaging") · 2037 of 2037 characters · rev:97aead51240a
+200  class MessagingGraph(parent: Graph, backend: Backend) : Graph(parent, label = "messaging") {
+201      private val user = backend.user
+202      private val chats = backend.origin(Backend::messaging)
+203      val service = relay(backend.messaging)
+204      val stream = relay(backend.chatStream)
+205      val peopleService = relay(backend.people)
+206      val groupsService = relay(backend.groups)
+207      val pages = Node(::ChatPages)
+208      internal val chatRuntime = Graph { ChatGraph(it, user.id, !chats.live || FeatureFlags.bootValue(FeatureFlags.VOICE_MESSAGES)) }
+209      val sessions get() = chatRuntime.sessions
+210      val conversations = Node { Conversations(it, user.id, chats.clock, "${user.appId}/${user.id}/${chats.label}") }
+211      val person = Route("/people/{id}", ::PersonBinding, ::PersonScreen)
+212      val blocked = Route("/settings/blocked", ::BlockedBinding, ::BlockedPeopleScreen)
+213      val buds = Route("/buds", ::BudsBinding, ::BudsScreen)
+214      val createGroup = Route("/groups/new", ::NewGroupBinding, ::NewGroupScreen)
+215      val groupInfo = Route("/chats/{id}/info", ::GroupInfoBinding, ::GroupInfoScreen)
+216      val chat = Route("/chats/{id}", ::ChatBinding, ::ChatScreen)
+217      val route = Root("/chats", ::ConversationsBinding, ::ConversationsScreen)
+218  
+219      init {
+220          val policy = chatSecuritySession(user.appId, user.id)
+221          if (chats.live && PlatformSecurity.available && policy != null) {
+222              provide(policy)
+223              provide<PlatformSecretBox>(PlatformSecurity.secretBox("ai.bestbuds.chat.${user.appId}.${user.id}"))
+224              provide(requireNotNull(input<AppStorage>().impl.store("Chat.Security")), "security-state")
+225              remote(SecureDirectoryApi() over userLink(Servers.MessagingServer, user))
+226              Node { SecurityNode(it, input<AnalyticsDeliveryNode>().securitySpans) }
+227              Node { ChatSecurity(it, user.id) }
+228          } else {
+229              Node(::UnencryptedChatSecurity)
+230          }
+231          relay(backend.media)
+232          relay(backend.stickers)
+233          Node(::People)
+234          Node(::Groups)
+235          Node(::NewGroup)
+236      }
+237  }
+next: atlas_query {"from":{"id":"d:modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBudsApp.kt:199:6@34407e9d"},"follow":[{"rel":"references","dir":"in"}]}
+--- reads[1] {"paths":["modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/AgentWorkspaceCli.kt","modules/kernel/src/test/kotlin/dev/shibasis/reaktor/conductor/cli/StdioBridgeTest.kt","../reaktor/re
+modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/AgentWorkspaceCli.kt · imports · 429 of 429 characters · rev:1bc3b04011c7
+ 1  package dev.shibasis.reaktor.conductor.cli
+ 2  
+ 3  import dev.shibasis.reaktor.conductor.*
+ 4  import dev.shibasis.reaktor.conductor.workspace.*
+ 5  import kotlinx.coroutines.*
+ 6  import java.io.File
+ 7  import java.util.concurrent.CountDownLatch
+ 8  import kotlinx.serialization.json.*
+ 9  import dev.shibasis.reaktor.tooling.mcp.door.DoorConfig
+10  import dev.shibasis.reaktor.tooling.mcp.door.DoorTransport
+11  import dev.shibasis.reaktor.core.framework.prettyJson
+modules/kernel/src/test/kotlin/dev/shibasis/reaktor/conductor/cli/StdioBridgeTest.kt · imports · 248 of 248 characters · rev:fcfb2baaea76
+1  package dev.shibasis.reaktor.conductor.cli
+2  
+3  import kotlinx.coroutines.delay
+4  import kotlinx.coroutines.runBlocking
+5  import kotlinx.serialization.json.*
+6  import java.util.Collections
+7  import java.util.concurrent.atomic.AtomicInteger
+8  import kotlin.test.*
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt · imports · 1443 of 1443 characters · rev:e0d714e144e8
+ 1  package dev.shibasis.reaktor.conductor.workspace
+ 2  
+ 3  import dev.shibasis.reaktor.conductor.*
+ 4  import dev.shibasis.reaktor.conductor.appserver.AgentRuntimes
+ 5  import dev.shibasis.reaktor.conductor.cli.CliCapabilities
+ 6  import dev.shibasis.reaktor.conductor.cli.AgentBundle
+ 7  import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
+ 8  import dev.shibasis.reaktor.conductor.cli.CodexRuntime
+ 9  import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
+10  import dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServer
+11  import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
+12  import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
+13  import kotlinx.coroutines.Dispatchers
+14  import kotlinx.coroutines.CoroutineScope
+15  import kotlinx.coroutines.SupervisorJob
+16  import kotlinx.coroutines.cancel
+17  import kotlinx.coroutines.withContext
+18  import kotlinx.coroutines.runInterruptible
+19  import kotlinx.serialization.Serializable
+20  import kotlinx.serialization.builtins.ListSerializer
+21  import kotlinx.serialization.json.*
+22  import java.io.File
+23  import java.net.URI
+24  import java.net.http.HttpClient
+25  import java.net.http.HttpRequest
+26  import java.net.http.HttpResponse
+27  import java.nio.channels.FileChannel
+28  import java.nio.channels.OverlappingFileLockException
+29  import java.nio.file.Files
+30  import java.nio.file.Path
+31  import java.nio.file.StandardOpenOption.*
+32  import java.security.SecureRandom
+33  import java.time.Duration
+34  import java.util.Base64
+35  import java.util.concurrent.atomic.AtomicBoolean
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.kt · imports · 628 of 628 characters · rev:18f850d385f0
+ 1  package dev.shibasis.reaktor.tooling.mcp
+ 2  
+ 3  import com.sun.net.httpserver.HttpExchange
+ 4  import com.sun.net.httpserver.HttpServer
+ 5  import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
+ 6  import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
+ 7  import dev.shibasis.reaktor.mcp.McpMessageHandler
+ 8  import java.security.MessageDigest
+ 9  import java.net.InetSocketAddress
+10  import java.net.URI
+11  import java.net.URLDecoder
+12  import java.util.concurrent.SynchronousQueue
+13  import java.util.concurrent.ThreadPoolExecutor
+14  import java.util.concurrent.TimeUnit
+15  import java.util.concurrent.atomic.AtomicBoolean
+16  import kotlinx.serialization.json.*

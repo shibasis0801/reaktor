@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="PlanBoardModelTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:17.423Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.066">
+  <properties/>
+  <testcase name="keysNameTheThreadAndTheItem[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PlanBoardModelTest" time="0.025"/>
+  <testcase name="aSinglePlanLeavesItsTitleOutOfEachCard[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PlanBoardModelTest" time="0.01"/>
+  <testcase name="aDesignDrawsComponentsAsFramesBesideWhatTheyRelateTo[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PlanBoardModelTest" time="0.008"/>
+  <testcase name="aSeatPutsItsAgentOnTheCardsItWasGiven[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PlanBoardModelTest" time="0.014"/>
+  <testcase name="selectedPlansDrawAsOneBoardOfSeparateThreads[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.PlanBoardModelTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

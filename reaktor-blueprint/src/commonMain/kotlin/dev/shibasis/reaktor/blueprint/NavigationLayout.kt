@@ -91,31 +91,65 @@ private fun navigationPath(sx: Double, sy: Double, tx: Double, ty: Double, boxes
     val xs = (boxes.flatMap { listOf(it.x - gap, it.x + it.width + gap) } + listOf(sx, tx)).distinct().sorted()
     val ys = (boxes.flatMap { listOf(it.y - gap, it.y + it.height + gap) } + listOf(sy, ty)).distinct().sorted()
     fun index(x: Double, y: Double) = ys.indexOf(y) * xs.size + xs.indexOf(x)
-    fun clear(ax: Double, ay: Double, bx: Double, by: Double): Boolean = boxes.none { box ->
-        if (ax == bx) ax > box.x + .01 && ax < box.x + box.width - .01 && maxOf(ay, by) > box.y + .01 && minOf(ay, by) < box.y + box.height - .01
-        else ay > box.y + .01 && ay < box.y + box.height - .01 && maxOf(ax, bx) > box.x + .01 && minOf(ax, bx) < box.x + box.width - .01
+    fun clear(ax: Double, ay: Double, bx: Double, by: Double): Boolean {
+        var i = 0
+        while (i < boxes.size) {
+            val box = boxes[i++]
+            val crosses = if (ax == bx) ax > box.x + .01 && ax < box.x + box.width - .01 && maxOf(ay, by) > box.y + .01 && minOf(ay, by) < box.y + box.height - .01
+                else ay > box.y + .01 && ay < box.y + box.height - .01 && maxOf(ax, bx) > box.x + .01 && minOf(ax, bx) < box.x + box.width - .01
+            if (crosses) return false
+        }
+        return true
     }
     val source = index(sx, sy); val target = index(tx, ty)
     val distance = DoubleArray(xs.size * ys.size) { Double.POSITIVE_INFINITY }
     val before = IntArray(distance.size) { -1 }
-    val heap = ArrayList<Pair<Int, Double>>()
+    var heapIds = IntArray(32)
+    var heapCosts = DoubleArray(32)
+    var heapSize = 0
     fun push(id: Int, value: Double) {
-        heap.add(id to value); var i = heap.lastIndex
-        while (i > 0) { val p = (i - 1) / 2; if (heap[p].second <= value) break; heap[i] = heap[p]; i = p }; heap[i] = id to value
+        if (heapSize == heapIds.size) {
+            heapIds = heapIds.copyOf(heapSize * 2)
+            heapCosts = heapCosts.copyOf(heapSize * 2)
+        }
+        var i = heapSize++
+        while (i > 0) {
+            val p = (i - 1) / 2
+            if (heapCosts[p] <= value) break
+            heapIds[i] = heapIds[p]; heapCosts[i] = heapCosts[p]; i = p
+        }
+        heapIds[i] = id; heapCosts[i] = value
     }
-    fun pop(): Pair<Int, Double> {
-        val result = heap[0]; val last = heap.removeAt(heap.lastIndex)
-        if (heap.isNotEmpty()) { var i = 0; while (i * 2 + 1 < heap.size) { var child = i * 2 + 1; if (child + 1 < heap.size && heap[child + 1].second < heap[child].second) child++; if (last.second <= heap[child].second) break; heap[i] = heap[child]; i = child }; heap[i] = last }
+    fun pop(): Int {
+        val result = heapIds[0]
+        val last = --heapSize
+        if (heapSize > 0) {
+            val id = heapIds[last]; val cost = heapCosts[last]
+            var i = 0
+            while (i * 2 + 1 < heapSize) {
+                var child = i * 2 + 1
+                if (child + 1 < heapSize && heapCosts[child + 1] < heapCosts[child]) child++
+                if (cost <= heapCosts[child]) break
+                heapIds[i] = heapIds[child]; heapCosts[i] = heapCosts[child]; i = child
+            }
+            heapIds[i] = id; heapCosts[i] = cost
+        }
         return result
     }
     distance[source] = 0.0; push(source, 0.0)
-    while (heap.isNotEmpty()) {
-        val (at, cost) = pop()
+    while (heapSize > 0) {
+        val cost = heapCosts[0]
+        val at = pop()
         if (cost != distance[at]) continue
         if (at == target) break
         val x = at % xs.size; val y = at / xs.size
-        val next = listOfNotNull(if (x > 0) at - 1 else null, if (x + 1 < xs.size) at + 1 else null, if (y > 0) at - xs.size else null, if (y + 1 < ys.size) at + xs.size else null)
-        for (id in next) {
+        for (direction in 0..3) {
+            val id = when (direction) {
+                0 -> if (x > 0) at - 1 else continue
+                1 -> if (x + 1 < xs.size) at + 1 else continue
+                2 -> if (y > 0) at - xs.size else continue
+                else -> if (y + 1 < ys.size) at + xs.size else continue
+            }
             val nx = id % xs.size; val ny = id / xs.size
             if (!clear(xs[x], ys[y], xs[nx], ys[ny])) continue
             val value = cost + abs(xs[x] - xs[nx]) + abs(ys[y] - ys[ny])

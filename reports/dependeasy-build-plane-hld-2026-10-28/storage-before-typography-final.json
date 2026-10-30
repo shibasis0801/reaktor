@@ -1,0 +1,2422 @@
+{
+  "started_epoch": 1793228236.516305,
+  "dry_run": false,
+  "free_bytes_before": 14486294528,
+  "minimum_free_bytes": 15000000000,
+  "tmp_workspace_roots": [
+    "/Users/ovd/dev/tmp",
+    "/Users/ovd/dev/reaktor/tmp",
+    "/Users/ovd/dev/reaktor/.tmp",
+    "/Users/ovd/dev/manna/tmp",
+    "/Users/ovd/dev/bestbuds/tmp",
+    "/Users/ovd/dev/bestbuds/.tmp",
+    "/Users/ovd/.codex/tmp",
+    "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/worktrees/9c71ad7c6640cc0ea7021f6ef3fbb4051806a8d44d510b89b72693a4afa195ec/bestbuds",
+    "/Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/worktrees/9c71ad7c6640cc0ea7021f6ef3fbb4051806a8d44d510b89b72693a4afa195ec/reaktor"
+  ],
+  "tmp_system_roots": [
+    "/private/tmp",
+    "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T"
+  ],
+  "tmp": {
+    "limit_bytes": 40000000000,
+    "bytes_before": 19839278080,
+    "bytes_after": 15457457152,
+    "removed": [
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/ee4f7ac9-eb31-436f-aefa-a0c3d7deec35",
+        "charged_bytes": 140046336
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/9c528a97-ddad-4cb3-9710-2390b90c50b1",
+        "charged_bytes": 23216128
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.12-44-49-562.00.log",
+        "charged_bytes": 970752
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.13-09-43-883.00.log",
+        "charged_bytes": 143360
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.13-11-42-206.01.log",
+        "charged_bytes": 1052672
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.13-11-42-206.00.log",
+        "charged_bytes": 856064
+      },
+      {
+        "path": "/private/tmp/reaktor-v2-map",
+        "charged_bytes": 794624
+      },
+      {
+        "path": "/private/tmp/reaktor-docs-repair",
+        "charged_bytes": 897024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.13-19-02-287.00.log",
+        "charged_bytes": 249856
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.13-32-49-712.01.log",
+        "charged_bytes": 1052672
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.13-32-49-712.00.log",
+        "charged_bytes": 454656
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpzYBO5b",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpFnRI0t",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpEdaDga",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpXzNdF5",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQ1u2oa",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpfgUDHT",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpjtOAfo",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpueJndE",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp5aMHut",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp9xtIKB",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpduipcR",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpgWMYZf",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpdtrnSy",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpRYgKti",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpyOJ750",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpw21dlN",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpsFAN3p",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmphGIvZx",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpTsycfo",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp7nQNxI",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpabT5SO",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpz3LQp0",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/90dc1329-9bc2-40de-9bc9-c9c428022737",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpceo5Uu",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp2BOJnY",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpe0VqL6",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp0UzH67",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpbqKHR9",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpIVLb4r",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpJC3XHW",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpr6jlgQ",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp383CnR",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp0DNuFA",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p0-app.log",
+        "charged_bytes": 94208
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p0-app2.log",
+        "charged_bytes": 90112
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p0",
+        "charged_bytes": 53248
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/deploy-canary.log",
+        "charged_bytes": 81920
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/deploy-canary2.log",
+        "charged_bytes": 61440
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/cfhealth.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/deploy-rest.tasks",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tailfilter.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/deploy-rest.log",
+        "charged_bytes": 65536
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/probe-analytics.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/d1-plan.log",
+        "charged_bytes": 32768
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/deploy-social.log",
+        "charged_bytes": 106496
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/probe-social.log",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/probe-notification.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpmpd2iK",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpR5Vwwc",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpDBz8yx",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp9seesm",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpkABjz7",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpirt5GU",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpYN8Z9a",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpahs14a",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tailfilter2.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tail-cf.err",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpDjNJ1p",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpJIf3Op",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpIVDDNe",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpuRxIyd",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp3RT7Dd",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpJN6B5R",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpixka2N",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQDK64q",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpW7UNQW",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpAIOILN",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p3-engine.log",
+        "charged_bytes": 102400
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpY23nwZ",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpBTkDOh",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmppL2Xh0",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpH3uN21",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpAxVN0J",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp576s0P",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp3UXEwv",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpsgEuuX",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpCndn4v",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmphCihBN",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpHpc438",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpAocFs9",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpwqLuLK",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpXCvnSE",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpLtSPCJ",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpd0tZIM",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpaNwN8S",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp1b5MGi",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpgpexAT",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tail-cf.summary",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tail-cf.size",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p4-app.log",
+        "charged_bytes": 69632
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp0LgqLE",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpH75rO4",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpolCsyW",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpP1duI8",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpGPjlko",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpZ0y3Zd",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmphM30HO",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpJvvRS6",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpCLtNqm",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpvNAAiK",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpHljzs2",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp50shbk",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpLUI3i6",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpZArcuX",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpCpJn8G",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpWcTyKC",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpDAoHNe",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpslch3J",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpov7Sv9",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpm9ueQg",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpC14V4W",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp04nVkQ",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmplbVCMZ",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp4fuTyH",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp3XeW20",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp3QylVq",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpItr61s",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpzFgBo0",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpBunV6y",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp9iNnXf",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQiO5bU",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpZ0Z4af",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpNYuELl",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpCZswIo",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpt11pJi",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpbqwK0G",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpHRIeLO",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpz8lgSp",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmphH7ieB",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp6P1o7n",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpH7N36k",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpF00PTa",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp96S7I4",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp9TDNBK",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpy92xAU",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpk1cdRC",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpW0zFsI",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp75Ridz",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpTVuD02",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpS9IuR3",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpR5VupE",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpoEmxJN",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp59PUqh",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQUcozr",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpLgIcrA",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpviIi8x",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpr9EukM",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp5HK4l5",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp5q66xZ",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.15-58-34-276.02.log",
+        "charged_bytes": 1179648
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.15-58-34-276.01.log",
+        "charged_bytes": 1052672
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.15-57-01-956.00.log",
+        "charged_bytes": 757760
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.15-58-34-276.00.log",
+        "charged_bytes": 577536
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/deploy8.log",
+        "charged_bytes": 90112
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/sbsql.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.16-09-56-376.02.log",
+        "charged_bytes": 1056768
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.16-09-56-376.01.log",
+        "charged_bytes": 1052672
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-config-pane14176172325432156147",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.16-09-56-376.00.log",
+        "charged_bytes": 151552
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpcx6wyH",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpMc6iBM",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQZCf0Y",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpBqv2AA",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/rolesfmt.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/rolesbackup.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/rolesdelete.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpS2nzpt",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/codex-remote-attachments",
+        "charged_bytes": 45056
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/flows-auth.log",
+        "charged_bytes": 81920
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/artifact-files",
+        "charged_bytes": 41984
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpa9Y9Kd",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpLcEOf9",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpWHtOeK",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpOg5kgq",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpdZET6g",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmphSQ5q5",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/deploy17.log",
+        "charged_bytes": 86016
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/receipts.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/health17.txt",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/flows-auth2.log",
+        "charged_bytes": 77824
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/flows-auth3.log",
+        "charged_bytes": 73728
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpxrU8li",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpSqDppP",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/flows-auth4.log",
+        "charged_bytes": 73728
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p6",
+        "charged_bytes": 294912
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/dist2.log",
+        "charged_bytes": 102400
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpkAHZfP",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpFO2dxX",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.17-01-46-730.01.log",
+        "charged_bytes": 1052672
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/server-build.log",
+        "charged_bytes": 102400
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpxOw8vj",
+        "charged_bytes": 270336
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/server-push.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/server-patch.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.17-02-18-146.02.log",
+        "charged_bytes": 1060864
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.17-02-18-146.01.log",
+        "charged_bytes": 1052672
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpATUaxz",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpMBrypW",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/c05e14a7-a6fb-4695-8901-a1ff6e3abc77",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/46860f51-01f1-473f-b27f-e392eb3b5e2c",
+        "charged_bytes": 86016
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.17-02-18-146.00.log",
+        "charged_bytes": 987136
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.17-01-46-730.00.log",
+        "charged_bytes": 184320
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/reaktor-v2-docs-mobile.png",
+        "charged_bytes": 843776
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.14-35-34-072.02.log",
+        "charged_bytes": 1052672
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.14-35-34-072.01.log",
+        "charged_bytes": 1052672
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/drain-check.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/upgrade-owner.sh",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/facts-tests.log",
+        "charged_bytes": 172032
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tail-ce.err",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tail-ce.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tail-ce.summary",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/dist3.log",
+        "charged_bytes": 28672
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/facts-js.log",
+        "charged_bytes": 69632
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/upgrade-owner.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p7",
+        "charged_bytes": 57344
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/interchange-req.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/interchange.err",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/interchange.json",
+        "charged_bytes": 61440
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.17-42-36-545.00.log",
+        "charged_bytes": 446464
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/model-export.log",
+        "charged_bytes": 32768
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/ExportOptions.generated.plist",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/release",
+        "charged_bytes": 1991647232
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/run-show-ce.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/describe-apply.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/describe-apply.out",
+        "charged_bytes": 335872
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpHLtFlE",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpoYDEUn",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-campaignEngagement.req.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-archiver.req.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-accountPurge.req.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-campaignEngagement.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-archiver.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan.progress",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-accountPurge.out",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/runs-running.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/probe-timeout.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.14-35-34-072.00.log",
+        "charged_bytes": 311296
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/kernel-call.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/runs-running.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-ce-direct.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/compose-resources",
+        "charged_bytes": 7458816
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-ce-direct.out",
+        "charged_bytes": 77824
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-ce.json",
+        "charged_bytes": 86016
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-ce.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-archiver-direct.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-archiver-direct.out",
+        "charged_bytes": 77824
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-accountPurge-direct.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-plan-accountPurge-direct.out",
+        "charged_bytes": 77824
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-archiver.json",
+        "charged_bytes": 86016
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-archiver.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-accountPurge.json",
+        "charged_bytes": 86016
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-accountPurge.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/run-cancel-stale.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/run-cancel-stale.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/PrivacyInfo.xcprivacy",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GoogleService-Info.plist",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/nanopb_nanopb.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Promises_Promises.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Promises_FBLPromises.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GoogleUtilities_GoogleUtilities-UserDefaults.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GoogleUtilities_GoogleUtilities-Reachability.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GoogleUtilities_GoogleUtilities-Network.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GoogleUtilities_GoogleUtilities-NSData.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GoogleUtilities_GoogleUtilities-Logger.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GoogleUtilities_GoogleUtilities-Environment.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GoogleUtilities_GoogleUtilities-AppDelegateSwizzler.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GoogleDataTransport_GoogleDataTransport.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GTMSessionFetcher_GTMSessionFetcherCore.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/GTMAppAuth_GTMAppAuth.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Firebase_FirebaseMessaging.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Firebase_FirebaseInstallations.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Firebase_FirebaseCrashlytics.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Firebase_FirebaseCoreInternal.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Firebase_FirebaseCoreExtension.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Firebase_FirebaseCore.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/AppAuth_AppAuthCore.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/AppAuth_AppAuth.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/AppIcon60x60@2x.png",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/AppIcon76x76@2x~ipad.png",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Assets.car",
+        "charged_bytes": 159744
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/PlugIns/NotificationService.appex/_CodeSignature",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/PlugIns/NotificationService.appex/NotificationService",
+        "charged_bytes": 634880
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/PlugIns/NotificationService.appex/Info.plist",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/Info.plist",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/PkgInfo",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/_CodeSignature",
+        "charged_bytes": 61440
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Products/Applications/iosApp.app/iosApp",
+        "charged_bytes": 72982528
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/dSYMs",
+        "charged_bytes": 115548160
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/iosApp.xcarchive/Info.plist",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/ipa",
+        "charged_bytes": 49823744
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/android-failure-images.json",
+        "charged_bytes": 970752
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-in-bestbuds-5304402580385147006.alive",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-client-5143304693216957233-is-running",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-in-reaktor-13141182790375835653.alive",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-compiler-client-8104927993306913177-is-running",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpDm7HSR",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpP33WFM",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-ce.2.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-archiver.2.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-accountPurge.2.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/reaktor-shell-render5452603913684284057",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/reaktor-shell-render4296912944162896210",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/spend-approved.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home1988470468045929019",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home11901503910989717183",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents8378939713091168020",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home6013148425438279587",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents14384671131311781306",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home10894147760607723585",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents8462308411721867143",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home18287470716746934097",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents10268695381512872993",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home12833077545703521533",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home10776866765283578965",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents14665991209510322516",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home11354360414363412093",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home18316067967279953105",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home3712304843432552947",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents9002571073144358463",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home1366338571489547198",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents3386295403978094595",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home1040848859243605332",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents17283794022929991999",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home2606852130040536459",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents11501252566160470154",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home9340679963019747145",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home5012496819223023627",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home2222026754010653951",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents4166178927084330810",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpgMPRJp",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpa2XfE1",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home995344253082257182",
+        "charged_bytes": 3072
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents12182454441197426369",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-ce.3.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-archiver.3.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-accountPurge.3.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/build-show-ce.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/build-show-ce.out",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agents15296571152400692333",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/hangar-agent-home798164573283020816",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/kstatus.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/kstatus.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/complete.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/complete.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-ce.4.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-archiver.4.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-apply-accountPurge.4.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-secrets.py",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/9d664500-dd0f-419a-b25c-6ce167833804",
+        "charged_bytes": 6696960
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-campaignEngagement-apply1.json",
+        "charged_bytes": 86016
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-campaignEngagement-apply1.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-secrets.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-secrets2.py",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-campaignEngagement-plan.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-campaignEngagement-plan.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-archiver-plan.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-archiver-plan.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-accountPurge-plan.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpgYvucN",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp3Pu4hA",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-accountPurge-plan.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/ship-secrets2.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-request.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-plan-start.txt",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-gradle-plan.log",
+        "charged_bytes": 36864
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-request.json",
+        "charged_bytes": 28672
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-gradle-apply.log",
+        "charged_bytes": 32768
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tail-ce2.err",
+        "charged_bytes": 0
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tail-ce2.json",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpr0sWni",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpJ3ho19",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/tail-ce2.summary",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/secrets-gradle-plan2.log",
+        "charged_bytes": 32768
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p8",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQHwyyE",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp2vs6Sf",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpqB1YPo",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp9iwv1M",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpi5nePc",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpfwU3Nt",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpkVKXk5",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpEQSMRM",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp7ZMDJB",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpgsmElN",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpLTptif",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpLV7gOe",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp35Og2j",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.19-27-17-031.00.log",
+        "charged_bytes": 45056
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/kotlin-daemon.2026-10-28.19-47-23-672.00.log",
+        "charged_bytes": 77824
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpkfte8S",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpQkp3ds",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/7f8c144a-f0ac-421a-b701-88987cfc0a73",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/rolesheld.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/superholders.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/rolessync.py",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/rolesverify.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/23a37cc8-d0f1-4e18-8f50-643b91e87650",
+        "charged_bytes": 102400
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpfM7xsB",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpnBefIC",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/docs-test-server.sh",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/docs-test-server.pid",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/docs-test-server.log",
+        "charged_bytes": 16384
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/deploy-docs.sh",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/docs-nav.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/live-docs-bundle.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/docs-plan.log",
+        "charged_bytes": 118784
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpnjBtig",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpLMLdkU",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/docs-apply.log",
+        "charged_bytes": 53248
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/deploy-docs.out",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/live-docs-bundle-snippet.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/live-docs-bundle-consts.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpaYKlw4",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpC7TOd8",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpzLqiYV",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpyJe2R6",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpDzO9F3",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpqt1nBX",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpPQ86vf",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p9",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmplVmRA8",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpbjyx02",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpfrtZop",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp1CCwqM",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmprRs7lw",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/whoisholder.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/whoisholder2.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/whoisholder3.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/whoisholder4.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/rolesrestore.py",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/restoreverify.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/deletion.playwright.config.mjs",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/deletion-browser-results",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/run_remaining_ios_release_flows.py",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmper1VGv",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpLsEhly",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpeCofk6",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmphoCNym",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpcum3Wg",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpp9pqeX",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpbhpoMV",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp5rdNow",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpIyXF4S",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp3CaBTj",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp5bhOhX",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpSYxbWA",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp4rG03J",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpae9Ewr",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpHokJqi",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpJQlGRU",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp5J56re",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/reaktor-database-studio-17662537979998637248",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/kernel-writer-test.log",
+        "charged_bytes": 24576
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpZHTL3T",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpzOS1eF",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/kernel-writer-test2.log",
+        "charged_bytes": 36864
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/p10",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/hangar-dist.log",
+        "charged_bytes": 122880
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/pdfs",
+        "charged_bytes": 3739648
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/docs-ask-desktop.png",
+        "charged_bytes": 192512
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/docs-ask-mobile.png",
+        "charged_bytes": 77824
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/hangar-dist2.log",
+        "charged_bytes": 155648
+      },
+      {
+        "path": "/private/tmp/claude-501/-Users-ovd-dev/41cc7a56-4136-4a73-aab2-cb6e89bc1824/scratchpad/hld",
+        "charged_bytes": 176128
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-source-coverage.json",
+        "charged_bytes": 245760
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-android-photo.log",
+        "charged_bytes": 118784
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-ios-photo.log",
+        "charged_bytes": 53248
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-media-tests-retry.log",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/tmpshtaeex4",
+        "charged_bytes": 1908736
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-ios-build.log",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-android-photo-retry.log",
+        "charged_bytes": 110592
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-media-tests-final.log",
+        "charged_bytes": 65536
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-android-redirect-test.log",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-android-redirect-test-retry.log",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpjWSlkR",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpsRIkuL",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmptJgvZe",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpN1EeS4",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp2dCmvI",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmptznWLn",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpF4KaAO",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmpXFILa0",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp27GBWd",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/private/var/folders/zy/vb8g0f2d0132g4zt_bz5scq80000gn/T/.tmp0UzTo8",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-android-photo-final.log",
+        "charged_bytes": 110592
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Logs",
+        "charged_bytes": 36864
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/SourcePackages",
+        "charged_bytes": 1298718720
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-android-photo-verified.log",
+        "charged_bytes": 106496
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-ios-preparation.log",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-android-photo-complete.log",
+        "charged_bytes": 106496
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/.tmp/e2ee-ios-local-preparation.log",
+        "charged_bytes": 12288
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/info.plist",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/CompilationCache.noindex",
+        "charged_bytes": 28672
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/PackageFrameworks",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Intermediates.noindex",
+        "charged_bytes": 324325376
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/nanopb_nanopb.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Promises_Promises.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Promises_FBLPromises.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities_GoogleUtilities-UserDefaults.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities_GoogleUtilities-Reachability.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities_GoogleUtilities-Network.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities_GoogleUtilities-NSData.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities_GoogleUtilities-Logger.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/SDKStatCaches.noindex",
+        "charged_bytes": 1490944
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Index.noindex",
+        "charged_bytes": 40484864
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/nanopb.o",
+        "charged_bytes": 49152
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/third-party-IsAppEncrypted.o",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities_GoogleUtilities-Environment.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Promises.swiftmodule",
+        "charged_bytes": 159744
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities_GoogleUtilities-AppDelegateSwizzler.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities-NSData.o",
+        "charged_bytes": 16384
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities-Environment.o",
+        "charged_bytes": 73728
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleDataTransport_GoogleDataTransport.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities-Logger.o",
+        "charged_bytes": 24576
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GTMSessionFetcher_GTMSessionFetcherCore.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities-UserDefaults.o",
+        "charged_bytes": 28672
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities-Reachability.o",
+        "charged_bytes": 28672
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities-Network.o",
+        "charged_bytes": 155648
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleUtilities-AppDelegateSwizzler.o",
+        "charged_bytes": 126976
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GTMAppAuth.swiftmodule",
+        "charged_bytes": 188416
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GTMSessionFetcherCore.o",
+        "charged_bytes": 786432
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GTMAppAuth_GTMAppAuth.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Firebase_FirebaseMessaging.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Firebase_FirebaseInstallations.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Firebase_FirebaseCrashlytics.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Firebase_FirebaseCoreInternal.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Firebase_FirebaseCoreExtension.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseRemoteConfigInterop.swiftmodule",
+        "charged_bytes": 61440
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseCoreInternal.swiftmodule",
+        "charged_bytes": 237568
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Firebase_FirebaseCore.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseRemoteConfigInterop.o",
+        "charged_bytes": 77824
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseCoreInternal.o",
+        "charged_bytes": 647168
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseCoreExtension.o",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Firebase.o",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FBLPromises.o",
+        "charged_bytes": 241664
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseSessions.swiftmodule",
+        "charged_bytes": 307200
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseCrashlyticsSwift.swiftmodule",
+        "charged_bytes": 77824
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/app.framework",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseCrashlyticsSwift.o",
+        "charged_bytes": 221184
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/Promises.o",
+        "charged_bytes": 282624
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GoogleDataTransport.o",
+        "charged_bytes": 589824
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/AppAuth_AppAuthCore.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/AppAuthCore.o",
+        "charged_bytes": 458752
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/AppAuth_AppAuth.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/AppAuth.o",
+        "charged_bytes": 65536
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/GTMAppAuth.o",
+        "charged_bytes": 487424
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseCore.o",
+        "charged_bytes": 225280
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseSessionsObjC.o",
+        "charged_bytes": 16384
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseInstallations.o",
+        "charged_bytes": 339968
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseSessions.o",
+        "charged_bytes": 716800
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseMessaging.o",
+        "charged_bytes": 798720
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/FirebaseCrashlytics.o",
+        "charged_bytes": 1142784
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/compose-resources",
+        "charged_bytes": 7458816
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/ReaktorNotifications.framework",
+        "charged_bytes": 1024
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/NotificationService.appex/Info.plist",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/NotificationService.swiftmodule",
+        "charged_bytes": 45056
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/NotificationService.appex.dSYM",
+        "charged_bytes": 1126400
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/NotificationService.appex/NotificationService.debug.dylib",
+        "charged_bytes": 1675264
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/NotificationService.appex/__preview.dylib",
+        "charged_bytes": 36864
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/NotificationService.appex/_CodeSignature",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/NotificationService.appex/NotificationService",
+        "charged_bytes": 90112
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/PrivacyInfo.xcprivacy",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GoogleService-Info.plist",
+        "charged_bytes": 4096
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/nanopb_nanopb.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/Promises_Promises.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/Promises_FBLPromises.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GoogleUtilities_GoogleUtilities-UserDefaults.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GoogleUtilities_GoogleUtilities-Reachability.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GoogleUtilities_GoogleUtilities-Network.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GoogleUtilities_GoogleUtilities-NSData.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GoogleUtilities_GoogleUtilities-Logger.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GoogleUtilities_GoogleUtilities-Environment.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GoogleUtilities_GoogleUtilities-AppDelegateSwizzler.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GoogleDataTransport_GoogleDataTransport.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GTMSessionFetcher_GTMSessionFetcherCore.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/GTMAppAuth_GTMAppAuth.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/Firebase_FirebaseMessaging.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/Firebase_FirebaseInstallations.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/Firebase_FirebaseCrashlytics.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/Firebase_FirebaseCoreInternal.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/Firebase_FirebaseCoreExtension.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/Firebase_FirebaseCore.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/AppAuth_AppAuthCore.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/AppAuth_AppAuth.bundle",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/AppIcon60x60@2x.png",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/Build/Products/Debug-iphoneos/iosApp.app/AppIcon76x76@2x~ipad.png",
+        "charged_bytes": 8192
+      },
+      {
+        "path": "/Users/ovd/dev/bestbuds/tmp/fastlane/ios/debug/ModuleCache.noindex",
+        "charged_bytes": 255250432
+      }
+    ],
+    "disk_bound_bytes": 19325572608,
+    "within_limit": true
+  },
+  "remote": {
+    "skipped": "active build or graph",
+    "limit_bytes": 40000000000,
+    "bytes_after": 28501618688,
+    "within_limit": true
+  },
+  "free_bytes_after": 17949917184,
+  "finished_epoch": 1793228290.431214
+}

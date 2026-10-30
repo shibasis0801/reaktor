@@ -1,0 +1,79 @@
+1 of 1 · syntactic (git-grep) · rev:6485fa452dd9
+modules/engine/build.gradle.kts
+  54 text: jvmTest {
+next: atlas_read {"id":"d:modules/engine/build.gradle.kts:53:8@263b4d50"}
+--- reads[0] {"path":"modules/engine/build.gradle.kts","part":"file"}
+modules/engine/build.gradle.kts · file · 2889 of 2889 characters · rev:6485fa452dd9
+ 1  import dev.shibasis.dependeasy.components.library
+ 2  import dev.shibasis.dependeasy.model.Compose
+ 3  import dev.shibasis.dependeasy.model.IdentitySource
+ 4  import dev.shibasis.dependeasy.model.IdentityRevision
+ 5  import dev.shibasis.dependeasy.model.Targets
+ 6  import dev.shibasis.dependeasy.handles.Reaktor
+ 7  import buildlogic.BestBudsDesktop
+ 8  import dev.shibasis.dependeasy.model.Suite
+ 9  import dev.shibasis.dependeasy.model.Run
+10  import dev.shibasis.dependeasy.Versions
+11  import dev.shibasis.dependeasy.android.activityFragment
+12  import dev.shibasis.dependeasy.android.androidCoroutines
+13  import dev.shibasis.dependeasy.android.extensions
+14  import dev.shibasis.dependeasy.common.commonCoroutines
+15  import dev.shibasis.dependeasy.common.commonSerialization
+16  
+17  plugins { id("dev.shibasis.dependeasy.library") }
+18  
+19  version = "1.0.0"
+20  
+21  library(namespace = "ai.bestbuds.reaktor.engine", targets = Targets.Android + Targets.Jvm, ui = Compose()) {
+22      dependencies {
+23          common {
+24              api(projects.design)
+25              api(Reaktor.Auth, Reaktor.Db, Reaktor.Blueprint, Reaktor.Graph, Reaktor.Service, Reaktor.Performance, Reaktor.Telemetry, Reaktor.Ui)
+26              api(Versions.Compose.Runtime)
+27              api(Versions.Compose.Foundation)
+28              api(Versions.Compose.Material3)
+29              implementation(Versions.Compose.Resources)
+30              commonCoroutines()
+31              commonSerialization()
+32          }
+33  
+34          android {
+35              activityFragment()
+36              androidCoroutines()
+37              extensions()
+38          }
+39  
+40          jvm {
+41              api(projects.kernel)
+42              api(projects.app)
+43              api(projects.design)
+44              api(Versions.Compose.Desktop)
+45              api(Versions.Data.SqlDelightSQLite)
+46              implementation(Versions.Data.Toml)
+47              // Cloud control plane (JVM only — reaktor-cloud has no JS target). Backs the Cloud pane.
+48              api(Reaktor.Cloud)
+49              // Shared Reaktor task catalog, safety model, planning and supervised argv executor.
+50              api(Reaktor.Tooling, Reaktor.Devtools, Reaktor.Mcp)
+51              api(Reaktor.Board)
+52          }
+53  
+54          jvmTest {
+55              implementation(Versions.Kotlin.KtorMock)
+56              implementation(Versions.Compose.Desktop)
+57          }
+58      }
+59  
+60      val generateDesktopBuildIdentity by identity(
+61          fileName = "reaktor-build.properties",
+62          sources = listOf(
+63              IdentitySource("bestbuds", ".", listOf("modules", "targets/reaktorDesktop/src/main")),
+64              IdentitySource("reaktor", "../reaktor", listOf("reaktor-*")),
+65          ),
+66          revisions = listOf(IdentityRevision("workspaceRevision", "."), IdentityRevision("frameworkRevision", "../reaktor")),
+67          recordTime = true,
+68      )
+69  
+70      val unit by tests(Suite.Jvm, environment = BestBudsDesktop.EngineTests, run = Run.onDesktopSession())
+71      val androidUnit by tests(Suite.AndroidUnit, environment = BestBudsDesktop.EngineTests)
+72  }
+73  

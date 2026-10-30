@@ -1,0 +1,24 @@
+{
+  "run": "run-1793236669035-1",
+  "status": "Failed",
+  "sealedPlan": "070c816f0daa88245f7401f2",
+  "tasks": 2105,
+  "prerequisitesRetained": true,
+  "firstFailure": {
+    "message": "Unresolved reference 'securitySpans' on receiver of type 'ProviderPort<AnalyticsDeliveryNode>'.",
+    "file": "/Users/ovd/dev/bestbuds/modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBudsApp.kt",
+    "line": 226,
+    "column": 68,
+    "kind": "compile"
+  },
+  "router": "20261029-064906-a9620f5e-bestbuds",
+  "timing": {
+    "queue_seconds": 66.101817709,
+    "execution_seconds": 122.111391333,
+    "sync_seconds": null,
+    "collection_seconds": null,
+    "publication_queue_seconds": null
+  },
+  "gradleSecondsRounded": 121,
+  "scope": "Local full server-image attempt, interrupted by app prerequisite compile failure; no image or deployment claimed."
+}

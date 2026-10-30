@@ -1,0 +1,30 @@
+{
+  "scope": "wrapLayers function only; fixed 24/100/400 mixed-height fixture; 5warmups/20samples; no end-to-end claim",
+  "exitCode": 0,
+  "jarSha256": "82888987ce8d5923fcaad6d8e009df1117669f0012e182ca10d468df2c0fb374",
+  "harnessSha256": "dc161597b2421a59d7aa9c1938b560e8848c0a5be02e3ad5906284ae74425733",
+  "samples": [
+    {
+      "cards": 24,
+      "medianMs": 0.247167,
+      "p95Ms": 0.285542,
+      "width": 2144.0,
+      "height": 1322.0
+    },
+    {
+      "cards": 100,
+      "medianMs": 0.688834,
+      "p95Ms": 0.776333,
+      "width": 4328.0,
+      "height": 3492.0
+    },
+    {
+      "cards": 400,
+      "medianMs": 9.375417,
+      "p95Ms": 10.362458,
+      "width": 10568.0,
+      "height": 7902.0
+    }
+  ],
+  "profile": "graph-height-partition-cost.jfr"
+}

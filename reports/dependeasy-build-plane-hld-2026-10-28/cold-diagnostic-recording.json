@@ -1,0 +1,17 @@
+{
+  "originalRecordingSha256": "a7c70e7e2ba4aaded12326b5cd668867dd87e927260db0a3da55123cba877984",
+  "originalBytes": 11546744,
+  "sha256": "52c361779effd90b0eed7fb9ab71bb2edeec3290fdd205fd04849d3183a1eac7",
+  "bytes": 1749311,
+  "retainedEvents": [
+    "jdk.ExecutionSample",
+    "jdk.NativeMethodSample",
+    "jdk.ThreadPark",
+    "jdk.JavaMonitorEnter",
+    "jdk.GarbageCollection",
+    "jdk.GCHeapSummary",
+    "jdk.CPULoad",
+    "jdk.ThreadCPULoad"
+  ],
+  "retention": "JDK jfr scrub allowlist; environment, system properties, process and other event families excluded"
+}

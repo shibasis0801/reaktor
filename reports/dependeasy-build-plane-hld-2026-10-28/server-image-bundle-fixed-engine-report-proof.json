@@ -1,0 +1,13 @@
+{
+  "tests": 691,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "suites": 196,
+  "firstSuite": "2026-10-29T07:12:55.616Z",
+  "lastSuite": "2026-10-29T07:21:49.192Z",
+  "failuresDetail": [],
+  "scope": "The aborted image test task did not finalize new XML: all 196 suites are the earlier 691-pass run at 07:12\u201307:21 UTC. They are retained only to demonstrate stale XML; failed frame/tooltip/timeout evidence comes from the current native event log. No fresh-suite pass claim.",
+  "freshSuites": 0,
+  "previouslyRetainedSuites": 196
+}

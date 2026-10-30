@@ -1,0 +1,23 @@
+{
+  "samples": 188,
+  "sampleFrames": {
+    "kotlinx/serialization/json/internal/JsonTreeReader.read": 72,
+    "kotlinx/serialization/json/internal/JsonTreeReader.readObject": 58,
+    "kotlinx/serialization/json/internal/JsonTreeReader.readArray": 24,
+    "kotlinx/serialization/json/internal/AbstractJsonTreeDecoder.decodeSerializableValue": 23,
+    "dev/shibasis/dependeasy/model/SourceSite$$serializer.deserialize": 18,
+    "dev/shibasis/dependeasy/model/SourceSite$$serializer.serialize": 18,
+    "kotlinx/serialization/json/internal/AbstractJsonTreeEncoder.encodeSerializableValue": 18,
+    "kotlinx/serialization/json/internal/JsonTreeReader.readValue": 17,
+    "kotlinx/serialization/internal/TaggedDecoder.decodeSerializableValue": 16,
+    "dev/shibasis/dependeasy/model/BuildModelReader.modelPage": 15,
+    "kotlinx/serialization/json/internal/AbstractJsonTreeEncoder.encodeTaggedString": 14,
+    "kotlinx/serialization/internal/TaggedEncoder.encodeSerializableElement": 14,
+    "kotlinx/serialization/internal/NamedValueDecoder.getTag": 13,
+    "kotlinx/serialization/json/internal/AbstractJsonTreeEncoder.encodeTaggedInt": 12,
+    "kotlinx/serialization/json/internal/JsonTreeEncoder.putElement": 11,
+    "kotlinx/serialization/internal/TaggedDecoder.decodeSerializableElement$lambda$1": 11
+  },
+  "recordingSha256": "4265e0beda3dcea3ad89d2f02475e73d3f23910e6369af46242bf91d2782ca14",
+  "scope": "fixed-model page reader, declarations omitted"
+}

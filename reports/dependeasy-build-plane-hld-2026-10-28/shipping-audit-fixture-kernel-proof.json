@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-29T13:48:43.350380",
+  "run": "run-1793261609200-7",
+  "atlasPlan": "pf8164e9d0d2bde4592fe",
+  "source": "/Users/ovd/dev/bestbuds/modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelBuildNodeTest.kt",
+  "sourceSha256": "39f54c033a5b26092f23b165491a2460e3f922ee042aae0856491afc9d0b126b",
+  "suites": 115,
+  "cases": 524,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 11,
+  "minTimestamp": "2026-10-29T08:14:36.154Z",
+  "maxTimestamp": "2026-10-29T08:17:26.326Z",
+  "archive": "shipping-audit-fixture-kernel-test-results.zip",
+  "archiveSha256": "571960b899aa5706ab1d3631db336605914ff161d00f3b00cb5b305f63b60e5f",
+  "fixture": {
+    "name": "ai.bestbuds.reaktor.kernel.KernelBuildNodeTest",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "timestamp": "2026-10-29T08:15:29.091Z",
+    "time": 3.337
+  },
+  "scope": "Shared source checkout; production authority unchanged; source/test-byte identities checked separately"
+}

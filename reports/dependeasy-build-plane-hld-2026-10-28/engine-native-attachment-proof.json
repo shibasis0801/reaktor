@@ -1,0 +1,29 @@
+{
+  "complete": false,
+  "terminal": "Java heap space,512MiB during StudioNavigationPerformanceTest; no native signal error in this run",
+  "counts": {
+    "tests": 671,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "failures": [],
+  "oldXml": [
+    "TEST-ai.bestbuds.reaktor.workbench.render.compose.panes.AgentBoardTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryExecutionPaneTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryLedgerStateTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryLogPinTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryNodeDisplayTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryPaneRenderTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryPerformanceTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.TelemetryPromqlRenderTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.WorkbenchLogIndexTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryInstallationTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.telemetry.WorkbenchTelemetryProbeTest.xml",
+    "TEST-ai.bestbuds.reaktor.workbench.testing.CoverageMatrixTest.xml"
+  ],
+  "archive": "engine-native-attachment-results.zip",
+  "sha256": "35b10010948bb57713da9defcf6f0261f7362b0f4043ef339826eea1969922f0",
+  "attachmentSource": "All captured native Thread-* starts are FSEvents dispatch workqueue\u2192FFM upcall\u2192AttachCurrentThreadAsDaemon",
+  "priorENOTSUP": 45
+}

@@ -1,0 +1,61 @@
+{
+  "project": "bestbuds",
+  "worker": "m1-worker",
+  "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds",
+  "source_head": "d6ecfc2c5f9f0bc5c1b590cc2a583f2c44e33c86",
+  "tasks": [
+    ":reaktorCli:test",
+    ":reaktor:reaktor-tooling:jvmTest",
+    ":kernel:verifyKernelBoundary",
+    ":reaktorCli:distZip",
+    ":kernel:agentDist",
+    ":exportBuildModel",
+    ":reaktor:exportBuildModel",
+    "--console=plain"
+  ],
+  "remote_tasks": [
+    ":reaktorCli:test",
+    ":reaktor:reaktor-tooling:jvmTest",
+    ":kernel:verifyKernelBoundary",
+    ":reaktorCli:distZip",
+    ":kernel:agentDist",
+    ":exportBuildModel",
+    ":reaktor:exportBuildModel",
+    "--console=plain"
+  ],
+  "started": "2026-10-28T21:07:22.031239",
+  "log": "/Users/ovd/dev/.remote-dev/logs/20261028-210722-1dfda828-bestbuds.log",
+  "run_id": "20261028-210722-1dfda828-bestbuds",
+  "exit_code": 1,
+  "sync_seconds": 30.401216125000005,
+  "queue_seconds": 38.346022375,
+  "owner": {
+    "pid": 42984,
+    "started": "Wed Oct 28 21:06:13 2026"
+  },
+  "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+  "workspace_root": "/Users/ovd/dev",
+  "worker_slot": 1,
+  "publication": "changed-files",
+  "source_epoch": 1793201811.6312041,
+  "execution_seconds": 68.48818062500001,
+  "worker_started_epoch": 1793201842.233278,
+  "dry_run": false,
+  "builds": {
+    "bestbuds": "bestbuds",
+    "dependeasy": "reaktor",
+    "reaktor": "reaktor"
+  },
+  "artifact_family": "all",
+  "collected": "2026-10-28T21:08:33.745334",
+  "copied_files": 142,
+  "copy_error": null,
+  "collection_seconds": 3.1297804170000063,
+  "worker_slot_trimmed": 0,
+  "publication_queue_seconds": 49.353531791999984,
+  "withheld_outputs": {
+    "bestbuds": 1
+  },
+  "finished": "2026-10-28T21:09:23.441419",
+  "publication_seconds": 49.651948917
+}

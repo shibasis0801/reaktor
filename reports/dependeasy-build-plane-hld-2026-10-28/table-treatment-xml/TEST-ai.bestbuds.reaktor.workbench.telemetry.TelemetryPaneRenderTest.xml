@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TelemetryPaneRenderTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:31:37.228Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.502">
+  <properties/>
+  <testcase name="dashboardTabsLoadTheChosenBoardAndKeepTheWorkbenchScope[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryPaneRenderTest" time="0.179"/>
+  <testcase name="bothTelemetrySubpanesRenderTheirRealState[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryPaneRenderTest" time="0.323"/>
+  <system-out><![CDATA[[telemetry-panes] 13 spans rendered -> /Users/ovd/dev/bestbuds/modules/engine/build/reports/telemetry-panes
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

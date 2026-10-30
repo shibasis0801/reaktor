@@ -1,0 +1,22 @@
+11 of 11 · syntactic (git-grep) · rev:d972fef47b17
+agent/hangar-implementation-20261009/batch2-reports.gradle
+  6 text: reports.junitXml.outputLocation = new File(reportRoot, 'xml')
+  18 text: reports.junitXml.outputLocation = new File(reportRoot, 'xml')
+agent/hangar-implementation-20261009/catalog-reports.gradle
+  6 text: reports.junitXml.outputLocation = new File(reportRoot, 'xml')
+agent/hangar-implementation-20261009/native-coverage-reports.gradle
+  6 text: reports.junitXml.outputLocation = new File(reportRoot, 'xml')
+agent/hangar-implementation-20261009/pane-sweep-reports.gradle
+  6 text: reports.junitXml.outputLocation = new File(reportRoot, 'xml')
+../reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/components/DesktopApp.kt
+  128 text in DesktopAppScope.tests: project.publishOutput(OutputKind.VerificationResults, producer.map { it.reports.junitXml.outputLocation.get() },
+../reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/handles/ModuleOutputs.kt
+  38 text in moduleOutputs: publishModuleOutput(OutputKind.VerificationResults, tests.map { it.reports.junitXml.outputLocation.get() },
+  46 text in moduleOutputs: publishModuleOutput(OutputKind.VerificationResults, executionTask.map { it.reports.junitXml.outputLocation.get() },
+../reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/verification/ComponentTests.kt
+  65 text in componentTests: reports.from(task.map { it.reports.junitXml.outputLocation.get() })
+../reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/WebConfigure.kt
+  150 text in web: project.publishModuleOutput(OutputKind.VerificationResults, executionTask.map { it.reports.junitXml.outputLocation.get() },
+../reaktor/dependeasy/qualify-wp13-tests.gradle
+  3 text: reports.junitXml.outputLocation.set(layout.buildDirectory.dir("reports/qualification/wp13-framework-evidence/" + name))
+next: atlas_read {"id":"d:agent/hangar-implementation-20261009/batch2-reports.gradle:5:20@1d7e4798"}

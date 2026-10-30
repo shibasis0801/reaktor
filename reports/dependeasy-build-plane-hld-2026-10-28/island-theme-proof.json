@@ -1,0 +1,78 @@
+{
+  "observedAt": 1793228930.642224,
+  "suites": [
+    {
+      "suite": {
+        "name": "SurfaceLabRenderTest[jvm]",
+        "tests": "7",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:08:12.180Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "12.435"
+      },
+      "sha256": "c829fac64a97815c00b20634be373a42379f39e440115240ed90fa726aeaac75",
+      "cases": [
+        {
+          "name": "machineSignalColumnsRenderEveryStory[jvm]",
+          "classname": "ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest",
+          "time": "2.894"
+        },
+        {
+          "name": "aStoryDrawsBareAndSaysSoWhereALanguageLacksItsLooks[jvm]",
+          "classname": "ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest",
+          "time": "0.109"
+        },
+        {
+          "name": "designSystemListsEveryColourRole[jvm]",
+          "classname": "ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest",
+          "time": "0.367"
+        },
+        {
+          "name": "everyControlHasAStoryInEveryLanguage[jvm]",
+          "classname": "ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest",
+          "time": "0.001"
+        },
+        {
+          "name": "canvasRendersTheStoryInEveryLanguage[jvm]",
+          "classname": "ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest",
+          "time": "0.149"
+        },
+        {
+          "name": "everyStoryRendersInEveryLanguageAndEnvironment[jvm]",
+          "classname": "ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest",
+          "time": "8.795"
+        },
+        {
+          "name": "workbenchRendersOneLiveStory[jvm]",
+          "classname": "ai.bestbuds.reaktor.machinesignal.SurfaceLabRenderTest",
+          "time": "0.12"
+        }
+      ]
+    },
+    {
+      "suite": {
+        "name": "SurfaceQualificationTest[jvm]",
+        "tests": "1",
+        "skipped": "0",
+        "failures": "0",
+        "errors": "0",
+        "timestamp": "2026-10-28T23:07:45.089Z",
+        "hostname": "Shibasiss-MacBook-Pro-2.local",
+        "time": "27.088"
+      },
+      "sha256": "a73ecbfaa74ea42c4b5157f310728ea0d24cf96b2960ee5c01a029b32b088835",
+      "cases": [
+        {
+          "name": "everyLabCellPaintsKeepsItsIdsUniqueNamesItsControlsAndShowsFocusAfterTab[jvm]",
+          "classname": "ai.bestbuds.reaktor.SurfaceQualificationTest",
+          "time": "27.085"
+        }
+      ]
+    }
+  ],
+  "archiveSha256": "c4730099c4702a6a9d19a0efd8e73004bdf1d7c34f8b367fb11d4b45626d1779",
+  "sourceSha256": "7b33c9950e2a240357ca9d62f66e7063bcd018a7b8f9f061383e9ff0d3e3b179",
+  "scope": "Focused local existing Lab and cross-language qualification. Not whole engine suite or release candidate."
+}

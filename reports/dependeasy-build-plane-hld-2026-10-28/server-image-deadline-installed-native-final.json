@@ -1,0 +1,6182 @@
+{
+  "id": "run-1793256249691-1",
+  "taskId": "bestbuds:serverImage",
+  "taskTitle": "serverImage",
+  "environment": "local",
+  "status": "Failed",
+  "startedAtMillis": 1793256249692,
+  "finishedAtMillis": 1793256951946,
+  "exitCode": 1,
+  "events": [
+    {
+      "sequence": 6025,
+      "timestampMillis": 1793256333476,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-security:generateDebugRFile UP-TO-DATE"
+    },
+    {
+      "sequence": 6026,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-security:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6027,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:kmpPartiallyResolvedDependenciesChecker"
+    },
+    {
+      "sequence": 6028,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:checkKotlinGradlePluginConfigurationErrors SKIPPED"
+    },
+    {
+      "sequence": 6029,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:preBuild UP-TO-DATE"
+    },
+    {
+      "sequence": 6030,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:preDebugBuild UP-TO-DATE"
+    },
+    {
+      "sequence": 6031,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:generateDebugResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6032,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:packageDebugResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6033,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:processDebugNavigationResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6034,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:parseDebugLocalResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6035,
+      "timestampMillis": 1793256333477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:generateDebugRFile UP-TO-DATE"
+    },
+    {
+      "sequence": 6036,
+      "timestampMillis": 1793256333478,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:javaPreCompileDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6037,
+      "timestampMillis": 1793256333478,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:convertXmlValueResourcesForAndroidMain NO-SOURCE"
+    },
+    {
+      "sequence": 6038,
+      "timestampMillis": 1793256333478,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:copyNonXmlValueResourcesForAndroidMain NO-SOURCE"
+    },
+    {
+      "sequence": 6039,
+      "timestampMillis": 1793256333478,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:prepareComposeResourcesTaskForAndroidMain NO-SOURCE"
+    },
+    {
+      "sequence": 6040,
+      "timestampMillis": 1793256333478,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:generateResourceAccessorsForAndroidMain SKIPPED"
+    },
+    {
+      "sequence": 6041,
+      "timestampMillis": 1793256333479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:generateActualResourceCollectorsForAndroidMain SKIPPED"
+    },
+    {
+      "sequence": 6042,
+      "timestampMillis": 1793256333479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:convertXmlValueResourcesForAndroidDebug NO-SOURCE"
+    },
+    {
+      "sequence": 6043,
+      "timestampMillis": 1793256333479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:copyNonXmlValueResourcesForAndroidDebug NO-SOURCE"
+    },
+    {
+      "sequence": 6044,
+      "timestampMillis": 1793256333479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:prepareComposeResourcesTaskForAndroidDebug NO-SOURCE"
+    },
+    {
+      "sequence": 6045,
+      "timestampMillis": 1793256333479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:copyDebugComposeResourcesToAndroidAssets UP-TO-DATE"
+    },
+    {
+      "sequence": 6046,
+      "timestampMillis": 1793256333479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:preBuild UP-TO-DATE"
+    },
+    {
+      "sequence": 6047,
+      "timestampMillis": 1793256333480,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:preDebugBuild UP-TO-DATE"
+    },
+    {
+      "sequence": 6048,
+      "timestampMillis": 1793256333480,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:generateDebugResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6049,
+      "timestampMillis": 1793256333480,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:packageDebugResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6050,
+      "timestampMillis": 1793256333480,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:processDebugNavigationResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6051,
+      "timestampMillis": 1793256333481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:parseDebugLocalResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6052,
+      "timestampMillis": 1793256333481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:generateDebugRFile UP-TO-DATE"
+    },
+    {
+      "sequence": 6053,
+      "timestampMillis": 1793256333481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:generateResourceAccessorsForAndroidDebug SKIPPED"
+    },
+    {
+      "sequence": 6054,
+      "timestampMillis": 1793256333481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:javaPreCompileDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6055,
+      "timestampMillis": 1793256333481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-code:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6056,
+      "timestampMillis": 1793256333482,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tooling:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6057,
+      "timestampMillis": 1793256333482,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-runtime:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6058,
+      "timestampMillis": 1793256333482,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ffi:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6059,
+      "timestampMillis": 1793256333482,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ffi:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6060,
+      "timestampMillis": 1793256333482,
+      "stream": "System",
+      "text": ":reaktor:reaktor-web:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6061,
+      "timestampMillis": 1793256333482,
+      "stream": "System",
+      "text": ":reaktor:reaktor-web:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6062,
+      "timestampMillis": 1793256333482,
+      "stream": "System",
+      "text": ":reaktor:reaktor-work:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6063,
+      "timestampMillis": 1793256333626,
+      "stream": "System",
+      "text": ":reaktor:reaktor-work:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6064,
+      "timestampMillis": 1793256333626,
+      "stream": "System",
+      "text": ":reaktor:reaktor-db:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6065,
+      "timestampMillis": 1793256333627,
+      "stream": "System",
+      "text": ":reaktor:reaktor-db:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6066,
+      "timestampMillis": 1793256333627,
+      "stream": "System",
+      "text": ":reaktor:reaktor-code:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6067,
+      "timestampMillis": 1793256333627,
+      "stream": "System",
+      "text": ":reaktor:reaktor-code:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6068,
+      "timestampMillis": 1793256333627,
+      "stream": "System",
+      "text": ":reaktor:reaktor-io:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6069,
+      "timestampMillis": 1793256333627,
+      "stream": "System",
+      "text": ":reaktor:reaktor-io:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6070,
+      "timestampMillis": 1793256333628,
+      "stream": "System",
+      "text": ":reaktor:reaktor-telemetry:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6071,
+      "timestampMillis": 1793256333628,
+      "stream": "System",
+      "text": ":reaktor:reaktor-telemetry:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6072,
+      "timestampMillis": 1793256333628,
+      "stream": "System",
+      "text": ":reaktor:reaktor-performance:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6073,
+      "timestampMillis": 1793256333628,
+      "stream": "System",
+      "text": ":reaktor:reaktor-performance:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6074,
+      "timestampMillis": 1793256333628,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tactile:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6075,
+      "timestampMillis": 1793256333628,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tactile:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6076,
+      "timestampMillis": 1793256333628,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6077,
+      "timestampMillis": 1793256333629,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6078,
+      "timestampMillis": 1793256333629,
+      "stream": "System",
+      "text": ":reaktor:reaktor-performance:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6079,
+      "timestampMillis": 1793256333629,
+      "stream": "System",
+      "text": ":reaktor:reaktor-performance:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6080,
+      "timestampMillis": 1793256333629,
+      "stream": "System",
+      "text": ":reaktor:reaktor-db:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6081,
+      "timestampMillis": 1793256333629,
+      "stream": "System",
+      "text": ":reaktor:reaktor-db:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6082,
+      "timestampMillis": 1793256333629,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth-core:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6083,
+      "timestampMillis": 1793256333630,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth-core:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6084,
+      "timestampMillis": 1793256333630,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth-core:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6085,
+      "timestampMillis": 1793256333630,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth-core:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6086,
+      "timestampMillis": 1793256333630,
+      "stream": "System",
+      "text": ":reaktor:reaktor-core:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6087,
+      "timestampMillis": 1793256333630,
+      "stream": "System",
+      "text": ":reaktor:reaktor-core:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6088,
+      "timestampMillis": 1793256333630,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ffi:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6089,
+      "timestampMillis": 1793256333633,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ffi:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6090,
+      "timestampMillis": 1793256333633,
+      "stream": "System",
+      "text": ":reaktor:reaktor-io:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6091,
+      "timestampMillis": 1793256333633,
+      "stream": "System",
+      "text": ":reaktor:reaktor-io:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6092,
+      "timestampMillis": 1793256333634,
+      "stream": "System",
+      "text": ":reaktor:reaktor-work:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6093,
+      "timestampMillis": 1793256333634,
+      "stream": "System",
+      "text": ":reaktor:reaktor-work:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6094,
+      "timestampMillis": 1793256333634,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tactile:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6095,
+      "timestampMillis": 1793256333634,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tactile:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6096,
+      "timestampMillis": 1793256333634,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6097,
+      "timestampMillis": 1793256333634,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6098,
+      "timestampMillis": 1793256333634,
+      "stream": "System",
+      "text": ":reaktor:reaktor-core:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6099,
+      "timestampMillis": 1793256333635,
+      "stream": "System",
+      "text": ":reaktor:reaktor-core:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6100,
+      "timestampMillis": 1793256333635,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6101,
+      "timestampMillis": 1793256333635,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6102,
+      "timestampMillis": 1793256333635,
+      "stream": "System",
+      "text": ":reaktor:reaktor-flexbuffer:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6103,
+      "timestampMillis": 1793256333635,
+      "stream": "System",
+      "text": ":reaktor:reaktor-flexbuffer:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6104,
+      "timestampMillis": 1793256333635,
+      "stream": "System",
+      "text": ":reaktor:reaktor-devtools:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6105,
+      "timestampMillis": 1793256333636,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-runtime:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6106,
+      "timestampMillis": 1793256333636,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-ffi:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6107,
+      "timestampMillis": 1793256333636,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-web:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6108,
+      "timestampMillis": 1793256333636,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-work:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6109,
+      "timestampMillis": 1793256333636,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-db:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6110,
+      "timestampMillis": 1793256333636,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-code:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6111,
+      "timestampMillis": 1793256333637,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-io:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6112,
+      "timestampMillis": 1793256333638,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-telemetry:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6113,
+      "timestampMillis": 1793256333638,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-performance:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6114,
+      "timestampMillis": 1793256333638,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tactile:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6115,
+      "timestampMillis": 1793256333638,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-surface:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6116,
+      "timestampMillis": 1793256333638,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-performance:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6117,
+      "timestampMillis": 1793256333638,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-db:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6118,
+      "timestampMillis": 1793256333639,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth-core:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6119,
+      "timestampMillis": 1793256333639,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth-core:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6120,
+      "timestampMillis": 1793256333639,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-core:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6121,
+      "timestampMillis": 1793256333639,
+      "stream": "System",
+      "text": ":reaktor:reaktor-devtools:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6122,
+      "timestampMillis": 1793256333639,
+      "stream": "System",
+      "text": ":reaktor:reaktor-web:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6123,
+      "timestampMillis": 1793256333639,
+      "stream": "System",
+      "text": ":reaktor:reaktor-web:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6124,
+      "timestampMillis": 1793256333639,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6125,
+      "timestampMillis": 1793256333639,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6126,
+      "timestampMillis": 1793256333639,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-runtime:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6127,
+      "timestampMillis": 1793256333639,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-runtime:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6128,
+      "timestampMillis": 1793256333640,
+      "stream": "System",
+      "text": ":reaktor:reaktor-service:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6129,
+      "timestampMillis": 1793256333677,
+      "stream": "System",
+      "text": ":reaktor:reaktor-service:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6130,
+      "timestampMillis": 1793256333678,
+      "stream": "System",
+      "text": ":reaktor:reaktor-telemetry:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6131,
+      "timestampMillis": 1793256333678,
+      "stream": "System",
+      "text": ":reaktor:reaktor-telemetry:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6132,
+      "timestampMillis": 1793256333678,
+      "stream": "System",
+      "text": ":reaktor:reaktor-devtools:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6133,
+      "timestampMillis": 1793256333780,
+      "stream": "System",
+      "text": ":reaktor:reaktor-devtools:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6134,
+      "timestampMillis": 1793256333780,
+      "stream": "System",
+      "text": ":reaktor:reaktor-service:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6135,
+      "timestampMillis": 1793256333780,
+      "stream": "System",
+      "text": ":reaktor:reaktor-service:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6136,
+      "timestampMillis": 1793256333780,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6137,
+      "timestampMillis": 1793256333780,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6138,
+      "timestampMillis": 1793256333780,
+      "stream": "System",
+      "text": ":reaktor:reaktor-flexbuffer:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6139,
+      "timestampMillis": 1793256333780,
+      "stream": "System",
+      "text": ":reaktor:reaktor-flexbuffer:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6140,
+      "timestampMillis": 1793256333781,
+      "stream": "System",
+      "text": ":reaktor:reaktor-performance:resources: Started"
+    },
+    {
+      "sequence": 6141,
+      "timestampMillis": 1793256333781,
+      "stream": "System",
+      "text": ":reaktor:reaktor-performance:resources: UpToDate"
+    },
+    {
+      "sequence": 6142,
+      "timestampMillis": 1793256333781,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsResolveResourcesFromDependencies: Started"
+    },
+    {
+      "sequence": 6143,
+      "timestampMillis": 1793256333781,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsResolveResourcesFromDependencies: UpToDate"
+    },
+    {
+      "sequence": 6144,
+      "timestampMillis": 1793256333781,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsResolveSelfResourcesCopyHierarchicalMultiplatformResources: Started"
+    },
+    {
+      "sequence": 6145,
+      "timestampMillis": 1793256333781,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsResolveSelfResourcesCopyHierarchicalMultiplatformResources: UpToDate"
+    },
+    {
+      "sequence": 6146,
+      "timestampMillis": 1793256333781,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsAggregateResources: Started"
+    },
+    {
+      "sequence": 6147,
+      "timestampMillis": 1793256333782,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsAggregateResources: UpToDate"
+    },
+    {
+      "sequence": 6148,
+      "timestampMillis": 1793256333782,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:unpackSkikoWasmRuntime: Started"
+    },
+    {
+      "sequence": 6149,
+      "timestampMillis": 1793256333782,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:unpackSkikoWasmRuntime: UpToDate"
+    },
+    {
+      "sequence": 6150,
+      "timestampMillis": 1793256333782,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsProcessResources: Started"
+    },
+    {
+      "sequence": 6151,
+      "timestampMillis": 1793256333782,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsProcessResources: UpToDate"
+    },
+    {
+      "sequence": 6152,
+      "timestampMillis": 1793256333782,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsMainClasses: Started"
+    },
+    {
+      "sequence": 6153,
+      "timestampMillis": 1793256333782,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsMainClasses: UpToDate"
+    },
+    {
+      "sequence": 6154,
+      "timestampMillis": 1793256333782,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:compileProductionLibraryKotlinJs: Started"
+    },
+    {
+      "sequence": 6155,
+      "timestampMillis": 1793256333783,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:compileProductionLibraryKotlinJs: UpToDate"
+    },
+    {
+      "sequence": 6156,
+      "timestampMillis": 1793256333783,
+      "stream": "System",
+      "text": ":reaktor:kotlinNodeJsSetup: Started"
+    },
+    {
+      "sequence": 6157,
+      "timestampMillis": 1793256333783,
+      "stream": "System",
+      "text": ":reaktor:kotlinNodeJsSetup: Skipped"
+    },
+    {
+      "sequence": 6158,
+      "timestampMillis": 1793256333783,
+      "stream": "System",
+      "text": ":reaktor:kotlinNpmInstall: Started"
+    },
+    {
+      "sequence": 6159,
+      "timestampMillis": 1793256333783,
+      "stream": "System",
+      "text": ":reaktor:kotlinNpmInstall: UpToDate"
+    },
+    {
+      "sequence": 6160,
+      "timestampMillis": 1793256333783,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Started"
+    },
+    {
+      "sequence": 6161,
+      "timestampMillis": 1793256333783,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Executed"
+    },
+    {
+      "sequence": 6162,
+      "timestampMillis": 1793256333783,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsProductionLibraryCompileSync: Started"
+    },
+    {
+      "sequence": 6163,
+      "timestampMillis": 1793256333783,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:jsProductionLibraryCompileSync: UpToDate"
+    },
+    {
+      "sequence": 6164,
+      "timestampMillis": 1793256333784,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:exportKotlinLibrary: Started"
+    },
+    {
+      "sequence": 6165,
+      "timestampMillis": 1793256333876,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-ffi:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6166,
+      "timestampMillis": 1793256333876,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-io:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6167,
+      "timestampMillis": 1793256333876,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-work:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6168,
+      "timestampMillis": 1793256333876,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tactile:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6169,
+      "timestampMillis": 1793256333876,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-port:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6170,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-core:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6171,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tooling:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6172,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-flexbuffer:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6173,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-devtools:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6174,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-web:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6175,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-surface:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6176,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-runtime:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6177,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-service:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6178,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-telemetry:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6179,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-devtools:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6180,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-service:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6181,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-port:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6182,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-flexbuffer:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6183,
+      "timestampMillis": 1793256333877,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-performance:resources UP-TO-DATE"
+    },
+    {
+      "sequence": 6184,
+      "timestampMillis": 1793256333878,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:jsResolveResourcesFromDependencies UP-TO-DATE"
+    },
+    {
+      "sequence": 6185,
+      "timestampMillis": 1793256333878,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:jsResolveSelfResourcesCopyHierarchicalMultiplatformResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6186,
+      "timestampMillis": 1793256333878,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:jsAggregateResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6187,
+      "timestampMillis": 1793256333878,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:unpackSkikoWasmRuntime UP-TO-DATE"
+    },
+    {
+      "sequence": 6188,
+      "timestampMillis": 1793256333878,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:jsProcessResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6189,
+      "timestampMillis": 1793256333878,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:jsMainClasses UP-TO-DATE"
+    },
+    {
+      "sequence": 6190,
+      "timestampMillis": 1793256334173,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:exportKotlinLibrary: Executed"
+    },
+    {
+      "sequence": 6191,
+      "timestampMillis": 1793256334174,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:jsProcessResources: Started"
+    },
+    {
+      "sequence": 6192,
+      "timestampMillis": 1793256334174,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:jsProcessResources: Skipped"
+    },
+    {
+      "sequence": 6193,
+      "timestampMillis": 1793256334174,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:jsMainClasses: Started"
+    },
+    {
+      "sequence": 6194,
+      "timestampMillis": 1793256334174,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:jsMainClasses: UpToDate"
+    },
+    {
+      "sequence": 6195,
+      "timestampMillis": 1793256334174,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:compileProductionLibraryKotlinJs: Started"
+    },
+    {
+      "sequence": 6196,
+      "timestampMillis": 1793256334174,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:compileProductionLibraryKotlinJs UP-TO-DATE"
+    },
+    {
+      "sequence": 6197,
+      "timestampMillis": 1793256334174,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:kotlinNodeJsSetup SKIPPED"
+    },
+    {
+      "sequence": 6198,
+      "timestampMillis": 1793256334174,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:kotlinNpmInstall UP-TO-DATE"
+    },
+    {
+      "sequence": 6199,
+      "timestampMillis": 1793256334174,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:jsProductionLibraryValidateGeneratedByCompilerTypeScript"
+    },
+    {
+      "sequence": 6200,
+      "timestampMillis": 1793256334174,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:jsProductionLibraryCompileSync UP-TO-DATE"
+    },
+    {
+      "sequence": 6201,
+      "timestampMillis": 1793256334175,
+      "stream": "Stdout",
+      "text": "WARNING: A restricted method in java.lang.System has been called"
+    },
+    {
+      "sequence": 6202,
+      "timestampMillis": 1793256334175,
+      "stream": "Stdout",
+      "text": "WARNING: java.lang.System::load has been called by org.jetbrains.skiko.LibraryLoader in an unnamed module (file:/Users/ovd/.gradle/caches/modules-2/files-2.1/org.jetbrains.skiko/skiko-awt/0.150.1/e03fd8140c0e331c3c7018b00a9710ec98d78fc1/skiko-awt-0.150.1.jar)"
+    },
+    {
+      "sequence": 6203,
+      "timestampMillis": 1793256334175,
+      "stream": "Stdout",
+      "text": "WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module"
+    },
+    {
+      "sequence": 6204,
+      "timestampMillis": 1793256334175,
+      "stream": "Stdout",
+      "text": "WARNING: Restricted methods will be blocked in a future release unless native access is enabled"
+    },
+    {
+      "sequence": 6205,
+      "timestampMillis": 1793256334175,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6206,
+      "timestampMillis": 1793256334175,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:compileProductionLibraryKotlinJs: UpToDate"
+    },
+    {
+      "sequence": 6207,
+      "timestampMillis": 1793256334175,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Started"
+    },
+    {
+      "sequence": 6208,
+      "timestampMillis": 1793256334175,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Executed"
+    },
+    {
+      "sequence": 6209,
+      "timestampMillis": 1793256334175,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:jsProductionLibraryCompileSync: Started"
+    },
+    {
+      "sequence": 6210,
+      "timestampMillis": 1793256334175,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:jsProductionLibraryCompileSync: UpToDate"
+    },
+    {
+      "sequence": 6211,
+      "timestampMillis": 1793256334175,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:exportKotlinLibrary: Started"
+    },
+    {
+      "sequence": 6212,
+      "timestampMillis": 1793256334175,
+      "stream": "System",
+      "text": ":reaktor:reaktor-tooling:exportKotlinLibrary: UpToDate"
+    },
+    {
+      "sequence": 6213,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:jsProcessResources: Started"
+    },
+    {
+      "sequence": 6214,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:jsProcessResources: Skipped"
+    },
+    {
+      "sequence": 6215,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:jsMainClasses: Started"
+    },
+    {
+      "sequence": 6216,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:jsMainClasses: UpToDate"
+    },
+    {
+      "sequence": 6217,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:compileProductionLibraryKotlinJs: Started"
+    },
+    {
+      "sequence": 6218,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:compileProductionLibraryKotlinJs: UpToDate"
+    },
+    {
+      "sequence": 6219,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Started"
+    },
+    {
+      "sequence": 6220,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Executed"
+    },
+    {
+      "sequence": 6221,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:jsProductionLibraryCompileSync: Started"
+    },
+    {
+      "sequence": 6222,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:jsProductionLibraryCompileSync: UpToDate"
+    },
+    {
+      "sequence": 6223,
+      "timestampMillis": 1793256334176,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:exportKotlinLibrary: Started"
+    },
+    {
+      "sequence": 6224,
+      "timestampMillis": 1793256334364,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph-port:exportKotlinLibrary: Executed"
+    },
+    {
+      "sequence": 6225,
+      "timestampMillis": 1793256334364,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsResolveResourcesFromDependencies: Started"
+    },
+    {
+      "sequence": 6226,
+      "timestampMillis": 1793256334364,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsResolveResourcesFromDependencies: UpToDate"
+    },
+    {
+      "sequence": 6227,
+      "timestampMillis": 1793256334364,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsResolveSelfResourcesCopyHierarchicalMultiplatformResources: Started"
+    },
+    {
+      "sequence": 6228,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:exportKotlinLibrary"
+    },
+    {
+      "sequence": 6229,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tooling:jsProcessResources NO-SOURCE"
+    },
+    {
+      "sequence": 6230,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tooling:jsMainClasses UP-TO-DATE"
+    },
+    {
+      "sequence": 6231,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tooling:compileProductionLibraryKotlinJs UP-TO-DATE"
+    },
+    {
+      "sequence": 6232,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tooling:jsProductionLibraryValidateGeneratedByCompilerTypeScript"
+    },
+    {
+      "sequence": 6233,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tooling:jsProductionLibraryCompileSync UP-TO-DATE"
+    },
+    {
+      "sequence": 6234,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-tooling:exportKotlinLibrary UP-TO-DATE"
+    },
+    {
+      "sequence": 6235,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-port:jsProcessResources NO-SOURCE"
+    },
+    {
+      "sequence": 6236,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-port:jsMainClasses UP-TO-DATE"
+    },
+    {
+      "sequence": 6237,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-port:compileProductionLibraryKotlinJs UP-TO-DATE"
+    },
+    {
+      "sequence": 6238,
+      "timestampMillis": 1793256334364,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-port:jsProductionLibraryValidateGeneratedByCompilerTypeScript"
+    },
+    {
+      "sequence": 6239,
+      "timestampMillis": 1793256334365,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-port:jsProductionLibraryCompileSync UP-TO-DATE"
+    },
+    {
+      "sequence": 6240,
+      "timestampMillis": 1793256334448,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph-port:exportKotlinLibrary"
+    },
+    {
+      "sequence": 6241,
+      "timestampMillis": 1793256334449,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:jsResolveResourcesFromDependencies UP-TO-DATE"
+    },
+    {
+      "sequence": 6242,
+      "timestampMillis": 1793256337076,
+      "stream": "System",
+      "text": ":app:jsTestTestDevelopmentExecutableCompileSync: UpToDate"
+    },
+    {
+      "sequence": 6243,
+      "timestampMillis": 1793256337076,
+      "stream": "System",
+      "text": ":app:jsPrepareNodeTestRuntime: Started"
+    },
+    {
+      "sequence": 6244,
+      "timestampMillis": 1793256337077,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsResolveSelfResourcesCopyHierarchicalMultiplatformResources: UpToDate"
+    },
+    {
+      "sequence": 6245,
+      "timestampMillis": 1793256337077,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsAggregateResources: Started"
+    },
+    {
+      "sequence": 6246,
+      "timestampMillis": 1793256337077,
+      "stream": "System",
+      "text": ":app:jsPrepareNodeTestRuntime: UpToDate"
+    },
+    {
+      "sequence": 6247,
+      "timestampMillis": 1793256337077,
+      "stream": "System",
+      "text": ":app:jsNodeTest: Started"
+    },
+    {
+      "sequence": 6248,
+      "timestampMillis": 1793256337077,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:compileDebugKotlinAndroid: UpToDate"
+    },
+    {
+      "sequence": 6249,
+      "timestampMillis": 1793256337077,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:javaPreCompileDebug: Started"
+    },
+    {
+      "sequence": 6250,
+      "timestampMillis": 1793256337077,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsAggregateResources: UpToDate"
+    },
+    {
+      "sequence": 6251,
+      "timestampMillis": 1793256337078,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:unpackSkikoWasmRuntime: Started"
+    },
+    {
+      "sequence": 6252,
+      "timestampMillis": 1793256337078,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:javaPreCompileDebug: UpToDate"
+    },
+    {
+      "sequence": 6253,
+      "timestampMillis": 1793256337078,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6254,
+      "timestampMillis": 1793256337078,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6255,
+      "timestampMillis": 1793256337078,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6256,
+      "timestampMillis": 1793256337078,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:unpackSkikoWasmRuntime: UpToDate"
+    },
+    {
+      "sequence": 6257,
+      "timestampMillis": 1793256337078,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsProcessResources: Started"
+    },
+    {
+      "sequence": 6258,
+      "timestampMillis": 1793256337079,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6259,
+      "timestampMillis": 1793256337079,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6260,
+      "timestampMillis": 1793256337079,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsProcessResources: UpToDate"
+    },
+    {
+      "sequence": 6261,
+      "timestampMillis": 1793256337079,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsMainClasses: Started"
+    },
+    {
+      "sequence": 6262,
+      "timestampMillis": 1793256337079,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsMainClasses: UpToDate"
+    },
+    {
+      "sequence": 6263,
+      "timestampMillis": 1793256337079,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:compileProductionLibraryKotlinJs: Started"
+    },
+    {
+      "sequence": 6264,
+      "timestampMillis": 1793256337080,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6265,
+      "timestampMillis": 1793256337080,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6266,
+      "timestampMillis": 1793256337080,
+      "stream": "System",
+      "text": ":reaktor:reaktor-security:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6267,
+      "timestampMillis": 1793256337080,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:convertXmlValueResourcesForAndroidMain: Started"
+    },
+    {
+      "sequence": 6268,
+      "timestampMillis": 1793256337080,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:convertXmlValueResourcesForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6269,
+      "timestampMillis": 1793256337080,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:copyNonXmlValueResourcesForAndroidMain: Started"
+    },
+    {
+      "sequence": 6270,
+      "timestampMillis": 1793256337080,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:copyNonXmlValueResourcesForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6271,
+      "timestampMillis": 1793256337080,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:prepareComposeResourcesTaskForAndroidMain: Started"
+    },
+    {
+      "sequence": 6272,
+      "timestampMillis": 1793256337081,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:prepareComposeResourcesTaskForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6273,
+      "timestampMillis": 1793256337081,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateResourceAccessorsForAndroidMain: Started"
+    },
+    {
+      "sequence": 6274,
+      "timestampMillis": 1793256337081,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateResourceAccessorsForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6275,
+      "timestampMillis": 1793256337081,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateActualResourceCollectorsForAndroidMain: Started"
+    },
+    {
+      "sequence": 6276,
+      "timestampMillis": 1793256337082,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateActualResourceCollectorsForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6277,
+      "timestampMillis": 1793256337082,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:convertXmlValueResourcesForAndroidDebug: Started"
+    },
+    {
+      "sequence": 6278,
+      "timestampMillis": 1793256337082,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:convertXmlValueResourcesForAndroidDebug: Skipped"
+    },
+    {
+      "sequence": 6279,
+      "timestampMillis": 1793256337082,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:copyNonXmlValueResourcesForAndroidDebug: Started"
+    },
+    {
+      "sequence": 6280,
+      "timestampMillis": 1793256337082,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:copyNonXmlValueResourcesForAndroidDebug: Skipped"
+    },
+    {
+      "sequence": 6281,
+      "timestampMillis": 1793256337083,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:prepareComposeResourcesTaskForAndroidDebug: Started"
+    },
+    {
+      "sequence": 6282,
+      "timestampMillis": 1793256337083,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:compileProductionLibraryKotlinJs: UpToDate"
+    },
+    {
+      "sequence": 6283,
+      "timestampMillis": 1793256337083,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Started"
+    },
+    {
+      "sequence": 6284,
+      "timestampMillis": 1793256337083,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:prepareComposeResourcesTaskForAndroidDebug: Skipped"
+    },
+    {
+      "sequence": 6285,
+      "timestampMillis": 1793256337084,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:copyDebugComposeResourcesToAndroidAssets: Started"
+    },
+    {
+      "sequence": 6286,
+      "timestampMillis": 1793256337084,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Executed"
+    },
+    {
+      "sequence": 6287,
+      "timestampMillis": 1793256337084,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsProductionLibraryCompileSync: Started"
+    },
+    {
+      "sequence": 6288,
+      "timestampMillis": 1793256337084,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:copyDebugComposeResourcesToAndroidAssets: UpToDate"
+    },
+    {
+      "sequence": 6289,
+      "timestampMillis": 1793256337084,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:preBuild: Started"
+    },
+    {
+      "sequence": 6290,
+      "timestampMillis": 1793256337084,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:preBuild: UpToDate"
+    },
+    {
+      "sequence": 6291,
+      "timestampMillis": 1793256337084,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:preDebugBuild: Started"
+    },
+    {
+      "sequence": 6292,
+      "timestampMillis": 1793256337085,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:preDebugBuild: UpToDate"
+    },
+    {
+      "sequence": 6293,
+      "timestampMillis": 1793256337085,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateDebugResources: Started"
+    },
+    {
+      "sequence": 6294,
+      "timestampMillis": 1793256337085,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateDebugResources: UpToDate"
+    },
+    {
+      "sequence": 6295,
+      "timestampMillis": 1793256337085,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:packageDebugResources: Started"
+    },
+    {
+      "sequence": 6296,
+      "timestampMillis": 1793256337085,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:jsProductionLibraryCompileSync: UpToDate"
+    },
+    {
+      "sequence": 6297,
+      "timestampMillis": 1793256337085,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:exportKotlinLibrary: Started"
+    },
+    {
+      "sequence": 6298,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:packageDebugResources: UpToDate"
+    },
+    {
+      "sequence": 6299,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:processDebugNavigationResources: Started"
+    },
+    {
+      "sequence": 6300,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:processDebugNavigationResources: UpToDate"
+    },
+    {
+      "sequence": 6301,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:parseDebugLocalResources: Started"
+    },
+    {
+      "sequence": 6302,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:parseDebugLocalResources: UpToDate"
+    },
+    {
+      "sequence": 6303,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateDebugRFile: Started"
+    },
+    {
+      "sequence": 6304,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateDebugRFile: UpToDate"
+    },
+    {
+      "sequence": 6305,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateResourceAccessorsForAndroidDebug: Started"
+    },
+    {
+      "sequence": 6306,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:generateResourceAccessorsForAndroidDebug: Skipped"
+    },
+    {
+      "sequence": 6307,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6308,
+      "timestampMillis": 1793256337086,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6309,
+      "timestampMillis": 1793256337087,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6310,
+      "timestampMillis": 1793256337087,
+      "stream": "System",
+      "text": ":app:jsNodeTest: UpToDate"
+    },
+    {
+      "sequence": 6311,
+      "timestampMillis": 1793256337087,
+      "stream": "System",
+      "text": ":jsChecks: Started"
+    },
+    {
+      "sequence": 6312,
+      "timestampMillis": 1793256337272,
+      "stream": "Stdout",
+      "text": "> Task :app:jsTestTestDevelopmentExecutableCompileSync UP-TO-DATE"
+    },
+    {
+      "sequence": 6313,
+      "timestampMillis": 1793256337272,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:jsResolveSelfResourcesCopyHierarchicalMultiplatformResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6314,
+      "timestampMillis": 1793256337272,
+      "stream": "Stdout",
+      "text": "> Task :app:jsPrepareNodeTestRuntime UP-TO-DATE"
+    },
+    {
+      "sequence": 6315,
+      "timestampMillis": 1793256337272,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-security:compileDebugKotlinAndroid UP-TO-DATE"
+    },
+    {
+      "sequence": 6316,
+      "timestampMillis": 1793256337272,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:jsAggregateResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6317,
+      "timestampMillis": 1793256337273,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-security:javaPreCompileDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6318,
+      "timestampMillis": 1793256337273,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-security:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6319,
+      "timestampMillis": 1793256337273,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:unpackSkikoWasmRuntime UP-TO-DATE"
+    },
+    {
+      "sequence": 6320,
+      "timestampMillis": 1793256337273,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-security:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6321,
+      "timestampMillis": 1793256337274,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:jsProcessResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6322,
+      "timestampMillis": 1793256337274,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:jsMainClasses UP-TO-DATE"
+    },
+    {
+      "sequence": 6323,
+      "timestampMillis": 1793256337274,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-security:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6324,
+      "timestampMillis": 1793256337275,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-security:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6325,
+      "timestampMillis": 1793256337276,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:convertXmlValueResourcesForAndroidMain NO-SOURCE"
+    },
+    {
+      "sequence": 6326,
+      "timestampMillis": 1793256337276,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:copyNonXmlValueResourcesForAndroidMain NO-SOURCE"
+    },
+    {
+      "sequence": 6327,
+      "timestampMillis": 1793256337276,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:prepareComposeResourcesTaskForAndroidMain NO-SOURCE"
+    },
+    {
+      "sequence": 6328,
+      "timestampMillis": 1793256337277,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:generateResourceAccessorsForAndroidMain SKIPPED"
+    },
+    {
+      "sequence": 6329,
+      "timestampMillis": 1793256337277,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:generateActualResourceCollectorsForAndroidMain SKIPPED"
+    },
+    {
+      "sequence": 6330,
+      "timestampMillis": 1793256337277,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:convertXmlValueResourcesForAndroidDebug NO-SOURCE"
+    },
+    {
+      "sequence": 6331,
+      "timestampMillis": 1793256337277,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:copyNonXmlValueResourcesForAndroidDebug NO-SOURCE"
+    },
+    {
+      "sequence": 6332,
+      "timestampMillis": 1793256337277,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:compileProductionLibraryKotlinJs UP-TO-DATE"
+    },
+    {
+      "sequence": 6333,
+      "timestampMillis": 1793256337278,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:prepareComposeResourcesTaskForAndroidDebug NO-SOURCE"
+    },
+    {
+      "sequence": 6334,
+      "timestampMillis": 1793256337279,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:jsProductionLibraryValidateGeneratedByCompilerTypeScript"
+    },
+    {
+      "sequence": 6335,
+      "timestampMillis": 1793256337279,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:copyDebugComposeResourcesToAndroidAssets UP-TO-DATE"
+    },
+    {
+      "sequence": 6336,
+      "timestampMillis": 1793256337279,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:preBuild UP-TO-DATE"
+    },
+    {
+      "sequence": 6337,
+      "timestampMillis": 1793256337279,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:preDebugBuild UP-TO-DATE"
+    },
+    {
+      "sequence": 6338,
+      "timestampMillis": 1793256337279,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:generateDebugResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6339,
+      "timestampMillis": 1793256337280,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:jsProductionLibraryCompileSync UP-TO-DATE"
+    },
+    {
+      "sequence": 6340,
+      "timestampMillis": 1793256337280,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:packageDebugResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6341,
+      "timestampMillis": 1793256337280,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:processDebugNavigationResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6342,
+      "timestampMillis": 1793256337280,
+      "stream": "System",
+      "text": ":jsChecks: Executed"
+    },
+    {
+      "sequence": 6343,
+      "timestampMillis": 1793256337280,
+      "stream": "System",
+      "text": ":app:compileProductionLibraryKotlinJs: Started"
+    },
+    {
+      "sequence": 6344,
+      "timestampMillis": 1793256337280,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:exportKotlinLibrary: Executed"
+    },
+    {
+      "sequence": 6345,
+      "timestampMillis": 1793256337281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:buildTypeScriptWebContract: Started"
+    },
+    {
+      "sequence": 6346,
+      "timestampMillis": 1793256337281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:buildTypeScriptWebContract: UpToDate"
+    },
+    {
+      "sequence": 6347,
+      "timestampMillis": 1793256337281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:buildTypeScriptCompile: Started"
+    },
+    {
+      "sequence": 6348,
+      "timestampMillis": 1793256337281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:buildTypeScriptCompile: UpToDate"
+    },
+    {
+      "sequence": 6349,
+      "timestampMillis": 1793256337281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:convertXmlValueResourcesForAndroidMain: Started"
+    },
+    {
+      "sequence": 6350,
+      "timestampMillis": 1793256337281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:convertXmlValueResourcesForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6351,
+      "timestampMillis": 1793256337282,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:copyNonXmlValueResourcesForAndroidMain: Started"
+    },
+    {
+      "sequence": 6352,
+      "timestampMillis": 1793256337282,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:copyNonXmlValueResourcesForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6353,
+      "timestampMillis": 1793256337282,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:prepareComposeResourcesTaskForAndroidMain: Started"
+    },
+    {
+      "sequence": 6354,
+      "timestampMillis": 1793256337282,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:prepareComposeResourcesTaskForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6355,
+      "timestampMillis": 1793256337282,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateResourceAccessorsForAndroidMain: Started"
+    },
+    {
+      "sequence": 6356,
+      "timestampMillis": 1793256337282,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateResourceAccessorsForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6357,
+      "timestampMillis": 1793256337282,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateActualResourceCollectorsForAndroidMain: Started"
+    },
+    {
+      "sequence": 6358,
+      "timestampMillis": 1793256337283,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateActualResourceCollectorsForAndroidMain: Skipped"
+    },
+    {
+      "sequence": 6359,
+      "timestampMillis": 1793256337283,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:convertXmlValueResourcesForAndroidDebug: Started"
+    },
+    {
+      "sequence": 6360,
+      "timestampMillis": 1793256337283,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:convertXmlValueResourcesForAndroidDebug: Skipped"
+    },
+    {
+      "sequence": 6361,
+      "timestampMillis": 1793256337283,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:copyNonXmlValueResourcesForAndroidDebug: Started"
+    },
+    {
+      "sequence": 6362,
+      "timestampMillis": 1793256337283,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:copyNonXmlValueResourcesForAndroidDebug: Skipped"
+    },
+    {
+      "sequence": 6363,
+      "timestampMillis": 1793256337283,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:prepareComposeResourcesTaskForAndroidDebug: Started"
+    },
+    {
+      "sequence": 6364,
+      "timestampMillis": 1793256337283,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:prepareComposeResourcesTaskForAndroidDebug: Skipped"
+    },
+    {
+      "sequence": 6365,
+      "timestampMillis": 1793256337284,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:copyDebugComposeResourcesToAndroidAssets: Started"
+    },
+    {
+      "sequence": 6366,
+      "timestampMillis": 1793256337284,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:copyDebugComposeResourcesToAndroidAssets: UpToDate"
+    },
+    {
+      "sequence": 6367,
+      "timestampMillis": 1793256337284,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:preBuild: Started"
+    },
+    {
+      "sequence": 6368,
+      "timestampMillis": 1793256337284,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:preBuild: UpToDate"
+    },
+    {
+      "sequence": 6369,
+      "timestampMillis": 1793256337284,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:preDebugBuild: Started"
+    },
+    {
+      "sequence": 6370,
+      "timestampMillis": 1793256337284,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:preDebugBuild: UpToDate"
+    },
+    {
+      "sequence": 6371,
+      "timestampMillis": 1793256337284,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateDebugResources: Started"
+    },
+    {
+      "sequence": 6372,
+      "timestampMillis": 1793256337475,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateDebugResources: UpToDate"
+    },
+    {
+      "sequence": 6373,
+      "timestampMillis": 1793256337475,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:packageDebugResources: Started"
+    },
+    {
+      "sequence": 6374,
+      "timestampMillis": 1793256337475,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:packageDebugResources: UpToDate"
+    },
+    {
+      "sequence": 6375,
+      "timestampMillis": 1793256337476,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:processDebugNavigationResources: Started"
+    },
+    {
+      "sequence": 6376,
+      "timestampMillis": 1793256337476,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:processDebugNavigationResources: UpToDate"
+    },
+    {
+      "sequence": 6377,
+      "timestampMillis": 1793256337476,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:parseDebugLocalResources: Started"
+    },
+    {
+      "sequence": 6378,
+      "timestampMillis": 1793256337476,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:parseDebugLocalResources: UpToDate"
+    },
+    {
+      "sequence": 6379,
+      "timestampMillis": 1793256337476,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateDebugRFile: Started"
+    },
+    {
+      "sequence": 6380,
+      "timestampMillis": 1793256337476,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateDebugRFile: UpToDate"
+    },
+    {
+      "sequence": 6381,
+      "timestampMillis": 1793256337477,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateResourceAccessorsForAndroidDebug: Started"
+    },
+    {
+      "sequence": 6382,
+      "timestampMillis": 1793256337477,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:generateResourceAccessorsForAndroidDebug: Skipped"
+    },
+    {
+      "sequence": 6383,
+      "timestampMillis": 1793256337477,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:javaPreCompileDebug: Started"
+    },
+    {
+      "sequence": 6384,
+      "timestampMillis": 1793256337477,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:javaPreCompileDebug: UpToDate"
+    },
+    {
+      "sequence": 6385,
+      "timestampMillis": 1793256337477,
+      "stream": "System",
+      "text": ":reaktor:reaktor-code:kotlinAnalysisModel: Started"
+    },
+    {
+      "sequence": 6386,
+      "timestampMillis": 1793256337477,
+      "stream": "System",
+      "text": ":reaktor:reaktor-code:kotlinAnalysisModel: UpToDate"
+    },
+    {
+      "sequence": 6387,
+      "timestampMillis": 1793256337477,
+      "stream": "System",
+      "text": ":reaktor:exportBuildModel: Started"
+    },
+    {
+      "sequence": 6388,
+      "timestampMillis": 1793256337477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:parseDebugLocalResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6389,
+      "timestampMillis": 1793256337477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:generateDebugRFile UP-TO-DATE"
+    },
+    {
+      "sequence": 6390,
+      "timestampMillis": 1793256337477,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:generateResourceAccessorsForAndroidDebug SKIPPED"
+    },
+    {
+      "sequence": 6391,
+      "timestampMillis": 1793256337479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6392,
+      "timestampMillis": 1793256337479,
+      "stream": "Stdout",
+      "text": "> Task :app:jsNodeTest UP-TO-DATE"
+    },
+    {
+      "sequence": 6393,
+      "timestampMillis": 1793256337479,
+      "stream": "Stdout",
+      "text": "> Task :jsChecks"
+    },
+    {
+      "sequence": 6394,
+      "timestampMillis": 1793256337479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:exportKotlinLibrary"
+    },
+    {
+      "sequence": 6395,
+      "timestampMillis": 1793256337479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:buildTypeScriptWebContract UP-TO-DATE"
+    },
+    {
+      "sequence": 6396,
+      "timestampMillis": 1793256337479,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:buildTypeScriptCompile UP-TO-DATE"
+    },
+    {
+      "sequence": 6397,
+      "timestampMillis": 1793256337480,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:convertXmlValueResourcesForAndroidMain NO-SOURCE"
+    },
+    {
+      "sequence": 6398,
+      "timestampMillis": 1793256337480,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:copyNonXmlValueResourcesForAndroidMain NO-SOURCE"
+    },
+    {
+      "sequence": 6399,
+      "timestampMillis": 1793256337480,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:prepareComposeResourcesTaskForAndroidMain NO-SOURCE"
+    },
+    {
+      "sequence": 6400,
+      "timestampMillis": 1793256337480,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:generateResourceAccessorsForAndroidMain SKIPPED"
+    },
+    {
+      "sequence": 6401,
+      "timestampMillis": 1793256337480,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:generateActualResourceCollectorsForAndroidMain SKIPPED"
+    },
+    {
+      "sequence": 6402,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:convertXmlValueResourcesForAndroidDebug NO-SOURCE"
+    },
+    {
+      "sequence": 6403,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:copyNonXmlValueResourcesForAndroidDebug NO-SOURCE"
+    },
+    {
+      "sequence": 6404,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:prepareComposeResourcesTaskForAndroidDebug NO-SOURCE"
+    },
+    {
+      "sequence": 6405,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:copyDebugComposeResourcesToAndroidAssets UP-TO-DATE"
+    },
+    {
+      "sequence": 6406,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:preBuild UP-TO-DATE"
+    },
+    {
+      "sequence": 6407,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:preDebugBuild UP-TO-DATE"
+    },
+    {
+      "sequence": 6408,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:generateDebugResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6409,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:packageDebugResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6410,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:processDebugNavigationResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6411,
+      "timestampMillis": 1793256337481,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:parseDebugLocalResources UP-TO-DATE"
+    },
+    {
+      "sequence": 6412,
+      "timestampMillis": 1793256337482,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:generateDebugRFile UP-TO-DATE"
+    },
+    {
+      "sequence": 6413,
+      "timestampMillis": 1793256337482,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:generateResourceAccessorsForAndroidDebug SKIPPED"
+    },
+    {
+      "sequence": 6414,
+      "timestampMillis": 1793256337482,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:javaPreCompileDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6415,
+      "timestampMillis": 1793256337482,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-code:kotlinAnalysisModel UP-TO-DATE"
+    },
+    {
+      "sequence": 6416,
+      "timestampMillis": 1793256338960,
+      "stream": "System",
+      "text": ":app:compileProductionLibraryKotlinJs: UpToDate"
+    },
+    {
+      "sequence": 6417,
+      "timestampMillis": 1793256338961,
+      "stream": "System",
+      "text": ":app:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Started"
+    },
+    {
+      "sequence": 6418,
+      "timestampMillis": 1793256338961,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:compileDebugKotlinAndroid: UpToDate"
+    },
+    {
+      "sequence": 6419,
+      "timestampMillis": 1793256338961,
+      "stream": "System",
+      "text": ":companyOs:companyOsWebContract: Started"
+    },
+    {
+      "sequence": 6420,
+      "timestampMillis": 1793256338961,
+      "stream": "System",
+      "text": ":companyOs:companyOsWebContract: UpToDate"
+    },
+    {
+      "sequence": 6421,
+      "timestampMillis": 1793256338961,
+      "stream": "System",
+      "text": ":companyOs:companyOsWorkerTypes: Started"
+    },
+    {
+      "sequence": 6422,
+      "timestampMillis": 1793256339160,
+      "stream": "System",
+      "text": ":reaktor:exportBuildModel: FromCache"
+    },
+    {
+      "sequence": 6423,
+      "timestampMillis": 1793256339161,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:javaPreCompileDebug: Started"
+    },
+    {
+      "sequence": 6424,
+      "timestampMillis": 1793256339161,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:javaPreCompileDebug: UpToDate"
+    },
+    {
+      "sequence": 6425,
+      "timestampMillis": 1793256339161,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6426,
+      "timestampMillis": 1793256339161,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6427,
+      "timestampMillis": 1793256339161,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6428,
+      "timestampMillis": 1793256339162,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6429,
+      "timestampMillis": 1793256339162,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6430,
+      "timestampMillis": 1793256339162,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6431,
+      "timestampMillis": 1793256339162,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6432,
+      "timestampMillis": 1793256339162,
+      "stream": "Stdout",
+      "text": "> Task :app:compileProductionLibraryKotlinJs UP-TO-DATE"
+    },
+    {
+      "sequence": 6433,
+      "timestampMillis": 1793256339162,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:compileDebugKotlinAndroid UP-TO-DATE"
+    },
+    {
+      "sequence": 6434,
+      "timestampMillis": 1793256339163,
+      "stream": "Stdout",
+      "text": "> Task :companyOs:companyOsWebContract UP-TO-DATE"
+    },
+    {
+      "sequence": 6435,
+      "timestampMillis": 1793256339163,
+      "stream": "System",
+      "text": ":reaktor:compose-flow:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6436,
+      "timestampMillis": 1793256339163,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:kspKotlinJs: Started"
+    },
+    {
+      "sequence": 6437,
+      "timestampMillis": 1793256339163,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:kspKotlinJs: Skipped"
+    },
+    {
+      "sequence": 6438,
+      "timestampMillis": 1793256339164,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:compileKotlinJs: Started"
+    },
+    {
+      "sequence": 6439,
+      "timestampMillis": 1793256339164,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:compileKotlinJs: UpToDate"
+    },
+    {
+      "sequence": 6440,
+      "timestampMillis": 1793256339164,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:jsProcessResources: Started"
+    },
+    {
+      "sequence": 6441,
+      "timestampMillis": 1793256339164,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:jsProcessResources: Skipped"
+    },
+    {
+      "sequence": 6442,
+      "timestampMillis": 1793256339164,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:jsMainClasses: Started"
+    },
+    {
+      "sequence": 6443,
+      "timestampMillis": 1793256339164,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:jsMainClasses: UpToDate"
+    },
+    {
+      "sequence": 6444,
+      "timestampMillis": 1793256339165,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:compileProductionLibraryKotlinJs: Started"
+    },
+    {
+      "sequence": 6445,
+      "timestampMillis": 1793256339165,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:compileProductionLibraryKotlinJs: UpToDate"
+    },
+    {
+      "sequence": 6446,
+      "timestampMillis": 1793256339165,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Started"
+    },
+    {
+      "sequence": 6447,
+      "timestampMillis": 1793256339165,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Executed"
+    },
+    {
+      "sequence": 6448,
+      "timestampMillis": 1793256339166,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:jsProductionLibraryCompileSync: Started"
+    },
+    {
+      "sequence": 6449,
+      "timestampMillis": 1793256339166,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:jsProductionLibraryCompileSync: UpToDate"
+    },
+    {
+      "sequence": 6450,
+      "timestampMillis": 1793256339166,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:exportKotlinLibrary: Started"
+    },
+    {
+      "sequence": 6451,
+      "timestampMillis": 1793256339166,
+      "stream": "System",
+      "text": ":reaktor:reaktor-board:exportKotlinLibrary: UpToDate"
+    },
+    {
+      "sequence": 6452,
+      "timestampMillis": 1793256339166,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Started"
+    },
+    {
+      "sequence": 6453,
+      "timestampMillis": 1793256339166,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Skipped"
+    },
+    {
+      "sequence": 6454,
+      "timestampMillis": 1793256339167,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Started"
+    },
+    {
+      "sequence": 6455,
+      "timestampMillis": 1793256339376,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] UpToDate"
+    },
+    {
+      "sequence": 6456,
+      "timestampMillis": 1793256339378,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Started"
+    },
+    {
+      "sequence": 6457,
+      "timestampMillis": 1793256339378,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Skipped"
+    },
+    {
+      "sequence": 6458,
+      "timestampMillis": 1793256339378,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Started"
+    },
+    {
+      "sequence": 6459,
+      "timestampMillis": 1793256339378,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Skipped"
+    },
+    {
+      "sequence": 6460,
+      "timestampMillis": 1793256339379,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Started"
+    },
+    {
+      "sequence": 6461,
+      "timestampMillis": 1793256339379,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Skipped"
+    },
+    {
+      "sequence": 6462,
+      "timestampMillis": 1793256339379,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Started"
+    },
+    {
+      "sequence": 6463,
+      "timestampMillis": 1793256339379,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] UpToDate"
+    },
+    {
+      "sequence": 6464,
+      "timestampMillis": 1793256339380,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] Started"
+    },
+    {
+      "sequence": 6465,
+      "timestampMillis": 1793256339380,
+      "stream": "System",
+      "text": ":reaktor:reaktor-secrets=[REDACTED] UpToDate"
+    },
+    {
+      "sequence": 6466,
+      "timestampMillis": 1793256339380,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:kspKotlinJs: Started"
+    },
+    {
+      "sequence": 6467,
+      "timestampMillis": 1793256339380,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:kspKotlinJs: Skipped"
+    },
+    {
+      "sequence": 6468,
+      "timestampMillis": 1793256339380,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:compileKotlinJs: Started"
+    },
+    {
+      "sequence": 6469,
+      "timestampMillis": 1793256339380,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:compileKotlinJs: UpToDate"
+    },
+    {
+      "sequence": 6470,
+      "timestampMillis": 1793256339381,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:jsProcessResources: Started"
+    },
+    {
+      "sequence": 6471,
+      "timestampMillis": 1793256339381,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:jsProcessResources: Skipped"
+    },
+    {
+      "sequence": 6472,
+      "timestampMillis": 1793256339381,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:jsMainClasses: Started"
+    },
+    {
+      "sequence": 6473,
+      "timestampMillis": 1793256339381,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:jsMainClasses: UpToDate"
+    },
+    {
+      "sequence": 6474,
+      "timestampMillis": 1793256339382,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:compileProductionLibraryKotlinJs: Started"
+    },
+    {
+      "sequence": 6475,
+      "timestampMillis": 1793256339382,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:compileProductionLibraryKotlinJs: UpToDate"
+    },
+    {
+      "sequence": 6476,
+      "timestampMillis": 1793256339382,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Started"
+    },
+    {
+      "sequence": 6477,
+      "timestampMillis": 1793256339382,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Executed"
+    },
+    {
+      "sequence": 6478,
+      "timestampMillis": 1793256339383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:jsProductionLibraryCompileSync: Started"
+    },
+    {
+      "sequence": 6479,
+      "timestampMillis": 1793256339383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:jsProductionLibraryCompileSync: UpToDate"
+    },
+    {
+      "sequence": 6480,
+      "timestampMillis": 1793256339383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:exportKotlinLibrary: Started"
+    },
+    {
+      "sequence": 6481,
+      "timestampMillis": 1793256339383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-mcp:exportKotlinLibrary: UpToDate"
+    },
+    {
+      "sequence": 6482,
+      "timestampMillis": 1793256339384,
+      "stream": "System",
+      "text": ":reaktor:reportKotlinExports: Started"
+    },
+    {
+      "sequence": 6483,
+      "timestampMillis": 1793256339384,
+      "stream": "System",
+      "text": ":reaktor:reportKotlinExports: UpToDate"
+    },
+    {
+      "sequence": 6484,
+      "timestampMillis": 1793256339384,
+      "stream": "System",
+      "text": ":exportBuildModel: Started"
+    },
+    {
+      "sequence": 6485,
+      "timestampMillis": 1793256339384,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:exportBuildModel FROM-CACHE"
+    },
+    {
+      "sequence": 6486,
+      "timestampMillis": 1793256339384,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:javaPreCompileDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6487,
+      "timestampMillis": 1793256339384,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6488,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6489,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6490,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:compose-flow:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6491,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-board:kspKotlinJs SKIPPED"
+    },
+    {
+      "sequence": 6492,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-board:compileKotlinJs UP-TO-DATE"
+    },
+    {
+      "sequence": 6493,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-board:jsProcessResources NO-SOURCE"
+    },
+    {
+      "sequence": 6494,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-board:jsMainClasses UP-TO-DATE"
+    },
+    {
+      "sequence": 6495,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-board:compileProductionLibraryKotlinJs UP-TO-DATE"
+    },
+    {
+      "sequence": 6496,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-board:jsProductionLibraryValidateGeneratedByCompilerTypeScript"
+    },
+    {
+      "sequence": 6497,
+      "timestampMillis": 1793256339385,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-board:jsProductionLibraryCompileSync UP-TO-DATE"
+    },
+    {
+      "sequence": 6498,
+      "timestampMillis": 1793256339386,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-board:exportKotlinLibrary UP-TO-DATE"
+    },
+    {
+      "sequence": 6499,
+      "timestampMillis": 1793256339386,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-secrets=[REDACTED] SKIPPED"
+    },
+    {
+      "sequence": 6500,
+      "timestampMillis": 1793256339386,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-secrets=[REDACTED] UP-TO-DATE"
+    },
+    {
+      "sequence": 6501,
+      "timestampMillis": 1793256339386,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-secrets=[REDACTED] NO-SOURCE"
+    },
+    {
+      "sequence": 6502,
+      "timestampMillis": 1793256339386,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-secrets=[REDACTED] NO-SOURCE"
+    },
+    {
+      "sequence": 6503,
+      "timestampMillis": 1793256339386,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-secrets=[REDACTED] SKIPPED"
+    },
+    {
+      "sequence": 6504,
+      "timestampMillis": 1793256339386,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-secrets=[REDACTED] UP-TO-DATE"
+    },
+    {
+      "sequence": 6505,
+      "timestampMillis": 1793256339387,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-secrets=[REDACTED] UP-TO-DATE"
+    },
+    {
+      "sequence": 6506,
+      "timestampMillis": 1793256339387,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-mcp:kspKotlinJs SKIPPED"
+    },
+    {
+      "sequence": 6507,
+      "timestampMillis": 1793256339387,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-mcp:compileKotlinJs UP-TO-DATE"
+    },
+    {
+      "sequence": 6508,
+      "timestampMillis": 1793256339387,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-mcp:jsProcessResources NO-SOURCE"
+    },
+    {
+      "sequence": 6509,
+      "timestampMillis": 1793256339387,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-mcp:jsMainClasses UP-TO-DATE"
+    },
+    {
+      "sequence": 6510,
+      "timestampMillis": 1793256339387,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-mcp:compileProductionLibraryKotlinJs UP-TO-DATE"
+    },
+    {
+      "sequence": 6511,
+      "timestampMillis": 1793256339387,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-mcp:jsProductionLibraryValidateGeneratedByCompilerTypeScript"
+    },
+    {
+      "sequence": 6512,
+      "timestampMillis": 1793256339390,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-mcp:jsProductionLibraryCompileSync UP-TO-DATE"
+    },
+    {
+      "sequence": 6513,
+      "timestampMillis": 1793256339390,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-mcp:exportKotlinLibrary UP-TO-DATE"
+    },
+    {
+      "sequence": 6514,
+      "timestampMillis": 1793256339390,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reportKotlinExports UP-TO-DATE"
+    },
+    {
+      "sequence": 6515,
+      "timestampMillis": 1793256339391,
+      "stream": "System",
+      "text": ":companyOs:companyOsWorkerTypes: UpToDate"
+    },
+    {
+      "sequence": 6516,
+      "timestampMillis": 1793256339391,
+      "stream": "System",
+      "text": ":companyOs:companyOsTypes: Started"
+    },
+    {
+      "sequence": 6517,
+      "timestampMillis": 1793256339578,
+      "stream": "System",
+      "text": ":companyOs:companyOsTypes: UpToDate"
+    },
+    {
+      "sequence": 6518,
+      "timestampMillis": 1793256339578,
+      "stream": "System",
+      "text": ":companyOs:checkWeb: Started"
+    },
+    {
+      "sequence": 6519,
+      "timestampMillis": 1793256339578,
+      "stream": "System",
+      "text": ":companyOs:checkWeb: UpToDate"
+    },
+    {
+      "sequence": 6520,
+      "timestampMillis": 1793256339579,
+      "stream": "System",
+      "text": ":reaktorDesktop:boardWebContract: Started"
+    },
+    {
+      "sequence": 6521,
+      "timestampMillis": 1793256339579,
+      "stream": "System",
+      "text": ":reaktorDesktop:boardWebContract: UpToDate"
+    },
+    {
+      "sequence": 6522,
+      "timestampMillis": 1793256339579,
+      "stream": "System",
+      "text": ":reaktorDesktop:boardBundle: Started"
+    },
+    {
+      "sequence": 6523,
+      "timestampMillis": 1793256339579,
+      "stream": "System",
+      "text": ":app:jsProductionLibraryValidateGeneratedByCompilerTypeScript: Executed"
+    },
+    {
+      "sequence": 6524,
+      "timestampMillis": 1793256339579,
+      "stream": "System",
+      "text": ":app:jsProductionLibraryCompileSync: Started"
+    },
+    {
+      "sequence": 6525,
+      "timestampMillis": 1793256339579,
+      "stream": "Stdout",
+      "text": "> Task :companyOs:companyOsWorkerTypes UP-TO-DATE"
+    },
+    {
+      "sequence": 6526,
+      "timestampMillis": 1793256339579,
+      "stream": "Stdout",
+      "text": "> Task :companyOs:companyOsTypes UP-TO-DATE"
+    },
+    {
+      "sequence": 6527,
+      "timestampMillis": 1793256339580,
+      "stream": "Stdout",
+      "text": "> Task :companyOs:checkWeb UP-TO-DATE"
+    },
+    {
+      "sequence": 6528,
+      "timestampMillis": 1793256339580,
+      "stream": "Stdout",
+      "text": "> Task :reaktorDesktop:boardWebContract UP-TO-DATE"
+    },
+    {
+      "sequence": 6529,
+      "timestampMillis": 1793256339580,
+      "stream": "Stdout",
+      "text": "> Task :app:jsProductionLibraryValidateGeneratedByCompilerTypeScript"
+    },
+    {
+      "sequence": 6530,
+      "timestampMillis": 1793256339778,
+      "stream": "System",
+      "text": ":reaktorDesktop:boardBundle: UpToDate"
+    },
+    {
+      "sequence": 6531,
+      "timestampMillis": 1793256339779,
+      "stream": "System",
+      "text": ":reaktorDesktop:processResources: Started"
+    },
+    {
+      "sequence": 6532,
+      "timestampMillis": 1793256339782,
+      "stream": "Stdout",
+      "text": "> Task :reaktorDesktop:boardBundle UP-TO-DATE"
+    },
+    {
+      "sequence": 6533,
+      "timestampMillis": 1793256341576,
+      "stream": "System",
+      "text": ":app:jsProductionLibraryCompileSync: UpToDate"
+    },
+    {
+      "sequence": 6534,
+      "timestampMillis": 1793256341577,
+      "stream": "System",
+      "text": ":app:exportKotlinLibrary: Started"
+    },
+    {
+      "sequence": 6535,
+      "timestampMillis": 1793256341880,
+      "stream": "Stdout",
+      "text": "> Task :app:jsProductionLibraryCompileSync UP-TO-DATE"
+    },
+    {
+      "sequence": 6536,
+      "timestampMillis": 1793256341880,
+      "stream": "System",
+      "text": ":reaktorDesktop:processResources: Executed"
+    },
+    {
+      "sequence": 6537,
+      "timestampMillis": 1793256341880,
+      "stream": "System",
+      "text": ":reaktorDesktop:classes: Started"
+    },
+    {
+      "sequence": 6538,
+      "timestampMillis": 1793256341881,
+      "stream": "System",
+      "text": ":reaktorDesktop:classes: Executed"
+    },
+    {
+      "sequence": 6539,
+      "timestampMillis": 1793256341881,
+      "stream": "System",
+      "text": ":reaktorDesktop:jar: Started"
+    },
+    {
+      "sequence": 6540,
+      "timestampMillis": 1793256342274,
+      "stream": "Stdout",
+      "text": "> Task :reaktorDesktop:processResources"
+    },
+    {
+      "sequence": 6541,
+      "timestampMillis": 1793256342274,
+      "stream": "Stdout",
+      "text": "> Task :reaktorDesktop:classes"
+    },
+    {
+      "sequence": 6542,
+      "timestampMillis": 1793256343065,
+      "stream": "System",
+      "text": ":app:exportKotlinLibrary: UpToDate"
+    },
+    {
+      "sequence": 6543,
+      "timestampMillis": 1793256343065,
+      "stream": "System",
+      "text": ":app:generateWorkerBundleManifest: Started"
+    },
+    {
+      "sequence": 6544,
+      "timestampMillis": 1793256343065,
+      "stream": "System",
+      "text": ":app:generateWorkerBundleManifest: UpToDate"
+    },
+    {
+      "sequence": 6545,
+      "timestampMillis": 1793256343065,
+      "stream": "System",
+      "text": ":workers:chatWorkerTypes: Started"
+    },
+    {
+      "sequence": 6546,
+      "timestampMillis": 1793256343065,
+      "stream": "Stdout",
+      "text": "> Task :app:exportKotlinLibrary UP-TO-DATE"
+    },
+    {
+      "sequence": 6547,
+      "timestampMillis": 1793256343066,
+      "stream": "System",
+      "text": ":workers:chatWorkerTypes: UpToDate"
+    },
+    {
+      "sequence": 6548,
+      "timestampMillis": 1793256343066,
+      "stream": "System",
+      "text": ":workers:notificationWorkerTypes: Started"
+    },
+    {
+      "sequence": 6549,
+      "timestampMillis": 1793256343066,
+      "stream": "System",
+      "text": ":workers:notificationWorkerTypes: UpToDate"
+    },
+    {
+      "sequence": 6550,
+      "timestampMillis": 1793256343066,
+      "stream": "System",
+      "text": ":workers:checkWorkerTypes: Started"
+    },
+    {
+      "sequence": 6551,
+      "timestampMillis": 1793256343066,
+      "stream": "System",
+      "text": ":workers:checkWorkerTypes: UpToDate"
+    },
+    {
+      "sequence": 6552,
+      "timestampMillis": 1793256343066,
+      "stream": "System",
+      "text": ":workers:workerKarateBehaviour: Started"
+    },
+    {
+      "sequence": 6553,
+      "timestampMillis": 1793256343066,
+      "stream": "System",
+      "text": ":workers:workerKarateBehaviour: UpToDate"
+    },
+    {
+      "sequence": 6554,
+      "timestampMillis": 1793256343067,
+      "stream": "System",
+      "text": ":app:generateDebugUnitTestStubRFile: Started"
+    },
+    {
+      "sequence": 6555,
+      "timestampMillis": 1793256343276,
+      "stream": "Stdout",
+      "text": "> Task :app:generateWorkerBundleManifest UP-TO-DATE"
+    },
+    {
+      "sequence": 6556,
+      "timestampMillis": 1793256343277,
+      "stream": "Stdout",
+      "text": "> Task :workers:chatWorkerTypes UP-TO-DATE"
+    },
+    {
+      "sequence": 6557,
+      "timestampMillis": 1793256343277,
+      "stream": "Stdout",
+      "text": "> Task :workers:notificationWorkerTypes UP-TO-DATE"
+    },
+    {
+      "sequence": 6558,
+      "timestampMillis": 1793256343277,
+      "stream": "Stdout",
+      "text": "> Task :workers:checkWorkerTypes UP-TO-DATE"
+    },
+    {
+      "sequence": 6559,
+      "timestampMillis": 1793256343277,
+      "stream": "Stdout",
+      "text": "> Task :workers:workerKarateBehaviour UP-TO-DATE"
+    },
+    {
+      "sequence": 6560,
+      "timestampMillis": 1793256343277,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6561,
+      "timestampMillis": 1793256343277,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-surface-compose:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6562,
+      "timestampMillis": 1793256343278,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Machine.kt:138:50 'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode."
+    },
+    {
+      "sequence": 6563,
+      "timestampMillis": 1793256343278,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Overlay.kt:182:73 'fun BackHandler(enabled: Boolean = ..., onBack: () -> Unit): Unit' is deprecated. Use NavigationEventHandler instead."
+    },
+    {
+      "sequence": 6564,
+      "timestampMillis": 1793256343278,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Split.kt:149:32 Condition is always 'true'."
+    },
+    {
+      "sequence": 6565,
+      "timestampMillis": 1793256343278,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt:29:19 'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode."
+    },
+    {
+      "sequence": 6566,
+      "timestampMillis": 1793256343278,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt:35:72 'fun BackHandler(enabled: Boolean = ..., onBack: () -> Unit): Unit' is deprecated. Use NavigationEventHandler instead."
+    },
+    {
+      "sequence": 6567,
+      "timestampMillis": 1793256343279,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt:39:19 'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode."
+    },
+    {
+      "sequence": 6568,
+      "timestampMillis": 1793256343279,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt:45:19 'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode."
+    },
+    {
+      "sequence": 6569,
+      "timestampMillis": 1793256343279,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt:51:19 'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode."
+    },
+    {
+      "sequence": 6570,
+      "timestampMillis": 1793256343279,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt:57:19 'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode."
+    },
+    {
+      "sequence": 6571,
+      "timestampMillis": 1793256343279,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt:66:19 'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode."
+    },
+    {
+      "sequence": 6572,
+      "timestampMillis": 1793256343280,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/TabSet.kt:110:32 Condition is always 'true'."
+    },
+    {
+      "sequence": 6573,
+      "timestampMillis": 1793256343280,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/TextField.kt:76:19 'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode."
+    },
+    {
+      "sequence": 6574,
+      "timestampMillis": 1793256343280,
+      "stream": "Stdout",
+      "text": "w: file:///Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/TextField.kt:104:19 'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode."
+    },
+    {
+      "sequence": 6575,
+      "timestampMillis": 1793256343678,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface-compose:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6576,
+      "timestampMillis": 1793256343679,
+      "stream": "System",
+      "text": ":appWeb:appWebWebContract: Started"
+    },
+    {
+      "sequence": 6577,
+      "timestampMillis": 1793256343679,
+      "stream": "System",
+      "text": ":appWeb:appWebWebContract: UpToDate"
+    },
+    {
+      "sequence": 6578,
+      "timestampMillis": 1793256343679,
+      "stream": "System",
+      "text": ":appWeb:appWebWorkerTypes: Started"
+    },
+    {
+      "sequence": 6579,
+      "timestampMillis": 1793256343679,
+      "stream": "System",
+      "text": ":appWeb:appWebWorkerTypes: UpToDate"
+    },
+    {
+      "sequence": 6580,
+      "timestampMillis": 1793256343679,
+      "stream": "System",
+      "text": ":appWeb:appWebTypes: Started"
+    },
+    {
+      "sequence": 6581,
+      "timestampMillis": 1793256343679,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6582,
+      "timestampMillis": 1793256343680,
+      "stream": "Stdout",
+      "text": "> Task :appWeb:appWebWebContract UP-TO-DATE"
+    },
+    {
+      "sequence": 6583,
+      "timestampMillis": 1793256343952,
+      "stream": "Stdout",
+      "text": "> Task :appWeb:appWebWorkerTypes UP-TO-DATE"
+    },
+    {
+      "sequence": 6584,
+      "timestampMillis": 1793256343953,
+      "stream": "System",
+      "text": ":appWeb:appWebTypes: UpToDate"
+    },
+    {
+      "sequence": 6585,
+      "timestampMillis": 1793256343953,
+      "stream": "System",
+      "text": ":appWeb:appWebBundle: Started"
+    },
+    {
+      "sequence": 6586,
+      "timestampMillis": 1793256343953,
+      "stream": "System",
+      "text": ":appWeb:appWebBundle: UpToDate"
+    },
+    {
+      "sequence": 6587,
+      "timestampMillis": 1793256343953,
+      "stream": "System",
+      "text": ":appWeb:budgetMeasurements: Started"
+    },
+    {
+      "sequence": 6588,
+      "timestampMillis": 1793256343953,
+      "stream": "Stdout",
+      "text": "> Task :appWeb:appWebTypes UP-TO-DATE"
+    },
+    {
+      "sequence": 6589,
+      "timestampMillis": 1793256343953,
+      "stream": "Stdout",
+      "text": "> Task :appWeb:appWebBundle UP-TO-DATE"
+    },
+    {
+      "sequence": 6590,
+      "timestampMillis": 1793256344229,
+      "stream": "System",
+      "text": ":app:generateDebugUnitTestStubRFile: UpToDate"
+    },
+    {
+      "sequence": 6591,
+      "timestampMillis": 1793256344230,
+      "stream": "System",
+      "text": ":app:node: Started"
+    },
+    {
+      "sequence": 6592,
+      "timestampMillis": 1793256344230,
+      "stream": "System",
+      "text": ":app:node: Executed"
+    },
+    {
+      "sequence": 6593,
+      "timestampMillis": 1793256344230,
+      "stream": "System",
+      "text": ":app:unit: Started"
+    },
+    {
+      "sequence": 6594,
+      "timestampMillis": 1793256344230,
+      "stream": "System",
+      "text": ":app:unit: UpToDate"
+    },
+    {
+      "sequence": 6595,
+      "timestampMillis": 1793256344230,
+      "stream": "System",
+      "text": ":reaktorServer:compileKotlin: Started"
+    },
+    {
+      "sequence": 6596,
+      "timestampMillis": 1793256344474,
+      "stream": "System",
+      "text": ":reaktorServer:compileKotlin: UpToDate"
+    },
+    {
+      "sequence": 6597,
+      "timestampMillis": 1793256344474,
+      "stream": "System",
+      "text": ":reaktorServer:compileJava: Started"
+    },
+    {
+      "sequence": 6598,
+      "timestampMillis": 1793256344475,
+      "stream": "System",
+      "text": ":reaktorServer:compileJava: Skipped"
+    },
+    {
+      "sequence": 6599,
+      "timestampMillis": 1793256344475,
+      "stream": "System",
+      "text": ":reaktorServer:classes: Started"
+    },
+    {
+      "sequence": 6600,
+      "timestampMillis": 1793256344475,
+      "stream": "System",
+      "text": ":reaktorServer:classes: UpToDate"
+    },
+    {
+      "sequence": 6601,
+      "timestampMillis": 1793256344475,
+      "stream": "System",
+      "text": ":reaktorServer:resolveMainClassName: Started"
+    },
+    {
+      "sequence": 6602,
+      "timestampMillis": 1793256344475,
+      "stream": "Stdout",
+      "text": "> Task :app:generateDebugUnitTestStubRFile UP-TO-DATE"
+    },
+    {
+      "sequence": 6603,
+      "timestampMillis": 1793256344475,
+      "stream": "Stdout",
+      "text": "> Task :app:node"
+    },
+    {
+      "sequence": 6604,
+      "timestampMillis": 1793256344475,
+      "stream": "Stdout",
+      "text": "> Task :app:unit UP-TO-DATE"
+    },
+    {
+      "sequence": 6605,
+      "timestampMillis": 1793256344475,
+      "stream": "Stdout",
+      "text": "> Task :reaktorServer:compileKotlin UP-TO-DATE"
+    },
+    {
+      "sequence": 6606,
+      "timestampMillis": 1793256344475,
+      "stream": "Stdout",
+      "text": "> Task :reaktorServer:compileJava NO-SOURCE"
+    },
+    {
+      "sequence": 6607,
+      "timestampMillis": 1793256344475,
+      "stream": "Stdout",
+      "text": "> Task :reaktorServer:classes UP-TO-DATE"
+    },
+    {
+      "sequence": 6608,
+      "timestampMillis": 1793256344476,
+      "stream": "System",
+      "text": ":reaktorServer:resolveMainClassName: Executed"
+    },
+    {
+      "sequence": 6609,
+      "timestampMillis": 1793256344476,
+      "stream": "System",
+      "text": ":reaktorServer:bootJar: Started"
+    },
+    {
+      "sequence": 6610,
+      "timestampMillis": 1793256344476,
+      "stream": "Stdout",
+      "text": "> Task :reaktorServer:resolveMainClassName"
+    },
+    {
+      "sequence": 6611,
+      "timestampMillis": 1793256344776,
+      "stream": "System",
+      "text": ":appWeb:budgetMeasurements: Executed"
+    },
+    {
+      "sequence": 6612,
+      "timestampMillis": 1793256344776,
+      "stream": "System",
+      "text": ":appWeb:budget: Started"
+    },
+    {
+      "sequence": 6613,
+      "timestampMillis": 1793256344778,
+      "stream": "System",
+      "text": ":exportBuildModel: Executed"
+    },
+    {
+      "sequence": 6614,
+      "timestampMillis": 1793256344779,
+      "stream": "System",
+      "text": ":reportKotlinExports: Started"
+    },
+    {
+      "sequence": 6615,
+      "timestampMillis": 1793256344779,
+      "stream": "System",
+      "text": ":reportKotlinExports: UpToDate"
+    },
+    {
+      "sequence": 6616,
+      "timestampMillis": 1793256344779,
+      "stream": "System",
+      "text": ":graphCoverageChecks: Started"
+    },
+    {
+      "sequence": 6617,
+      "timestampMillis": 1793256344978,
+      "stream": "Stdout",
+      "text": "> Task :appWeb:budgetMeasurements"
+    },
+    {
+      "sequence": 6618,
+      "timestampMillis": 1793256344983,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6619,
+      "timestampMillis": 1793256344992,
+      "stream": "Stdout",
+      "text": "> Task :exportBuildModel"
+    },
+    {
+      "sequence": 6620,
+      "timestampMillis": 1793256344995,
+      "stream": "Stdout",
+      "text": "Build model omissions: none"
+    },
+    {
+      "sequence": 6621,
+      "timestampMillis": 1793256344996,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6622,
+      "timestampMillis": 1793256344996,
+      "stream": "Stdout",
+      "text": "> Task :reportKotlinExports UP-TO-DATE"
+    },
+    {
+      "sequence": 6623,
+      "timestampMillis": 1793256344996,
+      "stream": "System",
+      "text": ":graphCoverageChecks: UpToDate"
+    },
+    {
+      "sequence": 6624,
+      "timestampMillis": 1793256344996,
+      "stream": "System",
+      "text": ":workerContractChecks: Started"
+    },
+    {
+      "sequence": 6625,
+      "timestampMillis": 1793256344997,
+      "stream": "System",
+      "text": ":workerContractChecks: UpToDate"
+    },
+    {
+      "sequence": 6626,
+      "timestampMillis": 1793256344997,
+      "stream": "System",
+      "text": ":kernel:test: Started"
+    },
+    {
+      "sequence": 6627,
+      "timestampMillis": 1793256344997,
+      "stream": "System",
+      "text": ":appWeb:budget: Failed"
+    },
+    {
+      "sequence": 6628,
+      "timestampMillis": 1793256344997,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface-compose:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6629,
+      "timestampMillis": 1793256344997,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface-compose:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6630,
+      "timestampMillis": 1793256344998,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface-compose:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6631,
+      "timestampMillis": 1793256344999,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface-compose:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6632,
+      "timestampMillis": 1793256344999,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface-compose:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6633,
+      "timestampMillis": 1793256344999,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface-compose:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6634,
+      "timestampMillis": 1793256345172,
+      "stream": "Stdout",
+      "text": "> Task :graphCoverageChecks UP-TO-DATE"
+    },
+    {
+      "sequence": 6635,
+      "timestampMillis": 1793256345172,
+      "stream": "Stdout",
+      "text": "> Task :workerContractChecks UP-TO-DATE"
+    },
+    {
+      "sequence": 6636,
+      "timestampMillis": 1793256345173,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6637,
+      "timestampMillis": 1793256345173,
+      "stream": "Stdout",
+      "text": "> Task :appWeb:budget FAILED"
+    },
+    {
+      "sequence": 6638,
+      "timestampMillis": 1793256345174,
+      "stream": "Stdout",
+      "text": "{"
+    },
+    {
+      "sequence": 6639,
+      "timestampMillis": 1793256345184,
+      "stream": "Stdout",
+      "text": "  \"metrics\": {"
+    },
+    {
+      "sequence": 6640,
+      "timestampMillis": 1793256345184,
+      "stream": "Stdout",
+      "text": "    \"bestbudsWeb.initialJsBrotli\": 27571,"
+    },
+    {
+      "sequence": 6641,
+      "timestampMillis": 1793256345185,
+      "stream": "Stdout",
+      "text": "    \"bestbudsWeb.initialCssBrotli\": 4431,"
+    },
+    {
+      "sequence": 6642,
+      "timestampMillis": 1793256345185,
+      "stream": "Stdout",
+      "text": "    \"bestbudsWeb.criticalFontBytes\": 36288,"
+    },
+    {
+      "sequence": 6643,
+      "timestampMillis": 1793256345185,
+      "stream": "Stdout",
+      "text": "    \"bestbudsWeb.heroImagesBytes\": 40002,"
+    },
+    {
+      "sequence": 6644,
+      "timestampMillis": 1793256345185,
+      "stream": "Stdout",
+      "text": "    \"bestbudsWeb.runtimePhotosBytes\": 795994,"
+    },
+    {
+      "sequence": 6645,
+      "timestampMillis": 1793256345186,
+      "stream": "Stdout",
+      "text": "    \"bestbudsWeb.clientBytes\": 1801484,"
+    },
+    {
+      "sequence": 6646,
+      "timestampMillis": 1793256345186,
+      "stream": "Stdout",
+      "text": "    \"bestbudsWeb.referenceAssets\": 0,"
+    },
+    {
+      "sequence": 6647,
+      "timestampMillis": 1793256345186,
+      "stream": "Stdout",
+      "text": "    \"bestbudsWeb.externalFontReferences\": 0"
+    },
+    {
+      "sequence": 6648,
+      "timestampMillis": 1793256345186,
+      "stream": "Stdout",
+      "text": "  },"
+    },
+    {
+      "sequence": 6649,
+      "timestampMillis": 1793256345186,
+      "stream": "Stdout",
+      "text": "  \"largestAssets\": ["
+    },
+    {
+      "sequence": 6650,
+      "timestampMillis": 1793256345187,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6651,
+      "timestampMillis": 1793256345187,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/bestbuds/photos/photo-05-960.webp\","
+    },
+    {
+      "sequence": 6652,
+      "timestampMillis": 1793256345187,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 87526,"
+    },
+    {
+      "sequence": 6653,
+      "timestampMillis": 1793256345187,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 87564,"
+    },
+    {
+      "sequence": 6654,
+      "timestampMillis": 1793256345187,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 87526,"
+    },
+    {
+      "sequence": 6655,
+      "timestampMillis": 1793256345188,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"2f45fb3c73d012919ed525e7ed9a32332a2bf393bc47195d8c1a7914f808216c\""
+    },
+    {
+      "sequence": 6656,
+      "timestampMillis": 1793256345188,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6657,
+      "timestampMillis": 1793256345188,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6658,
+      "timestampMillis": 1793256345188,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2\","
+    },
+    {
+      "sequence": 6659,
+      "timestampMillis": 1793256345188,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 85068,"
+    },
+    {
+      "sequence": 6660,
+      "timestampMillis": 1793256345189,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 85109,"
+    },
+    {
+      "sequence": 6661,
+      "timestampMillis": 1793256345189,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 85068,"
+    },
+    {
+      "sequence": 6662,
+      "timestampMillis": 1793256345189,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"34b9c504cab7a73e37b746343a449132e56cf7b5481af2cb81dc74dcff25c956\""
+    },
+    {
+      "sequence": 6663,
+      "timestampMillis": 1793256345189,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6664,
+      "timestampMillis": 1793256345190,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6665,
+      "timestampMillis": 1793256345190,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/caveat-cyrillic-wght-normal-D5lnP6kL.woff2\","
+    },
+    {
+      "sequence": 6666,
+      "timestampMillis": 1793256345190,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 77216,"
+    },
+    {
+      "sequence": 6667,
+      "timestampMillis": 1793256345190,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 77259,"
+    },
+    {
+      "sequence": 6668,
+      "timestampMillis": 1793256345190,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 77216,"
+    },
+    {
+      "sequence": 6669,
+      "timestampMillis": 1793256345190,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"6276a2f5a5554c16b422f00f114773a8d4013a81df18a338f7c216d80103c9af\""
+    },
+    {
+      "sequence": 6670,
+      "timestampMillis": 1793256345191,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6671,
+      "timestampMillis": 1793256345191,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6672,
+      "timestampMillis": 1793256345191,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/caveat-latin-wght-normal-C1hSzPvX.woff2\","
+    },
+    {
+      "sequence": 6673,
+      "timestampMillis": 1793256345191,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 74932,"
+    },
+    {
+      "sequence": 6674,
+      "timestampMillis": 1793256345192,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 74975,"
+    },
+    {
+      "sequence": 6675,
+      "timestampMillis": 1793256345192,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 74932,"
+    },
+    {
+      "sequence": 6676,
+      "timestampMillis": 1793256345192,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"891951df5e8b5b0f0bc760d31375405e795c666b5add70437de12d4a6482b33f\""
+    },
+    {
+      "sequence": 6677,
+      "timestampMillis": 1793256345192,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6678,
+      "timestampMillis": 1793256345192,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6679,
+      "timestampMillis": 1793256345193,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/bestbuds/photos/photo-04-960.webp\","
+    },
+    {
+      "sequence": 6680,
+      "timestampMillis": 1793256345193,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 74914,"
+    },
+    {
+      "sequence": 6681,
+      "timestampMillis": 1793256345193,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 74957,"
+    },
+    {
+      "sequence": 6682,
+      "timestampMillis": 1793256345193,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 74914,"
+    },
+    {
+      "sequence": 6683,
+      "timestampMillis": 1793256345194,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"844041a74eb954a8ca30309d42146455cccc7d37013d5382ce63837861e2f35f\""
+    },
+    {
+      "sequence": 6684,
+      "timestampMillis": 1793256345194,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6685,
+      "timestampMillis": 1793256345194,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6686,
+      "timestampMillis": 1793256345194,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/bestbuds/photos/photo-10-960.webp\","
+    },
+    {
+      "sequence": 6687,
+      "timestampMillis": 1793256345194,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 69754,"
+    },
+    {
+      "sequence": 6688,
+      "timestampMillis": 1793256345195,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 69797,"
+    },
+    {
+      "sequence": 6689,
+      "timestampMillis": 1793256345195,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 69754,"
+    },
+    {
+      "sequence": 6690,
+      "timestampMillis": 1793256345195,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"61d721492ac4806a556e54c6504363570e9765bdc55abd79e64cb5bc6dd675fe\""
+    },
+    {
+      "sequence": 6691,
+      "timestampMillis": 1793256345195,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6692,
+      "timestampMillis": 1793256345195,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6693,
+      "timestampMillis": 1793256345196,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/bestbuds/photos/photo-06-960.webp\","
+    },
+    {
+      "sequence": 6694,
+      "timestampMillis": 1793256345196,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 57826,"
+    },
+    {
+      "sequence": 6695,
+      "timestampMillis": 1793256345196,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 57864,"
+    },
+    {
+      "sequence": 6696,
+      "timestampMillis": 1793256345196,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 57826,"
+    },
+    {
+      "sequence": 6697,
+      "timestampMillis": 1793256345196,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"207ee61bdbd58a7919b64909676b7d92efb577d359693495c99b7a216ce70449\""
+    },
+    {
+      "sequence": 6698,
+      "timestampMillis": 1793256345197,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6699,
+      "timestampMillis": 1793256345197,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6700,
+      "timestampMillis": 1793256345197,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/bestbuds/photos/photo-07-960.webp\","
+    },
+    {
+      "sequence": 6701,
+      "timestampMillis": 1793256345197,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 54136,"
+    },
+    {
+      "sequence": 6702,
+      "timestampMillis": 1793256345198,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 54174,"
+    },
+    {
+      "sequence": 6703,
+      "timestampMillis": 1793256345198,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 54136,"
+    },
+    {
+      "sequence": 6704,
+      "timestampMillis": 1793256345198,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"b4bc8ea7cd7a586771e6243c5716653bea4f0d647e9c9f8559976e8354b91c7c\""
+    },
+    {
+      "sequence": 6705,
+      "timestampMillis": 1793256345199,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6706,
+      "timestampMillis": 1793256345199,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6707,
+      "timestampMillis": 1793256345199,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/bestbuds/photos/photo-11-960.webp\","
+    },
+    {
+      "sequence": 6708,
+      "timestampMillis": 1793256345199,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 49502,"
+    },
+    {
+      "sequence": 6709,
+      "timestampMillis": 1793256345199,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 49540,"
+    },
+    {
+      "sequence": 6710,
+      "timestampMillis": 1793256345199,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 49502,"
+    },
+    {
+      "sequence": 6711,
+      "timestampMillis": 1793256345200,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"d4d9598b031f07818e6477873f770cf390fcfb6cda2d0350247377cc5b5069ce\""
+    },
+    {
+      "sequence": 6712,
+      "timestampMillis": 1793256345200,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6713,
+      "timestampMillis": 1793256345200,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6714,
+      "timestampMillis": 1793256345200,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/inter-latin-wght-normal-Dx4kXJAl.woff2\","
+    },
+    {
+      "sequence": 6715,
+      "timestampMillis": 1793256345200,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 48256,"
+    },
+    {
+      "sequence": 6716,
+      "timestampMillis": 1793256345201,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 48249,"
+    },
+    {
+      "sequence": 6717,
+      "timestampMillis": 1793256345201,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 48256,"
+    },
+    {
+      "sequence": 6718,
+      "timestampMillis": 1793256345201,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62\""
+    },
+    {
+      "sequence": 6719,
+      "timestampMillis": 1793256345201,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6720,
+      "timestampMillis": 1793256345201,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6721,
+      "timestampMillis": 1793256345201,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/bestbuds/photos/photo-09-960.webp\","
+    },
+    {
+      "sequence": 6722,
+      "timestampMillis": 1793256345202,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 47944,"
+    },
+    {
+      "sequence": 6723,
+      "timestampMillis": 1793256345202,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 47977,"
+    },
+    {
+      "sequence": 6724,
+      "timestampMillis": 1793256345202,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 47944,"
+    },
+    {
+      "sequence": 6725,
+      "timestampMillis": 1793256345202,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"45081be851807b619a2876285bd889f9c8fbcf47621da6dcd49ff22bb0d26c43\""
+    },
+    {
+      "sequence": 6726,
+      "timestampMillis": 1793256345202,
+      "stream": "Stdout",
+      "text": "    },"
+    },
+    {
+      "sequence": 6727,
+      "timestampMillis": 1793256345203,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6728,
+      "timestampMillis": 1793256345203,
+      "stream": "Stdout",
+      "text": "      \"path\": \"assets/index-B3Qwu_nk.js\","
+    },
+    {
+      "sequence": 6729,
+      "timestampMillis": 1793256345203,
+      "stream": "Stdout",
+      "text": "      \"bytes\": 46369,"
+    },
+    {
+      "sequence": 6730,
+      "timestampMillis": 1793256345203,
+      "stream": "Stdout",
+      "text": "      \"gzip\": 15305,"
+    },
+    {
+      "sequence": 6731,
+      "timestampMillis": 1793256345203,
+      "stream": "Stdout",
+      "text": "      \"brotli\": 13792,"
+    },
+    {
+      "sequence": 6732,
+      "timestampMillis": 1793256345204,
+      "stream": "Stdout",
+      "text": "      \"sha256\": \"b05a75672a5e181e580230f551e3ec7b9b4f72d638628c870355a1d1303340ea\""
+    },
+    {
+      "sequence": 6733,
+      "timestampMillis": 1793256345204,
+      "stream": "Stdout",
+      "text": "    }"
+    },
+    {
+      "sequence": 6734,
+      "timestampMillis": 1793256345204,
+      "stream": "Stdout",
+      "text": "  ],"
+    },
+    {
+      "sequence": 6735,
+      "timestampMillis": 1793256345204,
+      "stream": "Stdout",
+      "text": "  \"violations\": ["
+    },
+    {
+      "sequence": 6736,
+      "timestampMillis": 1793256345204,
+      "stream": "Stdout",
+      "text": "    {"
+    },
+    {
+      "sequence": 6737,
+      "timestampMillis": 1793256345204,
+      "stream": "Stdout",
+      "text": "      \"metric\": \"bestbudsWeb.initialJsBrotli\","
+    },
+    {
+      "sequence": 6738,
+      "timestampMillis": 1793256345205,
+      "stream": "Stdout",
+      "text": "      \"actual\": 27571,"
+    },
+    {
+      "sequence": 6739,
+      "timestampMillis": 1793256345205,
+      "stream": "Stdout",
+      "text": "      \"limit\": 20000,"
+    },
+    {
+      "sequence": 6740,
+      "timestampMillis": 1793256345205,
+      "stream": "Stdout",
+      "text": "      \"unit\": \"bytes\","
+    },
+    {
+      "sequence": 6741,
+      "timestampMillis": 1793256345205,
+      "stream": "Stdout",
+      "text": "      \"severity\": \"Error\","
+    },
+    {
+      "sequence": 6742,
+      "timestampMillis": 1793256345205,
+      "stream": "Stdout",
+      "text": "      \"direction\": \"Max\","
+    },
+    {
+      "sequence": 6743,
+      "timestampMillis": 1793256345206,
+      "stream": "Stdout",
+      "text": "      \"message\": \"bestbudsWeb.initialJsBrotli 27571 exceeded 20000 budget\""
+    },
+    {
+      "sequence": 6744,
+      "timestampMillis": 1793256345206,
+      "stream": "Stdout",
+      "text": "    }"
+    },
+    {
+      "sequence": 6745,
+      "timestampMillis": 1793256345206,
+      "stream": "Stdout",
+      "text": "  ]"
+    },
+    {
+      "sequence": 6746,
+      "timestampMillis": 1793256345206,
+      "stream": "Stdout",
+      "text": "}"
+    },
+    {
+      "sequence": 6747,
+      "timestampMillis": 1793256345206,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6748,
+      "timestampMillis": 1793256345207,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-surface-compose:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6749,
+      "timestampMillis": 1793256345207,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-surface-compose:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6750,
+      "timestampMillis": 1793256345207,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface-compose:bundleLibCompileToJarDebug: Executed"
+    },
+    {
+      "sequence": 6751,
+      "timestampMillis": 1793256345207,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6752,
+      "timestampMillis": 1793256345207,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6753,
+      "timestampMillis": 1793256345208,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6754,
+      "timestampMillis": 1793256345208,
+      "stream": "System",
+      "text": ":reaktor:reaktor-surface-compose:bundleLibRuntimeToJarDebug: Executed"
+    },
+    {
+      "sequence": 6755,
+      "timestampMillis": 1793256345380,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-surface-compose:bundleLibCompileToJarDebug"
+    },
+    {
+      "sequence": 6756,
+      "timestampMillis": 1793256345381,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-ui:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6757,
+      "timestampMillis": 1793256345381,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-surface-compose:bundleLibRuntimeToJarDebug"
+    },
+    {
+      "sequence": 6758,
+      "timestampMillis": 1793256345956,
+      "stream": "System",
+      "text": ":reaktorDesktop:jar: Executed"
+    },
+    {
+      "sequence": 6759,
+      "timestampMillis": 1793256346179,
+      "stream": "Stdout",
+      "text": "> Task :reaktorDesktop:jar"
+    },
+    {
+      "sequence": 6760,
+      "timestampMillis": 1793256346877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6761,
+      "timestampMillis": 1793256346877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6762,
+      "timestampMillis": 1793256346877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6763,
+      "timestampMillis": 1793256346877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6764,
+      "timestampMillis": 1793256346878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6765,
+      "timestampMillis": 1793256346878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6766,
+      "timestampMillis": 1793256346878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6767,
+      "timestampMillis": 1793256346878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6768,
+      "timestampMillis": 1793256346879,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6769,
+      "timestampMillis": 1793256346879,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6770,
+      "timestampMillis": 1793256346880,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6771,
+      "timestampMillis": 1793256347080,
+      "stream": "Stdout",
+      "text": "WARNING: A restricted method in java.lang.foreign.SymbolLookup has been called"
+    },
+    {
+      "sequence": 6772,
+      "timestampMillis": 1793256347080,
+      "stream": "Stdout",
+      "text": "WARNING: java.lang.foreign.SymbolLookup::libraryLookup has been called by ai.bestbuds.reaktor.kernel.FileEvents$Native in an unnamed module (file:/Users/ovd/dev/bestbuds/modules/kernel/build/classes/kotlin/main/)"
+    },
+    {
+      "sequence": 6773,
+      "timestampMillis": 1793256347080,
+      "stream": "Stdout",
+      "text": "WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module"
+    },
+    {
+      "sequence": 6774,
+      "timestampMillis": 1793256347081,
+      "stream": "Stdout",
+      "text": "WARNING: Restricted methods will be blocked in a future release unless native access is enabled"
+    },
+    {
+      "sequence": 6775,
+      "timestampMillis": 1793256347081,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6776,
+      "timestampMillis": 1793256347081,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-ui:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6777,
+      "timestampMillis": 1793256347081,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-ui:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6778,
+      "timestampMillis": 1793256347082,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-ui:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6779,
+      "timestampMillis": 1793256347082,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6780,
+      "timestampMillis": 1793256347082,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-media:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6781,
+      "timestampMillis": 1793256347281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6782,
+      "timestampMillis": 1793256347281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6783,
+      "timestampMillis": 1793256347281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6784,
+      "timestampMillis": 1793256347281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6785,
+      "timestampMillis": 1793256347281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6786,
+      "timestampMillis": 1793256347281,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6787,
+      "timestampMillis": 1793256347282,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6788,
+      "timestampMillis": 1793256347282,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6789,
+      "timestampMillis": 1793256347282,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-media:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6790,
+      "timestampMillis": 1793256347282,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-media:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6791,
+      "timestampMillis": 1793256347282,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-media:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6792,
+      "timestampMillis": 1793256347282,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-location:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6793,
+      "timestampMillis": 1793256347679,
+      "stream": "System",
+      "text": ":reaktorServer:bootJar: Executed"
+    },
+    {
+      "sequence": 6794,
+      "timestampMillis": 1793256347679,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6795,
+      "timestampMillis": 1793256347679,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6796,
+      "timestampMillis": 1793256347679,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6797,
+      "timestampMillis": 1793256347679,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6798,
+      "timestampMillis": 1793256347679,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6799,
+      "timestampMillis": 1793256347680,
+      "stream": "System",
+      "text": ":reaktor:reaktor-ui:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6800,
+      "timestampMillis": 1793256347680,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6801,
+      "timestampMillis": 1793256347681,
+      "stream": "System",
+      "text": ":reaktor:reaktor-media:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6802,
+      "timestampMillis": 1793256347681,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6803,
+      "timestampMillis": 1793256347681,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6804,
+      "timestampMillis": 1793256347681,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6805,
+      "timestampMillis": 1793256347681,
+      "stream": "Stdout",
+      "text": "> Task :reaktorServer:bootJar"
+    },
+    {
+      "sequence": 6806,
+      "timestampMillis": 1793256347874,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-ui:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6807,
+      "timestampMillis": 1793256347874,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-media:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6808,
+      "timestampMillis": 1793256347874,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-ui:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6809,
+      "timestampMillis": 1793256347874,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-media:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6810,
+      "timestampMillis": 1793256347875,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6811,
+      "timestampMillis": 1793256347875,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6812,
+      "timestampMillis": 1793256347876,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6813,
+      "timestampMillis": 1793256347876,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6814,
+      "timestampMillis": 1793256347877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6815,
+      "timestampMillis": 1793256347877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6816,
+      "timestampMillis": 1793256347877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6817,
+      "timestampMillis": 1793256347877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6818,
+      "timestampMillis": 1793256347877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6819,
+      "timestampMillis": 1793256347877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6820,
+      "timestampMillis": 1793256347877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6821,
+      "timestampMillis": 1793256347877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6822,
+      "timestampMillis": 1793256347877,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6823,
+      "timestampMillis": 1793256347878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6824,
+      "timestampMillis": 1793256347878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6825,
+      "timestampMillis": 1793256347878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6826,
+      "timestampMillis": 1793256347878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6827,
+      "timestampMillis": 1793256347878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6828,
+      "timestampMillis": 1793256347878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6829,
+      "timestampMillis": 1793256347878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6830,
+      "timestampMillis": 1793256347878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6831,
+      "timestampMillis": 1793256347878,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6832,
+      "timestampMillis": 1793256347879,
+      "stream": "System",
+      "text": ":reaktor:reaktor-graph:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6833,
+      "timestampMillis": 1793256347879,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6834,
+      "timestampMillis": 1793256347879,
+      "stream": "System",
+      "text": ":reaktor:reaktor-location:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6835,
+      "timestampMillis": 1793256348084,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6836,
+      "timestampMillis": 1793256348085,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6837,
+      "timestampMillis": 1793256348085,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-location:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6838,
+      "timestampMillis": 1793256348085,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6839,
+      "timestampMillis": 1793256348085,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6840,
+      "timestampMillis": 1793256348086,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-location:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6841,
+      "timestampMillis": 1793256348086,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-location:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6842,
+      "timestampMillis": 1793256348086,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6843,
+      "timestampMillis": 1793256348086,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6844,
+      "timestampMillis": 1793256348086,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-location:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6845,
+      "timestampMillis": 1793256348086,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-graph:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6846,
+      "timestampMillis": 1793256348086,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-location:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6847,
+      "timestampMillis": 1793256348379,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6848,
+      "timestampMillis": 1793256348379,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6849,
+      "timestampMillis": 1793256348379,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6850,
+      "timestampMillis": 1793256348380,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6851,
+      "timestampMillis": 1793256348381,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6852,
+      "timestampMillis": 1793256348381,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6853,
+      "timestampMillis": 1793256348381,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6854,
+      "timestampMillis": 1793256348381,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6855,
+      "timestampMillis": 1793256348381,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6856,
+      "timestampMillis": 1793256348382,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6857,
+      "timestampMillis": 1793256348382,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6858,
+      "timestampMillis": 1793256348382,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6859,
+      "timestampMillis": 1793256348382,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6860,
+      "timestampMillis": 1793256348382,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6861,
+      "timestampMillis": 1793256348382,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6862,
+      "timestampMillis": 1793256348382,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6863,
+      "timestampMillis": 1793256348382,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6864,
+      "timestampMillis": 1793256348383,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6865,
+      "timestampMillis": 1793256348383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6866,
+      "timestampMillis": 1793256348383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6867,
+      "timestampMillis": 1793256348383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6868,
+      "timestampMillis": 1793256348383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6869,
+      "timestampMillis": 1793256348383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6870,
+      "timestampMillis": 1793256348383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6871,
+      "timestampMillis": 1793256348383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-blueprint:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6872,
+      "timestampMillis": 1793256348383,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6873,
+      "timestampMillis": 1793256348384,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6874,
+      "timestampMillis": 1793256348384,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6875,
+      "timestampMillis": 1793256348384,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6876,
+      "timestampMillis": 1793256348384,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6877,
+      "timestampMillis": 1793256348384,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:kspDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6878,
+      "timestampMillis": 1793256348384,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6879,
+      "timestampMillis": 1793256348384,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:kspDebugKotlinAndroid: Skipped"
+    },
+    {
+      "sequence": 6880,
+      "timestampMillis": 1793256348384,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:compileDebugKotlinAndroid: Started"
+    },
+    {
+      "sequence": 6881,
+      "timestampMillis": 1793256348385,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6882,
+      "timestampMillis": 1793256348385,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6883,
+      "timestampMillis": 1793256348385,
+      "stream": "System",
+      "text": ":reaktor:reaktor-auth:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6884,
+      "timestampMillis": 1793256348385,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6885,
+      "timestampMillis": 1793256348385,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6886,
+      "timestampMillis": 1793256348385,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6887,
+      "timestampMillis": 1793256348385,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6888,
+      "timestampMillis": 1793256348386,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6889,
+      "timestampMillis": 1793256348386,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6890,
+      "timestampMillis": 1793256348386,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6891,
+      "timestampMillis": 1793256348386,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6892,
+      "timestampMillis": 1793256348574,
+      "stream": "System",
+      "text": ":reaktor:reaktor-notification-fcm:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6893,
+      "timestampMillis": 1793256348574,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6894,
+      "timestampMillis": 1793256348574,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6895,
+      "timestampMillis": 1793256348574,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6896,
+      "timestampMillis": 1793256348574,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6897,
+      "timestampMillis": 1793256348574,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6898,
+      "timestampMillis": 1793256348574,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6899,
+      "timestampMillis": 1793256348574,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-blueprint:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6900,
+      "timestampMillis": 1793256348574,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6901,
+      "timestampMillis": 1793256348574,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6902,
+      "timestampMillis": 1793256348575,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6903,
+      "timestampMillis": 1793256348575,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:kspDebugKotlinAndroid SKIPPED"
+    },
+    {
+      "sequence": 6904,
+      "timestampMillis": 1793256348575,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6905,
+      "timestampMillis": 1793256348575,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-auth:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6906,
+      "timestampMillis": 1793256348575,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6907,
+      "timestampMillis": 1793256348575,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6908,
+      "timestampMillis": 1793256348575,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6909,
+      "timestampMillis": 1793256348575,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6910,
+      "timestampMillis": 1793256348575,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:compileDebugKotlinAndroid: Executed"
+    },
+    {
+      "sequence": 6911,
+      "timestampMillis": 1793256348575,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:compileDebugJavaWithJavac: Started"
+    },
+    {
+      "sequence": 6912,
+      "timestampMillis": 1793256348575,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:compileDebugJavaWithJavac: Skipped"
+    },
+    {
+      "sequence": 6913,
+      "timestampMillis": 1793256348575,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:bundleLibCompileToJarDebug: Started"
+    },
+    {
+      "sequence": 6914,
+      "timestampMillis": 1793256348575,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:bundleLibCompileToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6915,
+      "timestampMillis": 1793256348576,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:bundleLibRuntimeToJarDebug: Started"
+    },
+    {
+      "sequence": 6916,
+      "timestampMillis": 1793256348576,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:bundleLibRuntimeToJarDebug: UpToDate"
+    },
+    {
+      "sequence": 6917,
+      "timestampMillis": 1793256348576,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:processDebugJavaRes: Started"
+    },
+    {
+      "sequence": 6918,
+      "timestampMillis": 1793256348576,
+      "stream": "System",
+      "text": ":reaktor:reaktor-google:processDebugJavaRes: UpToDate"
+    },
+    {
+      "sequence": 6919,
+      "timestampMillis": 1793256348684,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-notification-fcm:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6920,
+      "timestampMillis": 1793256348684,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:compileDebugKotlinAndroid"
+    },
+    {
+      "sequence": 6921,
+      "timestampMillis": 1793256348684,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:compileDebugJavaWithJavac NO-SOURCE"
+    },
+    {
+      "sequence": 6922,
+      "timestampMillis": 1793256348684,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:bundleLibCompileToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6923,
+      "timestampMillis": 1793256348684,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:bundleLibRuntimeToJarDebug UP-TO-DATE"
+    },
+    {
+      "sequence": 6924,
+      "timestampMillis": 1793256348684,
+      "stream": "Stdout",
+      "text": "> Task :reaktor:reaktor-google:processDebugJavaRes UP-TO-DATE"
+    },
+    {
+      "sequence": 6925,
+      "timestampMillis": 1793256354405,
+      "stream": "System",
+      "text": ":reaktorCli:test: Executed"
+    },
+    {
+      "sequence": 6926,
+      "timestampMillis": 1793256354522,
+      "stream": "Stdout",
+      "text": "> Task :reaktorCli:test"
+    },
+    {
+      "sequence": 6927,
+      "timestampMillis": 1793256362171,
+      "stream": "Stdout",
+      "text": "> Task :engine:jvmTest"
+    },
+    {
+      "sequence": 6928,
+      "timestampMillis": 1793256375183,
+      "stream": "Stdout",
+      "text": "> Task :kernel:test"
+    },
+    {
+      "sequence": 6929,
+      "timestampMillis": 1793256552577,
+      "stream": "System",
+      "text": ":kernel:test: Executed"
+    },
+    {
+      "sequence": 6930,
+      "timestampMillis": 1793256932493,
+      "stream": "System",
+      "text": ":engine:jvmTest: Failed"
+    },
+    {
+      "sequence": 6931,
+      "timestampMillis": 1793256932698,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6932,
+      "timestampMillis": 1793256932698,
+      "stream": "Stdout",
+      "text": "> Task :engine:jvmTest FAILED"
+    },
+    {
+      "sequence": 6933,
+      "timestampMillis": 1793256932699,
+      "stream": "Stdout",
+      "text": "Requesting stop of task ':engine:jvmTest' as it has exceeded its configured timeout of 10m."
+    },
+    {
+      "sequence": 6934,
+      "timestampMillis": 1793256932699,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6935,
+      "timestampMillis": 1793256932699,
+      "stream": "Stdout",
+      "text": "Gradle Test Run :engine:jvmTest[jvm] FAILED"
+    },
+    {
+      "sequence": 6936,
+      "timestampMillis": 1793256932699,
+      "stream": "Stdout",
+      "text": "    org.gradle.internal.exceptions.DefaultMultiCauseException at CompositeStoppable.java:135"
+    },
+    {
+      "sequence": 6937,
+      "timestampMillis": 1793256932699,
+      "stream": "Stdout",
+      "text": "        Caused by: org.gradle.internal.exceptions.DefaultMultiCauseException at CompositeStoppable.java:135"
+    },
+    {
+      "sequence": 6938,
+      "timestampMillis": 1793256932699,
+      "stream": "Stdout",
+      "text": "            Caused by: org.gradle.internal.UncheckedException at UncheckedException.java:69"
+    },
+    {
+      "sequence": 6939,
+      "timestampMillis": 1793256932699,
+      "stream": "Stdout",
+      "text": "                Caused by: java.lang.InterruptedException at AbstractQueuedSynchronizer.java:1789"
+    },
+    {
+      "sequence": 6940,
+      "timestampMillis": 1793256935096,
+      "stream": "Stdout",
+      "text": "Kotlin build report is written to file:///Users/ovd/dev/reaktor/build/reports/kotlin-build/reaktor-build-2026-10-29-12-25-34-0.txt"
+    },
+    {
+      "sequence": 6941,
+      "timestampMillis": 1793256936289,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6942,
+      "timestampMillis": 1793256936289,
+      "stream": "Stdout",
+      "text": "[Incubating] Problems report is available at: file:///Users/ovd/dev/bestbuds/build/reports/problems/problems-report.html"
+    },
+    {
+      "sequence": 6943,
+      "timestampMillis": 1793256936289,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6944,
+      "timestampMillis": 1793256936290,
+      "stream": "Stdout",
+      "text": "FAILURE: Build completed with 2 failures."
+    },
+    {
+      "sequence": 6945,
+      "timestampMillis": 1793256936290,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6946,
+      "timestampMillis": 1793256936290,
+      "stream": "Stdout",
+      "text": "1: Task failed with an exception."
+    },
+    {
+      "sequence": 6947,
+      "timestampMillis": 1793256936290,
+      "stream": "Stdout",
+      "text": "-----------"
+    },
+    {
+      "sequence": 6948,
+      "timestampMillis": 1793256936290,
+      "stream": "Stdout",
+      "text": "* What went wrong:"
+    },
+    {
+      "sequence": 6949,
+      "timestampMillis": 1793256936290,
+      "stream": "Stdout",
+      "text": "Execution failed for task ':appWeb:budget' (registered in build file 'targets/appWeb/build.gradle.kts')."
+    },
+    {
+      "sequence": 6950,
+      "timestampMillis": 1793256936290,
+      "stream": "Stdout",
+      "text": "> Process 'command '/Users/ovd/.gradle/dependeasy/tools/node/24.21.0/darwin-arm64/bin/node'' finished with non-zero exit value 1"
+    },
+    {
+      "sequence": 6951,
+      "timestampMillis": 1793256936290,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6952,
+      "timestampMillis": 1793256936291,
+      "stream": "Stdout",
+      "text": "* Try:"
+    },
+    {
+      "sequence": 6953,
+      "timestampMillis": 1793256936291,
+      "stream": "Stdout",
+      "text": "> Run with --stacktrace option to get the stack trace."
+    },
+    {
+      "sequence": 6954,
+      "timestampMillis": 1793256936291,
+      "stream": "Stdout",
+      "text": "> Run with --info or --debug option to get more log output."
+    },
+    {
+      "sequence": 6955,
+      "timestampMillis": 1793256936291,
+      "stream": "Stdout",
+      "text": "> Run with --scan to get full insights from a Build Scan (powered by Develocity)."
+    },
+    {
+      "sequence": 6956,
+      "timestampMillis": 1793256936291,
+      "stream": "Stdout",
+      "text": "> Get more help at https://help.gradle.org."
+    },
+    {
+      "sequence": 6957,
+      "timestampMillis": 1793256936291,
+      "stream": "Stdout",
+      "text": "=============================================================================="
+    },
+    {
+      "sequence": 6958,
+      "timestampMillis": 1793256936291,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6959,
+      "timestampMillis": 1793256936292,
+      "stream": "Stdout",
+      "text": "2: Task failed with an exception."
+    },
+    {
+      "sequence": 6960,
+      "timestampMillis": 1793256936292,
+      "stream": "Stdout",
+      "text": "-----------"
+    },
+    {
+      "sequence": 6961,
+      "timestampMillis": 1793256936292,
+      "stream": "Stdout",
+      "text": "* What went wrong:"
+    },
+    {
+      "sequence": 6962,
+      "timestampMillis": 1793256936292,
+      "stream": "Stdout",
+      "text": "Execution failed for task ':engine:jvmTest' (registered in build file 'modules/engine/build.gradle.kts')."
+    },
+    {
+      "sequence": 6963,
+      "timestampMillis": 1793256936292,
+      "stream": "Stdout",
+      "text": "> Timeout has been exceeded"
+    },
+    {
+      "sequence": 6964,
+      "timestampMillis": 1793256936292,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6965,
+      "timestampMillis": 1793256936292,
+      "stream": "Stdout",
+      "text": "* Try:"
+    },
+    {
+      "sequence": 6966,
+      "timestampMillis": 1793256936292,
+      "stream": "Stdout",
+      "text": "> Run with --stacktrace option to get the stack trace."
+    },
+    {
+      "sequence": 6967,
+      "timestampMillis": 1793256936293,
+      "stream": "Stdout",
+      "text": "> Run with --info or --debug option to get more log output."
+    },
+    {
+      "sequence": 6968,
+      "timestampMillis": 1793256936293,
+      "stream": "Stdout",
+      "text": "> Run with --scan to get full insights from a Build Scan (powered by Develocity)."
+    },
+    {
+      "sequence": 6969,
+      "timestampMillis": 1793256936293,
+      "stream": "Stdout",
+      "text": "> Get more help at https://help.gradle.org."
+    },
+    {
+      "sequence": 6970,
+      "timestampMillis": 1793256936293,
+      "stream": "Stdout",
+      "text": "=============================================================================="
+    },
+    {
+      "sequence": 6971,
+      "timestampMillis": 1793256936293,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6972,
+      "timestampMillis": 1793256936293,
+      "stream": "Stdout",
+      "text": "Deprecated Gradle features were used in this build, making it incompatible with Gradle 10."
+    },
+    {
+      "sequence": 6973,
+      "timestampMillis": 1793256936294,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6974,
+      "timestampMillis": 1793256936294,
+      "stream": "Stdout",
+      "text": "You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins."
+    },
+    {
+      "sequence": 6975,
+      "timestampMillis": 1793256936294,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6976,
+      "timestampMillis": 1793256936294,
+      "stream": "Stdout",
+      "text": "For more on this, please refer to https://docs.gradle.org/9.7.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation."
+    },
+    {
+      "sequence": 6977,
+      "timestampMillis": 1793256936294,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6978,
+      "timestampMillis": 1793256936294,
+      "stream": "Stdout",
+      "text": "BUILD FAILED in 10m 48s"
+    },
+    {
+      "sequence": 6979,
+      "timestampMillis": 1793256936295,
+      "stream": "Stdout",
+      "text": "1112 actionable tasks: 122 executed, 1 from cache, 989 up-to-date"
+    },
+    {
+      "sequence": 6980,
+      "timestampMillis": 1793256936493,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6981,
+      "timestampMillis": 1793256936493,
+      "stream": "Stdout",
+      "text": "> Task :runBuildNode FAILED"
+    },
+    {
+      "sequence": 6982,
+      "timestampMillis": 1793256936895,
+      "stream": "Stdout",
+      "text": "Kotlin build report is written to file:///Users/ovd/dev/reaktor/build/reports/kotlin-build/reaktor-build-2026-10-29-12-25-36-0.txt"
+    },
+    {
+      "sequence": 6983,
+      "timestampMillis": 1793256937436,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6984,
+      "timestampMillis": 1793256937436,
+      "stream": "Stdout",
+      "text": "[Incubating] Problems report is available at: file:///Users/ovd/dev/bestbuds/build/reports/problems/problems-report.html"
+    },
+    {
+      "sequence": 6985,
+      "timestampMillis": 1793256937436,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6986,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": "FAILURE: Build failed with an exception."
+    },
+    {
+      "sequence": 6987,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6988,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": "* What went wrong:"
+    },
+    {
+      "sequence": 6989,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": "Execution failed for task ':runBuildNode' (registered by plugin 'dev.shibasis.dependeasy.workspace')."
+    },
+    {
+      "sequence": 6990,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": "> Could not execute build using connection to Gradle installation '/Users/ovd/.gradle/wrapper/dists/gradle-9.7.0-bin/d4tj7w02tcgubx9zk9hbippn6/gradle-9.7.0'."
+    },
+    {
+      "sequence": 6991,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6992,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": "* Try:"
+    },
+    {
+      "sequence": 6993,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": "> Run with --stacktrace option to get the stack trace."
+    },
+    {
+      "sequence": 6994,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": "> Run with --info or --debug option to get more log output."
+    },
+    {
+      "sequence": 6995,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": "> Run with --scan to get full insights from a Build Scan (powered by Develocity)."
+    },
+    {
+      "sequence": 6996,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": "> Get more help at https://help.gradle.org."
+    },
+    {
+      "sequence": 6997,
+      "timestampMillis": 1793256937437,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 6998,
+      "timestampMillis": 1793256937438,
+      "stream": "Stdout",
+      "text": "Deprecated Gradle features were used in this build, making it incompatible with Gradle 10."
+    },
+    {
+      "sequence": 6999,
+      "timestampMillis": 1793256937438,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 7000,
+      "timestampMillis": 1793256937438,
+      "stream": "Stdout",
+      "text": "You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins."
+    },
+    {
+      "sequence": 7001,
+      "timestampMillis": 1793256937438,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 7002,
+      "timestampMillis": 1793256937438,
+      "stream": "Stdout",
+      "text": "For more on this, please refer to https://docs.gradle.org/9.7.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation."
+    },
+    {
+      "sequence": 7003,
+      "timestampMillis": 1793256937438,
+      "stream": "Stdout",
+      "text": ""
+    },
+    {
+      "sequence": 7004,
+      "timestampMillis": 1793256937438,
+      "stream": "Stdout",
+      "text": "BUILD FAILED in 10m 57s"
+    },
+    {
+      "sequence": 7005,
+      "timestampMillis": 1793256937438,
+      "stream": "Stdout",
+      "text": "24 actionable tasks: 1 executed, 23 up-to-date"
+    },
+    {
+      "sequence": 7006,
+      "timestampMillis": 1793256937444,
+      "stream": "Stdout",
+      "text": "      657.47 real         1.50 user         0.23 sys"
+    },
+    {
+      "sequence": 7007,
+      "timestampMillis": 1793256937444,
+      "stream": "Stdout",
+      "text": "           131416064  maximum resident set size"
+    },
+    {
+      "sequence": 7008,
+      "timestampMillis": 1793256937444,
+      "stream": "Stdout",
+      "text": "                   0  average shared memory size"
+    },
+    {
+      "sequence": 7009,
+      "timestampMillis": 1793256937444,
+      "stream": "Stdout",
+      "text": "                   0  average unshared data size"
+    },
+    {
+      "sequence": 7010,
+      "timestampMillis": 1793256937444,
+      "stream": "Stdout",
+      "text": "                   0  average unshared stack size"
+    },
+    {
+      "sequence": 7011,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "               13642  page reclaims"
+    },
+    {
+      "sequence": 7012,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "                   8  page faults"
+    },
+    {
+      "sequence": 7013,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "                   0  swaps"
+    },
+    {
+      "sequence": 7014,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "                   0  block input operations"
+    },
+    {
+      "sequence": 7015,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "                   0  block output operations"
+    },
+    {
+      "sequence": 7016,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "                   4  messages sent"
+    },
+    {
+      "sequence": 7017,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "                 983  messages received"
+    },
+    {
+      "sequence": 7018,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "                   1  signals received"
+    },
+    {
+      "sequence": 7019,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "                 389  voluntary context switches"
+    },
+    {
+      "sequence": 7020,
+      "timestampMillis": 1793256937445,
+      "stream": "Stdout",
+      "text": "               14202  involuntary context switches"
+    },
+    {
+      "sequence": 7021,
+      "timestampMillis": 1793256937446,
+      "stream": "Stdout",
+      "text": "          8948236200  instructions retired"
+    },
+    {
+      "sequence": 7022,
+      "timestampMillis": 1793256937446,
+      "stream": "Stdout",
+      "text": "          4954608345  cycles elapsed"
+    },
+    {
+      "sequence": 7023,
+      "timestampMillis": 1793256937446,
+      "stream": "Stdout",
+      "text": "           106709808  peak memory footprint"
+    },
+    {
+      "sequence": 7024,
+      "timestampMillis": 1793256951946,
+      "stream": "System",
+      "text": "Process exited with code 1"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "gradle-8cb3ecb0-df20-41c8-9fa4-d20930d0a87e",
+      "kind": "gradle-receipt",
+      "path": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/8cb3ecb0-df20-41c8-9fa4-d20930d0a87e.json",
+      "summary": "Gradle run receipt, SHA-256 77abb80ea01fdb889117d6ff1c7a75871940b5773841b2e4b081c03349286b20",
+      "sensitive": false,
+      "verified": true
+    }
+  ],
+  "failure": "Process exited with code 1",
+  "sensitive": false,
+  "connectionCheck": false,
+  "checkResult": {
+    "command": [
+      "bestbuds:serverImage"
+    ],
+    "outcome": "Errored",
+    "exitCode": 1,
+    "environment": "local",
+    "failures": [
+      {
+        "message": "> Task :runBuildNode FAILED",
+        "kind": "task"
+      }
+    ],
+    "failureCount": 1,
+    "excerpt": "or/build/reports/kotlin-build/reaktor-build-2026-10-29-12-25-36-0.txt\n\n[Incubating] Problems report is available at: file:///Users/ovd/dev/bestbuds/build/reports/problems/problems-report.html\n\nFAILURE: Build failed with an exception.\n\n* What went wrong:\nExecution failed for task ':runBuildNode' (registered by plugin 'dev.shibasis.dependeasy.workspace').\n> Could not execute build using connection to Gradle installation '/Users/ovd/.gradle/wrapper/dists/gradle-9.7.0-bin/d4tj7w02tcgubx9zk9hbippn6/gradle-9.7.0'.\n\n* Try:\n> Run with --stacktrace option to get the stack trace.\n> Run with --info or --debug option to get more log output.\n> Run with --scan to get full insights from a Build Scan (powered by Develocity).\n> Get more help at https://help.gradle.org.\n\nDeprecated Gradle features were used in this build, making it incompatible with Gradle 10.\n\nYou can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.\n\nFor more on this, please refer to https://docs.gradle.org/9.7.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.\n\nBUILD FAILED in 10m 57s\n24 actionable tasks: 1 executed, 23 up-to-date\n      657.47 real         1.50 user         0.23 sys\n           131416064  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n               13642  page reclaims\n                   8  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   4  messages sent\n                 983  messages received\n                   1  signals received\n                 389  voluntary context switches\n               14202  involuntary context switches\n          8948236200  instructions retired\n          4954608345  cycles elapsed\n           106709808  peak memory footprint",
+    "log": {
+      "id": "9dd90a2567d2420f38dfac88ee3abc78cf314bcc0133d35f88b56ecdecdb8f37",
+      "bytes": 420593,
+      "kind": "kernel-check-log"
+    },
+    "parser": "kotlin-gradle/1",
+    "coverage": {
+      "type": "dev.shibasis.reaktor.conductor.CheckCoverage.Partial",
+      "unrecognisedLines": 4737,
+      "reason": "Source identity unavailable or changed during execution"
+    },
+    "durationMillis": 702224,
+    "warnings": [
+      {
+        "message": "'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Machine.kt",
+        "line": 138,
+        "column": 50,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'fun BackHandler(enabled: Boolean = ..., onBack: () -> Unit): Unit' is deprecated. Use NavigationEventHandler instead.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Overlay.kt",
+        "line": 182,
+        "column": 73,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "Condition is always 'true'.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/Split.kt",
+        "line": 149,
+        "column": 32,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt",
+        "line": 29,
+        "column": 19,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'fun BackHandler(enabled: Boolean = ..., onBack: () -> Unit): Unit' is deprecated. Use NavigationEventHandler instead.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt",
+        "line": 35,
+        "column": 72,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt",
+        "line": 39,
+        "column": 19,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt",
+        "line": 45,
+        "column": 19,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt",
+        "line": 51,
+        "column": 19,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt",
+        "line": 57,
+        "column": 19,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/SurfaceEvents.kt",
+        "line": 66,
+        "column": 19,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "Condition is always 'true'.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/TabSet.kt",
+        "line": 110,
+        "column": 32,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/TextField.kt",
+        "line": 76,
+        "column": 19,
+        "kind": "compiler-warning"
+      },
+      {
+        "message": "'val currentCompositeKeyHash: Int' is deprecated. Prefer the higher-precision currentCompositeKeyHashCode.",
+        "file": "/Users/ovd/dev/reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/TextField.kt",
+        "line": 104,
+        "column": 19,
+        "kind": "compiler-warning"
+      }
+    ],
+    "warningCount": 13
+  },
+  "background": false,
+  "verifiedChecks": [],
+  "planFingerprint": "a75f526f9462df4033f5476b",
+  "parentRunId": "kernel-eb3f1bf6-1baa-4eae-b843-9ba9a3021e0b",
+  "receipt": {
+    "id": "run-1793256249691-1",
+    "workspaceId": "workspace-81fe809d391237c152810ad9",
+    "taskId": "bestbuds:serverImage",
+    "planId": "a75f526f9462df4033f5476b",
+    "status": "Failed",
+    "createdAtEpochMillis": 1793256249692,
+    "startedAtEpochMillis": 1793256249692,
+    "finishedAtEpochMillis": 1793256951946,
+    "exitCode": 1,
+    "artifacts": [
+      {
+        "id": "gradle-8cb3ecb0-df20-41c8-9fa4-d20930d0a87e",
+        "kind": "gradle-receipt",
+        "location": "/Users/ovd/dev/bestbuds/build/dependeasy/receipts/8cb3ecb0-df20-41c8-9fa4-d20930d0a87e.json",
+        "attributes": {
+          "verified": "true"
+        }
+      },
+      {
+        "id": "operation-run-1793256249691-1",
+        "kind": "operational-run",
+        "location": "run-1793256249691-1",
+        "attributes": {
+          "sourceStatus": "Failed",
+          "planEvidence": "recorded",
+          "parentRunId": "kernel-eb3f1bf6-1baa-4eae-b843-9ba9a3021e0b"
+        }
+      }
+    ]
+  }
+}

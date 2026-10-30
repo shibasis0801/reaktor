@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AuthAccessTest[jvm]" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:17.238Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.012">
+  <properties/>
+  <testcase name="aTokenCannotCarryMoreThanItsOwnerAndIsMintedInTheServersFormat[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthAccessTest" time="0.006"/>
+  <testcase name="theSyncPlanCreatesBeforeItLinksAndRetiresOnlyWhatIsSafeByDefault[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthAccessTest" time="0.004"/>
+  <testcase name="givingARoleHeimdallLacksCreatesItFirstAndEveryChangeIsAudited[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthAccessTest" time="0.001"/>
+  <testcase name="heimdallRolesAreComparedWithTheCatalog[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthAccessTest" time="0.0"/>
+  <testcase name="securityFindsStrayAndDriftingRolesButNotDeclaredTestRoles[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthAccessTest" time="0.001"/>
+  <testcase name="theCatalogOffersGroupsLevelsAndEveryPathPrefix[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthAccessTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

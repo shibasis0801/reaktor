@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ReaktorEditorChromeGeometryTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:25:37.343Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.105">
+  <properties/>
+  <testcase name="chromeButtonsCenterTheirLabelsAndKeepIconsAtTheAuthoredSize[jvm]" classname="ai.bestbuds.reaktor.workbench.ReaktorEditorChromeGeometryTest" time="0.044"/>
+  <testcase name="applicationChromeIsOneRowWithMenusOnDemand[jvm]" classname="ai.bestbuds.reaktor.workbench.ReaktorEditorChromeGeometryTest" time="0.061"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

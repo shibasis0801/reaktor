@@ -1,0 +1,64 @@
+{
+  "capturedAt": "2026-10-29T05:42:01.326922+05:30",
+  "checks": {
+    "ui-production-token": {
+      "suites": 23,
+      "tests": 135,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "failedCases": [],
+      "archive": "ui-production-token-results.zip",
+      "sha256": "5364acded30299a8b53c1d3450cddb20da5a819a1cfc69f7de3c9a95c2f93e20",
+      "complete": true
+    },
+    "graph-wrap-before": {
+      "suites": 20,
+      "tests": 95,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "failedCases": [
+        {
+          "suite": "BlueprintRoutingTest[jvm]",
+          "case": "wrapping balances real card heights and keeps every node separate[jvm]",
+          "message": "java.lang.AssertionError: 1244.0x3064.0"
+        }
+      ],
+      "archive": "graph-wrap-before-results.zip",
+      "sha256": "14cf2380e6c90b5785275fff748415f6be0c54865122df000dd90a31c6090df4",
+      "complete": false,
+      "executedTests": 3,
+      "executedFailures": 1,
+      "note": "Filtered BlueprintRoutingTest ran 3 cases, 1 failed. XML directory retains other suites from prior runs; aggregate is not a fresh full-suite result."
+    },
+    "engine-production-native-crash": {
+      "suites": 193,
+      "tests": 671,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 1,
+      "failedCases": [
+        {
+          "suite": "AppGraphFeatureLayoutTest[jvm]",
+          "case": "Hangar's own map fits a wide screen with a frame per pane[jvm]",
+          "message": "java.lang.AssertionError: Shared data wraps into a grid: 2808x4451"
+        },
+        {
+          "suite": "ProductAnalyticsStateTest[jvm]",
+          "case": "chartDaysExposeVisibleSurfaceActivation[jvm]",
+          "message": "java.lang.AssertionError: expected:<7> but was:<8>"
+        }
+      ],
+      "archive": "engine-production-native-crash-results.zip",
+      "sha256": "6f3559fa47500ab8dde8600226e0f73cde674a31dda4a211a7cbbc23888f4a4c",
+      "complete": false
+    }
+  },
+  "nativeAttachment": {
+    "scope": "JVMTI ThreadStart capture, return-preserving pthread signal trace",
+    "stack": "FSEvents dispatch workloop \u2192 FFM UpcallLinker.on_entry \u2192 jni_AttachCurrentThreadAsDaemon",
+    "proof": "native-attachment-stacks.txt",
+    "interpretation": "Owned KernelWatch.FileEvents uses FSEventStreamSetDispatchQueue; JVM attaches dispatch workqueue threads. This is the demonstrated attachment source; failing target pointer correlation is pending the instrumented full run."
+  }
+}

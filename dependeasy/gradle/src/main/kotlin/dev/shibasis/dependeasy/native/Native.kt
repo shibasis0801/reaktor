@@ -8,6 +8,7 @@ import dev.shibasis.dependeasy.toolchain.ToolchainVersions
 import java.io.Serializable
 
 enum class NativePlatform { Android, Darwin, Host }
+enum class NativeLinkage { Static, Shared }
 enum class NativeAbi(val androidName: String) {
     Arm32("armeabi-v7a"), Arm64("arm64-v8a"), X86("x86"), X86_64("x86_64");
     companion object {

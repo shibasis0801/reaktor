@@ -1,0 +1,40 @@
+{
+  "observedAt": 1793229440.499912,
+  "rows": [
+    {
+      "label": "primary-stdio-mcp",
+      "protocol": "2025-06-18",
+      "tools": [
+        "kernel",
+        "atlas_query",
+        "atlas_read",
+        "change_plan",
+        "change_apply",
+        "check_run"
+      ],
+      "owner": "8d99ac7b70ba80e3d46051bfa11574a996e12a3dd62bdd344cb6c65bdc55df44.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 29 Oct 04:27; this process started 29 Oct 04:46",
+      "operations": 290,
+      "behind": [],
+      "sourceReadSha256": "02629c854642d0a05b7d7c09211a34f881e37b0f5ebaecbadfb3167ad5b08ff6",
+      "seconds": 2.8262799579999998
+    },
+    {
+      "label": "agent-stdio-mcp",
+      "protocol": "2025-06-18",
+      "tools": [
+        "kernel",
+        "atlas_query",
+        "atlas_read",
+        "change_plan",
+        "change_apply",
+        "check_run"
+      ],
+      "owner": "8d99ac7b70ba80e3d46051bfa11574a996e12a3dd62bdd344cb6c65bdc55df44.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 29 Oct 04:27; this process started 29 Oct 04:46",
+      "operations": 290,
+      "behind": [],
+      "sourceReadSha256": "02629c854642d0a05b7d7c09211a34f881e37b0f5ebaecbadfb3167ad5b08ff6",
+      "seconds": 1.6016602500000001
+    }
+  ],
+  "scope": "Fresh installed launchers and normal BestBuds owner; source Atlas read does not imply its new bytecode is installed."
+}

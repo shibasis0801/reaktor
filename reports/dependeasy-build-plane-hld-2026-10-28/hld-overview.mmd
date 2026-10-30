@@ -1,0 +1,31 @@
+flowchart TB
+  declarations["CHECKED · Dependeasy declarations<br/>Typed targets, inputs, outputs and toolchains"]
+  model["CHECKED · Inspectable build model<br/>Origins, ownership, freshness and dependency edges"]
+  clients["PARTIAL · CLI, MCP and Hangar<br/>Both CLIs installed and checked; shared forms and TUI pending"]
+  owner["PARTIAL · Workspace owner<br/>Live catalog and gate; typed client and store migration"]
+  plan["CHECKED · Sealed planning and preview<br/>157 tests; actual installed full-graph preview passes"]
+  execution["PARTIAL · Execution hosts<br/>Gradle, Mac, m1-worker and Dagger; exact web publication checked"]
+  kernels["CHECKED · Kotlin kernels<br/>Shared build and delivery contracts"]
+  evidence["PARTIAL · Evidence and receipts<br/>Canonical joins work; final store cutover pending"]
+  workers["CHECKED · Cloudflare dev delivery<br/>Apply, health, rollback and receipt joins"]
+  server["FAILED · Server image qualification<br/>Latest image: wheel budget failure and engine600s; kernel passes"]
+  infra["PARTIAL · Pulumi infrastructure<br/>Preview checked; protected adoption pending"]
+  phones["FAILED · Physical push acceptance<br/>Send passes; receive acceptance fails"]
+  telemetry["PARTIAL · Application to Hangar trace<br/>Retained web client-to-server journey verified; visual pane and device acceptance pending"]
+  performance["PARTIAL · Performance<br/>Measured function/cache gains; September builds remain slower"]
+  declarations --> model
+  model --> owner
+  clients --> owner --> plan --> execution --> kernels
+  kernels --> workers
+  kernels --> server
+  kernels --> infra
+  kernels --> phones
+  kernels --> evidence --> clients
+  evidence --> telemetry
+  execution -.-> performance
+  classDef checked fill:#e7f5ec,stroke:#24804a,color:#143e25
+  classDef partial fill:#fff4d7,stroke:#ae7b17,color:#513b10
+  classDef failed fill:#fce7e7,stroke:#b83b3b,color:#682222
+  class declarations,model,plan,kernels,workers checked
+  class clients,owner,execution,evidence,infra,telemetry,performance partial
+  class server,phones failed

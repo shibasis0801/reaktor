@@ -1,0 +1,18 @@
+{
+  "removed": [
+    {
+      "snapshot": "1ebf1b435c92c8e0700176378ebac967c15ceb2df56d6af4dbe9ef42626557a0",
+      "bytes": 7201198080,
+      "manifestSha256": "760b3935d866c26f59b500869e0409f497537b4cea60b0da2b98813a99472dc2",
+      "retainedManifest": "expired-benchmark-input-1ebf1b435c92c8e0700176378ebac967c15ceb2df56d6af4dbe9ef42626557a0.manifest.json.gz"
+    },
+    {
+      "snapshot": "93d47f8e39cbb2bb7d24ccb19de9c9cd942bfd5b41d6bf6b22be73524a319f1c",
+      "bytes": 7215554560,
+      "manifestSha256": "952f1a31c3a7933dbe78a7be4f07b524ad18ad99f6d44c1b7e1039bbfb9a5d7f",
+      "retainedManifest": "expired-benchmark-input-93d47f8e39cbb2bb7d24ccb19de9c9cd942bfd5b41d6bf6b22be73524a319f1c.manifest.json.gz"
+    }
+  ],
+  "scope": "Only two completed benchmark cache inputs from this chat. Per-snapshot exclusive lifetime lease, current completed-candidate membership, open-file/CWD and idle checks. No primary source, active worktree or other cache is touched.",
+  "freeGB": 15.1225344
+}

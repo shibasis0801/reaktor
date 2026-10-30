@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AppGraphRenderTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:02.994Z" hostname="Shibasiss-MacBook-Pro-2.local" time="8.972">
+  <properties/>
+  <testcase name="renders the BestBuds graph[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.AppGraphRenderTest" time="7.452"/>
+  <testcase name="selectedPathRendersRawMedianOnTheEdge[jvm]" classname="ai.bestbuds.reaktor.workbench.appgraph.AppGraphRenderTest" time="1.52"/>
+  <system-out><![CDATA[Info: (Reaktor:HttpClient) REQUEST: https://social.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://messaging.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://chat.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://notification.bestbuds.ai/
+METHOD: HEAD
+Info: (Reaktor:HttpClient) REQUEST: https://config.bestbuds.ai/
+METHOD: GET
+Info: (Reaktor:HttpClient) REQUEST: https://analytics.bestbuds.ai/events
+METHOD: POST
+Info: (Reaktor:HttpClient) REQUEST: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+METHOD: GET
+Info: (Reaktor:HttpClient) RESPONSE: 404 
+METHOD: HEAD
+FROM: https://chat.bestbuds.ai/
+Info: (Reaktor:HttpClient) RESPONSE: 401 Unauthorized
+METHOD: GET
+FROM: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+Info: (Reaktor:HttpClient) RESPONSE wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?… failed with exception: io.ktor.client.plugins.websocket.WebSocketException: Handshake exception, expected status code 101 but was 401
+Info: (Reaktor:HttpClient) REQUEST https://analytics.bestbuds.ai/events failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) RESPONSE: 204 
+METHOD: HEAD
+FROM: https://notification.bestbuds.ai/
+Info: (Reaktor:HttpClient) REQUEST: https://social.bestbuds.ai/onboarding/signal
+METHOD: GET
+Info: (Reaktor:HttpClient) REQUEST https://social.bestbuds.ai/onboarding/signal failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://messaging.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://config.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+Info: (Reaktor:HttpClient) REQUEST https://social.bestbuds.ai/ failed with exception: java.util.concurrent.CancellationException: Reaktor:AutoCloseable
+finding Medium Cycle: Chat message actions and Chat circle actions and Chat sessions depend on each other
+finding Low Reach: 2 screens no navigation leads to
+finding Low Layering: DeveloperScreen calls bestbuds.circles client, bestbuds.trials client, bestbuds.messaging client, bestbuds.notification client directly
+finding Note Isolated: 3 nodes are wired to nothing
+finding Note Unused: 73 provided ports nothing consumes
+01-overview: 161 cards · 14 frames · 531 links · 11914x5597 · 39 ms
+  frame Start: 5223,1146 2833x529 · 11 nodes · identity, root
+  frame Chats: 8194,3098 3676x2415 · 33 nodes · session › Chats, session › Chats › chat, session › You, session › build, session › prod
+  frame Circles: 8194,1595 3256x1439 · 24 nodes · session › Circles, session › Discover, session › build, session › prod
+  frame You: 8194,1008 1795x523 · 11 nodes · session › Discover, session › You, session › build, session › prod
+  frame Plans: 2592,1305 2503x482 · 9 nodes · session › Circles, session › build, session › prod
+  frame Settings: 8194,404 1180x540 · 6 nodes · config, identity, session › Chats, session › You
+  frame Trials: 5223,4636 1449x365 · 5 nodes · session › Discover
+  frame Profile: 5223,4351 1103x221 · 3 nodes · session › You
+  frame Dev: 11514,146 334x194 · 2 nodes · gallery, root
+  frame Home: 2592,2143 411x172 · 1 nodes · session
+  frame Notifications: 8194,168 411x172 · 1 nodes · session › Circles
+  frame Shared services: 2592,2392 1180x1730 · 23 nodes · config, identity, root, session › Chats, session › Circles, session › You, session › build, session › prod
+  frame Shared data: 44,1308 2452x1672 · 28 nodes · config, identity, root, session, session › Chats, session › Circles, session › build, session › prod
+  frame Shared logic: 5223,1739 488x766 · 4 nodes · identity, session › Circles, session › You
+04-compact: 161 cards · 14 frames · 319 links · 10904x2651 · 24 ms
+  frame Start: 4307,2199 2833x358 · 11 nodes · identity, root
+  frame Chats: 7258,1569 3602x876 · 33 nodes · session › Chats, session › Chats › chat, session › You, session › build, session › prod
+  frame Circles: 7258,1035 3256x470 · 24 nodes · session › Circles, session › Discover, session › build, session › prod
+  frame You: 7258,361 1795x276 · 11 nodes · session › Discover, session › You, session › build, session › prod
+  frame Plans: 1666,744 2503x248 · 9 nodes · session › Circles, session › build, session › prod
+  frame Settings: 7258,701 1180x270 · 6 nodes · config, identity, session › Chats, session › You
+  frame Trials: 4307,1917 1449x205 · 5 nodes · session › Discover
+  frame Profile: 4307,1115 1103x177 · 3 nodes · session › You
+  frame Dev: 9117,103 334x194 · 2 nodes · gallery, root
+  frame Home: 1666,1057 411x152 · 1 nodes · session
+  frame Notifications: 7258,168 411x129 · 1 nodes · session › Circles
+  frame Shared services: 1666,1273 1180x785 · 23 nodes · config, identity, root, session › Chats, session › Circles, session › You, session › build, session › prod
+  frame Shared data: 44,1153 1526x1145 · 28 nodes · config, identity, root, session, session › Chats, session › Circles, session › build, session › prod
+  frame Shared logic: 4307,729 488x322 · 4 nodes · identity, session › Circles, session › You
+05-every-port: 161 cards · 14 frames · 531 links · 11914x5597 · 28 ms
+  frame Start: 5223,1146 2833x529 · 11 nodes · identity, root
+  frame Chats: 8194,3098 3676x2415 · 33 nodes · session › Chats, session › Chats › chat, session › You, session › build, session › prod
+  frame Circles: 8194,1595 3256x1439 · 24 nodes · session › Circles, session › Discover, session › build, session › prod
+  frame You: 8194,1008 1795x523 · 11 nodes · session › Discover, session › You, session › build, session › prod
+  frame Plans: 2592,1305 2503x482 · 9 nodes · session › Circles, session › build, session › prod
+  frame Settings: 8194,404 1180x540 · 6 nodes · config, identity, session › Chats, session › You
+  frame Trials: 5223,4636 1449x365 · 5 nodes · session › Discover
+  frame Profile: 5223,4351 1103x221 · 3 nodes · session › You
+  frame Dev: 11514,146 334x194 · 2 nodes · gallery, root
+  frame Home: 2592,2143 411x172 · 1 nodes · session
+  frame Notifications: 8194,168 411x172 · 1 nodes · session › Circles
+  frame Shared services: 2592,2392 1180x1730 · 23 nodes · config, identity, root, session › Chats, session › Circles, session › You, session › build, session › prod
+  frame Shared data: 44,1308 2452x1672 · 28 nodes · config, identity, root, session, session › Chats, session › Circles, session › build, session › prod
+  frame Shared logic: 5223,1739 488x766 · 4 nodes · identity, session › Circles, session › You
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

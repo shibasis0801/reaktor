@@ -1,0 +1,24 @@
+{
+  "run": "run-1793262055227-301",
+  "status": "Failed",
+  "scope": "Fresh full sealed image attempt; original checks and600sengine cap retained; no external provider/deploy effects",
+  "router": "20261029-135137-7ee290f0-bestbuds",
+  "kernelTest": "passed current attempt",
+  "engine": {
+    "reportedCasesBeforeCancellation": 333,
+    "failures": 1,
+    "skips": 1,
+    "freshCompletedXmlSuites": 0,
+    "priorXmlExcluded": true,
+    "failedCase": "CollectionFrameTest paired wheel ratio",
+    "wheelRatio": 1.236,
+    "pageDownRatio": 1.119,
+    "ratioBudget": 1.1,
+    "lastObservedProgress": "AuthPaneRenderTest output images; not evidence of a deadlock",
+    "budgetSeconds": 600
+  },
+  "executionSeconds": 721.819288084,
+  "admissionSeconds": 14.556121791,
+  "gradleReceiptSha256": "0ecf2de4a999098eeadd4e435795a29d3d0639687ee1629dae5d308122a8b34a",
+  "imageDigest": null
+}

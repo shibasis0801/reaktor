@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-29T13:44:17.196605",
+  "removed": [
+    {
+      "path": "/Users/ovd/dev/tmp/schema-fingerprint-cli-install",
+      "chargedBytesBefore": 202634240,
+      "existsAfter": false
+    },
+    {
+      "path": "/Users/ovd/dev/tmp/schema-fingerprint-benchmark",
+      "chargedBytesBefore": 36864,
+      "existsAfter": false
+    }
+  ],
+  "retainedEvidence": "installed library/MCP acceptance and qualified production comparison already retained",
+  "method": "workspace_storage.remove with explicit owned path and containment/open-file/source guards"
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AuthConsoleTest[jvm]" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:17.253Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.273">
+  <properties/>
+  <testcase name="bindingReadsTheOverviewQuietlyAndPublishesEverySlot[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.038"/>
+  <testcase name="aPastedTokenLastsOnlyAsLongAsItsEnvironmentAndWorkspace[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.002"/>
+  <testcase name="theSimulatorAppliesTheTenantRuleAndExplainsEveryStep[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.023"/>
+  <testcase name="aRealTokenVerifiesAndEachBreakageNamesTheCheckThatStopsIt[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.035"/>
+  <testcase name="theAdvisorNamesTheTenantLeakTheMissingRolesAndTheExposure[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.015"/>
+  <testcase name="aFailingReadStaysOnItsSlotAndTheRestStillLoad[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.016"/>
+  <testcase name="userAgentsReadAsDevices[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.0"/>
+  <testcase name="scopingToAnAppRereadsOnlyTheScopedSeriesAndDetailFollowsSelection[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.059"/>
+  <testcase name="theStripIsTheSixAuthoredViewsAndRetiredIdsLandOnTheirSuccessors[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.0"/>
+  <testcase name="refreshingRetainsRowsAndSelectionButChangingScopeClearsThem[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.038"/>
+  <testcase name="overviewReadsStartTogetherAndPublishAfterTheLastSlotCompletes[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthConsoleTest" time="0.047"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

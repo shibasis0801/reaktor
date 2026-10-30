@@ -1,0 +1,658 @@
+[
+  {
+    "pair": 0,
+    "variant": "old",
+    "exitCode": 0,
+    "seconds": 134.41295886039734,
+    "freshReport": true,
+    "changedRuntime": [],
+    "loadBefore": [
+      15.96826171875,
+      18.8603515625,
+      20.5048828125
+    ],
+    "loadAfter": [
+      12.88671875,
+      17.63330078125,
+      19.85546875
+    ],
+    "performance": {
+      "target": "studio-navigation",
+      "generatedAt": "2026-10-29T06:05:26.463290Z",
+      "marks": [],
+      "webVitals": null,
+      "appVitals": null,
+      "serverVitals": null,
+      "samples": [],
+      "metrics": [
+        {
+          "name": "capture.p95",
+          "value": 7.2,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "previews.bytes",
+          "value": 94453632.0,
+          "unit": "bytes",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": null,
+          "severity": "Error"
+        },
+        {
+          "name": "pan.p95",
+          "value": 6.8,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "zoom.p95",
+          "value": 7.8,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "apps.started",
+          "value": 2.0,
+          "unit": "count",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": null,
+          "severity": "Error"
+        },
+        {
+          "name": "camera.apps.started",
+          "value": 0.0,
+          "unit": "count",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 0.0,
+          "severity": "Error"
+        }
+      ],
+      "buildArtifacts": [],
+      "buildTimings": [],
+      "flamegraph": [],
+      "profiles": [
+        {
+          "name": "navigation frames",
+          "profiler": "Jfr",
+          "platform": "Mac OS X",
+          "startedAt": "2026-10-29T06:03:13.169854Z",
+          "durationMs": 133164.0,
+          "outputPath": "/Users/ovd/dev/bestbuds/modules/engine/build/reports/studio-navigation/frames.jfr",
+          "sampleCount": null,
+          "topFrames": [],
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          }
+        }
+      ],
+      "toolRuns": [],
+      "budgets": []
+    }
+  },
+  {
+    "pair": 0,
+    "variant": "new",
+    "exitCode": 0,
+    "seconds": 135.2799220085144,
+    "freshReport": true,
+    "changedRuntime": [],
+    "loadBefore": [
+      12.88671875,
+      17.63330078125,
+      19.85546875
+    ],
+    "loadAfter": [
+      34.03125,
+      21.06884765625,
+      20.68115234375
+    ],
+    "performance": {
+      "target": "studio-navigation",
+      "generatedAt": "2026-10-29T06:07:43.604335Z",
+      "marks": [],
+      "webVitals": null,
+      "appVitals": null,
+      "serverVitals": null,
+      "samples": [],
+      "metrics": [
+        {
+          "name": "capture.p95",
+          "value": 7.1,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "previews.bytes",
+          "value": 94453632.0,
+          "unit": "bytes",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": null,
+          "severity": "Error"
+        },
+        {
+          "name": "pan.p95",
+          "value": 6.1,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "zoom.p95",
+          "value": 6.4,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "apps.started",
+          "value": 2.0,
+          "unit": "count",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": null,
+          "severity": "Error"
+        },
+        {
+          "name": "camera.apps.started",
+          "value": 0.0,
+          "unit": "count",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 0.0,
+          "severity": "Error"
+        }
+      ],
+      "buildArtifacts": [],
+      "buildTimings": [],
+      "flamegraph": [],
+      "profiles": [
+        {
+          "name": "navigation frames",
+          "profiler": "Jfr",
+          "platform": "Mac OS X",
+          "startedAt": "2026-10-29T06:05:29.439703Z",
+          "durationMs": 134059.0,
+          "outputPath": "/Users/ovd/dev/bestbuds/modules/engine/build/reports/studio-navigation/frames.jfr",
+          "sampleCount": null,
+          "topFrames": [],
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          }
+        }
+      ],
+      "toolRuns": [],
+      "budgets": []
+    }
+  },
+  {
+    "pair": 1,
+    "variant": "new",
+    "exitCode": 0,
+    "seconds": 142.84454321861267,
+    "freshReport": true,
+    "changedRuntime": [],
+    "loadBefore": [
+      34.03125,
+      21.06884765625,
+      20.68115234375
+    ],
+    "loadAfter": [
+      168.20556640625,
+      75.93701171875,
+      42.6005859375
+    ],
+    "performance": {
+      "target": "studio-navigation",
+      "generatedAt": "2026-10-29T06:10:08.224390Z",
+      "marks": [],
+      "webVitals": null,
+      "appVitals": null,
+      "serverVitals": null,
+      "samples": [],
+      "metrics": [
+        {
+          "name": "capture.p95",
+          "value": 6.7,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "previews.bytes",
+          "value": 94453632.0,
+          "unit": "bytes",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": null,
+          "severity": "Error"
+        },
+        {
+          "name": "pan.p95",
+          "value": 6.3,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "zoom.p95",
+          "value": 6.5,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "apps.started",
+          "value": 2.0,
+          "unit": "count",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": null,
+          "severity": "Error"
+        },
+        {
+          "name": "camera.apps.started",
+          "value": 0.0,
+          "unit": "count",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 0.0,
+          "severity": "Error"
+        }
+      ],
+      "buildArtifacts": [],
+      "buildTimings": [],
+      "flamegraph": [],
+      "profiles": [
+        {
+          "name": "navigation frames",
+          "profiler": "Jfr",
+          "platform": "Mac OS X",
+          "startedAt": "2026-10-29T06:07:46.724127Z",
+          "durationMs": 141377.0,
+          "outputPath": "/Users/ovd/dev/bestbuds/modules/engine/build/reports/studio-navigation/frames.jfr",
+          "sampleCount": null,
+          "topFrames": [],
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          }
+        }
+      ],
+      "toolRuns": [],
+      "budgets": []
+    }
+  },
+  {
+    "pair": 1,
+    "variant": "old",
+    "exitCode": 0,
+    "seconds": 141.89112281799316,
+    "freshReport": true,
+    "changedRuntime": [],
+    "loadBefore": [
+      168.20556640625,
+      75.93701171875,
+      42.6005859375
+    ],
+    "loadAfter": [
+      182.22705078125,
+      122.96240234375,
+      67.2705078125
+    ],
+    "performance": {
+      "target": "studio-navigation",
+      "generatedAt": "2026-10-29T06:12:31.995768Z",
+      "marks": [],
+      "webVitals": null,
+      "appVitals": null,
+      "serverVitals": null,
+      "samples": [],
+      "metrics": [
+        {
+          "name": "capture.p95",
+          "value": 7.4,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "previews.bytes",
+          "value": 94453632.0,
+          "unit": "bytes",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": null,
+          "severity": "Error"
+        },
+        {
+          "name": "pan.p95",
+          "value": 6.5,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "zoom.p95",
+          "value": 6.7,
+          "unit": "ms",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 16.7,
+          "severity": "Error"
+        },
+        {
+          "name": "apps.started",
+          "value": 2.0,
+          "unit": "count",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": null,
+          "severity": "Error"
+        },
+        {
+          "name": "camera.apps.started",
+          "value": 0.0,
+          "unit": "count",
+          "domain": "Runtime",
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          },
+          "budgetLimit": 0.0,
+          "severity": "Error"
+        }
+      ],
+      "buildArtifacts": [],
+      "buildTimings": [],
+      "flamegraph": [],
+      "profiles": [
+        {
+          "name": "navigation frames",
+          "profiler": "Jfr",
+          "platform": "Mac OS X",
+          "startedAt": "2026-10-29T06:10:11.168578Z",
+          "durationMs": 140718.0,
+          "outputPath": "/Users/ovd/dev/bestbuds/modules/engine/build/reports/studio-navigation/frames.jfr",
+          "sampleCount": null,
+          "topFrames": [],
+          "scope": {
+            "graphId": null,
+            "nodeId": null,
+            "route": null,
+            "service": null,
+            "operation": null,
+            "module": null,
+            "artifactPath": null,
+            "attributes": {}
+          }
+        }
+      ],
+      "toolRuns": [],
+      "budgets": []
+    }
+  }
+]

@@ -786,6 +786,8 @@ object MachineSignal {
         val canvasMargin = 64.dp
         val layerIcon = 14.dp
         val navigationThumbWidth = 72.dp
+        val newScreenInset = 20.dp
+        val newScreenMinHeight = 160.dp
     }
 
     object LogRow {

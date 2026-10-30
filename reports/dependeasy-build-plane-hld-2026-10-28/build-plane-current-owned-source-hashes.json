@@ -1,0 +1,15 @@
+{
+  "atEpoch": 1793214197.0204191,
+  "files": {
+    "reaktor/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildModelReader.kt": "220ff3e67854507e6c011a51677120192e7e69a550b0285f7362a9ae2063e68e",
+    "reaktor/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/WorkerDeployKernel.kt": "6d8180b61d6c81da461764c3c808e959add1486b868cfcf087bd975a10bcf751",
+    "reaktor/dependeasy/model/src/main/kotlin/dev/shibasis/dependeasy/model/BuildDeclarationInputs.kt": "ccb238138d1d1bd66abdeeccf5537f578a61c093ba25bf8a9461ca36be5bf61c",
+    "reaktor/reaktor-graph-runtime/src/commonMain/kotlin/dev/shibasis/reaktor/graph/ContractNode.kt": "4d58b216afbe8d8d0c866be2a626aa7dcb97383efde42cd6b932dd4d7ad0c1e5",
+    "reaktor/reaktor-graph-runtime/src/commonMain/kotlin/dev/shibasis/reaktor/graph/WorkflowClients.kt": "a505d0fcba263a26a9d7b38d772b272099119982ea4a607ce3c042ee9ca776d7",
+    "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelOperations.kt": "fc21d89ea6af6409a1582465f16ca65cfd08d878846c4332027fb5e252c650ab",
+    "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/workbench/operations/OperationalControlPlane.kt": "abea47f7618890810bef2784d85611838a36624ba6c2bd9b56c82b1a42ee0ba6",
+    "bestbuds/modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/cloud/CloudAssembly.kt": "2866f1d0444eed9c19eee16b859b96d777edd30f1aed0606f7dfdf25bc8b0a15",
+    "bestbuds/modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/cloud/CloudPane.kt": "0b0a683e498a9aa48b389e2bd76340edb22cfbfe87e8eef3436dfa5bace15513",
+    "bestbuds/modules/engine/src/jvmMain/kotlin/ai/bestbuds/reaktor/workbench/graph/DesktopWorkbenchGraph.kt": "2e7884735ebd7a0fd337e9b93138f05ba9ee405f83209deec59eecd6a80d4826"
+  }
+}

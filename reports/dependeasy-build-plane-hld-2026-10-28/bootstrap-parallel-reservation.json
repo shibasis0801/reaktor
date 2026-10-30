@@ -1,0 +1,7 @@
+{
+  "queueSeconds": 0.11820479200000023,
+  "slot": 1,
+  "remote": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+  "scriptSha256": "aadb74aa0cc6f18088f5bfb6783c8bc110e6aa9b3755234cb6a9479d8bc14f6e",
+  "treatment": "two backend threads in Dependeasy bootstrap only; no live source changes"
+}

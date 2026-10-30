@@ -1,0 +1,82 @@
+{
+  "capturedAt": "2026-10-29T05:08:31.637505+05:30",
+  "uiRouter": "20261029-050343-a725cef5-bestbuds",
+  "engineComplete": false,
+  "engineRuntime": "Temurin25.0.3+9",
+  "engineTerminal": "SIGABRT signals_posix.cpp:1793 JfrSamplerThread; private runtime not adopted",
+  "checks": {
+    "ui": {
+      "suites": 23,
+      "tests": 135,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "passes": 135
+    },
+    "engine": {
+      "suites": 181,
+      "tests": 636,
+      "failures": 7,
+      "errors": 0,
+      "skips": 1,
+      "passes": 628
+    }
+  },
+  "archiveSha256": "4cb560059eaed85280961ca3b63da6b8c44a2bc7a9bee4821bf22063865799f1",
+  "router": {
+    "project": "bestbuds",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds",
+    "source_head": "3a352e5b339d6bc0366cc9919723c8bfc85b691d",
+    "tasks": [
+      ":reaktor:reaktor-ui:jvmTest",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      ":reaktor:reaktor-ui:jvmTest",
+      "--console=plain",
+      ":exportBuildModel"
+    ],
+    "started": "2026-10-29T05:03:43.076825",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261029-050343-a725cef5-bestbuds.log",
+    "run_id": "20261029-050343-a725cef5-bestbuds",
+    "exit_code": 0,
+    "sync_seconds": 14.126703374999998,
+    "queue_seconds": 20.993108625,
+    "owner": {
+      "pid": 68713,
+      "started": "Thu Oct 29 05:03:07 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 1,
+    "publication": "changed-files",
+    "source_epoch": 1793230408.95067,
+    "execution_seconds": 70.993230541,
+    "worker_started_epoch": 1793230423.2388384,
+    "dry_run": false,
+    "builds": {
+      "bestbuds": "bestbuds",
+      "dependeasy": "reaktor",
+      "reaktor": "reaktor"
+    },
+    "artifact_family": "verification",
+    "collected": "2026-10-29T05:04:56.864742",
+    "copied_files": 170,
+    "copy_error": null,
+    "collection_seconds": 2.717821749999999,
+    "worker_slot_trimmed": 0,
+    "publication_queue_seconds": 136.750462042,
+    "withheld_outputs": {
+      "bestbuds": 1,
+      "reaktor": 3
+    },
+    "finished": "2026-10-29T05:07:13.903882",
+    "publication_seconds": 136.971308959
+  },
+  "fixtureSources": {
+    "/Users/ovd/dev/reaktor/reaktor-ui/src/jvmTest/kotlin/dev/shibasis/reaktor/ui/machinesignal/MachineSignalLookParityTest.kt": "2fa65a6052d16a944c1c7fd6b369540a2b001273e38ac953a087727c4edb1bf3",
+    "/Users/ovd/dev/reaktor/reaktor-ui/src/jvmTest/kotlin/dev/shibasis/reaktor/ui/machinesignal/LegacyKit.kt": "78b20d74e0e8141031b11e3f82403af0dfa20aca2d4df40675e09917cd3b06bd",
+    "/Users/ovd/dev/reaktor/reaktor-ui/src/jvmTest/kotlin/dev/shibasis/reaktor/ui/machinesignal/RetiredAtoms.kt": "731cfa9c10838b02d17dd4d596ec5790d167bc15ecfd497d47079b53cc4a4698"
+  }
+}

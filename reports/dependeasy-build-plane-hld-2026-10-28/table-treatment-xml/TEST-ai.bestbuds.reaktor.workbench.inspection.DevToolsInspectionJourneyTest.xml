@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="DevToolsInspectionJourneyTest[jvm]" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:28:53.331Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.075">
+  <properties/>
+  <testcase name="two instances of one control are distinct subjects[jvm]" classname="ai.bestbuds.reaktor.workbench.inspection.DevToolsInspectionJourneyTest" time="0.031"/>
+  <testcase name="inserting a row above the selection does not move the selection to another row[jvm]" classname="ai.bestbuds.reaktor.workbench.inspection.DevToolsInspectionJourneyTest" time="0.013"/>
+  <testcase name="removing the selected element detaches the subject instead of rebinding it[jvm]" classname="ai.bestbuds.reaktor.workbench.inspection.DevToolsInspectionJourneyTest" time="0.013"/>
+  <testcase name="an element id set in the UI reaches the captured tree[jvm]" classname="ai.bestbuds.reaktor.workbench.inspection.DevToolsInspectionJourneyTest" time="0.009"/>
+  <testcase name="the clicked leaf and its owning component are both retained[jvm]" classname="ai.bestbuds.reaktor.workbench.inspection.DevToolsInspectionJourneyTest" time="0.009"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

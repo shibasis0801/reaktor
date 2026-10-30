@@ -1,0 +1,77 @@
+{
+  "scope": "JFR allocation samples; weighted estimates, truncated stacks, not exact allocation accounting. Whole test JVM includes reference and candidate.",
+  "rows": [
+    {
+      "file": "table-pair-0-new.jfr",
+      "samples": 5143,
+      "bytes": {
+        "all": 3653697984,
+        "layoutNodes": 160479984,
+        "columnBands": 4709272
+      }
+    },
+    {
+      "file": "table-pair-0-old.jfr",
+      "samples": 5164,
+      "bytes": {
+        "all": 3648824176,
+        "layoutNodes": 118245840,
+        "columnBands": 5232416
+      }
+    },
+    {
+      "file": "table-pair-1-new.jfr",
+      "samples": 5178,
+      "bytes": {
+        "all": 3636359528,
+        "layoutNodes": 117095720,
+        "columnBands": 3662280
+      }
+    },
+    {
+      "file": "table-pair-1-old.jfr",
+      "samples": 5173,
+      "bytes": {
+        "all": 3661489688,
+        "layoutNodes": 82670424,
+        "columnBands": 3618208
+      }
+    },
+    {
+      "file": "table-pair-2-new.jfr",
+      "samples": 5135,
+      "bytes": {
+        "all": 3635896408,
+        "layoutNodes": 56550648,
+        "columnBands": 5755776
+      }
+    },
+    {
+      "file": "table-pair-2-old.jfr",
+      "samples": 5241,
+      "bytes": {
+        "all": 3659917848,
+        "layoutNodes": 108817304,
+        "columnBands": 4704552
+      }
+    },
+    {
+      "file": "table-pair-3-new.jfr",
+      "samples": 5119,
+      "bytes": {
+        "all": 3635255112,
+        "layoutNodes": 156437400,
+        "columnBands": 1569760
+      }
+    },
+    {
+      "file": "table-pair-3-old.jfr",
+      "samples": 5146,
+      "bytes": {
+        "all": 3604688992,
+        "layoutNodes": 118755152,
+        "columnBands": 4185928
+      }
+    }
+  ]
+}

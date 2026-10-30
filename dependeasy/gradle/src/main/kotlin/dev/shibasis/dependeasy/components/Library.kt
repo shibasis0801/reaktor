@@ -487,6 +487,9 @@ internal fun Project.publishLibraryRoles(targets: Set<LibraryTarget>, verificati
 @LibraryDsl
 class LibraryNativeScope internal constructor(private val native: dev.shibasis.dependeasy.native.NativeLibrary) {
     fun links(vararg dependencies: dev.shibasis.dependeasy.native.NativeDependency) = native.dependencies(*dependencies)
+    fun linkage(platform: dev.shibasis.dependeasy.native.NativePlatform, kind: dev.shibasis.dependeasy.native.NativeLinkage) {
+        native.linkages[platform] = kind
+    }
     fun uses(vararg modules: ModuleHandle) = native.modules(*modules)
     fun includeDirs(vararg directories: String) = native.includeDirs(*directories)
     fun uses(vararg projects: NativeContract.Project) { native.localProjects.addAll(projects) }
@@ -494,10 +497,10 @@ class LibraryNativeScope internal constructor(private val native: dev.shibasis.d
         uses(*projects)
         native.localLinks.addAll(projects.map { it.target })
     }
-    fun tests(name: String, sources: List<String>, vararg dependencies: NativeContract.Project) {
+    fun tests(name: String, sources: List<String>, vararg dependencies: NativeContract.Project, links: List<String> = emptyList()) {
         uses(*dependencies)
         native.testExecutables.add(NativeContract.Executable(name, sources,
-            listOf(native.resolvedLibraryName) + dependencies.map { it.target }, hostOnly = true, discoverTests = true))
+            listOf(native.resolvedLibraryName) + dependencies.map { it.target } + links, hostOnly = true, discoverTests = true))
     }
 }
 

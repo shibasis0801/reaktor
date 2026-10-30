@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AgentWorkspaceInteractionTest[jvm]" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:23:04.174Z" hostname="Shibasiss-MacBook-Pro-2.local" time="15.817">
+  <properties/>
+  <testcase name="hybridCouncilShowsBoundPacketAndImportsPlanBeforeContinuing[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="5.994"/>
+  <testcase name="workLogTraceOpensNestedCallsCollapsesAndReturnsToTheLogAtBothWidths[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="0.874"/>
+  <testcase name="diffPreservesLineNumbersAndDistinguishesIncludedRootsWithTheSameFileName[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="0.004"/>
+  <testcase name="composerPicksModelEffortAndAccessInlineThenSendsWithEnterAndStopsWithEscape[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="0.596"/>
+  <testcase name="narrowPaneConfiguresBothAgentsAndSubmitsWithTheKeyboard[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="1.126"/>
+  <testcase name="workInspectorFindsAndRunsTheChecksASessionsEditsAffect[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="0.185"/>
+  <testcase name="fileReviewAddsScopedFeedbackAndNamedChecksRoundTripThroughTheWorkspace[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="0.861"/>
+  <testcase name="workInspectorShowsTheSessionsWholeDiffBesideItsLogAndOpensAnEditInTheLog[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="0.132"/>
+  <testcase name="standaloneHybridSelectionKeepsTheTaskAndClearsThePreviousNativeModel[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="5.022"/>
+  <testcase name="legacyStagesRemainReadableAtDesktopAndNarrowSizesWithoutAComposer[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="0.558"/>
+  <testcase name="settingsBuildTheThreeSeatCouncilAndPauseACompletePool[jvm]" classname="ai.bestbuds.reaktor.AgentWorkspaceInteractionTest" time="0.465"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

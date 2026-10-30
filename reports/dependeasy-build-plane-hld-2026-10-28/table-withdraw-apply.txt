@@ -1,0 +1,4 @@
+applied plan p062285b4c481f6c08a3f · receipt change-p062285b4c481f6c08a3f-1793241620021-1 · 1 file written
+  ../reaktor/reaktor-surface-compose/src/commonMain/kotlin/dev/shibasis/reaktor/surface/compose/DataTable.kt
+checks: reaktor-surface-compose · JVM tests; reaktor-surface-compose · JavaScript tests
+next: check_run {"change":"p062285b4c481f6c08a3f"}

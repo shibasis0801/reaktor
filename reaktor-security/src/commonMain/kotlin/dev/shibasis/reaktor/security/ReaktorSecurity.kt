@@ -147,12 +147,14 @@ sealed interface IncomingSecurityResult {
 }
 
 interface ReaktorSecurity {
-    val devices: SecureDeviceManager
-    val conversations: SecureConversationManager
-    val messages: SecureMessageManager
-    val attachments: SecureAttachmentManager
-    val verification: SecureVerificationManager
-    val recovery: SecureRecoveryManager
+    suspend fun device(): DeviceCryptoIdentity
+    suspend fun reconcile(conversationId: String, members: Set<String>): ConversationSecurityState
+    suspend fun receive(commit: DirectoryCommit)
+    suspend fun receive(welcome: DirectoryWelcome)
+    fun state(conversationId: String): Flow<ConversationSecurityState>
+    suspend fun seal(conversationId: String, envelope: ByteArray, plaintext: ByteArray, circleGame: Boolean = false, anonymous: Boolean = false): SealedMessage
+    suspend fun open(conversationId: String, envelope: ByteArray, sealed: SealedMessage, circleGame: Boolean = false): OpenedMessage
+    suspend fun sealedKeyRing(): SealedSecret
 }
 
 interface SecureDeviceManager {

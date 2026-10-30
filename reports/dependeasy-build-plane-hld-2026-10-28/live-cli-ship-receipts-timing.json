@@ -1,0 +1,53 @@
+{
+  "arguments": {
+    "nodes": [
+      "bestbuds:server",
+      "bestbuds:workers:deployAccountPurge",
+      "bestbuds:workers:deployAnalytics",
+      "bestbuds:workers:deployAppWeb",
+      "bestbuds:workers:deployArchiver",
+      "bestbuds:workers:deployBot",
+      "bestbuds:workers:deployCampaignEngagement",
+      "bestbuds:workers:deployChat",
+      "bestbuds:workers:deployCircleFormation",
+      "bestbuds:workers:deployCompanyOS",
+      "bestbuds:workers:deployConfig",
+      "bestbuds:workers:deployDataProbe",
+      "bestbuds:workers:deployImageModerator",
+      "bestbuds:workers:deployMedia",
+      "bestbuds:workers:deployMessaging",
+      "bestbuds:workers:deployNotification",
+      "bestbuds:workers:deployReaktorWeb",
+      "bestbuds:workers:deploySocial",
+      "bestbuds:workers:deploySticker",
+      "bestbuds:workers:deployTelemetry",
+      "bestbuds:workers:deployTextModerator",
+      "bestbuds:workers:deployVerification"
+    ],
+    "environment": "dev"
+  },
+  "samples": [
+    {
+      "rep": 0,
+      "wallSeconds": 29.854043792,
+      "exit": 0,
+      "sha256": "e1d2274445476ab35222a5903683afd85c7aabf8ad879d754cf3ccddf951a186",
+      "type": "completed"
+    },
+    {
+      "rep": 1,
+      "wallSeconds": 6.767302584000003,
+      "exit": 0,
+      "sha256": "0ebd5f0d4fc4916512b50c9109f59ad7fa234861893d655d671dff02b56912f0",
+      "type": "completed"
+    },
+    {
+      "rep": 2,
+      "wallSeconds": 2.738218959000001,
+      "exit": 0,
+      "sha256": "2248dffc30c9a327df24de5fdc9129de4babc53881ae4fe621003e885cb79c34",
+      "type": "completed"
+    }
+  ],
+  "scope": "Installed primary CLI, live shared BestBuds owner. Includes CLI startup, HTTP and owner read. No Gradle or deployment. Current changing workspace, no before/after performance claim."
+}

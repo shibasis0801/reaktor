@@ -109,6 +109,40 @@ class NativeInputsTest {
         }
     }
 
+    @Test fun `host shared linkage preserves Android and Apple defaults`() {
+        directory.resolve("CMakeLists.txt").writeText("project(Fixture LANGUAGES CXX)")
+        val project = ProjectBuilder.builder().withProjectDir(directory).build()
+        val native = DependeasyExtension.create(project).native
+        native.libraryName = "Fixture"
+        native.linkages[dev.shibasis.dependeasy.native.NativePlatform.Host] =
+            dev.shibasis.dependeasy.native.NativeLinkage.Shared
+        listOf(CmakePlatform.Host(), CmakePlatform.Android("arm64-v8a", directory.path, "cmake", "ninja"),
+            CmakePlatform.Darwin("iphoneos")).forEach { platform ->
+            val task = checkNotNull(project.kotlinCmake(platform)).get()
+            val contract = dev.shibasis.dependeasy.model.BuildModelReader.json
+                .decodeFromString<dev.shibasis.dependeasy.model.NativeContract>(task.nativeContract.get())
+            assertEquals(if (platform is CmakePlatform.Darwin) "STATIC" else "SHARED",
+                contract.libraryKind)
+        }
+    }
+
+    @Test fun `host test links reuse targets from an existing native project`() {
+        directory.resolve("CMakeLists.txt").writeText("project(Fixture LANGUAGES CXX)")
+        val project = ProjectBuilder.builder().withProjectDir(directory).build()
+        val native = DependeasyExtension.create(project).native
+        native.libraryName = "Fixture"
+        val scope = dev.shibasis.dependeasy.components.LibraryNativeScope(native)
+        val vendor = dev.shibasis.dependeasy.model.NativeContract.Project("cpp/vendor", "FixtureVendor")
+        scope.links(vendor)
+        scope.tests("fixture_tests", listOf("src/commonTest/cpp/Test.cpp"), vendor,
+            links = listOf("FixtureVectors"))
+        val task = checkNotNull(project.kotlinCmake(CmakePlatform.Host())).get()
+        val contract = dev.shibasis.dependeasy.model.BuildModelReader.json
+            .decodeFromString<dev.shibasis.dependeasy.model.NativeContract>(task.nativeContract.get())
+        assertEquals(listOf(vendor), contract.projects)
+        assertEquals(listOf("Fixture", "FixtureVendor", "FixtureVectors"), contract.executables.single().links)
+    }
+
     @Test fun `Apple model metadata does not resolve execution SDK settings`() {
         directory.resolve("CMakeLists.txt").writeText("project(Fixture LANGUAGES CXX)")
         val project = ProjectBuilder.builder().withProjectDir(directory).build()

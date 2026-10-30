@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="SystemLinksTest[jvm]" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:12.441Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.004">
+  <properties/>
+  <testcase name="ambiguousNamesAndStoreIdentitiesStayUnresolved[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.001"/>
+  <testcase name="anExplicitServiceBindingPrecedesTheCanonicalContractFallback[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.001"/>
+  <testcase name="aPathWithoutABindingIsServedByTheGatewayItself[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="hyperdriveAndBoundDatabasesReachTheirDataTargets[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="anObservedIslandDoesNotResolveThroughAnotherEnvironmentOrANameGuess[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="namesDoNotResolveToAnotherEnvironmentButExplicitIdsRemainAddressable[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="aDeployedServerFollowsItsObservedIslandRouteIncludingHostedObjects[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="aRequestNamesItsServiceOnlyWhenTheBaseUrlIsUnambiguous[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="storeIdentityPrefersTheExactEnvironmentThenSharedAndNeverAnotherEnvironment[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.001"/>
+  <testcase name="aClientInAnIslandStillFollowsItsRemoteServiceUrl[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="aScreenIsTracedToTheWorkerAndStoresBehindIt[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="aUrlResolvesThroughTheGateway[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="theTablesAWorkersCodeTouchesOpenInTheirDataSource[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.001"/>
+  <testcase name="aDataTargetKnowsTheWorkersServicesAndScreensThatDependOnIt[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="tableTargetsFollowTheExactWorkerScopeAndDoNotChooseAnAmbiguousDatabase[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="cloudflareStoresJoinTheirDataSourceByIdentity[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <testcase name="aGatewayPathFollowsTheBindingNamedAfterIt[jvm]" classname="ai.bestbuds.reaktor.workbench.links.SystemLinksTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

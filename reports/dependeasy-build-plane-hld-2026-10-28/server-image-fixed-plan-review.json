@@ -1,0 +1,23 @@
+{
+  "same": {
+    "node": true,
+    "invocation": true,
+    "tasks": true,
+    "preparationTasks": true,
+    "deployments": true,
+    "serverDeployments": true,
+    "secrets": true,
+    "migrations": true,
+    "infrastructure": true
+  },
+  "oldModel": "4858614482550b856a5ca98451b8988334ef9742005a0d0fab00e894dd8076e7",
+  "newModel": "47d996bb0d24e48487f5860d8ccdee97c44c61def6b2eb4b81e94fcaf47731df",
+  "newRequest": "b06da1a3adb7e72cd679e45cabbdb3d4074f524827838a718d221ff6208f2cd2",
+  "newContext": "1486744a63663fdae8e70a26927f1cf31f6690367bcdc1695370e9bbdea1941c",
+  "tasks": 2105,
+  "preparation": 42,
+  "scope": "All prior tasks, dependencies, PR gates and local-only effects retained; refreshed model/context seals.",
+  "argumentsSha256": "8f1c0a651fbae09628d293e54e15d33009e9e04bffb8158846524c87f002a25f",
+  "reviewEnvelopeFingerprint": "b62ea7ce0ac69a215e20d7d9",
+  "rejectedHarnessAttempt": "server-image-rejected-nested-plan-mcp-submission.json; validation failed before build admission"
+}

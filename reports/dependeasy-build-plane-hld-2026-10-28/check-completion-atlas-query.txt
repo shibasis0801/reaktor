@@ -1,0 +1,15 @@
+4 of 4 · syntactic (git-grep) · rev:f1002bfaaf7a
+modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt
+  23 text in KernelAgentCheckRunner: internal class KernelAgentCheckRunner(private val kernel: ReaktorKernel,
+modules/kernel/src/test/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentChecksTest.kt
+  16 text in KernelAgentChecksTest: class KernelAgentChecksTest {
+../reaktor/reports/dependeasy-build-plane-hld-2026-10-28/check-completion-cost-source.txt
+  3 text: 23:16 class KernelAgentCheckRunner: internal class KernelAgentCheckRunner(private val kernel: ReaktorKernel, private val store: ControlPlaneStore = FileControlPlaneStore.default(kernel.operations.cata
+  46 text: 23  internal class KernelAgentCheckRunner(private val kernel: ReaktorKernel, private val store: ControlPlaneStore = FileControlPlaneStore.default(kernel.operations.catalog.root, "agent-check-admission
+next: atlas_read {"id":"d:modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelAgentCheckRunner.kt:22:9@3e253e9a"}
+--- queries[0] {"from":{"text":"Finished Gradle"}}
+0 of 0 · syntactic (git-grep) · rev:e3b0c44298fc
+note: No file in this repository and ../reaktor contains Finished Gradle
+--- queries[1] {"from":{"text":"class BuildExecution"}}
+0 of 0 · syntactic (git-grep) · rev:e3b0c44298fc
+note: No file in this repository and ../reaktor contains class BuildExecution

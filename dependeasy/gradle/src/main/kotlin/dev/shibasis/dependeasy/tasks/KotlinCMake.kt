@@ -62,6 +62,7 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
         val localProjects = native.localProjects.toList()
         val localLinks = native.localLinks.toList()
         val testExecutables = native.testExecutables.toList()
+        val libraryKind = native.linkage(platform)
         nativeContract.set(platform.settings(project).zip(sourceFiles.elements) { settings, files ->
             val hermes = sourceDependencies.any { it.recipe == "hermes" }
             val foundation = sourceDependencies.any { it.recipe == "foundation" }
@@ -69,7 +70,7 @@ fun Project.kotlinCmake(platform: CmakePlatform): TaskProvider<KotlinCMakeTask>?
                 settings = settings + hostRoots +
                     (if (platform is CmakePlatform.Darwin && hostRoots.isNotEmpty()) mapOf("CMAKE_FIND_ROOT_PATH" to hostRoots.values.distinct().joinToString(";")) else emptyMap()) + mapOf("CMAKE_CXX_STANDARD" to ToolchainVersions.CppStandard, "CMAKE_CXX_EXTENSIONS" to "OFF"),
                 includeDirectories = includes,
-                projects = localProjects, executables = testExecutables,
+                projects = localProjects, executables = testExecutables, libraryKind = libraryKind,
                 linkLibraries = localLinks + (if(platform is CmakePlatform.Android) listOf("android", "log") else emptyList()) +
                     (if(hermes) if(platform is CmakePlatform.Android) listOf("jsi") else listOf("hermesvm", "jsi") else emptyList()) +
                     (if(foundation) listOf("-framework Foundation") else emptyList()),

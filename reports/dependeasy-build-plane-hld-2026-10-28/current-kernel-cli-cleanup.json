@@ -1,0 +1,12 @@
+{
+  "checkedAtEpoch": 1793218327.21665,
+  "local": {
+    "removed": "/Users/ovd/dev/tmp/dependeasy-current-kernel-cli-20261029",
+    "existed": true
+  },
+  "remote": {
+    "removed": "/Users/ovd/dev/offload/.remote-dev/dependeasy-current-kernel-cli-20261029",
+    "existed": true
+  },
+  "sharedWorkerSlotUntouched": true
+}

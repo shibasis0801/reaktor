@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="WorkbenchLogIndexTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:31:37.954Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.203">
+  <properties/>
+  <testcase name="pauseSurvivesRingEvictionWhilePinsAndCurrentMetadataStayLive[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchLogIndexTest" time="0.201"/>
+  <testcase name="timeRangesAndSensitiveTransitionsRemoveOnlyEligibleEvidence[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchLogIndexTest" time="0.001"/>
+  <testcase name="filtersOrderingCountsAndSensitiveExclusionShareOneReading[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.WorkbenchLogIndexTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

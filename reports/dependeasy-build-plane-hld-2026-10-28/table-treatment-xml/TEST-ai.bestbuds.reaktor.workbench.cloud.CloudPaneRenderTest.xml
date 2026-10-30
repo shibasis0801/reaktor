@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="CloudPaneRenderTest[jvm]" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:41.438Z" hostname="Shibasiss-MacBook-Pro-2.local" time="32.904">
+  <properties/>
+  <testcase name="renders the cloud pane against the workspace[jvm]" classname="ai.bestbuds.reaktor.workbench.cloud.CloudPaneRenderTest" time="32.904"/>
+  <system-out><![CDATA[run: Succeeded  · following: true · observed readings: 3
+reading cloudflare: Healthy · 176 resources · 7589 ms · 176 resources · 50 workers
+reading gcp: Down · 0 resources · 3 ms · Google Cloud needs a sign-in: run gcloud auth login, or gcloud auth application-default login
+reading kubernetes: Healthy · 45 resources · 925 ms · 15 pods on 1 node(s)
+reading repository: Healthy · 71 resources · 1105 ms · 37 workers and 10 manifests declared
+snapshot: 225 resources · 471 relations · 22 findings · 456 changes
+finding High Security: bolt.reaktor.build is a public door to a graph database's Bolt port
+finding High Security: clickhouse-native.reaktor.build is a public door to ClickHouse's native port
+finding High Security: clickhouse.reaktor.build is a public door to ClickHouse's HTTP interface
+finding High Health: api.shibasis.dev does not answer: the mac-mini tunnel has no connector online
+finding High Health: kedarnath.bestbuds.ai does not answer: the bestbuds-auth tunnel has no connector online
+finding High Drift: Deployed workers bind 3 things that no longer exist
+finding Medium Security: metrics-clickhouse.reaktor.build is a public door to database metrics
+finding Medium Security: metrics-graph.reaktor.build is a public door to database metrics
+finding Medium Security: metrics-vm.reaktor.build is a public door to node metrics
+finding Medium Security: social.reaktor.build is a public door to a web console
+finding Medium Reliability: Memory limits on reaktor-vm add up to 160% of what it can give
+finding Medium Health: metrics-vm.reaktor.build points at a host the cluster does not have
+finding Medium Drift: 1 manifest not applied to the cluster
+finding Medium Drift: companyos-bestbuds's deployed bindings differ from the repository
+finding Medium Drift: verification-service-dev's deployed bindings differ from the repository
+finding Low Reliability: 2 workloads run an unpinned image
+finding Low Reliability: The whole cluster is one machine
+finding Low Reliability: app-server, clickhouse, memgraph, reaktor-alloy, telemetry-store run a single replica behind public traffic
+finding Low Drift: Declared workers depend on app-service, which no configuration here declares
+finding Low Observability: 3 workers keep no logs
+finding Note Cost: 1 tunnel with no connector and nothing routed
+finding Note Cost: 7 stores no worker binds
+drift Deployed workers bind 3 things that no longer exist :: cockroachdirect (Hyperdrive 75c1b9c9829c) is bound by app-service, reaktor-prototype; cockroach (Hyperdrive 98290932701a) is bound by app-service, reaktor-prototype; supabasedirect/SUPABASE (Hyperdrive e39187f3236f) is bound by app-service, reaktor-cloudflare-hello-experiment-20260309, reaktor-prototype. Neither the repository nor the account has them, so the call fails at runtime.
+drift 1 manifest not applied to the cluster :: memgraph-backup is declared in the repository's manifests and missing from the cluster.
+drift companyos-bestbuds's deployed bindings differ from the repository :: Only in the repository: hyperdrive → hyperdrive, IMAGES → images, MODELS → bestbuds-models.
+drift verification-service-dev's deployed bindings differ from the repository :: Only in the repository: CHAT_SERVICE → chat-service-dev.
+drift Declared workers depend on app-service, which no configuration here declares :: bot-service, media-service, messaging-service, social-service bind app-service, which is deployed from somewhere else
+apps: {BestBuds=125, Manna=12, Mehmaan=3, Reaktor=31, shibasis.dev=11, Other=7, Shared=36}
+mcp resources: {"attached":true,"readAt":"2026-10-29T02:27:53.507Z","readings":[{"provider":"cloudflare","status":"Healthy","detail":"176 resources · 50 workers","resources":176},{"provider":"gcp","status":"Down","detail":"Google Cloud needs a sign-in: run gcloud auth login, or gcloud auth application-default login","resources":0},{"provider":"kubernetes","status":"Healthy","detail":"15 pods on 1 node(s)","resources":45},{"provider":"repository","status":"Healthy","detail":"37 workers and 10 manifests declared","resources":71}],"matched":13,"resources":[{"id":"cf:worker:app-service","kind":"Worker","platform
+mcp findings: {"attached":true,"readAt":"2026-10-29T02:27:53.507Z","readings":[{"provider":"cloudflare","status":"Healthy","detail":"176 resources · 50 workers","resources":176},{"provider":"gcp","status":"Down","detail":"Google Cloud needs a sign-in: run gcloud auth login, or gcloud auth application-default login","resources":0},{"provider":"kubernetes","status":"Healthy","detail":"15 pods on 1 node(s)","resources":45},{"provider":"repository","status":"Healthy","detail":"37 workers and 10 manifests declared","resources":71}],"count":3,"findings":[{"id":"exposed-host-bolt.reaktor.build","severity":"High","
+mcp path: {"attached":true,"readAt":"2026-10-29T02:27:53.507Z","readings":[{"provider":"cloudflare","status":"Healthy","detail":"176 resources · 50 workers","resources":176},{"provider":"gcp","status":"Down","detail":"Google Cloud needs a sign-in: run gcloud auth login, or gcloud auth application-default login","resources":0},{"provider":"kubernetes","status":"Healthy","detail":"15 pods on 1 node(s)","resources":45},{"provider":"repository","status":"Healthy","detail":"37 workers and 10 manifests declared","resources":71}],"found":true,"from":"host:api.bestbuds.ai","resources":[{"id":"host:api.bestbuds.ai","kind":"Hostname","name":"api.bestbuds.ai","status":"Healthy"},{"id":"cf:worker:app-service","kind":"Worker","name":"app-service","status":"Healthy"},{"id":"cf:do:AppServerBangalore@app-service","kind":"Durable Object","name":"AppServerBangalore","status":"Healthy"},{"id":"cf:do:AppServerLondon@
+mcp resource: {"attached":true,"readAt":"2026-10-29T02:27:53.507Z","readings":[{"provider":"cloudflare","status":"Healthy","detail":"176 resources · 50 workers","resources":176},{"provider":"gcp","status":"Down","detail":"Google Cloud needs a sign-in: run gcloud auth login, or gcloud auth application-default login","resources":0},{"provider":"kubernetes","status":"Healthy","detail":"15 pods on 1 node(s)","resources":45},{"provider":"repository","status":"Healthy","detail":"37 workers and 10 manifests declared","resources":71}],"found":true,"id":"cf:worker:analytics-service","kind":"Worker","platform":"Cloudflare","name":"analytics-service","app":"BestBuds","status":"Healthy","statusDetail":"20284 requests · 23 errors in 24 h","presence":"declared and running","console":"https://dash.cloudflare.com/bb891079b2a9a08ec55e8b70ad7db7d5/workers/services/view/analytics-service/production","attributes":{"works
+rendered: 01-map.png 317KiB, 02-map-overview.png 180KiB, 03-map-bestbuds.png 260KiB, 04-map-path.png 153KiB, 05-map-worker.png 255KiB, 06-map-problems.png 306KiB, 07-list.png 249KiB, 08-list-cloudflare.png 238KiB, 09-map-findings.png 320KiB, 10-operations.png 132KiB, 11-deploy.png 170KiB, 12-pipeline.png 196KiB, 13-runs.png 187KiB, 14-cost.png 111KiB, 15-pipeline-pr.png 191KiB
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,131 @@
+{
+  "sumSuiteSeconds": 530.4999999999998,
+  "suites": 196,
+  "slowest": [
+    {
+      "name": "StudioNavigationPerformanceTest[jvm]",
+      "seconds": 138.253,
+      "tests": "1"
+    },
+    {
+      "name": "AgentPaneRenderTest[jvm]",
+      "seconds": 47.436,
+      "tests": "3"
+    },
+    {
+      "name": "CloudPaneRenderTest[jvm]",
+      "seconds": 34.368,
+      "tests": "1"
+    },
+    {
+      "name": "SurfaceQualificationTest[jvm]",
+      "seconds": 26.136,
+      "tests": "1"
+    },
+    {
+      "name": "WorkbenchShellRenderTest[jvm]",
+      "seconds": 24.326,
+      "tests": "2"
+    },
+    {
+      "name": "CollectionFrameTest[jvm]",
+      "seconds": 19.594,
+      "tests": "3"
+    },
+    {
+      "name": "WorkbenchDevToolsRoutingTest[jvm]",
+      "seconds": 16.201,
+      "tests": "3"
+    },
+    {
+      "name": "AgentWorkspaceInteractionTest[jvm]",
+      "seconds": 15.895,
+      "tests": "11"
+    },
+    {
+      "name": "AuthPaneRenderTest[jvm]",
+      "seconds": 14.249,
+      "tests": "2"
+    },
+    {
+      "name": "SurfaceLabRenderTest[jvm]",
+      "seconds": 12.396,
+      "tests": "7"
+    },
+    {
+      "name": "WorkbenchSubsystemCoverageTest[jvm]",
+      "seconds": 12.194,
+      "tests": "7"
+    },
+    {
+      "name": "AgentConfigsPaneTest[jvm]",
+      "seconds": 12.07,
+      "tests": "1"
+    },
+    {
+      "name": "AppGraphFeatureLayoutTest[jvm]",
+      "seconds": 11.984,
+      "tests": "4"
+    },
+    {
+      "name": "AgentConversationStateTest[jvm]",
+      "seconds": 10.539,
+      "tests": "11"
+    },
+    {
+      "name": "AiPaneRenderTest[jvm]",
+      "seconds": 10.107,
+      "tests": "2"
+    },
+    {
+      "name": "AppGraphRenderTest[jvm]",
+      "seconds": 9.035,
+      "tests": "2"
+    },
+    {
+      "name": "DataPaneRenderTest[jvm]",
+      "seconds": 8.415,
+      "tests": "1"
+    },
+    {
+      "name": "MachineSignalSubpaneRenderTest[jvm]",
+      "seconds": 8.406,
+      "tests": "4"
+    },
+    {
+      "name": "CloudApiExplorerRenderTest[jvm]",
+      "seconds": 8.169,
+      "tests": "1"
+    },
+    {
+      "name": "DesktopWorkbenchGraphTest[jvm]",
+      "seconds": 7.202,
+      "tests": "17"
+    },
+    {
+      "name": "JvmDiscoveryPerformanceTest[jvm]",
+      "seconds": 7.056,
+      "tests": "1"
+    },
+    {
+      "name": "CloudWorkTest[jvm]",
+      "seconds": 6.454,
+      "tests": "2"
+    },
+    {
+      "name": "ReaktorDesktopPerformanceTest[jvm]",
+      "seconds": 6.332,
+      "tests": "2"
+    },
+    {
+      "name": "WorkbenchFeatureTest[jvm]",
+      "seconds": 6.103,
+      "tests": "9"
+    },
+    {
+      "name": "ControllerCountTest[jvm]",
+      "seconds": 3.569,
+      "tests": "1"
+    }
+  ]
+}

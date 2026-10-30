@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="AuthInspectorTitleTest[jvm]" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:27:17.527Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.078">
+  <properties/>
+  <testcase name="aRefreshUsesTheNewEvidenceWithoutKeepingTheRemovedTitle[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthInspectorTitleTest" time="0.035"/>
+  <testcase name="missingSelectionsDoNotBorrowAnotherSubjectAndClearReturnsTheOverview[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthInspectorTitleTest" time="0.015"/>
+  <testcase name="allSelectionKindsAndMapNodesNameTheirLoadedSubject[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthInspectorTitleTest" time="0.015"/>
+  <testcase name="aFindingTitleShowsTheFullSubjectAndMasksItsCredential[jvm]" classname="ai.bestbuds.reaktor.workbench.auth.AuthInspectorTitleTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Exception in thread "AWT-EventQueue-0 @coroutine#319320" java.lang.IllegalArgumentException: Invalid UUID string: missing-auth-heading-subject
+	at java.base/java.util.UUID.fromString1(UUID.java:280)
+	at java.base/java.util.UUID.fromString(UUID.java:258)
+	at dev.shibasis.reaktor.tooling.auth.AuthConsoleQueriesKt.uuidOrNull(AuthConsoleQueries.kt:314)
+	at dev.shibasis.reaktor.tooling.auth.AuthTenancyQueries.memberships(AuthTenancyQueries.kt:180)
+	at ai.bestbuds.reaktor.workbench.auth.AuthConsoleState$loadDetail$2.invokeSuspend(AuthConsoleState.kt:560)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:323)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:723)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:702)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)
+	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [CoroutineId(319320), "coroutine#319320":StandaloneCoroutine{Cancelling}@1e66ec2a, Dispatchers.Main]
+Exception in thread "AWT-EventQueue-0 @coroutine#319321" java.lang.IllegalArgumentException: Invalid UUID string: missing-auth-heading-subject
+	at java.base/java.util.UUID.fromString1(UUID.java:280)
+	at java.base/java.util.UUID.fromString(UUID.java:258)
+	at dev.shibasis.reaktor.tooling.auth.AuthConsoleQueriesKt.uuidOrNull(AuthConsoleQueries.kt:314)
+	at dev.shibasis.reaktor.tooling.auth.AuthConsoleQueries.refreshChain(AuthConsoleQueries.kt:224)
+	at ai.bestbuds.reaktor.workbench.auth.AuthConsoleState$loadDetail$4.invokeSuspend(AuthConsoleState.kt:572)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:323)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:723)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:702)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)
+	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [CoroutineId(319321), "coroutine#319321":StandaloneCoroutine{Cancelling}@19ff82d0, Dispatchers.Main]
+]]></system-err>
+</testsuite>

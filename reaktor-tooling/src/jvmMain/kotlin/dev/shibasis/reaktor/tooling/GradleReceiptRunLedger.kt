@@ -26,9 +26,11 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
         .digest(root.canonicalPath.toByteArray()).joinToString("") { "%02x".format(it) }.take(24))
 
     override suspend fun append(event: RunEvent) = error("Gradle owns its immutable receipt ledger")
-    override suspend fun run(runId: RunId): TaskRun? = entries().firstOrNull { it.id == runId }
+    override suspend fun run(runId: RunId): TaskRun? =
+        if (runId.value.startsWith("gradle-") || runId.value.startsWith("deploy-")) entries(1, runId).firstOrNull()
+        else null
     override suspend fun runs(workspaceId: WorkspaceId?, limit: Int): List<TaskRun> =
-        if (workspaceId != null && workspaceId != workspace) emptyList() else entries().take(limit.coerceIn(0, 1000))
+        if (workspaceId != null && workspaceId != workspace) emptyList() else entries(limit.coerceIn(0, 1000))
 
     fun changes(): Flow<TaskRun> = callbackFlow {
         FileSystems.getDefault().newWatchService().use { watcher ->
@@ -78,20 +80,42 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
         }
     }
 
-    private fun entries(): List<TaskRun> = listOf(directory, deployments).flatMap { it.listFiles().orEmpty().toList() }.filter { it.extension == "json" }
-        .also { require(it.size <= 10000) { "Receipt ledger exceeds its bounded read limit" } }
-        .flatMap(::read).sortedByDescending { it.finishedAtEpochMillis }
+    private fun entries(limit: Int, runId: RunId? = null): List<TaskRun> {
+        if (limit == 0) return emptyList()
+        val selected = listOf(directory, deployments).flatMap { it.listFiles().orEmpty().toList() }
+            .filter { it.extension == "json" }
+            .also { require(it.size <= 10000) { "Receipt ledger exceeds its bounded read limit" } }
+            .flatMap { read(it, includeDigest = false) }
+            .filter { runId == null || it.id == runId }
+            .sortedByDescending { it.finishedAtEpochMillis }.take(limit)
+        // One receipt can supply several nodes; hash its evidence once, after selection.
+        val digests = mutableMapOf<String, String>()
+        return selected.mapNotNull { run ->
+            runCatching {
+                run.copy(artifacts = run.artifacts.map { artifact ->
+                    artifact.copy(digest = digests.getOrPut(artifact.location) {
+                        val file = File(artifact.location)
+                        require(file.isFile && !java.nio.file.Files.isSymbolicLink(file.toPath()) &&
+                            file.canonicalFile.parentFile in setOf(directory.canonicalFile, deployments.canonicalFile))
+                        BuildModelReader.digest(file)
+                    })
+                })
+            }.getOrNull()
+        }
+    }
 
-    private fun read(file: File): List<TaskRun> = runCatching { receiptRuns(file) }.getOrDefault(emptyList())
+    private fun read(file: File, includeDigest: Boolean = true): List<TaskRun> =
+        runCatching { receiptRuns(file, includeDigest) }.getOrDefault(emptyList())
 
-    private fun receiptRuns(file: File): List<TaskRun> {
+    private fun receiptRuns(file: File, includeDigest: Boolean): List<TaskRun> {
         if (!file.isFile || file.canonicalFile.parentFile !in setOf(directory.canonicalFile, deployments.canonicalFile) ||
             java.nio.file.Files.isSymbolicLink(file.toPath())) return emptyList()
         if (file.canonicalFile.parentFile == deployments.canonicalFile) {
             require(file.length() <= 4_194_304) { "Deploy receipt exceeds its bounded read limit" }
             val receipt = BuildModelReader.json.decodeFromString(DeployReceipt.serializer(), file.readText())
             val artifact = ArtifactReference(ArtifactId("deploy-${receipt.run}"), "deploy-receipt", file.canonicalPath,
-                mediaType = "application/json", sizeBytes = file.length(), digest = BuildModelReader.digest(file),
+                mediaType = "application/json", sizeBytes = file.length(),
+                digest = if (includeDigest) BuildModelReader.digest(file) else null,
                 attributes = buildMap {
                     put("node", receipt.node.toString()); put("environment", receipt.environment.name)
                     put("service", receipt.service.name); put("action", receipt.action); put("phase", receipt.phase)
@@ -107,7 +131,8 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
         }
         val receipt = BuildModelReader.readReceipt(file)
         if (receipt.dryRun) return emptyList()
-        val artifact = GradleReceiptEvidence.artifact(file, receipt)
+        val artifact = GradleReceiptEvidence.artifact(file, receipt,
+            digest = if (includeDigest) BuildModelReader.digest(file) else null)
         return receipt.requestedNodes.map { node -> TaskRun(
             id = RunId("gradle-${receipt.run}/${node}"), workspaceId = workspace, taskId = TaskId(node.toString()),
             planId = PlanId("gradle-${receipt.requestDigest ?: receipt.modelDigest ?: receipt.run}"),
@@ -122,9 +147,9 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
 }
 
 internal object GradleReceiptEvidence {
-    fun artifact(file: File, receipt: RunReceipt) = ArtifactReference(
+    fun artifact(file: File, receipt: RunReceipt, digest: String? = BuildModelReader.digest(file)) = ArtifactReference(
         id = ArtifactId("gradle-${receipt.run}"), kind = "gradle-receipt", location = file.canonicalPath,
-        mediaType = "application/json", sizeBytes = file.length(), digest = BuildModelReader.digest(file),
+        mediaType = "application/json", sizeBytes = file.length(), digest = digest,
         attributes = mapOf("build" to receipt.build) + receipt.operationRunId?.let { mapOf("operationRunId" to it) }.orEmpty(),
     )
 

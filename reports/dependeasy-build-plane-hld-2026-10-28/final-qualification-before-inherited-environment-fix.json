@@ -1,0 +1,1208 @@
+{
+  "transport": {
+    "project": "bestbuds",
+    "worker": "m1-worker",
+    "remote_path": "/Users/ovd/dev/offload/.remote-dev/slots/job-1/bestbuds",
+    "source_head": "d6ecfc2c5f9f0bc5c1b590cc2a583f2c44e33c86",
+    "tasks": [
+      ":reaktorCli:test",
+      ":reaktor:reaktor-tooling:jvmTest",
+      ":reaktor:reaktor-conductor:jvmTest",
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      ":reaktorCli:distZip",
+      ":kernel:agentDist",
+      ":exportBuildModel",
+      ":reaktor:exportBuildModel",
+      "--continue",
+      "--console=plain"
+    ],
+    "remote_tasks": [
+      ":reaktorCli:test",
+      ":reaktor:reaktor-tooling:jvmTest",
+      ":reaktor:reaktor-conductor:jvmTest",
+      ":kernel:test",
+      ":kernel:verifyKernelBoundary",
+      ":reaktorCli:distZip",
+      ":kernel:agentDist",
+      ":exportBuildModel",
+      ":reaktor:exportBuildModel",
+      "--continue",
+      "--console=plain"
+    ],
+    "started": "2026-10-28T21:43:15.225747",
+    "log": "/Users/ovd/dev/.remote-dev/logs/20261028-214315-880975b4-bestbuds.log",
+    "run_id": "20261028-214315-880975b4-bestbuds",
+    "exit_code": 0,
+    "sync_seconds": 27.212208000000004,
+    "queue_seconds": 70.898431583,
+    "owner": {
+      "pid": 80312,
+      "started": "Wed Oct 28 21:41:36 2026"
+    },
+    "remote_root": "/Users/ovd/dev/offload/.remote-dev/slots/job-1",
+    "workspace_root": "/Users/ovd/dev",
+    "worker_slot": 1,
+    "publication": "changed-files",
+    "source_epoch": 1793203968.015569,
+    "execution_seconds": 290.88098608300004,
+    "worker_started_epoch": 1793203995.3471327,
+    "dry_run": false,
+    "builds": {
+      "bestbuds": "bestbuds",
+      "dependeasy": "reaktor",
+      "reaktor": "reaktor"
+    },
+    "artifact_family": "all",
+    "collected": "2026-10-28T21:48:27.969334",
+    "copied_files": 16693,
+    "copy_error": null,
+    "collection_seconds": 21.768201207999994,
+    "worker_slot_trimmed": 0,
+    "publication_queue_seconds": 0.0008022080000387177,
+    "withheld_outputs": {
+      "bestbuds": 89,
+      "reaktor": 7
+    },
+    "unverified_copies": {
+      "bestbuds": 15456,
+      "reaktor": 1
+    },
+    "finished": "2026-10-28T21:48:33.784969",
+    "publication_seconds": 5.739094708000039
+  },
+  "source": {
+    "at": "2026-10-28T21:42:44.134403+05:30",
+    "files": {
+      "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt": "144766f9a57ab7f5d9de03f64d3a54622ba36f4383ea9ce1201eddf55994916e",
+      "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt": "e9e8ee454a0650a2fb447744ee30b7bc25fa1531c56463b164f89efb61358e1a",
+      "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt": "b299539309e43df670471841610cc787e2f5da361b6c15c5e16d97bae1ac4d6a",
+      "reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt": "c96dce3267644a974bd2041556a661508b4b0a6866c805015524479de84a039a",
+      "reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/BackendPipelineTest.kt": "2526895775c023d9c9d61a6f282902eb933ad610ac8ae74c6961bc641842f00b",
+      "reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/GradlePlanningTest.kt": "42431cd19541eecdc6b0100e7239bf15ff08b5bbdba823843bd42108f59a311e",
+      "reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleBuildPlanner.kt": "cc62b8e333afd9375bd64044246373df7af818228769cdaa8b4c9dd38cc7aab5",
+      "reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/BuildDeclarationsTest.kt": "cfad5cbb534ca96db72f39b9d6b260781095453c0b6db80d65095bd2a0ec40d2",
+      "bestbuds/targets/reaktorCli/src/main/kotlin/ai/bestbuds/reaktor/cli/KernelCli.kt": "f446d48c40af15f6dbe3e574c8c81a76001da0c5765707821414eb3e5de215cd",
+      "bestbuds/modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/ConductorCli.kt": "5e741eca704aa85689228cbbb86603d4bfdaf0d2579d43cba9ffaf75f7d09d34",
+      "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelChanges.kt": "156db929f7ebbde49171699bd1cc11234b9ae8110397323ae9ed4c5b83cc8911",
+      "tools/remote-dev": "4d49f976ae844ff06b364808fe0b31428b6f04be39cccef74d27cb6b30d04a35",
+      "tools/test_remote_router.py": "fc87655b73cb4e0efdea6c9135568a2d4a7abf1a8254186644a93c8efe43484f",
+      "tools/README.md": "f42571350436ddcafeb56f814555eb6a3f66bbf2a7c8283a812b72727665eb55",
+      "reaktor/gradle.properties": "40103d487bdba7369ecaffab7a700fb332b25bbba85be5caec8f8800f07546e0",
+      "reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt": "fc6a11e2a3ce9f385855f380c5a82775e4349d663adfc0310ddfae1d8d816d09",
+      "bestbuds/targets/reaktorCli/README.md": "52b71fb00599fba106224ce31520ee84c16edee3945ef66fa5a26ec42f1de950",
+      "reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/operation/OperationGate.kt": "807b1b31f7307fa48310ab5ab1c869698b8c289ec53fc95c59c713aa20fdac8d",
+      "reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServerTest.kt": "0912119fbb093aaa1c3ae02a53417eec63c526d57f663ab78e479f5a357bd8eb"
+    },
+    "revisions": {
+      "reaktor": "55b0f041f3f017d0d76fdf36c7816b70965646f2",
+      "bestbuds": "d6ecfc2c5f9f0bc5c1b590cc2a583f2c44e33c86",
+      "tools": "4717e2936426ae7f9fc697dbfb4f1ae7e97a955d"
+    },
+    "transportRun": "20261028-214315-880975b4-bestbuds",
+    "workerSlot": 1,
+    "changedSinceRequest": [],
+    "note": "19 owned or integration source hashes at router admission; exact receipt selected by router process80312.",
+    "changedAfterAdmission": []
+  },
+  "changedSinceAdmission": [],
+  "testResults": {
+    "cli": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "xml": [
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.BuildModelCliTest.xml",
+          "sha256": "90206921fd759a04ee4944f32c336ac6faa50a301c30c6b7eb28e885c11825e0"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.KernelCliTest.xml",
+          "sha256": "c278ce2d32108ef76b0c1d4503c5849e624b9a9c4f943cb456e963b069c6a670"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/targets/reaktorCli/build/test-results/test/TEST-ai.bestbuds.reaktor.cli.ReaktorCommandTest.xml",
+          "sha256": "0734c56954efec69985ff65d64b2b236c652471d2915350a1e2bb4cbf69bf358"
+        }
+      ]
+    },
+    "tooling": {
+      "tests": 246,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "xml": [
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.BuildDeclarationsTest.xml",
+          "sha256": "acdf5147078c984c48ab4961963a4ec6ff25c09b1da66d587e88a5ac29c48d9a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.ContrastAuditTest.xml",
+          "sha256": "d5661a68e69e3c4812b54d377cedfb1f921f00d4f2989a00b2058dce124dc0e3"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.DefinitionDigestCacheTest.xml",
+          "sha256": "b8bc42ffc7204ce7cd33009fd46c95a2e695d30bec1fe260f9a02a35697e4497"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.DeviceInspectionTest.xml",
+          "sha256": "bf2c0a9c570a731a313f3e031fb11adfda4d0a3629cdd56ce3cede34383bd001"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.DeviceToolsTest.xml",
+          "sha256": "39154533aed75d347b5cf819a9d955aa9c4f4f54a9a5c830a9f30208c7df9a4e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.GradleReceiptRunLedgerTest.xml",
+          "sha256": "864fcb05359fb07f87b194c1d82a1b42f771cea72737ab929259c36d5ac32c5a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.IslandJvmClientTest.xml",
+          "sha256": "ceaacb2d5c73b91f2891a8b18b4747f83583d53cfb4497b6fa703990aa774914"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.JvmDiscoveryPerformanceTest.xml",
+          "sha256": "14cbc6bae51b670a8dafa37264dac5fe7a2ef237998c9cb25e1ad60c1a3d812a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.JvmProjectDiscoverySealTest.xml",
+          "sha256": "3974d259b407dae70c4777aaac46addc0cbce7dd0458f1335f18334e034f5962"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.KotlinSourceIndexTest.xml",
+          "sha256": "6750057d38030d9cd6b8470fdd2513e52b5a8558c3fdc7a0a07614c00057714b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.KubernetesJvmClientTest.xml",
+          "sha256": "5e1cea71300c8aa752936cb359b7dd7fa38695c669a218ed32288e071d3b0d0a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.NativeInfrastructureTest.xml",
+          "sha256": "383424d79546a8172d0c0f5d93e0cc8e77b98c3a677fd434b5e1a615719ec92f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.ProcessQueryTest.xml",
+          "sha256": "6bae76ac11b6c665b5c54c3810fa3f8f9163cb56c434f1130d943cb5ef4fd47d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.QueryValueOrderTest.xml",
+          "sha256": "77935256bd9928c608667b189c5fbe8a7c8b4cacc5cd1d1043c02d28eec3cc85"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.ServiceTokenClientTest.xml",
+          "sha256": "809e467b8928fb5baca25c7c5521f8fa8ececf0743af369ebf8515a022de0267"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.StructuredProcessCaptureTest.xml",
+          "sha256": "a73ee9b6a88f5082e0b4989e6de2cf0b033a17bde0504ad4a2811d04df0af3ab"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.api.ApiSurfaceTest.xml",
+          "sha256": "9a9a93d48b583aff61553083b35410dafb6c44dfaa8dc4235b94148a77f42517"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.api.CloudApisLiveTest.xml",
+          "sha256": "c52c5941480f1d0cc227640dcda733916b4bb88ebff17596192dd3e2bb330d56"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.auth.AuthConsoleSearchTest.xml",
+          "sha256": "1c0d28f6b332b9539353566f17f1f680ac4953a71ce4030458b719e72cadb25d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.CloudInventoryAssemblyTest.xml",
+          "sha256": "08225d5a1b35129bf52b377f871f500561e54c0cbb3032b50b2781eb0ce4b692"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.CloudInventoryLiveTest.xml",
+          "sha256": "a576b9dfd27797eca80110379652ee8cc5a546416d9d3229d6a82892dc63700f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.CloudflareAiTest.xml",
+          "sha256": "1dfb9c1e6cad533c7109f369f5d638b0f78b124f7e7e8317bb21a843f1704457"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.CloudflareLoginTest.xml",
+          "sha256": "728bbe2c78a64e4791b4ce4c7d8e410b23d3724c78ed9d945a24901ad5f2f36f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.GoogleSignInTest.xml",
+          "sha256": "209c027a18d0ce9e1d1e56e4627a35b6cc1723087413a90979959e25f289cc50"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.HangarProvidersLiveTest.xml",
+          "sha256": "1c35d77f7b8cf70ac82ed37054f4263afd2e27ea15a40c1c7208e894fef96dd2"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.cloud.WranglerLoginTest.xml",
+          "sha256": "005e2aaba8011a88d7b9579cb29b76832c49633769d9c3bd164862536b564834"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.MemgraphInspectionTest.xml",
+          "sha256": "0208eb87e277386742b2b532244387ab2d31a41729d7dd9798199958214344f5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.MemgraphReadPageTest.xml",
+          "sha256": "dc8758f67d0f1deb4c5c781352f5421e2264bfd27f402dcf62a1a7d0c8ec3c80"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.MessagePayloadTest.xml",
+          "sha256": "88cbf9c6f3c6956215dba03298c149a5df8d9dc818046a900b35dc811ae2bc19"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.MigrationLedgerTest.xml",
+          "sha256": "23d2fb19ab50ffb17bdceec4aa4add8264d1f2f97ce8411d93f86e726a9fc449"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.PrefixInventoryTest.xml",
+          "sha256": "e8373cf1713e4951431321bc102af428b7752084461cafc90369707a5a14c4df"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryPlanOperatorsTest.xml",
+          "sha256": "659491ad800164172bc6032dc9d7b7a5355fb26c74bac4723bbbf060fb530681"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryPlotTest.xml",
+          "sha256": "79bf0ab5534b951024b59f238623b177acb05f594bc225f4adee4e58f0968df2"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryReceiptTest.xml",
+          "sha256": "7cdc81bfa90b849ce820a430c3dc04233c5518717fb051de65204d35c778ca23"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryResultComparisonTest.xml",
+          "sha256": "ff95f2cf050bde02de199c2836b22a00f6af73896dbb18c2bb2a266a7250504b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.QueryResultExportTest.xml",
+          "sha256": "b6162d752ae2f588a014a60aa97b755752a6a4bd425f7a3e7a13368f44360299"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.database.SqlReadStatementTest.xml",
+          "sha256": "33a2ea39a5b02bc85c7b57e834fda2e3c6c380bfe140043632e9a7598b405fc9"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.device.AdbDeviceBackendLiveTest.xml",
+          "sha256": "0e549df2c2a03b4bbe859b7cb2efd84b579153e961baddb88f0d4799dc4b91f0"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.device.AppleDeviceBackendLiveTest.xml",
+          "sha256": "48f1cf53c09953ec52c7ce04535297c95da7a4b6774b502d6ad8f63aba10a5f4"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.git.WorkspaceRevisionTest.xml",
+          "sha256": "2c0dc5192fde2108a1c73015b6e119d3f11527f50312f7426be059b09b56fe85"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.ide.ReaktorIdeTest.xml",
+          "sha256": "12acd275d8601f3c7e96240d27f3a418562ce63d6b0df4e3b00edd8025253b7b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.CrashlyticsEventsTest.xml",
+          "sha256": "925b87e44e5979c02aac87b82fbcc59aa7152c165981a56170770419cb6f8dd7"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.CrashlyticsReportTest.xml",
+          "sha256": "23ad6df528146d8aebcc8a87aefae41f300eff8bd56c7520386b5ea062a30efa"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.PubSubObservationPageTest.xml",
+          "sha256": "261b639739d7624dc59d0c035163d903969225f56d1149622e680fa14bbce934"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.SQLiteJvmClientTest.xml",
+          "sha256": "6d95f34928684defdf88340882a8b16b6d498f41247402376882978730558015"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.infra.SpanJvmClientTest.xml",
+          "sha256": "99565411426875c7274d87ec463a75e062fc9d66404feb2cd35da04d74c962b5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.io.SafeFilesTest.xml",
+          "sha256": "22d40f7a33609aa59ae1a100a52445e7bf998df9956fa779b273a57dc91f0942"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.lsp.ClangdLanguageServerTest.xml",
+          "sha256": "0b31f5881e17041275a6f736745ea5f12d4baf4e64f743c52e75474d3c89a098"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.lsp.KotlinLanguageServerTest.xml",
+          "sha256": "a10db3563313b658e3b214145f44b017aa0d831d231b536abb317c12ad22503b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServerTest.xml",
+          "sha256": "0660a9be911ca5baa6ac9f78520eb59e09142fb1f112d479aceb7f36cb725e34"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.mcp.door.CloudApiDoorTest.xml",
+          "sha256": "7e2fd8ad488bb5dc1f7524fe2920cb63bcb50172b023d896bdf2f82011d2f4e4"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.mcp.door.DoorAuthorityTest.xml",
+          "sha256": "edd10b3c9fcc53ec3121d7681d30ff0f9f4b041e58f0bc8a77833f1e430af02b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.mcp.door.McpDoorTest.xml",
+          "sha256": "795f0509577a98b010671de22c8d14e144641b994f9ebc7d4b7a9c0d0d1d570f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.operation.OperationContractTest.xml",
+          "sha256": "f8df8c003696a92ddd468a2df6c1bd8fc3f709bb50895e5ed8c28c6f2bbd9e0d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.operation.OperationKernelTest.xml",
+          "sha256": "a3ac7f6c87f3998e30740569dfe87ca573f04f3e73f615eae33d82063b1c639e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-tooling/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.tooling.source.SourceHandoffTest.xml",
+          "sha256": "dbed863c63a1c2e40c2270f02ed5e9296c544a24168d08a0690ff1329062bd5c"
+        }
+      ]
+    },
+    "conductor": {
+      "tests": 491,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 16,
+      "xml": [
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.CapabilityTest.xml",
+          "sha256": "47d471a294e5dc1e1f9be683e14f2e9ac21852c08dd551f370ccdf4e003c9975"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.CheckReducerTest.xml",
+          "sha256": "dba37d59f96180eb0ed044df9c57e6c242fa4261da3629f1b3965d10a63451f5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.ContextCompilerTest.xml",
+          "sha256": "e190e772c0a90a2ad3a0460b5bac7414849a9e87496c9fd769b5deccc58393cb"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.ContextPacketTest.xml",
+          "sha256": "ab48c331b9f2d1fe9a9990658d98387493d2dbc5c6c7d9b39d236b5655d328df"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.CustomTopologyTest.xml",
+          "sha256": "9bc1ec96f678b2d62f47548e8a5c33a851bfebf22040f8e9fa63062c87bf2305"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.ProtocolTest.xml",
+          "sha256": "60c3f3d9c05345d26ec9ee4065a06195613af77684dc13d699387e787efdcc1c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.ThreadTest.xml",
+          "sha256": "014c73444ba6897c2547500631cb65f7408975b720fef1e685a29ac59f3b73ea"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.UsageSummaryTest.xml",
+          "sha256": "2888db1213f0d84aca4e2d12b5ec6e4c100050d4e8e93f840238c41b5df2f1c9"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.AntigravitySessionLiveTest.xml",
+          "sha256": "5c4ae3af9f6b297009495816ae6907024a808f91a18fe58e32197b07952577f1"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.AntigravitySessionTest.xml",
+          "sha256": "6a2d4b90d0796d77f8f1a1a970cd63cd9a2833a557c77f8eed32a38e67328f08"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.ClaudeCodeSessionLiveTest.xml",
+          "sha256": "2d275e2d24463ef56e530fd57f06999c0e63e0d0c8eaf35ac64c6cd816bc729b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.CodexAccountTest.xml",
+          "sha256": "bed0399ca23e4b873d15d11391d809bab6c3c435277bdeb2b55bf8c15771d5a1"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.CodexAppServerLiveTest.xml",
+          "sha256": "ad14134eb2c464cd16864ca56c92b22016d470ffde68f024246b8980d7e5d6b0"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.GeminiLiveTest.xml",
+          "sha256": "e4ed73ca3c825b887efae72feee9c6a7156f51cfe9857c8e88ba3d9b77a6903c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.InteractiveWorkspaceLiveTest.xml",
+          "sha256": "d906ef660fc797336143d101327d9f964abf29a181c39229e15d68ce0ea88445"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.JsonRpcStdioTest.xml",
+          "sha256": "33ac276e122e7ba4f664b2e15ace883932aa1994af1950f69a611215d81da59c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.NativeActivityLiveTest.xml",
+          "sha256": "ca374dc7b86769cd288bc2fdedd4d557f0461d621d39468142963ac2a64efc1c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.NativeChildIsolationTest.xml",
+          "sha256": "4a96c09c33fdbdf896fa1776b9352a05dce953368ae5748a684389253836a084"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.NativeControlsLiveTest.xml",
+          "sha256": "84bdb05a9ab12e013a8a6fe711eb2fe96c44f76ee56b6e43a00684b8cd842c8b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.NativeRequestTest.xml",
+          "sha256": "bbf8a1fda23e14b172c0ec7ee7c77caadcc9f8e4e31f66a71c8f14a210aab941"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.appserver.StructuredReviewTest.xml",
+          "sha256": "b46a7bba9b25f43fcd92deef1798e8e9fe329c0f4fb1e2b0f79e549948305aa3"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.AgentBundleTest.xml",
+          "sha256": "aa9a76e6fe03ba42bb507ca8c270632fc9c9ff50e70935336bbc9f48e2104535"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.AntigravityCapacityTest.xml",
+          "sha256": "7062dcb19646be432ef102acc1161851b0ad63ca328d988cad7552b36bfca256"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.AntigravityGrantsTest.xml",
+          "sha256": "cc2d2705f75bc2fe6abfc1fe792f67eb572c5167f1e43ae339f8cee9b8217429"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.AntigravityParserTest.xml",
+          "sha256": "8186615963773891fb0436e42762ca966c353650e6855ed0adde850db941c05f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.ClaudeRulesTest.xml",
+          "sha256": "5234078beaf6c7a92c3f002dc9b093ea052800b8cd2b150cea2546c15a86f1a4"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.CliCancellationTest.xml",
+          "sha256": "cfc2d31fab7aeffd370cab1a5b6bc48a0bb477f5a77c0288ad391286ec8076c9"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.CliCapabilitiesTest.xml",
+          "sha256": "15f9f29160098f5829f606b8ce18d695e5cd63338b0ece06cf66bc20b70dbdf6"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.HarnessParserTest.xml",
+          "sha256": "a45337d77bc136921afede945f3b2c4bbbcf3259cffa1f382969ab7470bd9e7c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.HarnessSessionsTest.xml",
+          "sha256": "9d045edfcae92f8fae997fd553a072f336e2638460a0b50feddc83222c6838cf"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.cli.NativeAgentProfilesTest.xml",
+          "sha256": "94301a54582b533aed307a7a4cdb5408e260aaa6922de369d5a1233d91d792e3"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.context.PgVectorCandidateSearchTest.xml",
+          "sha256": "1170468761e9865b7ba7ec4bc9efbbbf51c64b19c62d7a758ce07e5f24831041"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.context.PgVectorIntegrationTest.xml",
+          "sha256": "48112a352cb9b5f72094789e925680c828bd4de73596302eb7147c90acfdd825"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.gateway.GatewayLiveTest.xml",
+          "sha256": "587f4cbc156f3a66049052b92c2582ec134910df5d54f2ddfa663db582e89ec4"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.gateway.GatewayRuntimeTest.xml",
+          "sha256": "928d582d94b8a7fcbb56c8b15e66997f990d3a21521375e9c6cd3d4794e37a77"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.store.FileThreadStoreTest.xml",
+          "sha256": "eeb424f0ccb768b64cccc95d57488d0abbb82d4aad37e103e3b535801e760017"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.worklog.WorkLogsTest.xml",
+          "sha256": "8cb1c19412e0a5dad14724af4e71f8f3f5e5a95379581c8224a51ae396a1334e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.worklog.WorkScoreTest.xml",
+          "sha256": "92e0636dae542d2ff952dcbb26bef9c12414331ce40463ff0d2740230a4ff622"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentA2aWorkspaceTest.xml",
+          "sha256": "2b668d1cf09289b6186e16587d0738eb7f9d5a8560f3fb19b212d8281f1ffdd3"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentActivityStoreTest.xml",
+          "sha256": "3be781f17738b6b1567e21c708bd732fbd3296b351ae75a1c5c6553dc785823a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentAdmissionTest.xml",
+          "sha256": "43d43ba49568bc8a0b72c40eee97b5569f48223657e8e234d27700dc3ce51adb"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBackgroundProcessTest.xml",
+          "sha256": "9f5d7400d78c69d7e5c31338c91fc634df3153ffab938ae85cb3b9de7a43027b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBackgroundServicesTest.xml",
+          "sha256": "650fb7765cc447816ab4f89badc2ce7913fa3d9a12542fe60f15444b67100326"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBenchmarksTest.xml",
+          "sha256": "684893ea0b966eb0c8332e4a0c0bc209f239c8177bd53961dde84ea6018e9432"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBoardTest.xml",
+          "sha256": "72869873cdeb0c167ec58bfa49952708587441c03b93f7fd0bb75722beb904bf"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentBrowserMcpTest.xml",
+          "sha256": "7bb28121ab9ded8bcadb20aa0e4fb8a613c916e291ed936b4df891285540799d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentCodeQualityTest.xml",
+          "sha256": "58e6963a5eebbcdd883612201957e79a41dd3a9d0e44fd511df7affa54e7d235"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentCollaborationTest.xml",
+          "sha256": "fbbde478c6bb0c566e0a2ed9fc428010252d2d30815da84942482e2d999243a6"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentEvidenceTest.xml",
+          "sha256": "fe6ee7a8f30af3ba7a80922a0d62d06923243a8a17652c678a00e1134f49231f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentMessageDeliveryTest.xml",
+          "sha256": "a313c49b47233dc6fb374c96e8541cd9e2bdb24fc168de52d75a5931f876334e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentMessageTest.xml",
+          "sha256": "a5b666beb9c1e393a07ef3c664c00425ec1316aafed02afd803321cb619124f8"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentOperationsTest.xml",
+          "sha256": "79ed1315d8445e15609708a623380e5d5395a4272901fb3e7e9d28d32c0cd4fd"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentQueueTest.xml",
+          "sha256": "b5911301f64e933bd8ea3f6ad4db4b7071dd002e6d10376d86d3ff575e829142"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentRecoveryTest.xml",
+          "sha256": "7b1e49c96861a9230fae52fe0ce68f9f7e5054ce323108876c37e5b8e3fe56f0"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentServicePathTest.xml",
+          "sha256": "31815d0ca735b2a85768e3d8c49b47478d8e901c26509562e9b53b5920cd345c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentTaskUpdatesTest.xml",
+          "sha256": "f387adb79d63cd485769aec9beb1fdae1bcc342a46d1c5eadab73e60ce4bc29a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentWorkflowTest.xml",
+          "sha256": "7045d5cb031212e985f576689c9b4de4e4f4e0b9a90aca12a12a8013ac2e796a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceInvocationTest.xml",
+          "sha256": "e2362f7061066eae46011690e2dbc509b0ec0853e452d7a1f88ed6be2e8865aa"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentWorkspaceTest.xml",
+          "sha256": "301db466d97b5a00ab6bfbf4e086537ea91207479e398dbb39462e30258d5f07"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.AgentWorktreeRouterTest.xml",
+          "sha256": "7e237ddd6ab6bf5d9933b3e91ca1d1a15498e861b06565671b28fd876a9e539c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.EngineeringContractsTest.xml",
+          "sha256": "a87e77a93a6a77a4246eb90c93ded1f2effcc42ac69b60b5afdc8437c7dfd208"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridAutoLiveTest.xml",
+          "sha256": "935c32d15d1dd8cecbedcc0e0e78a457840eeec30fa91c5241bc5a3d485d6a64"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridChecksTest.xml",
+          "sha256": "c5dded12696bfeb3e83b8a722da9ba2d39ed898de13677c2fb77f088935e6d67"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridConnectorTest.xml",
+          "sha256": "81c8a2468cc1d5b7dae8db2a7fb24ae8feb6784fefbc012f7125158fbbc0043c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridCouncilTest.xml",
+          "sha256": "53f5a2012ba3730494c291cb6ffcc76c09b990748a162c09bd05722062ecdb93"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridEvidenceGateTest.xml",
+          "sha256": "76ddb1d39edb68fdca3e9fcf9661b3c13da5335490730a60a4754844206fa391"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridLiveTest.xml",
+          "sha256": "d076d677987117238e44fdb599f20789c44d43ed73fe665ce859e712a057275d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridLoopTest.xml",
+          "sha256": "0890c67060520314deb134fd0d39790e066f4cc9b4aa16b1ff4aa5e9a1d1cd6b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridTaskScopeTest.xml",
+          "sha256": "3eed7b40e08bf2b326e38ce9fb7c1cd4e075e60b99403aaf98142744c2fe3a4d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.HybridTunnelTest.xml",
+          "sha256": "2f326ded9d6b0dfb02b7a4f167327f5242da437c4689f385f398e55bde48c37a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.IncludedBuildsTest.xml",
+          "sha256": "45baf39d25b576b9da00505ed4f437be36c86d13ba46bc792209378f4a36c36b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.KernelCheckImportTest.xml",
+          "sha256": "3257f60c9b41dfac2b836a8c7ed570281703dd2b9b49426c6a90fe9f8176b702"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.SourceIsolationTest.xml",
+          "sha256": "630e4aa8def2d63b24a4b2aa3aebe0ecd617931cbc1b2a95267bb9d347df1484"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskContextTest.xml",
+          "sha256": "11eb853aee27766a0f562cb6bf25b6ca1258830464b5d627c1236a62918f626c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskCoordinationTest.xml",
+          "sha256": "b8a5e40550ed863d83783efb92524943029b5f5de580933394e3914fc2a4c0f4"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphCheckTest.xml",
+          "sha256": "51b52d9379a3da5064b8c1ca87afd86a71aa9f9a3aa68b10d637f3c5bc2b07e5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphChoicesTest.xml",
+          "sha256": "90e7eeea6702cd29a8fcbe66aec635416ca167116eae2cfe4e361599f73b7e7e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphInputsTest.xml",
+          "sha256": "e64150b6fd7f5abda49ec81bde67c7ebf06bb78e7f1042f8aaa4793e9e09fb8c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphLandingTest.xml",
+          "sha256": "ce15171d10019a0b984009a9768bbfd3bd34548b27caade478e646d550d1ce75"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphLintTest.xml",
+          "sha256": "90793aa163814c0cc6f4475d9c5cae1ba416023c7c688c8fd69129826c332e67"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphMergeTest.xml",
+          "sha256": "d1cca2b9e282e9bee54a15a0d5e079e08fb2645230fa8364a57cb74330562c52"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphRuntimeTest.xml",
+          "sha256": "62721634bed1d3dff3df7529114e798deaa50f2fa2e988ee9e99c702f810a2a9"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphTemplatesTest.xml",
+          "sha256": "a44c11783e4105302125616b328f2b76ed2c349385df02b258c7c3e5186f216e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskGraphTest.xml",
+          "sha256": "b4c1bd7fa7d8b8593eb0682895f9fe957e173e7fa916546082265d1aa4262a8e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskReviewPanelTest.xml",
+          "sha256": "97ab74d9c88cc00bcd07f583a2200961b4f39b4147c04cf7fb64cb6ee674c011"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskSeatResolverTest.xml",
+          "sha256": "ca0a874a3476611e2a3fc7d19950d64ec01ea2d404990db61d4f70446c0c2736"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskSummaryStoreTest.xml",
+          "sha256": "a2cc129ac53adcceb70ca2c532373d9ca76d9098208ba2b440e73b9f7c12fc56"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.TaskWorkSummaryTest.xml",
+          "sha256": "fa421d4b8a165a12c577d522118ad0167cc4105aeea090f766fb304438e9bd9d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/reaktor/reaktor-conductor/build/test-results/jvmTest/TEST-dev.shibasis.reaktor.conductor.workspace.WorkPlanTest.xml",
+          "sha256": "c41f6d0d503fca7126f1d2932780bb13fca69372b1998f3ff00bd28d719981ce"
+        }
+      ]
+    },
+    "kernel": {
+      "tests": 512,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 11,
+      "xml": [
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.DatabaseQueryBackendTest.xml",
+          "sha256": "cd0a32f7f02aecd9853095323c2465b518d44e0327ff4980c3079160580c0770"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.DesktopPreferencesTest.xml",
+          "sha256": "fd807a8d1ee933cf9cc1e1fff2f33ea20defb2c76eae317422fddf09e7e90dd8"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.CatalogNodeTest.xml",
+          "sha256": "772c20c6cc21c5db88dc23c518bc10b832253c089e45cb70f66284ea5cf6d51e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.CatalogStartupPerformanceTest.xml",
+          "sha256": "2ae990e5f5313e2fcc874c237bbd30629a9e13591cc4db2d5fd7a78b933011b5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.ConnectionCatalogTest.xml",
+          "sha256": "e64128c67469e5a595a3269c5d6ce55408c22f20d3df62856f2d19e9cb0f70d6"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.DataCatalogTest.xml",
+          "sha256": "63638556aae5eae36cf42b4221914d6672cdf5c409f2c2c7b1d0aa0b4346ad4b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.DatabaseWriterTest.xml",
+          "sha256": "e9bdd595924ed7bbcd2f69fc1fb78fbe9c24c09ba9f23d35fc383f8f7c70dcb7"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.IslandCatalogTest.xml",
+          "sha256": "bcd5090be0680eb4ff3acd8a6c3e390afdea5d55bceaefad3fd76332cf7ba5b1"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAcceptanceTest.xml",
+          "sha256": "73de88b3b7048e5447f3c171c2f614be7104ea3f12381d33aea3012dfcf3d91b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAccessTest.xml",
+          "sha256": "0c1fbe4b4e82df3bb1332d6a45fb544051995557ee9a92075a163c56a5818749"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentChecksTest.xml",
+          "sha256": "8bdfcc5837308806044e472b340d883e2b55d1ca00abc49476ed3aac86f16ff5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentEvidenceTest.xml",
+          "sha256": "b0abd14b6a30624683893641de7ee7ddb4c720f51b6b9cdeed06890070b88fce"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentServiceTest.xml",
+          "sha256": "b98211b43478f0b56a95d34620f24c3a6174f6e529f3c37649f6944dd3c54297"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAgentsLifecycleTest.xml",
+          "sha256": "872ae869a5c4753ed51fc7336eea4641ed4eb4cd4b3d7b074814f78e5081d539"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelApplicationLogsTest.xml",
+          "sha256": "364bcf0d17bc994316b9d216f2eded1b4280466f1ab5bb572d5f48576a02c3c3"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasCompiledTest.xml",
+          "sha256": "ef71c266019983610a8d80cf009946b01cc04f13bd8ca65986f96bf9cf648e17"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasPresetsTest.xml",
+          "sha256": "dd21d217cac57543eae0c398cd32cef64ac3d5468d71e8e905c2504d2d3f9c8f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelAtlasTest.xml",
+          "sha256": "520c79af8e72da3cb6dda3dd159d9019942174e8f13925eb5b7878409700dd9d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelBoardTest.xml",
+          "sha256": "d1e156ade8a8a1977e78b6006f3b19f7ff0d2a2c55c8a1a34b6bb6d2aea3a9d3"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelBuildNodeTest.xml",
+          "sha256": "d1da20613afe98a09500da375a98d6d9b4034ecf7eab9a3e3aa2965bc47da313"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCandidateChecksTest.xml",
+          "sha256": "ce227c36306dfd5cb9c229b81ec24ef1666f04be0438a8e81103db7d548fccf5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelChangesTest.xml",
+          "sha256": "bc0d37126f627f83ed661f6fcbef64792382372825fc73b818d9f1d846af000c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCodeGraphTest.xml",
+          "sha256": "fa81c8ca0cda832669c6a132f56059b6a3fccd43c3dd67e3e395be50ef9d4f72"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionBatchTest.xml",
+          "sha256": "6066843c8cb9cffbf3bba044b7859559b8a5563f64d628ce99b8c823f0fcae81"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionFailuresTest.xml",
+          "sha256": "cdc56e5707d11baa732fa66de2aeff8c1ad04132a9264b1e6c0a9118218f0a80"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelConnectionsTest.xml",
+          "sha256": "b05fdbad3f4de8ee44e6122dc94bd8cdb155fdc85101e91f14dd92500e668b4f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCppFactsTest.xml",
+          "sha256": "b495291b7f2b016ca2dbcc88b27d78f27c6ae87fb41cb738c25837a8eeadc9cf"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCrashEventsTest.xml",
+          "sha256": "4a01e5ed0e83020df16695dcd2625cdf5c9e2b7c3e2cabec0ac87d2cf6be0d4f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelCrashesTest.xml",
+          "sha256": "e2922f11722c1cf7407af7673fa2c190ce1b0b7b7e18e224b73215a995645236"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelDatabaseTargetsTest.xml",
+          "sha256": "92998e25779416651f4c25f5b7823c18d079d08ba91a1706541d69ceddced100"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelDoorTest.xml",
+          "sha256": "ed6ee47b497c875b3562584c420964c8afe1ed7a834cd992e48c4da4ed4f0e50"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelEngineeringTest.xml",
+          "sha256": "040f8c4185bc132b9717712aa0c243cd400efbfdc9a5f573d721e90a58ab84e1"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelFlowCoverageTest.xml",
+          "sha256": "8c39c150940ddaa1df228995939678d635fa2924e81c2a87e8c9195519d95539"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelGeneratedSourcesTest.xml",
+          "sha256": "406167d56b74522db561e2d7ccac2cf6c92bc30ce570c84aabc2c08d71d6c9d7"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelGraphTest.xml",
+          "sha256": "c9e1669e339dbfbfe26821ce9f700562b97dec822a09877e58c8e4cc1793efa4"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelHouseRulesTest.xml",
+          "sha256": "c113fce4f80dd63c1bdde2ee38607992302a04da25bf1ac53ab23b9d57cf88f6"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelIntegrationTest.xml",
+          "sha256": "a615ea84c66b1fb7af0a0302cc5a56de5aeb719582c6349d4624d3678b223d63"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelKotlinFamiliesTest.xml",
+          "sha256": "a44c702e7c9cb792965ab69a069e314357888e672de232f833ddfa16ac353c06"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelMcpTasksTest.xml",
+          "sha256": "42717faf4ae832ce9b45b17a6089689cf608ca2a61664e36dd423062bcaee074"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelNodeTelemetryTest.xml",
+          "sha256": "c80593165af1bf5d671f9cf57409046260fe9ec3ba38a22f39c51e62bd982855"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelOwnerTransportTest.xml",
+          "sha256": "8b3c113eb2e10c2d52d290ea3a4e87831e0dc55979f123adcabb0ea88ee9e966"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelPlanTest.xml",
+          "sha256": "cc436fdcdc3462a058fa676bf532ff5ae3ee198f3c8cfe9a9a927a1276568b5c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelPrincipalTest.xml",
+          "sha256": "5866ffa5c817d72ac849497795fa544f4e02a87d108b232101d78998bd40653a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelRadarTest.xml",
+          "sha256": "3a29f4da48b3d695a4b22623158a02c11f80ccce9a4a12e128fc3e30a679cdff"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelReaktorFactsTest.xml",
+          "sha256": "b4ff4b50db4b7d91c40cb96f9e114fe3bb93fa158c48e03979aa5b879298b0f1"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSemanticFactsTest.xml",
+          "sha256": "6ee7dd55084a055ab21d34478a7fdb8179a0c9943f9d856a04be449e43c8d43d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSessionLogTest.xml",
+          "sha256": "096d26c29b5d98204a3367009ace3fff323d83ea9a125db176e33e95e4a1f76b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSourceRoutingTest.xml",
+          "sha256": "60395627bd56acb8f8680fa2027eed2817e6eea02ba26f53a7848b9a4d76fd9d"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelSubgraphsTest.xml",
+          "sha256": "7cf3f79744bb73bb83c309c138b256679b4e79a589f56040556ac2ef19195c68"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTaskGraphTest.xml",
+          "sha256": "0bd16c5c25d5b67fce7bd6a717b7709a5c1b575bffba546e947b8f407392bb13"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryFleetTest.xml",
+          "sha256": "ca1167081758f9baf90c3f5a8474145e5253e3243c0829657640e61ed445a3c5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetrySignalsTest.xml",
+          "sha256": "7c3f2f20d7a4695b1a8db9782fd8573aae2614fa80af130eb3d1be909826fb78"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryTest.xml",
+          "sha256": "8ced9997617ad39e81fd6ed8c3f58483160871f2f890d5b3bdb6d2a2a7e9b1a1"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTelemetryVerificationTest.xml",
+          "sha256": "762d1c6d6ab1a2ffed64a1ac4d7c929d1083e0656e05e58f42b972bcadb0d0d2"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelTypeScriptFactsTest.xml",
+          "sha256": "935e91e8ff1c6b78e04d3e3d60738d52b1ecb86b886861350a805f2d8f0be687"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelWatchTest.xml",
+          "sha256": "4f928a12ad128c74d93cbc43608a9d8a57ee0b700e8cd43d5198a9fd3583df94"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.KernelWorkspaceTest.xml",
+          "sha256": "b34e5b96b2958c2786445cc4e802c5fb5ee7a9e2e18475adab7f443867201af9"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.NativeKernelExecutionTest.xml",
+          "sha256": "e13fbc71482926ce81a27ef9ee0af35306a8123deb62878ce83bffc710c6a2e4"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.OperatorAuthorityTest.xml",
+          "sha256": "f458a39d56e16170b8590ead797a90f2189ac2ccbb9bc545bed0b0b56b2b473a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.ProductionConnectionsTest.xml",
+          "sha256": "5a26ca6294a629978ff9f94e3039d28a774cbd8f255e1d913aafa826eb7de1cd"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.WorkspaceRepositoriesTest.xml",
+          "sha256": "1ffde7311e4c64279b84052eafa74fac4b0b7ea5c0ef18a5566414c75a9fe530"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.auth.AuthDeclarationsTest.xml",
+          "sha256": "40871f338ceb4dba0e203f88f414601f4b5591867cd3b0463410bd4b13877320"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelAuthToolsTest.xml",
+          "sha256": "adbe41454c3ea57524de7d93f08d8b6b0700b0ccb0472c5dfc523ac888b8713a"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelCheckResultTest.xml",
+          "sha256": "ffa0d0fa163f333c66bfdac86bdaa734c4b285ae85c4dbd2aa0cf514da2f23b2"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.kernel.mcp.KernelGraphQueryTest.xml",
+          "sha256": "9d31b315998285a1be489c0e5fc9b2ab975e2579ffaed3c3252820d63f4661fd"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.BuildModelsTest.xml",
+          "sha256": "ec60156e5c2f73213a811178e7d4cca775e7c29178ab043f3be22254b2682158"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.ChangeChecksTest.xml",
+          "sha256": "b06790f17696c36a628b13065aeebab3a6ffa7460d4f48aa640908978bf1f48f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.agent.WorkModulesTest.xml",
+          "sha256": "1439892e7b5847fb476aa523c3ff3a9377e87c8032f6472774decb7324678c99"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.ai.AiInventoryDiscoveryTest.xml",
+          "sha256": "d5e9e9ebf28cf22f651ff06eee0a28fbe7db78ff6221acdc53dbebb03405235c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.ai.AiInventoryTest.xml",
+          "sha256": "63fbfb7021866528749574ce349bc2b254acb74d878b52755ea73e5258788833"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.AuthDirectorySessionTest.xml",
+          "sha256": "5a09d274f6c5523261d64ed796bf2681c8426496c361245311c3f1174c3b0cdc"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DataCodeUsageTest.xml",
+          "sha256": "583d3b92216b0d8d741c5d3ae66fa96c6760be6250a3b5c6f40854b7ed214de5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseDocumentsTest.xml",
+          "sha256": "c9e7985bebcee41160f4fc9e8716654db5d3b751986d437568022a589fbc2279"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseFindingsTest.xml",
+          "sha256": "43297520a730bb36d834a0c9af4ddf801f0fe98c289e6829d94abba7c1092229"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseGraphExplorationTest.xml",
+          "sha256": "eb3c1d64a0e362fa64d5b629e222cea221aa1562697ac7990d999cd8b17849d6"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseMigrationQueriesTest.xml",
+          "sha256": "4cf8d9f77835e902ffa2258e3a94f46bc0aac9c3c2f93b06a02bee3b1b2a9ba7"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabasePinnedResultsTest.xml",
+          "sha256": "9dc6c8f57c5cda22c7157940ea49f5a4de6fc154b23c83e71759c2bc19f1455e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSchemaExplorationTest.xml",
+          "sha256": "67295a6505ec2551ec104e38fa678f5abfad6a1e744be99e152d68e70e19c007"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSchemaSnapshotTest.xml",
+          "sha256": "92d482bd580c7405039ce19bd189ed8db866d59b6124b69601565986de7cc7ac"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DatabaseSeekPagingTest.xml",
+          "sha256": "dc28d65eaad6724fb17997702dd27506b4c380681555016ff12e151cc1b4df82"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.DeviceDatabaseTargetTest.xml",
+          "sha256": "42707ec57832c8b88dbaa9f76a94e57f3287953caefac1808f4cbaf6b21f46d4"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.MemgraphInspectionBrokerTest.xml",
+          "sha256": "6794299ab62cbfb4b5c0ee3a8a481c7c173a90c8df3c6dcdb634083c4c59a455"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.NativeDatabaseSessionTest.xml",
+          "sha256": "2a464e5ccbb3b17e0edd3604905cfadaa5ec8aadbde499ef32e4d5090671fcbf"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PostgresInspectionTest.xml",
+          "sha256": "cbde3da43879106bec8a64b8f5582e773bc84b4afc0db51c6b30c8f459bfd457"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PostgresSessionConnectionTest.xml",
+          "sha256": "0444404d2c85a6fa780bbc0e3b200f08412b434a6cbeafcd537bfa6ad37a0f37"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.PubSubSessionTest.xml",
+          "sha256": "c5855e31466408d8ff3e8b3a6d3fea7195d514e55a1261fcc9722a6e6af216af"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.SavedDataDocumentsTest.xml",
+          "sha256": "24d04246bdf1884cd5aeb76b3819ab80e86d6e623a0003ee006729f70a0c5908"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.StorePrefixSurveyTest.xml",
+          "sha256": "2b0879e0550d12c23d9e07a2c8ec0cac89d1b57e6175a796df09b1009bd15537"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.database.WorkerStoreSessionTest.xml",
+          "sha256": "a37f742841116662558035942851063e921c8e8856afbe3b1be13bad40052103"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.inspection.ElementBindingRegistryTest.xml",
+          "sha256": "b037287db23ba8ce53d110ba873bcd76d2fbb1b3279e46878daa385f97275833"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.inspection.WorkbenchInspectionSessionTest.xml",
+          "sha256": "5677d13bb4ddecdaaff4d581d2dec165e2ed842b23e63571b8c10066635435b2"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.mcp.DesktopMcpSessionTest.xml",
+          "sha256": "c1d0d60d957e9bfa70e9a20042dda5b1a4599412418cc0f14875c95485bc8af0"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ClickHouseBackupPlanTest.xml",
+          "sha256": "b2c9feecb830d73677aa8a8bccec177316f7db0d03f87371cf5bd6827879f5e3"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ClickHouseRestorePlanTest.xml",
+          "sha256": "754ef90854ee538d65bd6a4d40feeeeb977870d2b2ca8912485d36964c909658"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.DeployArtifactsTest.xml",
+          "sha256": "bfa3144264a44af045278f9296d9b53d842a9f5f83a8181c870dc0c9de0df146"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.FirebaseReportsPlanTest.xml",
+          "sha256": "523cf7ff70247ece4518d788380a5592dcc2fba74bc36c24301d9c797026409f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.GradleReceiptVisibilityTest.xml",
+          "sha256": "a5833e21d2902b8b547a7be265688725a57f0c8a27ba6b364ac3a2978ca58eb2"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.HostLocalOperationTest.xml",
+          "sha256": "b33184b13954eeb7dc11da3a9c98d0308bafc9ef5bb7425ef1870c472decd883"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationRulesTest.xml",
+          "sha256": "f3a381711529d86936cd2bf61b4dbbc1b4d6d97d652ee58e313ba2a1811c5642"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationalCatalogCacheTest.xml",
+          "sha256": "a9fd3423b89ee2408ed9a06e7568cd3c914ed69e1bb2cfb366f90c658e792a5f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.OperationalEnvironmentTest.xml",
+          "sha256": "6cb4678e5eab01ceae5b2bcb8c4bd60ec6024e4f27246f2a97bd52a6d6b883fb"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.PlanConfirmationTest.xml",
+          "sha256": "55743cdea5201e3c47f18557c9e5a8132d45b8cd6576f5ca3f903f6420e4873b"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.ServiceSpanMigrationTest.xml",
+          "sha256": "c748d0c656b39b2826cb6bafa3efa954fef4d60f4e77e35b0933ce3d9534fe6e"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.SessionReadsAreBoundedTest.xml",
+          "sha256": "67e66083c6740dc532226bc99d3e2aab4432d8856bcba2b273bc6b60b94cbede"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.operations.WorkerInputLifecycleTest.xml",
+          "sha256": "7de2f30e32e79c19d0b99ee1eb9716fc6b7444d197fee6faae7b8cbe19e7f154"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.CheckReportsTest.xml",
+          "sha256": "1d5e4600defb9b0de8a38a615ebc5998c2a052239c92cd19a1b63c9cff12e7af"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.VerificationsTest.xml",
+          "sha256": "fb5e773b51eb236183e8f2734cb781832c73ef3d01afa1f2e4b9ab189b93128f"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.testing.WorkingTreeTest.xml",
+          "sha256": "0c74d81820268ac1b8d3e7735ddf8d1fa806cf4260e0d25759c357e67fac83cf"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.BestBudsSchemaCatalogTest.xml",
+          "sha256": "eb45d31ba6a4a3469409769d10c3d41437bda296ccf378b0177b716f428b60cd"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.BestBudsSystemTopologyTest.xml",
+          "sha256": "6a586625ede84c2e203a034a9853b79cf56fef423fdc9009b9c53ae4caebc3e5"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-ai.bestbuds.reaktor.workbench.topology.SupabaseDumpSchemaTest.xml",
+          "sha256": "840361ba737bc1aafbd1d102401888e6883ef3086a180c655726bc6be1288d81"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-dev.shibasis.reaktor.conductor.cli.HarnessUsageTest.xml",
+          "sha256": "802e300c3c1b4c4007689fe42593370e92731075fdc806e6b613d09d7566394c"
+        },
+        {
+          "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/modules/kernel/build/test-results/test/TEST-dev.shibasis.reaktor.conductor.cli.StdioBridgeTest.xml",
+          "sha256": "3585cb1145a85ea089c3fcbb02624c7bfea87c42a4d879e5f30d9cf8f528fb72"
+        }
+      ]
+    }
+  },
+  "distributions": [
+    {
+      "path": "/Users/ovd/dev/.remote-dev/artifacts/20261028-214315-880975b4-bestbuds/bestbuds/targets/reaktorCli/build/distributions/reaktor.zip",
+      "bytes": 202460434,
+      "sha256": "4f27ea3f4e7d80a5690d416b8e9c0283cd12078b1b7888a3c6f746e10986585c"
+    }
+  ],
+  "total": {
+    "tests": 1266,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 28,
+    "passed": 1238
+  },
+  "scope": "Fresh combined current CLI/tooling/conductor/kernel suites, kernel boundary, both distributions and two model exports. Dependeasy154, router70 and controlled benchmarks have their own earlier source boundaries. Installed owner and production/device rollout are separate.",
+  "packagedBeforeInheritedEnvironmentFix": {
+    "summary": "packaged-cli-before-inherited-environment-fix/summary.json",
+    "passed": true,
+    "repeatPlanWrappers": 2,
+    "finding": "Refresh compared environment overrides with model-recorded inherited Android SDK variables; actual child inherits those unchanged values. Corrected afterward; this archive remains a qualified before candidate."
+  }
+}

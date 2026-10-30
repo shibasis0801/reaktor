@@ -1,0 +1,10 @@
+{
+  "router": "20261029-061906-1202716e-bestbuds",
+  "exitCode": 1,
+  "worker": "local",
+  "admissionSeconds": 842.502502666,
+  "executionSeconds": 559.603239916,
+  "failure": "NoSuchFileException binary/in-progress-results-generic.bin during Gradle result finalization",
+  "scope": "Prior XML is stale and is not current-suite acceptance. Earlier cancelled build emits app/engine failures into current daemon log before current build finishes. Fresh-daemon rerun required.",
+  "archiveSha256": "0763681548c79936f8a670e57619086a4746e2c115efb797c7b4622e1275be9b"
+}

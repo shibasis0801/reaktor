@@ -1,0 +1,103 @@
+{
+  "run": "run-1793225839590-6480",
+  "routerRun": "20261029-034812-8c4768b3-bestbuds",
+  "scope": "Normal shared-source worker qualification; test XML and tested class hashes captured before packaging. Not frozen entire platform. Router publication still pending.",
+  "xmlArchiveSha256": "3b14c19954c5d5901e8dc04c92e6d5c7cccb1879fdca7938d3202c4c8e9f2ef4",
+  "counts": {
+    "reaktor/reaktor-conductor": {
+      "tests": 500,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 16
+    },
+    "bestbuds/modules/kernel": {
+      "tests": 520,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 11
+    },
+    "bestbuds/targets/reaktorCli": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "currentLocalSourceDiffers": [],
+  "testedMetadata": {
+    "readAtEpoch": 1793226247.284056,
+    "workerRoot": "/Users/ovd/dev/offload",
+    "source": {
+      "reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/TaskGraphRuntime.kt": "67192ed121e38c8fa260cef8889e0bf6b3d2e34776aeec409501f9cbb36d6a35",
+      "reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/TaskGraphRuntimeTest.kt": "0be312465dd6ccfbdd1200bfcc42e18959502a494bc470541390853f734824c7",
+      "reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleReceiptRunLedger.kt": "7d097703c930f493a25b522c09300a6a315e278c4b268272e09c6d5a5b9d440d",
+      "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelSemanticFacts.kt": "fffbc831d02f0002fcb7dae8201039acff51a338ec15102684dbf3caa098e0d4",
+      "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelSourceNode.kt": "28a8dd63510f3ca9e44aece5e375b7f45243d6440c3fa3a2b0b3ddce7722680a",
+      "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/ReaktorKernel.kt": "2c26d43f7b880267166ca51630f2d881cb17130750336641d9d4c173956b8ce5",
+      "bestbuds/targets/reaktorCli/src/main/kotlin/ai/bestbuds/reaktor/cli/KernelCli.kt": "f446d48c40af15f6dbe3e574c8c81a76001da0c5765707821414eb3e5de215cd"
+    },
+    "jars": {
+      "reaktor/reaktor-conductor/build/libs/reaktor-conductor-jvm-2026.1.6-SNAPSHOT.jar": {
+        "sha256": "0cd322f0a68ae35ee81a5774e18afca587218ca436b99afe0820c98f4b57934a",
+        "classes": {
+          "dev/shibasis/reaktor/conductor/workspace/TaskGraphRuntime$close$2.class": "a823909f3058077b2ecae59bca278cb9b7182ab1cf6da537fc3bc0c6ae9d83c6",
+          "dev/shibasis/reaktor/conductor/workspace/TaskGraphRuntime$context$1.class": "c175681d3c754d36e79ecffe8d408c4c3ee1fea5c791df3b9d0130ddcf8278e6",
+          "dev/shibasis/reaktor/conductor/workspace/TaskGraphRuntime$watch$1$1.class": "a653748ba8628aab44ddf1e237373a965a854cf7db05786fc5e054a235560a13",
+          "dev/shibasis/reaktor/conductor/workspace/TaskGraphRuntime$watch$1.class": "b4af245515a344a1de700ab1b5e52c0eb8055f1ede40f1f92ac263a4a5f9445e",
+          "dev/shibasis/reaktor/conductor/workspace/TaskGraphRuntime.class": "19a0bc96a8a60014553db34dbb9d91a0f2470be9afda147d9a3b25817899df15"
+        }
+      },
+      "reaktor/reaktor-tooling/build/libs/reaktor-tooling-jvm-2026.1.6-SNAPSHOT.jar": {
+        "sha256": "bc2e21d62704b51577dd0fdc27948f55b634a653997ed5e4656795a9aa0206a2",
+        "classes": {
+          "dev/shibasis/reaktor/tooling/GradleReceiptRunLedger$changes$1$1$job$1$deliver$1.class": "a69f0c8ed4ff3f7ff6205e3f83b79f3d8bea200664a95c29fe04cade3052bcd8",
+          "dev/shibasis/reaktor/tooling/GradleReceiptRunLedger$changes$1$1$job$1$invokeSuspend$$inlined$sortedBy$1.class": "e1fbeec2d64e5b22c8ac4885d39f2127ce2c20cd9100dd066a5629db4601c946",
+          "dev/shibasis/reaktor/tooling/GradleReceiptRunLedger$changes$1$1$job$1.class": "84c4f7775e036a8294e01a1d775086ce27117a67f279d904136c110447db04c3",
+          "dev/shibasis/reaktor/tooling/GradleReceiptRunLedger$changes$1.class": "6b2821635db20d0bf1378cb9c4bd90ec38c0ad9b26999b80c38d13bab0749849",
+          "dev/shibasis/reaktor/tooling/GradleReceiptRunLedger$entries-e73sO2E$$inlined$sortedByDescending$1.class": "fa7dd025d8afc1fcb9b129650e5c994d09646c3f1301e3b5de4e66027ef345d3",
+          "dev/shibasis/reaktor/tooling/GradleReceiptRunLedger$events$1$1$emit$1.class": "4fa1dfd477942993a531114f99f825f9a58d2884aecffd981ecaa27f298edd17",
+          "dev/shibasis/reaktor/tooling/GradleReceiptRunLedger$events$1$1.class": "ebe2b4f716baac6e001624a328500208e44596512e4218dee6a90f1ddd9152a6",
+          "dev/shibasis/reaktor/tooling/GradleReceiptRunLedger$events$1.class": "42cc23544bd247422a8a30e0bb48b0d69fb9aefbb38a249a904b226d7b6ee4d0",
+          "dev/shibasis/reaktor/tooling/GradleReceiptRunLedger.class": "2d20a6e4503285234df47ee7957f43efb5b558453f08def09264794f5a006da8"
+        }
+      },
+      "bestbuds/modules/kernel/build/libs/kernel.jar": {
+        "sha256": "ec4612de9ae94f2a26678442cb80b251a22e73d04b6567f3b0cbb8507e004aab",
+        "classes": {
+          "ai/bestbuds/reaktor/kernel/KernelSemanticFacts$Companion.class": "d7b38c502e701145c0091c11967aa20710c72c2ba5273d069e0daee512c2e1ca",
+          "ai/bestbuds/reaktor/kernel/KernelSemanticFacts$Wanted.class": "4d4a6bbd33dc555bac424729883cfc2e5a1c5f8fa30590520af5747cb74a3d97",
+          "ai/bestbuds/reaktor/kernel/KernelSemanticFacts$describe$1.class": "8327d9e9214325e7e6515676a805e47719baa207ef940a7be7b91ca64c8bba3e",
+          "ai/bestbuds/reaktor/kernel/KernelSemanticFacts$publish$$inlined$groupingBy$1.class": "1a851f73c117c22b48112a8fe396c92aaf817005b47f1325d7e9d490571b43b2",
+          "ai/bestbuds/reaktor/kernel/KernelSemanticFacts$source$1.class": "df500c91d3122a3bc7d2b269cf6317dcdf55e9dddbae68fd1b33b6ff3d3cd3a7",
+          "ai/bestbuds/reaktor/kernel/KernelSemanticFacts.class": "edcc5eec17a6d0c1dba4cc87832393cf621392f3d89915d6bbdb528accbb66fb",
+          "ai/bestbuds/reaktor/kernel/KernelSourceNode$codeGraph$1.class": "446f39175060ba221699a40fcfa1940cde9dcd7d38851992bcd90399d5f038b5",
+          "ai/bestbuds/reaktor/kernel/KernelSourceNode$watch$2.class": "5e188748c962327ce4fe74c18f4c8f0500c72904c77b2b566f2bffc5c3353532",
+          "ai/bestbuds/reaktor/kernel/KernelSourceNode.class": "4970165483107de895e9b81f09a76bf7abd8dd07351bf3deed9f9582df70ef83",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$Companion$openAgentWorkspace$1.class": "9abaf351531eab608a84300e162b31e2b5a4f8d759c37564dfc6bd1ce450b96d",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$Companion$openAgentWorkspace$3.class": "2963431b935b227ab1a4649889b6656a8ee8aeaeefb75146d302bb12db8cf839",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$Companion$openAgentWorkspace$7.class": "54b33f7618dd6b0852e3b3e3aacfb11315458727a1be768a85573837ebf53fe2",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$Companion$openAgentWorkspace$taskAtlas$lambda$11$$inlined$sortedBy$1.class": "ad3dec2062323b775b97d50252c0449d303bab745574be99bc677756e34e50c5",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$Companion.class": "25fd2c6172ca21d6440d5406b882e6969652e39744c3b90fed3aef02f4928bea",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$attachWorkHost$1.class": "d8961b3950f126348c8278f7d39252e3e6b337847637b039fd0eec0c0e95c421",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$codeGraph$1.class": "8a9b3678f6f8298415e0e760f6f772d041c91282097fa2acb43b53429d065ac7",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$graph$1.class": "f71ca993c3cf99bab62ad292b4fbb61b43520d120fc3fd9fdc52f15bf6b05a4b",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$invoke$1.class": "9755dfe93a046af5535c9cc4774dd6c81686628ac35b21ffb6c7ff67e41403f0",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$watch$2.class": "fa9497d0d64d489b087569306f948fe9b40c541ff22224035023e5a085f8a55a",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel$watch$3.class": "a9ace69ae91eca18d51d2d09ec96c5091a2c129f20b290ca9153eea09dcac73e",
+          "ai/bestbuds/reaktor/kernel/ReaktorKernel.class": "c975623550e89ecb5d46d4cd78febd405b980f76289471ed8e1264ca6db760bd"
+        }
+      },
+      "bestbuds/targets/reaktorCli/build/libs/reaktorCli.jar": {
+        "sha256": "629be6600d882362140c578cbcd718de8c419694ad605a609587b053e7672dd8",
+        "classes": {
+          "ai/bestbuds/reaktor/cli/KernelCliKt$runKernelCli$13.class": "41d16a67a385ba159a36ce7530407fd2de8132c82526a70b2ee01476f025b50f",
+          "ai/bestbuds/reaktor/cli/KernelCliKt$runKernelCli$15.class": "e2869863b26515d6e11af888504ffd2b0fac577a298e43df1ef37afa4e912502",
+          "ai/bestbuds/reaktor/cli/KernelCliKt$runKernelCli$16.class": "c39c362d332c206914751a99c154fbec1e9aa29f21df242c3998e6cdf5e6d28c",
+          "ai/bestbuds/reaktor/cli/KernelCliKt$runKernelCli$7.class": "9edf6ee86a6d696bd459faa0b1cb67dbeaa1fdf97a076428fe3b58e2ac5ead61",
+          "ai/bestbuds/reaktor/cli/KernelCliKt$runKernelCli$values$1$1$1.class": "399f97926bb9407a18aacca3164b22a19cfeb88b866a4955bd015c271c4d0bdf",
+          "ai/bestbuds/reaktor/cli/KernelCliKt.class": "db78fd6da35ec32b30ef889e8d67e3248138eab67436174b7258ad2d94fd36b0"
+        }
+      }
+    }
+  }
+}

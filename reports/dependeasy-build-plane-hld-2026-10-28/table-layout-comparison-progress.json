@@ -1,0 +1,186 @@
+[
+  {
+    "pair": 0,
+    "variant": "old",
+    "exitCode": 1,
+    "seconds": 20.53831125,
+    "wheelReferenceP95ms": 2.4,
+    "wheelCandidateP95ms": 2.8,
+    "wheelRatio": 1.125,
+    "pageRatio": 1.089,
+    "pageReferenceMeanMs": 9.0,
+    "pageCandidateMeanMs": 9.9,
+    "keyP95ms": 12.9,
+    "loadBefore": [
+      4.18115234375,
+      5.5244140625,
+      6.55078125
+    ],
+    "loadAfter": [
+      5.52294921875,
+      5.73486328125,
+      6.60107421875
+    ]
+  },
+  {
+    "pair": 0,
+    "variant": "new",
+    "exitCode": 0,
+    "seconds": 21.129656416,
+    "wheelReferenceP95ms": 2.7,
+    "wheelCandidateP95ms": 2.8,
+    "wheelRatio": 1.037,
+    "pageRatio": 1.069,
+    "pageReferenceMeanMs": 9.9,
+    "pageCandidateMeanMs": 10.6,
+    "keyP95ms": 12.9,
+    "loadBefore": [
+      5.52294921875,
+      5.73486328125,
+      6.60107421875
+    ],
+    "loadAfter": [
+      5.021484375,
+      5.60546875,
+      6.5341796875
+    ]
+  },
+  {
+    "pair": 1,
+    "variant": "new",
+    "exitCode": 0,
+    "seconds": 22.339254499999996,
+    "wheelReferenceP95ms": 3.4,
+    "wheelCandidateP95ms": 2.7,
+    "wheelRatio": 0.794,
+    "pageRatio": 1.055,
+    "pageReferenceMeanMs": 10.3,
+    "pageCandidateMeanMs": 10.8,
+    "keyP95ms": 12.3,
+    "loadBefore": [
+      5.021484375,
+      5.60546875,
+      6.5341796875
+    ],
+    "loadAfter": [
+      5.10595703125,
+      5.57275390625,
+      6.494140625
+    ]
+  },
+  {
+    "pair": 1,
+    "variant": "old",
+    "exitCode": 0,
+    "seconds": 20.501284709000004,
+    "wheelReferenceP95ms": 2.5,
+    "wheelCandidateP95ms": 2.6,
+    "wheelRatio": 1.042,
+    "pageRatio": 1.031,
+    "pageReferenceMeanMs": 9.6,
+    "pageCandidateMeanMs": 9.9,
+    "keyP95ms": 12.3,
+    "loadBefore": [
+      5.10595703125,
+      5.57275390625,
+      6.494140625
+    ],
+    "loadAfter": [
+      5.05224609375,
+      5.53369140625,
+      6.458984375
+    ]
+  },
+  {
+    "pair": 2,
+    "variant": "old",
+    "exitCode": 0,
+    "seconds": 21.331968250000003,
+    "wheelReferenceP95ms": 2.9,
+    "wheelCandidateP95ms": 2.9,
+    "wheelRatio": 1.0,
+    "pageRatio": 1.079,
+    "pageReferenceMeanMs": 10.1,
+    "pageCandidateMeanMs": 10.9,
+    "keyP95ms": 16.0,
+    "loadBefore": [
+      5.05224609375,
+      5.53369140625,
+      6.458984375
+    ],
+    "loadAfter": [
+      5.17041015625,
+      5.51708984375,
+      6.43017578125
+    ]
+  },
+  {
+    "pair": 2,
+    "variant": "new",
+    "exitCode": 0,
+    "seconds": 21.34560587499999,
+    "wheelReferenceP95ms": 3.2,
+    "wheelCandidateP95ms": 2.6,
+    "wheelRatio": 0.813,
+    "pageRatio": 1.05,
+    "pageReferenceMeanMs": 9.6,
+    "pageCandidateMeanMs": 9.9,
+    "keyP95ms": 11.1,
+    "loadBefore": [
+      5.55712890625,
+      5.59130859375,
+      6.45068359375
+    ],
+    "loadAfter": [
+      5.05126953125,
+      5.47119140625,
+      6.38720703125
+    ]
+  },
+  {
+    "pair": 3,
+    "variant": "new",
+    "exitCode": 0,
+    "seconds": 20.215080333000003,
+    "wheelReferenceP95ms": 2.6,
+    "wheelCandidateP95ms": 2.6,
+    "wheelRatio": 1.0,
+    "pageRatio": 1.087,
+    "pageReferenceMeanMs": 9.2,
+    "pageCandidateMeanMs": 10.0,
+    "keyP95ms": 11.3,
+    "loadBefore": [
+      5.05126953125,
+      5.47119140625,
+      6.38720703125
+    ],
+    "loadAfter": [
+      4.537109375,
+      5.326171875,
+      6.3134765625
+    ]
+  },
+  {
+    "pair": 3,
+    "variant": "old",
+    "exitCode": 0,
+    "seconds": 20.14677525000002,
+    "wheelReferenceP95ms": 2.5,
+    "wheelCandidateP95ms": 2.6,
+    "wheelRatio": 0.96,
+    "pageRatio": 1.052,
+    "pageReferenceMeanMs": 9.7,
+    "pageCandidateMeanMs": 10.2,
+    "keyP95ms": 14.7,
+    "loadBefore": [
+      4.537109375,
+      5.326171875,
+      6.3134765625
+    ],
+    "loadAfter": [
+      4.39013671875,
+      5.2392578125,
+      6.2587890625
+    ]
+  }
+]

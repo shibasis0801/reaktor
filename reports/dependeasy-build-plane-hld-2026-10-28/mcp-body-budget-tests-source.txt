@@ -1,0 +1,245 @@
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:67256e736034
+../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServerTest.kt
+  15:7 class LoopbackMcpServerTest: class LoopbackMcpServerTest · kotlin:dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServerTest@:reaktor-tooling:test:jvmTest@reaktor
+../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServerTest.kt · class LoopbackMcpServerTest · 9892 of 10167 characters, partial · rev:67256e736034
+ 15  class LoopbackMcpServerTest {
+ 16      @Test fun browserPairingCannotReachTheOwnerAndCanBeRevoked() {
+ 17          val ownerToken = "owner-".repeat(8)
+ 18          val browserToken = "browser-".repeat(8)
+ 19          var pairing: Pair<String, String>? = "https://manna.ac" to browserToken
+ 20          val browser = BrowserMcpEndpoint({ pairing }, ReaktorMcpServer("inference", "1", "", listOf(
+ 21              McpTool("inference.ask", "Question", emptyObjectSchema(), readOnly = false, idempotent = false) { buildJsonObject { put("reply", "answer") } },
+ 22          )))
+ 23          val client = HttpClient.newHttpClient()
+ 24          LoopbackMcpServer.start(0, { registry() }, ownerToken, post = { _, _ -> error("Browser must never reach owner operations") }, browser = browser).use { server ->
+ 25              fun send(path: String, origin: String?, token: String?, method: String = "POST"): HttpResponse<String> {
+ 26                  val request = HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port()}$path"))
+ 27                      .header("Access-Control-Request-Private-Network", "true")
+ 28                  origin?.let { request.header("Origin", it) }; token?.let { request.header("Authorization", "Bearer $it") }
+ 29                  return client.send(request.method(method, if (method == "OPTIONS") HttpRequest.BodyPublishers.noBody()
+ 30                      else HttpRequest.BodyPublishers.ofString("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}""")).build(), HttpResponse.BodyHandlers.ofString())
+ 31              }
+ 32              val preflight = send("/browser/mcp", "https://manna.ac", null, "OPTIONS")
+ 33              assertEquals(204, preflight.statusCode())
+ 34              assertEquals("https://manna.ac", preflight.headers().firstValue("Access-Control-Allow-Origin").orElse(null))
+ 35              assertEquals("true", preflight.headers().firstValue("Access-Control-Allow-Private-Network").orElse(null))
+ 36              assertEquals(401, send("/browser/mcp", "https://manna.ac", null).statusCode())
+ 37              assertEquals(401, send("/browser/mcp", "https://manna.ac", ownerToken).statusCode())
+ 38              for (origin in listOf(null, "https://evil.manna.ac", "https://attacker.example", "null"))
+ 39                  assertEquals(403, send("/browser/mcp", origin, browserToken).statusCode())
+ 40              for (path in listOf("/mcp", "/operations", "/run"))
+ 41                  assertEquals(403, send(path, "https://manna.ac", browserToken).statusCode())
+ 42              assertEquals(401, send("/mcp", null, browserToken).statusCode())
+ 43              val tools = Json.parseToJsonElement(send("/browser/mcp", "https://manna.ac", browserToken).body()).jsonObject
+ 44                  .getValue("result").jsonObject.getValue("tools").jsonArray
+ 45              assertEquals(listOf("inference.ask"), tools.map { it.jsonObject.getValue("name").jsonPrimitive.content })
+ 46              pairing = null
+ 47              assertEquals(403, send("/browser/mcp", "https://manna.ac", browserToken).statusCode())
+ 48          }
+ 49      }
+ 50  
+ 51      @Test fun reaktorPlusDiscoveryIssuesOnlyOriginScopedInferenceCredentials() {
+ 52          val owner = "owner-".repeat(8)
+ 53          val tokens = mapOf("https://manna.ac" to "manna-".repeat(8), "https://reaktor.build" to "docs-".repeat(8))
+ 54          val browser = BrowserMcpEndpoint({ null }, ReaktorMcpServer("inference", "1", "", listOf(
+ 55              McpTool("inference.ask", "Question", emptyObjectSchema(), readOnly = false, idempotent = false) { buildJsonObject { put("reply", "answer") } },
+ 56          )), tokens)
+ 57          HttpClient.newHttpClient().use { client ->
+ 58              LoopbackMcpServer.start(0, { registry() }, owner, post = { _, _ -> error("No engineering access") }, browser = browser).use { server ->
+ 59                  fun send(path: String, origin: String?, token: String? = null, method: String = "GET"): HttpResponse<String> {
+ 60                      val request = HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port()}$path"))
+ 61                          .header("Access-Control-Request-Private-Network", "true")
+ 62                      origin?.let { request.header("Origin", it) }
+ 63                      token?.let { request.header("Authorization", "Bearer $it") }
+ 64                      return client.send(request.method(method, if (method == "POST") HttpRequest.BodyPublishers.ofString("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}""")
+ 65                          else HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString())
+ 66                  }
+ 67                  for ((origin, token) in tokens) {
+ 68                      val discovery = send("/reaktor-plus/v1", origin)
+ 69                      assertEquals(200, discovery.statusCode())
+ 70                      assertEquals(origin, discovery.headers().firstValue("Access-Control-Allow-Origin").orElse(null))
+ 71                      assertEquals("no-store", discovery.headers().firstValue("Cache-Control").orElse(null))
+ 72                      val value = Json.parseToJsonElement(discovery.body()).jsonObject
+ 73                      assertEquals(JsonPrimitive("reaktor-plus"), value["service"])
+ 74                      assertEquals(JsonPrimitive(token), value["token"])
+ 75                      assertFalse(discovery.body().contains(owner))
+ 76                      assertEquals(204, send("/reaktor-plus/v1", origin, method = "OPTIONS").statusCode())
+ 77                      val tools = send("/browser/mcp", origin, token, "POST")
+ 78                      assertEquals(200, tools.statusCode())
+ 79                      assertTrue(tools.body().contains("inference.ask")); assertFalse(tools.body().contains("control_plane"))
+ 80                      assertEquals(401, send("/browser/mcp", origin, owner, "POST").statusCode())
+ 81                      assertEquals(403, send("/mcp", origin, token, "POST").statusCode())
+ 82                  }
+ 83                  for (origin in listOf(null, "null", "https://evil.manna.ac", "https://manna.ac.attacker.example")) {
+ 84                      val refused = send("/reaktor-plus/v1", origin)
+ 85                      assertEquals(403, refused.statusCode())
+ 86                      assertFalse(refused.headers().firstValue("Access-Control-Allow-Origin").isPresent)
+ 87                  }
+ 88                  assertEquals(401, send("/browser/mcp", "https://manna.ac", tokens.getValue("https://reaktor.build"), "POST").statusCode())
+ 89                  assertEquals(401, send("/mcp", null, tokens.getValue("https://manna.ac"), "POST").statusCode())
+ 90              }
+ 91          }
+ 92      }
+ 93  
+ 94      @Test fun clientNegotiatesAndCallsTheReadOnlyRegistry() {
+ 95          LoopbackMcpServer.start(0, { registry() }).use { server ->
+ 96              val client = LoopbackMcpReadClient(server.port())
+ 97              val inspection = client.inspect()
+ 98              assertEquals("tooling-test", inspection.server["serverInfo"]?.jsonObject?.get("name")?.jsonPrimitive?.content)
+ 99              assertEquals(listOf("echo"), inspection.tools.map { it["name"]?.jsonPrimitive?.content })
+100              assertFalse(client.callTool("echo", buildJsonObject { put("value", "hello") }).toString().isBlank())
+101          }
+102      }
+103  
+104      @Test fun runReadsRemainAvailableWhileOperationsWait() {
+105          val entered = CountDownLatch(4)
+106          val release = CountDownLatch(1)
+107          val token = "test-token-".repeat(4)
+108          val client = HttpClient.newHttpClient()
+109          LoopbackMcpServer.start(0, { registry() }, bearerToken = token, post = { _, _ ->
+110              entered.countDown()
+111              release.await(10, TimeUnit.SECONDS)
+112              LoopbackHttpResponse(buildJsonObject { put("completed", true) })
+113          }, read = { _, _ -> LoopbackHttpResponse(buildJsonObject { put("state", "Running") }) }).use { server ->
+114              fun request(path: String) = HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port()}$path"))
+115                  .timeout(Duration.ofSeconds(3))
+116              val operations = (1..4).map {
+117                  client.sendAsync(request("/operations").header("Authorization", "Bearer $token")
+118                      .POST(HttpRequest.BodyPublishers.ofString("{}")).build(), HttpResponse.BodyHandlers.ofString())
+119              }
+120              try {
+121                  assertTrue(entered.await(3, TimeUnit.SECONDS))
+122                  assertEquals(401, client.send(request("/run").GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode())
+123                  val response = client.send(request("/run").header("Authorization", "Bearer $token").GET().build(),
+124                      HttpResponse.BodyHandlers.ofString())
+125                  assertEquals(200, response.statusCode())
+126                  assertEquals("Running", Json.parseToJsonElement(response.body()).jsonObject["state"]?.jsonPrimitive?.content)
+127              } finally {
+128                  release.countDown()
+129              }
+130              operations.forEach { assertEquals(200, it.get(3, TimeUnit.SECONDS).statusCode()) }
+131          }
+132      }
+133  
+134      @Test fun rejectsRemoteHostOriginUnsupportedProtocolAndOversizedBodies() {
+135          LoopbackMcpServer.start(0, { registry() }).use { server ->
+136              fun request(headers: String, body: String = "{}"): String = Socket("127.0.0.1", server.port()).use { socket ->
+137                  socket.soTimeout = 5000
+138                  val payload = "POST /mcp HTTP/1.1\r\n$headers\r\nContent-Length: ${body.length}\r\nConnection: close\r\n\r\n$body"
+139                  socket.getOutputStream().write(payload.toByteArray())
+140                  socket.getInputStream().bufferedReader().readLine()
+141              }
+142              assertTrue(request("Host: attacker.example").contains("403"))
+143              assertTrue(request("Host: localhost\r\nOrigin: https://attacker.example").contains("403"))
+144              assertTrue(request("Host: localhost\r\nMCP-Protocol-Version: unsupported").contains("400"))
+145              assertTrue(request("Host: localhost", "x".repeat(1_048_577)).contains("413"))
+146          }
+147      }
+148  
+149      @Test fun closeReleasesTheBoundPortAndIsIdempotent() {
+150          val server = LoopbackMcpServer.start(0, { registry() })
+151          val port = server.port()
+152          server.close(); server.close()
+153          LoopbackMcpServer.start(port, { 
+next: atlas_read {"id":"d:../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServerTest.kt:14:6@0912119f"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServerTest.kt:14:6@0912119f"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[0] {"from":{"name":"HybridConnectorTest"}}
+1 of 1 · resolved (kotlin-psi/2.4.21, kotlin-analysis-api/2.5.0-Beta2-59) · rev:54206f2dedf5
+../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt
+  25:7 class HybridConnectorTest: class HybridConnectorTest · kotlin:dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest@:reaktor-conductor:test:jvmTest@reaktor
+next: atlas_read {"id":"d:../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt:24:6@7bc834e8"}
+next: atlas_query {"from":{"id":"d:../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/workspace/HybridConnectorTest.kt:24:6@7bc834e8"},"follow":[{"rel":"references","dir":"in"}]}
+--- queries[1] {"from":{"text":"transport budget","path":"reaktor-conductor/src/jvmTest"}}
+error: reaktor-conductor/src/jvmTest matches 89 files: ../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/worklog/CodexCallsTest.kt, ../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/appserver/AntigravitySessionLiveTest.kt, ../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/appserver/AntigravitySessionTest.kt, ../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/appserver/ClaudeCodeSessionLiveTest.kt, ../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/appserver/CodexAccountTest.kt, ../reaktor/reaktor-conductor/src/jvmTest/kotlin/dev/shibasis/reaktor/conductor/appserver/CodexAppServerLiveTest.kt and more; pass one of them
+--- reads[0] {"paths":["../reaktor/reaktor-mcp/src/commonMain/kotlin/dev/shibasis/reaktor/mcp/McpProtocol.kt","../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspac
+../reaktor/reaktor-mcp/src/commonMain/kotlin/dev/shibasis/reaktor/mcp/McpProtocol.kt · imports · 664 of 664 characters · rev:9c011ff24d84
+ 1  package dev.shibasis.reaktor.mcp
+ 2  
+ 3  import kotlinx.serialization.json.Json
+ 4  import kotlinx.serialization.json.JsonArray
+ 5  import kotlinx.serialization.json.JsonElement
+ 6  import kotlinx.serialization.json.JsonNull
+ 7  import kotlinx.serialization.json.JsonObject
+ 8  import kotlinx.serialization.json.JsonPrimitive
+ 9  import kotlinx.serialization.json.addJsonObject
+10  import kotlinx.serialization.json.add
+11  import kotlinx.serialization.json.buildJsonArray
+12  import kotlinx.serialization.json.buildJsonObject
+13  import kotlinx.serialization.json.contentOrNull
+14  import kotlinx.serialization.json.put
+15  import kotlinx.serialization.json.putJsonArray
+16  import kotlinx.serialization.json.putJsonObject
+../reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt · imports · 1443 of 1443 characters · rev:e0d714e144e8
+ 1  package dev.shibasis.reaktor.conductor.workspace
+ 2  
+ 3  import dev.shibasis.reaktor.conductor.*
+ 4  import dev.shibasis.reaktor.conductor.appserver.AgentRuntimes
+ 5  import dev.shibasis.reaktor.conductor.cli.CliCapabilities
+ 6  import dev.shibasis.reaktor.conductor.cli.AgentBundle
+ 7  import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
+ 8  import dev.shibasis.reaktor.conductor.cli.CodexRuntime
+ 9  import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
+10  import dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServer
+11  import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
+12  import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
+13  import kotlinx.coroutines.Dispatchers
+14  import kotlinx.coroutines.CoroutineScope
+15  import kotlinx.coroutines.SupervisorJob
+16  import kotlinx.coroutines.cancel
+17  import kotlinx.coroutines.withContext
+18  import kotlinx.coroutines.runInterruptible
+19  import kotlinx.serialization.Serializable
+20  import kotlinx.serialization.builtins.ListSerializer
+21  import kotlinx.serialization.json.*
+22  import java.io.File
+23  import java.net.URI
+24  import java.net.http.HttpClient
+25  import java.net.http.HttpRequest
+26  import java.net.http.HttpResponse
+27  import java.nio.channels.FileChannel
+28  import java.nio.channels.OverlappingFileLockException
+29  import java.nio.file.Files
+30  import java.nio.file.Path
+31  import java.nio.file.StandardOpenOption.*
+32  import java.security.SecureRandom
+33  import java.time.Duration
+34  import java.util.Base64
+35  import java.util.concurrent.atomic.AtomicBoolean
+../reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServer.kt · imports · 628 of 628 characters · rev:18f850d385f0
+ 1  package dev.shibasis.reaktor.tooling.mcp
+ 2  
+ 3  import com.sun.net.httpserver.HttpExchange
+ 4  import com.sun.net.httpserver.HttpServer
+ 5  import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
+ 6  import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
+ 7  import dev.shibasis.reaktor.mcp.McpMessageHandler
+ 8  import java.security.MessageDigest
+ 9  import java.net.InetSocketAddress
+10  import java.net.URI
+11  import java.net.URLDecoder
+12  import java.util.concurrent.SynchronousQueue
+13  import java.util.concurrent.ThreadPoolExecutor
+14  import java.util.concurrent.TimeUnit
+15  import java.util.concurrent.atomic.AtomicBoolean
+16  import kotlinx.serialization.json.*
+modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/AgentWorkspaceCli.kt · imports · 429 of 429 characters · rev:1bc3b04011c7
+ 1  package dev.shibasis.reaktor.conductor.cli
+ 2  
+ 3  import dev.shibasis.reaktor.conductor.*
+ 4  import dev.shibasis.reaktor.conductor.workspace.*
+ 5  import kotlinx.coroutines.*
+ 6  import java.io.File
+ 7  import java.util.concurrent.CountDownLatch
+ 8  import kotlinx.serialization.json.*
+ 9  import dev.shibasis.reaktor.tooling.mcp.door.DoorConfig
+10  import dev.shibasis.reaktor.tooling.mcp.door.DoorTransport
+11  import dev.shibasis.reaktor.core.framework.prettyJson
+modules/kernel/src/test/kotlin/dev/shibasis/reaktor/conductor/cli/StdioBridgeTest.kt · imports · 248 of 248 characters · rev:fcfb2baaea76
+1  package dev.shibasis.reaktor.conductor.cli
+2  
+3  import kotlinx.coroutines.delay
+4  import kotlinx.coroutines.runBlocking
+5  import kotlinx.serialization.json.*
+6  import java.util.Collections
+7  import java.util.concurrent.atomic.AtomicInteger
+8  import kotlin.test.*

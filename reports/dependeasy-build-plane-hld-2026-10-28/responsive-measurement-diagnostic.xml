@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="UiAdaptersTest[jvm]" tests="1" skipped="0" failures="1" errors="0" timestamp="2026-10-28T20:14:04.377Z" hostname="Shibasiss-MacBook-Pro-2.local" time="3.215">
+  <properties/>
+  <testcase name="responsiveRendersThreeRealViewportWidthsAndReactsToStoryState[jvm]" classname="ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest" time="3.213">
+    <failure message="java.lang.AssertionError: wide measured=1100, visible=931.0. Expected &lt;1100.0&gt; with absolute tolerance &lt;1.0&gt;, actual &lt;931.0&gt;." type="java.lang.AssertionError">java.lang.AssertionError: wide measured=1100, visible=931.0. Expected &lt;1100.0&gt; with absolute tolerance &lt;1.0&gt;, actual &lt;931.0&gt;.
+	at org.junit.Assert.fail(Assert.java:89)
+	at kotlin.test.junit.JUnitAsserter.fail(JUnitSupport.kt:56)
+	at kotlin.test.Asserter.assertTrue(Assertions.kt:1545)
+	at kotlin.test.junit.JUnitAsserter.assertTrue(JUnitSupport.kt:30)
+	at kotlin.test.UtilsKt.checkFloatsAreEqual(Utils.kt:73)
+	at kotlin.test.UtilsKt.checkFloatsAreEqual(Utils.kt:60)
+	at kotlin.test.UtilsKt.checkFloatsAreEqual$default(Utils.kt:53)
+	at kotlin.test.AssertionsKt__AssertionsKt.assertEquals(Assertions.kt:115)
+	at kotlin.test.AssertionsKt.assertEquals(Unknown Source)
+	at ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest.responsiveRendersThreeRealViewportWidthsAndReactsToStoryState$lambda$0$2(UiAdaptersTest.kt:191)
+	at ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest.use(UiAdaptersTest.kt:310)
+	at ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest.responsiveRendersThreeRealViewportWidthsAndReactsToStoryState$lambda$0(UiAdaptersTest.kt:186)
+	at ai.bestbuds.reaktor.workbench.render.compose.panes.UiAdaptersTest.onEdt$lambda$0(UiAdaptersTest.kt:324)
+	at java.desktop/java.awt.event.InvocationEvent.dispatch(InvocationEvent.java:313)
+	at java.desktop/java.awt.EventQueue.dispatchEventImpl(EventQueue.java:723)
+	at java.desktop/java.awt.EventQueue.dispatchEvent(EventQueue.java:702)
+	at java.desktop/java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:203)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:124)
+	at java.desktop/java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:113)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:109)
+	at java.desktop/java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.desktop/java.awt.EventDispatchThread.run(EventDispatchThread.java:90)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

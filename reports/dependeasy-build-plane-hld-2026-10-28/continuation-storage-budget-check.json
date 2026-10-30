@@ -1,0 +1,17 @@
+{
+  "checkedAtEpoch": 1793219123.233105,
+  "remote": {
+    "bytes": 35460648960,
+    "limitBytes": 40000000000
+  },
+  "temporary": {
+    "bytes": 19717789696,
+    "limitBytes": 40000000000
+  },
+  "localFreeBytes": 19461750784,
+  "minimumFreeBytes": 15000000000,
+  "cleanupInvocation": {
+    "skipped": "storage cleanup already running"
+  },
+  "withinAllLimits": true
+}

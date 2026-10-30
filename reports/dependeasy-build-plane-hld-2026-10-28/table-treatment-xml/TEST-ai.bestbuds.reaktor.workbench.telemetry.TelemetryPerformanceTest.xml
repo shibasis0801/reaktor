@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TelemetryPerformanceTest[jvm]" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:31:37.732Z" hostname="Shibasiss-MacBook-Pro-2.local" time="0.099">
+  <properties/>
+  <testcase name="boundedExecutionAndMeasurementProjectionProducesAProfile[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryPerformanceTest" time="0.064"/>
+  <testcase name="sampleTailExcludesCancellationAndKeepsRevisionsAndPortsDistinct[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryPerformanceTest" time="0.0"/>
+  <testcase name="nativeMeasurementsRenderTheirScopeAndCoverage[jvm]" classname="ai.bestbuds.reaktor.workbench.telemetry.TelemetryPerformanceTest" time="0.035"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

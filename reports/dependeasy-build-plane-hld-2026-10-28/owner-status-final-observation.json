@@ -1,0 +1,12 @@
+{
+  "observedAt": "2026-10-28T22:47:45+05:30",
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"type\":\"completed\",\"result\":{\"owner\":\"f98d2704ca970bfd71f963377396aae02e5a3f38d9a8bcfa80236bea41d6bae5.jar in /Users/ovd/.reaktor/agents/81fe809d391237c152810ad94481e96b12c199bd7db3c385207fd24a4af29b17/runtime, built 28 Oct 22:08; this process started 28 Oct 22:08\",\"capabilities\":\"c2c8cf08bff1\",\"operations\":266,\"recipes\":[\"rename\",\"edit\",\"structural\",\"change-type\"],\"presets\":[\"map\",\"investigate\",\"impact\",\"affected-checks\",\"explain\",\"wiring\",\"runtime\",\"routes\"],\"behind\":[\"this repository: 1 commit since this build, such as e7970093 A tenant superadmin makes production writes without the data-writer role\"],\"sources\":[\"this repository at e7970093 28 Oct 22:15 A tenant superadmin makes production writes without the data-writer role, 100 files changed and not committed\",\"../reaktor at 55b0f041 28 Oct 20:30 progress, 98 files changed and not committed\"],\"models\":[\"build/dependeasy/model.json: 1907 build nodes\",\"compilations export version 2 (this kernel reads 2): 733 compilations, exported 22 minutes ago\"],\"helpers\":[\"the Kotlin helper ../reaktor/reaktor-code/build/distributions/kotlin-semantics.zip, built 23 Oct 07:17, taking up to 2048 modules a session\"],\"indexing\":[\"kotlin-analysis-api/2.5.0-Beta2-59 has indexed 3380 of 3380 Kotlin files\",\"scip-typescript/0.4.0 has indexed 232 of 232 TypeScript files in 21 projects with typescript/6.0.3, typescript/5.9.3\",\"clangd ready with /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clangd for 4 native modules: ../reaktor/reaktor-ffi from its host compile commands, 3 own sources and 506 vendored left out; ../reaktor/reaktor-security from its host compile commands, 2 own sources; ../reaktor/reaktor-flexbuffer from its host compile commands, 6 own sources; ../reaktor/reaktor-performance from its iphonesimulator compile commands, 1 own sources; open now: ../reaktor/reaktor-ffi, ../reaktor/reaktor-security\"],\"unavailable\":[\"retained telemetry: no span of production is retained for the last 60 minutes\",\"runtime: the kernel retains no telemetry span; telemetry.refresh reads spans, and devtools, rgp/1 and a test recorder would add activations\"]}}"
+      }
+    ],
+    "isError": false
+  }
+}

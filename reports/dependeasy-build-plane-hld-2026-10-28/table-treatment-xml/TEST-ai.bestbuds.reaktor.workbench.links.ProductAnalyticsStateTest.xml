@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ProductAnalyticsStateTest[jvm]" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:29:11.227Z" hostname="Shibasiss-MacBook-Pro-2.local" time="1.196">
+  <properties/>
+  <testcase name="sqlDocumentAndExecutionSurviveNavigationAndDashboardFiltersButResetAtTheEnvironmentBoundary[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest" time="0.03"/>
+  <testcase name="oldWorkspaceCompletionCannotPublishFactsOrFinishANewerRead[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest" time="0.073"/>
+  <testcase name="partialAndFailedReadsKeepEachTablesOwnSuccessfulReceipt[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest" time="0.079"/>
+  <testcase name="telemetrySqlHasAnIndependentGraphOwnedSessionAndCancelsAtScopeBoundaries[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest" time="0.325"/>
+  <testcase name="aScopedReadCannotChooseAnotherTargetOrAWriteConnection[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest" time="0.001"/>
+  <testcase name="graphOwnedReadSurvivesNavigationButCannotLeakAcrossEnvironments[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest" time="0.321"/>
+  <testcase name="chartDaysExposeVisibleSurfaceActivation[jvm]" classname="ai.bestbuds.reaktor.workbench.links.ProductAnalyticsStateTest" time="0.366"/>
+  <system-out><![CDATA[Info: (Reaktor:HttpClient) RESPONSE: 401 Unauthorized
+METHOD: GET
+FROM: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+Info: (Reaktor:HttpClient) RESPONSE wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?… failed with exception: io.ktor.client.plugins.websocket.WebSocketException: Handshake exception, expected status code 101 but was 401
+Info: (Reaktor:HttpClient) RESPONSE: 401 Unauthorized
+METHOD: GET
+FROM: wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?…
+Info: (Reaktor:HttpClient) RESPONSE wss://chat.bestbuds.ai/parties/user-service/46e08d40-4685-4e64-84c7-273c48db1255?… failed with exception: io.ktor.client.plugins.websocket.WebSocketException: Handshake exception, expected status code 101 but was 401
+]]></system-out>
+  <system-err><![CDATA[Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (cf0e2153-90ed-46ba-bec5-9f81c71cfacb)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+]]></system-err>
+</testsuite>

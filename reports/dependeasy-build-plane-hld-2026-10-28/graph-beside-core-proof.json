@@ -1,0 +1,78 @@
+{
+  "run": "run-1793234884287-880",
+  "router": "20261029-061931-38f74ae6-bestbuds",
+  "counts": {
+    "tests": 96,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": 20,
+  "timestamps": [
+    "2026-10-29T00:50:18.374Z",
+    "2026-10-29T00:50:50.715Z"
+  ],
+  "sourceSha256": {
+    "reaktor/reaktor-blueprint/src/commonMain/kotlin/dev/shibasis/reaktor/blueprint/BlueprintEngine.kt": "cc64714e47937889c1add09b38c6a78ba9a5458ba51b07e3df0e4316cf3acdee",
+    "reaktor/reaktor-blueprint/src/jvmTest/kotlin/dev/shibasis/reaktor/blueprint/BlueprintRoutingTest.kt": "c2250e3b65ce8f75bf4210daadf25b28ce85a17dd4623c82350af890a544f15c"
+  },
+  "archiveSha256": "b5c0444ebccc8fc384cf9cf6ae865ed5f93cabc764472dfb27a44827570bd3d2",
+  "gradleSeconds": 83,
+  "workerSeconds": 87.177096583,
+  "admissionSeconds": 40.567865458,
+  "syncSeconds": 38.886659625,
+  "collectionSeconds": 39.719372458,
+  "publication": {
+    "exit_code": 0,
+    "finished": "2026-10-29T06:28:27.378237",
+    "publication_seconds": 408.49283475000004,
+    "publication_queue_seconds": 408.323193792,
+    "withheld_outputs": {
+      "bestbuds": 78,
+      "reaktor": 3
+    },
+    "copy_error": null
+  },
+  "isolatedUnchangedHangarAssertion": {
+    "cases": 1,
+    "failures": 0,
+    "sharedData": [
+      4344,
+      2117
+    ],
+    "wholeMap": [
+      8689,
+      5504
+    ]
+  },
+  "scope": "Normal Blueprint JVM tests; isolated actual Hangar assertion is additional scoped evidence. JS and full engine are separate gates.",
+  "js": {
+    "router": "20261029-062546-fdff8840-bestbuds",
+    "counts": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "timestamps": [
+      "2026-10-29T00:56:48.142Z",
+      "2026-10-29T00:56:48.146Z"
+    ],
+    "archiveSha256": "964af25eca7255e58736c5de6e1e830b0f6a803028151bf26e68f8ba0e247cdc",
+    "gradleSeconds": 63,
+    "publication": {
+      "exit_code": 0,
+      "finished": "2026-10-29T06:28:27.684950",
+      "execution_seconds": 64.711968584,
+      "queue_seconds": 23.604116541,
+      "sync_seconds": 15.547102417000001,
+      "collection_seconds": 38.29374304100001,
+      "publication_seconds": 58.33799329199999,
+      "publication_queue_seconds": 58.19731725,
+      "withheld_outputs": {
+        "bestbuds": 79,
+        "reaktor": 3
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+applied plan p7ea1ad7cb043cfeb6123 · receipt change-p7ea1ad7cb043cfeb6123-1793237693539-8315 · 1 file written
+  modules/app/src/commonMain/kotlin/ai/bestbuds/app/BestBudsApp.kt
+checks: app · JVM tests; app · Android unit tests; app · JavaScript tests
+next: check_run {"change":"p7ea1ad7cb043cfeb6123"}

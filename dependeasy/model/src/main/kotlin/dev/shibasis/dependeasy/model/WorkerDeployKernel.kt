@@ -87,9 +87,11 @@ object WorkerDeployKernel {
         write(root.resolve("${GradleProtocol.ReceiptDirectory}/deploy/${receipt.run}.json"), json.encodeToString(receipt))
     }
 
-    fun receipts(root: File, node: NodeId): List<DeployReceipt> = root.resolve("${GradleProtocol.ReceiptDirectory}/deploy")
+    fun receipts(root: File, node: NodeId): List<DeployReceipt> = receipts(root, setOf(node))
+
+    fun receipts(root: File, nodes: Set<NodeId>): List<DeployReceipt> = root.resolve("${GradleProtocol.ReceiptDirectory}/deploy")
         .listFiles().orEmpty().filter { it.isFile && it.extension == "json" }.map { json.decodeFromString<DeployReceipt>(it.readText()) }
-        .filter { it.node == node }.sortedByDescending { it.finishedAtEpochMillis }
+        .filter { it.node in nodes }.sortedByDescending { it.finishedAtEpochMillis }
 
     fun observe(plan: WorkerDeployPlan, run: String, record: (DeployReceipt) -> Unit) {
         val time = System.currentTimeMillis()

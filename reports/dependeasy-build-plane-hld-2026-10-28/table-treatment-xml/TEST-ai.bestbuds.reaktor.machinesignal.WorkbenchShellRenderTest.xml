@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="WorkbenchShellRenderTest[jvm]" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-29T02:25:05.112Z" hostname="Shibasiss-MacBook-Pro-2.local" time="24.441">
+  <properties/>
+  <testcase name="thePriorityModesRenderAtTheSupportedWindowSizes[jvm]" classname="ai.bestbuds.reaktor.machinesignal.WorkbenchShellRenderTest" time="12.819"/>
+  <testcase name="everyModeRendersTheShellAtTheAuthoredSize[jvm]" classname="ai.bestbuds.reaktor.machinesignal.WorkbenchShellRenderTest" time="11.622"/>
+  <system-out><![CDATA[Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+Info: Auth login state: idle
+]]></system-out>
+  <system-err><![CDATA[Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (b13aba9a-b7b5-4d53-9482-6a686157a061)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (d8da699b-e30a-4e47-8273-a01a81662101)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (81e21257-11d3-4147-9cb6-d0ccc8c98798)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (e6851e6c-49d7-4984-94b1-8c9150bbf4f3)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (9b5b2936-45db-4ea5-858d-30b6ec6de5be)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (a12363c2-b114-45ab-8dd1-1e39eb333b37)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (aad12e60-eb55-4b5c-86ee-7be476d25786)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (da18d474-7af2-44a4-a2d1-0e8aa793c275)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+Error: Unhandled Reaktor node coroutine failure
+java.lang.IllegalStateException: Can't invoke functions through unconnected ports. [ConsumerPort] key='operations' type='OperationalControlPlane' owner='Workspace catalog (16ab2108-7f1c-49e9-9182-d79790e93029)' Unconnected
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend$refresh(CatalogNode.kt:139)
+	at ai.bestbuds.reaktor.kernel.CatalogNode$1.invokeSuspend(CatalogNode.kt:88)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+
+]]></system-err>
+</testsuite>

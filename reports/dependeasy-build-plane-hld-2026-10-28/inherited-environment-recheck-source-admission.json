@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-28T22:22:20.257314+05:30",
+  "files": {
+    "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/analysis/KotlinAnalysisCompile.kt": "144766f9a57ab7f5d9de03f64d3a54622ba36f4383ea9ce1201eddf55994916e",
+    "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/workspace/BuildWorkspace.kt": "e9e8ee454a0650a2fb447744ee30b7bc25fa1531c56463b164f89efb61358e1a",
+    "reaktor/dependeasy/gradle/src/main/kotlin/dev/shibasis/dependeasy/web/JavaScriptComponent.kt": "b299539309e43df670471841610cc787e2f5da361b6c15c5e16d97bae1ac4d6a",
+    "reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/DslEntryPointsTest.kt": "c96dce3267644a974bd2041556a661508b4b0a6866c805015524479de84a039a",
+    "reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/BackendPipelineTest.kt": "2526895775c023d9c9d61a6f282902eb933ad610ac8ae74c6961bc641842f00b",
+    "reaktor/dependeasy/gradle/src/test/kotlin/dev/shibasis/dependeasy/GradlePlanningTest.kt": "42431cd19541eecdc6b0100e7239bf15ff08b5bbdba823843bd42108f59a311e",
+    "reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/GradleBuildPlanner.kt": "991a15c287a34817cf77354de16f572e2372c3bf952e54f3d8127cc8af05d45c",
+    "reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/BuildDeclarationsTest.kt": "9894b3a792d2fe980d043a725efe3aa6d504b78de669beba0e47113f0613bbc0",
+    "bestbuds/targets/reaktorCli/src/main/kotlin/ai/bestbuds/reaktor/cli/KernelCli.kt": "f446d48c40af15f6dbe3e574c8c81a76001da0c5765707821414eb3e5de215cd",
+    "bestbuds/modules/kernel/src/main/kotlin/dev/shibasis/reaktor/conductor/cli/ConductorCli.kt": "5e741eca704aa85689228cbbb86603d4bfdaf0d2579d43cba9ffaf75f7d09d34",
+    "bestbuds/modules/kernel/src/main/kotlin/ai/bestbuds/reaktor/kernel/KernelChanges.kt": "156db929f7ebbde49171699bd1cc11234b9ae8110397323ae9ed4c5b83cc8911",
+    "tools/remote-dev": "4d49f976ae844ff06b364808fe0b31428b6f04be39cccef74d27cb6b30d04a35",
+    "tools/test_remote_router.py": "fc87655b73cb4e0efdea6c9135568a2d4a7abf1a8254186644a93c8efe43484f",
+    "tools/README.md": "f42571350436ddcafeb56f814555eb6a3f66bbf2a7c8283a812b72727665eb55",
+    "reaktor/gradle.properties": "40103d487bdba7369ecaffab7a700fb332b25bbba85be5caec8f8800f07546e0",
+    "reaktor/reaktor-conductor/src/jvmMain/kotlin/dev/shibasis/reaktor/conductor/workspace/AgentWorkspaceConnection.kt": "fc6a11e2a3ce9f385855f380c5a82775e4349d663adfc0310ddfae1d8d816d09",
+    "bestbuds/targets/reaktorCli/README.md": "52b71fb00599fba106224ce31520ee84c16edee3945ef66fa5a26ec42f1de950",
+    "reaktor/reaktor-tooling/src/jvmMain/kotlin/dev/shibasis/reaktor/tooling/operation/OperationGate.kt": "807b1b31f7307fa48310ab5ab1c869698b8c289ec53fc95c59c713aa20fdac8d",
+    "reaktor/reaktor-tooling/src/jvmTest/kotlin/dev/shibasis/reaktor/tooling/mcp/LoopbackMcpServerTest.kt": "0912119fbb093aaa1c3ae02a53417eec63c526d57f663ab78e479f5a357bd8eb"
+  },
+  "revisions": {
+    "reaktor": "55b0f041f3f017d0d76fdf36c7816b70965646f2",
+    "bestbuds": "e7970093689c1bf6509c3ef35e07fbf4f4103449",
+    "tools": "4717e2936426ae7f9fc697dbfb4f1ae7e97a955d"
+  },
+  "workerSlot": 1,
+  "changedSinceRequest": []
+}
