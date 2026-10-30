@@ -159,15 +159,15 @@ class OperationGate internal constructor(
             is DoorDecision.Ask -> {
                 val approvals = authority.approvals
                     ?: return Outcome.Refused(effect, "${effect.name} needs a person's approval and this host cannot ask for one").also { record("refused", "no approvals") }
-                val spent = approvals.spend(seat, descriptor.provider, descriptor.id.value, invocation.arguments, confirmationPhrase)
+                val spent = approvals.spend(seat, descriptor.provider, descriptor.id.value, invocation.arguments, confirmationPhrase, invocation.caller)
                 if (spent == null) {
-                    approvals.denied(seat, descriptor.provider, descriptor.id.value, invocation.arguments)?.let { denied ->
+                    approvals.denied(seat, descriptor.provider, descriptor.id.value, invocation.arguments, invocation.caller)?.let { denied ->
                         return Outcome.Denied(denied.id, denied.decidedBy).also { record("denied", denied.id) }
                     }
                     val before = approvals.pending().map(DoorApproval::id).toSet()
-                    val waiting = approvals.request(seat, descriptor.provider, descriptor.id.value, effect, invocation.arguments, confirmationPhrase)
+                    val waiting = approvals.request(seat, descriptor.provider, descriptor.id.value, effect, invocation.arguments, confirmationPhrase, invocation.caller)
                     if (waiting.id !in before) runCatching { authority.onApprovalNeeded(waiting) }
-                    return Outcome.ApprovalRequired(waiting.id, effect, waiting.expiresAtEpochMillis).also { record("approval-required", waiting.id) }
+                    return Outcome.ApprovalRequired(waiting.id, effect, waiting.expiresAtEpochMillis, confirmationPhrase = waiting.confirmationPhrase).also { record("approval-required", waiting.id) }
                 }
                 approval = spent
             }

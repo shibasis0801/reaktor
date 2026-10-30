@@ -128,7 +128,7 @@ sealed interface Outcome {
     @Serializable
     @SerialName("approval-required")
     data class ApprovalRequired(val approval: String, val effect: SafetyClass, val expiresAtEpochMillis: Long,
-        override val reference: InvocationReference? = null) : Outcome
+        override val reference: InvocationReference? = null, val confirmationPhrase: String? = null) : Outcome
 
     @Serializable
     @SerialName("denied")

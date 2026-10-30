@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.tooling.mcp.door
 
 import dev.shibasis.reaktor.code.planFingerprint
+import dev.shibasis.reaktor.tooling.CallCaller
 import dev.shibasis.reaktor.tooling.SafetyClass
 import dev.shibasis.reaktor.tooling.ToolingCall
 import kotlinx.serialization.Serializable
@@ -130,32 +131,25 @@ object DoorAuthority {
     }
 }
 
-/**
- * Approvals live in files so the face that grants one need not be the process that asked.
- *
- * An approval is granted from a terminal or the desktop, never through the agent's own channel,
- * and it is spent by the one call it names. Between two processes of one user this is a record of
- * a person's decision, not a lock: say so wherever it is described.
- */
 class DoorApprovals(private val directory: Path, private val minutes: Long = 15) {
-    fun request(seat: String?, provider: String, call: String, effect: SafetyClass, arguments: JsonObject, confirmationPhrase: String? = null): DoorApproval {
+    fun request(seat: String?, provider: String, call: String, effect: SafetyClass, arguments: JsonObject, confirmationPhrase: String? = null, caller: CallCaller? = null): DoorApproval {
         val fingerprint = DoorAuthority.fingerprint(seat, provider, call, arguments)
-        live().firstOrNull { it.fingerprint == fingerprint && it.confirmationPhrase == confirmationPhrase && it.state == DoorApproval.State.Pending }?.let { return it }
+        live().firstOrNull { it.fingerprint == fingerprint && it.caller == caller && it.confirmationPhrase == confirmationPhrase && it.state == DoorApproval.State.Pending }?.let { return it }
         val now = System.currentTimeMillis()
         val id = ByteArray(5).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
-        return DoorApproval(id, fingerprint, seat, provider, call, effect, arguments, now, now + minutes * 60_000, confirmationPhrase = confirmationPhrase).also(::write)
+        return DoorApproval(id, fingerprint, seat, provider, call, effect, arguments, now, now + minutes * 60_000, confirmationPhrase = confirmationPhrase, caller = caller).also(::write)
     }
 
     /** Spends the approval for exactly this call, if a person has granted one. */
-    fun spend(seat: String?, provider: String, call: String, arguments: JsonObject, confirmationPhrase: String? = null): DoorApproval? {
+    fun spend(seat: String?, provider: String, call: String, arguments: JsonObject, confirmationPhrase: String? = null, caller: CallCaller? = null): DoorApproval? {
         val fingerprint = DoorAuthority.fingerprint(seat, provider, call, arguments)
-        val granted = live().firstOrNull { it.fingerprint == fingerprint && it.confirmationPhrase == confirmationPhrase && it.state == DoorApproval.State.Approved } ?: return null
+        val granted = live().firstOrNull { it.fingerprint == fingerprint && it.caller == caller && it.confirmationPhrase == confirmationPhrase && it.state == DoorApproval.State.Approved } ?: return null
         return granted.copy(state = DoorApproval.State.Used).also(::write)
     }
 
-    fun denied(seat: String?, provider: String, call: String, arguments: JsonObject): DoorApproval? {
+    fun denied(seat: String?, provider: String, call: String, arguments: JsonObject, caller: CallCaller? = null): DoorApproval? {
         val fingerprint = DoorAuthority.fingerprint(seat, provider, call, arguments)
-        return live().firstOrNull { it.fingerprint == fingerprint && it.state == DoorApproval.State.Denied }
+        return live().firstOrNull { it.fingerprint == fingerprint && it.caller == caller && it.state == DoorApproval.State.Denied }
     }
 
     fun pending(): List<DoorApproval> = live().filter { it.state == DoorApproval.State.Pending }.sortedBy(DoorApproval::requestedAtEpochMillis)

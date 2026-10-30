@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.mcp.door
 
+import dev.shibasis.reaktor.tooling.CallCaller
 import dev.shibasis.reaktor.tooling.SafetyClass
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -18,6 +19,7 @@ data class DoorApproval(
     val state: State = State.Pending,
     val decidedBy: String? = null,
     val confirmationPhrase: String? = null,
+    val caller: CallCaller? = null,
 ) {
     @Serializable enum class State { Pending, Approved, Denied, Used }
 }

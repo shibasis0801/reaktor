@@ -36,6 +36,25 @@ class DoorAuthorityTest {
 
     @AfterTest fun cleanUp() { scope.cancel(); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
 
+    @Test fun agentsSharingASeatCannotSpendOrInheritEachOthersDecision() {
+        val arguments = buildJsonObject { put("plan", "reviewed") }
+        val one = CallCaller("codex", principal = "codex:one")
+        val two = one.copy(principal = "codex:two")
+        val first = approvals.request("codex", "kernel", "change.apply", SafetyClass.SourceWrite, arguments, caller = one)
+        val second = approvals.request("codex", "kernel", "change.apply", SafetyClass.SourceWrite, arguments, caller = two)
+        assertFalse(first.id == second.id)
+        assertEquals(first.id, approvals.request("codex", "kernel", "change.apply", SafetyClass.SourceWrite, arguments, caller = one).id)
+        approvals.decide(first.id, true, "test person")
+        val restored = DoorApprovals(directory.resolve("approvals"))
+        assertNull(restored.spend("codex", "kernel", "change.apply", arguments, caller = two))
+        assertNull(restored.spend("codex", "kernel", "change.apply", arguments))
+        assertEquals(one, assertNotNull(restored.spend("codex", "kernel", "change.apply", arguments, caller = one)).caller)
+        assertNull(restored.spend("codex", "kernel", "change.apply", arguments, caller = one))
+        approvals.decide(second.id, false, "test person")
+        assertNull(restored.denied("codex", "kernel", "change.apply", arguments, caller = one))
+        assertEquals(two, assertNotNull(restored.denied("codex", "kernel", "change.apply", arguments, caller = two)).caller)
+    }
+
     @Test fun aReadPassesAWriteWaitsForAPersonAndTheApprovalIsSpentByOneCall() {
         val door = door(SafetyClass.NonProductionWrite, trustHints = true)
         assertEquals("rows", call(door, "db_list_tables").text(), "the vendor marked it read-only and this vendor is believed")
