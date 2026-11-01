@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import dev.shibasis.composeflow.model.Viewport
+import dev.shibasis.reaktor.blueprint.Bounds
 import dev.shibasis.reaktor.blueprint.BlueprintEngine
 import dev.shibasis.reaktor.blueprint.Frame
 import dev.shibasis.reaktor.blueprint.Link
@@ -69,6 +70,18 @@ internal class SurfaceGraphPen {
 }
 
 internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsContext, private val scaled: Boolean) {
+    protected val retainedPixelBytes: Long
+        get() = buildSet<GraphicsLayer> {
+            meshes.filterNotNullTo(this)
+            layers.filterNotNullTo(this)
+            addAll(retired)
+            headers.filterNotNullTo(this)
+            banners.filterNotNullTo(this)
+            addAll(pills.values)
+            addAll(chips.values)
+            parts.forEach { add(it.layer) }
+        }.sumOf { it.size.width.toLong() * it.size.height.toLong() * 4L }
+
     val version = mutableIntStateOf(0)
     protected val signal = Channel<Unit>(Channel.CONFLATED)
     protected val unit = Density(1f)
@@ -102,6 +115,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     protected var anyDim = false
     protected var frames: List<Frame> = emptyList()
     protected var frameBox = FloatArray(0)
+    private var clear = BooleanArray(0)
     protected var links: List<Link> = emptyList()
     protected var linkBox = FloatArray(0)
     protected var labels: Map<String, String> = emptyMap()
@@ -203,7 +217,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         if (pen.glow ushr 24 == 0) { pen.glow = pen.rgb or 0xFF000000.toInt(); pen.glowWidth = 5f }
     }
 
-    protected open fun bannerLift(height: Float, z: Float) = max(BlueprintEngine.FrameTop.toFloat() * z - height - 2f, -Above * z)
+    protected open fun bannerLift(height: Float, z: Float, clear: Boolean) = max(BlueprintEngine.FrameTop.toFloat() * z - height - 2f, -Above * z)
     protected open fun pill(label: String, color: Color): GraphicsLayer? = null
     protected open fun chip(label: String, color: Color): GraphicsLayer? = null
     protected open fun DrawScope.background(camera: Viewport) = drawRect(canvas, size = viewport)
@@ -217,6 +231,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         if (halo.size != count) { halo = IntArray(count); dim = BooleanArray(count) }
         this.frames = frames
         frameBox = FloatArray(frames.size * 4).also { box -> frames.forEachIndexed { i, f -> box.put(i, f.x, f.y, f.width, f.height) } }
+        clear = BooleanArray(frames.size) { i -> frames[i].parent == null && nothingAbove(i) }
         (headers + banners).forEach { it?.let(graphics::releaseGraphicsLayer) }
         headers = arrayOfNulls(frames.size); headerKeys = arrayOfNulls(frames.size); banners = arrayOfNulls(frames.size); bannerKeys = arrayOfNulls(frames.size)
         this.links = links
@@ -329,6 +344,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         val deadline = TimeSource.Monotonic.markNow() + spare.milliseconds
         this@SurfaceGraphEngine.camera = camera; this@SurfaceGraphEngine.viewport = viewport
         val forced = window(camera, viewport, density)
+        trim(camera, viewport)
         if (forced || spare > 1.0) tessellate(forced || spare >= 2.0) else pending = true
         if (warming && !moving && warmable) { if (spare >= 2.5) { warming = false; if (warm(warmed)) warmed++ }; signal.trySend(Unit) }
         paint(camera, deadline)
@@ -367,7 +383,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         for (i in frames.indices.reversed()) {
             val left = frameBox[i * 4]; val top = frameBox[i * 4 + 1]
             banners[i]?.takeIf { level < 2 && frames[i].parent == null }?.let { tab ->
-                val dx = (x - left) * z; val dy = (y - top) * z - bannerLift(tab.size.height.toFloat(), z)
+                val dx = (x - left) * z; val dy = (y - top) * z - bannerLift(tab.size.height.toFloat(), z, clear[i])
                 if (dx >= 0f && dx <= tab.size.width && dy >= 0f && dy <= tab.size.height) return frames[i]
             }
             if (level == 2 && x >= left && x <= frameBox[i * 4 + 2] && y >= top && y <= top + BlueprintEngine.FrameTop) return frames[i]
@@ -735,7 +751,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         if (!deadline.hasPassedNow()) record(i, slot, deadline)
         else if (urgent && layers[i * 2 + slot] == null) record(i, slot, null)
         else pending = true
-        return layers[i * 2 + slot]
+        return layers[i * 2 + slot].takeIf { current(i, slot) }
     }
 
     protected fun remap(previous: IntArray) {
@@ -881,14 +897,49 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             if (frame.parent != null) continue
             val x = (camera.x + frame.x * camera.zoom).toFloat(); val y = (camera.y + frame.y * camera.zoom).toFloat()
             val width = (frame.width * camera.zoom).toFloat(); val height = (frame.height * camera.zoom).toFloat()
-            if (x >= viewport.width || y - Above * z >= viewport.height || x + width <= 0f || y + height <= 0f) continue
+            if (x >= viewport.width || y - max(Above * z, BannerHeight) >= viewport.height || x + width <= 0f || y + height <= 0f) continue
             val layer = banner(i, max(width, room(frame, z) * z - BannerGap), camera.zoom) ?: continue
-            val top = y + bannerLift(layer.size.height.toFloat(), z)
+            val top = y + bannerLift(layer.size.height.toFloat(), z, clear[i])
             clipRect(floor(x), floor(top), ceil(x + max(width, layer.size.width.toFloat())), ceil(y + height)) { translate(x, top) { drawLayer(layer) } }
         }
     }
 
-    private fun room(frame: Frame, z: Float): Float {
+    protected fun bannerBounds(requested: Bounds, zoom: Double): List<Bounds> =
+        bannerBounds(requested, zoom, frames, clear, { i, width, scale -> banner(i, width, scale)?.size }, ::bannerLift)
+
+    protected fun bannerBounds(requested: Bounds, zoom: Double, frames: List<Frame>, cards: Collection<Bounds>,
+                               measure: (Int, Float, Double) -> IntSize?, lift: (Float, Float, Boolean) -> Float): List<Bounds> {
+        val frameBoxes = FloatArray(frames.size * 4).also { box -> frames.forEachIndexed { i, f -> box.put(i, f.x, f.y, f.width, f.height) } }
+        val cardBoxes = FloatArray(cards.size * 4).also { box -> cards.forEachIndexed { i, c -> box.put(i, c.x, c.y, c.width, c.height) } }
+        val clear = BooleanArray(frames.size) { i -> frames[i].parent == null && nothingAbove(i, frameBoxes, cardBoxes) }
+        return bannerBounds(requested, zoom, frames, clear, measure, lift)
+    }
+
+    private fun bannerBounds(requested: Bounds, zoom: Double, frames: List<Frame>, clear: BooleanArray,
+                             measure: (Int, Float, Double) -> IntSize?, lift: (Float, Float, Boolean) -> Float): List<Bounds> {
+        if (!zoom.isFinite() || zoom <= 0) return emptyList()
+        val z = zoom.toFloat()
+        return frames.mapIndexedNotNull { i, frame ->
+            if (frame.parent != null || frame.x > requested.x + requested.width || frame.x + frame.width < requested.x ||
+                frame.y > requested.y + requested.height || frame.y + frame.height < requested.y) return@mapIndexedNotNull null
+            val size = measure(i, max((frame.width * zoom).toFloat(), room(frame, z, frames) * z - BannerGap), zoom) ?: return@mapIndexedNotNull null
+            val top = frame.y + lift(size.height.toFloat(), z, clear[i]) / zoom
+            object : Bounds {
+                override val x = frame.x
+                override val y = top
+                override val width = max(frame.width, size.width / zoom)
+                override val height = (min(frame.y + frame.height, top + size.height / zoom) - top).coerceAtLeast(0.0)
+            }
+        }
+    }
+
+    private fun nothingAbove(i: Int, frameBox: FloatArray = this.frameBox, cardBox: FloatArray = this.cardBox): Boolean {
+        val left = frameBox[i * 4]; val top = frameBox[i * 4 + 1]; val right = frameBox[i * 4 + 2]
+        fun above(box: FloatArray, k: Int) = box[k * 4 + 1] < top && box[k * 4] < right && box[k * 4 + 2] > left
+        return (0 until frameBox.size / 4).none { it != i && above(frameBox, it) } && (0 until cardBox.size / 4).none { above(cardBox, it) }
+    }
+
+    private fun room(frame: Frame, z: Float, frames: List<Frame> = this.frames): Float {
         val band = frame.y - Above..frame.y + max(BlueprintEngine.FrameTop, (BannerHeight / z).toDouble())
         return frames.filter { it !== frame && it.parent == null && it.x > frame.x && it.y - Above < band.endInclusive && it.y + it.height > band.start }
             .minOfOrNull { (it.x - frame.x).toFloat() } ?: Float.MAX_VALUE
@@ -901,7 +952,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             for (i in 0 until cardBox.size / 4) {
                 if (dim[i] != (pass == 0) || !shown(i) || !inside(cardBox, i, l, t, r, b)) continue
                 if (pass == 0 && !open) { drawContext.canvas.saveLayer(Rect(l, t, r, b), dimPaint); open = true }
-                val layer = layer(i, slot, deadline, halo[i] ushr 24 != 0) ?: layers[i * 2 + 1 - slot]
+                val layer = layer(i, slot, deadline, halo[i] ushr 24 != 0)
                 if (layer != null) drawLayer(layer) else placeholder(i, slot)
             }
             if (open) drawContext.canvas.restore()
@@ -918,24 +969,23 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         fun clear(box: Rect) = placed.none { it.overlaps(box) } &&
             seen.none { c -> cx + cardBox[c * 4] * z < box.right && cx + cardBox[c * 4 + 2] * z > box.left && cy + cardBox[c * 4 + 1] * z < box.bottom && cy + cardBox[c * 4 + 3] * z > box.top } &&
             bands.none { f -> cx + frameBox[f * 4] * z < box.right && cx + frameBox[f * 4 + 2] * z > box.left && cy + frameBox[f * 4 + 1] * z < box.bottom && cy + (frameBox[f * 4 + 1] + BlueprintEngine.FrameTop) * z > box.top }
-        for (lead in booleanArrayOf(true, false)) for (i in links.indices) {
+        for (priority in 0..2) for (i in links.indices) {
             val label = labels[links[i].id]
-            if (label.isNullOrBlank() || alphas[i] <= 0f || !flows[i] && alphas[i] < .9f || !inside(linkBox, i, l, t, r, b)) continue
-            if ((flows[i] || alphas[i] >= 1f) != lead) continue
+            if (label.isNullOrBlank() || alphas[i] <= 0f || !flows[i] && alphas[i] < .9f && links[i].members.size < 2 || !inside(linkBox, i, l, t, r, b)) continue
+            val rank = if (lift[i] || hoveredLink == i) 0 else if (flows[i] || alphas[i] >= 1f) 1 else 2
+            if (rank != priority) continue
             val color = Color(tints[i] or 0xFF000000.toInt()).copy(alpha = .96f)
             val layer = cached(pills, label, color, ::pill) ?: continue
             val halfWidth = layer.size.width * k / 2f + 3f; val halfHeight = layer.size.height * k / 2f + 2f
             var spot: Offset? = null
-            var middle = Offset.Zero
             for (share in LabelShares) {
                 at(i, lengths[i] * share) { x, y ->
                     val centre = Offset(cx + x * z, cy + y * z)
-                    if (share == LabelShares[0]) middle = centre
                     if (clear(Rect(centre.x - halfWidth, centre.y - halfHeight, centre.x + halfWidth, centre.y + halfHeight))) spot = centre
                 }
                 if (spot != null) break
             }
-            val centre = spot ?: middle
+            val centre = spot ?: continue
             placed += Rect(centre.x - halfWidth, centre.y - halfHeight, centre.x + halfWidth, centre.y + halfHeight)
             withTransform({ translate(centre.x, centre.y); scale(k, k, Offset.Zero) }) {
                 translate(-layer.size.width / 2f, -layer.size.height / 2f) { drawLayer(layer) }
@@ -982,6 +1032,19 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         else -> if (zoom < farZoom * 1.25) 0 else -1
     }
 
+    private fun trim(camera: Viewport, viewport: Size) {
+        val z = camera.zoom
+        val l = ((-camera.x - viewport.width) / z).toFloat(); val t = ((-camera.y - viewport.height) / z).toFloat()
+        val r = ((viewport.width * 2 - camera.x) / z).toFloat(); val b = ((viewport.height * 2 - camera.y) / z).toFloat()
+        var released = false
+        for (i in 0 until cardBox.size / 4) if (!inside(cardBox, i, l, t, r, b)) {
+            for (k in i * 2..i * 2 + 1) layers[k]?.let {
+                graphics.releaseGraphicsLayer(it); layers[k] = null; live--; released = true
+            }
+        }
+        if (released) { dirty[CARDS] = true; dirty[OVER] = true; changed = true }
+    }
+
     private fun work(deadline: TimeSource.Monotonic.ValueTimeMark?): Boolean {
         val view = camera
         if (deadline == null && view != null && (dirty.any { it } || stale || returningCount > 0 || (view.zoom / zoom).toFloat() != 1f)) return true
@@ -1012,10 +1075,6 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             if (headers[i] != null && headerKeys[i] == key) continue
             if (deadline == null || deadline.hasPassedNow()) return true
             headerLayer(i, ahead)
-        }
-        if (live > 600 && aim == null) {
-            val mx = 2 * (r - l); val my = 2 * (b - t)
-            for (i in 0 until count) if (!inside(cardBox, i, l - mx, t - my, r + mx, b + my)) for (k in i * 2..i * 2 + 1) layers[k]?.let { graphics.releaseGraphicsLayer(it); layers[k] = null; live-- }
         }
         return visible
     }
