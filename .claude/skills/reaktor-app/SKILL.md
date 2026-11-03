@@ -469,6 +469,32 @@ six runs opens in under a second.
 And a slot set in one test is set in the next: `Feature.Database = …` needs an `@AfterTest` that
 puts it back to `null`.
 
+## What only iOS will show you
+
+A screen that works on Android has not been tried on iOS until you open it there. Hearth's Phase 1
+ran clean on Android and launched to an empty library on iOS. Its second screen crashed on the
+first frame.
+
+- **A composable fun interface written as a lambda can fail to link.** `BasicTextField(decorator =
+  { inner -> … })` threw `IrLinkageError: … TextFieldDecorator.Decoration(Function2)` on iOS (Kotlin
+  2.3.0, Compose 1.11.0-alpha01): the call site wanted a `Decoration` without the `Composer`
+  parameters, which the library does not have. The build was green and Android was fine. Write an
+  `object : TextFieldDecorator { @Composable override fun Decoration(…) }` instead, and do the same
+  for any interface whose single method is `@Composable`. The crash only prints to stdout, so launch
+  with `xcrun simctl launch --console-pty <device> <bundle id>` to read it. The `.ips` report shows
+  only `MetalRedrawer.draw`.
+- **Text fields autocorrect unless told not to.** iOS rewrote "darknet diaries" as "Darnley
+  diaries" before the search ran. Search, address, code and name fields need
+  `KeyboardOptions(KeyboardCapitalization.None, autoCorrectEnabled = false)`.
+- **Hold an editable field's text in a `TextFieldState` owned by the node.** Do not mirror it
+  through a `StateFlow` and back. That round trip drops keystrokes when typing is fast ("daark").
+- **An unsigned simulator build gets no background `URLSession`.** The Lector template sets
+  `CODE_SIGNING_ALLOWED = NO` for the simulator. `nsurlsessiond` then rejects the app ("Process …
+  does not have a bundle ID, rejecting connection"), and every `DarwinBackgroundDownloads` transfer
+  fails with `NSURLErrorDomain -1`. Device builds are signed, so they are unaffected. On the
+  simulator, background downloads need the build signed "to run locally" (ad hoc). That is the
+  owner's call, so do not switch it on yourself.
+
 ## Extending reaktor rather than working around it
 
 When an app needs something reaktor does not have, the default is to add it to reaktor rather
@@ -493,5 +519,6 @@ when the capability would cost every other app a permission or a heavy SDK it di
 - [ ] Every function returning `Result` returns one on every path — nothing below it throws through.
 - [ ] Every long-lived `collect { }` survives its own body throwing.
 - [ ] Run it once with no network from a fresh install, and use it.
+- [ ] Open every screen on iOS, not only the first. Some link errors only appear when a screen draws.
 - [ ] Run it. These failures are all runtime, so a green build proves nothing about wiring. Run the
       **minified** build too: renamed properties break wiring there and nowhere else.
