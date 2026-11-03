@@ -404,7 +404,7 @@ to stand Hearth up; this list is the template's specification. Updated as Phase 
 | 9 | `targets/appAndroid/build.gradle.kts` | Verbatim except the application id. |
 | 10 | `targets/appAndroid/src/main/AndroidManifest.xml` | Application class (new for Hearth: the session is built in `Application.onCreate`), the launcher activity. |
 | 11 | `targets/appAndroid/src/main/res/values{,-night}/themes.xml` | NoActionBar theme with the window ground colour — which must match the app's palette by hand (CO9). |
-| 12 | `targets/appDarwin/` | `Podfile`; `regenerate-xcodeproj.rb` (bundle id edited, Lector's sample PDF removed); `iosApp/iOSApp.swift`; `Info.plist` (display name, `UIBackgroundModes`); `Assets.xcassets` with `LaunchBackground` and `AccentColor` colour sets matching the palette. `pod install` needs `LANG=en_US.UTF-8` on this machine. |
+| 12 | `targets/appDarwin/` | `Podfile`; `regenerate-xcodeproj.rb` (bundle id edited, Lector's sample PDF removed); `iosApp/iOSApp.swift`; `Info.plist` (display name, `UIBackgroundModes`); `Assets.xcassets` with `LaunchBackground` and `AccentColor` colour sets matching the palette. `pod install` needs `LANG=en_US.UTF-8` on this machine. The generator turns simulator signing off (`CODE_SIGNING_ALLOWED = NO`), which stops background `URLSession` working on the simulator (§13). A `new` for an app that downloads should sign simulator builds ad hoc instead. |
 | 13 | Entry points | `HearthApplication`, `HearthActivity`, `HearthViewController.kt`: the adapter install order (Dependency, File, Sql, Database, then capabilities), and the `ProcessGraph` pair. |
 | 14 | Design starter | `design/Theme.kt`, `Tokens.kt`, `Motion.kt` (with the house press), `Components.kt`, `Format.kt`, the contrast test, `DESIGN.md` — shape from Lector and GymBuddy, values new. |
 | 15 | First configure | dependeasy clones `hermes` and `flatbuffers` into `.github_modules/` of every new app on its first Gradle run. Nothing in Hearth uses either. |
@@ -509,7 +509,7 @@ registers with the system, but nobody has pressed a button on it yet. It needs o
 iPhone before Phase 1 is called done. Whether iOS shows the skip buttons rather than track arrows
 with next/previous disabled is part of that run.
 
-**Phase 1 — built, 3 November 2026; iOS walk-through pending.** Framework: `3a474019` (background
+**Phase 1 — built, 3 November 2026; walked on iOS the same day.** Framework: `3a474019` (background
 downloads, document picker), `22db2c31` (resumption, iOS artwork), `93a467e3` (`BackHandlerContainer`
 honours its modifier), `27c2ffdd` (a failed item is not playing). App: `hearth@2336702`. 19 tests.
 
@@ -524,7 +524,27 @@ Learned: the same show arrives under two addresses (Apple lists Darknet Diaries 
 `itunes:new-feed-url` and `podcast:guid`, so identity comes from the feed, and a followed show keeps
 the address its positions are keyed by. A small case of Cairn II's "identity across moving sources".
 
-Still to do before the gate: an iOS walk-through, a real-device run of iOS lock-screen and headphone
-commands, an app icon. Then stop for decisions 4 and 5.
+**iOS walk-through — 3 November 2026, iPhone 17 Pro Max simulator, iOS 26.3.** It found two
+bugs, both now fixed. Opening Add a podcast crashed on the first frame with an `IrLinkageError` in
+the text field's decorator (a composable fun interface written as a lambda; Android unaffected;
+`hearth@1f2727c`). Autocorrect also rewrote search terms. Checked after the fix: search, follow (a
+338-episode feed), the show and episode screens, streaming playback, the mini player, the full
+player sheet, speed (1.5×), seeking with the scrubber, pause, and restore after the app was killed
+(it came back paused at 33:48 and resumed from there). Settings and the Soot override work too.
+
+**iOS background downloads are not verified.** The simulator build is unsigned
+(`CODE_SIGNING_ALLOWED = NO`, carried over from Lector), so `nsurlsessiond` refuses the app ("does not
+have a bundle ID") and every transfer fails at once with `NSURLErrorDomain -1`. A signed device
+build is not affected. That failure was reported as "the podcast's server wouldn't send this
+episode", which was wrong: reaktor `870886a1` now blames the server only for errors that are its
+doing. To test downloads on the simulator, the build has to be signed to run locally. That is the
+owner's switch to flip (§7 lists the generator). OPML import through the iOS document picker,
+and Share for the OPML export, were not tried.
+
+App icon: proposed, `hearth@42e187e`. It is on both launchers: the Android adaptive icon (also the
+themed icon) and the iOS 1024 px icon.
+
+Still to do before the gate: a real-device run on an iPhone covering the lock screen, headphone
+commands, background downloads and the URLSession wake-up hook. Then stop for decisions 4 and 5.
 
 Related: [app-portfolio.md](app-portfolio.md) · [lector.md](lector.md) · [cairn.md](cairn.md)
