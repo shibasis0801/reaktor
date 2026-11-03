@@ -195,6 +195,19 @@ rsec_status_t rsec_attachment_open(rsec_attachment_opener_t* stream,
     const uint8_t* chunk, size_t len, rsec_buffer_t* out);
 rsec_status_t rsec_attachment_finish(rsec_attachment_opener_t* stream);
 void rsec_attachment_opener_destroy(rsec_attachment_opener_t* stream);
+
+typedef struct {
+  rsec_buffer_t key;
+  rsec_buffer_t digest;
+  rsec_buffer_t ciphertext;
+} rsec_attachment_t;
+
+rsec_status_t rsec_attachment_seal_file(const uint8_t* plaintext, size_t len, rsec_attachment_t* out);
+rsec_status_t rsec_attachment_open_file(const uint8_t* key, size_t key_len,
+    const uint8_t* digest, size_t digest_len, const uint8_t* ciphertext, size_t len,
+    rsec_buffer_t* out);
+void rsec_attachment_free(rsec_attachment_t value);
+
 rsec_status_t rsec_storage_key(rsec_buffer_t* out);
 rsec_status_t rsec_storage_seal(const uint8_t* key, size_t key_len,
     const uint8_t* aad, size_t aad_len, const uint8_t* plaintext, size_t len,

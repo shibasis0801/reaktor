@@ -49,10 +49,15 @@ fun <K> BlueprintEngine.navigationLayout(key: K, groups: List<BlueprintGroup>, e
 }
 
 fun <K> BlueprintEngine.aroundLayout(key: K, frame: String, label: String, centre: String, callers: List<String>, destinations: List<String>,
-    edges: List<BlueprintEdge>, rows: Int, aspect: Double, outlets: Map<String, Pair<Double, Double>> = emptyMap()): BlueprintLayout<K> {
-    val height = cardHeight(rows)
-    val across = CardWidth + LayerGap * 2
-    val down = height + CardGap * 2
+    edges: List<BlueprintEdge>, rows: Int, aspect: Double, outlets: Map<String, Pair<Double, Double>> = emptyMap(),
+    bodies: Map<String, BlueprintBody> = emptyMap()): BlueprintLayout<K> {
+    val ids = callers + centre + destinations
+    fun width(id: String) = maxOf(CardWidth, bodies[id]?.width ?: 0.0)
+    fun height(id: String) = maxOf(cardHeight(rows), HeaderHeight + (bodies[id]?.height ?: 0.0))
+    val cellWidth = ids.maxOf(::width)
+    val cellHeight = ids.maxOf(::height)
+    val across = cellWidth + LayerGap * 2
+    val down = cellHeight + CardGap * 2
     fun columns(count: Int, per: Int) = (count + per - 1) / per
     val per = (1..maxOf(1, callers.size, destinations.size)).minBy { per ->
         abs(ln((columns(callers.size, per) + 1 + columns(destinations.size, per)) * across / (per * down) / aspect))
@@ -61,7 +66,12 @@ fun <K> BlueprintEngine.aroundLayout(key: K, frame: String, label: String, centr
     val cards = LinkedHashMap<String, Card>()
     fun place(ids: List<String>, first: Int) = ids.chunked(per).forEachIndexed { column, stack ->
         val top = FrameTop + (content - (stack.size * down - CardGap * 2)) / 2
-        stack.forEachIndexed { row, id -> cards[id] = Card(id, FrameSide + (first + column) * across, top + row * down, CardWidth, height, emptyList(), 0) }
+        stack.forEachIndexed { row, id ->
+            val cardWidth = width(id)
+            val cardHeight = height(id)
+            cards[id] = Card(id, FrameSide + (first + column) * across + (cellWidth - cardWidth) / 2,
+                top + row * down + (cellHeight - cardHeight) / 2, cardWidth, cardHeight, emptyList(), 0)
+        }
     }
     val left = columns(callers.size, per)
     place(callers, 0)

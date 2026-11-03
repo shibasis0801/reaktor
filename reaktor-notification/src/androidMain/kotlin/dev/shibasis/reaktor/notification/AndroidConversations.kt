@@ -44,8 +44,13 @@ internal suspend fun AndroidNotificationRenderer.showConversation(
     val earlier = manager.activeNotifications
         .firstOrNull { it.tag == ConversationTag && it.id == code }
         ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it.notification) }
-    val style = (earlier ?: NotificationCompat.MessagingStyle(Person.Builder().setKey(SelfKey).setName(config.selfName).build()))
-        .addMessage(request.content.body, System.currentTimeMillis(), person)
+    val messageIdKey = "reaktor.notification.messageId"
+    val previous = earlier?.messages?.firstOrNull { it.extras.getString(messageIdKey) == request.id }
+    val style = NotificationCompat.MessagingStyle(earlier?.user ?: Person.Builder().setKey(SelfKey).setName(config.selfName).build())
+    earlier?.messages?.filter { it.extras.getString(messageIdKey) != request.id }?.forEach { style.addMessage(it) }
+    style.addMessage(NotificationCompat.MessagingStyle.Message(request.content.body, previous?.timestamp ?: System.currentTimeMillis(), person).apply {
+        extras.putString(messageIdKey, request.id)
+    })
     if (conversation.group) {
         style.setConversationTitle(conversation.title)
         style.setGroupConversation(true)
@@ -65,6 +70,7 @@ internal suspend fun AndroidNotificationRenderer.showConversation(
         .setContentIntent(tapPendingIntent(envelope))
         .setDeleteIntent(responsePendingIntent(envelope, actionId = "dismiss", dismissed = true))
         .setAutoCancel(true)
+        .setOnlyAlertOnce(request.android?.onlyAlertOnce == true)
         .setShowWhen(true)
     request.android?.colorArgb?.let { builder.setColor(it.toInt()) }
     when (request.content.sound) {

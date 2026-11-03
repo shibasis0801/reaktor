@@ -12,9 +12,22 @@ data class BlueprintNode(
     val folded: Int = 0,
     val rows: Int? = null,
     val group: BlueprintGroup? = null,
-)
+    val body: BlueprintBody? = null,
+    val pinHeader: Double = BlueprintEngine.HeaderHeight,
+    val pinFooter: Double = BlueprintEngine.FooterHeight,
+) {
+    init {
+        require(pinHeader.isFinite() && pinHeader >= 0 && pinFooter.isFinite() && pinFooter >= 0)
+    }
+}
 
-enum class Lanes { Free, Ends, Columns }
+data class BlueprintBody(val width: Double, val height: Double) {
+    init {
+        require(width.isFinite() && width >= 0 && height.isFinite() && height >= 0)
+    }
+}
+
+enum class Lanes { Free, Ends, Columns, Ranks }
 
 data class BlueprintGroup(
     val key: String,
@@ -44,7 +57,7 @@ data class BlueprintEdge(
 
 enum class Ports { All, Used }
 
-data class LayoutOptions(val hints: Int = 1, val ordered: Boolean = false, val ports: Ports = Ports.All, val packed: Boolean = false)
+data class LayoutOptions(val hints: Int = 1, val ordered: Boolean = false, val ports: Ports = Ports.All, val packed: Boolean = false, val bundles: Boolean = true)
 
 interface Bounds {
     val x: Double
@@ -78,6 +91,8 @@ data class Card(
     override val height: Double,
     val pins: List<Pin>,
     val folded: Int,
+    val lane: Int = 0,
+    val pinHeader: Double = BlueprintEngine.HeaderHeight,
 ) : Bounds
 
 data class Frame(
@@ -91,6 +106,9 @@ data class Frame(
     val detail: List<String>,
     val muted: Boolean,
     val parent: String? = null,
+    val lanes: Lanes = Lanes.Ends,
+    val loose: Boolean = false,
+    val lane: Int = 0,
 ) : Bounds
 
 data class Link(
@@ -119,6 +137,14 @@ data class BlueprintLayout<K>(
     val height: Double,
     val layoutFailures: List<Throwable> = emptyList(),
     val cardOf: Map<String, String> = cards.keys.associateWith { it },
+    val foldedLinks: Map<String, String> = emptyMap(),
+)
+
+data class BlueprintOpening<K>(
+    val layout: BlueprintLayout<K>,
+    val frame: Frame,
+    val coveredCards: Map<String, Double>,
+    val coveredRoutes: Set<String>,
 )
 
 data class FrameEdge(

@@ -34,7 +34,7 @@ object KeepWorkingPolicy {
         if (actor.kind != BoardActorKind.Agent || actor.agent == null || actor.session == null) return emptyList()
         val held = PlanSchedule.ranked(plan).filter {
             it.item.status == PlanStatus.Doing && it.item.kind != PlanKind.Decision &&
-                it.item.by?.agent == actor.agent && it.item.by?.session == actor.session &&
+                it.item.holder?.same(actor) == true &&
                 PlanSchedule.unblocked(plan, it.item)
         }.map { it.item }
         val candidate = next.candidate?.takeIf {

@@ -9,7 +9,7 @@ import platform.posix.memset
 private fun status(value: rsec_status_t) { if (value != RSEC_OK) throw NativeSecurityException(value.toInt()) }
 private fun ULong.epoch(): Long = toLong().also { check(it >= 0) }
 private fun rsec_buffer_t.bytes(): ByteArray {
-    check(len <= (64uL * 1024uL * 1024uL + 4096uL))
+    check(len <= (64uL * 1024uL * 1024uL + 65536uL))
     return if (len == 0uL) byteArrayOf() else checkNotNull(data).reinterpret<ByteVar>().readBytes(len.toInt())
 }
 private inline fun <reified T : CVariable> MemScope.zero(): T = alloc<T>().also { memset(it.ptr, 0, sizeOf<T>().convert()) }
@@ -17,7 +17,7 @@ private inline fun <reified T : CVariable> MemScope.zero(): T = alloc<T>().also 
 private class Inputs(val scope: MemScope) {
     private val allocations = mutableListOf<Pair<CPointer<UByteVar>, Int>>()
     fun fill(target: rsec_buffer_t, bytes: ByteArray) {
-        require(bytes.size <= 64 * 1024 * 1024 + 4096)
+        require(bytes.size <= 64 * 1024 * 1024 + 65536)
         val data = scope.allocArray<UByteVar>(maxOf(1, bytes.size))
         bytes.forEachIndexed { index, byte -> data[index] = byte.toUByte() }
         allocations += data to maxOf(1, bytes.size)
@@ -88,6 +88,18 @@ internal actual object SecurityEngineFactory {
         out.value = null
         status(rsec_key_ring_create(policy(policy).ptr, state.data, state.len, out.ptr))
         DarwinKeyRing(checkNotNull(out.value))
+    }
+    actual fun sealAttachment(plaintext: ByteArray): SealedAttachment = inputs {
+        val content = input(plaintext)
+        val out = scope.zero<rsec_attachment_t>()
+        try {
+            status(rsec_attachment_seal_file(content.data, content.len, out.ptr))
+            SealedAttachment(out.key.bytes(), out.digest.bytes(), out.ciphertext.bytes())
+        } finally { rsec_attachment_free(out.readValue()) }
+    }
+    actual fun openAttachment(key: ByteArray, digest: ByteArray, ciphertext: ByteArray): ByteArray = inputs {
+        val secret = input(key); val expected = input(digest); val content = input(ciphertext)
+        buffer { rsec_attachment_open_file(secret.data, secret.len, expected.data, expected.len, content.data, content.len, it) }
     }
     actual fun storageKey() = buffer(::rsec_storage_key)
     actual fun sealStorage(key: ByteArray, aad: ByteArray, plaintext: ByteArray): ByteArray = inputs {

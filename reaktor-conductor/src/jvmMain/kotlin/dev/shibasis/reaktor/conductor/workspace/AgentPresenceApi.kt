@@ -10,6 +10,8 @@ open class AgentPresenceApi : Service("reaktor.presence") {
         summary = "Observed agent presence: connected doors, fresh heartbeats, last action, held plan items and profile configuration. Quota remains unknown unless the provider reports it.")
     open val heartbeat by call<AgentHeartbeatRequest, AgentPresencePage>(effect = Effect.LocalArtifactWrite,
         summary = "Renew the authenticated agent's presence. A door supplies its transport-generated id and sends connected=false when it closes. A person cannot impersonate another agent.")
+    open val state by call<AgentPresenceStateRequest, AgentPresencePage>(effect = Effect.LocalArtifactWrite,
+        summary = "Mark the authenticated agent's turn: Working, Waiting for a person, or Gone when its session ends. Gone returns the agent's in-progress plan items to To do.")
 }
 
 @Serializable
@@ -17,3 +19,6 @@ class AgentPresenceRequest
 
 @Serializable
 data class AgentHeartbeatRequest(@Describe("The transport-generated connection id") val door: String? = null, val connected: Boolean = true)
+
+@Serializable
+data class AgentPresenceStateRequest(@Describe("Working, Waiting for a person, or Gone when the session ends") val state: PresenceState)

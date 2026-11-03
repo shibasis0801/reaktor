@@ -40,19 +40,28 @@ data class BoardTheme(
 
 data class BoardDraft(val at: BoardPoint, val after: String?, val lane: String, val editing: String? = null)
 
+enum class BoardDetail(val from: Double) {
+    Marks(0.0), Titles(0.4), Full(0.85);
+
+    companion object {
+        fun at(zoom: Double): BoardDetail = entries.last { zoom >= it.from }
+    }
+}
+
 data class BoardFrame(
     val shown: List<BoardItem>,
     val positions: Map<String, BoardPoint>,
     val selected: String? = null,
     val source: String? = null,
     val draft: BoardDraft? = null,
-    val detail: Boolean = true,
+    val detail: BoardDetail = BoardDetail.Full,
+    val window: BoardRect? = null,
 )
 
 sealed interface BoardShape { val id: String }
-data class BoardBox(override val id: String, val x: Double, val y: Double, val width: Double, val height: Double, val stroke: String, val fill: String, val line: Double = 1.0) : BoardShape
+data class BoardBox(override val id: String, val x: Double, val y: Double, val width: Double, val height: Double, val stroke: String, val fill: String, val line: Double = 1.0, val round: Boolean = true) : BoardShape
 data class BoardDot(override val id: String, val x: Double, val y: Double, val size: Double, val stroke: String, val fill: String, val line: Double = 1.0) : BoardShape
-data class BoardRule(override val id: String, val x: Double, val y: Double, val width: Double, val stroke: String) : BoardShape
+data class BoardRule(override val id: String, val x: Double, val y: Double, val width: Double, val stroke: String, val height: Double = 0.0, val line: Double = 1.0) : BoardShape
 data class BoardLabel(override val id: String, val text: String, val x: Double, val y: Double, val size: Int, val color: String) : BoardShape
 data class BoardEnds(val from: String, val to: String)
 data class BoardArrow(override val id: String, val x: Double, val y: Double, val dx: Double, val dy: Double, val stroke: String, val dashed: Boolean = false, val ends: BoardEnds? = null) : BoardShape
@@ -102,14 +111,19 @@ fun Board.groups(frame: BoardFrame, theme: BoardTheme = BoardTheme()): List<Boar
     val shown = frame.shown
     val at = frame.positions
     val frames = shown.frames(at)
+    val byKey = shown.associateBy { it.key }
+    val depths = shown.depths()
     fun box(key: String): BoardRect? = frames[key] ?: at[key]?.let(::cardRect)
-    frames.keys.sortedBy(shown::depth).forEach { key ->
-        shown.firstOrNull { it.key == key }?.let { item -> add(BoardGroup(BoardIds.frame(key), frameShapes(item, frames.getValue(key), frame, theme))) }
+    fun seen(rect: BoardRect) = frame.window?.intersects(rect) ?: true
+    frames.keys.sortedBy { depths[it] ?: 0 }.forEach { key ->
+        val rect = frames.getValue(key)
+        if (seen(rect)) byKey[key]?.let { item -> add(BoardGroup(BoardIds.frame(key), frameShapes(item, rect, frame, theme))) }
     }
     shown.forEach { item ->
         item.after.forEach dependency@{ prerequisite ->
             val from = box(prerequisite) ?: return@dependency
             val to = box(item.key) ?: return@dependency
+            if (!seen(BoardRect.spanning(BoardPoint(from.right, from.middle), BoardPoint(to.x, to.middle)))) return@dependency
             val id = BoardIds.edge(prerequisite, item.key)
             add(BoardGroup(id, listOf(BoardArrow(id, from.right, from.middle, to.x - from.right, to.middle - from.middle, theme.arrow, ends = BoardEnds(prerequisite, item.key)))))
         }
@@ -124,16 +138,17 @@ fun Board.groups(frame: BoardFrame, theme: BoardTheme = BoardTheme()): List<Boar
                 to.y >= from.bottom -> BoardPoint(from.x + from.width / 2, from.bottom) to BoardPoint(to.x + to.width / 2, to.y)
                 else -> BoardPoint(from.x + from.width / 2, from.y) to BoardPoint(to.x + to.width / 2, to.bottom)
             }
+            if (!seen(BoardRect.spanning(start, end))) return@relation
             val id = BoardIds.relation(item.key, relation.to)
-            val label = wrap(relation.label, 24, 1)
-            add(BoardGroup(id, listOf(
-                BoardArrow(id, start.x, start.y, end.x - start.x, end.y - start.y, theme.relation, dashed = true, ends = BoardEnds(item.key, relation.to)),
-                BoardLabel("$id:label", label, start.x + (end.x - start.x) / 2 + 8, start.y + (end.y - start.y) / 2 - 20, 13, theme.relation))))
+            val arrow = BoardArrow(id, start.x, start.y, end.x - start.x, end.y - start.y, theme.relation, dashed = true, ends = BoardEnds(item.key, relation.to))
+            add(BoardGroup(id, if (frame.detail == BoardDetail.Marks) listOf(arrow) else listOf(arrow,
+                BoardLabel("$id:label", wrap(relation.label, 24, 1), start.x + (end.x - start.x) / 2 + 8, start.y + (end.y - start.y) / 2 - 20, 13, theme.relation))))
         }
     }
     shown.forEach card@{ item ->
         if (item.key in frames) return@card
         val point = at[item.key] ?: return@card
+        if (!seen(cardRect(point))) return@card
         add(BoardGroup(BoardIds.card(item.key), card(item, point, frame, theme)))
     }
     frame.draft?.takeIf { it.editing == null }?.let { draft ->
@@ -151,7 +166,19 @@ fun Board.groups(frame: BoardFrame, theme: BoardTheme = BoardTheme()): List<Boar
 private fun frameShapes(item: BoardItem, rect: BoardRect, frame: BoardFrame, theme: BoardTheme): List<BoardShape> = buildList {
     val id = BoardIds.frame(item.key)
     val active = frame.selected == item.key || frame.source == item.key
-    add(BoardBox(id, rect.x, rect.y, rect.width, rect.height, if (active) theme.active else theme.frameLine, theme.frameFill, if (active) 1.8 else 1.2))
+    val marks = frame.detail == BoardDetail.Marks && !active
+    val stroke = if (active) theme.active else if (marks) item.mark?.let(theme::ink) ?: theme.frameLine else theme.frameLine
+    val line = if (active) 1.8 else if (marks) 6.0 else 1.2
+    if (marks) {
+        add(BoardBox(id, rect.x, rect.y, rect.width, rect.height, stroke, theme.frameFill, line))
+        add(BoardLabel("$id:title", wrap(item.title, ((rect.width - 64) / 22).toInt().coerceAtLeast(8), 1), rect.x + 30, rect.y + 12, 40, theme.frameTitle))
+        return@buildList
+    }
+    val head = minOf(BoardGeometry.FrameHead, rect.height)
+    add(BoardBox(id, rect.x, rect.y, rect.width, head, stroke, theme.frameFill, line, round = false))
+    add(BoardRule("$id:left", rect.x, rect.y + head, 0.0, stroke, rect.height - head, line))
+    add(BoardRule("$id:right", rect.right, rect.y + head, 0.0, stroke, rect.height - head, line))
+    add(BoardRule("$id:bottom", rect.x, rect.bottom, rect.width, stroke, line = line))
     item.mark?.let { mark -> add(BoardBox("$id:mark", rect.x + 16, rect.y + 16, 4.0, 40.0, theme.ink(mark), theme.ink(mark), 0.0)) }
     val badge = item.badge.take(28)
     val room = ((rect.width - 64 - badge.length * 7 - if (item.initials.isBlank()) 0 else 44) / 10).toInt().coerceAtLeast(8)
@@ -167,7 +194,12 @@ private fun frameShapes(item: BoardItem, rect: BoardRect, frame: BoardFrame, the
 private fun Board.card(item: BoardItem, point: BoardPoint, frame: BoardFrame, theme: BoardTheme): List<BoardShape> = buildList {
     val id = BoardIds.card(item.key)
     val active = frame.selected == item.key || frame.source == item.key || frame.draft?.editing == item.key
-    if (!frame.detail && !active) {
+    if (frame.detail == BoardDetail.Marks && !active) {
+        val ink = theme.ink(item.mark ?: lane(item.lane)?.ink ?: BoardInk.Muted)
+        add(BoardBox(id, point.x, point.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight, ink, ink))
+        return@buildList
+    }
+    if (frame.detail == BoardDetail.Titles && !active) {
         add(BoardBox(id, point.x, point.y, BoardGeometry.CardWidth, BoardGeometry.CardHeight, theme.cardLine, theme.card))
         item.mark?.let { mark -> add(BoardBox("$id:mark", point.x, point.y + 18, 4.0, 144.0, theme.ink(mark), theme.ink(mark), 0.0)) }
         add(BoardLabel("$id:title", wrap(item.title, 27, if (item.resolution.isBlank()) 3 else 2), point.x + 22, point.y + 61, 18, theme.title))

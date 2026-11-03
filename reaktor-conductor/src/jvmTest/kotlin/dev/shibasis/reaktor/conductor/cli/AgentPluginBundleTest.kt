@@ -21,18 +21,20 @@ class AgentPluginBundleTest {
                 val manifest = Json.parseToJsonElement(files.entries.single { it.key.endsWith("plugin.json") }.value).jsonObject
                 assertEquals("./hooks/hooks.json", manifest.getValue("hooks").jsonPrimitive.content)
                 val events = Json.parseToJsonElement(files.getValue("hooks/hooks.json")).jsonObject.getValue("hooks").jsonObject
-                assertEquals(setOf("SessionStart", "UserPromptSubmit", "PostToolUse") + if (harness == AgentPluginBundle.Harness.Codex) setOf("Stop") else emptySet(), events.keys)
+                val lifecycle = if (harness == AgentPluginBundle.Harness.Codex) mapOf("Stop" to "codex-stop") else mapOf("Stop" to "claude-stop", "SessionEnd" to "claude-end")
+                assertEquals(setOf("SessionStart", "UserPromptSubmit", "PostToolUse") + lifecycle.keys, events.keys)
                 events.forEach { (name, groups) ->
                     val handler = groups.jsonArray.single().jsonObject.getValue("hooks").jsonArray.single().jsonObject
                     assertEquals("command", handler.getValue("type").jsonPrimitive.content)
                     assertEquals(10, handler.getValue("timeout").jsonPrimitive.int)
                     val hook = handler.getValue("command").jsonPrimitive.content
-                    val mode = if (name == "Stop") "codex-stop" else "${harness.directory}-context"
+                    val mode = lifecycle[name] ?: "${harness.directory}-context"
                     assertEquals("'/path with spaces/java' '-cp' 'runtime.jar' 'Main' 'hook' '$mode'", hook)
                     assertFalse("--dir" in hook || "/private/project" in hook)
                 }
                 assertTrue("source freshness remains unknown" in guide)
                 assertTrue("explicit message.ack" in guide)
+                assertTrue("presence.state" in guide)
                 assertTrue("does not attest" in guide)
             }
         }

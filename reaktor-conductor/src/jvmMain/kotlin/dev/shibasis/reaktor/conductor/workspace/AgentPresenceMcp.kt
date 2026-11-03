@@ -26,5 +26,14 @@ internal fun agentPresenceTools(workspace: AgentWorkspace): List<McpTool> {
             workspace.presence.heartbeat(workspace.identity(by), request.door, request.connected)
             AgentWorkspaceJson.encodeToJsonElement(AgentPresencePage.serializer(), page())
         },
+        McpTool("agent_presence_state", "Mark only the authenticated agent's turn: Working, Waiting for a person, or Gone. Gone returns its in-progress items to To do.",
+            schema(api.state.request.descriptor.jsonSchema()), false, true) { args ->
+            val by = AgentWorkspaceJson.decodeFromJsonElement(BoardActor.serializer(), args.getValue("by"))
+            val request = AgentWorkspaceJson.decodeFromJsonElement(AgentPresenceStateRequest.serializer(), JsonObject(args - "by"))
+            val identity = workspace.identity(by)
+            workspace.presence.mark(identity, request.state)
+            if (request.state == PresenceState.Gone) workspace.plans.release(requireNotNull(identity.actor.agent), "Session ended")
+            AgentWorkspaceJson.encodeToJsonElement(AgentPresencePage.serializer(), page())
+        },
     )
 }

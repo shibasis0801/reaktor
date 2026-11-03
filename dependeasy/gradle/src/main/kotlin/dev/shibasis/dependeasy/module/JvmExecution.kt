@@ -7,7 +7,7 @@ import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
-internal data class JvmExecution(val classpath: FileCollection, val classes: FileCollection, val output: FileCollection, val sources: FileCollection)
+internal data class JvmExecution(val classpath: FileCollection, val classes: FileCollection, val output: FileCollection, val sources: FileCollection, val resources: FileCollection)
 
 internal fun Project.jvmExecution(compilation: String): JvmExecution {
     val multiplatform = extensions.findByType(KotlinMultiplatformExtension::class.java)
@@ -17,7 +17,7 @@ internal fun Project.jvmExecution(compilation: String): JvmExecution {
             associateWith(target.compilations.getByName("main"))
             defaultSourceSet.kotlin.srcDir("src/$compilation/kotlin")
         }
-        JvmExecution(files(selected.output.allOutputs, selected.runtimeDependencyFiles), selected.output.allOutputs, selected.output.allOutputs, files(selected.allKotlinSourceSets.map { it.kotlin }))
+        JvmExecution(files(selected.output.allOutputs, selected.runtimeDependencyFiles), selected.output.allOutputs, selected.output.allOutputs, files(selected.allKotlinSourceSets.map { it.kotlin }), files(selected.allKotlinSourceSets.flatMap { it.resources.srcDirs }))
     } else {
         val sources = extensions.getByType<JavaPluginExtension>().sourceSets
         val selected = sources.findByName(compilation) ?: sources.create(compilation) {
@@ -29,6 +29,6 @@ internal fun Project.jvmExecution(compilation: String): JvmExecution {
             compileClasspath += main.output
             runtimeClasspath += main.output
         }
-        JvmExecution(selected.runtimeClasspath, selected.output, selected.output, selected.allSource)
+        JvmExecution(selected.runtimeClasspath, selected.output, selected.output, selected.allSource, files(selected.resources.srcDirs))
     }
 }

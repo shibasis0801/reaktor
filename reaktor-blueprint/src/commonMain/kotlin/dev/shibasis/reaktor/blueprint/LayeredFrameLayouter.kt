@@ -1,7 +1,11 @@
 package dev.shibasis.reaktor.blueprint
 
 object LayeredFrameLayouter : FrameLayouter {
-    override fun lay(request: FrameRequest): FrameResult {
+    internal val cache = FrameLayoutCache(::layout)
+
+    override fun lay(request: FrameRequest): FrameResult = cache.lay(request)
+
+    private fun layout(request: FrameRequest): FrameResult {
         val graph = request.graph
         val owner = HashMap<String, Int>()
         graph.boxes.forEachIndexed { index, box -> box.pins.forEach { owner[it.id] = index } }

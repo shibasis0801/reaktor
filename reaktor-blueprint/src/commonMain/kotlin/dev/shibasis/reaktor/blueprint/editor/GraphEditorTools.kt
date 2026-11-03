@@ -45,7 +45,8 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
-import dev.shibasis.reaktor.blueprint.canvas.GraphCommands
+import dev.shibasis.reaktor.surface.Availability
+import dev.shibasis.reaktor.surface.CommandId
 import dev.shibasis.reaktor.surface.ChordFinding
 import dev.shibasis.reaktor.surface.CommandSet
 import dev.shibasis.reaktor.surface.Ink
@@ -100,20 +101,22 @@ internal fun BoxScope.Minimap(editor: GraphEditor) {
 
 @Composable
 internal fun EditorKeys(editor: GraphEditor, request: Request.Keys) {
+    if (request.commands) { EditorCommandPalette(editor, request); return }
     val convention = remember { platformKeyConvention() }
-    val defaults = remember { GraphCommands.commands + EditorCommands.commands }
-    val current = CommandSet(defaults).remapped(editor.prefs.keys)
+    val current = editor.commands
     val clashes = current.findings(convention).filterIsInstance<ChordFinding.Clash>().flatMap { clash -> clash.commands.map { it.value to clash.commands } }.toMap()
     var recording by remember { mutableStateOf<String?>(null) }
     val capture = remember { FocusRequester() }
+    var rejected by remember { mutableStateOf<String?>(null) }
     fun set(id: String, chord: String?) {
-        editor.prefer(editor.prefs.copy(keys = if (chord == null) editor.prefs.keys - id else editor.prefs.keys + (id to chord)))
-        recording = null
+        runCatching { editor.prefer(editor.prefs.copy(keys = if (chord == null) editor.prefs.keys - id else editor.prefs.keys + (id to chord))) }
+            .onSuccess { recording = null; rejected = null }
+            .onFailure { rejected = it.message ?: "Those keys are already in use" }
     }
-    Popover(true, { if (!it && editor.request === request) editor.request = null }) {
+    Popover(true, { if (!it) editor.dismissCommandRequest(request) }) {
         Content {
             Column(Modifier.width(420.dp).padding(8.dp).testTag("graph-editor-keys").onPreviewKeyEvent { event ->
-                val id = recording ?: return@onPreviewKeyEvent false
+                val id = recording ?: return@onPreviewKeyEvent if (event.type == KeyEventType.KeyDown && event.stroke()?.key == KeyName.Escape) { editor.dismissCommandRequest(request); true } else false
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent true
                 val stroke = event.stroke() ?: return@onPreviewKeyEvent true
                 when (stroke.key) {
@@ -124,6 +127,7 @@ internal fun EditorKeys(editor: GraphEditor, request: Request.Keys) {
                 true
             }.focusRequester(capture).focusable(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Keyboard shortcuts", role = Type.Body.strong, ink = Ink.Text)
+                rejected?.let { Text(it, Modifier.testTag("graph-editor-key-conflict"), role = Type.Meta, ink = Ink.Warn, lines = 3) }
                 Text(recording?.let { id -> "Press the new keys for ${current.commands.first { it.id.value == id }.label} · Esc keeps the old ones · ⌫ removes the shortcut" }
                     ?: "Pick Change to give a command new keys. Your keys are kept for next time.", Modifier.testTag("graph-editor-keys-hint"), role = Type.Meta, ink = if (recording != null) Ink.Warn else Ink.Muted, lines = 3)
                 Column(Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -144,8 +148,62 @@ internal fun EditorKeys(editor: GraphEditor, request: Request.Keys) {
             }
         }
     }
-    LaunchedEffect(recording) { if (recording != null) runCatching { capture.requestFocus() } }
+    LaunchedEffect(request, recording) { capture.requestFocus() }
 }
+@Composable
+private fun EditorCommandPalette(editor: GraphEditor, request: Request.Keys) {
+    val convention = remember { platformKeyConvention() }
+    val search = rememberTextFieldState()
+    val focus = remember { FocusRequester() }
+    val query = search.text.toString()
+    val choices = editor.commandChoices(query, convention)
+    var selected by remember { mutableStateOf(0) }
+    fun dismiss() = editor.dismissCommandRequest(request)
+    fun choose(id: CommandId) {
+        if (editor.commands.commands.firstOrNull { it.id == id }?.availability != Availability.Available) return
+        editor.request = null
+        editor.runCommand(id)
+    }
+    LaunchedEffect(query) { selected = 0 }
+    LaunchedEffect(request) { focus.requestFocus() }
+    Popover(true, { if (!it) dismiss() }) {
+        Content {
+            Column(Modifier.width(460.dp).padding(8.dp).testTag("graph-editor-commands").onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.stroke()?.key) {
+                    KeyName.Escape -> dismiss()
+                    KeyName.Enter -> choices.getOrNull(selected.coerceIn(0, (choices.size - 1).coerceAtLeast(0)))?.let { choose(it.id) }
+                    KeyName.Down -> selected = (selected + 1).coerceAtMost((choices.size - 1).coerceAtLeast(0))
+                    KeyName.Up -> selected = (selected - 1).coerceAtLeast(0)
+                    else -> return@onPreviewKeyEvent false
+                }
+                true
+            }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Command palette", role = Type.Body.strong, ink = Ink.Text)
+                TextField(search, Modifier.fillMaxWidth().focusRequester(focus).testTag("graph-editor-command-search"),
+                    placeholder = { Text("Search commands", role = Type.Meta, ink = Ink.Muted) },
+                    onKeyboardAction = KeyboardActionHandler { choices.getOrNull(selected)?.let { choose(it.id) } })
+                Column(Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    if (choices.isEmpty()) Text("No matching command", role = Type.Meta, ink = Ink.Muted)
+                    choices.forEachIndexed { index, command ->
+                        Button({ choose(command.id) }, Modifier.fillMaxWidth().testTag("graph-editor-command-${command.id.value}"),
+                            enabled = command.availability == Availability.Available) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(command.label, role = Type.Meta, ink = if (index == selected) Ink.Accent else Ink.Text)
+                                    (command.availability as? Availability.Unavailable)?.let { Text(it.reason, role = Type.Meta, ink = Ink.Muted, lines = 2) }
+                                }
+                                Text(command.chord?.label(convention).orEmpty(), Modifier.testTag("graph-editor-command-chord-${command.id.value}"), role = Type.Meta.code, ink = Ink.Muted)
+                            }
+                        }
+                    }
+                }
+                Text("↑ ↓ to choose · Enter to run · Esc to return", role = Type.Meta, ink = Ink.Muted)
+            }
+        }
+    }
+}
+
 
 @Composable
 internal fun EditorDescribe(editor: GraphEditor, request: Request.Describe) {

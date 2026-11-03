@@ -26,6 +26,19 @@ class ClaudeRulesTest {
         }
     }
 
+    @Test fun anIsolatedTurnLoadsNoUserSettingsOrMcpServersAndLeavesNoSessionBehind() {
+        fun isolated(tools: ToolPolicy) = request().let { it.copy(agent = it.agent.copy(tools = tools), resume = ProviderSession(RuntimeKind.ClaudeCode, "existing-session")) }
+        val argv = claudeArgv(isolated(ToolPolicy(isolateOperatorConfig = true)))
+        assertTrue(argv.windowed(2).contains(listOf("--setting-sources", "project,local")))
+        assertTrue(argv.windowed(3).contains(listOf("--mcp-config", """{"mcpServers":{}}""", "--strict-mcp-config")))
+        assertTrue("--no-session-persistence" in argv)
+        assertFalse("--resume" in argv)
+        assertTrue(claudeArgv(isolated(ToolPolicy(isolateOperatorConfig = true, mcpConfig = "own.json"))).windowed(3).contains(listOf("--mcp-config", "own.json", "--strict-mcp-config")))
+        val shared = claudeArgv(isolated(ToolPolicy()))
+        assertEquals(emptyList(), listOf("--setting-sources", "--mcp-config", "--strict-mcp-config", "--no-session-persistence").filter { it in shared })
+        assertTrue(shared.windowed(2).contains(listOf("--resume", "existing-session")))
+    }
+
     @Test fun inlineSettingsKeepPermissionsAndOtherPluginOptions() {
         val argv = claudeArgv(request(listOf("--permission-mode", "default", "--settings=" + """{"permissions":{"ask":["Write"]},"pluginConfigs":{"cc-plugin-agents-md@builtin":{"options":{"instructionFiles":"claude-md","other":true}},"another":{"enabled":true}}}""")))
         val settings = settings(argv)

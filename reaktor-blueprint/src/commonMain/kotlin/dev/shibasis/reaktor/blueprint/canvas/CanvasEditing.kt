@@ -34,5 +34,6 @@ interface CanvasEditing {
     fun overlay(scope: DrawScope, zoom: Double)
     fun travel(dx: Int, dy: Int): Boolean = false
     fun keyed(set: CommandSet): CommandSet = set
+    fun pins(visible: (String) -> Boolean) {}
     fun attach(camera: CanvasCamera?) {}
 }

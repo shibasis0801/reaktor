@@ -117,6 +117,7 @@ enum class NotificationPresentationFeature {
     RichMedia,
     Progress,
     DataMessages,
+    SealedNotices,
 }
 
 val NotificationPresentationFeature.capabilityName: String get() = "presentation:$name"

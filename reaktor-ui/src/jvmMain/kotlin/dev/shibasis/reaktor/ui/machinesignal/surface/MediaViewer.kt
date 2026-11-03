@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -17,6 +18,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import dev.shibasis.reaktor.surface.Ink
 import dev.shibasis.reaktor.surface.Type
 import dev.shibasis.reaktor.surface.listSource
@@ -48,10 +53,19 @@ import dev.shibasis.reaktor.web.WebRuntime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.URI
 import java.util.Base64
 import kotlin.math.roundToInt
@@ -94,11 +108,61 @@ private fun NativeMedia(runtime: WebRuntime, source: MediaSource, contentType: S
     val content = remember(kind, location) { WebContent.Html(mediaHtml(kind, location)) }
     val state = rememberWebViewState()
     val error by state.failure.collectAsState()
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2)) {
+    val session by state.session.collectAsState()
+    val scope = rememberCoroutineScope()
+    var playback by remember(content) { mutableStateOf<String?>(null) }
+    val playable = kind == MediaKind.Audio || kind == MediaKind.Video
+    LaunchedEffect(session, content, playable) {
+        playback = null
+        val current = session ?: return@LaunchedEffect
+        if (!playable) return@LaunchedEffect
+        current.state.collectLatest { document ->
+            if (document.loading || document.closed || document.committedUrl == null) return@collectLatest
+            while (currentCoroutineContext().isActive) {
+                try {
+                    playback = nativePlaybackDescription(current.evaluate("""(() => { const m = document.querySelector('audio,video'); return m ? {ready:m.readyState, paused:m.paused, current:m.currentTime, duration:m.duration, error:m.error ? m.error.code : 0, failure:m.dataset.playbackFailure || ''} : null; })()"""))
+                } catch (failure: CancellationException) { throw failure }
+                catch (failure: Exception) { state.reportFailure(failure); return@collectLatest }
+                delay(200)
+            }
+        }
+    }
+    fun action(label: String, command: String) = CustomAccessibilityAction(label) {
+        val current = session ?: return@CustomAccessibilityAction false
+        scope.launch {
+            try {
+                current.evaluate("""(() => { const m = document.querySelector('audio,video'); if (!m) throw new Error('Media is not ready'); $command; return true; })()""")
+            } catch (failure: CancellationException) { throw failure }
+            catch (failure: Exception) { state.reportFailure(failure) }
+        }
+        true
+    }
+    val accessible = if (!playable) Modifier else Modifier.testTag("$tag-player").semantics {
+        stateDescription = playback ?: "Loading media"
+        if (playback != null && error == null) customActions = listOf(
+            action("Play", "m.play().catch(e => { m.dataset.playbackFailure = e.name })"),
+            action("Pause", "m.pause()"),
+            action("Seek to start", "m.currentTime = 0"),
+            action("Seek forward 5 seconds", "m.currentTime = Math.min(m.duration, m.currentTime + 5)"))
+    }
+    Column(modifier.then(accessible), verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2)) {
         Text(if (kind == MediaKind.Pdf) "PDF · native page controls" else "${kind.name} · play and scrub with native controls", Modifier.testTag("$tag-controls"), role = Type.Label, ink = Ink.Muted)
         error?.let { Text("${kind.name} viewer unavailable: ${it.message}", Modifier.testTag("$tag-error"), ink = Ink.Warn, lines = Int.MAX_VALUE) }
         ReaktorWebView(runtime, content, Modifier.weight(1f).fillMaxWidth(), state)
     }
+}
+
+internal fun nativePlaybackDescription(value: JsonElement): String? {
+    val state = value as? JsonObject ?: return null
+    val failure = state["failure"]?.jsonPrimitive?.content.orEmpty()
+    require(failure.isBlank()) { "Playback unavailable: $failure" }
+    val error = state["error"]?.jsonPrimitive?.intOrNull
+    require(error == null || error == 0) { "Media could not be decoded (code $error)" }
+    if ((state["ready"]?.jsonPrimitive?.intOrNull ?: 0) < 1) return null
+    val current = state["current"]?.jsonPrimitive?.doubleOrNull?.takeIf { it.isFinite() && it >= 0 } ?: return null
+    val duration = state["duration"]?.jsonPrimitive?.doubleOrNull?.takeIf { it.isFinite() && it > 0 } ?: return null
+    val paused = state["paused"]?.jsonPrimitive?.booleanOrNull ?: return null
+    return "${if (paused) "Paused" else "Playing"} · ${current.toInt()} of ${duration.toInt()} seconds"
 }
 
 @Composable

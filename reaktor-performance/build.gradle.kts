@@ -18,3 +18,7 @@ library(namespace = "dev.shibasis.reaktor.performance", targets = Targets.All) {
     }
     val checkPerformanceTypeScript by typescript(tests = FileSet(listOf("tools/*.test.mjs")))
 }
+
+kotlin.sourceSets.getByName("jvmTest").dependencies {
+    implementation(project(":reaktor-tooling"))
+}

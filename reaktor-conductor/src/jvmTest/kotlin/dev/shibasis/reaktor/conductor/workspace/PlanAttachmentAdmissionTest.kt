@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.nio.file.Files
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.*
@@ -34,7 +35,7 @@ class PlanAttachmentAdmissionTest {
                 )), owner)
                 try { test(workspace, prompts) } finally { release.complete(Unit) }
             }
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
     }
 
     @Test fun unavailableProviderNeverPersistsASeat() = fixture(configured = false) { workspace, prompts ->

@@ -128,7 +128,7 @@ class TaskContextTest {
         assertEquals(AgentMemoryScope.Workspace, legacy.scope)
         assertNull(legacy.origin)
         Files.writeString(data.resolve("memory/${workspace.id}.json"), JsonObject(encoded - "scope" - "origin").toString())
-        assertTrue(owner.memory.search("", null, false, "G1", "T1").entries.single { it.title == "Memory 1" }.reason.contains("unknown legacy origin"))
+        assertFalse(owner.memory.search("", null, false, "G1", "T1").entries.single { it.title == "Memory 1" }.reason.contains("unknown legacy origin"))
         assertTrue(owner.memory.search("", null, true, "G1", "T1").entries.any { it.title == "Memory 6" && "STALE" in it.reason })
         File(root, "source.txt").writeText("changed")
         assertTrue(owner.memory.search("", null, false, "G1", "T1").entries.isEmpty())

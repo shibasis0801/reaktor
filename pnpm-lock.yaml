@@ -2035,12 +2035,26 @@ importers:
         version: 6.0.3
 
   build/js/packages/reaktor-reaktor-tooling:
+    dependencies:
+      '@js-joda/core':
+        specifier: 3.2.0
+        version: 3.2.0
+      reaktor-core:
+        specifier: link:../../../../reaktor-core
+        version: link:../../../../reaktor-core
     devDependencies:
       typescript:
         specifier: 6.0.3
         version: 6.0.3
 
   build/js/packages/reaktor-reaktor-tooling-test:
+    dependencies:
+      '@js-joda/core':
+        specifier: 3.2.0
+        version: 3.2.0
+      reaktor-core:
+        specifier: link:../../../../reaktor-core
+        version: link:../../../../reaktor-core
     devDependencies:
       kotlin-web-helpers:
         specifier: 3.3.0

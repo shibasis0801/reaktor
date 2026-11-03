@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.VectorGroup
 import androidx.compose.ui.graphics.vector.VectorPath
 import androidx.compose.ui.graphics.vector.toPath
+import kotlin.math.min
 
 internal class BlueprintIcon(vector: ImageVector) {
     private class Part(val path: Path, val fill: Float, val stroke: Stroke?, val strokeAlpha: Float)
@@ -41,7 +42,8 @@ internal class BlueprintIcon(vector: ImageVector) {
     }
 
     fun draw(scope: DrawScope, x: Float, y: Float, size: Float, tint: Color) = with(scope) {
-        withTransform({ translate(x, y); scale(size / width, size / height, Offset.Zero) }) {
+        val factor = min(size / width, size / height)
+        withTransform({ translate(x + (size - width * factor) / 2, y + (size - height * factor) / 2); scale(factor, factor, Offset.Zero) }) {
             for (part in parts) {
                 if (part.fill > 0f) drawPath(part.path, tint, alpha = part.fill)
                 part.stroke?.let { drawPath(part.path, tint, alpha = part.strokeAlpha, style = it) }

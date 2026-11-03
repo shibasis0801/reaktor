@@ -15,14 +15,48 @@ import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.ui.machinesignal.surface.MediaViewer
+import dev.shibasis.reaktor.ui.machinesignal.surface.nativePlaybackDescription
 import dev.shibasis.reaktor.web.WebRuntime
 import java.io.ByteArrayOutputStream
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
+import kotlinx.serialization.json.Json
 
 @OptIn(ExperimentalTestApi::class)
 class MediaViewerTest {
+    @Test fun productionPlayerDocumentsAreExportedForHeadlessPlayback() {
+        val pages = listOf(MediaKind.Audio to "generated-audio.m4a", MediaKind.Video to "generated-video.mp4")
+        pages.forEach { (kind, file) ->
+            val html = mediaHtml(kind, "/$file")
+            kotlin.test.assertTrue(html.contains("src=\"/$file\""))
+            kotlin.test.assertTrue(html.contains("controls preload=metadata"))
+            val encoded = java.util.Base64.getEncoder().encodeToString(html.toByteArray(Charsets.UTF_8))
+            println("BPO_MEDIA_DOCUMENT:${kind.name}:$encoded")
+        }
+    }
+
+    @Test fun playbackWaitsForMeasuredReadyStateAndFiniteTimes() {
+        for (raw in listOf("null", "{}", """{"ready":0,"paused":true,"current":0,"duration":12}""",
+            """{"ready":1,"paused":true,"current":0,"duration":null}""",
+            """{"ready":1,"paused":true,"current":-1,"duration":12}""")) {
+            assertNull(nativePlaybackDescription(Json.parseToJsonElement(raw)))
+        }
+    }
+
+    @Test fun playbackReflectsObservedPlayPauseAndSeekTimes() {
+        assertEquals("Playing · 1 of 12 seconds", nativePlaybackDescription(Json.parseToJsonElement("""{"ready":4,"paused":false,"current":1.4,"duration":12}""")))
+        assertEquals("Paused · 5 of 12 seconds", nativePlaybackDescription(Json.parseToJsonElement("""{"ready":4,"paused":true,"current":5.1,"duration":12}""")))
+    }
+
+    @Test fun nativeDecodeAndPlaybackFailuresRemainFailures() {
+        assertFailsWith<IllegalArgumentException> { nativePlaybackDescription(Json.parseToJsonElement("""{"error":3}""")) }
+        assertFailsWith<IllegalArgumentException> { nativePlaybackDescription(Json.parseToJsonElement("""{"failure":"NotAllowedError"}""")) }
+    }
+
     private fun view(mime: String, bytes: ByteArray, check: androidx.compose.ui.test.ComposeUiTest.() -> Unit) {
         val dependencies = org.koin.dsl.koinApplication {}
         val graph = Graph(dependencyAdapter = dev.shibasis.reaktor.graph.di.KoinDependencyAdapter(dependencies), label = "Media render test")

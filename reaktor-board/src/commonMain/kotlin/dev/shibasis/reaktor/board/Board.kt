@@ -56,6 +56,18 @@ data class BoardRect(val x: Double, val y: Double, val width: Double, val height
     val bottom: Double get() = y + height
     val middle: Double get() = y + height / 2
     fun contains(at: BoardPoint) = at.x >= x && at.x <= right && at.y >= y && at.y <= bottom
+    fun intersects(other: BoardRect) = x <= other.right && other.x <= right && y <= other.bottom && other.y <= bottom
+    fun encloses(other: BoardRect) = other.x >= x && other.right <= right && other.y >= y && other.bottom <= bottom
+    fun grown(dx: Double, dy: Double) = BoardRect(x - dx, y - dy, width + 2 * dx, height + 2 * dy)
+
+    companion object {
+        fun spanning(from: BoardPoint, to: BoardPoint) = BoardRect(minOf(from.x, to.x), minOf(from.y, to.y), kotlin.math.abs(to.x - from.x), kotlin.math.abs(to.y - from.y))
+        fun around(rects: Iterable<BoardRect>): BoardRect? {
+            val all = rects.toList().ifEmpty { return null }
+            val left = all.minOf { it.x }; val top = all.minOf { it.y }
+            return BoardRect(left, top, all.maxOf { it.right } - left, all.maxOf { it.bottom } - top)
+        }
+    }
 }
 
 @Serializable
@@ -183,10 +195,23 @@ fun List<BoardItem>.frames(at: Map<String, BoardPoint>): Map<String, BoardRect> 
     return rects
 }
 
-fun List<BoardItem>.depth(key: String): Int {
+fun List<BoardItem>.depths(): Map<String, Int> {
     val byKey = associateBy { it.key }
-    return generateSequence(byKey[key]) { item -> byKey[item.within]?.takeIf { it.key != item.key } }.take(size + 1).count() - 1
+    val depths = HashMap<String, Int>()
+    val open = HashSet<String>()
+    fun depth(item: BoardItem): Int {
+        depths[item.key]?.let { return it }
+        val parent = byKey[item.within]?.takeIf { it.key != item.key && open.add(item.key) }
+        val value = if (parent == null) 0 else depth(parent) + 1
+        open.remove(item.key)
+        depths[item.key] = value
+        return value
+    }
+    forEach { depth(it) }
+    return depths
 }
+
+fun List<BoardItem>.depth(key: String): Int = depths()[key] ?: -1
 
 fun List<BoardItem>.wouldCycle(item: String, prerequisite: String): Boolean {
     val byKey = associateBy { it.key }

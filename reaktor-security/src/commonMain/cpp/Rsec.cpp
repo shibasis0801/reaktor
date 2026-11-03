@@ -4,6 +4,7 @@
 #include <rsec/Attachment.h>
 #include <rsec/Credential.h>
 
+#include <openssl/mem.h>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -57,7 +58,7 @@ map_error(const rsec::Error& error)
 rsec::Bytes
 copy_bytes(const uint8_t* data, size_t len)
 {
-  if (len > 64 * 1024 * 1024 + 4096 || (len > 0 && data == nullptr)) {
+  if (len > 64 * 1024 * 1024 + 65536 || (len > 0 && data == nullptr)) {
     throw rsec::Error(rsec::ErrorCode::invalid_argument,
                       "Non-empty buffer has null data");
   }
@@ -767,6 +768,49 @@ rsec_status_t rsec_attachment_finish(rsec_attachment_opener_t* stream)
 }
 
 void rsec_attachment_opener_destroy(rsec_attachment_opener_t* stream) { delete stream; }
+
+
+rsec_status_t rsec_attachment_seal_file(const uint8_t* plaintext, size_t len, rsec_attachment_t* out)
+{
+  if (out) *out = {};
+  return guard([&] {
+    require_argument(out && len <= 64 * 1024 * 1024);
+    auto value = rsec::seal_attachment(copy_bytes(plaintext, len));
+    try {
+      OwnedBuffer key(value.key), digest(value.digest), ciphertext(value.ciphertext);
+      *out = {key.release(), digest.release(), ciphertext.release()};
+    } catch (...) {
+      OPENSSL_cleanse(value.key.data(), value.key.size());
+      throw;
+    }
+    OPENSSL_cleanse(value.key.data(), value.key.size());
+  });
+}
+
+rsec_status_t rsec_attachment_open_file(const uint8_t* key, size_t key_len,
+    const uint8_t* digest, size_t digest_len, const uint8_t* ciphertext, size_t len, rsec_buffer_t* out)
+{
+  if (out) *out = {};
+  return guard([&] {
+    require_argument(out && key_len == 32 && digest_len == 32 && len <= 64 * 1024 * 1024 + 65536);
+    auto value = rsec::open_attachment(copy_bytes(key, key_len), copy_bytes(digest, digest_len), copy_bytes(ciphertext, len));
+    try {
+      OwnedBuffer plaintext(value);
+      *out = plaintext.release();
+    } catch (...) {
+      OPENSSL_cleanse(value.data(), value.size());
+      throw;
+    }
+    OPENSSL_cleanse(value.data(), value.size());
+  });
+}
+
+void rsec_attachment_free(rsec_attachment_t value)
+{
+  rsec_buffer_free(value.key);
+  rsec_buffer_free(value.digest);
+  rsec_buffer_free(value.ciphertext);
+}
 
 rsec_status_t rsec_storage_key(rsec_buffer_t* out)
 {

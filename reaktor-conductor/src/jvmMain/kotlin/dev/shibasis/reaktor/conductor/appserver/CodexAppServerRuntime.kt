@@ -9,7 +9,15 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
 import java.io.BufferedReader
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.RandomAccessFile
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
+import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Codex over its App Server, rather than `codex exec`.
@@ -62,6 +70,9 @@ class CodexAppServerRuntime(
         require(!request.agent.tools.strictMcpConfig && request.agent.tools.allow.isEmpty() && request.agent.tools.deny.isEmpty()) {
             "These tool restrictions have no App Server mapping; use native configuration or a supported transport"
         }
+        if (codexDesktopAppAvailable(binary) && request.outputSchema == null && codexDesktopHonours(request.agent.tools, codexDesktopDefaults())) {
+            return CodexDesktopSession(request, binary, scope)
+        }
 
         val process = ProcessBuilder(buildList {
             add(binary)
@@ -89,6 +100,253 @@ class CodexAppServerRuntime(
         return CodexAppServerSession(request, process, rpc, scope) { synchronized(stderr) { stderr.toString() } }
     }
 }
+
+internal class CodexDesktopSession(
+    private val request: AgentRequest,
+    private val binary: String,
+    private val scope: CoroutineScope,
+    private val home: File = codexHome(),
+    private val launch: (suspend (List<String>) -> Boolean)? = null,
+) : AgentSession {
+    private val directory = File(request.agent.attributes["codexProjectDirectory"] ?: request.workingDirectory)
+    private val agent = request.agent.id
+    private var threadId = request.resume?.takeIf { it.runtime == RuntimeKind.Codex }?.sessionId
+    @Volatile private var turn: String? = null
+    private var usage: AgentUsage? = null
+    private var effort = EffortRecord.none
+
+    override val activeTurn: String? get() = turn
+
+    override val events: Flow<AgentEvent> = flow {
+        try {
+            val thread = threadId?.let { it to EffortRecord.none } ?: startThread().also { threadId = it.first }
+            effort = thread.second
+            val beforeQueue = findRollout(thread.first)?.length() ?: 0L
+            check(command(listOf(binary, "queue", "--thread", thread.first, "--message", request.prompt))) {
+                "Codex could not queue the prompt"
+            }
+            check(command(listOf("open", "codex://threads/wake/${thread.first}"))) {
+                "ChatGPT.app could not wake Codex thread ${thread.first}"
+            }
+            emit(AgentEvent.Started(agent, ProviderSession(RuntimeKind.Codex, thread.first)))
+            val rollout = withTimeoutOrNull(30_000.milliseconds) {
+                while (true) {
+                    findRollout(thread.first)?.let { return@withTimeoutOrNull it }
+                    delay(100.milliseconds)
+                }
+                error("Unreachable")
+            } ?: error("Codex did not create a rollout for thread ${thread.first}")
+            val outcome = follow(rollout, beforeQueue)
+            emit(AgentEvent.Finished(agent, outcome))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            emit(AgentEvent.Finished(agent, AgentOutcome(
+                agent, "", false, failure = failure.message ?: "Codex app thread failed",
+                session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort,
+            )))
+        }
+    }
+
+    private suspend fun startThread(): Pair<String, EffortRecord> {
+        val process = ProcessBuilder(binary, "app-server").directory(directory)
+            .redirectError(ProcessBuilder.Redirect.DISCARD).apply { environment().putAll(request.environment) }.start()
+        val rpc = JsonRpcStdio(process.inputStream.bufferedReader(), process.outputStream.writer(), scope)
+        return try {
+            rpc.request("initialize", buildJsonObject {
+                putJsonObject("clientInfo") { put("name", "reaktor"); put("title", "Reaktor"); put("version", "1") }
+            })
+            rpc.notify("initialized")
+            val thread = rpc.request("thread/start", buildJsonObject {
+                put("cwd", directory.path)
+                put("sandbox", request.agent.tools.codexSandbox())
+                put("approvalPolicy", request.agent.tools.codexApprovals())
+                request.agent.model?.let { put("model", it) }
+                request.agent.effort?.let { put("config", buildJsonObject { put("model_reasoning_effort", it.value) }) }
+            }).objectOrEmpty("thread")
+            val id = thread["id"]?.jsonPrimitive?.contentOrNull ?: error("app-server did not return a thread id")
+            id to EffortRecord(
+                requested = request.agent.effort,
+                resolved = request.agent.effort,
+                observed = thread["reasoningEffort"]?.jsonPrimitive?.contentOrNull?.let(::NativeEffort),
+            )
+        } finally {
+            rpc.close()
+            stopNativeProcess(process)
+        }
+    }
+
+    private suspend fun FlowCollector<AgentEvent>.follow(file: File, offset: Long): AgentOutcome {
+        val answer = StringBuilder()
+        var completed: AgentOutcome? = null
+        var shortfall: String? = null
+        file.toPath().let { path ->
+            Files.newByteChannel(path, StandardOpenOption.READ).use { channel ->
+                channel.position(offset)
+                val buffer = ByteArray(8192)
+                val line = ByteArrayOutputStream()
+                var heard = System.currentTimeMillis()
+                var stalled = false
+                while (completed == null && currentCoroutineContext().isActive) {
+                    val count = channel.read(ByteBuffer.wrap(buffer))
+                    if (count <= 0) {
+                        if (!stalled && System.currentTimeMillis() - heard > DesktopStallMillis) {
+                            stalled = true
+                            emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "No progress in ChatGPT.app", ActivityStatus.Waiting,
+                                output = desktopStallNotice(threadId, started = turn != null))))
+                        }
+                        delay(100)
+                        continue
+                    }
+                    heard = System.currentTimeMillis()
+                    if (stalled) {
+                        stalled = false
+                        emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "Progress resumed in ChatGPT.app", ActivityStatus.Completed)))
+                    }
+                    for (index in 0 until count) {
+                        val byte = buffer[index]
+                        if (byte == '\n'.code.toByte()) {
+                            val record = runCatching { Json.parseToJsonElement(line.toString(StandardCharsets.UTF_8)).jsonObject }.getOrNull()
+                            line.reset()
+                            val payload = record?.takeIf { it["type"]?.jsonPrimitive?.contentOrNull == "event_msg" }
+                                ?.get("payload") as? JsonObject ?: continue
+                            when (payload["type"]?.jsonPrimitive?.contentOrNull) {
+                                "task_started" -> {
+                                    turn = payload["turn_id"]?.jsonPrimitive?.contentOrNull
+                                    turn?.let { emit(AgentEvent.TurnStarted(agent, it)) }
+                                }
+                                "item_completed" -> {
+                                    val item = payload["item"] as? JsonObject
+                                    if (item?.get("type")?.jsonPrimitive?.contentOrNull == "agentMessage")
+                                        item["text"]?.jsonPrimitive?.contentOrNull?.let { answer.replace(0, answer.length, it) }
+                                }
+                                "thread_settings_applied" -> if (shortfall == null) codexDesktopShortfall(request.agent.tools, payload.objectOrEmpty("thread_settings"))?.let { found ->
+                                    val failure = "ChatGPT.app runs Codex thread $threadId with $found. " +
+                                        "Runs go to ChatGPT.app only while its Codex config sets approval_policy = \"never\" and the sandbox_mode they ask for."
+                                    shortfall = failure
+                                    emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-permissions", ActivityKind.Control, "ChatGPT.app permissions fall short", ActivityStatus.Failed, output = failure)))
+                                    threadId?.let { thread ->
+                                        if (command(listOf(binary, "queue", "--thread", thread, "--message", DesktopStop))) command(listOf("open", "codex://threads/wake/$thread"))
+                                    }
+                                }
+                                "token_count" -> payload.objectOrEmpty("info").objectOrEmpty("total_token_usage").toAppUsage()?.let {
+                                    usage = it
+                                    emit(AgentEvent.Usage(agent, it))
+                                }
+                                "task_complete" -> {
+                                    val text = payload["last_agent_message"]?.jsonPrimitive?.contentOrNull ?: answer.toString()
+                                    completed = AgentOutcome(agent, text, shortfall == null, failure = shortfall,
+                                        session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
+                                    turn = null
+                                }
+                                "turn_aborted" -> {
+                                    completed = AgentOutcome(agent, answer.toString(), false, interrupted = true,
+                                        failure = shortfall ?: "Turn interrupted in ChatGPT.app",
+                                        session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
+                                    turn = null
+                                }
+                                else -> Unit
+                            }
+                        } else line.write(byte.toInt())
+                    }
+                }
+            }
+        }
+        return completed ?: AgentOutcome(agent, answer.toString(), false, failure = "Codex app rollout ended before completion",
+            session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
+    }
+
+    private fun findRollout(thread: String): File? {
+        val sessions = home.resolve("sessions")
+        if (!sessions.isDirectory) return null
+        return runCatching {
+            Files.walk(sessions.toPath()).use { paths ->
+                paths.filter { it.fileName.toString().endsWith("-$thread.jsonl") }.findFirst().orElse(null)?.toFile()
+            }
+        }.getOrNull()
+    }
+
+    private suspend fun command(command: List<String>): Boolean = launch?.invoke(command) ?: withContext(Dispatchers.IO) {
+        val process = try {
+            ProcessBuilder(command).directory(directory)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD)
+                .apply { environment().putAll(request.environment) }.start()
+        } catch (_: java.io.IOException) {
+            return@withContext false
+        }
+        try {
+            process.waitFor(15, TimeUnit.SECONDS) && process.exitValue() == 0
+        } finally {
+            if (process.isAlive) process.destroyForcibly()
+        }
+    }
+
+    override suspend fun steer(text: String, expectedTurn: String?): CommandOutcome {
+        val active = turn ?: return CommandOutcome.Stale(expectedTurn, null)
+        if (expectedTurn != null && expectedTurn != active) return CommandOutcome.Stale(expectedTurn, active)
+        val thread = threadId ?: return CommandOutcome.Unsupported("Codex app thread has not started")
+        return if (command(listOf(binary, "queue", "--thread", thread, "--message", text))) CommandOutcome.Accepted
+        else CommandOutcome.Failed("Codex could not queue the follow-up")
+    }
+
+    override suspend fun resolve(requestId: String, decision: AgentDecision) =
+        CommandOutcome.Unsupported("Codex app approvals are handled in ChatGPT.app")
+
+    override suspend fun interrupt() = CommandOutcome.Unsupported("Codex app run cancellation is not supported")
+
+    override fun close() = Unit
+}
+
+private fun codexDesktopAppAvailable(binary: String): Boolean = binary == "codex" &&
+    System.getProperty("os.name").startsWith("Mac", ignoreCase = true) &&
+    listOf(File("/Applications/ChatGPT.app"), File(System.getProperty("user.home"), "Applications/ChatGPT.app"))
+        .any(File::isDirectory)
+
+private const val DesktopStallMillis = 20 * 60_000L
+
+private const val DesktopStop = "Stop now and end your turn without running anything else. ChatGPT.app runs this thread with fewer permissions than this run needs, so its commands would wait for approvals nobody answers."
+
+internal fun desktopStallNotice(thread: String?, started: Boolean): String = if (started)
+    "Codex thread $thread has written nothing for ${DesktopStallMillis / 60_000} minutes. It may be waiting for an approval in ChatGPT.app, which this run cannot answer or interrupt."
+else "Codex thread $thread has not started its turn ${DesktopStallMillis / 60_000} minutes after the prompt was queued. ChatGPT.app may not have picked the prompt up."
+
+private fun codexHome(): File = System.getenv("CODEX_HOME")?.takeIf(String::isNotBlank)?.let(::File)
+    ?: File(System.getProperty("user.home"), ".codex")
+
+internal data class CodexDesktopDefaults(val sandbox: String?, val approvals: String?)
+
+internal fun codexDesktopDefaults(config: File = codexHome().resolve("config.toml")): CodexDesktopDefaults {
+    val top = runCatching { config.readLines() }.getOrDefault(emptyList()).takeWhile { !it.trimStart().startsWith("[") }
+    fun value(key: String) = top.firstNotNullOfOrNull { Regex("""^\s*$key\s*=\s*"([^"]*)"""").find(it)?.groupValues?.get(1) }
+    return CodexDesktopDefaults(value("sandbox_mode"), value("approval_policy"))
+}
+
+internal fun codexDesktopHonours(tools: ToolPolicy, defaults: CodexDesktopDefaults): Boolean =
+    defaults.approvals == "never" && defaults.sandbox == tools.codexSandbox()
+
+internal fun codexDesktopShortfall(tools: ToolPolicy, settings: JsonObject): String? {
+    val approvals = settings["approval_policy"]?.jsonPrimitive?.contentOrNull ?: return null
+    val profile = settings.objectOrEmpty("active_permission_profile")["id"]?.jsonPrimitive?.contentOrNull
+    val sandbox = when (profile) {
+        ":danger-full-access" -> "danger-full-access"
+        ":workspace" -> "workspace-write"
+        ":read-only" -> "read-only"
+        else -> null
+    }
+    return buildList {
+        if (sandbox != null && sandbox != tools.codexSandbox()) add("$profile permissions where it asked for ${tools.codexSandbox()}")
+        if (approvals != "never") add("$approvals approvals")
+    }.takeIf { it.isNotEmpty() }?.joinToString(" and ")
+}
+
+private fun JsonObject.toAppUsage(): AgentUsage? = AgentUsage(
+    scope = UsageScope.ProviderSessionTotal,
+    inputTokens = this["input_tokens"]?.jsonPrimitive?.longOrNull,
+    cachedInputTokens = this["cached_input_tokens"]?.jsonPrimitive?.longOrNull,
+    cacheWriteInputTokens = this["cache_write_input_tokens"]?.jsonPrimitive?.longOrNull,
+    outputTokens = this["output_tokens"]?.jsonPrimitive?.longOrNull,
+    reasoningOutputTokens = this["reasoning_output_tokens"]?.jsonPrimitive?.longOrNull,
+)
 
 private class CodexAppServerSession(
     private val request: AgentRequest,

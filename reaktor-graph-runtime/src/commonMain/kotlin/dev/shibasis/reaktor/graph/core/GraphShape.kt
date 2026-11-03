@@ -90,6 +90,7 @@ data class WireShape(
     val providerPort: String,
     val type: String,
     val definitionId: String = "",
+    val sourceId: String = "",
 )
 
 @Serializable

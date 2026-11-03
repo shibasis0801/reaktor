@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.nio.file.Files
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.*
@@ -31,7 +32,7 @@ class PlanQueuePriorityTest {
                 )), owner)
                 test(workspace, release, prompts)
             }
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
     }
 
     private fun AgentWorkspace.enqueue(parent: AgentRunRecord, id: String, item: String) =

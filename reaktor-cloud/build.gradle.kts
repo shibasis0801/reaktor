@@ -10,7 +10,7 @@ library(namespace = "dev.shibasis.reaktor.cloud", targets = Targets.Android + Ta
     dependencies {
         common {
             api(projects.reaktorCore)
-            api(projects.reaktorGraph)
+            api(projects.reaktorService)
             api(projects.reaktorTooling)
         }
         jvm {

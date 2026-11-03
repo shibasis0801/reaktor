@@ -1,7 +1,9 @@
 package dev.shibasis.reaktor.blueprint.product
 
 import dev.shibasis.reaktor.blueprint.BlueprintEngine
+import dev.shibasis.reaktor.blueprint.BlueprintFace
 import dev.shibasis.reaktor.blueprint.BlueprintLayout
+import dev.shibasis.reaktor.blueprint.Card
 import dev.shibasis.reaktor.blueprint.Pin
 import dev.shibasis.reaktor.blueprint.editor.Change
 import dev.shibasis.reaktor.blueprint.editor.ChangeSet
@@ -24,6 +26,54 @@ import dev.shibasis.reaktor.graph.core.ScopeShape
 import dev.shibasis.reaktor.graph.core.WireShape
 
 data class SurfaceGraphScene(val nodes: List<SurfaceGraphNode>, val links: List<SurfaceGraphLink>, val groups: List<SurfaceGraphGroup>)
+
+internal class SurfaceGraphSimple(private val source: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, appearance: SurfaceGraphAppearance,
+    initialPositions: Map<String, Pair<Double, Double>>? = null,
+    groups: List<SurfaceGraphGroup> = emptyList(), initialLayout: BlueprintLayout<*>? = null) {
+    val nodes = source.associateBy { it.id }
+    val document = SurfaceGraphDocument(source, links, groups, root = "surface", cardWidth = appearance.width)
+    private val byId = document.shape.nodes.associateBy { it.id }
+    private val extra = HashMap<String, MutableList<Pin>>()
+    private val sourceLinks = LinkedHashMap<String, SurfaceGraphLink>()
+
+    private fun endpoint(id: String, provides: Boolean): Pair<String, Pin>? {
+        nodes[id]?.let { return id to document.pins(byId.getValue(id)).first { it.key == SurfaceGraphDocument.CardPort && it.provides == provides } }
+        for (node in source) {
+            document.pins(byId.getValue(node.id)).firstOrNull { it.provides == provides && (it.id == id || id in it.aliases) }?.let { return node.id to it }
+        }
+        return source.firstOrNull { it.owner == id }?.let { endpoint(it.id, provides) }
+    }
+
+    private val wires = links.distinctBy { it.id }.mapNotNull { link ->
+        val (from, output) = endpoint(link.from, true) ?: return@mapNotNull null
+        val (to, input) = endpoint(link.to, false) ?: return@mapNotNull null
+        fun port(node: String, pin: Pin): String {
+            val pins = extra.getOrPut(node) { ArrayList() }
+            var key = "link:${link.id}:${if (pin.provides) "out" else "in"}"
+            while (byId.getValue(node).ports.any { it.key == key } || pins.any { it.key == key }) key += ":"
+            pins += pin.copy(key = key)
+            return key
+        }
+        WireShape(to, port(to, input), from, port(from, output), SurfaceGraphDocument.LinkType, link.id).also { sourceLinks[it.id] = link }
+    }
+    private val shape = document.shape.copy(nodes = document.shape.nodes.map { node ->
+        node.copy(attributes = node.attributes + if (nodes.getValue(node.id).rows.isEmpty()) mapOf(BlueprintFace.Key to BlueprintFace.Prose.name) else emptyMap(),
+            ports = node.ports + extra[node.id].orEmpty().map { PortShape(it.key, it.type, it.provides, it.wiring, internal = true) })
+    }, wires = wires)
+    private fun pins(node: NodeShape) = document.pins(node) + extra[node.id].orEmpty()
+    private val height = maxOf(appearance.height, shape.nodes.maxOfOrNull { BlueprintEngine.cardHeight(if (nodes.getValue(it.id).rows.isEmpty()) BlueprintFace.ProseRows else nodes.getValue(it.id).rows.size) } ?: appearance.height)
+    private val positions = initialPositions ?: initialLayout?.cards?.mapValues { (_, card) -> card.x to card.y } ?: surfaceGraphPositions(source, appearance.width, height)
+    private val cards = shape.nodes.associate { node ->
+        val at = positions.getValue(node.id)
+        val original = initialLayout?.cards?.get(node.id)
+        node.id to Card(node.id, at.first, at.second, original?.width ?: appearance.width, original?.height ?: height, pins(node), original?.folded ?: 0)
+    }
+    private val initial = BlueprintLayout("surface", cards, initialLayout?.frames.orEmpty(), emptyList(), cards.values.maxOfOrNull { it.x + it.width } ?: 0.0, cards.values.maxOfOrNull { it.y + it.height } ?: 0.0)
+    val editor = GraphEditor(shape, GraphEditor.placement(initial), cardWidth = appearance.width, single = false, pins = ::pins, terms = document,
+        family = { wire -> initialLayout?.links?.firstOrNull { wire.definitionId in it.members }?.family ?: "related" })
+    fun link(id: String): SurfaceGraphLink? = sourceLinks[id]
+    fun wire(id: String): String? = sourceLinks.entries.firstOrNull { it.value.id == id }?.key
+}
 
 class SurfaceGraphDocument(
     val nodes: List<SurfaceGraphNode>,
@@ -60,7 +110,7 @@ class SurfaceGraphDocument(
         val wires = links.mapNotNull { link ->
             val (from, fromPort) = endpoint(link.from) ?: return@mapNotNull null
             val (to, toPort) = endpoint(link.to) ?: return@mapNotNull null
-            WireShape(to, toPort, from, fromPort, LinkType, link.id).takeIf { from != to && seen.add(it.id) }
+            WireShape(to, toPort, from, fromPort, LinkType, link.id).takeIf { from != to && seen.add(it.id) }?.copy(sourceId = link.id)
         }
         GraphShape(scopes.values.toList(), nodes.map(::shapeOf), wires, emptyList()).recounted()
     }

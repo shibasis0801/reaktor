@@ -94,7 +94,11 @@ data class AtlasNext(val op: String, val args: JsonObject, val retry: Boolean = 
 @Serializable
 data class AtlasAnswer(val revision: String, val items: List<AtlasItem>, val counts: AtlasCounts, val evidence: AtlasEvidence,
     val omissions: List<String> = emptyList(), val next: List<AtlasNext> = emptyList(), val sources: List<AtlasSource> = emptyList(),
-    val queries: List<AtlasReply> = emptyList(), val reads: List<AtlasReply> = emptyList())
+    val queries: List<AtlasReply> = emptyList(), val reads: List<AtlasReply> = emptyList(), val memory: List<AtlasMemory> = emptyList())
+
+@Serializable
+data class AtlasMemory(val id: String, val title: String, val text: String, val scope: String, val freshness: String,
+    val revision: Long, val provenance: List<String>, val links: List<String>)
 
 @Serializable
 data class AtlasReply(val asked: JsonObject, val answer: AtlasAnswer? = null, val source: AtlasSource? = null, val error: String? = null,

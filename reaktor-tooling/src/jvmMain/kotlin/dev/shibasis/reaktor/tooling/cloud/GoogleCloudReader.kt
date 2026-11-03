@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.cloud
 
+import dev.shibasis.reaktor.core.truth.TruthClass
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.future.await
@@ -21,6 +22,7 @@ class GoogleCloudReader(
     private val clock: () -> Long = System::currentTimeMillis,
     override val id: String = "gcp",
 ) : CloudProvider {
+    override val truth = TruthClass.Live
     private val console = "https://console.cloud.google.com"
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
 
@@ -109,6 +111,7 @@ class GoogleCloudReader(
         val finished = clock()
         CloudReading(
             provider = id,
+            truth = truth,
             platform = CloudPlatform.GoogleCloud,
             health = ProviderHealth(id, if (snapshotReading == null) ResourceStatus.Degraded else ResourceStatus.Healthy,
                 "project $project${signedIn?.let { " as $it" }.orEmpty()}" + if (snapshotReading == null) " · snapshot inventory unreadable; coverage unknown" else ""),

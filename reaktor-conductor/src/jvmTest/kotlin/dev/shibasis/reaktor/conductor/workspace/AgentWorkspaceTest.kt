@@ -69,6 +69,52 @@ class AgentWorkspaceTest {
             }
         } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
+
+    @Test fun aSeatedRunKeepsTheProfileRevisionItRanWithAfterTheWorkspaceReopens() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            val stoppedScope = CoroutineScope(SupervisorJob().also { it.cancel() } + Dispatchers.IO)
+            val seat = ResolvedTaskSeat(TaskSeat(agent = harness.kind, profile = "reviewer"), profileRevision = 3)
+            val (seated, plain) = AgentWorkspace(root, directory, mapOf(harness.kind to harness), scope = stoppedScope).use { workspace ->
+                workspace.submit(AgentSubmission("seated", harness.kind, "Review the change", resolvedSeat = seat)) to
+                    workspace.submit(AgentSubmission("plain", harness.kind, "Answer a question"))
+            }
+            assertEquals("reviewer" to 3L, seated.profile to seated.profileRevision)
+            AgentWorkspace(root, directory, mapOf(harness.kind to harness), scope = stoppedScope).use { workspace ->
+                val reopened = workspace.get(seated.id)
+                assertEquals("reviewer" to 3L, reopened.profile to reopened.profileRevision)
+                assertEquals(null to null, workspace.get(plain.id).let { it.profile to it.profileRevision })
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun anIsolatedSeatRunsWithoutTheHarnessDoor() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            AgentWorkspace(root, directory, mapOf(harness.kind to harness), harnessMcpConfig = "door.json").use { workspace ->
+                workspace.submit(AgentSubmission("shared", harness.kind, "Shared turn"))
+                workspace.submit(AgentSubmission("isolated", harness.kind, "Isolated turn",
+                    resolvedSeat = ResolvedTaskSeat(TaskSeat(agent = harness.kind, profile = "probe"), profileRevision = 1, tools = ToolPolicy(isolateOperatorConfig = true))))
+                withTimeout(10_000) { while (harness.requests.size < 2) delay(20) }
+                assertEquals(mapOf(false to "door.json", true to null), harness.requests.associate { it.agent.tools.isolateOperatorConfig to it.agent.tools.mcpConfig })
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun anUnknownPlanSessionDoesNotEnterTheNativeProfileStore() {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        try {
+            AgentWorkspace(root, directory, emptyMap()).use { workspace ->
+                val identity = workspace.planIdentity(BoardActor(BoardActorKind.Agent, "forged", "other:session"))
+                assertNull(identity.agent)
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
     @Test fun anEffortTheProviderDoesNotAdvertiseIsRefusedRatherThanQuietlyLowered() {
         val root = Files.createTempDirectory("agent-root").toFile()
         val directory = Files.createTempDirectory("agent-state")
@@ -128,6 +174,19 @@ class AgentWorkspaceTest {
             if (request.prompt.contains("BLOCK_UNTIL_CANCEL")) awaitCancellation()
             emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, "answer-${kind.name}", true, session = session)))
         }
+    }
+
+    @Test fun codexRunsUseTheWorkspaceParentAsTheAppProject() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                terminal(owner, owner.submit(AgentSubmission("codex-project", harness.kind, "task")))
+                assertEquals(root.canonicalFile.parentFile.canonicalPath,
+                    harness.requests.single().agent.attributes["codexProjectDirectory"])
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
     @Test fun reasoningIsRecordedBesideTheAnswerRatherThanInsideIt() = runBlocking {

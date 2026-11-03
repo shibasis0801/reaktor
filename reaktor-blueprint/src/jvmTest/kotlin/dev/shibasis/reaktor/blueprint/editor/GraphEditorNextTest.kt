@@ -24,6 +24,15 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GraphEditorNextTest {
+    private fun editor(shape: GraphShape, placement: Placement, id: String = "next", revision: Int = 0,
+        terms: GraphTerms = GraphTerms, catalogue: ((GraphShape) -> List<Template>)? = null) =
+        GraphEditor(shape, placement, id = id, revision = revision, terms = terms, catalogue = catalogue).also {
+            it.permits = { _, _ -> true }
+            it.validate = { Verdict(true, "") }
+            it.commit = { _, expected -> EditReceipt.Accepted(expected.copy(source = expected.source + "+")) }
+            it.savePlacement = { _, expected -> EditReceipt.Accepted(expected.copy(presentation = expected.presentation + "+")) }
+        }
+
     private fun node(id: String, vararg ports: PortShape, type: String = id.uppercase(), scope: String = "app") = NodeShape(id, scope, id.uppercase(), type, NodeKind.Service, ports = ports.toList())
     private fun out(key: String, type: String = "Int") = PortShape(key, type, true, PortWiring.Unused)
     private fun into(key: String, type: String = "Int") = PortShape(key, type, false, PortWiring.Unmatched)
@@ -46,7 +55,7 @@ class GraphEditorNextTest {
 
     @Test
     fun aNewCycleWarnsWithItsPathButOneAlreadyInTheAppDoesNot() {
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         assertTrue(editor.warnings.none { it.path.isNotEmpty() })
         assertTrue(editor.connect(PinEnd("b", "out", true), PinEnd("a", "back", false)).ok)
@@ -54,7 +63,7 @@ class GraphEditorNextTest {
         assertEquals("A → B → A form a cycle", cycle.text)
         assertEquals(2, cycle.path.size)
         assertTrue(editor.valid)
-        val known = GraphEditor(editor.shape, spots)
+        val known = editor(editor.shape, spots)
         assertTrue(known.warnings.none { it.path.isNotEmpty() })
     }
 
@@ -65,7 +74,7 @@ class GraphEditorNextTest {
             override fun conversion(provided: String, needed: String) = if (provided == "Int" && needed == "Number") "Int is a Number" else null
         }
         val shape = chain.copy(nodes = chain.nodes + node("n", into("value", "Number")))
-        val editor = GraphEditor(shape, spots, terms = terms)
+        val editor = editor(shape, spots, terms = terms)
         val verdict = editor.verdict(PinEnd("a", "out", true), PinEnd("n", "value", false))
         assertTrue(verdict.ok)
         assertTrue(verdict.message.endsWith("· Int is a Number"), verdict.message)
@@ -77,7 +86,7 @@ class GraphEditorNextTest {
     fun aMismatchWithAnAdapterInsertsTheAdapterBetweenThem() {
         val adapter = Template("To text", NodeKind.Service, "ToText", listOf(into("value", "Int"), out("text", "String")))
         val shape = chain.copy(nodes = chain.nodes + node("t", into("label", "String")))
-        val editor = GraphEditor(shape, spots + mapOf("t" to Spot(900.0, 0.0)), catalogue = { listOf(adapter) })
+        val editor = editor(shape, spots + mapOf("t" to Spot(900.0, 0.0)), catalogue = { listOf(adapter) })
         val verdict = editor.verdict(PinEnd("a", "out", true), PinEnd("t", "label", false))
         assertTrue(verdict.ok)
         assertTrue(verdict.message.startsWith("Convert through To text"), verdict.message)
@@ -90,22 +99,22 @@ class GraphEditorNextTest {
 
     @Test
     fun arrowsWalkAlongWiresAndFallBackToTheNearestCard() {
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false))
         editor.connect(PinEnd("a", "out", true), PinEnd("c", "in", false))
-        assertFalse(editor.travel(1, 0))
+        assertFalse(editor.walk(1, 0))
         editor.select(Selection(setOf("a")))
-        assertTrue(editor.travel(1, 0))
+        assertTrue(editor.walk(1, 0))
         assertEquals(setOf("b"), editor.selection.nodes)
-        assertTrue(editor.travel(0, 1))
+        assertTrue(editor.walk(0, 1))
         assertEquals(setOf("c"), editor.selection.nodes)
-        assertTrue(editor.travel(-1, 0))
+        assertTrue(editor.walk(-1, 0))
         assertEquals(setOf("a"), editor.selection.nodes)
     }
 
     @Test
     fun findReachesIntoFoldsAndRevealingAHitOpensTheFold() {
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         editor.group("Pair", Selection(setOf("b", "c")))
         val note = editor.selection.notes.single()
         editor.fold(note)
@@ -119,7 +128,7 @@ class GraphEditorNextTest {
 
     @Test
     fun bookmarksRememberAViewAndComeBackToIt() {
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         val camera = Camera()
         editor.attach(camera)
         editor.invoke(CommandId("edit-mark-3"))
@@ -133,7 +142,7 @@ class GraphEditorNextTest {
 
     @Test
     fun aNoteOnANodeTravelsWithTheDraftAndUndoes() {
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         editor.remark("b", "  Make this async  ")
         assertEquals("Make this async", editor.placement.remarks["b"])
         assertEquals("Note on B", editor.history.first())
@@ -147,7 +156,7 @@ class GraphEditorNextTest {
 
     @Test
     fun aSharedKnotCarriesEveryLinkFromAPinAndMovesAsOne() {
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false))
         editor.connect(PinEnd("a", "out", true), PinEnd("c", "in", false))
         editor.bundle(PinEnd("a", "out", true))
@@ -166,7 +175,7 @@ class GraphEditorNextTest {
 
     @Test
     fun comparingWithAVersionShowsWhatChangedSinceAndRestoringItUndoes() {
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         editor.rename("b", "Beta")
         val first = editor.changeSet(editor.draft(1000)).copy(revision = 1)
         editor.saved(editor.draft(1000))
@@ -184,7 +193,7 @@ class GraphEditorNextTest {
 
     @Test
     fun someoneElseEditingMakesTheDraftReadOnlyUntilTakeOver() {
-        val editor = GraphEditor(chain, spots, id = "draft-1", revision = 1)
+        val editor = editor(chain, spots, id = "draft-1", revision = 1)
         var took = 0
         var asked = 0
         editor.onTakeOver = { took++ }
@@ -212,7 +221,7 @@ class GraphEditorNextTest {
     @Test
     fun aLinkedPartUpdatesEveryOlderUseAsOneStep() {
         val kept = mutableListOf<ChangeSet>()
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         editor.onTemplate = { kept += it }
         editor.connect(PinEnd("b", "out", true), PinEnd("c", "in", false))
         editor.select(Selection(setOf("b", "c")))
@@ -249,7 +258,7 @@ class GraphEditorNextTest {
         assertEquals(Chord.Of(KeyName.K, primary = true, shift = true), chord)
         assertEquals("primary+shift+K", chord.text())
         assertEquals(chord, chordOf(chord.text()))
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         val saved = mutableListOf<EditorPrefs>()
         editor.onPrefs = { saved += it }
         editor.prefer(editor.prefs.copy(keys = mapOf("edit-comment" to chord.text(), "edit-straighten" to "")))
@@ -261,7 +270,7 @@ class GraphEditorNextTest {
 
     @Test
     fun favouritesComeFirstAndDescribingSendsTheSelection() {
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         val last = editor.choices.last()
         editor.favour(last)
         assertEquals(last.key, editor.choices.first().key)
@@ -276,7 +285,7 @@ class GraphEditorNextTest {
 
     @Test
     fun droppingFromTheShelfAddsWherePointerLands() {
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         editor.attach(Camera())
         editor.carrying = Carry(Template("Sink", NodeKind.Service, "Sink", listOf(into("in"))), Offset(700f, 650f))
         editor.drop(Offset(700f, 650f))
@@ -292,12 +301,12 @@ class GraphEditorNextTest {
         assertEquals(trial, Trial.decode(trial.encode()))
         assertEquals(1, trial.passed)
         assertEquals(1, trial.failed)
-        val editor = GraphEditor(chain, spots)
+        val editor = editor(chain, spots)
         editor.watch(PinEnd("a", "out", true))
         assertEquals(setOf(PinEnd("a", "out", true)), editor.watched)
         editor.watch(PinEnd("a", "out", true))
         assertTrue(editor.watched.isEmpty())
-        assertNotNull(GraphEditor(chain, spots).commands.commands.firstOrNull { it.id.value == "edit-go-9" })
+        assertNotNull(editor(chain, spots).commands.commands.firstOrNull { it.id.value == "edit-go-9" })
     }
 }
 

@@ -32,8 +32,16 @@ class GraphEditorFeaturesTest {
     private val placement = Placement(mapOf("a" to Spot(0.0, 0.0), "b" to Spot(400.0, 0.0), "c" to Spot(0.0, 200.0)))
     private val sink = Template("Sink", NodeKind.Service, "Sink", listOf(PortShape("in", "Int", false, PortWiring.Unmatched)))
 
+    private fun GraphEditor.authorised() = apply {
+        editRevision = EditRevision("source", "presentation")
+        permits = { _, _ -> true }
+        validate = { Verdict(true, "") }
+        commit = { _, expected -> EditReceipt.Accepted(expected.copy(source = expected.source + "+")) }
+        savePlacement = { _, expected -> EditReceipt.Accepted(expected.copy(presentation = expected.presentation + "+")) }
+    }
+
     private fun drafted(): GraphPart {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).authorised()
         editor.rename("b", "Beta")
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         val added = editor.add(sink, Spot(800.0, 400.0))
@@ -52,7 +60,7 @@ class GraphEditorFeaturesTest {
         assertTrue(live.applied(part))
         val replay = live.replay(part)
         assertTrue(replay.conflicts.isEmpty())
-        val reopened = GraphEditor(live, placement, "draft-1", "Wiring", 1, replay.shape, conflicts = replay.conflicts)
+        val reopened = GraphEditor(live, placement, "draft-1", "Wiring", 1, replay.shape, conflicts = replay.conflicts).authorised()
         assertTrue(reopened.diff.empty)
         assertTrue(reopened.applied)
     }
@@ -67,7 +75,7 @@ class GraphEditorFeaturesTest {
 
     @Test
     fun aDraftKeepsWhatChangedInTheLiveGraphSinceItWasSaved() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).authorised()
         editor.update("b") { it.copy(ports = it.ports + PortShape("extra", "Int", false, PortWiring.Unmatched)) }
         val live = shape.copy(nodes = shape.nodes.map { if (it.id == "b") it.copy(label = "Bee", ports = listOf(PortShape("live", "Int", false, PortWiring.Unmatched)) + it.ports) else it })
         val merged = live.replay(editor.graphPart()).shape.node("b")!!
@@ -77,7 +85,7 @@ class GraphEditorFeaturesTest {
 
     @Test
     fun stepsAreNamedAndHistoryMovesSeveralAtOnce() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).authorised()
         editor.rename("a", "Alpha")
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         editor.comment(Selection(setOf("c")))
@@ -94,11 +102,11 @@ class GraphEditorFeaturesTest {
 
     @Test
     fun unsavedEditsComeBackAfterTheEditorCloses() {
-        val editor = GraphEditor(shape, placement, id = "draft-9", title = "Lost work")
+        val editor = GraphEditor(shape, placement, id = "draft-9", title = "Lost work").authorised()
         editor.rename("a", "Alpha")
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         val kept = ChangeSet.decode(editor.recovery(1_000L).encode())
-        val next = GraphEditor(shape, placement)
+        val next = GraphEditor(shape, placement).authorised()
         next.recovered = kept
         next.restore(kept)
         assertEquals(editor.shape, next.shape)
@@ -116,13 +124,13 @@ class GraphEditorFeaturesTest {
             override fun write(text: String) { this.text = text }
             override fun read(then: (String?) -> Unit) = then(text)
         }
-        val editor = GraphEditor(shape, placement).apply { system = board }
+        val editor = GraphEditor(shape, placement).authorised().apply { system = board }
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         assertEquals(2, editor.copy(Selection(setOf("a", "b"))))
         val set = ChangeSet.decode(board.text!!)
         assertEquals(ChangeSet.Format, set.format)
         assertEquals(listOf("addNode", "addNode", "connect"), set.graph!!.changes.map { it.op })
-        val other = GraphEditor(shape, placement).apply { system = board }
+        val other = GraphEditor(shape, placement).authorised().apply { system = board }
         other.paste(Spot(800.0, 800.0))
         assertEquals(setOf("A 2", "B 2"), other.selection.nodes.mapTo(hashSetOf()) { other.node(it)!!.label })
         assertEquals(1, other.shape.wires.count { it.provider in other.selection.nodes && it.consumer in other.selection.nodes })
@@ -132,7 +140,7 @@ class GraphEditorFeaturesTest {
     @Test
     fun aSelectionSavedAsATemplateComesBackFromThePalette() {
         var kept: ChangeSet? = null
-        val editor = GraphEditor(shape, placement).apply { onTemplate = { kept = it } }
+        val editor = GraphEditor(shape, placement).authorised().apply { onTemplate = { kept = it } }
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         editor.select(Selection(setOf("a", "b")))
         editor.template("Pair")
@@ -146,7 +154,7 @@ class GraphEditorFeaturesTest {
 
     @Test
     fun groupingFoldingAndOpeningASubgraph() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).authorised()
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         editor.group("Sources", Selection(setOf("a", "c")))
         val note = editor.selection.notes.single()
@@ -167,12 +175,25 @@ class GraphEditorFeaturesTest {
         assertTrue(editor.press(x, y, Offset.Zero, 4f, PointerKeyboardModifiers(), 1, false))
         editor.release(x, y, Offset.Zero)
         assertEquals(setOf(note, "b"), editor.layout.cards.keys)
+        val groupedShape = editor.shape
+        val groupedPlacement = editor.placement
+        val groupedFocus = editor.focus
         assertTrue(editor.press(x, y, Offset.Zero, 4f, PointerKeyboardModifiers(), 2, false))
+        assertEquals(setOf(note, "b"), editor.layout.cards.keys)
+        assertEquals(groupedShape, editor.shape)
+        assertEquals(groupedPlacement, editor.placement)
+        assertEquals(groupedFocus, editor.focus)
+        editor.release(x, y, Offset.Zero)
+        editor.unfold(note)
         assertEquals(setOf("a", "b", "c"), editor.layout.cards.keys)
         editor.open(note)
-        assertEquals(setOf("a", "c"), editor.layout.cards.keys)
+        assertEquals(setOf("a", "b", "c"), editor.layout.cards.keys)
+        assertEquals(setOf("b"), editor.context)
         assertEquals(listOf(note), editor.crumbs.map { it.id })
         editor.invoke(CommandId("edit-escape"))
+        assertEquals(note, editor.focus)
+        assertEquals(setOf("a", "b", "c"), editor.layout.cards.keys)
+        editor.open(null)
         assertNull(editor.focus)
         assertEquals(setOf("a", "b", "c"), editor.layout.cards.keys)
     }
@@ -181,16 +202,16 @@ class GraphEditorFeaturesTest {
     fun aWiderInputAcceptsANarrowerOutput() {
         val numbers = object : GraphTerms { override fun fits(provided: String, needed: String) = provided == needed || provided == "Int" && needed == "Number" }
         val wide = shape.copy(nodes = shape.nodes + NodeShape("d", "app", "D", "D", NodeKind.Service, ports = listOf(PortShape("in", "Number", false, PortWiring.Unmatched))))
-        val editor = GraphEditor(wide, placement, terms = numbers)
+        val editor = GraphEditor(wide, placement, terms = numbers).authorised()
         assertEquals("Connect out to in · Int fits Number", editor.connect(PinEnd("a", "out", true), PinEnd("d", "in", false)).message)
         assertTrue(editor.valid)
-        assertFalse(GraphEditor(wide, placement).connect(PinEnd("a", "out", true), PinEnd("d", "in", false)).ok)
+        assertFalse(GraphEditor(wide, placement).authorised().connect(PinEnd("a", "out", true), PinEnd("d", "in", false)).ok)
         assertTrue(Template("Gauge", NodeKind.Service, "Gauge", listOf(PortShape("in", "Number", false, PortWiring.Unmatched))).offers(wide.node("a")!!.port("out", true), numbers::fits))
     }
 
     @Test
     fun tidyLaysTheSelectionOutInDependencyOrder() {
-        val editor = GraphEditor(shape, Placement(mapOf("a" to Spot(800.0, 300.0), "b" to Spot(0.0, 0.0), "c" to Spot(48.0, 600.0))))
+        val editor = GraphEditor(shape, Placement(mapOf("a" to Spot(800.0, 300.0), "b" to Spot(0.0, 0.0), "c" to Spot(48.0, 600.0)))).authorised()
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         editor.selectAll()
         editor.invoke(CommandId("edit-tidy"))
@@ -203,7 +224,7 @@ class GraphEditorFeaturesTest {
     @Test
     fun newNodesLandInAFreeSpotInsideTheirArea() {
         val zoned = shape.copy(scopes = shape.scopes + ScopeShape("zone", "Zone", "app"))
-        val editor = GraphEditor(zoned, placement.copy(notes = listOf(Note("zone", "Zone", 600.0, -100.0, 400.0, 300.0))))
+        val editor = GraphEditor(zoned, placement.copy(notes = listOf(Note("zone", "Zone", 600.0, -100.0, 400.0, 300.0)))).authorised()
         val onTop = editor.add(sink, Spot(136.0, 23.0))
         val card = editor.layout.cards.getValue(onTop)
         assertTrue(editor.layout.cards.values.filter { it.id != onTop }.none { it.x < card.x + card.width && card.x < it.x + it.width && it.y < card.y + card.height && card.y < it.y + it.height })
@@ -222,7 +243,7 @@ class GraphEditorFeaturesTest {
         val drafted = SurfaceGraphDocument(listOf(source("Limits", "Series")), emptyList(), groups, rowKey = byTitle)
         val layout = BlueprintLayout(Unit, linkedMapOf("source:a" to Card("source:a", 0.0, 0.0, 272.0, BlueprintEngine.cardHeight(2), emptyList(), 0)),
             listOf(Frame("area:maths", "Maths", -18.0, -40.0, 308.0, 160.0, linkedSetOf("source:a"), emptyList(), false)), emptyList(), 300.0, 120.0)
-        val editor = drafted.editor(layout, EditorInk(), "Atlas")
+        val editor = drafted.editor(layout, EditorInk(), "Atlas").authorised()
         assertEquals(listOf("Limits", "Series"), editor.terms.rows(editor.node("source:a")!!))
         editor.update("source:a") { node -> node.copy(ports = node.ports.filterNot { it.key == "Series" }) }
         val live = SurfaceGraphDocument(listOf(source("Intro", "Limits", "Series")), emptyList(), groups, rowKey = byTitle)

@@ -66,6 +66,64 @@ class McpTasksTest {
         }
     }
 
+    @Test fun longRunningOperationsReturnUnsolicitedTaskHandlesAndRejectTasksList() {
+        val host = object : McpTasks {
+            override fun unsolicited(tool: String, arguments: JsonObject, metadata: JsonObject): Boolean =
+                isMcpLongRunningCall(tool, arguments)
+
+            override fun call(tool: String, arguments: JsonObject, metadata: JsonObject): JsonObject? {
+                if (!isMcpLongRunningCall(tool, arguments)) return null
+                return buildJsonObject {
+                    put("resultType", "task")
+                    put("taskId", "task-$tool")
+                    put("status", "working")
+                }
+            }
+
+            override fun request(method: String, params: JsonObject): JsonObject = buildJsonObject {
+                put("resultType", "complete")
+                put("method", method)
+                put("taskId", params.getValue("taskId"))
+            }
+        }
+        val server = ReaktorMcpServer("reaktor", "1", "", listOf(
+            McpTool("check_run", "Run checks", emptyObjectSchema(), false, false) { JsonObject(emptyMap()) },
+            McpTool("kernel", "Kernel", emptyObjectSchema(), false, false) { JsonObject(emptyMap()) },
+        ), tasks = host)
+        val metaWithoutExtension = buildJsonObject { put(MCP_REQUEST_VERSION, MCP_TASKS_VERSION) }
+        val checkTask = result(server, "tools/call", buildJsonObject {
+            put("name", "check_run")
+            putJsonObject("arguments") { put("change", "p1") }
+            put("_meta", metaWithoutExtension)
+        })
+        assertEquals("task", checkTask.getValue("resultType").jsonPrimitive.content)
+        assertEquals("task-check_run", checkTask.getValue("taskId").jsonPrimitive.content)
+
+        for (op in listOf("build.run", "ship.plan")) {
+            val opTask = result(server, "tools/call", buildJsonObject {
+                put("name", "kernel")
+                putJsonObject("arguments") { put("operation", op) }
+                put("_meta", metaWithoutExtension)
+            })
+            assertEquals("task", opTask.getValue("resultType").jsonPrimitive.content)
+        }
+
+        for (method in listOf("tasks/get", "tasks/update", "tasks/cancel")) {
+            val polled = result(server, method, buildJsonObject {
+                put("taskId", "task-check_run")
+                put("_meta", metaWithoutExtension)
+            })
+            assertEquals("complete", polled.getValue("resultType").jsonPrimitive.content)
+            assertEquals(method, polled.getValue("method").jsonPrimitive.content)
+        }
+
+        val tasksList = server.handle(buildJsonObject {
+            put("jsonrpc", "2.0"); put("id", 9); put("method", "tasks/list")
+            putJsonObject("params") { put("_meta", metaWithoutExtension) }
+        }.toString())!!.jsonObject.getValue("error").jsonObject
+        assertEquals(-32601, tasksList.getValue("code").jsonPrimitive.content.toInt())
+    }
+
     private fun result(server: ReaktorMcpServer, method: String, params: JsonObject = JsonObject(emptyMap())) = server.handle(
         buildJsonObject { put("jsonrpc", "2.0"); put("id", 1); put("method", method); put("params", params) }.toString())!!
         .jsonObject.getValue("result").jsonObject

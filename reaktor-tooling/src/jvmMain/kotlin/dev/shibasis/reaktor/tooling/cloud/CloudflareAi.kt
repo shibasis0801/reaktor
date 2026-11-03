@@ -20,6 +20,7 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
 import dev.shibasis.reaktor.core.framework.lenientJson
@@ -99,7 +100,86 @@ data class AiGatewayLog(
     val metadata: String?,
 )
 
-data class AiCompletion(val body: JsonObject, val logId: String?, val millis: Long)
+@Serializable
+data class AiUsage(
+    val inputTokens: Long = 0,
+    val outputTokens: Long = 0,
+    val totalTokens: Long = inputTokens + outputTokens,
+    val neurons: Double? = null,
+    val cost: Double? = null,
+)
+
+@Serializable
+data class AiMessage(
+    val role: String,
+    val content: String,
+)
+
+@Serializable
+data class AiRunTitle(
+    val title: String,
+    val summary: String,
+    val logId: String? = null,
+    val cached: Boolean = false,
+    val usage: AiUsage = AiUsage(),
+)
+
+@Serializable
+data class AiChangeDigest(
+    val title: String,
+    val summary: String,
+    val highlights: List<String> = emptyList(),
+    val logId: String? = null,
+    val cached: Boolean = false,
+    val usage: AiUsage = AiUsage(),
+)
+
+@Serializable
+data class AiPlanItemCandidate(
+    val id: String,
+    val title: String,
+    val kind: String = "Task",
+    val status: String = "Todo",
+    val priority: String = "Normal",
+    val parent: String? = null,
+)
+
+@Serializable
+data class AiItemTriage(
+    val priority: String,
+    val parent: String?,
+    val after: List<String>,
+    val summary: String,
+    val logId: String? = null,
+    val cached: Boolean = false,
+    val usage: AiUsage = AiUsage(),
+)
+
+enum class AiGatewayRoute { Compat, WorkersAi }
+
+data class AiCompletion(
+    val body: JsonObject,
+    val logId: String?,
+    val millis: Long,
+    val text: String = body.objects("choices").firstOrNull().obj("message").text("content").orEmpty(),
+    val reasoning: String? = body.objects("choices").firstOrNull().obj("message").text("reasoning_content"),
+    val usage: AiUsage = body.obj("usage").toAiUsage(),
+    val cached: Boolean = false,
+    val model: String = body.text("model").orEmpty(),
+    val gateway: String? = null,
+)
+
+private fun JsonObject.toAiUsage(): AiUsage {
+    val input = long("prompt_tokens") ?: long("input_tokens") ?: 0L
+    val output = long("completion_tokens") ?: long("output_tokens") ?: 0L
+    return AiUsage(
+        inputTokens = input,
+        outputTokens = output,
+        totalTokens = long("total_tokens") ?: (input + output),
+        neurons = number("neurons"),
+        cost = number("cost"),
+    )
+}
 
 @Serializable
 data class AiTry(
@@ -174,10 +254,43 @@ object CloudflareAccounts {
 class CloudflareAi(
     private val accountId: String,
     private val credentials: CloudflareCredentials,
-    private val base: String = "https://api.cloudflare.com/client/v4",
+    private val base: String = DefaultApiBase,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val gatewayBase: String = if (base == DefaultApiBase) AiGatewayClient.DefaultBase else base,
 ) {
-    private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
+    private val http = SharedHttp
+
+    fun gateway(
+        id: String = AiGatewayClient.DefaultGateway,
+        gatewayCredentials: CloudflareCredentials = credentials,
+    ): AiGatewayClient = AiGatewayClient(
+        accountId = accountId,
+        gateway = id,
+        credentials = credentials,
+        gatewayCredentials = gatewayCredentials,
+        base = gatewayBase,
+        clock = clock,
+        http = http,
+    )
+
+    suspend fun completeGateway(
+        request: JsonObject,
+        gateway: String = AiGatewayClient.DefaultGateway,
+        route: AiGatewayRoute = AiGatewayRoute.Compat,
+        cacheKey: String? = null,
+        cacheTtlSeconds: Long? = null,
+        skipCache: Boolean = false,
+        metadata: Map<String, String> = emptyMap(),
+        timeoutSeconds: Long = 180,
+    ): AiCompletion = gateway(gateway).complete(
+        request = request,
+        route = route,
+        cacheKey = cacheKey,
+        cacheTtlSeconds = cacheTtlSeconds,
+        skipCache = skipCache,
+        metadata = metadata,
+        timeoutSeconds = timeoutSeconds,
+    )
 
     suspend fun read(source: String, days: Int = 7): AiReading = coroutineScope {
         val models = async { runCatching { models() } }
@@ -279,7 +392,7 @@ class CloudflareAi(
     }.sortedByDescending { it.requests }
 
     suspend fun gateways(): List<AiGateway> =
-        call("GET", "/accounts/$accountId/ai-gateway/gateways?per_page=100").body.objects("result").map(::gateway).sortedBy { it.id }
+        call("GET", "/accounts/$accountId/ai-gateway/gateways?per_page=100").body.objects("result").map(::parseGateway).sortedBy { it.id }
 
     suspend fun logs(gateway: String, limit: Int = 50): List<AiGatewayLog> =
         call("GET", "/accounts/$accountId/ai-gateway/gateways/$gateway/logs?per_page=${limit.coerceIn(1, 50)}&order_by=created_at&order_by_direction=desc")
@@ -300,7 +413,7 @@ class CloudflareAi(
                 )
             }
 
-    suspend fun createGateway(id: String): AiGateway = gateway(
+    suspend fun createGateway(id: String): AiGateway = parseGateway(
         call("POST", "/accounts/$accountId/ai-gateway/gateways", buildJsonObject {
             put("id", id)
             put("cache_invalidate_on_update", false)
@@ -314,14 +427,21 @@ class CloudflareAi(
     suspend fun complete(request: JsonObject, gateway: String? = null, metadata: Map<String, String> = emptyMap()): AiCompletion {
         val headers = buildMap {
             gateway?.let { put("cf-aig-gateway-id", it) }
-            if (metadata.isNotEmpty()) put("cf-aig-metadata", buildJsonObject { metadata.entries.take(5).forEach { (key, value) -> put(key, value) } }.toString())
+            if (metadata.isNotEmpty()) put("cf-aig-metadata", metadataJson(metadata))
         }
         val started = clock()
         val response = call("POST", "/accounts/$accountId/ai/v1/chat/completions", request, headers, timeoutSeconds = 180)
-        return AiCompletion(response.body, response.headers["cf-aig-log-id"], clock() - started)
+        return AiCompletion(
+            body = response.body,
+            logId = response.header("cf-aig-log-id"),
+            millis = clock() - started,
+            cached = response.header("cf-aig-cache-status")?.equals("HIT", ignoreCase = true) == true,
+            model = request.text("model").orEmpty().ifBlank { response.body.text("model").orEmpty() },
+            gateway = gateway,
+        )
     }
 
-    private fun gateway(item: JsonObject) = AiGateway(
+    private fun parseGateway(item: JsonObject) = AiGateway(
         id = item.text("id").orEmpty(),
         createdAt = instantMillis(item.text("created_at")),
         collectLogs = item.flag("collect_logs") ?: false,
@@ -352,30 +472,460 @@ class CloudflareAi(
         return response.obj("data").obj("viewer").objects("accounts").firstOrNull() ?: JsonObject(emptyMap())
     }
 
-    private class Response(val body: JsonObject, val headers: Map<String, String>)
-
-    private suspend fun call(method: String, path: String, body: JsonElement? = null, headers: Map<String, String> = emptyMap(), timeoutSeconds: Long = 30): Response {
-        suspend fun send(token: String): HttpResponse<String> {
-            val request = HttpRequest.newBuilder(URI.create(base + path))
-                .header("Authorization", "Bearer $token")
-                .header("Content-Type", "application/json")
-                .timeout(Duration.ofSeconds(timeoutSeconds))
-                .apply { headers.forEach { (name, value) -> header(name, value) } }
-                .method(method, body?.let { HttpRequest.BodyPublishers.ofString(it.toString()) } ?: HttpRequest.BodyPublishers.noBody())
-                .build()
-            return http.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
-        }
-        val response = if (credentials is CloudflareLogin) credentials.authenticated(::send) { it.statusCode() == 401 } else send(credentials.token())
-        val parsed = runCatching { lenientJson.parseToJsonElement(response.body()) as? JsonObject }.getOrNull()
-        if (response.statusCode() !in 200..299) {
-            val reason = parsed.objects("errors").firstOrNull()?.text("message") ?: parsed?.obj("error")?.text("message") ?: "HTTP ${response.statusCode()}"
-            throw CloudflareFailure("${path.substringBefore('?').substringAfter("/accounts/$accountId")}: $reason")
-        }
-        return Response(parsed ?: throw CloudflareFailure("${path.substringBefore('?')}: unreadable response"),
-            response.headers().map().mapValues { it.value.firstOrNull().orEmpty() })
-    }
+    private suspend fun call(method: String, path: String, body: JsonElement? = null, headers: Map<String, String> = emptyMap(), timeoutSeconds: Long = 30): CloudflareResponse =
+        requestCloudflareJson(
+            http = http,
+            credentials = credentials,
+            method = method,
+            url = base + path,
+            label = path.substringBefore('?').substringAfter("/accounts/$accountId"),
+            body = body,
+            headers = { headers },
+            timeoutSeconds = timeoutSeconds,
+        )
 
     private fun JsonArray?.orEmpty(): List<JsonElement> = this ?: emptyList()
+
+    companion object {
+        const val DefaultApiBase: String = "https://api.cloudflare.com/client/v4"
+    }
+}
+
+class AiGatewayClient(
+    val accountId: String,
+    val gateway: String = DefaultGateway,
+    private val credentials: CloudflareCredentials,
+    private val gatewayCredentials: CloudflareCredentials = credentials,
+    private val base: String = DefaultBase,
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val http: HttpClient = SharedHttp,
+) {
+    suspend fun complete(
+        request: JsonObject,
+        route: AiGatewayRoute = AiGatewayRoute.Compat,
+        cacheKey: String? = null,
+        cacheTtlSeconds: Long? = null,
+        skipCache: Boolean = false,
+        metadata: Map<String, String> = emptyMap(),
+        timeoutSeconds: Long = 180,
+    ): AiCompletion {
+        val rawModel = request.text("model").orEmpty()
+        val normalizedModel = when (route) {
+            AiGatewayRoute.Compat -> compatModel(rawModel)
+            AiGatewayRoute.WorkersAi -> workersAiModel(rawModel)
+        }
+        val payload = if (normalizedModel.isNotEmpty() && normalizedModel != rawModel) {
+            JsonObject(request + ("model" to JsonPrimitive(normalizedModel)))
+        } else {
+            request
+        }
+        val endpoint = when (route) {
+            AiGatewayRoute.Compat -> "/$gateway/compat/chat/completions"
+            AiGatewayRoute.WorkersAi -> "/$gateway/workers-ai/v1/chat/completions"
+        }
+        val path = "/$accountId$endpoint"
+        val explicitGatewayToken = if (gatewayCredentials === credentials) null else gatewayCredentials.token()
+        val started = clock()
+        val response = requestCloudflareJson(
+            http = http,
+            credentials = credentials,
+            method = "POST",
+            url = base.trimEnd('/') + path,
+            label = endpoint,
+            body = payload,
+            headers = { token ->
+                buildMap {
+                    val gatewayToken = (explicitGatewayToken ?: token).trim()
+                    if (gatewayToken.isNotEmpty()) put("cf-aig-authorization", "Bearer $gatewayToken")
+                    cacheKey?.trim()?.takeIf(String::isNotEmpty)?.let { put("cf-aig-cache-key", it) }
+                    cacheTtlSeconds?.takeIf { it >= 0 }?.let { put("cf-aig-cache-ttl", it.toString()) }
+                    if (skipCache) put("cf-aig-skip-cache", "true")
+                    if (metadata.isNotEmpty()) put("cf-aig-metadata", metadataJson(metadata))
+                }
+            },
+            timeoutSeconds = timeoutSeconds,
+        )
+        return AiCompletion(
+            body = response.body,
+            logId = response.header("cf-aig-log-id"),
+            millis = clock() - started,
+            cached = response.header("cf-aig-cache-status")?.equals("HIT", ignoreCase = true) == true,
+            model = normalizedModel.ifBlank { response.body.text("model").orEmpty() },
+            gateway = gateway,
+        )
+    }
+
+    suspend fun complete(
+        messages: List<AiMessage>,
+        model: String = DefaultModel,
+        system: String? = null,
+        maxTokens: Int = 512,
+        temperature: Double? = null,
+        cacheKey: String? = null,
+        cacheTtlSeconds: Long? = DefaultCacheTtlSeconds,
+        skipCache: Boolean = false,
+        metadata: Map<String, String> = emptyMap(),
+        route: AiGatewayRoute = AiGatewayRoute.Compat,
+        timeoutSeconds: Long = 60,
+    ): AiCompletion {
+        val allMessages = buildList {
+            system?.trim()?.takeIf(String::isNotEmpty)?.let { add(AiMessage("system", it)) }
+            addAll(messages)
+        }
+        val request = buildJsonObject {
+            put("model", model)
+            put("max_tokens", maxTokens)
+            temperature?.let { put("temperature", it) }
+            put("messages", JsonArray(allMessages.map { message ->
+                buildJsonObject {
+                    put("role", message.role)
+                    put("content", message.content)
+                }
+            }))
+        }
+        return complete(
+            request = request,
+            route = route,
+            cacheKey = cacheKey,
+            cacheTtlSeconds = cacheTtlSeconds,
+            skipCache = skipCache,
+            metadata = metadata,
+            timeoutSeconds = timeoutSeconds,
+        )
+    }
+
+    suspend fun complete(
+        prompt: String,
+        model: String = DefaultModel,
+        system: String? = null,
+        maxTokens: Int = 512,
+        temperature: Double? = null,
+        cacheKey: String? = null,
+        cacheTtlSeconds: Long? = DefaultCacheTtlSeconds,
+        skipCache: Boolean = false,
+        metadata: Map<String, String> = emptyMap(),
+        route: AiGatewayRoute = AiGatewayRoute.Compat,
+        timeoutSeconds: Long = 60,
+    ): AiCompletion = complete(
+        messages = listOf(AiMessage("user", prompt)),
+        model = model,
+        system = system,
+        maxTokens = maxTokens,
+        temperature = temperature,
+        cacheKey = cacheKey,
+        cacheTtlSeconds = cacheTtlSeconds,
+        skipCache = skipCache,
+        metadata = metadata,
+        route = route,
+        timeoutSeconds = timeoutSeconds,
+    )
+
+    suspend fun titleRun(
+        firstPrompt: String,
+        latestMessages: List<String> = emptyList(),
+        model: String = DefaultModel,
+        cacheTtlSeconds: Long? = DefaultCacheTtlSeconds,
+        skipCache: Boolean = false,
+    ): AiRunTitle {
+        val recent = latestMessages.map(String::trim).filter(String::isNotEmpty).takeLast(6)
+        val prompt = buildString {
+            appendLine("First prompt:")
+            appendLine(firstPrompt.trim())
+            if (recent.isNotEmpty()) {
+                appendLine()
+                appendLine("Latest messages:")
+                recent.forEach { appendLine("- $it") }
+            }
+        }.trim()
+        val completion = complete(
+            prompt = prompt,
+            model = model,
+            system = TitleSystemPrompt,
+            maxTokens = 256,
+            temperature = 0.2,
+            cacheKey = cacheKeyFor("title", model, firstPrompt.trim(), recent.joinToString("\n")),
+            cacheTtlSeconds = cacheTtlSeconds,
+            skipCache = skipCache,
+            metadata = mapOf("source" to "reaktor-orchestration", "task" to "gateway-titles"),
+        )
+        val parsed = parseJsonObject(completion.text)
+        val fallbackLine = recent.lastOrNull() ?: firstPrompt
+        return AiRunTitle(
+            title = normalizeShortTitle(parsed?.text("title") ?: lineValue(completion.text, "title"), firstPrompt),
+            summary = normalizeOneLine(parsed?.text("summary") ?: lineValue(completion.text, "summary") ?: completion.text, fallbackLine),
+            logId = completion.logId,
+            cached = completion.cached,
+            usage = completion.usage,
+        )
+    }
+
+    suspend fun summarizeRun(
+        firstPrompt: String,
+        latestMessages: List<String> = emptyList(),
+        model: String = DefaultModel,
+        cacheTtlSeconds: Long? = DefaultCacheTtlSeconds,
+        skipCache: Boolean = false,
+    ): AiRunTitle = titleRun(firstPrompt, latestMessages, model, cacheTtlSeconds, skipCache)
+
+    suspend fun digestChanges(
+        inbox: List<String>,
+        planChanges: List<String>,
+        agent: String? = null,
+        model: String = DefaultModel,
+        cacheTtlSeconds: Long? = DefaultCacheTtlSeconds,
+        skipCache: Boolean = false,
+    ): AiChangeDigest {
+        val cleanInbox = inbox.map(String::trim).filter(String::isNotEmpty)
+        val cleanChanges = planChanges.map(String::trim).filter(String::isNotEmpty)
+        val prompt = buildString {
+            agent?.trim()?.takeIf(String::isNotEmpty)?.let { appendLine("Agent: $it") }
+            appendLine("Inbox messages (${cleanInbox.size}):")
+            if (cleanInbox.isEmpty()) appendLine("- none") else cleanInbox.forEach { appendLine("- $it") }
+            appendLine("Plan changes (${cleanChanges.size}):")
+            if (cleanChanges.isEmpty()) appendLine("- none") else cleanChanges.forEach { appendLine("- $it") }
+        }.trim()
+        val metadata = buildMap {
+            put("source", "reaktor-orchestration")
+            put("task", "gateway-digest")
+            agent?.trim()?.takeIf(String::isNotEmpty)?.let { put("agent", it) }
+        }
+        val completion = complete(
+            prompt = prompt,
+            model = model,
+            system = DigestSystemPrompt,
+            maxTokens = 384,
+            temperature = 0.2,
+            cacheKey = cacheKeyFor("digest", model, agent.orEmpty(), cleanInbox.joinToString("\n"), cleanChanges.joinToString("\n")),
+            cacheTtlSeconds = cacheTtlSeconds,
+            skipCache = skipCache,
+            metadata = metadata,
+        )
+        val parsed = parseJsonObject(completion.text)
+        val fallbackSource = cleanInbox.firstOrNull() ?: cleanChanges.firstOrNull() ?: "Plan and inbox updates"
+        val highlights = parsed?.strings("highlights")?.map(String::trim)?.filter(String::isNotEmpty).orEmpty()
+            .ifEmpty { (cleanInbox + cleanChanges).take(3) }
+        return AiChangeDigest(
+            title = normalizeShortTitle(parsed?.text("title") ?: lineValue(completion.text, "title"), fallbackSource),
+            summary = normalizeOneLine(parsed?.text("summary") ?: lineValue(completion.text, "summary") ?: completion.text, fallbackSource),
+            highlights = highlights,
+            logId = completion.logId,
+            cached = completion.cached,
+            usage = completion.usage,
+        )
+    }
+
+    suspend fun triageItem(
+        title: String,
+        detail: String = "",
+        existingItems: List<AiPlanItemCandidate> = emptyList(),
+        model: String = DefaultModel,
+        cacheTtlSeconds: Long? = DefaultCacheTtlSeconds,
+        skipCache: Boolean = false,
+    ): AiItemTriage {
+        val knownIds = existingItems.map { it.id }.toSet()
+        val prompt = buildString {
+            appendLine("New item title: ${title.trim()}")
+            if (detail.isNotBlank()) appendLine("New item detail: ${detail.trim()}")
+            appendLine("Existing plan items (${existingItems.size}):")
+            if (existingItems.isEmpty()) {
+                appendLine("- none")
+            } else {
+                existingItems.forEach { item ->
+                    val parentSuffix = item.parent?.let { " parent=$it" }.orEmpty()
+                    appendLine("- ${item.id} [${item.kind}, ${item.status}, ${item.priority}$parentSuffix]: ${item.title}")
+                }
+            }
+        }.trim()
+        val completion = complete(
+            prompt = prompt,
+            model = model,
+            system = TriageSystemPrompt,
+            maxTokens = 384,
+            temperature = 0.1,
+            cacheKey = cacheKeyFor(
+                "triage",
+                model,
+                title.trim(),
+                detail.trim(),
+                existingItems.joinToString(",") { "${it.id}:${it.kind}:${it.status}:${it.priority}:${it.parent.orEmpty()}" },
+            ),
+            cacheTtlSeconds = cacheTtlSeconds,
+            skipCache = skipCache,
+            metadata = mapOf("source" to "reaktor-orchestration", "task" to "gateway-triage"),
+        )
+        val parsed = parseJsonObject(completion.text)
+        val priority = normalizePriority(parsed?.text("priority") ?: lineValue(completion.text, "priority"))
+        val parent = parsed?.text("parent")?.trim()?.takeIf { it in knownIds }
+        val after = parsed?.strings("after").orEmpty()
+            .map(String::trim)
+            .filter { it in knownIds && it != parent }
+            .distinct()
+        return AiItemTriage(
+            priority = priority,
+            parent = parent,
+            after = after,
+            summary = normalizeOneLine(parsed?.text("summary") ?: parsed?.text("reason") ?: completion.text, title),
+            logId = completion.logId,
+            cached = completion.cached,
+            usage = completion.usage,
+        )
+    }
+
+    companion object {
+        const val DefaultBase: String = "https://gateway.ai.cloudflare.com/v1"
+        const val DefaultGateway: String = "reaktor"
+        const val DefaultModel: String = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+        const val DefaultCacheTtlSeconds: Long = 3_600L
+
+        private val Priorities = listOf("Urgent", "High", "Normal", "Low")
+
+        private const val TitleSystemPrompt =
+            "Return only a JSON object {\"title\": \"...\", \"summary\": \"...\"}. " +
+                "title must be 3 to 6 words naming the run or thread. summary must be one concise line stating the goal and latest state."
+
+        private const val DigestSystemPrompt =
+            "Return only a JSON object {\"title\": \"...\", \"summary\": \"...\", \"highlights\": [\"...\"]}. " +
+                "title must be 3 to 6 words. summary must be one concise line summarizing what changed in the inbox and plan."
+
+        private const val TriageSystemPrompt =
+            "Return only a JSON object {\"priority\": \"Urgent|High|Normal|Low\", \"parent\": \"id or null\", \"after\": [\"id\"], \"summary\": \"...\"}. " +
+                "Choose parent and after only from the listed existing item ids."
+
+        fun compatModel(model: String): String {
+            val trimmed = model.trim()
+            if (trimmed.isEmpty()) return ""
+            return when {
+                trimmed.startsWith("@cf/") || trimmed.startsWith("@hf/") -> "workers-ai/$trimmed"
+                '/' !in trimmed -> "workers-ai/$trimmed"
+                else -> trimmed
+            }
+        }
+
+        fun workersAiModel(model: String): String = model.trim().removePrefix("workers-ai/")
+
+        fun cacheKeyFor(prefix: String, vararg parts: String): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+            parts.forEachIndexed { index, part ->
+                if (index > 0) digest.update(0)
+                digest.update(part.toByteArray(Charsets.UTF_8))
+            }
+            val hex = digest.digest().take(12).joinToString("") { "%02x".format(it) }
+            return "$prefix-$hex"
+        }
+
+        internal fun normalizeShortTitle(candidate: String?, fallback: String): String {
+            val words = cleanWords(candidate).ifEmpty { cleanWords(fallback) }
+            val bounded = when {
+                words.size >= 3 -> words.take(6)
+                words.isNotEmpty() -> (words + cleanWords(fallback)).distinct().take(6).let { merged ->
+                    if (merged.size >= 3) merged else (merged + listOf("work", "run", "task")).take(3)
+                }
+                else -> listOf("Agent", "work", "run")
+            }
+            return bounded.joinToString(" ")
+        }
+
+        internal fun normalizeOneLine(candidate: String?, fallback: String): String {
+            val line = candidate.orEmpty()
+                .lineSequence()
+                .map { it.trim().trim('"', '\'', '`') }
+                .firstOrNull { it.isNotEmpty() && !it.startsWith("```") && !it.startsWith("{") && !it.startsWith("}") }
+                ?: fallback.lineSequence().map(String::trim).firstOrNull(String::isNotEmpty)
+                ?: "No summary available."
+            return line.replace(Regex("\\s+"), " ").take(200)
+        }
+
+        internal fun normalizePriority(candidate: String?): String {
+            val trimmed = candidate?.trim().orEmpty()
+            return Priorities.firstOrNull { it.equals(trimmed, ignoreCase = true) } ?: "Normal"
+        }
+
+        private fun cleanWords(text: String?): List<String> = text.orEmpty()
+            .replace(Regex("[`\"'#*\\[\\](){}<>:;,.!?/\\\\|]+"), " ")
+            .trim()
+            .split(Regex("\\s+"))
+            .filter { it.isNotEmpty() }
+
+        private fun parseJsonObject(text: String): JsonObject? {
+            val trimmed = text.trim()
+            val unwrapped = trimmed
+                .removePrefix("```json")
+                .removePrefix("```")
+                .removeSuffix("```")
+                .trim()
+            val slice = if ('{' in unwrapped && '}' in unwrapped) {
+                unwrapped.substring(unwrapped.indexOf('{'), unwrapped.lastIndexOf('}') + 1)
+            } else {
+                unwrapped
+            }
+            return runCatching { lenientJson.parseToJsonElement(slice) as? JsonObject }.getOrNull()
+        }
+
+        private fun lineValue(text: String, key: String): String? = text.lineSequence()
+            .map(String::trim)
+            .firstOrNull { it.startsWith("$key:", ignoreCase = true) }
+            ?.substringAfter(':')
+            ?.trim()
+            ?.trim('"', '\'')
+            ?.takeIf(String::isNotEmpty)
+
+        fun forWorkspace(
+            root: File,
+            gateway: String = DefaultGateway,
+            base: String = DefaultBase,
+            clock: () -> Long = System::currentTimeMillis,
+        ): AiGatewayClient? {
+            val accountId = CloudflareAccounts.of(root) ?: return null
+            val login = CloudflareLogin.forWorkspace(root)
+            val gatewayCredentials = System.getenv("CF_AIG_TOKEN")?.takeIf(String::isNotBlank)?.let(::CloudflareApiToken) ?: login
+            return AiGatewayClient(accountId, gateway, login, gatewayCredentials, base, clock)
+        }
+    }
+}
+
+private val SharedHttp: HttpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
+
+private fun metadataJson(metadata: Map<String, String>): String =
+    buildJsonObject { metadata.entries.take(5).forEach { (key, value) -> put(key, value) } }.toString()
+
+private class CloudflareResponse(val body: JsonObject, val headers: Map<String, String>) {
+    fun header(name: String): String? = headers[name.lowercase()]?.takeIf(String::isNotBlank)
+}
+
+private suspend fun requestCloudflareJson(
+    http: HttpClient,
+    credentials: CloudflareCredentials,
+    method: String,
+    url: String,
+    label: String,
+    body: JsonElement? = null,
+    headers: (String) -> Map<String, String> = { emptyMap() },
+    timeoutSeconds: Long = 30,
+): CloudflareResponse {
+    suspend fun send(token: String): HttpResponse<String> {
+        val request = HttpRequest.newBuilder(URI.create(url))
+            .header("Authorization", "Bearer $token")
+            .header("Content-Type", "application/json")
+            .timeout(Duration.ofSeconds(timeoutSeconds))
+            .apply { headers(token).forEach { (name, value) -> header(name, value) } }
+            .method(method, body?.let { HttpRequest.BodyPublishers.ofString(it.toString()) } ?: HttpRequest.BodyPublishers.noBody())
+            .build()
+        return http.sendAsync(request, HttpResponse.BodyHandlers.ofString()).await()
+    }
+    val response = if (credentials is CloudflareLogin) credentials.authenticated(::send) { it.statusCode() == 401 } else send(credentials.token())
+    val parsed = runCatching { lenientJson.parseToJsonElement(response.body()) as? JsonObject }.getOrNull()
+    if (response.statusCode() !in 200..299) {
+        val reason = parsed.objects("errors").firstOrNull()?.text("message")
+            ?: parsed.objects("error").firstOrNull()?.text("message")
+            ?: parsed?.obj("error")?.text("message")
+            ?: parsed?.text("message")
+            ?: "HTTP ${response.statusCode()}"
+        throw CloudflareFailure("$label: $reason")
+    }
+    return CloudflareResponse(
+        parsed ?: throw CloudflareFailure("$label: unreadable response"),
+        response.headers().map().entries.associate { (name, values) -> name.lowercase() to values.firstOrNull().orEmpty() },
+    )
 }
 
 object CloudflareAiCalls {

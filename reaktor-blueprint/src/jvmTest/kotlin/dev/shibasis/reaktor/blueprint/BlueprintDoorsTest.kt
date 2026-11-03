@@ -82,7 +82,7 @@ class BlueprintDoorsTest {
         assertEquals(1, (1..6).map { layout.cards.getValue("s$it").x }.distinct().size)
     }
 
-    @Test fun `navigation rides over the map when data wires place the frames`() {
+    @Test fun `navigation uses clear doors while data wires place the frames`() {
         val panes = (1..5).map { "p$it" }
         val groups = listOf(BlueprintGroup("shared", "Shared", listOf(node("s", 0)))) + panes.map { BlueprintGroup(it, it, listOf(node("${it}n", 1))) }
         val routes = panes.flatMap { a -> panes.filter { it != a }.map { b -> BlueprintEdge("$a>$b", "${a}n", "${b}n", kind = LinkKind.Route) } }
@@ -91,7 +91,12 @@ class BlueprintDoorsTest {
         val placed = layout.frames.filter { it.key in panes }
         assertTrue(placed.all { it.x > shared.x + shared.width }, "Every pane sits downstream of the data it reads")
         assertTrue(placed.map { it.x }.distinct().size <= 2, "Panes that switch between each other share a column: ${placed.map { it.x }}")
-        assertTrue(layout.links.filter { it.kind == LinkKind.Route }.let { it.size == routes.size && it.all(Link::curve) })
+        val navigation = layout.links.filter { it.kind == LinkKind.Route }
+        assertEquals(routes.size, navigation.size)
+        assertTrue(navigation.all { !it.curve && orthogonal(it.points) })
+        navigation.forEach { link ->
+            assertTrue(layout.cards.values.none { it.id != link.from && it.id != link.to && crosses(link.points, it) })
+        }
     }
 
     @Test fun `a column of frames too tall for the screen splits into even columns`() {

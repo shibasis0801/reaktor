@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
-class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionAdapter()) {
+class IosNotificationsClient(override val sealedPreviews: SealedNoticePreviews? = null) : NotificationAdapter<Unit>(Unit, DarwinPermissionAdapter()) {
     private val center = UNUserNotificationCenter.currentNotificationCenter()
     private val events = NotificationEventHub()
     private var categories: List<NotificationCategorySpec> = emptyList()
@@ -72,7 +72,7 @@ class IosNotificationsClient : NotificationAdapter<Unit>(Unit, DarwinPermissionA
                 NotificationPresentationFeature.ForegroundPresentation,
                 NotificationPresentationFeature.Grouping,
                 NotificationPresentationFeature.RichMedia,
-            ),
+            ) + if (sealedPreviews != null) setOf(NotificationPresentationFeature.SealedNotices) else emptySet(),
             actionFeatures = setOf(
                 NotificationActionFeature.Tap,
                 NotificationActionFeature.ActionButton,

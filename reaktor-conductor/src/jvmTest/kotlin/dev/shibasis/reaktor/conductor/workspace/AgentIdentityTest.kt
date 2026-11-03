@@ -19,15 +19,15 @@ class AgentIdentityTest {
         assertNull(fresh.profile.effort)
         val profile = store.save(AgentProfile("falcon", "Falcon", RuntimeKind.Codex, model = "configured-model", effort = "xhigh"), person)
         val bound = store.bind(falcon, profile.id, falcon, fresh.bindingRevision)
-        assertEquals("Falcon", bound.actor.name)
+        assertEquals("(codex, xhigh, configured model, falcon)", bound.actor.name)
         assertEquals(profile.id, bound.actor.profile)
         assertEquals(profile.revision, bound.actor.profileRevision)
         assertEquals(bound, reload().identity(falcon))
         val edited = store.save(profile.copy(name = "Falcon Two"), person, profile.revision)
         assertEquals(edited.revision, store.identity(falcon).actor.profileRevision)
-        assertEquals("Falcon Two", store.identity(falcon).actor.name)
+        assertEquals("(codex, xhigh, configured model, falcon two)", store.identity(falcon).actor.name)
         assertEquals(bound.actor, store.identity(bound.actor).actor)
-        assertEquals("Codex", store.identity(other).actor.name)
+        assertEquals("(codex)", store.identity(other).actor.name)
     }
 
     @Test fun agentsCannotRebindAnotherIdentityOrUseAStaleBindingRevision() = fixture { store, _ ->
@@ -40,7 +40,7 @@ class AgentIdentityTest {
         assertFailsWith<IllegalArgumentException> { store.bind(falcon, "falcon", falcon, current.bindingRevision) }
         assertFailsWith<IllegalArgumentException> { store.identity(falcon.copy(session = "codex:../outside")) }
         assertFailsWith<IllegalArgumentException> { store.identity(falcon.copy(session = "hangar:run-1")) }
-        assertEquals("Falcon", store.identity(falcon).actor.name)
+        assertEquals("(codex, falcon)", store.identity(falcon).actor.name)
     }
 
     private fun fixture(test: (AgentProfileStore, () -> AgentProfileStore) -> Unit) {

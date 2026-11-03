@@ -5,14 +5,19 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isMetaPressed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
+import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import dev.shibasis.composeflow.runtime.ViewportTuning
 import dev.shibasis.composeflow.runtime.ReactFlowState
@@ -28,6 +33,62 @@ data class FlowViewportGestureConfig(
     val controlZoomFactor: Double = ViewportTuning.controlZoomFactor,
 )
 
+fun interface FlowViewportPanStartGate {
+    fun allows(position: Offset, buttons: PointerButtons): Boolean
+}
+
+fun Modifier.flowViewportGestures(
+    state: ReactFlowState,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    platformBridge: FlowViewportPlatformBridge? = null,
+    onPaneClick: (() -> Unit)? = null,
+    onPaneTap: ((Offset) -> Boolean)? = null,
+): Modifier = composed {
+    FlowViewportPlatformGestureEffect(state, interactionState, config, platformBridge)
+    this.flowWheelAndTrackpadViewportGestures(state, interactionState, config, platformBridge)
+        .flowPointerViewportGestures(state, interactionState, config, onPaneClick, onPaneTap)
+}
+
+fun Modifier.flowViewportGestures(
+    controller: FlowViewportController,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    platformBridge: FlowViewportPlatformBridge? = null,
+    onPaneClick: (() -> Unit)? = null,
+    onPaneTap: ((Offset) -> Boolean)? = null,
+): Modifier = composed {
+    FlowViewportPlatformGestureEffect(controller, interactionState, config, platformBridge)
+    this.flowWheelAndTrackpadViewportGestures(controller, interactionState, config, platformBridge)
+        .flowPointerViewportGestures(controller, interactionState, config, onPaneClick, onPaneTap)
+}
+
+fun Modifier.flowViewportGestures(
+    state: ReactFlowState,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    panStart: FlowViewportPanStartGate,
+    platformBridge: FlowViewportPlatformBridge? = null,
+    onPaneClick: (() -> Unit)? = null,
+    onPaneTap: ((Offset) -> Boolean)? = null,
+): Modifier = flowViewportGestures(
+    ReactFlowViewportController(state), interactionState, config, panStart, platformBridge, onPaneClick, onPaneTap,
+)
+
+fun Modifier.flowViewportGestures(
+    controller: FlowViewportController,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    panStart: FlowViewportPanStartGate,
+    platformBridge: FlowViewportPlatformBridge? = null,
+    onPaneClick: (() -> Unit)? = null,
+    onPaneTap: ((Offset) -> Boolean)? = null,
+): Modifier = composed {
+    FlowViewportPlatformGestureEffect(controller, interactionState, config, platformBridge)
+    this.flowWheelAndTrackpadViewportGestures(controller, interactionState, config, platformBridge)
+        .flowPointerViewportGestures(controller, interactionState, config, panStart, onPaneClick, onPaneTap)
+}
+
 // References:
 // - Compose pointer input guidance: keep gesture recognizers small and composable so platform-
 //   specific tuning can happen without rewriting the full scene renderer.
@@ -38,7 +99,16 @@ fun Modifier.flowWheelAndTrackpadViewportGestures(
     interactionState: FlowViewportInteractionState,
     config: FlowViewportGestureConfig,
     platformBridge: FlowViewportPlatformBridge? = null,
-): Modifier = pointerInput(state, interactionState, config, platformBridge) {
+): Modifier = flowWheelAndTrackpadViewportGestures(
+    ReactFlowViewportController(state), interactionState, config, platformBridge,
+)
+
+fun Modifier.flowWheelAndTrackpadViewportGestures(
+    controller: FlowViewportController,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    platformBridge: FlowViewportPlatformBridge? = null,
+): Modifier = pointerInput(controller, interactionState, config, platformBridge) {
     awaitPointerEventScope {
         while (true) {
             val event = awaitPointerEvent()
@@ -54,22 +124,14 @@ fun Modifier.flowWheelAndTrackpadViewportGestures(
                     platformBridge?.resolveScrollAnchor(event, interactionState)
                         ?: change.position
                 val factor =
-                    exp(-scrollDelta.y * config.wheelZoomSensitivity)
+                    exp(-(if (scrollDelta.y != 0f) scrollDelta.y else scrollDelta.x) * config.wheelZoomSensitivity)
                         .coerceIn(config.wheelZoomFactorMin, config.wheelZoomFactorMax)
-                state.zoomBy(
-                    factor = factor,
-                    anchorX = anchor.x.toDouble(),
-                    anchorY = anchor.y.toDouble(),
-                    minZoom = config.minZoom,
-                    maxZoom = config.maxZoom,
-                )
+                controller.zoomBy(factor, anchor, config)
             } else {
-                val pan = platformBridge?.resolveScrollPan(event, interactionState)
+                val resolved = platformBridge?.resolveScrollPan(event, interactionState)
                     ?: (scrollDelta * (-ViewportTuning.wheelPanFactor * interactionState.canvasDensity).toFloat())
-                state.panBy(
-                    dx = pan.x.toDouble(),
-                    dy = pan.y.toDouble(),
-                )
+                val pan = if (event.keyboardModifiers.isShiftPressed && scrollDelta.x == 0f) Offset(resolved.y, 0f) else resolved
+                controller.panBy(pan.x.toDouble(), pan.y.toDouble())
             }
             interactionState.updatePointerPosition(change.position)
             event.changes.forEach { it.consume() }
@@ -87,6 +149,25 @@ fun FlowViewportPlatformGestureEffect(
     DisposableEffect(platformBridge, state, interactionState, config) {
         val subscription = platformBridge?.installViewportGestures(
             state = state,
+            interactionState = interactionState,
+            config = config,
+        )
+        onDispose {
+            subscription?.dispose()
+        }
+    }
+}
+
+@Composable
+fun FlowViewportPlatformGestureEffect(
+    controller: FlowViewportController,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    platformBridge: FlowViewportPlatformBridge?,
+) {
+    DisposableEffect(platformBridge, controller, interactionState, config) {
+        val subscription = platformBridge?.installViewportGestures(
+            controller = controller,
             interactionState = interactionState,
             config = config,
         )
@@ -116,11 +197,56 @@ fun Modifier.flowPointerViewportGestures(
     config: FlowViewportGestureConfig,
     onPaneClick: (() -> Unit)? = null,
     onPaneTap: ((Offset) -> Boolean)? = null,
-): Modifier = pointerInput(config, onPaneClick, onPaneTap) {
+): Modifier = flowPointerViewportGestures(
+    ReactFlowViewportController(state), interactionState, config, onPaneClick, onPaneTap,
+)
+
+fun Modifier.flowPointerViewportGestures(
+    controller: FlowViewportController,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    onPaneClick: (() -> Unit)? = null,
+    onPaneTap: ((Offset) -> Boolean)? = null,
+): Modifier = flowPointerViewportGesturesCore(controller, interactionState, config, null, onPaneClick, onPaneTap)
+
+fun Modifier.flowPointerViewportGestures(
+    state: ReactFlowState,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    panStart: FlowViewportPanStartGate,
+    onPaneClick: (() -> Unit)? = null,
+    onPaneTap: ((Offset) -> Boolean)? = null,
+): Modifier = flowPointerViewportGestures(
+    ReactFlowViewportController(state), interactionState, config, panStart, onPaneClick, onPaneTap,
+)
+
+fun Modifier.flowPointerViewportGestures(
+    controller: FlowViewportController,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    panStart: FlowViewportPanStartGate,
+    onPaneClick: (() -> Unit)? = null,
+    onPaneTap: ((Offset) -> Boolean)? = null,
+): Modifier = flowPointerViewportGesturesCore(controller, interactionState, config, panStart, onPaneClick, onPaneTap)
+
+private fun Modifier.flowPointerViewportGesturesCore(
+    controller: FlowViewportController,
+    interactionState: FlowViewportInteractionState,
+    config: FlowViewportGestureConfig,
+    panStart: FlowViewportPanStartGate?,
+    onPaneClick: (() -> Unit)?,
+    onPaneTap: ((Offset) -> Boolean)?,
+): Modifier = pointerInput(controller, interactionState, config, panStart, onPaneClick, onPaneTap) {
     awaitEachGesture {
         var first = awaitPointerEvent(PointerEventPass.Initial)
         while (first.changes.none { it.pressed && !it.previousPressed }) first = awaitPointerEvent(PointerEventPass.Initial)
         val down = first.changes.first { it.pressed && !it.previousPressed }
+        val downButtons = first.buttons
+        var handButtonGesture = down.type == PointerType.Mouse &&
+            (downButtons.isSecondaryPressed || downButtons.isTertiaryPressed)
+        var panStartChecked = false
+        var panStartAllowed = true
+        var multiplePointerGesture = false
         val pointerSlop = flowViewportPointerSlop(viewConfiguration.touchSlop, down.type)
         interactionState.updatePointerPosition(down.position)
         var activePointerId = down.id
@@ -129,12 +255,17 @@ fun Modifier.flowPointerViewportGestures(
         var viewportManipulated = false
         var secondaryButtonGesture = currentEvent.buttons.isSecondaryPressed
         var clickEligible = true
+        var consumedDown = down.isConsumed
+        awaitPointerEvent(PointerEventPass.Final)
 
         while (true) {
             val event = awaitPointerEvent()
             val pressedChanges = event.changes.filter(PointerInputChange::pressed)
-            val claimed = event.changes.any { it.isConsumed }
+            consumedDown = consumedDown || down.isConsumed
+            val claimed = consumedDown || event.changes.any { it.isConsumed }
             secondaryButtonGesture = secondaryButtonGesture || event.buttons.isSecondaryPressed
+            handButtonGesture = handButtonGesture || (down.type == PointerType.Mouse &&
+                (secondaryButtonGesture || event.buttons.isTertiaryPressed))
             clickEligible = clickEligible && !secondaryButtonGesture && !claimed
 
             if (pressedChanges.isEmpty()) {
@@ -148,6 +279,7 @@ fun Modifier.flowPointerViewportGestures(
             if (claimed) continue
 
             if (pressedChanges.size > 1) {
+                multiplePointerGesture = true
                 clickEligible = false
                 val centroid = pressedChanges.currentCentroid()
                 val pan = pressedChanges.calculateGesturePan()
@@ -156,16 +288,10 @@ fun Modifier.flowPointerViewportGestures(
                     viewportManipulated = true
                     interactionState.markViewportAsUserModified()
                     if (pan != Offset.Zero) {
-                        state.panBy(pan.x.toDouble(), pan.y.toDouble())
+                        controller.panBy(pan.x.toDouble(), pan.y.toDouble())
                     }
                     if (zoom != 1f) {
-                        state.zoomBy(
-                            factor = zoom.toDouble(),
-                            anchorX = centroid.x.toDouble(),
-                            anchorY = centroid.y.toDouble(),
-                            minZoom = config.minZoom,
-                            maxZoom = config.maxZoom,
-                        )
+                        controller.zoomBy(zoom.toDouble(), centroid, config)
                     }
                     pressedChanges.forEach { change ->
                         if (change.position != change.previousPosition) {
@@ -188,9 +314,20 @@ fun Modifier.flowPointerViewportGestures(
                 }
             }
             if (dragStarted && delta != Offset.Zero) {
+                if (!multiplePointerGesture && !handButtonGesture) {
+                    if (!panStartChecked) {
+                        panStartAllowed = if (down.type == PointerType.Mouse && !downButtons.isPrimaryPressed) true
+                            else panStart?.allows(down.position, downButtons) != false
+                        panStartChecked = true
+                    }
+                    if (!panStartAllowed) {
+                        clickEligible = false
+                        continue
+                    }
+                }
                 viewportManipulated = true
                 interactionState.markViewportAsUserModified()
-                state.panBy(delta.x.toDouble(), delta.y.toDouble())
+                controller.panBy(delta.x.toDouble(), delta.y.toDouble())
                 change.consume()
             }
         }

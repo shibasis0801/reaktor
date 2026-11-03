@@ -1,14 +1,18 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -118,6 +122,7 @@ fun TabSet(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TabPart(
     item: String,
@@ -131,8 +136,11 @@ private fun TabPart(
     val source = rememberInteractions(strip, target) { strip.send(target, it) }
     val scope = remember(item, selected, machine, strip) { TabScope(item, selected, strip) { machine.send(TabSetInput.Close(item)) } }
     val canClose = item in strip.closable
+    val entry = remember { BringIntoViewRequester() }
+    LaunchedEffect(Unit) { if (selected) entry.bringIntoView() }
     Box(
         Modifier
+            .bringIntoViewRequester(entry)
             .part(machine, PartKey(item))
             .onFocusChanged { if (it.isFocused) machine.send(TabSetInput.Focused(item)) }
             .focusProperties { canFocus = machine.state.active == item }

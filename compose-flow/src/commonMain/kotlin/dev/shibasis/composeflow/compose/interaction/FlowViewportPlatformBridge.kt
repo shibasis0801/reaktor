@@ -7,6 +7,19 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEvent
 import dev.shibasis.composeflow.runtime.ReactFlowState
 
+interface FlowViewportController {
+    fun panBy(dx: Double, dy: Double)
+    fun zoomBy(factor: Double, anchor: Offset, config: FlowViewportGestureConfig)
+}
+
+internal data class ReactFlowViewportController(val state: ReactFlowState) : FlowViewportController {
+    override fun panBy(dx: Double, dy: Double) = state.panBy(dx, dy)
+
+    override fun zoomBy(factor: Double, anchor: Offset, config: FlowViewportGestureConfig) {
+        state.zoomBy(factor, anchor.x.toDouble(), anchor.y.toDouble(), config.minZoom, config.maxZoom)
+    }
+}
+
 // Platform bridges are intentionally narrow. compose-flow stays generic; desktop hosts can opt
 // into native gesture support without leaking window/toolkit details into graph/editor code.
 interface FlowViewportPlatformBridge {
@@ -23,6 +36,12 @@ interface FlowViewportPlatformBridge {
 
     fun installViewportGestures(
         state: ReactFlowState,
+        interactionState: FlowViewportInteractionState,
+        config: FlowViewportGestureConfig,
+    ): FlowViewportPlatformGestureSubscription? = null
+
+    fun installViewportGestures(
+        controller: FlowViewportController,
         interactionState: FlowViewportInteractionState,
         config: FlowViewportGestureConfig,
     ): FlowViewportPlatformGestureSubscription? = null

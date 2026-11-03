@@ -36,12 +36,15 @@ data class AndroidNotificationsConfig(
     val pushTransport: AndroidPushTransport? = null,
     val selfName: String = "You",
     val categories: List<NotificationCategorySpec> = emptyList(),
+    val sealedPreviews: SealedNoticePreviews? = null,
+    val sealedPreviewBody: ((SealedNotice, ByteArray) -> String?)? = null,
 )
 
 class AndroidNotificationsClient(
     context: Context,
     private val config: AndroidNotificationsConfig = AndroidNotificationsConfig(),
 ) : NotificationAdapter<Context>(context.applicationContext, AndroidPermissionAdapter(context)) {
+    override val sealedPreviews: SealedNoticePreviews? get() = config.sealedPreviews
     private val appContext = context.applicationContext
 
     // Process-wide rather than per-instance. What delivers a notification response on Android is
@@ -103,7 +106,7 @@ class AndroidNotificationsClient(
                 NotificationPresentationFeature.RichMedia,
                 NotificationPresentationFeature.Progress,
                 NotificationPresentationFeature.DataMessages,
-            ),
+            ) + if (sealedPreviews != null && config.sealedPreviewBody != null) setOf(NotificationPresentationFeature.SealedNotices) else emptySet(),
             actionFeatures = setOf(
                 NotificationActionFeature.Tap,
                 NotificationActionFeature.ActionButton,
@@ -289,19 +292,31 @@ class AndroidNotificationsClient(
             envelope.content.conversation?.id?.let { renderer.clearConversation(it) }
             return
         }
+        if (config.autoDisplayRemoteMessages) {
+            val request = LocalNotificationRequest(
+                id = envelope.id,
+                categoryId = envelope.categoryId,
+                content = envelope.content,
+                route = envelope.route,
+                android = AndroidNotificationOptions(actions = categories.firstOrNull { it.id == envelope.categoryId }?.actions.orEmpty()),
+            )
+            scheduleLocal(request)
+            val notice = data[SealedNotice.DataKey]?.let(SealedNotice::decode)
+            val formatter = config.sealedPreviewBody
+            if (notice != null && formatter != null) {
+                val body = kotlinx.coroutines.withTimeoutOrNull(1500) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                        sealedPreviews?.open(notice, formatter)
+                    }
+                }
+                if (body != null) scheduleLocal(request.copy(
+                    content = envelope.content.copy(body = body),
+                    android = request.android?.copy(onlyAlertOnce = true),
+                ))
+            }
+        }
         events.emitReceived(envelope)
         devHarness.recordReceivedFromPlatform(envelope)
-        if (config.autoDisplayRemoteMessages) {
-            scheduleLocal(
-                LocalNotificationRequest(
-                    id = envelope.id,
-                    categoryId = envelope.categoryId,
-                    content = envelope.content,
-                    route = envelope.route,
-                    android = AndroidNotificationOptions(actions = categories.firstOrNull { it.id == envelope.categoryId }?.actions.orEmpty()),
-                ),
-            )
-        }
     }
 
     override suspend fun clearConversation(id: String) {

@@ -189,7 +189,7 @@ class OperationGate internal constructor(
             try {
                 val event = RunEvent.Started(id, 0, now, run, plan)
                 sink.append(event)
-                authority.log?.append(event)
+                authority.log?.append(event, invocation.caller)
             } catch (failure: Exception) {
                 return Outcome.Failed("Run receipt unavailable; ${descriptor.id} was not executed").also { record("failed", it.message) }
             }
@@ -202,7 +202,7 @@ class OperationGate internal constructor(
                 val event = RunEvent.Completed(run.id, 1, now, run.copy(status = status,
                     finishedAtEpochMillis = now, exitCode = if (status == RunStatus.Succeeded) 0 else if (status == RunStatus.Cancelled) 130 else 1))
                 requireNotNull(authority.runs).second.append(event)
-                authority.log?.append(event)
+                authority.log?.append(event, invocation.caller)
             }
         }
         var outcome = try {

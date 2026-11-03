@@ -10,7 +10,7 @@ import java.io.File
 import kotlin.test.*
 
 class DslEntryPointsTest {
-    @TempDir lateinit var directory: File
+    @TempDir(cleanup = org.junit.jupiter.api.io.CleanupMode.ON_SUCCESS) lateinit var directory: File
 
     private fun write(path: String, content: String) = directory.resolve(path).apply {
         parentFile.mkdirs()
@@ -18,7 +18,7 @@ class DslEntryPointsTest {
     }
 
     private fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
-        .withArguments(*tasks, "--configuration-cache", "--stacktrace").build()
+        .withArguments(*tasks, "--configuration-cache", "--no-watch-fs", "--stacktrace", "--info").forwardOutput().build()
 
     @Test fun `library scopes preserve targets dependencies and published graph outputs`() {
         write("gradle.properties", "android.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true")
@@ -1373,5 +1373,147 @@ class DslEntryPointsTest {
         assertTrue(plan.indexOf(":worker:workerTypes SKIPPED") < plan.indexOf(":worker:workerCheck SKIPPED"))
         assertTrue(plan.indexOf(":worker:workerCheck SKIPPED") < plan.indexOf(deployTask))
         assertContains(run("deployApi", "--dry-run").output, "Reusing configuration cache")
+    }
+
+    @Test fun `Hangar metadata records configured runtime without executing the journey`() {
+        write("settings.gradle.kts", "rootProject.name = \"runtimeFixture\"; include(\"desktop\")")
+        write("build.gradle.kts", "plugins { id(\"dev.shibasis.dependeasy.workspace\") }")
+        write("desktop/src/main/kotlin/Entry.kt", """
+            package dev.shibasis.reaktor.core.build
+            @Target(AnnotationTarget.FUNCTION)
+            @Retention(AnnotationRetention.BINARY)
+            annotation class Entry
+        """)
+        write("desktop/src/main/kotlin/DesktopMain.kt", """
+            package fixture
+            @dev.shibasis.reaktor.core.build.Entry
+            fun main() { error("Desktop application must not execute") }
+        """)
+        write("desktop/src/test/kotlin/HangarMain.kt", """
+            package fixture
+            @dev.shibasis.reaktor.core.build.Entry
+            fun main() {
+                java.io.File("normal-journey-sentinel").writeText("executed")
+                error("Journey must not execute")
+            }
+        """)
+        write("desktop/src/main/resources/data.bin", "first")
+        val archives = listOf("first.jar", "second.jar").mapIndexed { index, name ->
+            directory.resolve("desktop/inputs/$name").apply {
+                parentFile.mkdirs()
+                java.util.jar.JarOutputStream(outputStream()).use { jar ->
+                    jar.putNextEntry(java.util.jar.JarEntry("native/fixture.so"))
+                    jar.write(byteArrayOf(index.toByte()))
+                    jar.closeEntry()
+                }
+            }
+        }
+        write("desktop/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.desktopApp
+            import dev.shibasis.dependeasy.model.*
+            import org.gradle.api.plugins.JavaPluginExtension
+            import org.gradle.api.tasks.JavaExec
+            plugins { id("dev.shibasis.dependeasy.desktop-app") }
+            desktopApp(BuildOption.string("fixture.name", "Fixture"), setOf(Installer.Dmg)) {
+                dependencies { implementation(dev.shibasis.dependeasy.Versions.Compose.Desktop) }
+                val hangarFlows by tests(Suite.Hangar, TestEnvironment(properties = listOf(
+                    BuildOption("fixture.fixed", OptionType.String, "forwarded", resolutionOrder = listOf(OptionSource.Default))),
+                    results = BuildOption.string("fixture.results", "build/fixture-results")))
+            }
+            val ordered = listOf(file("inputs/first.jar"), file("inputs/second.jar")).let {
+                if (providers.gradleProperty("fixture.reverse").map(String::toBoolean).getOrElse(false)) it.reversed() else it
+            }
+            val normal = tasks.named<JavaExec>("hangarFlows") {
+                classpath = files(ordered, project.extensions.getByType<JavaPluginExtension>().sourceSets.getByName("test").runtimeClasspath)
+                systemProperty("java.library.path", file("missing-native").absolutePath)
+                doFirst { error("Normal journey task must not execute") }
+            }
+            afterEvaluate {
+                val launch = normal.get()
+                check(launch.systemProperties["fixture.fixed"] == "forwarded")
+                check(launch.classpath.files.take(2) == ordered)
+                val checks = tasks.named("check").get().taskDependencies.getDependencies(tasks.named("check").get())
+                check(launch in checks)
+                check(checks.none { it.name == "resolveHangarFlowsRuntime" })
+            }
+        """)
+        fun hash(file: File) = java.security.MessageDigest.getInstance("SHA-256").digest(file.readBytes())
+            .joinToString("") { "%02x".format(it) }
+        fun manifest() = BuildModelReader.json.parseToJsonElement(
+            directory.resolve("desktop/build/dependeasy/entries/hangarFlows-runtime.json").readText()).jsonObject
+        fun records(manifest: kotlinx.serialization.json.JsonObject, key: String) =
+            (manifest.getValue(key) as kotlinx.serialization.json.JsonArray).map { it.jsonObject }
+        fun verifyManifest(manifest: kotlinx.serialization.json.JsonObject, ordered: List<File>) {
+            assertEquals("fixture.HangarMainKt", manifest.getValue("mainClass").jsonPrimitive.content)
+            val classpath = records(manifest, "classpath")
+            assertEquals(ordered.map(File::getCanonicalPath), classpath.take(2).map { it.getValue("path").jsonPrimitive.content })
+            assertEquals(ordered.map(::hash), classpath.take(2).map { it.getValue("sha256").jsonPrimitive.content })
+            assertTrue(records(manifest, "nativeInputs").any {
+                it.getValue("path").jsonPrimitive.content == directory.resolve("desktop/missing-native").canonicalPath &&
+                    it.getValue("kind").jsonPrimitive.content == "missing"
+            })
+            assertEquals(2, records(manifest, "nativeArchiveEntries").count {
+                it.getValue("entry").jsonPrimitive.content == "native/fixture.so"
+            })
+            val launcher = manifest.getValue("java").jsonObject.getValue("executable").jsonObject
+            assertEquals(hash(File(launcher.getValue("path").jsonPrimitive.content)), launcher.getValue("sha256").jsonPrimitive.content)
+            assertFalse(directory.resolve("desktop/normal-journey-sentinel").exists())
+        }
+        val first = run(":desktop:resolveHangarFlowsRuntime")
+        assertEquals(TaskOutcome.SUCCESS, first.task(":desktop:resolveHangarFlowsRuntime")?.outcome)
+        assertNull(first.task(":desktop:hangarFlows"))
+        val original = manifest()
+        verifyManifest(original, archives)
+        val reordered = run(":desktop:resolveHangarFlowsRuntime", "-Pfixture.reverse=true")
+        assertEquals(TaskOutcome.SUCCESS, reordered.task(":desktop:resolveHangarFlowsRuntime")?.outcome)
+        assertNull(reordered.task(":desktop:hangarFlows"))
+        val reverse = manifest()
+        verifyManifest(reverse, archives.reversed())
+        val resourceRoot = directory.resolve("desktop/src/main/resources").canonicalPath
+        val before = records(reverse, "resourceRoots").single { it.getValue("path").jsonPrimitive.content == resourceRoot }
+        write("desktop/src/main/resources/data.bin", "other")
+        val changed = run(":desktop:resolveHangarFlowsRuntime", "-Pfixture.reverse=true")
+        assertEquals(TaskOutcome.SUCCESS, changed.task(":desktop:resolveHangarFlowsRuntime")?.outcome)
+        assertNull(changed.task(":desktop:hangarFlows"))
+        val refreshed = manifest()
+        verifyManifest(refreshed, archives.reversed())
+        val after = records(refreshed, "resourceRoots").single { it.getValue("path").jsonPrimitive.content == resourceRoot }
+        assertNotEquals(before.getValue("sha256"), after.getValue("sha256"))
+    }
+
+    @Test fun `declared JVM test file changes rerun with configuration cache`() {
+        write("settings.gradle.kts", "rootProject.name = \"inputFixture\"; include(\"library\")")
+        write("build.gradle.kts", "plugins { id(\"dev.shibasis.dependeasy.workspace\") }")
+        write("library/build.gradle.kts", """
+            import dev.shibasis.dependeasy.components.library
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.jvm") }
+            repositories { mavenCentral() }
+            library {
+                val unit by tests(environment = TestEnvironment(files = FileSet(listOf("declared-input.bin"))))
+                dependencies { testImplementation(kotlin("test-junit")) }
+            }
+        """)
+        write("library/src/test/kotlin/DeclaredInputTest.kt", """
+            import kotlin.test.Test
+            import kotlin.test.assertTrue
+            class DeclaredInputTest {
+                @Test fun inputIsAvailable() {
+                    assertTrue(java.io.File("../declared-input.bin").isFile)
+                }
+            }
+        """)
+        val input = directory.resolve("declared-input.bin")
+        input.writeBytes(byteArrayOf(1, 2, 3, 4))
+        val firstBytes = input.readBytes()
+        val first = run(":library:unit", "--info")
+        assertEquals(TaskOutcome.SUCCESS, first.task(":library:test")?.outcome)
+        val retained = run(":library:unit", "--info")
+        assertEquals(TaskOutcome.UP_TO_DATE, retained.task(":library:test")?.outcome)
+        input.writeBytes(byteArrayOf(4, 3, 2, 1))
+        assertEquals(firstBytes.size, input.length().toInt())
+        assertFalse(firstBytes.contentEquals(input.readBytes()))
+        val changed = run(":library:unit", "--info")
+        assertEquals(TaskOutcome.SUCCESS, changed.task(":library:test")?.outcome)
     }
 }

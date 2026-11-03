@@ -34,8 +34,12 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             args.only("thread", "since", "history", "by")
             val reader = args.actor()
             val read = workspace.plans.read(args.thread(reader), args.long("since"), reader)
+            val history = args["history"]?.jsonPrimitive?.booleanOrNull == true
+            val presence = workspace.presence.read(listOf(read.plan))
+            val claims = PlanClaims.resolve(read.plan, presence, presence.observedAt)
             buildJsonObject {
-                put("plan", plan(read.plan, args["history"]?.jsonPrimitive?.booleanOrNull == true))
+                put("plan", plan(read.plan, history))
+                put("claims", AgentWorkspaceJson.encodeToJsonElement(PlanClaims.serializer(), if (history) claims else claims.active()))
                 put("ready", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanCandidate.serializer()), PlanSchedule.ready(read.plan).take(8)))
                 if (args.long("since") != null) put("news", changes(read.news))
             }

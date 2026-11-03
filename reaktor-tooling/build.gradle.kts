@@ -11,6 +11,7 @@ library(namespace = "dev.shibasis.reaktor.tooling", targets = Targets.All) {
     dependencies {
         common {
             api(Reaktor.Code)
+            api(Reaktor.Core)
             commonCoroutines()
             commonSerialization(protobuf = false)
         }

@@ -453,11 +453,12 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         }
     }
 
-    override fun bannerLift(height: Float, z: Float) = if (z < .18f) 0f else super.bannerLift(height, z)
+    override fun bannerLift(height: Float, z: Float, clear: Boolean) = if (z < .18f) 0f else super.bannerLift(height, z, clear)
 
     private fun DrawScope.drawTallies(camera: Viewport) {
         for (i in tallies.indices) {
             val c = corridors[i]
+            if (c.count <= 1) continue
             val layer = tally(i)
             val x = (camera.x + (.25f * c.ax + .5f * c.cx + .25f * c.bx) * camera.zoom).toFloat(); val y = (camera.y + (.25f * c.ay + .5f * c.cy + .25f * c.by) * camera.zoom).toFloat()
             translate(x - layer.size.width / 2f, y - layer.size.height / 2f) { drawLayer(layer) }

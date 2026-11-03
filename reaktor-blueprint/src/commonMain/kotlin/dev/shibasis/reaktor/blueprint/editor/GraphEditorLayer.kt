@@ -24,11 +24,19 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import dev.shibasis.reaktor.surface.KeyName
+import dev.shibasis.reaktor.surface.compose.stroke
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalFontFamilyResolver
@@ -40,6 +48,10 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.graph.core.PortShape
+import dev.shibasis.reaktor.surface.Availability
+import dev.shibasis.reaktor.surface.CommandId
+import dev.shibasis.reaktor.surface.label
+import dev.shibasis.reaktor.surface.compose.platformKeyConvention
 import dev.shibasis.reaktor.surface.Ink
 import dev.shibasis.reaktor.surface.Type
 import dev.shibasis.reaktor.surface.compose.ListBox
@@ -57,6 +69,11 @@ import kotlin.math.roundToInt
 
 @Composable
 fun GraphEditorLayer(editor: GraphEditor, modifier: Modifier = Modifier) {
+    val edits = rememberCoroutineScope()
+    DisposableEffect(editor, edits) {
+        editor.editScope = edits
+        onDispose { if (editor.editScope === edits) editor.editScope = null }
+    }
     var origin by remember { mutableStateOf(Offset.Zero) }
     val resolver = LocalFontFamilyResolver.current
     val direction = LocalLayoutDirection.current
@@ -123,47 +140,45 @@ private fun Anchored(at: Offset, content: @Composable () -> Unit) {
 
 @Composable
 private fun EditorMenu(editor: GraphEditor, request: Request.Menu) {
-    Menu(true, { if (!it && editor.request === request) editor.request = null }, anchor = OverlayAnchor.Point(request.window)) {
+    Menu(true, { if (!it) editor.dismissCommandRequest(request) }, anchor = OverlayAnchor.Point(request.window)) {
         Popup {
-            fun run(action: () -> Unit) { editor.request = null; action() }
+            fun run(action: () -> Unit) { editor.request = null; action(); editor.resumeCommands() }
             when (val target = request.target) {
                 is Target.OnCard -> CardEntries(editor, request, target.id, ::run)
                 is Target.OnPin -> {
                     val links = editor.links(target.pin)
-                    Entry("unlink-pin", "Break ${links.size} link${if (links.size == 1) "" else "s"} on ${editor.node(target.pin.node)?.let { editor.terms.port(it, target.pin.key) } ?: target.pin.key}", "⌥ click", links.isNotEmpty()) { run { editor.breakLinks(target.pin) } }
-                    Entry("add", "Add a connected node…", null) { run { editor.request = Request.Palette(request.at, request.window, target.pin) } }
-                    if (editor.runs != null) Entry("watch", if (target.pin in editor.watched) "Stop watching this value" else "Watch this value", null) { run { editor.watch(target.pin) } }
-                    if (links.size > 1) Entry("bundle", "Bundle the ${links.size} links through one knot", null) { run { editor.bundle(target.pin) } }
+                    Entry(editor, "unlink-pin", "Break ${links.size} link${if (links.size == 1) "" else "s"} on ${editor.node(target.pin.node)?.let { editor.terms.port(it, target.pin.key) } ?: target.pin.key}", links.isNotEmpty()) { run { editor.breakLinks(target.pin) } }
+                    Entry(editor, "add", "Add a connected node…") { run { editor.request = Request.Palette(request.at, request.window, target.pin) } }
+                    if (editor.runs != null) Entry(editor, "watch", if (target.pin in editor.watched) "Stop watching this value" else "Watch this value") { run { editor.watch(target.pin) } }
+                    if (links.size > 1) Entry(editor, "bundle", "Bundle the ${links.size} links through one knot") { run { editor.bundle(target.pin) } }
                     links.take(GoLimit).forEach { wire ->
                         val (far, key) = if (target.pin.provides) wire.consumer to wire.consumerPort else wire.provider to wire.providerPort
-                        Entry("go-${wire.id}", "Go to ${editor.node(far)?.let { editor.terms.end(it, key) } ?: far}", null) { run { editor.reveal(editor.shape.visible(far) ?: far) } }
+                        Entry(editor, "go-${wire.id}", "Go to ${editor.node(far)?.let { editor.terms.end(it, key) } ?: far}") { run { editor.reveal(editor.shape.visible(far) ?: far) } }
                     }
                     Separator()
                     CardEntries(editor, request, target.pin.node, ::run)
                 }
                 is Target.OnWire -> {
-                    Entry("delete", "Delete wire", "⌫") { run { editor.delete(Selection(wires = setOf(target.id))) } }
-                    Entry("bend", "Add a reroute point", "double-click") { run { editor.bend(target.id, request.at) } }
-                    Entry("unbend", "Remove reroute points", null, editor.placement.bends.containsKey(target.id)) { run { editor.edit { s, p -> s to p.copy(bends = p.bends - target.id) } } }
+                    Entry(editor, "delete", "Delete wire") { run { editor.delete(Selection(wires = setOf(target.id))) } }
+                    Entry(editor, "bend", "Add a reroute point") { run { editor.bend(target.id, request.at) } }
+                    Entry(editor, "unbend", "Remove reroute points", editor.placement.bends.containsKey(target.id)) { run { editor.edit { s, p -> s to p.copy(bends = p.bends - target.id) } } }
                 }
                 is Target.OnNote -> {
                     val shut = target.id in editor.folded
-                    if (editor.terms.subgraphs || shut) Entry("fold", if (shut) "Expand" else "Fold into one card", if (shut) "double-click" else null) { run { if (shut) editor.unfold(target.id) else editor.fold(target.id) } }
-                    Entry("focus", "Open on its own", null) { run { editor.open(target.id) } }
+                    if (editor.terms.subgraphs || shut) Entry(editor, "collapse", if (shut) "Restore group" else "Collapse group") { run { if (shut) editor.unfold(target.id) else editor.fold(target.id) } }
                     Separator()
-                    Entry("rename", "Rename comment", "double-click") { run { editor.request = Request.Rename(request.at, request.window, target.id, note = true) } }
+                    Entry(editor, "rename", "Rename comment") { run { editor.request = Request.Rename(request.at, request.window, target.id, note = true) } }
                     Submenu("colour", trigger = { Text("Colour") }) {
-                        NoteTints.forEach { (name, tint) -> Entry("tint-$name", name, null) { run { editor.recolour(target.id, tint) } } }
+                        NoteTints.forEach { (name, tint) -> Entry(editor, "tint-$name", name) { run { editor.recolour(target.id, tint) } } }
                     }
-                    Entry("delete", "Delete comment", "⌫") { run { editor.delete(Selection(notes = setOf(target.id))) } }
+                    Entry(editor, "delete", "Delete comment") { run { editor.delete(Selection(notes = setOf(target.id))) } }
                 }
                 Target.Empty -> {
-                    Entry("add", "Add a node…", "Space") { run { editor.request = Request.Palette(request.at, request.window) } }
-                    Entry("paste", "Paste", "⌘V") { run { editor.paste(request.at) } }
-                    if (editor.onDescribe != null) Entry("describe", "Describe a change…", "/") { run { editor.request = Request.Describe(request.at, request.window) } }
-                    Entry("minimap", if (editor.prefs.minimap) "Hide the minimap" else "Show the minimap", "M") { run { editor.prefer(editor.prefs.copy(minimap = !editor.prefs.minimap)) } }
-                    Entry("keys", "Keyboard shortcuts…", "⌘/") { run { editor.request = Request.Keys(request.at, request.window) } }
-                    if (editor.focus != null) Entry("up", "Back to the whole graph", "Esc") { run { editor.open(null) } }
+                    Entry(editor, "add", "Add a node…") { run { editor.request = Request.Palette(request.at, request.window) } }
+                    Entry(editor, "paste", "Paste") { run { editor.paste(request.at) } }
+                    if (editor.onDescribe != null) Entry(editor, "describe", "Describe a change…") { run { editor.request = Request.Describe(request.at, request.window) } }
+                    Entry(editor, "minimap", if (editor.prefs.minimap) "Hide the minimap" else "Show the minimap") { run { editor.prefer(editor.prefs.copy(minimap = !editor.prefs.minimap)) } }
+                    Entry(editor, "keys", "Keyboard shortcuts…") { run { editor.request = Request.Keys(request.at, request.window) } }
                 }
             }
         }
@@ -173,61 +188,67 @@ private fun EditorMenu(editor: GraphEditor, request: Request.Menu) {
 @Composable
 private fun MenuPopupScope.CardEntries(editor: GraphEditor, request: Request.Menu, id: String, run: (() -> Unit) -> Unit) {
     val many = editor.selection.nodes.size > 1
-    Entry("rename", "Rename", "F2", !many) { run { editor.request = Request.Rename(request.at, request.window, id, note = false) } }
-    Entry("open", "Open", "Enter") { run { editor.onOpen(id) } }
+    Entry(editor, "rename", "Rename", !many) { run { editor.request = Request.Rename(request.at, request.window, id, note = false) } }
     Separator()
-    Entry("copy", "Copy", "⌘C") { run { editor.copy() } }
-    Entry("cut", "Cut", "⌘X") { run { editor.cut() } }
-    Entry("duplicate", "Duplicate", "⌘D") { run { editor.duplicate() } }
-    Entry("delete", "Delete", "⌫") { run { editor.delete() } }
+    Entry(editor, "copy", "Copy") { run { editor.copy() } }
+    Entry(editor, "cut", "Cut") { run { editor.cut() } }
+    Entry(editor, "duplicate", "Duplicate") { run { editor.duplicate() } }
+    Entry(editor, "delete", "Delete") { run { editor.delete() } }
     Separator()
-    Entry("break", "Break all links", null, editor.shape.wires.any { it.provider == id || it.consumer == id }) {
+    Entry(editor, "break", "Break all links", editor.shape.wires.any { it.provider == id || it.consumer == id }) {
         run { editor.edit { s, p -> s.disconnect(s.wires.filter { it.provider in editor.selection.nodes || it.consumer in editor.selection.nodes }.mapTo(hashSetOf()) { it.id }) to p } }
     }
-    Entry("upstream", editor.terms.upstream, null) { run { editor.selectLinked(upstream = true) } }
-    Entry("downstream", editor.terms.downstream, null) { run { editor.selectLinked(upstream = false) } }
-    Entry("comment", "Comment the selection", "C") { run { editor.comment() } }
-    editor.templateOf(id)?.let { template -> Entry("favour", if (template.key in editor.prefs.favourites) "Remove ${template.label} from favourites" else "Add ${template.label} to favourites", null) { run { editor.favour(template) } } }
-    if (!many) Entry("remark", if (editor.placement.remarks.containsKey(id)) "Edit the note…" else "Add a note…", "⌥C") { run { editor.request = Request.Remark(request.at, request.window, id) } }
-    if (editor.onDescribe != null) Entry("describe", "Describe a change to ${if (many) "these" else "this"}…", "/") { run { editor.request = Request.Describe(request.at, request.window) } }
+    Entry(editor, "upstream", editor.terms.upstream) { run { editor.selectLinked(upstream = true) } }
+    Entry(editor, "downstream", editor.terms.downstream) { run { editor.selectLinked(upstream = false) } }
+    Entry(editor, "comment", "Comment the selection") { run { editor.comment() } }
+    editor.templateOf(id)?.let { template -> Entry(editor, "favour", if (template.key in editor.prefs.favourites) "Remove ${template.label} from favourites" else "Add ${template.label} to favourites") { run { editor.favour(template) } } }
+    if (!many) Entry(editor, "remark", if (editor.placement.remarks.containsKey(id)) "Edit the note…" else "Add a note…") { run { editor.request = Request.Remark(request.at, request.window, id) } }
+    if (editor.onDescribe != null) Entry(editor, "describe", "Describe a change to ${if (many) "these" else "this"}…") { run { editor.request = Request.Describe(request.at, request.window) } }
     editor.node(id)?.part?.let { part ->
         val name = editor.saved.firstOrNull { it.id == part }?.title ?: "the part"
-        if (editor.onTemplate != null) Entry("keep-part", "Keep this as the new version of $name", null) { run { editor.keepPart(id) } }
+        if (editor.onTemplate != null) Entry(editor, "keep-part", "Keep this as the new version of $name") { run { editor.keepPart(id) } }
         val stale = editor.stale(part).size
-        Entry("update-uses", "Update every use of $name" + if (stale > 0) " · $stale" else "", null, stale > 0) { run { editor.updateUses(part) } }
+        Entry(editor, "update-uses", "Update every use of $name" + if (stale > 0) " · $stale" else "", stale > 0) { run { editor.updateUses(part) } }
     }
-    if (editor.terms.subgraphs) Entry("group", "Group into a new ${editor.terms.scope}…", null) { run { editor.request = Request.Naming(request.at, request.window, graph = true) } }
-    if (editor.onTemplate != null) Entry("template", "Save as a template…", null) { run { editor.request = Request.Naming(request.at, request.window, graph = false) } }
-    Entry("straighten", "Straighten connections", "Q") { run { editor.straighten() } }
-    if (many) Entry("tidy", "Tidy up", "⌥⇧T") { run { editor.tidy() } }
+    if (editor.terms.subgraphs) Entry(editor, "group", "Group into a new ${editor.terms.scope}…") { run { editor.request = Request.Naming(request.at, request.window, graph = true) } }
+    if (editor.onTemplate != null) Entry(editor, "template", "Save as a template…") { run { editor.request = Request.Naming(request.at, request.window, graph = false) } }
+    Entry(editor, "straighten", "Straighten connections") { run { editor.straighten() } }
+    if (many) Entry(editor, "tidy", "Tidy up") { run { editor.tidy() } }
     if (many) Submenu("align", trigger = { Text("Align") }) {
-        Entry("align-top", "Top", "⇧W") { run { editor.align(Edge.Top) } }
-        Entry("align-middle", "Middle", "⌥⇧W") { run { editor.align(Edge.Middle) } }
-        Entry("align-bottom", "Bottom", "⇧S") { run { editor.align(Edge.Bottom) } }
-        Entry("align-left", "Left", "⇧A") { run { editor.align(Edge.Left) } }
-        Entry("align-centre", "Centre", "⌥⇧S") { run { editor.align(Edge.Centre) } }
-        Entry("align-right", "Right", "⇧D") { run { editor.align(Edge.Right) } }
+        Entry(editor, "align-top", "Top") { run { editor.align(Edge.Top) } }
+        Entry(editor, "align-middle", "Middle") { run { editor.align(Edge.Middle) } }
+        Entry(editor, "align-bottom", "Bottom") { run { editor.align(Edge.Bottom) } }
+        Entry(editor, "align-left", "Left") { run { editor.align(Edge.Left) } }
+        Entry(editor, "align-centre", "Centre") { run { editor.align(Edge.Centre) } }
+        Entry(editor, "align-right", "Right") { run { editor.align(Edge.Right) } }
         Separator()
-        Entry("distribute-x", "Distribute horizontally", null, editor.selection.nodes.size > 2) { run { editor.distribute(true) } }
-        Entry("distribute-y", "Distribute vertically", null, editor.selection.nodes.size > 2) { run { editor.distribute(false) } }
+        Entry(editor, "distribute-x", "Distribute horizontally", editor.selection.nodes.size > 2) { run { editor.distribute(true) } }
+        Entry(editor, "distribute-y", "Distribute vertically", editor.selection.nodes.size > 2) { run { editor.distribute(false) } }
     }
 }
 
 @Composable
-private fun MenuPopupScope.Entry(key: String, label: String, chord: String?, enabled: Boolean = true, action: () -> Unit) =
-    Item(key, action, Modifier.testTag("graph-editor-menu-$key"), enabled) {
+private fun MenuPopupScope.Entry(editor: GraphEditor, key: String, label: String, enabled: Boolean = true, action: () -> Unit) {
+    val command = editor.menuCommand(key)
+    val convention = remember { platformKeyConvention() }
+    val ready = enabled && (command == null || command.availability == Availability.Available)
+    Item(command?.id?.value ?: key, { if (command != null) editor.perform(command.id, action) else action() }, Modifier.testTag("graph-editor-menu-$key"), ready) {
         Row(Modifier.width(240.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, Modifier.weight(1f), role = Type.Body, ink = if (enabled) Ink.Text else Ink.Muted)
-            chord?.let { Text(it, role = Type.Meta, ink = Ink.Muted) }
+            Text(label, Modifier.weight(1f), role = Type.Body, ink = if (ready) Ink.Text else Ink.Muted)
+            command?.chord?.label(convention)?.takeIf { it.isNotEmpty() }?.let { Text(it, role = Type.Meta, ink = Ink.Muted) }
         }
     }
+}
 
 @Composable
 private fun EditorPalette(editor: GraphEditor, request: Request.Palette) {
     val query = rememberTextFieldState()
+    val focus = remember { FocusRequester() }
+    var selected by remember { mutableStateOf(0) }
+    LaunchedEffect(request) { focus.requestFocus() }
     val pin: PortShape? = request.from?.let { editor.shape.node(it.node)?.port(it.key, it.provides) }
     val words = query.text.toString().trim().lowercase().split(' ').filter { it.isNotEmpty() }
-    val all = editor.choices
+    val all = editor.templates(request, query.text.toString())
     var category by remember { mutableStateOf<String?>(null) }
     val favourites = editor.prefs.favourites
     val categories = remember(all, favourites) { listOfNotNull(FavouriteCategory.takeIf { favourites.isNotEmpty() }, RecentCategory.takeIf { GraphEditor.recent.isNotEmpty() }) + all.map { it.category }.distinct() }
@@ -238,13 +259,43 @@ private fun EditorPalette(editor: GraphEditor, request: Request.Palette) {
         }.sortedWith(compareBy({ favourites.indexOf(it.key).let { at -> if (at < 0) Int.MAX_VALUE else at } }, { GraphEditor.recent.indexOf(it.key).let { at -> if (at < 0) Int.MAX_VALUE else at } }))
     }
     val choices = matching.take(PaletteLimit)
-    fun choose(template: Template) { editor.request = null; editor.add(template, request.at, request.from) }
-    Popover(true, { if (!it && editor.request === request) editor.request = null }) {
+    val reachable = remember(request) { editor.joins(request) }
+    val joins = remember(reachable, words) { reachable.filter { join -> words.all { join.label.lowercase().contains(it) || join.node.lowercase().contains(it) } }.take(JoinLimit) }
+    fun choose(template: Template) = editor.perform(CommandId("edit-add-node")) { editor.added(request, template) }
+    LaunchedEffect(query.text.toString(), category) { selected = 0 }
+    fun enter() {
+        if (selected < joins.size) joins.getOrNull(selected)?.let { editor.join(request, it) }
+        else choices.getOrNull(selected - joins.size)?.let(::choose)
+    }
+    Popover(true, { if (!it) editor.dismissCommandRequest(request) }) {
         Content {
-            Column(Modifier.width(340.dp).padding(8.dp).testTag("graph-editor-palette"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(pin?.let { "Nodes that ${if (it.provides) "need" else "provide"} ${it.type}" } ?: "Add a node", role = Type.Meta, ink = Ink.Muted, lines = 2)
-                TextField(query, Modifier.fillMaxWidth().testTag("graph-editor-search"), placeholder = { Text("Search nodes, types and ports…", ink = Ink.Muted) },
-                    keyboardOptions = Submit, onKeyboardAction = KeyboardActionHandler { choices.firstOrNull()?.let(::choose) })
+            Column(Modifier.onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.stroke()?.key) {
+                    KeyName.Escape -> editor.dismissCommandRequest(request)
+                    KeyName.Enter -> enter()
+                    KeyName.Down -> selected = (selected + 1).coerceAtMost((joins.size + choices.size - 1).coerceAtLeast(0))
+                    KeyName.Up -> selected = (selected - 1).coerceAtLeast(0)
+                    else -> return@onPreviewKeyEvent false
+                }
+                true
+            }.width(340.dp).padding(8.dp).testTag("graph-editor-palette"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(request.link?.let { from -> "Link ${editor.node(from)?.label ?: from} to a card, or add one" }
+                    ?: pin?.let { "Nodes that ${if (it.provides) "need" else "provide"} ${it.type}" } ?: "Add a node", role = Type.Meta, ink = Ink.Muted, lines = 2)
+                TextField(query, Modifier.fillMaxWidth().focusRequester(focus).testTag("graph-editor-search"), placeholder = { Text("Search nodes, types and ports…", ink = Ink.Muted) },
+                    keyboardOptions = Submit, onKeyboardAction = KeyboardActionHandler { enter() })
+                if (joins.isNotEmpty()) {
+                    Text("Connect to", role = Type.Meta, ink = Ink.Muted)
+                    ListBox(listSource(joins, { it.node }, text = { it.label }, activateOnPress = { true }), setOfNotNull(joins.getOrNull(selected)?.node), {},
+                        Modifier.fillMaxWidth().heightIn(max = 200.dp).testTag("graph-editor-joins"),
+                        onActivate = { key -> joins.firstOrNull { it.node == key }?.let { editor.join(request, it) } }) { join ->
+                        Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+                            Text(join.label, role = Type.Body, ink = Ink.Text)
+                            join.pin?.let { Text("into ${it.key}", role = Type.Meta, ink = Ink.Muted) }
+                        }
+                    }
+                    Text("Or add", role = Type.Meta, ink = Ink.Muted)
+                }
                 if (categories.size > 1) ToggleGroup(setOf(category ?: AllCategory), { next -> category = (next - (category ?: AllCategory)).firstOrNull()?.takeIf { it != AllCategory } },
                     Modifier.fillMaxWidth().testTag("graph-editor-categories")) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -253,7 +304,7 @@ private fun EditorPalette(editor: GraphEditor, request: Request.Palette) {
                 }
                 if (choices.isEmpty()) Text("Nothing matches.", role = Type.Meta, ink = Ink.Muted)
                 if (matching.size > choices.size) Text("Showing ${choices.size} of ${matching.size} · keep typing to narrow", role = Type.Meta, ink = Ink.Muted)
-                ListBox(listSource(choices, { it.key }, text = { it.label }, activateOnPress = { true }), emptySet(), {},
+                ListBox(listSource(choices, { it.key }, text = { it.label }, activateOnPress = { true }), setOfNotNull(choices.getOrNull(selected - joins.size)?.key), {},
                     Modifier.fillMaxWidth().heightIn(max = 320.dp),
                     onActivate = { key -> choices.firstOrNull { it.key == key }?.let(::choose) }) { template ->
                     Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
@@ -265,8 +316,8 @@ private fun EditorPalette(editor: GraphEditor, request: Request.Palette) {
                     }
                 }
                 if (request.from == null) Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Quiet("Paste here", "graph-editor-paste") { editor.request = null; editor.paste(request.at) }
-                    Quiet("Add comment", "graph-editor-comment") { editor.request = null; editor.comment(Selection()) }
+                    Quiet("Paste here", "graph-editor-paste") { editor.perform(CommandId("edit-paste")) { editor.request = null; editor.paste(request.at) } }
+                    Quiet("Add comment", "graph-editor-comment") { editor.perform(CommandId("edit-comment")) { editor.request = null; editor.comment(Selection()) } }
                 }
             }
         }
@@ -347,6 +398,7 @@ private fun EditorRename(editor: GraphEditor, request: Request.Rename) {
 }
 
 private const val PaletteLimit = 80
+private const val JoinLimit = 8
 private const val AllCategory = "All"
 private const val RecentCategory = "Recent"
 private const val FavouriteCategory = "Favourites"

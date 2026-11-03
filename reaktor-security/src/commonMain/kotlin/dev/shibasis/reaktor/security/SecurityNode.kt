@@ -32,13 +32,22 @@ import kotlin.uuid.Uuid
 
 sealed interface SecurityCommand
 
-private data class DeviceCommand(val reply: Reply<DeviceCryptoIdentity>) : SecurityCommand
-private data class ReconcileCommand(val id: String, val members: Set<String>, val reply: Reply<ConversationSecurityState>) : SecurityCommand
-private data class CommitCommand(val value: DirectoryCommit, val reply: Reply<Unit>) : SecurityCommand
-private data class WelcomeCommand(val value: DirectoryWelcome, val reply: Reply<Unit>) : SecurityCommand
-private data class SealCommand(val id: String, val envelope: ByteArray, val body: ByteArray, val circle: Boolean, val anonymous: Boolean, val reply: Reply<SealedMessage>) : SecurityCommand
-private data class OpenCommand(val id: String, val envelope: ByteArray, val sealed: SealedMessage, val circle: Boolean, val reply: Reply<OpenedMessage>) : SecurityCommand
-private data class KeyRingCommand(val reply: Reply<SealedSecret>) : SecurityCommand
+private sealed interface SecurityRequest : SecurityCommand
+private data class DeviceCommand(val reply: Reply<DeviceCryptoIdentity>) : SecurityRequest
+private data class ReconcileCommand(val id: String, val members: Set<String>, val reply: Reply<ConversationSecurityState>) : SecurityRequest
+private data class CommitCommand(val value: DirectoryCommit, val reply: Reply<Unit>) : SecurityRequest
+private data class WelcomeCommand(val value: DirectoryWelcome, val reply: Reply<Unit>) : SecurityRequest
+private data class SealCommand(val id: String, val envelope: ByteArray, val body: ByteArray, val circle: Boolean, val anonymous: Boolean, val reply: Reply<SealedMessage>) : SecurityRequest
+private data class OpenCommand(val id: String, val envelope: ByteArray, val sealed: SealedMessage, val circle: Boolean, val reply: Reply<OpenedMessage>) : SecurityRequest
+private data class KeyRingCommand(val protection: PlatformSecretBox?, val reply: Reply<SealedSecret>) : SecurityRequest
+private data object SettleOpened : SecurityCommand
+
+private class Opening(val command: OpenCommand, val opened: OpenedMessage)
+
+private fun OpenedMessage.wipe() {
+    plaintext.fill(0)
+    frankingKey.fill(0)
+}
 
 @Serializable
 private data class PendingSecurityCommit(val publication: CommitPublication, val members: Set<String>)
@@ -76,6 +85,8 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
     private var recordId = ""
     private var recordAad = byteArrayOf()
     private var policy: EnginePolicy? = null
+    private val opening = mutableListOf<Opening>()
+    private var settling = false
 
     val security by provides<ReaktorSecurity>(object : ReaktorSecurity {
         override suspend fun device(): DeviceCryptoIdentity = ask { DeviceCommand(it) }
@@ -89,20 +100,25 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
             ask { SealCommand(conversationId, envelope.copyOf(), plaintext.copyOf(), circleGame, anonymous, it) }
         override suspend fun open(conversationId: String, envelope: ByteArray, sealed: SealedMessage, circleGame: Boolean): OpenedMessage =
             ask { OpenCommand(conversationId, envelope.copyOf(), sealed.copy(header = sealed.header.copyOf(), commitment = sealed.commitment.copyOf(), ciphertext = sealed.ciphertext.copyOf()), circleGame, it) }
-        override suspend fun sealedKeyRing(): SealedSecret = ask { KeyRingCommand(it) }
+        override suspend fun sealedKeyRing(protection: PlatformSecretBox?): SealedSecret = ask { KeyRingCommand(protection, it) }
     })
 
-    override suspend fun receive(message: SecurityCommand) = observed(when (message) {
-        is DeviceCommand -> "enrol"
-        is ReconcileCommand -> "reconcile"
-        is CommitCommand -> "commit.receive"
-        is WelcomeCommand -> "join"
-        is SealCommand -> "seal"
-        is OpenCommand -> "open"
-        is KeyRingCommand -> "key-ring"
-    }) { handle(message) }
+    override suspend fun receive(message: SecurityCommand) = when (message) {
+        SettleOpened -> observed("open.settle") { settle() }
+        is SecurityRequest -> observed(when (message) {
+            is DeviceCommand -> "enrol"
+            is ReconcileCommand -> "reconcile"
+            is CommitCommand -> "commit.receive"
+            is WelcomeCommand -> "join"
+            is SealCommand -> "seal"
+            is OpenCommand -> "open"
+            is KeyRingCommand -> "key-ring"
+        }) { handle(message) }
+    }
 
-    private suspend fun handle(message: SecurityCommand) {
+    private suspend fun handle(message: SecurityRequest) {
+        val readState = if (message is OpenCommand) states.value[message.id] else null
+        var authenticatingMessage = false
         try {
             initialize()
             if (current().credential == null || message !is OpenCommand && message !is KeyRingCommand) ensureDevice()
@@ -118,6 +134,7 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
                 is SealCommand -> {
                     reconcile(message.id, emptySet())
                     val result = crypto().seal(message.id, message.envelope, message.body, message.circle, message.anonymous)
+                    persist()
                     message.reply.complete(SealedMessage(crypto().epoch(message.id), current().deviceId, result.header, result.commitment, result.ciphertext))
                 }
                 is OpenCommand -> {
@@ -125,27 +142,20 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
                         retryPending(message.id)
                         catchUp(message.id)
                     }
-                    val opened = crypto().open(message.id, message.envelope,
-                        EngineSealed(message.sealed.header, message.sealed.commitment, message.sealed.ciphertext), message.circle)
-                    try {
-                        val sender = opened.credential.takeIf { it.isNotEmpty() }?.let(::readDeviceCredential)
-                        check(!opened.authenticated || sender?.deviceId?.value == message.sealed.senderDeviceId)
-                        persist()
-                        message.reply.complete(OpenedMessage(opened.plaintext, opened.frankingKey, sender, opened.authenticated, opened.duplicate))
-                    } catch (error: Throwable) {
-                        opened.plaintext.fill(0)
-                        opened.frankingKey.fill(0)
-                        throw error
-                    }
+                    authenticatingMessage = true
+                    val opened = decrypt(message)
+                    authenticatingMessage = false
+                    hold(Opening(message, opened))
                 }
                 is KeyRingCommand -> {
                     val bytes = crypto().exportKeyRing()
-                    try { message.reply.complete(secretBox().seal(SecretRecordType.MlsGroupStateSnapshot, recordId + ":key-ring", bytes, recordAad)) }
+                    try { message.reply.complete((message.protection ?: secretBox()).seal(SecretRecordType.MlsGroupStateSnapshot, recordId + ":key-ring", bytes, recordAad)) }
                     finally { bytes.fill(0) }
                 }
             }
         } catch (error: Throwable) {
-            try { restoreDurable() } catch (restoreError: Throwable) { error.addSuppressed(restoreError) }
+            var restored = true
+            try { restoreDurable() } catch (restoreError: Throwable) { restored = false; error.addSuppressed(restoreError) }
             val id = when (message) {
                 is ReconcileCommand -> message.id
                 is CommitCommand -> message.value.conversationId
@@ -154,7 +164,11 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
                 is OpenCommand -> message.id
                 else -> null
             }
-            if (id != null) runCatching { update(id, ConversationHealth.Failed) }
+            if (id != null) runCatching {
+                val health = if (authenticatingMessage && restored && readState?.epoch != null && readState.epoch == epoch(id))
+                    readState.health else ConversationHealth.Failed
+                update(id, health)
+            }
             throw error
         } finally {
             if (message is SealCommand) message.body.fill(0)
@@ -218,14 +232,23 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
     }
 
     private suspend fun persist(next: SecuritySavedState = current()) {
-        val state = next.copy(snapshot = crypto().snapshot())
-        val bytes = json.encodeToString(state).encodeToByteArray()
+        val snapshot = observed("state.snapshot") { crypto().snapshot() }
+        if (next == saved && snapshot.contentEquals(next.snapshot)) {
+            snapshot.fill(0)
+            release()
+            return
+        }
+        val state = next.copy(snapshot = snapshot)
+        val bytes = observed("state.encode") { json.encodeToString(state).encodeToByteArray() }
         try {
             require(bytes.size <= 64 * 1024 * 1024)
-            val sealed = secretBox().seal(SecretRecordType.MlsDeviceIdentity, recordId, bytes, recordAad)
-            store().write(recordId, sealed)
+            val sealed = observed("state.protect") {
+                secretBox().seal(SecretRecordType.MlsDeviceIdentity, recordId, bytes, recordAad)
+            }
+            observed("state.write") { store().write(recordId, sealed) }
             saved?.snapshot?.fill(0)
             saved = state
+            release()
         } catch (error: Throwable) {
             state.snapshot.fill(0)
             throw error
@@ -233,10 +256,62 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
     }
 
     private fun restoreDurable() {
+        val held = opening.toList()
+        opening.clear()
+        held.forEach { it.opened.wipe() }
         engine?.close()
         engine = null
-        val state = saved ?: return
-        engine = SecurityEngineFactory.restore(state.snapshot, checkNotNull(policy))
+        try {
+            saved?.let { engine = SecurityEngineFactory.restore(it.snapshot, checkNotNull(policy)) }
+        } catch (error: Throwable) {
+            held.forEach { it.command.reply.fail(error) }
+            throw error
+        }
+        held.map { it.command }.forEach { command ->
+            runCatching { decrypt(command) }
+                .onSuccess { opening += Opening(command, it) }
+                .onFailure { command.reply.fail(it) }
+        }
+    }
+
+    private fun decrypt(message: OpenCommand): OpenedMessage {
+        val opened = crypto().open(message.id, message.envelope,
+            EngineSealed(message.sealed.header, message.sealed.commitment, message.sealed.ciphertext), message.circle)
+        try {
+            val sender = opened.credential.takeIf { it.isNotEmpty() }?.let(::readDeviceCredential)
+            check(!opened.authenticated || sender?.deviceId?.value == message.sealed.senderDeviceId)
+            return OpenedMessage(opened.plaintext, opened.frankingKey, sender, opened.authenticated, opened.duplicate)
+        } catch (error: Throwable) {
+            opened.plaintext.fill(0)
+            opened.frankingKey.fill(0)
+            throw error
+        }
+    }
+
+    private suspend fun hold(held: Opening) {
+        opening += held
+        if (!settling) settling = trySend(SettleOpened)
+        if (!settling) settle()
+    }
+
+    private suspend fun settle() {
+        settling = false
+        if (opening.isEmpty()) return
+        try { persist() }
+        catch (error: Throwable) {
+            val held = opening.toList()
+            opening.clear()
+            held.forEach { it.opened.wipe() }
+            try { restoreDurable() } catch (restoreError: Throwable) { error.addSuppressed(restoreError) }
+            held.map { it.command.id }.distinct().forEach { runCatching { update(it, ConversationHealth.Failed) } }
+            held.forEach { it.command.reply.fail(error) }
+            throw error
+        }
+    }
+
+    private fun release() {
+        opening.forEach { if (!it.command.reply.complete(it.opened)) it.opened.wipe() }
+        opening.clear()
     }
 
     private suspend fun ensureDevice() {
@@ -419,6 +494,7 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
     }
 
     override suspend fun postStop() {
+        runCatching { settle() }
         engine?.close()
         engine = null
         saved?.snapshot?.fill(0)

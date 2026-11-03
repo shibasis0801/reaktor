@@ -152,7 +152,9 @@ fun NotificationDispatchPayload.envelope(): NotificationEnvelope =
         ),
         route = route,
         correlationId = deliveryId,
-        data = data + ("delivery_id" to deliveryId),
+        data = data.filter { (key, value) ->
+            key != SealedNotice.DataKey || NotificationPresentationFeature.SealedNotices.name in capabilities && SealedNotice.decode(value) != null
+        } + ("delivery_id" to deliveryId),
     )
 
 fun NotificationDispatchPayload.providerData(): Map<String, String> =
@@ -238,6 +240,11 @@ fun NotificationDispatchPayload.fcmRequestBody(): String =
             },
         )
     }.toString()
+        .let { payload ->
+            if (payload.encodeToByteArray().size > 4096 && SealedNotice.DataKey in data)
+                copy(data = data - SealedNotice.DataKey).fcmRequestBody()
+            else payload
+        }
 
 fun NotificationDispatchPayload.dispatchResult(
     status: String,

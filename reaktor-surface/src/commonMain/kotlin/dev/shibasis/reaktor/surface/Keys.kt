@@ -6,7 +6,7 @@ enum class KeyName {
     F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
     Enter, Escape, Tab, Space, Backspace, Delete,
     Up, Down, Left, Right, Home, End, PageUp, PageDown,
-    LeftBracket, RightBracket, Equals, Minus, Comma, Period, Slash, ContextMenu,
+    LeftBracket, RightBracket, Equals, Minus, Comma, Period, Slash, Apostrophe, ContextMenu,
 }
 
 data class KeyStroke(

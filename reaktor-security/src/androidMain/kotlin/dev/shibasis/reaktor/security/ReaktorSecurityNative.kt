@@ -18,5 +18,6 @@ object ReaktorSecurityNative {
     external fun prepare(handle: Long, operation: Int, id: ByteArray, packages: Array<ByteArray>, index: Int, info: ByteArray): Array<ByteArray>
     external fun seal(handle: Long, id: ByteArray, envelope: ByteArray, plaintext: ByteArray, circle: Boolean, anonymous: Boolean): Array<ByteArray>
     external fun open(handle: Long, ring: Boolean, id: ByteArray, envelope: ByteArray, header: ByteArray, commitment: ByteArray, ciphertext: ByteArray, circle: Boolean): Array<ByteArray>
+    external fun attachment(seal: Boolean, key: ByteArray, digest: ByteArray, input: ByteArray): Array<ByteArray>
     external fun storage(operation: Int, key: ByteArray, aad: ByteArray, input: ByteArray): ByteArray
 }

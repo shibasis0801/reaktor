@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.conductor.Entitlement
 import dev.shibasis.reaktor.conductor.ProviderCapability
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.message.MessageKind
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.nio.file.Files
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -24,7 +25,7 @@ class PlanPreemptionTest {
                 workspace.plans.write(thread, PlanPatch(ops = listOf(PlanOp.Status("current", PlanStatus.Doing))), agent)
                 test(workspace)
             }
-        } finally { root.deleteRecursively() }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
     }
 
     private suspend fun AgentWorkspace.preempts() = messages.inbox(agent, unreadOnly = false).filter { it.message.request.kind == MessageKind.Preempt }

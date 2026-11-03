@@ -29,6 +29,21 @@ class GraphDefinitionTest {
         assertFailsWith<IllegalArgumentException> { graphDefinition("g", "r1") { region("a", "A", "b"); region("b", "B", "a") } }
     }
 
+    @Test fun declaredContainersBelongToTheirParentRegionAndOldDefinitionsDecode() {
+        val old = """{"id":"g","revision":"r1","regions":[{"id":"root","label":"Root"}],"nodes":[],"relations":[]}"""
+        assertNull(Json.decodeFromString<GraphDefinition>(old).regions.single().container)
+        val graph = graphDefinition("g", "r1") {
+            region("root", "Root")
+            node("group", "Group", "scope", "root", emptyList())
+            region("child", "Child", "root", "group")
+        }
+        assertEquals("group", Json.decodeFromString<GraphDefinition>(Json.encodeToString(graph)).regions.last().container)
+        assertFailsWith<IllegalArgumentException> {
+            graphDefinition("g", "r1") { region("root", "Root"); region("child", "Child", "root", "missing") }
+        }
+        assertTrue(graph.copy(regions = graph.regions + RegionDefinition("other", "Other", "root", "group")).problems().any { it.startsWith("Duplicate region container") })
+    }
+
     private class CommonGraph : PortGraph<CommonGraph, PortNode<CommonGraph>>()
     private fun normalKotlin(n: Int): Int = if (n <= 1) n else normalKotlin(n - 1) + normalKotlin(n - 2)
 

@@ -48,6 +48,14 @@ class FlowDesktopViewportPlatformBridge internal constructor(
         state: ReactFlowState,
         interactionState: FlowViewportInteractionState,
         config: FlowViewportGestureConfig,
+    ): FlowViewportPlatformGestureSubscription? = installViewportGestures(
+        ReactFlowViewportController(state), interactionState, config,
+    )
+
+    override fun installViewportGestures(
+        controller: FlowViewportController,
+        interactionState: FlowViewportInteractionState,
+        config: FlowViewportGestureConfig,
     ): FlowViewportPlatformGestureSubscription? {
         if (!isMacOs()) return null
         val content = content ?: return null
@@ -93,13 +101,7 @@ class FlowDesktopViewportPlatformBridge internal constructor(
 
             val factor = exp(magnification * ViewportTuning.pinchZoomSensitivity)
             interactionState.markViewportAsUserModified()
-            state.zoomBy(
-                factor = factor,
-                anchorX = anchor.x.toDouble(),
-                anchorY = anchor.y.toDouble(),
-                minZoom = config.minZoom,
-                maxZoom = config.maxZoom,
-            )
+            controller.zoomBy(factor, anchor, config)
             runCatching {
                 gestureEvent.javaClass.getMethod("consume").invoke(gestureEvent)
             }

@@ -22,7 +22,7 @@ internal open class NativeBuffer : Structure() {
     class Value : NativeBuffer(), Structure.ByValue
     fun bytes(): ByteArray {
         val length = len.toLong()
-        check(length in 0..(64L * 1024 * 1024 + 4096))
+        check(length in 0..(64L * 1024 * 1024 + 65536))
         return if (length == 0L) byteArrayOf() else checkNotNull(data).getByteArray(0, length.toInt())
     }
     fun value() = Value().also { it.data = data; it.len = len }
@@ -62,6 +62,13 @@ internal class NativeCommit : Structure() {
 internal class NativeSealed : Structure() {
     @JvmField var header = NativeBuffer()
     @JvmField var commitment = NativeBuffer()
+    @JvmField var ciphertext = NativeBuffer()
+}
+
+@Structure.FieldOrder("key", "digest", "ciphertext")
+internal class NativeAttachment : Structure() {
+    @JvmField var key = NativeBuffer()
+    @JvmField var digest = NativeBuffer()
     @JvmField var ciphertext = NativeBuffer()
 }
 
@@ -110,6 +117,8 @@ internal interface SecurityNativeApi : Library {
     fun rsec_seal_content(engine: Pointer, id: ByteArray, idLen: SizeT, envelope: ByteArray, envelopeLen: SizeT, plaintext: ByteArray, len: SizeT, purpose: Byte, anonymous: Byte, out: NativeSealed): Int
     fun rsec_open_content(engine: Pointer, id: ByteArray, idLen: SizeT, envelope: ByteArray, envelopeLen: SizeT, content: NativeSealed, purpose: Byte, out: NativeOpened): Int
     fun rsec_buffer_free(buffer: NativeBuffer.Value)
+    fun rsec_attachment_seal_file(plaintext: ByteArray, len: SizeT, out: NativeAttachment): Int
+    fun rsec_attachment_open_file(key: ByteArray, keyLen: SizeT, digest: ByteArray, digestLen: SizeT, ciphertext: ByteArray, len: SizeT, out: NativeBuffer): Int
     fun rsec_storage_key(out: NativeBuffer): Int
     fun rsec_storage_seal(key: ByteArray, keyLen: SizeT, aad: ByteArray, aadLen: SizeT, plaintext: ByteArray, len: SizeT, out: NativeBuffer): Int
     fun rsec_storage_open(key: ByteArray, keyLen: SizeT, aad: ByteArray, aadLen: SizeT, ciphertext: ByteArray, len: SizeT, out: NativeBuffer): Int
@@ -220,6 +229,18 @@ internal class NativeSecurityEngine private constructor(private var handle: Poin
     }
 
     companion object {
+        fun sealAttachment(plaintext: ByteArray): SealedAttachment {
+            val out = NativeAttachment()
+            try {
+                status(api.rsec_attachment_seal_file(plaintext, plaintext.sizeT(), out))
+                return SealedAttachment(out.key.bytes(), out.digest.bytes(), out.ciphertext.bytes())
+            } finally { free(out.key, out.digest, out.ciphertext) }
+        }
+
+        fun openAttachment(key: ByteArray, digest: ByteArray, ciphertext: ByteArray): ByteArray = buffer {
+            api.rsec_attachment_open_file(key, key.sizeT(), digest, digest.sizeT(), ciphertext, ciphertext.sizeT(), it)
+        }
+
         private val api: SecurityNativeApi by lazy {
             Native.load("ReaktorSecurity", SecurityNativeApi::class.java).also { check(it.rsec_abi_version() == 2) }
         }

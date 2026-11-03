@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.cloud
 
+import dev.shibasis.reaktor.core.truth.TruthClass
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -117,6 +118,7 @@ class CloudflareReader(
     private val parallelism: Int = 16,
     override val id: String = "cloudflare",
 ) : CloudProvider {
+    override val truth = TruthClass.Live
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
     private val base = "https://api.cloudflare.com/client/v4"
     private val dash = "https://dash.cloudflare.com/$accountId"
@@ -228,6 +230,7 @@ class CloudflareReader(
         val finished = clock()
         CloudReading(
             provider = id,
+            truth = if (unreadable.isEmpty()) truth else TruthClass.Partial,
             platform = CloudPlatform.Cloudflare,
             health = ProviderHealth(id, if (unreadable.isEmpty()) ResourceStatus.Healthy else ResourceStatus.Degraded,
                 "${resources.size} resources · ${scriptNames.size} workers" + if (unreadable.isEmpty()) "" else " · unreadable: ${unreadable.joinToString()}"),

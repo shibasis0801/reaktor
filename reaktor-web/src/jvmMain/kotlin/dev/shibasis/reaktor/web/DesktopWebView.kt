@@ -40,6 +40,18 @@ class DesktopWebView(
     var nativeAttached: Boolean = false
         private set
     private var disposed = false
+    var contentVisible: Boolean = true
+        set(value) = onEdt {
+            if (field != value) {
+                field = value
+                updateBounds()
+            }
+        }
+
+    override fun setBackground(color: java.awt.Color?) {
+        super.setBackground(color)
+        components.forEach { it.background = color }
+    }
 
     init {
         add(canvas, BorderLayout.CENTER)
@@ -109,7 +121,7 @@ class DesktopWebView(
         controller?.bounds(
             (origin.x - window.insets.left).toDouble(),
             (origin.y - window.insets.top).toDouble(),
-            canvas.width.toDouble(), canvas.height.toDouble(), canvas.isShowing,
+            canvas.width.toDouble(), canvas.height.toDouble(), canvas.isShowing && contentVisible,
         )
     }
 

@@ -21,9 +21,14 @@ import androidx.compose.ui.unit.sp
 import dev.shibasis.reaktor.blueprint.BlueprintEngine
 import dev.shibasis.reaktor.blueprint.Bounds
 import dev.shibasis.reaktor.blueprint.Link
+import dev.shibasis.reaktor.blueprint.capture.CapturePainter
+import dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors
+import dev.shibasis.reaktor.blueprint.capture.CaptureHit
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+
+private val GuideTone = Color(0xFFFF6B8B)
 
 fun GraphEditor.tone(change: Change): Color = when (change) {
     Change.Added -> ink.added
@@ -35,6 +40,13 @@ internal fun GraphEditor.drawOverlay(scope: DrawScope, zoom: Double) = with(scop
     val line = (1.5 / zoom.coerceAtLeast(.05)).toFloat()
     val dash = PathEffect.dashPathEffect(floatArrayOf(line * 5, line * 4))
     val shown = layout
+    measurer?.let { text ->
+        val colors = MachineSignalColors.Editor.copy(surface = ink.surface, textStrong = ink.text, controlAccent = ink.accent)
+        with(CapturePainter(text, colors)) {
+            paint(capturePreview, zoom, when { zoom < .2 -> CapturePainter.Level.Overview; zoom < .5 -> CapturePainter.Level.Summary; else -> CapturePainter.Level.Detail },
+                selection.notes.singleOrNull(), camera?.seen?.let { CaptureHit.Bounds(it.x, it.y, it.width, it.height) }, resolve = ::resolveCapture)
+        }
+    }
     if (showChanges) {
         diff.wires.forEach { (id, change) ->
             val link = link(id) ?: return@forEach
@@ -86,7 +98,14 @@ internal fun GraphEditor.drawOverlay(scope: DrawScope, zoom: Double) = with(scop
             }
         }
     }
-    selection.wires.forEach { id -> link(id)?.let { trace(it, ink.accent, line * 2.2f, null) } }
+    selection.wires.forEach { id -> link(id)?.let { link ->
+        trace(link, ink.accent, line * 2.2f, null)
+        listOfNotNull(link.trace.firstOrNull(), link.trace.lastOrNull()).forEach { (x, y) ->
+            val at = Offset(x.toFloat(), y.toFloat())
+            drawCircle(ink.surface, line * 4, at)
+            drawCircle(ink.accent, line * 4, at, style = Stroke(line * 1.4f))
+        }
+    } }
     selection.nodes.forEach { id -> shown.cards[id]?.let { ring(it, ink.accent, line * 2, line * 1.6f) } }
     selection.notes.forEach { id -> shown.cards[id]?.let { ring(it, ink.accent, line * 2, line * 1.6f) } }
     runs?.failures?.forEach { failure -> (shown.cards[failure.node] ?: shape.visible(failure.node)?.let(shown.cards::get))?.let { alert(Offset((it.x + it.width).toFloat(), (it.y + it.height).toFloat()), ink.refused, line) } }
@@ -100,6 +119,27 @@ internal fun GraphEditor.drawOverlay(scope: DrawScope, zoom: Double) = with(scop
         if (wires > 1) drawCircle(ink.text, radius * 2.2f, Offset(spot.x.toFloat(), spot.y.toFloat()), style = Stroke(line))
     }
     when (val g = gesture) {
+        is Gesture.Duplicating -> {
+            val offset = duplicateOffset(g)
+            val dx = offset.x; val dy = offset.y
+            shown.links.filter { it.from in g.target.nodes && it.to in g.target.nodes }.forEach { link ->
+                val ghost = Path()
+                link.trace.forEachIndexed { index, (x, y) ->
+                    if (index == 0) ghost.moveTo((x + dx).toFloat(), (y + dy).toFloat()) else ghost.lineTo((x + dx).toFloat(), (y + dy).toFloat())
+                }
+                drawPath(ghost, ink.accent.copy(alpha = .6f), style = Stroke(line, pathEffect = dash))
+            }
+            g.target.nodes.mapNotNull(shown.cards::get).forEach { card ->
+                val at = Offset((card.x + dx).toFloat(), (card.y + dy).toFloat())
+                drawRoundRect(ink.surface.copy(alpha = .8f), at, card.size, Radius)
+                drawRoundRect(ink.accent, at, card.size, Radius, style = Stroke(line, pathEffect = dash))
+            }
+            placement.captures.filter { it.id in g.target.notes }.forEach { capture ->
+                val bounds = CaptureHit.geometry(capture, ::resolveCapture).extent
+                drawRect(ink.accent.copy(alpha = .6f), Offset((bounds.left + dx).toFloat(), (bounds.top + dy).toFloat()),
+                    Size(bounds.width.toFloat(), bounds.height.toFloat()), style = Stroke(line, pathEffect = dash))
+            }
+        }
         is Gesture.Marquee -> {
             val left = min(g.from.x, g.to.x).toFloat(); val top = min(g.from.y, g.to.y).toFloat()
             val size = Size(max(g.from.x, g.to.x).toFloat() - left, max(g.from.y, g.to.y).toFloat() - top)
@@ -107,12 +147,34 @@ internal fun GraphEditor.drawOverlay(scope: DrawScope, zoom: Double) = with(scop
             drawRect(ink.accent.copy(alpha = .8f), Offset(left, top), size, style = Stroke(line))
         }
         is Gesture.Wiring -> {
+            val view = camera?.seen
+            shown.cards.values.filter { card -> view == null || card.x < view.x + view.width && card.x + card.width > view.x && card.y < view.y + view.height && card.y + card.height > view.y }.forEach { card -> card.pins.forEach { pin ->
+                val target = if (card.id in folded) PinEnd(pin.key.substringBefore(FoldSeparator), pin.key.substringAfter(FoldSeparator), pin.provides) else PinEnd(card.id, pin.key, pin.provides)
+                if (carried(g, target).ok) anchor(target)?.let { (x, y) ->
+                    drawCircle(ink.added.copy(alpha = .75f), line * 5, Offset(x.toFloat(), y.toFloat()), style = Stroke(line * 1.3f))
+                }
+            } }
             val tone = when (g.verdict?.ok) { true -> ink.added; false -> ink.refused; null -> ink.accent }
             val end = g.target?.let(::anchor) ?: (pointer.x to pointer.y)
             val starts = if (g.carried.size > 1) g.carried.mapNotNull { wire -> anchor(if (g.picked?.provides == true) PinEnd(wire.consumer, wire.consumerPort, false) else PinEnd(wire.provider, wire.providerPort, true)) }
                 else listOfNotNull(anchor(g.pin))
             val outward = if (g.carried.size > 1) g.picked?.provides != true else g.pin.provides
             starts.forEach { start -> wire(if (outward) start else end, if (outward) end else start, tone, line * 1.8f) }
+        }
+        is Gesture.Link -> shown.cards[g.from]?.let { from ->
+            val tone = when (g.verdict?.ok) { true -> ink.added; false -> ink.refused; null -> ink.accent }
+            val end = g.target?.let(shown.cards::get)?.let { it.x to it.y + BlueprintEngine.HeaderHeight / 2 } ?: (pointer.x to pointer.y)
+            wire(from.x + from.width to from.y + BlueprintEngine.HeaderHeight / 2, end, tone, line * 1.8f)
+        }
+        is Gesture.Erase -> g.hits.nodes.forEach { id -> shown.cards[id]?.let { ring(it, ink.removed, line * 2, line * 1.6f) } }
+        is Gesture.Move -> g.guides.forEach { guide ->
+            val from = Offset(guide.x0.toFloat(), guide.y0.toFloat())
+            val to = Offset(guide.x1.toFloat(), guide.y1.toFloat())
+            drawLine(GuideTone, from, to, line)
+            listOf(from, to).forEach { end ->
+                drawLine(GuideTone, end + Offset(-line * 3, -line * 3), end + Offset(line * 3, line * 3), line)
+                drawLine(GuideTone, end + Offset(-line * 3, line * 3), end + Offset(line * 3, -line * 3), line)
+            }
         }
         else -> {}
     }

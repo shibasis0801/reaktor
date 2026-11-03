@@ -23,14 +23,45 @@ class EngineeringContractsTest {
         val calls = listOf(AtlasApi(), ChangesApi(), ChecksApi(), RunsApi(), PlansApi()).flatMap { api ->
             api.operations.filterIsInstance<Call<*, *>>().map { call -> "${api.id.substringAfterLast('.')}.${call.name}" to call }
         }.toMap()
-        assertEquals(before.keys, calls.keys)
-        for ((id, call) in calls) {
-            val expected = before.getValue(id)
+        assertEquals(before.keys + setOf("plan.next", "plan.schedule"), calls.keys)
+        for ((id, expected) in before) {
+            val call = calls.getValue(id)
             assertEquals(expected.getValue("summary").jsonPrimitive.content, call.summary, "$id summary")
             assertEquals(expected.getValue("effect").jsonPrimitive.content, call.effect.name, "$id effect")
-            assertEquals(expected.getValue("input"), call.request.descriptor.jsonSchema(), "$id input")
-            assertEquals(expected["output"], call.response.descriptor.jsonSchema().takeIf { it.isNotEmpty() }, "$id output")
+            val input = call.request.descriptor.jsonSchema()
+            val comparable = if (id == "plan.write") {
+                val properties = input.getValue("properties").jsonObject
+                val ops = properties.getValue("ops").jsonObject
+                val description = ops.getValue("description").jsonPrimitive.content
+                for (field in listOf("priority", "reason", "replacement")) kotlin.test.assertTrue(field in description)
+                JsonObject(input + ("properties" to JsonObject(properties + ("ops" to JsonObject(ops +
+                    ("description" to expected.getValue("input").jsonObject.getValue("properties").jsonObject.getValue("ops").jsonObject.getValue("description")))))))
+            } else input
+            assertEquals(expected.getValue("input"), comparable, "$id input")
+            val output = call.response.descriptor.jsonSchema().takeIf { it.isNotEmpty() }
+            val additions = when {
+                id == "atlas.query" -> setOf("memory")
+                id.startsWith("plan.") -> setOf("priority", "reason", "replacement", "lease", "agent", "profile", "profileRevision")
+                else -> emptySet()
+            }
+            assertEquals(expected["output"], baselineOutput(expected["output"], output, additions), "$id output")
         }
+    }
+
+    private fun baselineOutput(expected: JsonElement?, actual: JsonElement?, additions: Set<String>): JsonElement? {
+        if (expected is JsonArray && actual is JsonArray && expected.size == actual.size)
+            return JsonArray(expected.zip(actual).map { (old, current) -> baselineOutput(old, current, additions)!! })
+        if (expected !is JsonObject || actual !is JsonObject) return actual
+        val oldProperties = expected["properties"] as? JsonObject
+        val properties = actual["properties"] as? JsonObject
+        val normalized = if (oldProperties != null && properties != null) {
+            val added = properties.keys - oldProperties.keys
+            kotlin.test.assertTrue(additions.containsAll(added), "Unexpected output properties: $added")
+            val required = (actual["required"] as? JsonArray).orEmpty().map { it.jsonPrimitive.content }
+            kotlin.test.assertTrue(added.none { it in required }, "Added output properties must be optional")
+            JsonObject(actual + ("properties" to JsonObject(properties - added)))
+        } else actual
+        return JsonObject(normalized.mapValues { (key, value) -> baselineOutput(expected[key], value, additions)!! })
     }
 
     @Test
@@ -42,6 +73,15 @@ class EngineeringContractsTest {
         assertEquals(false, broad.narrow)
         assertEquals(null, defaults.planItem)
         assertEquals(null, defaults.queue)
+    }
+
+    @Test
+    fun schedulingAddsReadDescriptorsWithoutCallerSuppliedIdentity() {
+        val api = PlansApi()
+        assertEquals("ReadOnly", api.next.effect.name)
+        assertEquals("ReadOnly", api.schedule.effect.name)
+        assertEquals(setOf("thread", "agent", "seat", "take"), api.next.request.descriptor.jsonSchema().getValue("properties").jsonObject.keys)
+        assertEquals(setOf("thread"), api.schedule.request.descriptor.jsonSchema().getValue("properties").jsonObject.keys)
     }
 
     @Test

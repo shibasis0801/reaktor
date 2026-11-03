@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.system.measureNanoTime
 
 class NativeSecurityEngineTest {
     private class Device(name: String) : AutoCloseable {
@@ -153,5 +154,118 @@ class NativeSecurityEngineTest {
             bob.engine.close()
             assertFailsWith<IllegalStateException> { bob.engine.snapshot() }
         } }
+    }
+
+    @Test fun nativeTimingEvidenceForSealOpenCachedHistoryAndEngineStart() {
+        val chatId = "native-performance"
+        val envelope = byteArrayOf(1, 2, 3)
+        val alice = NativeSecurityEngine.create(byteArrayOf(1))
+        val bob = NativeSecurityEngine.create(byteArrayOf(2))
+        try {
+            val created = alice.prepareCreate(chatId, emptyList())
+            alice.accept(chatId, created.commit)
+            val joined = bob.prepareExternalJoin(chatId, created.groupInfo)
+            bob.accept(chatId, joined.commit)
+            alice.process(chatId, joined.commit)
+
+            val warmup = ArrayList<EngineSealed>(50)
+            repeat(50) { index ->
+                val sealed = alice.seal(chatId, envelope, byteArrayOf(index.toByte()))
+                warmup += sealed
+                val opened = bob.open(chatId, envelope, sealed)
+                opened.plaintext.fill(0)
+                opened.frankingKey.fill(0)
+                opened.credential.fill(0)
+            }
+            warmup.forEach {
+                it.header.fill(0)
+                it.commitment.fill(0)
+                it.ciphertext.fill(0)
+            }
+
+            val sealSamples = LongArray(500)
+            val sealedMessages = ArrayList<EngineSealed>(sealSamples.size)
+            repeat(sealSamples.size) { index ->
+                var sealed: EngineSealed? = null
+                sealSamples[index] = measureNanoTime {
+                    sealed = alice.seal(chatId, envelope, byteArrayOf(index.toByte()))
+                }
+                sealedMessages += checkNotNull(sealed)
+            }
+
+            val openSamples = LongArray(sealedMessages.size)
+            repeat(sealedMessages.size) { index ->
+                var opened: EngineOpened? = null
+                openSamples[index] = measureNanoTime {
+                    opened = bob.open(chatId, envelope, sealedMessages[index])
+                }
+                checkNotNull(opened).also {
+                    it.plaintext.fill(0)
+                    it.frankingKey.fill(0)
+                    it.credential.fill(0)
+                }
+            }
+
+            val ring = bob.exportKeyRing()
+            try {
+                val history = sealedMessages.take(30)
+                val historySamples = LongArray(20)
+                repeat(historySamples.size) { sample ->
+                    val opened = ArrayList<EngineOpened>(history.size)
+                    historySamples[sample] = measureNanoTime {
+                        NativeSecurityEngine.keyRing(ring).use { reader ->
+                            history.forEach { opened += reader.open(chatId, envelope, it) }
+                        }
+                    }
+                    opened.forEach {
+                        it.plaintext.fill(0)
+                        it.frankingKey.fill(0)
+                        it.credential.fill(0)
+                    }
+                }
+
+                val startSamples = LongArray(50)
+                repeat(startSamples.size) { index ->
+                    var engine: NativeSecurityEngine? = null
+                    startSamples[index] = measureNanoTime {
+                        engine = NativeSecurityEngine.create(byteArrayOf(index.toByte()))
+                    }
+                    checkNotNull(engine).close()
+                }
+
+                fun percentile(values: LongArray, percentile: Int): Long =
+                    values.sortedArray()[((values.size * percentile + 99) / 100 - 1).coerceAtLeast(0)]
+
+                System.out.println(
+                    "RSEC_NATIVE_TIMING target=jvm-host-jna warmup=50 seal_samples=" + sealSamples.size +
+                        " seal_p50_ns=" + percentile(sealSamples, 50) +
+                        " seal_p95_ns=" + percentile(sealSamples, 95) +
+                        " seal_max_ns=" + sealSamples.maxOrNull() +
+                        " open_samples=" + openSamples.size +
+                        " open_p50_ns=" + percentile(openSamples, 50) +
+                        " open_p95_ns=" + percentile(openSamples, 95) +
+                        " open_max_ns=" + openSamples.maxOrNull() +
+                        " cached_batches=" + historySamples.size +
+                        " cached_messages=30" +
+                        " cached_p50_ns=" + percentile(historySamples, 50) +
+                        " cached_p95_ns=" + percentile(historySamples, 95) +
+                        " cached_max_ns=" + historySamples.maxOrNull() +
+                        " start_samples=" + startSamples.size +
+                        " start_p50_ns=" + percentile(startSamples, 50) +
+                        " start_p95_ns=" + percentile(startSamples, 95) +
+                        " start_max_ns=" + startSamples.maxOrNull()
+                )
+            } finally {
+                ring.fill(0)
+                sealedMessages.forEach {
+                    it.header.fill(0)
+                    it.commitment.fill(0)
+                    it.ciphertext.fill(0)
+                }
+            }
+        } finally {
+            bob.close()
+            alice.close()
+        }
     }
 }

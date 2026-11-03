@@ -81,13 +81,11 @@ object AgentPluginBundle {
             put("command", (launcher + listOf("hook", command)).joinToString(" ") { "'" + it.replace("'", "'\\''") + "'" })
             put("timeout", 10)
         }
+        val lifecycle = if (harness == Harness.Codex) mapOf("Stop" to "codex-stop") else mapOf("Stop" to "claude-stop", "SessionEnd" to "claude-end")
         return buildJsonObject {
             putJsonObject("hooks") {
-                listOf("SessionStart", "UserPromptSubmit", "PostToolUse").forEach { event ->
-                    putJsonArray(event) { add(buildJsonObject { putJsonArray("hooks") { add(handler(mode)) } }) }
-                }
-                if (harness == Harness.Codex) putJsonArray("Stop") {
-                    add(buildJsonObject { putJsonArray("hooks") { add(handler("codex-stop")) } })
+                (listOf("SessionStart", "UserPromptSubmit", "PostToolUse").associateWith { mode } + lifecycle).forEach { (event, command) ->
+                    putJsonArray(event) { add(buildJsonObject { putJsonArray("hooks") { add(handler(command)) } }) }
                 }
             }
         }
@@ -101,6 +99,8 @@ object AgentPluginBundle {
         SessionStart calls the running workspace owner's agent.identity and memory.recall operations, using the seat's registered plan when available. Recalled assertions include scope, revision and provenance; source freshness remains unknown until checked against source. The hook does not start an owner or call a model.
 
         SessionStart, UserPromptSubmit and PostToolUse deliver only the process-authenticated thread's inbox through ThreadInbox. Delivery records consumption; explicit message.ack remains the reader's action. A payload session id cannot select another caller.
+
+        Presence follows the turn through the owner's presence.state: UserPromptSubmit marks the session Working, ${if (harness == Harness.Codex) "a Stop that lets the turn end marks it Waiting" else "Stop marks it Waiting, and SessionEnd marks it Gone, which returns its in-progress plan items to To do"}. Any later owner operation marks it Working again.
 
         ${if (harness == Harness.Codex) "Stop calls seat.stop through the running owner. Register the current native thread through seat.keep-working with the real plan and paused=false; use paused=true to pause. Hangar registers its interactive Codex runs. Open /hooks in Codex and review the exact hook definitions before trusting them. Changed definitions need a new review. Preserve existing hook sources until a real continuation proves this replacement." else "Review this package and its commands in Claude Code's /hooks view. Native hook configuration and execution remain subject to the person's harness settings."}
 

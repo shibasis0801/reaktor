@@ -125,8 +125,23 @@ private fun NodeShape.merging(before: NodeShape, after: NodeShape): NodeShape {
 fun Placement.with(moved: Placement): Placement {
     val current = notes.mapTo(HashSet()) { it.id }
     val kept = moved.notes.filter { it.id in current || it.id.startsWith(CommentPrefix) }
-    val replaced = kept.mapTo(HashSet()) { it.id } + moved.removedNotes
-    return Placement(cards + moved.cards, notes.filter { it.id !in replaced } + kept, bends + moved.bends, marks = marks + moved.marks, remarks = remarks + moved.remarks)
+    val replaced = kept.mapTo(HashSet()) { it.id } + moved.removedNotes + moved.removedCaptures
+    val replacedCaptures = moved.capture.mapTo(HashSet()) { it.id } + moved.removedCaptures
+    return copy(
+        cards = cards + moved.cards,
+        notes = notes.filter { it.id !in replaced } + kept,
+        bends = bends + moved.bends,
+        removedNotes = emptySet(),
+        marks = marks + moved.marks,
+        remarks = remarks.filterKeys { "remark:$it" !in moved.removedCaptures } + moved.remarks,
+        capture = capture.filter { it.id !in replacedCaptures } + moved.capture,
+        assets = (assets - moved.removedAssets) + moved.assets,
+        folded = (folded - moved.unfolded) + moved.folded,
+        removedCaptures = emptySet(),
+        removedAssets = emptySet(),
+        unfolded = emptySet(),
+        collapsed = (collapsed + moved.collapsed).filterValues { it.isNotEmpty() },
+    )
 }
 
 fun Placement.since(origin: Placement): Placement = Placement(
@@ -136,6 +151,17 @@ fun Placement.since(origin: Placement): Placement = Placement(
     removedNotes = origin.notes.map { it.id }.filterTo(HashSet()) { id -> notes.none { it.id == id } },
     marks = marks.filter { (key, mark) -> origin.marks[key] != mark },
     remarks = remarks.filter { (id, text) -> origin.remarks[id] != text },
+    capture = capture.takeIf { it != origin.capture }.orEmpty(),
+    assets = assets.filter { (id, asset) -> origin.assets[id] != asset },
+    folded = folded - origin.folded,
+    removedCaptures = (origin.capture.map { it.id } - capture.mapTo(HashSet()) { it.id }).toSet() +
+        (origin.remarks.keys - remarks.keys).map { "remark:$it" },
+    removedAssets = origin.assets.keys - assets.keys,
+    unfolded = origin.folded - folded,
+    collapsed = (collapsed.keys + origin.collapsed.keys).mapNotNull { group ->
+        val members = collapsed[group].orEmpty()
+        if (members == origin.collapsed[group].orEmpty()) null else group to members
+    }.toMap(),
 )
 
 internal const val CommentPrefix = "note-"

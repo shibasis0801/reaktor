@@ -41,6 +41,8 @@ internal expect object SecurityEngineFactory {
     fun create(policy: EnginePolicy, suite: MlsCipherSuiteId = MlsCipherSuiteId.MLS_128_DHKEMX25519_CHACHA20POLY1305_SHA256_Ed25519): SecurityEngine
     fun restore(snapshot: ByteArray, policy: EnginePolicy): SecurityEngine
     fun keyRing(encoded: ByteArray, policy: EnginePolicy): EngineKeyRing
+    fun sealAttachment(plaintext: ByteArray): SealedAttachment
+    fun openAttachment(key: ByteArray, digest: ByteArray, ciphertext: ByteArray): ByteArray
     fun storageKey(): ByteArray
     fun sealStorage(key: ByteArray, aad: ByteArray, plaintext: ByteArray): ByteArray
     fun openStorage(key: ByteArray, aad: ByteArray, ciphertext: ByteArray): ByteArray

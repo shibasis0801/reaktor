@@ -17,6 +17,9 @@ abstract class NotificationAdapter<Controller>(
 var Feature.Notifications by CreateSlot<NotificationsClient>()
 
 interface NotificationsClient : NotificationPermissionClient {
+    val sealedPreviews: SealedNoticePreviews?
+        get() = null
+
     val devHarness: NotificationDevHarness?
         get() = null
 

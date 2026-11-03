@@ -29,9 +29,22 @@ class PlanLeasePolicyTest {
         val plan = WorkPlan("codex:one", "Work", items = listOf(item), createdBy = actor, createdAt = 0, updatedAt = 0)
         val person = BoardActor(BoardActorKind.Person, "Owner")
         val changed = PlanRules.apply(plan, PlanPatch(ops = listOf(PlanOp.Update("build", priority = PlanPriority.Urgent))), person, 2).plan
-        assertEquals(actor, changed.item("build")?.by)
+        assertEquals(actor, changed.item("build")?.lease?.by)
+        assertEquals(person, changed.item("build")?.by)
         assertEquals(person, changed.changes.single().by)
         val parked = PlanRules.apply(changed, PlanPatch(ops = listOf(PlanOp.Status("build", PlanStatus.Todo))), actor, 3).plan
         assertEquals(null, parked.item("build")?.lease)
+    }
+
+    @Test fun anAgentSettingDoingHoldsTheLeasePlanNextGivesAndAPersonHoldsNone() {
+        val plan = WorkPlan("codex:one", "Work", items = listOf(PlanItem("build", "Build"), PlanItem("test", "Test")), createdBy = actor, createdAt = 0, updatedAt = 0)
+        val started = PlanRules.apply(plan, PlanPatch(ops = listOf(PlanOp.Status("build", PlanStatus.Doing))), actor, 5).plan
+        assertEquals(PlanLease(actor, 5, 5 + PlanLease.DurationMillis), started.item("build")?.lease)
+        val again = PlanRules.apply(started, PlanPatch(ops = listOf(PlanOp.Status("build", PlanStatus.Doing))), actor, 9).plan
+        assertEquals(PlanLease(actor, 5, 5 + PlanLease.DurationMillis), again.item("build")?.lease)
+        val person = BoardActor(BoardActorKind.Person, "Owner")
+        val byPerson = PlanRules.apply(plan, PlanPatch(ops = listOf(PlanOp.Status("test", PlanStatus.Doing))), person, 5).plan
+        assertEquals(PlanStatus.Doing, byPerson.item("test")?.status)
+        assertEquals(null, byPerson.item("test")?.lease)
     }
 }

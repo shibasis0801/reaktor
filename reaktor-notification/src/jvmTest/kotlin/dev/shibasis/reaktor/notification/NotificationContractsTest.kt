@@ -266,7 +266,35 @@ class NotificationContractsTest {
         assertFalse("notification" in payload.fcmMessage())
     }
 
-    private fun conversationPayload(platform: String, capabilities: List<String>) = NotificationDispatchPayload(
+        @Test fun sealedNoticesAreBoundedAndOnlyReachCapableEndpoints() {
+        val notice = SealedNotice("c-1", "m-1", 2, "u-1", "device-1", "ZW52ZWxvcGU=", "aGVhZGVy", "Y29tbWl0bWVudA==", "Y2lwaGVydGV4dA==")
+        val encoded = assertNotNull(notice.encode())
+        assertEquals(notice, SealedNotice.decode(encoded))
+        assertEquals(null, notice.copy(ciphertext = "x".repeat(2500)).encode())
+        assertEquals(null, notice.copy(senderUserId = "").encode())
+        assertEquals(null, SealedNotice.decode("{"))
+        assertEquals(null, SealedNotice.decode("x".repeat(2501)))
+        val payload = conversationPayload("android", listOf(NotificationPresentationFeature.DataMessages.name))
+            .copy(data = mapOf(SealedNotice.DataKey to encoded))
+        assertFalse("data_${SealedNotice.DataKey}" in payload.providerData())
+        val capable = payload.copy(capabilities = payload.capabilities + NotificationPresentationFeature.SealedNotices.name)
+        assertEquals(encoded, capable.providerData()["data_${SealedNotice.DataKey}"])
+        assertEquals(payload.body, capable.fcmMessage().getValue("data").jsonObject["reaktor_body"]?.jsonPrimitive?.content)
+        assertFalse("data_${SealedNotice.DataKey}" in capable.copy(data = mapOf(SealedNotice.DataKey to "malformed")).providerData())
+    }
+
+    @Test fun anOversizedProviderPayloadKeepsTheGenericNotification() {
+        val notice = SealedNotice("c-1", "m-1", 2, "u-1", "device-1", "ZW52ZWxvcGU=", "aGVhZGVy", "Y29tbWl0bWVudA==", "x".repeat(1800))
+        val payload = conversationPayload("ios", listOf(NotificationPresentationFeature.SealedNotices.name))
+            .copy(data = mapOf(SealedNotice.DataKey to assertNotNull(notice.encode()), "padding" to "z".repeat(1400)))
+        val encoded = payload.fcmRequestBody()
+        val data = Json.parseToJsonElement(encoded).jsonObject.getValue("message").jsonObject.getValue("data").jsonObject
+        assertFalse("data_${SealedNotice.DataKey}" in data)
+        assertEquals(payload.body, data["reaktor_body"]?.jsonPrimitive?.content)
+        assertTrue(encoded.encodeToByteArray().size <= 4096)
+    }
+
+private fun conversationPayload(platform: String, capabilities: List<String>) = NotificationDispatchPayload(
         deliveryId = "delivery-2",
         notificationId = "notification-2",
         endpointId = "endpoint-2",

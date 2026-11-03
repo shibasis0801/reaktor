@@ -19,7 +19,6 @@ import org.koin.dsl.koinApplication
 
 internal class AgentWorkspaceOperations(private val workspace: AgentWorkspace, tools: List<McpTool>, owner: Graph? = null, projection: Set<String>? = null, directory: java.nio.file.Path = AgentWorkspaceConnection.defaultDirectory(java.io.File(workspace.info().workspaceRoot))) : McpMessageHandler, AutoCloseable {
     private val root = workspace.info().workspaceRoot
-    var endpointUrl: String? = null
     var incarnation: String? = null
     private val dependencies = if (owner == null) koinApplication {} else null
     private val graph = owner ?: Graph(dependencyAdapter = KoinDependencyAdapter(requireNotNull(dependencies)))
@@ -41,14 +40,8 @@ internal class AgentWorkspaceOperations(private val workspace: AgentWorkspace, t
 
     override fun handle(body: String): JsonElement? = runBlocking { adapter.handle(body) }
 
-    fun peerPost(path: String, body: String, headers: Map<String, List<String>>): LoopbackHttpResponse? {
-        contractPost(path, body, headers)?.let { return it }
-        val provider = peerProvider(path) ?: return null
-        return LoopbackHttpResponse(runBlocking { workspace.peer.exchange(provider, body, headers["a2a-version"]?.singleOrNull()) })
-    }
-
     @Suppress("UNCHECKED_CAST")
-    private fun contractPost(path: String, body: String, headers: Map<String, List<String>>): LoopbackHttpResponse? {
+    fun contractPost(path: String, body: String, headers: Map<String, List<String>>): LoopbackHttpResponse? {
         val served = graph.served().firstOrNull { it.find(HttpMethod.POST, path) != null } ?: return null
         fun response(outbound: Outbound) = LoopbackHttpResponse(Json.parseToJsonElement(outbound.body), outbound.status, outbound.headers)
         if (headers[KernelApi.WorkspaceHeader]?.singleOrNull() != root)
@@ -79,20 +72,6 @@ internal class AgentWorkspaceOperations(private val workspace: AgentWorkspace, t
                 OperationJson.encodeToJsonElement(Outcome.serializer(), Outcome.Failed("Invalid arguments for ${call.id}: ${invalid.message}", "invalid-arguments"))))
         }
         return response(runBlocking { served.dispatch(HttpMethod.POST, path, inbound) })
-    }
-
-    fun read(path: String, query: Map<String, String>): LoopbackHttpResponse? {
-        if (!path.endsWith("/.well-known/agent-card.json") || query.isNotEmpty()) return null
-        val prefix = path.removeSuffix("/.well-known/agent-card.json")
-        val provider = peerProvider(prefix) ?: return null
-        if (provider !in workspace.info().providers) return null
-        return LoopbackHttpResponse(workspace.peer.card(provider, requireNotNull(endpointUrl) + prefix))
-    }
-
-    private fun peerProvider(path: String) = when (path) {
-        "/a2a/codex" -> dev.shibasis.reaktor.conductor.RuntimeKind.Codex
-        "/a2a/claude" -> dev.shibasis.reaktor.conductor.RuntimeKind.ClaudeCode
-        else -> null
     }
 
     fun post(path: String, body: String): LoopbackHttpResponse? {

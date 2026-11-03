@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import dev.shibasis.reaktor.conductor.EffortRecord
+import dev.shibasis.reaktor.conductor.NativeEffort
 import dev.shibasis.reaktor.conductor.ProviderSession
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
@@ -33,15 +35,16 @@ class PlanIdentityTest {
         assertFalse(actors.first().same(PlanIdentity.actor(actors.last(), run("claude", provider = RuntimeKind.ClaudeCode))))
     }
 
-    @Test fun managedRunsUseTheirResolvedProfileAndSeat() {
+    @Test fun managedRunsReadAsTheirRuntimeEffortAndProfile() {
         val run = run("managed", provider = RuntimeKind.Gemini)
         val request = AgentSubmission("plan:0123456789abcdef:s2", RuntimeKind.Gemini, "Work",
-            resolvedSeat = ResolvedTaskSeat(TaskSeat(profile = "gemini"), name = "Gemini 4 Argon"))
+            resolvedSeat = ResolvedTaskSeat(TaskSeat(profile = "gemini", effort = "high"), name = "Argon"))
         val actor = BoardActor(BoardActorKind.Agent, "spawned", "hangar:managed")
-        assertEquals("Gemini 4 Argon · s2", PlanIdentity.actor(actor, run, request).name)
-        assertEquals("Gemini 4 Argon · s2", PlanIdentity.actor(actor.copy(session = "agy:native-managed"), run, request).name)
-        assertEquals("Gemini 4 Argon", PlanIdentity.actor(actor, run, request.copy(requestId = "plain")).name)
-        assertEquals("Gemini", PlanIdentity.actor(actor, run).name)
+        assertEquals("(gemini, high, argon)", PlanIdentity.actor(actor, run, request).name)
+        assertEquals("(gemini, high, argon)", PlanIdentity.actor(actor.copy(session = "agy:native-managed"), run, request).name)
+        assertEquals("(gemini, argon)", PlanIdentity.actor(actor, run, request.copy(resolvedSeat = ResolvedTaskSeat(TaskSeat(profile = "gemini"), name = "Argon"))).name)
+        assertEquals("(gemini, xhigh)", PlanIdentity.actor(actor, run.copy(effort = EffortRecord(resolved = NativeEffort("xhigh")))).name)
+        assertEquals("(gemini)", PlanIdentity.actor(actor, run).name)
         assertEquals("spawned", PlanIdentity.actor(actor, request = request).name)
     }
 

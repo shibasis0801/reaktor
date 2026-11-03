@@ -29,6 +29,7 @@ data class QueryReceipt(
     val warnings: List<String> = emptyList(),
     val cursor: String? = null,
     val error: QueryError? = null,
+    val truth: String = "Live",
 ) {
     fun validate(maxRows: Int, expectedProvider: String? = null) {
         require(protocol == "reaktor.query.v1") { "Unsupported query receipt protocol" }

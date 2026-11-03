@@ -544,6 +544,8 @@ internal class CollectionHost(private val selection: State<Set<String>>) {
         return true
     }
 
+    fun holds(key: String) = (properties?.items?.indexOf(key) ?: -1) >= 0
+
     fun press(key: String, modifiers: PointerKeyboardModifiers, clicks: Int) = pointed {
         val primary = if (properties?.keys == KeyConvention.Mac) modifiers.isMetaPressed else modifiers.isCtrlPressed
         machine.send(CollectionInput.Press(key, extend = modifiers.isShiftPressed, toggle = primary, clicks = clicks))
@@ -708,14 +710,15 @@ private class CollectionPointerNode(var host: CollectionHost) :
     }
 
     private fun press(event: PointerEvent, change: PointerInputChange) {
-        val key = host.keyAt(change.position) ?: return
+        val configuration = currentValueOf(LocalViewConfiguration)
+        val repeated = change.uptimeMillis - lastTime <= configuration.doubleTapTimeoutMillis &&
+            (change.position - lastPosition).getDistance() <= configuration.touchSlop
+        val held = last?.takeIf { repeated && !event.buttons.isSecondaryPressed && host.holds(it) }
+        val key = held ?: host.keyAt(change.position) ?: return
         if (event.buttons.isSecondaryPressed) {
             host.secondary(key, change.position)
         } else {
-            val configuration = currentValueOf(LocalViewConfiguration)
-            val again = key == last && change.uptimeMillis - lastTime <= configuration.doubleTapTimeoutMillis &&
-                (change.position - lastPosition).getDistance() <= configuration.touchSlop
-            clicks = if (again) clicks + 1 else 1
+            clicks = if (held != null) clicks + 1 else 1
             last = key
             lastTime = change.uptimeMillis
             lastPosition = change.position

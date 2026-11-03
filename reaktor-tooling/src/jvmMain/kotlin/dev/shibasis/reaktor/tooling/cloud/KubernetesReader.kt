@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.cloud
 
+import dev.shibasis.reaktor.core.truth.TruthClass
 import dev.shibasis.reaktor.tooling.infra.InfrastructureSession
 import dev.shibasis.reaktor.tooling.infra.KubernetesJvmClient
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +16,7 @@ class KubernetesReader(
     private val clock: () -> Long = System::currentTimeMillis,
     override val id: String = "kubernetes",
 ) : CloudProvider {
+    override val truth = TruthClass.Live
     override suspend fun read(): CloudReading = withContext(Dispatchers.IO) { InfrastructureSession().use { session -> coroutineScope {
         val started = clock()
         require(kubeconfig.isFile) { "The cluster configuration ${kubeconfig.path} is missing" }
@@ -28,6 +30,7 @@ class KubernetesReader(
         val finished = clock()
         CloudReading(
             provider = id,
+            truth = truth,
             platform = CloudPlatform.Kubernetes,
             health = ProviderHealth(id, ResourceStatus.Healthy, builder.summary()),
             readAtMillis = finished,

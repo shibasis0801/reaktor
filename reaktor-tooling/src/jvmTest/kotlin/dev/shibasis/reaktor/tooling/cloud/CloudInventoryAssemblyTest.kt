@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.cloud
 
+import dev.shibasis.reaktor.core.truth.TruthClass
 import kotlinx.serialization.json.jsonObject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -67,6 +68,20 @@ class CloudInventoryAssemblyTest {
             CloudResource("cf:worker:mail", CloudKind.Worker, CloudPlatform.Cloudflare, "mail", evidence = listOf(repository)),
         )),
     ))
+
+    @Test fun declaredProviderTruthIsCarriedWithoutPromotingAnExplicitWeakerReading() = runBlocking {
+        fun provider(declared: TruthClass, answer: TruthClass) = object : CloudProvider {
+            override val id = "arbitrary"
+            override val truth = declared
+            override suspend fun read() = CloudReading(id, null, ProviderHealth(id, ResourceStatus.Healthy), 1, 0, truth = answer)
+        }
+        val inventory = CloudInventory(emptyList(), { 1 })
+        assertEquals(TruthClass.Live, inventory.readSafely(provider(TruthClass.Live, TruthClass.Unknown), 1000).truth)
+        assertEquals(TruthClass.Fixture, inventory.readSafely(provider(TruthClass.Live, TruthClass.Fixture), 1000).truth)
+        assertEquals(TruthClass.Fixture, inventory.readSafely(provider(TruthClass.Fixture, TruthClass.Live), 1000).truth)
+        assertEquals(TruthClass.Fixture, inventory.readSafely(provider(TruthClass.Unknown, TruthClass.Fixture), 1000).truth)
+        assertEquals(TruthClass.Unknown, inventory.readSafely(provider(TruthClass.Unknown, TruthClass.Unknown), 1000).truth)
+    }
 
     @Test
     fun oneMachineSeenByTwoPlatformsIsOneResource() {

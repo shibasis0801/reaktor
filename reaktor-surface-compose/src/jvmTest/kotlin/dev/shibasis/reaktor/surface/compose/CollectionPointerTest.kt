@@ -142,6 +142,31 @@ class CollectionPointerTest {
     }
 
     @Test
+    fun aDoubleClickStaysOnItsRowWhenTheFirstClickCollapsesRowsAboveIt() = runComposeUiTest {
+        var collapsed by mutableStateOf(false)
+        val opened = mutableListOf<String>()
+        setContent {
+            val source = remember(collapsed) {
+                listSource((if (collapsed) emptyList() else (0 until 5).map { "child-$it" }) + (0 until 30).map { "row-$it" }, { it },
+                    text = { it }, activateOnPress = { true })
+            }
+            AutomationScope("files") {
+                ListBox(source, emptySet(), {}, Modifier.height(400.dp), onActivate = { opened += it; collapsed = true }) { BasicText(it) }
+            }
+        }
+        val at = onNodeWithTag("files/row/row-3").fetchSemanticsNode().boundsInRoot.center
+        mainClock.autoAdvance = false
+        onRoot().performMouseInput { click(at) }
+        mainClock.advanceTimeByFrame()
+        assertEquals(listOf("row-3"), opened)
+        onNodeWithTag("files/row/child-0").assertDoesNotExist()
+        onRoot().performMouseInput { click(at) }
+        mainClock.autoAdvance = true
+        waitForIdle()
+        assertEquals(listOf("row-3"), opened)
+    }
+
+    @Test
     fun aTouchThatScrollsSelectsNothingAndATapSelectsWhenTheFingerLifts() = runComposeUiTest {
         var selection by mutableStateOf(emptySet<String>())
         val opened = mutableListOf<String>()

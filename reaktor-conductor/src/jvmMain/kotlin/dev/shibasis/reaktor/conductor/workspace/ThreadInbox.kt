@@ -19,6 +19,26 @@ class ThreadInbox(val directory: Path = Path.of(System.getProperty("user.home"),
         if (Files.size(file) > MaxChars) Files.writeString(file, Files.readString(file).takeLast(MaxChars))
     }
 
+    enum class Offer { New, Pending, Taken }
+
+    fun offered(thread: String, marker: String): Offer = when {
+        holds(file(thread), marker) || holds(lent(thread), marker) -> Offer.Pending
+        holds(offers(thread), marker) || holds(read(thread), marker) -> Offer.Taken
+        else -> Offer.New
+    }
+
+    fun offer(thread: String, marker: String, text: String) {
+        write(thread, text)
+        val ledger = offers(thread)
+        Files.writeString(ledger, "$marker\n", CREATE, APPEND)
+        val lines = Files.readAllLines(ledger)
+        if (lines.size > Remembered) Files.write(ledger, lines.takeLast(Remembered))
+    }
+
+    private fun holds(path: Path, marker: String) = Files.isRegularFile(path) && Files.readString(path).contains(marker)
+
+    private fun offers(thread: String): Path = directory.resolve("${file(thread).fileName}.offered")
+
     fun waiting(runtime: String): Boolean = runCatching {
         Files.newDirectoryStream(directory, "${runtime.removeSuffix(":")}-*.{txt,txt.sent}").use { it.any() }
     }.getOrDefault(false)
@@ -52,5 +72,6 @@ class ThreadInbox(val directory: Path = Path.of(System.getProperty("user.home"),
 
     companion object {
         const val MaxChars = 8_000
+        const val Remembered = 2_000
     }
 }

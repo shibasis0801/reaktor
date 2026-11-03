@@ -4,6 +4,8 @@ import androidx.activity.ComponentActivity
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import co.touchlab.kermit.Logger
+import android.net.Uri
+import dev.shibasis.reaktor.auth.api.AppleBrowserApi
 import dev.shibasis.reaktor.auth.api.AuthService
 import dev.shibasis.reaktor.service.contract.HttpLink
 import dev.shibasis.reaktor.service.contract.over
@@ -33,7 +35,14 @@ class AndroidAuthAdapter(
         register(UserProvider.GOOGLE, AndroidGoogleLogin(this, audience))
     }
 
-    fun registerAppleLogin() {
-        register(UserProvider.APPLE, AndroidAppleLogin(this))
+    private var appleLogin: AndroidAppleLogin? = null
+    private val appleBrowser = AppleBrowserApi() over HttpLink(authService)
+
+    fun registerAppleLogin(returnUri: String) {
+        val provider = AndroidAppleLogin(this, appleBrowser, returnUri)
+        appleLogin = provider
+        register(UserProvider.APPLE, provider)
     }
+
+    fun handleUrl(url: Uri): Boolean = appleLogin?.handleUrl(url) == true
 }

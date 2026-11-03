@@ -104,6 +104,23 @@ private val BoardWire: dynamic = { props: dynamic ->
     }
 }
 
+private val BoardHandles: dynamic = { props: dynamic ->
+    val canvas = props.canvas.unsafeCast<BoardCanvas>()
+    val (_, setTick) = useState(0)
+    useEffectOnceWithCleanup {
+        canvas.onHandles = { setTick { it + 1 } }
+        onCleanup { canvas.onHandles = {} }
+    }
+    val words = canvas.board.words
+    if (props.enabled != true) null else canvas.anchors().map { anchor ->
+        el("button", obj("key" to anchor.item.key, "type" to "button", "className" to "board-connect-handle", "data-board-ui" to true,
+            "aria-label" to "Connect from ${anchor.item.title}", "title" to "Drag to connect · Click to choose or create the next ${words.one}",
+            "style" to obj("left" to (anchor.x + anchor.width), "top" to (anchor.y + anchor.height / 2)),
+            "onPointerDown" to { event: dynamic -> canvas.startWire(anchor.item.key, event) },
+            "onClick" to { event: dynamic -> if (number(event.detail) == 0.0) canvas.chooseConnection(anchor.item.key) }), "+")
+    }.toTypedArray()
+}
+
 private fun clock(): Double = js("Date.now()").unsafeCast<Double>()
 
 val BoardWorkbench: dynamic = { props: dynamic ->
@@ -179,6 +196,7 @@ val BoardWorkbench: dynamic = { props: dynamic ->
     }
     canvas.onChooseConnection = { key -> if (canLeave()) { setConnecting(key); setDetailsOpen(false); setIndexOpen(false) } }
     val shown = useMemo(mode, model.shown) { if (mode.scene) model.shown.filter { it.dag } else model.shown }
+    val shownKeys = useMemo(shown) { shown.mapTo(HashSet()) { it.key } }
     val active = board.item(model.active)
     val sync = model.sync
     val saving = draftDirty || sync.pending
@@ -327,13 +345,7 @@ val BoardWorkbench: dynamic = { props: dynamic ->
             "onDoubleClickCapture" to { event: dynamic -> if (canvas.doubleClick(event)) setFocusEditor(focusEditor + 1) }),
             el(model.kit.canvas, scene),
             el("div", obj("ref" to layerRef, "className" to "board-scene-layer"),
-                *(if (board.locked.isNotBlank() || mode != BoardView.Dag) emptyArray() else canvas.anchors().map { anchor ->
-                    el("button", obj("key" to anchor.item.key, "type" to "button", "className" to "board-connect-handle", "data-board-ui" to true,
-                        "aria-label" to "Connect from ${anchor.item.title}", "title" to "Drag to connect · Click to choose or create the next ${words.one}",
-                        "style" to obj("left" to (anchor.x + anchor.width), "top" to (anchor.y + anchor.height / 2)),
-                        "onPointerDown" to { event: dynamic -> canvas.startWire(anchor.item.key, event) },
-                        "onClick" to { event: dynamic -> if (number(event.detail) == 0.0) canvas.chooseConnection(anchor.item.key) }), "+")
-                }.toTypedArray()),
+                el(BoardHandles, obj("canvas" to canvas, "enabled" to (board.locked.isBlank() && mode == BoardView.Dag), "shown" to shown)),
                 if (creation != null) el(BoardComposer, obj("key" to "${creation.id}:${creation.editing != null}", "canvas" to canvas, "request" to creation, "guard" to inlineGuard,
                     "close" to { closeCreation() }, "move" to { _: String -> })) else null,
                 el(BoardWire, obj("canvas" to canvas))),
@@ -372,7 +384,7 @@ val BoardWorkbench: dynamic = { props: dynamic ->
             el("aside", obj("id" to "board-index", "className" to "board-index board-drawer", "aria-label" to "${words.manyTitle} in this view", "hidden" to !indexOpen),
                 el("div", obj("className" to "board-drawer-heading"), el("h2", null, "${words.manyTitle} · ${shown.size}"), action("Close ${words.one} list", { setIndexOpen(false) })),
                 el("div", obj("className" to "board-index-list"), *shown.map { item ->
-                    val hidden = item.after.count { key -> shown.none { it.key == key } }
+                    val hidden = item.after.count { it !in shownKeys }
                     val lane = board.lane(item.lane)
                     el("button", obj("type" to "button", "key" to item.key, "className" to listOf(slots.indexClass, "board-index-item", if (active?.key == item.key) "is-selected" else "").filter(String::isNotBlank).joinToString(" "),
                         "aria-pressed" to (active?.key == item.key), "onClick" to { _: dynamic -> if (canLeave()) canvas.focus(item) }),

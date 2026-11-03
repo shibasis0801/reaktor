@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.security
 
 import kotlinx.serialization.Serializable
 
+@Serializable
 data class SecuritySession(val tenantId: String, val appId: String, val userId: String, val authKeys: Map<String, ByteArray>, val resetIdentity: Boolean = false) {
     init {
         require(listOf(tenantId, appId, userId).all { it.isNotBlank() && it.length <= 256 })

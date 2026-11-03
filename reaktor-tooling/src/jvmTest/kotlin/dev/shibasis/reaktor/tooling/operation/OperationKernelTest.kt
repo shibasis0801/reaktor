@@ -420,7 +420,33 @@ class OperationKernelTest {
         }
     }
 
-    private fun kernel(policy: DoorPolicy = DoorPolicy.Guarded, receipts: (List<dev.shibasis.reaktor.tooling.RunEvent>) -> Unit = {}, spans: (List<JsonObject>) -> Unit = {}, body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
+    @Test
+    fun everyLogLineNamesTheAgentThatCalledAndTheRunsItStarted() = runTest {
+        val directory = Files.createTempDirectory("operation-callers")
+        val dependencies = koinApplication {}
+        val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))
+        graph.attach(OperationNode(graph, "build", listOf(
+            operation<Write, String>("build.read", "Read") { it.path },
+            operation<Write, Unit>("code.write", "Write a file", SafetyClass.SourceWrite) {},
+        )))
+        val log = directory.resolve("calls.jsonl")
+        val sink = object : dev.shibasis.reaktor.tooling.RunEventSink {
+            override suspend fun append(event: dev.shibasis.reaktor.tooling.RunEvent) {}
+        }
+        val kernel = OperationKernel(graph, OperationAuthority(DoorPolicy(mapOf("*" to SeatPolicy(allow = SafetyClass.SourceWrite))), log = CallLog(log, CallCaller()),
+            runs = dev.shibasis.reaktor.tooling.WorkspaceId("fixture") to sink))
+        try {
+            assertIs<Outcome.Completed>(kernel.invoke(Invocation(OperationId("build.read"), buildJsonObject { put("path", "a") }, CallCaller("codex", principal = "codex:reader"))))
+            assertIs<Outcome.Completed>(kernel.invoke(Invocation(OperationId("code.write"), buildJsonObject { put("path", "b.kt") }, CallCaller("claude-code", principal = "claude:writer"))))
+            val lines = Files.readAllLines(log).map { Json.parseToJsonElement(it).jsonObject }
+            assertEquals(listOf("build.read ok codex:reader", "code.write Running claude:writer", "code.write Succeeded claude:writer", "code.write ok claude:writer"),
+                lines.map { "${it.getValue("call").jsonPrimitive.content} ${it.getValue("outcome").jsonPrimitive.content} ${it["principal"]?.jsonPrimitive?.content}" })
+        } finally {
+            graph.close(); dependencies.close(); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
+        }
+    }
+
+    private fun kernel(policy: DoorPolicy = DoorPolicy.Guarded, receipts:(List<dev.shibasis.reaktor.tooling.RunEvent>) -> Unit = {}, spans: (List<JsonObject>) -> Unit = {}, body: suspend (OperationKernel, DoorApprovals, MutableList<String>) -> Unit) = runTest {
         val directory = Files.createTempDirectory("operation-kernel")
         val dependencies = koinApplication {}
         val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), dependencyAdapter = KoinDependencyAdapter(dependencies))

@@ -1,5 +1,9 @@
 package dev.shibasis.reaktor.blueprint.editor
 
+import dev.shibasis.reaktor.blueprint.capture.Capture
+import dev.shibasis.reaktor.blueprint.capture.CaptureAnchor
+import dev.shibasis.reaktor.blueprint.capture.CaptureAsset
+import dev.shibasis.reaktor.blueprint.capture.toCapture
 import dev.shibasis.reaktor.graph.core.GraphShape
 import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.NodeShape
@@ -26,7 +30,28 @@ data class Placement(
     val removedNotes: Set<String> = emptySet(),
     val marks: Map<Int, Mark> = emptyMap(),
     val remarks: Map<String, String> = emptyMap(),
-)
+    val capture: List<Capture> = emptyList(),
+    val assets: Map<String, CaptureAsset> = emptyMap(),
+    val folded: Set<String> = emptySet(),
+    val removedCaptures: Set<String> = emptySet(),
+    val removedAssets: Set<String> = emptySet(),
+    val unfolded: Set<String> = emptySet(),
+    val collapsed: Map<String, Map<String, Origin>> = emptyMap(),
+) {
+    @Serializable
+    data class Origin(val parent: String?, val order: Int)
+
+    val captures: List<Capture>
+        get() {
+            val explicit = capture.mapTo(HashSet()) { it.id }
+            return notes.filter { it.id !in explicit && it.id !in removedNotes && it.id !in removedCaptures }.map { it.toCapture() } +
+                remarks.mapNotNull { (node, text) ->
+                    val id = "remark:$node"
+                    if (id in explicit || id in removedCaptures) null else Capture.Comment(id, text,
+                        CaptureAnchor.Node(node, Spot(0.0, 0.0), cards[node] ?: Spot(0.0, 0.0), node))
+                } + capture.filter { it.id !in removedCaptures }
+        }
+}
 
 data class GraphDraft(
     val id: String,
@@ -42,7 +67,7 @@ data class Verdict(val ok: Boolean, val message: String)
 
 data class Problem(val subject: String, val text: String, val port: String? = null, val path: List<String> = emptyList())
 
-val WireShape.id: String get() = "$provider.$providerPort>$consumer.$consumerPort"
+val WireShape.id: String get() = sourceId.ifEmpty { "$provider.$providerPort>$consumer.$consumerPort" }
 
 val RouteShape.id: String get() = "$from>$to"
 

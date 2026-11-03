@@ -377,8 +377,7 @@ class AgentWorkspaceConnection private constructor(
                 registry.incarnation = java.util.UUID.randomUUID().toString()
                 val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
                 val hostedServer = LoopbackMcpServer.start(0, { registry }, bearerToken = token, post = registry::post,
-                    read = registry::read, postWithHeaders = registry::peerPost, browser = registry.browser.endpoint).also { server = it }
-                registry.endpointUrl = "http://127.0.0.1:${hostedServer.port()}"
+                    postWithHeaders = registry::contractPost, browser = registry.browser.endpoint).also { server = it }
                 val endpoint = AgentEndpoint(version = 2, workspaceRoot = root.canonicalPath, port = hostedServer.port(), token = token, invocationVersion = 1,
                     processId = ProcessHandle.current().pid(), incarnation = requireNotNull(registry.incarnation),
                     catalogDigest = digest(registry.node.definitions.sortedBy { it.name }.joinToString("\n")), hostKind = hostKind)

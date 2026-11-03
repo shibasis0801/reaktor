@@ -11,6 +11,7 @@ import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
 import java.time.Duration
+import java.time.Instant
 import java.util.Base64
 import java.util.UUID
 import java.util.concurrent.CompletionStage
@@ -71,6 +72,13 @@ class DevDirectoryJvmTest {
             bob.call("init")
             assertEquals(rotated.text("digest"), bob.call("history", rotated).text("digest"))
             assertEquals(alice.call("epoch").text("epoch"), bob.call("epoch").text("epoch"))
+            val report = System.getenv("RSEC_DEV_SOCIAL_ORIGIN")?.let {
+                val tampered = bob.call("report", proofObject("clientId" to initial.getValue("clientId"), "tampered" to JsonPrimitive(true)))
+                assertEquals(JsonNull, tampered.getValue("reportId"))
+                assertTrue(tampered.getValue("refused").jsonPrimitive.boolean)
+                bob.call("report", proofObject("clientId" to initial.getValue("clientId"))).getValue("reportId")
+                    .also { assertTrue(it is JsonPrimitive && it.isString) }
+            }
             System.getenv("RSEC_DEV_PROOF_REPORT")?.let { destination ->
                 Files.writeString(Path.of(destination), proofObject(
                     "chatId" to JsonPrimitive(System.getenv("RSEC_DEV_CHAT_ID")),
@@ -79,6 +87,7 @@ class DevDirectoryJvmTest {
                     "messageClientIds" to JsonArray(listOf(initial.getValue("clientId"), rotated.getValue("clientId"))),
                     "epoch" to alice.call("epoch").getValue("epoch"),
                     "transport" to JsonPrimitive("Sealed content v2 through dev directory, socket and history"),
+                    "genuineReport" to (report ?: JsonNull), "tamperedReportRefused" to JsonPrimitive(report != null),
                 ).toString())
             }
         } finally {
@@ -167,7 +176,7 @@ object DevDirectoryJvmClient {
         private val app = System.getenv("RSEC_DEV_APP_ID")
         private val chat = System.getenv("RSEC_DEV_CHAT_ID")
         private val origin = System.getenv("RSEC_DEV_DIRECTORY_ORIGIN").trimEnd('/')
-        private val device = "rsec-proof-$run-$index"
+        private val device = UUID.nameUUIDFromBytes("rsec-proof-$run-$index".encodeToByteArray()).toString()
         private val policy = EnginePolicy(app, app, proofJson.parseToJsonElement(Files.readString(Path.of(System.getenv("RSEC_DEV_PINS"))))
             .jsonObject.getValue("keys").jsonArray.associate { element ->
                 val key = element.jsonObject
@@ -299,6 +308,37 @@ object DevDirectoryJvmClient {
                 check(response.statusCode() == 200) { "History status ${response.statusCode()}" }
                 opened(checkNotNull(findMessage(proofJson.parseToJsonElement(response.body()), arguments.text("clientId"))), arguments.text("clientId"))
             }
+            "report" -> {
+                val id = arguments.text("clientId")
+                val history = http.send(request("$origin/messages/$chat?offset=0&limit=100").GET().build(), HttpResponse.BodyHandlers.ofString())
+                check(history.statusCode() == 200) { "History status ${history.statusCode()}" }
+                val message = checkNotNull(findMessage(proofJson.parseToJsonElement(history.body()), id))
+                val clear = engine.open(chat, envelope(id, message.text("senderId"), message.text("senderDeviceId"),
+                    message.getValue("epoch").jsonPrimitive.long),
+                    EngineSealed(decoded(message, "contentHeader"), decoded(message, "commitment"), decoded(message, "ciphertext")))
+                try {
+                    check(clear.authenticated)
+                    val content = if (arguments["tampered"]?.jsonPrimitive?.boolean == true)
+                        proofObject("kind" to JsonPrimitive("text"), "value" to JsonPrimitive("Tampered")).toString().encodeToByteArray()
+                    else clear.plaintext
+                    val created = message.getValue("createdAt").jsonPrimitive
+                    val evidence = proofObject(
+                        "envelope" to proofObject("messageId" to message.getValue("id"), "conversationId" to JsonPrimitive(chat),
+                            "senderId" to message.getValue("senderId"), "senderDeviceId" to message.getValue("senderDeviceId"),
+                            "createdAtEpochMillis" to JsonPrimitive(created.longOrNull ?: Instant.parse(created.content).toEpochMilli()),
+                            "editNumber" to JsonPrimitive(message["editNumber"]?.jsonPrimitive?.intOrNull ?: 0)),
+                        "content" to encoded(content), "frankingKey" to encoded(clear.frankingKey),
+                        "commitment" to message.getValue("commitment"), "frankTag" to message.getValue("frankTag"))
+                    val filing = proofObject("targetType" to JsonPrimitive("message"), "targetId" to message.getValue("id"),
+                        "chatId" to JsonPrimitive(chat), "subjectUserId" to message.getValue("senderId"),
+                        "reason" to JsonPrimitive("other"), "details" to JsonPrimitive("E2EE dev proof"), "sealed" to evidence)
+                    val filed = http.send(request(System.getenv("RSEC_DEV_SOCIAL_ORIGIN").trimEnd('/') + "/reports")
+                        .POST(HttpRequest.BodyPublishers.ofString(filing.toString())).build(), HttpResponse.BodyHandlers.ofString())
+                    proofObject("reportId" to (runCatching { proofJson.parseToJsonElement(filed.body()) }.getOrNull()
+                            ?.let { findString(it, "reportId") } ?: JsonNull),
+                        "refused" to JsonPrimitive(filed.body().contains("could not be verified")))
+                } finally { clear.plaintext.fill(0); clear.frankingKey.fill(0); persist() }
+            }
             "epoch" -> proofObject("epoch" to JsonPrimitive(engine.epoch(chat)))
             "close" -> { close(); JsonObject(emptyMap()) }
             else -> error("Unknown proof command")
@@ -319,6 +359,12 @@ object DevDirectoryJvmClient {
             is JsonObject -> if (element["clientId"]?.jsonPrimitive?.contentOrNull == clientId && element["value"] != null) element
                 else element.values.firstNotNullOfOrNull { findMessage(it, clientId) }
             is JsonArray -> element.firstNotNullOfOrNull { findMessage(it, clientId) }
+            else -> null
+        }
+
+        private fun findString(element: JsonElement, key: String): JsonElement? = when (element) {
+            is JsonObject -> element[key]?.takeIf { it is JsonPrimitive && it.isString } ?: element.values.firstNotNullOfOrNull { findString(it, key) }
+            is JsonArray -> element.firstNotNullOfOrNull { findString(it, key) }
             else -> null
         }
 

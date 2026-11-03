@@ -63,7 +63,14 @@ data class Wire(
 )
 
 data class Hop(val from: String, val to: String, val exit: String = "") {
-    val id: String get() = "$from>$to" + exit.takeIf { it.isNotEmpty() }?.let { ":$it" }.orEmpty()
+    val id: String get() = "${linkPart(from)}>${linkPart(to)}" + exit.takeIf { it.isNotEmpty() }?.let { ":${linkPart(it)}" }.orEmpty()
+}
+
+private fun linkPart(value: String): String = buildString {
+    value.forEach { character ->
+        if (character in "%.><|#:") append('%').append(character.code.toString(16).uppercase().padStart(2, '0'))
+        else append(character)
+    }
 }
 
 class AppGraph(
@@ -82,17 +89,29 @@ class AppGraph(
     val nodes: Map<String, NodeShape> = shape.nodes.filter { telemetryBindings || it.kind != NodeKind.Route }.associateBy { it.id }
     val routes: Map<String, NodeShape> = shape.nodes.filter { it.kind == NodeKind.Route }.associateBy { it.id }
 
-    val wires: List<Wire> = shape.wires.mapNotNull { wire ->
+    private val boundWires = shape.wires.mapNotNull { wire ->
         if (!telemetryBindings && (wire.consumerPort in InternalPorts || wire.providerPort in InternalPorts)) return@mapNotNull null
         val provider = visibleFor(wire.provider) ?: return@mapNotNull null
         val consumer = visibleFor(wire.consumer) ?: return@mapNotNull null
-        Wire("${provider}.${wire.providerPort}>${consumer}.${wire.consumerPort}", provider, wire.providerPort, consumer, wire.consumerPort, wire.type)
-    }.distinctBy { it.id }
+        wire to Wire(wire.sourceId.ifEmpty { "${linkPart(wire.provider)}.${linkPart(wire.providerPort)}>${linkPart(wire.consumer)}.${linkPart(wire.consumerPort)}" },
+            provider, wire.providerPort, consumer, wire.consumerPort, wire.type)
+    }.distinctBy { it.second.id }
+    val wires: List<Wire> = boundWires.map { it.second }
+    private val projectedPorts = boundWires.flatMap { (original, shown) ->
+        listOfNotNull(
+            routes[original.provider]?.takeIf { it.id != shown.provider }?.ports?.singleOrNull {
+                it.key == original.providerPort && it.type == original.type && it.provides
+            }?.let { shown.provider to it },
+            routes[original.consumer]?.takeIf { it.id != shown.consumer }?.ports?.singleOrNull {
+                it.key == original.consumerPort && it.type == original.type && !it.provides
+            }?.let { shown.consumer to it },
+        )
+    }.groupBy({ it.first }, { it.second })
 
     val hops: List<Hop> = shape.routes.mapNotNull { route ->
         val from = attachedTo[route.from] ?: return@mapNotNull null
         val to = attachedTo[route.to] ?: return@mapNotNull null
-        Hop(from, to, route.exit).takeIf { from != to }
+        Hop(from, to, route.exit)
     }.distinctBy { it.id }
 
     val containers: Map<String, List<ScopeShape>> = shape.scopes.filter { it.container != null }.groupBy { it.container!! }
@@ -145,7 +164,12 @@ class AppGraph(
         }
     }
 
-    fun ports(node: NodeShape): List<PortShape> = node.ports.filter { telemetryBindings || !it.internal }
+    fun ports(node: NodeShape): List<PortShape> {
+        val own = node.ports.filter { telemetryBindings || !it.internal }
+        val projected = projectedPorts[node.id].orEmpty().filter { telemetryBindings || !it.internal }
+            .distinctBy { Triple(it.key, it.type, it.provides) }
+        return own + projected.filterNot { port -> own.any { it.key == port.key && it.type == port.type && it.provides == port.provides } }
+    }
 
     fun endpoint(port: PortShape): Boolean = port.type.startsWith("op:") || port.type.startsWith(CallPrefix)
 

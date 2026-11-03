@@ -33,6 +33,17 @@ private:
   Impl* impl_;
 };
 
+
+struct SealedAttachment
+{
+  Bytes key;
+  Bytes digest;
+  Bytes ciphertext;
+};
+
+SealedAttachment seal_attachment(const Bytes& plaintext);
+Bytes open_attachment(const Bytes& key, const Bytes& digest, const Bytes& ciphertext);
+
 Bytes storage_key();
 Bytes storage_seal(const Bytes& key, const Bytes& aad, const Bytes& plaintext);
 Bytes storage_open(const Bytes& key, const Bytes& aad, const Bytes& ciphertext);

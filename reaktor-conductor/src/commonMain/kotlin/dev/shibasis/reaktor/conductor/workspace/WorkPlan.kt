@@ -94,38 +94,33 @@ data class WorkPlan(
     val updatedAt: Long,
     val changes: List<PlanChange> = emptyList(),
 ) {
-    fun item(id: String): PlanItem? = items.firstOrNull { it.id == id }
+    private val tree by lazy { PlanTree(items) }
+
+    fun item(id: String): PlanItem? = tree.items[id]
 
     fun seat(id: String): PlanSeat? = seats.firstOrNull { it.id == id && it.retired == null }
 
     fun under(id: String): Set<String> {
-        val children = items.groupBy { it.parent }
         val found = linkedSetOf<String>()
         val queue = ArrayDeque(listOf(id))
         while (queue.isNotEmpty()) {
             val next = queue.removeFirst()
-            if (found.add(next)) children[next].orEmpty().forEach { queue.addLast(it.id) }
+            if (found.add(next)) tree.children[next].orEmpty().forEach { queue.addLast(it.id) }
         }
         return found
     }
 
-    fun parts(id: String): List<PlanItem> = items.filter { it.parent == id }
+    fun parts(id: String): List<PlanItem> = tree.children[id].orEmpty()
 
-    fun leaves(): List<PlanItem> {
-        val parents = items.mapNotNullTo(HashSet()) { it.parent }
-        return items.filter { it.id !in parents }
-    }
+    fun leaves(): List<PlanItem> = items.filter { it.id !in tree.parents }
 
     fun ready(): List<PlanItem> = PlanSchedule.ready(this).map { it.item }
 
-    fun components(): List<PlanItem> {
-        val parents = items.mapNotNullTo(HashSet()) { it.parent }
-        return items.filter { it.kind == PlanKind.Component || it.id in parents }
-    }
+    fun components(): List<PlanItem> = items.filter { it.kind == PlanKind.Component || it.id in tree.parents }
 
     fun state(id: String): PlanStatus {
         val item = item(id) ?: return PlanStatus.Todo
-        val parents = items.mapNotNullTo(HashSet()) { it.parent }
+        val parents = tree.parents
         if (item.status == PlanStatus.Dropped || id !in parents) return item.status
         val open = under(id).minus(id).mapNotNull(::item).filter { it.id !in parents && it.status != PlanStatus.Dropped }
         return when {
@@ -143,6 +138,12 @@ data class WorkPlan(
             PlanStatus.entries.associateWith { status -> work.count { it.status == status } }.filterValues { it > 0 },
             seats.count { it.retired == null }, updatedAt, changes.lastOrNull()?.by, components().size)
     }
+}
+
+private class PlanTree(all: List<PlanItem>) {
+    val items: Map<String, PlanItem> = HashMap<String, PlanItem>().also { byId -> all.forEach { item -> byId.getOrPut(item.id) { item } } }
+    val children: Map<String?, List<PlanItem>> = all.groupBy { it.parent }
+    val parents: Set<String> = all.mapNotNullTo(HashSet()) { it.parent }
 }
 
 @Serializable
@@ -290,6 +291,8 @@ fun BoardActor.same(other: BoardActor?): Boolean = other != null && kind == othe
     else -> name == other.name
 }
 
+val PlanItem.holder: BoardActor? get() = if (status == PlanStatus.Doing) lease?.by ?: by else null
+
 fun PlanSeat.heldBy(actor: BoardActor): Boolean = when {
     retired != null -> false
     agent != null && actor.agent != null -> agent == actor.agent
@@ -324,7 +327,7 @@ object PlanRules {
         var seats = plan.seats
         val claimed = patch.seat?.let { id ->
             val seat = plan.seat(id) ?: error("$id is not a seat on this plan")
-            require(seat.session == null || by.session == null || seat.heldBy(by)) { "$id belongs to ${seat.session}" }
+            require(by.kind == BoardActorKind.Person || seat.session == null && seat.agent == null || seat.heldBy(by)) { "$id belongs to ${seat.session ?: seat.agent}" }
             if (seat.session == null && by.session != null) seats = seats.map { if (it.id == id) it.copy(session = by.session, agent = by.agent) else it }
             seat
         }
@@ -343,8 +346,8 @@ object PlanRules {
 
         fun allowed(id: String): String? {
             if (by.kind == BoardActorKind.Person || threadAgent) return null
-            items[id]?.takeIf { it.status == PlanStatus.Doing && it.by?.kind == BoardActorKind.Agent && it.by.same(by).not() }?.let { taken ->
-                return "$id is in progress by ${taken.by?.name}; pick another item, or ask them in a message to hand it over"
+            items[id]?.holder?.takeIf { it.kind == BoardActorKind.Agent && !it.same(by) }?.let { holder ->
+                return "$id is in progress by ${holder.name}; pick another item, or ask them in a message to hand it over"
             }
             if (claimed != null) return if (id in seatedItems || items[id]?.let { item -> generateSequence(item) { it.parent?.let(items::get) }.any { it.id in seatedItems } } == true) null
                 else "$id is outside your seat ${claimed.id}; it covers ${claimed.items.joinToString()}"
@@ -369,13 +372,26 @@ object PlanRules {
             return false
         }
 
-        fun waitsOn(item: String, prerequisite: String): Boolean {
-            val queue = ArrayDeque(listOf(prerequisite))
+        fun lineage(id: String?): List<String> = generateSequence(id) { items[it]?.parent }.take(items.size + 1).toList()
+
+        fun subtree(id: String): Set<String> {
+            val children = items.values.groupBy({ it.parent }, { it.id })
+            val found = linkedSetOf<String>()
+            val queue = ArrayDeque(listOf(id))
+            while (queue.isNotEmpty()) queue.removeFirst().let { if (found.add(it)) queue.addAll(children[it].orEmpty()) }
+            return found
+        }
+
+        fun reaches(starts: Collection<String>, targets: Set<String>): Boolean {
+            val children = items.values.groupBy({ it.parent }, { it.id })
+            val queue = ArrayDeque(starts)
             val seen = HashSet<String>()
             while (queue.isNotEmpty()) {
                 val key = queue.removeFirst()
-                if (key == item) return true
-                if (seen.add(key)) queue.addAll(items[key]?.after.orEmpty())
+                if (key in targets) return true
+                if (key !in items || !seen.add(key)) continue
+                lineage(key).forEach { queue.addAll(items[it]?.after.orEmpty()) }
+                queue.addAll(children[key].orEmpty())
             }
             return false
         }
@@ -393,7 +409,7 @@ object PlanRules {
             return why to next
         }
 
-        fun touch(item: PlanItem) = item.copy(revision = revision, by = item.lease?.takeIf { item.status == PlanStatus.Doing }?.by ?: by, changedAt = now)
+        fun touch(item: PlanItem) = item.copy(revision = revision, by = by, changedAt = now)
 
         fun open(status: PlanStatus) = status == PlanStatus.Todo || status == PlanStatus.Doing
 
@@ -414,6 +430,7 @@ object PlanRules {
                         if (parent != null) allowed(parent)?.let(::error)
                         else require(claimed == null) { "Add your items under one of your seat's items: ${claimed!!.items.joinToString()}" }
                         val after = op.after.distinct().onEach { require(it in items) { "$it is not on the plan" } }
+                        require(parent == null || !reaches(after, lineage(parent).toSet())) { "Waiting on ${after.joinToString()} under $parent would make a cycle" }
                         val title = BoardText.title(op.title)
                         val detail = BoardText.bounded(op.detail, "A detail", 4_000)
                         val links = refs(op.refs)
@@ -430,6 +447,12 @@ object PlanRules {
                             op.root -> null
                             op.parent != null -> op.parent.also { require(it in items) { "Parent $it is not on the plan" }; require(!cycles(item.id, it)) { "${item.id} cannot sit under its own part $it" } }
                             else -> item.parent
+                        }
+                        if (parent != null && parent != item.parent) {
+                            items[item.id] = item.copy(parent = parent)
+                            val cyclic = reaches(listOf(item.id), lineage(parent).toSet()) || reaches(lineage(parent).flatMap { items[it]?.after.orEmpty() }, subtree(item.id))
+                            items[item.id] = item
+                            require(!cyclic) { "${item.id} under $parent would wait on itself" }
                         }
                         val (reason, replacement) = if (op.reason != null || op.replacement != null)
                             closing(item.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id) else item.reason to item.replacement
@@ -458,7 +481,13 @@ object PlanRules {
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
                         capacity(op.status, item.status)
                         val (reason, replacement) = closing(op.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id)
-                        val changed = item.copy(status = op.status, reason = reason, replacement = replacement, lease = item.lease.takeIf { op.status == PlanStatus.Doing })
+                        val lease = when {
+                            op.status != PlanStatus.Doing -> null
+                            item.status == PlanStatus.Doing && item.lease != null -> item.lease
+                            by.kind == BoardActorKind.Agent && PlanIdentity.agent(by) != null -> PlanLease(by, now, now + PlanLease.DurationMillis)
+                            else -> null
+                        }
+                        val changed = item.copy(status = op.status, reason = reason, replacement = replacement, lease = lease)
                         if (changed == item) null else {
                             items[item.id] = touch(changed)
                             "${item.id} → ${op.status.label}"
@@ -468,7 +497,7 @@ object PlanRules {
                         val to = items[op.to] ?: error("${op.to} is not on the plan")
                         require(op.from in items) { "${op.from} is not on the plan" }
                         (allowed(to.id) ?: fresh(to.id))?.let(::error)
-                        require(op.from != op.to && !waitsOn(op.to, op.from)) { "${op.to} waiting on ${op.from} would make a cycle" }
+                        require(!reaches(listOf(op.from), subtree(op.to))) { "${op.to} waiting on ${op.from} would make a cycle" }
                         if (op.from in to.after) null else {
                             items[to.id] = touch(to.copy(after = to.after + op.from))
                             "${to.id} waits on ${op.from}"

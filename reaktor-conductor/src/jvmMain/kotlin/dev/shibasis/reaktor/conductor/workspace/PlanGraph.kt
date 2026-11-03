@@ -16,46 +16,34 @@ import dev.shibasis.reaktor.portgraph.port.registerProvider
 import kotlinx.serialization.json.JsonPrimitive
 import org.koin.dsl.koinApplication
 
-class PlanGraph(plans: List<WorkPlan>, links: (String) -> List<String> = { emptyList() }) : AutoCloseable {
+class PlanGraph(plans: List<WorkPlan>, code: Boolean = true, links: (String) -> List<String> = { emptyList() }) : AutoCloseable {
     val graph = Graph(dependencyAdapter = KoinDependencyAdapter(koinApplication {}), label = "Plans")
-    val scopes: List<PlanScope> = plans.map { plan -> graph.Graph { parent -> PlanScope(parent, plan, links) } }
+    val scopes: List<PlanScope> = plans.map { plan -> graph.Graph { parent -> PlanScope(parent, plan, includeCode = code, links = links) } }
 
-    fun shape(): GraphShape {
-        val shape = graph.shape()
-        val ids = buildMap {
-            put(graph.id.toString(), "plans")
-            scopes.forEach { scope ->
-                val thread = scope.plan.thread
-                put(scope.id.toString(), thread)
-                scope.parts.forEach { (item, part) -> put(part.id.toString(), "$thread parts $item") }
-                scope.code?.let { put(it.id.toString(), "$thread code") }
-                scope.items.forEach { (item, node) -> put(node.id.toString(), "$thread#$item") }
-                scope.refs.forEach { (ref, node) -> put(node.id.toString(), "$thread ref $ref") }
-            }
+    fun shape(): GraphShape = graph.shape().stable(buildMap {
+        put(graph.id.toString(), "plans")
+        scopes.forEach { scope ->
+            val thread = scope.plan.thread
+            put(scope.id.toString(), thread)
+            scope.parts.forEach { (item, part) -> put(part.id.toString(), "$thread parts $item") }
+            scope.code?.let { put(it.id.toString(), "$thread code") }
+            scope.items.forEach { (item, node) -> put(node.id.toString(), "$thread#$item") }
+            scope.refs.forEach { (ref, node) -> put(node.id.toString(), "$thread ref $ref") }
         }
-        fun stable(id: String) = ids[id] ?: id
-        val rank = ids.values.withIndex().associate { it.value to it.index }
-        fun rank(id: String) = rank[id] ?: Int.MAX_VALUE
-        return shape.copy(
-            scopes = shape.scopes.map { it.copy(id = stable(it.id), parent = it.parent?.let(::stable), container = it.container?.let(::stable), backStack = it.backStack.map(::stable)) }
-                .sortedBy { rank(it.id) },
-            nodes = shape.nodes.map { it.copy(id = stable(it.id), scope = stable(it.scope), attachedTo = it.attachedTo?.let(::stable)) }.sortedBy { rank(it.id) },
-            wires = shape.wires.map { it.copy(consumer = stable(it.consumer), provider = stable(it.provider)) }.sortedWith(compareBy({ rank(it.consumer) }, { it.consumerPort })),
-            routes = shape.routes.map { it.copy(from = stable(it.from), to = stable(it.to)) },
-        )
-    }
+    })
 
     override fun close() = graph.close()
 
     companion object {
-        fun shape(plans: List<WorkPlan>, links: (String) -> List<String> = { emptyList() }): GraphShape = PlanGraph(plans, links).use { it.shape() }
+        fun shape(plans: List<WorkPlan>, code: Boolean = true, links: (String) -> List<String> = { emptyList() }): GraphShape = PlanGraph(plans, code, links).use { it.shape() }
     }
 }
 
-class PlanScope(parent: Graph, val plan: WorkPlan, links: (String) -> List<String> = { emptyList() }) : Graph(parentGraph = parent, label = plan.title) {
+class PlanScope(parent: Graph, val plan: WorkPlan, includeCode: Boolean = true, links: (String) -> List<String> = { emptyList() }) : Graph(parentGraph = parent, label = plan.title) {
     private val containers: Set<String> = plan.items.mapNotNullTo(HashSet()) { it.parent }.filterTo(HashSet()) { plan.item(it) != null }
     private val made = LinkedHashMap<String, PlanPart>()
     val parts: Map<String, PlanPart> get() = made
+    private val signals: Map<String, Map<String, String>> = PlanSignals.of(plan)
 
     private fun scopeOf(id: String?, seen: Set<String> = emptySet()): Graph {
         val item = id?.let(plan::item)?.takeIf { it.id !in seen } ?: return this
@@ -64,9 +52,9 @@ class PlanScope(parent: Graph, val plan: WorkPlan, links: (String) -> List<Strin
     }
 
     val items: Map<String, PlanItemNode> = plan.items.associate { item ->
-        item.id to scopeOf(if (item.id in containers) item.id else item.parent).Node { PlanItemNode(it, plan, item) }
+        item.id to scopeOf(if (item.id in containers) item.id else item.parent).Node { PlanItemNode(it, plan, item, signals[item.id].orEmpty()) }
     }
-    private val linked: Map<String, List<String>> = buildMap {
+    private val linked: Map<String, List<String>> = if (!includeCode) emptyMap() else buildMap {
         val queue = ArrayDeque(plan.items.flatMap { it.refs }.distinct().map { it to 0 })
         while (queue.isNotEmpty()) {
             val (ref, depth) = queue.removeFirst()
@@ -87,11 +75,24 @@ class PlanScope(parent: Graph, val plan: WorkPlan, links: (String) -> List<Strin
 
 private const val LinkDepth = 2
 
+internal fun GraphShape.stable(ids: Map<String, String>): GraphShape {
+    fun stable(id: String) = ids[id] ?: id
+    val rank = ids.values.withIndex().associate { it.value to it.index }
+    fun rank(id: String) = rank[id] ?: Int.MAX_VALUE
+    return copy(
+        scopes = scopes.map { it.copy(id = stable(it.id), parent = it.parent?.let(::stable), container = it.container?.let(::stable), backStack = it.backStack.map(::stable)) }
+            .sortedBy { rank(it.id) },
+        nodes = nodes.map { it.copy(id = stable(it.id), scope = stable(it.scope), attachedTo = it.attachedTo?.let(::stable)) }.sortedBy { rank(it.id) },
+        wires = wires.map { it.copy(consumer = stable(it.consumer), provider = stable(it.provider)) }.sortedWith(compareBy({ rank(it.consumer) }, { it.consumerPort })),
+        routes = routes.map { it.copy(from = stable(it.from), to = stable(it.to)) },
+    )
+}
+
 class PlanPart(parent: Graph, val plan: WorkPlan, val item: PlanItem) : Graph(parentGraph = parent, label = item.title)
 
 class PlanCode(parent: Graph) : Graph(parentGraph = parent, label = "In Reaktor")
 
-class PlanItemNode(graph: Graph, val plan: WorkPlan, val item: PlanItem) : BasicNode(graph), ShapeAttributes {
+class PlanItemNode(graph: Graph, val plan: WorkPlan, val item: PlanItem, private val signals: Map<String, String> = emptyMap()) : BasicNode(graph), ShapeAttributes {
     override val label: String = item.title
     override val kind: NodeKind = NodeKind.Workflow
     val provided = registerProvider(Key(item.id), ItemType, this)
@@ -99,6 +100,7 @@ class PlanItemNode(graph: Graph, val plan: WorkPlan, val item: PlanItem) : Basic
     override val shapeAttributes: Map<String, String>
         get() = buildMap {
             put("plan", plan.thread); put("item", item.id); put("kind", item.kind.label); put("status", plan.state(item.id).label); put("priority", item.priority.name)
+            put("face", "prose")
             if (item.reason.isNotBlank()) put("reason", item.reason)
             item.replacement?.let { put("replacement", it) }
             plan.parts(item.id).map { plan.state(it.id) }.filter { it != PlanStatus.Dropped }.takeIf { it.isNotEmpty() }?.let { open ->
@@ -107,6 +109,7 @@ class PlanItemNode(graph: Graph, val plan: WorkPlan, val item: PlanItem) : Basic
             item.seat?.let(plan::seat)?.let { put("seat", "${it.profile} · ${it.id}") }
             item.by?.let { put("by", it.name) }
             if (item.detail.isNotBlank()) put("detail", item.detail.take(300))
+            putAll(signals)
         }
 
     fun wire(items: Map<String, PlanItemNode>, refs: Map<String, ReaktorRefNode>) {

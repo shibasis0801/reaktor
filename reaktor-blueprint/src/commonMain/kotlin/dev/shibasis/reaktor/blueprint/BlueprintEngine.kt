@@ -28,6 +28,8 @@ object BlueprintEngine {
     const val HeaderHeight = 46.0
     const val RowHeight = 18.0
     const val FooterHeight = 8.0
+    const val ProseHeaderHeight = 112.0
+    const val ProseFooterHeight = 36.0
     const val FrameTop = 40.0
     const val FrameSide = 18.0
     const val GroupGap = 64.0
@@ -53,13 +55,178 @@ object BlueprintEngine {
         options: LayoutOptions = LayoutOptions(),
     ): BlueprintLayout<K> = BlueprintPlan(groups, edges, options).let { plan -> plan.assemble(key, plan.laid { requests -> requests.map(layouter::lay) }, aspect) }
 
+    fun <K> open(before: BlueprintLayout<K>, expanded: BlueprintLayout<K>, summary: String): BlueprintOpening<K> {
+        val folded = before.cards.getValue(summary)
+        require(folded.folded > 0) { "Open requires a folded group" }
+        val members = before.cardOf.filterValues { it == summary }.keys
+        require(members.isNotEmpty() && before.cardOf.keys == expanded.cardOf.keys) { "Open must preserve source identities" }
+        val inside = members.mapTo(HashSet()) { expanded.cardOf.getValue(it) }
+        require(summary !in inside) { "The requested group is still folded" }
+        val outside = before.cards - summary
+        require(expanded.cards.keys - inside == outside.keys) { "Open changes another group's projection" }
+        require(before.cardOf.filterKeys { it !in members } == expanded.cardOf.filterKeys { it !in members }) { "Open changes outside ownership" }
+        require((before.links.flatMap { it.members } + before.foldedLinks.keys).sorted() == (expanded.links.flatMap { it.members } + expanded.foldedLinks.keys).sorted()) { "Open must preserve source relationships" }
+        val frameId = summary.removePrefix("summary:").removePrefix("members:")
+        val frame = expanded.frames.single { it.key == frameId }
+        val framesById = expanded.frames.associateBy { it.key }
+        fun within(candidate: Frame): Boolean = generateSequence(candidate) { it.parent?.let(framesById::get) }.any { it.key == frameId }
+        val membersOnly = summary.startsWith("summary:members:")
+        val selected = expanded.cards.values.filter { it.id in inside }
+        val left = if (membersOnly) selected.minOf { it.x } - FrameSide else frame.x
+        val top = if (membersOnly) selected.minOf { it.y } - FrameTop else frame.y
+        val width = if (membersOnly) selected.maxOf { it.x + it.width } - left + FrameSide else frame.width
+        val height = if (membersOnly) selected.maxOf { it.y + it.height } - top + FrameSide else frame.height
+        val dx = folded.x - left
+        val dy = folded.y + folded.height - top
+        val introduced = expanded.cards.filterKeys { it in inside }.mapValues { (_, card) -> card.copy(x = card.x + dx, y = card.y + dy) }
+        fun overlaps(a: Bounds, b: Bounds) = a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+        val grownFrame = frame.copy(x = folded.x, y = folded.y, width = maxOf(width, folded.width), height = height + folded.height,
+            nodes = if (membersOnly) inside else frame.nodes)
+        val covered = outside.values.filter { overlaps(grownFrame, it) }.associate { it.id to
+            (minOf(grownFrame.x + grownFrame.width, it.x + it.width) - maxOf(grownFrame.x, it.x)) *
+                (minOf(grownFrame.y + grownFrame.height, it.y + it.height) - maxOf(grownFrame.y, it.y)) }
+        val untouched = before.links.filter { it.from != summary && it.to != summary }
+        val coveredRoutes = untouched.filter { link -> link.trace.zipWithNext().any { (a, b) -> crosses(a, b, grownFrame) } }.mapTo(HashSet()) { it.id }
+        val cards = outside + introduced
+        val oldMembers = before.links.flatMap { link -> link.members.map { it to link } }.toMap()
+        val links = untouched + expanded.links.filter { it.from in inside || it.to in inside }.map { link ->
+            val internal = link.from in inside && link.to in inside
+            if (internal) link.copy(points = translate(link.points, dx, dy))
+            else {
+                val previous = link.members.map { oldMembers.getValue(it) }.distinctBy { it.id }.single()
+                val outbound = link.from in inside
+                val exterior = openExterior(if (outbound) previous.trace else previous.trace.asReversed(), grownFrame)
+                val source = if (outbound) anchor(cards, link.from, link.fromPort, true) else exterior.first()
+                val target = if (outbound) exterior.first() else anchor(cards, link.to, link.toPort, false)
+                val extension = openRoute(source, target, introduced.values.filter { it.id != link.from && it.id != link.to })
+                link.copy(points = if (outbound) extension + exterior.drop(1) else exterior.asReversed().dropLast(1) + extension,
+                    curve = false, cross = true)
+            }
+        }
+        val parent = before.frames.firstOrNull { summary in it.nodes }
+        val addedFrames = expanded.frames.filter { !membersOnly && within(it) }.map { nested ->
+            if (nested.key == frameId) grownFrame.copy(parent = parent?.key)
+            else nested.copy(x = nested.x + dx, y = nested.y + dy)
+        }
+        val addedIds = addedFrames.mapTo(HashSet()) { it.key }
+        val frames = before.frames.filter { it.key !in addedIds }.map { original -> original.copy(
+            nodes = original.nodes - summary + if (membersOnly && original.key == frameId) inside else emptySet()) }.toMutableList()
+        frames += addedFrames
+        val byId = frames.associateBy { it.key }
+        val ancestors = generateSequence(parent) { it.parent?.let(byId::get) }.mapTo(HashSet()) { it.key }
+        val right = grownFrame.x + grownFrame.width
+        val bottom = grownFrame.y + grownFrame.height
+        val grown = frames.map { original -> if (original.key in ancestors) original.copy(
+            width = maxOf(original.width, right + FrameSide - original.x), height = maxOf(original.height, bottom + FrameSide - original.y)) else original }
+        val points = links.flatMap { it.points }
+        val layout = BlueprintLayout(expanded.key, cards, grown, links,
+            maxOf(before.width, grown.maxOfOrNull { it.x + it.width } ?: 0.0, points.maxOfOrNull { it.first } ?: 0.0),
+            maxOf(before.height, grown.maxOfOrNull { it.y + it.height } ?: 0.0, points.maxOfOrNull { it.second } ?: 0.0),
+            before.layoutFailures + expanded.layoutFailures, expanded.cardOf, expanded.foldedLinks)
+        return BlueprintOpening(layout, grownFrame.copy(parent = if (membersOnly) frame.parent else parent?.key), covered, coveredRoutes)
+    }
+
+    private fun openExterior(points: List<Pair<Double, Double>>, frame: Frame): List<Pair<Double, Double>> {
+        fun inside(p: Pair<Double, Double>) = p.first in frame.x..(frame.x + frame.width) && p.second in frame.y..(frame.y + frame.height)
+        for (index in 1 until points.size) {
+            val a = points[index - 1]; val b = points[index]
+            if (!inside(a) || inside(b)) continue
+            val dx = b.first - a.first; val dy = b.second - a.second
+            val tx = if (dx > 0) (frame.x + frame.width - a.first) / dx else if (dx < 0) (frame.x - a.first) / dx else Double.POSITIVE_INFINITY
+            val ty = if (dy > 0) (frame.y + frame.height - a.second) / dy else if (dy < 0) (frame.y - a.second) / dy else Double.POSITIVE_INFINITY
+            val t = minOf(tx, ty)
+            val x = if (tx <= ty) if (dx > 0) frame.x + frame.width else frame.x else a.first + dx * t
+            val y = if (ty <= tx) if (dy > 0) frame.y + frame.height else frame.y else a.second + dy * t
+            return listOf(x to y) + points.drop(index)
+        }
+        return points
+    }
+
+    private fun crosses(a: Pair<Double, Double>, b: Pair<Double, Double>, box: Bounds): Boolean {
+        if (a == b) return a.first > box.x && a.first < box.x + box.width && a.second > box.y && a.second < box.y + box.height
+        var lo = 0.0
+        var hi = 1.0
+        fun clip(start: Double, delta: Double, low: Double, high: Double): Boolean {
+            if (abs(delta) < 1e-9) return start > low && start < high
+            val one = (low - start) / delta
+            val two = (high - start) / delta
+            lo = maxOf(lo, minOf(one, two)); hi = minOf(hi, maxOf(one, two))
+            return lo < hi - 1e-9
+        }
+        return clip(a.first, b.first - a.first, box.x, box.x + box.width) && clip(a.second, b.second - a.second, box.y, box.y + box.height) && lo < 1.0 && hi > 0.0
+    }
+
+    internal fun openRoute(from: Pair<Double, Double>, to: Pair<Double, Double>, boxes: List<Bounds>): List<Pair<Double, Double>> {
+        if (from == to) return listOf(from)
+        val margin = CardGap / 2
+        val xs = (boxes.flatMap { listOf(it.x - margin, it.x + it.width + margin) } + listOf(from.first, to.first)).distinct().sorted()
+        val ys = (boxes.flatMap { listOf(it.y - margin, it.y + it.height + margin) } + listOf(from.second, to.second)).distinct().sorted()
+        val columns = xs.size
+        fun index(point: Pair<Double, Double>) = ys.binarySearch(point.second) * columns + xs.binarySearch(point.first)
+        fun point(at: Int) = xs[at % columns] to ys[at / columns]
+        fun distance(a: Pair<Double, Double>, b: Pair<Double, Double>) = abs(a.first - b.first) + abs(a.second - b.second)
+        val start = index(from); val end = index(to)
+        val costs = DoubleArray(columns * ys.size) { Double.POSITIVE_INFINITY }
+        val prior = IntArray(costs.size) { -1 }
+        val queue = ArrayList<Pair<Int, Double>>()
+        fun push(at: Int, score: Double) {
+            queue += at to score
+            var child = queue.lastIndex
+            while (child > 0) {
+                val parent = (child - 1) / 2
+                if (queue[parent].second <= score) break
+                queue[child] = queue[parent]; child = parent
+            }
+            queue[child] = at to score
+        }
+        fun pop(): Pair<Int, Double> {
+            val first = queue[0]; val last = queue.removeAt(queue.lastIndex)
+            if (queue.isNotEmpty()) {
+                var parent = 0
+                while (parent * 2 + 1 < queue.size) {
+                    var child = parent * 2 + 1
+                    if (child + 1 < queue.size && queue[child + 1].second < queue[child].second) child++
+                    if (last.second <= queue[child].second) break
+                    queue[parent] = queue[child]; parent = child
+                }
+                queue[parent] = last
+            }
+            return first
+        }
+        costs[start] = 0.0; push(start, distance(from, to))
+        while (queue.isNotEmpty()) {
+            val (at, score) = pop()
+            val a = point(at)
+            if (score > costs[at] + distance(a, to) + 1e-6) continue
+            if (at == end) break
+            val x = at % columns; val y = at / columns
+            val next = listOfNotNull((at - 1).takeIf { x > 0 }, (at + 1).takeIf { x + 1 < columns },
+                (at - columns).takeIf { y > 0 }, (at + columns).takeIf { y + 1 < ys.size })
+            for (neighbor in next) {
+                val b = point(neighbor)
+                val cost = costs[at] + distance(a, b)
+                if (cost >= costs[neighbor] || boxes.any { crosses(a, b, it) }) continue
+                costs[neighbor] = cost; prior[neighbor] = at; push(neighbor, cost + distance(b, to))
+            }
+        }
+        require(costs[end].isFinite()) { "No local route avoids the fixed outside cards" }
+        val path = generateSequence(end) { prior[it].takeIf { previous -> previous >= 0 } }.map(::point).toList().asReversed()
+        return stitch(listOf(path))
+    }
+
     fun rowsOf(node: BlueprintNode): Int = node.rows ?: maxOf(rowsUsed(node.inputs), rowsUsed(node.outputs))
 
     fun cardHeight(rows: Int): Double = HeaderHeight + rows * RowHeight + if (rows > 0) FooterHeight else 0.0
 
-    fun cardHeight(node: BlueprintNode): Double = cardHeight(rowsOf(node))
+    fun cardHeight(node: BlueprintNode): Double {
+        val rows = rowsOf(node)
+        val height = node.pinHeader + rows * RowHeight + if (rows > 0) node.pinFooter else 0.0
+        return node.body?.let { maxOf(height, node.pinHeader + it.height) } ?: height
+    }
 
-    fun pinY(row: Int): Double = HeaderHeight + row * RowHeight + RowHeight / 2
+    fun cardWidth(node: BlueprintNode): Double = node.body?.let { maxOf(CardWidth, it.width) } ?: CardWidth
+
+    fun pinY(row: Int, header: Double = HeaderHeight): Double = header + row * RowHeight + RowHeight / 2
 
     fun anchor(cards: Map<String, Card>, id: String, port: String?, provides: Boolean): Pair<Double, Double> =
         anchorIn(cards.getValue(id), port, provides, HeaderHeight / 2)
@@ -133,8 +300,8 @@ object BlueprintEngine {
     private fun rowsUsed(specs: List<PinSpec>): Int = specs.withIndex().maxOfOrNull { (index, spec) -> (spec.row ?: index) + 1 } ?: 0
 
     internal fun pinsOf(node: BlueprintNode): List<Pin> =
-        node.inputs.mapIndexed { index, spec -> Pin(spec.key, spec.type, false, pinY(spec.row ?: index), spec.wiring) } +
-            node.outputs.mapIndexed { index, spec -> Pin(spec.key, spec.type, true, pinY(spec.row ?: index), spec.wiring) }
+        node.inputs.mapIndexed { index, spec -> Pin(spec.key, spec.type, false, pinY(spec.row ?: index, node.pinHeader), spec.wiring) } +
+            node.outputs.mapIndexed { index, spec -> Pin(spec.key, spec.type, true, pinY(spec.row ?: index, node.pinHeader), spec.wiring) }
 
     internal fun anchorIn(box: Bounds, port: String?, provides: Boolean, middle: Double): Pair<Double, Double> {
         val pin = port?.let { name -> (box as? Card)?.pins?.firstOrNull { it.provides == provides && it.key == name } }
@@ -149,32 +316,30 @@ object BlueprintEngine {
         return PackedPoints(DoubleArray(count * 2) { at -> flat[(count - 1 - at / 2) * 2 + at % 2] })
     }
 
-    internal fun join(edges: List<BlueprintEdge>, ends: Map<String, List<Pin>>): List<FrameEdge> {
+    internal fun join(edges: List<BlueprintEdge>, ends: Map<String, List<Pin>>, bundles: Boolean = true): List<FrameEdge> {
         val joined = LinkedHashMap<String, Pair<FrameEdge, MutableList<String>>>()
         edges.forEach { edge ->
             val fromPins = ends[edge.from]
             val toPins = ends[edge.to]
-            if (edge.from == edge.to || fromPins == null || toPins == null) return@forEach
+            if (fromPins == null || toPins == null) return@forEach
             val fromPort = edge.fromPort?.takeIf { key -> fromPins.any { it.provides && it.key == key } }
             val toPort = edge.toPort?.takeIf { key -> toPins.any { !it.provides && it.key == key } }
-            val id = when (edge.kind) {
-                LinkKind.Route -> "route:${edge.from}>${edge.to}"
-                LinkKind.Wire -> "${edge.from}>${fromPort.orEmpty()}|${edge.to}<${toPort.orEmpty()}${if (edge.family.isEmpty()) "" else "#${edge.family}"}"
-            }
+            val id = (listOf(edge.kind.name, edge.from, fromPort, edge.to, toPort, edge.family, edge.reversed.toString(), edge.curved.toString()) + if (bundles) emptyList() else listOf(edge.id))
+                .joinToString("") { part -> part?.let { "${it.length}:$it" } ?: "-:" }
             joined.getOrPut(id) { FrameEdge(id, edge.from, edge.to, fromPort, toPort, edge.kind, edge.reversed, emptyList(), edge.family, edge.curved) to ArrayList() }.second += edge.id
         }
         return joined.values.map { (edge, members) -> edge.copy(members = members) }
     }
 
     internal fun hintPairs(curved: List<FrameEdge>, routed: List<FrameEdge>, minimum: Int): List<Pair<String, String>> {
-        val linked = routed.flatMapTo(HashSet()) { listOf("${it.from}|${it.to}", "${it.to}|${it.from}") }
+        val linked = routed.flatMapTo(HashSet()) { listOf(it.from to it.to, it.to to it.from) }
         class Tally(val low: String, val high: String) { var forward = 0; var backward = 0 }
-        val pairs = LinkedHashMap<String, Tally>()
+        val pairs = LinkedHashMap<Pair<String, String>, Tally>()
         curved.forEach { edge ->
             val forward = edge.from < edge.to
             val low = if (forward) edge.from else edge.to
             val high = if (forward) edge.to else edge.from
-            val tally = pairs.getOrPut("$low|$high") { Tally(low, high) }
+            val tally = pairs.getOrPut(low to high) { Tally(low, high) }
             if (forward) tally.forward += edge.members.size else tally.backward += edge.members.size
         }
         return pairs.filter { (key, tally) -> tally.forward + tally.backward >= minimum && key !in linked }
@@ -245,29 +410,51 @@ object BlueprintEngine {
         fun x(at: Int) = result.nodes[at * 2]
         fun y(at: Int) = result.nodes[at * 2 + 1]
         val core = boxes.indices.filter { root(it) in anchored }
-        val left = boxes.indices.minOf { x(it) }
-        val top = boxes.indices.minOf { y(it) }
-        val coreLeft = core.minOf { x(it) }
-        val coreTop = core.minOf { y(it) }
-        val coreWidth = core.maxOf { x(it) + boxes[it].width } - coreLeft
-        val coreBottom = top + core.maxOf { y(it) + boxes[it].height } - coreTop
-        val bounds = pieces.map { piece -> doubleArrayOf(piece.minOf { x(it) }, piece.minOf { y(it) }, piece.maxOf { x(it) + boxes[it].width }, piece.maxOf { y(it) + boxes[it].height }) }
+        val outlines = HashMap<Int, DoubleArray>()
+        fun include(component: Int, px: Double, py: Double) {
+            val box = outlines.getOrPut(component) { doubleArrayOf(px, py, px, py) }
+            box[0] = minOf(box[0], px); box[1] = minOf(box[1], py)
+            box[2] = maxOf(box[2], px); box[3] = maxOf(box[3], py)
+        }
+        boxes.indices.forEach { at ->
+            val component = root(at)
+            include(component, x(at), y(at))
+            include(component, x(at) + boxes[at].width, y(at) + boxes[at].height)
+        }
+        result.edges.forEachIndexed { at, edge ->
+            val component = sources.getOrNull(at)?.let(::root) ?: return@forEachIndexed
+            for (point in edge.indices step 2) include(component, edge[point], edge[point + 1])
+        }
+        val left = outlines.values.minOf { it[0] }
+        val top = outlines.values.minOf { it[1] }
+        val coreBounds = outlines.filterKeys { it in anchored }.values
+        val coreLeft = coreBounds.minOf { it[0] }
+        val coreTop = coreBounds.minOf { it[1] }
+        val coreWidth = coreBounds.maxOf { it[2] } - coreLeft
+        val coreBottom = top + coreBounds.maxOf { it[3] } - coreTop
+        val bounds = pieces.map { outlines.getValue(root(it.first())) }
         val area = bounds.sumOf { (it[2] - it[0] + LooseGap) * (it[3] - it[1] + LooseGap) }
         val coreHeight = coreBottom - top
         val beside = coreHeight > coreWidth
         val breadth = if (beside) coreHeight else coreWidth
         val spots = Layered.shelves(bounds.map { (it[2] - it[0]) to (it[3] - it[1]) }, LooseGap, (breadth * breadth / area).coerceIn(1.0, 8.0))
+        val looseHeight = bounds.indices.maxOf { spots[it].second + bounds[it][3] - bounds[it][1] }
+        val corridors = request.doors.filter { it.exit }.map { y(it.box) + BlueprintEngine.DoorSize / 2 + top - coreTop }.sorted()
+        var looseTop = top
+        if (beside) corridors.forEach { corridor ->
+            if (looseTop < corridor + LooseGap && looseTop + looseHeight > corridor - LooseGap) looseTop = corridor + LooseGap
+        }
         val dx = DoubleArray(boxes.size)
         val dy = DoubleArray(boxes.size)
         core.forEach { dx[it] = left - coreLeft; dy[it] = top - coreTop }
         pieces.forEachIndexed { at, piece -> piece.forEach {
             dx[it] = left + (if (beside) coreWidth + LooseGap else 0.0) + spots[at].first - bounds[at][0]
-            dy[it] = top + (if (beside) 0.0 else coreHeight + LooseGap) + spots[at].second - bounds[at][1]
+            dy[it] = (if (beside) looseTop else top + coreHeight + LooseGap) + spots[at].second - bounds[at][1]
         } }
         val nodes = DoubleArray(result.nodes.size) { result.nodes[it] + if (it / 2 < boxes.size) (if (it % 2 == 0) dx[it / 2] else dy[it / 2]) else 0.0 }
         val edges = result.edges.mapIndexed { at, flat -> val box = sources.getOrNull(at) ?: return@mapIndexed flat; DoubleArray(flat.size) { flat[it] + if (it % 2 == 0) dx[box] else dy[box] } }
-        val padRight = (result.width - boxes.indices.maxOf { x(it) + boxes[it].width }).coerceAtLeast(0.0)
-        val padBottom = (result.height - boxes.indices.maxOf { y(it) + boxes[it].height }).coerceAtLeast(0.0)
+        val padRight = (result.width - outlines.values.maxOf { it[2] }).coerceAtLeast(0.0)
+        val padBottom = (result.height - outlines.values.maxOf { it[3] }).coerceAtLeast(0.0)
         var right = boxes.indices.maxOf { nodes[it * 2] + boxes[it].width }
         var bottom = boxes.indices.maxOf { nodes[it * 2 + 1] + boxes[it].height }
         edges.forEach { flat -> for (at in flat.indices step 2) { right = maxOf(right, flat[at]); bottom = maxOf(bottom, flat[at + 1]) } }
@@ -330,7 +517,7 @@ object BlueprintEngine {
     }
 }
 
-internal val BlueprintNode.inner: BlueprintGroup? get() = group?.takeIf { it.nodes.isNotEmpty() }
+internal val BlueprintNode.inner: BlueprintGroup? get() = group
 
 class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>, val options: LayoutOptions = LayoutOptions()) {
     private val pins = HashMap<String, List<Pin>>()
@@ -367,32 +554,30 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             return deepest + 1
         }
         groups.forEach { walk(it, it.key) }
-        val merged = BlueprintEngine.join(edges, pins + nested.associateWith { emptyList() })
+        val merged = BlueprintEngine.join(edges, pins + nested.associateWith { emptyList() }, options.bundles)
         fun crosses(edge: FrameEdge) = rootOf[edge.from] != rootOf[edge.to]
         overlays = if (merged.none { it.kind == LinkKind.Wire && crosses(it) }) emptySet()
             else merged.filter { it.kind == LinkKind.Route && crosses(it) }.mapTo(HashSet()) { it.id }
-        joined = merged.map { edge -> if (edge.id in overlays) edge.copy(curved = true) else edge }
+        joined = merged
         fun chain(id: String) = generateSequence(groupOf[id]) { parentOf[it] }
         joined.forEach { edge ->
             val source = rootOf[edge.from] ?: return@forEach
             val target = rootOf[edge.to] ?: return@forEach
-            if (edge.curved || source == target) return@forEach
-            chain(edge.from).forEach { leaving.getOrPut(it) { LinkedHashMap() }.getOrPut(target) { ArrayList() } += edge }
-            chain(edge.to).forEach { arriving.getOrPut(it) { LinkedHashMap() }.getOrPut(source) { ArrayList() } += edge }
-        }
-        joined.forEach { edge ->
-            val above = chain(edge.to).toList()
-            val common = chain(edge.from).firstOrNull { it in above } ?: return@forEach
-            if (groupOf[edge.from] == common && groupOf[edge.to] == common) {
-                inside.getOrPut(common) { ArrayList() } += edge
-                if (edge.curved) hinted.getOrPut(common) { ArrayList() } += edge
-                return@forEach
+            val above = chain(edge.to).toSet()
+            val common = chain(edge.from).firstOrNull { it in above }
+            if (!edge.curved) {
+                common?.let { inside.getOrPut(it) { ArrayList() } += edge }
+                val into = common?.let { memberIn(it, edge.to) } ?: target
+                val out = common?.let { memberIn(it, edge.from) } ?: source
+                chain(edge.from).takeWhile { it != common }.forEach { leaving.getOrPut(it) { LinkedHashMap() }.getOrPut(if (options.bundles) into else edge.id) { ArrayList() } += edge }
+                chain(edge.to).takeWhile { it != common }.forEach { arriving.getOrPut(it) { LinkedHashMap() }.getOrPut(if (options.bundles) out else edge.id) { ArrayList() } += edge }
+            } else if (common != null) {
+                val from = memberIn(common, edge.from)
+                val to = memberIn(common, edge.to)
+                if (from != null && to != null && from != to) hinted.getOrPut(common) { ArrayList() } += edge.copy(from = from, to = to)
             }
-            val from = memberIn(common, edge.from)
-            val to = memberIn(common, edge.to)
-            if (from != null && to != null && from != to) hinted.getOrPut(common) { ArrayList() } += edge.copy(from = from, to = to, curved = true)
         }
-        val laid = frames.values.filter { it.nodes.isNotEmpty() }
+        val laid = frames.values
         val top = laid.maxOfOrNull { depth[it.key] ?: 0 } ?: 0
         stages = (0..top).map { stage -> laid.filter { depth[it.key] == stage }.map { it.key } }.filter { it.isNotEmpty() }
     }
@@ -427,37 +612,46 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             val pin = if (port == null) -1 else pins[id].orEmpty().indexOfFirst { it.provides == provides && it.key == port }
             return "n$index${if (provides) "e" else "w"}${if (pin >= 0) pin.toString() else ""}".also { used[index] += it }
         }
-        val ends = group.mode == Lanes.Ends
-        val flipped = HashSet<Int>()
-        val incoming = HashSet<Int>()
-        val outgoing = HashSet<Int>()
-        fun line(at: Int, from: String, fromPort: String?, to: String, toPort: String?): ElkLine {
-            val source = port(from, fromPort, true)
-            val target = port(to, toPort, false)
-            val back = ends && group.nodes[indexOf.getValue(from)].lane > group.nodes[indexOf.getValue(to)].lane
-            if (back) flipped += at
-            outgoing += indexOf.getValue(if (back) to else from)
-            incoming += indexOf.getValue(if (back) from else to)
-            return if (back) ElkLine("e$at", target, source) else ElkLine("e$at", source, target)
-        }
-        val lines = ArrayList<ElkLine>()
-        routed.forEachIndexed { at, edge -> lines += line(at, edge.from, edge.fromPort, edge.to, edge.toPort) }
-        hints.forEachIndexed { at, (from, to) -> lines += line(routed.size + at, from, null, to, null) }
-        val doors = ArrayList<FrameDoor>()
-        val passes = ArrayList<FramePass>()
-        val gates = ArrayList<ElkBox>()
         fun doorway(member: String, root: String, exit: Boolean): String {
             val index = indexOf.getValue(member)
             val inner = flats[member]
             val keys = (if (exit) inner?.exits else inner?.entries)?.keys?.toList().orEmpty()
             return "n$index${if (exit) "o" else "i"}${keys.indexOf(root)}".also { used[index] += it }
         }
+        val first = group.nodes.minOfOrNull { it.lane }
+        val last = group.nodes.maxOfOrNull { it.lane }
+        val ends = group.mode == Lanes.Ends
+        val flipped = HashSet<Int>()
+        val incoming = HashSet<Int>()
+        val outgoing = HashSet<Int>()
+        fun line(at: Int, from: String, fromPort: String?, to: String, toPort: String?, identity: String? = null): ElkLine {
+            val sourceMember = checkNotNull(memberIn(key, from))
+            val targetMember = checkNotNull(memberIn(key, to))
+            val source = if (sourceMember == from) port(from, fromPort, true) else doorway(sourceMember, if (options.bundles || identity == null) targetMember else identity, true)
+            val target = if (targetMember == to) port(to, toPort, false) else doorway(targetMember, if (options.bundles || identity == null) sourceMember else identity, false)
+            val back = ends && group.nodes[indexOf.getValue(sourceMember)].lane > group.nodes[indexOf.getValue(targetMember)].lane
+            if (back) flipped += at
+            outgoing += indexOf.getValue(if (back) targetMember else sourceMember)
+            incoming += indexOf.getValue(if (back) sourceMember else targetMember)
+            return if (back) ElkLine("e$at", target, source) else ElkLine("e$at", source, target)
+        }
+        val lines = ArrayList<ElkLine>()
+        routed.forEachIndexed { at, edge -> lines += line(at, edge.from, edge.fromPort, edge.to, edge.toPort, edge.id) }
+        hints.forEachIndexed { at, (from, to) -> lines += line(routed.size + at, from, null, to, null) }
+        val doors = ArrayList<FrameDoor>()
+        val passes = ArrayList<FramePass>()
+        val gates = ArrayList<ElkBox>()
         fun open(root: String, exit: Boolean, edges: List<FrameEdge>) {
             val name = "d${doors.size}"
             val pin = name + if (exit) "w" else "e"
+            val partitioned = group.mode == Lanes.Ranks || group.mode == Lanes.Columns
             doors += FrameDoor(root, exit, group.nodes.size + doors.size)
             gates += ElkBox(name, BlueprintEngine.DoorSize, BlueprintEngine.DoorSize, listOf(ElkPin(pin, if (exit) -1.0 else BlueprintEngine.DoorSize, BlueprintEngine.DoorSize / 2, !exit)),
-                linkedMapOf("elk.portConstraints" to "FIXED_POS", "elk.layered.layering.layerConstraint" to if (exit) "LAST_SEPARATE" else "FIRST_SEPARATE"))
+                linkedMapOf("elk.portConstraints" to "FIXED_POS", "elk.layered.layering.layerConstraint" to
+                    (if (exit) "LAST" else "FIRST") + if (partitioned) "" else "_SEPARATE").apply {
+                    if (partitioned) this["elk.partitioning.partition"] =
+                        (if (exit) (last ?: 0) + 1 else (first ?: 0) - 1).toString()
+                })
             val grouped = LinkedHashMap<Triple<String, String?, Boolean>, MutableList<String>>()
             edges.forEach { edge ->
                 val end = if (exit) edge.from else edge.to
@@ -474,12 +668,11 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         }
         arriving[key]?.forEach { (root, edges) -> open(root, false, edges) }
         leaving[key]?.forEach { (root, edges) -> open(root, true, edges) }
-        val first = group.nodes.minOfOrNull { it.lane }
-        val last = group.nodes.maxOfOrNull { it.lane }
+        val columns = if (group.mode == Lanes.Ranks) group.nodes.map { it.lane } else null
         val boxes = group.nodes.mapIndexed { index, node ->
             val framed = node.inner != null
             val flat = flats[node.id]
-            val width = if (framed) (flat?.width ?: 0.0) + 2 * BlueprintEngine.FrameSide else BlueprintEngine.CardWidth
+            val width = if (framed) (flat?.width ?: 0.0) + 2 * BlueprintEngine.FrameSide else BlueprintEngine.cardWidth(node)
             val height = if (framed) (flat?.height ?: 0.0) + BlueprintEngine.FrameTop + BlueprintEngine.FrameSide else BlueprintEngine.cardHeight(node)
             val middle = if (framed) BlueprintEngine.FrameTop / 2 else BlueprintEngine.HeaderHeight / 2
             val ports = ArrayList<ElkPin>()
@@ -494,6 +687,7 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             flat?.exits?.values?.forEachIndexed { at, (_, y) -> if (wanted("n${index}o$at")) ports += ElkPin("n${index}o$at", width, BlueprintEngine.FrameTop + y, true) }
             val settings = linkedMapOf("elk.portConstraints" to "FIXED_POS")
             if (group.mode == Lanes.Columns) settings["elk.partitioning.partition"] = node.lane.toString()
+            columns?.let { settings["elk.partitioning.partition"] = it[index].toString() }
             if (ends && first != last) when {
                 node.lane == first && index !in incoming -> settings["elk.layered.layering.layerConstraint"] = "FIRST"
                 node.lane == last && index !in outgoing -> settings["elk.layered.layering.layerConstraint"] = "LAST"
@@ -511,12 +705,12 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             "elk.spacing.edgeEdge" to "7",
             "elk.spacing.edgeNode" to "12",
             "elk.randomSeed" to "7",
-            "elk.partitioning.activate" to (group.mode == Lanes.Columns).toString(),
+            "elk.partitioning.activate" to (group.mode == Lanes.Columns || columns != null).toString(),
             "elk.hierarchyHandling" to "SEPARATE_CHILDREN",
         )
         if (options.ordered) graph["elk.layered.considerModelOrder.strategy"] = "NODES_AND_EDGES"
         if (group.loose) graph["elk.aspectRatio"] = "1.4"
-        if (key in parentOf || doors.isNotEmpty()) graph["elk.separateConnectedComponents"] = "false"
+        if (doors.isNotEmpty()) graph["elk.separateConnectedComponents"] = "false"
         return FrameRequest(key, group, ElkGraph(graph, boxes + gates, lines), routed, flipped, doors, passes)
     }
 
@@ -528,18 +722,30 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         group.nodes.forEachIndexed { index, node ->
             val x = result.nodes.getOrElse(index * 2) { 0.0 }
             val y = result.nodes.getOrElse(index * 2 + 1) { 0.0 }
-            items[node.id] = if (node.inner == null) Card(node.id, x, y, BlueprintEngine.CardWidth, BlueprintEngine.cardHeight(node), pins[node.id].orEmpty(), node.folded)
+            items[node.id] = if (node.inner == null) Card(node.id, x, y, BlueprintEngine.cardWidth(node), BlueprintEngine.cardHeight(node), pins[node.id].orEmpty(), node.folded, node.lane, node.pinHeader)
             else {
                 framed += node.id
                 val flat = flats[node.id]
-                Card(node.id, x, y, (flat?.width ?: 0.0) + 2 * BlueprintEngine.FrameSide, (flat?.height ?: 0.0) + BlueprintEngine.FrameTop + BlueprintEngine.FrameSide, emptyList(), 0)
+                Card(node.id, x, y, (flat?.width ?: 0.0) + 2 * BlueprintEngine.FrameSide, (flat?.height ?: 0.0) + BlueprintEngine.FrameTop + BlueprintEngine.FrameSide, emptyList(), 0, node.lane)
             }
         }
-        val links = request.routed.mapIndexed { index, edge ->
-            Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, edge.members,
-                BlueprintEngine.packed(result.edges.getOrNull(index) ?: DoubleArray(0), index in request.flipped), reversed = edge.reversed, family = edge.family)
+        fun end(id: String, other: String, port: String?, provides: Boolean, identity: String): Pair<Double, Double> {
+            val member = checkNotNull(memberIn(group.key, id))
+            val box = items.getValue(member)
+            if (member == id) return BlueprintEngine.anchorIn(box, port, provides, if (member in framed) BlueprintEngine.FrameTop / 2 else BlueprintEngine.HeaderHeight / 2)
+            val child = flats.getValue(member)
+            val neighbor = checkNotNull(memberIn(group.key, other))
+            val at = (if (provides) child.exits else child.entries).getValue(if (options.bundles) neighbor else identity)
+            return (if (provides) box.x + box.width else box.x) to box.y + BlueprintEngine.FrameTop + at.second
         }
-        val wrap = BlueprintEngine.wrapLayers(FrameLayout(items, links, result.width, result.height, failure = result.failure), framed)
+        val links = request.routed.mapIndexed { index, edge ->
+            val raw = BlueprintEngine.packed(result.edges.getOrNull(index) ?: DoubleArray(0), index in request.flipped)
+            val points = BlueprintEngine.pinned(BlueprintEngine.pinned(raw, end(edge.from, edge.to, edge.fromPort, true, edge.id), false), end(edge.to, edge.from, edge.toPort, false, edge.id), true)
+            Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, edge.members,
+                points, reversed = edge.reversed, family = edge.family)
+        }
+        val flat = FrameLayout(items, links, result.width, result.height, failure = result.failure)
+        val wrap = if (group.mode == Lanes.Ranks || request.routed.isNotEmpty() || request.passes.isNotEmpty()) BlueprintEngine.Wrapped(flat) else BlueprintEngine.wrapLayers(flat, framed)
         val wrapped = wrap.layout
         val gates = request.doors.map { door ->
             val x = wrap.shift(result.nodes.getOrElse(door.box * 2) { 0.0 })
@@ -576,6 +782,19 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             }
         }
         if (framed.isEmpty()) return FrameLayout(wrapped.cards, wrapped.links, wrapped.width, wrapped.height, wrapped.frames, wrapped.failure, exits, entries, departures, arrivals)
+        val connected = wrapped.links.map { link ->
+            fun leg(id: String, exit: Boolean): List<Pair<Double, Double>>? {
+                val member = memberIn(group.key, id)?.takeIf { it != id } ?: return null
+                val box = wrapped.cards.getValue(member)
+                val child = flats.getValue(member)
+                val points = (if (exit) child.departures else child.arrivals)[link.id] ?: return null
+                return BlueprintEngine.translate(points, box.x + BlueprintEngine.FrameSide, box.y + BlueprintEngine.FrameTop)
+            }
+            val departure = leg(link.from, true)
+            val arrival = leg(link.to, false)
+            if (departure == null && arrival == null) link else link.copy(
+                points = BlueprintEngine.stitch(listOfNotNull(departure, link.trace, arrival)), curve = false)
+        }
         val cards = LinkedHashMap<String, Card>()
         val nested = ArrayList<Frame>()
         val inner = ArrayList<Link>()
@@ -589,16 +808,16 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             val ox = item.x + BlueprintEngine.FrameSide
             val oy = item.y + BlueprintEngine.FrameTop
             nested += Frame(child.key, child.label, item.x, item.y, item.width, item.height,
-                child.nodes.filter { it.inner == null }.mapTo(LinkedHashSet()) { it.id }, child.detail, child.muted, group.key)
+                child.nodes.filter { it.inner == null }.mapTo(LinkedHashSet()) { it.id }, child.detail, child.muted, group.key, child.mode, child.loose, item.lane)
             flat?.cards?.values?.forEach { card -> cards[card.id] = card.copy(x = card.x + ox, y = card.y + oy) }
             flat?.links?.forEach { link -> inner += link.copy(points = BlueprintEngine.translate(link.points, ox, oy)) }
             flat?.frames?.forEach { frame -> nested += frame.copy(x = frame.x + ox, y = frame.y + oy) }
         }
-        return FrameLayout(cards, wrapped.links + inner, wrapped.width, wrapped.height, nested, result.failure, exits, entries, departures, arrivals)
+        return FrameLayout(cards, connected + inner, wrapped.width, wrapped.height, nested, result.failure, exits, entries, departures, arrivals)
     }
 
     fun <K> assemble(key: K, flats: Map<String, FrameLayout>, aspect: Double): BlueprintLayout<K> {
-        val blocks = groups.mapNotNull { group -> flats[group.key]?.takeIf { it.cards.isNotEmpty() }?.let { BlueprintEngine.Block(group, it) } }
+        val blocks = groups.mapNotNull { group -> flats[group.key]?.let { BlueprintEngine.Block(group, it) } }
         val cards = LinkedHashMap<String, Card>()
         val links = ArrayList<Link>()
         val roots = ArrayList<Frame>()
@@ -617,9 +836,11 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             block.layout.links.forEach { link -> links += link.copy(points = BlueprintEngine.translate(link.points, ox, oy)) }
             block.layout.frames.forEach { frame -> nested += frame.copy(x = frame.x + ox, y = frame.y + oy) }
             roots += Frame(block.group.key, block.group.label, x, y, block.width, block.height,
-                block.group.nodes.filter { it.inner == null && it.id in cards }.mapTo(LinkedHashSet()) { it.id }, block.group.detail, block.group.muted)
+                block.group.nodes.filter { it.inner == null && it.id in cards }.mapTo(LinkedHashSet()) { it.id }, block.group.detail, block.group.muted, lanes = block.group.mode, loose = block.group.loose)
         }
         val boxes = nested.associateBy { it.key }
+        val boundaries = roots.associateBy { it.key }
+        val trunks = HashMap<Pair<String?, String?>, List<Pair<Double, Double>>>()
         fun middle(id: String) = if (id in cards) BlueprintEngine.HeaderHeight / 2 else BlueprintEngine.FrameTop / 2
         joined.forEach { edge ->
             if (edge.id in routed) return@forEach
@@ -629,17 +850,43 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             val end = BlueprintEngine.anchorIn(to, edge.toPort, false, middle(edge.to))
             val source = rootOf[edge.from]
             val target = rootOf[edge.to]
-            val trunk = flow?.trunks?.get(source to target)?.takeIf { !edge.curved && it.size >= 2 }
-            val departure = trunk?.let { leg(keyed, origins, source, edge.id, true) }
-            val arrival = trunk?.let { leg(keyed, origins, target, edge.id, false) }
+            val departure = if (!edge.curved && source != target) leg(keyed, origins, source, edge.id, true) else null
+            val arrival = if (!edge.curved && source != target) leg(keyed, origins, target, edge.id, false) else null
+            val trunk = if (!options.bundles && departure != null && arrival != null) {
+                val fromFrame = boundaries.getValue(checkNotNull(source))
+                val toFrame = boundaries.getValue(checkNotNull(target))
+                val margin = BlueprintEngine.CardGap / 2
+                BlueprintEngine.openRoute(fromFrame.x + fromFrame.width + margin to departure.last().second,
+                    toFrame.x - margin to arrival.first().second, roots)
+            }
+            else flow?.trunks?.get(source to target)?.takeIf { !edge.curved && it.size >= 2 }
+                ?: if (departure != null && arrival != null) trunks.getOrPut(source to target) {
+                    val fromFrame = boundaries.getValue(checkNotNull(source))
+                    val toFrame = boundaries.getValue(checkNotNull(target))
+                    val margin = BlueprintEngine.CardGap / 2
+                    BlueprintEngine.openRoute(fromFrame.x + fromFrame.width + margin to departure.last().second,
+                        toFrame.x - margin to arrival.first().second, roots)
+                } else null
             links += if (trunk != null && departure != null && arrival != null) Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, edge.members,
                 BlueprintEngine.stitch(listOf(departure, trunk, arrival)), cross = true, reversed = edge.reversed, family = edge.family)
             else Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, edge.members, BlueprintEngine.bezier(start, end),
                 cross = source != target, reversed = edge.reversed, family = edge.family, curve = true)
         }
-        val width = maxOf(roots.maxOfOrNull { it.x + it.width } ?: 0.0, flow?.width ?: 0.0)
-        val height = maxOf(roots.maxOfOrNull { it.y + it.height } ?: 0.0, flow?.height ?: 0.0)
-        return BlueprintLayout(key, cards, roots + nested, links, width, height, flats.values.mapNotNull { it.failure })
+        var left = 0.0
+        var top = 0.0
+        var right = maxOf(roots.maxOfOrNull { it.x + it.width } ?: 0.0, flow?.width ?: 0.0)
+        var bottom = maxOf(roots.maxOfOrNull { it.y + it.height } ?: 0.0, flow?.height ?: 0.0)
+        links.forEach { link -> link.trace.forEach { (x, y) ->
+            left = minOf(left, x); top = minOf(top, y)
+            right = maxOf(right, x); bottom = maxOf(bottom, y)
+        } }
+        val width = right - left
+        val height = bottom - top
+        val failures = flats.values.mapNotNull { it.failure }
+        if (left == 0.0 && top == 0.0) return BlueprintLayout(key, cards, roots + nested, links, width, height, failures)
+        return BlueprintLayout(key, cards.mapValues { (_, card) -> card.copy(x = card.x - left, y = card.y - top) },
+            (roots + nested).map { it.copy(x = it.x - left, y = it.y - top) },
+            links.map { it.copy(points = BlueprintEngine.translate(it.points, -left, -top)) }, width, height, failures)
     }
 
     private companion object {

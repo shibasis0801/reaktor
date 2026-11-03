@@ -8,7 +8,7 @@ class BoardLayoutTest {
     private fun card(key: String, within: String = "", after: List<String> = emptyList()) = BoardItem(key, key, "todo", within = within, after = after)
     private fun placed(items: List<BoardItem>) = BoardLayout.of(items).associateBy { it.key }
 
-    @Test fun framesContainTheirChildrenAndDependenciesPointForward() {
+    @Test fun framesContainTheirChildrenAndFollowTheirDependenciesInReadingOrder() {
         val items = placed(listOf(card("store"), card("api"), card("model", "store"), card("checks", "store", listOf("model")), card("endpoint", "api", listOf("checks"))))
         val store = items.getValue("store").at!!
         val model = items.getValue("model").at!!
@@ -16,8 +16,20 @@ class BoardLayoutTest {
         val api = items.getValue("api").at!!
         assertTrue(model.x > store.x && model.y >= store.y + BoardGeometry.FrameHead)
         assertTrue(checks.x >= model.x + BoardGeometry.CardWidth)
-        assertTrue(api.x >= checks.x + BoardGeometry.CardWidth)
+        assertTrue(api.x >= checks.x + BoardGeometry.CardWidth || api.y >= checks.y + BoardGeometry.CardHeight + BoardGeometry.FramePad)
         assertTrue(items.getValue("endpoint").at!!.x > api.x)
+    }
+
+    @Test fun framesPackTowardTheAspectTheyAreGiven() {
+        val frames = (0 until 12).flatMap { frame -> listOf(card("f$frame")) + (0 until (frame % 4 + 1) * 3).map { card("f$frame-$it", "f$frame") } }
+        fun extent(aspect: Double): Double {
+            val laid = BoardLayout.of(frames, aspect).filter { it.within.isNotEmpty() }
+            val width = laid.maxOf { it.at!!.x } - laid.minOf { it.at!!.x } + BoardGeometry.CardWidth
+            val height = laid.maxOf { it.at!!.y } - laid.minOf { it.at!!.y } + BoardGeometry.CardHeight
+            return width / height
+        }
+        assertTrue(extent(1.0) < extent(2.5), "${extent(1.0)} vs ${extent(2.5)}")
+        assertTrue(extent(2.5) in 1.25..5.0, "${extent(2.5)}")
     }
 
     @Test fun crossingReductionAlignsParallelPairs() {

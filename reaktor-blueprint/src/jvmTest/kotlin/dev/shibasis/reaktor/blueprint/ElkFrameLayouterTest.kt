@@ -27,6 +27,33 @@ class ElkFrameLayouterTest {
     }
 
     @Test
+    fun disconnectedNestedComponentsPackWithoutChangingTheirIdentity() {
+        val nodes = (0 until 40).map { BlueprintNode("member-$it", 0) }
+        val child = BlueprintGroup("child", "Child", nodes, loose = true)
+        val groups = listOf(BlueprintGroup("root", "Root", listOf(BlueprintNode("child", 0, group = child))))
+        fun layout(separate: Boolean) = BlueprintEngine.layout("packing", groups, emptyList(), 1.6, FrameLayouter { request ->
+            val graph = ElkGraph(
+                request.graph.options + ("elk.separateConnectedComponents" to separate.toString()),
+                request.graph.boxes,
+                request.graph.lines,
+            )
+            ElkFrameLayouter.lay(FrameRequest(request.key, request.group, graph, request.routed, request.flipped, request.doors, request.passes))
+        })
+        val stacked = layout(false)
+        val packed = layout(true)
+        val actual = BlueprintEngine.layout("packing", groups, emptyList(), 1.6, ElkFrameLayouter)
+        assertEquals(packed.width, actual.width)
+        assertEquals(packed.height, actual.height)
+        assertTrue(packed.layoutFailures.isEmpty())
+        assertEquals(stacked.cards.keys, packed.cards.keys)
+        assertEquals(stacked.cards.mapValues { it.value.width to it.value.height }, packed.cards.mapValues { it.value.width to it.value.height })
+        assertEquals(stacked.links, packed.links)
+        val stackedArea = stacked.width * stacked.height
+        val packedArea = packed.width * packed.height
+        assertTrue(packedArea < stackedArea, "Packed area $packedArea must improve on stacked area $stackedArea")
+    }
+
+    @Test
     fun backwardsLaneRoutingPreservesSemanticEndpointsAndArrowDirection() {
         val nodes = listOf(BlueprintNode("early", 0), BlueprintNode("late", 2))
         val layout = BlueprintEngine.layout("lanes", listOf(BlueprintGroup("lanes", "Lanes", nodes)), listOf(BlueprintEdge("back", "late", "early")), 1.6, ElkFrameLayouter)

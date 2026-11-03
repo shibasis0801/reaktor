@@ -25,6 +25,20 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class GraphEditorTest {
+    private fun accept(editor: GraphEditor) {
+        editor.editRevision = EditRevision("source:7", "presentation:3")
+        editor.permits = { _, _ -> true }
+        editor.validate = { Verdict(true, "") }
+        editor.commit = { _, expected ->
+            assertEquals(editor.editRevision, expected)
+            EditReceipt.Accepted(expected)
+        }
+        editor.savePlacement = { _, expected ->
+            assertEquals(editor.editRevision, expected)
+            EditReceipt.Accepted(expected)
+        }
+    }
+
     private val shape = GraphShape(listOf(ScopeShape("app", "App")), listOf(
         NodeShape("a", "app", "A", "A", NodeKind.Service, ports = listOf(PortShape("out", "Int", true, PortWiring.Unused), PortShape("text", "String", true, PortWiring.Unused))),
         NodeShape("b", "app", "B", "B", NodeKind.Service, ports = listOf(PortShape("in", "Int", false, PortWiring.Unmatched))),
@@ -50,7 +64,7 @@ class GraphEditorTest {
 
     @Test
     fun editsShowAsDiffsAndUndo() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).also(::accept)
         editor.rename("a", "Alpha")
         assertEquals(Change.Changed, editor.diff.nodes["a"])
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
@@ -68,8 +82,42 @@ class GraphEditorTest {
     }
 
     @Test
+    fun refreshingMeasurementsKeepsEditingStateAndInvalidatesTheCachedLayout() {
+        val editor = GraphEditor(shape, placement).also(::accept)
+        editor.rename("a", "Alpha")
+        editor.rename("b", "Beta")
+        editor.undo()
+        editor.select(Selection(setOf("a")))
+        val before = editor.layout
+        val source = editor.shape
+        val keptPlacement = editor.placement
+        val selection = editor.selection
+        val history = editor.history
+        val future = editor.future
+        val measured = dev.shibasis.reaktor.blueprint.BlueprintBody(
+            before.cards.getValue("a").width + 80.0, before.cards.getValue("a").height + 64.0)
+        val pins = source.nodes.associate { node -> node.id to editorPins(node).map { it.copy(y = it.y + 24.0) } }
+
+        editor.refreshMeasurements(mapOf("a" to measured)) { pins.getValue(it.id) }
+
+        val refreshed = editor.layout
+        assertEquals(measured.width, refreshed.cards.getValue("a").width)
+        assertEquals(measured.height, refreshed.cards.getValue("a").height)
+        assertEquals(pins.getValue("a"), refreshed.cards.getValue("a").pins)
+        assertSame(source, editor.shape)
+        assertSame(keptPlacement, editor.placement)
+        assertEquals(selection, editor.selection)
+        assertEquals(history, editor.history)
+        assertEquals(future, editor.future)
+        assertEquals(keptPlacement.cards.getValue("a"), Spot(refreshed.cards.getValue("a").x, refreshed.cards.getValue("a").y))
+        editor.redo()
+        assertEquals("Beta", editor.node("b")?.label)
+        assertEquals(measured.height, editor.layout.cards.getValue("a").height)
+    }
+
+    @Test
     fun changeSetsKeepWhatMovedAndReopenOnTheLiveGraph() {
-        val editor = GraphEditor(shape, placement, id = "draft-1", title = "Wiring")
+        val editor = GraphEditor(shape, placement, id = "draft-1", title = "Wiring").also(::accept)
         editor.rename("b", "Beta")
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         editor.bend("a.out>b.in", Spot(200.0, 40.0))
@@ -85,7 +133,7 @@ class GraphEditorTest {
         assertEquals(setOf("c"), part.layout!!.cards.keys)
         assertEquals(setOf("a.out>b.in"), part.layout!!.bends.keys)
 
-        val reopened = GraphEditor(shape, placement.with(part.layout!!), set.id, set.title, set.revision, shape.replay(part).shape, origin = placement)
+        val reopened = GraphEditor(shape, placement.with(part.layout!!), set.id, set.title, set.revision, shape.replay(part).shape, origin = placement).also(::accept)
         assertEquals("Beta", reopened.node("b")!!.label)
         assertEquals(editor.diff.nodes, reopened.diff.nodes)
         assertEquals(editor.diff.wires, reopened.diff.wires)
@@ -98,7 +146,7 @@ class GraphEditorTest {
 
     @Test
     fun findJumpsToNodesPortsAndComments() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).also(::accept)
         assertEquals(listOf("b"), editor.find("b").map { it.id })
         assertEquals("text", editor.find("text").single { it.id == "a" }.detail)
         editor.comment(Selection(setOf("a", "c")))
@@ -117,7 +165,7 @@ class GraphEditorTest {
 
     @Test
     fun unwiredInputsWarnWithoutBlockingSave() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).also(::accept)
         assertTrue(editor.warnings.isEmpty())
         val sink = editor.add(Template("Sink", NodeKind.Service, "Sink", listOf(PortShape("in", "Int", false, PortWiring.Unmatched), PortShape("bus", "Bus", false, PortWiring.Injected))), Spot(0.0, 600.0))
         assertEquals(listOf("Nothing provides Int to Sink.in"), editor.warnings.map { it.text })
@@ -126,7 +174,7 @@ class GraphEditorTest {
         assertEquals("Service:Sink:Sink", GraphEditor.recent.first())
         assertTrue(editor.connect(PinEnd("c", "out", true), PinEnd(sink, "in", false)).ok)
         assertTrue(editor.warnings.isEmpty())
-        val atlas = GraphEditor(shape, placement, single = false)
+        val atlas = GraphEditor(shape, placement, single = false).also(::accept)
         atlas.add(Template("Sink", NodeKind.Service, "Sink", listOf(PortShape("in", "Int", false, PortWiring.Unmatched))), Spot(0.0, 600.0))
         assertTrue(atlas.warnings.isEmpty())
     }
@@ -134,7 +182,7 @@ class GraphEditorTest {
     @Test
     fun inputsTheAppSatisfiesWithoutAWireStaySatisfied() {
         val bound = shape.copy(nodes = shape.nodes.map { if (it.id == "b") it.copy(ports = listOf(PortShape("in", "Int", false, PortWiring.Connected, connections = 1))) else it })
-        val editor = GraphEditor(bound, placement)
+        val editor = GraphEditor(bound, placement).also(::accept)
         assertFalse(editor.dirty)
         editor.rename("a", "Alpha")
         assertEquals(PortWiring.Injected, editor.node("b")!!.port("in", false)!!.wiring)
@@ -147,19 +195,19 @@ class GraphEditorTest {
         val bound = shape.copy(nodes = shape.nodes.map { if (it.id == "b") it.copy(ports = listOf(PortShape("in", "Int", false, PortWiring.Connected, connections = 1))) else it })
         val replayed = bound.copy(nodes = bound.nodes.map { if (it.id == "a") it.copy(label = "Alpha") else it }).recounted()
         assertEquals(PortWiring.Unmatched, replayed.node("b")!!.port("in", false)!!.wiring)
-        val resumed = GraphEditor(bound, placement, shape = replayed)
+        val resumed = GraphEditor(bound, placement, shape = replayed).also(::accept)
         assertEquals(PortWiring.Injected, resumed.node("b")!!.port("in", false)!!.wiring)
         assertTrue(resumed.warnings.isEmpty())
         assertEquals(setOf("a"), resumed.diff.nodes.keys)
 
-        val linked = GraphEditor(shape, placement).apply { assertTrue(connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok) }.shape
-        val cut = GraphEditor(linked, placement, shape = linked.copy(wires = emptyList()).recounted())
+        val linked = GraphEditor(shape, placement).also(::accept).apply { assertTrue(connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok) }.shape
+        val cut = GraphEditor(linked, placement, shape = linked.copy(wires = emptyList()).recounted()).also(::accept)
         assertEquals(listOf("in"), cut.warnings.map { it.port })
     }
 
     @Test
     fun duplicatingLeavesTheClipboardAlone() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).also(::accept)
         assertEquals(1, editor.copy(Selection(setOf("a"))))
         editor.select(Selection(setOf("b")))
         editor.duplicate()
@@ -172,7 +220,7 @@ class GraphEditorTest {
 
     @Test
     fun renamingAPortCarriesItsWiresAndBends() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).also(::accept)
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         editor.bend("a.out>b.in", Spot(200.0, 40.0))
         editor.rename("b", editor.node("b")!!.port("in", false)!!, "value")
@@ -188,7 +236,7 @@ class GraphEditorTest {
 
     @Test
     fun escapeCancelsADragAndLeavesNoHalfMove() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).also(::accept)
         assertTrue(editor.press(10f, 10f, Offset.Zero, 4f, PointerKeyboardModifiers(), 1, false))
         editor.drag(120f, 90f, Offset.Zero)
         assertEquals(Spot(112.0, 80.0), editor.placement.cards["a"])
@@ -199,9 +247,24 @@ class GraphEditorTest {
     }
 
     @Test
+    fun refusingACardMoveKeepsItsSourcePlacementAndDoesNotAnnounceAdoption() {
+        val zoned = shape.copy(scopes = shape.scopes + ScopeShape("zone", "Zone", "app"))
+        val start = placement.copy(notes = listOf(Note("zone", "Zone", 600.0, -100.0, 600.0, 600.0)))
+        val editor = GraphEditor(zoned, start).also(::accept)
+        editor.commit = { _, _ -> EditReceipt.Refused("The host refused this move") }
+        assertTrue(editor.press(10f, 210f, Offset.Zero, 4f, PointerKeyboardModifiers(), 1, false))
+        editor.drag(710f, 110f, Offset.Zero)
+        editor.release(710f, 110f, Offset.Zero)
+        assertEquals("app", editor.node("c")!!.scope)
+        assertEquals(start, editor.placement)
+        assertEquals("The host refused this move", editor.notice)
+        assertTrue(editor.diff.differences.isEmpty())
+    }
+
+    @Test
     fun droppingACardIntoAnAreaMovesItThere() {
         val zoned = shape.copy(scopes = shape.scopes + ScopeShape("zone", "Zone", "app"))
-        val editor = GraphEditor(zoned, placement.copy(notes = listOf(Note("zone", "Zone", 600.0, -100.0, 600.0, 600.0))))
+        val editor = GraphEditor(zoned, placement.copy(notes = listOf(Note("zone", "Zone", 600.0, -100.0, 600.0, 600.0)))).also(::accept)
         assertTrue(editor.press(10f, 210f, Offset.Zero, 4f, PointerKeyboardModifiers(), 1, false))
         editor.drag(710f, 110f, Offset.Zero)
         editor.release(710f, 110f, Offset.Zero)
@@ -222,7 +285,7 @@ class GraphEditorTest {
 
     @Test
     fun selectLinkedWalksDependenciesBothWays() {
-        val editor = GraphEditor(shape, placement)
+        val editor = GraphEditor(shape, placement).also(::accept)
         assertTrue(editor.connect(PinEnd("a", "out", true), PinEnd("b", "in", false)).ok)
         editor.select(Selection(setOf("b")))
         editor.selectLinked(upstream = true)
@@ -249,7 +312,7 @@ class GraphEditorTest {
             "source:a" to Card("source:a", 0.0, 0.0, 272.0, BlueprintEngine.cardHeight(2), emptyList(), 0),
             "source:b" to Card("source:b", 400.0, 0.0, 272.0, BlueprintEngine.cardHeight(1), emptyList(), 0),
         ), listOf(Frame("area:maths", "Maths", -20.0, -40.0, 720.0, 200.0, linkedSetOf("source:a", "source:b"), emptyList(), false)), emptyList(), 720.0, 200.0)
-        val editor = document.editor(layout, EditorInk(), "Atlas")
+        val editor = document.editor(layout, EditorInk(), "Atlas").also(::accept)
         val scene = document.scene(editor)
         assertSame(nodes[0], scene.nodes.first { it.id == "source:a" })
         assertEquals(setOf("unit:a:0" to "unit:b:0", "source:a" to "source:b"), scene.links.mapTo(hashSetOf()) { it.from to it.to })

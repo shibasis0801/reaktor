@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.blueprint
 
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -17,9 +19,20 @@ actual val DefaultFrameLayouter: FrameLayouter = ElkFrameLayouter
 
 object ElkFrameLayouter : FrameLayouter {
     private val reported = AtomicBoolean()
+    private val worker = Executors.newSingleThreadExecutor { task ->
+        Thread(null, task, "Reaktor-ELK", 32L * 1024 * 1024).apply { isDaemon = true }
+    }
+    internal val cache = FrameLayoutCache(::uncached)
 
-    override fun lay(request: FrameRequest): FrameResult = try {
-        layout(request.graph)
+    override fun lay(request: FrameRequest): FrameResult = cache.lay(request)
+
+    private fun uncached(request: FrameRequest): FrameResult = try {
+        try { worker.submit<FrameResult> { layout(request.graph) }.get() }
+        catch (error: ExecutionException) { throw error.cause ?: error }
+        catch (error: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw CancellationException("ELK layout interrupted").apply { initCause(error) }
+        }
     } catch (error: Throwable) {
         if (error is CancellationException || error is VirtualMachineError || error is ThreadDeath || error is LinkageError) throw error
         if (reported.compareAndSet(false, true)) Logger.getLogger("Reaktor.Blueprint").log(Level.WARNING, "ELK layout failed; using grid layout", error)

@@ -29,6 +29,7 @@ data class ToolDefinition(
     val openWorld: Boolean = false,
     val untrustedContent: Boolean = false,
     val consequential: Boolean = false,
+    val alwaysLoad: Boolean = true,
 ) {
     init {
         require(name.matches(Regex("[A-Za-z0-9_.-]{1,128}"))) { "Invalid tool name: $name" }
@@ -52,7 +53,14 @@ data class ToolResult(
     }
 }
 
-data class Tool(val definition: ToolDefinition, val execute: suspend (JsonObject) -> ToolResult)
+data class Tool(
+    val definition: ToolDefinition,
+    val executeWithMeta: (suspend (JsonObject, JsonObject) -> ToolResult)? = null,
+    val execute: suspend (JsonObject) -> ToolResult,
+) {
+    suspend fun invoke(arguments: JsonObject, metadata: JsonObject = JsonObject(emptyMap())): ToolResult =
+        executeWithMeta?.invoke(arguments, metadata) ?: execute(arguments)
+}
 
 open class ToolNode(graph: Graph, tools: List<Tool>) : BasicNode(graph) {
     private val toolsByName = tools.associateBy { it.definition.name }
@@ -69,11 +77,14 @@ open class ToolNode(graph: Graph, tools: List<Tool>) : BasicNode(graph) {
         return { closers -= close }
     }
 
-    suspend fun execute(name: String, arguments: JsonObject): ToolResult {
+    suspend fun execute(name: String, arguments: JsonObject): ToolResult =
+        execute(name, arguments, JsonObject(emptyMap()))
+
+    suspend fun execute(name: String, arguments: JsonObject, metadata: JsonObject): ToolResult {
         check(!isClosed) { "Tool node is closed" }
         val tool = toolsByName[name] ?: error("Unknown tool: $name")
         currentCoroutineContext().ensureActive()
-        val invocation = coroutineScope.async { tool.execute(arguments) }
+        val invocation = coroutineScope.async { tool.invoke(arguments, metadata) }
         return try { invocation.await() } finally { invocation.cancel() }
     }
 
@@ -100,10 +111,13 @@ abstract class ToolAdapter<Controller : ToolNode>(controller: Controller) : Adap
         return controller?.takeUnless { it.isClosed } ?: error("Tool controller is unavailable")
     }
 
-    suspend fun execute(name: String, arguments: JsonObject): ToolResult {
+    suspend fun execute(name: String, arguments: JsonObject): ToolResult =
+        execute(name, arguments, JsonObject(emptyMap()))
+
+    suspend fun execute(name: String, arguments: JsonObject, metadata: JsonObject): ToolResult {
         val invocation = scope.async {
             try {
-                requireController().execute(name, arguments)
+                requireController().execute(name, arguments, metadata)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {

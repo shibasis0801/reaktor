@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
@@ -33,7 +34,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.shibasis.reaktor.blueprint.Bounds
+import dev.shibasis.reaktor.blueprint.*
+import dev.shibasis.reaktor.blueprint.editor.GraphEditor
+import dev.shibasis.reaktor.blueprint.editor.Selection
+import dev.shibasis.reaktor.graph.core.GraphShape
+import dev.shibasis.reaktor.graph.core.NodeShape
+import dev.shibasis.reaktor.graph.core.NodeKind
+import dev.shibasis.reaktor.blueprint.graph.AppGraph
+import dev.shibasis.reaktor.blueprint.graph.GraphSource
+import dev.shibasis.reaktor.blueprint.editor.id
 import dev.shibasis.reaktor.blueprint.Layered
 import dev.shibasis.reaktor.blueprint.LayeredEdge
 import dev.shibasis.reaktor.blueprint.LayeredNode
@@ -54,7 +63,17 @@ fun SubgraphEditor(
     put: (Subgraph, Int) -> Unit,
     modifier: Modifier = Modifier,
     space: Dp = 8.dp,
+    sourceGraph: GraphShape? = null,
+    sourceLevels: BlueprintMapLevels<String>? = null,
+    sourceCardLook: (@Composable (NodeShape) -> BlueprintCardLook)? = null,
+    sourceFrameLook: (@Composable (Frame) -> BlueprintFrameLook)? = null,
+    sourceLinkStyle: ((Link, Selection) -> LinkStyle?)? = null,
+    sourceLinkLabel: ((Link) -> String?)? = null,
+    canvas: GraphCanvasState? = null,
 ) {
+    require(listOf(sourceGraph, sourceLevels, sourceCardLook, sourceFrameLook, sourceLinkStyle, sourceLinkLabel).let { inputs ->
+        inputs.all { it == null } || inputs.all { it != null }
+    }) { "A supplied map requires its complete typed graph, prepared levels and presentation" }
     var draft by remember(graph.id) { mutableStateOf<Subgraph?>(null) }
     var base by remember(graph.id) { mutableStateOf(0) }
     var notice by remember(graph.id) { mutableStateOf("") }
@@ -66,7 +85,8 @@ fun SubgraphEditor(
     val query = remember(graph.id) { TextFieldState() }
     val intent = remember(graph.id) { TextFieldState() }
     val name = remember(graph.id) { TextFieldState() }
-    val camera = remember(graph.id) { GraphCanvasState() }
+    val rememberedCamera = remember(graph.id) { GraphCanvasState() }
+    val camera = canvas ?: rememberedCamera
     val byId = remember(graph) { graph.nodes.associateBy { it.id } }
     val views = documents.filter { it.graphId == graph.id }.sortedBy { it.title }
     fun load(value: Subgraph) {
@@ -143,7 +163,14 @@ fun SubgraphEditor(
     BoxWithConstraints(modifier.testTag("subgraph-editor").background(appearance.canvas)) {
         val narrow = maxWidth < space * 75
         if (nodes.isNotEmpty() && current != null) {
-            SubgraphMap(nodes, links, current, selected, connection, appearance, camera,
+            if (sourceGraph != null) SuppliedSubgraphBlueprint(sourceGraph, requireNotNull(sourceLevels),
+                requireNotNull(sourceCardLook), requireNotNull(sourceFrameLook), requireNotNull(sourceLinkStyle), requireNotNull(sourceLinkLabel),
+                graph, current, selected, connection, appearance, camera,
+                { selected = it; connection = null; library = false },
+                { connection = it; selected = null; library = false },
+                { selected = null; connection = null; library = false },
+                Modifier.fillMaxSize(), space, if (narrow) space * 16 else space * 10)
+            else SubgraphBlueprint(nodes, links, current, selected, connection, appearance, camera,
                 { selected = it; connection = null; library = false },
                 { connection = it; selected = null; library = false },
                 { selected = null; connection = null; library = false },
@@ -178,7 +205,7 @@ fun SubgraphEditor(
                 SubgraphText((resolved?.nodes?.size ?: 0).toString() + " nodes · " + (resolved?.edges?.size ?: 0) + if (resolved?.edges?.size == 1) " relationship" else " relationships", appearance, muted = true, size = 12)
                 if (resolved?.stale == true) SubgraphText("Source updated", appearance, muted = true, size = 12)
             }
-            if (!narrow && selected == null && connection == null && !library) SubgraphText("Scroll to zoom · drag to move", appearance, Modifier.align(Alignment.BottomEnd).padding(space * 2), muted = true, size = 11)
+            if (!narrow && selected == null && connection == null && !library) SubgraphText("Scroll to pan · pinch or Cmd/Ctrl+scroll to zoom", appearance, Modifier.align(Alignment.BottomEnd).padding(space * 2), muted = true, size = 11)
         }
         if (library) {
             Column(Modifier.align(Alignment.TopStart).padding(start = space * 2, top = space * 8).widthIn(max = space * 40).fillMaxWidth().heightIn(max = maxHeight - space * 11).clip(shape).background(appearance.card).border(1.dp, appearance.line.copy(alpha = .5f), shape).padding(space * 2), verticalArrangement = Arrangement.spacedBy(space * 1.5f)) {
@@ -264,129 +291,125 @@ fun SubgraphEditor(
 }
 
 @Composable
-private fun SubgraphMap(nodes: List<SearchNode>, links: List<SearchEdge>, document: Subgraph, selected: String?, connection: String?,
+private fun SuppliedSubgraphBlueprint(source: GraphShape, levels: BlueprintMapLevels<String>,
+    cardLook: @Composable (NodeShape) -> BlueprintCardLook, frameLook: @Composable (Frame) -> BlueprintFrameLook,
+    linkStyle: (Link, Selection) -> LinkStyle?, linkLabel: (Link) -> String?, graph: SearchGraph, document: Subgraph,
+    selected: String?, connection: String?, palette: SurfaceGraphAppearance, state: GraphCanvasState,
+    onNode: (String) -> Unit, onEdge: (String) -> Unit, onClear: () -> Unit, modifier: Modifier, space: Dp, top: Dp) {
+    val identities = remember(graph, source, levels) {
+        require(source.nodes.map { it.id }.toSet().size == source.nodes.size && graph.nodes.map { it.id }.toSet().size == graph.nodes.size) {
+            "Source member identities must be unique"
+        }
+        val attached = source.nodes.filter { it.attachedTo != null && it.kind != NodeKind.Route }.groupBy { it.attachedTo }
+        require(attached.values.all { it.size == 1 }) { "A supplied route requires one authoritative member per endpoint" }
+        val projections = listOf(GraphSource.System, GraphSource.Desktop).map { AppGraph(source, it) }
+        val routes = projections.first().hops.associateBy { "route:${it.id}" }
+        require(graph.edges.map { it.id }.toSet().size == graph.edges.size) { "Source relationship identities must be unique" }
+        require(source.wires.map { it.id }.toSet().size == source.wires.size) { "Typed wire identities must be unique" }
+        val mapped = graph.edges.associate { edge ->
+            val raw = if (edge.kind == "route") {
+                val hop = requireNotNull(routes[edge.id]) { "A route relationship requires supplied route authority" }
+                require(edge.from == hop.from && edge.to == hop.to) { "Directed route endpoints must match the source relationship" }
+                hop.id
+            } else edge.id
+            edge.id to raw
+        }
+        require(mapped.values.toSet().size == mapped.size) { "Source relationships must resolve to distinct raw members" }
+        require(projections.any { view ->
+            graph.nodes.map { it.id }.toSet() == view.nodes.keys && graph.edges.size == view.wires.size + view.hops.size &&
+                view.wires.all { wire -> graph.edges.any { it.kind == "wire" && it.id == wire.id && it.from == wire.provider && it.to == wire.consumer } } &&
+                view.hops.all { hop -> graph.edges.any { it.kind == "route" && it.id == "route:${hop.id}" && it.from == hop.from && it.to == hop.to } }
+        }) { "The search members and directed relationships must match one complete supplied source projection" }
+        val members = levels.full.links.flatMap { it.members }.toSet() + levels.full.foldedLinks.keys
+        require(mapped.values.all { it in members }) { "The full layout must retain every source relationship identity" }
+        mapped
+    }
+    val editor = remember(graph, source, levels) {
+        GraphEditor(source, GraphEditor.placement(levels.full), id = "subgraph-preview:${graph.id}", single = false,
+            pins = { node -> levels.full.cards[node.id]?.pins.orEmpty() })
+    }
+    val edges = remember(graph, identities) { graph.edges.associateBy { identities.getValue(it.id) } }
+    val sourceNodes = remember(source) { source.nodes.associateBy { it.id } }
+    val related = remember(selected, graph) { graph.edges.filter { it.from == selected || it.to == selected }
+        .flatMap { listOf(it.from, it.to) }.toSet() }
+    val selectNode by rememberUpdatedState(onNode)
+    val selectEdge by rememberUpdatedState(onEdge)
+    val clear by rememberUpdatedState(onClear)
+    SideEffect {
+        state.insetTop = top.value.toDouble(); state.insetBottom = (space * 8).value.toDouble()
+        state.insetStart = (space * 3).value.toDouble(); state.insetEnd = (space * 3).value.toDouble()
+        val next = Selection(nodes = selected?.let(::setOf).orEmpty(), wires = connection?.let { setOf(identities.getValue(it)) }.orEmpty())
+        editor.onSelect = {}
+        if (next != editor.selection) editor.select(next)
+        editor.onSelect = { id ->
+            val wire = editor.selection.wires.singleOrNull()?.takeIf(edges::containsKey)
+            when { id != null -> selectNode(id); wire != null -> selectEdge(edges.getValue(wire).id); else -> clear() }
+        }
+    }
+    dev.shibasis.reaktor.ui.machinesignal.MachineSignalSurface(
+        dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant.Editor,
+        dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity.Compact,
+        mode = if (palette.canvas.luminance() > .5f) dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Light else dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Dark) {
+        BlueprintGraph(editor, state,
+            cardLook = { node -> cardLook(sourceNodes.getValue(node.id)).let { look -> look.copy(tag = "subgraph-node:${node.id}", action = look.action ?: node.label,
+                muted = look.muted || node.id !in document.nodes || selected != null && node.id != selected && node.id !in related) } },
+            groupLook = frameLook,
+            linkStyle = { link -> linkStyle(link, editor.selection)?.let { style ->
+                val members = link.members.mapNotNull(edges::get)
+                val included = members.all { it.from in document.nodes && it.to in document.nodes && (document.edges == null || it.id in document.edges.orEmpty()) }
+                if (included) style else style.copy(alpha = style.alpha * .1f)
+            } },
+            linkLabel = linkLabel, modifier = modifier, editable = false,
+            mapLevels = levels, mapLevel = levels.at(state.zoom),
+            onPinClick = { card, _ -> selectNode(card.id) })
+    }
+}
+
+@Composable
+private fun SubgraphBlueprint(nodes: List<SearchNode>, links: List<SearchEdge>, document: Subgraph, selected: String?, connection: String?,
     palette: SurfaceGraphAppearance, state: GraphCanvasState, onNode: (String) -> Unit, onEdge: (String) -> Unit,
     onClear: () -> Unit, modifier: Modifier, space: Dp, top: Dp) {
-    val placement = remember(nodes, links) { subgraphPlacement(nodes, links) }
-    val positions = placement.positions
-    val indices = remember(nodes) { nodes.mapIndexed { i, node -> node.id to i }.toMap() }
-    val boxes = remember(positions) { positions.map { p -> object : Bounds {
-        override val x = p.x.toDouble() - 90; override val y = p.y.toDouble() - 12
-        override val width = 180.0; override val height = 76.0
-    } } }
+    val model = remember(nodes, links, palette.width) { subgraphBlueprint(nodes, links, palette) }
     val related = remember(selected, links) { links.filter { it.from == selected || it.to == selected }.flatMap { listOf(it.from, it.to) }.toSet() }
-    fun nodeAt(x: Float, y: Float) = boxes.indexOfFirst { x >= it.x && x <= it.x + it.width && y >= it.y && y <= it.y + it.height }.takeIf { it >= 0 }
-    fun edgeAt(x: Float, y: Float, reach: Float): SearchEdge? = links.indices.firstOrNull { i ->
-        placement.routes[i].zipWithNext().any { (a, b) ->
-            val dx = b.x - a.x; val dy = b.y - a.y
-            val t = (((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy).coerceAtLeast(1f)).coerceIn(0f, 1f)
-            hypot(x - a.x - t * dx, y - a.y - t * dy) < reach
-        }
-    }?.let { links[it] }
+    val selectNode by rememberUpdatedState(onNode)
+    val selectEdge by rememberUpdatedState(onEdge)
+    val clear by rememberUpdatedState(onClear)
     SideEffect {
-        state.extent = boxes; state.insetTop = top.value.toDouble(); state.insetBottom = (space * 8).value.toDouble()
+        state.insetTop = top.value.toDouble(); state.insetBottom = (space * 8).value.toDouble()
         state.insetStart = (space * 3).value.toDouble(); state.insetEnd = (space * 3).value.toDouble()
-        state.fitOnce(document.id) { state.fit(boxes, padding = .1) }
-    }
-    GraphView(null, state,
-        hit = { x, y, reach -> nodeAt(x, y) != null || edgeAt(x, y, reach) != null },
-        tap = { x, y, reach -> nodeAt(x, y)?.let { onNode(nodes[it].id); true } ?: edgeAt(x, y, reach)?.let { onEdge(it.id); true } ?: false },
-        modifier = modifier, onPane = onClear,
-        onSize = { state.resize(it); state.fitOnce(document.id) { state.fit(boxes, padding = .1) } },
-        selection = { indices[selected]?.let { boxes[it] } },
-        step = { direction -> onNode(nodes[(nodes.indexOfFirst { it.id == selected } + direction + nodes.size) % nodes.size].id) },
-        markers = {
-            GraphMarkers(state, boxes, { nodes[it].id }) { index, zoom ->
-                val n = nodes[index]; val p = positions[index]
-                val active = n.id == selected
-                val ink = if (n.id !in document.nodes || selected != null && !active && n.id !in related) palette.muted.copy(alpha = .55f) else palette.text
-                Button({ onNode(n.id) }, Modifier.at(p.x.toDouble() - 90, p.y.toDouble() - 12, 180.0, 76.0).graphicsLayer {
-                    scaleX = (1 / zoom.coerceAtMost(1.0)).toFloat(); scaleY = scaleX
-                    transformOrigin = TransformOrigin(.5f, 12f / 76f)
-                }.semantics { contentDescription = n.label }, appearance = SubgraphPlainButton) {
-                    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(space)) {
-                        Canvas(Modifier.size(space * 3)) {
-                            if (active) drawCircle(palette.selected.copy(alpha = .1f), size.minDimension / 2)
-                            drawCircle(if (active || n.id in document.nodes) palette.selected else palette.muted.copy(alpha = .4f), if (active) size.minDimension / 4 else size.minDimension / 6)
-                        }
-                        SubgraphText(n.label, palette.copy(text = ink), strong = active, size = 13, lines = 2)
-                    }
-                }
-            }
-        },
-    ) { view, _, _ ->
-        withTransform({ translate(view.x.toFloat(), view.y.toFloat()); scale(view.zoom.toFloat(), view.zoom.toFloat(), Offset.Zero) }) {
-            val unit = 1 / view.zoom.toFloat().coerceAtLeast(.5f)
-            links.forEachIndexed { i, link ->
-                val included = link.from in document.nodes && link.to in document.nodes && (document.edges == null || link.id in document.edges.orEmpty())
-                val active = link.id == connection || selected != null && (link.from == selected || link.to == selected)
-                val ink = palette.selected.copy(alpha = if (!included) .1f else if (active) .8f else if (selected != null) .12f else .38f)
-                drawPath(placement.paths[i], ink, style = Stroke((if (active) 1.8f else 1.1f) * unit, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                val route = placement.routes[i]
-                if (route.size >= 2) drawPath(arrowhead(route[route.size - 2], route.last(), 7f * unit), ink)
-            }
+        val next = dev.shibasis.reaktor.blueprint.editor.Selection(nodes = selected?.let(::setOf).orEmpty(), wires = connection?.let(model::wire)?.let(::setOf).orEmpty())
+        model.editor.onSelect = {}
+        if (next != model.editor.selection) model.editor.select(next)
+        model.editor.onSelect = { id ->
+            val wire = model.editor.selection.wires.singleOrNull()?.let(model::link)
+            when { id != null -> selectNode(id); wire != null -> selectEdge(wire.id); else -> clear() }
         }
     }
+    dev.shibasis.reaktor.ui.machinesignal.MachineSignalSurface(
+        dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant.Editor,
+        dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity.Compact,
+        mode = if (palette.canvas.luminance() > .5f) dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Light else dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Dark) {
+        dev.shibasis.reaktor.blueprint.BlueprintGraph(model.editor, state,
+            cardLook = { node -> model.look(node.id, palette).copy(tag = "subgraph-node:${node.id}", action = node.label, muted = node.id !in document.nodes || selected != null && node.id != selected && node.id !in related) },
+            groupLook = { dev.shibasis.reaktor.blueprint.BlueprintFrameLook(SurfaceGraphSymbol, "") },
+            linkStyle = { link -> model.link(link.id)?.let { edge ->
+                val included = edge.from in document.nodes && edge.to in document.nodes && (document.edges == null || edge.id in document.edges.orEmpty())
+                dev.shibasis.reaktor.blueprint.Blueprint.link(palette.selected, selected != null || connection != null,
+                    edge.id == connection || selected != null && (edge.from == selected || edge.to == selected)).let { if (included) it else it.copy(alpha = .1f) }
+            } },
+            linkLabel = { model.link(it.id)?.label?.takeIf(String::isNotBlank) }, modifier = modifier)
+    }
 }
 
-private class SubgraphPlacement(val positions: List<Offset>, val routes: List<List<Offset>>, val paths: List<Path>)
-
-private const val SubgraphNodeWidth = 180.0
-private const val SubgraphNodeHeight = 76.0
-private const val SubgraphDot = 12.0
-private const val SubgraphDotClearance = 7f
-private const val SubgraphContains = "contains"
-
-private fun subgraphPlacement(nodes: List<SearchNode>, links: List<SearchEdge>): SubgraphPlacement {
-    val layout = Layered.layout(
-        nodes.map { LayeredNode(it.id, SubgraphNodeWidth, SubgraphNodeHeight, anchor = SubgraphDot) },
-        links.map { LayeredEdge(it.id, it.from, it.to, weight = if (it.kind == SubgraphContains) 4 else 1) },
-        LayeredSpacing(node = 16.0, layer = 104.0, edge = 9.0, component = 72.0, aspect = 1.6, wrap = 12),
-    )
-    val positions = nodes.indices.map { Offset((layout.x[it] + SubgraphNodeWidth / 2).toFloat(), (layout.y[it] + SubgraphDot).toFloat()) }
-    val indices = nodes.mapIndexed { i, node -> node.id to i }.toMap()
-    val routes = links.mapIndexed { i, link ->
-        val flat = layout.routes[i]
-        val from = positions[indices.getValue(link.from)]
-        val to = positions[indices.getValue(link.to)]
-        val middle = (0 until flat.size / 2).map { Offset(flat[it * 2].toFloat(), flat[it * 2 + 1].toFloat()) }
-        if (middle.size < 2) listOf(from, to)
-        else {
-            val start = middle.first().let { first -> Offset(from.x + if (first.x >= from.x) SubgraphDotClearance else -SubgraphDotClearance, from.y) }
-            val end = middle.last().let { last -> Offset(to.x + if (last.x <= to.x) -SubgraphDotClearance else SubgraphDotClearance, to.y) }
-            (listOf(start) + middle + listOf(end)).fold(ArrayList<Offset>()) { kept, point -> if (kept.isEmpty() || (kept.last() - point).getDistance() > .5f) kept += point; kept }
-        }
-    }
-    return SubgraphPlacement(positions, routes, routes.map(::roundedPath))
-}
-
-private fun roundedPath(points: List<Offset>, radius: Float = 9f): Path = Path().apply {
-    if (points.isEmpty()) return@apply
-    moveTo(points[0].x, points[0].y)
-    for (i in 1 until points.size - 1) {
-        val previous = points[i - 1]; val corner = points[i]; val next = points[i + 1]
-        val inbound = (corner - previous).getDistance()
-        val outbound = (next - corner).getDistance()
-        val reach = minOf(radius, inbound / 2, outbound / 2)
-        if (reach < .5f) { lineTo(corner.x, corner.y); continue }
-        val enter = corner - (corner - previous) / inbound * reach
-        val leave = corner + (next - corner) / outbound * reach
-        lineTo(enter.x, enter.y)
-        quadraticTo(corner.x, corner.y, leave.x, leave.y)
-    }
-    if (points.size > 1) lineTo(points.last().x, points.last().y)
-}
-
-private fun arrowhead(from: Offset, tip: Offset, length: Float): Path {
-    val direction = (tip - from).let { if (it.getDistance() < .01f) Offset(1f, 0f) else it / it.getDistance() }
-    val side = Offset(-direction.y, direction.x)
-    val base = tip - direction * length
-    return Path().apply {
-        moveTo(tip.x, tip.y)
-        lineTo(base.x + side.x * length * .45f, base.y + side.y * length * .45f)
-        lineTo(base.x - side.x * length * .45f, base.y - side.y * length * .45f)
-        close()
-    }
+internal fun subgraphBlueprint(nodes: List<SearchNode>, links: List<SearchEdge>, palette: SurfaceGraphAppearance): SurfaceGraphSimple {
+    val width = palette.width
+    val height = dev.shibasis.reaktor.blueprint.BlueprintEngine.cardHeight(dev.shibasis.reaktor.blueprint.BlueprintFace.ProseRows)
+    val placement = Layered.layout(nodes.map { LayeredNode(it.id, width, height) },
+        links.map { LayeredEdge(it.id, it.from, it.to, weight = if (it.kind == "contains") 4 else 1) },
+        LayeredSpacing(node = 16.0, layer = 104.0, edge = 9.0, component = 72.0, aspect = 1.6, wrap = 12))
+    return SurfaceGraphSimple(nodes.map { SurfaceGraphNode(it.id, it.label, it.kind) },
+        links.map { SurfaceGraphLink(it.id, it.from, it.to, it.label.ifBlank { it.kind }) }, palette,
+        nodes.indices.associate { nodes[it].id to (placement.x[it] to placement.y[it]) })
 }
 
 @Composable

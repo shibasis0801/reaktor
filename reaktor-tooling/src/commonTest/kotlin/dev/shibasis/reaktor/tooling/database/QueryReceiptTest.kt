@@ -15,6 +15,13 @@ class QueryReceiptTest {
         assertFails { receipt.copy(rows = List(3) { receipt.rows.single() }).validate(1) }
     }
 
+    @Test fun aReceiptIsLiveUnlessItsProducerDeclaresAnotherTruth() {
+        val native = Json.decodeFromString(QueryReceipt.serializer(), """{"provider":"Postgres","columns":[],"rows":[]}""")
+        assertEquals("Live", native.truth)
+        val fixture = native.copy(truth = "Fixture")
+        assertEquals("Fixture", Json.decodeFromString(QueryReceipt.serializer(), Json.encodeToString(QueryReceipt.serializer(), fixture)).truth)
+    }
+
     @Test fun postgresPlansPreserveTreeCostsAndActualStatistics() {
         val plan = QueryPlan("postgres-json", Json.parseToJsonElement("""[{"Plan":{"Node Type":"Limit","Total Cost":12.3,"Actual Rows":5,"Plans":[{"Node Type":"Index Scan","Index Name":"users_pk","Plan Rows":42}]},"Execution Time":2.5}]"""), true)
         val operators = plan.operators()

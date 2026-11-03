@@ -7,8 +7,14 @@ import dev.shibasis.reaktor.graph.core.autoWire
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.shape
+import dev.shibasis.reaktor.service.ServiceCall
 import dev.shibasis.reaktor.service.ServiceExecutionPhase
 import dev.shibasis.reaktor.service.SpanBuffer
+import dev.shibasis.reaktor.service.contract.CallAttributes
+import dev.shibasis.reaktor.service.contract.Exchange
+import dev.shibasis.reaktor.service.contract.Interceptor
+import dev.shibasis.reaktor.service.contract.Next
+import dev.shibasis.reaktor.service.contract.Side
 import dev.shibasis.reaktor.service.contract.Spans
 import dev.shibasis.reaktor.service.contract.keyed
 import dev.shibasis.reaktor.service.contract.queue
@@ -16,6 +22,7 @@ import dev.shibasis.reaktor.service.contract.topic
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -110,6 +117,33 @@ class ChannelNodeTest {
         ponger.close()
         assertFalse(ponger.inbox.active)
         assertTrue(channel.broker.subscribers.isEmpty())
+        graph.close()
+    }
+
+    @Test
+    fun publishesKeepTheCallerAttributesBesideTheEdge() = runTest {
+        Reaktor.web()
+        val seen = mutableListOf<Pair<String?, String?>>()
+        val graph = Graph(dispatcher = StandardTestDispatcher(testScheduler), label = "pings")
+        graph.intercept(object : Interceptor {
+            override val sides: Set<Side> get() = setOf(Side.Client)
+            override suspend fun <In, R> intercept(exchange: Exchange<In, R>, next: Next<In, R>): R {
+                if (exchange.contract == Pings.id) seen += (exchange.attributes["channel.test.caller"] as? String) to
+                    (exchange.attributes[ServiceCall.EdgeAttribute] as? String)
+                return next(exchange)
+            }
+        })
+        graph.channel(Pings)
+        graph.channel(Buried)
+        val pinger = graph.Node { Pinger(it) }
+        graph.Node { Ponger(it, mutableListOf()) }
+        graph.autoWire()
+
+        withContext(CallAttributes(mapOf("channel.test.caller" to "ada"))) { pinger.pings(Ping(1)) }
+        advanceUntilIdle()
+
+        assertEquals("ada", seen.first().first)
+        assertFalse(seen.first().second.isNullOrBlank())
         graph.close()
     }
 

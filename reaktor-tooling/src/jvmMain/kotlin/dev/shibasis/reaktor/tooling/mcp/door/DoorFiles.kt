@@ -47,7 +47,9 @@ class CallSnapshots(private val directory: Path) {
  * paths, and a log that is safe to read is worth more than one that is complete.
  */
 class CallLog(private val file: Path, private val caller: CallCaller) : dev.shibasis.reaktor.tooling.RunEventSink {
-    override suspend fun append(event: dev.shibasis.reaktor.tooling.RunEvent) {
+    override suspend fun append(event: dev.shibasis.reaktor.tooling.RunEvent) = append(event, caller)
+
+    fun append(event: dev.shibasis.reaktor.tooling.RunEvent, caller: CallCaller) {
         val run = when (event) {
             is dev.shibasis.reaktor.tooling.RunEvent.Started -> event.run
             is dev.shibasis.reaktor.tooling.RunEvent.Completed -> event.run
@@ -55,7 +57,7 @@ class CallLog(private val file: Path, private val caller: CallCaller) : dev.shib
         }
         record("kernel", run.taskId.value, buildJsonObject {},
             (run.finishedAtEpochMillis ?: run.createdAtEpochMillis) - run.createdAtEpochMillis,
-            run.status.name, access = buildJsonObject { put("runId", run.id.value); put("planId", run.planId.value) })
+            run.status.name, caller = caller, access = buildJsonObject { put("runId", run.id.value); put("planId", run.planId.value) })
     }
 
     @Synchronized
@@ -67,6 +69,7 @@ class CallLog(private val file: Path, private val caller: CallCaller) : dev.shib
             Files.writeString(file, buildJsonObject {
                 put("at", System.currentTimeMillis())
                 caller.seat?.let { put("seat", it) }
+                caller.principal?.let { put("principal", it) }
                 caller.runId?.let { put("runId", it) }
                 put("provider", provider)
                 put("call", call)

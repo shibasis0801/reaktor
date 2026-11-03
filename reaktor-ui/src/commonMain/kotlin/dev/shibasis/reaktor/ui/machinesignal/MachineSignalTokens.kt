@@ -422,6 +422,26 @@ object MachineSignal {
         val height = 64.dp
     }
 
+    object AgentBadge {
+        val size = Space.s6
+        val iconSize = Space.s5
+        val stroke = Stroke.bar
+        val radius = Radius.control
+        val dash = Space.s1
+        val gap = Space.s1_5
+        const val cycleMillis = 1600L
+        const val sweep = .3f
+        const val trackAlpha = .25f
+        val darkHeat = listOf(
+            Color(0xFF5976C9), Color(0xFF568BC0), Color(0xFF45A9B2), Color(0xFF70BA8A),
+            Color(0xFFD2B756), Color(0xFFF5B84B), Color(0xFFF89C68), Color(0xFFFFD3BD),
+        )
+        val lightHeat = listOf(
+            Color(0xFF355BA8), Color(0xFF246D9C), Color(0xFF147E85), Color(0xFF4C7F4C),
+            Color(0xFF806B14), Color(0xFF9B641B), Color(0xFFAD4528), Color(0xFF9F213E),
+        )
+    }
+
     object AgentContext {
         val nextMaxHeight = 360.dp
     }

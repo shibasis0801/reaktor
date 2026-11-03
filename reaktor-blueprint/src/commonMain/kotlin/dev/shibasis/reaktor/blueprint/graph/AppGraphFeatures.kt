@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.blueprint.graph
 import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.NodeShape
 
-data class Feature(val key: String, val label: String, val members: List<NodeShape>, val shared: Boolean = false)
+data class Feature(val key: String, val label: String, val members: List<NodeShape>, val shared: Boolean = false, val scoped: Boolean = false)
 
 object AppGraphFeatures {
     private const val Start = "start"
@@ -12,10 +12,23 @@ object AppGraphFeatures {
     private const val NavigationPort = "navBinding"
     private val ScopedSources = setOf(GraphSource.Build, GraphSource.Code)
 
+    private fun scoped(graph: AppGraph): List<Feature> {
+        val members = graph.nodes.values.groupBy { it.scope }
+        val needed = members.keys.flatMapTo(HashSet()) { graph.scopePath(it).map { scope -> scope.id } }
+        val groups = graph.scopes.keys.filter { it in needed }.associateWith { members[it].orEmpty() }
+        val paths = groups.keys.associateWith { scope -> graph.scopePath(scope).drop(1).map { it.label } }
+        fun unique(scope: String, path: List<String>, length: Int) = paths.none { (other, them) -> other != scope && them.size >= length && them.takeLast(length) == path.takeLast(length) }
+        fun label(scope: String): String {
+            val path = paths.getValue(scope)
+            if (scope == graph.root.id || path.isEmpty()) return graph.root.label
+            val length = (1..path.size).firstOrNull { unique(scope, path, it) } ?: path.size
+            return path.takeLast(length).joinToString(" › ")
+        }
+        return groups.map { (scope, members) -> Feature(scope, label(scope), members, scoped = true) }.sortedBy { it.key }
+    }
+
     fun of(graph: AppGraph): List<Feature> {
-        if (graph.source in ScopedSources || graph.source is GraphSource.Declared) return graph.nodes.values.groupBy { it.scope }
-            .map { (scope, members) -> Feature(scope, if (scope == graph.root.id) graph.root.label else graph.scopeLabel(scope), members) }
-            .sortedBy { it.key }
+        if (graph.source in ScopedSources || graph.source is GraphSource.Declared) return scoped(graph)
         val islandOf = graph.nodes.values.associate { it.id to graph.island(it.scope) }
         val app = graph.nodes.values.filter { islandOf[it.id] == null }
         val islands = graph.nodes.values.filter { islandOf[it.id] != null }.groupBy { islandOf.getValue(it.id)!! }

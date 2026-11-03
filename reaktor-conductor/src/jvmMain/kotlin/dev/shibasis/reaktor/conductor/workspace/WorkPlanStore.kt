@@ -9,7 +9,8 @@ import java.nio.file.Path
 
 class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     private val identity: (BoardActor) -> BoardActor = { it }, private val clock: () -> Long = System::currentTimeMillis,
-    private val activity: (String) -> Long? = { null }) {
+    private val activity: (String) -> Long? = { null },
+    private val messages: ((WorkPlan, WorkPlan?, BoardActor) -> Unit)? = null) {
     private val inbox = inbox?.let(::ThreadInbox)
     private val plans = java.util.concurrent.ConcurrentHashMap<String, WorkPlan>()
     private val changed = MutableStateFlow(0L)
@@ -40,8 +41,11 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         val actors = HashMap<BoardActor, BoardActor>()
         fun actor(value: BoardActor) = actors.getOrPut(value) { identity(value) }
         return plan.copy(
-            items = plan.items.map { it.copy(by = it.by?.let(::actor), lease = it.lease?.let { lease -> lease.copy(by = actor(lease.by), expiresAt = lease.until(lease.by.agent?.let(activity))) }) },
-            seats = plan.seats.map { seat -> seat.copy(agent = (seat.session ?: seat.run?.let { "${BoardRefs.Hangar}$it" })?.let { actor(BoardActor(BoardActorKind.Agent, seat.profile, it)).agent }) },
+            items = plan.items.map { it.copy(by = it.by?.let(::actor), lease = it.lease?.let { lease -> lease.copy(by = actor(lease.by), expiresAt = lease.until(PlanIdentity.agent(lease.by)?.let(activity))) }) },
+            seats = plan.seats.map { seat ->
+                val agent = (seat.session ?: seat.run?.let { "${BoardRefs.Hangar}$it" })?.let { actor(BoardActor(BoardActorKind.Agent, seat.profile, it)).agent }
+                seat.copy(agent = agent ?: seat.agent)
+            },
             changes = plan.changes.map { it.copy(by = actor(it.by)) },
         )
     }
@@ -74,7 +78,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         fun footprint(plan: WorkPlan, item: PlanItem): List<String> =
             if (item.refs.any { it.startsWith("file:") }) item.refs
             else generateSequence(item) { it.parent?.let(plan::item) }.flatMap { it.refs }.distinct().toList()
-        val busy = every.flatMap { plan -> plan.leaves().filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component && it.by?.same(actor) != true }.map { footprint(plan, it) } }
+        val busy = every.flatMap { plan -> plan.leaves().filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component && it.holder?.same(actor) != true }.map { footprint(plan, it) } }
         val seated = all.any { plan -> plan.seats.any { it.heldBy(actor) } }
         val candidates = all.flatMap { plan ->
             val mine = plan.seats.filter { it.heldBy(actor) && (seat == null || it.id == seat) }
@@ -108,15 +112,22 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
 
     private fun expire() {
         val now = clock()
+        requeue("Lease expired after quiet activity") { item -> item.lease?.let { it.until(PlanIdentity.agent(it.by)?.let(activity)) <= now } == true }
+    }
+
+    @Synchronized fun release(agent: String, note: String): List<String> = requeue(note) { it.holder?.let(PlanIdentity::agent) == agent }
+
+    private fun requeue(note: String, pick: (PlanItem) -> Boolean): List<String> {
+        val now = clock()
         val scheduler = BoardActor(BoardActorKind.Person, "Scheduler")
-        plans.values.toList().forEach { initial ->
-            val expired = initial.items.filter { it.status == PlanStatus.Doing && it.lease?.let { lease -> lease.until(lease.by.agent?.let(activity)) <= now } == true }
+        return plans.values.toList().flatMap { initial ->
             var plan = initial
-            expired.chunked(PlanRules.MaxOps).forEach { batch ->
-                val note = ("Lease expired after quiet activity: " + batch.joinToString { it.id }).take(900)
-                val applied = PlanRules.apply(plan, PlanPatch(ops = batch.map { PlanOp.Status(it.id, PlanStatus.Todo, reason = note) }, message = note), scheduler, now)
+            initial.items.filter { it.status == PlanStatus.Doing && pick(it) }.chunked(PlanRules.MaxOps).flatMap { batch ->
+                val reason = ("$note: " + batch.joinToString { it.id }).take(900)
+                val applied = PlanRules.apply(plan, PlanPatch(ops = batch.map { PlanOp.Status(it.id, PlanStatus.Todo, reason = reason) }, message = reason), scheduler, now)
                 save(applied.plan, plan, scheduler)
                 plan = applied.plan
+                batch.map { "${initial.thread}#${it.id}" }
             }
         }
     }
@@ -141,21 +152,38 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     }
 
     private fun save(next: WorkPlan, previous: WorkPlan?, by: BoardActor?) {
-        val text = ConductorJson.encodeToString(WorkPlan.serializer(), next)
+        val stored = stored(next)
+        val text = ConductorJson.encodeToString(WorkPlan.serializer(), stored)
         require(text.length <= MaxChars) { "A plan is at most ${MaxChars / 1024} KB; group finished parts under one Done item or start a new thread" }
         atomicWrite(file(next.thread), text)
-        plans[next.thread] = next
+        plans[next.thread] = stored
         changed.value += 1
         if (by != null) notify(next, previous, by)
     }
 
+    private fun stored(plan: WorkPlan): WorkPlan {
+        val compact = HashMap<BoardActor, BoardActor>()
+        fun bare(actor: BoardActor): BoardActor = compact.getOrPut(actor) {
+            PlanIdentity.bare(actor).takeIf { it != actor && identity(it) == identity(actor) } ?: actor
+        }
+        val written = plans[plan.thread]?.changes.orEmpty().associateBy { it.revision to it.summary }
+        return plan.copy(
+            items = plan.items.map { item -> item.copy(by = item.by?.let(::bare), lease = item.lease?.let { it.copy(by = bare(it.by)) }) },
+            changes = plan.changes.map { change -> written[change.revision to change.summary] ?: change.copy(by = PlanIdentity.history(change.by)) },
+        )
+    }
+
     private fun notify(plan: WorkPlan, previous: WorkPlan?, by: BoardActor) {
+        messages?.let { it(plan, previous, by); return }
         val inbox = inbox ?: return
         val fresh = plan.changes.filter { it.revision > (previous?.revision ?: 0) && it.by.same(by) }
         if (fresh.isEmpty()) return
-        val writer = by.session ?: plan.thread.takeIf { by.kind == BoardActorKind.Agent }
-        val readers = (listOf(plan.thread) + plan.seats.mapNotNull { it.session } + plan.changes.mapNotNull { it.by.session })
-            .filter { (it.startsWith(BoardRefs.Claude) || it.startsWith(BoardRefs.Codex)) && it != writer }.distinct()
+        val writers = listOfNotNull(by.session, agentSession(by.agent), plan.thread.takeIf { by.kind == BoardActorKind.Agent })
+        val readers = (listOf(plan.thread) + plan.seats.flatMap { listOfNotNull(it.session, agentSession(it.agent)) } +
+            plan.changes.flatMap { listOfNotNull(it.by.session, agentSession(it.by.agent)) })
+            .filter { it !in writers &&
+                (it.startsWith(BoardRefs.Hangar) || it.startsWith(BoardRefs.Claude) || it.startsWith(BoardRefs.Codex) || it.startsWith(BoardRefs.Antigravity)) }
+            .distinct()
         val lines = fresh.joinToString("") { change -> "- r${change.revision} · ${change.by.name}: ${change.summary.joinToString("; ")}\n" }
         readers.forEach { reader ->
             inbox.write(reader, lines, opening = "Your Reaktor plan “${plan.title}” changed. Read {operation: \"plan.read\", arguments: {thread: \"${plan.thread}\", " +
@@ -167,5 +195,10 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
 
     companion object {
         const val MaxChars = 512 * 1024
+    }
+
+    private fun agentSession(agent: String?): String? {
+        val session = agent?.removePrefix("agent:") ?: return null
+        return session.takeIf { "agent:$it" == agent && BoardRefs.pattern.matches(it) }
     }
 }

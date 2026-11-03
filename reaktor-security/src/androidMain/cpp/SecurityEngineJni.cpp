@@ -39,7 +39,7 @@ struct Input {
     Input(JNIEnv* env, jbyteArray bytes) {
         if (!bytes) throw NativeFailure{RSEC_ERR_INVALID_ARGUMENT};
         auto length = env->GetArrayLength(bytes);
-        if (length < 0 || length > 64 * 1024 * 1024 + 4096) throw NativeFailure{RSEC_ERR_INVALID_ARGUMENT};
+        if (length < 0 || length > 64 * 1024 * 1024 + 65536) throw NativeFailure{RSEC_ERR_INVALID_ARGUMENT};
         value.resize(static_cast<size_t>(length));
         if (length) env->GetByteArrayRegion(bytes, 0, length, reinterpret_cast<jbyte*>(value.data()));
         if (env->ExceptionCheck()) throw NativeFailure{RSEC_ERR_INVALID_ARGUMENT};
@@ -91,6 +91,10 @@ struct Buffer {
     rsec_buffer_t value{};
     ~Buffer() { rsec_buffer_free(value); }
 };
+struct Attachment {
+    rsec_attachment_t value{};
+    ~Attachment() { rsec_attachment_free(value); }
+};
 struct Commit {
     rsec_commit_t value{};
     ~Commit() { rsec_commit_free(value); }
@@ -109,7 +113,7 @@ template<class T> T* pointer(jlong handle) {
     return reinterpret_cast<T*>(static_cast<uintptr_t>(handle));
 }
 jbyteArray copy(JNIEnv* env, rsec_buffer_t bytes) {
-    if (bytes.len > 64 * 1024 * 1024 + 4096 || (bytes.len && !bytes.data)) throw NativeFailure{RSEC_ERR_INVALID_ARGUMENT};
+    if (bytes.len > 64 * 1024 * 1024 + 65536 || (bytes.len && !bytes.data)) throw NativeFailure{RSEC_ERR_INVALID_ARGUMENT};
     auto result = env->NewByteArray(static_cast<jsize>(bytes.len));
     if (!result) throw NativeFailure{RSEC_ERR_STORE};
     if (bytes.len) env->SetByteArrayRegion(result, 0, static_cast<jsize>(bytes.len), reinterpret_cast<const jbyte*>(bytes.data));
@@ -136,6 +140,24 @@ jobjectArray array(JNIEnv* env, std::initializer_list<rsec_buffer_t> values) {
 }
 
 #define JNI_METHOD(name) Java_dev_shibasis_reaktor_security_ReaktorSecurityNative_##name
+
+
+extern "C" JNIEXPORT jobjectArray JNICALL JNI_METHOD(attachment)(JNIEnv* env, jobject, jboolean seal,
+    jbyteArray key, jbyteArray digest, jbyteArray input) {
+    return guarded<jobjectArray>(env, [&] {
+        Input content(env, input);
+        if (seal) {
+            Attachment out;
+            status(rsec_attachment_seal_file(content.data(), content.size(), &out.value));
+            return array(env, {out.value.key, out.value.digest, out.value.ciphertext});
+        }
+        Input secret(env, key), expected(env, digest);
+        Buffer out;
+        status(rsec_attachment_open_file(secret.data(), secret.size(), expected.data(), expected.size(),
+            content.data(), content.size(), &out.value));
+        return array(env, {out.value});
+    });
+}
 
 extern "C" JNIEXPORT jlong JNICALL JNI_METHOD(create)(JNIEnv* env, jobject, jbyteArray tenant, jbyteArray app,
     jobjectArray ids, jobjectArray keys, jint suite, jbyteArray snapshot) {

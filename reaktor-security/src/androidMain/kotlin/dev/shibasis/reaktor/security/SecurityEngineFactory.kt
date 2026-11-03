@@ -11,6 +11,13 @@ internal actual object SecurityEngineFactory {
         return AndroidKeyRing(ReaktorSecurityNative.keyRing(policy.tenantId.bytes(), policy.appId.bytes(),
             keys.map { it.key.bytes() }.toTypedArray(), keys.map { it.value }.toTypedArray(), encoded))
     }
+    actual fun sealAttachment(plaintext: ByteArray): SealedAttachment {
+        val result = ReaktorSecurityNative.attachment(true, byteArrayOf(), byteArrayOf(), plaintext)
+        check(result.size == 3)
+        return SealedAttachment(result[0], result[1], result[2])
+    }
+    actual fun openAttachment(key: ByteArray, digest: ByteArray, ciphertext: ByteArray): ByteArray =
+        ReaktorSecurityNative.attachment(false, key, digest, ciphertext).also { check(it.size == 1) }[0]
     actual fun storageKey(): ByteArray = ReaktorSecurityNative.storage(0, byteArrayOf(), byteArrayOf(), byteArrayOf())
     actual fun sealStorage(key: ByteArray, aad: ByteArray, plaintext: ByteArray): ByteArray = ReaktorSecurityNative.storage(1, key, aad, plaintext)
     actual fun openStorage(key: ByteArray, aad: ByteArray, ciphertext: ByteArray): ByteArray = ReaktorSecurityNative.storage(2, key, aad, ciphertext)

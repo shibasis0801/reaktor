@@ -2,6 +2,9 @@ package dev.shibasis.reaktor.conductor.worklog
 
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.File
 import java.nio.file.Files
 import java.time.Instant
@@ -48,32 +51,50 @@ class CodexCallsTest {
 
     private fun output(id: String) = """{"timestamp":"${at(2)}","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"$id","output":"ok"}}"""
 
-    @Test fun aKernelCallIsTracedToTheOneThreadWhoseRunningScriptMakesIt() {
-        rollout("01a1-aaaa", turn(), exec("c1", """const r = await tools.mcp__reaktor__kernel({operation:"board.list"}); text(r)"""))
-        rollout("01a1-bbbb", turn(), exec("c2", """await tools.mcp__reaktor__kernel({operation:"board.list"})"""), output("c2"))
-        rollout("01a1-cccc", turn(), exec("c3", """await tools.mcp__reaktor_manna__kernel({operation:'ship.plan', arguments:{}})"""))
-        rollout("01a1-dddd", turn(), function("f1", "mcp__reaktor__kernel", """{"operation":"plan.read","arguments":{}}"""))
-
-        assertEquals("codex:01a1-aaaa", CodexCalls.kernelCall("board.list", home, now)?.thread)
-        assertEquals("codex:01a1-cccc", CodexCalls.kernelCall("ship.plan", home, now)?.thread)
-        assertEquals("codex:01a1-dddd", CodexCalls.kernelCall("plan.read", home, now)?.thread)
-        assertNull(CodexCalls.kernelCall("board", home, now))
-        assertNull(CodexCalls.kernelCall("agent.radar", home, now))
+    @Test fun nativeMetadataNamesEachConcurrentThreadWithoutWaitingForItsRollout() {
+        val stale = rollout("dead", turn(), exec("stale", """await tools.mcp__reaktor__kernel({operation:"plan.write"})"""))
+        for (id in listOf("thread-a", "thread-b", "thread-c")) {
+            assertEquals("codex:$id", CodexCalls.caller(buildJsonObject { put("threadId", id) }, null).thread)
+        }
+        assertNull(CodexCalls.caller(JsonObject(emptyMap()), null).thread)
+        assertTrue(stale.isFile)
+        assertNull(CodexCalls.caller(buildJsonObject { put("threadId", "../invalid") }, null).thread)
+        assertNull(CodexCalls.caller(buildJsonObject { put("threadId", 17) }, null).thread)
     }
 
-    @Test fun twoThreadsMakingTheSameCallOrAFinishedTurnNameNobody() {
-        rollout("01a2-aaaa", turn(), exec("c1", """await tools.mcp__reaktor__kernel({operation:"board.list"})"""))
-        rollout("01a2-bbbb", turn(), exec("c2", """await tools.mcp__reaktor__kernel({operation:"board.list"})"""))
-        rollout("01a2-cccc", turn(120), exec("c3", """await tools.mcp__reaktor__kernel({operation:"plan.write"})""", secondsAgo = 100), turn(30))
-        rollout("01a2-dddd", turn(3_000), exec("c4", """await tools.mcp__reaktor__kernel({operation:"kernel.status"})""", secondsAgo = 2_400))
-        rollout("01a2-eeee", turn(), exec("c5", """text("plan.read is the call to make")"""))
-        rollout("01a2-ffff", turn(), exec("c6", """await tools.mcp__reaktor__kernel({operation:"agent.radar"})"""), written = now - 40 * 60_000)
+    @Test fun execAndResumeUseOnlyTheirProcessesOneOpenRollout() {
+        val a = rollout("exec-a")
+        rollout("dead", turn(), exec("stale", """await tools.mcp__reaktor__kernel({operation:"plan.write"})"""))
+        assertEquals("codex:exec-a", CodexCalls.resolve(JsonObject(emptyMap()), listOf(a), true, now).thread)
+        assertNull(CodexCalls.resolve(JsonObject(emptyMap()), emptyList(), true, now).thread)
+        val resumed = rollout("resumed", written = now - 40 * 60_000)
+        assertEquals("codex:resumed", CodexCalls.resolve(JsonObject(emptyMap()), listOf(resumed), true, now).thread)
+    }
 
-        assertNull(CodexCalls.kernelCall("board.list", home, now))
-        assertNull(CodexCalls.kernelCall("plan.write", home, now))
-        assertNull(CodexCalls.kernelCall("kernel.status", home, now))
-        assertNull(CodexCalls.kernelCall("plan.read", home, now))
-        assertNull(CodexCalls.kernelCall("agent.radar", home, now))
+    @Test fun anAppServerResolvesEveryCallByMetadataOrExactCallIdOnlyAmongItsOwnRollouts() {
+        val a = rollout("app-a", turn(), function("call-a", "mcp__reaktor__kernel", """{"operation":"plan.write"}"""))
+        val b = rollout("app-b", turn(), function("call-b", "mcp__reaktor__kernel", """{"operation":"plan.write"}"""))
+        val files = listOf(a, b)
+        for ((thread, id) in listOf("app-a" to "call-a", "app-b" to "call-b")) {
+            assertEquals("codex:$thread", CodexCalls.resolve(buildJsonObject { put("callId", id) }, files, false, now).thread)
+            assertEquals("codex:$thread", CodexCalls.resolve(buildJsonObject { put("threadId", thread) }, files, false, now).thread)
+        }
+        assertNull(CodexCalls.resolve(JsonObject(emptyMap()), listOf(a), false, now).thread)
+        assertNull(CodexCalls.resolve(buildJsonObject { put("callId", "not-flushed") }, files, false, now).thread)
+        b.appendText(output("call-b") + "\n")
+        assertNull(CodexCalls.resolve(buildJsonObject { put("callId", "call-b") }, files, false, now).thread)
+        val duplicate = rollout("copy", turn(), function("call-a", "mcp__reaktor__kernel", "{}"))
+        assertNull(CodexCalls.resolve(buildJsonObject { put("callId", "call-a") }, files + duplicate, false, now).thread)
+    }
+
+    @Test fun anExitedProcessCannotContributeItsRollouts() {
+        rollout("dead", turn(), exec("stale", """await tools.mcp__reaktor__kernel({operation:"plan.write"})"""))
+        val process = ProcessBuilder("sh", "-c", "exit 0").start()
+        val handle = process.toHandle()
+        process.waitFor()
+        val caller = CodexCalls.caller(buildJsonObject { put("callId", "stale") }, handle)
+        assertNull(caller.thread)
+        assertTrue(caller.diagnostic?.contains("No live") == true)
     }
 
     @Test fun aNoteCountsAsShownOnlyOnceAToolOutputAfterItsDeliveryCarriesIt() {

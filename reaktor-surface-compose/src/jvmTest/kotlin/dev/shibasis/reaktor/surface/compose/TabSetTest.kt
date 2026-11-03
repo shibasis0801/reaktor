@@ -180,6 +180,19 @@ class TabSetTest {
     }
 
     @Test
+    fun aStripThatAppearsWithALateTabSelectedShowsThatTabWhole() = runComposeUiTest {
+        val many = (1..30).map { "doc-$it" }
+        setContent {
+            Row(Modifier.width(300.dp).height(40.dp)) {
+                TabSet(many, "doc-30", {}) { key -> BasicText(key, Modifier.width(80.dp).testTag("label-$key")) }
+            }
+        }
+        waitForIdle()
+        val bounds = onNodeWithTag("label-doc-30", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        assertTrue(bounds.left >= 0f && bounds.right <= 300f, "doc-30 spans ${bounds.left}..${bounds.right}")
+    }
+
+    @Test
     fun typeaheadUsesDisplayedTextWhileKeepingStableKeys() = runComposeUiTest {
         var selected by mutableStateOf("pane-1")
         val labels = mapOf("pane-1" to "Graph", "pane-2" to "Data", "pane-3" to "Cloud")

@@ -30,6 +30,7 @@ import dev.shibasis.reaktor.service.contract.Publisher
 import dev.shibasis.reaktor.service.contract.SocketSession
 import dev.shibasis.reaktor.service.contract.Subscription
 import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -112,9 +113,10 @@ class Publishes<M> internal constructor(val port: ConsumerPort<Publisher<M>>, va
     override suspend fun publish(message: M) {
         checkNotNull(port.impl) { "No $channel is wired to ${port.owner}. Add graph.channel(${channel.id}) and wire the graph before publishing." }
         val edge = wire()
+        val attributes = currentCoroutineContext()[CallAttributes]?.values.orEmpty()
         port.suspended {
             if (edge.isEmpty()) this.publish(message)
-            else withContext(CallAttributes(mapOf(ServiceCall.EdgeAttribute to edge))) { this@suspended.publish(message) }
+            else withContext(CallAttributes(attributes + (ServiceCall.EdgeAttribute to edge))) { this@suspended.publish(message) }
         }
     }
 }

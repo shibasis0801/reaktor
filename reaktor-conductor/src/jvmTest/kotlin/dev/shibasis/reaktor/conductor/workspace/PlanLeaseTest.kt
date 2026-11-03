@@ -80,7 +80,20 @@ class PlanLeaseTest {
         )), owner)
         store.next(thread, a, take = true) { profile }
         store.write(thread, PlanPatch(ops = listOf(PlanOp.Update("held", priority = PlanPriority.Urgent))), owner)
-        assertEquals(a, store.plan(thread)?.item("held")?.by)
+        assertEquals(a, store.plan(thread)?.item("held")?.lease?.by)
         assertEquals("disjoint", store.next(thread, b, take = true) { profile }.candidate?.item?.id)
+    }
+
+    @Test fun anEndedSessionReturnsOnlyItsOwnWorkToToDo() = fixture { root ->
+        val store = WorkPlanStore(root, clock = { 10 })
+        store.write(thread, PlanPatch(title = "Work", ops = listOf(PlanOp.Add("Build", key = "build"), PlanOp.Add("Test", key = "test"))), owner)
+        store.write(thread, PlanPatch(ops = listOf(PlanOp.Status("build", PlanStatus.Doing))), a)
+        store.write(thread, PlanPatch(ops = listOf(PlanOp.Status("test", PlanStatus.Doing))), b)
+        assertEquals(listOf("$thread#build"), store.release(a.agent!!, "Session ended"))
+        val plan = assertNotNull(store.plan(thread))
+        assertEquals(PlanStatus.Todo, plan.item("build")?.status)
+        assertTrue(plan.item("build")?.reason.orEmpty().startsWith("Session ended"))
+        assertEquals(PlanStatus.Doing, plan.item("test")?.status)
+        assertEquals(emptyList(), store.release(a.agent!!, "Session ended"))
     }
 }

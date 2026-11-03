@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+@file:OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class, androidx.compose.ui.InternalComposeUiApi::class)
 
 package dev.shibasis.reaktor.blueprint.product
 
@@ -12,12 +12,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.Density
+import dev.shibasis.reaktor.blueprint.Blueprint
+import dev.shibasis.reaktor.blueprint.BlueprintFrameLook
+import dev.shibasis.reaktor.blueprint.BlueprintGraph
+import dev.shibasis.reaktor.blueprint.BlueprintCanvas
+import dev.shibasis.reaktor.blueprint.BlueprintCardLook
+import dev.shibasis.reaktor.blueprint.BlueprintLayout
+import dev.shibasis.reaktor.blueprint.BlueprintMapLevels
+import dev.shibasis.reaktor.blueprint.Card
+import dev.shibasis.reaktor.blueprint.Frame
+import dev.shibasis.reaktor.ui.machinesignal.*
+import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.swing.Swing
 import org.jetbrains.skia.EncodedImageFormat
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
@@ -25,9 +43,151 @@ import javax.swing.SwingUtilities
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class SurfaceGraphMotionTest {
+    @Test
+    fun readOnlyBlueprintHooksKeepRowIdentityWithoutClickNavigationOrChangingPlacement() = runBlocking(Dispatchers.Swing) {
+        val nodes = listOf(SurfaceGraphNode("source", "Source", "Book", scope = "group", rows = listOf(SurfaceGraphRow("unit", "Unit", "unit-key", aliases = listOf("unit-alias")))))
+        val appearance = SurfaceGraphAppearance(Color.White, Color.White, Color.Black, Color.Gray, Color.Gray, Color.Blue)
+        val geometry = dev.shibasis.reaktor.blueprint.Card("source", 80.0, 120.0, 272.0, 130.0, nodes.single().pins(), 0)
+        val group = dev.shibasis.reaktor.blueprint.Frame("group", "Source group", 40.0, 60.0, 352.0, 210.0, setOf("source"), emptyList(), false)
+        val layout = dev.shibasis.reaktor.blueprint.BlueprintLayout(Unit, mapOf("source" to geometry), listOf(group), emptyList(), 392.0, 270.0)
+        val model = SurfaceGraphSimple(nodes, emptyList(), appearance, groups = listOf(SurfaceGraphGroup("group", "Source group", owner = "source-owner")), initialLayout = layout)
+        val editor = model.editor
+        val canvas = GraphCanvasState()
+        val pins = mutableListOf<String>()
+        val opened = mutableListOf<String>()
+        val framesClicked = mutableListOf<String>()
+        val framesOpened = mutableListOf<String>()
+        var cleared = 0
+        val scene = ImageComposeScene(960, 640, Density(1f), coroutineContext = Dispatchers.Unconfined) {
+            BlueprintGraph(editor, canvas, { model.look(it.id, appearance) }, { BlueprintFrameLook(SurfaceGraphSymbol, "") },
+                { Blueprint.link(Color.Gray, highlighting = false, lit = false) }, { null }, Modifier.fillMaxSize(),
+                onPinClick = { _, pin -> pins += pin.id }, onCardOpen = { opened += it },
+                onPaneClick = { cleared++ }, editable = false,
+                onFrameClick = { framesClicked += it.key }, onFrameOpen = { framesOpened += it.key })
+        }
+        var time = 0L
+        suspend fun frame() {
+            Snapshot.sendApplyNotifications()
+            time += 16_666_667L
+            scene.render(time).close()
+            delay(10)
+        }
+        fun click(point: Offset) {
+            scene.sendPointerEvent(PointerEventType.Press, point, buttons = PointerButtons(isPrimaryPressed = true), button = PointerButton.Primary)
+            scene.sendPointerEvent(PointerEventType.Release, point, button = PointerButton.Primary)
+        }
+        try {
+            repeat(30) { frame() }
+            val card = editor.layout.cards.getValue("source")
+            canvas.look(card.x + card.width / 2, card.y + card.height / 2, 2.0)
+            repeat(20) { frame() }
+            val before = editor.layout.cards
+            val shape = editor.shape
+            val view = canvas.viewport()
+            val pin = card.pins.first { it.id == "unit" && !it.provides }
+            click(Offset((view.x + (card.x + card.width / 4) * view.zoom).toFloat(), (view.y + (card.y + pin.y) * view.zoom).toFloat()))
+            repeat(5) { frame() }
+            assertEquals(listOf("unit"), pins)
+            assertEquals(view, canvas.viewport())
+            click(Offset((view.x + (card.x + card.width / 2) * view.zoom).toFloat(), (view.y + (card.y + 12) * view.zoom).toFloat()))
+            repeat(5) { frame() }
+            assertEquals(setOf("source"), editor.selection.nodes)
+            scene.sendKeyEvent(KeyEvent(Key.Enter, KeyEventType.KeyDown))
+            scene.sendKeyEvent(KeyEvent(Key.Enter, KeyEventType.KeyUp))
+            repeat(5) { frame() }
+            assertTrue(opened.isEmpty(), "Enter does not navigate into a map card")
+            assertEquals(view, canvas.viewport())
+            val group = editor.layout.frames.single { it.key == "group" }
+            val header = Offset((view.x + (group.x + group.width / 2) * view.zoom).toFloat(), (view.y + (group.y + 12) * view.zoom).toFloat())
+            click(header)
+            repeat(5) { frame() }
+            assertEquals(listOf("group"), framesClicked)
+            assertEquals(view, canvas.viewport())
+            delay(350)
+            click(header)
+            click(header)
+            repeat(30) { frame() }
+            assertTrue(framesOpened.isEmpty(), "Double-click does not navigate into a map frame")
+            val zoomed = canvas.viewport()
+            assertTrue(zoomed.zoom > view.zoom, "Double-click zooms the same map")
+            click(Offset(930f, 610f))
+            repeat(5) { frame() }
+            assertEquals(1, cleared)
+            assertEquals(zoomed, canvas.viewport())
+            assertEquals(before, editor.layout.cards)
+            assertEquals(shape, editor.shape)
+        } finally { scene.close() }
+    }
+
+    @Test
+    fun readOnlySummarySelectionSupportsSemanticsAndKeyboardWithoutClickZoom() = runBlocking(Dispatchers.Swing) {
+        val first = Card("member", 100.0, 140.0, 160.0, 96.0, emptyList(), 0)
+        val tail = Card("tail", 600.0, 480.0, 160.0, 96.0, emptyList(), 0)
+        val group = Frame("region", "Policy region", 80.0, 80.0, 300.0, 240.0, setOf(first.id), emptyList(), false)
+        val full = BlueprintLayout(Unit, listOf(first, tail).associateBy { it.id }, listOf(group), emptyList(), 800.0, 640.0)
+        val levels = BlueprintMapLevels.prepare(full, { 1.0 })
+        val canvas = GraphCanvasState()
+        var selected by mutableStateOf<String?>(null)
+        val rawClicks = mutableListOf<String>()
+        val opened = mutableListOf<String>()
+        val scene = ImageComposeScene(1000, 700, Density(1f), coroutineContext = Dispatchers.Unconfined) {
+            MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
+                val level = levels.at(canvas.zoom)
+                BlueprintCanvas(level.layout, canvas, emptySet(), selected,
+                    { Blueprint.link(Color.Gray, false, false) }, { BlueprintFrameLook(SurfaceGraphSymbol, "") },
+                    { card -> BlueprintCardLook(Color.Blue, SurfaceGraphSymbol, card.id, "Ready", selected = selected == card.id, action = "Select " + card.id) },
+                    { id -> if (id in full.cards) { rawClicks += id; selected = id } }, {}, { selected = null },
+                    Modifier.fillMaxSize(), focusable = true, editable = false, initialFit = {},
+                    onCardOpen = { opened += it }, mapLevels = levels, mapLevel = level)
+            }
+        }
+        var time = 0L
+        suspend fun settle() { repeat(16) { Snapshot.sendApplyNotifications(); scene.render(++time * 16_666_667L).close(); delay(4) } }
+        fun click(point: Offset) {
+            scene.sendPointerEvent(PointerEventType.Press, point, buttons = PointerButtons(isPrimaryPressed = true), button = PointerButton.Primary)
+            scene.sendPointerEvent(PointerEventType.Release, point, button = PointerButton.Primary)
+        }
+        fun press(key: Key, shift: Boolean = false) {
+            scene.sendKeyEvent(KeyEvent(key, KeyEventType.KeyDown, isShiftPressed = shift))
+            scene.sendKeyEvent(KeyEvent(key, KeyEventType.KeyUp, isShiftPressed = shift))
+        }
+        fun summary(): SemanticsNode {
+            fun walk(node: SemanticsNode): List<SemanticsNode> = listOf(node) + node.children.flatMap(::walk)
+            return scene.semanticsOwners.flatMap { walk(it.unmergedRootSemanticsNode) }
+                .single { it.config.getOrNull(SemanticsProperties.TestTag) == "blueprint-summary:region" }
+        }
+        try {
+            settle()
+            canvas.restore(80.0, 70.0, .5); settle()
+            val before = canvas.viewport()
+            val card = assertNotNull(levels.at(.5).frames.getValue(group.key).summary)
+            click(Offset((before.x + (card.x + card.width / 2) * before.zoom).toFloat(),
+                (before.y + (card.y + 12) * before.zoom).toFloat()))
+            settle()
+            assertEquals(true, summary().config.getOrNull(SemanticsProperties.Selected))
+            assertTrue(rawClicks.isEmpty(), "A region selection never fabricates a raw node ID")
+            assertEquals(before, canvas.viewport(), "Single click selects without zooming")
+            press(Key.Enter); settle()
+            assertTrue(opened.isEmpty())
+            assertEquals(before, canvas.viewport(), "Enter does not navigate or zoom")
+            press(Key.RightBracket); settle()
+            assertEquals(tail.id, selected, "Next-card continues after the selected summary")
+            assertEquals(listOf(tail.id), rawClicks)
+            assertTrue(assertNotNull(summary().config[SemanticsActions.OnClick].action).invoke()); settle()
+            assertEquals(true, summary().config.getOrNull(SemanticsProperties.Selected))
+            assertEquals(before, canvas.viewport(), "The accessibility action only selects")
+            press(Key.Three, shift = true); settle()
+            assertTrue(canvas.viewport().zoom > before.zoom, "Fit selection uses the actual region bounds")
+            assertEquals(listOf(tail.id), rawClicks)
+            assertEquals(listOf(first, tail).associateBy { it.id }, levels.full.cards)
+            assertEquals(listOf(group), levels.full.frames)
+        } finally { scene.close() }
+    }
+
     private class Counted<T>(private val items: List<T>) : List<T> by items {
         var compared = 0
         override fun equals(other: Any?): Boolean { compared++; return items == other }
@@ -90,7 +250,8 @@ class SurfaceGraphMotionTest {
                     selected = "n5-10"
                     (results + motion("select", 1) { } + motion("after select", 30) { }).forEach(::println)
                     val chosen = pixels()
-                    assertEquals(Color.White.toArgb(), chosen.getRGB(cx, cy), "the selected card body is painted from its layer")
+                    assertEquals(plain.getRGB(cx, cy), chosen.getRGB(cx, cy), "selection keeps the shared MachineSignal card body unchanged")
+                    assertNotEquals(plain.getRGB(gx, gy), chosen.getRGB(cx, cy), "the card body is distinct from the surrounding canvas")
                     assertNotEquals(plain.getRGB(gx, gy), chosen.getRGB(gx, gy), "the selection glow is painted from the card mesh")
                 } finally { scene.close() }
             }.exceptionOrNull()
@@ -99,52 +260,61 @@ class SurfaceGraphMotionTest {
     }
 
     @Test
-    fun smallGraphSelectsPansAndZoomsThroughTheEngineWithoutRecomposing() {
-        var failure: Throwable? = null
-        SwingUtilities.invokeAndWait {
-            failure = runCatching {
-                val nodes = Counted((0 until 9).map { n -> SurfaceGraphNode("s$n", "Source $n", "Book · ${n + 4} units") })
-                val links = nodes.zipWithNext().mapIndexed { i, (a, b) -> SurfaceGraphLink("link$i", a.id, b.id, proposed = i % 5 == 0) }
-                val forest = Color(0xFF286551)
-                val appearance = SurfaceGraphAppearance(Color(0xFFF6F5EF), Color.White, Color(0xFF203D35), Color(0xFF718078), Color(0xFFD8E0D7), forest)
-                var selected by mutableStateOf<String?>(null)
-                val scene = ImageComposeScene(960, 640, Density(1f), coroutineContext = Dispatchers.Unconfined) {
-                    SurfaceGraphCanvas(nodes, links, selected, appearance, onSelect = { selected = it }, modifier = Modifier.fillMaxSize(), sceneKey = "motion")
-                }
-                var time = 0L
-                fun frame(): Double {
-                    val start = System.nanoTime()
-                    Snapshot.sendApplyNotifications()
-                    time += 8_333_333L
-                    scene.render(time).close()
-                    return (System.nanoTime() - start) / 1e6
-                }
-                fun pixels() = scene.render(time).use { image -> requireNotNull(image.encodeToData(EncodedImageFormat.PNG)).use { ImageIO.read(ByteArrayInputStream(it.bytes)) } }
-                fun count(image: java.awt.image.BufferedImage, argb: Int) = (0 until image.height).sumOf { y -> (0 until image.width).count { x -> image.getRGB(x, y) == argb } }
-                val pressed = PointerButtons(isPrimaryPressed = true)
-                try {
-                    repeat(30) { frame() }
-                    val plain = pixels()
-                    val card = (0 until plain.height).firstNotNullOf { y -> (0 until plain.width).firstOrNull { x -> plain.getRGB(x, y) == Color.White.toArgb() }?.let { Offset(it + 20f, y + 20f) } }
-                    scene.sendPointerEvent(PointerEventType.Press, card, buttons = pressed, button = PointerButton.Primary)
-                    scene.sendPointerEvent(PointerEventType.Release, card, button = PointerButton.Primary)
-                    repeat(10) { frame() }
-                    assertNotEquals(null, selected, "tapping a card selects it")
-                    val chosen = pixels()
-                    assertTrue(count(chosen, forest.toArgb()) > count(plain, forest.toArgb()) + 100, "the selected card is outlined from its layer")
-                    val composed = nodes.compared
-                    scene.sendPointerEvent(PointerEventType.Press, Offset(480f, 320f), buttons = pressed, button = PointerButton.Primary)
-                    val pan = Motion("pan", (1..60).map { scene.sendPointerEvent(PointerEventType.Move, Offset(480f - it * 4, 320f - it * 2), buttons = pressed); frame() })
-                    scene.sendPointerEvent(PointerEventType.Release, Offset(240f, 200f), button = PointerButton.Primary)
-                    val moved = pixels()
-                    val zoom = Motion("zoom", (1..60).map { scene.sendPointerEvent(PointerEventType.Scroll, Offset(480f, 320f), scrollDelta = Offset(0f, if (it <= 30) -1f else 1f), keyboardModifiers = PointerKeyboardModifiers(isCtrlPressed = true)); frame() })
-                    val idle = Motion("idle", (1..30).map { frame() })
-                    listOf(pan, zoom, idle).forEach(::println)
-                    assertEquals(composed, nodes.compared, "camera motion recomposed the small graph")
-                    assertNotEquals(count(chosen, Color.White.toArgb()), count(moved, Color.White.toArgb()), "dragging moved the camera")
-                } finally { scene.close() }
-            }.exceptionOrNull()
+    fun smallGraphSelectsPansAndZoomsThroughTheEngineWithoutRecomposing() = runBlocking(Dispatchers.Swing) {
+        val nodes = Counted((0 until 9).map { n -> SurfaceGraphNode("s$n", "Source $n", "Book · ${n + 4} units") })
+        val links = nodes.zipWithNext().mapIndexed { i, (a, b) -> SurfaceGraphLink("link$i", a.id, b.id, proposed = i % 5 == 0) }
+        val forest = Color(0xFF286551)
+        val appearance = SurfaceGraphAppearance(Color(0xFFF6F5EF), Color.White, Color(0xFF203D35), Color(0xFF718078), Color(0xFFD8E0D7), forest)
+        var selected by mutableStateOf<String?>(null)
+        val scene = ImageComposeScene(960, 640, Density(1f), coroutineContext = Dispatchers.Unconfined) {
+            SurfaceGraphCanvas(nodes, links, selected, appearance, onSelect = { selected = it }, modifier = Modifier.fillMaxSize(), sceneKey = "motion")
         }
-        failure?.let { throw it }
+        var time = 0L
+        suspend fun frame(): Double {
+            val start = System.nanoTime()
+            Snapshot.sendApplyNotifications()
+            time += 8_333_333L
+            scene.render(time).close()
+            val elapsed = (System.nanoTime() - start) / 1e6
+            delay(10)
+            return elapsed
+        }
+        fun pixels() = scene.render(time).use { image -> requireNotNull(image.encodeToData(EncodedImageFormat.PNG)).use { ImageIO.read(ByteArrayInputStream(it.bytes)) } }
+        fun changed(a: java.awt.image.BufferedImage, b: java.awt.image.BufferedImage) = (0 until a.height).sumOf { y -> (0 until a.width).count { x -> a.getRGB(x, y) != b.getRGB(x, y) } }
+        fun cardBounds(): Map<String, androidx.compose.ui.geometry.Rect> {
+            fun flatten(node: androidx.compose.ui.semantics.SemanticsNode): List<androidx.compose.ui.semantics.SemanticsNode> = listOf(node) + node.children.flatMap(::flatten)
+            return scene.semanticsOwners.flatMap { flatten(it.unmergedRootSemanticsNode) }.mapNotNull { node ->
+                node.config.getOrElse(androidx.compose.ui.semantics.SemanticsProperties.TestTag) { "" }.takeIf { it.startsWith("surface-card:") }?.let { it to node.boundsInRoot }
+            }.toMap()
+        }
+        val pressed = PointerButtons(isPrimaryPressed = true)
+        try {
+            repeat(30) { frame() }
+            val plain = pixels()
+            val before = cardBounds()
+            val card = before.getValue("surface-card:s0").center
+            scene.sendPointerEvent(PointerEventType.Press, card, buttons = pressed, button = PointerButton.Primary)
+            scene.sendPointerEvent(PointerEventType.Release, card, button = PointerButton.Primary)
+            repeat(10) { frame() }
+            assertNotEquals(null, selected, "tapping a card selects it")
+            val chosen = pixels()
+            assertTrue(changed(chosen, plain) > 100, "the selected card is outlined from its layer")
+            assertEquals(before, cardBounds(), "selection keeps every card and anchor in place")
+            val composed = nodes.compared
+            val chosenId = selected
+            scene.sendKeyEvent(KeyEvent(Key.Spacebar, KeyEventType.KeyDown))
+            scene.sendPointerEvent(PointerEventType.Press, Offset(940f, 620f), buttons = pressed, button = PointerButton.Primary)
+            val pan = Motion("pan", (1..60).map { scene.sendPointerEvent(PointerEventType.Move, Offset(940f - it * 4, 620f - it * 2), buttons = pressed); frame() })
+            scene.sendPointerEvent(PointerEventType.Release, Offset(700f, 500f), button = PointerButton.Primary)
+            scene.sendKeyEvent(KeyEvent(Key.Spacebar, KeyEventType.KeyUp))
+            assertEquals(chosenId, selected, "panning keeps the selected card")
+            val moved = pixels()
+            val zoom = Motion("zoom", (1..60).map { scene.sendPointerEvent(PointerEventType.Scroll, Offset(480f, 320f), scrollDelta = Offset(0f, if (it <= 30) -1f else 1f), keyboardModifiers = PointerKeyboardModifiers(isCtrlPressed = true)); frame() })
+            val idle = Motion("idle", (1..30).map { frame() })
+            listOf(pan, zoom, idle).forEach(::println)
+            assertEquals(chosenId, selected, "zooming keeps the selected card")
+            assertEquals(composed, nodes.compared, "camera motion recomposed the small graph")
+            assertTrue(changed(chosen, moved) > 100, "dragging moved the camera")
+        } finally { scene.close() }
     }
 }

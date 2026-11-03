@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.tooling.cloud
 
+import dev.shibasis.reaktor.core.truth.TruthClass
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -22,7 +23,13 @@ class CloudInventory(
     suspend fun readSafely(provider: CloudProvider, timeoutMillis: Long): CloudReading {
         val started = clock()
         return try {
-            withTimeout(timeoutMillis) { provider.read() }
+            withTimeout(timeoutMillis) { provider.read().let { reading ->
+                reading.copy(truth = when {
+                    reading.truth == TruthClass.Unknown -> provider.truth
+                    provider.truth == TruthClass.Unknown -> reading.truth
+                    else -> TruthClass.weakest(listOf(provider.truth, reading.truth))
+                })
+            } }
         } catch (timeout: TimeoutCancellationException) {
             currentCoroutineContext().ensureActive()
             failed(provider.id, started, "No answer within ${timeoutMillis / 1000} s")
@@ -68,7 +75,7 @@ class CloudInventory(
 
     private fun failed(provider: String, started: Long, detail: String): CloudReading {
         val now = clock()
-        return CloudReading(provider, null, ProviderHealth(provider, ResourceStatus.Down, detail), now, now - started)
+        return CloudReading(provider, null, ProviderHealth(provider, ResourceStatus.Down, detail), now, now - started, truth = TruthClass.Failed)
     }
 
     private fun combine(first: CloudResource, second: CloudResource): CloudResource {

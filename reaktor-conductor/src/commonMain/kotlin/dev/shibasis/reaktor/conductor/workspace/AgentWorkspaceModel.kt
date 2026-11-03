@@ -100,6 +100,7 @@ data class AgentSubmission(
     val scope: List<String> = emptyList(),
     val message: AgentMessageTarget? = null,
     val planItem: String? = null,
+    val continues: ProviderSession? = null,
 )
 
 @Serializable
@@ -189,6 +190,8 @@ data class AgentRunRecord(
     val pendingHandoff: String? = null,
     val usageLimit: AgentUsageLimit? = null,
     val budget: AgentBudgetProgress = AgentBudgetProgress(),
+    val profile: String? = null,
+    val profileRevision: Long? = null,
 )
 
 @Serializable

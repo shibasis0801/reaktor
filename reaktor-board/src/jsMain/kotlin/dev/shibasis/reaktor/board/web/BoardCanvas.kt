@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.board.web
 import dev.shibasis.reaktor.board.Board
 import dev.shibasis.reaktor.board.BoardArrow
 import dev.shibasis.reaktor.board.BoardBox
+import dev.shibasis.reaktor.board.BoardDetail
 import dev.shibasis.reaktor.board.BoardDot
 import dev.shibasis.reaktor.board.BoardDraft
 import dev.shibasis.reaktor.board.BoardEdit
@@ -31,7 +32,7 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 
-private const val ReadableZoom = 0.85
+private val ReadableZoom = BoardDetail.Full.from
 private const val Margin = 24.0
 private const val SketchMarks = 5000
 private const val SketchBytes = 2_000_000
@@ -53,6 +54,7 @@ class BoardCanvas {
     var onView: () -> Unit = {}
     var onZoom: (Int) -> Unit = {}
     var onWire: () -> Unit = {}
+    var onHandles: () -> Unit = {}
     var onSketch: () -> Unit = {}
     var sketchTool = "selection"
         private set
@@ -64,7 +66,9 @@ class BoardCanvas {
     var follow = true
     private var tappedAt = -1.0
     private var overview = false
-    private var detail = true
+    private var level = BoardDetail.Full
+    private var covered: BoardRect? = null
+    private var extent: BoardRect? = null
     private var overviewControls = false
     var element: dynamic = null
     var layer: dynamic = null
@@ -237,11 +241,13 @@ class BoardCanvas {
         drag?.let { if (it.moved) locations[it.item.key] = it.point }
         positions = locations
         frameRects = items.frames(locations)
+        extent = BoardRect.around(items.mapNotNull(::rect))
+        covered = if (view == BoardView.Dag) seen(api?.getAppState())?.let(::around) else null
         val convert = kit?.convert ?: return emptyArray()
         val draft = inline?.let { BoardDraft(it.at, it.after, it.lane, it.editing?.key) }
         val live = HashSet<String>()
         val next = ArrayList<dynamic>()
-        board.groups(BoardFrame(items, locations, selected, source, draft, detail = view != BoardView.Dag || detail), theme).forEach { group ->
+        board.groups(BoardFrame(items, locations, selected, source, draft, if (view == BoardView.Dag) level else BoardDetail.Full, covered), theme).forEach { group ->
             live.add(group.id)
             val cached = converted[group.id]?.takeIf { it.shapes == group.shapes }
             val made = cached?.elements ?: values(convert(group.shapes.map(::skeleton).toTypedArray(), obj("regenerateIds" to false))).also {
@@ -358,12 +364,18 @@ class BoardCanvas {
     }
 
     private fun skeleton(shape: BoardShape): dynamic = when (shape) {
-        is BoardBox -> box("rectangle", shape.id, shape.x, shape.y, shape.width, shape.height, shape.stroke, shape.fill, shape.line)
+        is BoardBox -> box("rectangle", shape.id, shape.x, shape.y, shape.width, shape.height, shape.stroke, shape.fill, shape.line, shape.round)
         is BoardDot -> box("ellipse", shape.id, shape.x, shape.y, shape.size, shape.size, shape.stroke, shape.fill, shape.line)
-        is BoardRule -> box("line", shape.id, shape.x, shape.y, shape.width, 0.0, shape.stroke, "transparent", 1.0)
+        is BoardRule -> rule(shape)
         is BoardLabel -> obj("id" to shape.id, "type" to "text", "x" to shape.x, "y" to shape.y, "text" to shape.text, "fontFamily" to 2,
             "fontSize" to shape.size, "lineHeight" to 1.35, "strokeColor" to shape.color, "locked" to true)
         is BoardArrow -> arrow(shape)
+    }
+
+    private fun rule(shape: BoardRule): dynamic {
+        val line = box("line", shape.id, shape.x, shape.y, shape.width, shape.height, shape.stroke, "transparent", shape.line)
+        line.points = arrayOf(arrayOf(0.0, 0.0), arrayOf(shape.width, shape.height))
+        return line
     }
 
     private fun arrow(shape: BoardArrow): dynamic {
@@ -374,9 +386,9 @@ class BoardCanvas {
         return arrow
     }
 
-    private fun box(type: String, id: String, x: Double, y: Double, width: Double, height: Double, stroke: String, fill: String, line: Double): dynamic =
+    private fun box(type: String, id: String, x: Double, y: Double, width: Double, height: Double, stroke: String, fill: String, line: Double, round: Boolean = true): dynamic =
         obj("id" to id, "type" to type, "x" to x, "y" to y, "width" to width, "height" to height, "strokeColor" to stroke, "backgroundColor" to fill,
-            "strokeWidth" to line, "fillStyle" to "solid", "roughness" to 0, "locked" to true, "roundness" to if (type == "rectangle") obj("type" to 3, "value" to 16) else null)
+            "strokeWidth" to line, "fillStyle" to "solid", "roughness" to 0, "locked" to true, "roundness" to if (type == "rectangle" && round) obj("type" to 3, "value" to 16) else null)
 
     private fun bend(dx: Double, dy: Double) = arrayOf(arrayOf(0.0, 0.0), arrayOf(dx / 2, 0.0), arrayOf(dx / 2, dy), arrayOf(dx, dy))
 
@@ -393,10 +405,36 @@ class BoardCanvas {
         }
         if (fitPending && api.getAppState().isLoading != true) { fitPending = false; settle() }
         reveal?.let { key ->
-            val target = elements.filter { it.id == BoardIds.card(key) }.toTypedArray()
-            if (target.isNotEmpty()) { reveal = null; follow = false; api.scrollToContent(target, obj("fitToViewport" to true, "minZoom" to 0.85, "maxZoom" to 1, "animate" to false)) }
+            val target = items.firstOrNull { it.key == key }?.let(::rect)?.let(::target)
+            if (target != null) { reveal = null; follow = false; api.scrollToContent(target, obj("fitToViewport" to true, "minZoom" to 0.85, "maxZoom" to 1, "animate" to false)) }
         }
-        if (!same || items != before) onView()
+        if (!same) onHandles()
+        if (items != before) onView()
+    }
+
+    private fun rect(item: BoardItem): BoardRect? = frameRects[item.key] ?: positions[item.key]?.let(::cardRect)
+
+    private fun target(rect: BoardRect): dynamic {
+        val convert = kit?.convert ?: return null
+        return convert(arrayOf(obj("type" to "rectangle", "id" to "${BoardIds.Draft}:target",
+            "x" to rect.x, "y" to rect.y, "width" to rect.width, "height" to rect.height)), obj("regenerateIds" to false))
+    }
+
+    private fun seen(state: dynamic): BoardRect? {
+        val zoom = zoomOf(state)
+        val width = number(state?.width ?: js("globalThis.innerWidth")) / zoom
+        val height = number(state?.height ?: js("globalThis.innerHeight")) / zoom
+        if (!(width > 0 && height > 0)) return null
+        return BoardRect(-number(state?.scrollX), -number(state?.scrollY), width, height)
+    }
+
+    private fun around(seen: BoardRect) = seen.grown(seen.width, seen.height)
+
+    private fun stale(state: dynamic): Boolean {
+        val window = covered ?: return false
+        val now = seen(state) ?: return false
+        val whole = extent?.let(window::encloses) == true
+        return (!whole && !window.encloses(now.grown(now.width / 2, now.height / 2))) || window.width > now.width * 9
     }
 
     fun ready(value: dynamic) {
@@ -426,8 +464,8 @@ class BoardCanvas {
         val target = layer ?: return
         if (state == null) return
         val zoom = zoomOf(state)
-        val readable = zoom >= ReadableZoom
-        if (detail != readable) { detail = readable; if (view == BoardView.Dag && mountFrame == null) mount() }
+        val wanted = BoardDetail.at(zoom)
+        if (view == BoardView.Dag && (level != wanted || stale(state))) { level = wanted; if (mountFrame == null) mount() }
         target.style.transform = "translate(${number(state.scrollX) * zoom}px, ${number(state.scrollY) * zoom}px) scale($zoom)"
         if (zoom != placedZoom) {
             placedZoom = zoom
@@ -469,34 +507,31 @@ class BoardCanvas {
     private fun phone() = number(js("globalThis.innerWidth")) in 1.0..759.0
 
     private fun frame(animate: Boolean) {
-        if (elements.isEmpty()) return
+        val bounds = extent ?: return
         val state = api.getAppState()
-        val left = elements.minOf { number(it.x) }; val top = elements.minOf { number(it.y) }
-        val right = elements.maxOf { number(it.x) + number(it.width) }; val bottom = elements.maxOf { number(it.y) + number(it.height) }
         val width = number(state.width); val height = number(state.height)
-        val zoom = minOf(width * 0.9 / (right - left), height * 0.9 / (bottom - top), 1.0).coerceAtLeast(0.05)
-        if (zoom < 0.1) api.updateScene(obj("appState" to obj("zoom" to obj("value" to zoom),
-            "scrollX" to width / (2 * zoom) - (left + right) / 2, "scrollY" to height / (2 * zoom) - (top + bottom) / 2)))
-        else api.scrollToContent(elements, obj("fitToViewport" to true, "viewportZoomFactor" to 0.9, "animate" to animate, "minZoom" to 0.1, "maxZoom" to 1))
+        val zoom = minOf(width * 0.9 / bounds.width, height * 0.9 / bounds.height, 1.0).coerceAtLeast(0.05)
+        val target = if (zoom < 0.1) null else target(bounds)
+        if (target == null) api.updateScene(obj("appState" to obj("zoom" to obj("value" to zoom),
+            "scrollX" to width / (2 * zoom) - (bounds.x + bounds.right) / 2, "scrollY" to height / (2 * zoom) - (bounds.y + bounds.bottom) / 2)))
+        else api.scrollToContent(target, obj("fitToViewport" to true, "viewportZoomFactor" to 0.9, "animate" to animate, "minZoom" to 0.1, "maxZoom" to 1))
     }
 
     private fun opening(): BoardItem? = items.minWithOrNull(compareBy<BoardItem>({ positions[it.key]?.x ?: 0.0 }, { positions[it.key]?.y ?: 0.0 }))
 
     private fun anchor(): Boolean {
         val state = api.getAppState(); val width = number(state.width); val height = number(state.height)
-        if (width <= 0 || height <= 0 || elements.isEmpty()) return false
+        val bounds = extent
+        if (width <= 0 || height <= 0 || bounds == null) return false
         if (phone()) return start(width)
-        val left = elements.minOf { number(it.x) }; val top = elements.minOf { number(it.y) }
-        val right = elements.maxOf { number(it.x) + number(it.width) }; val bottom = elements.maxOf { number(it.y) + number(it.height) }
-        if (minOf(width * 0.9 / (right - left), height * 0.9 / (bottom - top)) >= ReadableZoom) return false
-        show(left, top, ReadableZoom)
+        if (minOf(width * 0.9 / bounds.width, height * 0.9 / bounds.height) >= ReadableZoom) return false
+        show(bounds.x, bounds.y, ReadableZoom)
         return true
     }
 
     private fun start(width: Double): Boolean {
-        val id = opening()?.let { BoardIds.card(it.key) }
-        val box = elements.firstOrNull { it.id == id } ?: return false
-        show(number(box.x), number(box.y), ((width - 2 * Margin) / number(box.width)).coerceIn(ReadableZoom, 1.0))
+        val box = opening()?.takeIf { it.key !in frameRects }?.let(::rect) ?: return false
+        show(box.x, box.y, ((width - 2 * Margin) / box.width).coerceIn(ReadableZoom, 1.0))
         return true
     }
 
@@ -517,8 +552,8 @@ class BoardCanvas {
         selected = item.key; follow = false
         if (!view.scene) { onView(); return }
         sync()
-        val target = elements.filter { it.id == BoardIds.card(item.key) }.toTypedArray()
-        if (target.isNotEmpty()) api?.scrollToContent(target, obj("fitToViewport" to true, "minZoom" to 0.85, "maxZoom" to 1, "animate" to true, "duration" to 160))
+        val target = items.firstOrNull { it.key == item.key }?.let(::rect)?.let(::target)
+        if (target != null) api?.scrollToContent(target, obj("fitToViewport" to true, "minZoom" to 0.85, "maxZoom" to 1, "animate" to true, "duration" to 160))
     }
 
     private fun point(event: dynamic): BoardPoint {
@@ -534,8 +569,9 @@ class BoardCanvas {
 
     fun anchors(): List<Anchor> {
         if (api == null || disposed) return emptyList()
+        val window = covered
         return items.mapNotNull { item ->
-            val box = frameRects[item.key] ?: positions[item.key]?.let(::cardRect) ?: return@mapNotNull null
+            val box = rect(item)?.takeIf { window == null || window.intersects(it) } ?: return@mapNotNull null
             Anchor(item, box.x, box.y, box.width, box.height)
         }
     }

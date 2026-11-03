@@ -1,3 +1,4 @@
+import dev.shibasis.dependeasy.Versions
 import dev.shibasis.dependeasy.components.library
 import dev.shibasis.dependeasy.common.commonCoroutines
 import dev.shibasis.dependeasy.common.commonSerialization
@@ -13,7 +14,10 @@ library(namespace = "dev.shibasis.reaktor.conductor", targets = Targets.All) {
             commonCoroutines()
             commonSerialization(protobuf = false)
         }
-        jvm { api(Reaktor.Tooling) }
+        jvm {
+            api(Reaktor.Tooling, Reaktor.Db)
+            implementation(Versions.Data.SqlDelightSQLite)
+        }
     }
     val unit by tests(Suite.Jvm, environment = ReaktorTests.Conductor)
 }

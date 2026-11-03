@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.security
 
+import dev.shibasis.reaktor.core.framework.json
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.encodeToString
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -154,8 +156,39 @@ interface ReaktorSecurity {
     fun state(conversationId: String): Flow<ConversationSecurityState>
     suspend fun seal(conversationId: String, envelope: ByteArray, plaintext: ByteArray, circleGame: Boolean = false, anonymous: Boolean = false): SealedMessage
     suspend fun open(conversationId: String, envelope: ByteArray, sealed: SealedMessage, circleGame: Boolean = false): OpenedMessage
-    suspend fun sealedKeyRing(): SealedSecret
+    suspend fun sealedKeyRing(protection: PlatformSecretBox? = null): SealedSecret
 }
+class SealedKeyRing private constructor(private val keys: EngineKeyRing) : AutoCloseable {
+    fun open(conversationId: String, envelope: ByteArray, sealed: SealedMessage, circleGame: Boolean = false): OpenedMessage {
+        val opened = keys.open(conversationId, envelope, EngineSealed(sealed.header, sealed.commitment, sealed.ciphertext), circleGame)
+        try {
+            val sender = opened.credential.takeIf { it.isNotEmpty() }?.let(::readDeviceCredential)
+            check(!opened.authenticated || sender?.deviceId?.value == sealed.senderDeviceId)
+            return OpenedMessage(opened.plaintext, opened.frankingKey, sender, opened.authenticated, opened.duplicate)
+        } catch (error: Throwable) {
+            opened.plaintext.fill(0)
+            opened.frankingKey.fill(0)
+            throw error
+        }
+    }
+
+    override fun close() = keys.close()
+
+    companion object {
+        suspend fun restore(session: SecuritySession, sealed: SealedSecret, protection: PlatformSecretBox): SealedKeyRing {
+            val recordId = json.encodeToString(listOf(session.tenantId, session.appId, session.userId))
+            val aad = ("reaktor/security/device/v1:" + recordId).encodeToByteArray()
+            val bytes = protection.open(SecretRecordType.MlsGroupStateSnapshot, recordId + ":key-ring", sealed, aad)
+            try {
+                val policy = EnginePolicy(session.tenantId, session.appId, session.authKeys.mapValues { it.value.copyOf() })
+                return SealedKeyRing(SecurityEngineFactory.keyRing(bytes, policy))
+            } finally {
+                bytes.fill(0)
+            }
+        }
+    }
+}
+
 
 interface SecureDeviceManager {
     suspend fun ensureDeviceRegistered(authContext: AuthContext): DeviceCryptoIdentity

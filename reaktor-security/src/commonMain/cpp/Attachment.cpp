@@ -4,6 +4,7 @@
 #include <openssl/mem.h>
 #include <openssl/sha.h>
 #include <tls/tls_syntax.h>
+#include <algorithm>
 #include <limits>
 #include <memory>
 
@@ -141,6 +142,58 @@ void AttachmentOpener::finish() const
 {
   if (!impl_->ended || CRYPTO_memcmp(hash(impl_->hash).data(), impl_->digest.data(), 32) != 0) {
     throw Error(ErrorCode::crypto, "Attachment is truncated or has a different digest");
+  }
+}
+
+
+SealedAttachment seal_attachment(const Bytes& plaintext)
+{
+  constexpr size_t maximum = 64 * 1024 * 1024;
+  if (plaintext.size() > maximum) throw Error(ErrorCode::invalid_argument, "Attachment exceeds its bound");
+  AttachmentSealer sealer;
+  Bytes ciphertext;
+  ciphertext.reserve(plaintext.size() + (plaintext.size() / 65536 + 1) * 33);
+  for (size_t offset = 0;;) {
+    const auto length = std::min(plaintext.size() - offset, size_t(65536));
+    const auto last = offset + length == plaintext.size();
+    const auto chunk = sealer.seal({plaintext.begin() + offset, plaintext.begin() + offset + length}, last);
+    ciphertext.insert(ciphertext.end(), chunk.begin(), chunk.end());
+    offset += length;
+    if (last) break;
+  }
+  return {sealer.key(), sealer.digest(), std::move(ciphertext)};
+}
+
+Bytes open_attachment(const Bytes& key, const Bytes& digest, const Bytes& ciphertext)
+{
+  constexpr size_t maximum = 64 * 1024 * 1024;
+  if (ciphertext.empty() || ciphertext.size() > maximum + 65536) {
+    throw Error(ErrorCode::invalid_argument, "Invalid attachment size");
+  }
+  AttachmentOpener opener(key, digest);
+  Bytes plaintext;
+  try {
+    for (size_t offset = 0; offset < ciphertext.size();) {
+      const auto remaining = ciphertext.size() - offset;
+      if (remaining < header_size + 16) throw Error(ErrorCode::crypto, "Attachment is truncated");
+      uint32_t length = 0;
+      for (size_t i = 13; i < 17; ++i) length = (length << 8) | ciphertext[offset + i];
+      if (length > 65536 || size_t(length) + header_size + 16 > remaining ||
+          length > maximum - plaintext.size()) {
+        throw Error(ErrorCode::crypto, "Invalid attachment chunk size");
+      }
+      const auto end = offset + header_size + length + 16;
+      auto chunk = opener.open({ciphertext.begin() + offset, ciphertext.begin() + end});
+      try { plaintext.insert(plaintext.end(), chunk.begin(), chunk.end()); }
+      catch (...) { OPENSSL_cleanse(chunk.data(), chunk.size()); throw; }
+      OPENSSL_cleanse(chunk.data(), chunk.size());
+      offset = end;
+    }
+    opener.finish();
+    return plaintext;
+  } catch (...) {
+    OPENSSL_cleanse(plaintext.data(), plaintext.size());
+    throw;
   }
 }
 

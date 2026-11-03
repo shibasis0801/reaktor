@@ -30,6 +30,12 @@ data class GraphDefinition(
             }
         }
         val owners = nodes.associateBy { it.id }
+        regions.forEach { region ->
+            region.container?.let { container ->
+                if (region.parent == null || owners[container]?.region != region.parent) add("Invalid region container: ${region.id}")
+            }
+        }
+        duplicates(regions.mapNotNull { it.container }, "region container")
         nodes.forEach { node ->
             if (node.region !in scopes) add("Unknown region: ${node.id}")
             if (node.kind.isBlank()) add("Missing node dialect: ${node.id}")
@@ -47,7 +53,7 @@ data class GraphDefinition(
     }
 }
 
-@Serializable data class RegionDefinition(val id: String, val label: String, val parent: String? = null)
+@Serializable data class RegionDefinition(val id: String, val label: String, val parent: String? = null, val container: String? = null)
 @Serializable data class NodeDefinition(val id: String, val label: String, val kind: String, val region: String, val ports: List<PortDefinition>)
 /** Polarity is contract availability, not the direction of every request/reply message. */
 @Serializable enum class PortPolarity { Offer, Require, Neutral }
@@ -63,7 +69,7 @@ class GraphDefinitionBuilder internal constructor(private val id: String, privat
     private val regions = mutableListOf<RegionDefinition>()
     private val nodes = mutableListOf<NodeDefinition>()
     private val relations = mutableListOf<RelationDefinition>()
-    fun region(id: String, label: String, parent: String? = null) { regions += RegionDefinition(id, label, parent) }
+    fun region(id: String, label: String, parent: String? = null, container: String? = null) { regions += RegionDefinition(id, label, parent, container) }
     fun node(id: String, label: String, kind: String, region: String, ports: List<PortDefinition>) {
         nodes += NodeDefinition(id, label, kind, region, ports.toList())
     }

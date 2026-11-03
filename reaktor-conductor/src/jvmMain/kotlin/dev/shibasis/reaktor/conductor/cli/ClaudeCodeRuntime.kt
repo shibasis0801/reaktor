@@ -92,6 +92,8 @@ object ClaudeEndpoints {
         DeepSeekKey.takeIf { model?.startsWith("deepseek") == true && host[it].isNullOrBlank() }
 }
 
+private const val NoMcpServers = """{"mcpServers":{}}"""
+
 /** The exact argv a Claude turn runs with, lifted out so the flag set can be asserted directly. */
 internal fun claudeArgv(request: AgentRequest, binary: String = "claude"): List<String> = buildList {
     add(binary)
@@ -136,16 +138,21 @@ internal fun claudeArgv(request: AgentRequest, binary: String = "claude"): List<
         add("--add-dir")
         add(it)
     }
-    tools.mcpConfig?.let {
+    if (tools.isolateOperatorConfig) {
+        add("--setting-sources")
+        add("project,local")
+        add("--no-session-persistence")
+    }
+    (tools.mcpConfig ?: NoMcpServers.takeIf { tools.isolateOperatorConfig })?.let {
         add("--mcp-config")
         add(it)
-        if (tools.strictMcpConfig) add("--strict-mcp-config")
+        if (tools.strictMcpConfig || tools.isolateOperatorConfig) add("--strict-mcp-config")
     }
 
     addAll(claudeHarnessArgs(request))
 
     // The provider session is a cache: resuming is an optimization, never a requirement.
-    request.resume?.takeIf { it.runtime == RuntimeKind.ClaudeCode }?.let {
+    request.resume?.takeIf { it.runtime == RuntimeKind.ClaudeCode && !tools.isolateOperatorConfig }?.let {
         add("--resume")
         add(it.sessionId)
     }

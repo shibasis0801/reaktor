@@ -55,6 +55,7 @@ include(":reaktor-tooling")
 include(":reaktor-devtools")
 include(":reaktor-idb")
 include(":reaktor-conductor")
+include(":reaktor-cluster")
 include(":reaktor-cloud")
 
 include(":reaktor-apple-export")

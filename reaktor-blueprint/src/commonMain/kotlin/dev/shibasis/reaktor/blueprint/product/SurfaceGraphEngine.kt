@@ -82,6 +82,14 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             parts.forEach { add(it.layer) }
         }.sumOf { it.size.width.toLong() * it.size.height.toLong() * 4L }
 
+    protected val replayOmission = mutableIntStateOf(-1)
+    protected var replayCounts: IntArray? = null
+
+    protected fun DrawScope.replayLayer(layer: GraphicsLayer, group: Int) {
+        replayCounts?.let { if (group in it.indices) it[group]++ }
+        if (replayOmission.intValue != group) drawLayer(layer)
+    }
+
     val version = mutableIntStateOf(0)
     protected val signal = Channel<Unit>(Channel.CONFLATED)
     protected val unit = Density(1f)
@@ -120,6 +128,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     protected var linkBox = FloatArray(0)
     protected var labels: Map<String, String> = emptyMap()
     private val placed = ArrayList<Rect>()
+    protected val linkLabelBounds: List<Rect> get() = if (labels.isEmpty()) emptyList() else placed
     protected var pulses: List<CanvasPulse> = emptyList()
     protected var shift = 0f
     private var linkIndex: Map<String, Int> = emptyMap()
@@ -639,7 +648,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         hovered = card; hoveredPin = pin; hoveredLink = link; dirty[HOVER] = true; version.intValue++
     }
 
-    fun visibleLinkAt(x: Float, y: Float, tolerance: Float): Int = linkIndexAt(x, y, tolerance) { alphas[it] >= .2f }
+    open fun visibleLinkAt(x: Float, y: Float, tolerance: Float): Int = linkIndexAt(x, y, tolerance) { alphas[it] >= .2f }
 
     protected open fun pinKey(i: Int, x: Float, y: Float): String? = null
 
@@ -719,7 +728,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
 
     private fun DrawScope.mesh(kind: Int, camera: Viewport) {
         val layer = meshes[kind]?.takeIf { filled[kind] } ?: return
-        space(camera) { drawLayer(layer) }
+        space(camera) { replayLayer(layer, kind) }
     }
 
     private fun DrawScope.flow(camera: Viewport, shift: Float) {
@@ -797,7 +806,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     private fun DrawScope.paint(camera: Viewport, deadline: TimeSource.Monotonic.ValueTimeMark) {
         background(camera)
         mesh(GRID, camera); mesh(UNDER, camera)
-        if (parts.isNotEmpty()) space(camera) { for (part in parts) drawLayer(part.layer) }
+        if (parts.isNotEmpty()) space(camera) { for (part in parts) replayLayer(part.layer, WIRES) }
         mesh(DRAGGED, camera); mesh(HOVER, camera)
         flow(camera, shift / density * zoom.toFloat())
         val l = (-camera.x / camera.zoom).toFloat(); val t = (-camera.y / camera.zoom).toFloat()
@@ -805,7 +814,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         if (level == 2) world(camera) {
             for (i in frames.indices) {
                 if (!inside(frameBox, i, l, t, r, b) || frameBox[i * 4 + 1] + BlueprintEngine.FrameTop < t) continue
-                headerLayer(i, false, deadline)?.let { drawLayer(it) }
+                headerLayer(i, false, deadline)?.let { replayLayer(it, REPLAY_HEADERS) }
             }
         }
         mesh(CARDS, camera)
@@ -879,7 +888,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
                 val n = sqrt(dx * dx + dy * dy); val ux = dx / n; val uy = dy / n
                 val e = min(w / 2 / max(abs(ux), 1e-3f), h / 2 / max(abs(uy), 1e-3f)); val ex = x + w / 2 + ux * e; val ey = y + h / 2 + uy * e
                 drawPath(tail.apply { reset(); moveTo(ex + ux * 7f, ey + uy * 7f); lineTo(ex - uy * 5f - ux * 2f, ey + ux * 5f - uy * 2f); lineTo(ex + uy * 5f - ux * 2f, ey - ux * 5f - uy * 2f); close() }, color)
-                translate(x, y) { drawLayer(layer) }
+                translate(x, y) { replayLayer(layer, REPLAY_END_LABELS) }
             }
         }
         return late
@@ -900,7 +909,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             if (x >= viewport.width || y - max(Above * z, BannerHeight) >= viewport.height || x + width <= 0f || y + height <= 0f) continue
             val layer = banner(i, max(width, room(frame, z) * z - BannerGap), camera.zoom) ?: continue
             val top = y + bannerLift(layer.size.height.toFloat(), z, clear[i])
-            clipRect(floor(x), floor(top), ceil(x + max(width, layer.size.width.toFloat())), ceil(y + height)) { translate(x, top) { drawLayer(layer) } }
+            clipRect(floor(x), floor(top), ceil(x + max(width, layer.size.width.toFloat())), ceil(y + height)) { translate(x, top) { replayLayer(layer, REPLAY_BANNERS) } }
         }
     }
 
@@ -953,11 +962,13 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
                 if (dim[i] != (pass == 0) || !shown(i) || !inside(cardBox, i, l, t, r, b)) continue
                 if (pass == 0 && !open) { drawContext.canvas.saveLayer(Rect(l, t, r, b), dimPaint); open = true }
                 val layer = layer(i, slot, deadline, halo[i] ushr 24 != 0)
-                if (layer != null) drawLayer(layer) else placeholder(i, slot)
+                if (layer != null) replayLayer(layer, REPLAY_DETAILS) else placeholder(i, slot)
             }
             if (open) drawContext.canvas.restore()
         }
     }
+
+    protected open fun countLabelWidth(i: Int): Float? = null
 
     private fun DrawScope.drawLabels(camera: Viewport, l: Float, t: Float, r: Float, b: Float) {
         traced()
@@ -971,7 +982,9 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             bands.none { f -> cx + frameBox[f * 4] * z < box.right && cx + frameBox[f * 4 + 2] * z > box.left && cy + frameBox[f * 4 + 1] * z < box.bottom && cy + (frameBox[f * 4 + 1] + BlueprintEngine.FrameTop) * z > box.top }
         for (priority in 0..2) for (i in links.indices) {
             val label = labels[links[i].id]
-            if (label.isNullOrBlank() || alphas[i] <= 0f || !flows[i] && alphas[i] < .9f && links[i].members.size < 2 || !inside(linkBox, i, l, t, r, b)) continue
+            val countWidth = countLabelWidth(i)
+            if (label.isNullOrBlank() || label == "×1" || !dev.shibasis.reaktor.blueprint.BlueprintFarProjection.labelVisible(
+                    links[i].members.size, alphas[i], flows[i], countWidth != null) || !inside(linkBox, i, l, t, r, b)) continue
             val rank = if (lift[i] || hoveredLink == i) 0 else if (flows[i] || alphas[i] >= 1f) 1 else 2
             if (rank != priority) continue
             val color = Color(tints[i] or 0xFF000000.toInt()).copy(alpha = .96f)
@@ -981,14 +994,30 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             for (share in LabelShares) {
                 at(i, lengths[i] * share) { x, y ->
                     val centre = Offset(cx + x * z, cy + y * z)
-                    if (clear(Rect(centre.x - halfWidth, centre.y - halfHeight, centre.x + halfWidth, centre.y + halfHeight))) spot = centre
+                    if (countWidth == null) {
+                        if (clear(Rect(centre.x - halfWidth, centre.y - halfHeight, centre.x + halfWidth, centre.y + halfHeight))) spot = centre
+                    } else {
+                        var before = centre; var after = centre
+                        at(i, (lengths[i] * share - 1f).coerceAtLeast(0f)) { px, py -> before = Offset(cx + px * z, cy + py * z) }
+                        at(i, (lengths[i] * share + 1f).coerceAtMost(lengths[i])) { px, py -> after = Offset(cx + px * z, cy + py * z) }
+                        val offset = dev.shibasis.reaktor.blueprint.BlueprintFarProjection.labelOffset(
+                            after.x - before.x, after.y - before.y, halfWidth, halfHeight, countWidth)
+                        if (offset != null) for (sign in listOf(1f, -1f)) {
+                            val candidate = centre + Offset(offset.first * sign, offset.second * sign)
+                            val box = Rect(candidate.x - halfWidth, candidate.y - halfHeight, candidate.x + halfWidth, candidate.y + halfHeight)
+                            if (box.left >= 0f && box.top >= 0f && box.right <= viewport.width && box.bottom <= viewport.height && clear(box)) {
+                                spot = candidate
+                                break
+                            }
+                        }
+                    }
                 }
                 if (spot != null) break
             }
             val centre = spot ?: continue
             placed += Rect(centre.x - halfWidth, centre.y - halfHeight, centre.x + halfWidth, centre.y + halfHeight)
             withTransform({ translate(centre.x, centre.y); scale(k, k, Offset.Zero) }) {
-                translate(-layer.size.width / 2f, -layer.size.height / 2f) { drawLayer(layer) }
+                translate(-layer.size.width / 2f, -layer.size.height / 2f) { replayLayer(layer, REPLAY_LINK_LABELS) }
             }
         }
     }
@@ -1084,6 +1113,10 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     protected companion object {
         const val GRID = 0; const val UNDER = 1; const val WIRES = 2; const val CARDS = 3; const val OVER = 4; const val LIT = 5; const val HOVER = 6
         const val DRAGGED = 7; const val DRAGGED_LIT = 8; const val KINDS = 9
+        const val REPLAY_HEADERS = KINDS; const val REPLAY_DETAILS = KINDS + 1
+        const val REPLAY_BANNERS = KINDS + 2; const val REPLAY_LINK_LABELS = KINDS + 3
+        const val REPLAY_MAP_LABELS = KINDS + 4; const val REPLAY_END_LABELS = KINDS + 5
+        const val REPLAY_GROUPS = KINDS + 6
         val WARMUPS = floatArrayOf(.4f, 1f, 2.5f, .1f, .35f)
         private val GLOWS = floatArrayOf(12f, .08f, 6f, .18f, 2f, .38f)
         private const val Above = (BlueprintEngine.GroupGap + BlueprintEngine.FrameSide).toFloat()

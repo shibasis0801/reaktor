@@ -116,6 +116,26 @@ class WorkPlanTest {
         assertContains(Files.readString(inbox.resolve("codex-c9.txt")), "map → Done")
     }
 
+    @Test fun hangarRunsAndTheirNativeAgentsHearOtherPlanChangesWithoutEchoingTheirOwn() {
+        val inbox = directory("plan-run-inbox")
+        val store = WorkPlanStore(directory("plan-run-store"), inbox)
+        draw(store)
+        val run = BoardActor(BoardActorKind.Agent, "Codex", "hangar:run-1", agent = "agent:codex:c1")
+        val (_, seat) = store.attach("claude:s1") {
+            PlanSeat("sRun", "native-codex", listOf("views"), person, 2_000, session = run.session, agent = run.agent)
+        }
+        store.write("claude:s1", PlanPatch(ops = listOf(PlanOp.Status("views", PlanStatus.Doing))), person)
+        val runFile = inbox.resolve("hangar-run-1.txt")
+        val providerFile = inbox.resolve("codex-c1.txt")
+        assertContains(Files.readString(runFile), "views → In progress")
+        assertContains(Files.readString(providerFile), "views → In progress")
+        val runNotes = Files.readString(runFile)
+        val providerNotes = Files.readString(providerFile)
+        store.write("claude:s1", PlanPatch(seat = seat.id, ops = listOf(PlanOp.Status("views", PlanStatus.Done))), run)
+        assertEquals(runNotes, Files.readString(runFile))
+        assertEquals(providerNotes, Files.readString(providerFile))
+    }
+
     @Test fun anItemAnotherAgentHasInProgressStaysTheirsUntilTheyLetItGo() {
         val store = WorkPlanStore(directory("plan-claims"))
         store.write("hangar:launch", PlanPatch(title = "Hangar launch", ops = listOf(
@@ -310,6 +330,15 @@ class WorkPlanTest {
         assertEquals("engine", module.label)
         assertTrue(shape.wires.any { it.provider == module.id && it.consumer == "claude:c8 ref file:modules/engine/Pane.kt" }, "${shape.wires}")
         assertTrue(shape.wires.any { it.provider == "claude:c8 ref file:modules/engine/Pane.kt" && it.consumer == "claude:c8#read-the-pane" })
+    }
+
+    @Test fun withoutCodeThePlanGraphHoldsOnlyItsItems() {
+        val plan = PlanMirror.of(revamp, PlanStatus.Done)
+        val shape = PlanGraph.shape(listOf(plan), code = false) { listOf("module:bestbuds/modules/engine") }
+        assertTrue(shape.nodes.none { it.attributes["ref"] != null }, "${shape.nodes.map { it.id }}")
+        assertTrue(shape.scopes.none { it.id == "claude:c8 code" })
+        assertEquals(PlanGraph.shape(listOf(plan)).nodes.filter { it.attributes["item"] != null }.map { it.id }, shape.nodes.map { it.id })
+        assertTrue(shape.wires.none { it.consumerPort.startsWith("file:") })
     }
 
     @Test fun archivingMovesTaskGraphsThatAreNotRunning() {

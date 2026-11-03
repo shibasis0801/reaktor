@@ -19,6 +19,7 @@ internal fun agentMessageTools(workspace: AgentWorkspace): List<McpTool> {
         put("state", (events.maxByOrNull { it.state.ordinal }?.state ?: AgentMessageState.Accepted).name)
         put("events", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(AgentMessageEvent.serializer()), events))
     }
+    val currentTools = dev.shibasis.reaktor.conductor.message.messageTools(workspace).associateBy { it.name }
     val graph = "graph" to stringSchema("Task graph id")
     val id = "id" to stringSchema("Retained message id")
     val by = "by" to objectSchema(mapOf(
@@ -85,5 +86,13 @@ internal fun agentMessageTools(workspace: AgentWorkspace): List<McpTool> {
             AgentWorkspaceJson.encodeToJsonElement(AgentMessageEvent.serializer(),
                 workspace.board.acknowledgeMessage(args.text("graph"), args.text("id"), args.caller()))
         },
-    )
+    ).map { legacy ->
+        val current = currentTools.getValue(legacy.name)
+        val properties = (legacy.inputSchema.getValue("properties").jsonObject + current.inputSchema.getValue("properties").jsonObject +
+            ("kind" to enumSchema("Message kind", (AgentMessageKind.entries.map { it.name } +
+                dev.shibasis.reaktor.conductor.message.MessageKind.entries.map { it.name }).distinct()))).mapValues { it.value.jsonObject }
+        legacy.copy(description = current.description + " Graph arguments remain supported for older callers.",
+            inputSchema = objectSchema(properties, listOf("by")),
+            execute = { args -> if ("graph" in args) legacy.invoke(args) else current.invoke(args) })
+    }.let { tools -> tools + currentTools.values.filter { current -> tools.none { it.name == current.name } } }
 }

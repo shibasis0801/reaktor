@@ -1,5 +1,11 @@
 package dev.shibasis.reaktor.tooling.cloud
 
+import dev.shibasis.reaktor.core.truth.TruthClass
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
@@ -14,6 +20,7 @@ enum class ResourceStatus(val rank: Int) {
 
 interface CloudProvider {
     val id: String
+    val truth: TruthClass get() = TruthClass.Unknown
     suspend fun read(): CloudReading
     suspend fun health(): ProviderHealth = read().health
 }
@@ -248,6 +255,7 @@ data class CloudReading(
     val references: List<CloudReference> = emptyList(),
     val changes: List<CloudChange> = emptyList(),
     val source: String = "",
+    @Serializable(with = CloudReadingTruthSerializer::class) val truth: TruthClass = TruthClass.Unknown,
 )
 
 @Serializable
@@ -304,5 +312,14 @@ data class CloudSnapshot(
 
     companion object {
         val Empty = CloudSnapshot(emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), 0L)
+    }
+}
+
+object CloudReadingTruthSerializer : KSerializer<TruthClass> {
+    override val descriptor = PrimitiveSerialDescriptor("CloudReadingTruth", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: TruthClass) = encoder.encodeString(value.name)
+    override fun deserialize(decoder: Decoder): TruthClass {
+        val value = decoder.decodeString()
+        return TruthClass.entries.firstOrNull { it.name == value } ?: TruthClass.Unknown
     }
 }

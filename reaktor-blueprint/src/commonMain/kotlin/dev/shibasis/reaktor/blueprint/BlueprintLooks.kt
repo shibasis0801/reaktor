@@ -3,7 +3,30 @@ package dev.shibasis.reaktor.blueprint
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import dev.shibasis.reaktor.graph.core.NodeShape
 import dev.shibasis.reaktor.surface.compose.TooltipAppearance
+
+enum class BlueprintTitle { Whole, Words, Hidden }
+
+enum class BlueprintTier { Overview, Middle, Detail }
+
+data class BlueprintReading(val level: Int, val smallest: Double, val titles: Map<BlueprintTitle, Int>, val tiers: Map<BlueprintTier, Int> = emptyMap()) {
+    operator fun get(title: BlueprintTitle): Int = titles[title] ?: 0
+    operator fun get(tier: BlueprintTier): Int = tiers[tier] ?: 0
+}
+
+enum class BlueprintFace {
+    Code, Prose, Region;
+
+    companion object {
+        const val Key = "face"
+        const val ProseRows = 5
+
+        fun of(node: NodeShape): BlueprintFace = entries.firstOrNull { it.name.equals(node.attributes[Key], ignoreCase = true) } ?: Code
+
+        fun rows(node: NodeShape, pinned: Int): Int = if (of(node) == Prose) maxOf(pinned, ProseRows) else pinned
+    }
+}
 
 data class BlueprintMark(val text: String, val color: Color, val kind: Kind = Kind.Tag) {
     enum class Kind { Tag, Badge, Pill, Dot }
@@ -11,7 +34,9 @@ data class BlueprintMark(val text: String, val color: Color, val kind: Kind = Ki
 
 data class BlueprintChoice(val checked: Boolean, val tag: String, val change: (Boolean) -> Unit)
 
-data class BlueprintPinLook(val color: Color, val text: String, val textColor: Color, val filled: Boolean, val chip: Boolean = false, val selected: Boolean = false, val marks: List<BlueprintMark> = emptyList(), val tag: String? = null, val choice: BlueprintChoice? = null)
+data class BlueprintPinLook(val color: Color, val text: String, val textColor: Color, val filled: Boolean, val chip: Boolean = false, val selected: Boolean = false, val marks: List<BlueprintMark> = emptyList(), val tag: String? = null, val choice: BlueprintChoice? = null, val icon: ImageVector? = null)
+
+data class BlueprintCardAction(val id: String, val label: String, val icon: ImageVector, val onInvoke: () -> Unit)
 
 data class BlueprintCardLook(
     val tone: Color,
@@ -31,6 +56,11 @@ data class BlueprintCardLook(
     val imageHighlight: androidx.compose.ui.geometry.Rect? = null,
     val muted: Boolean = false,
     val choice: BlueprintChoice? = null,
+    val face: BlueprintFace = BlueprintFace.Code,
+    val eyebrow: String? = null,
+    val progress: Float? = null,
+    val agent: BlueprintAgent? = null,
+    val actions: List<BlueprintCardAction> = emptyList(),
 )
 
 data class BlueprintFrameLook(
