@@ -18,11 +18,24 @@ import platform.Foundation.NSFileSize
 import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.NSNumber
 import platform.Foundation.NSURL
+import platform.Foundation.NSURLErrorBadServerResponse
+import platform.Foundation.NSURLErrorBadURL
 import platform.Foundation.NSURLErrorCancelled
+import platform.Foundation.NSURLErrorCannotConnectToHost
+import platform.Foundation.NSURLErrorCannotFindHost
+import platform.Foundation.NSURLErrorDataNotAllowed
 import platform.Foundation.NSURLErrorDomain
+import platform.Foundation.NSURLErrorFileDoesNotExist
+import platform.Foundation.NSURLErrorHTTPTooManyRedirects
+import platform.Foundation.NSURLErrorInternationalRoamingOff
 import platform.Foundation.NSURLErrorNotConnectedToInternet
 import platform.Foundation.NSURLErrorNetworkConnectionLost
+import platform.Foundation.NSURLErrorRedirectToNonExistentLocation
+import platform.Foundation.NSURLErrorResourceUnavailable
+import platform.Foundation.NSURLErrorSecureConnectionFailed
+import platform.Foundation.NSURLErrorServerCertificateUntrusted
 import platform.Foundation.NSURLErrorTimedOut
+import platform.Foundation.NSURLErrorUnsupportedURL
 import platform.Foundation.NSURLIsExcludedFromBackupKey
 import platform.Foundation.NSURLSession
 import platform.Foundation.NSURLSessionConfiguration
@@ -180,11 +193,13 @@ class DarwinBackgroundDownloads(
             if (error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled) return
             // Keep what was fetched, so asking again carries on rather than starting over.
             (error.userInfo[NSURLSessionDownloadTaskResumeData] as? NSData)?.writeToFile(resumePath(tag.key), atomically = true)
+            // Only what is plainly the server's doing is blamed on it. The rest — the background
+            // daemon refusing the app, NSURLErrorUnknown — is Unknown, which asks for a retry.
             val problem = when {
                 error.domain != NSURLErrorDomain -> TransferProblem.Unknown
-                error.code == NSURLErrorNotConnectedToInternet || error.code == NSURLErrorNetworkConnectionLost ||
-                    error.code == NSURLErrorTimedOut -> TransferProblem.WaitingForNetwork
-                else -> TransferProblem.Server
+                error.code in offline -> TransferProblem.WaitingForNetwork
+                error.code in refused -> TransferProblem.Server
+                else -> TransferProblem.Unknown
             }
             publish(Transfer.Failed(tag.key, problem, "${error.domain} ${error.code}"))
         }
@@ -205,6 +220,17 @@ class DarwinBackgroundDownloads(
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
         private val completions = mutableMapOf<String, () -> Unit>()
+
+        private val offline = setOf(
+            NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorTimedOut,
+            NSURLErrorDataNotAllowed, NSURLErrorInternationalRoamingOff,
+        )
+        private val refused = setOf(
+            NSURLErrorBadURL, NSURLErrorUnsupportedURL, NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost,
+            NSURLErrorBadServerResponse, NSURLErrorResourceUnavailable, NSURLErrorFileDoesNotExist,
+            NSURLErrorHTTPTooManyRedirects, NSURLErrorRedirectToNonExistentLocation,
+            NSURLErrorSecureConnectionFailed, NSURLErrorServerCertificateUntrusted,
+        )
 
         /**
          * From the app delegate's `handleEventsForBackgroundURLSession`. The system woke the app to
