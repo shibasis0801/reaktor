@@ -509,6 +509,22 @@ registers with the system, but nobody has pressed a button on it yet. It needs o
 iPhone before Phase 1 is called done. Whether iOS shows the skip buttons rather than track arrows
 with next/previous disabled is part of that run.
 
-Phase 1 next.
+**Phase 1 — built, 3 November 2026; iOS walk-through pending.** Framework: `3a474019` (background
+downloads, document picker), `22db2c31` (resumption, iOS artwork), `93a467e3` (`BackHandlerContainer`
+honours its modifier), `27c2ffdd` (a failed item is not playing). App: `hearth@2336702`. 19 tests.
+
+Checked on the Android emulator: Apple search, follow, OPML through the system chooser, download,
+offline playback of the download, error and retry when streaming offline, Up Next moving on, restore
+after a restart, dark theme override, and a media key resuming playback in a process the system
+started for `ReaktorPlaybackService` alone. iOS: builds and launches to the empty library; nothing
+past that was walked. Background downloads on iOS and the Swift event hook are untried.
+
+Learned: the same show arrives under two addresses (Apple lists Darknet Diaries at
+`podcast.darknetdiaries.com`, OPML exports have the Megaphone address); both feeds declare the same
+`itunes:new-feed-url` and `podcast:guid`, so identity comes from the feed, and a followed show keeps
+the address its positions are keyed by. A small case of Cairn II's "identity across moving sources".
+
+Still to do before the gate: an iOS walk-through, a real-device run of iOS lock-screen and headphone
+commands, an app icon. Then stop for decisions 4 and 5.
 
 Related: [app-portfolio.md](app-portfolio.md) · [lector.md](lector.md) · [cairn.md](cairn.md)
