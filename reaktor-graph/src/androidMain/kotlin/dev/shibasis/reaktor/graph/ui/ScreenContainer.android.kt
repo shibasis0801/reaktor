@@ -13,7 +13,7 @@ actual fun BackHandlerContainer(
     onBack: () -> Unit,
     content: @Composable (backProgress: () -> Float) -> Unit
 ) {
-    Box(Modifier.fillMaxSize()) {
+    Box(modifier) {
         BackHandler(intercept) {
             onBack()
         }
