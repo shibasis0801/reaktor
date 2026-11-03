@@ -233,7 +233,9 @@ class AndroidAudioPlayer(
         val item = current
         _state.value = PlayerState(
             item = item,
-            playing = item != null && exo.playWhenReady && exo.playbackState != Player.STATE_ENDED,
+            // A failed item is not playing, whatever ExoPlayer still intends: the screen has to
+            // offer play, because play is what tries again.
+            playing = item != null && exo.playWhenReady && exo.playbackState != Player.STATE_ENDED && error == null,
             buffering = exo.playbackState == Player.STATE_BUFFERING,
             positionMs = exo.currentPosition.coerceAtLeast(0),
             durationMs = exo.duration.takeIf { it != C.TIME_UNSET && it > 0 } ?: item?.durationMs,
