@@ -495,6 +495,37 @@ first frame.
   simulator, background downloads need the build signed "to run locally" (ad hoc). That is the
   owner's call, so do not switch it on yourself.
 
+## Syncing an app's data between devices
+
+Use `reaktor-db`'s `Sync` (`dev.shibasis.reaktor.db.sync`). Do not use `SyncAdapter`, which uploads
+and restores the whole database. The server half is `reaktor-cloudflare`'s `D1SyncLog` and
+`WorkerAuthService`. Hearth is the worked example (`hearth-worker/`, `session/Sync.kt`).
+
+- **Write through `SyncedStore`, from one writer.** Each write takes the next clock reading as it
+  enters the engine. Two writes launched in separate coroutines can enter in either order, and
+  then the older one wins on every other device. Put writes through a `Channel` drained by one
+  coroutine.
+- **Sync what one person sets, not what a device computes.** Fetch timestamps, ETags and counts
+  change on every device and overwrite each other. Give the user's choice its own small store
+  (Hearth's `Follow`) and keep the bookkeeping local.
+- **Subscribe to `SyncedStore.remote` before the engine connects.** Use
+  `launch(start = CoroutineStart.UNDISPATCHED)` in the node's `start()`, and start the sync node
+  last. A change applied before anyone was collecting is in the database but missing from the
+  in-memory state until the next launch.
+- **Read the session token from `AuthObjectStore`, not from `Feature.Auth`.** The adapter belongs
+  to an Activity or view controller. The session graph outlives both and only needs the cached
+  token.
+- **A test with two devices needs two databases.** A node that looks up `database` (the global
+  slot) at runtime reads whichever database was installed last. Take stores, or the database
+  itself, at construction.
+- **An app on reaktor-auth lists `pod 'GoogleSignIn'` in its own Podfile.** The framework references
+  it but does not carry it, and the iOS link fails with `_OBJC_CLASS_$_GIDSignIn` undefined.
+- **Give each app's Worker its own dev port.** Cairn uses 8787, and a Cairn build on the shared
+  emulator polls it, so a second Worker on 8787 answers someone else's app. Hearth uses 8797.
+- **Node tests in a module that reaches Compose** (through reaktor-auth → reaktor-ui) fail to
+  load `skiko.mjs`. An empty `export const skikoApi = {};` in `src/jsTest/resources/skiko.mjs`
+  satisfies the import (see reaktor-cloudflare).
+
 ## Extending reaktor rather than working around it
 
 When an app needs something reaktor does not have, the default is to add it to reaktor rather
