@@ -404,7 +404,7 @@ to stand Hearth up; this list is the template's specification. Updated as Phase 
 | 9 | `targets/appAndroid/build.gradle.kts` | Verbatim except the application id. |
 | 10 | `targets/appAndroid/src/main/AndroidManifest.xml` | Application class (new for Hearth: the session is built in `Application.onCreate`), the launcher activity. |
 | 11 | `targets/appAndroid/src/main/res/values{,-night}/themes.xml` | NoActionBar theme with the window ground colour — which must match the app's palette by hand (CO9). |
-| 12 | `targets/appDarwin/` | `Podfile`; `regenerate-xcodeproj.rb` (bundle id edited, Lector's sample PDF removed); `iosApp/iOSApp.swift`; `Info.plist` (display name, `UIBackgroundModes`); `Assets.xcassets` with `LaunchBackground` and `AccentColor` colour sets matching the palette. `pod install` needs `LANG=en_US.UTF-8` on this machine. The generator turns simulator signing off (`CODE_SIGNING_ALLOWED = NO`), which stops background `URLSession` working on the simulator (§13). A `new` for an app that downloads should sign simulator builds ad hoc instead. |
+| 12 | `targets/appDarwin/` | `Podfile`; `regenerate-xcodeproj.rb` (bundle id edited, Lector's sample PDF removed); `iosApp/iOSApp.swift`; `Info.plist` (display name, `UIBackgroundModes`); `Assets.xcassets` with `LaunchBackground` and `AccentColor` colour sets matching the palette. `pod install` needs `LANG=en_US.UTF-8` on this machine. An app that depends on reaktor-auth must list `pod 'GoogleSignIn', '8.0.0'` in its own Podfile, because the framework does not carry the pod. The generator turns simulator signing off (`CODE_SIGNING_ALLOWED = NO`), which stops background `URLSession` working on the simulator (§13). A `new` for an app that downloads should sign simulator builds ad hoc instead. |
 | 13 | Entry points | `HearthApplication`, `HearthActivity`, `HearthViewController.kt`: the adapter install order (Dependency, File, Sql, Database, then capabilities), and the `ProcessGraph` pair. |
 | 14 | Design starter | `design/Theme.kt`, `Tokens.kt`, `Motion.kt` (with the house press), `Components.kt`, `Format.kt`, the contrast test, `DESIGN.md` — shape from Lector and GymBuddy, values new. |
 | 15 | First configure | dependeasy clones `hermes` and `flatbuffers` into `.github_modules/` of every new app on its first Gradle run. Nothing in Hearth uses either. |
@@ -559,5 +559,38 @@ and two quick theme changes could be saved out of order.
 
 Still needs a real iPhone: the lock screen, headphone and AirPods commands, and the wake-up hook
 on a signed device build.
+
+**Phase 2 — built, 4 November 2026; not yet run between two devices.**
+
+| Piece | Where | Checked by |
+|---|---|---|
+| `Sync`, `SyncedStore`, `Hlc`, outbox, supervisor, `HttpSyncTransport`, `MemorySyncLog` | reaktor-db `sync/` (`e0a9c829`) | 11 tests on JVM, JS and the iOS simulator. Mutations to the LWW and in-flight checks are caught. |
+| `IdTokenVerifier` (Google and Apple RS256), `D1SyncLog` | reaktor-cloudflare (`0fcae43d`) | 7 JS tests with real RSA keys. Mutations to the audience and signature checks are caught. |
+| `WorkerAuthService`: reaktor-auth's contract from one Worker and D1, plus `Hono.sync` | reaktor-cloudflare (`44c66281`) | `hearth-worker/sync-test.sh`: 18 checks against `wrangler dev` and a local D1 |
+| `hearth-worker` | `hearth@2738cc0` | the same script |
+| App: `SyncNode`, synced History and Follow, the account section | `hearth@a0eff44` | 4 tests: two whole sessions over separate storage and an in-memory server. Settings screenshots on the emulator and simulator. |
+
+How it came out, against §4.5:
+- **No Reaktor auth server is deployed anywhere**, so "JWT verified in the Worker" had nothing to
+  verify. On the free plan the Worker *is* the account system: it verifies the provider's ID token
+  and issues an opaque session token of its own (only its hash is stored), and it speaks
+  `reaktor-auth`'s `AuthService`, so the app uses the stock `AuthAdapter`. Sessions do not expire.
+  Deleting an account is immediate. Accounts are per provider; Google and Apple are not linked.
+- **Following syncs as a `Follow`, not as the `Subscription` row.** That row's ETag, refresh time
+  and counts change on every refresh, on every device, and would have them overwriting each other.
+- **The checkpoint holds in tests, not yet on devices.** Two sessions, pause on one, nudge the
+  other: same position. Running it for real needs sign-in, and sign-in needs the owner:
+  1. Google: OAuth client ids for Hearth (a web client for Android's server id, an iOS client),
+     in `res/values/sign_in.xml`, Info.plist `GIDClientID` and URL scheme, and the Worker's
+     `GOOGLE_CLIENT_IDS`.
+  2. Apple: the Sign in with Apple capability on `ai.hearth.app`. Until then iOS answers error 1000,
+     as it did on the simulator. Android has no Apple sign-in: reaktor-auth's needs a web flow
+     that is not built.
+  3. Deploying: `wrangler d1 create hearth`, the id in `wrangler.jsonc`, `npm run
+     db:migrate:remote`, `npm run deploy`, then the deployed URL as `Hearth.server` for release
+     builds. That creates Cloudflare resources on the owner's account, so it waits for a yes.
+- Known limits: a show followed under two different addresses on two devices before either signed
+  in keeps two episode keys, so positions for it do not meet. Shows followed under another
+  device's address after sign-in are fine.
 
 Related: [app-portfolio.md](app-portfolio.md) · [lector.md](lector.md) · [cairn.md](cairn.md)
