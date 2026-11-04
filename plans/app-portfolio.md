@@ -561,7 +561,7 @@ Status of each idea. Update as work starts; per-app plans go in `plans/<app>.md`
 | 1 | Cairn arc I (transfer) | In progress — two-device runs, release prep in `cairn/RELEASE.md` | — | [cairn.md](cairn.md) |
 | 2 | Cairn arc II (retention) | Not started | arc I ph.0–6 | [cairn.md](cairn.md) |
 | 0.5 | `reaktor-cli new` scaffolding | Not started | Cairn arc I shipping first | — |
-| 3 | Podcast (Hearth) | In progress — plan written 22 Oct 2026; phase 0 (spike) next; stops before phase 2 (sync) | — | [hearth.md](hearth.md) |
+| 3 | Podcast (Hearth) | In progress — phases 0–1 done; phase 2 (sync: account sign-in, Worker + D1 free) built 4 Nov 2026, waiting on OAuth client ids, Sign in with Apple and a yes to deploy | — | [hearth.md](hearth.md) |
 | 4 | Money manager | Not started | Podcast (sync tier 1) | — |
 | 5 | Kitchen ph.1 | Not started | Money (sync tier 2) + second-user confirmation | — |
 | 6 | Steps & health | Not started | — | — |
