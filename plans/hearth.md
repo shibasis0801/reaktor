@@ -589,9 +589,11 @@ How it came out, against §4.5:
   3. Deploying: `wrangler d1 create hearth`, the id in `wrangler.jsonc`, `npm run
      db:migrate:remote`, `npm run deploy`, then the deployed URL as `Hearth.server` for release
      builds. That creates Cloudflare resources on the owner's account, so it waits for a yes.
-- Known limits: a show followed under two different addresses on two devices before either signed
-  in keeps two episode keys, so positions for it do not meet. Shows followed under another
-  device's address after sign-in are fine.
+- Known limit, mostly closed (`hearth@4a0c8ab`). A show followed under two different addresses on
+  two devices used to keep two episode keys, so positions for it never met. Now each device keeps
+  its own address and reads the other's rows as its own, matched by the feed's `podcast:guid`, the
+  newest row winning. Unfollowing removes the show under every address. What is left: a feed with
+  no `podcast:guid` still can't be matched across addresses.
 
 **4 November 2026 — the updated house style.** Hearth was measured against house-style,
 including the new LA10, EX5 and EX6. Every gap except AC4 is fixed (`hearth@121e354`): AC4 needs a

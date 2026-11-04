@@ -512,6 +512,13 @@ and restores the whole database. The server half is `reaktor-cloudflare`'s `D1Sy
   `launch(start = CoroutineStart.UNDISPATCHED)` in the node's `start()`, and start the sync node
   last. A change applied before anyone was collecting is in the database but missing from the
   in-memory state until the next launch.
+- **A key that carries an address diverges across devices; merge on read, don't migrate.** Hearth's
+  episode keys are `feedUrl|guid`. One show followed by search on one phone and by OPML on another
+  has two addresses, so two keys, and positions never meet. Rewriting keys to agree would mean
+  migrating positions, downloads and the queue on every device. Instead, find the same thing by an
+  identity both copies share (the feed's `podcast:guid`), map the other device's address to this
+  one's, and read rows under either as one, newest first (Hearth's `Library.elsewhere`,
+  `History.merged`). Deleting it must delete it under every address.
 - **Read the session token from `AuthObjectStore`, not from `Feature.Auth`.** The adapter belongs
   to an Activity or view controller. The session graph outlives both and only needs the cached
   token.
