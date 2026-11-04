@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.media.speech
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import androidx.activity.ComponentActivity
@@ -13,20 +15,47 @@ import java.util.Locale
  * on older devices speech still works but ranges won't stream, so reading-follow degrades to plain
  * playback. Register with `Feature.SpeechSynthesizer = AndroidSpeechSynthesizer(activity)` and call
  * [shutdown] from the owning lifecycle.
+ *
+ * Every [speak] ends in Done or Error, even when the engine can't help it: a device with no engine, an
+ * engine that refuses the utterance, and one that crashes or hangs on it (reporting nothing at all)
+ * each surface as [SpeechEvent.Error], so a caller is never left waiting on a reading that won't come.
  */
 class AndroidSpeechSynthesizer(
     activity: ComponentActivity,
 ) : SpeechSynthesizer<ComponentActivity>(activity) {
 
     @Volatile private var ready = false
+    @Volatile private var failed = false
     private var rate = 1.0f
     private var voiceId: String? = null
     private var pending: Utterance? = null
 
     private data class Utterance(val text: String, val id: String)
 
+    // The framework calls onStart once audio begins. An engine that crashes on an utterance (Google's
+    // neural voices do, on some emulators) or hangs on it calls nothing, so a start that doesn't come
+    // within START_TIMEOUT_MS is reported as an error instead.
+    private val main = Handler(Looper.getMainLooper())
+    @Volatile private var waiting: Runnable? = null
+
+    private fun watch(utteranceId: String) {
+        unwatch()
+        val check = Runnable {
+            waiting = null
+            emit(SpeechEvent.Error(utteranceId, "TTS engine did not start speaking"))
+        }
+        waiting = check
+        main.postDelayed(check, START_TIMEOUT_MS)
+    }
+
+    private fun unwatch() {
+        waiting?.let(main::removeCallbacks)
+        waiting = null
+    }
+
     private val listener = object : UtteranceProgressListener() {
         override fun onStart(utteranceId: String?) {
+            unwatch()
             emit(SpeechEvent.Started(utteranceId.orEmpty()))
         }
 
@@ -36,15 +65,18 @@ class AndroidSpeechSynthesizer(
         }
 
         override fun onDone(utteranceId: String?) {
+            unwatch()
             emit(SpeechEvent.Done(utteranceId.orEmpty()))
         }
 
         @Deprecated("Deprecated in Java", ReplaceWith(""))
         override fun onError(utteranceId: String?) {
+            unwatch()
             emit(SpeechEvent.Error(utteranceId.orEmpty(), "TTS error"))
         }
 
         override fun onError(utteranceId: String?, errorCode: Int) {
+            unwatch()
             emit(SpeechEvent.Error(utteranceId.orEmpty(), "TTS error code=$errorCode"))
         }
     }
@@ -60,21 +92,34 @@ class AndroidSpeechSynthesizer(
             pending?.let { speak(it.text, it.id) }
             pending = null
         } else {
-            emit(SpeechEvent.Error("", "TTS init failed: status=$status"))
+            failed = true
+            // An utterance buffered while the engine was starting fails with it.
+            val id = pending?.id.orEmpty()
+            pending = null
+            emit(SpeechEvent.Error(id, "TTS init failed: status=$status"))
         }
     }
 
     override fun speak(text: String, utteranceId: String) {
+        if (failed) {
+            emit(SpeechEvent.Error(utteranceId, "TTS engine unavailable"))
+            return
+        }
         if (!ready) {
             // Buffer the one utterance requested before the engine finished initialising.
             pending = Utterance(text, utteranceId)
             return
         }
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, Bundle(), utteranceId)
+        if (tts.speak(text, TextToSpeech.QUEUE_FLUSH, Bundle(), utteranceId) == TextToSpeech.ERROR) {
+            emit(SpeechEvent.Error(utteranceId, "TTS engine refused the utterance"))
+            return
+        }
+        watch(utteranceId)
     }
 
     override fun stop() {
         pending = null
+        unwatch()
         tts.stop()
     }
 
@@ -141,6 +186,7 @@ class AndroidSpeechSynthesizer(
 
     override fun shutdown() {
         pending = null
+        unwatch()
         tts.stop()
         tts.shutdown()
     }
@@ -148,3 +194,7 @@ class AndroidSpeechSynthesizer(
 
 // Not a TextToSpeech.Engine constant: Google's engine sets it on its per-language alias voices.
 private const val LANGUAGE_ALIAS = "legacySetLanguageVoice"
+
+// Long enough for an engine to load a voice it hasn't used yet; short enough that a reader who
+// pressed play isn't left wondering.
+private const val START_TIMEOUT_MS = 6_000L
