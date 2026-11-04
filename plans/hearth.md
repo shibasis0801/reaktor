@@ -311,7 +311,7 @@ Three pieces, each built so tier 2 extends rather than replaces it:
 What syncs in tier 1: playback position and played state per episode, and the subscription set
 (add/remove with tombstones). What does not: the queue, downloads (device-local by nature), settings.
 
-**Decisions that are the owner's, not this plan's (asked before Phase 2):**
+**Decisions that were the owner's (taken 4 November 2026: an account, Worker + D1 free):**
 
 - **Identity.** (a) An account through `reaktor-auth` — Google and Apple sign-in already exist on
   Android, iOS and web, JWT verified in the Worker; recovery is "sign in again". (b) Device pairing
@@ -451,8 +451,8 @@ Where the risk is:
 | 1 | XML reader | own tolerant pull reader / xmlutil / platform / Ksoup | **taken: own reader in `reaktor-io`** (§4.4, §13) | Phase 0 |
 | 2 | Android downloads | DownloadManager / WorkManager + Ktor ranges | DownloadManager | Phase 1 |
 | 3 | Skip intervals | 15/30, 10/30, configurable | 15 back, 30 forward, configurable in Phase 1 | Phase 0 |
-| 4 | Sync identity | `reaktor-auth` account / Cairn-style pairing | **none — the owner decides** | Phase 2 |
-| 5 | Sync infrastructure | Worker + D1 (free) / + Durable Object (paid plan) | **none — the owner decides** | Phase 2 |
+| 4 | Sync identity | `reaktor-auth` account / Cairn-style pairing | **taken: `reaktor-auth` account** (owner, 4 Nov 2026) | Phase 2 |
+| 5 | Sync infrastructure | Worker + D1 (free) / + Durable Object (paid plan) | **taken: Worker + D1, free plan** (owner, 4 Nov 2026) | Phase 2 |
 | 6 | Name | Hearth / other | rename before store listing; bare "Hearth" is likely taken | before Phase 1 ships |
 
 ---
@@ -544,7 +544,20 @@ and Share for the OPML export, were not tried.
 App icon: proposed, `hearth@42e187e`. It is on both launchers: the Android adaptive icon (also the
 themed icon) and the iOS 1024 px icon.
 
-Still to do before the gate: a real-device run on an iPhone covering the lock screen, headphone
-commands, background downloads and the URLSession wake-up hook. Then stop for decisions 4 and 5.
+**4 November 2026 — the gate.** The owner chose:
+- decision 4, a `reaktor-auth` account;
+- decision 5, Worker + D1 on the free plan;
+- ad hoc signing for simulator builds;
+- approval of the identity in DESIGN.md.
+
+With simulator builds signed (`hearth@38a9e39`), background downloads work on the simulator. A
+163 MB episode finished while the app was in the background. A second (219 MB) finished after the
+app was killed: the system relaunched Hearth, which took the pending events, and the completion
+handler released the session's assertion. Both played from the local file. The walk-through also
+found settings lost on restart, which is now fixed (`hearth@647fbbb`). Speed came back as 1.0×,
+and two quick theme changes could be saved out of order.
+
+Still needs a real iPhone: the lock screen, headphone and AirPods commands, and the wake-up hook
+on a signed device build.
 
 Related: [app-portfolio.md](app-portfolio.md) · [lector.md](lector.md) · [cairn.md](cairn.md)
