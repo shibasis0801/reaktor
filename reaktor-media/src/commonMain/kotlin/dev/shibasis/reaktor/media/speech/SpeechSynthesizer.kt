@@ -23,11 +23,16 @@ data class SpokenRange(
  * A voice the engine can speak with, for a voice picker. [id] is the engine's own identifier (an
  * Android `Voice.name` or an iOS `AVSpeechSynthesisVoice.identifier`), passed back to
  * [SpeechSynthesizer.setVoice]; [name] and [language] (a BCP-47 tag like "en-US") are for display.
+ *
+ * [needsNetwork] marks a voice the engine synthesises on a server: the text being read is sent off
+ * the device, and the voice fails without a connection. Android engines list these beside on-device
+ * copies of the same speaker, under the same [name]; iOS voices are all on the device.
  */
 data class Voice(
     val id: String,
     val name: String,
     val language: String,
+    val needsNetwork: Boolean = false,
 )
 
 /** Lifecycle of one spoken utterance, streamed on [SpeechSynthesizer.events]. */

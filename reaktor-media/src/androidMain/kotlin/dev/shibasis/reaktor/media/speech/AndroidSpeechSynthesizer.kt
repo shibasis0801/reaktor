@@ -88,15 +88,40 @@ class AndroidSpeechSynthesizer(
         val voices = tts.voices ?: return emptyList()
         return voices
             .filterNot { it.features?.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) == true }
-            .map { v ->
-                val loc = v.locale
-                val display = buildString {
-                    append(loc.displayLanguage)
-                    if (loc.displayCountry.isNotBlank()) append(" (").append(loc.displayCountry).append(')')
-                }.ifBlank { v.name }
-                Voice(id = v.name, name = display, language = loc.toLanguageTag())
+            .groupBy { languageName(it.locale).ifBlank { it.name } }
+            .toSortedMap()
+            .flatMap { (language, inLanguage) ->
+                // Google's "en-US-language" is an alias for the language's default speaker, listed
+                // beside the speakers themselves; keep it only when it is all a language has.
+                val speakers = inLanguage.filterNot { it.features?.contains(LANGUAGE_ALIAS) == true }
+                numbered(language, speakers.ifEmpty { inLanguage })
             }
-            .sortedBy { it.name }
+    }
+
+    // Engines name voices only by their locale, so every voice in a language would read "English
+    // (United States)". Number the speakers instead. Google lists each speaker twice, on the device
+    // and on its server ("en-us-x-iob-local", "en-us-x-iob-network"): one speaker, so one number,
+    // told apart by needsNetwork, with the on-device copy first.
+    private fun numbered(language: String, voices: List<android.speech.tts.Voice>): List<Voice> {
+        val speakers = voices.map { speaker(it.name) }.distinct().sorted()
+        return voices
+            .sortedWith(compareBy({ speakers.indexOf(speaker(it.name)) }, { it.isNetworkConnectionRequired }))
+            .map { v ->
+                val number = speakers.indexOf(speaker(v.name)) + 1
+                Voice(
+                    id = v.name,
+                    name = if (speakers.size == 1) language else "$language · Voice $number",
+                    language = v.locale.toLanguageTag(),
+                    needsNetwork = v.isNetworkConnectionRequired,
+                )
+            }
+    }
+
+    private fun speaker(voiceName: String) = voiceName.removeSuffix("-local").removeSuffix("-network")
+
+    private fun languageName(locale: Locale) = buildString {
+        append(locale.displayLanguage)
+        if (locale.displayCountry.isNotBlank()) append(" (").append(locale.displayCountry).append(')')
     }
 
     override fun setVoice(id: String?) {
@@ -120,3 +145,6 @@ class AndroidSpeechSynthesizer(
         tts.shutdown()
     }
 }
+
+// Not a TextToSpeech.Engine constant: Google's engine sets it on its per-language alias voices.
+private const val LANGUAGE_ALIAS = "legacySetLanguageVoice"
