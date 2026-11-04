@@ -609,4 +609,17 @@ person with TalkBack and VoiceOver. The fixes:
 The report is `hearth/docs/house-style-audit.md`. Checked on the Android emulator at font scale 2.0,
 with animations removed, and on the iOS simulator. Not checked: the embers on a real phone.
 
+**Phase 3 — started 4 November 2026: chapters built; the rest not started.** The owner picked
+chapters first (`hearth@4fd4387`, `hearth@8a81460`).
+- **Both forms:** Podcasting 2.0 JSON files (fetched, kept for offline) and Podlove chapters written
+  into the feed.
+- **On screen:** a list on the episode screen, and in the player the chapter you're in plus
+  previous/next buttons.
+- **Checked:** five tests; a real chaptered feed on the Android emulator and the iOS simulator.
+- **Already-followed shows:** read in full once more (`Feeds.READER`), so they gain chapters.
+- **Not done:** chapter artwork and links (parsed, not shown); chapters on the lock screen; ID3
+  `CHAP` frames inside MP3 files.
+- **Still to do in Phase 3:** browsing from Android Auto, CarPlay (needs an Apple entitlement), and
+  the desktop and web apps.
+
 Related: [app-portfolio.md](app-portfolio.md) · [lector.md](lector.md) · [cairn.md](cairn.md)
