@@ -188,7 +188,7 @@ private suspend fun cacheApiWrite(key: String, text: String, ttlSeconds: Int) {
     runCatching { cachePut(key, text, ttlSeconds).await() }
 }
 
-// --- JS interop helpers (kept file-private; single-line js() literals reference locals by name) ---
+// --- JS interop helpers, shared with IdTokenVerifier (single-line js() literals reference locals by name) ---
 
 private fun cacheMatch(key: String): Promise<dynamic> =
     js("(typeof caches==='undefined'||!caches.default)?Promise.resolve(null):caches.default.match(new Request(key))").unsafeCast<Promise<dynamic>>()
@@ -200,7 +200,7 @@ private fun nowMillis(): Double = js("Date.now()") as Double
 
 private fun parseOrNull(text: String): dynamic = runCatching { parseJson(text) }.getOrNull()
 
-private fun selectKey(jwks: dynamic, kid: String?): dynamic {
+internal fun selectKey(jwks: dynamic, kid: String?): dynamic {
     if (jwks == null) return null
     val keys = jwks.keys
     if (!(js("Array.isArray(keys)") as Boolean)) return null
@@ -214,29 +214,29 @@ private fun selectKey(jwks: dynamic, kid: String?): dynamic {
     return if (kid != null && length == 1) keys[0] else null
 }
 
-private fun nowSeconds(): Double = (js("Date.now()") as Double) / 1000.0
+internal fun nowSeconds(): Double = (js("Date.now()") as Double) / 1000.0
 
-private fun parseJson(text: String): dynamic = js("JSON.parse(text)")
+internal fun parseJson(text: String): dynamic = js("JSON.parse(text)")
 
-private fun encodeUtf8(s: String): dynamic = js("new TextEncoder().encode(s)")
+internal fun encodeUtf8(s: String): dynamic = js("new TextEncoder().encode(s)")
 
-private fun base64UrlToBytes(b64url: String): dynamic =
+internal fun base64UrlToBytes(b64url: String): dynamic =
     js("(function(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var b=atob(s);var n=b.length;var a=new Uint8Array(n);for(var i=0;i<n;i++)a[i]=b.charCodeAt(i);return a;})(b64url)")
 
-private fun decodeJwtSegment(seg: String): dynamic =
+internal fun decodeJwtSegment(seg: String): dynamic =
     js("(function(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var b=atob(s);var n=b.length;var a=new Uint8Array(n);for(var i=0;i<n;i++)a[i]=b.charCodeAt(i);return JSON.parse(new TextDecoder().decode(a));})(seg)")
 
 private fun verifyEs256(jwk: dynamic, signature: dynamic, data: dynamic): Promise<Boolean> =
     js("crypto.subtle.importKey('jwk',jwk,{name:'ECDSA',namedCurve:'P-256'},false,['verify']).then(function(k){return crypto.subtle.verify({name:'ECDSA',hash:{name:'SHA-256'}},k,signature,data);})")
         .unsafeCast<Promise<Boolean>>()
 
-private fun dynString(value: dynamic): String? =
+internal fun dynString(value: dynamic): String? =
     if (jsTypeOf(value) == "string") value.unsafeCast<String>() else null
 
-private fun dynNumber(value: dynamic): Double? =
+internal fun dynNumber(value: dynamic): Double? =
     if (jsTypeOf(value) == "number") value.unsafeCast<Double>() else null
 
-private fun dynStringList(value: dynamic): List<String> {
+internal fun dynStringList(value: dynamic): List<String> {
     if (jsTypeOf(value) == "string") return listOf(value.unsafeCast<String>())
     if (!(js("Array.isArray(value)") as Boolean)) return emptyList()
     val length = value.length as Int
