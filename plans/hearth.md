@@ -593,4 +593,18 @@ How it came out, against §4.5:
   in keeps two episode keys, so positions for it do not meet. Shows followed under another
   device's address after sign-in are fine.
 
+**4 November 2026 — the updated house style.** Hearth was measured against house-style,
+including the new LA10, EX5 and EX6. Every gap except AC4 is fixed (`hearth@121e354`): AC4 needs a
+person with TalkBack and VoiceOver. The fixes:
+- undo for removing a download;
+- un-marking a played episode keeps the place;
+- drafts that survive the process being killed;
+- "Check now" and "checked … ago" beside pull to refresh;
+- an OPML preview before anything is followed;
+- three contrast pairs raised to 3:1;
+- the approved tuning dial and embers, built.
+
+The report is `hearth/docs/house-style-audit.md`. Checked on the Android emulator at font scale 2.0,
+with animations removed, and on the iOS simulator. Not checked: the embers on a real phone.
+
 Related: [app-portfolio.md](app-portfolio.md) · [lector.md](lector.md) · [cairn.md](cairn.md)
